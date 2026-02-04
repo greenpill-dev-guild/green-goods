@@ -1,3 +1,8 @@
+---
+name: plan
+description: Planning & Execution - create plans, check progress, execute in batches. Use for implementation planning.
+---
+
 # Plan Skill
 
 Planning lifecycle for Green Goods: create plans, check progress, execute in batches.

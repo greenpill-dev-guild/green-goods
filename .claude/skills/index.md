@@ -27,7 +27,7 @@ Use these when writing code:
 | **testing** | "write tests", "TDD", "unit test", "e2e test" | Vitest unit tests, Playwright E2E, TDD workflow (RED→GREEN→REFACTOR) |
 | **react** | "React component", "state management", "hooks", "performance" | State patterns (Zustand, Query), composition, re-render optimization |
 | **tanstack-query** | "data fetching", "query", "mutation", "cache" | Server state, queryKeys, mutations, optimistic updates |
-| **errors** | "error handling", "try/catch", "error boundary" | Error boundaries, Result types, retry patterns, toast service |
+| **error-handling-patterns** | "error handling", "try/catch", "error boundary" | Error boundaries, Result types, retry patterns, toast service |
 | **vite** | "build config", "bundle", "env vars", "plugins" | Vite 6.x configuration, environment variables, optimization |
 
 ---
@@ -39,7 +39,7 @@ Use these for frontend work:
 | Skill | Invoke With | Use For |
 |-------|-------------|---------|
 | **ui-compliance** | "accessibility", "a11y", "responsive", "forms", "WCAG" | Accessibility (WCAG 2.1 AA), forms, responsive design, animation |
-| **diagrams** | "diagram", "flowchart", "mermaid", "architecture diagram" | Mermaid diagrams for documentation and code reviews |
+| **mermaid-diagrams** | "diagram", "flowchart", "mermaid", "architecture diagram" | Mermaid diagrams for documentation and code reviews |
 
 ---
 
@@ -81,11 +81,11 @@ What do you need?
 ├─► Write tests? ─────────────► testing skill
 ├─► React work? ──────────────► react skill
 ├─► Data fetching? ───────────► tanstack-query skill
-├─► Error handling? ──────────► errors skill
+├─► Error handling? ──────────► error-handling-patterns skill
 ├─► Build/config? ────────────► vite skill
 │
 ├─► Accessibility/UI? ────────► ui-compliance skill
-├─► Create diagram? ──────────► diagrams skill
+├─► Create diagram? ──────────► mermaid-diagrams skill
 ├─► Architecture decision? ───► architecture skill
 │
 └─► Simple change? ───────────► Direct Claude (no skill needed)
@@ -109,7 +109,7 @@ What do you need?
 
 **Bug Fix:**
 ```
-/debug → errors (if error handling) → testing (regression test)
+/debug → error-handling-patterns (if error handling) → testing (regression test)
 ```
 
 **Code Quality:**

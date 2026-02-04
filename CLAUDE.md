@@ -600,14 +600,22 @@ See [.claude/skills/index.md](.claude/skills/index.md) for quick reference with 
 
 ### MCP Servers (6)
 
-| Server | Purpose |
-|--------|---------|
-| `figma` | Design context extraction |
-| `vercel` | Deployment management |
-| `miro` | Whiteboard collaboration |
-| `railway` | Railway deployment |
-| `foundry` | Contract development (forge, cast, anvil) |
-| `storacha` | IPFS/Filecoin storage |
+> **Full workflows:** See [Claude MCP Workflows](docs/docs/developer/claude-mcp-workflows.md) for detailed integration patterns.
+
+| Server | Type | Status | Purpose |
+|--------|------|--------|---------|
+| `figma` | Remote URL | **Active** | Design context extraction, Code Connect |
+| `vercel` | Remote URL | **Active** | Deployment management, logs |
+| `foundry` | Local tools | **Active** | Contract dev (forge v1.3.5, cast, anvil) |
+| `storacha` | Local npx | Configured | IPFS/Filecoin media storage |
+| `miro` | Remote URL | Available | Architecture diagrams, planning |
+| `railway` | Local npx | Available | Indexer deployment, databases |
+
+**Quick Invocation:**
+- Design: Provide Figma URL → auto-extracts context
+- Deploy: `/vercel:deploy`, `/vercel:logs`
+- Contracts: "Compile contracts", "Run tests", "Check balance"
+- Storage: "Upload to IPFS"
 
 ### Hooks (Convention Enforcement)
 
