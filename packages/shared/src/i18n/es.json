@@ -790,5 +790,19 @@
   "app.errors.validation": "Verifica tu entrada.",
   "app.errors.permission": "No tienes permiso para esta acción.",
   "app.errors.storage": "El almacenamiento IPFS no está disponible. Verifica la configuración.",
-  "app.errors.unknown": "Ocurrió un error inesperado."
+  "app.errors.unknown": "Ocurrió un error inesperado.",
+  "app.landing.header.socialLink": "Visita nuestro {platform}",
+  "app.submission.overallProgress": "Progreso general del envío: {percent}%{stageSuffix}",
+  "app.submission.errorSuffix": " - Error",
+  "app.submission.status.inProgress": "en progreso",
+  "app.submission.status.completed": "completado",
+  "app.submission.status.pending": "pendiente",
+  "app.submission.status.error": "error",
+  "app.submission.stage.compressing": "Comprimiendo",
+  "app.submission.stage.uploading": "Subiendo",
+  "app.submission.stage.confirming": "Confirmando",
+  "app.submission.stage.syncing": "Sincronizando",
+  "app.submission.stage.idle": "Listo",
+  "app.submission.stage.complete": "Completado",
+  "app.submission.stage.error": "Error"
 }

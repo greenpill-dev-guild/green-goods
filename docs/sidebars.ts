@@ -170,8 +170,9 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Automation',
+      label: 'AI-Assisted Development',
       items: [
+        'developer/claude-mcp-workflows',
         'developer/cursor-workflows',
         'developer/n8n-automation',
         'developer/n8n-story-workflow',

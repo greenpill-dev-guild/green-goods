@@ -238,12 +238,12 @@ Rejected: 5
 Rate: 90%
 ```
 
-**High approval rate (>80%)** indicates:
+**High approval rate (&gt;80%)** indicates:
 - Quality documentation
 - Understanding of standards
 - Reliable contributor
 
-**Low approval rate (<50%)** suggests:
+**Low approval rate (&lt;50%)** suggests:
 - Review feedback carefully
 - Improve photo quality
 - More accurate metrics

@@ -790,5 +790,19 @@
   "app.errors.validation": "Please check your input.",
   "app.errors.permission": "You don't have permission for this action.",
   "app.errors.storage": "IPFS storage is not available. Please check the configuration.",
-  "app.errors.unknown": "An unexpected error occurred."
+  "app.errors.unknown": "An unexpected error occurred.",
+  "app.landing.header.socialLink": "Visit our {platform}",
+  "app.submission.overallProgress": "Overall submission progress: {percent}%{stageSuffix}",
+  "app.submission.errorSuffix": " - Error",
+  "app.submission.status.inProgress": "in progress",
+  "app.submission.status.completed": "complete",
+  "app.submission.status.pending": "pending",
+  "app.submission.status.error": "error",
+  "app.submission.stage.compressing": "Compressing",
+  "app.submission.stage.uploading": "Uploading",
+  "app.submission.stage.confirming": "Confirming",
+  "app.submission.stage.syncing": "Syncing",
+  "app.submission.stage.idle": "Ready",
+  "app.submission.stage.complete": "Complete",
+  "app.submission.stage.error": "Error"
 }
