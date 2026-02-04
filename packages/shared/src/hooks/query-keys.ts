@@ -25,6 +25,9 @@ export const STALE_TIME_RARE = 300_000; // 5 minutes
 export const DEFAULT_RETRY_COUNT = 3;
 export const DEFAULT_RETRY_DELAY = 1000; // 1 second
 
+/** Delay for follow-up query invalidation to handle indexer lag */
+export const INDEXER_LAG_FOLLOWUP_MS = 2000 as const;
+
 // Base query key factory
 export const queryKeys = {
   // Top-level key for all Green Goods queries
@@ -105,6 +108,17 @@ export const queryKeys = {
   actions: {
     all: ["greengoods", "actions"] as const,
     byChain: (chainId: number) => ["greengoods", "actions", chainId] as const,
+  },
+
+  // Assessment related keys
+  assessments: {
+    all: ["greengoods", "assessments"] as const,
+    /** Base key for garden assessments - use for prefix-based invalidation */
+    byGardenBase: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "assessments", "byGarden", gardenAddress, chainId] as const,
+    /** Full key with limit - use for specific queries */
+    byGarden: (gardenAddress: string, chainId: number, limit?: number) =>
+      ["greengoods", "assessments", "byGarden", gardenAddress, chainId, limit] as const,
   },
 
   // Gardener related keys
@@ -245,6 +259,14 @@ export const queryInvalidation = {
     }
     return [queryKeys.ens.all];
   },
+
+  // Invalidate assessments (uses byGardenBase for prefix matching regardless of limit)
+  invalidateAssessments: (gardenAddress?: string, chainId?: number) => {
+    if (gardenAddress && chainId) {
+      return [queryKeys.assessments.byGardenBase(gardenAddress, chainId)];
+    }
+    return [queryKeys.assessments.all];
+  },
 };
 
 // Type-safe query key helpers
@@ -270,7 +292,9 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.hypercerts.attestations>
   | ReturnType<typeof queryKeys.hypercerts.list>
   | ReturnType<typeof queryKeys.hypercerts.detail>
-  | ReturnType<typeof queryKeys.hypercerts.drafts>;
+  | ReturnType<typeof queryKeys.hypercerts.drafts>
+  | typeof queryKeys.assessments.all
+  | ReturnType<typeof queryKeys.assessments.byGarden>;
 
 export type WorksQueryKey =
   | typeof queryKeys.works.all

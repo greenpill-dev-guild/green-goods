@@ -6,6 +6,11 @@
 export { useEventListener, useWindowEvent, useDocumentEvent } from "./utils/useEventListener";
 export { useTimeout, useDelayedInvalidation } from "./utils/useTimeout";
 export { useAsyncEffect, useAsyncSetup } from "./utils/useAsyncEffect";
+export type {
+  UseCopyToClipboardOptions,
+  UseCopyToClipboardReturn,
+} from "./utils/useCopyToClipboard";
+export { useCopyToClipboard } from "./utils/useCopyToClipboard";
 
 // ============================================================================
 // ACTION
@@ -195,6 +200,7 @@ export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
 export { useDrafts } from "./work/useDrafts";
 export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
 export { useWorkApproval } from "./work/useWorkApproval";
+export { useBatchWorkApproval } from "./work/useBatchWorkApproval";
 export type { EnhancedWorkApproval } from "./work/useWorkApprovals";
 export { useWorkApprovals } from "./work/useWorkApprovals";
 export type { WorkFormData } from "./work/useWorkForm";
@@ -208,3 +214,11 @@ export {
   useQueueStatistics,
   useWorks,
 } from "./work/useWorks";
+export type {
+  SubmissionProgressState,
+  SubmissionStage,
+  UseSubmissionProgressReturn,
+} from "./work/useSubmissionProgress";
+export { useSubmissionProgress } from "./work/useSubmissionProgress";
+export type { UseWorkMutationWithProgressReturn } from "./work/useWorkMutationWithProgress";
+export { useWorkMutationWithProgress } from "./work/useWorkMutationWithProgress";

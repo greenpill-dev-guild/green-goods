@@ -10,3 +10,4 @@
 export { useEventListener, useWindowEvent, useDocumentEvent } from "./useEventListener";
 export { useTimeout, useDelayedInvalidation } from "./useTimeout";
 export { useAsyncEffect, useAsyncSetup } from "./useAsyncEffect";
+export { useCopyToClipboard } from "./useCopyToClipboard";
