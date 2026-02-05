@@ -102,10 +102,10 @@ What do you need?
 
 **UI Implementation:**
 ```
-/plan (from Figma design) → react → ui-compliance
+/plan (from design specs) → react → ui-compliance
 ```
 
-> **Note:** For Figma-to-code workflows, use the Figma MCP server tools (`mcp__figma__get_design_context`) to extract design context before implementing.
+> **Note:** Request design specs directly from the user. The Figma MCP server was removed for security reasons (prompt injection risk from external data).
 
 **Bug Fix:**
 ```

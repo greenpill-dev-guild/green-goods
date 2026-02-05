@@ -26,10 +26,10 @@ Elite code implementation specialist for complex technical problems.
 | Server | Purpose |
 |--------|---------|
 | foundry | Contract development (forge, cast, anvil) |
-| figma | Design implementation context |
-| vercel | Deployment management |
 | storacha | IPFS uploads for work media |
 | railway | Railway deployment for indexer/services |
+
+> **Security Note:** Figma and Vercel MCP servers were removed due to prompt injection risks from external data flowing into agent context without sanitization. Use manual design review and CLI-based deployments instead.
 
 ## Configuration
 
@@ -113,7 +113,7 @@ See `.claude/skills/` for full guidelines.
 ### GATHER
 1. Understand the problem completely
 2. Read relevant code (check neighboring files for patterns)
-3. **For UI work**: Check if Figma designs exist, review brand guidelines
+3. **For UI work**: Ask user for design specs/screenshots, review brand guidelines
 4. Identify constraints
 5. Map dependencies
 
@@ -228,13 +228,13 @@ After 3 failed attempts:
 
 ## Deployment (When Requested)
 
-Use MCP servers for deployment:
+Use MCP servers and CLI tools for deployment:
 
-| Target | MCP Server | Commands |
-|--------|------------|----------|
-| Contracts | foundry | `forge build`, `forge test`, `bun deploy:testnet` |
-| Apps | vercel | `vercel:deploy` skill, preview first |
-| Indexer | railway | `railway:deploy` skill |
+| Target | Method | Commands |
+|--------|--------|----------|
+| Contracts | foundry MCP | `forge build`, `forge test`, `bun deploy:testnet` |
+| Apps | Vercel CLI | `vercel` (manual CLI, not MCP) |
+| Indexer | railway MCP | Deploy via Railway |
 
 **Deployment Order** (when multiple):
 1. Contracts (if changed) → Update ABIs
@@ -273,7 +273,7 @@ When implementing UI, combine **aesthetic intentionality** with **brand consiste
 Before coding any UI component:
 
 1. **Purpose**: What problem does this interface solve? Who uses it?
-2. **Figma Check**: "Do Figma designs exist for this?" If yes → use `figma:implement-design`
+2. **Design Check**: "Do designs exist for this?" If yes → request specs from user manually
 3. **Pattern Match**: Find existing similar components (GardenCard, WorkCard, etc.)
 4. **Tone**: Green Goods = conservation/nature. Unified aesthetic across client & admin
 5. **Consistency**: Always follow existing patterns. Never deviate without explicit user approval
@@ -481,12 +481,14 @@ export const AllVariants: Story = {
 
 When implementing UI components:
 
-### 1. Check for Figma Designs First
+### 1. Check for Existing Designs First
 
 Before implementing new UI components, always ask or check:
-- "Do Figma designs exist for this feature?"
-- If yes: Use `figma:implement-design` skill to extract design context
+- "Do designs exist for this feature?"
+- If yes: Request the user share design specs or screenshots manually
 - If no: Follow existing patterns and Material Design principles
+
+> **Note:** The Figma MCP server was removed for security reasons. Request design specs directly from users instead of auto-extracting from Figma.
 
 ### 2. Follow Existing Patterns
 

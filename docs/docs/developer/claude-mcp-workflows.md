@@ -6,122 +6,24 @@ This guide documents how to use Claude Code with MCP (Model Context Protocol) in
 
 | Server | Type | Status | Authentication |
 |--------|------|--------|----------------|
-| **Figma** | Remote URL | Active | Greenpill Dev Guild (Pro) |
-| **Vercel** | Remote URL | Active | CLI authenticated |
 | **Foundry** | Local Tools | Active | forge v1.3.5-stable |
 | **Storacha** | Local npx | Requires Config | Needs env vars |
 | **Miro** | Remote URL | Available | On-demand auth |
 | **Railway** | Local npx | Available | On-demand auth |
 
+> **Security Note:** Figma and Vercel MCP servers were removed due to prompt injection risks. External data from these services could flow into agent context without sanitization. Use manual design review and CLI-based deployments (`vercel` CLI) instead.
+
 ### Known Issues
 
 **Local npx servers (Storacha, Railway):** The project's npm overrides for React 19 can cause conflicts when spawning npx-based MCP servers from within the project directory. Workarounds:
 
-1. Use the Vercel/Figma skills which use remote URLs
-2. For Foundry, use direct `forge`/`cast`/`anvil` commands (they work perfectly)
-3. For Railway/Storacha, authenticate the CLIs globally
+1. For Foundry, use direct `forge`/`cast`/`anvil` commands (they work perfectly)
+2. For Railway/Storacha, authenticate the CLIs globally
+3. For deployments, use `vercel` CLI directly
 
 ---
 
 ## Server-by-Server Workflows
-
-### Figma MCP (Design-to-Code)
-
-**Purpose:** Extract design context, generate UI code, manage Code Connect mappings.
-
-**Available Tools:**
-
-| Tool | Purpose | Invocation |
-|------|---------|------------|
-| `get_design_context` | Extract UI specs + code | Provide Figma URL |
-| `get_screenshot` | Capture node images | "Screenshot this Figma node" |
-| `get_metadata` | Get node structure | "Show structure of this design" |
-| `get_variable_defs` | Extract design tokens | "Get design variables" |
-| `add_code_connect_map` | Link Figma → code | "Connect this component" |
-| `generate_diagram` | Create FigJam diagrams | "Create flowchart" |
-| `whoami` | Check authentication | "Check Figma auth" |
-
-**Workflow: Implement Design from Figma**
-
-```
-1. Copy Figma URL: https://figma.com/design/ABC123/File?node-id=1-2
-2. Request implementation:
-   "Implement this Figma design: [URL]
-    - Use @green-goods/shared components
-    - Follow our design tokens
-    - Add data-testid for e2e"
-3. Claude extracts design context via MCP
-4. Generates React component matching specs
-5. Downloads referenced assets
-```
-
-**Workflow: Set Up Code Connect**
-
-```
-After implementing a component that matches a Figma design:
-
-"Connect the Button component at packages/shared/src/components/Button.tsx
- to Figma node 1:234 in file ABC123"
-
-Claude uses add_code_connect_map to create the mapping.
-Future designs referencing that Figma component will auto-suggest your code.
-```
-
-**Best Practices:**
-
-- Structure Figma files with clear component hierarchy
-- Name Figma layers semantically (matches easier)
-- Set up Code Connect for design system components early
-- Use variable definitions for consistent theming
-
----
-
-### Vercel MCP (Deployment)
-
-**Purpose:** Deploy applications, view logs, manage environments.
-
-**Invocation Methods:**
-
-| Method | Command | Use Case |
-|--------|---------|----------|
-| Skill | `/vercel:deploy` | Quick deploy |
-| Skill | `/vercel:logs` | Check deployment |
-| Skill | `/vercel:setup` | Initial config |
-| Direct | "Deploy to Vercel" | Conversational |
-
-**Workflow: Deploy After PR Merge**
-
-```bash
-# 1. Validate locally
-bun format && bun lint && bun test && bun build
-
-# 2. Deploy via Claude
-"Deploy the client to Vercel production"
-
-# 3. Monitor
-"/vercel:logs"
-```
-
-**Workflow: Preview Deployments**
-
-```
-"Deploy a preview of the current branch to Vercel"
-
-Claude will:
-1. Check current branch status
-2. Create preview deployment
-3. Return preview URL for testing
-```
-
-**Environment Variables:**
-
-Vercel environments are managed separately. For new env vars:
-
-```
-"Add VITE_NEW_KEY to Vercel environment for client"
-```
-
----
 
 ### Foundry MCP (Smart Contracts)
 
@@ -269,8 +171,8 @@ Claude retrieves recent logs for debugging.
 ### Full-Stack Feature Implementation
 
 ```
-1. Design Phase (Figma MCP)
-   "Get design context for: [Figma URL]"
+1. Design Phase (Manual)
+   Request design specs from user (screenshots, specifications)
 
 2. Plan Phase
    "/plan"
@@ -280,14 +182,14 @@ Claude retrieves recent logs for debugging.
    "Add WorkBatch struct to GardenToken"
    "Run contract tests"
 
-4. Frontend Work (Figma MCP)
-   "Implement the work submission form from the design"
+4. Frontend Work
+   "Implement the work submission form from the design specs"
 
 5. Testing
    "bun test && bun test:e2e:smoke"
 
-6. Deploy (Vercel + Railway MCP)
-   "/vercel:deploy"
+6. Deploy (CLI + Railway MCP)
+   Use `vercel` CLI for frontend deploys
    "Deploy indexer updates to Railway"
 ```
 
@@ -332,43 +234,27 @@ Claude Support:
 
 Different Claude agents have access to different MCP servers:
 
-| Agent | Figma | Vercel | Foundry | Storacha | Miro | Railway |
-|-------|-------|--------|---------|----------|------|---------|
-| **cracked-coder** | ✓ | ✓ | ✓ | ✓ | - | ✓ |
-| **oracle** | ✓ | ✓ | - | - | ✓ | - |
-| **code-reviewer** | - | - | - | - | - | - |
+| Agent | Foundry | Storacha | Miro | Railway |
+|-------|---------|----------|------|---------|
+| **cracked-coder** | ✓ | ✓ | - | ✓ |
+| **oracle** | - | - | ✓ | - |
+| **code-reviewer** | - | - | - | - |
 
 **Usage:**
 
 ```
-"Use cracked-coder to implement the work history page from Figma"
-→ Has access to Figma (design) + Vercel (deploy) + Foundry (contracts)
+"Use cracked-coder to implement the work history page"
+→ Has access to Foundry (contracts) + Storacha (IPFS) + Railway (services)
 
-"Ask oracle about the current deployment architecture"
-→ Has access to Vercel (deployment info) + Miro (diagrams)
+"Ask oracle about the architecture"
+→ Has access to Miro (diagrams)
 ```
+
+> **Note:** Figma and Vercel access was removed for security reasons. Request design specs manually and use `vercel` CLI for deployments.
 
 ---
 
 ## Quick Reference
-
-### Figma
-
-```
-"Implement this Figma: [URL]"
-"Get screenshot of Figma node 1:234"
-"Connect Button component to Figma"
-"Check my Figma authentication"
-```
-
-### Vercel
-
-```
-/vercel:deploy
-/vercel:logs
-/vercel:setup
-"Deploy preview to Vercel"
-```
 
 ### Foundry
 
@@ -407,12 +293,6 @@ Different Claude agents have access to different MCP servers:
 
 ## Troubleshooting
 
-### Figma Not Responding
-
-1. Check authentication: "Check Figma auth"
-2. Verify URL format: `https://figma.com/design/:fileKey/:fileName?node-id=:nodeId`
-3. Check file permissions in Figma
-
 ### Foundry Commands Failing
 
 1. Ensure forge is installed: `forge --version`
@@ -425,9 +305,9 @@ Different Claude agents have access to different MCP servers:
 2. Check network connectivity
 3. Verify Storacha proof hasn't expired
 
-### Vercel Deploy Issues
+### Vercel Deploy Issues (CLI)
 
-1. Run `/vercel:logs` to check errors
+1. Use `vercel logs` CLI command to check errors
 2. Ensure build passes locally: `bun build`
 3. Check environment variables in Vercel dashboard
 

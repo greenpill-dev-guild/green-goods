@@ -27,9 +27,9 @@ Deep research agent for comprehensive multi-source investigation.
 
 | Server | Purpose |
 |--------|---------|
-| figma | Design research and component discovery |
-| vercel | Deployment logs and environment research |
 | miro | Architecture diagrams and planning research |
+
+> **Security Note:** Figma and Vercel MCP servers were removed due to prompt injection risks from external data flowing into agent context without sanitization.
 
 ## Configuration
 

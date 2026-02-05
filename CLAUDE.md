@@ -598,24 +598,23 @@ See [.claude/skills/index.md](.claude/skills/index.md) for quick reference with 
    - Plan file = source of truth across sessions
    - Update plan as work progresses
 
-### MCP Servers (6)
+### MCP Servers (4)
 
 > **Full workflows:** See [Claude MCP Workflows](docs/docs/developer/claude-mcp-workflows.md) for detailed integration patterns.
 
 | Server | Type | Status | Purpose |
 |--------|------|--------|---------|
-| `figma` | Remote URL | **Active** | Design context extraction, Code Connect |
-| `vercel` | Remote URL | **Active** | Deployment management, logs |
 | `foundry` | Local tools | **Active** | Contract dev (forge v1.3.5, cast, anvil) |
 | `storacha` | Local npx | Configured | IPFS/Filecoin media storage |
 | `miro` | Remote URL | Available | Architecture diagrams, planning |
 | `railway` | Local npx | Available | Indexer deployment, databases |
 
+> **Security Note:** Figma and Vercel MCP servers were removed due to prompt injection risks. External data from these services could flow into agent context without sanitization. Use manual design review and CLI-based deployments instead.
+
 **Quick Invocation:**
-- Design: Provide Figma URL → auto-extracts context
-- Deploy: `/vercel:deploy`, `/vercel:logs`
 - Contracts: "Compile contracts", "Run tests", "Check balance"
 - Storage: "Upload to IPFS"
+- Deploy: Use `vercel` CLI directly (not MCP)
 
 ### Hooks (Convention Enforcement)
 
