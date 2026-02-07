@@ -120,7 +120,9 @@ contract FuzzTests is Test, ERC6551Helper {
 
         for (uint256 i = 0; i < batchSize; i++) {
             address[] memory gardeners = new address[](0);
-            address[] memory operators = new address[](0);
+            // v2 gardens require at least one operator
+            address[] memory operators = new address[](1);
+            operators[0] = address(uint160(0x1000 + i)); // Unique operator per garden
 
             configs[i] = GardenToken.GardenConfig({
                 communityToken: address(mockToken),

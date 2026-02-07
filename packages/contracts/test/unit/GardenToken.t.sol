@@ -55,7 +55,8 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function testMintGarden_RevertsWithZeroAddressToken() public {
         address[] memory gardeners = new address[](0);
-        address[] memory gardenOperators = new address[](0);
+        address[] memory gardenOperators = new address[](1);
+        gardenOperators[0] = address(0x2);
 
         vm.prank(multisig);
         vm.expectRevert(GardenToken.InvalidCommunityToken.selector);
@@ -75,7 +76,8 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function testMintGarden_RevertsWithEOA() public {
         address[] memory gardeners = new address[](0);
-        address[] memory gardenOperators = new address[](0);
+        address[] memory gardenOperators = new address[](1);
+        gardenOperators[0] = address(0x2);
         address eoa = address(0x999); // EOA with no code
 
         vm.prank(multisig);
@@ -96,7 +98,8 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function testMintGarden_RevertsWithNonERC20Contract() public {
         address[] memory gardeners = new address[](0);
-        address[] memory gardenOperators = new address[](0);
+        address[] memory gardenOperators = new address[](1);
+        gardenOperators[0] = address(0x2);
 
         vm.prank(multisig);
         vm.expectRevert(GardenToken.InvalidERC20Token.selector);
@@ -143,7 +146,8 @@ contract GardenTokenTest is Test, ERC6551Helper {
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](2);
 
         address[] memory gardeners = new address[](0);
-        address[] memory gardenOperators = new address[](0);
+        address[] memory gardenOperators = new address[](1);
+        gardenOperators[0] = address(0x2);
 
         // First config with valid token
         configs[0] = GardenToken.GardenConfig({
@@ -180,7 +184,8 @@ contract GardenTokenTest is Test, ERC6551Helper {
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](2);
 
         address[] memory gardeners = new address[](0);
-        address[] memory gardenOperators = new address[](0);
+        address[] memory gardenOperators = new address[](1);
+        gardenOperators[0] = address(0x2);
 
         // Both configs with valid token
         configs[0] = GardenToken.GardenConfig({
@@ -243,6 +248,26 @@ contract GardenTokenTest is Test, ERC6551Helper {
         gardenToken.mintGarden(config);
     }
 
+    function testMintGarden_RevertsWithNoOperators() public {
+        address[] memory gardeners = new address[](0);
+        address[] memory gardenOperators = new address[](0);
+
+        vm.prank(multisig);
+        vm.expectRevert(GardenToken.NoOperatorsProvided.selector);
+        GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
+            communityToken: address(mockToken),
+            name: "Test Garden",
+            description: "Description",
+            location: "Location",
+            bannerImage: "Banner",
+            metadata: "",
+            openJoining: false,
+            gardeners: gardeners,
+            gardenOperators: gardenOperators
+        });
+        gardenToken.mintGarden(config);
+    }
+
     function testBatchMintGardensRevertsWithEmptyArray() public {
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](0);
 
@@ -267,7 +292,8 @@ contract GardenTokenTest is Test, ERC6551Helper {
         for (uint256 i = 0; i < 101; i++) {
             tooManyGardeners[i] = address(uint160(i + 1));
         }
-        address[] memory operators = new address[](0);
+        address[] memory operators = new address[](1);
+        operators[0] = address(0x2);
 
         configs[0] = GardenToken.GardenConfig({
             communityToken: address(mockToken),
@@ -310,6 +336,29 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
         vm.prank(multisig);
         vm.expectRevert(GardenToken.TooManyOperators.selector);
+        gardenToken.batchMintGardens(configs);
+    }
+
+    function testBatchMintGardensRevertsWithNoOperators() public {
+        GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](1);
+
+        address[] memory gardeners = new address[](0);
+        address[] memory operators = new address[](0);
+
+        configs[0] = GardenToken.GardenConfig({
+            communityToken: address(mockToken),
+            name: "Garden 1",
+            description: "Description 1",
+            location: "Location 1",
+            bannerImage: "Banner 1",
+            metadata: "",
+            openJoining: false,
+            gardeners: gardeners,
+            gardenOperators: operators
+        });
+
+        vm.prank(multisig);
+        vm.expectRevert(GardenToken.NoOperatorsProvided.selector);
         gardenToken.batchMintGardens(configs);
     }
 }
