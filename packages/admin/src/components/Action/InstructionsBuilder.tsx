@@ -1,3 +1,4 @@
+import type { ActionInstructionConfig } from "@green-goods/shared";
 import { useState } from "react";
 import { DetailsConfigSection } from "./DetailsConfigSection";
 import { MediaConfigSection } from "./MediaConfigSection";

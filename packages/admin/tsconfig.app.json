@@ -11,7 +11,7 @@
     "resolvePackageJsonExports": false,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
     "incremental": true,
@@ -55,7 +55,7 @@
       "@green-goods/shared/constants": ["../shared/src/constants/index.ts"]
     }
   },
-  "include": ["src/**/*", "src/types/**/*.d.ts", "../shared/src/**/*"],
+  "include": ["src/**/*", "src/types/**/*.d.ts", "../shared/src/types/**/*.d.ts"],
   "exclude": [
     "src/__tests__",
     "src/**/__tests__/**",
