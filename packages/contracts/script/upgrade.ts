@@ -65,14 +65,14 @@ Rollback (manual):
     --network <network> --broadcast
 
 Examples:
-  # Dry run on Base Sepolia
-  bun script/upgrade.ts action-registry --network baseSepolia --dry-run
+  # Dry run on Sepolia
+  bun script/upgrade.ts action-registry --network sepolia --dry-run
   
   # Execute upgrade
-  bun script/upgrade.ts action-registry --network baseSepolia --broadcast
+  bun script/upgrade.ts action-registry --network sepolia --broadcast
   
   # Upgrade all contracts
-  bun script/upgrade.ts all --network baseSepolia --broadcast
+  bun script/upgrade.ts all --network sepolia --broadcast
   `);
 }
 

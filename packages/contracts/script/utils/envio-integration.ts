@@ -25,6 +25,7 @@ interface DeploymentData {
   gardenToken: string;
   gardenAccountImpl?: string;
   accountProxy?: string;
+  gardenHatsModule?: string;
   [key: string]: string | undefined;
 }
 
@@ -179,9 +180,18 @@ export class EnvioIntegration {
 
       const deployment = JSON.parse(fs.readFileSync(deploymentFile, "utf8")) as DeploymentData;
 
+      const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+      const gardenAccountAddress =
+        deployment.gardenAccountImpl && deployment.gardenAccountImpl !== ZERO_ADDRESS
+          ? deployment.gardenAccountImpl
+          : deployment.accountProxy;
+
       // Validate required addresses
-      const requiredAddresses = ["actionRegistry", "gardenToken", "gardenAccountImpl"];
+      const requiredAddresses = ["actionRegistry", "gardenToken"];
       const missingAddresses = requiredAddresses.filter((addr) => !deployment[addr]);
+      if (!gardenAccountAddress || gardenAccountAddress === ZERO_ADDRESS) {
+        missingAddresses.push("gardenAccountImpl/accountProxy");
+      }
 
       if (missingAddresses.length > 0) {
         throw new Error(`Missing required addresses: ${missingAddresses.join(", ")}`);
@@ -207,29 +217,48 @@ export class EnvioIntegration {
       const networkIndex = envioConfig.networks.findIndex((n) => n.id === targetChainId);
 
       const startBlock = this.getStartBlock(chainId);
+      const existingContracts = networkIndex >= 0 ? (envioConfig.networks[networkIndex].contracts ?? []) : [];
+
+      const contractsByName = new Map<string, EnvioContract>();
+      existingContracts.forEach((contract) => {
+        contractsByName.set(contract.name, {
+          name: contract.name,
+          address: String(contract.address),
+        });
+      });
+
+      const upsertContract = (name: string, address?: string): void => {
+        if (!address || address === ZERO_ADDRESS) return;
+        contractsByName.set(name, { name, address: String(address) });
+      };
+
+      upsertContract("ActionRegistry", deployment.actionRegistry);
+      upsertContract("GardenToken", deployment.gardenToken);
+      upsertContract("GardenAccount", gardenAccountAddress);
+      upsertContract("GardenHatsModule", deployment.gardenHatsModule);
+
+      const orderedContracts: EnvioContract[] = [];
+      const seen = new Set<string>();
+
+      existingContracts.forEach((contract) => {
+        const updated = contractsByName.get(contract.name) ?? contract;
+        orderedContracts.push(updated);
+        seen.add(updated.name);
+      });
+
+      const preferredOrder = ["ActionRegistry", "GardenToken", "GardenAccount", "GardenHatsModule"];
+      preferredOrder.forEach((name) => {
+        const contract = contractsByName.get(name);
+        if (contract && !seen.has(name)) {
+          orderedContracts.push(contract);
+          seen.add(name);
+        }
+      });
+
       const networkConfig: EnvioNetwork = {
         id: targetChainId,
         start_block: startBlock,
-        contracts: [
-          {
-            name: "ActionRegistry",
-            address: String(deployment.actionRegistry), // Ensure string
-          },
-          {
-            name: "GardenToken",
-            address: String(deployment.gardenToken), // Ensure string
-          },
-          {
-            name: "GardenAccount",
-            // Use gardenAccountImpl (new) or accountProxy (old deployments) - check for zero address
-            address: String(
-              deployment.gardenAccountImpl &&
-                deployment.gardenAccountImpl !== "0x0000000000000000000000000000000000000000"
-                ? deployment.gardenAccountImpl
-                : deployment.accountProxy,
-            ),
-          },
-        ],
+        contracts: orderedContracts,
       };
 
       if (networkIndex >= 0) {
@@ -271,15 +300,13 @@ export class EnvioIntegration {
       console.log("✅ Envio config updated successfully");
 
       // Display the updated addresses
-      const gardenAccountAddress =
-        deployment.gardenAccountImpl && deployment.gardenAccountImpl !== "0x0000000000000000000000000000000000000000"
-          ? deployment.gardenAccountImpl
-          : deployment.accountProxy;
-
       console.log(`\n📋 Contract addresses updated in Envio for chain ${chainId}:`);
       console.log(`   ActionRegistry: ${deployment.actionRegistry}`);
       console.log(`   GardenToken: ${deployment.gardenToken}`);
       console.log(`   GardenAccount: ${gardenAccountAddress}`);
+      if (deployment.gardenHatsModule && deployment.gardenHatsModule !== ZERO_ADDRESS) {
+        console.log(`   GardenHatsModule: ${deployment.gardenHatsModule}`);
+      }
       console.log(`   start_block: ${startBlock}`);
 
       return deployment;
@@ -459,7 +486,7 @@ Options:
 
 Examples:
   bun envio-integration.ts update 31337
-  bun envio-integration.ts watch 31337 84532
+  bun envio-integration.ts watch 31337 11155111
   bun envio-integration.ts update && bun envio-integration.ts start
 
 Note: RPC URLs are now configured via environment variables.

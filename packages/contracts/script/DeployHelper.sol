@@ -43,6 +43,8 @@ abstract contract DeployHelper is Script {
         address assessmentResolver;
         address workResolver;
         address workApprovalResolver;
+        address gardenHatsModule;
+        address karmaGAPModule;
         address gardenerAccountLogic; // GardenerAccount implementation for user smart accounts
         address gardenerRegistry; // Gardener Registry (mainnet only, address(0) on L2s)
         bytes32 assessmentSchemaUID;
@@ -204,6 +206,8 @@ abstract contract DeployHelper is Script {
         vm.serializeAddress(obj, "assessmentResolver", result.assessmentResolver);
         vm.serializeAddress(obj, "workResolver", result.workResolver);
         vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
+        vm.serializeAddress(obj, "gardenHatsModule", result.gardenHatsModule);
+        vm.serializeAddress(obj, "karmaGAPModule", result.karmaGAPModule);
         vm.serializeAddress(obj, "gardenerAccountLogic", result.gardenerAccountLogic);
         vm.serializeAddress(obj, "gardenerRegistry", result.gardenerRegistry);
 
