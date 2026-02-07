@@ -45,6 +45,7 @@ export {
   getStatusColors,
   HydrationFallback,
   ImageWithFallback,
+  SyncStatusBar,
   queueToasts,
   Spinner,
   StatusBadge,
@@ -205,6 +206,7 @@ export {
   useToastAction,
   useTranslation,
   useUser,
+  useBatchWorkSync,
   useWorkApproval,
   useWorkApprovals,
   useWorkForm,
@@ -515,6 +517,7 @@ export type {
 export {
   ActionRegistryABI,
   buildApprovalAttestTx,
+  buildBatchWorkAttestTx,
   buildGardenMemberSets,
   buildWorkAttestTx,
   calculateCompressionRatio,

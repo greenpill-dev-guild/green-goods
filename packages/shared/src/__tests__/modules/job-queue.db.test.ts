@@ -50,8 +50,8 @@ describe("modules/job-queue/db", () => {
     const id = await jobQueueDB.addJob({
       kind: "work",
       payload: { media: [mockFile] },
-      meta: { chainId: 84532 },
-      chainId: 84532,
+      meta: { chainId: 11155111 },
+      chainId: 11155111,
       userAddress: TEST_USER_ADDRESS,
     } as Parameters<typeof jobQueueDB.addJob>[0]);
 

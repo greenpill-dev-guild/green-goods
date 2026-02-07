@@ -324,7 +324,7 @@ describe("stores/useAdminStore", () => {
   beforeEach(() => {
     // Reset store to initial state
     useAdminStore.setState({
-      selectedChainId: 84532,
+      selectedChainId: 11155111,
       selectedGarden: null,
       pendingTransactions: {},
       lastAttestationId: null,
@@ -348,7 +348,7 @@ describe("stores/useAdminStore", () => {
       const { result } = renderHook(() => useAdminStore());
       const mockGarden = {
         id: "0x123",
-        chainId: 84532,
+        chainId: 11155111,
         tokenAddress: "0x456",
         tokenID: 1n,
         name: "Test Garden",
@@ -373,7 +373,7 @@ describe("stores/useAdminStore", () => {
       act(() => {
         result.current.setSelectedGarden({
           id: "0x123",
-          chainId: 84532,
+          chainId: 11155111,
           tokenAddress: "0x456",
           tokenID: 1n,
           name: "Test",

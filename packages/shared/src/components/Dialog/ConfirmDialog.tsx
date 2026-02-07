@@ -165,7 +165,7 @@ export function ConfirmDialog({
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-text-soft-400 transition hover:bg-bg-soft-200 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-text-soft-400 transition hover:bg-bg-soft-200 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
                 data-testid="confirm-dialog-close"
                 aria-label={resolvedCloseLabel}
                 disabled={isLoading}

@@ -49,7 +49,7 @@ Object.defineProperty(global, "localStorage", {
 // TEST HELPERS
 // ============================================================================
 
-const MOCK_CHAIN_ID = 84532;
+const MOCK_CHAIN_ID = 11155111;
 const MOCK_USERNAME = "testuser";
 
 function createMockPasskeySessionResult(): PasskeySessionResult {

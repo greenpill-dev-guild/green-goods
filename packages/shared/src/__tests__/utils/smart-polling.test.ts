@@ -78,7 +78,7 @@ describe("smart polling with early exit", () => {
   it("should exit early when data count increases", async () => {
     const onAttempt = vi.fn();
     const onDataChange = vi.fn();
-    const queryKey = ["works", "online", "garden1", 84532];
+    const queryKey = ["works", "online", "garden1", 11155111];
 
     // Start with empty data
     mockQueryData.set(JSON.stringify(queryKey), []);
@@ -113,7 +113,7 @@ describe("smart polling with early exit", () => {
   it("should complete all attempts when data does not change", async () => {
     const onAttempt = vi.fn();
     const onDataChange = vi.fn();
-    const queryKey = ["works", "online", "garden1", 84532];
+    const queryKey = ["works", "online", "garden1", 11155111];
 
     // Data stays empty throughout
     mockQueryData.set(JSON.stringify(queryKey), []);
@@ -142,8 +142,8 @@ describe("smart polling with early exit", () => {
   });
 
   it("should invalidate queries on each attempt", async () => {
-    const queryKey1 = ["works", "online", "garden1", 84532];
-    const queryKey2 = ["works", "merged", "garden1", 84532];
+    const queryKey1 = ["works", "online", "garden1", 11155111];
+    const queryKey2 = ["works", "merged", "garden1", 11155111];
 
     const promise = pollQueriesAfterTransaction({
       queryKeys: [queryKey1, queryKey2],

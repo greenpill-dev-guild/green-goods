@@ -35,7 +35,7 @@ vi.mock("../../hooks/auth/useUser", () => ({
 }));
 
 vi.mock("../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 import { useWorks } from "../../hooks/work/useWorks";
