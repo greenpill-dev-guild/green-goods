@@ -527,7 +527,7 @@ All work enters through one of these flows:
 | `/debug` | Systematic debugging with root cause analysis |
 | `/audit` | Comprehensive codebase health analysis |
 
-### Available Skills (12)
+### Available Skills (13)
 
 See [.claude/skills/index.md](.claude/skills/index.md) for quick reference with invocation keywords.
 
@@ -554,6 +554,7 @@ See [.claude/skills/index.md](.claude/skills/index.md) for quick reference with 
 
 | Skill | Invoke With | Purpose |
 |-------|-------------|---------|
+| **frontend-design** | "design UI", "build page", "visual design" | Distinctive, production-grade interfaces, bold aesthetics |
 | **ui-compliance** | "accessibility", "a11y", "responsive" | WCAG, forms, mobile-first, animation, i18n |
 | **mermaid-diagrams** | "diagram", "flowchart", "mermaid" | Create diagrams for architecture, flows, ERDs |
 
@@ -608,8 +609,6 @@ See [.claude/skills/index.md](.claude/skills/index.md) for quick reference with 
 | `storacha` | Local npx | Configured | IPFS/Filecoin media storage |
 | `miro` | Remote URL | Available | Architecture diagrams, planning |
 | `railway` | Local npx | Available | Indexer deployment, databases |
-
-> **Security Note:** Figma and Vercel MCP servers were removed due to prompt injection risks. External data from these services could flow into agent context without sanitization. Use manual design review and CLI-based deployments instead.
 
 **Quick Invocation:**
 - Contracts: "Compile contracts", "Run tests", "Check balance"

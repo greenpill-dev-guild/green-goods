@@ -11,8 +11,6 @@ This guide documents how to use Claude Code with MCP (Model Context Protocol) in
 | **Miro** | Remote URL | Available | On-demand auth |
 | **Railway** | Local npx | Available | On-demand auth |
 
-> **Security Note:** Figma and Vercel MCP servers were removed due to prompt injection risks. External data from these services could flow into agent context without sanitization. Use manual design review and CLI-based deployments (`vercel` CLI) instead.
-
 ### Known Issues
 
 **Local npx servers (Storacha, Railway):** The project's npm overrides for React 19 can cause conflicts when spawning npx-based MCP servers from within the project directory. Workarounds:
@@ -250,7 +248,6 @@ Different Claude agents have access to different MCP servers:
 → Has access to Miro (diagrams)
 ```
 
-> **Note:** Figma and Vercel access was removed for security reasons. Request design specs manually and use `vercel` CLI for deployments.
 
 ---
 

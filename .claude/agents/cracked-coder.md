@@ -29,8 +29,6 @@ Elite code implementation specialist for complex technical problems.
 | storacha | IPFS uploads for work media |
 | railway | Railway deployment for indexer/services |
 
-> **Security Note:** Figma and Vercel MCP servers were removed due to prompt injection risks from external data flowing into agent context without sanitization. Use manual design review and CLI-based deployments instead.
-
 ## Configuration
 
 ```yaml
@@ -487,8 +485,6 @@ Before implementing new UI components, always ask or check:
 - "Do designs exist for this feature?"
 - If yes: Request the user share design specs or screenshots manually
 - If no: Follow existing patterns and Material Design principles
-
-> **Note:** The Figma MCP server was removed for security reasons. Request design specs directly from users instead of auto-extracting from Figma.
 
 ### 2. Follow Existing Patterns
 

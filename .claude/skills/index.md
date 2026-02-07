@@ -38,6 +38,7 @@ Use these for frontend work:
 
 | Skill | Invoke With | Use For |
 |-------|-------------|---------|
+| **frontend-design** | "design UI", "build page", "frontend", "visual design" | Distinctive, production-grade interfaces with bold aesthetic choices |
 | **ui-compliance** | "accessibility", "a11y", "responsive", "forms", "WCAG" | Accessibility (WCAG 2.1 AA), forms, responsive design, animation |
 | **mermaid-diagrams** | "diagram", "flowchart", "mermaid", "architecture diagram" | Mermaid diagrams for documentation and code reviews |
 
@@ -84,6 +85,7 @@ What do you need?
 ├─► Error handling? ──────────► error-handling-patterns skill
 ├─► Build/config? ────────────► vite skill
 │
+├─► Build UI/frontend? ────────► frontend-design skill
 ├─► Accessibility/UI? ────────► ui-compliance skill
 ├─► Create diagram? ──────────► mermaid-diagrams skill
 ├─► Architecture decision? ───► architecture skill
@@ -102,10 +104,8 @@ What do you need?
 
 **UI Implementation:**
 ```
-/plan (from design specs) → react → ui-compliance
+/plan (from design specs) → frontend-design → react → ui-compliance
 ```
-
-> **Note:** Request design specs directly from the user. The Figma MCP server was removed for security reasons (prompt injection risk from external data).
 
 **Bug Fix:**
 ```
