@@ -27,6 +27,13 @@ contracts:
       - event: GardenOperatorRemoved(address indexed updater, address indexed operator)
       - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
       - event: OpenJoiningUpdated(address indexed updater, bool openJoining)
+  - name: GardenHatsModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: GardenHatTreeCreated(address indexed garden, uint256 adminHatId)
+      - event: RoleGranted(address indexed garden, address indexed account, uint8 role)
+      - event: RoleRevoked(address indexed garden, address indexed account, uint8 role)
+      - event: PartialGrantFailed(address indexed garden, address indexed account, uint8 role, string reason)
   # Hypercert Minter (Hypercerts.org standard contract)
   - name: HypercertMinter
     handler: src/EventHandlers.ts
@@ -43,6 +50,9 @@ networks:
         address: "0x0a7Ca3203f25c1c028D54C19789e83b401383F92"
       - name: GardenAccount
         address: "0x7de23111804b374E3a8d79932C4068d378F6843f"
+      # TODO: Replace with deployed GardenHatsModule address on Arbitrum
+      - name: GardenHatsModule
+        address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
   - id: 84532  # Base Sepolia (testnet)
@@ -54,6 +64,9 @@ networks:
         address: "0x0B0EA0FfB996B0b04335507Ef1523124480f7310"
       - name: GardenAccount
         address: "0xa624FDdBdfA1E13C739791fB65E2D174b7316519"
+      # TODO: Replace with deployed GardenHatsModule address on Base Sepolia
+      - name: GardenHatsModule
+        address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
   - id: 42220  # Celo
@@ -65,5 +78,8 @@ networks:
         address: "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B"
       - name: GardenAccount
         address: "0x710cBFB9a29920B4577692eD495972fcd27286b4"
+      # TODO: Replace with deployed GardenHatsModule address on Celo
+      - name: GardenHatsModule
+        address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"

@@ -6,7 +6,8 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const generated = require("../generated");
 const { TestHelpers } = generated;
-const { MockDb, Addresses, ActionRegistry, GardenToken, GardenAccount } = TestHelpers;
+const { MockDb, Addresses, ActionRegistry, GardenToken, GardenAccount, GardenHatsModule } =
+  TestHelpers;
 
 // ============================================================================
 // TEST UTILITIES
@@ -509,8 +510,6 @@ describe("GardenToken", () => {
       const tokenAddress = createMockAddress(11);
       const gardenerAddresses = [createMockAddress(1), createMockAddress(2)];
       const operatorAddresses = [createMockAddress(3)];
-      // Handler merges gardeners + operators (operators are also gardeners by contract design)
-      const expectedGardeners = [...new Set([...gardenerAddresses, ...operatorAddresses])];
 
       const mockEvent = GardenToken.GardenMinted.createMockEvent({
         tokenId: 1n,
@@ -546,8 +545,12 @@ describe("GardenToken", () => {
       assert.equal(garden.openJoining, true, "openJoining should be set");
       assert.equal(garden.tokenAddress, tokenAddress, "tokenAddress should be set");
       assert.equal(garden.tokenID, 1n, "tokenID should be set");
-      assert.deepEqual(garden.gardeners, expectedGardeners, "gardeners should include operators");
+      assert.deepEqual(garden.gardeners, gardenerAddresses, "gardeners should be set");
       assert.deepEqual(garden.operators, operatorAddresses, "operators should be set");
+      assert.deepEqual(garden.evaluators, [], "evaluators should be empty");
+      assert.deepEqual(garden.owners, [], "owners should be empty");
+      assert.deepEqual(garden.funders, [], "funders should be empty");
+      assert.deepEqual(garden.communities, [], "communities should be empty");
     });
 
     it("creates Gardener entities for all gardeners in the mint", async () => {
@@ -555,6 +558,7 @@ describe("GardenToken", () => {
       const gardenAddress = createMockAddress(10);
       const gardener1 = createMockAddress(1);
       const gardener2 = createMockAddress(2);
+      const operator = createMockAddress(9);
 
       const mockEvent = GardenToken.GardenMinted.createMockEvent({
         tokenId: 1n,
@@ -565,7 +569,7 @@ describe("GardenToken", () => {
         bannerImage: "",
         openJoining: false,
         gardeners: [gardener1, gardener2],
-        operators: [],
+        operators: [operator],
         mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 50000),
       });
 
@@ -576,9 +580,11 @@ describe("GardenToken", () => {
 
       const gardenerEntity1 = result.entities.Gardener.get(`${CHAIN_ID_ARBITRUM}-${gardener1}`);
       const gardenerEntity2 = result.entities.Gardener.get(`${CHAIN_ID_ARBITRUM}-${gardener2}`);
+      const operatorEntity = result.entities.Gardener.get(`${CHAIN_ID_ARBITRUM}-${operator}`);
 
       assert.ok(gardenerEntity1, "Gardener 1 should be created");
       assert.ok(gardenerEntity2, "Gardener 2 should be created");
+      assert.equal(operatorEntity, undefined, "Operator should not be created as gardener");
 
       assert.equal(gardenerEntity1.chainId, CHAIN_ID_ARBITRUM);
       assert.equal(gardenerEntity1.firstGarden, gardenAddress, "firstGarden should be set");
@@ -1163,6 +1169,146 @@ describe("GardenAccount", () => {
       const garden = result.entities.Garden.get(gardenAddress);
       assert.equal(garden, undefined, "Garden should not be created");
     });
+  });
+});
+
+// ============================================================================
+// GARDEN HATS MODULE TESTS
+// ============================================================================
+
+describe("GardenHatsModule", () => {
+  it("RoleGranted updates role lists and creates gardener entity only for gardeners", async () => {
+    let mockDb = MockDb.createMockDb();
+    const gardenAddress = createMockAddress(30);
+
+    mockDb = mockDb.entities.Garden.set({
+      id: gardenAddress,
+      chainId: CHAIN_ID_ARBITRUM,
+      tokenAddress: createMockAddress(11),
+      tokenID: 1n,
+      name: "Hats Garden",
+      description: "",
+      location: "",
+      bannerImage: "",
+      openJoining: false,
+      gardeners: [],
+      operators: [],
+      evaluators: [],
+      owners: [],
+      funders: [],
+      communities: [],
+      createdAt: 10000,
+    });
+
+    const gardener = createMockAddress(1);
+    const evaluator = createMockAddress(2);
+    const operator = createMockAddress(3);
+    const owner = createMockAddress(4);
+    const funder = createMockAddress(5);
+    const community = createMockAddress(6);
+
+    const roleAssignments = [
+      { role: 0, account: gardener },
+      { role: 1, account: evaluator },
+      { role: 2, account: operator },
+      { role: 3, account: owner },
+      { role: 4, account: funder },
+      { role: 5, account: community },
+    ];
+
+    for (const assignment of roleAssignments) {
+      const event = GardenHatsModule.RoleGranted.createMockEvent({
+        garden: gardenAddress,
+        account: assignment.account,
+        role: assignment.role,
+        mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 12345),
+      });
+
+      mockDb = await GardenHatsModule.RoleGranted.processEvent({
+        event,
+        mockDb,
+      });
+    }
+
+    const garden = mockDb.entities.Garden.get(gardenAddress);
+    assert.deepEqual(garden.gardeners, [gardener]);
+    assert.deepEqual(garden.evaluators, [evaluator]);
+    assert.deepEqual(garden.operators, [operator]);
+    assert.deepEqual(garden.owners, [owner]);
+    assert.deepEqual(garden.funders, [funder]);
+    assert.deepEqual(garden.communities, [community]);
+
+    const gardenerEntity = mockDb.entities.Gardener.get(`${CHAIN_ID_ARBITRUM}-${gardener}`);
+    const operatorEntity = mockDb.entities.Gardener.get(`${CHAIN_ID_ARBITRUM}-${operator}`);
+
+    assert.ok(gardenerEntity, "Gardener entity should be created");
+    assert.equal(operatorEntity, undefined, "Operator should not create gardener entity");
+  });
+
+  it("RoleRevoked removes roles and updates gardener entity gardens", async () => {
+    let mockDb = MockDb.createMockDb();
+    const gardenAddress = createMockAddress(40);
+    const gardener = createMockAddress(7);
+    const operator = createMockAddress(8);
+
+    mockDb = mockDb.entities.Garden.set({
+      id: gardenAddress,
+      chainId: CHAIN_ID_ARBITRUM,
+      tokenAddress: createMockAddress(12),
+      tokenID: 2n,
+      name: "Revoked Garden",
+      description: "",
+      location: "",
+      bannerImage: "",
+      openJoining: false,
+      gardeners: [gardener],
+      operators: [operator],
+      evaluators: [],
+      owners: [],
+      funders: [],
+      communities: [],
+      createdAt: 20000,
+    });
+
+    mockDb = mockDb.entities.Gardener.set({
+      id: `${CHAIN_ID_ARBITRUM}-${gardener}`,
+      chainId: CHAIN_ID_ARBITRUM,
+      createdAt: 15000,
+      firstGarden: gardenAddress,
+      gardens: [gardenAddress],
+    });
+
+    const revokeGardenerEvent = GardenHatsModule.RoleRevoked.createMockEvent({
+      garden: gardenAddress,
+      account: gardener,
+      role: 0,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 21000),
+    });
+
+    mockDb = await GardenHatsModule.RoleRevoked.processEvent({
+      event: revokeGardenerEvent,
+      mockDb,
+    });
+
+    const revokeOperatorEvent = GardenHatsModule.RoleRevoked.createMockEvent({
+      garden: gardenAddress,
+      account: operator,
+      role: 2,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 21001),
+    });
+
+    mockDb = await GardenHatsModule.RoleRevoked.processEvent({
+      event: revokeOperatorEvent,
+      mockDb,
+    });
+
+    const updatedGarden = mockDb.entities.Garden.get(gardenAddress);
+    assert.deepEqual(updatedGarden.gardeners, [], "Gardener should be removed");
+    assert.deepEqual(updatedGarden.operators, [], "Operator should be removed");
+
+    const updatedGardener = mockDb.entities.Gardener.get(`${CHAIN_ID_ARBITRUM}-${gardener}`);
+    assert.ok(updatedGardener, "Gardener entity should still exist");
+    assert.deepEqual(updatedGardener.gardens, [], "Gardener gardens should be cleared");
   });
 });
 
