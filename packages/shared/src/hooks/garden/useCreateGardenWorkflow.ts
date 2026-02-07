@@ -72,20 +72,23 @@ export function useCreateGardenWorkflow() {
 
             try {
               const contracts = getNetworkContracts(selectedChainId);
+              const config = {
+                communityToken: params.communityToken,
+                name: params.name,
+                description: params.description,
+                location: params.location,
+                bannerImage: params.bannerImage,
+                metadata: params.metadata ?? "",
+                openJoining: params.openJoining ?? false,
+                gardeners: params.gardeners,
+                gardenOperators: params.gardenOperators,
+              };
               const txHash = await walletClient.writeContract({
                 address: contracts.gardenToken as `0x${string}`,
                 abi: GardenTokenABI,
                 functionName: "mintGarden",
                 account: address,
-                args: [
-                  params.communityToken,
-                  params.name,
-                  params.description,
-                  params.location,
-                  params.bannerImage,
-                  params.gardeners,
-                  params.gardenOperators,
-                ],
+                args: [config],
               });
 
               // Track garden creation success

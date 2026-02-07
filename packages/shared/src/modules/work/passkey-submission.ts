@@ -1,19 +1,15 @@
-import { NO_EXPIRATION, ZERO_BYTES32 } from "../../utils/eas/constants";
-import { getPublicClient } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 
-import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
-import { EASABI } from "../../utils/blockchain/contracts";
 import { debugError, debugLog } from "../../utils/debug";
-import { encodeWorkApprovalData, encodeWorkData, simulateWorkData } from "../../utils/eas/encoders";
+import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import {
   buildApprovalAttestTx,
   buildBatchApprovalAttestTx,
   buildWorkAttestTx,
 } from "../../utils/eas/transaction-builder";
-import { parseContractError } from "../../utils/errors/contract-errors";
+import { simulateWorkSubmission } from "./simulate";
 
 function assertSmartAccount(
   client: SmartAccountClient | null
@@ -56,68 +52,28 @@ export async function submitWorkWithPasskey({
 
   // TypeScript doesn't understand that client is now guaranteed to be non-null after assertion
   const smartClient = client as SmartAccountClient;
+  const smartAccount = smartClient.account;
+  if (!smartAccount) {
+    throw new Error("Passkey session is not ready. Please re-authenticate and try again.");
+  }
 
   const easConfig = getEASConfig(chainId);
 
-  // Simulate contract interaction before uploading
-  const publicClient = getPublicClient(wagmiConfig, { chainId });
-  if (publicClient) {
-    try {
-      debugLog("[PasskeySubmission] Simulating transaction before upload...");
-
-      // Prepare simulation data (dummy CIDs)
-      const simulationData = simulateWorkData(
-        {
-          ...draft,
-          title: `${actionTitle} - ${new Date().toISOString()}`,
-          actionUID,
-          media: images,
-        },
-        chainId
-      );
-
-      // Simulate the attest call using the smart account address as the sender
-      // This verifies that the smart account is a gardener and the action is valid
-      await publicClient.simulateContract({
-        address: easConfig.EAS.address as `0x${string}`,
-        abi: EASABI,
-        functionName: "attest",
-        args: [
-          {
-            schema: easConfig.WORK.uid,
-            data: {
-              recipient: gardenAddress as `0x${string}`,
-              expirationTime: NO_EXPIRATION,
-              revocable: true,
-              refUID: ZERO_BYTES32,
-              data: simulationData,
-              value: 0n,
-            },
-          },
-        ],
-        account: smartClient.account!.address, // Use address for simulation
-      });
-      debugLog("[PasskeySubmission] Simulation successful - proceeding to upload");
-    } catch (err: any) {
-      debugError("[PasskeySubmission] Simulation failed", err);
-
-      const parsed = parseContractError(err);
-      if (parsed.isKnown) {
-        // Include error name so the UI provider can recognize it as a known error
-        throw new Error(
-          `[${parsed.name}] ${parsed.message}${parsed.action ? ` ${parsed.action}` : ""}`
-        );
-      }
-
-      // Fallback to cause reason if available
-      if (err.cause?.reason) {
-        throw new Error(`Validation failed: ${err.cause.reason}`);
-      }
-
-      throw new Error(
-        `Validation failed: ${parsed.message || err.message || "Unknown error during simulation"}`
-      );
-    }
+  try {
+    debugLog("[PasskeySubmission] Simulating transaction before upload...");
+    await simulateWorkSubmission({
+      draft,
+      gardenAddress,
+      actionUID,
+      actionTitle,
+      chainId,
+      images,
+      accountAddress: smartAccount.address as `0x${string}`,
+    });
+    debugLog("[PasskeySubmission] Simulation successful - proceeding to upload");
+  } catch (error) {
+    debugError("[PasskeySubmission] Simulation failed", error);
+    throw error;
   }
 
   const attestationData = await encodeWorkData(
@@ -137,7 +93,7 @@ export async function submitWorkWithPasskey({
   const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);
 
   const hash = await smartClient.sendTransaction({
-    account: smartClient.account!,
+    account: smartAccount,
     chain: smartClient.chain,
     ...txParams,
   });

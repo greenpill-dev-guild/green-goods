@@ -9,6 +9,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import type { Garden } from "../../types/domain";
 import { useCallback, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
 import { useAccount, useWalletClient } from "wagmi";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { useToastAction } from "../app/useToastAction";
@@ -16,9 +17,11 @@ import { queryKeys } from "../query-keys";
 import {
   createGardenOperation,
   GARDEN_OPERATIONS,
+  type GardenOperationMessages,
   type GardenOperationResult,
   type OptimisticUpdateCallback,
 } from "./createGardenOperation";
+import type { GardenRole } from "../../utils/blockchain/garden-roles";
 
 /**
  * Apply optimistic update to garden cache data
@@ -26,15 +29,24 @@ import {
 function applyOptimisticUpdate(
   gardens: Garden[],
   gardenId: string,
-  memberType: "gardener" | "operator",
+  memberType: GardenRole,
   operationType: "add" | "remove",
   targetAddress: string
 ): Garden[] {
+  const roleFieldMap: Record<GardenRole, keyof Garden> = {
+    gardener: "gardeners",
+    operator: "operators",
+    evaluator: "evaluators",
+    owner: "owners",
+    funder: "funders",
+    community: "communities",
+  };
+
   return gardens.map((garden) => {
     if (garden.id !== gardenId) return garden;
 
-    const memberKey = memberType === "gardener" ? "gardeners" : "operators";
-    const currentMembers = garden[memberKey] || [];
+    const memberKey = roleFieldMap[memberType];
+    const currentMembers = (garden[memberKey] as string[] | undefined) || [];
 
     let newMembers: string[];
     if (operationType === "add") {
@@ -64,6 +76,43 @@ export function useGardenOperations(gardenId: string) {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const queryClient = useQueryClient();
+  const { formatMessage } = useIntl();
+
+  const roleLabels = useMemo<Record<GardenRole, string>>(
+    () => ({
+      gardener: formatMessage({ id: "app.roles.gardener" }),
+      operator: formatMessage({ id: "app.roles.operator" }),
+      evaluator: formatMessage({ id: "app.roles.evaluator" }),
+      owner: formatMessage({ id: "app.roles.owner" }),
+      funder: formatMessage({ id: "app.roles.funder" }),
+      community: formatMessage({ id: "app.roles.community" }),
+    }),
+    [formatMessage]
+  );
+
+  const buildMessages = useCallback(
+    (memberType: GardenRole, operationType: "add" | "remove"): GardenOperationMessages => {
+      const role = roleLabels[memberType];
+      const isAdd = operationType === "add";
+      return {
+        loading: formatMessage(
+          { id: isAdd ? "app.admin.roles.adding" : "app.admin.roles.removing" },
+          { role }
+        ),
+        success: formatMessage(
+          { id: isAdd ? "app.admin.roles.added" : "app.admin.roles.removed" },
+          { role }
+        ),
+        error: formatMessage(
+          { id: isAdd ? "app.admin.roles.addFailed" : "app.admin.roles.removeFailed" },
+          { role }
+        ),
+      };
+    },
+    [formatMessage, roleLabels]
+  );
+
+  const hatsOnlyMessage = formatMessage({ id: "app.admin.roles.hatsOnly" });
 
   // Create optimistic update callback that modifies the cache
   const createOptimisticCallback = useCallback(
@@ -91,11 +140,7 @@ export function useGardenOperations(gardenId: string) {
 
   // Rollback optimistic update on failure
   const rollbackOptimisticUpdate = useCallback(
-    (
-      memberType: "gardener" | "operator",
-      operationType: "add" | "remove",
-      targetAddress: string
-    ) => {
+    (memberType: GardenRole, operationType: "add" | "remove", targetAddress: string) => {
       const queryKey = queryKeys.gardens.byChain(DEFAULT_CHAIN_ID);
       const currentData = queryClient.getQueryData<Garden[]>(queryKey);
       if (!currentData) return;
@@ -119,7 +164,7 @@ export function useGardenOperations(gardenId: string) {
   const createOperationWrapper = useCallback(
     (
       operation: (targetAddress: string) => Promise<GardenOperationResult>,
-      memberType: "gardener" | "operator",
+      memberType: GardenRole,
       operationType: "add" | "remove"
     ) => {
       return async (targetAddress: string): Promise<GardenOperationResult> => {
@@ -152,6 +197,14 @@ export function useGardenOperations(gardenId: string) {
         removeGardener: notConnected,
         addOperator: notConnected,
         removeOperator: notConnected,
+        addEvaluator: notConnected,
+        removeEvaluator: notConnected,
+        addOwner: notConnected,
+        removeOwner: notConnected,
+        addFunder: notConnected,
+        removeFunder: notConnected,
+        addCommunity: notConnected,
+        removeCommunity: notConnected,
       };
     }
 
@@ -161,7 +214,11 @@ export function useGardenOperations(gardenId: string) {
       addGardener: createOperationWrapper(
         createGardenOperation(
           gardenId,
-          GARDEN_OPERATIONS.addGardener,
+          {
+            ...GARDEN_OPERATIONS.addGardener,
+            messages: buildMessages("gardener", "add"),
+            unsupportedRoleMessage: hatsOnlyMessage,
+          },
           walletClient,
           address,
           executeWithToast,
@@ -174,7 +231,11 @@ export function useGardenOperations(gardenId: string) {
       removeGardener: createOperationWrapper(
         createGardenOperation(
           gardenId,
-          GARDEN_OPERATIONS.removeGardener,
+          {
+            ...GARDEN_OPERATIONS.removeGardener,
+            messages: buildMessages("gardener", "remove"),
+            unsupportedRoleMessage: hatsOnlyMessage,
+          },
           walletClient,
           address,
           executeWithToast,
@@ -187,7 +248,11 @@ export function useGardenOperations(gardenId: string) {
       addOperator: createOperationWrapper(
         createGardenOperation(
           gardenId,
-          GARDEN_OPERATIONS.addOperator,
+          {
+            ...GARDEN_OPERATIONS.addOperator,
+            messages: buildMessages("operator", "add"),
+            unsupportedRoleMessage: hatsOnlyMessage,
+          },
           walletClient,
           address,
           executeWithToast,
@@ -200,7 +265,11 @@ export function useGardenOperations(gardenId: string) {
       removeOperator: createOperationWrapper(
         createGardenOperation(
           gardenId,
-          GARDEN_OPERATIONS.removeOperator,
+          {
+            ...GARDEN_OPERATIONS.removeOperator,
+            messages: buildMessages("operator", "remove"),
+            unsupportedRoleMessage: hatsOnlyMessage,
+          },
           walletClient,
           address,
           executeWithToast,
@@ -208,6 +277,142 @@ export function useGardenOperations(gardenId: string) {
           optimisticCallback
         ),
         "operator",
+        "remove"
+      ),
+      addEvaluator: createOperationWrapper(
+        createGardenOperation(
+          gardenId,
+          {
+            ...GARDEN_OPERATIONS.addEvaluator,
+            messages: buildMessages("evaluator", "add"),
+            unsupportedRoleMessage: hatsOnlyMessage,
+          },
+          walletClient,
+          address,
+          executeWithToast,
+          setIsLoading,
+          optimisticCallback
+        ),
+        "evaluator",
+        "add"
+      ),
+      removeEvaluator: createOperationWrapper(
+        createGardenOperation(
+          gardenId,
+          {
+            ...GARDEN_OPERATIONS.removeEvaluator,
+            messages: buildMessages("evaluator", "remove"),
+            unsupportedRoleMessage: hatsOnlyMessage,
+          },
+          walletClient,
+          address,
+          executeWithToast,
+          setIsLoading,
+          optimisticCallback
+        ),
+        "evaluator",
+        "remove"
+      ),
+      addOwner: createOperationWrapper(
+        createGardenOperation(
+          gardenId,
+          {
+            ...GARDEN_OPERATIONS.addOwner,
+            messages: buildMessages("owner", "add"),
+            unsupportedRoleMessage: hatsOnlyMessage,
+          },
+          walletClient,
+          address,
+          executeWithToast,
+          setIsLoading,
+          optimisticCallback
+        ),
+        "owner",
+        "add"
+      ),
+      removeOwner: createOperationWrapper(
+        createGardenOperation(
+          gardenId,
+          {
+            ...GARDEN_OPERATIONS.removeOwner,
+            messages: buildMessages("owner", "remove"),
+            unsupportedRoleMessage: hatsOnlyMessage,
+          },
+          walletClient,
+          address,
+          executeWithToast,
+          setIsLoading,
+          optimisticCallback
+        ),
+        "owner",
+        "remove"
+      ),
+      addFunder: createOperationWrapper(
+        createGardenOperation(
+          gardenId,
+          {
+            ...GARDEN_OPERATIONS.addFunder,
+            messages: buildMessages("funder", "add"),
+            unsupportedRoleMessage: hatsOnlyMessage,
+          },
+          walletClient,
+          address,
+          executeWithToast,
+          setIsLoading,
+          optimisticCallback
+        ),
+        "funder",
+        "add"
+      ),
+      removeFunder: createOperationWrapper(
+        createGardenOperation(
+          gardenId,
+          {
+            ...GARDEN_OPERATIONS.removeFunder,
+            messages: buildMessages("funder", "remove"),
+            unsupportedRoleMessage: hatsOnlyMessage,
+          },
+          walletClient,
+          address,
+          executeWithToast,
+          setIsLoading,
+          optimisticCallback
+        ),
+        "funder",
+        "remove"
+      ),
+      addCommunity: createOperationWrapper(
+        createGardenOperation(
+          gardenId,
+          {
+            ...GARDEN_OPERATIONS.addCommunity,
+            messages: buildMessages("community", "add"),
+            unsupportedRoleMessage: hatsOnlyMessage,
+          },
+          walletClient,
+          address,
+          executeWithToast,
+          setIsLoading,
+          optimisticCallback
+        ),
+        "community",
+        "add"
+      ),
+      removeCommunity: createOperationWrapper(
+        createGardenOperation(
+          gardenId,
+          {
+            ...GARDEN_OPERATIONS.removeCommunity,
+            messages: buildMessages("community", "remove"),
+            unsupportedRoleMessage: hatsOnlyMessage,
+          },
+          walletClient,
+          address,
+          executeWithToast,
+          setIsLoading,
+          optimisticCallback
+        ),
+        "community",
         "remove"
       ),
     };
@@ -218,6 +423,8 @@ export function useGardenOperations(gardenId: string) {
     executeWithToast,
     createOptimisticCallback,
     createOperationWrapper,
+    buildMessages,
+    hatsOnlyMessage,
   ]);
 
   return {

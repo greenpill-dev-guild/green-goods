@@ -12,6 +12,7 @@ import type { Garden } from "../../types/domain";
 import { readContract } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
 import { useCallback, useState } from "react";
+import { useIntl } from "react-intl";
 import { encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { wagmiConfig } from "../../config/appkit";
@@ -39,6 +40,7 @@ interface PasskeySession {
 }
 
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
+import { fetchGardenHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { simulateJoinGarden } from "../../utils/blockchain/simulation";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
@@ -50,6 +52,10 @@ import { useDelayedInvalidation } from "../utils/useTimeout";
  */
 export async function checkGardenOpenJoining(gardenAddress: string): Promise<boolean> {
   try {
+    const hatsModule = await fetchGardenHatsModuleAddress(gardenAddress as `0x${string}`);
+    if (hatsModule) {
+      return false;
+    }
     const isOpen = await readContract(wagmiConfig, {
       address: gardenAddress as `0x${string}`,
       abi: GardenAccountABI,
@@ -151,6 +157,7 @@ interface JoinGardenState {
  * @returns Join function and state
  */
 export function useJoinGarden() {
+  const { formatMessage } = useIntl();
   const { smartAccountAddress, smartAccountClient, eoa } = useUser();
   const walletAddress = eoa?.address;
   const primaryAddress = smartAccountAddress || walletAddress;
@@ -190,7 +197,12 @@ export function useJoinGarden() {
       const client = sessionOverride?.client ?? smartAccountClient;
 
       if (!gardenAddress || !targetAddress) {
-        throw new Error("Missing garden address or user address");
+        throw new Error(formatMessage({ id: "app.garden.joinMissingInfo" }));
+      }
+
+      const hatsModule = await fetchGardenHatsModuleAddress(gardenAddress as `0x${string}`);
+      if (hatsModule) {
+        throw new Error(formatMessage({ id: "app.garden.openJoiningUnavailable" }));
       }
 
       // Track join started
@@ -337,6 +349,7 @@ export function useJoinGarden() {
       chainId,
       queryClient,
       scheduleGardenSync,
+      formatMessage,
     ]
   );
 

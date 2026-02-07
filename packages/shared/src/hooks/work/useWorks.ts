@@ -5,7 +5,7 @@ import { getWorkApprovals, getWorks } from "../../modules/data/eas";
 import { jobQueue, jobQueueDB } from "../../modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { useMerged } from "../app/useMerged";
-import { useUser } from "../auth/useUser";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { queryKeys } from "../query-keys";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import type { Work, WorkCard } from "../../types/domain";
@@ -97,7 +97,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const { offline = false } = options;
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
-  const { smartAccountAddress } = useUser();
+  const primaryAddress = usePrimaryAddress();
 
   // ─────────────────────────────────────────────────────────────────────────
   // Online-only mode: Simple query without offline job queue integration
@@ -122,8 +122,8 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     mergedKey: queryKeys.works.merged(gardenId, chainId),
     fetchOnline: () => getWorks(gardenId, chainId),
     fetchOffline: async () => {
-      if (!smartAccountAddress) return [];
-      const jobs = await jobQueue.getJobs(smartAccountAddress, { kind: "work", synced: false });
+      if (!primaryAddress) return [];
+      const jobs = await jobQueue.getJobs(primaryAddress, { kind: "work", synced: false });
       return jobs.filter(
         (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId
       ) as Job<WorkJobPayload>[];
@@ -155,8 +155,8 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
           const work = jobToWork(job as Job<WorkJobPayload>);
           const images = await jobQueueDB.getImagesForJob(job.id);
           work.media = images.map((img) => img.url);
-          if (smartAccountAddress) {
-            work.gardenerAddress = smartAccountAddress;
+          if (primaryAddress) {
+            work.gardenerAddress = primaryAddress;
           }
           return work;
         })
@@ -259,22 +259,22 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
 
 /**
  * Hook for getting pending work count across all gardens with event-driven updates
- * Scoped to current user's smart account address
+ * Scoped to the current authenticated primary address
  */
 export function usePendingWorksCount() {
   const queryClient = useQueryClient();
-  const { smartAccountAddress } = useUser();
+  const primaryAddress = usePrimaryAddress();
 
   const query = useQuery({
     queryKey: queryKeys.queue.pendingCount(),
     queryFn: async () => {
       // Only count jobs for the current user
-      if (!smartAccountAddress) return 0;
+      if (!primaryAddress) return 0;
       // Count only unsynced work jobs to align with Uploading tab
-      const jobs = await jobQueue.getJobs(smartAccountAddress, { kind: "work", synced: false });
+      const jobs = await jobQueue.getJobs(primaryAddress, { kind: "work", synced: false });
       return jobs.length;
     },
-    enabled: !!smartAccountAddress,
+    enabled: !!primaryAddress,
     staleTime: STALE_TIMES.queue,
     gcTime: GC_TIMES.queue,
   });
@@ -289,22 +289,22 @@ export function usePendingWorksCount() {
 
 /**
  * Hook for getting queue statistics with event-driven updates
- * Scoped to current user's smart account address
+ * Scoped to the current authenticated primary address
  */
 export function useQueueStatistics() {
   const queryClient = useQueryClient();
-  const { smartAccountAddress } = useUser();
+  const primaryAddress = usePrimaryAddress();
 
   const query = useQuery({
     queryKey: queryKeys.queue.stats(),
     queryFn: async () => {
       // Only get stats for the current user
-      if (!smartAccountAddress) {
+      if (!primaryAddress) {
         return { total: 0, pending: 0, failed: 0, synced: 0 };
       }
-      return jobQueue.getStats(smartAccountAddress);
+      return jobQueue.getStats(primaryAddress);
     },
-    enabled: !!smartAccountAddress,
+    enabled: !!primaryAddress,
     staleTime: STALE_TIMES.queue,
     gcTime: GC_TIMES.queue,
   });

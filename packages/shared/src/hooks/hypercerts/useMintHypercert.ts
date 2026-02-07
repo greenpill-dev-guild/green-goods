@@ -42,7 +42,8 @@ import {
 import { useAuth } from "../auth/useAuth";
 
 // Import from extracted modules
-import { CREATE_ALLOWLIST_ABI, HATS_MODULE_ABI } from "./hypercert-abis";
+import { CREATE_ALLOWLIST_ABI } from "./hypercert-abis";
+import { GARDEN_ACCOUNT_ROLE_ABI } from "../../utils/blockchain/abis";
 import { resolveHypercertContracts } from "./hypercert-contracts";
 import {
   TimeoutError,
@@ -392,10 +393,10 @@ export function useMintHypercert(): UseMintHypercertResult {
       if (contracts.hatsModule) {
         const publicClient = createPublicClientForChain(chainId);
         const isOperator = await publicClient.readContract({
-          address: contracts.hatsModule,
-          abi: HATS_MODULE_ABI,
+          address: params.draft.gardenId as Address,
+          abi: GARDEN_ACCOUNT_ROLE_ABI,
           functionName: "isOperator",
-          args: [params.draft.gardenId as Address, operatorAddress as Address],
+          args: [operatorAddress as Address],
         });
 
         if (!isOperator) {

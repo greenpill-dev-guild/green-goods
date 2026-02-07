@@ -9,7 +9,11 @@ import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 
 const GET_OPERATOR_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
   query GetOperatorGardens($operator: [String!]!) {
-    Garden(where: {operators: {_contains: $operator}}) {
+    Garden(
+      where: {
+        _or: [{operators: {_contains: $operator}}, {owners: {_contains: $operator}}]
+      }
+    ) {
       id
       name
     }

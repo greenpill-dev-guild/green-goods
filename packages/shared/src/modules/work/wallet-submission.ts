@@ -13,8 +13,7 @@
  */
 
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
-import { NO_EXPIRATION, ZERO_BYTES32 } from "../../utils/eas/constants";
-import { getPublicClient, getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
+import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
 import { queryClient } from "../../config/react-query";
@@ -22,17 +21,16 @@ import { queryKeys } from "../../hooks/query-keys";
 import type { EASWork, EASWorkApproval } from "../../types/eas-responses";
 import { ANALYTICS_EVENTS, trackWalletSubmissionTiming } from "../../modules/app/analytics-events";
 import { track } from "../../modules/app/posthog";
-import { EASABI } from "../../utils/blockchain/contracts";
 import { pollQueriesAfterTransaction } from "../../utils/blockchain/polling";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
-import { encodeWorkApprovalData, encodeWorkData, simulateWorkData } from "../../utils/eas/encoders";
+import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import {
   buildApprovalAttestTx,
   buildBatchApprovalAttestTx,
   buildWorkAttestTx,
 } from "../../utils/eas/transaction-builder";
-import { parseContractError } from "../../utils/errors/contract-errors";
 import { formatWalletError } from "../../utils/errors/user-messages";
+import { simulateWorkSubmission } from "./simulate";
 
 // ============================================================================
 // TYPES
@@ -64,53 +62,6 @@ export interface WalletSubmissionOptions {
 }
 
 // ============================================================================
-// SIMULATION CACHE
-// ============================================================================
-
-interface SimulationCacheEntry {
-  success: boolean;
-  timestamp: number;
-  hash: string;
-}
-
-const SIMULATION_CACHE_TTL = 60_000; // 60 seconds
-const simulationCache = new Map<string, SimulationCacheEntry>();
-
-/**
- * Generate a cache key for simulation results
- */
-function getSimulationCacheKey(gardenAddress: string, actionUID: number, account: string): string {
-  return `${gardenAddress}-${actionUID}-${account}`;
-}
-
-/**
- * Check if a cached simulation result is valid
- */
-function getCachedSimulation(key: string): SimulationCacheEntry | null {
-  const cached = simulationCache.get(key);
-  if (!cached) return null;
-
-  const age = Date.now() - cached.timestamp;
-  if (age > SIMULATION_CACHE_TTL) {
-    simulationCache.delete(key);
-    return null;
-  }
-
-  return cached;
-}
-
-/**
- * Cache a successful simulation result
- */
-function cacheSimulation(key: string): void {
-  simulationCache.set(key, {
-    success: true,
-    timestamp: Date.now(),
-    hash: key,
-  });
-}
-
-// ============================================================================
 // TRANSACTION TIMEOUT UTILITY
 // ============================================================================
 
@@ -123,19 +74,26 @@ async function waitForReceiptWithTimeout(
   chainId: number,
   timeoutMs: number = 60_000
 ): Promise<void> {
-  const { promise: timeoutPromise, reject } = Promise.withResolvers<never>();
-
-  setTimeout(() => {
-    reject(
-      new Error(
-        `Transaction confirmation timeout after ${timeoutMs / 1000}s. The transaction may still be processing.`
-      )
-    );
-  }, timeoutMs);
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(
+        new Error(
+          `Transaction confirmation timeout after ${timeoutMs / 1000}s. The transaction may still be processing.`
+        )
+      );
+    }, timeoutMs);
+  });
 
   const receiptPromise = waitForTransactionReceipt(wagmiConfig, { hash, chainId });
 
-  await Promise.race([receiptPromise, timeoutPromise]);
+  try {
+    await Promise.race([receiptPromise, timeoutPromise]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
 }
 
 /**
@@ -143,7 +101,7 @@ async function waitForReceiptWithTimeout(
  *
  * Process:
  * 1. Get wallet client from wagmi
- * 2. Simulate contract (check cache first)
+ * 2. Simulate contract
  * 3. Encode work data (uploads media to IPFS)
  * 4. Prepare EAS attestation transaction
  * 5. Send transaction via wallet
@@ -188,99 +146,23 @@ export async function submitWorkDirectly(
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
 
-  // 2. Simulate contract interaction (check cache first)
-  const publicClient = getPublicClient(wagmiConfig, { chainId });
-  const cacheKey = getSimulationCacheKey(
-    gardenAddress,
-    actionUID,
-    walletClient.account?.address || ""
-  );
-  const cachedSim = getCachedSimulation(cacheKey);
-
-  if (cachedSim) {
-    debugLog("[WalletSubmission] Using cached simulation result");
-  } else if (publicClient) {
+  // 2. Simulate contract interaction (includes internal short-lived cache)
+  if (walletClient.account?.address) {
     try {
       debugLog("[WalletSubmission] Simulating transaction before upload...");
-      const easConfig = getEASConfig(chainId);
 
-      // Prepare simulation data (dummy CIDs)
-      const simulationData = simulateWorkData(
-        {
-          ...draft,
-          title: `${actionTitle} - ${new Date().toISOString()}`,
-          actionUID,
-          media: images,
-        },
-        chainId
-      );
-
-      // Simulate the attest call
-      await publicClient.simulateContract({
-        address: easConfig.EAS.address as `0x${string}`,
-        abi: EASABI,
-        functionName: "attest",
-        args: [
-          {
-            schema: easConfig.WORK.uid,
-            data: {
-              recipient: gardenAddress as `0x${string}`,
-              expirationTime: NO_EXPIRATION,
-              revocable: true,
-              refUID: ZERO_BYTES32,
-              data: simulationData,
-              value: 0n,
-            },
-          },
-        ],
-        account: walletClient.account,
+      await simulateWorkSubmission({
+        draft,
+        gardenAddress,
+        actionUID,
+        actionTitle,
+        chainId,
+        images,
+        accountAddress: walletClient.account.address,
       });
-
-      // Cache successful simulation
-      cacheSimulation(cacheKey);
-      debugLog("[WalletSubmission] Simulation successful - cached for 60s");
     } catch (err: unknown) {
       debugError("[WalletSubmission] Simulation failed", err);
-
-      const parsed = parseContractError(err);
-      if (parsed.isKnown) {
-        // Include error name so the UI provider can recognize it as a known error
-        throw new Error(
-          `[${parsed.name}] ${parsed.message}${parsed.action ? ` ${parsed.action}` : ""}`
-        );
-      }
-
-      // Check for common simulation failures and provide specific messages
-      const errObj = err as { message?: string; cause?: { reason?: string } };
-      const errMessage = errObj.message?.toLowerCase() || "";
-
-      // Not a member of the garden (neither gardener nor operator)
-      if (
-        errMessage.includes("notgardener") ||
-        errMessage.includes("not a gardener") ||
-        errMessage.includes("notgardenmember") ||
-        errMessage.includes("not a member")
-      ) {
-        throw new Error(
-          "You're not a member of this garden. Please join the garden first from your profile."
-        );
-      }
-
-      // Reverted without reason (common for access control)
-      if (errMessage.includes("reverted") && !errObj.cause?.reason) {
-        throw new Error(
-          "Transaction would fail. Make sure you're a member of the selected garden."
-        );
-      }
-
-      // Fallback to cause reason if available
-      if (errObj.cause?.reason) {
-        throw new Error(`Transaction check failed: ${errObj.cause.reason}`);
-      }
-
-      throw new Error(
-        `Transaction check failed: ${parsed.message || errObj.message || "Please verify you're a member of the selected garden."}`
-      );
+      throw err;
     }
   }
 
@@ -301,6 +183,11 @@ export async function submitWorkDirectly(
       {
         gardenAddress,
         authMode: "wallet",
+        onFileProgress: ({ completed, total }) => {
+          if (total <= 0) return;
+          const noun = total === 1 ? "photo" : "photos";
+          onProgress?.("uploading", `Uploading ${completed}/${total} ${noun}...`);
+        },
       }
     );
 
