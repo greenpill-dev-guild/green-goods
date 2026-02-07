@@ -69,6 +69,8 @@ export interface EncodeWorkDataOptions {
   gardenAddress?: string;
   /** Auth mode for tracking context */
   authMode?: "passkey" | "wallet" | null;
+  /** Per-file upload progress callback */
+  onFileProgress?: (progress: { completed: number; total: number; fileIndex: number }) => void;
 }
 
 /**
@@ -159,6 +161,11 @@ export async function encodeWorkData(
       authMode: options.authMode,
     }).then((result) => {
       completedFiles++;
+      options.onFileProgress?.({
+        completed: completedFiles,
+        total: totalFiles,
+        fileIndex: index,
+      });
       // Track individual file completion
       trackUploadBatchProgress({
         stage: "file_complete",

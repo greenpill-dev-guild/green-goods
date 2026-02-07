@@ -167,7 +167,7 @@ export type DraftStep = "intro" | "media" | "details" | "review";
  * const draft: WorkDraftRecord = {
  *   id: "draft-123",
  *   userAddress: "0x...",
- *   chainId: 84532,
+ *   chainId: 11155111,
  *   gardenAddress: "0x...",
  *   actionUID: 1,
  *   feedback: "In progress...",

@@ -17,6 +17,7 @@ export { getChain } from "../../config/chains";
 import deployment42161 from "../../../../contracts/deployments/42161-latest.json";
 import deployment42220 from "../../../../contracts/deployments/42220-latest.json";
 import deployment84532 from "../../../../contracts/deployments/84532-latest.json";
+import deployment11155111 from "../../../../contracts/deployments/11155111-latest.json";
 import networksConfig from "../../../../contracts/deployments/networks.json";
 import ActionRegistryABIJson from "../../../../contracts/out/Action.sol/ActionRegistry.json";
 import EASABIJson from "../../../../contracts/out/EAS.sol/MockEAS.json";
@@ -33,25 +34,19 @@ export const EASABI = EASABIJson.abi as Abi;
 function getNetworkConfigFromNetworksJson(chainId: number) {
   const networksData = networksConfig as { networks: Record<string, any> };
   const networkName = getNetworkName(chainId);
-  return networksData.networks[networkName] || networksData.networks.baseSepolia;
+  return networksData.networks[networkName] || networksData.networks.sepolia;
 }
+
+const DEPLOYMENT_CONFIGS: Record<string, Record<string, any>> = {
+  "42161": deployment42161 as Record<string, any>,
+  "42220": deployment42220 as Record<string, any>,
+  "11155111": deployment11155111 as Record<string, any>,
+  "84532": deployment84532 as Record<string, any>,
+};
 
 function getDeploymentConfig(chainId: number | string): Record<string, any> {
   const chain = String(chainId);
-  try {
-    switch (chain) {
-      case "42161":
-        return deployment42161;
-      case "42220":
-        return deployment42220;
-      case "84532":
-        return deployment84532;
-      default:
-        return {};
-    }
-  } catch {
-    return {};
-  }
+  return DEPLOYMENT_CONFIGS[chain] ?? {};
 }
 
 export function getNetworkContracts(chainId: number): NetworkContracts {
@@ -66,6 +61,8 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
       deployment.workApprovalResolver || "0x0000000000000000000000000000000000000000",
     deploymentRegistry:
       deployment.deploymentRegistry || "0x0000000000000000000000000000000000000000",
+    gardenHatsModule: deployment.gardenHatsModule || "0x0000000000000000000000000000000000000000",
+    karmaGAPModule: deployment.karmaGAPModule || "0x0000000000000000000000000000000000000000",
     eas: networkConfig.contracts?.eas || "0x0000000000000000000000000000000000000000",
     easSchemaRegistry:
       networkConfig.contracts?.easSchemaRegistry || "0x0000000000000000000000000000000000000000",

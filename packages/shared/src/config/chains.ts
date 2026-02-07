@@ -1,7 +1,8 @@
-import { arbitrum, baseSepolia, celo, type Chain } from "viem/chains";
+import { arbitrum, baseSepolia, celo, sepolia, type Chain } from "viem/chains";
 
 export const SUPPORTED_CHAINS = {
   42161: arbitrum,
+  11155111: sepolia,
   84532: baseSepolia,
   42220: celo,
 } as const;
@@ -9,12 +10,13 @@ export const SUPPORTED_CHAINS = {
 export type SupportedChainId = keyof typeof SUPPORTED_CHAINS;
 
 export const getChain = (chainId: number): Chain => {
-  return SUPPORTED_CHAINS[chainId as SupportedChainId] || baseSepolia;
+  return SUPPORTED_CHAINS[chainId as SupportedChainId] || sepolia;
 };
 
 export const getChainName = (chainId: number): string => {
   const names = {
     42161: "arbitrum",
+    11155111: "sepolia",
     84532: "base-sepolia",
     42220: "celo",
   } as const;
