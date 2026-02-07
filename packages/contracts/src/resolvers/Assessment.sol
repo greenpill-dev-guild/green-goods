@@ -8,8 +8,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 
 import { AssessmentSchema } from "../Schemas.sol";
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
-import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
-import { KarmaLib } from "../lib/Karma.sol";
+import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 
 error NotGardenOperator();
 error TitleRequired();
@@ -21,12 +20,18 @@ error InvalidCapital(string invalidCapital);
 /// @notice A schema resolver for Garden Assessment attestations
 /// @dev This contract is upgradable using the UUPS pattern and requires initialization.
 contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
+    /// @notice The Karma GAP module for milestone creation
+    IKarmaGAPModule public karmaGAPModule;
+
+    /// @notice Emitted when the KarmaGAPModule is updated
+    event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
+
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 50 slots for future state variables
+     * Reserves 49 slots (50 total - 1 used: karmaGAPModule)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address easAddrs) SchemaResolver(IEAS(easAddrs)) {
@@ -39,6 +44,14 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     function initialize(address _multisig) external initializer {
         __Ownable_init();
         _transferOwnership(_multisig);
+    }
+
+    /// @notice Sets the KarmaGAPModule address
+    /// @param _module The new KarmaGAPModule address
+    function setKarmaGAPModule(address _module) external onlyOwner {
+        address oldModule = address(karmaGAPModule);
+        karmaGAPModule = IKarmaGAPModule(_module);
+        emit KarmaGAPModuleUpdated(oldModule, _module);
     }
 
     /// @notice Indicates whether the resolver is payable.
@@ -56,7 +69,7 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     /// 2. IDENTITY: Verify attester is a garden operator (can create assessments)
     /// 3. REQUIRED FIELDS: Validate title, assessmentType, capitals exist
     /// 4. CAPITAL VALIDATION: Verify each capital is one of 8 valid types
-    /// 5. GAP INTEGRATION: Create project milestone if GAP supported
+    /// 5. GAP INTEGRATION: Create project milestone if KarmaGAPModule is configured
     ///
     /// **8 Forms of Capital:**
     /// - social, material, financial, living
@@ -71,10 +84,11 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         // Use IGardenAccessControl interface for role verification
         IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);
 
-        // IDENTITY CHECK: Verify operator status FIRST
-        // This is the primary authorization - only operators can create assessments
+        // IDENTITY CHECK: Verify evaluator OR operator status FIRST
         // Uses IGardenAccessControl interface for swappable access control backends
-        if (!accessControl.isOperator(attestation.attester)) {
+        bool isEvaluator = accessControl.isEvaluator(attestation.attester);
+        bool isOperator = accessControl.isOperator(attestation.attester);
+        if (!isEvaluator && !isOperator) {
             revert NotGardenOperator();
         }
 
@@ -101,9 +115,9 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         }
 
         // GAP INTEGRATION: Create project milestone (assessment)
-        // Uses IGardenAccount interface for decoupled compilation
-        IGardenAccount gardenAccount = IGardenAccount(attestation.recipient);
-        _createGAPProjectMilestone(schema, gardenAccount);
+        if (address(karmaGAPModule) != address(0)) {
+            _createGAPProjectMilestone(schema, attestation.recipient);
+        }
 
         return true;
     }
@@ -126,28 +140,18 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
             || capitalHash == keccak256("spiritual") || capitalHash == keccak256("cultural");
     }
 
-    /// @notice Creates GAP project milestone securely via GardenAccount
+    /// @notice Creates GAP project milestone securely via KarmaGAPModule
     /// @dev SECURITY: Only called after full validation in onAttest()
     /// @param schema Assessment schema data
-    /// @param gardenAccount The garden account to create milestone for
-    function _createGAPProjectMilestone(AssessmentSchema memory schema, IGardenAccount gardenAccount) private {
-        // Skip if GAP not supported on this chain
-        if (!KarmaLib.isSupported()) return;
-
-        // Skip if garden has no GAP project
-        bytes32 projectUID = gardenAccount.getGAPProjectUID();
-        if (projectUID == bytes32(0)) return;
-
+    /// @param garden The garden address to create milestone for
+    function _createGAPProjectMilestone(AssessmentSchema memory schema, address garden) private {
         // Build milestone metadata JSON
         string memory metaJSON = _buildMilestoneMetadata(schema);
 
         // SECURITY: Use try/catch to prevent GAP failures from reverting assessment
-        // The gardenAccount.createProjectMilestone() has onlyResolver modifier
-        // Since we already validated operator in onAttest(), this is secure
         // solhint-disable-next-line no-empty-blocks
-        try gardenAccount.createProjectMilestone(schema.title, schema.description, metaJSON) {
-            // Success - event emitted by GardenAccount, no additional action needed
-            // solhint-disable-next-line no-empty-blocks
+        try karmaGAPModule.createMilestone(garden, schema.title, schema.description, metaJSON) {
+            // Success - event emitted by module, no additional action needed
         } catch {
             // Intentionally ignore failures - assessment succeeds even if GAP integration fails
         }

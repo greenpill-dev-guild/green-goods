@@ -9,10 +9,10 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { WorkApprovalSchema, WorkSchema } from "../Schemas.sol";
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { IGreenGoodsResolver } from "../interfaces/IGreenGoodsResolver.sol";
-import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
+import { IERC6551Account } from "../interfaces/IERC6551Account.sol";
+import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 import { ActionRegistry } from "../registries/Action.sol";
 import { NotInActionRegistry } from "./Work.sol";
-import { KarmaLib } from "../lib/Karma.sol";
 
 error NotInWorkRegistry();
 error NotGardenOperator();
@@ -26,16 +26,22 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     /// @notice The GreenGoods resolver for triggering protocol integrations
     IGreenGoodsResolver public greenGoodsResolver;
 
+    /// @notice The Karma GAP module for impact creation
+    IKarmaGAPModule public karmaGAPModule;
+
     /// @notice Emitted when the GreenGoods resolver is updated
     event GreenGoodsResolverUpdated(address indexed oldResolver, address indexed newResolver);
 
+    /// @notice Emitted when the KarmaGAPModule is updated
+    event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
+
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 49 slots (50 total - 1 used: greenGoodsResolver)
+     * Reserves 48 slots (50 total - 2 used: greenGoodsResolver, karmaGAPModule)
      * Note: ACTION_REGISTRY is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[49] private __gap;
+    uint256[48] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address easAddrs, address actionAddrs) SchemaResolver(IEAS(easAddrs)) {
@@ -59,6 +65,14 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         emit GreenGoodsResolverUpdated(oldResolver, _resolver);
     }
 
+    /// @notice Sets the KarmaGAPModule address
+    /// @param _module The new KarmaGAPModule address
+    function setKarmaGAPModule(address _module) external onlyOwner {
+        address oldModule = address(karmaGAPModule);
+        karmaGAPModule = IKarmaGAPModule(_module);
+        emit KarmaGAPModuleUpdated(oldModule, _module);
+    }
+
     /// @notice Indicates whether the resolver is payable.
     /// @dev This is a pure function that always returns true.
     /// @return A boolean indicating that the resolver is payable
@@ -77,7 +91,7 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     ///
     /// **GAP Impact Creation:**
     /// - Only created if schema.approved == true
-    /// - Only if chain supports GAP (KarmaLib.isSupported())
+    /// - Only if KarmaGAPModule is configured (module handles chain support)
     /// - Uses try/catch to prevent GAP failures from reverting approval
     ///
     /// @param attestation The attestation data structure
@@ -94,10 +108,11 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         // Use IGardenAccessControl interface for role verification
         IGardenAccessControl accessControl = IGardenAccessControl(workAttestation.recipient);
 
-        // IDENTITY CHECK: Verify operator status
-        // This is the primary authorization - only operators can approve work
+        // IDENTITY CHECK: Verify evaluator OR operator status
         // Uses IGardenAccessControl interface for swappable access control backends
-        if (!accessControl.isOperator(attestation.attester)) {
+        bool isEvaluator = accessControl.isEvaluator(attestation.attester);
+        bool isOperator = accessControl.isOperator(attestation.attester);
+        if (!isEvaluator && !isOperator) {
             revert NotGardenOperator();
         }
 
@@ -107,10 +122,8 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         }
 
         // GAP INTEGRATION: Create project impact if approved
-        // Uses IGardenAccount interface for decoupled compilation
-        if (schema.approved && KarmaLib.isSupported()) {
-            IGardenAccount gardenAccount = IGardenAccount(workAttestation.recipient);
-            _createGAPProjectImpact(schema, workAttestation, gardenAccount);
+        if (schema.approved && address(karmaGAPModule) != address(0)) {
+            _createGAPProjectImpact(schema, workAttestation);
         }
 
         // GREENGOODS RESOLVER: Trigger all enabled integrations (Octant, Unlock, etc.)
@@ -167,31 +180,21 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         // The approval attestation recipient is the garden address
         IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);
 
-        // IDENTITY CHECK: Only operators can revoke work approvals
-        // This allows the original approver or any other operator to revoke if needed
-        if (!accessControl.isOperator(attestation.attester)) {
+        // IDENTITY CHECK: Evaluators or operators can revoke work approvals
+        bool isEvaluator = accessControl.isEvaluator(attestation.attester);
+        bool isOperator = accessControl.isOperator(attestation.attester);
+        if (!isEvaluator && !isOperator) {
             revert NotGardenOperator();
         }
 
         return true;
     }
 
-    /// @notice Creates GAP project impact securely via GardenAccount
+    /// @notice Creates GAP project impact securely via KarmaGAPModule
     /// @dev SECURITY: Only called after full validation in onAttest()
     /// @param schema Work approval schema data
     /// @param workAttestation The work attestation being approved
-    /// @param gardenAccount The garden account to create impact for
-    function _createGAPProjectImpact(
-        WorkApprovalSchema memory schema,
-        Attestation memory workAttestation,
-        IGardenAccount gardenAccount
-    )
-        private
-    {
-        // Skip if garden has no GAP project
-        bytes32 projectUID = gardenAccount.getGAPProjectUID();
-        if (projectUID == bytes32(0)) return;
-
+    function _createGAPProjectImpact(WorkApprovalSchema memory schema, Attestation memory workAttestation) private {
         // Get work and action data
         WorkSchema memory workSchema = abi.decode(workAttestation.data, (WorkSchema));
         ActionRegistry.Action memory action = ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID);
@@ -201,13 +204,12 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         string memory impactDesc = schema.feedback;
         string memory proof = workSchema.media.length > 0 ? workSchema.media[0] : "";
 
+        (,, uint256 tokenId) = IERC6551Account(workAttestation.recipient).token();
+
         // SECURITY: Use try/catch to prevent GAP failures from reverting approval
-        // The gardenAccount.createProjectImpact() has onlyWorkApprovalResolver modifier
-        // Since we already validated operator in onAttest(), this is secure
         // solhint-disable-next-line no-empty-blocks
-        try gardenAccount.createProjectImpact(workTitle, impactDesc, proof, schema.workUID) {
-            // Success - event emitted by GardenAccount, no additional action needed
-            // solhint-disable-next-line no-empty-blocks
+        try karmaGAPModule.createImpact(workAttestation.recipient, tokenId, workTitle, impactDesc, proof, schema.workUID) {
+            // Success - event emitted by module, no additional action needed
         } catch {
             // Intentionally ignore failures - approval succeeds even if GAP integration fails
         }

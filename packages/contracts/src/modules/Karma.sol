@@ -39,11 +39,14 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
     /// @notice AssessmentResolver contract address
     address public assessmentResolver;
 
+    /// @notice HatsModule contract address (authorized to sync project admins)
+    address public hatsModule;
+
     /// @notice Garden address → GAP Project UID
     mapping(address garden => bytes32 projectUID) public gardenProjects;
 
     /// @notice Storage gap for future upgrades
-    uint256[46] private __gap;
+    uint256[45] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -100,7 +103,10 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
     }
 
     modifier onlyAuthorized() {
-        if (msg.sender != gardenToken && msg.sender != workApprovalResolver && msg.sender != assessmentResolver) {
+        if (
+            msg.sender != gardenToken && msg.sender != workApprovalResolver && msg.sender != assessmentResolver
+                && msg.sender != hatsModule
+        ) {
             revert NotAuthorizedCaller();
         }
         _;
@@ -127,6 +133,13 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
     /// @param _assessmentResolver The new AssessmentResolver address
     function setAssessmentResolver(address _assessmentResolver) external onlyOwner {
         assessmentResolver = _assessmentResolver;
+    }
+
+    /// @notice Set the HatsModule contract address
+    /// @param _hatsModule The new HatsModule address
+    function setHatsModule(address _hatsModule) external onlyOwner {
+        if (_hatsModule == address(0)) revert ZeroAddress();
+        hatsModule = _hatsModule;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

@@ -121,6 +121,7 @@ verbosity = 3
 
 [etherscan]
   arbitrum = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42161" }
+  sepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api-sepolia.etherscan.io/api", chainId = "11155111" }
   baseSepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "84532" }
   celo = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42220" }
 
@@ -158,6 +159,9 @@ eth_rpc_url = "http://localhost:8545"
 
 [profile.arbitrum]
 eth_rpc_url = "${ARBITRUM_RPC_URL}"
+
+[profile.sepolia]
+eth_rpc_url = "${SEPOLIA_RPC_URL}"
 
 [profile.baseSepolia]
 eth_rpc_url = "${BASE_SEPOLIA_RPC_URL}"

@@ -346,16 +346,16 @@ Tracks contract deployments across networks.
 
 ```bash
 # Dry run
-bun script/deploy.ts core --network baseSepolia
+bun script/deploy.ts core --network sepolia
 
 # Deploy for real
-bun script/deploy.ts core --network baseSepolia --broadcast
+bun script/deploy.ts core --network sepolia --broadcast
 
 # Update schemas only
-bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 
 # Or use npm scripts
-bun deploy:testnet     # Base Sepolia
+bun deploy:testnet     # Sepolia
 bun deploy:mainnet     # Production
 ```
 
@@ -372,7 +372,8 @@ bun deploy:mainnet     # Production
 After deployment, artifacts are saved to:
 ```
 deployments/
-├── 84532-latest.json   # Base Sepolia
+├── 11155111-latest.json # Sepolia
+├── 84532-latest.json   # Base Sepolia (optional)
 ├── 42161-latest.json   # Arbitrum
 ├── 42220-latest.json   # Celo
 └── networks.json       # Network configuration

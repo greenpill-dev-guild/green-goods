@@ -56,6 +56,7 @@ Create or edit `.env` at the project root:
 FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
 
 # Network RPC URLs
+SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
 BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
 CELO_RPC_URL=https://forno.celo.org
 ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
@@ -68,7 +69,8 @@ ETHERSCAN_API_KEY=your-api-key-here
 
 Ensure your deployer address has sufficient native tokens:
 
-- **Base Sepolia**: Get free ETH from [Coinbase Faucet](https://www.coinbase.com/faucets/base-ethereum-goerli-faucet)
+- **Sepolia**: Get free ETH from [Sepolia PoW faucet](https://sepolia-faucet.pk910.de/)
+- **Base Sepolia (optional)**: Get free ETH from [Coinbase Faucet](https://www.coinbase.com/faucets/base-ethereum-goerli-faucet)
 - **Celo Mainnet**: Purchase CELO and send to your deployer address
 - **Arbitrum Mainnet**: Purchase ETH and send to your deployer address
 
@@ -118,7 +120,7 @@ forge test --fork-url http://localhost:8545 -vv
 
 ---
 
-#### Testnet (Base Sepolia)
+#### Testnet (Sepolia)
 
 Public testnet deployment for integration testing:
 
@@ -159,13 +161,13 @@ bun deploy:arbitrum
 ```bash
 # 🏗️ DEPLOY (creates new addresses)
 bun deploy              # Deploy (default settings)
-bun deploy:dry:testnet  # Dry run (Base Sepolia)
-bun deploy:testnet      # Base Sepolia testnet
+bun deploy:dry:testnet  # Dry run (Sepolia)
+bun deploy:testnet      # Sepolia testnet
 bun deploy:celo         # Celo mainnet
 bun deploy:arbitrum     # Arbitrum mainnet
 
 # 🔄 UPGRADE (keeps same addresses)
-bun upgrade:testnet     # Upgrade Base Sepolia
+bun upgrade:testnet     # Upgrade Sepolia
 bun upgrade:celo        # Upgrade Celo mainnet
 bun upgrade:arbitrum    # Upgrade Arbitrum mainnet
 
@@ -226,7 +228,7 @@ The contracts use a unified deployment CLI that handles:
 ```bash
 # Fresh deployment (all environments)
 bun deploy            # Default (localhost or configured network)
-bun deploy:testnet    # Base Sepolia
+bun deploy:testnet    # Sepolia
 bun deploy:celo       # Celo mainnet
 bun deploy:arbitrum   # Arbitrum mainnet
 
@@ -234,8 +236,8 @@ bun deploy:arbitrum   # Arbitrum mainnet
 bun deploy:dry:testnet
 
 # Advanced deployment options
-node script/deploy.js core --network baseSepolia --broadcast --update-schemas
-node script/deploy.js core --network baseSepolia --broadcast --force
+node script/deploy.js core --network sepolia --broadcast --update-schemas
+node script/deploy.js core --network sepolia --broadcast --force
 
 # UUPS contract upgrades (different from deployment)
 bun upgrade:testnet
@@ -278,7 +280,7 @@ Green Goods integrates with the **Karma Grantee Accountability Protocol (GAP)** 
 
 **Supported Networks:**
 - Mainnet: Arbitrum, Celo
-- Testnet: Base Sepolia
+- Testnet: Sepolia
 
 **Automatic Integration:**
 - **Garden Creation** → GAP Project attestation created automatically
@@ -307,7 +309,7 @@ bun test:e2e
 # Test specific networks
 bun test:e2e:arbitrum   # Fork Arbitrum
 bun test:e2e:celo       # Fork Celo
-bun test:e2e:testnet    # Fork Base Sepolia
+bun test:e2e:testnet    # Fork Sepolia
 ```
 
 ### Schema Evolution
