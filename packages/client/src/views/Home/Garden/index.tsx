@@ -7,6 +7,7 @@ import {
   useGardeners,
   useGardens,
   useGardenTabs,
+  useHasRole,
   useJoinGarden,
   useNavigateToTop,
   useUser,
@@ -23,6 +24,7 @@ import {
 import React, { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
+import type { Address } from "viem";
 import toast from "react-hot-toast";
 import { Button } from "@/components/Actions";
 import { GardenErrorBoundary } from "@/components/Errors";
@@ -127,6 +129,12 @@ export const Garden: React.FC<GardenProps> = () => {
     const normalizedUserAddress = primaryAddress.toLowerCase();
     return garden.operators.some((addr) => addr.toLowerCase() === normalizedUserAddress);
   }, [primaryAddress, garden.operators]);
+  const { hasRole: canReviewOnChain } = useHasRole(
+    garden.id as Address | undefined,
+    primaryAddress as Address | undefined,
+    "evaluator"
+  );
+  const canReview = isOperator || canReviewOnChain;
 
   // Check if current user is already a member of this garden
   const isMember = useMemo(() => {
@@ -253,7 +261,7 @@ export const Garden: React.FC<GardenProps> = () => {
                     onBackClick={() => navigate("/home")}
                     works={mergedWorks}
                     garden={garden}
-                    isOperator={isOperator}
+                    isOperator={canReview}
                   />
                 </div>
               </div>
@@ -305,44 +313,13 @@ export const Garden: React.FC<GardenProps> = () => {
               </div>
             </div>
 
-            {/* Spacer for fixed header + join button section */}
-            <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5">
-              <div className="flex items-start justify-between gap-3">
-                <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
-                {showJoinButton && (
-                  <Button
-                    label={intl.formatMessage({
-                      id: "app.garden.join",
-                      defaultMessage: "Join",
-                    })}
-                    leadingIcon={<RiUserAddLine className="w-4 h-4" />}
-                    variant="primary"
-                    mode="filled"
-                    size="small"
-                    onClick={handleJoinGarden}
-                    disabled={isJoining}
-                  />
-                )}
-              </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
-                <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
-                  <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>{location}</span>
-                </div>
-                <span className="hidden sm:inline text-text-soft-400">•</span>
-                <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
-                  <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>
-                    {intl.formatMessage({ id: "app.home.founded" })}{" "}
-                    {new Date(createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            </div>
+            {/* Spacer for fixed header - matches header height without duplicating content
+                Height breakdown: banner (176px/208px) + title section (~80px) + tabs (~48px) = ~304px/336px */}
+            <div className="h-[304px] md:h-[336px] flex-shrink-0" aria-hidden="true" />
 
-            {/* Scrollable content below fixed header (add top padding to match header height) */}
+            {/* Scrollable content below fixed header */}
             <div
-              className="flex-1 min-h-0 px-4 md:px-6 pb-24 pt-56 overflow-y-auto overflow-x-hidden"
+              className="flex-1 min-h-0 px-4 md:px-6 pb-24 overflow-y-auto overflow-x-hidden"
               aria-busy={worksFetching}
             >
               {renderTabContent()}

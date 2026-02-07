@@ -1,9 +1,11 @@
-import { toastService } from "@green-goods/shared";
+import { toastService, type WorkApprovalDraft, type WorkMetadata } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
   queryKeys,
   useActions,
+  useAsyncEffect,
   useGardens,
+  useHasRole,
   useNavigateToTop,
   useTimeout,
   useUser,
@@ -36,6 +38,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useOutletContext, useParams } from "react-router-dom";
+import type { Address } from "viem";
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
@@ -80,6 +83,11 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const activeAddress = user?.id;
   const [isRetrying, setIsRetrying] = useState(false);
   const { set: scheduleTimeout } = useTimeout();
+  const { hasRole: canReviewOnChain } = useHasRole(
+    garden?.id as Address | undefined,
+    activeAddress as Address | undefined,
+    "evaluator"
+  );
 
   // Determine user role and viewing mode
   const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
@@ -87,14 +95,15 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
     // Check if user is garden operator
     const isOperator = isAddressInList(activeAddress, garden.operators);
+    const canReview = isOperator || canReviewOnChain;
 
     // Check if user is the gardener who submitted the work
     const isGardener = sharedIsUserAddress(work.gardenerAddress, activeAddress);
 
-    if (isOperator) return "operator";
+    if (canReview) return "operator";
     if (isGardener) return "gardener";
     return "viewer";
-  }, [garden, work, activeAddress]);
+  }, [garden, work, activeAddress, canReviewOnChain]);
 
   // Detect if this is offline work
   const isOfflineWork =
@@ -343,17 +352,15 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     }
   }, [work?.status, optimisticStatus]);
 
-  useEffect(() => {
-    let mounted = true;
-    const loadMetadata = async () => {
-      if (mounted) {
-        setMetadataStatus("loading");
-        setMetadataError(null);
-        setWorkMetadata(null);
-      }
+  // Load work metadata with proper async cleanup (Rule 3: Async Cleanup)
+  useAsyncEffect(
+    async ({ isMounted }) => {
+      setMetadataStatus("loading");
+      setMetadataError(null);
+      setWorkMetadata(null);
 
       if (!work) {
-        if (mounted) {
+        if (isMounted()) {
           setMetadataStatus("idle");
         }
         return;
@@ -361,7 +368,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
       const raw = work.metadata;
       if (!raw || typeof raw !== "string") {
-        if (mounted) {
+        if (isMounted()) {
           setWorkMetadata(null);
           setMetadataStatus("success");
         }
@@ -370,30 +377,30 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
       const trimmed = raw.trim();
 
+      // Try parsing as inline JSON first
       if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
         try {
           const parsed = JSON.parse(trimmed) as unknown;
-          if (mounted) {
+          if (isMounted()) {
             setWorkMetadata(parsed as WorkMetadata);
             setMetadataStatus("success");
           }
           return;
         } catch (error) {
-          if (mounted) {
-            debugWarn(
-              `[GardenWork] Failed to parse inline metadata for work ${work.id}: ${
-                error instanceof Error ? error.message : String(error)
-              }`
-            );
-          }
+          debugWarn(
+            `[GardenWork] Failed to parse inline metadata for work ${work.id}: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
           // Continue to gateway fetch fallback
         }
       }
 
+      // Fetch from IPFS gateway
       try {
         const file = await getFileByHash(trimmed);
         const data = file.data as unknown as WorkMetadata | null | undefined;
-        if (!mounted) return;
+        if (!isMounted()) return;
 
         if (data) {
           setWorkMetadata(data);
@@ -407,20 +414,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           );
         }
       } catch (error) {
-        if (!mounted) return;
+        if (!isMounted()) return;
         const message = error instanceof Error ? error.message : String(error);
         setWorkMetadata(null);
         setMetadataStatus("error");
         setMetadataError(message);
         debugWarn(`[GardenWork] Failed to fetch metadata for work ${work.id}: ${message}`);
       }
-    };
-
-    void loadMetadata();
-    return () => {
-      mounted = false;
-    };
-  }, [work]);
+    },
+    [work]
+  );
 
   const handleBack = () => {
     const from = (location.state as { from?: string } | null | undefined)?.from;
@@ -524,11 +527,14 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
             )}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
-            role="presentation"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="feedback-drawer-title"
+            aria-describedby="feedback-drawer-description"
           >
             <div className="p-4 space-y-3 max-w-screen-sm mx-auto">
               <div className="flex items-center justify-between">
-                <h6 className="text-sm font-medium text-text-strong-950">
+                <h2 id="feedback-drawer-title" className="text-sm font-medium text-text-strong-950">
                   {feedbackMode === "approve"
                     ? intl.formatMessage({
                         id: "app.home.workApproval.addFeedbackOptional",
@@ -538,9 +544,22 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                         id: "app.home.workApproval.addFeedbackRequired",
                         defaultMessage: "Add Feedback (Required)",
                       })}
-                </h6>
+                </h2>
               </div>
 
+              <p id="feedback-drawer-description" className="sr-only">
+                {intl.formatMessage({
+                  id: "app.home.workApproval.feedbackDescription",
+                  defaultMessage: "Enter your feedback for this work submission.",
+                })}
+              </p>
+
+              <label htmlFor="approval-feedback-input" className="sr-only">
+                {intl.formatMessage({
+                  id: "app.home.workApproval.feedbackLabel",
+                  defaultMessage: "Feedback",
+                })}
+              </label>
               <textarea
                 id="approval-feedback-input"
                 value={inlineFeedback}

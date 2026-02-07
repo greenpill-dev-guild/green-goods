@@ -11,7 +11,7 @@
     "resolvePackageJsonExports": false,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
     "incremental": true,

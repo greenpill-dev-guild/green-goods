@@ -1,3 +1,4 @@
+import type { Action, Garden } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
   useActionTranslation,

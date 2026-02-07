@@ -6,6 +6,7 @@ import {
   type WorkJobPayload,
 } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
+import { createPublicClientForChain } from "@green-goods/shared/config";
 import {
   queryKeys,
   DEFAULT_RETRY_COUNT,
@@ -33,11 +34,13 @@ import {
   isUserAddress as sharedIsUserAddress,
   type TimeFilter,
 } from "@green-goods/shared/utils";
+import { GARDEN_ACCOUNT_ROLE_ABI } from "@green-goods/shared/utils/blockchain/abis";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine, RiTimeLine } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import type { Address } from "viem";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
 import { CompletedTab } from "./Completed";
 import { DraftsTab } from "./Drafts";
@@ -117,6 +120,42 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [gardens, activeAddress]
   );
 
+  const { data: evaluatorGardenIds = [] } = useQuery({
+    queryKey: queryKeys.role.evaluatorGardens(
+      activeAddress || undefined,
+      (gardens || []).map((g) => g.id)
+    ),
+    queryFn: async () => {
+      if (!activeAddress || !gardens?.length) return [];
+      const publicClient = createPublicClientForChain(DEFAULT_CHAIN_ID);
+
+      // Batch all evaluator checks into a single multicall RPC request
+      // instead of N parallel readContract calls (one per garden)
+      const results = await publicClient.multicall({
+        contracts: gardens.map((garden) => ({
+          address: garden.id as Address,
+          abi: GARDEN_ACCOUNT_ROLE_ABI,
+          functionName: "isEvaluator" as const,
+          args: [activeAddress as Address],
+        })),
+        allowFailure: true,
+      });
+
+      return gardens
+        .filter((_, index) => results[index].status === "success" && Boolean(results[index].result))
+        .map((garden) => garden.id);
+    },
+    enabled: !!activeAddress && gardens.length > 0,
+    staleTime: STALE_TIME_MEDIUM,
+  });
+
+  const reviewerGardenIds = useMemo(() => {
+    const combined = new Set<string>();
+    operatorGardenIds.forEach((id) => combined.add(id));
+    evaluatorGardenIds.forEach((id) => combined.add(id));
+    return Array.from(combined);
+  }, [operatorGardenIds, evaluatorGardenIds]);
+
   // Fetch works for gardens the user operates (online + offline merged)
   const {
     data: operatorWorks = [],
@@ -125,12 +164,12 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     isError: isErrorOperatorWorks,
     refetch: refetchOperatorWorks,
   } = useQuery({
-    queryKey: queryKeys.operatorWorks.byAddress(activeAddress, operatorGardenIds),
+    queryKey: queryKeys.operatorWorks.byAddress(activeAddress, reviewerGardenIds),
     queryFn: async () => {
       if (!activeAddress) return [];
       const allWorks: Work[] = [];
 
-      for (const gardenId of operatorGardenIds) {
+      for (const gardenId of reviewerGardenIds) {
         // Fetch online works from EAS - gracefully handle per-garden failures
         let online: Work[] = [];
         try {
@@ -172,7 +211,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
       return allWorks.sort((a, b) => b.createdAt - a.createdAt);
     },
-    enabled: operatorGardenIds.length > 0 && !!activeAddress,
+    enabled: reviewerGardenIds.length > 0 && !!activeAddress,
     staleTime: STALE_TIME_MEDIUM,
     retry: DEFAULT_RETRY_COUNT,
   });
@@ -269,13 +308,13 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   // Fetch ALL approvals for operator gardens to filter out work reviewed by ANY operator
   const { data: allOperatorGardenApprovals = [] } = useQuery({
-    queryKey: queryKeys.approvals.byOperatorGardens(operatorGardenIds),
+    queryKey: queryKeys.approvals.byOperatorGardens(reviewerGardenIds),
     queryFn: async () => {
       // Fetch all work approvals (not scoped to any attester)
       const approvals = await fetchWorkApprovals(undefined);
       return approvals;
     },
-    enabled: operatorGardenIds.length > 0,
+    enabled: reviewerGardenIds.length > 0,
     staleTime: STALE_TIME_MEDIUM,
     retry: DEFAULT_RETRY_COUNT,
   });
@@ -443,7 +482,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     const badges: React.ReactNode[] = [];
     const isGardener = isUserAddress(item.gardenerAddress);
     const isOperator =
-      activeAddress && operatorGardenIds.some((id) => compareAddresses(id, item.gardenAddress));
+      activeAddress && reviewerGardenIds.some((id) => compareAddresses(id, item.gardenAddress));
     const reviewed = reviewedByYou.has(item.id);
 
     if (isOperator && !reviewed) {
