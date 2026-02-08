@@ -81,10 +81,9 @@ export async function resolveHypercertContracts(chainId: number): Promise<{
 }> {
   const contracts = getNetworkContracts(chainId);
   const fallbackMinter = getHypercertMinterFallback(chainId);
+  const hatsModuleAddr = contracts.hatsModule as Address | undefined;
   const fallbackHatsModule =
-    contracts.gardenHatsModule && !isZeroAddress(contracts.gardenHatsModule)
-      ? getAddress(contracts.gardenHatsModule)
-      : undefined;
+    hatsModuleAddr && !isZeroAddress(hatsModuleAddr) ? getAddress(hatsModuleAddr) : undefined;
 
   // Check if deployment registry exists before casting
   if (!contracts?.deploymentRegistry) {

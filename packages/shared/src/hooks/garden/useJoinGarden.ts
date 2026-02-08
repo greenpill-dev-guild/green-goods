@@ -40,7 +40,6 @@ interface PasskeySession {
 }
 
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
-import { fetchGardenHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { simulateJoinGarden } from "../../utils/blockchain/simulation";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
@@ -52,10 +51,6 @@ import { useDelayedInvalidation } from "../utils/useTimeout";
  */
 export async function checkGardenOpenJoining(gardenAddress: string): Promise<boolean> {
   try {
-    const hatsModule = await fetchGardenHatsModuleAddress(gardenAddress as `0x${string}`);
-    if (hatsModule) {
-      return false;
-    }
     const isOpen = await readContract(wagmiConfig, {
       address: gardenAddress as `0x${string}`,
       abi: GardenAccountABI,
@@ -198,11 +193,6 @@ export function useJoinGarden() {
 
       if (!gardenAddress || !targetAddress) {
         throw new Error(formatMessage({ id: "app.garden.joinMissingInfo" }));
-      }
-
-      const hatsModule = await fetchGardenHatsModuleAddress(gardenAddress as `0x${string}`);
-      if (hatsModule) {
-        throw new Error(formatMessage({ id: "app.garden.openJoiningUnavailable" }));
       }
 
       // Track join started

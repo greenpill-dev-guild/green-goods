@@ -107,6 +107,7 @@ export {
 // HOOKS
 // ============================================================================
 export type {
+  CreateActionFormData,
   CreateAssessmentForm,
   DebugModeState,
   DeploymentRegistryPermissions,
@@ -156,6 +157,7 @@ export {
   useWindowEvent,
   useDocumentEvent,
   // Action hooks
+  createActionSchema,
   useActionOperations,
   useActions,
   useActionTranslation,

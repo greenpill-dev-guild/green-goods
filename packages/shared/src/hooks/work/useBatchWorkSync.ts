@@ -98,7 +98,10 @@ export function useBatchWorkSync() {
       const easConfig = getEASConfig(chainId);
       const txParams = buildBatchWorkAttestTx(
         easConfig,
-        encodedJobs.map(({ gardenAddress, attestationData }) => ({ gardenAddress, attestationData }))
+        encodedJobs.map(({ gardenAddress, attestationData }) => ({
+          gardenAddress,
+          attestationData,
+        }))
       );
 
       const hash = await walletClient.sendTransaction({

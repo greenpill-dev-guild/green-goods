@@ -46,7 +46,7 @@ interface DeploymentConfig {
   workResolver?: string;
   workApprovalResolver?: string;
   deploymentRegistry?: string;
-  gardenHatsModule?: string;
+  hatsModule?: string;
   karmaGAPModule?: string;
   rootGarden?: {
     address: string;
@@ -195,7 +195,7 @@ export function getNetworkConfig(chainId?: number | string, alchemyKey = "demo")
         deployment.workApprovalResolver || "0x0000000000000000000000000000000000000000",
       deploymentRegistry:
         deployment.deploymentRegistry || "0x0000000000000000000000000000000000000000",
-      gardenHatsModule: deployment.gardenHatsModule || "0x0000000000000000000000000000000000000000",
+      hatsModule: deployment.hatsModule || "0x0000000000000000000000000000000000000000",
       karmaGAPModule: deployment.karmaGAPModule || "0x0000000000000000000000000000000000000000",
       // Add contracts from networks.json
       eas: networkConfig.contracts?.eas || "0x0000000000000000000000000000000000000000",

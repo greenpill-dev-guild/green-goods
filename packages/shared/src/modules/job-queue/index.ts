@@ -658,7 +658,9 @@ class JobQueue {
    */
   async getJobsWithImages(
     userAddress: string
-  ): Promise<Array<{ job: Job<WorkJobPayload>; images: Array<{ id: string; file: File; url: string }> }>> {
+  ): Promise<
+    Array<{ job: Job<WorkJobPayload>; images: Array<{ id: string; file: File; url: string }> }>
+  > {
     if (!userAddress) {
       throw new Error("userAddress is required when getting jobs with images");
     }

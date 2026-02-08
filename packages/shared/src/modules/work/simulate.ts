@@ -114,7 +114,9 @@ export async function simulateWorkSubmission({
 
     const parsed = parseContractError(err);
     if (parsed.isKnown) {
-      throw new Error(`[${parsed.name}] ${parsed.message}${parsed.action ? ` ${parsed.action}` : ""}`);
+      throw new Error(
+        `[${parsed.name}] ${parsed.message}${parsed.action ? ` ${parsed.action}` : ""}`
+      );
     }
 
     const errorLike = err as { message?: string; cause?: { reason?: string } };
@@ -130,9 +132,7 @@ export async function simulateWorkSubmission({
     }
 
     if (messageLower.includes("reverted") && !errorLike.cause?.reason) {
-      throw new Error(
-        "Transaction would fail. Make sure you're a member of the selected garden."
-      );
+      throw new Error("Transaction would fail. Make sure you're a member of the selected garden.");
     }
 
     if (errorLike.cause?.reason) {

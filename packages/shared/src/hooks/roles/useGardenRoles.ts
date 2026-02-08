@@ -26,7 +26,9 @@ async function fetchGardenRoles(
   userAddress: Address,
   chainId: number
 ): Promise<GardenRole[]> {
-  const entries = Object.entries(GARDEN_ROLE_FUNCTIONS) as Array<[GardenRole, string]>;
+  const entries = Object.entries(GARDEN_ROLE_FUNCTIONS) as Array<
+    [GardenRole, (typeof GARDEN_ROLE_FUNCTIONS)[GardenRole]]
+  >;
 
   const results = await Promise.all(
     entries.map(async ([role, fn]) => {

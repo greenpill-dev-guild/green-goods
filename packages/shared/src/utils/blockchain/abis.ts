@@ -67,7 +67,7 @@ export const GARDEN_ACCOUNT_TOKEN_ABI = [
 export const GARDEN_TOKEN_MODULES_ABI = [
   {
     type: "function",
-    name: "gardenHatsModule",
+    name: "hatsModule",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "address" }],
@@ -81,7 +81,7 @@ export const GARDEN_TOKEN_MODULES_ABI = [
   },
 ] as const;
 
-export const GARDEN_HATS_MODULE_ABI = [
+export const HATS_MODULE_ABI = [
   {
     type: "function",
     name: "grantRole",

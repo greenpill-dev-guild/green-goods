@@ -2,19 +2,20 @@
  * Action Operations Hook
  *
  * Provides functions to manage actions in the ActionRegistry.
- * Includes transaction simulation to catch errors before execution.
+ * Uses a shared executor to eliminate duplication across 6 operations.
+ * Each operation follows: wallet check → simulation → execution → refetch.
  */
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
-import type { Abi } from "viem";
+import { useCallback, useRef, useState } from "react";
+import type { Abi, WalletClient } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { toastService } from "../../components/toast";
 import { Capital } from "../../modules/data/greengoods";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { parseContractError } from "../../utils/errors/contract-errors";
-import { useToastAction } from "../app/useToastAction";
+import { type ToastActionOptions, useToastAction } from "../app/useToastAction";
 import { queryKeys } from "../query-keys";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 
@@ -37,8 +38,85 @@ export interface ActionOperationResult {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Core executor — shared by all 6 operations
+// ---------------------------------------------------------------------------
+
+interface ActionOpConfig {
+  functionName: string;
+  args: unknown[];
+  messages: { loading: string; success: string; error: string };
+}
+
+interface ActionOpDeps {
+  contractAddress: `0x${string}`;
+  abi: Abi;
+  walletClient: WalletClient;
+  address: `0x${string}`;
+  executeWithToast: <T>(action: () => Promise<T>, options: ToastActionOptions) => Promise<T>;
+  scheduleBackgroundRefetch: () => void;
+}
+
+/**
+ * Executes an ActionRegistry contract call with simulation, toast, and refetch.
+ * Extracted from the per-operation functions to eliminate ~400 lines of duplication.
+ */
+async function executeActionOperation(
+  config: ActionOpConfig,
+  deps: ActionOpDeps
+): Promise<ActionOperationResult> {
+  // Step 1: Simulate the transaction
+  const simulation = await simulateTransaction(
+    deps.contractAddress,
+    deps.abi,
+    config.functionName,
+    config.args,
+    deps.address
+  );
+
+  if (!simulation.success) {
+    toastService.error({
+      title: simulation.error?.name ?? "Transaction Failed",
+      message: simulation.error?.message ?? "Transaction simulation failed",
+      context: "action operation",
+    });
+    return { success: false, error: simulation.error };
+  }
+
+  // Step 2: Execute the actual transaction
+  const hash = await deps.executeWithToast(
+    async () =>
+      deps.walletClient.writeContract({
+        address: deps.contractAddress,
+        abi: deps.abi,
+        functionName: config.functionName,
+        account: deps.address,
+        args: config.args,
+        chain: deps.walletClient.chain,
+      }),
+    {
+      loadingMessage: config.messages.loading,
+      successMessage: config.messages.success,
+      errorMessage: config.messages.error,
+    }
+  );
+
+  // Step 3: Schedule background refetch for indexer sync
+  deps.scheduleBackgroundRefetch();
+
+  return { hash, success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
+
 export function useActionOperations(chainId: number) {
+  // Loading counter — fixes the shared-boolean bug where concurrent
+  // operations could prematurely clear the loading state.
+  const loadingCount = useRef(0);
   const [isLoading, setIsLoading] = useState(false);
+
   const { executeWithToast } = useToastAction();
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -46,7 +124,6 @@ export function useActionOperations(chainId: number) {
   const queryClient = useQueryClient();
 
   // Schedule background refetch to sync with indexer
-  // Uses useDelayedInvalidation for automatic cleanup on unmount
   const { start: scheduleBackgroundRefetch } = useDelayedInvalidation(
     useCallback(
       () => queryClient.invalidateQueries({ queryKey: queryKeys.actions.byChain(chainId) }),
@@ -55,476 +132,144 @@ export function useActionOperations(chainId: number) {
     INDEXER_SYNC_DELAY_MS
   );
 
-  const registerAction = async (params: {
+  /**
+   * Wraps an operation with wallet check, loading tracking, and error parsing.
+   */
+  async function withTracking(
+    buildConfig: (deps: ActionOpDeps) => ActionOpConfig
+  ): Promise<ActionOperationResult> {
+    if (!walletClient || !address) {
+      return {
+        success: false,
+        error: {
+          name: "WalletNotConnected",
+          message: "Please connect your wallet to continue",
+        },
+      };
+    }
+
+    loadingCount.current++;
+    setIsLoading(true);
+
+    const deps: ActionOpDeps = {
+      contractAddress: contracts.actionRegistry as `0x${string}`,
+      abi: ActionRegistryABI as Abi,
+      walletClient,
+      address,
+      executeWithToast,
+      scheduleBackgroundRefetch,
+    };
+
+    try {
+      return await executeActionOperation(buildConfig(deps), deps);
+    } catch (error) {
+      const parsed = parseContractError(error);
+      return {
+        success: false,
+        error: {
+          name: parsed.name,
+          message: parsed.message,
+          action: parsed.action,
+        },
+      };
+    } finally {
+      loadingCount.current--;
+      if (loadingCount.current === 0) setIsLoading(false);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Public API — thin wrappers around withTracking
+  // ---------------------------------------------------------------------------
+
+  const registerAction = (params: {
     startTime: number;
     endTime: number;
     title: string;
     instructions: string;
     capitals: Capital[];
     media: string[];
-  }): Promise<ActionOperationResult> => {
-    if (!walletClient || !address) {
-      return {
-        success: false,
-        error: {
-          name: "WalletNotConnected",
-          message: "Please connect your wallet to continue",
-        },
-      };
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Step 1: Simulate the transaction using shared utility
-      const args = [
+  }): Promise<ActionOperationResult> =>
+    withTracking(() => ({
+      functionName: "registerAction",
+      args: [
         BigInt(params.startTime),
         BigInt(params.endTime),
         params.title,
         params.instructions,
         params.capitals,
         params.media,
-      ];
+      ],
+      messages: {
+        loading: "Registering action...",
+        success: "Action registered successfully",
+        error: "Failed to register action",
+      },
+    }));
 
-      const simulation = await simulateTransaction(
-        contracts.actionRegistry as `0x${string}`,
-        ActionRegistryABI as Abi,
-        "registerAction",
-        args,
-        address
-      );
-
-      if (!simulation.success) {
-        toastService.error({
-          title: simulation.error?.name ?? "Transaction Failed",
-          message: simulation.error?.message ?? "Transaction simulation failed",
-          context: "action operation",
-        });
-
-        return {
-          success: false,
-          error: simulation.error,
-        };
-      }
-
-      // Step 2: Execute the actual transaction
-      const hash = await executeWithToast(
-        async () => {
-          return await walletClient.writeContract({
-            address: contracts.actionRegistry as `0x${string}`,
-            abi: ActionRegistryABI,
-            functionName: "registerAction",
-            account: address,
-            args: [
-              BigInt(params.startTime),
-              BigInt(params.endTime),
-              params.title,
-              params.instructions,
-              params.capitals,
-              params.media,
-            ],
-          });
-        },
-        {
-          loadingMessage: "Registering action...",
-          successMessage: "Action registered successfully",
-          errorMessage: "Failed to register action",
-        }
-      );
-
-      // Schedule background refetch
-      scheduleBackgroundRefetch();
-
-      return { hash, success: true };
-    } catch (error) {
-      const parsed = parseContractError(error);
-      return {
-        success: false,
-        error: {
-          name: parsed.name,
-          message: parsed.message,
-          action: parsed.action,
-        },
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateActionStartTime = async (
+  const updateActionStartTime = (
     actionUID: string,
     startTime: number
-  ): Promise<ActionOperationResult> => {
-    if (!walletClient || !address) {
-      return {
-        success: false,
-        error: {
-          name: "WalletNotConnected",
-          message: "Please connect your wallet to continue",
-        },
-      };
-    }
+  ): Promise<ActionOperationResult> =>
+    withTracking(() => ({
+      functionName: "updateActionStartTime",
+      args: [BigInt(actionUID), BigInt(startTime)],
+      messages: {
+        loading: "Updating start time...",
+        success: "Start time updated successfully",
+        error: "Failed to update start time",
+      },
+    }));
 
-    setIsLoading(true);
-
-    try {
-      const args = [BigInt(actionUID), BigInt(startTime)];
-
-      const simulation = await simulateTransaction(
-        contracts.actionRegistry as `0x${string}`,
-        ActionRegistryABI as Abi,
-        "updateActionStartTime",
-        args,
-        address
-      );
-
-      if (!simulation.success) {
-        toastService.error({
-          title: simulation.error?.name ?? "Transaction Failed",
-          message: simulation.error?.message ?? "Transaction simulation failed",
-          context: "action operation",
-        });
-
-        return {
-          success: false,
-          error: simulation.error,
-        };
-      }
-
-      const hash = await executeWithToast(
-        async () => {
-          return await walletClient.writeContract({
-            address: contracts.actionRegistry as `0x${string}`,
-            abi: ActionRegistryABI,
-            functionName: "updateActionStartTime",
-            account: address,
-            args: [BigInt(actionUID), BigInt(startTime)],
-          });
-        },
-        {
-          loadingMessage: "Updating start time...",
-          successMessage: "Start time updated successfully",
-          errorMessage: "Failed to update start time",
-        }
-      );
-
-      scheduleBackgroundRefetch();
-
-      return { hash, success: true };
-    } catch (error) {
-      const parsed = parseContractError(error);
-      return {
-        success: false,
-        error: {
-          name: parsed.name,
-          message: parsed.message,
-          action: parsed.action,
-        },
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateActionEndTime = async (
+  const updateActionEndTime = (
     actionUID: string,
     endTime: number
-  ): Promise<ActionOperationResult> => {
-    if (!walletClient || !address) {
-      return {
-        success: false,
-        error: {
-          name: "WalletNotConnected",
-          message: "Please connect your wallet to continue",
-        },
-      };
-    }
+  ): Promise<ActionOperationResult> =>
+    withTracking(() => ({
+      functionName: "updateActionEndTime",
+      args: [BigInt(actionUID), BigInt(endTime)],
+      messages: {
+        loading: "Updating end time...",
+        success: "End time updated successfully",
+        error: "Failed to update end time",
+      },
+    }));
 
-    setIsLoading(true);
+  const updateActionTitle = (actionUID: string, title: string): Promise<ActionOperationResult> =>
+    withTracking(() => ({
+      functionName: "updateActionTitle",
+      args: [BigInt(actionUID), title],
+      messages: {
+        loading: "Updating title...",
+        success: "Title updated successfully",
+        error: "Failed to update title",
+      },
+    }));
 
-    try {
-      const args = [BigInt(actionUID), BigInt(endTime)];
-
-      const simulation = await simulateTransaction(
-        contracts.actionRegistry as `0x${string}`,
-        ActionRegistryABI as Abi,
-        "updateActionEndTime",
-        args,
-        address
-      );
-
-      if (!simulation.success) {
-        toastService.error({
-          title: simulation.error?.name ?? "Transaction Failed",
-          message: simulation.error?.message ?? "Transaction simulation failed",
-          context: "action operation",
-        });
-
-        return {
-          success: false,
-          error: simulation.error,
-        };
-      }
-
-      const hash = await executeWithToast(
-        async () => {
-          return await walletClient.writeContract({
-            address: contracts.actionRegistry as `0x${string}`,
-            abi: ActionRegistryABI,
-            functionName: "updateActionEndTime",
-            account: address,
-            args: [BigInt(actionUID), BigInt(endTime)],
-          });
-        },
-        {
-          loadingMessage: "Updating end time...",
-          successMessage: "End time updated successfully",
-          errorMessage: "Failed to update end time",
-        }
-      );
-
-      scheduleBackgroundRefetch();
-
-      return { hash, success: true };
-    } catch (error) {
-      const parsed = parseContractError(error);
-      return {
-        success: false,
-        error: {
-          name: parsed.name,
-          message: parsed.message,
-          action: parsed.action,
-        },
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateActionTitle = async (
-    actionUID: string,
-    title: string
-  ): Promise<ActionOperationResult> => {
-    if (!walletClient || !address) {
-      return {
-        success: false,
-        error: {
-          name: "WalletNotConnected",
-          message: "Please connect your wallet to continue",
-        },
-      };
-    }
-
-    setIsLoading(true);
-
-    try {
-      const args = [BigInt(actionUID), title];
-
-      const simulation = await simulateTransaction(
-        contracts.actionRegistry as `0x${string}`,
-        ActionRegistryABI as Abi,
-        "updateActionTitle",
-        args,
-        address
-      );
-
-      if (!simulation.success) {
-        toastService.error({
-          title: simulation.error?.name ?? "Transaction Failed",
-          message: simulation.error?.message ?? "Transaction simulation failed",
-          context: "action operation",
-        });
-
-        return {
-          success: false,
-          error: simulation.error,
-        };
-      }
-
-      const hash = await executeWithToast(
-        async () => {
-          return await walletClient.writeContract({
-            address: contracts.actionRegistry as `0x${string}`,
-            abi: ActionRegistryABI,
-            functionName: "updateActionTitle",
-            account: address,
-            args: [BigInt(actionUID), title],
-          });
-        },
-        {
-          loadingMessage: "Updating title...",
-          successMessage: "Title updated successfully",
-          errorMessage: "Failed to update title",
-        }
-      );
-
-      scheduleBackgroundRefetch();
-
-      return { hash, success: true };
-    } catch (error) {
-      const parsed = parseContractError(error);
-      return {
-        success: false,
-        error: {
-          name: parsed.name,
-          message: parsed.message,
-          action: parsed.action,
-        },
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateActionInstructions = async (
+  const updateActionInstructions = (
     actionUID: string,
     instructions: string
-  ): Promise<ActionOperationResult> => {
-    if (!walletClient || !address) {
-      return {
-        success: false,
-        error: {
-          name: "WalletNotConnected",
-          message: "Please connect your wallet to continue",
-        },
-      };
-    }
+  ): Promise<ActionOperationResult> =>
+    withTracking(() => ({
+      functionName: "updateActionInstructions",
+      args: [BigInt(actionUID), instructions],
+      messages: {
+        loading: "Updating instructions...",
+        success: "Instructions updated successfully",
+        error: "Failed to update instructions",
+      },
+    }));
 
-    setIsLoading(true);
-
-    try {
-      const args = [BigInt(actionUID), instructions];
-
-      const simulation = await simulateTransaction(
-        contracts.actionRegistry as `0x${string}`,
-        ActionRegistryABI as Abi,
-        "updateActionInstructions",
-        args,
-        address
-      );
-
-      if (!simulation.success) {
-        toastService.error({
-          title: simulation.error?.name ?? "Transaction Failed",
-          message: simulation.error?.message ?? "Transaction simulation failed",
-          context: "action operation",
-        });
-
-        return {
-          success: false,
-          error: simulation.error,
-        };
-      }
-
-      const hash = await executeWithToast(
-        async () => {
-          return await walletClient.writeContract({
-            address: contracts.actionRegistry as `0x${string}`,
-            abi: ActionRegistryABI,
-            functionName: "updateActionInstructions",
-            account: address,
-            args: [BigInt(actionUID), instructions],
-          });
-        },
-        {
-          loadingMessage: "Updating instructions...",
-          successMessage: "Instructions updated successfully",
-          errorMessage: "Failed to update instructions",
-        }
-      );
-
-      scheduleBackgroundRefetch();
-
-      return { hash, success: true };
-    } catch (error) {
-      const parsed = parseContractError(error);
-      return {
-        success: false,
-        error: {
-          name: parsed.name,
-          message: parsed.message,
-          action: parsed.action,
-        },
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateActionMedia = async (
-    actionUID: string,
-    media: string[]
-  ): Promise<ActionOperationResult> => {
-    if (!walletClient || !address) {
-      return {
-        success: false,
-        error: {
-          name: "WalletNotConnected",
-          message: "Please connect your wallet to continue",
-        },
-      };
-    }
-
-    setIsLoading(true);
-
-    try {
-      const args = [BigInt(actionUID), media];
-
-      const simulation = await simulateTransaction(
-        contracts.actionRegistry as `0x${string}`,
-        ActionRegistryABI as Abi,
-        "updateActionMedia",
-        args,
-        address
-      );
-
-      if (!simulation.success) {
-        toastService.error({
-          title: simulation.error?.name ?? "Transaction Failed",
-          message: simulation.error?.message ?? "Transaction simulation failed",
-          context: "action operation",
-        });
-
-        return {
-          success: false,
-          error: simulation.error,
-        };
-      }
-
-      const hash = await executeWithToast(
-        async () => {
-          return await walletClient.writeContract({
-            address: contracts.actionRegistry as `0x${string}`,
-            abi: ActionRegistryABI,
-            functionName: "updateActionMedia",
-            account: address,
-            args: [BigInt(actionUID), media],
-          });
-        },
-        {
-          loadingMessage: "Updating media...",
-          successMessage: "Media updated successfully",
-          errorMessage: "Failed to update media",
-        }
-      );
-
-      scheduleBackgroundRefetch();
-
-      return { hash, success: true };
-    } catch (error) {
-      const parsed = parseContractError(error);
-      return {
-        success: false,
-        error: {
-          name: parsed.name,
-          message: parsed.message,
-          action: parsed.action,
-        },
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const updateActionMedia = (actionUID: string, media: string[]): Promise<ActionOperationResult> =>
+    withTracking(() => ({
+      functionName: "updateActionMedia",
+      args: [BigInt(actionUID), media],
+      messages: {
+        loading: "Updating media...",
+        success: "Media updated successfully",
+        error: "Failed to update media",
+      },
+    }));
 
   return {
     registerAction,

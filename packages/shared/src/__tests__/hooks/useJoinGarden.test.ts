@@ -32,9 +32,9 @@ vi.mock("../../hooks/blockchain/useBaseLists", () => ({
   useGardens: () => mockUseGardens(),
 }));
 
-const mockFetchGardenHatsModuleAddress = vi.fn();
+const mockFetchHatsModuleAddress = vi.fn();
 vi.mock("../../utils/blockchain/garden-hats", () => ({
-  fetchGardenHatsModuleAddress: (...args: unknown[]) => mockFetchGardenHatsModuleAddress(...args),
+  fetchHatsModuleAddress: (...args: unknown[]) => mockFetchHatsModuleAddress(...args),
 }));
 
 // Mock config
@@ -113,7 +113,7 @@ describe("hooks/garden/useJoinGarden", () => {
       },
     });
     vi.clearAllMocks();
-    mockFetchGardenHatsModuleAddress.mockResolvedValue(undefined);
+    mockFetchHatsModuleAddress.mockResolvedValue(undefined);
 
     // Default mocks
     mockUseUser.mockReturnValue({
@@ -157,12 +157,13 @@ describe("hooks/garden/useJoinGarden", () => {
       expect(result).toBe(false);
     });
 
-    it("returns false when garden uses Hats", async () => {
-      mockFetchGardenHatsModuleAddress.mockResolvedValue(MOCK_ADDRESSES.garden);
+    it("returns true when garden uses Hats and openJoining is enabled", async () => {
+      mockFetchHatsModuleAddress.mockResolvedValue(MOCK_ADDRESSES.garden);
+      vi.mocked(readContract).mockResolvedValue(true);
 
       const result = await checkGardenOpenJoining(MOCK_ADDRESSES.garden);
 
-      expect(result).toBe(false);
+      expect(result).toBe(true);
     });
 
     it("returns false on error", async () => {
@@ -175,16 +176,24 @@ describe("hooks/garden/useJoinGarden", () => {
   });
 
   describe("joinGarden", () => {
-    it("prevents joining when Hats is enabled", async () => {
-      mockFetchGardenHatsModuleAddress.mockResolvedValue(MOCK_ADDRESSES.garden);
+    it("joins garden when Hats is enabled", async () => {
+      mockFetchHatsModuleAddress.mockResolvedValue(MOCK_ADDRESSES.garden);
+      const mockClient = createMockSmartAccountClient();
+      mockClient.sendTransaction.mockResolvedValue(MOCK_TX_HASH);
+
+      mockUseUser.mockReturnValue({
+        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        smartAccountClient: mockClient,
+        eoa: null,
+      });
 
       const { result } = renderHook(() => useJoinGarden(), {
         wrapper: createWrapper(),
       });
 
-      await expect(result.current.joinGarden(MOCK_ADDRESSES.garden)).rejects.toThrow(
-        "Open joining is not available for this garden"
-      );
+      await act(async () => {
+        await expect(result.current.joinGarden(MOCK_ADDRESSES.garden)).resolves.toBe(MOCK_TX_HASH);
+      });
     });
 
     it("joins garden successfully with smart account", async () => {

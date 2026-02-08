@@ -20,6 +20,12 @@ vi.mock("../../modules/job-queue", () => ({
     hasPendingJobs: vi.fn().mockResolvedValue(false),
     getPendingCount: vi.fn().mockResolvedValue(0),
   },
+  jobQueueEventBus: {
+    on: vi.fn(() => vi.fn()),
+    off: vi.fn(),
+    emit: vi.fn(),
+    onMultiple: vi.fn(() => vi.fn()),
+  },
 }));
 
 // Mock auth hooks - these will be configured in beforeEach

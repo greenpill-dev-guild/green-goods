@@ -16,9 +16,8 @@ import {
   trackAdminMemberRemoveStarted,
   trackAdminMemberRemoveSuccess,
 } from "../../modules/app/analytics-events";
-import { GardenAccountABI } from "../../utils/blockchain/contracts";
-import { GARDEN_HATS_MODULE_ABI } from "../../utils/blockchain/abis";
-import { fetchGardenHatsModuleAddress } from "../../utils/blockchain/garden-hats";
+import { HATS_MODULE_ABI } from "../../utils/blockchain/abis";
+import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import type { ToastActionOptions } from "../app/useToastAction";
@@ -71,8 +70,6 @@ export interface GardenOperationMessages {
 }
 
 export interface GardenOperationConfigBase {
-  /** The contract function name to call */
-  functionName?: "addGardener" | "removeGardener" | "addGardenOperator" | "removeGardenOperator";
   /** Type of member being modified (for optimistic updates) */
   memberType: GardenRole;
   /** Whether this is an add or remove operation */
@@ -82,8 +79,6 @@ export interface GardenOperationConfigBase {
 export interface GardenOperationConfig extends GardenOperationConfigBase {
   /** Toast messages for loading, success, and error states */
   messages: GardenOperationMessages;
-  /** Error message for roles not supported on v1 gardens */
-  unsupportedRoleMessage?: string;
 }
 
 /**
@@ -91,22 +86,18 @@ export interface GardenOperationConfig extends GardenOperationConfigBase {
  */
 export const GARDEN_OPERATIONS: Record<string, GardenOperationConfigBase> = {
   addGardener: {
-    functionName: "addGardener",
     memberType: "gardener",
     operationType: "add",
   },
   removeGardener: {
-    functionName: "removeGardener",
     memberType: "gardener",
     operationType: "remove",
   },
   addOperator: {
-    functionName: "addGardenOperator",
     memberType: "operator",
     operationType: "add",
   },
   removeOperator: {
-    functionName: "removeGardenOperator",
     memberType: "operator",
     operationType: "remove",
   },
@@ -221,29 +212,24 @@ export function createGardenOperation(
 
     try {
       const chainId = walletClient.chain?.id;
-      const hatsModuleAddress = await fetchGardenHatsModuleAddress(gardenId as Address, chainId);
-      const useHatsModule = Boolean(hatsModuleAddress);
-
-      const roleId = GARDEN_ROLE_IDS[config.memberType];
-      if (!useHatsModule && !config.functionName) {
+      const hatsModuleAddress = await fetchHatsModuleAddress(gardenId as Address, chainId);
+      if (!hatsModuleAddress) {
         setIsLoading(false);
         return {
           success: false,
           error: {
-            name: "UnsupportedRole",
-            message: config.unsupportedRoleMessage ?? config.messages.error,
+            name: "HatsModuleNotConfigured",
+            message: "Hats module is not configured for this garden",
           },
         };
       }
 
-      const targetContract = (useHatsModule ? hatsModuleAddress : gardenId) as `0x${string}`;
-      const targetAbi = useHatsModule ? (GARDEN_HATS_MODULE_ABI as Abi) : (GardenAccountABI as Abi);
-      const targetFunctionName = useHatsModule
-        ? config.operationType === "add"
-          ? "grantRole"
-          : "revokeRole"
-        : (config.functionName as GardenOperationConfig["functionName"]);
-      const targetArgs = useHatsModule ? [gardenId, targetAddress, roleId] : [targetAddress];
+      const roleId = GARDEN_ROLE_IDS[config.memberType];
+
+      const targetContract = hatsModuleAddress as `0x${string}`;
+      const targetAbi = HATS_MODULE_ABI as Abi;
+      const targetFunctionName = config.operationType === "add" ? "grantRole" : "revokeRole";
+      const targetArgs = [gardenId, targetAddress, roleId];
 
       // Step 1: Simulate the transaction using shared utility
       const simulation = await simulateTransaction(

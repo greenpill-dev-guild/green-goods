@@ -5,7 +5,7 @@ export interface NetworkContracts {
   workResolver: string;
   workApprovalResolver: string;
   deploymentRegistry: string;
-  gardenHatsModule: string;
+  hatsModule: string;
   karmaGAPModule: string;
   eas: string;
   easSchemaRegistry: string;
@@ -23,8 +23,6 @@ export interface CreateGardenParams {
   bannerImage: string;
   metadata: string;
   openJoining: boolean;
-  gardeners: string[];
-  gardenOperators: string[];
 }
 
 // Contract deployment parameters

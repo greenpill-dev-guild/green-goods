@@ -34,6 +34,10 @@ vi.mock("../../hooks/auth/useUser", () => ({
   })),
 }));
 
+vi.mock("../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: vi.fn(() => "0xuser"),
+}));
+
 vi.mock("../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));

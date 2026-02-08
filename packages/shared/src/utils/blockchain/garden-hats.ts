@@ -4,7 +4,7 @@ import { wagmiConfig } from "../../config/appkit";
 import { isZeroAddress } from "./address";
 import { GARDEN_ACCOUNT_TOKEN_ABI, GARDEN_TOKEN_MODULES_ABI } from "./abis";
 
-export async function fetchGardenHatsModuleAddress(
+export async function fetchHatsModuleAddress(
   gardenAddress: Address,
   chainId?: number
 ): Promise<Address | undefined> {
@@ -22,7 +22,7 @@ export async function fetchGardenHatsModuleAddress(
     const moduleAddress = await readContract(wagmiConfig, {
       address: tokenContract,
       abi: GARDEN_TOKEN_MODULES_ABI,
-      functionName: "gardenHatsModule",
+      functionName: "hatsModule",
       chainId,
     });
 

@@ -240,7 +240,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       unsubscribe();
       unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, refreshStats]);
+  }, [currentUserAddress, refreshStats, setOfflineBannerVisible]);
 
   useEffect(() => {
     if (!smartAccountClient || !currentUserAddress) {

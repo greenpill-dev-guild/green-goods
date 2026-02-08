@@ -256,8 +256,6 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           bannerImage: form.bannerImage.trim(),
           metadata: form.metadata.trim(),
           openJoining: form.openJoining,
-          gardeners: form.gardeners,
-          gardenOperators: form.operators,
         } satisfies CreateGardenParams;
       },
     }),
