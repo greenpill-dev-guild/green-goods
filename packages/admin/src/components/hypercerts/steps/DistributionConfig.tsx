@@ -1,13 +1,12 @@
 import {
-  copyToClipboard,
+  cn,
   TOTAL_UNITS,
   type AllowlistEntry,
   type DistributionMode,
   sumUnits,
+  useCopyToClipboard,
 } from "@green-goods/shared";
-import { cn } from "@green-goods/shared/utils";
 import { RiCheckLine, RiCloseLine, RiFileCopyLine } from "@remixicon/react";
-import { useState } from "react";
 import { isAddress, zeroAddress } from "viem";
 import { useIntl } from "react-intl";
 import { DistributionChart } from "../DistributionChart";
@@ -15,17 +14,9 @@ import { DistributionChart } from "../DistributionChart";
 /** Displays truncated Ethereum address with copy button */
 function TruncatedAddress({ address }: { address: string }) {
   const { formatMessage } = useIntl();
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
 
   const truncated = `${address.slice(0, 6)}...${address.slice(-4)}`;
-
-  const handleCopy = async () => {
-    const success = await copyToClipboard(address);
-    if (success) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
 
   return (
     <span className="inline-flex items-center gap-1">
@@ -34,7 +25,7 @@ function TruncatedAddress({ address }: { address: string }) {
       </span>
       <button
         type="button"
-        onClick={handleCopy}
+        onClick={() => copy(address)}
         className="rounded p-0.5 text-text-sub transition hover:bg-bg-weak hover:text-text-strong focus:outline-none focus:ring-1 focus:ring-primary-light"
         aria-label={formatMessage({ id: "app.common.copyAddress" })}
       >

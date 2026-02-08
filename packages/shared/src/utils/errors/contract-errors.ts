@@ -475,13 +475,6 @@ export function isNotGardenMemberError(error: unknown): boolean {
 }
 
 /**
- * @deprecated Use isNotGardenMemberError instead
- */
-export function isNotGardenerError(error: unknown): boolean {
-  return isNotGardenMemberError(error);
-}
-
-/**
  * Check if an error is an "already a member" error
  */
 export function isAlreadyGardenerError(error: unknown): boolean {

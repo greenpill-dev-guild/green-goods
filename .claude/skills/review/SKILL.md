@@ -1,3 +1,8 @@
+---
+name: review
+description: Code Review & PR Creation - 6-pass systematic review. Use for code reviews and PR feedback.
+---
+
 # Review Skill
 
 Code review workflow: request reviews, perform 6-pass analysis, process feedback.

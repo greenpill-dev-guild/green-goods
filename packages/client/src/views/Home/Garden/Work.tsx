@@ -5,6 +5,7 @@ import {
   useActions,
   useGardens,
   useNavigateToTop,
+  useTimeout,
   useUser,
   useWorkApproval,
   useWorks,
@@ -78,6 +79,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const { user, smartAccountClient } = useUser();
   const activeAddress = user?.id;
   const [isRetrying, setIsRetrying] = useState(false);
+  const { set: scheduleTimeout } = useTimeout();
 
   // Determine user role and viewing mode
   const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
@@ -224,8 +226,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const handleApprovePress = () => {
     if (navigator.vibrate) navigator.vibrate([50]);
     setFeedbackMode("approve");
-    // Focus feedback input after animation
-    setTimeout(() => {
+    // Focus feedback input after animation (auto-cleared on unmount)
+    scheduleTimeout(() => {
       document.getElementById("approval-feedback-input")?.focus();
     }, 300);
   };
@@ -233,7 +235,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const handleRejectPress = () => {
     if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
     setFeedbackMode("reject");
-    setTimeout(() => {
+    scheduleTimeout(() => {
       document.getElementById("approval-feedback-input")?.focus();
     }, 300);
   };
@@ -300,8 +302,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           suppressLogging: true,
         });
 
-        // Delay navigation to show success state (2.5s instead of 500ms)
-        setTimeout(() => {
+        // Delay navigation to show success state (auto-cleared on unmount)
+        scheduleTimeout(() => {
           setOptimisticStatus(null); // Clear before navigating
           navigateToTop(`/home/${garden?.id ?? ""}`);
         }, 2500);
@@ -340,8 +342,6 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       setOptimisticStatus(null);
     }
   }, [work?.status, optimisticStatus]);
-
-  // using shared ConfirmDrawer component
 
   useEffect(() => {
     let mounted = true;

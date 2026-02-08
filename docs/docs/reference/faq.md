@@ -182,7 +182,7 @@ See the  for curated guides, recipes, and external references.
 3. View attestation details
 4. Verify signature and data
 
-[Verification Guide →](../guides/evaluators/using-attestation-data)
+[Verification Guide →](../evaluators/using-attestation-data)
 
 ### Can I export all data?
 

@@ -1,3 +1,8 @@
+---
+name: debug
+description: Debugging & Troubleshooting - root cause investigation. Use for systematic debugging and verification.
+---
+
 # Debug Skill
 
 Systematic debugging: find root causes before fixes, verify with evidence before completion.

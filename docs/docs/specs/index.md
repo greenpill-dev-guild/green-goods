@@ -94,3 +94,24 @@ GG-[TYPE]-[NUMBER]_[Feature_Name]_Spec.md
 - Use **Mermaid** for all diagrams (auto-renders on GitHub)
 - Include **PNG fallbacks** in `./images/` directory for non-Mermaid environments
 - Use collapsible `<details>` blocks for fallback images
+
+---
+
+## Templates
+
+Use these templates when creating new specifications:
+
+| Template | Use For |
+|----------|---------|
+| [Feature Template](/specs/templates/feature-template) | Product requirements, user stories, acceptance criteria |
+| [Technical Template](/specs/templates/technical-template) | Engineering architecture, implementation details, testing strategy |
+
+### Creating a New Spec
+
+1. Create a new folder: `docs/docs/specs/[feature-name]/`
+2. Copy templates into the folder:
+   - `feature-spec.md` (from feature template)
+   - `technical-spec.md` (from technical template)
+3. Add `_category_.json` for sidebar configuration
+4. Add `index.md` as a landing page (optional)
+5. Link the spec in this index page under "Available Specifications"

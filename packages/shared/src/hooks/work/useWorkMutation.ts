@@ -32,6 +32,7 @@ import { getActionTitle } from "../../utils/action/parsers";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
+import { useTimeout } from "../utils/useTimeout";
 
 interface UseWorkMutationOptions {
   authMode: "wallet" | "passkey" | null;
@@ -59,6 +60,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   const { authMode, smartAccountClient, gardenAddress, actionUID, actions, userAddress } = options;
   const chainId = DEFAULT_CHAIN_ID;
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+
+  // Use managed timeout for toast dismissal to ensure cleanup on unmount
+  const { set: scheduleToastDismiss } = useTimeout();
 
   return useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
@@ -257,11 +261,11 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
       if (isOfflineHash) {
         // Offline: dismiss info toast after brief delay
-        setTimeout(() => workToasts.dismiss(), 1000);
+        scheduleToastDismiss(() => workToasts.dismiss(), 1000);
       } else if (authMode === "wallet") {
         // Wallet mode: success already shown by onProgress("complete") callback
         // Just dismiss the loading toast after a delay so user sees the success
-        setTimeout(() => walletProgressToasts.dismiss(), 1500);
+        scheduleToastDismiss(() => walletProgressToasts.dismiss(), 1500);
       } else {
         // Passkey mode with inline processing: dismiss loading toast
         // Success will be shown by job queue event handler

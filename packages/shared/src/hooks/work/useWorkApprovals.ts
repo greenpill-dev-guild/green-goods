@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { WorkApproval } from "../../types/domain";
+import type { WorkApproval, Address } from "../../types/domain";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
@@ -81,8 +81,8 @@ async function getWorkApprovalsByAttester(
 
         const approval: WorkApproval = {
           id: (attestation as { id: string }).id,
-          operatorAddress: (attestation as { attester: string }).attester,
-          gardenerAddress: (attestation as { recipient: string }).recipient,
+          operatorAddress: (attestation as { attester: string }).attester as Address,
+          gardenerAddress: (attestation as { recipient: string }).recipient as Address,
           actionUID,
           workUID,
           approved,

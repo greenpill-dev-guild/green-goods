@@ -126,7 +126,7 @@ export function validateMetadata(metadata: HypercertMetadata): {
   // The SDK schema uses additionalProperties: false, so we must strip
   // our Green Goods extension (hidden_properties) before validation.
   // The SDK only validates the standard Hypercert fields.
-  const { hidden_properties, ...sdkMetadata } = metadata;
+  const { hidden_properties: _hidden_properties, ...sdkMetadata } = metadata;
   const sdkResult = sdkValidateMetaData(sdkMetadata);
   const errors: Record<string, string> = {};
 

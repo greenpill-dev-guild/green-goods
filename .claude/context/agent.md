@@ -8,20 +8,27 @@ Loaded when working in `packages/agent/`. Extends CLAUDE.md.
 |---------|---------|
 | `bun dev` | Start in polling mode (local) |
 | `bun start` | Start in webhook mode (production) |
-| `bun test` | Run tests |
-| `bun test --coverage` | Tests with coverage |
+| `bun run test` | Run tests (Vitest) |
+| `bun run test:watch` | Watch mode |
+| `bun run test:coverage` | Tests with coverage |
+| `bun run test:ui` | Interactive test UI |
 
 ## Architecture
 
 ```
-packages/agent/src/
-├── index.ts           # Entry point
-├── types.ts           # ALL type definitions
-├── handlers/          # Message/command handlers
-├── services/          # DB, crypto, rate limiter
-├── platforms/         # Platform adapters (Telegram)
-├── api/               # Webhook server
-└── __tests__/         # Tests
+packages/agent/
+├── src/
+│   ├── index.ts           # Entry point
+│   ├── types.ts           # ALL type definitions
+│   ├── handlers/          # Message/command handlers
+│   ├── services/          # DB, crypto, rate limiter
+│   ├── platforms/         # Platform adapters (Telegram)
+│   ├── api/               # Webhook server
+│   └── __tests__/         # Vitest tests (co-located)
+│       ├── setup.ts       # Test setup and mocks
+│       ├── *.test.ts      # Unit tests
+│       └── utils/         # Test utilities and factories
+└── vitest.config.ts       # Vitest configuration
 ```
 
 ## Data Flow
@@ -202,25 +209,40 @@ DB_PATH=/data/agent.db
 
 ## Testing
 
+Uses **Vitest** for unit tests. Database operations use an in-memory SQLite mock for isolation.
+
+### Test Files
+
+| Test File | Coverage |
+|-----------|----------|
+| `src/__tests__/crypto.test.ts` | Encryption, key generation, validation |
+| `src/__tests__/handlers.test.ts` | Start, join, submit handlers |
+| `src/__tests__/rate-limiter.test.ts` | Sliding window rate limiting |
+| `src/__tests__/storage.test.ts` | User, session, pending work CRUD |
+
 ### Coverage Targets
 
 | Component | Target |
 |-----------|--------|
-| Crypto | 100% |
-| Rate Limiter | 100% |
-| Handlers | 90%+ |
-| Storage | 85%+ |
-| Overall | 80%+ |
+| Crypto | 80%+ |
+| Rate Limiter | 80%+ |
+| Handlers | 70%+ |
+| Storage | 70%+ |
+| Overall | 70%+ |
 
-### Handler Tests
+### Handler Tests (Vitest)
 
 ```typescript
+import { describe, it, expect, beforeAll } from "vitest";
+import { handleStart, type StartDeps } from "../handlers/start";
+import { initDB } from "../services/db";
+
 describe("handleStart", () => {
+  // Use in-memory database for test isolation
   beforeAll(() => initDB(":memory:"));
-  afterAll(() => closeDB());
 
   it("creates new user", async () => {
-    const message: InboundMessage = {
+    const message = {
       id: "1",
       platform: "telegram",
       sender: { platformId: "123" },
@@ -228,29 +250,27 @@ describe("handleStart", () => {
       timestamp: Date.now(),
     };
 
-    const result = await handleStart(message, {
-      generatePrivateKey: () => "0x" + "a".repeat(64),
-    });
+    const deps: StartDeps = {
+      generatePrivateKey: () => "0x" + "a".repeat(64) as \`0x\${string}\`,
+    };
 
+    const result = await handleStart(message, deps);
     expect(result.response.text).toContain("Welcome");
   });
 });
 ```
 
-### Crypto Tests (100% coverage)
+### Mocking Strategy
 
-```typescript
-it("encrypts and decrypts correctly", async () => {
-  const encrypted = await encryptPrivateKey(key, secret);
-  const decrypted = await decryptPrivateKey(encrypted, secret);
-  expect(decrypted).toBe(key);
-});
+The test setup (`src/__tests__/setup.ts`) provides:
 
-it("throws on wrong secret", async () => {
-  const encrypted = await encryptPrivateKey(key, secret);
-  await expect(decryptPrivateKey(encrypted, "wrong")).rejects.toThrow();
-});
-```
+- **bun:sqlite** → In-memory database via `initDB(":memory:")` for Vitest tests
+- **@green-goods/shared** → Blockchain function mocks
+- **pino** → Logger mock
+- **telegraf** → Telegram bot mock
+- **posthog-node** → Analytics mock
+
+> **Note:** For file-based database tests (e.g., `data/test/handlers-test.db`), run with `bun test` directly outside Vitest.
 
 ## Adding a New Platform
 

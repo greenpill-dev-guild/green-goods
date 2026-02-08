@@ -14,6 +14,7 @@ import {
   STALE_TIME_SLOW,
   useDrafts,
   useMyOnlineWorks,
+  useTimeout,
   useUser,
   useWorkApprovals,
 } from "@green-goods/shared/hooks";
@@ -72,6 +73,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Get draft count for badge
   const { draftCount } = useDrafts();
 
+  // Timer for close animation (auto-cleared on unmount)
+  const { set: scheduleTimeout } = useTimeout();
+
   // State management
   const [activeTab, setActiveTab] = useState<"drafts" | "recent" | "pending" | "completed">(
     "recent"
@@ -121,7 +125,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     isError: isErrorOperatorWorks,
     refetch: refetchOperatorWorks,
   } = useQuery({
-    queryKey: ["operatorWorks", activeAddress, operatorGardenIds],
+    queryKey: queryKeys.operatorWorks.byAddress(activeAddress, operatorGardenIds),
     queryFn: async () => {
       if (!activeAddress) return [];
       const allWorks: Work[] = [];
@@ -265,7 +269,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   // Fetch ALL approvals for operator gardens to filter out work reviewed by ANY operator
   const { data: allOperatorGardenApprovals = [] } = useQuery({
-    queryKey: ["allApprovals", "operatorGardens", operatorGardenIds],
+    queryKey: queryKeys.approvals.byOperatorGardens(operatorGardenIds),
     queryFn: async () => {
       // Fetch all work approvals (not scoped to any attester)
       const approvals = await fetchWorkApprovals(undefined);
@@ -567,7 +571,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   const handleClose = () => {
     setIsClosing(true);
-    setTimeout(() => {
+    scheduleTimeout(() => {
       onClose?.();
     }, 300);
   };

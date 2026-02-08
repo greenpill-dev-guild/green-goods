@@ -3,12 +3,29 @@
  *
  * Fastify server for webhooks and health endpoints.
  * Designed for multi-platform webhook support.
+ *
+ * SECURITY: Platform parameters are validated against an allowlist.
  */
 
 import Fastify, { type FastifyInstance } from "fastify";
 import { loggers } from "../services/logger";
 
 const log = loggers.api;
+
+// ============================================================================
+// SECURITY: Platform Allowlist
+// ============================================================================
+
+/**
+ * Allowed platform identifiers for webhook endpoints.
+ * Only these platforms can receive webhooks.
+ */
+const ALLOWED_PLATFORMS = ["telegram", "whatsapp", "sms", "discord"] as const;
+type AllowedPlatform = (typeof ALLOWED_PLATFORMS)[number];
+
+function isAllowedPlatform(platform: string): platform is AllowedPlatform {
+  return ALLOWED_PLATFORMS.includes(platform as AllowedPlatform);
+}
 
 export interface ServerConfig {
   port: number;
@@ -49,10 +66,17 @@ export function createServer(deps: ServerDeps, config?: Partial<ServerConfig>): 
   });
 
   // Generic webhook endpoint for future platforms
+  // SECURITY: Platform parameter is validated against allowlist
   app.post<{ Params: { platform: string }; Body: unknown }>(
     "/webhook/:platform",
     async (request, reply) => {
       const { platform } = request.params;
+
+      // SECURITY: Validate platform against allowlist before processing
+      if (!isAllowedPlatform(platform)) {
+        log.warn({ platform }, "Rejected webhook request for unknown platform");
+        return reply.status(400).send({ error: "Invalid platform" });
+      }
 
       switch (platform) {
         case "telegram":
@@ -73,9 +97,6 @@ export function createServer(deps: ServerDeps, config?: Partial<ServerConfig>): 
           // Future: Discord webhook/bot integration
           // See: https://discord.com/developers/docs/interactions/receiving-and-responding
           return reply.status(501).send({ error: "Discord webhooks not yet implemented" });
-
-        default:
-          return reply.status(404).send({ error: `Unknown platform: ${platform}` });
       }
     }
   );

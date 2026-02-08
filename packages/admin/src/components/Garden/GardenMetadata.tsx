@@ -1,5 +1,4 @@
-import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
-import { cn, copyToClipboard } from "@green-goods/shared/utils";
+import { cn, getNetworkConfig, useCopyToClipboard } from "@green-goods/shared";
 import {
   RiCheckLine,
   RiExternalLinkLine,
@@ -7,7 +6,6 @@ import {
   RiNftLine,
   RiWallet3Line,
 } from "@remixicon/react";
-import { useState } from "react";
 
 interface GardenMetadataProps {
   gardenId: string; // Garden smart account address
@@ -24,21 +22,11 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
   chainId,
   className,
 }) => {
-  const [copiedGarden, setCopiedGarden] = useState(false);
-  const [copiedToken, setCopiedToken] = useState(false);
+  const { copied: copiedGarden, copy: copyGarden } = useCopyToClipboard();
+  const { copied: copiedToken, copy: copyToken } = useCopyToClipboard();
 
   const networkConfig = getNetworkConfig(chainId);
   const blockExplorer = networkConfig.blockExplorer;
-
-  const handleCopy = async (text: string, setCopied: (val: boolean) => void) => {
-    try {
-      await copyToClipboard(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
 
   const getExplorerUrl = (address: string, type: "address" | "token" | "nft") => {
     if (!blockExplorer) return null;
@@ -84,7 +72,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             </span>
           </code>
           <button
-            onClick={() => handleCopy(gardenId, setCopiedGarden)}
+            onClick={() => copyGarden(gardenId)}
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-text-soft transition hover:bg-bg-weak hover:text-text-sub active:scale-95"
             title="Copy address"
             type="button"
@@ -127,7 +115,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             </span>
           </code>
           <button
-            onClick={() => handleCopy(`${tokenAddress}/${tokenId}`, setCopiedToken)}
+            onClick={() => copyToken(`${tokenAddress}/${tokenId}`)}
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-text-soft transition hover:bg-bg-weak hover:text-text-sub active:scale-95"
             title="Copy NFT identifier"
             type="button"

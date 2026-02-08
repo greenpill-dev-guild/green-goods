@@ -42,8 +42,8 @@ body:
       label: Specifications
       description: Link to feature spec, tech spec, and any other relevant documentation
       placeholder: |
-        **Feature Spec**: [docs/specs/GG-FEAT-008_Offline_Sync.md](docs/specs/GG-FEAT-008_Offline_Sync.md)
-        **Tech Spec**: [docs/specs/GG-TECH-008_Offline_Sync_Technical.md](docs/specs/GG-TECH-008_Offline_Sync_Technical.md)
+        **Feature Spec**: [docs/docs/specs/offline-sync/feature-spec.md](docs/docs/specs/offline-sync/feature-spec.md)
+        **Tech Spec**: [docs/docs/specs/offline-sync/technical-spec.md](docs/docs/specs/offline-sync/technical-spec.md)
 
         Key sections:
         - Feature Spec §3.2: Queue data model

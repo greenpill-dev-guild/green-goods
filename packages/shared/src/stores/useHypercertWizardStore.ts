@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { subscribeWithSelector, persist, createJSONStorage } from "zustand/middleware";
+import { subscribeWithSelector } from "zustand/middleware";
 import { isAddress, getAddress } from "viem";
 
 import type {
@@ -53,11 +53,7 @@ function validateDraft(draft: unknown): HypercertDraft | null {
   }
 
   // Step number bounds check - reject drafts with invalid step numbers
-  if (
-    typeof d.stepNumber !== "number" ||
-    d.stepNumber < MIN_STEP ||
-    d.stepNumber > MAX_STEP
-  ) {
+  if (typeof d.stepNumber !== "number" || d.stepNumber < MIN_STEP || d.stepNumber > MAX_STEP) {
     logger.warn("[HypercertWizardStore] Invalid draft: stepNumber out of bounds", {
       stepNumber: d.stepNumber,
       validRange: `${MIN_STEP}-${MAX_STEP}`,

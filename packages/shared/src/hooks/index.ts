@@ -1,6 +1,18 @@
 // Hooks — EXPLICIT EXPORTS for tree-shaking
 
 // ============================================================================
+// UTILS (Low-level hooks for common patterns)
+// ============================================================================
+export { useEventListener, useWindowEvent, useDocumentEvent } from "./utils/useEventListener";
+export { useTimeout, useDelayedInvalidation } from "./utils/useTimeout";
+export { useAsyncEffect, useAsyncSetup } from "./utils/useAsyncEffect";
+export type {
+  UseCopyToClipboardOptions,
+  UseCopyToClipboardReturn,
+} from "./utils/useCopyToClipboard";
+export { useCopyToClipboard } from "./utils/useCopyToClipboard";
+
+// ============================================================================
 // ACTION
 // ============================================================================
 export type { ActionOperationResult } from "./action/useActionOperations";
@@ -27,12 +39,6 @@ export { useOffline } from "./app/useOffline";
 export { useTheme } from "./app/useTheme";
 export type { ToastActionOptions } from "./app/useToastAction";
 export { useToastAction } from "./app/useToastAction";
-export type {
-  MutationToastConfig,
-  MutationTrackingConfig,
-  UseMutationWithTrackingOptions,
-} from "./app/useMutationWithTracking";
-export { useMutationWithTracking } from "./app/useMutationWithTracking";
 export type {
   UseLoadingWithMinDurationOptions,
   UseLoadingWithMinDurationResult,
@@ -162,8 +168,6 @@ export type { QueryKey, QueueQueryKey, WorksQueryKey } from "./query-keys";
 // ============================================================================
 // STORAGE
 // ============================================================================
-export type { UseStorageQuotaOptions, UseStorageQuotaResult } from "./storage/useStorageQuota";
-export { useStorageQuota, useStorageQuotaCheck } from "./storage/useStorageQuota";
 export {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
@@ -186,7 +190,6 @@ export { useTranslation } from "./translation/useTranslation";
 // ============================================================================
 export type { CarouselContextProps, CarouselProps } from "./app/useCarousel";
 export { CarouselContext, useCarousel } from "./app/useCarousel";
-export { useScrollReveal } from "./app/useScrollReveal";
 
 // ============================================================================
 // WORK
@@ -197,6 +200,7 @@ export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
 export { useDrafts } from "./work/useDrafts";
 export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
 export { useWorkApproval } from "./work/useWorkApproval";
+export { useBatchWorkApproval } from "./work/useBatchWorkApproval";
 export type { EnhancedWorkApproval } from "./work/useWorkApprovals";
 export { useWorkApprovals } from "./work/useWorkApprovals";
 export type { WorkFormData } from "./work/useWorkForm";
@@ -210,3 +214,11 @@ export {
   useQueueStatistics,
   useWorks,
 } from "./work/useWorks";
+export type {
+  SubmissionProgressState,
+  SubmissionStage,
+  UseSubmissionProgressReturn,
+} from "./work/useSubmissionProgress";
+export { useSubmissionProgress } from "./work/useSubmissionProgress";
+export type { UseWorkMutationWithProgressReturn } from "./work/useWorkMutationWithProgress";
+export { useWorkMutationWithProgress } from "./work/useWorkMutationWithProgress";

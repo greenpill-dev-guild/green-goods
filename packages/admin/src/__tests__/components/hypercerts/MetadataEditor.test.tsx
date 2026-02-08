@@ -17,95 +17,97 @@ vi.mock("@green-goods/shared/utils", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    // Mock DatePicker as a simple input for testing
-    DatePicker: ({
-      id,
-      label,
-      value,
-      onChange,
-      error,
-      required,
-    }: {
-      id: string;
-      label: React.ReactNode;
-      value: number | null | undefined;
-      onChange: (value: number | null) => void;
-      error?: string;
-      required?: boolean;
-      placeholder?: string;
-      minDate?: number | null;
-    }) =>
-      createElement("div", { "data-testid": `datepicker-${id}` }, [
-        createElement("label", { key: "label", htmlFor: id }, label),
-        createElement("input", {
-          key: "input",
-          id,
-          type: "date",
-          value: value ? new Date(value * 1000).toISOString().split("T")[0] : "",
-          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-            const date = e.target.value ? Math.floor(new Date(e.target.value).getTime() / 1000) : null;
-            onChange(date);
-          },
-          "aria-required": required,
-        }),
-        error && createElement("span", { key: "error", className: "error" }, error),
-      ]),
-    FormInput: ({
-      id,
-      label,
-      value,
-      onChange,
-      placeholder,
-    }: {
-      id: string;
-      label: React.ReactNode;
-      value: string;
-      onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-      placeholder?: string;
-    }) =>
-      createElement("div", null, [
-        createElement("label", { key: "label", htmlFor: id }, label),
-        createElement("input", {
-          key: "input",
-          id,
-          type: "text",
-          value,
-          onChange,
-          placeholder,
-        }),
-      ]),
-    FormTextarea: ({
-      id,
-      label,
-      value,
-      onChange,
-      placeholder,
-      rows,
-    }: {
-      id: string;
-      label: React.ReactNode;
-      value: string;
-      onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-      placeholder?: string;
-      rows?: number;
-    }) =>
-      createElement("div", null, [
-        createElement("label", { key: "label", htmlFor: id }, label),
-        createElement("textarea", {
-          key: "textarea",
-          id,
-          value,
-          onChange,
-          placeholder,
-          rows,
-        }),
-      ]),
-  };
-});
+vi.mock("@green-goods/shared", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  // Mock DatePicker as a simple input for testing
+  DatePicker: ({
+    id,
+    label,
+    value,
+    onChange,
+    error,
+    required,
+  }: {
+    id: string;
+    label: React.ReactNode;
+    value: number | null | undefined;
+    onChange: (value: number | null) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    minDate?: number | null;
+  }) =>
+    createElement("div", { "data-testid": `datepicker-${id}` }, [
+      createElement("label", { key: "label", htmlFor: id }, label),
+      createElement("input", {
+        key: "input",
+        id,
+        type: "date",
+        value: value ? new Date(value * 1000).toISOString().split("T")[0] : "",
+        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+          const date = e.target.value
+            ? Math.floor(new Date(e.target.value).getTime() / 1000)
+            : null;
+          onChange(date);
+        },
+        "aria-required": required,
+      }),
+      error && createElement("span", { key: "error", className: "error" }, error),
+    ]),
+  FormInput: ({
+    id,
+    label,
+    value,
+    onChange,
+    placeholder,
+    "aria-required": ariaRequired,
+  }: {
+    id: string;
+    label: React.ReactNode;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder?: string;
+    "aria-required"?: string;
+  }) =>
+    createElement("div", null, [
+      createElement("label", { key: "label", htmlFor: id }, label),
+      createElement("input", {
+        key: "input",
+        id,
+        type: "text",
+        value,
+        onChange,
+        placeholder,
+        "aria-required": ariaRequired,
+      }),
+    ]),
+  FormTextarea: ({
+    id,
+    label,
+    value,
+    onChange,
+    placeholder,
+    rows,
+  }: {
+    id: string;
+    label: React.ReactNode;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    placeholder?: string;
+    rows?: number;
+  }) =>
+    createElement("div", null, [
+      createElement("label", { key: "label", htmlFor: id }, label),
+      createElement("textarea", {
+        key: "textarea",
+        id,
+        value,
+        onChange,
+        placeholder,
+        rows,
+      }),
+    ]),
+}));
 
 import { MetadataEditor } from "../../../components/hypercerts/steps/MetadataEditor";
 
@@ -280,9 +282,7 @@ describe("components/hypercerts/MetadataEditor", () => {
       await user.type(workScopeInput, "planting, restoration, care");
 
       // Find the call that contains workScopes
-      const workScopeCalls = onUpdate.mock.calls.filter(
-        (call) => call[0].workScopes !== undefined
-      );
+      const workScopeCalls = onUpdate.mock.calls.filter((call) => call[0].workScopes !== undefined);
       expect(workScopeCalls.length).toBeGreaterThan(0);
     });
   });
@@ -324,10 +324,18 @@ describe("components/hypercerts/MetadataEditor", () => {
         })
       );
 
-      // The chip should not be visible as a suggestion since it's already added
-      const chips = screen.getAllByText("tree planting");
-      // Should only appear in the input value, not as a suggestion button
-      expect(chips.length).toBe(1);
+      // The scope should be in the input value, not as a suggestion button
+      const scopeInput = screen.getByLabelText(/work scope/i) as HTMLInputElement;
+      expect(scopeInput.value).toContain("tree planting");
+
+      // The suggestion button for "tree planting" should not exist (since it's already added)
+      // Suggestions appear as clickable text/buttons - look for all buttons containing the scope name
+      const allButtons = screen.getAllByRole("button");
+      const treePlantingButtons = allButtons.filter((btn) =>
+        btn.textContent?.toLowerCase().includes("tree planting")
+      );
+      // No suggestion buttons should contain "tree planting" (it's already in the input)
+      expect(treePlantingButtons.length).toBe(0);
     });
 
     it("displays Use Suggested button for timeframe", () => {
@@ -436,8 +444,8 @@ describe("components/hypercerts/MetadataEditor", () => {
       const capitalButtons = screen
         .getAllByRole("button")
         .filter((btn) => btn.getAttribute("aria-label"));
-      const livingCapitalButton = capitalButtons.find(
-        (btn) => btn.getAttribute("aria-label")?.toLowerCase().includes("living")
+      const livingCapitalButton = capitalButtons.find((btn) =>
+        btn.getAttribute("aria-label")?.toLowerCase().includes("living")
       );
 
       if (livingCapitalButton) {
@@ -473,8 +481,8 @@ describe("components/hypercerts/MetadataEditor", () => {
         })
       );
 
-      // Error should be shown
-      expect(screen.getByText(/date/i)).toBeInTheDocument();
+      // Error should be shown - look for the specific date range error message
+      expect(screen.getByText(/start date must be before/i)).toBeInTheDocument();
     });
   });
 

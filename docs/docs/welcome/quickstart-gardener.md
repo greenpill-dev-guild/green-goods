@@ -260,7 +260,7 @@ Go outside and perform the actual conservation task! For litter cleanup:
 - **One task per submission**: Don't combine multiple activities
 - **Review before submitting**: Can't edit after submission
 
-[Full Best Practices Guide →](../guides/gardeners/best-practices)
+[Full Best Practices Guide →](../gardeners/best-practices)
 
 ---
 
@@ -291,9 +291,9 @@ Go outside and perform the actual conservation task! For litter cleanup:
 
 ### Detailed Guides
 
-- [Logging Work (Step-by-Step)](../guides/gardeners/logging-work)
-- [Tracking Your Contributions](../guides/gardeners/tracking-contributions)
-- [Best Practices](../guides/gardeners/best-practices)
+- [Logging Work (Step-by-Step)](../gardeners/logging-work)
+- [Tracking Your Contributions](../gardeners/tracking-contributions)
+- [Best Practices](../gardeners/best-practices)
 
 ### Understanding the System
 

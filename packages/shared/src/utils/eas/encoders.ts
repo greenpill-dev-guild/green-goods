@@ -6,6 +6,33 @@ import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/er
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
 
 /**
+ * Maps MIME types to file extensions.
+ * Returns the appropriate extension for a given MIME type.
+ */
+function getExtensionFromMimeType(mimeType: string): string {
+  const mimeMap: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "image/heic": "heic",
+    "image/heif": "heif",
+    "image/svg+xml": "svg",
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "video/quicktime": "mov",
+    "application/pdf": "pdf",
+    "application/octet-stream": "bin",
+  };
+
+  // Extract subtype (e.g., "jpeg" from "image/jpeg" or "image/jpeg;charset=UTF-8")
+  const subtype = mimeType.split("/")[1]?.split(";")[0];
+
+  // Return mapped extension, or the subtype itself, or fallback to 'bin'
+  return mimeMap[mimeType] || subtype || "bin";
+}
+
+/**
  * Simulates work data encoding with dummy IPFS hashes.
  * Used to validate contract interactions before performing expensive uploads.
  */
@@ -77,32 +104,61 @@ export async function encodeWorkData(
   let completedFiles = 0;
   let failedFiles = 0;
 
-  // Upload media files with individual tracking
-  const media: string[] = [];
-  for (let index = 0; index < data.media.length; index++) {
-    const maybeFile = data.media[index];
+  // Upload media files in PARALLEL for better performance
+  // Normalize files first (synchronous operation) with proper type validation
+  let normalizedFiles: File[];
+  try {
+    // Cast to unknown[] for defensive runtime validation (type may differ at runtime)
+    normalizedFiles = (data.media as unknown[]).map((maybeFile, index) => {
+      if (maybeFile instanceof File) {
+        return maybeFile;
+      }
+      if (maybeFile instanceof Blob) {
+        // Derive file extension from MIME type instead of hardcoding .jpg
+        const ext = getExtensionFromMimeType(maybeFile.type || "application/octet-stream");
+        return new File([maybeFile], `work-media-${Date.now()}-${index}.${ext}`, {
+          type: maybeFile.type || "application/octet-stream",
+          lastModified: Date.now(),
+        });
+      }
+      throw new Error(`Invalid media item at index ${index}: expected File or Blob`);
+    });
+  } catch (error) {
+    // Track normalization failures for debugging
+    trackUploadError(error, {
+      uploadCategory: "encoding",
+      source: "encodeWorkData",
+      gardenAddress: options.gardenAddress,
+      authMode: options.authMode,
+      userAction: "normalizing media files for submission",
+      severity: "error",
+      recoverable: false,
+      metadata: {
+        step: "normalize",
+        mediaCount: data.media.length,
+        contentTypes: data.media.slice(0, 5).map((f) => {
+          // Runtime type check: f could be non-File at runtime despite typed as File[]
+          const maybeFile = f as unknown;
+          if (maybeFile && typeof maybeFile === "object" && "type" in maybeFile) {
+            return (maybeFile as { type?: string }).type || "unknown";
+          }
+          return "unknown";
+        }),
+      },
+    });
+    throw error;
+  }
 
-    try {
-      // Normalize to proper File object (IndexedDB may strip metadata)
-      const file =
-        maybeFile instanceof File
-          ? maybeFile
-          : new File([maybeFile as Blob], `work-media-${Date.now()}-${index}.jpg`, {
-              type: (maybeFile as Blob).type || "image/jpeg",
-              lastModified: Date.now(),
-            });
-
-      const result = await uploadFileToIPFS(file, {
-        fileIndex: index,
-        totalFiles: totalFiles,
-        source: "encodeWorkData",
-        gardenAddress: options.gardenAddress,
-        authMode: options.authMode,
-      });
-
-      media.push(result.cid);
+  // Upload all files concurrently using Promise.allSettled for graceful error handling
+  const uploadPromises = normalizedFiles.map((file, index) =>
+    uploadFileToIPFS(file, {
+      fileIndex: index,
+      totalFiles: totalFiles,
+      source: "encodeWorkData",
+      gardenAddress: options.gardenAddress,
+      authMode: options.authMode,
+    }).then((result) => {
       completedFiles++;
-
       // Track individual file completion
       trackUploadBatchProgress({
         stage: "file_complete",
@@ -114,13 +170,29 @@ export async function encodeWorkData(
         source: "encodeWorkData",
         gardenAddress: options.gardenAddress,
       });
-    } catch (error) {
+      return { index, cid: result.cid };
+    })
+  );
+
+  const uploadResults = await Promise.allSettled(uploadPromises);
+
+  // Process results and handle any failures
+  const media: string[] = [];
+  const errors: Array<{ index: number; error: unknown }> = [];
+
+  for (let i = 0; i < uploadResults.length; i++) {
+    const result = uploadResults[i];
+    if (result.status === "fulfilled") {
+      media[result.value.index] = result.value.cid;
+    } else {
       failedFiles++;
+      const maybeFile = data.media[i];
+      errors.push({ index: i, error: result.reason });
 
       // Track encoding-level error with full context
-      trackUploadError(error, {
+      trackUploadError(result.reason, {
         uploadCategory: "encoding",
-        fileIndex: index,
+        fileIndex: i,
         totalFiles: totalFiles,
         fileSize: maybeFile?.size,
         fileType: maybeFile?.type,
@@ -139,22 +211,24 @@ export async function encodeWorkData(
           total_files: totalFiles,
         },
       });
-
-      // Track batch failure
-      trackUploadBatchProgress({
-        stage: "failed",
-        totalFiles: totalFiles + 1,
-        completedFiles,
-        failedFiles,
-        totalSizeBytes,
-        elapsedMs: Date.now() - startTime,
-        source: "encodeWorkData",
-        gardenAddress: options.gardenAddress,
-        error: error instanceof Error ? error.message : String(error),
-      });
-
-      throw error;
     }
+  }
+
+  // If any uploads failed, throw with details
+  if (errors.length > 0) {
+    trackUploadBatchProgress({
+      stage: "failed",
+      totalFiles: totalFiles + 1,
+      completedFiles,
+      failedFiles,
+      totalSizeBytes,
+      elapsedMs: Date.now() - startTime,
+      source: "encodeWorkData",
+      gardenAddress: options.gardenAddress,
+      error: `${errors.length} file(s) failed to upload`,
+    });
+    const firstError = errors[0].error;
+    throw firstError instanceof Error ? firstError : new Error(String(firstError));
   }
 
   // Upload metadata JSON

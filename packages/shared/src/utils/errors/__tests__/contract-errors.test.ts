@@ -6,7 +6,6 @@ import { describe, it, expect } from "vitest";
 import {
   parseContractError,
   isNotGardenMemberError,
-  isNotGardenerError,
   isAlreadyGardenerError,
   formatErrorForToast,
   parseAndFormatError,
@@ -105,13 +104,6 @@ describe("isNotGardenMemberError", () => {
   it("returns false for other errors", () => {
     expect(isNotGardenMemberError("0x42375a1e")).toBe(false);
     expect(isNotGardenMemberError("some error")).toBe(false);
-  });
-});
-
-describe("isNotGardenerError (deprecated)", () => {
-  it("still works for backward compatibility", () => {
-    expect(isNotGardenerError("0x8cb4ae3b")).toBe(true);
-    expect(isNotGardenerError("0x42375a1e")).toBe(false);
   });
 });
 

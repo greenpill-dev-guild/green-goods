@@ -270,15 +270,15 @@ const works = await fetch('https://arbitrum.easscan.org/graphql', {
 The shared package abstracts these data sources:
 
 ```typescript
-import { getGardens } from '@green-goods/shared/modules/data/indexer';
+import { getGardens } from '@green-goods/shared/modules/data/greengoods';
 import { getWorks, getWorkApprovals } from '@green-goods/shared/modules/data/eas';
 
-// From Envio indexer
-const gardens = await getGardens(chainId);
+// From Envio indexer (uses DEFAULT_CHAIN_ID internally)
+const gardens = await getGardens();
 
-// From EAS GraphQL
-const works = await getWorks(gardenAddress, chainId);
-const approvals = await getWorkApprovals(gardenAddress, chainId);
+// From EAS GraphQL (chainId is optional, defaults to environment chain)
+const works = await getWorks(gardenAddress);
+const approvals = await getWorkApprovals(gardenerAddress); // Note: param is gardenerAddress, not gardenAddress
 ```
 
 ---
@@ -532,10 +532,11 @@ const filters: AttestationFilters = {
   gardenerAddress: '0x...',
 };
 
+// Note: chainId is not a parameter - uses environment chain internally
 const attestations: HypercertAttestation[] = await getApprovedAttestations(
   gardenId,
-  chainId,
-  filters
+  filters,  // Optional filters
+  100       // Optional limit (default: 100)
 );
 ```
 
@@ -671,6 +672,6 @@ interface HypercertMetadata {
 
 - [Indexer Package Docs](./indexer) — Envio indexer architecture
 - [Contracts Package Docs](./contracts) — Smart contract interfaces
-- [Evaluator Guide: Accessing Data](../guides/evaluators/accessing-data) — Complete data access guide
+- [Evaluator Guide: Accessing Data](../evaluators/accessing-data) — Complete data access guide
 - [EAS Documentation](https://docs.attest.org/) — Ethereum Attestation Service reference
 

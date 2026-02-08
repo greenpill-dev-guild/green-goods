@@ -99,7 +99,6 @@ vi.mock("../../utils/errors/contract-errors", () => ({
     parsed: { isKnown: false, name: "unknown", recoverable: true },
   })),
   isNotGardenMemberError: vi.fn(() => false),
-  isNotGardenerError: vi.fn(() => false),
   isAlreadyGardenerError: vi.fn(() => false),
   formatErrorForToast: vi.fn(() => ({ title: "Error", message: "Something went wrong" })),
 }));

@@ -84,8 +84,8 @@ Perfect for rapid iteration and testing:
 # Terminal 1: Start local blockchain
 bun dev
 
-# Terminal 2: Deploy contracts
-bun deploy:local
+# Terminal 2: Deploy contracts (uses default deploy script)
+bun deploy
 ```
 
 **What gets deployed:**
@@ -103,13 +103,14 @@ bun deploy:local
 Test against real network state without spending gas:
 
 ```bash
-# Fork Celo mainnet
-bun fork:celo
+# Run E2E tests against forked networks
+bun test:e2e:celo       # Fork and test Celo mainnet
+bun test:e2e:arbitrum   # Fork and test Arbitrum mainnet
 
-# In another terminal: deploy to fork
-bun deploy:local
+# Or manually fork with Anvil
+anvil --fork-url $CELO_RPC_URL
 
-# Run tests on fork
+# Then run tests on fork
 forge test --fork-url http://localhost:8545 -vv
 ```
 
@@ -123,7 +124,7 @@ Public testnet deployment for integration testing:
 
 ```bash
 # Dry run first (no transactions, validates everything)
-bun deploy:dryrun
+bun deploy:dry:testnet
 
 # Deploy for real
 bun deploy:testnet
@@ -157,8 +158,8 @@ bun deploy:arbitrum
 
 ```bash
 # 🏗️ DEPLOY (creates new addresses)
-bun deploy:local        # Local development
-bun deploy:dryrun       # Dry run (Base Sepolia)
+bun deploy              # Deploy (default settings)
+bun deploy:dry:testnet  # Dry run (Base Sepolia)
 bun deploy:testnet      # Base Sepolia testnet
 bun deploy:celo         # Celo mainnet
 bun deploy:arbitrum     # Arbitrum mainnet
@@ -170,8 +171,8 @@ bun upgrade:arbitrum    # Upgrade Arbitrum mainnet
 
 # 🧪 TESTING
 bun test                # Run all tests
-bun fork:celo           # Fork Celo mainnet
-bun fork:arbitrum       # Fork Arbitrum mainnet
+bun test:e2e:celo       # Fork and test Celo mainnet
+bun test:e2e:arbitrum   # Fork and test Arbitrum mainnet
 
 # 🔧 DEVELOPMENT
 bun build               # Compile contracts
@@ -224,13 +225,13 @@ The contracts use a unified deployment CLI that handles:
 
 ```bash
 # Fresh deployment (all environments)
-bun deploy:local      # Localhost
+bun deploy            # Default (localhost or configured network)
 bun deploy:testnet    # Base Sepolia
 bun deploy:celo       # Celo mainnet
 bun deploy:arbitrum   # Arbitrum mainnet
 
 # Dry run (simulation only)
-bun deploy:dryrun
+bun deploy:dry:testnet
 
 # Advanced deployment options
 node script/deploy.js core --network baseSepolia --broadcast --update-schemas
@@ -300,13 +301,13 @@ Green Goods integrates with the **Karma Grantee Accountability Protocol (GAP)** 
 
 **Testing:**
 ```bash
-# Run all GAP E2E fork tests
-bun test:gap
+# Run E2E tests (includes GAP integration)
+bun test:e2e
 
 # Test specific networks
-bun test:gap:fork:arbitrum
-bun test:gap:fork:celo
-bun test:gap:fork:base
+bun test:e2e:arbitrum   # Fork Arbitrum
+bun test:e2e:celo       # Fork Celo
+bun test:e2e:testnet    # Fork Base Sepolia
 ```
 
 ### Schema Evolution
@@ -520,7 +521,7 @@ bun format
 bun lint
 
 # Start local blockchain
-bun chain
+bun dev
 ```
 
 **Contract Development:**
@@ -544,13 +545,13 @@ forge test --watch
 **Local Development:**
 ```bash
 # Start Anvil local blockchain
-bun chain
+bun dev
 
 # Deploy contracts to local network
-bun deploy:local
+bun deploy
 
 # Check deployment status
-bun deployment:status localhost
+bun status
 ```
 
 **Network Deployment:**
@@ -619,8 +620,8 @@ Networks are configured in `deployments/networks.json`. The system automatically
 **Advanced Testing:**
 ```bash
 # Fork testing against live networks
-bun fork:celo
-forge test --fork-url http://localhost:8545
+bun test:e2e:celo       # Automated fork test
+# Or manually: anvil --fork-url $CELO_RPC_URL
 
 # Gas profiling
 forge test --gas-report
@@ -680,7 +681,7 @@ bun lint
 bun deploy:list-profiles
 
 # Dry run deployment (validation only)
-bun deploy:dryrun --network celo
+bun deploy:dry:testnet --network celo
 
 # Deploy with verbose logging
 bun deploy:celo --verbose

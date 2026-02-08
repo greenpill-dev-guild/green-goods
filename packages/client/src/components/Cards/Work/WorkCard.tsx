@@ -207,7 +207,10 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
       if (createdUrl) {
         try {
           URL.revokeObjectURL(createdUrl);
-        } catch {}
+        } catch (error) {
+          // Non-critical: URL will be garbage collected eventually
+          console.warn("[MinimalWorkCard] Failed to revoke object URL:", error);
+        }
       }
     };
   }, [work.media, work.id]);

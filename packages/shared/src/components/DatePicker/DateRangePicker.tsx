@@ -6,7 +6,7 @@ import {
   RiArrowRightLine,
 } from "@remixicon/react";
 import { useState, useCallback, useMemo, forwardRef } from "react";
-import { DayPicker, type DateRange, type DayPickerProps } from "react-day-picker";
+import { DayPicker, type DateRange, type DateBefore, type DateAfter } from "react-day-picker";
 import { cn } from "../../utils/styles/cn";
 
 export interface DateRangePickerProps {
@@ -152,8 +152,8 @@ export const DateRangePicker = forwardRef<HTMLDivElement, DateRangePickerProps>(
     const displayEnd = endDate ? formatDate(endDate) : null;
 
     // Determine which dates should be disabled
-    const disabledDays: DayPickerProps["disabled"] = useMemo(() => {
-      const disabled: DayPickerProps["disabled"] = [];
+    const disabledDays = useMemo(() => {
+      const disabled: (DateBefore | DateAfter)[] = [];
       if (minDateObj) {
         disabled.push({ before: minDateObj });
       }

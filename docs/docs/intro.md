@@ -10,9 +10,7 @@ title: Welcome to Green Goods
 
 Green Goods is an offline-first Progressive Web App (PWA) that makes it simple for communities to document, verify, and prove their regenerative impact work. Whether you're planting trees, cleaning waterways, or restoring biodiversity,  Green Goods helps you capture that work in three easy steps and turn it into permanent, verifiable on-chain records.
 
-<!-- TODO: Add hero image or screenshot of the Green Goods app -->
-![Green Goods Hero](https://via.placeholder.com/1200x600?text=Green+Goods+PWA+Screenshot)
-*Try it now at [greengoods.app](https://greengoods.app)*
+**[Try it now at greengoods.app →](https://greengoods.app)**
 
 ## Why Green Goods Matters
 
@@ -147,8 +145,8 @@ Choose your path:
 
 - [Core Concepts](concepts/roles) — Understand gardens, actions, work, and attestations
 - [Product Features](features/overview) — Explore what makes Green Goods unique
-- [How-To Guides](guides/gardeners/logging-work) — Step-by-step tutorials for all roles
-- [Developer Docs](developer/getting-started) — Technical documentation and APIs
+- [How-To Guides](gardeners/logging-work) — Step-by-step tutorials for all roles
+- [Developer Docs](developer/installation) — Technical documentation and APIs
 
 ## Built By
 

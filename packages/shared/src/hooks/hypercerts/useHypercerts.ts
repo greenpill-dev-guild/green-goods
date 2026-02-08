@@ -75,9 +75,7 @@ const POLL_INTERVAL_MS = 2000;
  *
  * Returns null only if both sources fail to find the hypercert.
  */
-async function fetchHypercertWithFallback(
-  hypercertId: string
-): Promise<HypercertRecord | null> {
+async function fetchHypercertWithFallback(hypercertId: string): Promise<HypercertRecord | null> {
   // Try Envio indexer first (has richer Green Goods data)
   const envioResult = await getHypercertById(hypercertId);
   if (envioResult) {
@@ -116,10 +114,7 @@ async function fetchHypercertWithFallback(
 /**
  * Converts optimistic data to a HypercertRecord for display.
  */
-function optimisticToRecord(
-  data: OptimisticHypercertData,
-  gardenId?: string
-): HypercertRecord {
+function optimisticToRecord(data: OptimisticHypercertData, gardenId?: string): HypercertRecord {
   return {
     id: data.id,
     tokenId: 0n, // Unknown until indexed
@@ -215,9 +210,8 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
   // Determine the hypercert to return:
   // 1. Real indexed data if available
   // 2. Optimistic data as fallback
-  const hypercert = detailQuery.data ?? (
-    optimisticData ? optimisticToRecord(optimisticData, gardenId) : null
-  );
+  const hypercert =
+    detailQuery.data ?? (optimisticData ? optimisticToRecord(optimisticData, gardenId) : null);
 
   const refetch = useCallback(async () => {
     if (hypercertId) {

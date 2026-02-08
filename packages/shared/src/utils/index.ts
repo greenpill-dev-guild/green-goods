@@ -161,7 +161,6 @@ export type { ParsedContractError } from "./errors/contract-errors";
 export {
   formatErrorForToast,
   isAlreadyGardenerError,
-  isNotGardenerError, // @deprecated - use isNotGardenMemberError
   isNotGardenMemberError,
   parseAndFormatError,
   parseContractError,

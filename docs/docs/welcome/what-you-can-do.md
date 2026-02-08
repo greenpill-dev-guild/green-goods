@@ -32,7 +32,7 @@ The fastest way to create verifiable impact records:
 <!-- ![MDR Workflow Animation](../.gitbook/assets/mdr-animation.gif) -->
 *Complete a submission in under 2 minutes*
 
-[Detailed Guide: Logging Work →](../guides/gardeners/logging-work)
+[Detailed Guide: Logging Work →](../gardeners/logging-work)
 
 ### Track Your Contributions
 
@@ -47,7 +47,7 @@ The fastest way to create verifiable impact records:
 - Showcase your impact to funders
 - Unlock future opportunities
 
-[Guide: Tracking Contributions →](../guides/gardeners/tracking-contributions)
+[Guide: Tracking Contributions →](../gardeners/tracking-contributions)
 
 ### Work Across Multiple Gardens
 
@@ -90,7 +90,7 @@ The fastest way to create verifiable impact records:
 6. Share attestation on social media
 ```
 
-[Best Practices Guide →](../guides/gardeners/best-practices)
+[Best Practices Guide →](../gardeners/best-practices)
 
 ---
 
@@ -110,7 +110,7 @@ The fastest way to create verifiable impact records:
 - Update member lists
 - Manage multiple gardens from one dashboard
 
-[Guide: Managing Gardens →](../guides/operators/managing-gardens)
+[Guide: Managing Gardens →](../operators/managing-gardens)
 
 ### Design Actions for Gardeners
 
@@ -130,7 +130,7 @@ The fastest way to create verifiable impact records:
 - Seasonal adjustments
 - Emergency priorities
 
-[Guide: Managing Actions →](../guides/operators/managing-actions)
+[Guide: Managing Actions →](../operators/managing-actions)
 
 ### Review and Approve Work
 
@@ -153,7 +153,7 @@ The fastest way to create verifiable impact records:
 - Gardener receives confirmation
 - Work becomes part of garden's permanent record
 
-[Guide: Reviewing Work →](../guides/operators/reviewing-work)
+[Guide: Reviewing Work →](../operators/reviewing-work)
 
 ### Generate Impact Reports
 
@@ -173,7 +173,7 @@ The fastest way to create verifiable impact records:
 - Multi-chain standardization
 - Transparent accountability
 
-[Guide: Reporting Impact →](../guides/operators/reporting-impact)
+[Guide: Reporting Impact →](../operators/reporting-impact)
 
 ### Example Operator Workflows
 
@@ -220,7 +220,7 @@ The fastest way to create verifiable impact records:
    - Visual dashboards
    - Export functionality
 
-[Guide: Accessing Data →](../guides/evaluators/accessing-data)
+[Guide: Accessing Data →](../evaluators/accessing-data)
 
 ### Query Impact Data
 
@@ -271,7 +271,7 @@ query ApprovedWork($startDate: Int!, $endDate: Int!) {
 - Review operator feedback
 - Verify on-chain attestations
 
-[Guide: Exploring Gardens →](../guides/evaluators/exploring-gardens)
+[Guide: Exploring Gardens →](../evaluators/exploring-gardens)
 
 ### Integrate with External Frameworks
 
@@ -286,7 +286,7 @@ query ApprovedWork($startDate: Int!, $endDate: Int!) {
 - JSON for databases
 - GraphQL for dashboards
 
-[Guide: External Frameworks →](../guides/evaluators/external-frameworks)
+[Guide: External Frameworks →](../evaluators/external-frameworks)
 
 ### Example Evaluator Workflows
 
@@ -347,9 +347,9 @@ query ApprovedWork($startDate: Int!, $endDate: Int!) {
 ### Interact with Smart Contracts
 
 **Deployed Networks**:
-- **Arbitrum One** (42161): [Contract Addresses →](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/deployments/42161-latest.json)
-- **Celo** (42220): [Contract Addresses →](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/deployments/42220-latest.json)
-- **Base Sepolia** (84532): [Contract Addresses →](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/deployments/84532-latest.json)
+- **Arbitrum One** (42161): [Contract Addresses →](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/42161-latest.json)
+- **Celo** (42220): [Contract Addresses →](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/42220-latest.json)
+- **Base Sepolia** (84532): [Contract Addresses →](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/84532-latest.json)
 
 **Core Contracts**:
 - `GardenToken`: NFT registry of gardens
@@ -527,5 +527,5 @@ Green Goods is a platform for regenerative coordination. The possibilities are e
 - [Why Green Goods?](why-green-goods) — Understand the problems we solve
 - [Who Is It For?](who-is-it-for) — Find your role
 - [Core Concepts](../concepts/roles) — Deep dive into how it works
-- [How-To Guides](../guides/gardeners/logging-work) — Step-by-step tutorials
+- [How-To Guides](../gardeners/logging-work) — Step-by-step tutorials
 

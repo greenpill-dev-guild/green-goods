@@ -46,7 +46,7 @@ describe("smart polling with early exit", () => {
     vi.useRealTimers();
   });
 
-  it("should use default faster delays (1s, 2s, 4s)", async () => {
+  it("should use default faster delays (immediate first, then exponential backoff)", async () => {
     const onAttempt = vi.fn();
     const queryKey = ["test", "query"] as const;
 
@@ -55,22 +55,22 @@ describe("smart polling with early exit", () => {
       onAttempt,
     });
 
-    // Default: baseDelay=1000, maxDelay=4000
-    // Attempt 1: 1s
+    // Default: initialDelayMs=0, baseDelay=500, maxDelay=4000
+    // Attempt 1: immediate (0ms)
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onAttempt).toHaveBeenCalledWith(1, 0);
+
+    // Attempt 2: 500ms (baseDelay)
+    await vi.advanceTimersByTimeAsync(500);
+    expect(onAttempt).toHaveBeenCalledWith(2, 500);
+
+    // Attempt 3: 1000ms (baseDelay * 2)
     await vi.advanceTimersByTimeAsync(1000);
-    expect(onAttempt).toHaveBeenCalledWith(1, 1000);
+    expect(onAttempt).toHaveBeenCalledWith(3, 1000);
 
-    // Attempt 2: 2s
+    // Attempt 4: 2000ms (baseDelay * 4)
     await vi.advanceTimersByTimeAsync(2000);
-    expect(onAttempt).toHaveBeenCalledWith(2, 2000);
-
-    // Attempt 3: 4s (capped at maxDelay)
-    await vi.advanceTimersByTimeAsync(4000);
-    expect(onAttempt).toHaveBeenCalledWith(3, 4000);
-
-    // Attempt 4: 4s (capped at maxDelay)
-    await vi.advanceTimersByTimeAsync(4000);
-    expect(onAttempt).toHaveBeenCalledWith(4, 4000);
+    expect(onAttempt).toHaveBeenCalledWith(4, 2000);
 
     await promise;
   });
@@ -92,16 +92,16 @@ describe("smart polling with early exit", () => {
       maxAttempts: 4,
     });
 
-    // After first delay, simulate new data appearing
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(onAttempt).toHaveBeenCalledWith(1, 1000);
+    // First attempt is immediate (initialDelayMs=0 by default)
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onAttempt).toHaveBeenCalledWith(1, 0);
 
-    // Simulate data change (new item added)
+    // Simulate data change (new item added) after first check
     mockQueryData.set(JSON.stringify(queryKey), [{ id: "new-work" }]);
 
-    // Second delay - should detect change and exit
-    await vi.advanceTimersByTimeAsync(2000);
-    expect(onAttempt).toHaveBeenCalledWith(2, 2000);
+    // Second attempt with baseDelay - should detect change and exit
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(onAttempt).toHaveBeenCalledWith(2, 1000);
     expect(onDataChange).toHaveBeenCalled();
 
     await promise;
@@ -127,11 +127,11 @@ describe("smart polling with early exit", () => {
       maxAttempts: 4,
     });
 
-    // Run through all delays
-    await vi.advanceTimersByTimeAsync(1000); // Attempt 1
-    await vi.advanceTimersByTimeAsync(2000); // Attempt 2
-    await vi.advanceTimersByTimeAsync(4000); // Attempt 3
-    await vi.advanceTimersByTimeAsync(4000); // Attempt 4
+    // Run through all delays (immediate first, then exponential backoff)
+    await vi.advanceTimersByTimeAsync(0); // Attempt 1 (immediate)
+    await vi.advanceTimersByTimeAsync(1000); // Attempt 2 (baseDelay)
+    await vi.advanceTimersByTimeAsync(2000); // Attempt 3 (baseDelay * 2)
+    await vi.advanceTimersByTimeAsync(4000); // Attempt 4 (baseDelay * 4, capped at maxDelay)
 
     await promise;
 
@@ -152,8 +152,9 @@ describe("smart polling with early exit", () => {
       maxDelay: 200,
     });
 
+    // Attempt 1 is immediate (0ms), Attempt 2 is baseDelay (100ms)
+    await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(100);
-    await vi.advanceTimersByTimeAsync(200);
 
     await promise;
 
@@ -173,15 +174,15 @@ describe("smart polling with early exit", () => {
       maxAttempts: 3,
     });
 
-    // Attempt 1: 500ms
+    // Attempt 1: immediate (0ms - default initialDelayMs)
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onAttempt).toHaveBeenCalledWith(1, 0);
+
+    // Attempt 2: 500ms (baseDelay)
     await vi.advanceTimersByTimeAsync(500);
-    expect(onAttempt).toHaveBeenCalledWith(1, 500);
+    expect(onAttempt).toHaveBeenCalledWith(2, 500);
 
-    // Attempt 2: 1000ms (capped)
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(onAttempt).toHaveBeenCalledWith(2, 1000);
-
-    // Attempt 3: 1000ms (capped)
+    // Attempt 3: 1000ms (baseDelay * 2, capped at maxDelay)
     await vi.advanceTimersByTimeAsync(1000);
     expect(onAttempt).toHaveBeenCalledWith(3, 1000);
 

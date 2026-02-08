@@ -59,9 +59,24 @@ Use when:
 - User requests code review
 - Part of `/review` skill workflow
 
+## Skills Reference
+
+When reviewing, consult these skills:
+
+| Skill | Pass | Purpose |
+|-------|------|---------|
+| `mermaid-diagrams` | 0 | Create change impact diagrams |
+| `error-handling-patterns` | 1 | Verify error handling patterns |
+| `reducing-entropy` | 2, 6 | Check for unnecessary code |
+| `web-design-guidelines` | 4.5 | UI compliance checklist |
+
+---
+
 ## 6-Pass Protocol
 
 ### Pass 0: Change Explanation
+
+Reference: `mermaid-diagrams` skill
 
 Understand and document:
 - What changed
@@ -103,6 +118,30 @@ Verify:
 - Dependency versions
 - Configuration changes
 - **No package-specific .env files** — root `.env` only
+
+### Pass 4.5: UI Compliance (For UI Changes)
+
+Reference: `.claude/skills/web-design-guidelines/SKILL.md`
+
+Check against:
+- **Accessibility**: ARIA labels, semantic HTML, keyboard navigation
+- **Focus states**: Visible indicators, `:focus-visible`
+- **Forms**: Autocomplete, labels, error handling
+- **Animation**: `prefers-reduced-motion`, GPU-only properties
+- **i18n**: Translation keys, `Intl` API for dates/numbers
+- **Images**: Explicit dimensions, lazy loading
+
+#### Storybook Verification (for `packages/{shared,client}/**/*.stories.tsx`)
+
+When reviewing story files:
+1. **Run Storybook a11y addon**: Verify no accessibility violations in the Accessibility tab
+2. **Toggle theme**: Use Storybook toolbar to check light/dark modes
+3. **Verify all variants**: Ensure default, loading, error, empty states are covered
+
+```bash
+cd packages/shared && bun run storybook
+# Then check Accessibility tab for each story
+```
 
 ### Pass 5: Verification Strategy
 

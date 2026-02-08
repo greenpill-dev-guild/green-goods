@@ -1,6 +1,8 @@
 # Installation & Environment Setup
 
-Complete setup guide for local Green Goods development.
+Complete setup guide for local Green Goods development. Green Goods is an open-source monorepo platform for verifiable regenerative impact.
+
+**Tech Stack**: React 19 + TypeScript + Vite • TanStack Query + Zustand • Tailwind CSS v4 + Radix UI • Solidity + Foundry • Envio HyperIndex • IPFS (Storacha)
 
 ---
 

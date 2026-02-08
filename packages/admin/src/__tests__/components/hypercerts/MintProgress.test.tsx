@@ -34,9 +34,7 @@ import { MintProgress } from "../../../components/hypercerts/steps/MintProgress"
 // Test Fixtures
 // ============================================
 
-function createMockMintingState(
-  overrides: Partial<MintingState> = {}
-): MintingState {
+function createMockMintingState(overrides: Partial<MintingState> = {}): MintingState {
   return {
     status: "idle",
     metadataCid: null,
@@ -356,10 +354,7 @@ describe("components/hypercerts/MintProgress", () => {
       );
 
       const link = screen.getByRole("link");
-      expect(link).toHaveAttribute(
-        "href",
-        "https://sepolia.basescan.org/tx/0xabc123def456"
-      );
+      expect(link).toHaveAttribute("href", "https://sepolia.basescan.org/tx/0xabc123def456");
     });
 
     it("opens transaction link in new tab", () => {

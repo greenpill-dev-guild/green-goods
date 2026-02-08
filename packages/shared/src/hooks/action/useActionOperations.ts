@@ -16,6 +16,10 @@ import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { useToastAction } from "../app/useToastAction";
 import { queryKeys } from "../query-keys";
+import { useDelayedInvalidation } from "../utils/useTimeout";
+
+/** Delay before refetching after transaction to allow indexer sync */
+const INDEXER_SYNC_DELAY_MS = 5000;
 
 /**
  * Result of an action operation
@@ -42,11 +46,14 @@ export function useActionOperations(chainId: number) {
   const queryClient = useQueryClient();
 
   // Schedule background refetch to sync with indexer
-  const scheduleBackgroundRefetch = useCallback(() => {
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.actions.byChain(chainId) });
-    }, 5000);
-  }, [queryClient, chainId]);
+  // Uses useDelayedInvalidation for automatic cleanup on unmount
+  const { start: scheduleBackgroundRefetch } = useDelayedInvalidation(
+    useCallback(
+      () => queryClient.invalidateQueries({ queryKey: queryKeys.actions.byChain(chainId) }),
+      [queryClient, chainId]
+    ),
+    INDEXER_SYNC_DELAY_MS
+  );
 
   const registerAction = async (params: {
     startTime: number;

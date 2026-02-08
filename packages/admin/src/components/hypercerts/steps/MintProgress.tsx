@@ -117,12 +117,7 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
   return (
     <div className="space-y-6">
       {/* Screen reader live region for status announcements */}
-      <div
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        className="sr-only"
-      >
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {srAnnouncement}
       </div>
 

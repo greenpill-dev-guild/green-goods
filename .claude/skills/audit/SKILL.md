@@ -1,3 +1,8 @@
+---
+name: audit
+description: Codebase Audit - quality analysis, dead code detection. Use for health checks and anti-pattern detection.
+---
+
 # Audit Skill
 
 Systematic codebase analysis: quality audit, dead code detection, architectural review.
