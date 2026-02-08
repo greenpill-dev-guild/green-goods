@@ -107,7 +107,7 @@ After codegen, run `bun run setup-generated` to rebuild ReScript.
 ### Pre-requisites
 
 - [Node.js (use v18 or newer)](https://nodejs.org/en/download/current)
-- [bun (use v9 or newer)](https://bun.io/installation)
+- [bun (use v1 or newer)](https://bun.sh)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) - **Required** (script auto-starts it)
 
 ### Environment Variables

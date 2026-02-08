@@ -58,8 +58,10 @@ src/
 │   ├── blockchain/  # Chain config, ENS, deployment registry
 │   ├── garden/      # Garden operations, permissions, invites
 │   ├── gardener/    # Role, profile hooks
+│   ├── roles/       # Role management hooks
 │   ├── translation/ # i18n hooks
 │   ├── ui/          # UI utilities
+│   ├── utils/       # Utility hooks (useEventListener, useTimeout, useAsyncEffect)
 │   └── work/        # Work submission, approval, mutations
 ├── modules/         # Core business logic
 │   ├── app/         # Analytics (posthog), service worker

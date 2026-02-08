@@ -35,7 +35,7 @@ Auto-formats on save in VS Code.
 
 ### Linting
 
-**0xlint** + Biome:
+**oxlint** + Biome:
 ```bash
 bun lint
 ```

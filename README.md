@@ -13,10 +13,10 @@ Green Goods is an offline-first platform for documenting ecological and social w
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
 bun setup    # Checks deps, installs packages, creates .env
-bun dev      # Starts client, admin, indexer via PM2
+bun dev      # Starts all services via PM2
 ```
 
-**Services:** Client PWA (localhost:3001) • Admin (localhost:3002) • Indexer (localhost:8080)
+**Services:** Client PWA (localhost:3001) • Admin (localhost:3002) • Indexer (localhost:8080) • Storybook (localhost:6006)
 
 ## Documentation
 
@@ -29,4 +29,4 @@ bun dev      # Starts client, admin, indexer via PM2
 
 ## Contributing
 
-Run `bun format && bun lint && bun test` before opening PRs. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Run `bun format && bun lint && bun test` before opening PRs.

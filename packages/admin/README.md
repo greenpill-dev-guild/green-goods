@@ -2,7 +2,7 @@
 
 Administrative dashboard for managing the Green Goods platform, including gardens, operators, gardeners, and smart contract deployments.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Install dependencies (from project root)
@@ -17,7 +17,7 @@ bun --filter admin dev
 
 The admin dashboard will be available at `http://localhost:3002`
 
-## 🎯 Features
+## Features
 
 ### Admin Features (Allow List)
 - **Garden Management**: Create, view, and remove gardens
@@ -40,7 +40,7 @@ The admin dashboard will be available at `http://localhost:3002`
 
 **Note:** Impact data is queried via Karma GAP SDK, not Green Goods indexer. See [docs/KARMA_GAP.md](../../docs/KARMA_GAP.md) for details.
 
-## 🔐 Access Control
+## Access Control
 
 ### Admin Access
 Users in the admin allow list (configured in `src/config.ts`):
@@ -56,14 +56,14 @@ The `useRole` hook automatically detects user permissions:
 2. Queries indexer for operator gardens
 3. Returns `unauthorized` if neither condition is met
 
-## 🏗️ Architecture
+## Architecture
 
 ### Technology Stack
 - **Frontend**: React 19 + TypeScript + Vite
 - **Styling**: Tailwind CSS v4 + Radix UI
 - **State Management**: Zustand + XState workflows
 - **Data Fetching**: TanStack Query + graphql-request
-- **Blockchain**: Viem + Privy authentication
+- **Blockchain**: Viem + Reown AppKit authentication
 - **Routing**: React Router v7
 - **Notifications**: React Hot Toast
 
@@ -87,7 +87,7 @@ packages/admin/
 └── README.md               # This file
 ```
 
-## 🔧 Key Components
+## Key Components
 
 ### Hooks
 
@@ -149,7 +149,7 @@ await executeWithToast(
 - `OperatorAdded`: Real-time operator addition events
 - `GardenerAdded`: Real-time gardener addition events
 
-## 🌐 Blockchain Integration
+## Blockchain Integration
 
 ### Supported Networks
 - **Arbitrum One** (42161) - Production
@@ -182,7 +182,7 @@ await addGardener("0x...");
 await removeOperator("0x...");
 ```
 
-## 🔄 Development Workflow
+## Development Workflow
 
 ### Local Development
 ```bash
@@ -211,10 +211,10 @@ The root `.env` file is automatically loaded by:
 **Admin-relevant environment variables:**
 
 ```bash
-VITE_PRIVY_APP_ID=your_privy_app_id
-VITE_DEFAULT_CHAIN_ID=42161
+VITE_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
+VITE_CHAIN_ID=42161
 VITE_ALCHEMY_API_KEY=your_alchemy_key
-VITE_ENVIO_INDEXER_URL=https://indexer.dev.hyperindex.xyz/2e23bea/v1/graphql
+VITE_ENVIO_INDEXER_URL=http://localhost:8080/v1/graphql
 ```
 
 **Setup:**
@@ -222,7 +222,7 @@ VITE_ENVIO_INDEXER_URL=https://indexer.dev.hyperindex.xyz/2e23bea/v1/graphql
 2. Add the required environment variables listed above
 3. Variables are automatically loaded when running `bun dev` from root or package directory
 
-## 🧪 Testing
+## Testing
 
 ### Unit Tests
 ```bash
@@ -234,9 +234,9 @@ bun --filter admin test:watch
 The admin dashboard integrates with:
 - **Indexer**: Real-time GraphQL queries and subscriptions
 - **Smart Contracts**: Direct blockchain interactions
-- **Privy**: Wallet authentication and management
+- **Reown AppKit**: Wallet authentication and management
 
-## 🚀 Deployment
+## Deployment
 
 ### Production Build
 ```bash
@@ -249,7 +249,7 @@ bun --filter admin build
 3. Update admin allow list addresses
 4. Configure indexer endpoint
 
-## 🔒 Security Considerations
+## Security Considerations
 
 ### Access Control
 - Admin functions are restricted to allow list addresses
@@ -263,14 +263,14 @@ bun --filter admin build
 - Clear error messages for failed transactions
 - Retry mechanisms for network issues
 
-## 📝 Contributing
+## Contributing
 
 1. Follow the project's coding standards (Biome formatting, oxlint)
 2. Add tests for new functionality
 3. Update this README for new features
 4. Ensure all blockchain transactions use toast notifications
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -290,9 +290,9 @@ bun --filter admin build
 - Ensure indexer is running and accessible
 
 ### Debug Mode
-Set `VITE_ENABLE_SW_DEV=true` for additional debugging information.
+Use browser DevTools and React DevTools for debugging. TanStack Query DevTools are available in development for inspecting server state.
 
-## 📖 Documentation
+## Documentation
 
 📖 **[Admin Dashboard Documentation](https://docs.greengoods.app/developer/architecture/admin-package)** — Complete admin architecture guide
 
@@ -305,7 +305,7 @@ Set `VITE_ENABLE_SW_DEV=true` for additional debugging information.
 - **[Migration Guide](./docs/GARDEN_FEATURE_MIGRATION.md)** — Implementing garden features that were previously CLI scripts
 - **[Local README](./docs/README.md)** — Overview of admin dashboard architecture
 
-## 📚 Related Resources
+## Related Resources
 
 - [Smart Contracts Package](https://docs.greengoods.app/developer/architecture/contracts-package)
 - [GraphQL Indexer Package](https://docs.greengoods.app/developer/architecture/indexer-package)
