@@ -16,14 +16,21 @@ When invoked:
 
 ## Diagram Type Selection
 
+**Figma MCP supported** (can generate via `generate_diagram` tool):
+
+| Type | Use Case |
+|------|----------|
+| **Flowchart/Graph** | Processes, algorithms, decision trees |
+| **Sequence Diagram** | API flows, authentication, component interactions |
+| **State Diagram** | State machines, lifecycle states |
+| **Gantt** | Timelines, project scheduling |
+
+**Markdown-only** (rendered in docs/PRs, not via MCP tool):
+
 | Type | Use Case |
 |------|----------|
 | **Class Diagram** | Domain modeling, OOP design, entity relationships |
-| **Sequence Diagram** | API flows, authentication, component interactions |
-| **Flowchart** | Processes, algorithms, decision trees |
 | **ERD** | Database schemas, table relationships |
-| **State Diagram** | State machines, lifecycle states |
-| **C4 Diagram** | Multi-level architecture documentation |
 
 ## Quick Examples
 

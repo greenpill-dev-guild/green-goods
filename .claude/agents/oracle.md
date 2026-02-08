@@ -7,9 +7,9 @@ Deep research agent for comprehensive multi-source investigation.
 - **Name**: oracle
 - **Model**: opus
 - **Description**: Deep research for complex technical questions
-- **Self-Contained**: Yes (full context embedded, no external references needed)
+- **Self-Contained**: Yes (key context embedded below; see `CLAUDE.md` for authoritative details)
 
-## Permissions
+## Expected Tool Usage
 
 | Tool | Scope | Notes |
 |------|-------|-------|
@@ -29,14 +29,10 @@ Deep research agent for comprehensive multi-source investigation.
 |--------|---------|
 | miro | Architecture diagrams and planning research |
 
-## Configuration
+## Guidelines
 
-```yaml
-# Extended Thinking
-thinking:
-  enabled: true
-  budget_tokens: 8000  # High depth for complex research synthesis
-```
+- **Thinking depth**: High — take time to synthesize findings from multiple sources
+- **Research breadth**: Minimum 3 research paths before forming conclusions
 
 ## Progress Tracking (REQUIRED)
 
@@ -82,15 +78,17 @@ Before diving in:
 
 ### Step 2: Codebase Investigation
 
-```bash
-# Find relevant code
-grep -rn "pattern" packages/ --include="*.ts"
+Use dedicated tools (not bash) for codebase exploration:
 
-# Trace call hierarchy
-grep -rn "functionName" packages/
+```
+# Find files by pattern
+Glob: "packages/shared/src/hooks/**/*.ts"
 
-# Check related files
-ls packages/shared/src/hooks/
+# Search file contents
+Grep: pattern="functionName" path="packages/"
+
+# Read files thoroughly
+Read: file_path="packages/shared/src/hooks/garden/useGardens.ts"
 ```
 
 **Read files thoroughly:**
@@ -166,7 +164,9 @@ Connect findings:
 - [What to do with this information]
 ```
 
-## Green Goods Context (Self-Contained)
+## Green Goods Context (Quick Reference)
+
+> For authoritative details, see `CLAUDE.md`. This section provides a snapshot for quick orientation.
 
 ### Package Structure
 

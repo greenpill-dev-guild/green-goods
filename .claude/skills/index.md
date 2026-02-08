@@ -29,6 +29,8 @@ Use these when writing code:
 | **tanstack-query** | "data fetching", "query", "mutation", "cache" | Server state, queryKeys, mutations, optimistic updates |
 | **error-handling-patterns** | "error handling", "try/catch", "error boundary" | Error boundaries, Result types, retry patterns, toast service |
 | **vite** | "build config", "bundle", "env vars", "plugins" | Vite 6.x configuration, environment variables, optimization |
+| **contracts** | "Solidity", "smart contract", "deploy", "Foundry" | Foundry dev, UUPS upgrades, gas optimization, deploy.ts |
+| **indexer** | "indexer", "event handler", "schema.graphql", "GraphQL" | Envio handlers, entity design, Docker dev workflow |
 
 ---
 
@@ -85,6 +87,9 @@ What do you need?
 ├─► Error handling? ──────────► error-handling-patterns skill
 ├─► Build/config? ────────────► vite skill
 │
+├─► Working on contracts? ────► contracts skill
+├─► Working on indexer? ──────► indexer skill
+│
 ├─► Build UI/frontend? ────────► frontend-design skill
 ├─► Accessibility/UI? ────────► ui-compliance skill
 ├─► Create diagram? ──────────► mermaid-diagrams skill
@@ -112,6 +117,16 @@ What do you need?
 /debug → error-handling-patterns (if error handling) → testing (regression test)
 ```
 
+**Contract Change:**
+```
+contracts → indexer (if events changed) → shared (if types changed)
+```
+
+**Full Stack Feature:**
+```
+/plan → contracts → indexer → testing → react → tanstack-query
+```
+
 **Code Quality:**
 ```
 /audit → architecture → /review
@@ -123,9 +138,9 @@ What do you need?
 
 | Convention | Enforced By |
 |------------|-------------|
-| Hooks in `@green-goods/shared` only | Hook (blocks) |
-| Single root `.env` only | Hook (blocks) |
-| TDD for all features | Hook (warns) + cracked-coder |
-| No hardcoded addresses | Hook (warns) |
-| i18n for UI strings | Hook (reminds) |
-| Pre-commit validation | Hook (reminds) |
+| Hooks in `@green-goods/shared` only | Claude hook (blocks) |
+| Single root `.env` only | Claude hook (blocks) |
+| TDD for all features | Claude hook (warns) + cracked-coder |
+| No hardcoded addresses | Claude hook (warns) |
+| i18n for UI strings | Claude hook (reminds) |
+| Pre-commit validation | Claude hook (reminds) |

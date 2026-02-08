@@ -424,7 +424,7 @@ When implementing features:
 - Using `any` without documentation
 - Swallowing errors silently
 
-## Architectural Rules (10 Core Rules)
+## Architectural Rules (13 Core Rules)
 
 > See `.claude/rules/architectural-rules.md` for full details and examples.
 
@@ -442,6 +442,9 @@ These rules prevent performance leaks, fragile abstractions, and consistency dri
 | **8. Form Validation** | Manual useState validation | Use React Hook Form + Zod |
 | **9. Chained useMemo** | useMemo depending on useMemo | Combine into single useMemo |
 | **10. Context Values** | Inline object literals | Wrap in useMemo |
+| **11. Barrel Imports** | Deep paths into `@green-goods/shared/...` | Import from `@green-goods/shared` root |
+| **12. Console.log Cleanup** | `console.log/warn/error` in production | Use logger service from shared |
+| **13. Provider Nesting** | Wrong provider hierarchy order | Follow documented order (Wagmi→Query→AppKit→Auth→App→JobQueue→Work) |
 
 ### Utility Hooks
 
@@ -518,16 +521,16 @@ All work enters through one of these flows:
 | **Bug** | `/debug` → root cause → cracked-coder (if complex) | If complex |
 | **Polish** | Direct Claude (no agent needed) | No |
 
-### Available Commands (4)
+### Available Command Skills (4)
 
-| Command | Purpose |
-|---------|---------|
+| Skill | Purpose |
+|-------|---------|
 | `/plan` | Create, check, and execute implementation plans |
 | `/review` | Perform 6-pass code review, process feedback |
 | `/debug` | Systematic debugging with root cause analysis |
 | `/audit` | Comprehensive codebase health analysis |
 
-### Available Skills (13)
+### Available Skills (15)
 
 See [.claude/skills/index.md](.claude/skills/index.md) for quick reference with invocation keywords.
 
@@ -549,6 +552,8 @@ See [.claude/skills/index.md](.claude/skills/index.md) for quick reference with 
 | **tanstack-query** | "query", "fetch data", "mutation" | TanStack Query v5, server state, caching |
 | **error-handling-patterns** | "error handling", "try/catch" | Error boundaries, Result types, retry patterns |
 | **vite** | "build", "bundle", "env vars" | Vite 6.x config, plugins, optimization |
+| **contracts** | "Solidity", "smart contract", "deploy" | Foundry dev, UUPS, gas, deployment |
+| **indexer** | "indexer", "event handler", "GraphQL" | Envio handlers, entity design, Docker |
 
 **Design Skills (UI/UX):**
 

@@ -8,7 +8,7 @@ Ultra-critical 6-pass code review agent that posts findings to GitHub PRs.
 - **Model**: opus
 - **Description**: Conducts systematic 6-pass code review and posts to GitHub
 
-## Permissions
+## Expected Tool Usage
 
 | Tool | Scope | Notes |
 |------|-------|-------|
@@ -22,17 +22,10 @@ Ultra-critical 6-pass code review agent that posts findings to GitHub PRs.
 | Edit | None | Read-only agent |
 | Write | None | Read-only agent |
 
-## Configuration
+## Guidelines
 
-```yaml
-# MCP Server Access
-mcp_servers: []  # Read-only agent, no external servers needed
-
-# Extended Thinking
-thinking:
-  enabled: true
-  budget_tokens: 4000  # Moderate depth for thorough analysis
-```
+- **Thinking depth**: Moderate — thorough analysis without over-deliberation
+- **Scope**: Read-only agent, no external MCP servers needed
 
 ## Progress Tracking (REQUIRED)
 
@@ -67,8 +60,8 @@ When reviewing, consult these skills:
 |-------|------|---------|
 | `mermaid-diagrams` | 0 | Create change impact diagrams |
 | `error-handling-patterns` | 1 | Verify error handling patterns |
-| `reducing-entropy` | 2, 6 | Check for unnecessary code |
-| `web-design-guidelines` | 4.5 | UI compliance checklist |
+| `architecture` | 2, 6 | Check for unnecessary code, entropy reduction |
+| `ui-compliance` | 4.5 | UI compliance checklist |
 
 ---
 
@@ -121,7 +114,7 @@ Verify:
 
 ### Pass 4.5: UI Compliance (For UI Changes)
 
-Reference: `.claude/skills/web-design-guidelines/SKILL.md`
+Reference: `.claude/skills/ui-compliance/SKILL.md`
 
 Check against:
 - **Accessibility**: ARIA labels, semantic HTML, keyboard navigation

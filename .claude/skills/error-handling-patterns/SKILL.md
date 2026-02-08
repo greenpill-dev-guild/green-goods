@@ -39,115 +39,92 @@ When invoked:
 
 ## TypeScript Error Handling
 
-### Custom Error Classes
+### Error Utility Structure
+
+```
+packages/shared/src/utils/errors/
+├── extract-message.ts          # extractErrorMessage(), extractErrorMessageOr()
+├── categorize-error.ts         # categorizeError() → ErrorCategory
+├── contract-errors.ts          # parseContractError(), parseAndFormatError()
+├── mutation-error-handler.ts   # createMutationErrorHandler()
+├── user-messages.ts            # USER_FRIENDLY_ERRORS mapping
+├── blockchain-errors.ts        # Blockchain-specific error handling
+├── validation-error.ts         # ValidationError class
+└── README.md
+```
+
+### ValidationError Class
 
 ```typescript
-// packages/shared/src/utils/errors.ts
-export class AppError extends Error {
-  constructor(
-    message: string,
-    public readonly code: string,
-    public readonly statusCode: number = 500,
-    public readonly details?: Record<string, unknown>
-  ) {
-    super(message);
-    this.name = "AppError";
-  }
-}
+// packages/shared/src/utils/errors/validation-error.ts
+import { ValidationError } from "@green-goods/shared";
 
-export class ValidationError extends AppError {
-  constructor(message: string, public readonly fields: Record<string, string>) {
-    super(message, "VALIDATION_ERROR", 400, { fields });
-    this.name = "ValidationError";
-  }
-}
-
-export class NetworkError extends AppError {
-  constructor(message: string, public readonly retryable: boolean = true) {
-    super(message, "NETWORK_ERROR", 503, { retryable });
-    this.name = "NetworkError";
-  }
+// Usage: precondition checks for programming errors
+if (!gardenId) {
+  throw new ValidationError("gardenId is required for listing hypercerts");
 }
 ```
 
-### Result Type Pattern
+### Error Categorization
 
 ```typescript
-type Result<T, E = Error> =
-  | { success: true; data: T }
-  | { success: false; error: E };
+// packages/shared/src/utils/errors/categorize-error.ts
+import { categorizeError } from "@green-goods/shared";
+import type { ErrorCategory, CategorizedError } from "@green-goods/shared";
 
-async function submitWork(data: WorkData): Promise<Result<Work, AppError>> {
-  try {
-    const work = await api.submitWork(data);
-    return { success: true, data: work };
-  } catch (error) {
-    if (error instanceof NetworkError) {
-      return { success: false, error };
-    }
-    return {
-      success: false,
-      error: new AppError("Unknown error", "UNKNOWN", 500),
-    };
-  }
+// Categorizes any error by message pattern matching
+const { message, category, metadata } = categorizeError(error);
+// category: "network" | "validation" | "auth" | "permission" | "blockchain" | "storage" | "unknown"
+
+if (category === "network") {
+  toast.error("Network error. Please check your connection.");
+} else if (category === "blockchain") {
+  toast.error("Transaction failed. Please try again.");
 }
+```
 
-// Usage with toast presets
-import { toastService, createWorkToasts } from "@green-goods/shared";
-import { useIntl } from "react-intl";
+### Error Message Extraction
 
-const intl = useIntl();
-const workToasts = createWorkToasts(intl.formatMessage);
+```typescript
+import { extractErrorMessage, extractErrorMessageOr } from "@green-goods/shared";
 
-const result = await submitWork(data);
-if (result.success) {
-  toastService.show(workToasts.success);
-} else {
-  toastService.show(workToasts.error(result.error.message));
-}
+// Handles string, Error, or object-with-message gracefully
+const msg = extractErrorMessage(error);           // May return ""
+const safe = extractErrorMessageOr(error, "Unknown error"); // Fallback guaranteed
+```
+
+### Mutation Error Handler (Recommended for Hooks)
+
+```typescript
+// packages/shared/src/utils/errors/mutation-error-handler.ts
+import { createMutationErrorHandler } from "@green-goods/shared";
+
+const handleError = createMutationErrorHandler({
+  source: "useWorkMutation",
+  toastContext: "work submission",
+  trackError: (error, metadata) => trackContractError(error, metadata),
+});
+
+// In TanStack Query mutation
+useMutation({
+  mutationFn: submitWork,
+  onError: (error) => handleError(error, { authMode, gardenAddress }),
+});
 ```
 
 ## React Error Handling
 
 ### Error Boundaries
 
+Green Goods has an `ErrorBoundary` component at `packages/shared/src/components/ErrorBoundary/`.
+
 ```typescript
-// packages/shared/src/components/ErrorBoundary.tsx
-import { Component, ReactNode } from "react";
+import { ErrorBoundary } from "@green-goods/shared";
 
-interface Props {
-  children: ReactNode;
-  fallback: ReactNode | ((error: Error) => ReactNode);
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
-}
-
-interface State {
-  hasError: boolean;
-  error: Error | null;
-}
-
-export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, error: null };
-
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    this.props.onError?.(error, errorInfo);
-    console.error("Error caught by boundary:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      const { fallback } = this.props;
-      return typeof fallback === "function"
-        ? fallback(this.state.error!)
-        : fallback;
-    }
-    return this.props.children;
-  }
-}
+// Wrap sections that might throw with a fallback UI
+<ErrorBoundary fallback={<ErrorFallback />}>
+  <GardenContent />
+</ErrorBoundary>
 ```
 
 ### With TanStack Query
@@ -246,12 +223,14 @@ async function withRetry<T>(
   throw lastError;
 }
 
-// Usage
+// Usage with categorizeError for retry decisions
+import { categorizeError } from "@green-goods/shared";
+
 const result = await withRetry(
   () => fetch("/api/gardens"),
   {
     maxRetries: 3,
-    shouldRetry: (error) => error instanceof NetworkError && error.retryable,
+    shouldRetry: (error) => categorizeError(error).category === "network",
   }
 );
 ```
@@ -287,13 +266,14 @@ try {
   toast.error(getUserFriendlyMessage(error));
 }
 
-// ✅ Always specific catches
+// ✅ Always specific catches using categorizeError
 try {
   await submitWork(data);
 } catch (error) {
-  if (error instanceof ValidationError) {
-    setFormErrors(error.fields);
-  } else if (error instanceof NetworkError) {
+  const { category } = categorizeError(error);
+  if (category === "validation") {
+    setFormErrors(extractErrorMessage(error));
+  } else if (category === "network") {
     queueForRetry(data);
   } else {
     throw error; // Rethrow unexpected errors
@@ -328,20 +308,27 @@ function WorkSubmitButton() {
 ### Error Categorization
 
 ```typescript
-function categorizeError(error: unknown): ErrorCategory {
-  if (error instanceof NetworkError) return "network";
-  if (error instanceof ValidationError) return "validation";
-  if (error instanceof AuthError) return "auth";
-  if (isContractError(error)) return "blockchain";
-  return "unknown";
-}
+// Uses pattern-matching on error messages (not instanceof checks)
+import { categorizeError } from "@green-goods/shared";
 
-function getRecoveryAction(category: ErrorCategory) {
+try {
+  await mintHypercert();
+} catch (error) {
+  const { message, category } = categorizeError(error);
+  logger.error("Mint failed", { message, category });
+
   switch (category) {
-    case "network": return { label: "Retry", action: retry };
-    case "auth": return { label: "Login", action: redirectToLogin };
-    case "blockchain": return { label: "Try Again", action: retry };
-    default: return { label: "Dismiss", action: dismiss };
+    case "network":
+      toast.error("Network error. Please check your connection.");
+      break;
+    case "auth":
+      redirectToLogin();
+      break;
+    case "blockchain":
+      toast.error("Transaction failed. Please try again.");
+      break;
+    default:
+      toast.error(message || "An unexpected error occurred");
   }
 }
 ```

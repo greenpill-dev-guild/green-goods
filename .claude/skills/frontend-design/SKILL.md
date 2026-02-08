@@ -1,10 +1,11 @@
 ---
 name: frontend-design
 description: Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, or applications. Generates creative, polished code that avoids generic AI aesthetics.
-license: Complete terms in LICENSE.txt
 ---
 
 This skill guides creation of distinctive, production-grade frontend interfaces that avoid generic "AI slop" aesthetics. Implement real working code with exceptional attention to aesthetic details and creative choices.
+
+> Adapted from [antfu/skills](https://github.com/antfu/skills) frontend-design skill.
 
 The user provides frontend requirements: a component, page, application, or interface to build. They may include context about the purpose, audience, or technical constraints.
 
@@ -40,3 +41,29 @@ Interpret creatively and make unexpected choices that feel genuinely designed fo
 **IMPORTANT**: Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint, precision, and careful attention to spacing, typography, and subtle details. Elegance comes from executing the vision well.
 
 Remember: Claude is capable of extraordinary creative work. Don't hold back, show what can truly be created when thinking outside the box and committing fully to a distinctive vision.
+
+## Green Goods Integration
+
+When implementing UI for Green Goods, this skill works alongside:
+- **`ui-compliance`** — Accessibility, responsive, forms, i18n (MANDATORY checks)
+- **`react`** — Component composition, state management, performance
+- **`testing`** — Storybook stories MANDATORY for new shared components
+
+### Green Goods Aesthetic
+
+- **Color**: Primary green (#1FC16B) with earth-toned accents
+- **Feel**: Organic, trustworthy, action-oriented (conservation/nature)
+- **Tokens**: Use semantic tokens from `packages/shared/src/styles/theme.css`
+- **Typography**: `packages/client/src/styles/typography.css` for existing hierarchy
+- **Animation**: `packages/client/src/styles/animation.css` for existing motions
+- **Consistency**: Same design language whether gardener (client) or operator (admin)
+
+### Component Development Workflow
+
+1. Check existing patterns (GardenCard, WorkCard, StatusBadge)
+2. Develop in Storybook first (`bun run storybook` in packages/shared)
+3. Follow Radix UI + tailwind-variants patterns
+4. Run `ui-compliance` checklist before integration
+5. Test light/dark mode via Storybook toolbar
+
+See cracked-coder agent's "UI Design Excellence" section for comprehensive Green Goods visual guidelines.
