@@ -23,6 +23,7 @@ lib-cov
 # Coverage directory used by tools like istanbul
 coverage
 *.lcov
+lcov.info
 
 # nyc test coverage
 .nyc_output
@@ -90,6 +91,7 @@ web_modules/
 # Nuxt.js build / generate output
 .nuxt
 dist
+dist-ssr
 
 # Foundry build artifacts - ignore all out/ directories
 out/
@@ -132,6 +134,7 @@ dev-dist
 
 # Docusaurus cache and generated files
 .docusaurus
+.cache-loader
 
 # Serverless directories
 .serverless/
@@ -165,6 +168,50 @@ tests/playwright-report/
 # Lighthouse CI results
 .lighthouseci/
 lighthouse-results/
+
+# ================================
+# Storybook
+# ================================
+storybook-static/
+debug-storybook.log
+*.storybook.log
+
+# ================================
+# ReScript / OCaml Artifacts (Envio indexer)
+# ================================
+*.cmo
+*.cmi
+*.cmx
+*.cmt
+*.cmti
+*.cma
+*.cmxa
+*.cmj
+*.annot
+*.mlast
+*.mliast
+*.res.js
+*.res.mjs
+*.compile
+*.native
+*.byte
+.merlin
+.bsb.lock
+*BenchmarkCache.json
+
+# ================================
+# Testing Artifacts
+# ================================
+test-results.json
+FINAL_TEST_REPORT.md
+.ipfs-cache.json
+
+# ================================
+# Other Package Manager Lockfiles (project uses bun)
+# ================================
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
 
 # ================================
 # Package Manager Caches
@@ -214,6 +261,12 @@ docker-compose.local.yml
 *.iml
 *.iws
 *.ipr
+
+# Visual Studio
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
 # Vim
 *.swp
@@ -277,11 +330,21 @@ Desktop.ini
 # Build artifacts in packages (dist already covered)
 packages/*/dist/
 packages/*/.cache/
+packages/*/build/
+
+# Docs build output (Docusaurus)
+docs/build/
 
 # Package-specific generated files
-# Note: packages/indexer/generated/ has its own .gitignore for ReScript artifacts
 packages/contracts/cache/
 packages/contracts/broadcast/
+
+# Indexer: generated directory (Envio codegen output, rebuilt on dev)
+packages/indexer/generated/
+
+# Indexer artifacts
+packages/indexer/artifacts/
+packages/indexer/benchmarks/
 
 # ================================
 # Secrets & Credentials
@@ -301,5 +364,3 @@ keystore/
 # API keys file
 secrets.json
 credentials.json
-
-dara/test/*
