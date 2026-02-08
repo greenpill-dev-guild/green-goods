@@ -7,16 +7,15 @@ import {
   useGardenPermissions,
   useGardens,
   useWorks,
+  type GardenOperationResult,
 } from "@green-goods/shared/hooks";
-import type { GardenOperationResult } from "@green-goods/shared/hooks";
 import { resolveIPFSUrl } from "@green-goods/shared/modules";
-import type { GardenRole } from "@green-goods/shared/utils";
 import {
   GARDEN_ROLE_COLORS,
   GARDEN_ROLE_I18N_KEYS,
   GARDEN_ROLE_ORDER,
   getRoleColorClasses,
-  ROLE_COLOR_CLASSES,
+  type GardenRole,
 } from "@green-goods/shared/utils";
 import {
   RiCheckboxCircleLine,

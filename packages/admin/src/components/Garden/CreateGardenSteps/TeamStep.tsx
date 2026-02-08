@@ -1,25 +1,25 @@
-import { useEnsAddress } from "@green-goods/shared/hooks";
-import { cn, formatAddress, resolveEnsAddress } from "@green-goods/shared/utils";
+import {
+  cn,
+  formatAddress,
+  resolveEnsAddress,
+  useCreateGardenStore,
+  useEnsAddress,
+} from "@green-goods/shared";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
 
 interface TeamStepProps {
-  form: {
-    gardeners: string[];
-    operators: string[];
-  };
-  addGardener: (address: string) => { success: boolean; error?: string };
-  removeGardener: (index: number) => void;
-  addOperator: (address: string) => { success: boolean; error?: string };
-  removeOperator: (index: number) => void;
   showValidation: boolean;
 }
 
 /**
  * Custom hook for address input with ENS resolution.
  * Consolidates duplicate logic for gardener/operator inputs.
+ *
+ * TODO(batch-3): Extract to packages/shared/src/hooks/utils/useAddressInput.ts
+ * per Hook Boundary rule. Keeping here temporarily for Batch 1 scope.
  */
 function useAddressInput(
   addMember: (address: string) => { success: boolean; error?: string },
@@ -106,14 +106,12 @@ function useAddressInput(
   };
 }
 
-export function TeamStep({
-  form,
-  addGardener,
-  removeGardener,
-  addOperator,
-  removeOperator,
-  showValidation,
-}: TeamStepProps) {
+export function TeamStep({ showValidation }: TeamStepProps) {
+  const form = useCreateGardenStore((s) => s.form);
+  const addGardener = useCreateGardenStore((s) => s.addGardener);
+  const removeGardener = useCreateGardenStore((s) => s.removeGardener);
+  const addOperator = useCreateGardenStore((s) => s.addOperator);
+  const removeOperator = useCreateGardenStore((s) => s.removeOperator);
   const { formatMessage } = useIntl();
 
   // Use shared hook for both gardener and operator inputs

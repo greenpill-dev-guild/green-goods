@@ -1,7 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEnsAddress } from "@green-goods/shared/hooks";
-import { cn, formatAddress, resolveEnsAddress } from "@green-goods/shared/utils";
-import type { GardenRole } from "@green-goods/shared/utils";
+import { cn, formatAddress, resolveEnsAddress, type GardenRole } from "@green-goods/shared/utils";
 import { RiClipboardLine, RiCloseLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

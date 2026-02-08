@@ -57,7 +57,8 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
       return;
     }
 
-    const toMs = (timestamp: number) => (timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp);
+    const toMs = (timestamp: number) =>
+      timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp;
     const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
     const newlyConfirmed = new Set<string>();
 

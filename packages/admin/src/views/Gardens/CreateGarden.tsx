@@ -1,7 +1,4 @@
-import { toastService } from "@green-goods/shared";
-import { useCreateGardenWorkflow } from "@green-goods/shared/hooks";
-import { type CreateGardenFormState, useCreateGardenStore } from "@green-goods/shared/stores";
-import { clearFormDraft, loadFormDraft, saveFormDraft } from "@green-goods/shared/utils";
+import { toastService, useCreateGardenStore, useCreateGardenWorkflow } from "@green-goods/shared";
 import { RiErrorWarningLine } from "@remixicon/react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -10,22 +7,12 @@ import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
 import { ReviewStep } from "@/components/Garden/CreateGardenSteps/ReviewStep";
 import { TeamStep } from "@/components/Garden/CreateGardenSteps/TeamStep";
 
-const DRAFT_KEY = "garden-create-draft";
-
 export default function CreateGarden() {
   const navigate = useNavigate();
-  const form = useCreateGardenStore((state) => state.form);
   const steps = useCreateGardenStore((state) => state.steps);
   const currentStep = useCreateGardenStore((state) => state.currentStep);
-  const setField = useCreateGardenStore((state) => state.setField);
-  const addGardener = useCreateGardenStore((state) => state.addGardener);
-  const removeGardener = useCreateGardenStore((state) => state.removeGardener);
-  const addOperator = useCreateGardenStore((state) => state.addOperator);
-  const removeOperator = useCreateGardenStore((state) => state.removeOperator);
   const canProceed = useCreateGardenStore((state) => state.canProceed);
   const isReviewReady = useCreateGardenStore((state) => state.isReviewReady);
-  const nextStep = useCreateGardenStore((state) => state.nextStep);
-  const previousStep = useCreateGardenStore((state) => state.previousStep);
   const resetForm = useCreateGardenStore((state) => state.reset);
 
   const { state, openFlow, closeFlow, goNext, goBack, submitCreation, retry } =
@@ -37,22 +24,10 @@ export default function CreateGarden() {
   const hasError = state.value === "error";
   const isSuccess = state.value === "success";
 
-  // Load draft on mount
+  // Open flow on mount — Zustand persist middleware handles draft restoration
   useEffect(() => {
-    const draft = loadFormDraft<CreateGardenFormState>(DRAFT_KEY);
-    if (draft) {
-      // Type-safe iteration over draft fields
-      (Object.keys(draft) as Array<keyof CreateGardenFormState>).forEach((key) => {
-        setField(key, draft[key]);
-      });
-    }
     openFlow();
-  }, [openFlow, setField]);
-
-  // Save draft on form change
-  useEffect(() => {
-    saveFormDraft(DRAFT_KEY, form);
-  }, [form]);
+  }, [openFlow]);
 
   // Navigate on success
   useEffect(() => {
@@ -63,7 +38,6 @@ export default function CreateGarden() {
         context: "garden creation",
         suppressLogging: true,
       });
-      clearFormDraft(DRAFT_KEY);
       resetForm();
       navigate("/gardens");
     }
@@ -79,13 +53,11 @@ export default function CreateGarden() {
       return;
     }
     goNext();
-    nextStep();
   };
 
   const handleBack = () => {
     setShowValidation(false);
     goBack();
-    previousStep();
   };
 
   const handleSubmit = () => {
@@ -104,7 +76,7 @@ export default function CreateGarden() {
   const currentStepConfig = steps[currentStep];
   const isDetailsStep = currentStepConfig?.id === "details";
   const isTeamStep = currentStepConfig?.id === "team";
-  const isReviewStep = currentStepConfig?.id === "review";
+  const isReviewStepActive = currentStepConfig?.id === "review";
 
   return (
     <>
@@ -139,20 +111,9 @@ export default function CreateGarden() {
         nextLabel="Continue"
         submitLabel="Deploy garden"
       >
-        {isDetailsStep && (
-          <DetailsStep form={form} setField={setField} showValidation={showValidation} />
-        )}
-        {isTeamStep && (
-          <TeamStep
-            form={form}
-            addGardener={addGardener}
-            removeGardener={removeGardener}
-            addOperator={addOperator}
-            removeOperator={removeOperator}
-            showValidation={showValidation}
-          />
-        )}
-        {isReviewStep && <ReviewStep form={form} />}
+        {isDetailsStep && <DetailsStep showValidation={showValidation} />}
+        {isTeamStep && <TeamStep showValidation={showValidation} />}
+        {isReviewStepActive && <ReviewStep />}
       </FormWizard>
     </>
   );

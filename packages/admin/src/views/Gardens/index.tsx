@@ -2,11 +2,11 @@ import { useGardenPermissions, useGardens } from "@green-goods/shared/hooks";
 import { resolveIPFSUrl } from "@green-goods/shared/modules";
 import {
   RiAddLine,
-  RiCrownLine,
   RiEyeLine,
   RiPlantLine,
   RiShieldCheckLine,
   RiUserLine,
+  RiVipCrownLine,
 } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
@@ -127,7 +127,7 @@ export default function Gardens() {
               return {
                 label: formatMessage({ id: "app.roles.owner" }),
                 className: "bg-feature-lighter text-feature-dark",
-                Icon: RiCrownLine,
+                Icon: RiVipCrownLine,
               };
             }
             if (isOperator) {

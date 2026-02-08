@@ -1,7 +1,15 @@
-import { imageCompressor } from "@green-goods/shared";
-import { cn } from "@green-goods/shared/utils";
+import { cn, imageCompressor, logger } from "@green-goods/shared";
 import { RiCloseLine, RiLoader4Line, RiUploadCloudLine } from "@remixicon/react";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+const PREVIEWABLE_IMAGE_TYPES = new Set([
+  "image/avif",
+  "image/bmp",
+  "image/gif",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 interface FileUploadFieldProps {
   onFilesChange: (files: File[]) => void;
@@ -31,14 +39,6 @@ export function FileUploadField({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const previewableImageTypes = new Set([
-    "image/avif",
-    "image/bmp",
-    "image/gif",
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-  ]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -83,7 +83,7 @@ export function FileUploadField({
         onFilesChange(fileArray);
       }
     } catch (error) {
-      console.error("File processing failed:", error);
+      logger.error("File processing failed", { error });
     } finally {
       setIsProcessing(false);
       setProgress(0);
@@ -120,12 +120,26 @@ export function FileUploadField({
       })
       .join("");
 
-  const getFilePreviewUrl = (file: File): string | null => {
-    if (previewableImageTypes.has(file.type)) {
-      return URL.createObjectURL(file);
+  // Memoize blob URLs so they're only created when files change, not every render.
+  // Revoke old URLs on cleanup to prevent memory leaks.
+  const previewUrls = useMemo(() => {
+    if (!showPreview) return new Map<File, string>();
+    const urls = new Map<File, string>();
+    for (const file of currentFiles) {
+      if (PREVIEWABLE_IMAGE_TYPES.has(file.type)) {
+        urls.set(file, URL.createObjectURL(file));
+      }
     }
-    return null;
-  };
+    return urls;
+  }, [currentFiles, showPreview]);
+
+  useEffect(() => {
+    return () => {
+      for (const url of previewUrls.values()) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [previewUrls]);
 
   return (
     <div className="space-y-2">
@@ -168,7 +182,7 @@ export function FileUploadField({
         <div className="mt-3 space-y-2">
           {currentFiles.map((file, index) => {
             const safeFileName = sanitizeFileName(file.name);
-            const previewUrl = getFilePreviewUrl(file);
+            const previewUrl = previewUrls.get(file) ?? null;
             const safePreviewUrl = previewUrl?.startsWith("blob:") ? previewUrl : null;
             return (
               <div
