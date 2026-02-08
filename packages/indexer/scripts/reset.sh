@@ -4,6 +4,9 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
 echo "🧹 Cleaning up Docker containers and volumes..."
 docker compose down -v 2>/dev/null || true
 docker ps -a --filter "name=generated-envio" --format "{{.ID}}" | xargs docker rm -f 2>/dev/null || true

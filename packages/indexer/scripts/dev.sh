@@ -3,7 +3,7 @@
 # Simple and reliable - no auto-magic
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR/.."
 
 echo "🔧 Setting up indexer..."
 
@@ -114,7 +114,6 @@ if [ -f "src/Index.res.js" ] && [ -f "src/db/Migrations.res.js" ]; then
   echo "🔨 ReScript code already compiled, skipping build"
 else
   echo "🔨 Building ReScript code..."
-  # Use pnpm exec rescript to avoid build script restrictions
   if ! pnpm exec rescript 2>&1; then
     echo ""
     echo "❌ Failed to build ReScript code."
@@ -127,70 +126,11 @@ else
   fi
 fi
 
-# Fix import path mismatch: rescript-envsafe uses .bs.js suffix but generated code expects .res.js
-# Replace the incorrect import path in Env.res.js
-if [ -f "src/Env.res.js" ]; then
-  sed -i.bak "s|rescript-envsafe/src/EnvSafe\.res\.js|rescript-envsafe/src/EnvSafe.bs.js|g" src/Env.res.js 2>/dev/null || \
-  sed -i '' "s|rescript-envsafe/src/EnvSafe\.res\.js|rescript-envsafe/src/EnvSafe.bs.js|g" src/Env.res.js 2>/dev/null || true
-  rm -f src/Env.res.js.bak 2>/dev/null || true
-fi
-
-# Fix rescript-schema suffix mismatch: envio expects .res.js but package has .bs.js
-# Create symlinks for compatibility
-RESCRIPT_SCHEMA_DIR="node_modules/rescript-schema/src"
-if [ -d "$RESCRIPT_SCHEMA_DIR" ]; then
-  if [ -f "$RESCRIPT_SCHEMA_DIR/S.bs.js" ] && [ ! -f "$RESCRIPT_SCHEMA_DIR/S.res.js" ]; then
-    ln -sf S.bs.js "$RESCRIPT_SCHEMA_DIR/S.res.js" 2>/dev/null || true
-  fi
-  if [ -f "$RESCRIPT_SCHEMA_DIR/S_Core.bs.js" ] && [ ! -f "$RESCRIPT_SCHEMA_DIR/S_Core.res.js" ]; then
-    ln -sf S_Core.bs.js "$RESCRIPT_SCHEMA_DIR/S_Core.res.js" 2>/dev/null || true
-  fi
-fi
-
-# Ensure rescript-envsafe is compiled (it might not be compiled yet)
-if [ ! -f "node_modules/rescript-envsafe/src/EnvSafe.bs.js" ]; then
-  echo "🔨 Compiling rescript-envsafe dependency..."
-  
-  # Temporarily modify rescript.json to remove dev dependencies
-  if [ -f "node_modules/rescript-envsafe/rescript.json" ]; then
-    mv node_modules/rescript-envsafe/rescript.json node_modules/rescript-envsafe/rescript.json.bak
-    # Create a minimal rescript.json without dev dependencies
-    cat > node_modules/rescript-envsafe/rescript.json << 'EOF'
-{
-  "name": "rescript-envsafe",
-  "namespace": false,
-  "bs-dependencies": ["rescript-schema"],
-  "bsc-flags": ["-open RescriptSchema"],
-  "suffix": ".bs.js",
-  "package-specs": {
-    "module": "commonjs",
-    "in-source": true
-  },
-  "sources": [{"dir": "src"}]
-}
-EOF
-    # Try to compile using pnpm exec (run from generated folder for proper path resolution)
-    if command -v pnpm > /dev/null 2>&1; then
-      cd node_modules/rescript-envsafe
-      pnpm exec rescript build 2>&1 | grep -v "not found or built" | grep -v "^>>>>" || true
-      cd ../..
-    elif command -v npx > /dev/null 2>&1; then
-      cd node_modules/rescript-envsafe
-      npx rescript build 2>&1 | grep -v "not found or built" | grep -v "^>>>>" || true
-      cd ../..
-    elif command -v rescript > /dev/null 2>&1; then
-      cd node_modules/rescript-envsafe
-      rescript build 2>&1 | grep -v "not found or built" | grep -v "^>>>>" || true
-      cd ../..
-    fi
-    # Restore original rescript.json
-    mv node_modules/rescript-envsafe/rescript.json.bak node_modules/rescript-envsafe/rescript.json 2>/dev/null || true
-  fi
-fi
-
 cd ..
 
-echo "✅ Setup complete!"
+# Fix ReScript module path mismatches (shared logic)
+source "$SCRIPT_DIR/fix-rescript-paths.sh" "generated"
+
 echo ""
 echo "🚀 Starting indexer..."
 
@@ -210,4 +150,3 @@ elif [ -f "node_modules/.bin/envio" ]; then
 else
   envio dev
 fi
-

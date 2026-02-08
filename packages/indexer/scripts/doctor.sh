@@ -1,11 +1,11 @@
 #!/bin/bash
 # Indexer Doctor - Diagnose and fix common issues
-# Usage: ./doctor.sh [--fix]
+# Usage: ./scripts/doctor.sh [--fix]
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR/.."
 
 FIX_MODE=false
 if [ "$1" = "--fix" ] || [ "$1" = "-f" ]; then
@@ -235,7 +235,7 @@ else
     echo -e "${RED}Found $ISSUES_FOUND issue(s).${NC}"
     echo ""
     echo "To auto-fix, run:"
-    echo "  ./doctor.sh --fix"
+    echo "  bun run doctor:fix"
   fi
 fi
 echo ""
