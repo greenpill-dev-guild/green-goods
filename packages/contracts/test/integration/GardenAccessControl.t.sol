@@ -24,20 +24,16 @@ contract MockGardenNFT is ERC721 {
         return tokenId;
     }
 
-    function setGardenHatsModule(address _module) external {
+    function setHatsModule(address _module) external {
         hatsModule = _module;
     }
 
     function setKarmaGAPModule(address _module) external {
         karmaGAPModule = _module;
     }
-
-    function gardenHatsModule() external view returns (address) {
-        return hatsModule;
-    }
 }
 
-contract MockGardenHatsModule {
+contract MockHatsModule {
     enum Role {
         Gardener,
         Evaluator,
@@ -84,7 +80,7 @@ contract GardenAccessControlTest is Test {
     GardenAccount public gardenAccountImpl;
     GardenAccount public gardenAccount;
     MockGardenNFT public gardenNFT;
-    MockGardenHatsModule public hatsModule;
+    MockHatsModule public hatsModule;
     ERC6551Registry public registry;
     AccountGuardian public guardian;
 
@@ -111,8 +107,8 @@ contract GardenAccessControlTest is Test {
         guardian = new AccountGuardian(owner);
         registry = new ERC6551Registry();
         gardenNFT = new MockGardenNFT();
-        hatsModule = new MockGardenHatsModule();
-        gardenNFT.setGardenHatsModule(address(hatsModule));
+        hatsModule = new MockHatsModule();
+        gardenNFT.setHatsModule(address(hatsModule));
 
         // Deploy GardenAccount implementation
         gardenAccountImpl = new GardenAccount(
@@ -133,17 +129,15 @@ contract GardenAccessControlTest is Test {
             location: "Test Location",
             bannerImage: "",
             metadata: "",
-            openJoining: false,
-            gardeners: new address[](0),
-            gardenOperators: new address[](0)
+            openJoining: false
         });
 
         gardenAccount.initialize(params);
 
         // Set initial roles via mock Hats module
-        hatsModule.setRole(address(gardenAccount), owner, MockGardenHatsModule.Role.Owner, true);
-        hatsModule.setRole(address(gardenAccount), operator1, MockGardenHatsModule.Role.Operator, true);
-        hatsModule.setRole(address(gardenAccount), gardener1, MockGardenHatsModule.Role.Gardener, true);
+        hatsModule.setRole(address(gardenAccount), owner, MockHatsModule.Role.Owner, true);
+        hatsModule.setRole(address(gardenAccount), operator1, MockHatsModule.Role.Operator, true);
+        hatsModule.setRole(address(gardenAccount), gardener1, MockHatsModule.Role.Gardener, true);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -205,13 +199,13 @@ contract GardenAccessControlTest is Test {
         assertFalse(accessControl.isGardener(gardener2), "gardener2 should not be a gardener initially");
 
         // Grant gardener role
-        hatsModule.setRole(address(gardenAccount), gardener2, MockGardenHatsModule.Role.Gardener, true);
+        hatsModule.setRole(address(gardenAccount), gardener2, MockHatsModule.Role.Gardener, true);
 
         // Now should be a gardener
         assertTrue(accessControl.isGardener(gardener2), "gardener2 should be a gardener after adding");
 
         // Revoke gardener role
-        hatsModule.setRole(address(gardenAccount), gardener2, MockGardenHatsModule.Role.Gardener, false);
+        hatsModule.setRole(address(gardenAccount), gardener2, MockHatsModule.Role.Gardener, false);
         assertFalse(accessControl.isGardener(gardener2), "gardener2 should not be a gardener after removal");
     }
 
@@ -223,11 +217,11 @@ contract GardenAccessControlTest is Test {
         assertFalse(accessControl.isOperator(newOperator), "newOperator should not be an operator initially");
 
         // Grant operator role
-        hatsModule.setRole(address(gardenAccount), newOperator, MockGardenHatsModule.Role.Operator, true);
+        hatsModule.setRole(address(gardenAccount), newOperator, MockHatsModule.Role.Operator, true);
         assertTrue(accessControl.isOperator(newOperator), "newOperator should be an operator after adding");
 
         // Revoke operator role
-        hatsModule.setRole(address(gardenAccount), newOperator, MockGardenHatsModule.Role.Operator, false);
+        hatsModule.setRole(address(gardenAccount), newOperator, MockHatsModule.Role.Operator, false);
         assertFalse(accessControl.isOperator(newOperator), "newOperator should not be an operator after removal");
     }
 

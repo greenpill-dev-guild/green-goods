@@ -58,6 +58,9 @@ Common Options:
   --update-schemas         Only update schemas, skip existing contracts
   --force                  Force fresh deployment
   --dry-run                Validate config without deploying
+  --pure-simulation        Run compile + config preflight only (no RPC calls)
+  --salt <value>           Override deployment salt string for CREATE2
+  --override-sepolia-gate  Bypass Sepolia gate for Arbitrum/Celo broadcast
   --help, -h               Show this help
 
 Examples:

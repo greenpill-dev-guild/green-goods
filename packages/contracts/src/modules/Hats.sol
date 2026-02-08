@@ -5,7 +5,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
-import { IGardenHatsModule } from "../interfaces/IGardenHatsModule.sol";
+import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { IHats } from "../interfaces/IHats.sol";
 import { IHatsModuleFactory } from "../interfaces/IHatsModuleFactory.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
@@ -13,13 +13,13 @@ import { HatsLib } from "../lib/Hats.sol";
 
 /// @title HatsModule
 /// @notice Adapts Hats Protocol for Green Goods access control
-/// @dev Implements IGardenAccessControl + IGardenHatsModule
+/// @dev Implements IGardenAccessControl + IHatsModule
 ///
 /// **Architecture:**
 /// - Each garden configures six hat IDs: owner, operator, evaluator, gardener, funder, community
 /// - Hat tree creation and role management are centralized here
 /// - Resolvers and UI call into this module for Hats-based permissions
-contract HatsModule is IGardenAccessControl, IGardenHatsModule, OwnableUpgradeable, UUPSUpgradeable {
+contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UUPSUpgradeable {
     // ═══════════════════════════════════════════════════════════════════════════
     // Types
     // ═══════════════════════════════════════════════════════════════════════════
@@ -253,7 +253,7 @@ contract HatsModule is IGardenAccessControl, IGardenHatsModule, OwnableUpgradeab
     // Garden Hat Tree Lifecycle
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @inheritdoc IGardenHatsModule
+    /// @inheritdoc IHatsModule
     function createGardenHatTree(
         address garden,
         string calldata name,
@@ -318,19 +318,19 @@ contract HatsModule is IGardenAccessControl, IGardenHatsModule, OwnableUpgradeab
     // Role Management
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @inheritdoc IGardenHatsModule
+    /// @inheritdoc IHatsModule
     function grantRole(address garden, address account, GardenRole role) external override {
         _requireOwnerOrOperator(garden);
         _grantRole(garden, account, role);
     }
 
-    /// @inheritdoc IGardenHatsModule
+    /// @inheritdoc IHatsModule
     function revokeRole(address garden, address account, GardenRole role) external override {
         _requireOwnerOrOperator(garden);
         _revokeRole(garden, account, role);
     }
 
-    /// @inheritdoc IGardenHatsModule
+    /// @inheritdoc IHatsModule
     function grantRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external override {
         _requireOwnerOrOperator(garden);
         if (accounts.length != roles.length) revert ArrayLengthMismatch();
@@ -340,7 +340,7 @@ contract HatsModule is IGardenAccessControl, IGardenHatsModule, OwnableUpgradeab
         }
     }
 
-    /// @inheritdoc IGardenHatsModule
+    /// @inheritdoc IHatsModule
     function revokeRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external override {
         _requireOwnerOrOperator(garden);
         if (accounts.length != roles.length) revert ArrayLengthMismatch();
@@ -485,6 +485,7 @@ contract HatsModule is IGardenAccessControl, IGardenHatsModule, OwnableUpgradeab
     function _requireOwnerOrOperator(address garden) internal view {
         if (!gardenHats[garden].configured) revert GardenNotConfigured(garden);
         if (msg.sender == gardenToken) return;
+        if (msg.sender == garden) return;
         if (!isOwnerOf(garden, msg.sender) && !isOperatorOf(garden, msg.sender)) {
             revert NotGardenAdmin(msg.sender, garden);
         }

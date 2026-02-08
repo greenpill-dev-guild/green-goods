@@ -5,9 +5,9 @@ import { Test } from "forge-std/Test.sol";
 import { IHats } from "../../src/interfaces/IHats.sol";
 import { HatsLib } from "../../src/lib/Hats.sol";
 
-contract SepoliaHatsForkTest is Test {
-    function testForkSepoliaHatTreeIsConfigured() public {
-        string memory rpcUrl = _getRpc("SEPOLIA_RPC_URL");
+contract CeloHatsForkTest is Test {
+    function testForkCeloHatTreeIsConfigured() public {
+        string memory rpcUrl = _getRpc("CELO_RPC_URL");
         if (bytes(rpcUrl).length == 0) return;
 
         vm.createSelectFork(rpcUrl);

@@ -43,7 +43,7 @@ abstract contract DeployHelper is Script {
         address assessmentResolver;
         address workResolver;
         address workApprovalResolver;
-        address gardenHatsModule;
+        address hatsModule;
         address karmaGAPModule;
         address gardenerAccountLogic; // GardenerAccount implementation for user smart accounts
         address gardenerRegistry; // Gardener Registry (mainnet only, address(0) on L2s)
@@ -136,9 +136,15 @@ abstract contract DeployHelper is Script {
         string memory path = string.concat(root, "/deployments/networks.json");
         string memory json = vm.readFile(path);
 
-        // Generate salt from string for fresh deployment
-        // Increment this number for complete redeployment to new addresses
-        salt = keccak256(bytes("greenGoodsCleanDeploy2025:13"));
+        // Generate salt from configurable string for deterministic CREATE2 deployments.
+        // Override with DEPLOYMENT_SALT env var when a fresh address set is required.
+        string memory saltInput = "greenGoodsCleanDeploy2025:13";
+        try vm.envString("DEPLOYMENT_SALT") returns (string memory overrideSalt) {
+            if (bytes(overrideSalt).length > 0) {
+                saltInput = overrideSalt;
+            }
+        } catch { }
+        salt = keccak256(bytes(saltInput));
         factory = json.readAddress(".deploymentDefaults.factory");
         tokenboundRegistry = json.readAddress(".deploymentDefaults.tokenboundRegistry");
     }
@@ -206,7 +212,7 @@ abstract contract DeployHelper is Script {
         vm.serializeAddress(obj, "assessmentResolver", result.assessmentResolver);
         vm.serializeAddress(obj, "workResolver", result.workResolver);
         vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
-        vm.serializeAddress(obj, "gardenHatsModule", result.gardenHatsModule);
+        vm.serializeAddress(obj, "hatsModule", result.hatsModule);
         vm.serializeAddress(obj, "karmaGAPModule", result.karmaGAPModule);
         vm.serializeAddress(obj, "gardenerAccountLogic", result.gardenerAccountLogic);
         vm.serializeAddress(obj, "gardenerRegistry", result.gardenerRegistry);
@@ -311,10 +317,12 @@ abstract contract DeployHelper is Script {
 
     /// @notice Generate schema string from fields array using JavaScript utility
     function _generateSchemaString(string memory schemaName) internal virtual returns (string memory) {
-        string[] memory inputs = new string[](3);
-        inputs[0] = "bun";
-        inputs[1] = "script/utils/generate-schemas.ts";
-        inputs[2] = schemaName;
+        string[] memory inputs = new string[](5);
+        inputs[0] = "pnpm";
+        inputs[1] = "dlx";
+        inputs[2] = "tsx";
+        inputs[3] = "script/utils/generate-schemas.ts";
+        inputs[4] = schemaName;
 
         bytes memory result = vm.ffi(inputs);
         return string(result);

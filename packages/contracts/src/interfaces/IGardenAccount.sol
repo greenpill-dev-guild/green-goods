@@ -22,11 +22,9 @@ interface IGardenAccount {
         string bannerImage;
         string metadata;
         bool openJoining;
-        address[] gardeners;
-        address[] gardenOperators;
     }
 
-    /// @notice Initializes the GardenAccount with initial gardeners and operators
+    /// @notice Initializes the GardenAccount with metadata and open joining configuration
     /// @param params Initialization parameters struct
     function initialize(InitParams calldata params) external;
 

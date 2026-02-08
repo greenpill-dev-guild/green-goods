@@ -9,6 +9,7 @@
   },
   "gardenAccountImpl": "0x710cBFB9a29920B4577692eD495972fcd27286b4",
   "gardenToken": "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B",
+  "hatsModule": "0x0000000000000000000000000000000000000000",
   "guardian": "0xCE1Cf0e0c11500560C153778FA5428a6e1dBa8cC",
   "rootGarden": {
     "address": "0x1Ebf285ab4816Bde1Ae64099ab93bBA9b1A7dF76",

@@ -25,7 +25,7 @@ interface DeploymentData {
   gardenToken: string;
   gardenAccountImpl?: string;
   accountProxy?: string;
-  gardenHatsModule?: string;
+  hatsModule?: string;
   [key: string]: string | undefined;
 }
 
@@ -235,7 +235,7 @@ export class EnvioIntegration {
       upsertContract("ActionRegistry", deployment.actionRegistry);
       upsertContract("GardenToken", deployment.gardenToken);
       upsertContract("GardenAccount", gardenAccountAddress);
-      upsertContract("GardenHatsModule", deployment.gardenHatsModule);
+      upsertContract("HatsModule", deployment.hatsModule);
 
       const orderedContracts: EnvioContract[] = [];
       const seen = new Set<string>();
@@ -246,7 +246,7 @@ export class EnvioIntegration {
         seen.add(updated.name);
       });
 
-      const preferredOrder = ["ActionRegistry", "GardenToken", "GardenAccount", "GardenHatsModule"];
+      const preferredOrder = ["ActionRegistry", "GardenToken", "GardenAccount", "HatsModule"];
       preferredOrder.forEach((name) => {
         const contract = contractsByName.get(name);
         if (contract && !seen.has(name)) {
@@ -304,8 +304,8 @@ export class EnvioIntegration {
       console.log(`   ActionRegistry: ${deployment.actionRegistry}`);
       console.log(`   GardenToken: ${deployment.gardenToken}`);
       console.log(`   GardenAccount: ${gardenAccountAddress}`);
-      if (deployment.gardenHatsModule && deployment.gardenHatsModule !== ZERO_ADDRESS) {
-        console.log(`   GardenHatsModule: ${deployment.gardenHatsModule}`);
+      if (deployment.hatsModule && deployment.hatsModule !== ZERO_ADDRESS) {
+        console.log(`   HatsModule: ${deployment.hatsModule}`);
       }
       console.log(`   start_block: ${startBlock}`);
 

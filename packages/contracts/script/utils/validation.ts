@@ -10,8 +10,6 @@ export interface GardenConfig {
   description: string;
   location: string;
   bannerImage: string;
-  gardeners: string[];
-  operators: string[];
   [key: string]: unknown;
 }
 
@@ -52,31 +50,11 @@ export class ConfigValidator {
    * @throws Error if validation fails
    */
   validateGardenConfig(config: GardenConfig): boolean {
-    const required: (keyof GardenConfig)[] = [
-      "name",
-      "description",
-      "location",
-      "bannerImage",
-      "gardeners",
-      "operators",
-    ];
+    const required: (keyof GardenConfig)[] = ["name", "description", "location", "bannerImage"];
     const missing = required.filter((field) => !config[field]);
 
     if (missing.length > 0) {
       throw new Error(`Missing required fields: ${missing.join(", ")}`);
-    }
-
-    // Validate addresses
-    const addressRegex = /^0x[a-fA-F0-9]{40}$/;
-
-    const invalidGardeners = config.gardeners.filter((addr) => !addressRegex.test(addr));
-    if (invalidGardeners.length > 0) {
-      throw new Error(`Invalid gardener addresses: ${invalidGardeners.join(", ")}`);
-    }
-
-    const invalidOperators = config.operators.filter((addr) => !addressRegex.test(addr));
-    if (invalidOperators.length > 0) {
-      throw new Error(`Invalid operator addresses: ${invalidOperators.join(", ")}`);
     }
 
     return true;

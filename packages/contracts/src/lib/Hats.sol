@@ -20,16 +20,16 @@ library HatsLib {
     // GREEN GOODS HAT TREE - ARBITRUM (Tree 92)
     // ============================================================================
 
-    /// @notice Green Goods Community Top Hat on Arbitrum (Tree 92)
-    /// @dev Admin of Gardens Hat and Protocol Gardeners Hat
+    /// @notice Green Goods Community Hat on Arbitrum (Tree 92)
+    /// @dev Level 1 under top hat. Admin of Gardens Hat and Gardeners Hat
     uint256 internal constant ARBITRUM_COMMUNITY_HAT = 0x0000005c00020000000000000000000000000000000000000000000000000000;
 
     /// @notice Green Goods Gardens Hat on Arbitrum - parent for all per-garden hats
-    /// @dev Under this hat, each garden gets its own root hat with role children
+    /// @dev Level 2 under Community. HatsModule creates per-garden sub-trees here
     uint256 internal constant ARBITRUM_GARDENS_HAT = 0x0000005c00020001000000000000000000000000000000000000000000000000;
 
-    /// @notice Green Goods Protocol Gardeners Hat on Arbitrum
-    /// @dev Protocol-wide gardener role (not garden-specific)
+    /// @notice Green Goods Gardeners Hat on Arbitrum
+    /// @dev General membership hat under Community — any garden member can claim
     uint256 internal constant ARBITRUM_PROTOCOL_GARDENERS_HAT =
         0x0000005c00020002000000000000000000000000000000000000000000000000;
 
@@ -37,17 +37,18 @@ library HatsLib {
     // GREEN GOODS HAT TREE - SEPOLIA (Testnet)
     // ============================================================================
 
-    /// @notice Green Goods Community Top Hat on Sepolia
-    /// @dev Placeholder - needs to be created for testnet
-    uint256 internal constant SEPOLIA_COMMUNITY_HAT = 0;
+    /// @notice Green Goods Community Hat on Sepolia (Tree 2022)
+    /// @dev Level 1 under top hat. Admin of Gardens Hat and Gardeners Hat
+    uint256 internal constant SEPOLIA_COMMUNITY_HAT = 0x000007e600020000000000000000000000000000000000000000000000000000;
 
-    /// @notice Green Goods Gardens Hat on Sepolia
-    /// @dev Placeholder - needs to be created for testnet
-    uint256 internal constant SEPOLIA_GARDENS_HAT = 0;
+    /// @notice Green Goods Gardens Hat on Sepolia - parent for all per-garden hats
+    /// @dev Level 2 under Community. HatsModule creates per-garden sub-trees here
+    uint256 internal constant SEPOLIA_GARDENS_HAT = 0x000007e600020001000000000000000000000000000000000000000000000000;
 
-    /// @notice Green Goods Protocol Gardeners Hat on Sepolia
-    /// @dev Placeholder - needs to be created for testnet
-    uint256 internal constant SEPOLIA_PROTOCOL_GARDENERS_HAT = 0;
+    /// @notice Green Goods Gardeners Hat on Sepolia
+    /// @dev General membership hat under Community — any garden member can claim
+    uint256 internal constant SEPOLIA_PROTOCOL_GARDENERS_HAT =
+        0x000007e600020002000000000000000000000000000000000000000000000000;
 
     // ============================================================================
     // GREEN GOODS HAT TREE - BASE SEPOLIA (Legacy Testnet)
@@ -69,17 +70,18 @@ library HatsLib {
     // GREEN GOODS HAT TREE - CELO
     // ============================================================================
 
-    /// @notice Green Goods Community Top Hat on Celo
-    /// @dev Placeholder - update once tree is created
-    uint256 internal constant CELO_COMMUNITY_HAT = 0;
+    /// @notice Green Goods Community Hat on Celo (Tree 31)
+    /// @dev Level 1 under top hat. Admin of Gardens Hat and Gardeners Hat
+    uint256 internal constant CELO_COMMUNITY_HAT = 0x0000001f00020000000000000000000000000000000000000000000000000000;
 
-    /// @notice Green Goods Gardens Hat on Celo
-    /// @dev Placeholder - update once tree is created
-    uint256 internal constant CELO_GARDENS_HAT = 0;
+    /// @notice Green Goods Gardens Hat on Celo - parent for all per-garden hats
+    /// @dev Level 2 under Community. HatsModule creates per-garden sub-trees here
+    uint256 internal constant CELO_GARDENS_HAT = 0x0000001f00020001000000000000000000000000000000000000000000000000;
 
-    /// @notice Green Goods Protocol Gardeners Hat on Celo
-    /// @dev Placeholder - update once tree is created
-    uint256 internal constant CELO_PROTOCOL_GARDENERS_HAT = 0;
+    /// @notice Green Goods Gardeners Hat on Celo
+    /// @dev General membership hat under Community — any garden member can claim
+    uint256 internal constant CELO_PROTOCOL_GARDENERS_HAT =
+        0x0000001f00020002000000000000000000000000000000000000000000000000;
 
     // ============================================================================
     // ELIGIBILITY MODULES

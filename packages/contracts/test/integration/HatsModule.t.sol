@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { HatsModule } from "../../src/modules/Hats.sol";
-import { IGardenHatsModule } from "../../src/interfaces/IGardenHatsModule.sol";
+import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { IHatsModuleFactory } from "../../src/interfaces/IHatsModuleFactory.sol";
 import { MockHats } from "../../src/mocks/Hats.sol";
 
@@ -552,11 +552,11 @@ contract HatsModuleTest is Test {
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
 
         address[] memory accounts = new address[](2);
-        IGardenHatsModule.GardenRole[] memory roles = new IGardenHatsModule.GardenRole[](2);
+        IHatsModule.GardenRole[] memory roles = new IHatsModule.GardenRole[](2);
         accounts[0] = user1;
         accounts[1] = user2;
-        roles[0] = IGardenHatsModule.GardenRole.Gardener;
-        roles[1] = IGardenHatsModule.GardenRole.Evaluator;
+        roles[0] = IHatsModule.GardenRole.Gardener;
+        roles[1] = IHatsModule.GardenRole.Evaluator;
 
         adapter.grantRoles(garden1, accounts, roles);
 
@@ -577,7 +577,7 @@ contract HatsModuleTest is Test {
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
 
         address[] memory accounts = new address[](2);
-        IGardenHatsModule.GardenRole[] memory roles = new IGardenHatsModule.GardenRole[](1);
+        IHatsModule.GardenRole[] memory roles = new IHatsModule.GardenRole[](1);
 
         vm.expectRevert(HatsModule.ArrayLengthMismatch.selector);
         adapter.grantRoles(garden1, accounts, roles);
@@ -598,11 +598,11 @@ contract HatsModuleTest is Test {
         mockHats.setWearer(GARDEN1_EVALUATOR_HAT, user2, true);
 
         address[] memory accounts = new address[](2);
-        IGardenHatsModule.GardenRole[] memory roles = new IGardenHatsModule.GardenRole[](2);
+        IHatsModule.GardenRole[] memory roles = new IHatsModule.GardenRole[](2);
         accounts[0] = user1;
         accounts[1] = user2;
-        roles[0] = IGardenHatsModule.GardenRole.Gardener;
-        roles[1] = IGardenHatsModule.GardenRole.Evaluator;
+        roles[0] = IHatsModule.GardenRole.Gardener;
+        roles[1] = IHatsModule.GardenRole.Evaluator;
 
         adapter.revokeRoles(garden1, accounts, roles);
 
@@ -770,7 +770,7 @@ contract HatsModuleTest is Test {
 
         assertTrue(adapter.isGardenerOf(garden1, user1), "User1 should be gardener before revoke");
 
-        adapter.revokeRole(garden1, user1, IGardenHatsModule.GardenRole.Gardener);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
 
         assertFalse(adapter.isGardenerOf(garden1, user1), "User1 should not be gardener after revoke");
     }
@@ -792,7 +792,7 @@ contract HatsModuleTest is Test {
         assertFalse(adapter.isGardenerOf(garden1, user1), "User1 should not be gardener");
 
         // Should not revert — idempotent revocation
-        adapter.revokeRole(garden1, user1, IGardenHatsModule.GardenRole.Gardener);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
 
         assertFalse(adapter.isGardenerOf(garden1, user1), "User1 should still not be gardener");
     }
@@ -813,15 +813,15 @@ contract HatsModuleTest is Test {
         mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
 
         // First revoke
-        adapter.revokeRole(garden1, user1, IGardenHatsModule.GardenRole.Gardener);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
         assertFalse(adapter.isGardenerOf(garden1, user1), "Should not be gardener after first revoke");
 
         // Re-grant
-        adapter.grantRole(garden1, user1, IGardenHatsModule.GardenRole.Gardener);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
         assertTrue(adapter.isGardenerOf(garden1, user1), "Should be gardener after re-grant");
 
         // Second revoke — this was the bug scenario
-        adapter.revokeRole(garden1, user1, IGardenHatsModule.GardenRole.Gardener);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
         assertFalse(adapter.isGardenerOf(garden1, user1), "Should not be gardener after second revoke");
     }
 
@@ -842,7 +842,7 @@ contract HatsModuleTest is Test {
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
 
         // Grant Owner to user1 — should cascade to Operator, Evaluator, Gardener
-        adapter.grantRole(garden1, user1, IGardenHatsModule.GardenRole.Owner);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Owner);
 
         assertTrue(adapter.isOwnerOf(garden1, user1), "User1 should be owner");
         assertTrue(adapter.isOperatorOf(garden1, user1), "User1 should auto-get operator");
@@ -866,7 +866,7 @@ contract HatsModuleTest is Test {
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
 
         // Grant Operator to user1 — should cascade to Evaluator, Gardener
-        adapter.grantRole(garden1, user1, IGardenHatsModule.GardenRole.Operator);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Operator);
 
         assertTrue(adapter.isOperatorOf(garden1, user1), "User1 should be operator");
         assertTrue(adapter.isEvaluatorOf(garden1, user1), "User1 should auto-get evaluator");
@@ -888,7 +888,7 @@ contract HatsModuleTest is Test {
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
 
         // Grant Gardener to user1 — no sub-grants
-        adapter.grantRole(garden1, user1, IGardenHatsModule.GardenRole.Gardener);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
 
         assertTrue(adapter.isGardenerOf(garden1, user1), "User1 should be gardener");
         assertFalse(adapter.isEvaluatorOf(garden1, user1), "User1 should not auto-get evaluator");
@@ -911,7 +911,24 @@ contract HatsModuleTest is Test {
         // user2 is not owner or operator — should revert
         vm.prank(user2);
         vm.expectRevert(abi.encodeWithSelector(HatsModule.NotGardenAdmin.selector, user2, garden1));
-        adapter.revokeRole(garden1, user1, IGardenHatsModule.GardenRole.Gardener);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+    }
+
+    function test_grantRole_allowsGardenSelfManagement() public {
+        adapter.configureGarden(
+            garden1,
+            GARDEN1_OWNER_HAT,
+            GARDEN1_OPERATOR_HAT,
+            GARDEN1_EVALUATOR_HAT,
+            GARDEN1_GARDENER_HAT,
+            GARDEN1_FUNDER_HAT,
+            GARDEN1_COMMUNITY_HAT
+        );
+
+        vm.prank(garden1);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+
+        assertTrue(adapter.isGardenerOf(garden1, user1), "Garden should be able to self-grant gardener");
     }
 
     function test_grantRole_revertsForZeroAddress() public {
@@ -927,7 +944,7 @@ contract HatsModuleTest is Test {
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
 
         vm.expectRevert(HatsModule.ZeroAddress.selector);
-        adapter.grantRole(garden1, address(0), IGardenHatsModule.GardenRole.Gardener);
+        adapter.grantRole(garden1, address(0), IHatsModule.GardenRole.Gardener);
     }
 
     function test_revokeRole_revertsForZeroAddress() public {
@@ -943,6 +960,6 @@ contract HatsModuleTest is Test {
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
 
         vm.expectRevert(HatsModule.ZeroAddress.selector);
-        adapter.revokeRole(garden1, address(0), IGardenHatsModule.GardenRole.Gardener);
+        adapter.revokeRole(garden1, address(0), IHatsModule.GardenRole.Gardener);
     }
 }

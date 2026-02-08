@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-/// @title IGardenHatsModule
+/// @title IHatsModule
 /// @notice Interface for managing garden roles via Hats Protocol
 /// @dev Used by GardenToken and resolvers to create hat trees and manage roles
-interface IGardenHatsModule {
+interface IHatsModule {
     // ═══════════════════════════════════════════════════════════════════════════
     // Types
     // ═══════════════════════════════════════════════════════════════════════════

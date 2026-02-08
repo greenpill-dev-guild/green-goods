@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import { Script } from "forge-std/Script.sol";
 
 import { IGardenAccount } from "../src/interfaces/IGardenAccount.sol";
-import { IGardenHatsModule } from "../src/interfaces/IGardenHatsModule.sol";
+import { IHatsModule } from "../src/interfaces/IHatsModule.sol";
 import { IKarmaGAPModule } from "../src/interfaces/IKarmaGAPModule.sol";
 
 /// @title MigrateGardens
@@ -28,15 +28,15 @@ import { IKarmaGAPModule } from "../src/interfaces/IKarmaGAPModule.sol";
 contract MigrateGardens is Script {
     error MissingOperators(address garden);
 
-    IGardenHatsModule public gardenHatsModule;
+    IHatsModule public hatsModule;
     IKarmaGAPModule public karmaGAPModule;
 
     function run() external {
-        address hatsModuleAddr = vm.envAddress("GARDEN_HATS_MODULE");
+        address hatsModuleAddr = vm.envAddress("HATS_MODULE");
         address karmaModuleAddr = vm.envAddress("KARMA_GAP_MODULE");
         string memory configPath = vm.envString("MIGRATION_CONFIG");
 
-        gardenHatsModule = IGardenHatsModule(hatsModuleAddr);
+        hatsModule = IHatsModule(hatsModuleAddr);
         karmaGAPModule = IKarmaGAPModule(karmaModuleAddr);
 
         string memory json = vm.readFile(configPath);
@@ -65,11 +65,11 @@ contract MigrateGardens is Script {
                 }
 
                 // 1. Create hat tree
-                gardenHatsModule.createGardenHatTree(garden, name, communityToken);
+                hatsModule.createGardenHatTree(garden, name, communityToken);
 
                 // 2. Grant operator roles (best-effort sub-grants handled by module)
                 for (uint256 j = 0; j < operators.length; j++) {
-                    gardenHatsModule.grantRole(garden, operators[j], IGardenHatsModule.GardenRole.Operator);
+                    hatsModule.grantRole(garden, operators[j], IHatsModule.GardenRole.Operator);
                 }
 
                 // 3. Create GAP project (graceful degradation handled in module)

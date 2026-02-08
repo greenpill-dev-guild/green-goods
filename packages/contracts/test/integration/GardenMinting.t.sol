@@ -7,12 +7,12 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 
 import { GardenToken } from "../../src/tokens/Garden.sol";
 import { GardenAccount } from "../../src/accounts/Garden.sol";
-import { IGardenHatsModule } from "../../src/interfaces/IGardenHatsModule.sol";
+import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { IKarmaGAPModule } from "../../src/interfaces/IKarmaGAPModule.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
 import { ERC6551Helper } from "../helpers/ERC6551Helper.sol";
 
-contract MockGardenHatsModule is IGardenHatsModule {
+contract MockHatsModule is IHatsModule {
     struct CreateCall {
         address garden;
         string name;
@@ -154,14 +154,12 @@ contract MockKarmaGAPModule is IKarmaGAPModule {
 
 contract GardenMintingIntegrationTest is Test, ERC6551Helper {
     GardenToken private gardenToken;
-    MockGardenHatsModule private hatsModule;
+    MockHatsModule private hatsModule;
     MockKarmaGAPModule private karmaModule;
     MockERC20 private communityToken;
 
     address private multisig = address(0x123);
     address private gardenAccountImplementation;
-    address private operator1 = address(0x4000);
-    address private gardener1 = address(0x5000);
 
     function setUp() public {
         _deployERC6551Registry();
@@ -175,22 +173,17 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
         bytes memory initData = abi.encodeWithSelector(GardenToken.initialize.selector, multisig, address(0));
         gardenToken = GardenToken(address(new ERC1967Proxy(address(tokenImpl), initData)));
 
-        hatsModule = new MockGardenHatsModule();
+        hatsModule = new MockHatsModule();
         karmaModule = new MockKarmaGAPModule();
         communityToken = new MockERC20();
 
         vm.prank(multisig);
-        gardenToken.setGardenHatsModule(address(hatsModule));
+        gardenToken.setHatsModule(address(hatsModule));
         vm.prank(multisig);
         gardenToken.setKarmaGAPModule(address(karmaModule));
     }
 
     function test_mintGarden_callsHatsAndGAP() public {
-        address[] memory gardeners = new address[](1);
-        address[] memory operators = new address[](1);
-        gardeners[0] = gardener1;
-        operators[0] = operator1;
-
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Garden Alpha",
@@ -198,9 +191,7 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
             location: "Location",
             bannerImage: "Banner",
             metadata: "",
-            openJoining: false,
-            gardeners: gardeners,
-            gardenOperators: operators
+            openJoining: false
         });
 
         vm.prank(multisig);
@@ -222,25 +213,17 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
             string memory projectBanner
         ) = karmaModule.lastProject();
         assertEq(projectGarden, gardenAccount, "Karma garden should match");
-        assertEq(projectOperator, operator1, "Karma operator should match");
+        assertEq(projectOperator, multisig, "Karma operator should match minter/owner");
         assertEq(projectName, "Garden Alpha", "Karma name should match");
         assertEq(projectDescription, "Desc", "Karma description should match");
         assertEq(projectLocation, "Location", "Karma location should match");
         assertEq(projectBanner, "Banner", "Karma banner should match");
 
-        // Owner + operator + gardener grants should be recorded
-        assertEq(hatsModule.grantCallsLength(), 3, "Expected owner/operator/gardener grants");
+        // Only initial owner grant should be recorded
+        assertEq(hatsModule.grantCallsLength(), 1, "Expected owner grant only");
 
-        (, address firstAccount, IGardenHatsModule.GardenRole firstRole) = hatsModule.grantCalls(0);
+        (, address firstAccount, IHatsModule.GardenRole firstRole) = hatsModule.grantCalls(0);
         assertEq(firstAccount, multisig, "Owner grant should target minter");
-        assertEq(uint8(firstRole), uint8(IGardenHatsModule.GardenRole.Owner));
-
-        (, address secondAccount, IGardenHatsModule.GardenRole secondRole) = hatsModule.grantCalls(1);
-        assertEq(secondAccount, operator1, "Operator grant should target operator");
-        assertEq(uint8(secondRole), uint8(IGardenHatsModule.GardenRole.Operator));
-
-        (, address thirdAccount, IGardenHatsModule.GardenRole thirdRole) = hatsModule.grantCalls(2);
-        assertEq(thirdAccount, gardener1, "Gardener grant should target gardener");
-        assertEq(uint8(thirdRole), uint8(IGardenHatsModule.GardenRole.Gardener));
+        assertEq(uint8(firstRole), uint8(IHatsModule.GardenRole.Owner));
     }
 }

@@ -5,7 +5,7 @@ pragma solidity ^0.8.25;
 /// @notice Interface for garden role verification
 /// @dev Abstracts role checks to allow swapping implementations (mappings → Hats → etc.)
 ///
-/// **Current Implementation:** GardenAccount delegates to HatsModule (v2) or legacy mappings (v1)
+/// **Current Implementation:** GardenAccount delegates to HatsModule
 /// **Future Implementation:** Additional access control backends as needed
 ///
 /// Resolvers and modules MUST use this interface instead of reading mappings directly.

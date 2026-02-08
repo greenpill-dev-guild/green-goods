@@ -46,6 +46,7 @@
       "contracts": {
         "eas": "0xC2679fBD37d54388Ce493F1DB75320D236e1815e",
         "easSchemaRegistry": "0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0",
+        "communityToken": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
         "ensRegistry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
         "ensResolver": "0x8FADE66B79cC9f707aB26799354482EB93a5B7dD",
         "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",

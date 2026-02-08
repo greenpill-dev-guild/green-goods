@@ -13,7 +13,7 @@ import { HatsModule } from "../src/modules/Hats.sol";
 /// @dev Intended for testnets (e.g., Sepolia) when the Hats UI is unavailable
 ///
 /// Environment Variables:
-/// - GARDEN_HATS_MODULE: HatsModule proxy address (required to sync IDs)
+/// - HATS_MODULE: HatsModule proxy address (required to sync IDs)
 /// - HATS_PROTOCOL: Override Hats Protocol address (optional)
 /// - HATS_CREATE_TOP_HAT: true/false to mint a new top hat (default true)
 /// - COMMUNITY_HAT_ID: Existing top hat ID (required if HATS_CREATE_TOP_HAT=false)
@@ -24,7 +24,7 @@ contract SetupHatsTree is Script {
     error MissingCommunityHatId();
 
     function run() external {
-        address hatsModuleAddress = _envAddress("GARDEN_HATS_MODULE", address(0));
+        address hatsModuleAddress = _envAddress("HATS_MODULE", address(0));
         address hatsAddress = _envAddress("HATS_PROTOCOL", HatsLib.getHatsProtocol());
         bool createTopHat = _envBool("HATS_CREATE_TOP_HAT", true);
 

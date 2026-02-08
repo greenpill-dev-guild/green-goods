@@ -49,8 +49,11 @@ contract Deploy is Script, DeploymentBase {
             if (!_isMainnetChain(block.chainid)) {
                 _addProductionFeatures(config);
 
-                // 3. Deploy seed data (gardens + actions) (L2 only)
-                _deploySeedData(config);
+                // 3. Deploy seed data (gardens + actions) on broadcast runs.
+                // Simulations often run under non-admin senders that cannot mint Hats roles.
+                if (_isBroadcasting()) {
+                    _deploySeedData(config);
+                }
             }
         } else {
             // Schema-only update mode - load existing deployment
@@ -172,11 +175,6 @@ contract Deploy is Script, DeploymentBase {
             openJoining = abi.decode(openJoiningBytes, (bool));
         } catch { }
 
-        address[] memory gardeners =
-            abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".gardeners")), (address[]));
-        address[] memory operators =
-            abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".operators")), (address[]));
-
         return GardenToken.GardenConfig({
             communityToken: communityToken,
             name: name,
@@ -184,18 +182,18 @@ contract Deploy is Script, DeploymentBase {
             location: location,
             bannerImage: bannerImage,
             metadata: metadata,
-            openJoining: openJoining,
-            gardeners: gardeners,
-            gardenOperators: operators
+            openJoining: openJoining
         });
     }
 
     /// @notice Upload actions to IPFS and return hashes
     // solhint-disable-next-line code-complexity
     function _uploadActionsToIPFS(uint256 expectedCount) internal returns (string[] memory) {
-        string[] memory inputs = new string[](2);
-        inputs[0] = "bun";
-        inputs[1] = "script/utils/ipfs-uploader.ts";
+        string[] memory inputs = new string[](4);
+        inputs[0] = "pnpm";
+        inputs[1] = "dlx";
+        inputs[2] = "tsx";
+        inputs[3] = "script/utils/ipfs-uploader.ts";
 
         try vm.ffi(inputs) returns (bytes memory result) {
             if (result.length == 0) {
@@ -495,7 +493,7 @@ contract Deploy is Script, DeploymentBase {
         result.assessmentResolver = address(assessmentResolver);
         result.workResolver = address(workResolver);
         result.workApprovalResolver = address(workApprovalResolver);
-        result.gardenHatsModule = address(gardenHatsModule);
+        result.hatsModule = address(hatsModule);
         result.karmaGAPModule = address(karmaGAPModule);
         result.gardenerAccountLogic = gardenerAccountLogic;
         result.gardenerRegistry = address(gardenerRegistry);

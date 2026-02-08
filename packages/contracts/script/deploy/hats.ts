@@ -22,16 +22,16 @@ export class HatsTreeDeployer {
     const networkConfig = this.networkManager.getNetwork(options.network);
     const rpcUrl = this.networkManager.getRpcUrl(options.network);
 
-    if (!process.env.GARDEN_HATS_MODULE) {
+    if (!process.env.HATS_MODULE) {
       try {
         const addresses = this.deploymentAddresses.loadForChain(options.network);
-        if (addresses.gardenHatsModule) {
-          process.env.GARDEN_HATS_MODULE = addresses.gardenHatsModule;
+        if (addresses.hatsModule) {
+          process.env.HATS_MODULE = addresses.hatsModule;
         }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.warn("⚠️  Unable to load deployment addresses:", errorMsg);
-        console.warn("   Set GARDEN_HATS_MODULE manually to continue.");
+        console.warn("   Set HATS_MODULE manually to continue.");
       }
     }
 

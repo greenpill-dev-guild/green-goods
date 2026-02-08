@@ -6,32 +6,24 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
-import { IGardenHatsModule } from "../interfaces/IGardenHatsModule.sol";
+import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 
 error NotGardenOwner();
 error NotGardenOperator();
 error InvalidInvite();
 error AlreadyGardener();
-error TooManyGardeners();
-error TooManyOperators();
-error HatsEnabled();
-
-/// @dev Maximum number of gardeners allowed during initialization (prevents gas exhaustion)
-uint256 constant MAX_INIT_GARDENERS = 50;
-
-/// @dev Maximum number of operators allowed during initialization (prevents gas exhaustion)
-uint256 constant MAX_INIT_OPERATORS = 20;
+error HatsModuleNotAvailable();
 
 /// @notice Minimal interface to fetch module addresses from GardenToken
 interface IGardenTokenModules {
-    function gardenHatsModule() external view returns (IGardenHatsModule);
+    function hatsModule() external view returns (IHatsModule);
     function karmaGAPModule() external view returns (IKarmaGAPModule);
 }
 
 /// @title GardenAccount Contract
 /// @notice Manages garden metadata and role checks for Garden accounts
-/// @dev Delegates access control to HatsModule for v2 gardens; legacy mappings for v1
+/// @dev Delegates access control to HatsModule.
 contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessControl, IGardenAccount {
     /// @notice Emitted when the garden name is updated.
     /// @param updater The address of the entity that updated the name.
@@ -63,26 +55,6 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     /// @param newBannerImage The new banner image CID.
     event BannerImageUpdated(address indexed updater, string newBannerImage);
 
-    /// @notice Emitted when a new gardener is added.
-    /// @param updater The address of the entity that added the gardener.
-    /// @param gardener The address of the added gardener.
-    event GardenerAdded(address indexed updater, address indexed gardener);
-
-    /// @notice Emitted when a gardener is removed.
-    /// @param updater The address of the entity that removed the gardener.
-    /// @param gardener The address of the removed gardener.
-    event GardenerRemoved(address indexed updater, address indexed gardener);
-
-    /// @notice Emitted when a new garden operator is added.
-    /// @param updater The address of the entity that added the operator.
-    /// @param operator The address of the added garden operator.
-    event GardenOperatorAdded(address indexed updater, address indexed operator);
-
-    /// @notice Emitted when a garden operator is removed.
-    /// @param updater The address of the entity that removed the operator.
-    /// @param operator The address of the removed garden operator.
-    event GardenOperatorRemoved(address indexed updater, address indexed operator);
-
     /// @notice Emitted when open joining status is updated.
     /// @param updater The address of the entity that updated the setting.
     /// @param openJoining The new open joining status.
@@ -103,16 +75,16 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     /// @notice The CID of the banner image of the garden.
     string public bannerImage;
 
-    /// @notice The IPFS CID containing additional garden metadata as JSON
+    /// @notice The IPFS CID containing additional garden metadata as JSON.
     string public metadata;
 
-    /// @notice Mapping of gardener addresses to their status (legacy v1 only)
-    mapping(address gardener => bool isGardener) public gardeners;
+    /// @dev Reserved slot — previously `gardeners` mapping. Do not reuse.
+    uint256 private __reservedSlot6;
 
-    /// @notice Mapping of garden operator addresses to their status (legacy v1 only)
-    mapping(address operator => bool isOperator) public gardenOperators;
+    /// @dev Reserved slot — previously `gardenOperators` mapping. Do not reuse.
+    uint256 private __reservedSlot7;
 
-    /// @notice Whether this garden allows open joining without invite
+    /// @notice Whether this garden allows open joining without invite.
     bool public openJoining;
 
     /// @notice Immutable address of the WorkApprovalResolver
@@ -164,10 +136,6 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     /// @dev Role initialization is handled by GardenToken + HatsModule (v2).
     /// @param params Initialization parameters struct
     function initialize(IGardenAccount.InitParams calldata params) external initializer {
-        // Validate array lengths to prevent gas exhaustion
-        if (params.gardeners.length > MAX_INIT_GARDENERS) revert TooManyGardeners();
-        if (params.gardenOperators.length > MAX_INIT_OPERATORS) revert TooManyOperators();
-
         communityToken = params.communityToken;
         name = params.name;
         description = params.description;
@@ -175,19 +143,6 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         bannerImage = params.bannerImage;
         metadata = params.metadata;
         openJoining = params.openJoining;
-
-        if (!_isHatsEnabled()) {
-            // NFT owner becomes operator only (can add themselves as gardener if needed)
-            gardenOperators[_msgSender()] = true;
-
-            for (uint256 i = 0; i < params.gardeners.length; i++) {
-                gardeners[params.gardeners[i]] = true;
-            }
-
-            for (uint256 i = 0; i < params.gardenOperators.length; i++) {
-                gardenOperators[params.gardenOperators[i]] = true;
-            }
-        }
     }
 
     /// @dev Temporarily disabled to reduce contract size - can be re-enabled via upgrade
@@ -226,42 +181,15 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     //     emit MetadataUpdated(_msgSender(), _metadata);
     // }
 
-    /// @notice Adds a new gardener to the garden (legacy v1 only)
-    function addGardener(address gardener) external onlyOperator {
-        _requireLegacyRoles();
-        gardeners[gardener] = true;
-        emit GardenerAdded(_msgSender(), gardener);
-    }
-
-    /// @notice Removes an existing gardener from the garden (legacy v1 only)
-    function removeGardener(address gardener) external onlyOperator {
-        _requireLegacyRoles();
-        gardeners[gardener] = false;
-        emit GardenerRemoved(_msgSender(), gardener);
-    }
-
-    /// @notice Adds a new operator to the garden (legacy v1 only)
-    function addGardenOperator(address operator) external onlyOperator {
-        _requireLegacyRoles();
-        gardenOperators[operator] = true;
-        gardeners[operator] = true;
-        emit GardenOperatorAdded(_msgSender(), operator);
-    }
-
-    /// @notice Removes an existing operator from the garden (legacy v1 only)
-    function removeGardenOperator(address operator) external onlyGardenOwner {
-        _requireLegacyRoles();
-        gardenOperators[operator] = false;
-        emit GardenOperatorRemoved(_msgSender(), operator);
-    }
-
-    /// @notice Join garden if open joining is enabled (legacy v1 only)
+    /// @notice Join garden if open joining is enabled.
+    /// @dev Grants gardener hat via HatsModule.
     function joinGarden() external {
-        _requireLegacyRoles();
         if (!openJoining) revert InvalidInvite();
-        if (gardeners[_msgSender()]) revert AlreadyGardener();
-        gardeners[_msgSender()] = true;
-        emit GardenerAdded(address(this), _msgSender());
+
+        IHatsModule hatsModule = _getHatsModule();
+        if (hatsModule.isGardenerOf(address(this), _msgSender())) revert AlreadyGardener();
+
+        hatsModule.grantRole(address(this), _msgSender(), IHatsModule.GardenRole.Gardener);
     }
 
     /// @notice Enable or disable open joining for the garden
@@ -301,16 +229,12 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
 
     /// @inheritdoc IGardenAccessControl
     function isFunder(address account) external view override returns (bool) {
-        IGardenHatsModule hatsModule = _getHatsModule();
-        if (address(hatsModule) == address(0)) return false;
-        return hatsModule.isFunderOf(address(this), account);
+        return _getHatsModule().isFunderOf(address(this), account);
     }
 
     /// @inheritdoc IGardenAccessControl
     function isCommunity(address account) external view override returns (bool) {
-        IGardenHatsModule hatsModule = _getHatsModule();
-        if (address(hatsModule) == address(0)) return false;
-        return hatsModule.isCommunityOf(address(this), account);
+        return _getHatsModule().isCommunityOf(address(this), account);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -337,15 +261,14 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         return gapModule.getProjectUID(address(this));
     }
 
-    function _getHatsModule() internal view returns (IGardenHatsModule) {
+    function _getHatsModule() internal view returns (IHatsModule) {
         (, address tokenContract,) = token();
-        if (tokenContract == address(0)) return IGardenHatsModule(address(0));
+        if (tokenContract == address(0)) revert HatsModuleNotAvailable();
 
-        try IGardenTokenModules(tokenContract).gardenHatsModule() returns (IGardenHatsModule module) {
-            return module;
-        } catch {
-            return IGardenHatsModule(address(0));
-        }
+        IHatsModule module = IGardenTokenModules(tokenContract).hatsModule();
+        if (address(module) == address(0)) revert HatsModuleNotAvailable();
+
+        return module;
     }
 
     function _getKarmaGAPModule() internal view returns (IKarmaGAPModule) {
@@ -359,52 +282,29 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         }
     }
 
-    function _isHatsEnabled() internal view returns (bool) {
-        return address(_getHatsModule()) != address(0);
-    }
-
-    function _requireLegacyRoles() internal view {
-        if (_isHatsEnabled()) revert HatsEnabled();
-    }
-
     function _isOwner(address account) internal view returns (bool) {
-        IGardenHatsModule hatsModule = _getHatsModule();
-        if (address(hatsModule) == address(0)) {
-            return _isValidSigner(account, "");
-        }
-        return hatsModule.isOwnerOf(address(this), account);
+        return _getHatsModule().isOwnerOf(address(this), account);
     }
 
     function _isOperatorOrOwner(address account) internal view returns (bool) {
-        IGardenHatsModule hatsModule = _getHatsModule();
-        if (address(hatsModule) == address(0)) {
-            return gardenOperators[account] || _isValidSigner(account, "");
-        }
+        IHatsModule hatsModule = _getHatsModule();
         return hatsModule.isOperatorOf(address(this), account) || hatsModule.isOwnerOf(address(this), account);
     }
 
     function _isEvaluator(address account) internal view returns (bool) {
-        IGardenHatsModule hatsModule = _getHatsModule();
-        if (address(hatsModule) == address(0)) {
-            return gardenOperators[account];
-        }
-
+        IHatsModule hatsModule = _getHatsModule();
         return hatsModule.isEvaluatorOf(address(this), account) || hatsModule.isOperatorOf(address(this), account)
             || hatsModule.isOwnerOf(address(this), account);
     }
 
     function _isGardener(address account) internal view returns (bool) {
-        IGardenHatsModule hatsModule = _getHatsModule();
-        if (address(hatsModule) == address(0)) {
-            return gardeners[account];
-        }
-
+        IHatsModule hatsModule = _getHatsModule();
         return hatsModule.isGardenerOf(address(this), account) || hatsModule.isOperatorOf(address(this), account)
             || hatsModule.isOwnerOf(address(this), account);
     }
 
     /// @notice Storage gap for upgradeable contract
-    /// @dev Reserve 50 slots total for future upgrades
+    /// @dev Reserve 50 slots total for future upgrades.
     /// Inherited storage (5 slots):
     ///   - Initializable: 1 slot (_initialized + _initializing packed)
     ///   - Lockable: 1 slot (lockedUntil)
@@ -413,7 +313,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     ///   - ERC6551Account: 1 slot (_state)
     /// GardenAccount storage (10 slots):
     ///   - communityToken (1) + name (1) + description (1) + location (1)
-    ///   - bannerImage (1) + metadata (1) + gardeners (1) + gardenOperators (1)
+    ///   - bannerImage (1) + metadata (1) + __reservedSlot6 (1) + __reservedSlot7 (1)
     ///   - openJoining (1) + unused gapProjectUID slot reserved (1)
     /// Note: WORK_APPROVAL_RESOLVER and ASSESSMENT_RESOLVER are immutables (no storage slots)
     /// Gap calculation: 50 - (5 + 10) = 35 slots

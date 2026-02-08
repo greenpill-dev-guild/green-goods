@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import { Test } from "forge-std/Test.sol";
 import { MockHats } from "../../src/mocks/Hats.sol";
 
-/// @title GardenHatsModuleTest
+/// @title HatsModuleTest
 /// @notice Tests for MockHats functionality used in garden integration tests
 /// @dev Tests verify the MockHats contract behavior for hat-based role management
 ///
@@ -22,7 +22,7 @@ import { MockHats } from "../../src/mocks/Hats.sol";
 ///         +-- Funder Hat (eligibility-based)
 ///         +-- Community Hat (eligibility-based: ERC-20 holder)
 /// ```
-contract GardenHatsModuleTest is Test {
+contract HatsModuleTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
     // Test Contracts
     // ═══════════════════════════════════════════════════════════════════════════
