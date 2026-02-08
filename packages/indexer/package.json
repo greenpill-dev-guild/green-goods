@@ -5,7 +5,7 @@
     "clean": "tsc --clean",
     "build": "tsc --build",
     "watch": "tsc --watch",
-    "mocha": "ts-mocha test/**/*.ts",
+    "mocha": "node --import tsx ./node_modules/mocha/bin/mocha.js \"test/**/*.ts\"",
 
     "setup-generated": "cd generated && pnpm install && pnpm run build",
     "codegen": "envio codegen",
