@@ -1,6 +1,12 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { useEnsAddress, logger } from "@green-goods/shared";
-import { cn, formatAddress, resolveEnsAddress, type GardenRole } from "@green-goods/shared";
+import {
+  useEnsAddress,
+  logger,
+  cn,
+  formatAddress,
+  resolveEnsAddress,
+  type GardenRole,
+} from "@green-goods/shared";
 import { RiClipboardLine, RiCloseLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
