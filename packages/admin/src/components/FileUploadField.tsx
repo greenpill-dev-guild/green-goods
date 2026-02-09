@@ -124,6 +124,10 @@ export function FileUploadField({
   // Store them in state and clean up when files change
   const [previewUrls, setPreviewUrls] = useState<Map<File, string>>(new Map());
 
+  // Create stable key from file metadata to avoid effect re-runs on array identity changes
+  const fileKey = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
+  const filesKey = currentFiles.map(fileKey).join("|");
+
   useEffect(() => {
     if (!showPreview) {
       setPreviewUrls(new Map());
@@ -144,7 +148,9 @@ export function FileUploadField({
         URL.revokeObjectURL(url);
       }
     };
-  }, [currentFiles, showPreview]);
+    // Use filesKey instead of currentFiles to avoid re-running on array identity changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filesKey, showPreview]);
 
   return (
     <div className="space-y-2">
