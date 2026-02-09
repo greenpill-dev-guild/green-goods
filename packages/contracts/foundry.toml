@@ -121,7 +121,7 @@ verbosity = 3
 
 [etherscan]
   arbitrum = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42161" }
-  sepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api-sepolia.etherscan.io/api", chainId = "11155111" }
+  sepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "11155111" }
   baseSepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "84532" }
   celo = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42220" }
 
