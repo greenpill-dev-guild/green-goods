@@ -22,7 +22,7 @@ When invoked:
 
 ## Diagram Type Selection
 
-**Figma MCP supported** (can generate via `generate_diagram` tool):
+**All diagram types render in Markdown** (GitHub, GitLab, docs, PRs):
 
 | Type | Use Case |
 |------|----------|
@@ -30,11 +30,6 @@ When invoked:
 | **Sequence Diagram** | API flows, authentication, component interactions |
 | **State Diagram** | State machines, lifecycle states |
 | **Gantt** | Timelines, project scheduling |
-
-**Markdown-only** (rendered in docs/PRs, not via MCP tool):
-
-| Type | Use Case |
-|------|----------|
 | **Class Diagram** | Domain modeling, OOP design, entity relationships |
 | **ERD** | Database schemas, table relationships |
 
@@ -185,21 +180,17 @@ What diagram?
 │                                   → Transitions = events/actions
 │                                   → Good for job queue, work status
 │
-├─► Domain modeling/types? ──────► Class Diagram (markdown only)
+├─► Domain modeling/types? ──────► Class Diagram
 │                                   → Classes = domain entities
 │                                   → Relationships = associations
 │
-├─► Database schema? ────────────► ERD (markdown only)
+├─► Database schema? ────────────► ERD
 │                                   → Entities = tables/collections
 │                                   → Relationships = foreign keys
 │
-├─► Timeline/schedule? ──────────► Gantt
-│                                   → Tasks = milestones
-│                                   → Sections = phases
-│
-└─► Need in FigJam? ────────────► Use generate_diagram MCP tool
-                                    → Only: flowchart, sequence, state, gantt
-                                    → NOT: class, ERD (use markdown)
+└─► Timeline/schedule? ──────────► Gantt
+                                    → Tasks = milestones
+                                    → Sections = phases
 ```
 
 ## Best Practices
@@ -214,24 +205,14 @@ What diagram?
 
 **Supported platforms:**
 - GitHub/GitLab Markdown (native)
-- VS Code (with extension)
+- VS Code (with Mermaid extension)
 - Notion, Obsidian, Confluence
+- [Mermaid Live Editor](https://mermaid.live) - Interactive preview
 
-**Figma MCP Integration:**
-
-Use the `generate_diagram` MCP tool to create diagrams directly in FigJam:
-
-```
-Supported: flowchart, graph, sequenceDiagram, stateDiagram, stateDiagram-v2, gantt
-Not supported: classDiagram, erDiagram (use markdown rendering instead)
-```
-
-The tool accepts Mermaid syntax and creates an editable FigJam diagram. After calling the tool, share the returned URL with the user. For diagrams that need further layout refinement, encourage the user to open the diagram in Figma.
-
-**Export:**
+**Export options:**
 - [Mermaid Live Editor](https://mermaid.live) - PNG/SVG export
 - CLI: `npx @mermaid-js/mermaid-cli -i input.mmd -o output.png`
-- Figma MCP: `generate_diagram` tool for interactive FigJam diagrams
+- Miro MCP: Available for architecture diagrams and collaborative planning (via `miro` MCP server)
 
 ## Related Skills
 

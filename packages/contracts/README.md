@@ -191,7 +191,7 @@ bun dev                 # Start local blockchain
 If you only need to update EAS schemas:
 
 ```bash
-bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 ```
 
 #### Force Fresh Deployment
@@ -199,7 +199,7 @@ bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
 Force redeploy everything, even if contracts already exist:
 
 ```bash
-bun script/deploy.ts core --network baseSepolia --broadcast --force
+bun script/deploy.ts core --network sepolia --broadcast --force
 ```
 
 **⚠️ Warning:** This creates new contract addresses. Existing integrations will break.
@@ -323,10 +323,10 @@ Schemas are defined in `config/schemas.json` and deployed automatically with cor
 
 ```bash
 # Update schemas only (skip contracts)
-bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 
 # Force fresh deployment (redeploy everything)
-bun script/deploy.ts core --network baseSepolia --broadcast --force
+bun script/deploy.ts core --network sepolia --broadcast --force
 ```
 
 See `docs/UPGRADES.md` for detailed schema versioning strategy and `docs/DEPLOYMENT.md` for schema deployment troubleshooting.
@@ -429,10 +429,10 @@ bun upgrade:arbitrum
 ### Individual Contract Upgrades
 
 ```bash
-bun script/upgrade.ts action-registry --network baseSepolia --broadcast
-bun script/upgrade.ts garden-token --network baseSepolia --broadcast
-bun script/upgrade.ts work-resolver --network baseSepolia --broadcast
-bun script/upgrade.ts assessment-resolver --network baseSepolia --broadcast
+bun script/upgrade.ts action-registry --network sepolia --broadcast
+bun script/upgrade.ts garden-token --network sepolia --broadcast
+bun script/upgrade.ts work-resolver --network sepolia --broadcast
+bun script/upgrade.ts assessment-resolver --network sepolia --broadcast
 ```
 
 ### Upgrading with Resolver Address Changes
