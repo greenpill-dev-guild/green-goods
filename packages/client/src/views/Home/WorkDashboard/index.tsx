@@ -4,9 +4,9 @@ import {
   type Job,
   type Work,
   type WorkJobPayload,
+  createPublicClientForChain,
 } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import { createPublicClientForChain } from "@green-goods/shared/config";
 import {
   queryKeys,
   DEFAULT_RETRY_COUNT,
