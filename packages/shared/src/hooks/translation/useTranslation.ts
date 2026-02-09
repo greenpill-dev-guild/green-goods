@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { browserTranslator } from "../../modules/translation/browser-translator";
+import { logger } from "../../modules/app/logger";
 import { AppContext } from "../../providers/App";
 
 type TranslatableValue =
@@ -52,7 +53,7 @@ export function useTranslation<T extends TranslatableValue>(
         setTranslated(result as T);
         console.debug(`✅ [Translation] Content translated to ${locale}`);
       } catch (error) {
-        console.error(`❌ [Translation] Error translating to ${locale}:`, error);
+        logger.error(`Translation to ${locale} failed`, { source: "useTranslation", error });
         setTranslated(content); // Fallback to original
       } finally {
         setIsTranslating(false);

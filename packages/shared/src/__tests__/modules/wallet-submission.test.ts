@@ -48,6 +48,10 @@ vi.mock("../../utils/blockchain/polling", () => ({
   pollQueriesAfterTransaction: vi.fn(),
 }));
 
+vi.mock("../../modules/work/simulate", () => ({
+  simulateWorkSubmission: vi.fn(),
+}));
+
 vi.mock("../../utils/debug", () => ({
   DEBUG_ENABLED: false,
   debugLog: vi.fn(),
@@ -98,11 +102,11 @@ import { mock } from "../test-utils";
 describe("wallet-submission", () => {
   const mockWalletClient: Partial<WalletClient> = {
     sendTransaction: vi.fn(),
-    chain: { id: 84532 } as any,
+    chain: { id: 11155111 } as any,
     account: { address: "0xUserAddress" } as any,
   };
 
-  const mockChainId = 84532;
+  const mockChainId = 11155111;
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "composite": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
     "resolvePackageJsonExports": true,
@@ -13,7 +12,7 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
-    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {

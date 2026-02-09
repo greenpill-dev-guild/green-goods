@@ -6,6 +6,7 @@ import { AnvilManager } from "./anvil";
 import { EnvioIntegration } from "../utils/envio-integration";
 import { DocsUpdater } from "../utils/docs-updater";
 import type { ParsedOptions } from "../utils/cli-parser";
+import { assertSepoliaGate, writeSepoliaCheckpoint } from "../utils/release-gate";
 
 /**
  * CoreDeployer - Handles core contract deployment
@@ -35,6 +36,19 @@ export class CoreDeployer {
     this._logActiveFlags(options);
 
     const networkConfig = this.networkManager.getNetwork(options.network);
+    const pureSimulation = options.pureSimulation || options.dryRun;
+
+    if (pureSimulation) {
+      this._runPureSimulation(networkConfig);
+      return;
+    }
+
+    assertSepoliaGate({
+      network: options.network,
+      broadcast: options.broadcast,
+      operation: "deploy",
+      overrideSepoliaGate: options.overrideSepoliaGate,
+    });
 
     // Auto-start anvil with Celo fork for localhost deployments
     if (options.network === "localhost") {
@@ -98,6 +112,17 @@ export class CoreDeployer {
 
       console.log("\n✅ Core contracts deployed successfully!");
 
+      if (options.broadcast && options.network === "sepolia") {
+        const chainId = this.networkManager.getChainIdString(options.network);
+        const checkpoint = writeSepoliaCheckpoint({
+          chainId,
+          operation: "deploy",
+        });
+        console.log(
+          `✅ Wrote Sepolia checkpoint (${checkpoint.timestamp}, commit ${checkpoint.commitHash.slice(0, 12)})`,
+        );
+      }
+
       // Auto-update Envio configuration after successful deployment
       if (!options.skipEnvio) {
         await this._updateEnvioConfig(options);
@@ -120,12 +145,48 @@ export class CoreDeployer {
   }
 
   /**
+   * Pure simulation mode for dry-run workflows.
+   * Performs compile + config preflight without RPC calls or side effects.
+   */
+  private _runPureSimulation(networkConfig: { chainId: number; name: string; rpcUrl: string }): void {
+    console.log("🧪 Pure simulation mode enabled (no RPC calls, no deployments)\n");
+    console.log(`Network: ${networkConfig.name} (chainId: ${networkConfig.chainId})`);
+    console.log(`RPC Source: ${networkConfig.rpcUrl}`);
+
+    console.log("\n🔨 Running forge build preflight...");
+    execSync("forge build --skip test", {
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        FOUNDRY_PROFILE: "production",
+      },
+      cwd: path.join(__dirname, "../.."),
+    });
+
+    const displayArgs = [
+      "script",
+      "script/Deploy.s.sol:Deploy",
+      "--chain-id",
+      networkConfig.chainId.toString(),
+      "--rpc-url",
+      "<resolved at runtime>",
+    ];
+
+    console.log("\nWould execute deployment command:");
+    console.log("forge", displayArgs.join(" "));
+    console.log("\n✅ Pure simulation preflight completed successfully");
+  }
+
+  /**
    * Set environment flags for deployment
    * @param options - Deployment options
    */
   private _setEnvironmentFlags(options: ParsedOptions): void {
     process.env.UPDATE_SCHEMAS_ONLY = options.updateSchemasOnly.toString();
     process.env.FORCE_REDEPLOY = options.force.toString();
+    if (options.deploymentSalt) {
+      process.env.DEPLOYMENT_SALT = options.deploymentSalt;
+    }
   }
 
   /**

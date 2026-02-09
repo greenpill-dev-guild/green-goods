@@ -38,6 +38,7 @@
 import { type SmartAccountClient } from "permissionless";
 import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
+import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import { assign, fromPromise, setup } from "xstate";
 
 // ============================================================================
@@ -324,7 +325,7 @@ export const authMachine = authSetup.createMachine({
     walletAddress: null,
     externalWalletConnected: false,
     externalWalletAddress: null,
-    chainId: input?.chainId ?? 84532, // Default to Base Sepolia
+    chainId: input?.chainId ?? DEFAULT_CHAIN_ID,
     error: null,
     retryCount: 0,
   }),

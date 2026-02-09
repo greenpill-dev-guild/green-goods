@@ -351,7 +351,7 @@ print(gardens)
 5. Calculate total impact value
 6. Make investment decision
 
-[More Examples →](../guides/evaluators/exploring-gardens)
+[More Examples →](../evaluators/exploring-gardens)
 
 ---
 
@@ -383,7 +383,7 @@ Green Goods data maps to:
 - **Biodiversity**: Parse species and habitat data
 - **Karma GAP**: Direct integration for standardized reporting
 
-[Integration Guide →](../guides/evaluators/external-frameworks)
+[Integration Guide →](../evaluators/external-frameworks)
 
 ### Build Custom Analytics
 
@@ -475,10 +475,10 @@ query ApprovalBreakdown($gardenId: String!) {
 
 ### Detailed Evaluator Guides
 
-- [Accessing Data](../guides/evaluators/accessing-data)
-- [Exploring Gardens & Work](../guides/evaluators/exploring-gardens)
-- [Using Attestation Data](../guides/evaluators/using-attestation-data)
-- [External Framework Integration](../guides/evaluators/external-frameworks)
+- [Accessing Data](../evaluators/accessing-data)
+- [Exploring Gardens & Work](../evaluators/exploring-gardens)
+- [Using Attestation Data](../evaluators/using-attestation-data)
+- [External Framework Integration](../evaluators/external-frameworks)
 
 ### Understanding the System
 
@@ -489,7 +489,7 @@ query ApprovalBreakdown($gardenId: String!) {
 ### Developer Resources
 
 - [API Reference](../developer/api-reference)
-- [GraphQL Schema](../developer/architecture/indexer-package)
+- [GraphQL Schema](../developer/indexer)
 
 ### Get Help
 

@@ -7,7 +7,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import { AssessmentSchema } from "../Schemas.sol";
-import { IHats } from "../interfaces/IHats.sol";
+import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 
 error NotGardenOperator();
@@ -19,12 +19,8 @@ error InvalidCapital(string invalidCapital);
 /// @title AssessmentResolver
 /// @notice A schema resolver for Garden Assessment attestations
 /// @dev This contract is upgradable using the UUPS pattern and requires initialization.
-/// @dev Role checks are performed via HatsModule (Hats Protocol)
 contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
-    /// @notice HatsModule for role verification
-    IHats public immutable HATS_MODULE;
-
-    /// @notice The KarmaGAPModule for creating GAP milestones
+    /// @notice The Karma GAP module for milestone creation
     IKarmaGAPModule public karmaGAPModule;
 
     /// @notice Emitted when the KarmaGAPModule is updated
@@ -33,14 +29,12 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     /**
      * @dev Storage gap for future upgrades
      * Reserves 49 slots (50 total - 1 used: karmaGAPModule)
-     * Note: HATS_MODULE is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
     uint256[49] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address easAddrs, address hatsModule) SchemaResolver(IEAS(easAddrs)) {
-        HATS_MODULE = IHats(hatsModule);
+    constructor(address easAddrs) SchemaResolver(IEAS(easAddrs)) {
         _disableInitializers();
     }
 
@@ -53,11 +47,11 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     }
 
     /// @notice Sets the KarmaGAPModule address
-    /// @param _karmaGAPModule The new module address
-    function setKarmaGAPModule(address _karmaGAPModule) external onlyOwner {
+    /// @param _module The new KarmaGAPModule address
+    function setKarmaGAPModule(address _module) external onlyOwner {
         address oldModule = address(karmaGAPModule);
-        karmaGAPModule = IKarmaGAPModule(_karmaGAPModule);
-        emit KarmaGAPModuleUpdated(oldModule, _karmaGAPModule);
+        karmaGAPModule = IKarmaGAPModule(_module);
+        emit KarmaGAPModuleUpdated(oldModule, _module);
     }
 
     /// @notice Indicates whether the resolver is payable.
@@ -75,7 +69,7 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     /// 2. IDENTITY: Verify attester is a garden operator (can create assessments)
     /// 3. REQUIRED FIELDS: Validate title, assessmentType, capitals exist
     /// 4. CAPITAL VALIDATION: Verify each capital is one of 8 valid types
-    /// 5. GAP INTEGRATION: Create project milestone if GAP supported
+    /// 5. GAP INTEGRATION: Create project milestone if KarmaGAPModule is configured
     ///
     /// **8 Forms of Capital:**
     /// - social, material, financial, living
@@ -86,11 +80,15 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal override returns (bool) {
         // Decode the assessment schema to validate structure
         AssessmentSchema memory schema = abi.decode(attestation.data, (AssessmentSchema));
-        address garden = attestation.recipient;
 
-        // IDENTITY CHECK: Verify operator status via HatsModule
-        // Only operators can create assessments
-        if (!HATS_MODULE.isOperator(garden, attestation.attester)) {
+        // Use IGardenAccessControl interface for role verification
+        IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);
+
+        // IDENTITY CHECK: Verify evaluator OR operator status FIRST
+        // Uses IGardenAccessControl interface for swappable access control backends
+        bool isEvaluator = accessControl.isEvaluator(attestation.attester);
+        bool isOperator = accessControl.isOperator(attestation.attester);
+        if (!isEvaluator && !isOperator) {
             revert NotGardenOperator();
         }
 
@@ -117,9 +115,8 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         }
 
         // GAP INTEGRATION: Create project milestone (assessment)
-        // Uses KarmaGAPModule for decoupled GAP operations
         if (address(karmaGAPModule) != address(0)) {
-            _createGAPProjectMilestone(schema, garden);
+            _createGAPProjectMilestone(schema, attestation.recipient);
         }
 
         return true;
@@ -152,11 +149,9 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         string memory metaJSON = _buildMilestoneMetadata(schema);
 
         // SECURITY: Use try/catch to prevent GAP failures from reverting assessment
-        // The KarmaGAPModule has authorization checks
-        // Since we already validated operator in onAttest(), this is secure
         // solhint-disable-next-line no-empty-blocks
         try karmaGAPModule.createMilestone(garden, schema.title, schema.description, metaJSON) {
-            // Success - event emitted by KarmaGAPModule
+            // Success - event emitted by module, no additional action needed
         } catch {
             // Intentionally ignore failures - assessment succeeds even if GAP integration fails
         }

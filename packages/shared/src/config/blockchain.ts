@@ -1,4 +1,5 @@
 import deployment31337 from "../../../contracts/deployments/31337-latest.json";
+import deployment11155111 from "../../../contracts/deployments/11155111-latest.json";
 import deployment42161 from "../../../contracts/deployments/42161-latest.json";
 import deployment42220 from "../../../contracts/deployments/42220-latest.json";
 import deployment84532 from "../../../contracts/deployments/84532-latest.json";
@@ -45,6 +46,8 @@ interface DeploymentConfig {
   workResolver?: string;
   workApprovalResolver?: string;
   deploymentRegistry?: string;
+  hatsModule?: string;
+  karmaGAPModule?: string;
   rootGarden?: {
     address: string;
     tokenId: number;
@@ -64,6 +67,7 @@ interface NetworkJsonConfig {
 // Configuration maps for chain-specific data
 const DEPLOYMENT_CONFIGS: Record<string, DeploymentConfig> = {
   "31337": deployment31337 as DeploymentConfig,
+  "11155111": deployment11155111 as DeploymentConfig,
   "42161": deployment42161 as DeploymentConfig,
   "42220": deployment42220 as DeploymentConfig,
   "84532": deployment84532 as DeploymentConfig,
@@ -72,10 +76,11 @@ const DEPLOYMENT_CONFIGS: Record<string, DeploymentConfig> = {
 const EAS_GRAPHQL_URLS: Record<string, string> = {
   "42161": "https://arbitrum.easscan.org/graphql",
   "42220": "https://celo.easscan.org/graphql",
+  "11155111": "https://sepolia.easscan.org/graphql",
   "84532": "https://base-sepolia.easscan.org/graphql",
 };
 
-const DEFAULT_EAS_GRAPHQL_URL = "https://base-sepolia.easscan.org/graphql";
+const DEFAULT_EAS_GRAPHQL_URL = "https://sepolia.easscan.org/graphql";
 
 // Helper function to get network config by chain ID
 function getNetworkConfigFromNetworksJson(chainId: number): NetworkJsonConfig {
@@ -88,8 +93,8 @@ function getNetworkConfigFromNetworksJson(chainId: number): NetworkJsonConfig {
     }
   }
 
-  // Fallback to Base Sepolia if not found
-  return networks.baseSepolia as NetworkJsonConfig;
+  // Fallback to Sepolia if not found
+  return networks.sepolia as NetworkJsonConfig;
 }
 
 // Function to safely get deployment config using map lookup
@@ -100,13 +105,13 @@ function getDeploymentConfig(chainId: number | string): DeploymentConfig {
 
 // Get EAS GraphQL URL based on chain using map lookup
 export function getEasGraphqlUrl(chainId?: number | string): string {
-  const chain = String(chainId ?? 84532);
+  const chain = String(chainId ?? 11155111);
   return EAS_GRAPHQL_URLS[chain] ?? DEFAULT_EAS_GRAPHQL_URL;
 }
 
 // Function to get EAS config for a specific chain
 export function getEASConfig(chainId?: number | string): EASConfig {
-  const chain = chainId ? Number(chainId) : 84532; // Default to Base Sepolia
+  const chain = chainId ? Number(chainId) : 11155111; // Default to Sepolia
   const deployment = getDeploymentConfig(chain);
   const networkConfig = getNetworkConfigFromNetworksJson(chain);
 
@@ -172,7 +177,7 @@ function buildRpcUrl(rpcUrlTemplate: string, alchemyKey: string): string {
 
 // Function to get network config for a specific chain
 export function getNetworkConfig(chainId?: number | string, alchemyKey = "demo"): NetworkConfig {
-  const chain = chainId ? Number(chainId) : 84532; // Default to Base Sepolia
+  const chain = chainId ? Number(chainId) : 11155111; // Default to Sepolia
   const networkConfig = getNetworkConfigFromNetworksJson(chain);
   const deployment = getDeploymentConfig(chain);
 
@@ -190,6 +195,8 @@ export function getNetworkConfig(chainId?: number | string, alchemyKey = "demo")
         deployment.workApprovalResolver || "0x0000000000000000000000000000000000000000",
       deploymentRegistry:
         deployment.deploymentRegistry || "0x0000000000000000000000000000000000000000",
+      hatsModule: deployment.hatsModule || "0x0000000000000000000000000000000000000000",
+      karmaGAPModule: deployment.karmaGAPModule || "0x0000000000000000000000000000000000000000",
       // Add contracts from networks.json
       eas: networkConfig.contracts?.eas || "0x0000000000000000000000000000000000000000",
       easSchemaRegistry:
@@ -226,7 +233,7 @@ export function getIndexerUrl(env: { VITE_ENVIO_INDEXER_URL?: string }, isDev: b
 }
 
 // Default chain ID from environment variable
-export const DEFAULT_CHAIN_ID = Number((import.meta as any).env?.VITE_CHAIN_ID) || 84532;
+export const DEFAULT_CHAIN_ID = Number((import.meta as any).env?.VITE_CHAIN_ID) || 11155111;
 
 // Get default chain configuration
 export function getDefaultChain() {

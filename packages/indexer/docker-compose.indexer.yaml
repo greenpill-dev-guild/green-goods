@@ -1,0 +1,100 @@
+# Docker Compose for running the full indexer stack
+# Use this on macOS if you encounter the system-configuration crate panic
+#
+# Usage:
+#   cd packages/indexer
+#   docker compose -f docker-compose.indexer.yaml up --build
+#
+# This runs:
+#   - PostgreSQL (port 5433)
+#   - Hasura GraphQL Engine (port 8080)
+#   - Green Goods Indexer (port 9898)
+
+services:
+  # PostgreSQL database
+  envio-postgres:
+    image: postgres:17.5
+    restart: always
+    ports:
+      - "${ENVIO_PG_PORT:-5433}:5432"
+    volumes:
+      - indexer_db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${ENVIO_PG_PASSWORD:-testing}
+      POSTGRES_USER: ${ENVIO_PG_USER:-postgres}
+      POSTGRES_DB: ${ENVIO_PG_DATABASE:-envio-dev}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - indexer-network
+
+  # Hasura GraphQL Engine
+  graphql-engine:
+    image: hasura/graphql-engine:v2.43.0
+    ports:
+      - "${HASURA_EXTERNAL_PORT:-8080}:8080"
+    user: "1001:1001"
+    depends_on:
+      envio-postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://${ENVIO_PG_USER:-postgres}:${ENVIO_PG_PASSWORD:-testing}@envio-postgres:5432/${ENVIO_PG_DATABASE:-envio-dev}
+      HASURA_GRAPHQL_ENABLE_CONSOLE: ${HASURA_GRAPHQL_ENABLE_CONSOLE:-true}
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+      HASURA_GRAPHQL_NO_OF_RETRIES: 10
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-testing}
+      HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: "true"
+      PORT: 8080
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: public
+    healthcheck:
+      test: timeout 1s bash -c ':> /dev/tcp/127.0.0.1/8080' || exit 1
+      interval: 5s
+      timeout: 2s
+      retries: 50
+      start_period: 5s
+    networks:
+      - indexer-network
+
+  # Green Goods Indexer
+  indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9898:9898"
+    depends_on:
+      graphql-engine:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      # Database connection (use Docker network hostname)
+      ENVIO_PG_HOST: envio-postgres
+      ENVIO_PG_PORT: 5432
+      ENVIO_PG_USER: ${ENVIO_PG_USER:-postgres}
+      ENVIO_PG_PASSWORD: ${ENVIO_PG_PASSWORD:-testing}
+      ENVIO_PG_DATABASE: ${ENVIO_PG_DATABASE:-envio-dev}
+      # Hasura connection
+      HASURA_GRAPHQL_ENDPOINT: http://graphql-engine:8080
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-testing}
+      # RPC URLs (loaded from host environment)
+      ARBITRUM_RPC_URL: ${ARBITRUM_RPC_URL:-}
+      BASE_SEPOLIA_RPC_URL: ${BASE_SEPOLIA_RPC_URL:-}
+      CELO_RPC_URL: ${CELO_RPC_URL:-}
+    volumes:
+      # Mount source for hot reloading during development
+      - ./src:/app/src:ro
+      - ./config.yaml:/app/config.yaml:ro
+      - ./schema.graphql:/app/schema.graphql:ro
+    networks:
+      - indexer-network
+
+volumes:
+  indexer_db_data:
+
+networks:
+  indexer-network:
+    name: green_goods_indexer_network

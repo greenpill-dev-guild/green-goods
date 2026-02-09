@@ -70,13 +70,13 @@ These universal programming principles guide all development in this codebase:
 
 ### Advanced TypeScript Patterns
 
-- **Never `any`** — Use `unknown` and type guards
+- **Avoid `any`** — Use `unknown` and type guards (see CLAUDE.md for acceptable exceptions)
 - **Discriminated unions** — Type-safe state handling with tagged unions
 - **`as const`** — Preserve literal types for constants
 - **AbortSignal** — Cancellable async operations
 - **Zod schemas** — Runtime validation with type inference
 
-See `.cursor/rules/quality.mdc` for detailed examples.
+See `CLAUDE.md` for detailed type system examples.
 
 ### Advanced Solidity Patterns
 
@@ -86,19 +86,31 @@ See `.cursor/rules/quality.mdc` for detailed examples.
 - **Fuzz + invariant testing** — Adversarial testing with Foundry
 - **Multi-sig + timelock** — No single key for admin actions
 
-See `packages/contracts/AGENTS.md` and `packages/contracts/.cursor/rules/rules.mdc` for detailed examples.
+See `.claude/context/contracts.md` for detailed patterns.
 
 ---
 
 ## Non-Negotiable Rules
 
 - **Root `.env` only** — all packages read from the same file. Never introduce package-level env files or assume per-package overrides.
-- **Single chain** — always derive the chain from `getDefaultChain()` / `DEFAULT_CHAIN_ID` (Base Sepolia `84532` by default). Never pivot off wallet chain IDs.
+- **Single chain** — always derive the chain from `getDefaultChain()` / `DEFAULT_CHAIN_ID` (set by `VITE_CHAIN_ID`, defaults to Sepolia `11155111`). Never pivot off wallet chain IDs.
 - **Deployment wrapper** — interact with contracts through `deploy.ts` and the bun scripts (`bun --filter contracts deploy:*`, `upgrade:*`). Raw `forge script … --broadcast` is reserved for debugging.
 - **Schema immutability** — treat `packages/contracts/config/schemas.json` as read-only. Use `--update-schemas` via `deploy.ts` for metadata refreshes and create `schemas.test.json` for experiments.
 - **Secrets discipline** — do not log or commit values from `.env`. Update `.env.example` alongside any required new variables.
 - **Hooks in shared only** — all React hooks live in `@green-goods/shared`. Never create hooks in client or admin packages.
 - **i18n completeness** — **ANY** new user-facing string MUST be added to ALL THREE language files (`packages/shared/src/i18n/{en,es,pt}.json`) simultaneously. Use `intl.formatMessage()` with semantic keys (e.g., `app.feature.action`). Never commit hardcoded UI strings.
+
+## Codex Alignment (No Duplication)
+
+To apply the Claude skills and rules in Codex without duplicating them, treat the Claude system as the canonical source of truth and reference it directly:
+
+- `CLAUDE.md` — primary rules, architecture, and commands
+- `.claude/skills/{plan,review,debug,audit}/SKILL.md` — authoritative workflows for `/plan`, `/review`, `/debug`, `/audit`
+- `.claude/commands/*.md` — command triggers, usage, and output expectations
+- `.claude/agents/*.md` — role behaviors (`oracle`, `cracked-coder`, `code-reviewer`)
+
+When a task matches these workflows, open the relevant file(s) and follow them; do not restate or re-implement the rules here.
+MCP servers are defined in `.mcp.json` (single source of truth).
 
 ## MCP Usage
 
@@ -107,57 +119,58 @@ See `packages/contracts/AGENTS.md` and `packages/contracts/.cursor/rules/rules.m
 - **Vercel** — deployment management and preview URLs.
 - **Miro** — board access and diagram generation.
 - **Railway** — agent deployment management.
+- **Config** — MCP servers are defined in `.mcp.json` (single source of truth).
 
 Default to local commands (rg, bun, forge) when the task is small. Escalate to MCP when you need cross-repo views, screenshots, or automated PR operations.
 
 ## Developer Onboarding
 
-When helping a developer set up the project for the first time, recommend the **Dev Container** (Option A) for the most reliable experience, or the automated setup script (Option B).
-
-### Option A: Dev Container (Best)
-1. Install Docker Desktop + VS Code
-2. Open repo in VS Code -> "Reopen in Container"
-3. Edit `.env`
-4. `bun dev`
-
-### Option B: Local Shell
 ```bash
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
-bun setup
+bun setup    # Checks deps, installs packages, creates .env
+bun dev      # Starts all services via PM2
 ```
 
-The `bun setup` command (`scripts/setup.js`):
-1. Checks for Node.js 20+, Bun, Git (required) and Docker, Foundry (optional)
-2. Auto-installs Bun if missing
-3. Runs `bun install` to install all workspace packages
-4. Creates `.env` from `.env.example`
-5. Provides next-step guidance
+After setup, edit `.env` with API keys (Reown, Pimlico, optionally Storacha).
 
-After setup, the developer needs to:
-1. Edit `.env` with API keys (Reown, Pimlico, optionally Storacha)
-2. Run `bun dev` to start all services
+For detailed setup instructions, troubleshooting, and Dev Container options, see the [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer).
 
-For troubleshooting setup issues, see [Installation Guide](./docs/developer/installation.md).
+### Offline Bootstrap (Quick Reference)
+
+If docs.greengoods.app is unavailable:
+
+```bash
+# Essential setup
+git clone https://github.com/greenpill-dev-guild/green-goods.git
+cd green-goods
+bun setup    # Checks deps, installs packages, creates .env
+bun dev      # Starts all services
+
+# Package-specific context files
+.claude/context/shared.md   # Hooks, providers, stores
+.claude/context/client.md   # PWA, offline architecture
+.claude/context/admin.md    # Dashboard, access control
+.claude/context/contracts.md # Solidity, deployment
+```
 
 ## Workflow Checklist
 
-1. **Before editing** — read relevant package agent guides:
-   - `packages/shared/AGENTS.md` — common hooks, providers, stores, modules
-   - `packages/client/AGENTS.md` — PWA views and components
-   - `packages/admin/AGENTS.md` — dashboard views and components
-   - `packages/indexer/AGENTS.md` — Envio GraphQL indexer
-   - `packages/agent/AGENTS.md` — multi-platform bot (Telegram, Discord, WhatsApp)
-   - `packages/agent/.cursor/rules/*.mdc` — agent architecture, testing, deployment, security
-   - `packages/contracts/AGENTS.md` — Solidity contracts overview
-   - `packages/contracts/.cursor/rules/*.mdc` — detailed contract patterns
+1. **Before editing** — read the primary context files:
+   - `CLAUDE.md` — primary context (architecture, patterns, commands)
+   - `.claude/context/shared.md` — hooks, providers, stores, state patterns
+   - `.claude/context/client.md` — offline architecture, authentication, components
+   - `.claude/context/admin.md` — access control, role-based workflows
+   - `.claude/context/contracts.md` — UUPS upgrades, deployment, schema management
+   - `.claude/context/indexer.md` — Envio conventions, event handlers
+   - `.claude/context/agent.md` — multi-platform bot architecture, security
 2. **During implementation**
    - Keep TypeScript strict (`noImplicitAny`, etc.)
    - Prefer existing helper utilities over duplicating logic
    - Document non-obvious flows with concise comments
 3. **Before handing off**
    - Run `bun format && bun lint && bun test` or the package-specific equivalent
-   - Update documentation alongside behaviour changes (see `docs/developer/getting-started.md` and `docs/developer/contributing.md`, package READMEs)
+   - Update documentation alongside behavior changes (see [docs.greengoods.app](https://docs.greengoods.app) and package READMEs)
    - Surface remaining risks, manual steps, or test gaps in the final message
 
 ## Common Patterns
@@ -171,6 +184,14 @@ For troubleshooting setup issues, see [Installation Guide](./docs/developer/inst
 - Use `mediaResourceManager` from `@green-goods/shared` for blob URL lifecycle management.
 - Contracts should revert with custom errors and emit events for state changes.
 - Offline workflows persist to IndexedDB (see `packages/shared/src/modules/job-queue`); respect existing queue APIs when adding new flows.
+
+### UI Component Development
+
+- **Storybook** — Develop and test components in isolation at http://localhost:6006 (runs with `bun dev`)
+- **New components** — Create story files alongside components (`ComponentName.stories.tsx`)
+- **Variants** — Show all states (default, loading, error, empty) in stories
+- **Accessibility** — Use Storybook's a11y addon to catch issues early
+- **Theming** — Toggle light/dark in Storybook toolbar to verify both modes
 
 ## IPFS Deployment
 
@@ -186,14 +207,13 @@ Client and admin apps are deployed to IPFS via GitHub Actions (`.github/workflow
 - `STORACHA_PROOF` — UCAN delegation proof
 - `PINATA_JWT` — Pinata JWT for redundancy
 
-See [IPFS Deployment Guide](./docs/developer/ipfs-deployment.md) for setup and troubleshooting.
+See [IPFS Deployment Guide](https://docs.greengoods.app/developer/ipfs-deployment) for setup and troubleshooting.
 
 ## Diagram-First Explanations
 
 When explaining cross-package flows, reference or generate Mermaid diagrams:
 
 - **Canonical diagrams:** `docs/developer/architecture/diagrams.md`
-- **Generation guide:** `.cursor/rules/diagrams.mdc`
 
 | Flow | Use When |
 |------|----------|
@@ -207,12 +227,15 @@ For complex flows, start with a sequence diagram (detailed), then summarize to a
 
 ## Reference Materials
 
-- [Developer Docs](./docs/developer/getting-started.md) — environment, testing, troubleshooting
-- [Contracts Handbook](./docs/developer/contracts-handbook.md) — deployment + upgrade playbooks
-- [IPFS Deployment](./docs/developer/ipfs-deployment.md) — decentralized app deployment
-- [Product Overview](./docs/features/overview.md) — architecture snapshot
-- [Karma GAP Integration](./docs/developer/karma-gap.md) — GAP-specific context
-- [Architecture Diagrams](./docs/developer/architecture/diagrams.md) — canonical Mermaid diagrams
-- [Agent System Guide](./.cursor/AGENT_SYSTEM_GUIDE.md) — complete documentation architecture
+> **Fallback:** If docs.greengoods.app is unavailable, see package READMEs and `.claude/context/*.md` files for offline reference.
+
+- [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer) — environment setup
+- [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) — deployment + upgrade playbooks
+- [IPFS Deployment](https://docs.greengoods.app/developer/ipfs-deployment) — decentralized app deployment
+- [Product Overview](https://docs.greengoods.app/features/overview) — architecture snapshot
+- [Karma GAP Integration](https://docs.greengoods.app/developer/karma-gap) — GAP-specific context
+- [Architecture Diagrams](https://docs.greengoods.app/developer/architecture/diagrams) — canonical Mermaid diagrams
+- [Storybook](http://localhost:6006) — component library (local dev only, run `bun dev`)
+  - *For CI-deployed Storybook, see GitHub Actions artifacts or package README*
 
 When in doubt, check recent commits for precedent, or ask for clarification instead of guessing. Consistency across packages is the priority.

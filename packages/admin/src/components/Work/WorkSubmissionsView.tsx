@@ -1,8 +1,5 @@
-import { DEFAULT_CHAIN_ID, STALE_TIMES } from "@green-goods/shared";
-import { queryKeys } from "@green-goods/shared/hooks";
-import { getWorks } from "@green-goods/shared/modules";
+import { useWorks } from "@green-goods/shared/hooks";
 import { RiCheckboxCircleLine, RiCloseLine, RiFileList3Line, RiTimeLine } from "@remixicon/react";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { WorkCard } from "./WorkCard";
 
@@ -16,19 +13,13 @@ type FilterType = "all" | "pending" | "approved" | "rejected";
 export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ gardenId }) => {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
-  const { data: works = [], isLoading } = useQuery({
-    queryKey: queryKeys.works.online(gardenId, DEFAULT_CHAIN_ID),
-    queryFn: () => getWorks(gardenId),
-    staleTime: STALE_TIMES.works,
-  });
+  const { works, isLoading } = useWorks(gardenId);
 
   // Filter works based on active filter
-  // EASWork doesn't have status - it needs to be computed from approvals
-  // For now, treat all works as pending unless status is added
+  // Status is now computed by useWorks hook from approvals
   const filteredWorks = works.filter((work) => {
     if (activeFilter === "all") return true;
-    const status = (work as EASWork & { status?: string }).status || "pending";
-    return status === activeFilter;
+    return work.status === activeFilter;
   });
 
   const filterButtons: Array<{ id: FilterType; label: string; icon: React.ReactNode }> = [

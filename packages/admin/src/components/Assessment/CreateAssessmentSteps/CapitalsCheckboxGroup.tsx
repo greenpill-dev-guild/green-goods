@@ -6,18 +6,20 @@ import {
   type Merge,
   useController,
 } from "react-hook-form";
+import { useIntl } from "react-intl";
 import { type CreateAssessmentForm, extractErrorMessage } from "./shared";
 
 // The 8 forms of capital from Constants.sol
+// Labels use existing i18n keys: app.hypercerts.capital.*
 const CAPITALS = [
-  { value: "SOCIAL", label: "Social" },
-  { value: "MATERIAL", label: "Material" },
-  { value: "FINANCIAL", label: "Financial" },
-  { value: "LIVING", label: "Living" },
-  { value: "INTELLECTUAL", label: "Intellectual" },
-  { value: "EXPERIENTIAL", label: "Experiential" },
-  { value: "SPIRITUAL", label: "Spiritual" },
-  { value: "CULTURAL", label: "Cultural" },
+  { value: "SOCIAL", labelKey: "app.hypercerts.capital.social" },
+  { value: "MATERIAL", labelKey: "app.hypercerts.capital.material" },
+  { value: "FINANCIAL", labelKey: "app.hypercerts.capital.financial" },
+  { value: "LIVING", labelKey: "app.hypercerts.capital.living" },
+  { value: "INTELLECTUAL", labelKey: "app.hypercerts.capital.intellectual" },
+  { value: "EXPERIENTIAL", labelKey: "app.hypercerts.capital.experiential" },
+  { value: "SPIRITUAL", labelKey: "app.hypercerts.capital.spiritual" },
+  { value: "CULTURAL", labelKey: "app.hypercerts.capital.cultural" },
 ] as const;
 
 /** Error type for array fields - can be a field error or array of errors */
@@ -34,6 +36,7 @@ export function CapitalsCheckboxGroup({
   error,
   disabled = false,
 }: CapitalsCheckboxGroupProps) {
+  const { formatMessage } = useIntl();
   const {
     field: { value = [], onChange },
   } = useController({
@@ -56,14 +59,18 @@ export function CapitalsCheckboxGroup({
     <div className="space-y-0.5">
       <div className="flex items-center justify-between">
         <span className="font-medium text-text-sub text-sm">
-          Forms of capital <span className="ml-1 text-red-500">*</span>
+          {formatMessage({ id: "app.admin.assessment.capitals.title" })}{" "}
+          <span className="ml-1 text-red-500">*</span>
         </span>
         <span className="text-xs text-text-soft">
-          {Array.isArray(value) ? value.length : 0} selected
+          {formatMessage(
+            { id: "app.admin.assessment.capitals.selected" },
+            { count: Array.isArray(value) ? value.length : 0 }
+          )}
         </span>
       </div>
       <p className="text-xs text-text-soft">
-        Select the forms of capital assessed in this evaluation
+        {formatMessage({ id: "app.admin.assessment.capitals.description" })}
       </p>
 
       <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -89,7 +96,9 @@ export function CapitalsCheckboxGroup({
                 disabled={disabled}
                 className="h-4 w-4 rounded border-stroke-sub text-green-600 focus:ring-2 focus:ring-green-200 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60"
               />
-              <span className="flex-1 truncate font-medium">{capital.label}</span>
+              <span className="flex-1 truncate font-medium">
+                {formatMessage({ id: capital.labelKey })}
+              </span>
             </label>
           );
         })}

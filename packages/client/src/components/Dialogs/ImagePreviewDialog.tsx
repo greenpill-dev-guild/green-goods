@@ -5,7 +5,15 @@ import {
   RiZoomInLine,
   RiZoomOutLine,
 } from "@remixicon/react";
-import React, { TouchEvent, useCallback, useEffect, useRef, useState, WheelEvent } from "react";
+import React, {
+  type TouchEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type WheelEvent,
+} from "react";
+import { useTimeout } from "@green-goods/shared";
 import { cn } from "@green-goods/shared/utils";
 import { ImageWithFallback } from "@/components/Display";
 
@@ -34,6 +42,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const prevFocusRef = useRef<HTMLElement | null>(null);
+  const { set: scheduleTimeout } = useTimeout();
 
   // Touch pinch-to-zoom state
   const [touchState, setTouchState] = useState<{
@@ -107,18 +116,18 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
     prevFocusRef.current = (document.activeElement as HTMLElement) ?? null;
     document.documentElement.classList.add("modal-open");
 
-    // Defer to ensure the button exists in the DOM
-    setTimeout(() => {
+    // Defer to ensure the button exists in the DOM (auto-cleared on unmount)
+    scheduleTimeout(() => {
       closeBtnRef.current?.focus();
     }, 0);
 
     return () => {
       document.documentElement.classList.remove("modal-open");
-      // Restore focus on next tick to let unmount commit
+      // Restore focus on next tick to let unmount commit (auto-cleared via useTimeout)
       const prev = prevFocusRef.current;
-      setTimeout(() => prev?.focus?.(), 0);
+      scheduleTimeout(() => prev?.focus?.(), 0);
     };
-  }, [isOpen]);
+  }, [isOpen, scheduleTimeout]);
 
   // Focus trap within the dialog
   const trapTabKey = (e: React.KeyboardEvent<HTMLDivElement>) => {

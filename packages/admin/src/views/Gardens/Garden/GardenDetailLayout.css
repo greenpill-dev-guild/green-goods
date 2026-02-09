@@ -9,8 +9,7 @@
     "metadata"
     "stats"
     "work"
-    "operators"
-    "gardeners"
+    "roles"
     "assessments";
 }
 
@@ -25,8 +24,7 @@
 .grid-area-metadata { grid-area: metadata; }
 .grid-area-stats { grid-area: stats; }
 .grid-area-work { grid-area: work; }
-.grid-area-operators { grid-area: operators; }
-.grid-area-gardeners { grid-area: gardeners; }
+.grid-area-roles { grid-area: roles; }
 .grid-area-assessments { grid-area: assessments; }
 
 /* Small mobile: 480px+ - Slightly larger gap */
@@ -46,8 +44,8 @@
       "metadata metadata"
       "stats stats"
       "work work"
-      "assessments assessments"
-      "operators gardeners";
+      "roles roles"
+      "assessments assessments";
   }
 }
 
@@ -59,8 +57,8 @@
       "hero hero"
       "metadata metadata"
       "stats stats"
-      "work operators"
-      "assessments gardeners";
+      "work roles"
+      "assessments roles";
   }
 }
 
@@ -68,4 +66,3 @@
 .garden-detail-grid > * {
   transition: all 0.2s ease;
 }
-

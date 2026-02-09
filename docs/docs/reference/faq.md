@@ -182,7 +182,7 @@ See the  for curated guides, recipes, and external references.
 3. View attestation details
 4. Verify signature and data
 
-[Verification Guide →](../guides/evaluators/using-attestation-data)
+[Verification Guide →](../evaluators/using-attestation-data)
 
 ### Can I export all data?
 
@@ -214,7 +214,7 @@ Verified on-chain: [Attestation UID]
 **Indexer**: Envio + PostgreSQL + GraphQL
 **Storage**: IPFS via Storacha
 
-[Technical Architecture →](../developer/architecture/monorepo-structure)
+[Technical Architecture →](../developer/architecture)
 
 ### How are attestations stored?
 

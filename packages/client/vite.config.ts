@@ -101,6 +101,7 @@ export default defineConfig(({ mode }) => {
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        importScripts: ["sw-custom.js"],
         runtimeCaching: [
           {
             // Only cache JS files from the same origin (avoids caching external analytics/ads)
@@ -264,6 +265,7 @@ export default defineConfig(({ mode }) => {
       port: 3001,
       strictPort: true,
       host: true,
+      open: true,
       hmr: { overlay: true },
       watch: { usePolling: true, interval: 100 },
       proxy: {

@@ -1,14 +1,15 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEnsAddress } from "@green-goods/shared/hooks";
-import { cn, formatAddress, resolveEnsAddress } from "@green-goods/shared/utils";
+import { cn, formatAddress, resolveEnsAddress, type GardenRole } from "@green-goods/shared/utils";
 import { RiClipboardLine, RiCloseLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
+import { useIntl } from "react-intl";
 import { isAddress } from "viem";
 
 interface AddMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  memberType: "gardener" | "operator";
+  memberType: GardenRole;
   onAdd: (address: string) => Promise<void>;
   isLoading: boolean;
 }
@@ -24,6 +25,7 @@ export function AddMemberModal({
   onAdd,
   isLoading,
 }: AddMemberModalProps) {
+  const { formatMessage } = useIntl();
   const [address, setAddress] = useState("");
   const [error, setError] = useState("");
 
@@ -35,12 +37,22 @@ export function AddMemberModal({
     { enabled: shouldResolveEns }
   );
 
+  const roleLabelMap: Record<GardenRole, string> = {
+    gardener: formatMessage({ id: "app.roles.gardener" }),
+    operator: formatMessage({ id: "app.roles.operator" }),
+    evaluator: formatMessage({ id: "app.roles.evaluator" }),
+    owner: formatMessage({ id: "app.roles.owner" }),
+    funder: formatMessage({ id: "app.roles.funder" }),
+    community: formatMessage({ id: "app.roles.community" }),
+  };
+  const roleLabel = roleLabelMap[memberType];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     if (!trimmed) {
-      setError("Address is required");
+      setError(formatMessage({ id: "app.admin.roles.error.addressRequired" }));
       return;
     }
 
@@ -50,7 +62,7 @@ export function AddMemberModal({
       if (!isAddress(addressToAdd)) {
         const lookup = resolvedEnsAddress ?? (await resolveEnsAddress(addressToAdd));
         if (!lookup || !isAddress(lookup)) {
-          setError("Could not resolve ENS name");
+          setError(formatMessage({ id: "app.admin.roles.error.ensResolutionFailed" }));
           return;
         }
         addressToAdd = lookup;
@@ -60,7 +72,11 @@ export function AddMemberModal({
       setAddress("");
       onClose();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to add member");
+      setError(
+        error instanceof Error
+          ? error.message
+          : formatMessage({ id: "app.admin.roles.error.addFailed" })
+      );
     }
   };
 
@@ -79,7 +95,7 @@ export function AddMemberModal({
       }
     } catch (err) {
       console.error("Failed to read clipboard:", err);
-      setError("Failed to paste from clipboard");
+      setError(formatMessage({ id: "app.admin.roles.error.clipboardFailed" }));
     }
   };
 
@@ -99,7 +115,7 @@ export function AddMemberModal({
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <Dialog.Title className="text-lg font-medium text-text-strong">
-              Add {memberType === "gardener" ? "Gardener" : "Operator"}
+              {formatMessage({ id: "app.admin.roles.add" }, { role: roleLabel })}
             </Dialog.Title>
             <Dialog.Close asChild>
               <button
@@ -119,7 +135,7 @@ export function AddMemberModal({
                 htmlFor="member-address"
                 className="block text-sm font-medium text-text-sub mb-2"
               >
-                Ethereum Address or ENS Name
+                {formatMessage({ id: "app.admin.roles.addressLabel" })}
               </label>
               <div className="relative">
                 <input
@@ -179,7 +195,7 @@ export function AddMemberModal({
               >
                 {isLoading
                   ? "Adding..."
-                  : `Add ${memberType === "gardener" ? "Gardener" : "Operator"}`}
+                  : formatMessage({ id: "app.admin.roles.add" }, { role: roleLabel })}
               </button>
             </div>
           </form>

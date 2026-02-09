@@ -76,7 +76,9 @@ interface IKarmaGAPModule {
         string calldata description,
         string calldata location,
         string calldata bannerImage
-    ) external returns (bytes32 projectUID);
+    )
+        external
+        returns (bytes32 projectUID);
 
     /// @notice Adds an admin to a garden's GAP project
     /// @dev Called when an operator is added to the garden
@@ -110,7 +112,9 @@ interface IKarmaGAPModule {
         string calldata impactDescription,
         string calldata proofIPFS,
         bytes32 workUID
-    ) external returns (bytes32 impactUID);
+    )
+        external
+        returns (bytes32 impactUID);
 
     /// @notice Creates a GAP milestone for an assessment
     /// @dev Called by AssessmentResolver when assessment is created
@@ -124,7 +128,9 @@ interface IKarmaGAPModule {
         string calldata milestoneTitle,
         string calldata milestoneDescription,
         string calldata milestoneMeta
-    ) external returns (bytes32 milestoneUID);
+    )
+        external
+        returns (bytes32 milestoneUID);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // View Functions

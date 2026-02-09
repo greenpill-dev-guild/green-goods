@@ -9,6 +9,16 @@
  * that are used across both client and admin packages.
  */
 
+// DatePicker Components
+export { DatePicker, type DatePickerProps } from "./DatePicker";
+export { DateRangePicker, type DateRangePickerProps } from "./DatePicker";
+
+// Dialog Components
+export { ConfirmDialog, type ConfirmDialogProps } from "./Dialog";
+
+// Error Boundary
+export { ErrorBoundary, type ErrorBoundaryProps } from "./ErrorBoundary";
+
 // Display Components
 export { ImageWithFallback, type ImageWithFallbackProps } from "./Display";
 
@@ -42,6 +52,8 @@ export {
 } from "./Cards";
 
 // Form Components
+export type { FormFieldWrapperProps } from "./Form/FormFieldWrapper";
+export { FormFieldWrapper } from "./Form/FormFieldWrapper";
 export type { FormInputProps } from "./Form/FormInput";
 export { FormInput } from "./Form/FormInput";
 export type { FormLayoutProps } from "./Form/FormLayout";
@@ -111,3 +123,10 @@ export type {
 } from "./Toast/toast.service";
 export { setToastTranslator, toastService } from "./Toast/toast.service";
 export { TranslationBadge } from "./TranslationBadge";
+export { SyncStatusBar } from "./SyncStatusBar";
+
+// Progress Components
+export type { SubmissionProgressState, SubmissionStage } from "../hooks/work/useSubmissionProgress";
+export { SubmissionProgress } from "./Progress/SubmissionProgress";
+export type { SyncStatus } from "./Progress/SyncIndicator";
+export { SyncIndicator } from "./Progress/SyncIndicator";

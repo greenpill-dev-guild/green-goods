@@ -4,11 +4,12 @@ import {
   RiErrorWarningLine,
   RiLoader4Line,
   RiTimeLine,
+  RiUploadCloud2Line,
 } from "@remixicon/react";
 import React from "react";
 import { cn } from "../utils/styles/cn";
 
-export type WorkStatus = "approved" | "rejected" | "pending" | "syncing" | "failed";
+export type WorkStatus = "approved" | "rejected" | "pending" | "syncing" | "uploading" | "failed";
 
 export interface StatusBadgeProps {
   status: WorkStatus;
@@ -61,6 +62,14 @@ function getStatusConfig(status: WorkStatus, variant: "semantic" | "default"): S
         return {
           icon: <RiLoader4Line className={cn(iconClass, "animate-spin")} />,
           label: "Syncing",
+          bgColor: "bg-information-lighter",
+          textColor: "text-information-dark",
+          borderColor: "border-information-light",
+        };
+      case "uploading":
+        return {
+          icon: <RiUploadCloud2Line className={cn(iconClass, "animate-pulse")} />,
+          label: "Uploading",
           bgColor: "bg-information-lighter",
           textColor: "text-information-dark",
           borderColor: "border-information-light",
@@ -118,6 +127,14 @@ function getStatusConfig(status: WorkStatus, variant: "semantic" | "default"): S
         textColor: "text-information-dark",
         borderColor: "border-information-light",
       };
+    case "uploading":
+      return {
+        icon: <RiUploadCloud2Line className={cn(iconClass, "animate-pulse")} />,
+        label: "Uploading",
+        bgColor: "bg-information-lighter",
+        textColor: "text-information-dark",
+        borderColor: "border-information-light",
+      };
     case "failed":
       return {
         icon: <RiErrorWarningLine className={iconClass} />,
@@ -145,7 +162,9 @@ export function getStatusColors(
   variant: "semantic" | "default" = "default"
 ) {
   const normalizedStatus = (
-    ["approved", "rejected", "pending", "syncing", "failed"].includes(status) ? status : "pending"
+    ["approved", "rejected", "pending", "syncing", "uploading", "failed"].includes(status)
+      ? status
+      : "pending"
   ) as WorkStatus;
   const config = getStatusConfig(normalizedStatus, variant);
   return {
@@ -178,6 +197,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   return (
     <span
+      role="status"
+      aria-live="polite"
       className={cn(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
         config.bgColor,

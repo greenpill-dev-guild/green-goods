@@ -2,48 +2,49 @@
   "$schema": "https://json.schemastore.org/mcp.json",
   "version": "1.0",
   "description": "Green Goods MCP server configuration",
+  "lastVerified": "2026-02-01",
 
   "servers": {
-    "figma": {
-      "description": "Figma design context extraction and Code Connect",
-      "url": "https://mcp.figma.com",
-      "enabled": true,
-      "usage": ["Design-to-code implementation", "Component discovery", "Design system rules"]
-    },
-
-    "vercel": {
-      "description": "Vercel deployment management",
-      "url": "https://mcp.vercel.com",
-      "enabled": true,
-      "usage": ["Deploy applications", "View deployment logs", "Manage environments"]
-    },
-
     "foundry": {
       "description": "Smart contract development tools (forge, cast, anvil)",
-      "command": ["foundry-mcp"],
+      "command": ["npx", "-y", "@pranesh.asp/foundry-mcp-server"],
       "enabled": true,
+      "status": "active",
+      "note": "Use direct forge/cast/anvil commands (installed: forge v1.3.5-stable)",
       "usage": ["Contract compilation", "Contract testing", "Chain interactions", "Gas estimation"],
-      "tools": ["forge", "cast", "anvil"]
+      "tools": ["forge", "cast", "anvil"],
+      "env": {
+        "RPC_URL": "https://sepolia.base.org"
+      }
     },
 
     "storacha": {
       "description": "IPFS/Filecoin storage via Storacha",
-      "url": "https://up.storacha.network",
+      "command": ["npx", "-y", "@storacha/mcp-storage-server"],
       "enabled": true,
-      "usage": ["Upload work media to IPFS", "Pin content to Filecoin", "Retrieve CIDs"]
+      "status": "configured",
+      "note": "Requires VITE_STORACHA_KEY and VITE_STORACHA_PROOF in root .env",
+      "usage": ["Upload work media to IPFS", "Pin content to Filecoin", "Retrieve CIDs"],
+      "env": {
+        "PRIVATE_KEY": "${VITE_STORACHA_KEY}",
+        "DELEGATION": "${VITE_STORACHA_PROOF}"
+      }
     },
 
     "miro": {
       "description": "Miro whiteboard collaboration",
-      "url": "https://mcp.miro.com",
+      "url": "https://mcp.miro.com/",
       "enabled": true,
+      "status": "available",
       "usage": ["Architecture diagrams", "Planning sessions", "Research visualization"]
     },
 
     "railway": {
       "description": "Railway deployment management",
-      "command": ["railway-mcp"],
+      "command": ["npx", "-y", "@railway/mcp-server"],
       "enabled": true,
+      "status": "available",
+      "note": "CLI not installed locally - use for deployment when needed",
       "usage": ["Deploy indexer services", "Manage databases", "View service logs"]
     }
   },
@@ -54,12 +55,12 @@
       "note": "Read-only agent, no MCP servers needed"
     },
     "cracked-coder": {
-      "servers": ["foundry", "figma", "vercel", "storacha", "railway"],
-      "note": "Full implementation access: contracts, design, deploy, storage, services"
+      "servers": ["foundry", "storacha", "railway"],
+      "note": "Implementation access: contracts, storage, services"
     },
     "oracle": {
-      "servers": ["figma", "vercel", "miro"],
-      "note": "Research access: design discovery, deployment investigation, architecture diagrams"
+      "servers": ["miro"],
+      "note": "Research access: architecture diagrams"
     }
   }
 }

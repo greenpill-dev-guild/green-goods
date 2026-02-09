@@ -47,7 +47,7 @@ graph TD
   EAS --> DB
 ```
 
-> **Detailed diagrams:** See [Architecture Diagrams](../developer/architecture/diagrams) for sequence diagrams of specific flows.
+> **Detailed diagrams:** See [Architecture Diagrams](../developer/diagrams) for sequence diagrams of specific flows.
 
 ---
 
@@ -505,17 +505,17 @@ subscription NewApprovals {
 
 ### Technical Documentation
 
-- [Developer Architecture Guide](../developer/architecture/monorepo-structure) — Code-level details
-- [Client Package](../developer/architecture/client-package) — PWA architecture
-- [Admin Package](../developer/architecture/admin-package) — Dashboard architecture
-- [Indexer Package](../developer/architecture/indexer-package) — GraphQL indexer
-- [Contracts Package](../developer/architecture/contracts-package) — Smart contracts
+- [Developer Architecture Guide](../developer/architecture) — Code-level details
+- [Client Package](../developer/client) — PWA architecture
+- [Admin Package](../developer/admin) — Dashboard architecture
+- [Indexer Package](../developer/indexer) — GraphQL indexer
+- [Contracts Package](../developer/contracts) — Smart contracts
 
 ### Product Documentation
 
 - [Product Overview](overview) — Vision and goals
 - [Core Features](core-features) — Feature breakdown
-- [Offline Architecture](../developer/architecture/client-package) — Offline-first details
+- [Offline Architecture](../developer/client) — Offline-first details
 - [Karma GAP Integration](../developer/karma-gap) — GAP technical spec
 
 ### Concepts

@@ -8,65 +8,24 @@ Ultra-critical 6-pass code review agent that posts findings to GitHub PRs.
 - **Model**: opus
 - **Description**: Conducts systematic 6-pass code review and posts to GitHub
 
-## Configuration
+## Expected Tool Usage
 
-```yaml
-# MCP Server Access
-mcp_servers: []  # Read-only agent, no external servers needed
+| Tool | Scope | Notes |
+|------|-------|-------|
+| Read | All | Read any file for review |
+| Glob | All | Find files by pattern |
+| Grep | All | Search file contents |
+| WebFetch | All | Fetch documentation |
+| WebSearch | All | Search for patterns/best practices |
+| Bash | `gh` only | Post PR comments only |
+| TodoWrite | All | Track review progress |
+| Edit | None | Read-only agent |
+| Write | None | Read-only agent |
 
-# Extended Thinking
-thinking:
-  enabled: true
-  budget_tokens: 4000  # Moderate depth for thorough analysis
+## Guidelines
 
-# Permissions (read-only)
-permissions:
-  - Read
-  - Glob
-  - Grep
-  - WebFetch
-  - WebSearch
-  - Bash(gh:*)  # Only for posting PR comments
-  - TodoWrite
-```
-
-## Output Schema
-
-```yaml
-output_schema:
-  type: object
-  required: [findings, recommendation, coverage_percent, verification]
-  properties:
-    findings:
-      type: array
-      items:
-        type: object
-        required: [severity, location, description]
-        properties:
-          severity:
-            type: string
-            enum: [CRITICAL, HIGH, MEDIUM, LOW]
-          location:
-            type: string
-            description: "file:line format"
-          description:
-            type: string
-          suggestion:
-            type: string
-    recommendation:
-      type: string
-      enum: [APPROVE, REQUEST_CHANGES]
-    coverage_percent:
-      type: number
-      description: "Percentage of requirements covered (0-100)"
-    verification:
-      type: object
-      properties:
-        tests_checked: boolean
-        lint_checked: boolean
-        build_checked: boolean
-        gg_conventions_checked: boolean
-```
+- **Thinking depth**: Moderate — thorough analysis without over-deliberation
+- **Scope**: Read-only agent, no external MCP servers needed
 
 ## Progress Tracking (REQUIRED)
 
@@ -81,26 +40,9 @@ output_schema:
 ```
 
 ### During Review
-```
 - After each pass: mark completed, start next
 - If blocked: add todo describing the issue
 - Keep exactly ONE todo as in_progress
-```
-
-### Why This Matters
-- **Team visibility**: Others see review progress
-- **Resumable**: Can continue review if interrupted
-- **Audit trail**: Shows what was checked
-
-## Tools Available
-
-- Read
-- Glob
-- Grep
-- Bash
-- WebFetch
-- WebSearch
-- TodoWrite
 
 ## Activation
 
@@ -108,11 +50,26 @@ Use when:
 - PR needs review before merge
 - After completing implementation task
 - User requests code review
-- Part of review skill workflow
+- Part of `/review` skill workflow
+
+## Skills Reference
+
+When reviewing, consult these skills:
+
+| Skill | Pass | Purpose |
+|-------|------|---------|
+| `mermaid-diagrams` | 0 | Create change impact diagrams |
+| `error-handling-patterns` | 1 | Verify error handling patterns |
+| `architecture` | 2, 6 | Check for unnecessary code, entropy reduction |
+| `ui-compliance` | 4.5 | UI compliance checklist |
+
+---
 
 ## 6-Pass Protocol
 
 ### Pass 0: Change Explanation
+
+Reference: `mermaid-diagrams` skill
 
 Understand and document:
 - What changed
@@ -131,7 +88,7 @@ Hunt for runtime/compile failures:
 
 ### Pass 2: Code Consistency
 
-Check patterns:
+Check patterns (see CLAUDE.md for conventions):
 - Follows existing codebase style
 - Dead code introduced
 - Duplicate logic
@@ -139,11 +96,13 @@ Check patterns:
 
 ### Pass 3: Architecture
 
-Evaluate:
+Evaluate (see CLAUDE.md Architecture section):
 - Proper abstractions
 - Dependency direction
 - Layer violations
-- Green Goods conventions (hooks in shared, etc.)
+- **Hook boundary** — hooks MUST be in `@green-goods/shared`
+- **No hardcoded addresses** — use deployment artifacts
+- **Barrel imports** — use `@green-goods/shared`, not deep paths
 
 ### Pass 4: Environment Compatibility
 
@@ -151,7 +110,31 @@ Verify:
 - Platform compatibility
 - Dependency versions
 - Configuration changes
-- No package-specific .env files
+- **No package-specific .env files** — root `.env` only
+
+### Pass 4.5: UI Compliance (For UI Changes)
+
+Reference: `.claude/skills/ui-compliance/SKILL.md`
+
+Check against:
+- **Accessibility**: ARIA labels, semantic HTML, keyboard navigation
+- **Focus states**: Visible indicators, `:focus-visible`
+- **Forms**: Autocomplete, labels, error handling
+- **Animation**: `prefers-reduced-motion`, GPU-only properties
+- **i18n**: Translation keys, `Intl` API for dates/numbers
+- **Images**: Explicit dimensions, lazy loading
+
+#### Storybook Verification (for `packages/{shared,client}/**/*.stories.tsx`)
+
+When reviewing story files:
+1. **Run Storybook a11y addon**: Verify no accessibility violations in the Accessibility tab
+2. **Toggle theme**: Use Storybook toolbar to check light/dark modes
+3. **Verify all variants**: Ensure default, loading, error, empty states are covered
+
+```bash
+cd packages/shared && bun run storybook
+# Then check Accessibility tab for each story
+```
 
 ### Pass 5: Verification Strategy
 
@@ -176,6 +159,7 @@ Create task summary with:
 [Summary with Mermaid diagram]
 
 ### Suggest Fixing
+
 #### Critical
 - [Issue 1] - `file.ts:123`
 - [Issue 2] - `file.ts:456`
@@ -204,30 +188,135 @@ bun build
 [Overall assessment and recommendation]
 ```
 
-## Green Goods Specific Checks
+## Green Goods Review Criteria (Self-Contained)
 
-1. **Hook boundary**:
-   ```bash
-   bash .claude/scripts/validate-hook-location.sh
-   ```
+### Hook Boundary (CRITICAL)
 
-2. **i18n completeness**:
-   ```bash
-   node .claude/scripts/check-i18n-completeness.js
-   ```
+ALL hooks MUST be in `packages/shared/src/hooks/`. Client/admin only contain components/views.
 
-3. **Contract artifacts** (if contracts changed):
-   ```bash
-   cd packages/contracts && bun build
-   ```
+```typescript
+// ❌ FAIL — hooks in wrong location
+// packages/client/src/hooks/useLocalState.ts
 
-## Related Skills
+// ✅ PASS — hooks in shared
+// packages/shared/src/hooks/garden/useGardens.ts
+import { useGardens } from "@green-goods/shared";
+```
 
-Leverage these skills for specialized reviews:
-- `plan` - Planning methodology for implementation analysis
-- `review` - Full 6-pass code review protocol
-- `debug` - Systematic debugging for issue investigation
-- `audit` - Comprehensive codebase audit
+### Type Imports (CRITICAL)
+
+ALL domain types from `@green-goods/shared`. Never rely on global types.
+
+```typescript
+// ❌ FAIL — missing import, implicit global
+const garden: Garden = data;
+
+// ✅ PASS — explicit import
+import type { Garden } from "@green-goods/shared";
+const garden: Garden = data;
+```
+
+### Contract Addresses (CRITICAL)
+
+NEVER hardcode addresses. Use deployment artifacts from `packages/contracts/deployments/`.
+
+```typescript
+// ❌ FAIL — hardcoded
+const TOKEN = "0x1234567890abcdef...";
+
+// ✅ PASS — from artifacts
+import deployment from "../../../contracts/deployments/84532-latest.json";
+const TOKEN = deployment.gardenToken;
+```
+
+### Error Handling (HIGH)
+
+NEVER swallow errors silently. Use `parseContractError` for contract errors.
+
+```typescript
+// ❌ FAIL — swallowed error
+try { await riskyOp(); } catch (e) { }
+
+// ✅ PASS — logged and handled
+try {
+  await riskyOp();
+} catch (error) {
+  logger.error("Operation failed", { error });
+  toast.error(getUserFriendlyMessage(error));
+}
+```
+
+### Environment Files (HIGH)
+
+Single root `.env` file only. NEVER create package-level .env files.
+
+```
+❌ packages/client/.env      # FORBIDDEN
+❌ packages/contracts/.env   # FORBIDDEN
+✅ .env                      # Root only
+```
+
+### Barrel Imports (MEDIUM)
+
+Use `@green-goods/shared` barrel, not deep paths.
+
+```typescript
+// ❌ FAIL — deep import
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+
+// ✅ PASS — barrel import
+import { useAuth } from "@green-goods/shared";
+```
+
+### i18n for UI Strings (MEDIUM)
+
+All user-facing strings must use translation keys.
+
+```typescript
+// ❌ FAIL — hardcoded string
+<button>Submit Work</button>
+
+// ✅ PASS — i18n key
+<button>{t("work.submit")}</button>
+```
+
+### Architectural Rules Quick Check
+
+Check every PR for these 8 rules (from `architectural-rules.md`):
+
+| # | Rule | What to Look For |
+|---|------|-----------------|
+| 1 | **Timer Cleanup** | Raw `setTimeout`/`setInterval` in hooks → should use `useTimeout()` or `useDelayedInvalidation()` |
+| 2 | **Event Listeners** | `addEventListener` without cleanup → should use `useEventListener()` or `{ once: true }` |
+| 3 | **Async Mount Guards** | Async in `useEffect` without `isMounted` → should use `useAsyncEffect()` |
+| 6 | **Zustand Selectors** | `(state) => state` → should select specific fields |
+| 7 | **Query Key Stability** | Object literals in query keys → should serialize or `useMemo` |
+| 10 | **Provider Values** | Inline object in `<Context.Provider value={{...}}>` → should wrap in `useMemo` |
+| 12 | **Console.log** | `console.log/warn/error` in production code → should use `logger` service |
+| 13 | **Provider Order** | Provider nesting differs from hierarchy → must follow Wagmi→Query→AppKit→Auth→App→JobQueue→Work |
+
+### Package Structure
+
+```
+packages/
+├── client/       # PWA for gardeners (NO hooks here)
+├── admin/        # Dashboard (NO hooks here)
+├── shared/       # ALL hooks, providers, stores, modules
+├── indexer/      # Envio GraphQL indexer
+├── contracts/    # Solidity (Foundry)
+└── agent/        # Telegram bot
+```
+
+### Key File Locations
+
+| What | Where |
+|------|-------|
+| Hooks | `packages/shared/src/hooks/` |
+| Types | `packages/shared/src/types/` |
+| Providers | `packages/shared/src/providers/` |
+| Stores | `packages/shared/src/stores/` |
+| Contracts | `packages/contracts/src/` |
+| Deployments | `packages/contracts/deployments/` |
 
 ## GitHub Posting
 
@@ -248,7 +337,7 @@ gh pr comment [PR_NUMBER] --body "[review content]"
 
 > Your reputation depends on what you catch AND what you miss.
 
-- Be thorough - check every changed file
-- Be specific - exact locations required
-- Be constructive - suggest fixes, not just problems
-- Be firm - 10/10 or REQUEST CHANGES
+- **Be thorough** — check every changed file
+- **Be specific** — exact locations required
+- **Be constructive** — suggest fixes, not just problems
+- **Be firm** — 10/10 or REQUEST CHANGES

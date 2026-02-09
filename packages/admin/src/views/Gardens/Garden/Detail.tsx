@@ -1,23 +1,36 @@
-import { DEFAULT_CHAIN_ID, formatDate, STALE_TIMES } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, formatDate, toastService } from "@green-goods/shared";
 import {
-  queryKeys,
+  queryInvalidation,
+  useDelayedInvalidation,
   useGardenAssessments,
   useGardenOperations,
   useGardenPermissions,
   useGardens,
+  useWorks,
+  type GardenOperationResult,
 } from "@green-goods/shared/hooks";
-import { getWorks, resolveIPFSUrl } from "@green-goods/shared/modules";
+import { resolveIPFSUrl } from "@green-goods/shared/modules";
+import {
+  GARDEN_ROLE_COLORS,
+  GARDEN_ROLE_I18N_KEYS,
+  GARDEN_ROLE_ORDER,
+  getRoleColorClasses,
+  type GardenRole,
+} from "@green-goods/shared/utils";
 import {
   RiCheckboxCircleLine,
   RiDeleteBinLine,
   RiExternalLinkLine,
   RiFileList3Line,
+  RiMedalLine,
+  RiAddLine,
   RiShieldCheckLine,
   RiUserAddLine,
   RiUserLine,
 } from "@remixicon/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
@@ -32,19 +45,20 @@ const EAS_EXPLORER_URL = "https://explorer.easscan.org";
 
 export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
+  const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const gardenPermissions = useGardenPermissions();
   const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
-  const [memberType, setMemberType] = useState<"gardener" | "operator">("gardener");
+  const [memberType, setMemberType] = useState<GardenRole>("gardener");
   const [membersModalOpen, setMembersModalOpen] = useState(false);
-  const [membersModalType, setMembersModalType] = useState<"gardener" | "operator">("gardener");
+  const [membersModalType, setMembersModalType] = useState<GardenRole>("gardener");
 
-  const openAddMemberModal = (type: "gardener" | "operator") => {
+  const openAddMemberModal = (type: GardenRole) => {
     setMemberType(type);
     setAddMemberModalOpen(true);
   };
 
-  const openMembersModal = (type: "gardener" | "operator") => {
+  const openMembersModal = (type: GardenRole) => {
     setMembersModalType(type);
     setMembersModalOpen(true);
   };
@@ -54,13 +68,11 @@ export default function GardenDetail() {
   const garden = gardens.find((g) => g.id === id);
 
   // Background refetch to sync with indexer after transaction confirms
-  // This is a fallback - optimistic updates handle immediate UI updates
-  const scheduleBackgroundRefetch = useCallback(() => {
-    // Delay refetch to allow indexer to process the transaction
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(DEFAULT_CHAIN_ID) });
-    }, 5000);
-  }, [queryClient]);
+  // Uses useDelayedInvalidation for auto-cleanup on unmount
+  const { start: scheduleBackgroundRefetch } = useDelayedInvalidation(() => {
+    const keysToInvalidate = queryInvalidation.invalidateGardens(DEFAULT_CHAIN_ID);
+    keysToInvalidate.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
+  }, 5000);
 
   const {
     data: assessmentList = [],
@@ -70,18 +82,28 @@ export default function GardenDetail() {
 
   const assessments = assessmentList;
 
-  const { addGardener, removeGardener, addOperator, removeOperator, isLoading } =
-    useGardenOperations(id!);
+  const {
+    addGardener,
+    removeGardener,
+    addOperator,
+    removeOperator,
+    addEvaluator,
+    removeEvaluator,
+    addOwner,
+    removeOwner,
+    addFunder,
+    removeFunder,
+    addCommunity,
+    removeCommunity,
+    isLoading,
+  } = useGardenOperations(id!);
 
   const canManage = garden ? gardenPermissions.canManageGarden(garden) : false;
+  const canReview = garden ? gardenPermissions.canReviewGarden(garden) : false;
+  const canManageRoles = garden ? gardenPermissions.canAddMembers(garden) : false;
 
-  // Fetch work submissions for this garden
-  const { data: works = [] } = useQuery({
-    queryKey: queryKeys.works.online(id!, DEFAULT_CHAIN_ID),
-    queryFn: () => getWorks(id),
-    enabled: !!id,
-    staleTime: STALE_TIMES.works,
-  });
+  // Fetch work submissions for this garden using shared hook
+  const { works } = useWorks(id!);
 
   const baseHeaderProps = {
     backLink: { to: "/gardens", label: "Back to gardens" },
@@ -122,6 +144,51 @@ export default function GardenDetail() {
       </div>
     );
   }
+
+  // Build localized role labels from shared i18n keys
+  const getRoleLabel = (role: GardenRole) => ({
+    singular: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].singular }),
+    plural: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].plural }),
+  });
+
+  const roleMembers: Record<GardenRole, string[]> = {
+    owner: garden.owners ?? [],
+    operator: garden.operators ?? [],
+    evaluator: garden.evaluators ?? [],
+    gardener: garden.gardeners ?? [],
+    funder: garden.funders ?? [],
+    community: garden.communities ?? [],
+  };
+
+  const roleActions = {
+    owner: { add: addOwner, remove: removeOwner },
+    operator: { add: addOperator, remove: removeOperator },
+    evaluator: { add: addEvaluator, remove: removeEvaluator },
+    gardener: { add: addGardener, remove: removeGardener },
+    funder: { add: addFunder, remove: removeFunder },
+    community: { add: addCommunity, remove: removeCommunity },
+  } satisfies Record<
+    GardenRole,
+    {
+      add: (address: string) => Promise<GardenOperationResult>;
+      remove: (address: string) => Promise<GardenOperationResult>;
+    }
+  >;
+
+  const roleIcons = {
+    owner: RiShieldCheckLine,
+    operator: RiUserLine,
+    evaluator: RiCheckboxCircleLine,
+    gardener: RiUserLine,
+    funder: RiMedalLine,
+    community: RiUserLine,
+  } as const;
+
+  // Use shared role color classes and order from @green-goods/shared
+  // GARDEN_ROLE_ORDER, GARDEN_ROLE_COLORS, ROLE_COLOR_CLASSES, getRoleColorClasses
+
+  const activeRole = membersModalType;
+  const ActiveRoleIcon = roleIcons[activeRole];
 
   return (
     <div className="garden-detail-container pb-6">
@@ -173,7 +240,18 @@ export default function GardenDetail() {
                 <RiFileList3Line className="h-5 w-5" />
                 <span className="hidden text-sm font-medium sm:inline">View Assessments</span>
               </Link>
-              {canManage && (
+              <Link
+                to={`/gardens/${id}/hypercerts`}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-bg-white/95 text-text-sub shadow-lg backdrop-blur transition hover:bg-bg-white active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
+                title={formatMessage({ id: "app.hypercerts.actions.viewHypercerts" })}
+                aria-label={formatMessage({ id: "app.hypercerts.actions.viewHypercerts" })}
+              >
+                <RiMedalLine className="h-5 w-5" />
+                <span className="hidden text-sm font-medium sm:inline">
+                  {formatMessage({ id: "app.hypercerts.actions.viewHypercerts" })}
+                </span>
+              </Link>
+              {canReview && (
                 <Link
                   to={`/gardens/${id}/assessments/create`}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-base text-primary-foreground shadow-lg transition hover:bg-primary-darker active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
@@ -182,6 +260,19 @@ export default function GardenDetail() {
                 >
                   <RiFileList3Line className="h-5 w-5" />
                   <span className="hidden text-sm font-medium sm:inline">New Assessment</span>
+                </Link>
+              )}
+              {canManage && (
+                <Link
+                  to={`/gardens/${id}/hypercerts/create`}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-base text-primary-foreground shadow-lg transition hover:bg-primary-darker active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
+                  title={formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
+                  aria-label={formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
+                >
+                  <RiAddLine className="h-5 w-5" />
+                  <span className="hidden text-sm font-medium sm:inline">
+                    {formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
+                  </span>
                 </Link>
               )}
             </div>
@@ -227,148 +318,115 @@ export default function GardenDetail() {
 
         {/* Work: Primary Content */}
         <section className="grid-area-work">
-          <WorkSubmissionsView gardenId={garden.id} canManage={canManage} />
+          <WorkSubmissionsView gardenId={garden.id} canManage={canReview} />
         </section>
 
-        {/* Operators: Sidebar */}
-        <aside className="grid-area-operators rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-          <div className="flex items-center justify-between gap-2 border-b border-stroke-soft p-4 sm:p-6">
-            <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
-              Operators
-            </h3>
-            {canManage && (
-              <button
-                onClick={() => openAddMemberModal("operator")}
-                className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
-                aria-label="Add operator"
-                type="button"
-              >
-                <RiUserAddLine className="mr-1 h-4 w-4" />
-                Add
-              </button>
-            )}
-          </div>
-          <div className="p-4 sm:p-6">
-            {garden.operators.length === 0 ? (
-              <p className="py-4 text-center text-sm text-text-soft">No operators assigned</p>
-            ) : (
-              <>
-                <div className="space-y-2 sm:space-y-3">
-                  {garden.operators.slice(0, 3).map((operator: string, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between gap-2 rounded-md bg-bg-weak p-2.5 sm:p-3"
-                    >
-                      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-information-lighter sm:h-9 sm:w-9">
-                          <RiUserLine className="h-4 w-4 text-information-base" />
-                        </div>
-                        <AddressDisplay address={operator} className="min-w-0 flex-1" />
-                      </div>
-                      {canManage && (
-                        <button
-                          onClick={async () => {
-                            const result = await removeOperator(operator);
-                            if (result.success) {
-                              // Schedule background refetch to sync with indexer
-                              scheduleBackgroundRefetch();
-                            }
-                          }}
-                          disabled={isLoading}
-                          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
-                          aria-label="Remove operator"
-                          type="button"
-                        >
-                          <RiDeleteBinLine className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {garden.operators.length > 3 && (
-                  <button
-                    type="button"
-                    onClick={() => openMembersModal("operator")}
-                    className="mt-3 w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
-                  >
-                    View All ({garden.operators.length})
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        </aside>
+        {/* Roles: Sidebar */}
+        <section className="grid-area-roles">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {GARDEN_ROLE_ORDER.map((role) => {
+              const members = roleMembers[role];
+              const roleLabel = getRoleLabel(role);
+              const colors = getRoleColorClasses(role);
+              const Icon = roleIcons[role];
 
-        {/* Gardeners: Sidebar */}
-        <aside className="grid-area-gardeners rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-          <div className="border-b border-stroke-soft p-4 sm:p-6">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
-                Gardeners
-              </h3>
-              {canManage && (
-                <button
-                  onClick={() => openAddMemberModal("gardener")}
-                  className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
-                  aria-label="Add gardener"
-                  type="button"
+              return (
+                <aside
+                  key={role}
+                  className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm"
                 >
-                  <RiUserAddLine className="mr-1 h-4 w-4" />
-                  Add
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="p-4 sm:p-6">
-            {garden.gardeners.length === 0 ? (
-              <p className="py-4 text-center text-sm text-text-soft">No gardeners assigned</p>
-            ) : (
-              <>
-                <div className="space-y-2 sm:space-y-3">
-                  {garden.gardeners.slice(0, 3).map((gardener: string, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between gap-2 rounded-md bg-bg-weak p-2.5 sm:p-3"
-                    >
-                      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-success-lighter sm:h-9 sm:w-9">
-                          <RiUserLine className="h-4 w-4 text-success-base" />
+                  <div className="flex items-center justify-between gap-2 border-b border-stroke-soft p-4 sm:p-6">
+                    <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
+                      {roleLabel.plural}
+                    </h3>
+                    {canManageRoles && (
+                      <button
+                        onClick={() => openAddMemberModal(role)}
+                        className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
+                        aria-label={formatMessage(
+                          { id: "app.admin.roles.add" },
+                          { role: roleLabel.singular }
+                        )}
+                        type="button"
+                      >
+                        <RiUserAddLine className="mr-1 h-4 w-4" />
+                        Add
+                      </button>
+                    )}
+                  </div>
+                  <div className="p-4 sm:p-6">
+                    {members.length === 0 ? (
+                      <p className="py-4 text-center text-sm text-text-soft">
+                        {formatMessage({ id: "app.admin.roles.empty" }, { role: roleLabel.plural })}
+                      </p>
+                    ) : (
+                      <>
+                        <div className="space-y-2 sm:space-y-3">
+                          {members.slice(0, 3).map((member: string, index: number) => (
+                            <div
+                              key={`${member}-${index}`}
+                              className="flex items-center justify-between gap-2 rounded-md bg-bg-weak p-2.5 sm:p-3"
+                            >
+                              <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+                                <div
+                                  className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${colors.iconBg} sm:h-9 sm:w-9`}
+                                >
+                                  <Icon className={`h-4 w-4 ${colors.iconText}`} />
+                                </div>
+                                <AddressDisplay address={member} className="min-w-0 flex-1" />
+                              </div>
+                              {canManageRoles && (
+                                <button
+                                  onClick={async () => {
+                                    const result = await roleActions[role].remove(member);
+                                    if (result.success) {
+                                      scheduleBackgroundRefetch();
+                                    } else {
+                                      toastService.error({
+                                        title: formatMessage(
+                                          { id: "app.admin.roles.removeFailed" },
+                                          { role: roleLabel.singular }
+                                        ),
+                                        message:
+                                          result.error?.message ??
+                                          formatMessage(
+                                            { id: "app.admin.roles.removeFailed" },
+                                            { role: roleLabel.singular }
+                                          ),
+                                      });
+                                    }
+                                  }}
+                                  disabled={isLoading}
+                                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
+                                  aria-label={formatMessage(
+                                    { id: "app.admin.roles.remove" },
+                                    { role: roleLabel.singular }
+                                  )}
+                                  type="button"
+                                >
+                                  <RiDeleteBinLine className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
                         </div>
-                        <AddressDisplay address={gardener} className="min-w-0 flex-1" />
-                      </div>
-                      {canManage && (
-                        <button
-                          onClick={async () => {
-                            const result = await removeGardener(gardener);
-                            if (result.success) {
-                              // Schedule background refetch to sync with indexer
-                              scheduleBackgroundRefetch();
-                            }
-                          }}
-                          disabled={isLoading}
-                          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
-                          aria-label="Remove gardener"
-                          type="button"
-                        >
-                          <RiDeleteBinLine className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {garden.gardeners.length > 3 && (
-                  <button
-                    type="button"
-                    onClick={() => openMembersModal("gardener")}
-                    className="mt-3 w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
-                  >
-                    View All ({garden.gardeners.length})
-                  </button>
-                )}
-              </>
-            )}
+                        {members.length > 3 && (
+                          <button
+                            type="button"
+                            onClick={() => openMembersModal(role)}
+                            className="mt-3 w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
+                          >
+                            View All ({members.length})
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </aside>
+              );
+            })}
           </div>
-        </aside>
+        </section>
 
         {/* Assessments: Sidebar */}
         <aside className="grid-area-assessments rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
@@ -433,8 +491,7 @@ export default function GardenDetail() {
         onClose={() => setAddMemberModalOpen(false)}
         memberType={memberType}
         onAdd={async (address: string) => {
-          const result =
-            memberType === "gardener" ? await addGardener(address) : await addOperator(address);
+          const result = await roleActions[memberType].add(address);
 
           if (result.success) {
             // Schedule background refetch to sync with indexer
@@ -447,23 +504,36 @@ export default function GardenDetail() {
       <MembersModal
         isOpen={membersModalOpen}
         onClose={() => setMembersModalOpen(false)}
-        title={membersModalType === "operator" ? "All Operators" : "All Gardeners"}
-        members={membersModalType === "operator" ? garden.operators : garden.gardeners}
-        canManage={canManage}
+        title={formatMessage(
+          { id: "app.admin.roles.all" },
+          { role: getRoleLabel(activeRole).plural }
+        )}
+        members={roleMembers[activeRole]}
+        canManage={canManageRoles}
         onRemove={async (member: string) => {
-          const result =
-            membersModalType === "operator"
-              ? await removeOperator(member)
-              : await removeGardener(member);
+          const result = await roleActions[activeRole].remove(member);
 
           if (result.success) {
             // Schedule background refetch to sync with indexer
             scheduleBackgroundRefetch();
+          } else {
+            toastService.error({
+              title: formatMessage(
+                { id: "app.admin.roles.removeFailed" },
+                { role: getRoleLabel(activeRole).singular }
+              ),
+              message:
+                result.error?.message ??
+                formatMessage(
+                  { id: "app.admin.roles.removeFailed" },
+                  { role: getRoleLabel(activeRole).singular }
+                ),
+            });
           }
         }}
         isLoading={isLoading}
-        icon={<RiUserLine className="h-5 w-5" />}
-        colorScheme={membersModalType === "operator" ? "blue" : "green"}
+        icon={<ActiveRoleIcon className="h-5 w-5" />}
+        colorScheme={GARDEN_ROLE_COLORS[activeRole]}
       />
     </div>
   );

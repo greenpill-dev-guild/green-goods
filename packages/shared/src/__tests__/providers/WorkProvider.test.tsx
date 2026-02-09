@@ -75,7 +75,7 @@ vi.mock("../../components/toast", () => ({
 }));
 
 vi.mock("../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 vi.mock("../../modules/work/work-submission", () => ({
@@ -165,7 +165,7 @@ describe("providers/WorkProvider", () => {
 
     // Default mock: one action
     mockUseActions.mockReturnValue({
-      data: [createMockAction({ id: "84532-1" })],
+      data: [createMockAction({ id: "11155111-1" })],
       isLoading: false,
     });
 
@@ -233,7 +233,7 @@ describe("providers/WorkProvider", () => {
       });
 
       expect(result.current.actions).toHaveLength(1);
-      expect(result.current.actions[0].id).toBe("84532-1");
+      expect(result.current.actions[0].id).toBe("11155111-1");
     });
   });
 

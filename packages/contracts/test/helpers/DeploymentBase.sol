@@ -21,7 +21,8 @@ import { WorkApprovalResolver } from "../../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../../src/resolvers/Assessment.sol";
 import { ResolverStub } from "../../src/resolvers/ResolverStub.sol";
 import { HatsModule } from "../../src/modules/Hats.sol";
-import { MockHatsProtocol } from "../../src/mocks/HatsProtocol.sol";
+import { KarmaGAPModule } from "../../src/modules/Karma.sol";
+import { HatsLib } from "../../src/lib/Hats.sol";
 
 /// @notice Schema registry interface
 interface ISchemaRegistry {
@@ -78,6 +79,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     WorkApprovalResolver public workApprovalResolver;
     AssessmentResolver public assessmentResolver;
     HatsModule public hatsModule;
+    KarmaGAPModule public karmaGAPModule;
     address public gardenerAccountLogic; // Gardener implementation for user smart accounts (Kernel v3)
     GardenerRegistry public gardenerRegistry; // Gardener Registry (mainnet/sepolia only, null on L2s)
 
@@ -112,9 +114,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
         }
     }
 
-    /// @notice Check if chain is mainnet (supports ENS)
+    /// @notice Check if chain is Ethereum mainnet-only ENS mode
     function _isMainnetChain(uint256 chainId) internal pure returns (bool) {
-        return chainId == 1 || chainId == 11_155_111; // Mainnet or Sepolia
+        return chainId == 1;
     }
 
     /// @notice Log CREATE2 prediction details for clarity
@@ -180,14 +182,14 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // 2. Deploy ActionRegistry with CREATE2 + proxy (owner will own it)
         actionRegistry = ActionRegistry(deployActionRegistry(owner, salt, factory));
 
-        // 3. Deploy HatsModule with MockHatsProtocol for testing
-        hatsModule = HatsModule(_deployHatsModule(owner, salt, factory));
-
         // 4. Deploy resolvers with UUPS proxies + CREATE2 (owner will own them)
-        workResolver = WorkResolver(payable(_deployWorkResolver(eas, address(actionRegistry), address(hatsModule), owner, salt, factory)));
+        workResolver = WorkResolver(payable(_deployWorkResolver(eas, address(actionRegistry), owner, salt, factory)));
         workApprovalResolver =
-            WorkApprovalResolver(payable(_deployWorkApprovalResolver(eas, address(actionRegistry), address(hatsModule), owner, salt, factory)));
-        assessmentResolver = AssessmentResolver(payable(_deployAssessmentResolver(eas, address(hatsModule), owner, salt, factory)));
+            WorkApprovalResolver(payable(_deployWorkApprovalResolver(eas, address(actionRegistry), owner, salt, factory)));
+        assessmentResolver = AssessmentResolver(payable(_deployAssessmentResolver(eas, owner, salt, factory)));
+
+        // 4.5 Deploy HatsModule (adapter)
+        hatsModule = HatsModule(_deployHatsModule(owner, HatsLib.getHatsProtocol(), salt, factory));
 
         // 5. Deploy GardenAccount (TBA) with CREATE2
         gardenAccountImpl = GardenAccount(
@@ -212,8 +214,21 @@ abstract contract DeploymentBase is Test, DeployHelper {
         gardenToken =
             GardenToken(deployGardenToken(address(gardenAccountImpl), owner, address(deploymentRegistry), salt, factory));
 
-        // 8. Configure HatsModule with GardenToken address
+        // 8. Deploy KarmaGAPModule (after GardenToken exists)
+        karmaGAPModule = KarmaGAPModule(
+            _deployKarmaGAPModule(
+                owner, address(gardenToken), address(workApprovalResolver), address(assessmentResolver), salt, factory
+            )
+        );
+
+        // 9. Wire modules
         hatsModule.setGardenToken(address(gardenToken));
+        hatsModule.setKarmaGAPModule(address(karmaGAPModule));
+        gardenToken.setHatsModule(address(hatsModule));
+        gardenToken.setKarmaGAPModule(address(karmaGAPModule));
+        karmaGAPModule.setHatsModule(address(hatsModule));
+        workApprovalResolver.setKarmaGAPModule(address(karmaGAPModule));
+        assessmentResolver.setKarmaGAPModule(address(karmaGAPModule));
     }
 
     /// @notice Deploy DeploymentRegistry with governance and proxy
@@ -357,11 +372,70 @@ abstract contract DeploymentBase is Test, DeployHelper {
         return predicted;
     }
 
+    /// @notice Deploy HatsModule with CREATE2 + proxy
+    function _deployHatsModule(
+        address owner,
+        address hatsProtocol,
+        bytes32 salt,
+        address factory
+    )
+        internal
+        returns (address)
+    {
+        HatsModule hatsImpl = new HatsModule();
+        bytes memory initData = abi.encodeWithSelector(HatsModule.initialize.selector, owner, hatsProtocol);
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(hatsImpl), initData));
+        bytes32 hatsSalt = keccak256(abi.encodePacked(salt, "HatsModuleProxy"));
+        address predicted = Create2.computeAddress(hatsSalt, keccak256(proxyBytecode), factory);
+        _logCreate2Prediction("HatsModule proxy", hatsSalt, factory, predicted);
+
+        if (!_isDeployed(predicted)) {
+            address deployed = _deployCreate2(proxyBytecode, hatsSalt, factory);
+            if (deployed != predicted) {
+                revert DeploymentAddressMismatch();
+            }
+        }
+
+        return predicted;
+    }
+
+    /// @notice Deploy KarmaGAPModule with CREATE2 + proxy
+    function _deployKarmaGAPModule(
+        address owner,
+        address _gardenToken,
+        address _workApprovalResolver,
+        address _assessmentResolver,
+        bytes32 salt,
+        address factory
+    )
+        internal
+        returns (address)
+    {
+        KarmaGAPModule karmaImpl = new KarmaGAPModule();
+        bytes memory initData = abi.encodeWithSelector(
+            KarmaGAPModule.initialize.selector, owner, _gardenToken, _workApprovalResolver, _assessmentResolver
+        );
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(karmaImpl), initData));
+        bytes32 karmaSalt = keccak256(abi.encodePacked(salt, "KarmaGAPModuleProxy"));
+        address predicted = Create2.computeAddress(karmaSalt, keccak256(proxyBytecode), factory);
+        _logCreate2Prediction("KarmaGAPModule proxy", karmaSalt, factory, predicted);
+
+        if (!_isDeployed(predicted)) {
+            address deployed = _deployCreate2(proxyBytecode, karmaSalt, factory);
+            if (deployed != predicted) {
+                revert DeploymentAddressMismatch();
+            }
+        }
+
+        return predicted;
+    }
+
     /// @notice Deploy WorkResolver with ResolverStub + UUPS + CREATE2
     function _deployWorkResolver(
         address eas,
         address _actionRegistry,
-        address _hatsModule,
         address owner,
         bytes32 salt,
         address factory
@@ -369,7 +443,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         internal
         returns (address)
     {
-        WorkResolver implementation = new WorkResolver(eas, _actionRegistry, _hatsModule);
+        WorkResolver implementation = new WorkResolver(eas, _actionRegistry);
         bytes32 stubSalt = keccak256(abi.encodePacked(salt, "ResolverStub"));
         bytes memory stubBytecode = type(ResolverStub).creationCode;
         address stubAddress = _deployCreate2(stubBytecode, stubSalt, factory);
@@ -398,7 +472,6 @@ abstract contract DeploymentBase is Test, DeployHelper {
     function _deployWorkApprovalResolver(
         address eas,
         address _actionRegistry,
-        address _hatsModule,
         address owner,
         bytes32 salt,
         address factory
@@ -406,7 +479,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         internal
         returns (address)
     {
-        WorkApprovalResolver implementation = new WorkApprovalResolver(eas, _actionRegistry, _hatsModule);
+        WorkApprovalResolver implementation = new WorkApprovalResolver(eas, _actionRegistry);
         bytes32 stubSalt = keccak256(abi.encodePacked(salt, "ResolverStub"));
         bytes memory stubBytecode = type(ResolverStub).creationCode;
         address stubAddress = Create2.computeAddress(stubSalt, keccak256(stubBytecode), factory);
@@ -438,7 +511,6 @@ abstract contract DeploymentBase is Test, DeployHelper {
     /// @notice Deploy AssessmentResolver with ResolverStub + UUPS + CREATE2
     function _deployAssessmentResolver(
         address eas,
-        address _hatsModule,
         address owner,
         bytes32 salt,
         address factory
@@ -446,7 +518,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         internal
         returns (address)
     {
-        AssessmentResolver implementation = new AssessmentResolver(eas, _hatsModule);
+        AssessmentResolver implementation = new AssessmentResolver(eas);
         bytes32 stubSalt = keccak256(abi.encodePacked(salt, "ResolverStub"));
         bytes memory stubBytecode = type(ResolverStub).creationCode;
         address stubAddress = Create2.computeAddress(stubSalt, keccak256(stubBytecode), factory);
@@ -472,59 +544,15 @@ abstract contract DeploymentBase is Test, DeployHelper {
         return predicted;
     }
 
-    /// @notice Deploy HatsModule with MockHatsProtocol + UUPS proxy
+    /// @notice Deploy GardenerRegistry with CREATE2 (mainnet only)
     /// @param owner The initial owner
     /// @param salt The CREATE2 salt
     /// @param factory The CREATE2 factory address
-    /// @return The HatsModule proxy address
-    function _deployHatsModule(address owner, bytes32 salt, address factory) internal returns (address) {
-        // Deploy MockHatsProtocol for testing
-        MockHatsProtocol mockHats = new MockHatsProtocol();
-
-        // Create a top hat and gardens hat for testing
-        uint256 topHatId = mockHats.mintTopHat(owner, "Green Goods Top Hat", "");
-        uint256 gardensHatId = mockHats.createHat(
-            topHatId,
-            "Gardens",
-            type(uint32).max,
-            address(0),
-            address(0),
-            true,
-            ""
-        );
-
-        // Deploy HatsModule implementation
-        HatsModule implementation = new HatsModule();
-
-        // Deploy proxy with initialization
-        bytes32 hatsModuleSalt = keccak256(abi.encodePacked(salt, "HatsModuleProxy"));
-        bytes memory initData = abi.encodeWithSelector(
-            HatsModule.initialize.selector,
-            owner,
-            address(mockHats),
-            gardensHatId
-        );
-        bytes memory proxyBytecode =
-            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(implementation), initData));
-        address predicted = Create2.computeAddress(hatsModuleSalt, keccak256(proxyBytecode), factory);
-        _logCreate2Prediction("HatsModule proxy", hatsModuleSalt, factory, predicted);
-
-        if (!_isDeployed(predicted)) {
-            _deployCreate2(proxyBytecode, hatsModuleSalt, factory);
-        }
-
-        return predicted;
-    }
-
-    /// @notice Deploy GardenerRegistry with CREATE2 (mainnet/sepolia only)
-    /// @param owner The initial owner
-    /// @param salt The CREATE2 salt
-    /// @param factory The CREATE2 factory address
-    /// @return The GardenerRegistry address (address(0) on L2 chains)
+    /// @return The GardenerRegistry address (address(0) on L2 chains and testnets)
     function _deployGardenerRegistry(address owner, bytes32 salt, address factory) internal returns (address) {
-        // Only deploy on mainnet (1) or sepolia (11155111)
+        // Only deploy on Ethereum mainnet
         uint256 chainId = block.chainid;
-        if (chainId != 1 && chainId != 11_155_111) {
+        if (chainId != 1) {
             return address(0);
         }
 
@@ -616,7 +644,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
             workApprovalResolver: address(workApprovalResolver),
             assessmentResolver: address(assessmentResolver),
             integrationRouter: address(0), // Deployed separately in Phase 1
-            hatsAccessControl: address(hatsModule), // HatsModule for role management
+            hatsAccessControl: address(hatsModule),
             octantFactory: address(0), // Phase 3+
             unlockFactory: address(0), // Phase 3+
             hypercerts: address(0), // Phase 4+
@@ -640,7 +668,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
 
     /// @notice Get EAS addresses for a chain
     function _getEASForChain(uint256 chainId) internal pure virtual returns (address eas, address registry) {
-        if (chainId == 84_532) {
+        if (chainId == 11_155_111) {
+            return (0xC2679fBD37d54388Ce493F1DB75320D236e1815e, 0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0);
+        } else if (chainId == 84_532) {
             return (0x4200000000000000000000000000000000000021, 0x4200000000000000000000000000000000000020);
         } else if (chainId == 42_161) {
             return (0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458, 0xA310da9c5B885E7fb3fbA9D66E9Ba6Df512b78eB);
@@ -649,8 +679,8 @@ abstract contract DeploymentBase is Test, DeployHelper {
         }
         revert UnsupportedChain();
     }
-
     /// @notice Load schema config from file
+
     function _loadSchemaConfig() internal view virtual returns (string memory) {
         return vm.readFile(string.concat(vm.projectRoot(), "/config/schemas.json"));
     }

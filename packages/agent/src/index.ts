@@ -91,11 +91,23 @@ async function main(): Promise<void> {
     });
 
     // Add Telegram webhook handler to server
+    // SECURITY: Always verify webhook secret when configured
     server.post(webhookPath, async (request, reply) => {
       const secretToken = request.headers["x-telegram-bot-api-secret-token"];
-      if (config.telegramWebhookSecret && secretToken !== config.telegramWebhookSecret) {
-        return reply.status(401).send({ error: "Unauthorized" });
+
+      // In production, webhook secret is required (validated in config.ts)
+      // In development, it's optional but if configured, we verify it
+      if (config.telegramWebhookSecret) {
+        if (secretToken !== config.telegramWebhookSecret) {
+          logger.warn({ hasToken: !!secretToken }, "Webhook request rejected: invalid secret");
+          return reply.status(401).send({ error: "Unauthorized" });
+        }
+      } else if (config.isProduction) {
+        // This shouldn't happen due to config validation, but belt-and-suspenders
+        logger.error("Webhook secret not configured in production - rejecting request");
+        return reply.status(500).send({ error: "Server misconfigured" });
       }
+
       await bot.handleUpdate(request.body as Parameters<typeof bot.handleUpdate>[0]);
       return { ok: true };
     });

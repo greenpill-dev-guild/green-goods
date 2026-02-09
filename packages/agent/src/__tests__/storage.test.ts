@@ -4,7 +4,7 @@
  * Tests for the SQLite storage with real database operations.
  */
 
-import { describe, it, expect, afterAll, beforeAll } from "bun:test";
+import { describe, it, expect, afterAll, beforeAll } from "vitest";
 import type { CreateUserInput, WorkDraftData, Session } from "../types";
 import fs from "fs";
 
@@ -13,16 +13,9 @@ import { initDB, getDB } from "../services/db";
 
 // Test database path
 const TEST_DB_DIR = "data/test";
-const TEST_DB_PATH = `${TEST_DB_DIR}/test-storage-2.db`;
-
-// Set up encryption secret for tests
-const originalSecret = process.env.ENCRYPTION_SECRET;
-const originalToken = process.env.TELEGRAM_BOT_TOKEN;
+const TEST_DB_PATH = `${TEST_DB_DIR}/test-storage-vitest.db`;
 
 beforeAll(() => {
-  process.env.ENCRYPTION_SECRET = "test-secret-key-for-encryption-32chars!";
-  process.env.TELEGRAM_BOT_TOKEN = "test-token-for-fallback";
-
   // Ensure test directory exists
   if (!fs.existsSync(TEST_DB_DIR)) {
     fs.mkdirSync(TEST_DB_DIR, { recursive: true });
@@ -38,15 +31,18 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
-  if (originalSecret) {
-    process.env.ENCRYPTION_SECRET = originalSecret;
-  } else {
-    delete process.env.ENCRYPTION_SECRET;
+  // Close DB connection before deleting files (required for Windows file-lock cleanup)
+  const db = getDB();
+  if (db && typeof db.close === "function") {
+    db.close();
   }
-  if (originalToken) {
-    process.env.TELEGRAM_BOT_TOKEN = originalToken;
-  } else {
-    delete process.env.TELEGRAM_BOT_TOKEN;
+
+  // Remove main database and companion WAL/SHM files
+  const filesToRemove = [TEST_DB_PATH, `${TEST_DB_PATH}-wal`, `${TEST_DB_PATH}-shm`];
+  for (const file of filesToRemove) {
+    if (fs.existsSync(file)) {
+      fs.unlinkSync(file);
+    }
   }
 });
 

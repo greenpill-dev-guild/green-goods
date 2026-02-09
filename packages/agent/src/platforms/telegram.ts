@@ -3,10 +3,16 @@
  *
  * Handles Telegram-specific message transformation and bot setup.
  * All Telegram logic lives in this one file.
+ *
+ * SECURITY:
+ * - Uses mkdtemp for secure temp file creation (unpredictable names)
+ * - Enforces download size limits to prevent DOS
+ * - Uses timeouts on all network operations
  */
 
 import fs from "fs";
 import https from "https";
+import os from "os";
 import path from "path";
 import { type Context, session, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
@@ -14,6 +20,19 @@ import { loggers } from "../services/logger";
 import type { InboundMessage, MessageContent, OutboundResponse, Platform } from "../types";
 
 const log = loggers.platform;
+
+// ============================================================================
+// SECURITY CONSTANTS
+// ============================================================================
+
+/** Maximum file download size (20MB - Telegram's limit for bots) */
+const MAX_DOWNLOAD_SIZE_BYTES = 20 * 1024 * 1024;
+
+/** Download timeout in milliseconds */
+const DOWNLOAD_TIMEOUT_MS = 30_000;
+
+/** Maximum photo download size (10MB) */
+const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
 
 // ============================================================================
 // TYPES
@@ -119,17 +138,6 @@ function extractContent(ctx: Context): MessageContent | null {
     return { type: "text", text };
   }
 
-  // Photo message
-  if ("photo" in msg && msg.photo) {
-    const photo = msg.photo[msg.photo.length - 1];
-    return {
-      type: "image",
-      imageUrl: photo.file_id,
-      mimeType: "image/jpeg",
-      caption: "caption" in msg ? msg.caption : undefined,
-    };
-  }
-
   return null;
 }
 
@@ -170,29 +178,81 @@ export function toTelegramReply(response: OutboundResponse): {
 // VOICE PROCESSING
 // ============================================================================
 
-async function downloadFile(url: string, dest: string): Promise<void> {
+/**
+ * Securely download a file with size limits and timeout.
+ *
+ * SECURITY:
+ * - Checks Content-Length before downloading to prevent DOS
+ * - Enforces timeout to prevent hanging connections
+ * - Tracks bytes received to catch servers that lie about Content-Length
+ */
+async function downloadFile(
+  url: string,
+  dest: string,
+  maxSize: number = MAX_DOWNLOAD_SIZE_BYTES
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
-    https
-      .get(url, (response) => {
-        if (response.statusCode === 302 || response.statusCode === 301) {
-          const redirectUrl = response.headers.location;
-          if (redirectUrl) {
-            file.close();
-            fs.unlinkSync(dest);
-            return downloadFile(redirectUrl, dest).then(resolve).catch(reject);
-          }
+    let bytesReceived = 0;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const cleanup = (error?: Error) => {
+      if (timeoutId) clearTimeout(timeoutId);
+      file.close();
+      fs.unlink(dest, () => {});
+      if (error) reject(error);
+    };
+
+    const request = https.get(url, (response) => {
+      // Handle redirects
+      if (response.statusCode === 302 || response.statusCode === 301) {
+        const redirectUrl = response.headers.location;
+        if (redirectUrl) {
+          cleanup();
+          return downloadFile(redirectUrl, dest, maxSize).then(resolve).catch(reject);
         }
-        response.pipe(file);
-        file.on("finish", () => {
-          file.close();
-          resolve();
-        });
-      })
-      .on("error", (err) => {
-        fs.unlink(dest, () => {});
-        reject(err);
+      }
+
+      // Check Content-Length before downloading
+      const contentLength = parseInt(response.headers["content-length"] || "0", 10);
+      if (contentLength > maxSize) {
+        cleanup(
+          new Error(`File too large: ${contentLength} bytes exceeds limit of ${maxSize} bytes`)
+        );
+        return;
+      }
+
+      response.on("data", (chunk: Buffer) => {
+        bytesReceived += chunk.length;
+        // Double-check size in case Content-Length was missing or lied
+        if (bytesReceived > maxSize) {
+          cleanup(new Error(`Download exceeded size limit of ${maxSize} bytes`));
+          request.destroy();
+        }
       });
+
+      response.pipe(file);
+
+      file.on("finish", () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        file.close();
+        resolve();
+      });
+
+      file.on("error", (err) => {
+        cleanup(err);
+      });
+    });
+
+    request.on("error", (err) => {
+      cleanup(err);
+    });
+
+    // Set download timeout
+    timeoutId = setTimeout(() => {
+      request.destroy();
+      cleanup(new Error(`Download timeout after ${DOWNLOAD_TIMEOUT_MS}ms`));
+    }, DOWNLOAD_TIMEOUT_MS);
   });
 }
 
@@ -212,22 +272,37 @@ export interface PhotoProcessor {
   downloadPhoto: (fileId: string) => Promise<Buffer>;
 }
 
+/**
+ * Creates a voice processor that securely handles audio files.
+ *
+ * SECURITY: Uses mkdtemp for unpredictable temp directory names,
+ * preventing symlink attacks and file collisions.
+ */
 export function createVoiceProcessor(
   bot: Telegraf,
   transcribe: (audioPath: string) => Promise<string>
 ): VoiceProcessor {
   return {
     async downloadAndTranscribe(fileId: string): Promise<string> {
-      const tempPath = path.resolve(`temp_${fileId}.ogg`);
-      const wavPath = tempPath.replace(".ogg", ".wav");
+      // Create secure temp directory with unpredictable name
+      const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "gg-agent-voice-"));
+      const tempPath = path.join(tempDir, "audio.ogg");
+      const wavPath = path.join(tempDir, "audio.wav");
 
       try {
         const fileLink = await bot.telegram.getFileLink(fileId);
         await downloadFile(fileLink.href, tempPath);
         return await transcribe(tempPath);
       } finally {
+        // Clean up temp files and directory
         cleanupFile(tempPath);
         cleanupFile(wavPath);
+        try {
+          await fs.promises.rmdir(tempDir);
+        } catch {
+          // Directory may not be empty if other files were created
+          log.warn({ tempDir }, "Could not remove temp directory");
+        }
       }
     },
   };
@@ -257,6 +332,11 @@ export function createNotifier(bot: Telegraf): Notifier {
 // PHOTO PROCESSING
 // ============================================================================
 
+/**
+ * Creates a photo processor with security limits.
+ *
+ * SECURITY: Enforces size limits and timeouts on photo downloads.
+ */
 export function createPhotoProcessor(bot: Telegraf): PhotoProcessor {
   return {
     async downloadPhoto(fileId: string): Promise<Buffer> {
@@ -265,15 +345,43 @@ export function createPhotoProcessor(bot: Telegraf): PhotoProcessor {
         const fileLink = await bot.telegram.getFileLink(fileId);
         const url = fileLink.toString();
 
-        // Download file to buffer
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`Failed to download: ${response.statusText}`);
-        }
+        // Create AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
 
-        const arrayBuffer = await response.arrayBuffer();
-        return Buffer.from(arrayBuffer);
+        try {
+          // Download file to buffer with timeout
+          const response = await fetch(url, { signal: controller.signal });
+          if (!response.ok) {
+            throw new Error(`Failed to download: ${response.statusText}`);
+          }
+
+          // Check Content-Length before downloading
+          const contentLength = parseInt(response.headers.get("content-length") || "0", 10);
+          if (contentLength > MAX_PHOTO_SIZE_BYTES) {
+            throw new Error(
+              `Photo too large: ${contentLength} bytes exceeds limit of ${MAX_PHOTO_SIZE_BYTES} bytes`
+            );
+          }
+
+          const arrayBuffer = await response.arrayBuffer();
+
+          // Double-check size after download
+          if (arrayBuffer.byteLength > MAX_PHOTO_SIZE_BYTES) {
+            throw new Error(
+              `Photo too large: ${arrayBuffer.byteLength} bytes exceeds limit of ${MAX_PHOTO_SIZE_BYTES} bytes`
+            );
+          }
+
+          return Buffer.from(arrayBuffer);
+        } finally {
+          clearTimeout(timeoutId);
+        }
       } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          log.error({ fileId }, `Photo download timeout after ${DOWNLOAD_TIMEOUT_MS}ms`);
+          throw new Error("Photo download timed out");
+        }
         log.error({ err: error, fileId }, "Failed to download photo from Telegram");
         throw error;
       }
@@ -355,7 +463,9 @@ export function createTelegramBot(config: TelegramConfig, handleMessage: Message
   // Error handling
   bot.catch((err, ctx) => {
     log.error({ err, chatId: ctx.chat?.id }, "Bot error");
-    ctx.reply("❌ An error occurred. Please try again.").catch(() => {});
+    ctx.reply("❌ An error occurred. Please try again.").catch((replyErr) => {
+      log.warn({ replyErr, chatId: ctx.chat?.id }, "Failed to send error message to user");
+    });
   });
 
   return bot;

@@ -70,6 +70,24 @@ export const router = createRouter([
                     }),
                   },
                   {
+                    path: "gardens/:id/hypercerts",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/Hypercerts")).default,
+                    }),
+                  },
+                  {
+                    path: "gardens/:id/hypercerts/create",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/CreateHypercert")).default,
+                    }),
+                  },
+                  {
+                    path: "gardens/:id/hypercerts/:hypercertId",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/HypercertDetail")).default,
+                    }),
+                  },
+                  {
                     path: "actions",
                     lazy: async () => ({ Component: (await import("@/views/Actions")).default }),
                   },

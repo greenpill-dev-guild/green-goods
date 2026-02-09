@@ -1,3 +1,4 @@
+import type { Garden } from "@green-goods/shared";
 import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";

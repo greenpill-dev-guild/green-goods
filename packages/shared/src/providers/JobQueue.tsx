@@ -6,7 +6,8 @@ import { useAuth } from "../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useUser } from "../hooks/auth/useUser";
 import { queryInvalidation, queryKeys } from "../hooks/query-keys";
-import { jobQueue } from "../modules/job-queue";
+import { jobQueue, jobQueueEventBus } from "../modules/job-queue";
+import { useUIStore } from "../stores/useUIStore";
 import { trackStorageQuota } from "../utils/storage/quota";
 import type {
   QueueStats,
@@ -72,6 +73,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
   const [stats, setStats] = useState<QueueStats>({ total: 0, pending: 0, failed: 0, synced: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastEvent, setLastEvent] = useState<QueueEvent | null>(null);
+  const setOfflineBannerVisible = useUIStore((state) => state.setOfflineBannerVisible);
 
   // useCallback needed here as refreshStats is used in multiple effects
   const refreshStats = useCallback(
@@ -79,6 +81,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       // Only fetch stats if we have a user address to scope by
       if (!currentUserAddress) {
         setStats({ total: 0, pending: 0, failed: 0, synced: 0 });
+        setOfflineBannerVisible(false);
         return;
       }
 
@@ -86,11 +89,12 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         const newStats = await jobQueue.getStats(currentUserAddress);
         if (signal?.aborted) return;
         setStats(newStats);
+        setOfflineBannerVisible(newStats.pending > 0 || newStats.failed > 0);
       } catch {
         if (signal?.aborted) return;
       }
     },
-    [currentUserAddress]
+    [currentUserAddress, setOfflineBannerVisible]
   );
 
   // Helper to invalidate multiple query keys
@@ -124,6 +128,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     // Event handlers using DRY query invalidation helpers
     const handleJobProcessing = () => {
       setIsProcessing(true);
+      setOfflineBannerVisible(true);
       // Suppress toasts for background processing/retries to reduce noise
     };
 
@@ -132,9 +137,17 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       void refreshStats(abortController.signal);
 
       if (!event.job || !event.txHash) return;
+      const isBatchSync = Boolean(
+        event.job.meta &&
+          typeof event.job.meta === "object" &&
+          "batchSync" in event.job.meta &&
+          event.job.meta.batchSync
+      );
 
       if (event.job.kind === "work") {
-        queueToasts.jobCompleted("work");
+        if (!isBatchSync) {
+          queueToasts.jobCompleted("work");
+        }
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
@@ -217,12 +230,17 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 
     // Subscribe to events
     const unsubscribe = jobQueue.subscribe(handleQueueEvent);
+    const unsubscribeSyncCompleted = jobQueueEventBus.on("queue:sync-completed", () => {
+      setIsProcessing(false);
+      void refreshStats(abortController.signal);
+    });
 
     return () => {
       abortController.abort(); // Cancel any pending async operations
       unsubscribe();
+      unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, refreshStats]);
+  }, [currentUserAddress, refreshStats, setOfflineBannerVisible]);
 
   useEffect(() => {
     if (!smartAccountClient || !currentUserAddress) {
@@ -268,10 +286,16 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     };
 
     window.addEventListener("online", handleOnline);
+    const unsubscribeBackgroundSync = jobQueueEventBus.on("background:sync-requested", () => {
+      if (authMode === "passkey") {
+        void attemptFlush();
+      }
+    });
 
     return () => {
       abortController.abort();
       window.removeEventListener("online", handleOnline);
+      unsubscribeBackgroundSync();
     };
   }, [smartAccountClient, authMode, currentUserAddress, refreshStats]);
 

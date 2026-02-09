@@ -1,204 +1,100 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Script, console2 } from "forge-std/Script.sol";
+import { Script } from "forge-std/Script.sol";
 
-import { GardenToken } from "../src/tokens/Garden.sol";
-import { HatsModule } from "../src/modules/Hats.sol";
-import { IHats } from "../src/interfaces/IHats.sol";
-import { KarmaGAPModule, IKarmaGAPModule } from "../src/modules/Karma.sol";
-import { IGardenAccessControl } from "../src/interfaces/IGardenAccessControl.sol";
 import { IGardenAccount } from "../src/interfaces/IGardenAccount.sol";
-import { KarmaLib } from "../src/lib/Karma.sol";
+import { IHatsModule } from "../src/interfaces/IHatsModule.sol";
+import { IKarmaGAPModule } from "../src/interfaces/IKarmaGAPModule.sol";
 
 /// @title MigrateGardens
-/// @notice Migration script for existing gardens to Hats Protocol + Karma GAP modules
-/// @dev Run this script after deploying HatsModule and KarmaGAPModule
+/// @notice Script for migrating v1 gardens to Hats-based roles (future-proofing)
+/// @dev Expects a JSON config file with gardens and operator lists
 ///
-/// **Migration Steps:**
-/// 1. Deploy HatsModule and KarmaGAPModule
-/// 2. Configure modules in GardenToken
-/// 3. Run this script to migrate existing gardens
-///
-/// **What This Script Does:**
-/// - Creates hat trees for existing gardens via HatsModule
-/// - Creates GAP projects for existing gardens via KarmaGAPModule
-/// - Grants operator roles to existing operators
+/// Example JSON:
+/// {
+///   "gardens": [
+///     {
+///       "garden": "0x...",
+///       "name": "Garden Name",
+///       "description": "",
+///       "location": "",
+///       "bannerImage": "",
+///       "communityToken": "0x...",
+///       "operators": ["0x...", "0x..."]
+///     }
+///   ]
+/// }
 contract MigrateGardens is Script {
-    // ===== ERRORS =====
-    error NoGardensToMigrate();
-    error GardenTokenNotFound();
-    error HatsModuleNotConfigured();
-    error GAPModuleNotConfigured();
+    error MissingOperators(address garden);
 
-    // ===== STATE =====
-    GardenToken public gardenToken;
-    HatsModule public hatsModule;
-    KarmaGAPModule public karmaGAPModule;
+    IHatsModule public hatsModule;
+    IKarmaGAPModule public karmaGAPModule;
 
-    /// @notice Main entry point for migration
     function run() external {
-        // Load configuration from environment
-        address gardenTokenAddr = vm.envAddress("GARDEN_TOKEN");
-        address hatsModuleAddr = vm.envAddress("GARDEN_HATS_MODULE");
-        address gapModuleAddr = vm.envAddress("KARMA_GAP_MODULE");
+        address hatsModuleAddr = vm.envAddress("HATS_MODULE");
+        address karmaModuleAddr = vm.envAddress("KARMA_GAP_MODULE");
+        string memory configPath = vm.envString("MIGRATION_CONFIG");
 
-        if (gardenTokenAddr == address(0)) revert GardenTokenNotFound();
+        hatsModule = IHatsModule(hatsModuleAddr);
+        karmaGAPModule = IKarmaGAPModule(karmaModuleAddr);
 
-        gardenToken = GardenToken(gardenTokenAddr);
-        hatsModule = HatsModule(hatsModuleAddr);
-        karmaGAPModule = KarmaGAPModule(gapModuleAddr);
-
-        // Get garden addresses to migrate from environment (comma-separated)
-        string memory gardensStr = vm.envString("GARDENS_TO_MIGRATE");
-        address[] memory gardenAddresses = _parseAddresses(gardensStr);
-
-        if (gardenAddresses.length == 0) revert NoGardensToMigrate();
-
-        console2.log("Starting migration of", gardenAddresses.length, "gardens");
-        console2.log("GardenToken:", gardenTokenAddr);
-        console2.log("HatsModule:", hatsModuleAddr);
-        console2.log("KarmaGAPModule:", gapModuleAddr);
+        string memory json = vm.readFile(configPath);
 
         vm.startBroadcast();
 
-        for (uint256 i = 0; i < gardenAddresses.length; i++) {
-            _migrateGarden(gardenAddresses[i]);
+        for (uint256 i = 0; i < 50; i++) {
+            string memory basePath = string.concat(".gardens[", vm.toString(i), "]");
+
+            try vm.parseJson(json, string.concat(basePath, ".garden")) returns (bytes memory gardenBytes) {
+                address garden = abi.decode(gardenBytes, (address));
+
+                string memory name = _parseOptionalString(json, string.concat(basePath, ".name"));
+                string memory description = _parseOptionalString(json, string.concat(basePath, ".description"));
+                string memory location = _parseOptionalString(json, string.concat(basePath, ".location"));
+                string memory bannerImage = _parseOptionalString(json, string.concat(basePath, ".bannerImage"));
+                address communityToken = _parseOptionalAddress(json, string.concat(basePath, ".communityToken"));
+                address[] memory operators =
+                    abi.decode(vm.parseJson(json, string.concat(basePath, ".operators")), (address[]));
+
+                if (operators.length == 0) revert MissingOperators(garden);
+
+                if (bytes(name).length == 0) {
+                    // Fallback to on-chain name if not provided
+                    name = IGardenAccount(garden).name();
+                }
+
+                // 1. Create hat tree
+                hatsModule.createGardenHatTree(garden, name, communityToken);
+
+                // 2. Grant operator roles (best-effort sub-grants handled by module)
+                for (uint256 j = 0; j < operators.length; j++) {
+                    hatsModule.grantRole(garden, operators[j], IHatsModule.GardenRole.Operator);
+                }
+
+                // 3. Create GAP project (graceful degradation handled in module)
+                karmaGAPModule.createProject(garden, operators[0], name, description, location, bannerImage);
+            } catch {
+                break;
+            }
         }
 
         vm.stopBroadcast();
-
-        console2.log("Migration complete!");
     }
 
-    /// @notice Migrates a single garden to the new module architecture
-    /// @param garden The garden address to migrate
-    function _migrateGarden(address garden) internal {
-        console2.log("Migrating garden:", garden);
-
-        // Get garden info
-        IGardenAccount gardenAccount = IGardenAccount(garden);
-        string memory gardenName = gardenAccount.name();
-
-        // Get operators (we'll need to iterate or get from events in production)
-        // For now, assume msg.sender is an operator
-        address primaryOperator = msg.sender;
-
-        // 1. Create hat tree if module is configured
-        if (address(hatsModule) != address(0)) {
-            try hatsModule.hasHatTree(garden) returns (bool hasTree) {
-                if (!hasTree) {
-                    try hatsModule.createGardenHatTree(garden, primaryOperator, gardenName) returns (uint256 rootHatId) {
-                        console2.log("  - Created hat tree with root hat:", rootHatId);
-                    } catch {
-                        console2.log("  - Failed to create hat tree");
-                    }
-                } else {
-                    console2.log("  - Hat tree already exists");
-                }
-            } catch {
-                console2.log("  - Could not check hat tree status");
-            }
+    function _parseOptionalString(string memory json, string memory path) private view returns (string memory value) {
+        try vm.parseJson(json, path) returns (bytes memory data) {
+            return abi.decode(data, (string));
+        } catch {
+            return "";
         }
-
-        // 2. Create GAP project if module is configured and GAP is supported
-        if (address(karmaGAPModule) != address(0)) {
-            try karmaGAPModule.getProjectUID(garden) returns (bytes32 existingUID) {
-                if (existingUID == bytes32(0)) {
-                    try karmaGAPModule.createProject(
-                        garden,
-                        primaryOperator,
-                        gardenName,
-                        gardenAccount.description(),
-                        gardenAccount.location(),
-                        gardenAccount.bannerImage()
-                    ) returns (bytes32 projectUID) {
-                        if (projectUID != bytes32(0)) {
-                            console2.log("  - Created GAP project:", vm.toString(projectUID));
-                        } else {
-                            console2.log("  - GAP project creation returned empty UID (chain may not support GAP)");
-                        }
-                    } catch {
-                        console2.log("  - Failed to create GAP project");
-                    }
-                } else {
-                    console2.log("  - GAP project already exists:", vm.toString(existingUID));
-                }
-            } catch {
-                console2.log("  - Could not check GAP project status");
-            }
-        }
-
-        console2.log("  - Migration complete for garden");
     }
 
-    /// @notice Parses a comma-separated string of addresses
-    /// @param str The comma-separated string of addresses
-    /// @return addresses Array of parsed addresses
-    function _parseAddresses(string memory str) internal pure returns (address[] memory) {
-        // Simple implementation - in production, use a proper parser
-        bytes memory strBytes = bytes(str);
-        if (strBytes.length == 0) return new address[](0);
-
-        // Count commas to determine array size
-        uint256 count = 1;
-        for (uint256 i = 0; i < strBytes.length; i++) {
-            if (strBytes[i] == ",") count++;
+    function _parseOptionalAddress(string memory json, string memory path) private view returns (address value) {
+        try vm.parseJson(json, path) returns (bytes memory data) {
+            return abi.decode(data, (address));
+        } catch {
+            return address(0);
         }
-
-        address[] memory addresses = new address[](count);
-        uint256 start = 0;
-        uint256 addrIndex = 0;
-
-        for (uint256 i = 0; i <= strBytes.length; i++) {
-            if (i == strBytes.length || strBytes[i] == ",") {
-                // Extract substring from start to i
-                bytes memory addrBytes = new bytes(i - start);
-                for (uint256 j = start; j < i; j++) {
-                    addrBytes[j - start] = strBytes[j];
-                }
-                // Parse address (trim whitespace)
-                addresses[addrIndex] = _parseAddress(string(addrBytes));
-                addrIndex++;
-                start = i + 1;
-            }
-        }
-
-        return addresses;
-    }
-
-    /// @notice Parses a hex string to an address
-    /// @param str The hex string (with or without 0x prefix)
-    /// @return The parsed address
-    function _parseAddress(string memory str) internal pure returns (address) {
-        bytes memory strBytes = bytes(str);
-        uint256 start = 0;
-
-        // Skip whitespace and 0x prefix
-        while (start < strBytes.length && (strBytes[start] == " " || strBytes[start] == "\t")) {
-            start++;
-        }
-        if (start + 1 < strBytes.length && strBytes[start] == "0" && (strBytes[start + 1] == "x" || strBytes[start + 1] == "X")) {
-            start += 2;
-        }
-
-        // Parse hex characters
-        uint160 result = 0;
-        for (uint256 i = start; i < strBytes.length && i < start + 40; i++) {
-            bytes1 c = strBytes[i];
-            uint8 value;
-            if (c >= "0" && c <= "9") {
-                value = uint8(c) - 48;
-            } else if (c >= "a" && c <= "f") {
-                value = uint8(c) - 87;
-            } else if (c >= "A" && c <= "F") {
-                value = uint8(c) - 55;
-            } else {
-                break;
-            }
-            result = result * 16 + value;
-        }
-
-        return address(result);
     }
 }

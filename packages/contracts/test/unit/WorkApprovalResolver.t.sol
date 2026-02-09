@@ -3,216 +3,312 @@ pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-// import { Attestation } from "@eas/IEAS.sol";
+import { Attestation } from "@eas/IEAS.sol";
 
-// import { WorkApprovalSchema } from "../../src/Schemas.sol";
-// import { NotInActionRegistry } from "../../src/Constants.sol";
-import { GardenAccount } from "../../src/accounts/Garden.sol";
-import { IGardenAccount } from "../../src/interfaces/IGardenAccount.sol";
-import { ActionRegistry } from "../../src/registries/Action.sol";
-import { WorkApprovalResolver } from "../../src/resolvers/WorkApproval.sol";
-import { HatsModule } from "../../src/modules/Hats.sol";
+import { WorkApprovalSchema, WorkSchema } from "../../src/Schemas.sol";
+import { WorkApprovalResolver, NotInWorkRegistry, NotGardenOperator } from "../../src/resolvers/WorkApproval.sol";
+import { NotInActionRegistry } from "../../src/resolvers/Work.sol";
+import { ActionRegistry, Capital } from "../../src/registries/Action.sol";
 import { MockEAS } from "../../src/mocks/EAS.sol";
-import { MockERC20 } from "../../src/mocks/ERC20.sol";
-import { MockHatsProtocol } from "../../src/mocks/HatsProtocol.sol";
+import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
 
+/// @title WorkApprovalResolverTest
+/// @notice Unit tests for WorkApprovalResolver onAttest validation logic
+/// @dev Uses MockGardenAccessControl and MockEAS to isolate approval validation
 contract WorkApprovalResolverTest is Test {
     WorkApprovalResolver private workApprovalResolver;
-    ActionRegistry private mockActionRegistry;
-    GardenAccount private mockGardenAccount;
-    HatsModule private hatsModule;
-    MockEAS private mockIEAS;
-    MockERC20 private mockCommunityToken;
-    MockHatsProtocol private mockHats;
+    ActionRegistry private actionRegistry;
+    MockEAS private mockEAS;
+    MockGardenAccessControl private mockGarden;
 
-    address private owner = address(this);
     address private multisig = address(0x123);
-    address private attester = address(0x456);
-    address private recipient = address(0x789);
+    address private evaluator = address(0x456);
+    address private operator = address(0x789);
+    address private gardener = address(0x201);
+    address private stranger = address(0x999);
+
+    uint256 private activeActionId;
+    bytes32 private workUID;
 
     function setUp() public {
-        // Deploy mock community token
-        mockCommunityToken = new MockERC20();
-        mockIEAS = new MockEAS();
+        // Deploy mock EAS and garden access control
+        mockEAS = new MockEAS();
+        mockGarden = new MockGardenAccessControl();
 
-        // Deploy mock Hats Protocol
-        mockHats = new MockHatsProtocol();
-        uint256 topHatId = mockHats.mintTopHat(multisig, "Top Hat", "");
-        uint256 gardensHatId = mockHats.createHat(topHatId, "Gardens", type(uint32).max, address(0), address(0), true, "");
+        // Configure roles
+        mockGarden.setEvaluator(evaluator, true);
+        mockGarden.setOperator(operator, true);
+        mockGarden.setGardener(gardener, true);
 
-        // Deploy HatsModule
-        HatsModule hatsModuleImpl = new HatsModule();
-        bytes memory hatsModuleInitData = abi.encodeWithSelector(
-            HatsModule.initialize.selector,
-            multisig,
-            address(mockHats),
-            gardensHatId
-        );
-        ERC1967Proxy hatsModuleProxy = new ERC1967Proxy(address(hatsModuleImpl), hatsModuleInitData);
-        hatsModule = HatsModule(address(hatsModuleProxy));
-
-        // Create minimal mock contracts with code (use non-precompile addresses)
-        vm.etch(address(0x1002), hex"00"); // multicallForwarder
-        vm.etch(address(0x1003), hex"00"); // erc6551Registry
-        vm.etch(address(0x1004), hex"00"); // guardian
-
+        // Deploy ActionRegistry
         ActionRegistry actionImpl = new ActionRegistry();
         bytes memory actionInitData = abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig);
         ERC1967Proxy actionProxy = new ERC1967Proxy(address(actionImpl), actionInitData);
-        mockActionRegistry = ActionRegistry(address(actionProxy));
+        actionRegistry = ActionRegistry(address(actionProxy));
 
-        // Deploy mock garden account (needs proxy for upgradeable contract)
-        GardenAccount gardenAccountImpl = new GardenAccount(
-            address(mockIEAS), address(0x1002), address(0x1003), address(0x1004)
+        // Register an active action
+        Capital[] memory capitals = new Capital[](1);
+        capitals[0] = Capital.LIVING;
+
+        vm.prank(multisig);
+        actionRegistry.registerAction(
+            block.timestamp, block.timestamp + 30 days, "Plant Trees", "ipfs://instructions", capitals, new string[](0)
         );
+        activeActionId = 0;
 
-        IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
-            communityToken: address(mockCommunityToken),
-            name: "Test Garden",
-            description: "Test Description",
-            location: "Test Location",
-            bannerImage: "",
-            metadata: "",
-            openJoining: false,
-            gardeners: new address[](0),
-            gardenOperators: new address[](0)
-        });
-
-        bytes memory gardenAccountInitData = abi.encodeWithSelector(GardenAccount.initialize.selector, params);
-
-        ERC1967Proxy gardenAccountProxy = new ERC1967Proxy(address(gardenAccountImpl), gardenAccountInitData);
-        mockGardenAccount = GardenAccount(payable(address(gardenAccountProxy)));
-
-        // Deploy the WorkApprovalResolver implementation (now requires hatsModule)
-        WorkApprovalResolver resolverImpl = new WorkApprovalResolver(address(mockIEAS), address(mockActionRegistry), address(hatsModule));
-
-        // Deploy with proxy and initialize
+        // Deploy WorkApprovalResolver with proxy
+        WorkApprovalResolver resolverImpl = new WorkApprovalResolver(address(mockEAS), address(actionRegistry));
         bytes memory resolverInitData = abi.encodeWithSelector(WorkApprovalResolver.initialize.selector, multisig);
         ERC1967Proxy resolverProxy = new ERC1967Proxy(address(resolverImpl), resolverInitData);
         workApprovalResolver = WorkApprovalResolver(payable(address(resolverProxy)));
+
+        // Pre-populate a valid work attestation in MockEAS
+        workUID = bytes32(uint256(42));
+        WorkSchema memory workSchema = WorkSchema({
+            actionUID: activeActionId,
+            title: "Planted Trees",
+            feedback: "",
+            metadata: "",
+            media: new string[](1)
+        });
+        workSchema.media[0] = "ipfs://QmWorkPhoto";
+
+        Attestation memory workAttestation = Attestation({
+            uid: workUID,
+            schema: bytes32(uint256(100)),
+            time: uint64(block.timestamp),
+            expirationTime: 0,
+            revocationTime: 0,
+            refUID: bytes32(0),
+            recipient: address(mockGarden), // Work was submitted to this garden
+            attester: gardener,
+            revocable: true,
+            data: abi.encode(workSchema)
+        });
+        mockEAS.setAttestationByUID(workUID, workAttestation);
     }
 
+    // =========================================================================
+    // Initialization Tests
+    // =========================================================================
+
     function testInitialize() public {
-        // Test that the contract is properly initialized
-        assertEq(workApprovalResolver.owner(), multisig, "Owner should be the multisig address");
+        assertEq(workApprovalResolver.owner(), multisig, "Owner should be multisig");
     }
 
     function testIsPayable() public {
-        // Test that the resolver is payable
         assertTrue(workApprovalResolver.isPayable(), "Resolver should be payable");
     }
 
     function testActionRegistrySet() public {
-        // Test that action registry is properly configured
-        assertEq(workApprovalResolver.ACTION_REGISTRY(), address(mockActionRegistry), "Action registry should be set");
+        assertEq(workApprovalResolver.ACTION_REGISTRY(), address(actionRegistry), "Action registry should be set");
     }
 
-    function testOwnerIsMultisig() public {
-        // Verify owner is the multisig
-        assertEq(workApprovalResolver.owner(), multisig, "Owner should be multisig");
+    // =========================================================================
+    // onAttest: Happy Path Tests
+    // =========================================================================
+
+    function testOnAttestValidEvaluatorApproval() public {
+        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, true);
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Valid evaluator approval should succeed");
     }
 
-    // Note: Full integration tests for onAttest validation are in Integration.t.sol
-    // function testOnAttestValid() public {
-    //     // Mock a valid action and garden account
-    //     mockGardenAccount.addGardenOperator(attester);
-    //     mockActionRegistry.registerAction(1, block.timestamp - 1, block.timestamp + 1000);
+    function testOnAttestValidOperatorApproval() public {
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
 
-    //     // Mock a valid work attestation
-    //     Attestation memory workAttestation = Attestation(attester, recipient, "");
-    //     mockIEAS.setAttestation(1, workAttestation);
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Operator should also be able to approve work");
+    }
 
-    //     // Create a valid attestation
-    //     bytes memory data = abi.encode(WorkApprovalSchema(1, 1));
-    //     Attestation memory attestation = Attestation(attester, recipient, data);
+    function testOnAttestValidRejection() public {
+        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, false);
 
-    //     bool result = workApprovalResolver.onAttest(attestation, 0);
-    //     assertTrue(result, "Attestation should be valid");
-    // }
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Rejection (approved=false) should also succeed");
+    }
 
-    // function testOnAttestInvalidOperator() public {
-    //     // Mock an invalid garden operator
-    //     mockGardenAccount.setGardenOperator(attester, false);
-    //     mockActionRegistry.setAction(1, block.timestamp - 1, block.timestamp + 1000);
+    // =========================================================================
+    // onAttest: Work Relationship Validation (FIRST check)
+    // =========================================================================
 
-    //     // Mock a valid work attestation
-    //     Attestation memory workAttestation = Attestation(attester, recipient, "");
-    //     mockIEAS.setAttestation(1, workAttestation);
+    function testOnAttestRevertsForWorkFromDifferentGarden() public {
+        // Create a different garden
+        MockGardenAccessControl otherGarden = new MockGardenAccessControl();
+        otherGarden.setEvaluator(evaluator, true);
 
-    //     // Create an attestation with an invalid operator
-    //     bytes memory data = abi.encode(WorkApprovalSchema(1, 1));
-    //     Attestation memory attestation = Attestation(attester, recipient, data);
+        // The work attestation is for mockGarden, but approval targets otherGarden
+        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, true);
+        attestation.recipient = address(otherGarden); // Different garden than work's recipient
 
-    //     vm.expectRevert(NotGardenOperator.selector);
-    //     workApprovalResolver.onAttest(attestation, 0);
-    // }
+        vm.prank(address(mockEAS));
+        vm.expectRevert(NotInWorkRegistry.selector);
+        workApprovalResolver.attest(attestation);
+    }
 
-    // function testOnAttestInvalidWork() public {
-    //     // Mock a valid garden operator but an invalid work attestation
-    //     mockGardenAccount.setGardenOperator(attester, true);
-    //     mockActionRegistry.setAction(1, block.timestamp - 1, block.timestamp + 1000);
+    function testOnAttestRevertsForNonExistentWork() public {
+        bytes32 fakeWorkUID = bytes32(uint256(9999));
+        Attestation memory attestation = _buildApprovalAttestation(evaluator, fakeWorkUID, activeActionId, true);
 
-    //     // Mock an invalid work attestation
-    //     Attestation memory workAttestation = Attestation(address(0x999), recipient, "");
-    //     mockIEAS.setAttestation(1, workAttestation);
+        // MockEAS returns empty attestation for unknown UIDs (recipient = address(0))
+        // So recipient mismatch triggers NotInWorkRegistry
+        vm.prank(address(mockEAS));
+        vm.expectRevert(NotInWorkRegistry.selector);
+        workApprovalResolver.attest(attestation);
+    }
 
-    //     // Create an attestation with invalid work
-    //     bytes memory data = abi.encode(WorkApprovalSchema(1, 1));
-    //     Attestation memory attestation = Attestation(attester, recipient, data);
+    // =========================================================================
+    // onAttest: Identity Validation (SECOND check)
+    // =========================================================================
 
-    //     vm.expectRevert(NotInWorkRegistry.selector);
-    //     workApprovalResolver.onAttest(attestation, 0);
-    // }
+    function testOnAttestRevertsForNonEvaluatorNonOperator() public {
+        Attestation memory attestation = _buildApprovalAttestation(stranger, workUID, activeActionId, true);
 
-    // function testOnAttestInvalidAction() public {
-    //     // Mock a valid garden operator but an invalid action
-    //     mockGardenAccount.setGardenOperator(attester, true);
-    //     mockActionRegistry.setAction(1, 0, 0);
+        vm.prank(address(mockEAS));
+        vm.expectRevert(NotGardenOperator.selector);
+        workApprovalResolver.attest(attestation);
+    }
 
-    //     // Mock a valid work attestation
-    //     Attestation memory workAttestation = Attestation(attester, recipient, "");
-    //     mockIEAS.setAttestation(1, workAttestation);
+    function testOnAttestRevertsForGardenerOnly() public {
+        // Gardeners cannot approve work - only evaluators and operators can
+        Attestation memory attestation = _buildApprovalAttestation(gardener, workUID, activeActionId, true);
 
-    //     // Create an attestation with an invalid action
-    //     bytes memory data = abi.encode(WorkApprovalSchema(1, 1));
-    //     Attestation memory attestation = Attestation(attester, recipient, data);
+        vm.prank(address(mockEAS));
+        vm.expectRevert(NotGardenOperator.selector);
+        workApprovalResolver.attest(attestation);
+    }
 
-    //     vm.expectRevert(NotInActionRegistry.selector);
-    //     workApprovalResolver.onAttest(attestation, 0);
-    // }
+    // =========================================================================
+    // onAttest: Action Validation (THIRD check)
+    // =========================================================================
 
-    // function testOnRevoke() public {
-    //     // Test that the onRevoke function works correctly and can only be called by the owner
-    //     Attestation memory attestation = Attestation(attester, recipient, "");
+    function testOnAttestRevertsForNonExistentAction() public {
+        uint256 nonExistentAction = 999;
+        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, nonExistentAction, true);
 
-    //     vm.prank(multisig);
-    //     bool result = workApprovalResolver.onRevoke(attestation, 0);
-    //     assertTrue(result, "Revocation should be valid");
-    // }
+        vm.prank(address(mockEAS));
+        vm.expectRevert(NotInActionRegistry.selector);
+        workApprovalResolver.attest(attestation);
+    }
 
-    // function testOnRevokeNonOwner() public {
-    //     // Test that non-owners cannot revoke
-    //     Attestation memory attestation = Attestation(attester, recipient, "");
+    // =========================================================================
+    // onRevoke Tests
+    // =========================================================================
 
-    //     vm.prank(address(0x999));
-    //     vm.expectRevert("Ownable: caller is not the owner");
-    //     workApprovalResolver.onRevoke(attestation, 0);
-    // }
+    function testOnRevokeByEvaluator() public {
+        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, true);
 
-    // function testAuthorizeUpgrade() public {
-    //     // Test that only the owner can authorize an upgrade
-    //     address newImplementation = address(0x456);
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.revoke(attestation);
+        assertTrue(result, "Evaluator should be able to revoke approval");
+    }
 
-    //     vm.prank(multisig);
-    //     workApprovalResolver._authorizeUpgrade(newImplementation);
-    // }
+    function testOnRevokeByOperator() public {
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
 
-    // function testNonOwnerCannotUpgrade() public {
-    //     // Test that non-owners cannot authorize an upgrade
-    //     address newImplementation = address(0x456);
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.revoke(attestation);
+        assertTrue(result, "Operator should be able to revoke approval");
+    }
 
-    //     vm.prank(address(0x999));
-    //     vm.expectRevert("Ownable: caller is not the owner");
-    //     workApprovalResolver._authorizeUpgrade(newImplementation);
-    // }
+    function testOnRevokeRevertsForNonEvaluator() public {
+        Attestation memory attestation = _buildApprovalAttestation(stranger, workUID, activeActionId, true);
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(NotGardenOperator.selector);
+        workApprovalResolver.revoke(attestation);
+    }
+
+    function testOnRevokeRevertsForGardener() public {
+        Attestation memory attestation = _buildApprovalAttestation(gardener, workUID, activeActionId, true);
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(NotGardenOperator.selector);
+        workApprovalResolver.revoke(attestation);
+    }
+
+    // =========================================================================
+    // Configuration Tests
+    // =========================================================================
+
+    function testSetGreenGoodsResolver() public {
+        address resolver = address(0xBEEF);
+
+        vm.prank(multisig);
+        workApprovalResolver.setGreenGoodsResolver(resolver);
+
+        assertEq(address(workApprovalResolver.greenGoodsResolver()), resolver);
+    }
+
+    function testSetKarmaGAPModule() public {
+        address module = address(0xCAFE);
+
+        vm.prank(multisig);
+        workApprovalResolver.setKarmaGAPModule(module);
+
+        assertEq(address(workApprovalResolver.karmaGAPModule()), module);
+    }
+
+    function testOnlyOwnerCanSetGreenGoodsResolver() public {
+        vm.prank(stranger);
+        vm.expectRevert("Ownable: caller is not the owner");
+        workApprovalResolver.setGreenGoodsResolver(address(0xBEEF));
+    }
+
+    function testOnlyOwnerCanSetKarmaGAPModule() public {
+        vm.prank(stranger);
+        vm.expectRevert("Ownable: caller is not the owner");
+        workApprovalResolver.setKarmaGAPModule(address(0xCAFE));
+    }
+
+    // =========================================================================
+    // Access Control Tests
+    // =========================================================================
+
+    function testOnlyEASCanCallAttest() public {
+        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, true);
+
+        vm.prank(stranger);
+        vm.expectRevert();
+        workApprovalResolver.attest(attestation);
+    }
+
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+
+    function _buildApprovalAttestation(
+        address attester,
+        bytes32 _workUID,
+        uint256 actionUID,
+        bool approved
+    )
+        internal
+        view
+        returns (Attestation memory)
+    {
+        WorkApprovalSchema memory schema = WorkApprovalSchema({
+            actionUID: actionUID,
+            workUID: _workUID,
+            approved: approved,
+            feedback: approved ? "Good work" : "Needs improvement"
+        });
+
+        return Attestation({
+            uid: bytes32(uint256(100)),
+            schema: bytes32(uint256(101)),
+            time: uint64(block.timestamp),
+            expirationTime: 0,
+            revocationTime: 0,
+            refUID: _workUID,
+            recipient: address(mockGarden), // Same garden as work attestation
+            attester: attester,
+            revocable: true,
+            data: abi.encode(schema)
+        });
+    }
 }

@@ -1,3 +1,4 @@
+import type { ActionInstructionConfig, WorkInput } from "@green-goods/shared";
 import {
   RiAddLine,
   RiArrowDownLine,

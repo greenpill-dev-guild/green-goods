@@ -5,8 +5,8 @@ pragma solidity ^0.8.25;
 /// @notice Interface for garden role verification
 /// @dev Abstracts role checks to allow swapping implementations (mappings → Hats → etc.)
 ///
-/// **Current Implementation:** GardenAccount uses internal mappings
-/// **Future Implementation:** HatsAccessControlAdapter for Hats Protocol integration
+/// **Current Implementation:** GardenAccount delegates to HatsModule
+/// **Future Implementation:** Additional access control backends as needed
 ///
 /// Resolvers and modules MUST use this interface instead of reading mappings directly.
 /// This enables:
@@ -19,6 +19,11 @@ interface IGardenAccessControl {
     /// @return True if the account is a gardener
     function isGardener(address account) external view returns (bool);
 
+    /// @notice Check if an address is an evaluator of this garden
+    /// @param account The address to check
+    /// @return True if the account is an evaluator
+    function isEvaluator(address account) external view returns (bool);
+
     /// @notice Check if an address is an operator of this garden
     /// @param account The address to check
     /// @return True if the account is an operator
@@ -28,4 +33,14 @@ interface IGardenAccessControl {
     /// @param account The address to check
     /// @return True if the account is the owner
     function isOwner(address account) external view returns (bool);
+
+    /// @notice Check if an address is a funder of this garden
+    /// @param account The address to check
+    /// @return True if the account is a funder
+    function isFunder(address account) external view returns (bool);
+
+    /// @notice Check if an address is a community member of this garden
+    /// @param account The address to check
+    /// @return True if the account is a community member
+    function isCommunity(address account) external view returns (bool);
 }

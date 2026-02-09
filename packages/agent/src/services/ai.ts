@@ -2,14 +2,17 @@
  * AI Service (Whisper STT + Regex NLU)
  *
  * Direct AI operations. No interface abstraction.
+ *
+ * SECURITY: Uses execFile instead of exec to prevent command injection.
+ * Audio paths are passed as arguments, not interpolated into a shell string.
  */
 
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { promisify } from "util";
 import type { ParsedTask, ParsedWorkData } from "../types";
 import { loggers } from "./logger";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const log = loggers.ai;
 
 type TranscriberPipeline = (audio: string) => Promise<{ text: string }>;
@@ -30,15 +33,23 @@ class AI {
     const transcriber = await this.loadTranscriber();
 
     // Convert OGG to WAV if needed
+    // SECURITY: Uses execFile with argument array to prevent command injection
     let processedPath = audioPath;
     if (audioPath.endsWith(".ogg")) {
       processedPath = audioPath.replace(".ogg", ".wav");
       try {
-        const escapedInput = audioPath.replace(/'/g, "'\\''");
-        const escapedOutput = processedPath.replace(/'/g, "'\\''");
-        await execAsync(
-          `ffmpeg -y -i '${escapedInput}' -ar 16000 -ac 1 -c:a pcm_s16le '${escapedOutput}'`
-        );
+        await execFileAsync("ffmpeg", [
+          "-y",
+          "-i",
+          audioPath,
+          "-ar",
+          "16000",
+          "-ac",
+          "1",
+          "-c:a",
+          "pcm_s16le",
+          processedPath,
+        ]);
       } catch (error) {
         throw new Error(
           `Failed to convert audio: ${error instanceof Error ? error.message : "Unknown error"}. Ensure ffmpeg is installed.`

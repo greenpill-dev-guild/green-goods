@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.25;
+pragma solidity ^0.8.25;
 
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -8,9 +8,9 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { TBALib } from "../lib/TBA.sol";
 import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
-import { DeploymentRegistry } from "../DeploymentRegistry.sol";
-import { IHats } from "../interfaces/IHats.sol";
+import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
+import { DeploymentRegistry } from "../DeploymentRegistry.sol";
 
 /// @title GardenToken Contract
 /// @notice This contract manages the minting of Garden tokens and the creation of associated Garden accounts.
@@ -19,16 +19,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 private _nextTokenId;
     address private immutable _GARDEN_ACCOUNT_IMPLEMENTATION;
     address public deploymentRegistry;
-
-    /// @notice GardenHatsModule for Hats Protocol integration
-    IHats public gardenHatsModule;
-
-    /// @notice KarmaGAPModule for Karma GAP integration
+    IHatsModule public hatsModule;
     IKarmaGAPModule public karmaGAPModule;
 
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 46 slots (50 total - 4 used: _nextTokenId, deploymentRegistry, gardenHatsModule, karmaGAPModule)
+     * Reserves 46 slots (50 total - 4 used: _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule)
      * Note: _GARDEN_ACCOUNT_IMPLEMENTATION is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
@@ -44,10 +40,14 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         string description,
         string location,
         string bannerImage,
-        bool openJoining,
-        address[] gardeners,
-        address[] operators
+        bool openJoining
     );
+
+    /// @notice Emitted when the Hats module address is updated.
+    event HatsModuleUpdated(address indexed oldModule, address indexed newModule);
+
+    /// @notice Emitted when the Karma GAP module address is updated.
+    event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
 
     /// @notice Configuration for batch garden minting (Gas Optimized)
     struct GardenConfig {
@@ -58,8 +58,6 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         string bannerImage;
         string metadata;
         bool openJoining;
-        address[] gardeners;
-        address[] gardenOperators;
     }
 
     /// @notice Emitted for batch operations (Gas Optimized)
@@ -80,22 +78,8 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     error CommunityTokenNotContract();
     /// @notice Error thrown when community token does not implement ERC-20 interface
     error InvalidERC20Token();
-    /// @notice Error thrown when too many gardeners are provided
-    error TooManyGardeners();
-    /// @notice Error thrown when too many operators are provided
-    error TooManyOperators();
-
-    /// @notice Emitted when GardenHatsModule is updated
-    event GardenHatsModuleUpdated(address indexed oldModule, address indexed newModule);
-
-    /// @notice Emitted when KarmaGAPModule is updated
-    event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
-
-    /// @notice Emitted when a hat tree is created for a garden
-    event GardenHatTreeCreated(address indexed garden, uint256 rootHatId);
-
-    /// @notice Emitted when a GAP project is created for a garden
-    event GardenGAPProjectCreated(address indexed garden, bytes32 projectUID);
+    /// @notice Error thrown when hats module is not configured
+    error HatsModuleNotSet();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     /// @param gardenAccountImplementation The address of the Garden account implementation.
@@ -122,15 +106,13 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @notice Sets the GardenHatsModule address (owner only).
-    /// @param _gardenHatsModule The GardenHatsModule address.
-    function setGardenHatsModule(address _gardenHatsModule) external onlyOwner {
-        address oldModule = address(gardenHatsModule);
-        gardenHatsModule = IHats(_gardenHatsModule);
-        emit GardenHatsModuleUpdated(oldModule, _gardenHatsModule);
+    function setHatsModule(address _hatsModule) external onlyOwner {
+        address oldModule = address(hatsModule);
+        hatsModule = IHatsModule(_hatsModule);
+        emit HatsModuleUpdated(oldModule, _hatsModule);
     }
 
     /// @notice Sets the KarmaGAPModule address (owner only).
-    /// @param _karmaGAPModule The KarmaGAPModule address.
     function setKarmaGAPModule(address _karmaGAPModule) external onlyOwner {
         address oldModule = address(karmaGAPModule);
         karmaGAPModule = IKarmaGAPModule(_karmaGAPModule);
@@ -163,6 +145,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     function mintGarden(GardenConfig calldata config) external onlyAuthorizedMinter returns (address) {
         // Validate community token early for better error messages
         _validateCommunityToken(config.communityToken);
+        if (address(hatsModule) == address(0)) revert HatsModuleNotSet();
 
         uint256 tokenId = _nextTokenId++;
         _safeMint(_msgSender(), tokenId);
@@ -171,38 +154,10 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
         // Emit FULL event
         emit GardenMinted(
-            tokenId,
-            gardenAccount,
-            config.name,
-            config.description,
-            config.location,
-            config.bannerImage,
-            config.openJoining,
-            config.gardeners,
-            config.gardenOperators
+            tokenId, gardenAccount, config.name, config.description, config.location, config.bannerImage, config.openJoining
         );
 
-        // Prepare initialization parameters
-        IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
-            communityToken: config.communityToken,
-            name: config.name,
-            description: config.description,
-            location: config.location,
-            bannerImage: config.bannerImage,
-            metadata: config.metadata,
-            openJoining: config.openJoining,
-            gardeners: config.gardeners,
-            gardenOperators: config.gardenOperators
-        });
-
-        IGardenAccount(gardenAccount).initialize(params);
-
-        // Create hat tree via GardenHatsModule (if configured)
-        address primaryOperator = config.gardenOperators.length > 0 ? config.gardenOperators[0] : _msgSender();
-        _createHatTreeIfConfigured(gardenAccount, primaryOperator, config.name, config.gardenOperators);
-
-        // Create GAP project via KarmaGAPModule (if configured)
-        _createGAPProjectIfConfigured(gardenAccount, primaryOperator, config.name, config.description, config.location, config.bannerImage);
+        _initializeGardenModules(gardenAccount, config);
 
         return gardenAccount;
     }
@@ -225,12 +180,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         // Validate all community tokens and array lengths upfront for fail-fast behavior
         for (uint256 i = 0; i < configsLength;) {
             _validateCommunityToken(configs[i].communityToken);
-            if (configs[i].gardeners.length > 100) revert TooManyGardeners();
-            if (configs[i].gardenOperators.length > 100) revert TooManyOperators();
             unchecked {
                 ++i;
             }
         }
+
+        if (address(hatsModule) == address(0)) revert HatsModuleNotSet();
 
         gardenAccounts = new address[](configsLength);
         uint256 startTokenId = _nextTokenId;
@@ -254,32 +209,10 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
                 config.description,
                 config.location,
                 config.bannerImage,
-                config.openJoining,
-                config.gardeners,
-                config.gardenOperators
+                config.openJoining
             );
 
-            // Prepare initialization parameters
-            IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
-                communityToken: config.communityToken,
-                name: config.name,
-                description: config.description,
-                location: config.location,
-                bannerImage: config.bannerImage,
-                metadata: config.metadata,
-                openJoining: config.openJoining,
-                gardeners: config.gardeners,
-                gardenOperators: config.gardenOperators
-            });
-
-            IGardenAccount(gardenAccount).initialize(params);
-
-            // Create hat tree via GardenHatsModule (if configured)
-            address primaryOperator = config.gardenOperators.length > 0 ? config.gardenOperators[0] : _msgSender();
-            _createHatTreeIfConfigured(gardenAccount, primaryOperator, config.name, config.gardenOperators);
-
-            // Create GAP project via KarmaGAPModule (if configured)
-            _createGAPProjectIfConfigured(gardenAccount, primaryOperator, config.name, config.description, config.location, config.bannerImage);
+            _initializeGardenModules(gardenAccount, config);
 
             gardenAccounts[i] = gardenAccount;
 
@@ -289,6 +222,42 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         }
 
         emit BatchGardensMinted(startTokenId, _nextTokenId - 1, _msgSender(), configsLength);
+    }
+
+    /// @notice Initializes Hats tree, Karma GAP project, and GardenAccount for a newly minted garden
+    /// @dev Shared by mintGarden() and batchMintGardens() to avoid code duplication
+    /// @param gardenAccount The TBA garden account address
+    /// @param config The garden configuration
+    function _initializeGardenModules(address gardenAccount, GardenConfig calldata config) private {
+        // Hats Protocol: create hat tree + initial owner role
+        hatsModule.createGardenHatTree(gardenAccount, config.name, config.communityToken);
+
+        // Owner (NFT minter)
+        hatsModule.grantRole(gardenAccount, _msgSender(), IHatsModule.GardenRole.Owner);
+
+        // Karma GAP: create project (graceful degradation)
+        if (address(karmaGAPModule) != address(0)) {
+            try karmaGAPModule.createProject(
+                gardenAccount, _msgSender(), config.name, config.description, config.location, config.bannerImage
+            ) {
+                // Success handled by module events
+            } catch {
+                // Failure is non-blocking
+            }
+        }
+
+        // Initialize garden account with metadata
+        IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
+            communityToken: config.communityToken,
+            name: config.name,
+            description: config.description,
+            location: config.location,
+            bannerImage: config.bannerImage,
+            metadata: config.metadata,
+            openJoining: config.openJoining
+        });
+
+        IGardenAccount(gardenAccount).initialize(params);
     }
 
     /// @notice Validates that the provided address is a valid ERC-20 token contract
@@ -312,53 +281,6 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             // Success - token validated, no additional action needed
         } catch {
             revert InvalidERC20Token();
-        }
-    }
-
-    /// @notice Creates a hat tree for a garden via GardenHatsModule
-    /// @dev Gracefully skips if module not configured
-    function _createHatTreeIfConfigured(
-        address gardenAccount,
-        address primaryOperator,
-        string calldata gardenName,
-        address[] calldata additionalOperators
-    ) private {
-        if (address(gardenHatsModule) == address(0)) return;
-
-        try gardenHatsModule.createGardenHatTree(gardenAccount, primaryOperator, gardenName) returns (uint256 rootHatId) {
-            emit GardenHatTreeCreated(gardenAccount, rootHatId);
-
-            // Grant operator role to additional operators
-            for (uint256 i = 1; i < additionalOperators.length; i++) {
-                try gardenHatsModule.grantRole(gardenAccount, additionalOperators[i], IHats.GardenRole.Operator) {
-                    // Success
-                } catch {
-                    // Non-critical: continue with next operator
-                }
-            }
-        } catch {
-            // Non-critical: hat tree creation failed, garden still works
-        }
-    }
-
-    /// @notice Creates a GAP project for a garden via KarmaGAPModule
-    /// @dev Gracefully skips if module not configured or GAP not supported
-    function _createGAPProjectIfConfigured(
-        address gardenAccount,
-        address primaryOperator,
-        string calldata name,
-        string calldata description,
-        string calldata location,
-        string calldata bannerImage
-    ) private {
-        if (address(karmaGAPModule) == address(0)) return;
-
-        try karmaGAPModule.createProject(gardenAccount, primaryOperator, name, description, location, bannerImage) returns (bytes32 projectUID) {
-            if (projectUID != bytes32(0)) {
-                emit GardenGAPProjectCreated(gardenAccount, projectUID);
-            }
-        } catch {
-            // Non-critical: GAP project creation failed, garden still works
         }
     }
 

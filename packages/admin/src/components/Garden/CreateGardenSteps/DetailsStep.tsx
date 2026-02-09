@@ -1,29 +1,27 @@
-import { imageCompressor, toastService } from "@green-goods/shared";
-import { useEnsAddress } from "@green-goods/shared/hooks";
-import { type CreateGardenFormState, isValidAddress } from "@green-goods/shared/stores";
-import { cn, formatAddress } from "@green-goods/shared/utils";
-import { uploadFileToIPFS, resolveIPFSUrl } from "@green-goods/shared/modules";
+import {
+  cn,
+  formatAddress,
+  imageCompressor,
+  isValidAddressFormat,
+  logger,
+  resolveIPFSUrl,
+  toastService,
+  uploadFileToIPFS,
+  useCreateGardenStore,
+  useEnsAddress,
+} from "@green-goods/shared";
 import { RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { isAddress } from "viem";
 import { FileUploadField } from "../../FileUploadField";
 
 interface DetailsStepProps {
-  form: {
-    name: string;
-    description: string;
-    location: string;
-    communityToken: string;
-    bannerImage: string;
-  };
-  setField: <K extends keyof CreateGardenFormState>(
-    field: K,
-    value: CreateGardenFormState[K]
-  ) => void;
   showValidation: boolean;
 }
 
-export function DetailsStep({ form, setField, showValidation }: DetailsStepProps) {
+export function DetailsStep({ showValidation }: DetailsStepProps) {
+  const form = useCreateGardenStore((s) => s.form);
+  const setField = useCreateGardenStore((s) => s.setField);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [bannerUploadProgress, setBannerUploadProgress] = useState(0);
@@ -54,7 +52,7 @@ export function DetailsStep({ form, setField, showValidation }: DetailsStepProps
       description: form.description.trim().length > 0 ? null : "Description is required",
       location: form.location.trim().length > 0 ? null : "Location is required",
       communityToken:
-        isValidAddress(form.communityToken.trim()) || resolvedCommunityTokenAddress
+        isValidAddressFormat(form.communityToken.trim()) || resolvedCommunityTokenAddress
           ? null
           : form.communityToken.trim().length === 0
             ? "Community token address is required"
@@ -112,7 +110,7 @@ export function DetailsStep({ form, setField, showValidation }: DetailsStepProps
         suppressLogging: true,
       });
     } catch (error) {
-      console.error("Banner upload failed:", error);
+      logger.error("Banner upload failed", { error });
       toastService.error({
         title: "Upload failed",
         message: "Could not upload banner image. Please try again.",

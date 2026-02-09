@@ -2,6 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { encodeFunctionData } from "viem";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { logger } from "../../modules/app/logger";
+import { parseContractError } from "../../utils/errors/contract-errors";
+import { USER_FRIENDLY_ERRORS } from "../../utils/errors/user-messages";
 import { useAuth } from "../auth/useAuth";
 import { queryKeys } from "../query-keys";
 
@@ -180,7 +183,7 @@ export function useGardenerProfile() {
       });
     },
     onError: (error) => {
-      console.error("Profile update failed:", error);
+      logger.error("Profile update failed", { source: "useGardenerProfile", error });
       toastService.error({
         title: "Profile update failed",
         message: "Please try again.",
@@ -190,141 +193,92 @@ export function useGardenerProfile() {
     },
   });
 
+  // Factory for individual field update mutations (DRY pattern)
+  // All field updates accept string values, so we use a simple factory
+  const createFieldMutation = (config: {
+    functionName: "updateName" | "updateBio" | "updateLocation" | "updateImage";
+    successTitle: string;
+    successMessage: string;
+    errorTitle: string;
+    errorMessage: string;
+  }) =>
+    useMutation({
+      mutationFn: async (value: string) => {
+        if (!smartAccountClient || !smartAccountAddress) {
+          throw new Error("Not authenticated");
+        }
+
+        const data = encodeFunctionData({
+          abi: GARDENER_ACCOUNT_ABI,
+          functionName: config.functionName,
+          args: [value],
+        });
+
+        if (!smartAccountClient.account) {
+          throw new Error("Smart account not initialized");
+        }
+        return await smartAccountClient.sendTransaction({
+          account: smartAccountClient.account,
+          chain: null,
+          to: smartAccountAddress,
+          data,
+          value: 0n,
+        });
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
+        toastService.success({
+          title: config.successTitle,
+          message: config.successMessage,
+          context: "profile update",
+          suppressLogging: true,
+        });
+      },
+      onError: (error) => {
+        const parsed = parseContractError(error);
+        // Defensive: ensure parsed.name is a string before calling toLowerCase()
+        const safeName = typeof parsed?.name === "string" ? parsed.name.toLowerCase() : "";
+        const userFriendlyMsg = USER_FRIENDLY_ERRORS[safeName] || config.errorMessage;
+        toastService.error({
+          title: config.errorTitle,
+          message: userFriendlyMsg,
+          context: "profile update",
+          error: parsed,
+        });
+      },
+    });
+
   // Individual field update mutations (gas efficient)
-  const updateNameMutation = useMutation({
-    mutationFn: async (name: string) => {
-      if (!smartAccountClient || !smartAccountAddress) {
-        throw new Error("Not authenticated");
-      }
-
-      const data = encodeFunctionData({
-        abi: GARDENER_ACCOUNT_ABI,
-        functionName: "updateName",
-        args: [name],
-      });
-
-      if (!smartAccountClient.account) {
-        throw new Error("Smart account not initialized");
-      }
-      return await smartAccountClient.sendTransaction({
-        account: smartAccountClient.account,
-        chain: null,
-        to: smartAccountAddress,
-        data,
-        value: 0n,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
-      toastService.success({
-        title: "Name updated",
-        message: "Your profile name has been updated.",
-        context: "profile update",
-        suppressLogging: true,
-      });
-    },
+  const updateNameMutation = createFieldMutation({
+    functionName: "updateName",
+    successTitle: "Name updated",
+    successMessage: "Your profile name has been updated.",
+    errorTitle: "Name update failed",
+    errorMessage: "Could not update your profile name. Please try again.",
   });
 
-  const updateBioMutation = useMutation({
-    mutationFn: async (bio: string) => {
-      if (!smartAccountClient || !smartAccountAddress) {
-        throw new Error("Not authenticated");
-      }
-
-      const data = encodeFunctionData({
-        abi: GARDENER_ACCOUNT_ABI,
-        functionName: "updateBio",
-        args: [bio],
-      });
-
-      if (!smartAccountClient.account) {
-        throw new Error("Smart account not initialized");
-      }
-      return await smartAccountClient.sendTransaction({
-        account: smartAccountClient.account,
-        chain: null,
-        to: smartAccountAddress,
-        data,
-        value: 0n,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
-      toastService.success({
-        title: "Bio updated",
-        message: "Your biography has been updated.",
-        context: "profile update",
-        suppressLogging: true,
-      });
-    },
+  const updateBioMutation = createFieldMutation({
+    functionName: "updateBio",
+    successTitle: "Bio updated",
+    successMessage: "Your biography has been updated.",
+    errorTitle: "Bio update failed",
+    errorMessage: "Could not update your biography. Please try again.",
   });
 
-  const updateLocationMutation = useMutation({
-    mutationFn: async (location: string) => {
-      if (!smartAccountClient || !smartAccountAddress) {
-        throw new Error("Not authenticated");
-      }
-
-      const data = encodeFunctionData({
-        abi: GARDENER_ACCOUNT_ABI,
-        functionName: "updateLocation",
-        args: [location],
-      });
-
-      if (!smartAccountClient.account) {
-        throw new Error("Smart account not initialized");
-      }
-      return await smartAccountClient.sendTransaction({
-        account: smartAccountClient.account,
-        chain: null,
-        to: smartAccountAddress,
-        data,
-        value: 0n,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
-      toastService.success({
-        title: "Location updated",
-        message: "Your location has been saved.",
-        context: "profile update",
-        suppressLogging: true,
-      });
-    },
+  const updateLocationMutation = createFieldMutation({
+    functionName: "updateLocation",
+    successTitle: "Location updated",
+    successMessage: "Your location has been saved.",
+    errorTitle: "Location update failed",
+    errorMessage: "Could not update your location. Please try again.",
   });
 
-  const updateImageMutation = useMutation({
-    mutationFn: async (imageURI: string) => {
-      if (!smartAccountClient || !smartAccountAddress) {
-        throw new Error("Not authenticated");
-      }
-
-      const data = encodeFunctionData({
-        abi: GARDENER_ACCOUNT_ABI,
-        functionName: "updateImage",
-        args: [imageURI],
-      });
-
-      if (!smartAccountClient.account) {
-        throw new Error("Smart account not initialized");
-      }
-      return await smartAccountClient.sendTransaction({
-        account: smartAccountClient.account,
-        chain: null,
-        to: smartAccountAddress,
-        data,
-        value: 0n,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
-      toastService.success({
-        title: "Profile image updated",
-        message: "Your new image is on the way.",
-        context: "profile update",
-        suppressLogging: true,
-      });
-    },
+  const updateImageMutation = createFieldMutation({
+    functionName: "updateImage",
+    successTitle: "Profile image updated",
+    successMessage: "Your new image is on the way.",
+    errorTitle: "Image update failed",
+    errorMessage: "Could not update your profile image. Please try again.",
   });
 
   return {

@@ -174,6 +174,16 @@ export {
   getGardens,
   updateUserProfile,
 } from "./data/greengoods";
+
+// ============================================================================
+// DATA / HYPERCERTS
+// ============================================================================
+export {
+  checkAttestationsBundled,
+  getApprovedAttestations,
+  getGardenHypercerts,
+  getHypercertById,
+} from "./data/hypercerts";
 // ============================================================================
 // DATA / IPFS (Storacha)
 // ============================================================================
@@ -216,6 +226,12 @@ export {
 export { browserTranslator } from "./translation/browser-translator";
 export { translationCache } from "./translation/db";
 export { runTranslationDiagnostics } from "./translation/diagnostics";
+
+// ============================================================================
+// LOGGING
+// ============================================================================
+export type { LogContext, Logger } from "./app/logger";
+export { createLogger, logger } from "./app/logger";
 
 // ============================================================================
 // WORK / BOT SUBMISSION

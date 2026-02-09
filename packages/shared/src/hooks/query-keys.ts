@@ -3,6 +3,8 @@
  * Standardizes and simplifies React Query cache keys
  */
 
+import type { AttestationFilters } from "../types/hypercerts";
+
 // ============================================
 // Stale Time Constants (in milliseconds)
 // ============================================
@@ -22,6 +24,9 @@ export const STALE_TIME_RARE = 300_000; // 5 minutes
 /** Default retry configuration */
 export const DEFAULT_RETRY_COUNT = 3;
 export const DEFAULT_RETRY_DELAY = 1000; // 1 second
+
+/** Delay for follow-up query invalidation to handle indexer lag */
+export const INDEXER_LAG_FOLLOWUP_MS = 2000 as const;
 
 // Base query key factory
 export const queryKeys = {
@@ -59,6 +64,25 @@ export const queryKeys = {
       ["greengoods", "workApprovals", "offline", attesterAddress] as const,
   },
 
+  // Approvals aggregated by operator gardens
+  approvals: {
+    all: ["greengoods", "approvals"] as const,
+    byOperatorGardens: (gardenIds: string[]) =>
+      [
+        "greengoods",
+        "approvals",
+        "byOperatorGardens",
+        JSON.stringify([...gardenIds].sort()),
+      ] as const,
+  },
+
+  // Operator works related keys
+  operatorWorks: {
+    all: ["greengoods", "operatorWorks"] as const,
+    byAddress: (address: string | undefined, gardenIds: string[]) =>
+      ["greengoods", "operatorWorks", address, JSON.stringify([...gardenIds].sort())] as const,
+  },
+
   // Offline state keys
   offline: {
     all: ["greengoods", "offline"] as const,
@@ -84,6 +108,17 @@ export const queryKeys = {
   actions: {
     all: ["greengoods", "actions"] as const,
     byChain: (chainId: number) => ["greengoods", "actions", chainId] as const,
+  },
+
+  // Assessment related keys
+  assessments: {
+    all: ["greengoods", "assessments"] as const,
+    /** Base key for garden assessments - use for prefix-based invalidation */
+    byGardenBase: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "assessments", "byGarden", gardenAddress, chainId] as const,
+    /** Full key with limit - use for specific queries */
+    byGarden: (gardenAddress: string, chainId: number, limit?: number) =>
+      ["greengoods", "assessments", "byGarden", gardenAddress, chainId, limit] as const,
   },
 
   // Gardener related keys
@@ -112,6 +147,18 @@ export const queryKeys = {
     all: ["greengoods", "role"] as const,
     operatorGardens: (address?: string) =>
       ["greengoods", "role", "operatorGardens", address] as const,
+    gardenRoles: (gardenId?: string, address?: string) =>
+      ["greengoods", "role", "gardenRoles", gardenId, address] as const,
+    hasRole: (gardenId?: string, address?: string, role?: string) =>
+      ["greengoods", "role", "hasRole", gardenId, address, role] as const,
+    evaluatorGardens: (address?: string, gardenIds: string[] = []) =>
+      [
+        "greengoods",
+        "role",
+        "evaluatorGardens",
+        address,
+        JSON.stringify([...gardenIds].sort()),
+      ] as const,
   },
 
   // Draft related keys
@@ -121,6 +168,18 @@ export const queryKeys = {
       ["greengoods", "drafts", "list", userAddress, chainId] as const,
     detail: (draftId: string) => ["greengoods", "drafts", "detail", draftId] as const,
     images: (draftId: string) => ["greengoods", "drafts", "images", draftId] as const,
+  },
+
+  // Hypercert related keys
+  hypercerts: {
+    all: ["greengoods", "hypercerts"] as const,
+    attestations: (gardenId?: string, filters?: AttestationFilters) =>
+      ["greengoods", "hypercerts", "attestations", gardenId, filters] as const,
+    list: (gardenId?: string, status?: string) =>
+      ["greengoods", "hypercerts", "list", gardenId, status] as const,
+    detail: (hypercertId?: string) => ["greengoods", "hypercerts", "detail", hypercertId] as const,
+    drafts: (gardenId?: string, operatorAddress?: string) =>
+      ["greengoods", "hypercerts", "drafts", gardenId, operatorAddress] as const,
   },
 } as const;
 
@@ -190,6 +249,13 @@ export const queryInvalidation = {
     queryKeys.drafts.images(draftId),
   ],
 
+  // Invalidate hypercert lists
+  invalidateHypercerts: (gardenId?: string) => [
+    queryKeys.hypercerts.all,
+    queryKeys.hypercerts.list(gardenId),
+    queryKeys.hypercerts.attestations(gardenId),
+  ],
+
   // Invalidate gardener profile
   invalidateGardenerProfile: (address?: string, chainId?: number) => {
     if (address && chainId) {
@@ -204,6 +270,14 @@ export const queryInvalidation = {
       return [queryKeys.ens.name(address), queryKeys.ens.avatar(address)];
     }
     return [queryKeys.ens.all];
+  },
+
+  // Invalidate assessments (uses byGardenBase for prefix matching regardless of limit)
+  invalidateAssessments: (gardenAddress?: string, chainId?: number) => {
+    if (gardenAddress && chainId) {
+      return [queryKeys.assessments.byGardenBase(gardenAddress, chainId)];
+    }
+    return [queryKeys.assessments.all];
   },
 };
 
@@ -225,7 +299,14 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.offline.status>
   | ReturnType<typeof queryKeys.offline.sync>
   | typeof queryKeys.media.all
-  | ReturnType<typeof queryKeys.media.forJob>;
+  | ReturnType<typeof queryKeys.media.forJob>
+  | typeof queryKeys.hypercerts.all
+  | ReturnType<typeof queryKeys.hypercerts.attestations>
+  | ReturnType<typeof queryKeys.hypercerts.list>
+  | ReturnType<typeof queryKeys.hypercerts.detail>
+  | ReturnType<typeof queryKeys.hypercerts.drafts>
+  | typeof queryKeys.assessments.all
+  | ReturnType<typeof queryKeys.assessments.byGarden>;
 
 export type WorksQueryKey =
   | typeof queryKeys.works.all

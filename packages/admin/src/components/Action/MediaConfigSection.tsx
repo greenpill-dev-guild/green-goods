@@ -1,3 +1,4 @@
+import type { ActionInstructionConfig } from "@green-goods/shared";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
 

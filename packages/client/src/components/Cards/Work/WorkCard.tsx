@@ -6,7 +6,7 @@ import {
   formatRelativeTime,
   truncateAddress,
 } from "@green-goods/shared/utils";
-import { getStatusColors, StatusBadge } from "@green-goods/shared/components";
+import { getStatusColors } from "@green-goods/shared/components";
 import type { Work } from "@green-goods/shared";
 import { RiFileTextLine, RiImageLine, RiRefreshLine } from "@remixicon/react";
 import React from "react";
@@ -20,7 +20,7 @@ export interface WorkCardItem {
   description?: string;
   gardenId: string;
   gardenName?: string;
-  status: "approved" | "rejected" | "pending" | "syncing" | "failed";
+  status: "approved" | "rejected" | "pending" | "syncing" | "uploading" | "failed";
   createdAt: number;
   lastAttempt?: number;
   retryCount: number;
@@ -48,6 +48,7 @@ export interface MinimalWorkCardProps {
   showGardenInfo?: boolean;
   badges?: React.ReactNode[];
   style?: React.CSSProperties;
+  confirmed?: boolean;
   /** Variant controls subtitle content: "compact" (default) shows time only, "detailed" shows gardener + time */
   variant?: "compact" | "detailed";
 }
@@ -57,8 +58,9 @@ type MediaItem = string | { url: string } | { file: File } | File;
 
 // Use shared getStatusColors utility for inline status styling
 const getStatusColor = (status: string) => {
-  return getStatusColors(status as "approved" | "rejected" | "pending" | "syncing" | "failed")
-    .combined;
+  return getStatusColors(
+    status as "approved" | "rejected" | "pending" | "syncing" | "uploading" | "failed"
+  ).combined;
 };
 
 export const WorkCard: React.FC<WorkCardProps> = ({
@@ -154,6 +156,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   actionTitle,
   showGardenInfo = false,
   badges,
+  confirmed = false,
   variant = "compact",
 }) => {
   const intl = useIntl();
@@ -165,8 +168,11 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
     enabled: Boolean(showGardenInfo && work.gardenAddress),
   });
-  const displayStatus = work.status
-    ? work.status.charAt(0).toUpperCase() + work.status.slice(1)
+  // Detect offline/optimistic entries by ID prefix and show "Uploading" instead of "Pending"
+  const isOfflineWork = work.id.startsWith("0xoffline_");
+  const effectiveStatus = isOfflineWork ? "uploading" : work.status;
+  const displayStatus = effectiveStatus
+    ? effectiveStatus.charAt(0).toUpperCase() + effectiveStatus.slice(1)
     : "Pending";
 
   // Resolve thumbnail from media entry (supports string URL, {url}, or File)
@@ -207,7 +213,10 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
       if (createdUrl) {
         try {
           URL.revokeObjectURL(createdUrl);
-        } catch {}
+        } catch (error) {
+          // Non-critical: URL will be garbage collected eventually
+          console.warn("[MinimalWorkCard] Failed to revoke object URL:", error);
+        }
       }
     };
   }, [work.media, work.id]);
@@ -221,9 +230,11 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
     <button
       onClick={onClick}
       type="button"
+      data-confirmed={confirmed ? "true" : "false"}
       className={cn(
         // Container query: enables responsive layout based on card width
         "@container flex items-stretch gap-0 border border-stroke-soft-200 rounded-lg overflow-hidden transition-all duration-300 cursor-pointer bg-bg-white-0 w-full text-left tap-feedback",
+        confirmed && "work-confirmed-shimmer",
         className
       )}
     >
@@ -251,7 +262,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
           <span
             className={cn(
               "text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 status-transition",
-              getStatusColor(work.status)
+              getStatusColor(effectiveStatus)
             )}
           >
             {displayStatus}

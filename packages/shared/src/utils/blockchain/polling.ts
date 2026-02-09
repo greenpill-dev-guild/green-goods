@@ -21,7 +21,9 @@ interface PollConfig {
   queryKeys: readonly (readonly unknown[])[];
   /** Maximum number of polling attempts (default: 4) */
   maxAttempts?: number;
-  /** Initial delay in milliseconds (default: 1000ms = 1s) */
+  /** Initial delay before first attempt in ms (default: 0 for immediate check) */
+  initialDelayMs?: number;
+  /** Base delay for exponential backoff in ms (default: 500ms) */
   baseDelay?: number;
   /** Maximum delay between attempts (default: 4000ms = 4s) */
   maxDelay?: number;
@@ -74,7 +76,8 @@ export async function pollQueriesAfterTransaction(config: PollConfig): Promise<v
   const {
     queryKeys,
     maxAttempts = 4,
-    baseDelay = 1000,
+    initialDelayMs = 0, // Immediate first check by default
+    baseDelay = 500, // Faster base delay for responsiveness
     maxDelay = 4000,
     onAttempt,
     onDataChange,
@@ -91,16 +94,18 @@ export async function pollQueriesAfterTransaction(config: PollConfig): Promise<v
   debugLog("[Polling] Starting smart post-transaction polling", {
     queryKeyCount: queryKeys.length,
     maxAttempts,
+    initialDelayMs,
     baseDelay,
     maxDelay,
     initialCounts,
   });
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // Calculate delay with exponential backoff (capped at maxDelay)
-    const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+    // First attempt uses initialDelayMs, subsequent use exponential backoff
+    const delay =
+      attempt === 0 ? initialDelayMs : Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
 
-    // Wait before polling
+    // Wait before polling (skip if delay is 0)
     if (delay > 0) {
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
@@ -125,7 +130,7 @@ export async function pollQueriesAfterTransaction(config: PollConfig): Promise<v
       currentCounts,
       dataChanged,
       nextDelay:
-        attempt < maxAttempts - 1 ? Math.min(baseDelay * Math.pow(2, attempt + 1), maxDelay) : null,
+        attempt < maxAttempts - 1 ? Math.min(baseDelay * Math.pow(2, attempt), maxDelay) : null,
     });
 
     // Fire callback if provided
@@ -135,9 +140,7 @@ export async function pollQueriesAfterTransaction(config: PollConfig): Promise<v
     if (dataChanged) {
       debugLog("[Polling] Early exit: new data detected", {
         totalAttempts: attempt + 1,
-        totalTime: Array.from({ length: attempt + 1 }, (_, i) =>
-          Math.min(baseDelay * Math.pow(2, i), maxDelay)
-        ).reduce((sum, d) => sum + d, 0),
+        totalTime: delay + (attempt > 0 ? baseDelay * (Math.pow(2, attempt) - 1) : 0),
       });
       onDataChange?.();
       return;
@@ -146,9 +149,6 @@ export async function pollQueriesAfterTransaction(config: PollConfig): Promise<v
 
   debugLog("[Polling] Post-transaction polling completed (max attempts reached)", {
     totalAttempts: maxAttempts,
-    totalTime: Array.from({ length: maxAttempts }, (_, i) =>
-      Math.min(baseDelay * Math.pow(2, i), maxDelay)
-    ).reduce((sum, d) => sum + d, 0),
   });
 }
 

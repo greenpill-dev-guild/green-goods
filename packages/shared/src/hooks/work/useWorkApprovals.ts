@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import type { WorkApproval } from "../../types/domain";
+import type { WorkApproval, Address } from "../../types/domain";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
+import { logger } from "../../modules/app/logger";
 import { queryKeys, STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../query-keys";
 
 // Enhanced work approval interface for UI
@@ -81,8 +82,8 @@ async function getWorkApprovalsByAttester(
 
         const approval: WorkApproval = {
           id: (attestation as { id: string }).id,
-          operatorAddress: (attestation as { attester: string }).attester,
-          gardenerAddress: (attestation as { recipient: string }).recipient,
+          operatorAddress: (attestation as { attester: string }).attester as Address,
+          gardenerAddress: (attestation as { recipient: string }).recipient as Address,
           actionUID,
           workUID,
           approved,
@@ -118,7 +119,7 @@ export function useWorkApprovals(attesterAddress?: string) {
       try {
         return await getWorkApprovalsByAttester(attesterAddress!, chainId);
       } catch (error) {
-        console.warn("Error in online approvals query:", error);
+        logger.warn("Error in online approvals query", { source: "useWorkApprovals", error });
         return []; // Return empty array on error
       }
     },

@@ -1,6 +1,7 @@
+import type { Action, Work } from "@green-goods/shared";
 import { useNavigateToTop } from "@green-goods/shared/hooks";
 import { RiLoader4Line } from "@remixicon/react";
-import React, { forwardRef, memo, UIEvent, useCallback, useMemo } from "react";
+import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { FixedSizeList as List } from "react-window";
 import { MinimalWorkCard } from "@/components/Cards";

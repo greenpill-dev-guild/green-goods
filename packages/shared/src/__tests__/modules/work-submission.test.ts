@@ -137,8 +137,8 @@ describe("modules/work-submission", () => {
       draft,
       "0x123",
       1,
-      [{ id: "84532-1", title: "Act" }] as any,
-      84532,
+      [{ id: "11155111-1", title: "Act" }] as any,
+      11155111,
       [],
       TEST_USER_ADDRESS
     );
@@ -154,7 +154,7 @@ describe("modules/work-submission", () => {
         approved: true,
       },
       { gardenerAddress: "0xabc" } as any,
-      84532,
+      11155111,
       TEST_USER_ADDRESS
     );
     expect(result.jobId).toBe("job-1");

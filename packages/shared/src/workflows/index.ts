@@ -15,6 +15,10 @@ export type {
 } from "./createGarden";
 export { createGardenMachine } from "./createGarden";
 
+// Hypercert Mint Workflow
+export type { MintHypercertContext, MintHypercertEvent } from "./mintHypercert";
+export { mintHypercertMachine } from "./mintHypercert";
+
 // Auth Workflow (XState Machine)
 export type {
   AuthContext,

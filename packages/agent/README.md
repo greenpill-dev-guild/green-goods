@@ -121,22 +121,44 @@ bun run typecheck    # TypeScript type check
 
 ## Testing
 
+Uses **Vitest** for unit tests with an in-memory SQLite mock for database operations.
+
 ```bash
 # Run all tests
-bun test
+bun run test
 
-# Test files:
-# - analytics.test.ts  (30+ tests) - PostHog analytics integration
-# - crypto.test.ts     (25 tests) - Encryption & validation
-# - rate-limiter.test.ts (18 tests) - Rate limiting
-# - handlers.test.ts   (15 tests) - Command handlers
-# - orchestrator.test.ts (18 tests) - Message routing
-# - storage.test.ts    (22 tests) - Database operations
+# Watch mode
+bun run test:watch
+
+# Coverage report
+bun run test:coverage
+
+# Interactive UI
+bun run test:ui
 ```
+
+### Test Structure
+
+```
+src/__tests__/
+├── setup.ts              # Test setup, mocks for bun:sqlite, pino, etc.
+├── crypto.test.ts        # Encryption, key generation, validation
+├── handlers.test.ts      # Command handlers (start, join, submit)
+├── rate-limiter.test.ts  # Sliding window rate limiting
+├── storage.test.ts       # Database operations (users, sessions, works)
+└── utils/
+    ├── mocks.ts          # Mock factories for Telegram, blockchain, etc.
+    └── factories.ts      # Test data factories
+```
+
+### Coverage Targets
+
+- **Unit tests**: 70% branches/functions/lines/statements
+- **Critical paths** (crypto, auth): 80%+
 
 ## Architecture
 
-See [AGENTS.md](./AGENTS.md) for detailed architecture documentation including:
+See [agent.md](/.claude/context/agent.md) for detailed architecture documentation including:
 - Ports & Adapters pattern
 - Message contracts
 - Handler patterns

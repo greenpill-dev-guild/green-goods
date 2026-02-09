@@ -71,6 +71,34 @@ export type {
 export { Capital } from "./domain";
 
 // ============================================
+// Hypercert Types
+// ============================================
+export { ACTION_DOMAINS } from "./hypercerts";
+export type {
+  ActionDomain,
+  ActionType,
+  AttestationFilters,
+  AllowlistEntry,
+  AttestationRef,
+  CapitalType,
+  CustomMetric,
+  GreenGoodsExtension,
+  HypercertAllowlistClaim,
+  HypercertAttestation,
+  HypercertDraft,
+  HypercertMetadata,
+  HypercertRecord,
+  HypercertStatus,
+  MetricValue,
+  OutcomeMetrics,
+  PredefinedMetric,
+  PropertyDefinition,
+  ScopeDefinition,
+  TimeframeDefinition,
+  WorkApprovalNode,
+} from "./hypercerts";
+
+// ============================================
 // EAS Response Types
 // ============================================
 export type {

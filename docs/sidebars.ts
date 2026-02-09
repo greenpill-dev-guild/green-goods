@@ -59,37 +59,31 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'How-To Guides',
+      label: 'Gardeners',
       items: [
-        {
-          type: 'category',
-          label: 'For Gardeners',
-          items: [
-            'guides/gardeners/logging-work',
-            'guides/gardeners/tracking-contributions',
-            'guides/gardeners/best-practices',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'For Garden Operators',
-          items: [
-            'guides/operators/managing-gardens',
-            'guides/operators/managing-actions',
-            'guides/operators/reviewing-work',
-            'guides/operators/reporting-impact',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'For Impact Evaluators',
-          items: [
-            'guides/evaluators/accessing-data',
-            'guides/evaluators/exploring-gardens',
-            'guides/evaluators/using-attestation-data',
-            'guides/evaluators/external-frameworks',
-          ],
-        },
+        'gardeners/logging-work',
+        'gardeners/tracking-contributions',
+        'gardeners/best-practices',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Operators',
+      items: [
+        'operators/managing-gardens',
+        'operators/managing-actions',
+        'operators/reviewing-work',
+        'operators/reporting-impact',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Evaluators',
+      items: [
+        'evaluators/accessing-data',
+        'evaluators/exploring-gardens',
+        'evaluators/using-attestation-data',
+        'evaluators/external-frameworks',
       ],
     },
     {
@@ -106,20 +100,19 @@ const sidebars: SidebarsConfig = {
   ],
 
   // ============================================================================
-  // DEVELOPERS SIDEBAR - Technical Documentation
+  // DEVELOPERS SIDEBAR - Technical Documentation (Flattened to max 2 levels)
   // ============================================================================
   developersSidebar: [
     {
       type: 'doc',
-      id: 'welcome/quickstart-developer',
-      label: 'Developer Quickstart',
+      id: 'developer/index',
+      label: 'Developer Hub',
     },
     {
       type: 'category',
-      label: 'Getting Started',
+      label: 'Setup',
       collapsed: false,
       items: [
-        'developer/getting-started',
         'developer/installation',
       ],
     },
@@ -128,50 +121,42 @@ const sidebars: SidebarsConfig = {
       label: 'Architecture',
       items: [
         'developer/architecture',
-        'developer/architecture/monorepo-structure',
-        'developer/architecture/diagrams',
-        {
-          type: 'category',
-          label: 'Package Architecture',
-          items: [
-            'developer/architecture/client-package',
-            'developer/architecture/admin-package',
-            'developer/architecture/indexer-package',
-            'developer/architecture/contracts-package',
-            'developer/architecture/telegram-bot',
-            'developer/architecture/gardener-accounts',
-          ],
-        },
+        'developer/shared',
+        'developer/client',
+        'developer/admin',
+        'developer/contracts',
+        'developer/indexer',
+        'developer/agent',
+        'developer/diagrams',
+        'developer/gardener-accounts',
+        'developer/hypercerts',
       ],
     },
     {
       type: 'category',
-      label: 'Testing & Development',
+      label: 'Patterns',
       items: [
+        'developer/error-handling',
         'developer/testing',
-        'developer/cursor-workflows',
-        'developer/n8n-automation',
+        'developer/theming',
       ],
     },
     {
       type: 'category',
-      label: 'Deployment & Operations',
+      label: 'API & Data',
       items: [
-        'developer/releasing',
-        'developer/contracts-handbook',
-        'developer/ipfs-deployment',
-        'developer/monitoring',
+        'developer/api-reference',
         'developer/karma-gap',
       ],
     },
     {
       type: 'category',
-      label: 'API & Integrations',
+      label: 'Deployment',
       items: [
-        'developer/api-reference',
-        'developer/theming',
-        'developer/auto-translation-flow',
-        'developer/translation-troubleshooting',
+        'developer/releasing',
+        'developer/contracts-handbook',
+        'developer/ipfs-deployment',
+        'developer/monitoring',
       ],
     },
     {
@@ -181,6 +166,36 @@ const sidebars: SidebarsConfig = {
         'developer/contributing',
         'developer/docs-contributing',
         'developer/docs-deployment',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'AI-Assisted Development',
+      items: [
+        'developer/claude-mcp-workflows',
+        'developer/cursor-workflows',
+        'developer/n8n-automation',
+        'developer/n8n-story-workflow',
+        'developer/auto-translation-flow',
+        'developer/translation-troubleshooting',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Product Requirements',
+      items: [
+        'prd/prd-overview',
+        'prd/green-goods-v1',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Specifications',
+      items: [
+        'specs/specs-overview',
+        'specs/hypercerts/hypercerts-overview',
+        'specs/hypercerts/feature-spec',
+        'specs/hypercerts/technical-spec',
       ],
     },
   ],

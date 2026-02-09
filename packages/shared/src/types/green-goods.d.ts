@@ -458,6 +458,70 @@ export type introspection_types = {
           };
         };
       };
+      evaluators: {
+        name: "evaluators";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: {
+            kind: "LIST";
+            name: never;
+            ofType: {
+              kind: "NON_NULL";
+              name: never;
+              ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+            };
+          };
+        };
+      };
+      owners: {
+        name: "owners";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: {
+            kind: "LIST";
+            name: never;
+            ofType: {
+              kind: "NON_NULL";
+              name: never;
+              ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+            };
+          };
+        };
+      };
+      funders: {
+        name: "funders";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: {
+            kind: "LIST";
+            name: never;
+            ofType: {
+              kind: "NON_NULL";
+              name: never;
+              ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+            };
+          };
+        };
+      };
+      communities: {
+        name: "communities";
+        type: {
+          kind: "NON_NULL";
+          name: never;
+          ofType: {
+            kind: "LIST";
+            name: never;
+            ofType: {
+              kind: "NON_NULL";
+              name: never;
+              ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+            };
+          };
+        };
+      };
       id: {
         name: "id";
         type: {
@@ -588,6 +652,26 @@ export type introspection_types = {
         defaultValue: null;
       },
       {
+        name: "evaluators";
+        type: { kind: "INPUT_OBJECT"; name: "String_array_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "owners";
+        type: { kind: "INPUT_OBJECT"; name: "String_array_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "funders";
+        type: { kind: "INPUT_OBJECT"; name: "String_array_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "communities";
+        type: { kind: "INPUT_OBJECT"; name: "String_array_comparison_exp"; ofType: null };
+        defaultValue: null;
+      },
+      {
         name: "id";
         type: { kind: "INPUT_OBJECT"; name: "String_comparison_exp"; ofType: null };
         defaultValue: null;
@@ -659,6 +743,26 @@ export type introspection_types = {
         type: { kind: "ENUM"; name: "order_by"; ofType: null };
         defaultValue: null;
       },
+      {
+        name: "evaluators";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "owners";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "funders";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
+      {
+        name: "communities";
+        type: { kind: "ENUM"; name: "order_by"; ofType: null };
+        defaultValue: null;
+      },
       { name: "id"; type: { kind: "ENUM"; name: "order_by"; ofType: null }; defaultValue: null },
       {
         name: "location";
@@ -693,6 +797,10 @@ export type introspection_types = {
       | "description"
       | "gapProjectUID"
       | "gardeners"
+      | "evaluators"
+      | "owners"
+      | "funders"
+      | "communities"
       | "id"
       | "location"
       | "name"
@@ -754,6 +862,58 @@ export type introspection_types = {
       },
       {
         name: "gardeners";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+          };
+        };
+        defaultValue: null;
+      },
+      {
+        name: "evaluators";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+          };
+        };
+        defaultValue: null;
+      },
+      {
+        name: "owners";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+          };
+        };
+        defaultValue: null;
+      },
+      {
+        name: "funders";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+          };
+        };
+        defaultValue: null;
+      },
+      {
+        name: "communities";
         type: {
           kind: "LIST";
           name: never;

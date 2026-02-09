@@ -6,7 +6,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
 import { KarmaLib } from "../lib/Karma.sol";
-import { StringUtils } from "../lib/StringUtils.sol";
+import { GAPJsonBuilder } from "../lib/GAPJsonBuilder.sol";
 import { IGap } from "../interfaces/IKarma.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 
@@ -39,11 +39,14 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
     /// @notice AssessmentResolver contract address
     address public assessmentResolver;
 
+    /// @notice HatsModule contract address (authorized to sync project admins)
+    address public hatsModule;
+
     /// @notice Garden address → GAP Project UID
     mapping(address garden => bytes32 projectUID) public gardenProjects;
 
     /// @notice Storage gap for future upgrades
-    uint256[46] private __gap;
+    uint256[45] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -64,7 +67,10 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         address _gardenToken,
         address _workApprovalResolver,
         address _assessmentResolver
-    ) external initializer {
+    )
+        external
+        initializer
+    {
         if (_owner == address(0)) revert ZeroAddress();
         if (_gardenToken == address(0)) revert ZeroAddress();
         // Resolvers can be zero initially and set later
@@ -97,7 +103,10 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
     }
 
     modifier onlyAuthorized() {
-        if (msg.sender != gardenToken && msg.sender != workApprovalResolver && msg.sender != assessmentResolver) {
+        if (
+            msg.sender != gardenToken && msg.sender != workApprovalResolver && msg.sender != assessmentResolver
+                && msg.sender != hatsModule
+        ) {
             revert NotAuthorizedCaller();
         }
         _;
@@ -126,6 +135,13 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         assessmentResolver = _assessmentResolver;
     }
 
+    /// @notice Set the HatsModule contract address
+    /// @param _hatsModule The new HatsModule address
+    function setHatsModule(address _hatsModule) external onlyOwner {
+        if (_hatsModule == address(0)) revert ZeroAddress();
+        hatsModule = _hatsModule;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Project Management
     // ═══════════════════════════════════════════════════════════════════════════
@@ -138,7 +154,11 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         string calldata description,
         string calldata location,
         string calldata bannerImage
-    ) external onlyGardenToken returns (bytes32 projectUID) {
+    )
+        external
+        onlyGardenToken
+        returns (bytes32 projectUID)
+    {
         // Skip if GAP not supported on this chain
         if (!KarmaLib.isSupported()) {
             emit GAPOperationFailed(garden, "createProject", "Chain not supported");
@@ -198,7 +218,7 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
 
         // 3. Create Details attestation
         {
-            string memory detailsJson = _buildProjectDetailsJSON(name, description, location, bannerImage);
+            string memory detailsJson = GAPJsonBuilder.buildProjectDetails(name, description, location, bannerImage);
 
             AttestationRequestData memory reqData = AttestationRequestData({
                 recipient: garden,
@@ -260,7 +280,11 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         string calldata impactDescription,
         string calldata proofIPFS,
         bytes32 workUID
-    ) external onlyWorkApprovalResolver returns (bytes32 impactUID) {
+    )
+        external
+        onlyWorkApprovalResolver
+        returns (bytes32 impactUID)
+    {
         bytes32 projectUID = gardenProjects[garden];
         if (projectUID == bytes32(0)) {
             emit GAPOperationFailed(garden, "createImpact", "No project");
@@ -271,7 +295,9 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             return bytes32(0);
         }
 
-        string memory impactJson = _buildImpactJSON(workTitle, impactDescription, proofIPFS, workUID, tokenId);
+        string memory impactJson = GAPJsonBuilder.buildImpact(
+            workTitle, impactDescription, proofIPFS, workUID, tokenId, block.timestamp, block.chainid
+        );
 
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: garden,
@@ -299,7 +325,11 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         string calldata milestoneTitle,
         string calldata milestoneDescription,
         string calldata milestoneMeta
-    ) external onlyAssessmentResolver returns (bytes32 milestoneUID) {
+    )
+        external
+        onlyAssessmentResolver
+        returns (bytes32 milestoneUID)
+    {
         bytes32 projectUID = gardenProjects[garden];
         if (projectUID == bytes32(0)) {
             emit GAPOperationFailed(garden, "createMilestone", "No project");
@@ -310,7 +340,7 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             return bytes32(0);
         }
 
-        string memory milestoneJson = _buildMilestoneJSON(milestoneTitle, milestoneDescription, milestoneMeta);
+        string memory milestoneJson = GAPJsonBuilder.buildMilestone(milestoneTitle, milestoneDescription, milestoneMeta);
 
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: garden,
@@ -344,93 +374,6 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
     /// @inheritdoc IKarmaGAPModule
     function isSupported() external view returns (bool) {
         return KarmaLib.isSupported();
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Internal JSON Builders
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Builds project details JSON
-    function _buildProjectDetailsJSON(
-        string calldata name,
-        string calldata description,
-        string calldata location,
-        string calldata bannerImage
-    ) private pure returns (string memory) {
-        string memory imageURL =
-            bytes(bannerImage).length > 0 ? string(abi.encodePacked("https://w3s.link/ipfs/", bannerImage)) : "";
-
-        return string(
-            abi.encodePacked(
-                "{\"title\":\"",
-                StringUtils.escapeJSON(name),
-                "\",\"description\":\"",
-                StringUtils.escapeJSON(description),
-                "\",\"locationOfImpact\":\"",
-                StringUtils.escapeJSON(location),
-                "\",\"imageURL\":\"",
-                StringUtils.escapeJSON(imageURL),
-                "\",\"slug\":\"",
-                StringUtils.escapeJSON(StringUtils.generateSlug(name)),
-                "\",\"type\":\"project-details\"}"
-            )
-        );
-    }
-
-    /// @notice Builds impact JSON for work approval
-    function _buildImpactJSON(
-        string calldata workTitle,
-        string calldata impactDescription,
-        string calldata proofIPFS,
-        bytes32 workUID,
-        uint256 tokenId
-    ) private view returns (string memory) {
-        string memory isoDate = StringUtils.timestampToISO(block.timestamp);
-
-        // Part 1: title, text, dates
-        bytes memory part1 = abi.encodePacked(
-            "{\"title\":\"",
-            StringUtils.escapeJSON(workTitle),
-            "\",\"text\":\"",
-            StringUtils.escapeJSON(impactDescription),
-            "\",\"startDate\":\"",
-            isoDate,
-            "\",\"endDate\":\"",
-            isoDate
-        );
-
-        // Part 2: deliverables
-        bytes memory part2 = abi.encodePacked(
-            "\",\"deliverables\":[{\"name\":\"Work Evidence\",\"proof\":\"ipfs://",
-            StringUtils.escapeJSON(proofIPFS),
-            "\",\"description\":\"",
-            StringUtils.escapeJSON(impactDescription),
-            "\"}]"
-        );
-
-        // Part 3: links
-        bytes memory part3 = abi.encodePacked(
-            ",\"links\":[{\"type\":\"other\",\"url\":\"https://greengoods.me/garden/",
-            StringUtils.uint2str(block.chainid),
-            "/",
-            StringUtils.uint2str(tokenId),
-            "/work/0x",
-            StringUtils.bytes32ToHexString(workUID),
-            "\",\"label\":\"View in Green Goods\"}],\"type\":\"project-update\"}"
-        );
-
-        return string(abi.encodePacked(part1, part2, part3));
-    }
-
-    /// @notice Builds milestone JSON for assessment
-    function _buildMilestoneJSON(
-        string calldata title,
-        string calldata desc,
-        string calldata meta
-    ) private pure returns (string memory) {
-        bytes memory part1 = abi.encodePacked("{\"title\":\"", StringUtils.escapeJSON(title), "\",\"text\":\"");
-        bytes memory part2 = abi.encodePacked(StringUtils.escapeJSON(desc), "\",\"type\":\"project-milestone\",\"data\":");
-        return string(abi.encodePacked(part1, part2, meta, "}"));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

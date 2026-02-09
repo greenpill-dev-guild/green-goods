@@ -114,7 +114,7 @@ There are two ways to become an operator:
 <!-- ![Garden Created](../.gitbook/assets/garden-created.png) -->
 *Your garden is now live!*
 
-[Detailed Guide: Managing Gardens →](../guides/operators/managing-gardens)
+[Detailed Guide: Managing Gardens →](../operators/managing-gardens)
 
 ---
 
@@ -172,7 +172,7 @@ Actions define the tasks gardeners can complete in your garden.
 
 **Result**: Gardeners in your garden can now see and complete this action!
 
-[Detailed Guide: Managing Actions →](../guides/operators/managing-actions)
+[Detailed Guide: Managing Actions →](../operators/managing-actions)
 
 ---
 
@@ -237,7 +237,7 @@ As an operator, your primary role is validating gardener work.
 4. Work appears in garden's permanent record
 5. Metrics aggregate to garden level
 
-[Detailed Guide: Reviewing Work →](../guides/operators/reviewing-work)
+[Detailed Guide: Reviewing Work →](../operators/reviewing-work)
 
 ---
 
@@ -272,7 +272,7 @@ As an operator, your primary role is validating gardener work.
 - Community progress updates
 - Research data sharing
 
-[Detailed Guide: Reporting Impact →](../guides/operators/reporting-impact)
+[Detailed Guide: Reporting Impact →](../operators/reporting-impact)
 
 ---
 
@@ -378,10 +378,10 @@ Coming soon:
 
 ### Detailed Operator Guides
 
-- [Managing Gardens](../guides/operators/managing-gardens)
-- [Creating & Managing Actions](../guides/operators/managing-actions)
-- [Reviewing & Approving Work](../guides/operators/reviewing-work)
-- [Reporting & Impact](../guides/operators/reporting-impact)
+- [Managing Gardens](../operators/managing-gardens)
+- [Creating & Managing Actions](../operators/managing-actions)
+- [Reviewing & Approving Work](../operators/reviewing-work)
+- [Reporting & Impact](../operators/reporting-impact)
 
 ### Understanding the System
 

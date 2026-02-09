@@ -49,8 +49,11 @@ contract Deploy is Script, DeploymentBase {
             if (!_isMainnetChain(block.chainid)) {
                 _addProductionFeatures(config);
 
-                // 3. Deploy seed data (gardens + actions) (L2 only)
-                _deploySeedData(config);
+                // 3. Deploy seed data (gardens + actions) on broadcast runs.
+                // Simulations often run under non-admin senders that cannot mint Hats roles.
+                if (_isBroadcasting()) {
+                    _deploySeedData(config);
+                }
             }
         } else {
             // Schema-only update mode - load existing deployment
@@ -135,42 +138,8 @@ contract Deploy is Script, DeploymentBase {
             try vm.parseJson(gardensJson, string.concat(basePath, ".name")) returns (bytes memory nameBytes) {
                 if (nameBytes.length == 0) break;
 
-                string memory name = abi.decode(nameBytes, (string));
-                string memory description =
-                    abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".description")), (string));
-                string memory location =
-                    abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".location")), (string));
-                string memory bannerImage =
-                    abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".bannerImage")), (string));
-
-                string memory metadata = "";
-                try vm.parseJson(gardensJson, string.concat(basePath, ".metadata")) returns (bytes memory metadataBytes) {
-                    metadata = abi.decode(metadataBytes, (string));
-                } catch { }
-
-                bool openJoining = false;
-                try vm.parseJson(gardensJson, string.concat(basePath, ".openJoining")) returns (
-                    bytes memory openJoiningBytes
-                ) {
-                    openJoining = abi.decode(openJoiningBytes, (bool));
-                } catch { }
-
-                address[] memory gardeners =
-                    abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".gardeners")), (address[]));
-                address[] memory operators =
-                    abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".operators")), (address[]));
-
-                GardenToken.GardenConfig memory gardenConfig = GardenToken.GardenConfig({
-                    communityToken: communityToken,
-                    name: name,
-                    description: description,
-                    location: location,
-                    bannerImage: bannerImage,
-                    metadata: metadata,
-                    openJoining: openJoining,
-                    gardeners: gardeners,
-                    gardenOperators: operators
-                });
+                GardenToken.GardenConfig memory gardenConfig =
+                    _parseGardenConfigFromJson(gardensJson, basePath, communityToken, nameBytes);
 
                 address gardenAddress = gardenToken.mintGarden(gardenConfig);
                 gardenAddresses.push(gardenAddress);
@@ -181,12 +150,50 @@ contract Deploy is Script, DeploymentBase {
         }
     }
 
+    /// @notice Parse a single garden config from JSON (separate stack frame to avoid stack-too-deep)
+    function _parseGardenConfigFromJson(
+        string memory gardensJson,
+        string memory basePath,
+        address communityToken,
+        bytes memory nameBytes
+    )
+        internal
+        returns (GardenToken.GardenConfig memory)
+    {
+        string memory name = abi.decode(nameBytes, (string));
+        string memory description = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".description")), (string));
+        string memory location = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".location")), (string));
+        string memory bannerImage = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".bannerImage")), (string));
+
+        string memory metadata = "";
+        try vm.parseJson(gardensJson, string.concat(basePath, ".metadata")) returns (bytes memory metadataBytes) {
+            metadata = abi.decode(metadataBytes, (string));
+        } catch { }
+
+        bool openJoining = false;
+        try vm.parseJson(gardensJson, string.concat(basePath, ".openJoining")) returns (bytes memory openJoiningBytes) {
+            openJoining = abi.decode(openJoiningBytes, (bool));
+        } catch { }
+
+        return GardenToken.GardenConfig({
+            communityToken: communityToken,
+            name: name,
+            description: description,
+            location: location,
+            bannerImage: bannerImage,
+            metadata: metadata,
+            openJoining: openJoining
+        });
+    }
+
     /// @notice Upload actions to IPFS and return hashes
     // solhint-disable-next-line code-complexity
     function _uploadActionsToIPFS(uint256 expectedCount) internal returns (string[] memory) {
-        string[] memory inputs = new string[](2);
-        inputs[0] = "bun";
-        inputs[1] = "script/utils/ipfs-uploader.ts";
+        string[] memory inputs = new string[](4);
+        inputs[0] = "pnpm";
+        inputs[1] = "dlx";
+        inputs[2] = "tsx";
+        inputs[3] = "script/utils/ipfs-uploader.ts";
 
         try vm.ffi(inputs) returns (bytes memory result) {
             if (result.length == 0) {
@@ -308,9 +315,9 @@ contract Deploy is Script, DeploymentBase {
     /// @notice Register a single action
     function _registerSingleAction(string memory json, string memory basePath, string memory ipfsHash) internal {
         string memory title = abi.decode(vm.parseJson(json, string.concat(basePath, ".title")), (string));
-        uint256 startTime =
-            _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".startTime")), (string)));
-        uint256 endTime = _parseISOTimestamp(abi.decode(vm.parseJson(json, string.concat(basePath, ".endTime")), (string)));
+        // Use dynamic timestamps: start = now, end = now + 3 months (ignoring config values)
+        uint256 startTime = block.timestamp;
+        uint256 endTime = block.timestamp + 90 days; // ~3 months
 
         string[] memory capitalStrings = abi.decode(vm.parseJson(json, string.concat(basePath, ".capitals")), (string[]));
         Capital[] memory capitals = new Capital[](capitalStrings.length);
@@ -477,26 +484,25 @@ contract Deploy is Script, DeploymentBase {
     }
 
     /// @notice Build deployment result structure
-    /// @dev Guardian and accountProxy addresses can be computed via CREATE2 post-deployment
-    function _buildDeploymentResult() private view returns (DeploymentResult memory) {
-        return DeploymentResult({
-            deploymentRegistry: address(deploymentRegistry),
-            guardian: address(0), // Computed via CREATE2, populated post-deployment
-            gardenAccountImpl: address(gardenAccountImpl),
-            accountProxy: address(0), // Computed via CREATE2, populated post-deployment
-            gardenToken: address(gardenToken),
-            actionRegistry: address(actionRegistry),
-            assessmentResolver: address(assessmentResolver),
-            workResolver: address(workResolver),
-            workApprovalResolver: address(workApprovalResolver),
-            gardenerAccountLogic: gardenerAccountLogic,
-            gardenerRegistry: address(gardenerRegistry),
-            assessmentSchemaUID: assessmentSchemaUID,
-            workSchemaUID: workSchemaUID,
-            workApprovalSchemaUID: workApprovalSchemaUID,
-            rootGardenAddress: gardenAddresses.length > 0 ? gardenAddresses[0] : address(0),
-            rootGardenTokenId: gardenTokenIds.length > 0 ? gardenTokenIds[0] : 0
-        });
+    /// @dev Uses field-by-field assignment to avoid stack-too-deep with 17+ field struct literal
+    function _buildDeploymentResult() private view returns (DeploymentResult memory result) {
+        result.deploymentRegistry = address(deploymentRegistry);
+        result.gardenAccountImpl = address(gardenAccountImpl);
+        result.gardenToken = address(gardenToken);
+        result.actionRegistry = address(actionRegistry);
+        result.assessmentResolver = address(assessmentResolver);
+        result.workResolver = address(workResolver);
+        result.workApprovalResolver = address(workApprovalResolver);
+        result.hatsModule = address(hatsModule);
+        result.karmaGAPModule = address(karmaGAPModule);
+        result.gardenerAccountLogic = gardenerAccountLogic;
+        result.gardenerRegistry = address(gardenerRegistry);
+        result.assessmentSchemaUID = assessmentSchemaUID;
+        result.workSchemaUID = workSchemaUID;
+        result.workApprovalSchemaUID = workApprovalSchemaUID;
+        result.rootGardenAddress = gardenAddresses.length > 0 ? gardenAddresses[0] : address(0);
+        result.rootGardenTokenId = gardenTokenIds.length > 0 ? gardenTokenIds[0] : 0;
+        // guardian and accountProxy are computed via CREATE2, left as address(0)
     }
 
     /// @notice Save deployment results to JSON

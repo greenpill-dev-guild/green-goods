@@ -158,6 +158,257 @@ function patchWalletConnect() {
   findAndPatchFiles(walletConnectBase);
 }
 
+/**
+ * Fix Bun's module resolution for cached packages with symlinks.
+ *
+ * Bun caches packages in .bun/ with symlinks, but module resolution from
+ * within .bun/ doesn't follow symlinks correctly. This function replaces
+ * symlinks with real copies for packages that need them.
+ *
+ * Known problematic packages:
+ * - EAS SDK requires multiformats
+ * - @walletconnect/utils requires uint8arrays
+ */
+function fixBunCacheSymlinks() {
+  const nodeModules = path.join(__dirname, "..", "node_modules");
+  const bunCache = path.join(nodeModules, ".bun");
+
+  if (!fs.existsSync(bunCache)) {
+    console.log("⏭️  .bun cache not found, skipping symlink fixes");
+    return;
+  }
+
+  console.log("🔍 Scanning .bun cache for symlink resolution issues...");
+
+  const bunDirs = fs.readdirSync(bunCache);
+
+  // Map of package patterns to their required dependencies that need symlink fixes
+  const problematicPackages = [
+    {
+      pattern: "@ethereum-attestation-service+eas-sdk@",
+      deps: ["multiformats"],
+    },
+    {
+      pattern: "@walletconnect+utils@",
+      deps: ["uint8arrays", "multiformats"],
+    },
+    {
+      pattern: "@walletconnect+sign-client@",
+      deps: ["uint8arrays", "multiformats"],
+    },
+    {
+      pattern: "@walletconnect+core@",
+      deps: ["uint8arrays", "multiformats"],
+    },
+  ];
+
+  // Find source packages in cache (to copy from)
+  const packageSources = {};
+  for (const dir of bunDirs) {
+    // Parse package name from dir (format: package-name@version+hash or @scope+package@version+hash)
+    const match = dir.match(/^(@[^+]+\+)?([^@]+)@/);
+    if (match) {
+      const pkgName = match[1] ? match[1].replace("+", "/") + match[2] : match[2];
+      packageSources[pkgName] = path.join(bunCache, dir, "node_modules", pkgName.replace("/", path.sep));
+    }
+  }
+
+  let fixCount = 0;
+
+  for (const { pattern, deps } of problematicPackages) {
+    const matchingDirs = bunDirs.filter(d => d.startsWith(pattern));
+
+    for (const pkgDir of matchingDirs) {
+      const pkgNodeModules = path.join(bunCache, pkgDir, "node_modules");
+
+      if (!fs.existsSync(pkgNodeModules)) continue;
+
+      for (const depName of deps) {
+        const depPath = path.join(pkgNodeModules, depName);
+        const sourcePath = packageSources[depName];
+
+        if (!sourcePath || !fs.existsSync(sourcePath)) {
+          continue;
+        }
+
+        try {
+          const stats = fs.lstatSync(depPath);
+          if (stats.isSymbolicLink()) {
+            // Replace symlink with real copy
+            fs.unlinkSync(depPath);
+            copyDirSync(sourcePath, depPath);
+            console.log(`✅ Fixed ${pattern}... → ${depName}`);
+            fixCount++;
+
+            // Patch ESM-only packages to add require export
+            patchPackageExports(depPath);
+          }
+        } catch (err) {
+          if (err.code === "ENOENT") {
+            // Dependency not linked, might be okay
+          } else {
+            console.log(`⚠️  Error fixing ${depName} in ${pkgDir}: ${err.message}`);
+          }
+        }
+      }
+    }
+  }
+
+  if (fixCount > 0) {
+    console.log(`✅ Fixed ${fixCount} symlink(s) in .bun cache`);
+  } else {
+    console.log("✅ No symlink fixes needed in .bun cache");
+  }
+}
+
+/**
+ * Patch package.json exports to add require field if missing (for ESM-only packages)
+ */
+function patchPackageExports(pkgPath) {
+  const packageJsonPath = path.join(pkgPath, "package.json");
+  if (!fs.existsSync(packageJsonPath)) return;
+
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+
+    if (packageJson.exports && packageJson.exports["."]) {
+      const mainExport = packageJson.exports["."];
+      if (mainExport.import && !mainExport.require) {
+        // Add require pointing to same file (Bun handles ESM/CJS interop)
+        mainExport.require = mainExport.import;
+        fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2), "utf8");
+      }
+    }
+  } catch (err) {
+    console.log(`⚠️  Could not patch package.json exports: ${err.message}`);
+  }
+}
+
+function readPackageVersion(pkgPath) {
+  const packageJsonPath = path.join(pkgPath, "package.json");
+  if (!fs.existsSync(packageJsonPath)) {
+    return null;
+  }
+
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+    return typeof packageJson.version === "string" ? packageJson.version : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Normalize Bun cache React runtime to the root installed React/ReactDOM version.
+ *
+ * This prevents mixed React dispatcher instances in test environments where tools
+ * resolve React via root node_modules while package-local symlinks resolve into
+ * .bun cache entries pinned to a different patch version.
+ */
+function synchronizeBunReactRuntime() {
+  const nodeModules = path.join(__dirname, "..", "node_modules");
+  const bunCache = path.join(nodeModules, ".bun");
+
+  if (!fs.existsSync(bunCache)) {
+    console.log("⏭️  .bun cache not found, skipping React runtime sync");
+    return;
+  }
+
+  const rootReactPath = path.join(nodeModules, "react");
+  const rootReactDomPath = path.join(nodeModules, "react-dom");
+
+  if (!fs.existsSync(rootReactPath) || !fs.existsSync(rootReactDomPath)) {
+    console.log("⏭️  Root react/react-dom not found, skipping React runtime sync");
+    return;
+  }
+
+  const rootReactVersion = readPackageVersion(rootReactPath);
+  const rootReactDomVersion = readPackageVersion(rootReactDomPath);
+  if (!rootReactVersion || !rootReactDomVersion) {
+    console.log("⏭️  Could not determine root react versions, skipping React runtime sync");
+    return;
+  }
+
+  const bunDirs = fs.readdirSync(bunCache);
+  let linked = 0;
+
+  const targets = [
+    {
+      prefix: "react@",
+      packageName: "react",
+      sourcePath: rootReactPath,
+      expectedVersion: rootReactVersion,
+    },
+    {
+      prefix: "react-dom@",
+      packageName: "react-dom",
+      sourcePath: rootReactDomPath,
+      expectedVersion: rootReactDomVersion,
+    },
+  ];
+
+  for (const target of targets) {
+    for (const bunDir of bunDirs) {
+      if (!bunDir.startsWith(target.prefix)) continue;
+
+      const cachePackagePath = path.join(
+        bunCache,
+        bunDir,
+        "node_modules",
+        target.packageName
+      );
+
+      if (!fs.existsSync(cachePackagePath)) continue;
+
+      const sourceRealPath = fs.realpathSync(target.sourcePath);
+      let cacheRealPath = null;
+      try {
+        cacheRealPath = fs.realpathSync(cachePackagePath);
+      } catch {
+        cacheRealPath = null;
+      }
+
+      if (cacheRealPath === sourceRealPath) continue;
+
+      fs.rmSync(cachePackagePath, { recursive: true, force: true });
+      const relativeTarget = path.relative(path.dirname(cachePackagePath), target.sourcePath);
+      fs.symlinkSync(
+        relativeTarget,
+        cachePackagePath,
+        process.platform === "win32" ? "junction" : "dir"
+      );
+
+      console.log(
+        `✅ Linked .bun/${bunDir}/${target.packageName} to root ${target.packageName}@${target.expectedVersion}`
+      );
+      linked++;
+    }
+  }
+
+  if (linked === 0) {
+    console.log("✅ React runtime already aligned in .bun cache");
+  }
+}
+
+/**
+ * Recursively copy a directory
+ */
+function copyDirSync(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 // Main execution
 function main() {
   console.log("🔧 Applying multiformats compatibility fixes...");
@@ -173,6 +424,8 @@ function main() {
     createMultiformatsBasicsShim();
     patchUint8arrays();
     patchWalletConnect();
+    fixBunCacheSymlinks();
+    synchronizeBunReactRuntime();
     console.log("✅ All multiformats compatibility fixes applied successfully!");
   } catch (error) {
     console.error("❌ Error applying multiformats fixes:", error);

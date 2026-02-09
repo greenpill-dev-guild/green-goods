@@ -88,10 +88,10 @@ export const CHAIN_REGISTRY: Record<number, ChainConfig> = {
  * Default chain configuration for unknown chain IDs
  */
 export const DEFAULT_CHAIN_CONFIG: ChainConfig = {
-  name: "baseSepolia",
-  easName: "base-sepolia",
-  blockExplorer: "https://sepolia.basescan.org",
-  rpcTemplate: "https://base-sepolia.g.alchemy.com/v2/{ALCHEMY_KEY}",
+  name: "sepolia",
+  easName: "sepolia",
+  blockExplorer: "https://sepolia.etherscan.io",
+  rpcTemplate: "https://eth-sepolia.g.alchemy.com/v2/{ALCHEMY_KEY}",
 };
 
 /**
@@ -144,7 +144,7 @@ export function getBlockExplorer(chainId: number): string {
 export function getRpcUrl(chainId: number, alchemyKey: string = "demo"): string {
   const template = getChainConfig(chainId).rpcTemplate;
   if (!template) {
-    return `https://base-sepolia.g.alchemy.com/v2/${alchemyKey}`;
+    return `https://eth-sepolia.g.alchemy.com/v2/${alchemyKey}`;
   }
   return template.replace("{ALCHEMY_KEY}", alchemyKey);
 }

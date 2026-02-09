@@ -58,7 +58,7 @@ This session completed a comprehensive modernization of the Green Goods Claude C
 - `.mcp.json`
 
 **Contents:**
-- 6 MCP servers declared (figma, vercel, foundry, storacha, miro, railway)
+- 4 MCP servers declared (foundry, storacha, miro, railway)
 - Agent access mapping (which agents can use which servers)
 - 4 servers enabled by default, 2 disabled (miro, railway)
 

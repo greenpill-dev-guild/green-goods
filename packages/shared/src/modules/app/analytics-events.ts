@@ -13,13 +13,14 @@
  */
 
 import { track } from "./posthog";
+import type { GardenRole } from "../../utils/blockchain/garden-roles";
 
 // ============================================================================
 // TRACKER FACTORY
 // ============================================================================
 
 type AuthMode = "passkey" | "wallet" | null;
-type MemberType = "gardener" | "operator";
+type MemberType = GardenRole;
 
 /**
  * Converts camelCase object keys to snake_case for PostHog

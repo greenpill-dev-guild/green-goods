@@ -7,7 +7,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import { WorkSchema } from "../Schemas.sol";
-import { IHats } from "../interfaces/IHats.sol";
+import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { ActionRegistry } from "../registries/Action.sol";
 
 error NotActiveAction();
@@ -18,25 +18,20 @@ error NotInActionRegistry();
 /// @title WorkResolver
 /// @notice A schema resolver for the Actions event schema
 /// @dev This contract is upgradable using the UUPS pattern and requires initialization.
-/// @dev Role checks are performed via HatsModule (Hats Protocol)
 contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     address public immutable ACTION_REGISTRY;
-
-    /// @notice HatsModule for role verification
-    IHats public immutable HATS_MODULE;
 
     /**
      * @dev Storage gap for future upgrades
      * Reserves 50 slots (50 total - 0 used in storage)
-     * Note: ACTION_REGISTRY and HATS_MODULE are immutable (not in storage)
+     * Note: ACTION_REGISTRY is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
     uint256[50] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address easAddrs, address actionAddrs, address hatsModule) SchemaResolver(IEAS(easAddrs)) {
+    constructor(address easAddrs, address actionAddrs) SchemaResolver(IEAS(easAddrs)) {
         ACTION_REGISTRY = actionAddrs;
-        HATS_MODULE = IHats(hatsModule);
         _disableInitializers();
     }
 
@@ -67,12 +62,13 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     /// @return bool True if attestation is valid
     function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
         WorkSchema memory schema = abi.decode(attestation.data, (WorkSchema));
-        address garden = attestation.recipient;
+        IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);
 
-        // IDENTITY CHECK: Verify gardener OR operator status via HatsModule
-        // Both roles can submit work - explicit policy for Hats Protocol
-        bool isGardener = HATS_MODULE.isGardener(garden, attestation.attester);
-        bool isOperator = HATS_MODULE.isOperator(garden, attestation.attester);
+        // IDENTITY CHECK: Verify gardener OR operator status FIRST
+        // Both roles can submit work - explicit policy for Hats Protocol compatibility
+        // Uses IGardenAccessControl interface for swappable access control backends
+        bool isGardener = accessControl.isGardener(attestation.attester);
+        bool isOperator = accessControl.isOperator(attestation.attester);
 
         if (!isGardener && !isOperator) {
             revert NotGardenMember();

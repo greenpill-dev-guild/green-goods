@@ -42,7 +42,7 @@ Traditional web3 onboarding creates massive friction:
 - Full transparency and control
 - Suitable for validators and admins
 
-[Technical Details →](../developer/architecture/client-package)
+[Technical Details →](../developer/client)
 
 ---
 
@@ -338,7 +338,7 @@ Confirmation → Update UI
 - 🟡 **Syncing**: Background upload
 - ℹ️ Clear indicators for all states
 
-[Offline Architecture Details →](../developer/architecture/client-package)
+[Offline Architecture Details →](../developer/client)
 
 ---
 
@@ -448,5 +448,5 @@ Confirmation → Update UI
 - [Product Overview](overview) — Vision and goals
 - [MDR Workflow](../concepts/mdr-workflow) — Signature feature
 - [Attestations](../concepts/attestations) — Verification system
-- [Offline Architecture](../developer/architecture/client-package) — Technical details
+- [Offline Architecture](../developer/client) — Technical details
 

@@ -197,7 +197,7 @@ This is the first official release of Green Goods — an offline-first platform 
 - `/docs/developer/docs-contributing.md` — contribution guide
 - `/docs/developer/docs-deployment.md` — deployment process
 - `/docs/developer/architecture/diagrams.md` — Mermaid architecture diagrams
-- `/docs/guides/evaluators/` — evaluator guides
+- `/docs/evaluators/` — evaluator guides
 
 ---
 

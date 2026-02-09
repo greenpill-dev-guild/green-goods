@@ -15,6 +15,25 @@ import "fake-indexeddb/auto";
 import "../__mocks__/browser/crypto";
 import "../__mocks__/browser/navigator";
 
+// Mock matchMedia immediately (before any module imports that might use it)
+// This needs to be at the top level, not in beforeAll, because it's called during module import
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "matchMedia", {
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+    writable: true,
+    configurable: true,
+  });
+}
+
 /**
  * Setup common test environment
  * Call this from package-specific setupTests files

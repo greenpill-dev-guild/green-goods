@@ -31,7 +31,8 @@ This technical specification provides the engineering blueprint for implementing
 - Admin Dashboard UI components for Hypercert creation wizard (Vite + React)
 - Direct contract interactions from the client (no backend API)
 - Integration with Hypercerts smart contracts on Arbitrum
-- Integration with EAS attestations via Green Goods Envio Indexer
+- Integration with EAS attestations via EAS GraphQL API (easscan.org)
+- Hypercert indexing via HypercertMinter events + metadata hidden_properties (no GreenGoodsResolver/IntegrationRouter in current deployment)
 - IPFS metadata and allowlist storage via Storracha (client-side)
 - Gas sponsorship via Pimlico (ERC-4337)
 - Local draft persistence via IndexedDB
@@ -89,7 +90,7 @@ flowchart TB
         AppKit["Reown AppKit<br/>(Wallet)"]
 
         subgraph Services["CLIENT-SIDE SERVICES"]
-            Urql["Urql<br/>GraphQL"]
+            GQL["graphql-request<br/>+ gql.tada"]
             Viem["Viem<br/>Contract"]
             Stor["Storacha<br/>IPFS"]
             Pim["Pimlico<br/>UserOp"]
@@ -105,6 +106,7 @@ flowchart TB
     end
 
     subgraph External["EXTERNAL SERVICES"]
+        EASAPI["EAS GraphQL<br/>(easscan.org)"]
         HCGraph["Hypercerts<br/>Graph"]
         StorAPI["Storacha<br/>(IPFS)"]
         PimAPI["Pimlico<br/>(4337)"]
@@ -114,16 +116,18 @@ flowchart TB
     subgraph Arbitrum["ARBITRUM ONE (L2)"]
         GGContracts["Green Goods Contracts<br/>• GardenToken<br/>• GreenGoodsResolver<br/>• HatsModule"]
         HCMinter["HypercertMinter<br/>Contract"]
-        EAS["EAS<br/>Contract"]
+        EASContract["EAS<br/>Contract"]
     end
 
-    Urql --> EnvioAPI
-    Urql --> HCGraph
+    GQL --> EnvioAPI
+    GQL --> EASAPI
+    GQL --> HCGraph
     Viem --> Arbitrum
     Stor --> StorAPI
     Pim --> PimAPI
 
     EnvioAPI --> Arbitrum
+    EASAPI -.-> EASContract
     PimAPI --> HCMinter
     PimAPI --> GGContracts
 ```
@@ -137,8 +141,10 @@ flowchart TB
 
 ### 2.2 Green Goods Contract Architecture
 
-> **Note:** The architecture uses a **modular pattern** with `GreenGoodsResolver` as the central fan-out router.
-> `MODULE_HYPERCERTS` is already reserved at `GreenGoodsResolver.sol:40`.
+> **Note:** Green Goods uses a **modular pattern** with `GreenGoodsResolver` as the central fan-out router,
+> but **the current Hypercerts integration does not rely on the resolver**. The deployed protocol does not
+> include `HypercertsModule` or an IntegrationRouter, so Hypercerts are minted directly via `HypercertMinter`
+> and indexed from on-chain events + IPFS metadata. The module-based flow below remains a **future extension**.
 
 ```mermaid
 flowchart TD
@@ -163,7 +169,7 @@ flowchart TD
         KM["KarmaGAPModule<br/>(GAP Sync)"]
         OM["OctantModule<br/>(Vault)"]
         UM["UnlockModule<br/>(Badges)"]
-        HCM["HypercertsModule<br/>(NEW)"]
+        HCM["HypercertsModule<br/>(FUTURE)"]
     end
 
     subgraph External["EXTERNAL CONTRACTS"]
@@ -206,7 +212,7 @@ flowchart TD
 1. **GardenToken** mints ERC-721 tokens that own **GardenAccount** (ERC-6551)
 2. **Resolvers** validate EAS attestations and call **GreenGoodsResolver**
 3. **GreenGoodsResolver** fans out to enabled modules with try/catch isolation
-4. **HypercertsModule** (NEW) will record Hypercert mints and link attestations
+4. **Hypercerts** are minted directly on `HypercertMinter`; the indexer links garden + attestation UIDs from metadata
 
 ### 2.3 Entity Relationship Overview
 
@@ -293,7 +299,7 @@ erDiagram
 **Entity Notes:**
 - **GardenToken** (ERC-721) owns **GardenAccount** (ERC-6551 token-bound account)
 - **Operator** role is managed via **HatsModule** - checked before Hypercert minting
-- **WorkApproval** has a nullable `bundledInHypercert` field for tracking bundling status
+- **WorkApproval** has a nullable `hypercertId` field for tracking bundling status
 - **AllowlistEntry** tracks who can claim Hypercert fraction units
 
 ### 2.4 Environment
@@ -310,6 +316,7 @@ erDiagram
 
 **Development Environment:**
 - **Blockchain:** Base Sepolia (Chain ID: 84532) - default
+- **Alternative:** Arbitrum Sepolia (Chain ID: 421614) - for Hypercerts testing
 - **Commands:** `bun --filter admin dev` runs on http://localhost:3002
 
 ---
@@ -322,7 +329,7 @@ erDiagram
 
 | Req ID | Description | Technical Implementation |
 |--------|-------------|-------------------------|
-| FR-A-001 | Display approved attestations | GraphQL query to GG Envio Indexer with approved=true filter |
+| FR-A-001 | Display approved attestations | GraphQL query to EAS GraphQL API with approved=true filter |
 | FR-A-002 | Filter by date, domain, scope | GraphQL variables with WHERE clauses |
 | FR-B-001 | Pre-fill metadata | Client-side aggregation from selected attestations via Zustand |
 | FR-C-001 | Generate preview artwork | Client-side canvas rendering or Hypercerts API |
@@ -347,8 +354,9 @@ erDiagram
 
 | Service | Protocol | Authentication | Rate Limit |
 |---------|----------|----------------|------------|
-| GG Envio Indexer | GraphQL (Urql) | None | 100 req/min |
-| Hypercerts Graph | GraphQL | None | 50 req/min |
+| EAS GraphQL API | GraphQL (graphql-request) | None | 100 req/min |
+| GG Envio Indexer | GraphQL (graphql-request) | None | 100 req/min |
+| Hypercerts Graph | GraphQL (graphql-request) | None | 50 req/min |
 | Storracha | HTTP | DID Key (env var) | 10 uploads/min |
 | Pimlico | JSON-RPC | API Key (env var) | 100 req/min |
 | Karma GAP SDK | JS SDK | gapProjectUID | Per SDK limits |
@@ -364,28 +372,25 @@ erDiagram
 
 ```mermaid
 flowchart LR
-    subgraph Wizard["WIZARD STEPS"]
-        S1["Step 1<br/>Select"]
+    subgraph Wizard["WIZARD STEPS (4-step)"]
+        S1["Step 1<br/>Attestations"]
         S2["Step 2<br/>Metadata"]
-        S3["Step 3<br/>Preview"]
-        S4["Step 4<br/>Distribution"]
-        S5["Step 5<br/>Mint"]
-        S1 --> S2 --> S3 --> S4 --> S5
+        S3["Step 3<br/>Distribution"]
+        S4["Step 4<br/>Preview & Mint"]
+        S1 --> S2 --> S3 --> S4
     end
 
     subgraph DataLayer["DATA LAYER"]
-        Envio["Envio GraphQL<br/>(Urql)"]
+        EASQuery["EAS GraphQL<br/>(graphql-request)"]
         Store["Zustand Store<br/>(shared)"]
-        Canvas["Canvas Render<br/>(Preview)"]
         Merkle["Merkle Tree<br/>(@hypercerts-org/sdk)"]
         IPFS["Storacha Upload<br/>(existing module)"]
     end
 
-    S1 --> Envio
+    S1 --> EASQuery
     S2 --> Store
-    S3 --> Canvas
-    S4 --> Merkle
-    S5 --> IPFS
+    S3 --> Merkle
+    S4 --> IPFS
 
     subgraph XState["MINTING ORCHESTRATION (XState v5)"]
         direction LR
@@ -402,11 +407,10 @@ flowchart LR
     subgraph Blockchain["ON-CHAIN"]
         Pimlico["Pimlico<br/>Bundler"]
         HCMinter["HypercertMinter<br/>Contract"]
-        GGResolver["GreenGoodsResolver<br/>(records)"]
     end
 
     XState --> Pimlico --> HCMinter
-    HCMinter -.-> GGResolver
+    HCMinter -.-> Indexer["Envio Indexer<br/>(metadata fetch)"]
 
     GAP["Karma GAP<br/>SDK"]
     Confirmed --> GAP
@@ -419,23 +423,25 @@ flowchart LR
 
 </details>
 
-#### 4.1.2 Attestation Query Flow
+#### 4.1.2 Attestation Query Flow (EAS GraphQL)
+
+> **Data Source Clarification:** Work approvals (attestations) are queried directly from the EAS GraphQL API via `getWorkApprovals()` in `shared/modules/data/eas.ts`. Gardens and gardeners are queried from the Green Goods Envio Indexer.
 
 ```mermaid
 sequenceDiagram
     participant Admin as Admin Dashboard<br/>(useAttestations hook)
-    participant Envio as Green Goods<br/>Envio Indexer
-    participant Arbitrum as Arbitrum<br/>EAS Contract
+    participant EAS as EAS<br/>GraphQL API
+    participant Chain as Arbitrum<br/>EAS Contract
 
-    Note over Envio,Arbitrum: Pre-indexed from WorkSubmitted<br/>and WorkApproval events
+    Note over EAS,Chain: Attestations indexed directly<br/>from EAS on-chain events
 
-    Admin->>Envio: GraphQL Query (Urql)<br/>GetApprovedWorkApprovals<br/>{ gardenId, filters }
-    activate Envio
-    Envio-->>Admin: { workApprovals: [...],<br/>totalCount: N }
-    deactivate Envio
+    Admin->>EAS: GraphQL Query (graphql-request)<br/>getWorkApprovals<br/>{ gardenId, filters }
+    activate EAS
+    EAS-->>Admin: { workApprovals: [...],<br/>totalCount: N }
+    deactivate EAS
 
-    Note over Admin: Filter: bundledInHypercert == null
-    Note over Admin: Render AttestationSelector UI
+    Note over Admin: Filter: hypercertId == null
+    Note over Admin: Render AttestationSelector UI<br/>(card selection, not checkboxes)
 ```
 
 <details>
@@ -458,7 +464,7 @@ The Green Goods Envio Indexer provides entities via GraphQL. **Note:** This is t
 > - `WorkSubmission` - Tracks work attestations
 > - `WorkApproval` - Tracks approval attestations
 > - `Hypercert` - Tracks minted Hypercerts
-> - `AllowlistClaim` - Tracks claimed Hypercert units
+> - `HypercertClaim` - Tracks claimed Hypercert units
 
 **Current Schema (packages/indexer/schema.graphql):**
 ```graphql
@@ -514,50 +520,52 @@ type WorkSubmission {
   txHash: String!
 }
 
-# Indexed from WorkApprovalResolver.WorkApprovalAttested events
+# WorkApproval is available for general protocol indexing, but Hypercert
+# bundling relies on metadata.hidden_properties (no resolver integration).
 type WorkApproval {
-  id: ID!                          # EAS UID
-  workSubmission: WorkSubmission!
-  garden: Garden!
-  approved: Boolean!
-  approvedBy: String!              # Operator address
-  feedback: String
-  approvedAt: BigInt!
+  id: ID!                          # chainId-attestationUID
+  chainId: Int!
+  attestationUID: String!
+  garden: String!                  # Garden address
+  gardener: String!
+  approvedBy: String!
+  approvedAt: Int!
   txHash: String!
-  # Denormalized for efficient Hypercert queries
-  bundledInHypercert: Hypercert    # null if not yet bundled
+  hypercertId: String              # Hypercert this was bundled into (optional)
+  bundledAt: Int
 }
 
-# Indexed from HypercertMinter.TransferSingle events (mint)
-# Cross-referenced with GreenGoodsResolver.HypercertRecorded events
+# Indexed from HypercertMinter events + IPFS metadata
 type Hypercert {
-  id: ID!                          # {chainId}-{contractAddress}-{tokenId}
+  id: ID!                          # {chainId}-{tokenId}
+  chainId: Int!
   tokenId: BigInt!
-  garden: Garden!
+  garden: String!                  # Garden address
   metadataUri: String!             # IPFS URI
-  totalUnits: BigInt!              # Always 100,000,000
+  mintedAt: Int!
   mintedBy: String!                # Operator address
-  mintedAt: BigInt!
   txHash: String!
-  # Derived from IPFS metadata
+  totalUnits: BigInt!
+  claimedUnits: BigInt!
+  attestationCount: Int!
+  attestationUIDs: [String!]!
   title: String
   description: String
+  imageUri: String
   workScopes: [String!]
-  # Relationships
-  workApprovals: [WorkApproval!]!  # Bundled attestations
-  attestationCount: Int!
-  # Claim tracking
-  claimedUnits: BigInt!            # Sum of claimed units
-  claims: [AllowlistClaim!]!
+  status: HypercertStatus!
+  createdAt: Int!
+  updatedAt: Int!
 }
 
 # Indexed from HypercertMinter claim events
-type AllowlistClaim {
-  id: ID!                          # {hypercertId}-{claimant}
-  hypercert: Hypercert!
-  claimant: String!                # Address that claimed
+type HypercertClaim {
+  id: ID!                          # {chainId}-{tokenId}-{claimant}
+  chainId: Int!
+  hypercertId: String!
+  claimant: String!
   units: BigInt!
-  claimedAt: BigInt!
+  claimedAt: Int!
   txHash: String!
 }
 ```
@@ -566,28 +574,16 @@ type AllowlistClaim {
 ```typescript
 // packages/indexer/src/EventHandlers.ts - NEW HANDLERS
 
-// WorkResolver events
-GreenGoods.WorkResolver.WorkAttested.handler(async ({ event, context }) => {
-  // Create WorkSubmission entity
-});
-
-// WorkApprovalResolver events
-GreenGoods.WorkApprovalResolver.WorkApprovalAttested.handler(async ({ event, context }) => {
-  // Create WorkApproval entity
-  // Link to WorkSubmission
-});
-
 // HypercertMinter events (external contract)
 HypercertMinter.TransferSingle.handler(async ({ event, context }) => {
   // Create Hypercert entity on mint (from == 0x0)
-  // Fetch metadata from IPFS
-  // Link WorkApprovals via attestation UIDs in metadata
+  // Treat subsequent mint-from-zero transfers as claims
 });
 
-// GreenGoodsResolver events
-GreenGoods.GreenGoodsResolver.HypercertRecorded.handler(async ({ event, context }) => {
-  // Update Hypercert with bundled attestation UIDs
-  // Mark WorkApprovals as bundled
+HypercertMinter.ClaimStored.handler(async ({ event, context }) => {
+  // Fetch metadata from IPFS
+  // Set garden + attestationUIDs from hidden_properties
+  // Populate title/description/image/workScopes
 });
 ```
 
@@ -597,10 +593,10 @@ GreenGoods.GreenGoodsResolver.HypercertRecorded.handler(async ({ event, context 
 // stores/hypercertWizardStore.ts
 
 interface HypercertWizardState {
-  // Current step
-  currentStep: 1 | 2 | 3 | 4 | 5;
+  // Current step (4-step wizard)
+  currentStep: 1 | 2 | 3 | 4;
 
-  // Step 1: Selection
+  // Step 1: Attestation Selection
   selectedAttestationIds: string[];
 
   // Step 2: Metadata
@@ -608,20 +604,18 @@ interface HypercertWizardState {
   description: string;
   workScopes: string[];
   impactScopes: string[];
-  workTimeframeStart: Date;
-  workTimeframeEnd: Date;
-  impactTimeframeStart: Date;
-  impactTimeframeEnd: Date | null;  // null = indefinite
+  workTimeframeStart: number;  // Unix timestamp (seconds)
+  workTimeframeEnd: number;
+  impactTimeframeStart: number | null;
+  impactTimeframeEnd: number | null;  // null = indefinite/ongoing
   sdgs: number[];
   capitals: CapitalType[];
-  outcomes: OutcomeMetrics;
-  externalUrl: string;
 
-  // Step 4: Distribution
-  distributionMode: 'equal' | 'proportional' | 'custom';
+  // Step 3: Distribution
+  distributionMode: 'equal' | 'count' | 'value' | 'custom';
   allowlist: AllowlistEntry[];
 
-  // Step 5: Minting state
+  // Step 4: Preview & Mint state
   mintingState: MintingState;
 
   // Draft management
@@ -703,7 +697,7 @@ export interface WorkApproval {
   approved: boolean;
   approvedBy: Address;
   approvedAt: bigint;
-  bundledInHypercert: Hypercert | null;
+  hypercertId: string | null;
 }
 
 export interface WorkSubmission {
@@ -839,6 +833,13 @@ export interface AttestationRef {
 
 ### 4.3 Component Design
 
+> **Component Design System:**
+> Admin dashboard follows the same Material Design-aligned system as client PWA:
+> - Radix UI primitives for accessibility
+> - Tailwind CSS v4 for styling
+> - `tailwind-variants` for component variants
+> - Shared components from `@green-goods/shared/components`
+
 #### 4.3.1 Frontend Components (Vite + React)
 
 ```
@@ -860,47 +861,44 @@ src/
 │               └── create.tsx            # Wizard container
 │
 ├── components/
-│   ├── hypercerts/
-│   │   ├── wizard/
-│   │   │   ├── HypercertWizard.tsx       # Main wizard (XState machine)
-│   │   │   ├── WizardStepper.tsx         # Progress indicator
-│   │   │   ├── WizardNavigation.tsx      # Back/Next buttons
-│   │   │   │
-│   │   │   ├── steps/
-│   │   │   │   ├── AttestationSelector.tsx    # Step 1
-│   │   │   │   ├── MetadataEditor.tsx         # Step 2
-│   │   │   │   ├── PreviewPanel.tsx           # Step 3
-│   │   │   │   ├── DistributionConfig.tsx     # Step 4
-│   │   │   │   └── MintConfirmation.tsx       # Step 5
-│   │   │   │
-│   │   │   └── shared/
-│   │   │       ├── AttestationCard.tsx        # Single attestation
-│   │   │       ├── AttestationFilters.tsx     # Filter controls
-│   │   │       ├── TagSelector.tsx            # Work/Impact scope
-│   │   │       ├── SDGPicker.tsx              # SDG selection
-│   │   │       ├── CapitalsPicker.tsx         # 8 capitals
-│   │   │       ├── OutcomeMetricsTable.tsx    # Metrics edit
-│   │   │       ├── DistributionTable.tsx      # Allowlist editor
-│   │   │       ├── HypercertPreviewCard.tsx   # Generated artwork
-│   │   │       ├── GasEstimator.tsx           # Gas display
-│   │   │       └── TransactionProgress.tsx    # Mint progress
+│   ├── hypercert/                        # Singular, flat structure
+│   │   ├── HypercertWizard.tsx           # Main wizard (XState machine)
+│   │   ├── WizardStepper.tsx             # Minimal progress indicator
+│   │   ├── WizardNavigation.tsx          # Back/Next buttons
+│   │   │
+│   │   ├── steps/                        # Step components (4-step wizard)
+│   │   │   ├── AttestationSelector.tsx   # Step 1: Card-based selection
+│   │   │   ├── MetadataEditor.tsx        # Step 2: Metadata form
+│   │   │   ├── DistributionConfig.tsx    # Step 3: Allowlist configuration
+│   │   │   ├── HypercertPreview.tsx      # Step 4: Preview & shows MintProgress
+│   │   │   └── MintProgress.tsx          # Minting status indicator (used within HypercertPreview)
+│   │   │
+│   │   ├── shared/                       # Shared subcomponents
+│   │   │   ├── AttestationCard.tsx       # Selectable card (title, date, gardener, domain badge)
+│   │   │   ├── AttestationFilters.tsx    # Filter controls
+│   │   │   ├── TagSelector.tsx           # Work/Impact scope
+│   │   │   ├── SDGPicker.tsx             # SDG selection
+│   │   │   ├── CapitalsPicker.tsx        # 8 capitals
+│   │   │   ├── OutcomeMetricsTable.tsx   # Metrics edit
+│   │   │   ├── DistributionTable.tsx     # Allowlist editor
+│   │   │   ├── HypercertPreviewCard.tsx  # Generated artwork
+│   │   │   ├── GasEstimator.tsx          # Gas display
+│   │   │   └── TransactionProgress.tsx   # Mint progress
 │   │   │
 │   │   ├── list/
-│   │   │   ├── HypercertsList.tsx             # Grid/list view
-│   │   │   ├── HypercertCard.tsx              # Summary card
-│   │   │   └── HypercertsFilters.tsx          # Filters
+│   │   │   ├── HypercertsList.tsx        # Grid/list view
+│   │   │   ├── HypercertCard.tsx         # Summary card
+│   │   │   └── HypercertsFilters.tsx     # Filters
 │   │   │
 │   │   └── detail/
-│   │       ├── HypercertDetail.tsx            # Full detail
-│   │       ├── AllowlistTable.tsx             # Claim status
-│   │       └── AttestationReferences.tsx      # Linked atts
+│   │       ├── HypercertDetail.tsx       # Full detail
+│   │       ├── AllowlistTable.tsx        # Claim status
+│   │       └── AttestationReferences.tsx # Linked atts
 │   │
 │   └── ui/                               # Radix UI components (shared)
-│
-└── graphql/
-    └── queries/
-        ├── attestations.ts               # Attestation queries (uses shared)
-        └── hypercerts.ts                 # Hypercert queries (uses shared)
+
+# Note: GraphQL queries are in shared package, not admin
+# See packages/shared/src/modules/data/ for query implementations
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SHARED PACKAGE (packages/shared/src) - ALL HOOKS, STORES, WORKFLOWS LIVE HERE
@@ -910,7 +908,7 @@ src/
 packages/shared/src/
 ├── hooks/
 │   └── hypercerts/
-│       ├── useAttestations.ts            # Query approved attestations from Envio
+│       ├── useAttestations.ts            # Query approved attestations from EAS GraphQL
 │       ├── useHypercerts.ts              # Query minted Hypercerts
 │       ├── useHypercertDraft.ts          # IndexedDB draft persistence
 │       ├── useMintHypercert.ts           # Minting mutation with XState
@@ -1167,7 +1165,8 @@ export const mintHypercertMachine = mintHypercertSetup.createMachine({
 sequenceDiagram
     participant Op as Operator
     participant Admin as Admin Dashboard
-    participant Envio as Envio Indexer
+    participant Envio as Envio Indexer<br/>(Gardens)
+    participant EAS as EAS GraphQL<br/>(Attestations)
     participant IPFS as Storacha (IPFS)
     participant Pim as Pimlico (4337)
     participant HC as HypercertMinter
@@ -1185,9 +1184,9 @@ sequenceDiagram
 
     Admin->>Admin: Check IndexedDB for draft
 
-    Admin->>Envio: Query WorkApprovals (Urql)
-    Envio-->>Admin: { workApprovals, totalCount }
-    Admin-->>Op: Display Attestation List
+    Admin->>EAS: Query WorkApprovals (graphql-request)
+    EAS-->>Admin: { workApprovals, totalCount }
+    Admin-->>Op: Display Attestation Cards
 
     Op->>Admin: Select Attestations (Step 1)
     Admin->>Admin: Update Zustand store
@@ -1254,24 +1253,24 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Admin as Admin Dashboard
-    participant Hook as useAttestations Hook<br/>(Urql)
-    participant Envio as GG Envio Indexer
+    participant Hook as useAttestations Hook<br/>(graphql-request)
+    participant EAS as EAS GraphQL API
     participant Store as Zustand Store
 
     Admin->>Hook: Enter Step 1
 
-    Hook->>Envio: GraphQL Query<br/>GetApprovedWorkApprovals
+    Hook->>EAS: GraphQL Query<br/>getWorkApprovals
 
-    Note over Envio: Filter: approved=true<br/>bundledInHypercert=null
+    Note over EAS: Filter: approved=true<br/>hypercertId=null
 
-    Envio-->>Hook: { workApprovals: [...] }
+    EAS-->>Hook: { workApprovals: [...] }
     Hook-->>Admin: { data, isLoading }
 
     Admin->>Admin: Render AttestationSelector<br/>with filter controls
 
-    Admin->>Store: User toggles checkbox
+    Admin->>Store: User taps attestation card
     Store->>Store: selectAttestation(id)
-    Store-->>Admin: Re-render with<br/>updated selection
+    Store-->>Admin: Re-render with<br/>selected card highlighted
 ```
 
 <details>
@@ -1292,7 +1291,7 @@ query GetApprovedWorkApprovals(
   WorkApproval(where: {
     garden: { id: { _eq: $gardenId } }
     approved: { _eq: true }
-    bundledInHypercert: { _is_null: true }
+    hypercertId: { _is_null: true }
     approvedAt: { _gte: $startDate, _lte: $endDate }
   }) {
     id
@@ -1482,7 +1481,7 @@ sequenceDiagram
     participant Op as Operator
     participant Admin as Admin Dashboard
     participant IDB as IndexedDB<br/>(idb-keyval)
-    participant Envio as Envio Indexer
+    participant EAS as EAS GraphQL<br/>(Attestations)
 
     Op->>Admin: Navigate to Create Hypercert
 
@@ -1491,8 +1490,8 @@ sequenceDiagram
     alt Draft found
         IDB-->>Admin: Draft data
 
-        Admin->>Envio: Verify attestations still valid<br/>Check bundledInHypercert status
-        Envio-->>Admin: Current bundling status
+        Admin->>EAS: Verify attestations still valid<br/>Check hypercertId status
+        EAS-->>Admin: Current bundling status
 
         Admin-->>Op: Show Recovery Modal<br/>"Resume from Step 3?"
 
@@ -1558,7 +1557,7 @@ query GetApprovedAttestations(
     where: {
       garden: $gardenId
       approved: true
-      bundledInHypercert: null
+      hypercertId: null
       workSubmission_: {
         domain: $domain
         createdAt_gte: $startDate
@@ -1590,12 +1589,9 @@ query GetApprovedAttestations(
 
 # Check if attestations are already bundled
 query CheckAttestationsBundled($uids: [ID!]!) {
-  workApprovals(where: { id_in: $uids, bundledInHypercert_not: null }) {
+  workApprovals(where: { id_in: $uids, hypercertId_not: null }) {
     id
-    bundledInHypercert {
-      id
-      title
-    }
+    hypercertId
   }
 }
 ```
@@ -1783,9 +1779,11 @@ export const EAS_SCHEMAS = {
 } as const;
 ```
 
-### 7.3 HypercertsModule Contract (NEW)
+### 7.3 HypercertsModule Contract (Future / Not Deployed)
 
-> **Note:** `MODULE_HYPERCERTS` is already reserved in `GreenGoodsResolver.sol:40`.
+> **Note:** `MODULE_HYPERCERTS` is already reserved in `GreenGoodsResolver.sol:40`,
+> but **the module is not deployed in the current protocol**. Treat this section as
+> a future extension; the live integration uses `HypercertMinter` events + metadata.
 > This module records Hypercert mints and links them to bundled attestation UIDs.
 
 **File:** `packages/contracts/src/modules/Hypercerts.sol`
@@ -1980,7 +1978,7 @@ interface IHypercertsModule {
 }
 ```
 
-**GreenGoodsResolver Integration:**
+**GreenGoodsResolver Integration (Future):**
 
 ```solidity
 // In GreenGoodsResolver.sol - ADD to onWorkApproved or new function
@@ -2081,12 +2079,12 @@ export async function waitForReceipt(params: {
 
 | Layer | Technology | Version |
 |-------|------------|---------|
-| Frontend | React + Vite | 18.x / 5.x |
+| Frontend | React + Vite | 19.x / 5.x |
 | UI Components | Radix UI | Latest |
 | State Management | Zustand | 5.x |
 | State Machines | XState | 5.x |
 | Form Handling | React Hook Form + Zod | 7.x |
-| GraphQL Client | Urql | 5.x |
+| GraphQL Client | graphql-request + gql.tada | 7.x / 1.x |
 | Blockchain | Viem | 2.x |
 | Account Abstraction | Permissionless | 0.x |
 | Wallet Connection | Reown AppKit | Latest |
@@ -2095,29 +2093,42 @@ export async function waitForReceipt(params: {
 | IPFS | @storacha/client | Latest (existing module) |
 | Bundler | Pimlico | v2 API |
 | Indexer | Envio | 2.x |
+| Analytics | PostHog | 1.x |
 | Package Manager | Bun | Latest |
+
+#### v1 Hypercerts Integration Pattern
+
+Green Goods uses a **hybrid approach** for Hypercerts integration:
+
+| Package | Purpose | Usage |
+|---------|---------|-------|
+| `@hypercerts-org/sdk` | Metadata validation, formatting helpers | Merkle tree generation, metadata schema |
+| `@storacha/client` | IPFS uploads | Existing module in shared package |
+| `viem` | Direct contract calls for minting | More control, works with Pimlico bundler |
+| `@hypercerts-org/contracts` | ABI/interface only | Contract addresses and types |
+
+This provides stability while positioning for future SDK evolution. Direct `viem` contract calls allow full control over gas sponsorship via the Pimlico ERC-4337 bundler.
 
 ### 8.2 Development Phases
 
 #### Phase 1: Foundation (Week 1)
 - [ ] Add hypercert types to `packages/shared`
 - [ ] Create Envio indexer schema extensions for hypercerts
-- [ ] Implement GraphQL queries in admin package
+- [ ] Implement GraphQL queries in `packages/shared/src/modules/data/`
 - [ ] Set up Zustand store for wizard state
 
 #### Phase 2: Core Wizard (Week 2)
-- [ ] Implement wizard container with XState
-- [ ] Build AttestationSelector (Step 1)
-- [ ] Build MetadataEditor (Step 2)
-- [ ] Build PreviewPanel (Step 3)
-- [ ] Build DistributionConfig (Step 4)
+- [x] Implement wizard container with XState (HypercertWizard.tsx)
+- [x] Build AttestationSelector (Step 1)
+- [x] Build MetadataEditor (Step 2)
+- [x] Build DistributionConfig (Step 3)
 
 #### Phase 3: Minting Flow (Week 3)
-- [ ] Implement Storracha upload client
-- [ ] Implement merkle tree generation
-- [ ] Build UserOp construction with permissionless
-- [ ] Integrate Pimlico bundler
-- [ ] Build MintConfirmation (Step 5)
+- [x] Implement Storracha upload client
+- [x] Implement merkle tree generation
+- [x] Build UserOp construction with permissionless
+- [x] Integrate Pimlico bundler
+- [x] Build HypercertPreview + MintProgress (Step 4 - combined preview & mint)
 
 #### Phase 4: Polish & Testing (Week 4)
 - [ ] Implement draft persistence (IndexedDB)
@@ -2289,7 +2300,7 @@ describe('useAttestations', () => {
   it('fetches approved work approvals for garden');
   it('filters by date range');
   it('filters by domain');
-  it('excludes already-bundled attestations (bundledInHypercert != null)');
+  it('excludes already-bundled attestations (hypercertId != null)');
   it('handles pagination');
   it('returns loading state initially');
   it('handles network errors gracefully');
@@ -2356,14 +2367,13 @@ contract HypercertsModuleTest is Test {
 
 import { test, expect } from '@playwright/test';
 
-test.describe('Hypercert Minting', () => {
+test.describe('Hypercert Minting (4-step wizard)', () => {
   test('operator can access wizard');
   test('non-operator sees access denied');
   test('step 1: select attestations with filters');
   test('step 2: edit metadata fields');
-  test('step 3: preview Hypercert card');
-  test('step 4: configure distribution');
-  test('step 5: mint with passkey signature');
+  test('step 3: configure distribution');
+  test('step 4: preview and mint with passkey signature');
   test('shows pending state during confirmation');
   test('shows success with Hypercert ID');
   test('draft recovery after refresh');
@@ -2690,7 +2700,7 @@ export const GET_GARDEN_ATTESTATIONS = gql`
         timestamp_gte: $startDate
         timestamp_lte: $endDate
         work_: { domain_contains: $domain }
-        bundledInHypercert: null
+        hypercertId: null
       }
       first: $first
       skip: $skip
@@ -2822,12 +2832,9 @@ export interface GetGardenHypercertsResponse {
  */
 export const CHECK_BUNDLED_ATTESTATIONS = gql`
   query CheckBundledAttestations($uids: [String!]!) {
-    workApprovals(where: { uid_in: $uids, bundledInHypercert_not: null }) {
+    workApprovals(where: { uid_in: $uids, hypercertId_not: null }) {
       uid
-      bundledInHypercert {
-        id
-        tokenId
-      }
+      hypercertId
     }
   }
 `;
@@ -2839,27 +2846,27 @@ export interface CheckBundledAttestationsVariables {
 export interface CheckBundledAttestationsResponse {
   workApprovals: Array<{
     uid: string;
-    bundledInHypercert: { id: string; tokenId: string } | null;
+    hypercertId: string | null;
   }>;
 }
 
 /**
- * Query: Get allowlist claims for a Hypercert
+ * Query: Get hypercert claims for a Hypercert
  * Used by: Claim status UI
  */
 export const GET_HYPERCERT_CLAIMS = gql`
   query GetHypercertClaims($hypercertId: ID!, $first: Int = 100) {
-    allowlistClaims(
-      where: { hypercert: $hypercertId }
+    hypercertClaims(
+      where: { hypercertId: $hypercertId }
       first: $first
       orderBy: claimedAt
       orderDirection: desc
     ) {
       id
-      claimer
+      claimant
       units
       claimedAt
-      transactionHash
+      txHash
     }
   }
 `;
@@ -2869,16 +2876,16 @@ export interface GetHypercertClaimsVariables {
   first?: number;
 }
 
-export interface AllowlistClaimNode {
+export interface HypercertClaimNode {
   id: string;
-  claimer: string;
+  claimant: string;
   units: string;
   claimedAt: string;
-  transactionHash: string;
+  txHash: string;
 }
 
 export interface GetHypercertClaimsResponse {
-  allowlistClaims: AllowlistClaimNode[];
+  hypercertClaims: HypercertClaimNode[];
 }
 ```
 
@@ -2900,14 +2907,13 @@ import type {
 } from '../types/hypercerts';
 
 /**
- * Wizard step identifiers
+ * Wizard step identifiers (4-step wizard)
  */
 export type WizardStep =
-  | 'select-attestations'
-  | 'edit-metadata'
-  | 'preview'
-  | 'configure-distribution'
-  | 'confirm-mint';
+  | 'select-attestations'    // Step 1
+  | 'edit-metadata'          // Step 2
+  | 'configure-distribution' // Step 3
+  | 'preview-and-mint';      // Step 4 (combined)
 
 /**
  * Mint transaction state
@@ -2952,15 +2958,12 @@ export interface HypercertWizardState {
     errors: Record<string, string>;
   };
 
-  // === Step 3: Preview ===
-  previewImageUrl: string | null;
-
-  // === Step 4: Distribution ===
-  distributionMode: 'equal' | 'proportional' | 'custom';
+  // === Step 3: Distribution ===
+  distributionMode: 'equal' | 'count' | 'value' | 'custom';
   allowlist: AllowlistEntry[];
   totalUnits: bigint;
 
-  // === Step 5: Mint ===
+  // === Step 4: Preview & Mint ===
   mint: MintState;
 
   // === Draft Management ===
@@ -3296,72 +3299,56 @@ export interface MetadataEditorProps {
 }
 
 /**
- * HypercertPreview - Step 3
- * Visual preview of the Hypercert card
+ * DistributionConfig - Step 3
+ * Configure how fraction units are distributed among contributors
+ */
+export interface DistributionConfigProps {
+  /** Distribution mode */
+  mode: 'equal' | 'count' | 'value' | 'custom';
+  /** Callback when mode changes */
+  onModeChange: (mode: 'equal' | 'count' | 'value' | 'custom') => void;
+  /** Current allowlist entries */
+  allowlist: AllowlistEntry[];
+  /** Callback when allowlist changes */
+  onAllowlistChange: (entries: AllowlistEntry[]) => void;
+  /** Total units (always 100M) */
+  totalUnits?: bigint;
+}
+
+/**
+ * HypercertPreview - Step 4 (combined Preview & Mint)
+ * Visual preview of the Hypercert card, switches to MintProgress during minting
  */
 export interface HypercertPreviewProps {
   /** Metadata to render in preview */
-  metadata: Partial<HypercertMetadata>;
+  metadata: HypercertMetadata | null;
   /** Number of attestations being bundled */
   attestationCount: number;
   /** Total units to display */
   totalUnits: bigint;
   /** Garden name for display */
   gardenName: string;
-  /** Optional banner/cover image URL */
-  imageUrl?: string;
-  /** Preview size variant */
-  size?: 'sm' | 'md' | 'lg';
-  /** Whether to show skeleton loading state */
-  loading?: boolean;
+  /** Distribution allowlist */
+  allowlist?: AllowlistEntry[];
+  /** Current minting state - when set, shows MintProgress instead of preview */
+  mintingState?: MintingState;
+  /** Chain ID for block explorer links */
+  chainId?: number;
+  /** Navigate back to edit metadata */
+  onEditMetadata?: () => void;
+  /** Navigate back to edit distribution */
+  onEditDistribution?: () => void;
 }
 
 /**
- * DistributionConfig - Step 4
- * Configure how fraction units are distributed among contributors
- */
-export interface DistributionConfigProps {
-  /** Distribution mode */
-  mode: 'equal' | 'proportional' | 'custom';
-  /** Callback when mode changes */
-  onModeChange: (mode: 'equal' | 'proportional' | 'custom') => void;
-  /** Current allowlist entries */
-  allowlist: AllowlistEntry[];
-  /** Callback when allowlist changes */
-  onAllowlistChange: (entries: AllowlistEntry[]) => void;
-  /** Contributors from attestations (for proportional calculation) */
-  contributors: Array<{
-    address: string;
-    name?: string;
-    actionCount: number;
-  }>;
-  /** Total units (always 100M) */
-  totalUnits: bigint;
-  /** Validation error message */
-  error?: string;
-  /** Whether the component is disabled */
-  disabled?: boolean;
-}
-
-/**
- * MintProgress - Step 5
+ * MintProgress - Minting status indicator (shown within HypercertPreview)
  * Displays mint transaction progress with status updates
  */
 export interface MintProgressProps {
   /** Current mint state */
-  state: MintState;
-  /** Callback to initiate mint */
-  onMint: () => void;
-  /** Callback to retry failed mint */
-  onRetry: () => void;
-  /** Callback to cancel pending mint */
-  onCancel: () => void;
-  /** Callback when mint succeeds (navigation) */
-  onSuccess: (hypercertId: string) => void;
-  /** Maximum retry attempts (default: 3) */
-  maxRetries?: number;
-  /** Whether the component is disabled */
-  disabled?: boolean;
+  state: MintingState;
+  /** Chain ID for block explorer links */
+  chainId?: number;
 }
 
 /**

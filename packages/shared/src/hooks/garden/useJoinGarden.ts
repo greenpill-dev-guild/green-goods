@@ -12,10 +12,12 @@ import type { Garden } from "../../types/domain";
 import { readContract } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
 import { useCallback, useState } from "react";
+import { useIntl } from "react-intl";
 import { encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
+import { logger } from "../../modules/app/logger";
 import {
   trackGardenJoinAlreadyMember,
   trackGardenJoinFailed,
@@ -43,6 +45,7 @@ import { simulateJoinGarden } from "../../utils/blockchain/simulation";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";
+import { useDelayedInvalidation } from "../utils/useTimeout";
 
 /**
  * Check if a garden has openJoining enabled on-chain
@@ -56,7 +59,11 @@ export async function checkGardenOpenJoining(gardenAddress: string): Promise<boo
     });
     return Boolean(isOpen);
   } catch (error) {
-    console.warn(`Failed to check openJoining for ${gardenAddress}:`, error);
+    logger.warn("Failed to check openJoining", {
+      source: "checkGardenOpenJoining",
+      gardenAddress,
+      error,
+    });
     trackNetworkError(error, {
       source: "checkGardenOpenJoining",
       userAction: "checking if garden allows open joining",
@@ -150,6 +157,7 @@ interface JoinGardenState {
  * @returns Join function and state
  */
 export function useJoinGarden() {
+  const { formatMessage } = useIntl();
   const { smartAccountAddress, smartAccountClient, eoa } = useUser();
   const walletAddress = eoa?.address;
   const primaryAddress = smartAccountAddress || walletAddress;
@@ -166,6 +174,16 @@ export function useJoinGarden() {
     error: null,
   });
 
+  // Memoized invalidation callback for gardens
+  const invalidateGardens = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) }),
+    [queryClient, chainId]
+  );
+
+  // Use delayed invalidation with automatic cleanup on unmount
+  // 10 seconds for indexer to process
+  const { start: scheduleGardenSync } = useDelayedInvalidation(invalidateGardens, 10000);
+
   /**
    * Join a garden by its address/ID
    *
@@ -179,7 +197,7 @@ export function useJoinGarden() {
       const client = sessionOverride?.client ?? smartAccountClient;
 
       if (!gardenAddress || !targetAddress) {
-        throw new Error("Missing garden address or user address");
+        throw new Error(formatMessage({ id: "app.garden.joinMissingInfo" }));
       }
 
       // Track join started
@@ -262,9 +280,8 @@ export function useJoinGarden() {
         );
 
         // Delayed sync - give indexer time to process the event
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) });
-        }, 10000);
+        // Uses useDelayedInvalidation for automatic cleanup on unmount
+        scheduleGardenSync();
 
         // Track successful join
         trackGardenJoinSuccess({
@@ -320,7 +337,15 @@ export function useJoinGarden() {
         throw error;
       }
     },
-    [primaryAddress, smartAccountClient, writeContractAsync, chainId, queryClient]
+    [
+      primaryAddress,
+      smartAccountClient,
+      writeContractAsync,
+      chainId,
+      queryClient,
+      scheduleGardenSync,
+      formatMessage,
+    ]
   );
 
   return {
