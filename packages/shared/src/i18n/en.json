@@ -124,6 +124,7 @@
   "app.admin.roles.error.ensResolutionFailed": "Could not resolve ENS name",
   "app.admin.roles.error.addFailed": "Failed to add member",
   "app.admin.roles.error.clipboardFailed": "Failed to paste from clipboard",
+  "app.admin.roles.error.invalidAddress": "Invalid address",
   "app.admin.garden.create.requireGardener": "Add at least one gardener to steward the garden",
   "app.admin.garden.create.requireOperator": "Add at least one operator to manage the garden",
   "app.garden.joinMissingInfo": "Missing garden address or user address.",

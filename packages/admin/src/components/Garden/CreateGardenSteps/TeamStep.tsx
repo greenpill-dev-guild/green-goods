@@ -84,7 +84,7 @@ function useAddressInput(
       setError(
         result.error ??
           formatMessage({
-            id: "app.admin.garden.create.invalidAddress",
+            id: "app.admin.roles.error.invalidAddress",
             defaultMessage: "Invalid address",
           })
       );

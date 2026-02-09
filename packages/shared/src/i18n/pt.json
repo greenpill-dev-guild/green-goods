@@ -124,6 +124,7 @@
   "app.admin.roles.error.ensResolutionFailed": "Não foi possível resolver o nome ENS",
   "app.admin.roles.error.addFailed": "Falha ao adicionar membro",
   "app.admin.roles.error.clipboardFailed": "Falha ao colar da área de transferência",
+  "app.admin.roles.error.invalidAddress": "Endereço inválido",
   "app.admin.garden.create.requireGardener": "Adicione pelo menos um jardineiro para cuidar do jardim",
   "app.admin.garden.create.requireOperator": "Adicione pelo menos um operador para gerenciar o jardim",
   "app.garden.joinMissingInfo": "Falta o endereço do jardim ou do usuário.",

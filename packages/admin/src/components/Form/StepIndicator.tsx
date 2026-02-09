@@ -47,7 +47,8 @@ export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicator
                     className={cn(
                       "flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center",
                       "cursor-pointer transition focus:outline-none",
-                      "focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+                      "focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2",
+                      "rounded-full"
                     )}
                     aria-label={formatMessage(
                       { id: "app.hypercerts.wizard.goToStep" },
