@@ -1,6 +1,12 @@
 ---
 name: error-handling-patterns
 description: Robust error handling strategies for graceful failures and debugging. Use for error handling implementations, error flow debugging, error boundaries, retry mechanisms, and user-friendly error messages.
+version: "1.0"
+last_updated: "2026-02-08"
+last_verified: "2026-02-09"
+status: proven
+packages: [shared, client, admin]
+dependencies: [react, monitoring]
 ---
 
 # Error Handling Patterns
@@ -332,3 +338,13 @@ try {
   }
 }
 ```
+
+## Related Skills
+
+- `react` — Error boundaries and component-level error handling
+- `monitoring` — PostHog error tracking and observability
+- `offline` — Sync failure categorization and retry patterns
+- `web3` — Domain-specific error handling for wallet and blockchain errors (see web3 skill for contract error patterns)
+- `tanstack-query` — Query/mutation error handling (see tanstack-query skill for onError patterns)
+- `contracts` — Smart contract error parsing (see contracts skill for Solidity revert handling)
+- `testing` — Testing error paths and failure scenarios

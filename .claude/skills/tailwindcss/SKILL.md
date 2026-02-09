@@ -1,0 +1,295 @@
+---
+name: tailwindcss
+description: TailwindCSS v4 configuration and theming - @theme directive, CSS custom properties, design tokens, dark mode, responsive utilities. Use for styling configuration, theme customization, and CSS architecture.
+version: "1.0"
+last_updated: "2026-02-09"
+last_verified: "2026-02-09"
+status: proven
+packages: [shared, client, admin]
+dependencies: [radix-ui, frontend-design]
+---
+
+# TailwindCSS v4 Skill
+
+TailwindCSS v4 configuration guide: theme system, design tokens, dark mode, custom utilities, and CSS architecture.
+
+---
+
+## Activation
+
+When invoked:
+- Check existing theme in `packages/shared/src/styles/theme.css` before making changes.
+- TailwindCSS v4 uses CSS-first configuration — no `tailwind.config.js` needed.
+- Shared theme is imported by client and admin via `@import "@green-goods/shared/styles/theme.css"`.
+- Biome handles code formatting; TailwindCSS handles CSS architecture.
+
+## Part 1: CSS-First Configuration (v4)
+
+### Key Difference from v3
+
+TailwindCSS v4 replaces `tailwind.config.js` with CSS directives. Configuration lives in CSS files, not JavaScript.
+
+```css
+/* v3 (old) — tailwind.config.js */
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#1fc16b',
+      },
+    },
+  },
+};
+
+/* v4 (current) — in CSS file */
+@import "tailwindcss";
+
+@theme {
+  --color-primary: rgb(31, 193, 107);
+}
+```
+
+### Entry Point Pattern
+
+Each app has a single CSS entry point that imports TailwindCSS and the shared theme:
+
+```css
+/* packages/client/src/index.css */
+@import "tailwindcss";
+
+/* Dark mode via data-theme attribute (not prefers-color-scheme) */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Shared theme — CSS variables + @theme tokens */
+@import "@green-goods/shared/styles/theme.css";
+
+/* App-specific styles */
+@import "./styles/typography.css";
+@import "./styles/utilities.css";
+@import "./styles/animation.css";
+```
+
+## Part 2: Theme Architecture
+
+### Shared Theme (`packages/shared/src/styles/theme.css`)
+
+The theme system uses CSS `@property` definitions for type-safe, animatable custom properties:
+
+```css
+/* Type-safe custom properties (Baseline July 2024) */
+@property --color-primary {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(31, 193, 107);
+}
+
+@property --color-background {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(255, 255, 255);
+}
+```
+
+These properties enable smooth animated theme transitions because the browser knows they are `<color>` values.
+
+### Theme Tokens via `@theme`
+
+The `@theme` block registers values as Tailwind utilities:
+
+```css
+@theme {
+  /* These become Tailwind classes: bg-primary, text-primary, etc. */
+  --color-primary: var(--color-primary);
+  --color-primary-foreground: var(--color-primary-foreground);
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+  --color-card: var(--color-card);
+  --color-muted: var(--color-muted);
+
+  /* Spacing, radii, etc. */
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.25rem;
+}
+```
+
+### Dark Mode
+
+Green Goods uses `[data-theme]` attribute (not `prefers-color-scheme`) for explicit theme control:
+
+```css
+/* Custom variant definition */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Theme values switch via data attribute */
+[data-theme="dark"] {
+  --color-background: rgb(23, 23, 23);
+  --color-foreground: rgb(237, 237, 237);
+  --color-card: rgb(38, 38, 38);
+  --color-muted: rgb(64, 64, 64);
+}
+```
+
+Usage in components:
+```tsx
+<div className="bg-background text-foreground dark:bg-background dark:text-foreground">
+  {/* Automatically adapts to theme */}
+</div>
+```
+
+## Part 3: Design Token Patterns
+
+### Color Convention
+
+Green Goods uses a semantic color system (not raw colors):
+
+| Token | Purpose | Light | Dark |
+|-------|---------|-------|------|
+| `background` | Page background | white | near-black |
+| `foreground` | Primary text | near-black | near-white |
+| `card` | Card surfaces | light gray | dark gray |
+| `muted` | Subtle backgrounds | lighter gray | medium gray |
+| `primary` | Brand action color | green | green |
+| `primary-foreground` | Text on primary | white | white |
+| `destructive` | Danger actions | red | red |
+| `warning` | Caution states | amber | amber |
+| `success` | Positive states | green | green |
+
+```tsx
+// ✅ Correct — semantic tokens
+<button className="bg-primary text-primary-foreground">
+
+// ❌ Wrong — raw colors
+<button className="bg-green-500 text-white">
+```
+
+### Adding New Tokens
+
+1. Define the `@property` in `packages/shared/src/styles/theme.css`
+2. Add to `@theme` block for Tailwind utility generation
+3. Set dark mode value in `[data-theme="dark"]` block
+4. Use the semantic name in components
+
+```css
+/* Step 1: @property for animation support */
+@property --color-accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(99, 102, 241);
+}
+
+/* Step 2: @theme registration */
+@theme {
+  --color-accent: var(--color-accent);
+}
+
+/* Step 3: Dark mode value */
+[data-theme="dark"] {
+  --color-accent: rgb(129, 140, 248);
+}
+```
+
+## Part 4: Custom Utilities & Variants
+
+### Custom Utilities
+
+```css
+/* packages/client/src/styles/utilities.css */
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+```
+
+### Responsive Design
+
+Green Goods is mobile-first. Use standard Tailwind breakpoints:
+
+```tsx
+// Mobile-first: base styles for mobile, then override
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+  {gardens.map(garden => <GardenCard key={garden.id} garden={garden} />)}
+</div>
+
+// Container queries for component-level responsiveness
+<div className="@container">
+  <div className="@sm:flex @sm:gap-4">
+    {/* Responds to container width, not viewport */}
+  </div>
+</div>
+```
+
+## Part 5: CSS File Organization
+
+```
+packages/shared/src/styles/
+└── theme.css              # Shared theme: @property + @theme + dark mode
+
+packages/client/src/
+├── index.css              # Entry point: @import tailwindcss + theme + app styles
+└── styles/
+    ├── colors.css         # Additional color definitions
+    ├── typography.css     # Font scales, text utilities
+    ├── utilities.css      # Custom @utility definitions
+    ├── animation.css      # @keyframes and animation utilities
+    └── view-transitions.css  # View Transition API styles
+
+packages/admin/src/
+└── index.css              # Entry point: @import tailwindcss + theme
+```
+
+### Import Order (Matters!)
+
+```css
+/* 1. TailwindCSS base (must be first) */
+@import "tailwindcss";
+
+/* 2. Custom variants (before theme, so theme can use them) */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* 3. Shared theme (provides all design tokens) */
+@import "@green-goods/shared/styles/theme.css";
+
+/* 4. App-specific styles (can override/extend theme) */
+@import "./styles/typography.css";
+```
+
+## Anti-Patterns
+
+- **Never use `tailwind.config.js`** — TailwindCSS v4 uses CSS-first configuration
+- **Never use raw color values in components** — Use semantic tokens (`bg-primary`, not `bg-green-500`)
+- **Never define theme tokens in app packages** — All tokens live in `packages/shared/src/styles/theme.css`
+- **Never use `@apply` for simple utilities** — Use classes directly in JSX; `@apply` is for complex compositions only
+- **Never use CSS-in-JS or inline styles** — Use TailwindCSS classes exclusively
+- **Never skip dark mode values** — Every new color token needs both light and dark variants
+- **Never use `prefers-color-scheme`** — Use `[data-theme]` attribute for explicit control
+- **Never import TailwindCSS in multiple entry points per package** — One `index.css` per app
+
+## Quick Reference
+
+```bash
+# Check for unused CSS (via build analysis)
+bun --filter client build && ls -la packages/client/dist/assets/*.css
+
+# Verify theme tokens are registered
+grep "@theme" packages/shared/src/styles/theme.css
+
+# Check dark mode coverage
+grep "data-theme.*dark" packages/shared/src/styles/theme.css
+```
+
+## Related Skills
+
+- `radix-ui` — Radix primitives styled with TailwindCSS classes
+- `frontend-design` — Design philosophy and aesthetic direction
+- `ui-compliance` — Responsive design and accessibility patterns
+- `biome` — Code formatting (Biome handles TS/JS; TailwindCSS handles CSS)
+- `performance` — Bundle size impact of CSS utilities
+- `storybook` — Design token documentation in Storybook

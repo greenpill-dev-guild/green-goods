@@ -167,6 +167,21 @@ See `CLAUDE.md` for detailed patterns. Key constraints:
 - **Barrel imports** — Use `@green-goods/shared`, not deep paths
 - **Type safety** — No undocumented `any`
 
+## Core Rules (from CLAUDE.md)
+
+These 10 rules MUST be followed in every implementation:
+
+1. **Hook Boundary**: ALL React hooks MUST live in `packages/shared/src/hooks/`. Client/admin packages only contain components and views.
+2. **Single .env**: Only one `.env` file at root. Never create `packages/*/.env`.
+3. **Contract Addresses**: Import from `packages/contracts/deployments/{chainId}-latest.json`. Never hardcode `0x...` addresses.
+4. **Barrel Imports**: Always `import { x } from "@green-goods/shared"`, never deep paths like `@green-goods/shared/hooks/...`.
+5. **Timer Cleanup**: Never use raw `setTimeout`/`setInterval` in hooks. Use `useTimeout()` or `useDelayedInvalidation()` from shared.
+6. **Event Listener Cleanup**: Never use `addEventListener` without cleanup. Use `useEventListener()` from shared, or `{ once: true }`.
+7. **Async Mount Guards**: Never run async in `useEffect` without `isMounted` guard. Use `useAsyncEffect()` from shared.
+8. **Error Handling**: Never swallow errors with empty `catch {}`. Use `createMutationErrorHandler()` for mutations. Always log + handle.
+9. **Address Types**: Use `Address` from `@green-goods/shared`, not `string`, for Ethereum addresses.
+10. **Zustand Selectors**: Never use `(state) => state`. Always select specific fields: `(s) => s.fieldName`.
+
 ## Quality Standards
 
 ### Type Safety

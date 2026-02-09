@@ -182,7 +182,7 @@ queryInvalidation.gardens(queryClient);
 ### Critical Dependencies
 
 - **React 19** + TypeScript (strict mode)
-- **Vite** for bundling
+- **Vite 7.x** for bundling
 - **TailwindCSS v4** + Radix UI
 - **TanStack Query** for data fetching (with graphql-request for GraphQL)
 - **Wagmi + Viem** for Web3
@@ -210,6 +210,7 @@ Single `.env` file at root - key variables:
 - `VITE_CHAIN_ID`: Target blockchain (84532=Base Sepolia, 42161=Arbitrum, 42220=Celo)
 - `VITE_PIMLICO_API_KEY`: For passkey authentication
 - `VITE_WALLETCONNECT_PROJECT_ID`: For wallet connections
+- `VITE_POSTHOG_KEY` & `VITE_POSTHOG_HOST`: PostHog analytics and error tracking
 - `VITE_STORACHA_KEY` & `VITE_STORACHA_PROOF`: IPFS storage
 
 See `.env.example` for all variables with setup instructions.
@@ -424,6 +425,48 @@ When implementing features:
 - Using `any` without documentation
 - Swallowing errors silently
 
+## Git Workflow
+
+### Branch Naming
+
+Use `type/description` format with kebab-case:
+
+| Prefix | Use For | Example |
+|--------|---------|---------|
+| `feature/` | New features | `feature/hats-protocol-v2` |
+| `feat/` | New features (short form) | `feat/passkey-login` |
+| `bug/` | Bug fixes | `bug/admin-build-fix` |
+| `enhancement/` | Improvements to existing features | `enhancement/celo-deployment` |
+| `patch/` | Small fixes, polish | `patch/release-polish` |
+| `docs` | Documentation changes | `docs` |
+
+### Commit Messages
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/) with scope:
+
+```
+type(scope): description
+
+# Types: feat, fix, refactor, chore, docs, test, perf, ci
+# Scopes: contracts, indexer, shared, client, admin, agent, claude
+```
+
+**Examples from this repo:**
+```
+feat(contracts): migrate to Hats Protocol v2 access control
+refactor(shared): update hooks, types, and utils for Hats v2
+refactor(admin,client): update components for Hats v2 and barrel imports
+chore: update root config, add multiformats fix and migration plans
+test(contracts): add comprehensive Hats Protocol test suite
+```
+
+### PR Guidelines
+
+- Keep PRs focused on a single concern
+- Reference the issue/plan in the PR description
+- Use the `/review` skill (6-pass review) before merging
+- Run full validation: `bun format && bun lint && bun test && bun build`
+
 ## Architectural Rules (13 Core Rules)
 
 > See `.claude/rules/architectural-rules.md` for full details and examples.
@@ -530,7 +573,7 @@ All work enters through one of these flows:
 | `/debug` | Systematic debugging with root cause analysis |
 | `/audit` | Comprehensive codebase health analysis |
 
-### Available Skills (15)
+### Available Skills (33)
 
 See [.claude/skills/index.md](.claude/skills/index.md) for quick reference with invocation keywords.
 
@@ -548,34 +591,54 @@ See [.claude/skills/index.md](.claude/skills/index.md) for quick reference with 
 | Skill | Invoke With | Purpose |
 |-------|-------------|---------|
 | **testing** | "write tests", "TDD", "unit test" | TDD workflow, Vitest unit tests, Playwright E2E |
-| **react** | "component", "state", "hooks" | State management, composition, performance |
+| **react** | "component", "state", "hooks" | State management (Zustand, Query), React 19 APIs, composition, performance |
+| **web3** | "wallet", "transaction", "Wagmi", "passkey" | Wagmi/Viem, wallet + passkey auth, contract interactions, chain ops, tx lifecycle |
 | **tanstack-query** | "query", "fetch data", "mutation" | TanStack Query v5, server state, caching |
 | **error-handling-patterns** | "error handling", "try/catch" | Error boundaries, Result types, retry patterns |
-| **vite** | "build", "bundle", "env vars" | Vite 6.x config, plugins, optimization |
-| **contracts** | "Solidity", "smart contract", "deploy" | Foundry dev, UUPS, gas, deployment |
+| **data-layer** | "offline", "PWA", "job queue", "sync", "IndexedDB", "storage quota" | Job queue, service workers, IndexedDB schema, background sync, quota management |
+| **i18n** | "translation", "i18n", "locale" | Browser Translation API, runtime translation, RTL support |
+| **xstate** | "state machine", "workflow", "XState" | Multi-step flows, actor model, React integration |
+| **vite** | "build", "bundle", "env vars" | Vite 7.x config, plugins, optimization |
+| **contracts** | "Solidity", "smart contract", "deploy" | Foundry dev, UUPS, gas, security checklist, deployment |
 | **indexer** | "indexer", "event handler", "GraphQL" | Envio handlers, entity design, Docker |
+| **agent** | "bot", "Telegram", "handler" | Bot handlers, platform adapters, crypto services, rate limiting |
+| **deployment** | "deploy", "release", "Railway", "Vercel" | Full pipeline: contracts → indexer → apps, env promotion, rollback |
+| **security** | "security audit", "vulnerability", "access control" | Smart contract security, static analysis, Hats Protocol access control, threat modeling |
+| **migration** | "migration", "upgrade", "breaking change" | Cross-package migrations, UUPS upgrades, re-indexing, schema changes |
+| **docker** | "Docker", "container", "compose" | Docker Compose patterns, indexer stack, container debugging |
+| **git-workflow** | "branch", "commit", "merge conflict" | Branching strategy, conventional commits, conflict resolution, release workflow |
+| **ci-cd** | "CI", "GitHub Actions", "pipeline" | GitHub Actions workflows, caching, PR status gates, local CI simulation |
+| **dependency-management** | "dependency", "lockfile", "bun install" | Workspace protocol, lockfile conflicts, audit/update, phantom dependencies |
 
 **Design Skills (UI/UX):**
 
 | Skill | Invoke With | Purpose |
 |-------|-------------|---------|
 | **frontend-design** | "design UI", "build page", "visual design" | Distinctive, production-grade interfaces, bold aesthetics |
+| **tailwindcss** | "TailwindCSS", "@theme", "design tokens", "dark mode" | TailwindCSS v4 configuration, theme system, design tokens, CSS architecture |
+| **radix-ui** | "dialog", "select", "accordion", "Radix" | Radix UI primitives with TailwindCSS v4, accessible interactive components |
+| **storybook** | "story", "Storybook", "component docs" | CSF3 stories, visual regression, design system documentation |
 | **ui-compliance** | "accessibility", "a11y", "responsive" | WCAG, forms, mobile-first, animation, i18n |
 | **mermaid-diagrams** | "diagram", "flowchart", "mermaid" | Create diagrams for architecture, flows, ERDs |
 
-**Architecture Skills (System Design):**
+**Architecture & Operations Skills:**
 
 | Skill | Invoke With | Purpose |
 |-------|-------------|---------|
 | **architecture** | "architecture", "refactor", "clean code" | Clean Architecture, DDD, entropy reduction |
+| **biome** | "format", "Biome", "import sorting" | Biome formatting configuration, import organization |
+| **performance** | "performance", "bundle size", "profiling" | Bundle analysis, React Profiler, memory management |
+| **monitoring** | "monitoring", "health check", "observability", "PostHog" | Transaction tracking, SW health, storage quotas, indexer sync lag, PostHog analytics |
 
-### Available Agents (3)
+### Available Agents (5)
 
 | Agent | Purpose | Self-Contained |
 |-------|---------|----------------|
 | `oracle` | Deep research with evidence | Yes (full context embedded) |
 | `cracked-coder` | Feature implementation with TDD | No (references CLAUDE.md) |
 | `code-reviewer` | 6-pass systematic review | No (references CLAUDE.md) |
+| `migration` | Cross-package migration orchestration | No (references CLAUDE.md) |
+| `triage` | Fast issue classification and routing | Yes (full context embedded) |
 
 ### When to Use Agents
 
@@ -585,6 +648,8 @@ See [.claude/skills/index.md](.claude/skills/index.md) for quick reference with 
 | Feature implementation | `cracked-coder` | TDD mandatory, full workflow |
 | Complex implementation (>50 lines) | `cracked-coder` | Maintains focus, tracks progress |
 | PR review before merge | `code-reviewer` | 6-pass systematic review |
+| Cross-package migration | `migration` | Blast radius tracking, ordered validation |
+| Issue triage, classification | `triage` | Fast routing, package identification |
 | Polish, simple changes | Direct Claude | Faster, no overhead |
 
 **Invocation**: Just say "use cracked-coder for this" or "ask oracle about X"

@@ -122,11 +122,13 @@ Connect findings:
 
 ## Output Format
 
+All oracle responses MUST follow this structured format for consistent handoffs to other agents:
+
 ```markdown
 ## Oracle Response: [Question]
 
 ### Executive Summary
-[1-2 sentence direct answer]
+[1-2 sentence direct answer — this is what gets passed to cracked-coder]
 
 ### Key Findings
 
@@ -163,6 +165,36 @@ Connect findings:
 ### Next Steps
 - [What to do with this information]
 ```
+
+## Handoff Format (MANDATORY for Agent Chaining)
+
+When oracle findings will be passed to another agent, also produce a **Handoff Brief** at the end:
+
+```markdown
+### Handoff Brief (for cracked-coder / code-reviewer)
+
+**Decision**: [The key decision or answer in one sentence]
+
+**Affected Files** (in dependency order):
+1. `packages/contracts/src/File.sol` — [what changes]
+2. `packages/indexer/src/EventHandlers.ts` — [what changes]
+3. `packages/shared/src/hooks/useX.ts` — [what changes]
+
+**Constraints Discovered**:
+- [Constraint 1 — e.g., storage layout must be preserved]
+- [Constraint 2 — e.g., event signature cannot change]
+
+**Recommended Approach**: [Brief implementation strategy]
+
+**Risk Level**: Low/Medium/High
+**Estimated Blast Radius**: [N files across M packages]
+```
+
+**Rules for handoff briefs:**
+- Keep under 20 lines — cracked-coder needs a concise brief, not a research dump
+- List files in dependency order (contracts → indexer → shared → client/admin)
+- Include constraints that would cause silent failures if missed
+- Do NOT include raw research, external links, or verbose evidence
 
 ## Green Goods Context (Quick Reference)
 

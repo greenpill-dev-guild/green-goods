@@ -1,6 +1,12 @@
 ---
 name: audit
 description: Codebase Audit - quality analysis, dead code detection. Use for health checks and anti-pattern detection.
+version: "1.0"
+last_updated: "2026-02-08"
+last_verified: "2026-02-09"
+status: proven
+packages: [shared, client, admin, contracts, indexer]
+dependencies: [architecture]
 ---
 
 # Audit Skill
@@ -70,6 +76,39 @@ For each file check:
 
 ## Part 3: Dead Code Detection
 
+### Automated Tooling
+
+Run automated tools before manual review for faster coverage:
+
+```bash
+# knip — Find unused files, exports, dependencies, and types
+# Install: bun add -D knip
+bunx knip                          # Full analysis
+bunx knip --reporter compact       # Condensed output
+bunx knip --include files          # Only unused files
+bunx knip --include exports        # Only unused exports
+bunx knip --include dependencies   # Only unused deps
+
+# madge — Detect circular dependencies
+# Install: bun add -D madge
+bunx madge --circular packages/shared/src/index.ts
+bunx madge --circular packages/client/src/main.tsx
+bunx madge --image graph.svg packages/shared/src/  # Visual dep graph
+
+# bundlesize — Enforce bundle budgets (CI integration)
+# Configure in package.json or bundlesize.config.json
+# Green Goods budgets: main <150KB, per-route <50KB, total <400KB gzipped
+```
+
+| Tool | Purpose | Install |
+|------|---------|---------|
+| **knip** | Unused files, exports, deps, types | `bun add -D knip` |
+| **madge** | Circular dependency detection | `bun add -D madge` |
+| **bundlesize** | Bundle budget enforcement | `bun add -D bundlesize` |
+| **ts-prune** | Unused TypeScript exports | `bun add -D ts-prune` |
+
+### Manual Detection
+
 1. **Identify exports**: `grep -n "export " [file]`
 2. **Search for usage**: `grep -rn "[export-name]" packages/`
 3. **Categorize**:
@@ -132,9 +171,83 @@ Create at `.plans/audits/[date]-audit.md`:
 
 ---
 
+## Part 6: Skill & Configuration Drift Detection
+
+Skills, hooks, and architectural rules reference specific hooks, utilities, types, and patterns. When the codebase evolves, these references can become stale. Include this check in every full audit.
+
+### Automated Drift Checks
+
+```bash
+# Check that hooks referenced in skills actually exist
+for hook in useTimeout useDelayedInvalidation useEventListener useWindowEvent \
+  useDocumentEvent useAsyncEffect useAsyncSetup useOnlineStatus \
+  useServiceWorkerUpdate useDraftAutoSave useDraftResume useJobQueue; do
+  count=$(grep -rn "export.*$hook" packages/shared/src/ | wc -l)
+  if [ "$count" -eq 0 ]; then
+    echo "DRIFT: $hook referenced in skills but not exported from shared"
+  fi
+done
+
+# Check that utility functions referenced in skills exist
+for util in parseContractError createMutationErrorHandler mediaResourceManager \
+  getStorageQuota jobQueue eventBus logger toastService; do
+  count=$(grep -rn "export.*$util" packages/shared/src/ | wc -l)
+  if [ "$count" -eq 0 ]; then
+    echo "DRIFT: $util referenced in skills but not exported from shared"
+  fi
+done
+
+# Check that types referenced in skills exist
+for type in Address Garden Work Action WorkApproval GardenAssessment \
+  Job JobKind WorkDraft OfflineStatus; do
+  count=$(grep -rn "export.*type.*$type\b\|export.*interface.*$type\b" packages/shared/src/ | wc -l)
+  if [ "$count" -eq 0 ]; then
+    echo "DRIFT: Type $type referenced in skills but not found in shared"
+  fi
+done
+```
+
+### Manual Drift Checks
+
+| Check | How | Severity |
+|-------|-----|----------|
+| **Hook names changed** | Compare skill references against `packages/shared/src/hooks/` exports | HIGH |
+| **Import paths changed** | Verify barrel exports in `packages/shared/src/index.ts` | HIGH |
+| **Provider order changed** | Compare Rule #13 against actual provider nesting in client/admin | MEDIUM |
+| **Environment variables renamed** | Compare `.env.example` against skill references | MEDIUM |
+| **Commands changed** | Verify `bun dev`, `bun test`, etc. still work as documented | LOW |
+| **Port numbers changed** | Verify dev ports (3001, 3002, 6006, 8080) | LOW |
+
+### Drift Report Section
+
+Add to audit report:
+
+```markdown
+## Skill & Configuration Drift
+
+| Reference | Location | Status |
+|-----------|----------|--------|
+| `useDelayedInvalidation` | offline SKILL.md, architectural-rules.md | ✅ Exists |
+| `parseContractError` | error-handling SKILL.md | ⚠️ Renamed to `decodeContractError` |
+| `Address` type | web3 SKILL.md, contracts SKILL.md | ✅ Exists |
+| Provider order (Rule #13) | architectural-rules.md | ⚠️ `JobQueueProvider` moved above `AppProvider` |
+
+### Recommendations
+- Update error-handling SKILL.md: `parseContractError` → `decodeContractError`
+- Update architectural-rules.md: Fix provider nesting order
+```
+
 ## Key Principles
 
 - **Complete all files** — never skip
 - **Read-only mode** — don't edit during audit
 - **Evidence-based** — every finding needs file:line
 - **Prompt before issues** — ask user before creating GitHub issues
+- **Check for drift** — verify skill references match actual codebase
+
+## Related Skills
+
+- `architecture` — Clean Architecture patterns for structural review
+- `performance` — Bundle analysis and optimization findings
+- `security` — Security-specific audit patterns for contracts
+- `testing` — Coverage analysis and test gap identification

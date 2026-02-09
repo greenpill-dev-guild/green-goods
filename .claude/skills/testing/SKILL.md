@@ -1,6 +1,12 @@
 ---
 name: testing
 description: Testing patterns - TDD workflow, Vitest unit tests, Playwright E2E. Use for writing tests, implementing features, debugging.
+version: "1.0"
+last_updated: "2026-02-08"
+last_verified: "2026-02-09"
+status: proven
+packages: [shared, client, admin, contracts]
+dependencies: []
 ---
 
 # Testing Skill
@@ -369,3 +375,12 @@ Before marking work complete:
 - [ ] For contracts: ≥80% test pass rate (testnet), 100% (mainnet)
 
 Can't check all boxes? You skipped TDD. Start over.
+
+## Related Skills
+
+- `contracts` — Foundry test patterns (fuzz, invariant) for smart contracts
+- `react` — React Testing Library patterns and component testing
+- `tanstack-query` — Testing queries, mutations, and cache behavior
+- `offline` — Testing offline scenarios with mocked IndexedDB
+- `storage` — Testing IndexedDB with fake-indexeddb, migrations and schema changes
+- `storybook` — Interaction testing in Storybook (visual regression + play functions)

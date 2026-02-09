@@ -280,6 +280,21 @@ All user-facing strings must use translation keys.
 <button>{t("work.submit")}</button>
 ```
 
+### Architectural Rules Quick Check
+
+Check every PR for these 8 rules (from `architectural-rules.md`):
+
+| # | Rule | What to Look For |
+|---|------|-----------------|
+| 1 | **Timer Cleanup** | Raw `setTimeout`/`setInterval` in hooks → should use `useTimeout()` or `useDelayedInvalidation()` |
+| 2 | **Event Listeners** | `addEventListener` without cleanup → should use `useEventListener()` or `{ once: true }` |
+| 3 | **Async Mount Guards** | Async in `useEffect` without `isMounted` → should use `useAsyncEffect()` |
+| 6 | **Zustand Selectors** | `(state) => state` → should select specific fields |
+| 7 | **Query Key Stability** | Object literals in query keys → should serialize or `useMemo` |
+| 10 | **Provider Values** | Inline object in `<Context.Provider value={{...}}>` → should wrap in `useMemo` |
+| 12 | **Console.log** | `console.log/warn/error` in production code → should use `logger` service |
+| 13 | **Provider Order** | Provider nesting differs from hierarchy → must follow Wagmi→Query→AppKit→Auth→App→JobQueue→Work |
+
 ### Package Structure
 
 ```

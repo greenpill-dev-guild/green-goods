@@ -1,6 +1,12 @@
 ---
 name: mermaid-diagrams
 description: Create software diagrams using Mermaid syntax. Use for architecture explanations, workflow/flow diagrams, state machines, and relationship maps.
+version: "1.0"
+last_updated: "2026-02-08"
+last_verified: "2026-02-09"
+status: proven
+packages: []
+dependencies: []
 ---
 
 # Mermaid Diagramming
@@ -160,6 +166,42 @@ Before implementing a feature, diagram:
 - State transitions
 - API flow
 
+## Decision Tree
+
+```
+What diagram?
+│
+├─► API/component interaction? ──► Sequence Diagram
+│                                   → Participants = services/components
+│                                   → Arrows = calls/responses
+│
+├─► Process/algorithm/decision? ─► Flowchart (graph)
+│                                   → Nodes = steps/decisions
+│                                   → Edges = flow direction
+│                                   → Use LR for horizontal, TD for vertical
+│
+├─► Lifecycle/state transitions? ► State Diagram
+│                                   → States = entity states
+│                                   → Transitions = events/actions
+│                                   → Good for job queue, work status
+│
+├─► Domain modeling/types? ──────► Class Diagram (markdown only)
+│                                   → Classes = domain entities
+│                                   → Relationships = associations
+│
+├─► Database schema? ────────────► ERD (markdown only)
+│                                   → Entities = tables/collections
+│                                   → Relationships = foreign keys
+│
+├─► Timeline/schedule? ──────────► Gantt
+│                                   → Tasks = milestones
+│                                   → Sections = phases
+│
+└─► Need in FigJam? ────────────► Use generate_diagram MCP tool
+                                    → Only: flowchart, sequence, state, gantt
+                                    → NOT: class, ERD (use markdown)
+```
+
 ## Best Practices
 
 1. **Start simple** - Core entities first, details later
@@ -175,6 +217,25 @@ Before implementing a feature, diagram:
 - VS Code (with extension)
 - Notion, Obsidian, Confluence
 
+**Figma MCP Integration:**
+
+Use the `generate_diagram` MCP tool to create diagrams directly in FigJam:
+
+```
+Supported: flowchart, graph, sequenceDiagram, stateDiagram, stateDiagram-v2, gantt
+Not supported: classDiagram, erDiagram (use markdown rendering instead)
+```
+
+The tool accepts Mermaid syntax and creates an editable FigJam diagram. After calling the tool, share the returned URL with the user. For diagrams that need further layout refinement, encourage the user to open the diagram in Figma.
+
 **Export:**
 - [Mermaid Live Editor](https://mermaid.live) - PNG/SVG export
 - CLI: `npx @mermaid-js/mermaid-cli -i input.mmd -o output.png`
+- Figma MCP: `generate_diagram` tool for interactive FigJam diagrams
+
+## Related Skills
+
+- `architecture` — System design decisions that diagrams document
+- `review` — Change impact diagrams used in Pass 0 of code reviews
+- `xstate` — State machine diagrams for workflow visualization
+- `plan` — Diagrams used in implementation plans
