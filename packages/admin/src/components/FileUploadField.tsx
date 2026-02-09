@@ -1,6 +1,6 @@
 import { cn, imageCompressor, logger } from "@green-goods/shared";
 import { RiCloseLine, RiLoader4Line, RiUploadCloudLine } from "@remixicon/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const PREVIEWABLE_IMAGE_TYPES = new Set([
   "image/avif",
@@ -120,26 +120,31 @@ export function FileUploadField({
       })
       .join("");
 
-  // Memoize blob URLs so they're only created when files change, not every render.
-  // Revoke old URLs on cleanup to prevent memory leaks.
-  const previewUrls = useMemo(() => {
-    if (!showPreview) return new Map<File, string>();
+  // Create blob URLs in an effect instead of during render
+  // Store them in state and clean up when files change
+  const [previewUrls, setPreviewUrls] = useState<Map<File, string>>(new Map());
+
+  useEffect(() => {
+    if (!showPreview) {
+      setPreviewUrls(new Map());
+      return;
+    }
+
     const urls = new Map<File, string>();
     for (const file of currentFiles) {
       if (PREVIEWABLE_IMAGE_TYPES.has(file.type)) {
         urls.set(file, URL.createObjectURL(file));
       }
     }
-    return urls;
-  }, [currentFiles, showPreview]);
+    setPreviewUrls(urls);
 
-  useEffect(() => {
+    // Cleanup function to revoke URLs when files change
     return () => {
-      for (const url of previewUrls.values()) {
+      for (const url of urls.values()) {
         URL.revokeObjectURL(url);
       }
     };
-  }, [previewUrls]);
+  }, [currentFiles, showPreview]);
 
   return (
     <div className="space-y-2">

@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { useEnsAddress } from "@green-goods/shared/hooks";
-import { cn, formatAddress, resolveEnsAddress, type GardenRole } from "@green-goods/shared/utils";
+import { useEnsAddress, logger } from "@green-goods/shared";
+import { cn, formatAddress, resolveEnsAddress, type GardenRole } from "@green-goods/shared";
 import { RiClipboardLine, RiCloseLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -94,7 +94,7 @@ export function AddMemberModal({
         setError("");
       }
     } catch (err) {
-      console.error("Failed to read clipboard:", err);
+      logger.error("Failed to read clipboard", { err });
       setError(formatMessage({ id: "app.admin.roles.error.clipboardFailed" }));
     }
   };

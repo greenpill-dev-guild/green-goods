@@ -148,6 +148,11 @@ export {
   jobToWork,
   queryInvalidation,
   queryKeys,
+  // Query constants
+  DEFAULT_RETRY_COUNT,
+  STALE_TIME_FAST,
+  STALE_TIME_MEDIUM,
+  STALE_TIME_SLOW,
   // Utility hooks
   useAsyncEffect,
   useAsyncSetup,
@@ -209,6 +214,7 @@ export {
   useTranslation,
   useUser,
   useBatchWorkSync,
+  useDrafts,
   useWorkApproval,
   useWorkApprovals,
   useWorkForm,
