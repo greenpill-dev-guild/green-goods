@@ -2,7 +2,7 @@
  * RequireOperatorOrDeployer Route Guard Tests
  *
  * Tests for the operator-or-deployer route guard.
- * Note: Currently this guard allows all roles including "user" - verify if intentional.
+ * Only "deployer" and "operator" roles are granted access.
  */
 
 import { render, screen } from "@testing-library/react";
@@ -99,8 +99,7 @@ describe("routes/RequireOperatorOrDeployer", () => {
   });
 
   describe("user access", () => {
-    // Note: Current implementation allows "user" role - verify if this is intentional
-    it("renders protected content for user role (current behavior)", () => {
+    it("denies access to protected content for user role", () => {
       mockUseRole.mockReturnValue({
         role: "user",
         loading: false,
@@ -108,8 +107,8 @@ describe("routes/RequireOperatorOrDeployer", () => {
 
       renderWithProviders();
 
-      // Current implementation allows all roles including "user"
-      expect(screen.getByText("Protected Content")).toBeInTheDocument();
+      expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
+      expect(screen.getByText("Unauthorized")).toBeInTheDocument();
     });
   });
 });
