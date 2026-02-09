@@ -2,6 +2,8 @@
 
 Complete setup guide for local Green Goods development. Green Goods is an open-source monorepo platform for verifiable regenerative impact.
 
+> **Dependency Management**: See the [dependency-management skill](../../../.claude/skills/dependency-management/SKILL.md) for workspace protocol, lockfile, and audit/update workflows.
+
 **Tech Stack**: React 19 + TypeScript + Vite • TanStack Query + Zustand • Tailwind CSS v4 + Radix UI • Solidity + Foundry • Envio HyperIndex • IPFS (Storacha)
 
 ---
@@ -136,11 +138,11 @@ cp .env.example .env
 # Client - Required
 VITE_WALLETCONNECT_PROJECT_ID=your_reown_project_id
 VITE_PIMLICO_API_KEY=your_pimlico_key
-VITE_CHAIN_ID=84532  # Base Sepolia default
+VITE_CHAIN_ID=11155111  # Sepolia default
 
 # Contracts - Optional for running client
 FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
+SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
 
 # Optional
 ETHERSCAN_API_KEY=your_etherscan_key
@@ -270,4 +272,3 @@ bun install
 - [Monorepo Structure](./architecture)
 - [Testing Guide](testing)
 - [Root README](https://github.com/greenpill-dev-guild/green-goods/tree/main#readme)
-

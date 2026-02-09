@@ -33,7 +33,7 @@ When invoked:
 
 Green Goods is **offline-first**: users can document conservation work without internet. All write operations go through the job queue, which persists to IndexedDB and syncs when online.
 
-```
+```text
 ┌──────────┐     ┌───────────┐     ┌───────────┐     ┌────────────┐
 │  User UI  │────→│ Job Queue │────→│ IndexedDB │────→│ Background │
 │  Action   │     │  addJob() │     │ Persisted │     │   Sync     │
@@ -54,7 +54,7 @@ Green Goods is **offline-first**: users can document conservation work without i
 
 ### Job Lifecycle
 
-```
+```text
 pending → processing → completed
                     ↘ failed (retry up to 5x with exponential backoff)
 ```
@@ -150,7 +150,7 @@ After 5 failures, job is marked `failed` and requires manual retry.
 
 Green Goods uses a single IndexedDB database with multiple object stores:
 
-```
+```text
 greenGoodsDB (version N)
 ├── jobs           # Job queue records (pending, processing, completed, failed)
 ├── images         # Offline media files (Blob storage for photos)
@@ -524,7 +524,7 @@ mediaResourceManager.revokeAll(contextId);
 
 ### Photo Upload Flow (Offline-Safe)
 
-```
+```text
 1. User takes photo → stored as blob in IndexedDB
 2. Blob URL created for preview (tracked by mediaResourceManager)
 3. Job queued with photo reference
@@ -538,7 +538,7 @@ mediaResourceManager.revokeAll(contextId);
 
 ### Record States
 
-```
+```text
 ┌──────────┐     ┌───────────┐     ┌───────────┐     ┌──────────┐
 │  Created  │────→│  Active   │────→│  Synced   │────→│ Archived │
 │ (local)   │     │ (pending) │     │ (on-chain)│     │ (cleanup)│
@@ -693,11 +693,13 @@ describe("JobQueue Storage", () => {
 ## Anti-Patterns
 
 ### Job Queue
+
 - **Never call contracts directly from UI** — always use job queue
 - **Never assume online** — always check connectivity before direct calls
 - **Never skip user scoping** — all IndexedDB ops need `userAddress`
 
 ### Storage
+
 - **Never use localStorage for structured data** — use IndexedDB (localStorage is sync, 5MB limit, no indexes)
 - **Never use auto-increment keys** — use deterministic composite keys for deduplication
 - **Never delete object stores in migrations** — mark as deprecated, clean up later
@@ -705,6 +707,7 @@ describe("JobQueue Storage", () => {
 - **Never assume storage is available** — always handle `QuotaExceededError`
 
 ### Media & Service Workers
+
 - **Never store large media in localStorage** — use IndexedDB
 - **Never forget blob URL cleanup** — use `mediaResourceManager`
 - **Never cache service worker aggressively** — use `no-cache` headers
@@ -714,6 +717,7 @@ describe("JobQueue Storage", () => {
 ## Quick Reference Checklists
 
 ### Before Adding Offline Features
+
 - [ ] Write operation goes through job queue (not direct contract call)
 - [ ] Job has appropriate `maxRetries` (default: 5)
 - [ ] Media files stored in IndexedDB (not localStorage)
@@ -724,6 +728,7 @@ describe("JobQueue Storage", () => {
 - [ ] User address scopes all data access
 
 ### Before Modifying IndexedDB Schema
+
 - [ ] Version number incremented
 - [ ] Migration function handles all previous versions
 - [ ] Version changelog updated
@@ -735,7 +740,7 @@ describe("JobQueue Storage", () => {
 
 ## Decision Tree
 
-```
+```text
 What data layer work?
 │
 ├── Offline write operation? ───────► Part 1: Job Queue

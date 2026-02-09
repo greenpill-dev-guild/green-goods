@@ -45,7 +45,9 @@ Every review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
 - Does the PR description match what the code actually does?
 - Are there unrelated changes mixed in?
 
+
 ### Pass 0.5: Issue Coverage (MANDATORY)
+
 - Map every requirement from the issue/task to implementation
 - **If coverage < 100%: STOP. Request changes.**
 
@@ -55,6 +57,7 @@ Every review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
 - No scope creep — changes beyond the issue are flagged
 
 **Example comment:**
+
 ```markdown
 > **Issue Coverage: 2/3 (67%) — BLOCKING**
 > - ✅ Requirement 1: "Users can submit work offline" → `useJobQueue.addJob()` in `SubmitWork.tsx:45`
@@ -62,12 +65,15 @@ Every review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
 > - ❌ Requirement 3: "Retry failed submissions" → No retry UI found. Job queue retries automatically but user has no manual retry button.
 ```
 
+
 ### Pass 1: Technical Issues
+
 - Type errors, null handling, missing error handling
 - API contract violations, race conditions
 - Stale closures, memory leaks, async cleanup
 
 **What to look for:**
+
 | Issue | Severity | Example |
 |-------|----------|---------|
 | Unhandled promise rejection | Critical | `await foo()` without try/catch in mutation |
@@ -77,18 +83,22 @@ Every review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
 | Missing error boundary | Medium | New route without ErrorBoundary wrapper |
 
 **Example comment:**
+
 ```markdown
 > **Critical: Race condition in useGardenData (line 34)**
 > `useEffect` fetches async data without an isMounted guard. If the component unmounts before the fetch completes, this will attempt to set state on an unmounted component.
 > **Fix:** Use `useAsyncEffect` from `@green-goods/shared` (Architectural Rule #3).
 ```
 
+
 ### Pass 2: Code Consistency
+
 - Follows codebase style and existing patterns
 - Dead code, duplicate logic, naming conventions
 - Import patterns (barrel imports only — Rule #11)
 
 **What to look for:**
+
 | Issue | Severity | Example |
 |-------|----------|---------|
 | Deep import path | Medium | `from "@green-goods/shared/hooks/auth/useAuth"` |
@@ -98,6 +108,7 @@ Every review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
 | Console.log in production | Medium | `console.log("debug")` left in (Rule #12) |
 
 **Example comment:**
+
 ```markdown
 > **Medium: Deep import bypasses barrel export (line 12)**
 > `import { useAuth } from "@green-goods/shared/hooks/auth/useAuth"` should be `import { useAuth } from "@green-goods/shared"` (Architectural Rule #11).

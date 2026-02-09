@@ -12,7 +12,7 @@ Full audit of the action creation/editing flow in the admin package, covering st
 
 ### Component Hierarchy
 
-```
+```text
 /actions (Actions index)
   └─ /actions/create (CreateAction - 4-step wizard)
        ├─ FormWizard (multi-step shell)
@@ -37,7 +37,7 @@ Full audit of the action creation/editing flow in the admin package, covering st
 
 ### Data Flow
 
-```
+```text
 User Input → React Hook Form (CreateAction) / useState (EditAction)
     → Zod validation (CreateAction only)
     → IPFS upload (media files + instructions JSON)
@@ -104,7 +104,7 @@ const [isLoadingInstructions, setIsLoadingInstructions] = useState(false);
 
 6 functions (`registerAction`, `updateActionTitle`, `updateActionStartTime`, `updateActionEndTime`, `updateActionInstructions`, `updateActionMedia`) all repeat the identical pattern:
 
-```
+```text
 wallet guard → setIsLoading(true) → simulateTransaction() → executeWithToast() → scheduleBackgroundRefetch() → parseContractError() → setIsLoading(false)
 ```
 
@@ -120,7 +120,7 @@ wallet guard → setIsLoading(true) → simulateTransaction() → executeWithToa
 
 `createActionSchema` and `instructionInputSchema` are defined at the top of the view file. Not reusable by EditAction, tests, or other consumers.
 
-**Fix**: Move to `packages/shared/src/hooks/action/useActionForm.ts` alongside form hooks.
+**Fix**: Move `createActionSchema` and `instructionInputSchema` into a shared schema module (for example `packages/shared/src/schemas/action.ts` or `packages/shared/src/hooks/action/schemas.ts`), then import them in `CreateAction.tsx` and `useActionForm.ts` so schema logic is reusable and view files stay focused on rendering.
 
 ---
 
@@ -226,10 +226,15 @@ useEffect(() => {
 
 ```typescript
 const mediaUploads = await Promise.all(
-  data.media.map((file: File) => uploadFileToIPFS(file))
+  data.media.map(async (file: File) => {
+    const upload = await uploadFileToIPFS(file);
+    return IPFSUploadSchema.parse(upload);
+  })
 );
-const mediaCIDs = mediaUploads.map((upload: { cid: string }) => upload.cid);
-// Assumes cid exists without checking
+const mediaCIDs = mediaUploads.map((upload) => upload.cid);
+
+// Shared schema near form/domain schemas
+const IPFSUploadSchema = z.object({ cid: z.string().min(1) });
 ```
 
 If IPFS upload partially fails or returns unexpected shape, corrupted data goes on-chain.
@@ -340,20 +345,31 @@ These existing patterns should be followed for any fixes:
 2. Create `packages/shared/src/hooks/action/createActionOperation.ts` (factory)
 3. Refactor `useActionOperations.ts` to use factory (539 → ~80-100 lines)
 4. Fix barrel exports in `packages/shared/src/index.ts`
+5. Fix `FileUploadField` blob URL leak (FINDING-6)
+6. Add IPFS response validation with `IPFSUploadSchema.parse()` (FINDING-10)
 
 ### Batch 2: Wizard Step Extraction (depends on Batch 1)
 1. Extract 4 step components from `CreateAction.tsx` renderStep()
 2. Add per-step validation via `form.trigger()`
 3. Slim down CreateAction to ~80-100 lines
 4. Fix deep imports, use `useCreateActionForm`
+5. Extract `TagListInput` component (FINDING-5)
 
 ### Batch 3: EditAction Unification (depends on Batch 1)
 1. Convert EditAction to React Hook Form with `useEditActionForm`
 2. Fix async IPFS fetch with `useAsyncEffect`
 3. Use `parseActionUID` utility
-4. Fix barrel imports and `console.error`
+4. Fix barrel imports
+5. `console.error` cleanup (FINDING-11)
+
+### Deferred
+
+- FINDING-4: Extract full `renderStep()` switch architecture overhaul
+- FINDING-7: Preserve tab panel state across `InstructionsBuilder` tab switches
+- FINDING-14: Unsaved changes navigation warning flow
 
 ### Verification
+
 ```bash
 bun format && bun lint && bun --filter shared test && bun --filter admin test && bun --filter shared build && bun --filter admin build
 ```

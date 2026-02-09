@@ -81,11 +81,11 @@ bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas  # 
 | Flag | Purpose |
 |------|---------|
 | `--network` | Target chain (localhost, baseSepolia, arbitrum, celo, sepolia) |
-| `--broadcast` | Actually send transactions (omit for dry run) |
+| `--broadcast` | Actually send transactions. When omitted, execution is non-broadcast but may still run RPC/state checks. |
 | `--update-schemas` | Update EAS schemas only |
 | `--force` | Force fresh deployment (skip cache) |
-| `--dry-run` | Validate config without deploying |
-| `--pure-simulation` | Compile + preflight only (no RPC needed) |
+| `--dry-run` | Validate config and simulate deployment logic without broadcasting; may still call RPC. |
+| `--pure-simulation` | Compile + preflight only with no RPC/network calls. |
 
 ### Pre-Deployment Checklist
 
@@ -111,8 +111,8 @@ cast block-number --rpc-url $RPC
 | Network | Chain ID | RPC Variable | Usage |
 |---------|----------|-------------|-------|
 | Localhost (Anvil) | 31337 | Local | Development |
-| Base Sepolia | 84532 | `BASE_SEPOLIA_RPC_URL` | Default testnet |
-| Sepolia | 11155111 | `SEPOLIA_RPC_URL` | Legacy testnet |
+| Sepolia | 11155111 | `SEPOLIA_RPC_URL` | Default testnet |
+| Base Sepolia | 84532 | `BASE_SEPOLIA_RPC_URL` | Legacy testnet (secondary) |
 | Arbitrum One | 42161 | `ARBITRUM_RPC_URL` | Production |
 | Celo | 42220 | `CELO_RPC_URL` | Production |
 

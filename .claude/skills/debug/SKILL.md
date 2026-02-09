@@ -124,6 +124,7 @@ If you say these, STOP and verify first:
 - Event bus monitoring: subscribe to `"job:failed"` events
 
 ### Contract Issues
+
 ```bash
 # Compile and check artifacts
 cd packages/contracts && bun build
@@ -193,6 +194,7 @@ cd packages/client && npx vite-bundle-visualizer
 ```
 
 ### Hook Issues
+
 ```bash
 bash .claude/scripts/validate-hook-location.sh
 ```
