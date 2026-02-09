@@ -144,7 +144,12 @@ Error recovery added to `_configureEligibilityModules()` with try/catch and `Eli
 
 ## Deployment Execution Order
 
-```
+### Mandatory Security Prerequisite (Before Step 1)
+
+- Complete an external security audit covering deployed artifacts and integrations for `HatsModule`, `SetupHatsTree.s.sol` artifacts, `HatsLib.sol` constants, `GardenHatsModule`, `AllowlistEligibility`, and `ERC20Eligibility`.
+- Do not proceed to production/mainnet deployment (including Celo `42220`) until all critical/high findings are resolved and audit sign-off is documented.
+
+```text
 Step 1: Deploy HatsModule on each testnet
 ├── Sepolia (11155111) - Primary testnet
 ├── Base Sepolia (84532) - Legacy testnet
@@ -203,6 +208,7 @@ bun format && bun lint && bun test && bun build
 - [ ] `SEPOLIA_*_HAT` constants are non-zero
 - [ ] `BASE_SEPOLIA_*_HAT` constants are non-zero (optional)
 - [ ] `CELO_*_HAT` constants are non-zero
+- [ ] External security audit sign-off completed with no unresolved critical/high issues before Celo `42220` deployment
 - [ ] Indexer config has deployed addresses
 - [ ] `bun format && bun lint && bun test && bun build` passes
 
@@ -211,11 +217,14 @@ bun format && bun lint && bun test && bun build
 ## Architecture Notes
 
 **Role Hierarchy** (implemented in `_grantRole`):
-```
+```text
 Owner → Operator → Evaluator
-              └→ Gardener
+              ├→ Gardener
+              └→ Funder
+
+Community (token-gated) — independent role
 ```
-Granting Owner auto-grants Operator, Evaluator, Gardener (best-effort with try/catch).
+Granting Owner best-effort auto-grants Operator, Evaluator, Gardener, and Funder (via try/catch). Community remains token-gated and independent.
 
 **Graceful Degradation**:
 - GAP module failure → Garden still created, event emitted

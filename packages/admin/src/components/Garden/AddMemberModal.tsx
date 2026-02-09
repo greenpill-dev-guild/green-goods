@@ -4,7 +4,9 @@ import {
   logger,
   cn,
   formatAddress,
+  parseContractError,
   resolveEnsAddress,
+  USER_FRIENDLY_ERRORS,
   type GardenRole,
 } from "@green-goods/shared";
 import { RiClipboardLine, RiCloseLine } from "@remixicon/react";
@@ -78,11 +80,17 @@ export function AddMemberModal({
       setAddress("");
       onClose();
     } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : formatMessage({ id: "app.admin.roles.error.addFailed" })
-      );
+      const parsed = parseContractError(error);
+      const normalizedName = parsed.name.toLowerCase();
+      const knownMessage =
+        USER_FRIENDLY_ERRORS[normalizedName] ??
+        Object.entries(USER_FRIENDLY_ERRORS).find(([pattern]) => {
+          const lowerMessage = parsed.message.toLowerCase();
+          return normalizedName.includes(pattern) || lowerMessage.includes(pattern);
+        })?.[1];
+
+      const safeMessage = knownMessage ?? (parsed.isKnown ? parsed.message : null);
+      setError(safeMessage ?? formatMessage({ id: "app.admin.roles.error.addFailed" }));
     }
   };
 

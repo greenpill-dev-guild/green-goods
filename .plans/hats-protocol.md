@@ -51,7 +51,7 @@
 
 ## Role Hierarchy (On-Chain)
 
-```
+```text
 Green Goods Top Hat (Team Multisig)
 └── Gardens Hat (GardenToken as admin)
     └── Garden Admin Hat (per garden)

@@ -16,6 +16,33 @@ type MembersModalProps = {
   colorScheme?: "info" | "success" | "warning" | "feature" | "primary" | "neutral";
 };
 
+const COLOR_CLASSES = {
+  info: {
+    iconBg: "bg-information-lighter",
+    iconText: "text-information-base",
+  },
+  success: {
+    iconBg: "bg-success-lighter",
+    iconText: "text-success-base",
+  },
+  warning: {
+    iconBg: "bg-warning-lighter",
+    iconText: "text-warning-base",
+  },
+  feature: {
+    iconBg: "bg-feature-lighter",
+    iconText: "text-feature-dark",
+  },
+  primary: {
+    iconBg: "bg-primary-lighter",
+    iconText: "text-primary-base",
+  },
+  neutral: {
+    iconBg: "bg-bg-weak",
+    iconText: "text-text-soft",
+  },
+} as const;
+
 /**
  * Modal for displaying and managing garden members by role.
  * Uses Radix Dialog for accessibility and proper focus management.
@@ -32,34 +59,7 @@ export function MembersModal({
   colorScheme = "info",
 }: MembersModalProps) {
   const { formatMessage } = useIntl();
-  const colorClasses = {
-    info: {
-      iconBg: "bg-information-lighter",
-      iconText: "text-information-base",
-    },
-    success: {
-      iconBg: "bg-success-lighter",
-      iconText: "text-success-base",
-    },
-    warning: {
-      iconBg: "bg-warning-lighter",
-      iconText: "text-warning-base",
-    },
-    feature: {
-      iconBg: "bg-feature-lighter",
-      iconText: "text-feature-dark",
-    },
-    primary: {
-      iconBg: "bg-primary-lighter",
-      iconText: "text-primary-base",
-    },
-    neutral: {
-      iconBg: "bg-bg-weak",
-      iconText: "text-text-soft",
-    },
-  };
-
-  const colors = colorClasses[colorScheme];
+  const colors = COLOR_CLASSES[colorScheme];
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -151,7 +151,7 @@ export function MembersModal({
                           await onRemove(member);
                         }}
                         disabled={isLoading}
-                        className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-error-dark transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
+                        className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-error-dark transition hover:bg-error-lighter active:scale-95 disabled:opacity-50"
                         aria-label={formatMessage({ id: "app.admin.garden.members.remove" })}
                       >
                         <RiDeleteBinLine className="h-5 w-5" />

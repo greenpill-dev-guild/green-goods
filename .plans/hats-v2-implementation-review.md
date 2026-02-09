@@ -142,6 +142,7 @@ Plan says "update integration tests" generically. Specific files needing changes
 The plan's current order (A → B → C → D → E) has dependency issues. Corrected:
 
 ### Phase 1: Contract Changes (Workstream A + A1 fix)
+
 1. Add `if (msg.sender == garden) return;` to `_requireOwnerOrOperator()` in `Hats.sol`
 2. Remove legacy storage → reserved slots (exact offsets 6 and 7)
 3. Remove legacy methods, events, errors, constants from `GardenAccount`
@@ -152,25 +153,30 @@ The plan's current order (A → B → C → D → E) has dependency issues. Corr
 8. Run `forge build` → verify storage layout → run all tests
 
 ### Phase 2: Workstream B (Resolver Boundary Verification)
+
 - Verify GAP callers unchanged — no code changes expected
 
 ### Phase 3: ABI Sync (implicit step, plan must add)
+
 - `forge build` regenerates ABIs in `packages/contracts/out/`
 - Update `packages/shared/src/utils/blockchain/abis.ts` if interfaces changed
 - Root `bun build` to propagate
 
 ### Phase 4: Deployment Infrastructure (Workstream C — scoped to existing chains)
+
 - Build release gate utility + Sepolia checkpoint
 - Remove ambiguous `deploy:mainnet` aliases
 - Add `--override-sepolia-gate` flag
 - ~~Base network config~~ — DEFERRED
 
 ### Phase 5: Shared Package (Workstream D)
+
 - Remove Hats rejection from `useJoinGarden` AND `checkGardenOpenJoining`
 - Clean `createGardenOperation` dead v1 code paths
 - Update types for slimmed InitParams/events
 
 ### Phase 6: Indexer (Workstream E)
+
 - Update `GardenMinted` ABI/event signature
 - Remove legacy event handlers
 - Update start_blocks to post-migration deployment blocks

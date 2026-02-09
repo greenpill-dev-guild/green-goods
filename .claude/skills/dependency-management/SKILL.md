@@ -13,6 +13,10 @@ dependencies: []
 
 Bun monorepo dependency guide: workspace protocol, lockfile handling, update workflows, and security auditing.
 
+> **Documentation sync required:** If dependency behavior or commands change here, update the linked references in Getting Started, Contributing, and package READMEs in the same PR.
+>
+> Referenced from: Getting Started, Contributing, Package READMEs.
+
 ---
 
 ## Activation
@@ -180,7 +184,7 @@ bun add missing-package
 bun audit
 
 # Or use npm audit (more comprehensive database)
-npx audit
+npm audit
 ```
 
 ### Patch Strategies
@@ -239,7 +243,7 @@ npx audit
 
 ## Decision Tree
 
-```
+```text
 What dependency work?
 │
 ├── Adding a dependency? ────────► Part 1: Workspace Protocol

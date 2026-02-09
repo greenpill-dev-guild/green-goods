@@ -387,5 +387,5 @@ What Vite work?
 
 - `performance` — Bundle analysis and optimization that Vite enables
 - `react` — React project configuration and HMR patterns
-- `deployment` — Build artifacts for Vercel deployment
-- `offline` — Service worker and PWA configuration through Vite plugins
+- `deployment` — Build artifact hosting and release workflows
+- `data-layer` — Data-layer and caching strategies that supersede the old offline/PWA approach

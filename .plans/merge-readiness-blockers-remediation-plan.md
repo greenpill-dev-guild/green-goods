@@ -53,6 +53,7 @@ Capture the current merge blockers discovered during validation and define a con
 4. Re-run merge gates after fixes.
    - `packages/admin`: `bun run test`
    - `packages/shared`: `bun run coverage`
+   - `packages/client`: `bun run test`
    - `packages/indexer`: `bun run test`
    - `packages/contracts`: `bun run test:fast`
    - Contracts dry-runs:

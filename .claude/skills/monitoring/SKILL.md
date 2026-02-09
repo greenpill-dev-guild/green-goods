@@ -242,36 +242,59 @@ async function cleanupOldData(userAddress: Address) {
 ```typescript
 // Query the indexer for its latest processed block
 async function checkIndexerLag() {
-  const response = await fetch(GRAPHQL_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query: `{ _metadata { lastProcessedBlock lastProcessedTimestamp } }`,
-    }),
-  });
-
-  const { data } = await response.json();
-  const lastBlock = data._metadata.lastProcessedBlock;
-  const lastTimestamp = data._metadata.lastProcessedTimestamp;
-
-  // Compare with chain head
-  const chainBlock = await getBlockNumber(wagmiConfig);
-  const lag = chainBlock - BigInt(lastBlock);
-
-  if (lag > 100n) {
-    logger.warn("Indexer significantly behind chain head", {
-      indexerBlock: lastBlock,
-      chainBlock: chainBlock.toString(),
-      lag: lag.toString(),
+  try {
+    const response = await fetch(GRAPHQL_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: `{ _metadata { lastProcessedBlock lastProcessedTimestamp } }`,
+      }),
     });
-  }
 
-  return {
-    indexerBlock: lastBlock,
-    chainBlock: Number(chainBlock),
-    lag: Number(lag),
-    lastTimestamp,
-  };
+    if (!response.ok) {
+      throw new Error(`GraphQL request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const payload = await response.json();
+    const metadata = payload?.data?._metadata;
+    if (!metadata) {
+      throw new Error("GraphQL response missing _metadata");
+    }
+
+    const indexerBlock = Number(metadata.lastProcessedBlock ?? 0);
+    const lastTimestamp = metadata.lastProcessedTimestamp ?? null;
+
+    // Compare with chain head
+    const chainBlock = await getBlockNumber(wagmiConfig);
+    const lag = chainBlock - BigInt(indexerBlock);
+
+    if (lag > 100n) {
+      logger.warn("Indexer significantly behind chain head", {
+        indexerBlock,
+        chainBlock: chainBlock.toString(),
+        lag: lag.toString(),
+      });
+    }
+
+    return {
+      indexerBlock,
+      chainBlock: Number(chainBlock),
+      lag: Number(lag),
+      lastTimestamp,
+    };
+  } catch (error) {
+    logger.error("Failed to check indexer lag", {
+      endpoint: GRAPHQL_ENDPOINT,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return {
+      indexerBlock: null,
+      chainBlock: null,
+      lag: null,
+      lastTimestamp: null,
+    };
+  }
 }
 ```
 

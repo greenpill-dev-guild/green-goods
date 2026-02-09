@@ -2,6 +2,8 @@
 
 This package contains the frontend application for Green Goods, a Progressive Web App (PWA) designed to revolutionize community impact reporting. It enables Garden Operators and Gardeners to document and get approval for community actions, interact with blockchain components for attestations, and view impact data.
 
+> **Dependency Management**: use the [dependency-management skill](../../.claude/skills/dependency-management/SKILL.md) for package upgrades, lockfile updates, and vulnerability audits.
+
 📖 **[Client Documentation](https://docs.greengoods.app/developer/architecture/client-package)** — Complete client architecture and development guide
 
 **Essential Guides:**
@@ -33,7 +35,7 @@ The root `.env` file is automatically loaded by:
 - `VITE_PIMLICO_API_KEY`: **Required** - Pimlico API key for passkey smart accounts (get from [pimlico.io](https://pimlico.io))
 - `VITE_APP_URL`: Application URL for AppKit metadata (e.g., `https://greengoods.app` or `http://localhost:3001` for dev)
 - `VITE_PINATA_JWT`: Pinata JWT token for uploads (client-side)
-- `VITE_CHAIN_ID`: Chain selection (e.g., 42161 for Arbitrum, 84532 for Base Sepolia)
+- `VITE_CHAIN_ID`: Chain selection (e.g., 11155111 for Sepolia default, 42161 for Arbitrum, 42220 for Celo)
 - `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev)
 - `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development
 - `VITE_DEBUG_MODE`: Optional toggle to skip the two-media requirement in the Garden submission flow and enable verbose debug logging (use for manual testing only)
