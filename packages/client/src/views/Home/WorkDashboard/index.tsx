@@ -5,9 +5,7 @@ import {
   type Work,
   type WorkJobPayload,
   createPublicClientForChain,
-} from "@green-goods/shared";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import {
+  DEFAULT_CHAIN_ID,
   queryKeys,
   DEFAULT_RETRY_COUNT,
   STALE_TIME_FAST,
@@ -18,23 +16,19 @@ import {
   useTimeout,
   useUser,
   useWorkApprovals,
-} from "@green-goods/shared/hooks";
-import {
   getWorkApprovals as fetchWorkApprovals,
   getGardens,
   getWorks,
   jobQueueEventBus,
-} from "@green-goods/shared/modules";
-import { jobQueue } from "@green-goods/shared/modules/job-queue";
-import {
+  jobQueue,
   cn,
   compareAddresses,
   convertJobsToWorks,
   filterByTimeRange,
   isUserAddress as sharedIsUserAddress,
   type TimeFilter,
-} from "@green-goods/shared/utils";
-import { GARDEN_ACCOUNT_ROLE_ABI } from "@green-goods/shared/utils/blockchain/abis";
+  GardenAccountABI,
+} from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine, RiTimeLine } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
@@ -134,7 +128,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       const results = await publicClient.multicall({
         contracts: gardens.map((garden) => ({
           address: garden.id as Address,
-          abi: GARDEN_ACCOUNT_ROLE_ABI,
+          abi: GardenAccountABI,
           functionName: "isEvaluator" as const,
           args: [activeAddress as Address],
         })),

@@ -46,7 +46,8 @@ export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicator
                     onClick={() => onStepClick(index)}
                     className={cn(
                       "flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center",
-                      "cursor-pointer transition focus:outline-none"
+                      "cursor-pointer transition focus:outline-none",
+                      "focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
                     )}
                     aria-label={formatMessage(
                       { id: "app.hypercerts.wizard.goToStep" },
@@ -57,7 +58,7 @@ export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicator
                       className={cn(
                         "flex h-6 w-6 items-center justify-center rounded-full border text-xs font-medium sm:h-7 sm:w-7",
                         "border-success-base bg-success-lighter text-success-dark",
-                        "transition hover:ring-2 hover:ring-primary-light focus:ring-2 focus:ring-primary-base"
+                        "transition hover:ring-2 hover:ring-primary-light"
                       )}
                     >
                       <RiCheckboxCircleLine className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
