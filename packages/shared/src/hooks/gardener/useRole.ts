@@ -3,6 +3,7 @@ import { useAccount } from "wagmi";
 import { STALE_TIMES } from "../../config/react-query";
 import { greenGoodsGraphQL } from "../../modules/data/graphql";
 import { greenGoodsIndexer } from "../../modules/data/graphql-client";
+import { logger } from "../../modules/app/logger";
 import { useAuthContext } from "../../providers/Auth";
 import { queryKeys } from "../query-keys";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
@@ -36,7 +37,7 @@ async function fetchOperatorGardens(address: string): Promise<OperatorGarden[]> 
   );
 
   if (error) {
-    console.error("[useRole] Failed to fetch operator gardens:", error.message);
+    logger.error("Failed to fetch operator gardens", { source: "useRole", error: error.message });
     return [];
   }
 

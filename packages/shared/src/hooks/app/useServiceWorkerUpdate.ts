@@ -8,6 +8,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
 
 export interface ServiceWorkerUpdateState {
@@ -145,7 +146,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
           window.removeEventListener("focus", handleFocus);
         });
       } catch (error) {
-        console.error("[useServiceWorkerUpdate] Setup failed:", error);
+        logger.error("Service worker update setup failed", { source: "useServiceWorkerUpdate", error });
       }
     };
 

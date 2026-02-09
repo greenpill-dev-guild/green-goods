@@ -17,6 +17,7 @@ import { toastService } from "../../components/toast";
 import { ONBOARDED_STORAGE_KEY } from "../../config/app";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
+import { logger } from "../../modules/app/logger";
 import { trackNetworkError } from "../../modules/app/error-tracking";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { GARDEN_ACCOUNT_ROLE_ABI } from "../../utils/blockchain/abis";
@@ -75,7 +76,7 @@ export async function checkMembership(address: string): Promise<{
       hasBeenOnboarded: Boolean(isGardener) || hasBeenOnboarded,
     };
   } catch (error) {
-    console.warn("Failed to check on-chain membership:", error);
+    logger.warn("Failed to check on-chain membership", { source: "checkMembership", error });
     trackNetworkError(error, {
       source: "checkMembership",
       userAction: "checking root garden membership status",

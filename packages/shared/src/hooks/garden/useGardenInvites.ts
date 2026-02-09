@@ -3,6 +3,7 @@ import { useState } from "react";
 import { type Hex, keccak256, toHex } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
+import { logger } from "../../modules/app/logger";
 import { useToastAction } from "../app/useToastAction";
 
 export interface GardenInvite {
@@ -34,7 +35,7 @@ export function useGardenInvites(gardenAddress: string) {
     queryFn: async (): Promise<GardenInvite[]> => {
       const ENVIO_URL = import.meta.env.VITE_ENVIO_INDEXER_URL;
       if (!ENVIO_URL) {
-        console.warn("ENVIO_INDEXER_URL not configured");
+        logger.warn("ENVIO_INDEXER_URL not configured", { source: "useGardenInvites" });
         return [];
       }
 

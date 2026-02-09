@@ -123,7 +123,7 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
           loading: false,
         });
       } catch (error) {
-        console.error("Error checking deployment registry permissions:", error);
+        logger.error("Error checking deployment registry permissions", { source: "useDeploymentRegistry", error });
         setPermissions({
           isOwner: false,
           isInAllowlist: false,

@@ -17,6 +17,7 @@ import { encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
+import { logger } from "../../modules/app/logger";
 import {
   trackGardenJoinAlreadyMember,
   trackGardenJoinFailed,
@@ -58,7 +59,7 @@ export async function checkGardenOpenJoining(gardenAddress: string): Promise<boo
     });
     return Boolean(isOpen);
   } catch (error) {
-    console.warn(`Failed to check openJoining for ${gardenAddress}:`, error);
+    logger.warn("Failed to check openJoining", { source: "checkGardenOpenJoining", gardenAddress, error });
     trackNetworkError(error, {
       source: "checkGardenOpenJoining",
       userAction: "checking if garden allows open joining",

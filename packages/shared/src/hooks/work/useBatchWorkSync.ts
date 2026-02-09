@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import type { WorkDraft } from "../../types/domain";
+import { logger } from "../../modules/app/logger";
 import { queueToasts } from "../../components/toast";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
@@ -116,19 +117,13 @@ export function useBatchWorkSync() {
         try {
           await jobQueueDB.markJobSynced(job.id, hash);
         } catch (error) {
-          console.warn("[BatchWorkSync] Failed to mark job as synced", {
-            jobId: job.id,
-            error,
-          });
+          logger.warn("Failed to mark job as synced", { source: "useBatchWorkSync", jobId: job.id, error });
         }
 
         try {
           await jobQueueDB.deleteJob(job.id);
         } catch (error) {
-          console.warn("[BatchWorkSync] Failed to delete synced job", {
-            jobId: job.id,
-            error,
-          });
+          logger.warn("Failed to delete synced job", { source: "useBatchWorkSync", jobId: job.id, error });
         }
 
         jobQueueEventBus.emit("job:completed", {

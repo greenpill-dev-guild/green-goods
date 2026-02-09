@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { getWorkApprovals, getWorks } from "../../modules/data/eas";
+import { logger } from "../../modules/app/logger";
 import { jobQueue, jobQueueDB } from "../../modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { useMerged } from "../app/useMerged";
@@ -57,7 +58,7 @@ async function computeWorksWithStatus(
   try {
     approvals = await getWorkApprovals(undefined, chainId);
   } catch (error) {
-    console.warn("[useWorks] Failed to fetch approvals, status may be stale:", error);
+    logger.warn("Failed to fetch approvals, status may be stale", { source: "useWorks", error });
   }
   const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
 
@@ -139,7 +140,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       try {
         approvals = await getWorkApprovals(undefined, chainId);
       } catch (error) {
-        console.warn("[useWorks] Failed to fetch approvals, status may be stale:", error);
+        logger.warn("Failed to fetch approvals, status may be stale", { source: "useWorks", error });
       }
       const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
 
