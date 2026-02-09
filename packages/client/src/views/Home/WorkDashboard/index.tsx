@@ -145,7 +145,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         .filter((_, index) => results[index].status === "success" && Boolean(results[index].result))
         .map((garden) => garden.id);
     },
-    enabled: !!activeAddress && gardens.length > 0,
+    enabled: !!activeAddress && (gardens?.length ?? 0) > 0,
     staleTime: STALE_TIME_MEDIUM,
   });
 
