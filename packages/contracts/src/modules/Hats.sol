@@ -520,6 +520,8 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
                 _grantSubRole(garden, account, GardenRole.Evaluator, "evaluator");
                 _grantSubRole(garden, account, GardenRole.Gardener, "gardener");
             }
+        } catch Error(string memory errorMsg) {
+            emit PartialGrantFailed(garden, account, role, errorMsg);
         } catch {
             emit PartialGrantFailed(garden, account, role, label);
         }
