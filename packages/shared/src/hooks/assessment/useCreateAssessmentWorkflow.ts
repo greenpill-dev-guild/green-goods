@@ -89,7 +89,10 @@ export function useCreateAssessmentWorkflow() {
         const uploadedMetrics = await uploadJSONToIPFS(metricsPayload);
         metricsCid = uploadedMetrics.cid;
       } catch (error) {
-        logger.error("Failed to upload assessment metrics JSON", { source: "useCreateAssessmentWorkflow", error });
+        logger.error("Failed to upload assessment metrics JSON", {
+          source: "useCreateAssessmentWorkflow",
+          error,
+        });
         throw new Error("Invalid metrics JSON. Please provide valid JSON content.");
       }
 

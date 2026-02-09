@@ -117,13 +117,21 @@ export function useBatchWorkSync() {
         try {
           await jobQueueDB.markJobSynced(job.id, hash);
         } catch (error) {
-          logger.warn("Failed to mark job as synced", { source: "useBatchWorkSync", jobId: job.id, error });
+          logger.warn("Failed to mark job as synced", {
+            source: "useBatchWorkSync",
+            jobId: job.id,
+            error,
+          });
         }
 
         try {
           await jobQueueDB.deleteJob(job.id);
         } catch (error) {
-          logger.warn("Failed to delete synced job", { source: "useBatchWorkSync", jobId: job.id, error });
+          logger.warn("Failed to delete synced job", {
+            source: "useBatchWorkSync",
+            jobId: job.id,
+            error,
+          });
         }
 
         jobQueueEventBus.emit("job:completed", {

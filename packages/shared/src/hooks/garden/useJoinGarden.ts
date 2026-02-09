@@ -59,7 +59,11 @@ export async function checkGardenOpenJoining(gardenAddress: string): Promise<boo
     });
     return Boolean(isOpen);
   } catch (error) {
-    logger.warn("Failed to check openJoining", { source: "checkGardenOpenJoining", gardenAddress, error });
+    logger.warn("Failed to check openJoining", {
+      source: "checkGardenOpenJoining",
+      gardenAddress,
+      error,
+    });
     trackNetworkError(error, {
       source: "checkGardenOpenJoining",
       userAction: "checking if garden allows open joining",

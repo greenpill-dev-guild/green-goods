@@ -140,7 +140,10 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       try {
         approvals = await getWorkApprovals(undefined, chainId);
       } catch (error) {
-        logger.warn("Failed to fetch approvals, status may be stale", { source: "useWorks", error });
+        logger.warn("Failed to fetch approvals, status may be stale", {
+          source: "useWorks",
+          error,
+        });
       }
       const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
 

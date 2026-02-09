@@ -146,7 +146,10 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
           window.removeEventListener("focus", handleFocus);
         });
       } catch (error) {
-        logger.error("Service worker update setup failed", { source: "useServiceWorkerUpdate", error });
+        logger.error("Service worker update setup failed", {
+          source: "useServiceWorkerUpdate",
+          error,
+        });
       }
     };
 
