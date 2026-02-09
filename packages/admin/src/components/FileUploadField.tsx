@@ -122,9 +122,11 @@ export function FileUploadField({
 
   // Create blob URLs in an effect instead of during render
   // Store them in state and clean up when files change
-  const [previewUrls, setPreviewUrls] = useState<Map<File, string>>(new Map());
+  // Use string keys instead of File object identity to handle cases where
+  // parent provides new File instances with same metadata
+  const [previewUrls, setPreviewUrls] = useState<Map<string, string>>(new Map());
 
-  // Create stable key from file metadata to avoid effect re-runs on array identity changes
+  // Create stable key from file metadata
   const fileKey = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
   const filesKey = currentFiles.map(fileKey).join("|");
 
@@ -134,10 +136,10 @@ export function FileUploadField({
       return;
     }
 
-    const urls = new Map<File, string>();
+    const urls = new Map<string, string>();
     for (const file of currentFiles) {
       if (PREVIEWABLE_IMAGE_TYPES.has(file.type)) {
-        urls.set(file, URL.createObjectURL(file));
+        urls.set(fileKey(file), URL.createObjectURL(file));
       }
     }
     setPreviewUrls(urls);
@@ -148,8 +150,6 @@ export function FileUploadField({
         URL.revokeObjectURL(url);
       }
     };
-    // Use filesKey instead of currentFiles to avoid re-running on array identity changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filesKey, showPreview]);
 
   return (
@@ -193,7 +193,7 @@ export function FileUploadField({
         <div className="mt-3 space-y-2">
           {currentFiles.map((file, index) => {
             const safeFileName = sanitizeFileName(file.name);
-            const previewUrl = previewUrls.get(file) ?? null;
+            const previewUrl = previewUrls.get(fileKey(file)) ?? null;
             const safePreviewUrl = previewUrl?.startsWith("blob:") ? previewUrl : null;
             return (
               <div
