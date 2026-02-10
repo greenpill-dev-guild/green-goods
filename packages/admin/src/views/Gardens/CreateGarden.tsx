@@ -11,6 +11,8 @@ export default function CreateGarden() {
   const navigate = useNavigate();
   const steps = useCreateGardenStore((state) => state.steps);
   const currentStep = useCreateGardenStore((state) => state.currentStep);
+  const nextStep = useCreateGardenStore((state) => state.nextStep);
+  const previousStep = useCreateGardenStore((state) => state.previousStep);
   const canProceed = useCreateGardenStore((state) => state.canProceed);
   const isReviewReady = useCreateGardenStore((state) => state.isReviewReady);
   const resetForm = useCreateGardenStore((state) => state.reset);
@@ -53,11 +55,13 @@ export default function CreateGarden() {
       return;
     }
     goNext();
+    nextStep();
   };
 
   const handleBack = () => {
     setShowValidation(false);
     goBack();
+    previousStep();
   };
 
   const handleSubmit = () => {
