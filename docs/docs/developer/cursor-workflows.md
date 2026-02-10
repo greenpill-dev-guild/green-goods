@@ -9,8 +9,6 @@ Green Goods uses several MCP (Model Context Protocol) servers to tighten the dev
 | MCP Server | Location | Purpose |
 |------------|----------|---------|
 | **GitHub** | Global config | Issue triage, PR management, Cloud Agent dispatch |
-| **Figma** | Project config | Design file access, screenshots, code generation |
-| **Vercel** | Project config | Deployment status |
 | **Railway** | Project config | Agent deployment |
 | **Miro** | Project config | Diagrams, boards |
 
@@ -301,17 +299,6 @@ bun run test --match-contract Integration
 @github: Create issue "Add dark mode" with labels: feature, client
 ```
 
-### Figma
-
-```
-@figma: Get design context for [fileKey] node [nodeId]
-@figma: Get screenshot for [fileKey] node [nodeId]
-@figma: Get variable definitions for [fileKey] node [nodeId]
-```
-
-**Note:** Extract `fileKey` and `nodeId` from the Figma URL:
-`https://figma.com/design/:fileKey/:fileName?node-id=:nodeId`
-
 ### Cursor Browser
 
 ```
@@ -353,10 +340,6 @@ When Figma generation is wrong:
 ### GitHub MCP
 
 Already configured in your global Cursor settings with `GITHUB_TOKEN`.
-
-### Figma MCP
-
-Defined in root `.mcp.json`. Authenticate via Cursor MCP settings when prompted.
 
 ### Playwright
 

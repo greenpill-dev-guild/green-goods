@@ -1,6 +1,12 @@
 ---
 name: architecture
 description: Architecture patterns (Clean, Hexagonal, DDD) and entropy reduction. Use for system design, refactoring, deletion.
+version: "1.0"
+last_updated: "2026-02-08"
+last_verified: "2026-02-09"
+status: proven
+packages: [shared, client, admin, contracts]
+dependencies: []
 ---
 
 # Architecture Skill
@@ -293,3 +299,10 @@ class WorkSubmission {
 6. **Ubiquitous language** — Same terms in code and conversation
 7. **Bias toward deletion** — Measure the end state
 8. **Rich domain models** — Behavior with data
+
+## Related Skills
+
+- `react` — Component composition and state management patterns
+- `testing` — TDD workflow that drives architectural decisions
+- `performance` — Bundle analysis and optimization that validate architecture
+- `migration` — Cross-package migration when architecture evolves

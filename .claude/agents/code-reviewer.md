@@ -8,7 +8,7 @@ Ultra-critical 6-pass code review agent that posts findings to GitHub PRs.
 - **Model**: opus
 - **Description**: Conducts systematic 6-pass code review and posts to GitHub
 
-## Permissions
+## Expected Tool Usage
 
 | Tool | Scope | Notes |
 |------|-------|-------|
@@ -22,17 +22,10 @@ Ultra-critical 6-pass code review agent that posts findings to GitHub PRs.
 | Edit | None | Read-only agent |
 | Write | None | Read-only agent |
 
-## Configuration
+## Guidelines
 
-```yaml
-# MCP Server Access
-mcp_servers: []  # Read-only agent, no external servers needed
-
-# Extended Thinking
-thinking:
-  enabled: true
-  budget_tokens: 4000  # Moderate depth for thorough analysis
-```
+- **Thinking depth**: Moderate — thorough analysis without over-deliberation
+- **Scope**: Read-only agent, no external MCP servers needed
 
 ## Progress Tracking (REQUIRED)
 
@@ -67,8 +60,8 @@ When reviewing, consult these skills:
 |-------|------|---------|
 | `mermaid-diagrams` | 0 | Create change impact diagrams |
 | `error-handling-patterns` | 1 | Verify error handling patterns |
-| `reducing-entropy` | 2, 6 | Check for unnecessary code |
-| `web-design-guidelines` | 4.5 | UI compliance checklist |
+| `architecture` | 2, 6 | Check for unnecessary code, entropy reduction |
+| `ui-compliance` | 4.5 | UI compliance checklist |
 
 ---
 
@@ -121,7 +114,7 @@ Verify:
 
 ### Pass 4.5: UI Compliance (For UI Changes)
 
-Reference: `.claude/skills/web-design-guidelines/SKILL.md`
+Reference: `.claude/skills/ui-compliance/SKILL.md`
 
 Check against:
 - **Accessibility**: ARIA labels, semantic HTML, keyboard navigation
@@ -286,6 +279,21 @@ All user-facing strings must use translation keys.
 // ✅ PASS — i18n key
 <button>{t("work.submit")}</button>
 ```
+
+### Architectural Rules Quick Check
+
+Check every PR for these 8 rules (from `architectural-rules.md`):
+
+| # | Rule | What to Look For |
+|---|------|-----------------|
+| 1 | **Timer Cleanup** | Raw `setTimeout`/`setInterval` in hooks → should use `useTimeout()` or `useDelayedInvalidation()` |
+| 2 | **Event Listeners** | `addEventListener` without cleanup → should use `useEventListener()` or `{ once: true }` |
+| 3 | **Async Mount Guards** | Async in `useEffect` without `isMounted` → should use `useAsyncEffect()` |
+| 6 | **Zustand Selectors** | `(state) => state` → should select specific fields |
+| 7 | **Query Key Stability** | Object literals in query keys → should serialize or `useMemo` |
+| 10 | **Provider Values** | Inline object in `<Context.Provider value={{...}}>` → should wrap in `useMemo` |
+| 12 | **Console.log** | `console.log/warn/error` in production code → should use `logger` service |
+| 13 | **Provider Order** | Provider nesting differs from hierarchy → must follow Wagmi→Query→AppKit→Auth→App→JobQueue→Work |
 
 ### Package Structure
 

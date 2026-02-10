@@ -127,6 +127,10 @@ export async function getGardens(): Promise<Garden[]> {
           bannerImage
           gardeners
           operators
+          evaluators
+          owners
+          funders
+          communities
           openJoining
           createdAt
         }
@@ -164,6 +168,10 @@ export async function getGardens(): Promise<Garden[]> {
         bannerImage,
         gardeners: (garden.gardeners || []) as Address[],
         operators: (garden.operators || []) as Address[],
+        evaluators: (garden.evaluators || []) as Address[],
+        owners: (garden.owners || []) as Address[],
+        funders: (garden.funders || []) as Address[],
+        communities: (garden.communities || []) as Address[],
         openJoining: Boolean(garden.openJoining),
         assessments: [],
         works: [],

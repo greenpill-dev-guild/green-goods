@@ -2,6 +2,8 @@
 
 Complete setup guide for local Green Goods development. Green Goods is an open-source monorepo platform for verifiable regenerative impact.
 
+> **Dependency Management**: See the [dependency-management skill](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.claude/skills/dependency-management/SKILL.md) for workspace protocol, lockfile, and audit/update workflows.
+
 **Tech Stack**: React 19 + TypeScript + Vite • TanStack Query + Zustand • Tailwind CSS v4 + Radix UI • Solidity + Foundry • Envio HyperIndex • IPFS (Storacha)
 
 ---
@@ -136,11 +138,11 @@ cp .env.example .env
 # Client - Required
 VITE_WALLETCONNECT_PROJECT_ID=your_reown_project_id
 VITE_PIMLICO_API_KEY=your_pimlico_key
-VITE_CHAIN_ID=84532  # Base Sepolia default
+VITE_CHAIN_ID=11155111  # Sepolia default
 
 # Contracts - Optional for running client
 FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
+SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
 
 # Optional
 ETHERSCAN_API_KEY=your_etherscan_key
@@ -149,6 +151,8 @@ ETHERSCAN_API_KEY=your_etherscan_key
 STORACHA_KEY=your_storacha_key
 STORACHA_PROOF=your_storacha_proof
 ```
+
+`SEPOLIA_RPC_URL` should point to a dedicated provider endpoint (Infura, Alchemy, QuickNode, or a self-hosted node) for reliable development and CI/CD. Public shared URLs such as `https://ethereum-sepolia.publicnode.com` can hit rate limits or downtime; prefer API-keyed endpoints and configure failover/redundancy for team workflows and pipelines.
 
 **Get API Keys**:
 - Reown: [cloud.reown.com](https://cloud.reown.com/)
@@ -270,4 +274,3 @@ bun install
 - [Monorepo Structure](./architecture)
 - [Testing Guide](testing)
 - [Root README](https://github.com/greenpill-dev-guild/green-goods/tree/main#readme)
-

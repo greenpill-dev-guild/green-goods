@@ -54,19 +54,16 @@ export const HYPERCERT_MINTER_BY_CHAIN: Record<number, Address> = {
 
 /**
  * Get the Hypercert Minter address for a chain.
- * Falls back to Base Sepolia if chain is not supported.
+ * Falls back to Sepolia if chain is not supported.
  */
 export function getHypercertMinterFallback(chainId: number): Address {
   const address = HYPERCERT_MINTER_BY_CHAIN[chainId];
   if (!address) {
-    logger.warn(
-      "[hypercert-contracts] No Hypercert Minter fallback for chain, using Base Sepolia",
-      {
-        chainId,
-        fallbackChainId: 84532,
-      }
-    );
-    return HYPERCERT_MINTER_BY_CHAIN[84532];
+    logger.warn("[hypercert-contracts] No Hypercert Minter fallback for chain, using Sepolia", {
+      chainId,
+      fallbackChainId: 11155111,
+    });
+    return HYPERCERT_MINTER_BY_CHAIN[11155111];
   }
   return address;
 }
@@ -84,6 +81,9 @@ export async function resolveHypercertContracts(chainId: number): Promise<{
 }> {
   const contracts = getNetworkContracts(chainId);
   const fallbackMinter = getHypercertMinterFallback(chainId);
+  const hatsModuleAddr = contracts.hatsModule as Address | undefined;
+  const fallbackHatsModule =
+    hatsModuleAddr && !isZeroAddress(hatsModuleAddr) ? getAddress(hatsModuleAddr) : undefined;
 
   // Check if deployment registry exists before casting
   if (!contracts?.deploymentRegistry) {
@@ -94,7 +94,7 @@ export async function resolveHypercertContracts(chainId: number): Promise<{
         fallbackMinter,
       }
     );
-    return { hypercertMinter: fallbackMinter };
+    return { hypercertMinter: fallbackMinter, hatsModule: fallbackHatsModule };
   }
 
   // Validate address format before casting
@@ -104,7 +104,7 @@ export async function resolveHypercertContracts(chainId: number): Promise<{
       deploymentRegistry: contracts.deploymentRegistry,
       fallbackMinter,
     });
-    return { hypercertMinter: fallbackMinter };
+    return { hypercertMinter: fallbackMinter, hatsModule: fallbackHatsModule };
   }
 
   // Use getAddress for validation and checksum formatting instead of unsafe cast
@@ -117,6 +117,7 @@ export async function resolveHypercertContracts(chainId: number): Promise<{
     });
     return {
       hypercertMinter: fallbackMinter,
+      hatsModule: fallbackHatsModule,
     };
   }
 
@@ -145,7 +146,7 @@ export async function resolveHypercertContracts(chainId: number): Promise<{
         : fallbackMinter,
       hatsModule: !isZeroAddress(config.hatsAccessControl)
         ? getAddress(config.hatsAccessControl)
-        : undefined,
+        : fallbackHatsModule,
     };
   } catch (error) {
     logger.warn("[hypercert-contracts] Failed to read deployment registry, using fallback", {
@@ -157,6 +158,7 @@ export async function resolveHypercertContracts(chainId: number): Promise<{
     });
     return {
       hypercertMinter: fallbackMinter,
+      hatsModule: fallbackHatsModule,
     };
   }
 }

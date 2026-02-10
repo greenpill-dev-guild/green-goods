@@ -28,18 +28,24 @@ vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => mockUseQueryClient(),
 }));
 
+vi.mock("react-intl", () => ({
+  useIntl: () => ({
+    formatMessage: ({ id }: { id: string }) => id,
+  }),
+}));
+
 vi.mock("../../hooks/app/useToastAction", () => ({
   useToastAction: () => mockUseToastAction(),
 }));
 
 vi.mock("../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 vi.mock("../../hooks/query-keys", () => ({
   queryKeys: {
     gardens: {
-      byChain: vi.fn(() => ["gardens", 84532]),
+      byChain: vi.fn(() => ["gardens", 11155111]),
     },
   },
 }));
@@ -49,27 +55,55 @@ vi.mock("../../hooks/garden/createGardenOperation", () => ({
   GARDEN_OPERATIONS: {
     addGardener: {
       functionName: "addGardener",
-      loadingMessage: "Adding gardener...",
-      successMessage: "Gardener added successfully",
-      errorMessage: "Failed to add gardener",
+      memberType: "gardener",
+      operationType: "add",
     },
     removeGardener: {
       functionName: "removeGardener",
-      loadingMessage: "Removing gardener...",
-      successMessage: "Gardener removed successfully",
-      errorMessage: "Failed to remove gardener",
+      memberType: "gardener",
+      operationType: "remove",
     },
     addOperator: {
       functionName: "addOperator",
-      loadingMessage: "Adding operator...",
-      successMessage: "Operator added successfully",
-      errorMessage: "Failed to add operator",
+      memberType: "operator",
+      operationType: "add",
     },
     removeOperator: {
       functionName: "removeOperator",
-      loadingMessage: "Removing operator...",
-      successMessage: "Operator removed successfully",
-      errorMessage: "Failed to remove operator",
+      memberType: "operator",
+      operationType: "remove",
+    },
+    addEvaluator: {
+      memberType: "evaluator",
+      operationType: "add",
+    },
+    removeEvaluator: {
+      memberType: "evaluator",
+      operationType: "remove",
+    },
+    addOwner: {
+      memberType: "owner",
+      operationType: "add",
+    },
+    removeOwner: {
+      memberType: "owner",
+      operationType: "remove",
+    },
+    addFunder: {
+      memberType: "funder",
+      operationType: "add",
+    },
+    removeFunder: {
+      memberType: "funder",
+      operationType: "remove",
+    },
+    addCommunity: {
+      memberType: "community",
+      operationType: "add",
+    },
+    removeCommunity: {
+      memberType: "community",
+      operationType: "remove",
     },
   },
 }));
@@ -130,8 +164,8 @@ describe("useGardenOperations", () => {
   it("should call createGardenOperation factory for each operation type when wallet connected", () => {
     renderHook(() => useGardenOperations(gardenId));
 
-    // Factory should be called 4 times (add/remove gardener, add/remove operator)
-    expect(mockCreateGardenOperation).toHaveBeenCalledTimes(4);
+    // Factory should be called 12 times (add/remove for all roles)
+    expect(mockCreateGardenOperation).toHaveBeenCalledTimes(12);
   });
 
   it("should not call createGardenOperation when wallet not connected", () => {
@@ -151,5 +185,13 @@ describe("useGardenOperations", () => {
     expect(typeof result.current.removeGardener).toBe("function");
     expect(typeof result.current.addOperator).toBe("function");
     expect(typeof result.current.removeOperator).toBe("function");
+    expect(typeof result.current.addEvaluator).toBe("function");
+    expect(typeof result.current.removeEvaluator).toBe("function");
+    expect(typeof result.current.addOwner).toBe("function");
+    expect(typeof result.current.removeOwner).toBe("function");
+    expect(typeof result.current.addFunder).toBe("function");
+    expect(typeof result.current.removeFunder).toBe("function");
+    expect(typeof result.current.addCommunity).toBe("function");
+    expect(typeof result.current.removeCommunity).toBe("function");
   });
 });

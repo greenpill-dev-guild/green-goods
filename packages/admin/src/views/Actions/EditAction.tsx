@@ -2,12 +2,14 @@ import {
   DEFAULT_CHAIN_ID,
   defaultTemplate,
   fromDateTimeLocalValue,
+  logger,
   toastService,
   toDateTimeLocalValue,
   toSafeDate,
   uploadFileToIPFS,
+  useActionOperations,
+  useActions,
 } from "@green-goods/shared";
-import { useActionOperations, useActions } from "@green-goods/shared/hooks";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
@@ -54,7 +56,7 @@ export default function EditAction() {
         const config = await response.json();
         setInstructionConfig(config);
       } catch (error) {
-        console.error("Failed to load instructions:", error);
+        logger.error("Failed to load instructions", { error });
         toastService.error({
           title: "Failed to load instructions",
           description: "Using default template instead",
@@ -116,7 +118,7 @@ export default function EditAction() {
       toastService.success({ title: "Action updated successfully" });
       navigate(`/actions/${id}`);
     } catch (error) {
-      console.error("Failed to update action:", error);
+      logger.error("Failed to update action", { error });
       toastService.error({ title: "Failed to update action" });
     }
   };

@@ -102,3 +102,11 @@ export function isValidAddressFormat(address: string | undefined | null): boolea
   if (!address) return false;
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
+
+/**
+ * Check if an address is the zero address.
+ */
+export function isZeroAddress(address: string | undefined | null): boolean {
+  if (!address) return true;
+  return address.toLowerCase() === "0x0000000000000000000000000000000000000000";
+}

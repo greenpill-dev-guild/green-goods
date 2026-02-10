@@ -9,8 +9,8 @@ import { describe, expect, it } from "vitest";
 describe("Garden Filtering Logic", () => {
   const mockGardens: Garden[] = [
     {
-      id: "84532-1",
-      chainId: 84532,
+      id: "11155111-1",
+      chainId: 11155111,
       tokenAddress: "0xGardenToken",
       tokenID: BigInt(1),
       name: "Test Garden 1",
@@ -24,8 +24,8 @@ describe("Garden Filtering Logic", () => {
       createdAt: Date.now(),
     },
     {
-      id: "84532-2",
-      chainId: 84532,
+      id: "11155111-2",
+      chainId: 11155111,
       tokenAddress: "0xGardenToken",
       tokenID: BigInt(2),
       name: "Test Garden 2",
@@ -39,8 +39,8 @@ describe("Garden Filtering Logic", () => {
       createdAt: Date.now(),
     },
     {
-      id: "84532-3",
-      chainId: 84532,
+      id: "11155111-3",
+      chainId: 11155111,
       tokenAddress: "0xGardenToken",
       tokenID: BigInt(3),
       name: "Test Garden 3",
@@ -76,7 +76,7 @@ describe("Garden Filtering Logic", () => {
 
     // User 0xuser1 should only see Garden 1
     expect(filtered).toHaveLength(1);
-    expect(filtered[0].id).toBe("84532-1");
+    expect(filtered[0].id).toBe("11155111-1");
     expect(filtered[0].name).toBe("Test Garden 1");
   });
 
@@ -86,7 +86,7 @@ describe("Garden Filtering Logic", () => {
 
     // User 0xuser2 should see Gardens 1 and 2
     expect(filtered).toHaveLength(2);
-    expect(filtered.map((g) => g.id)).toEqual(["84532-1", "84532-2"]);
+    expect(filtered.map((g) => g.id)).toEqual(["11155111-1", "11155111-2"]);
   });
 
   it("shows empty list if user is not a gardener in any garden", () => {
@@ -104,7 +104,7 @@ describe("Garden Filtering Logic", () => {
 
     // Should still match Garden 1 (case-insensitive)
     expect(filtered).toHaveLength(1);
-    expect(filtered[0].id).toBe("84532-1");
+    expect(filtered[0].id).toBe("11155111-1");
   });
 
   it("handles mixed case in garden gardeners list", () => {
@@ -120,7 +120,7 @@ describe("Garden Filtering Logic", () => {
 
     // Should match despite case differences
     expect(filtered).toHaveLength(1);
-    expect(filtered[0].id).toBe("84532-1");
+    expect(filtered[0].id).toBe("11155111-1");
   });
 
   it("returns empty array when userAddress is undefined", () => {
@@ -138,7 +138,7 @@ describe("Garden Filtering Logic", () => {
       ...mockGardens,
       {
         ...mockGardens[0],
-        id: "84532-4",
+        id: "11155111-4",
         name: "Empty Garden",
         gardeners: [], // Empty gardeners list
       },
@@ -149,6 +149,6 @@ describe("Garden Filtering Logic", () => {
 
     // Should only see Garden 1, not the empty garden
     expect(filtered).toHaveLength(1);
-    expect(filtered[0].id).toBe("84532-1");
+    expect(filtered[0].id).toBe("11155111-1");
   });
 });

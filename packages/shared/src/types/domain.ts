@@ -84,6 +84,26 @@ export interface Garden extends GardenCard {
    * @todo Migrate to Address type when data layer is updated
    */
   gardeners: string[];
+  /**
+   * Evaluator Ethereum addresses.
+   * @todo Migrate to Address type when data layer is updated
+   */
+  evaluators: string[];
+  /**
+   * Owner Ethereum addresses.
+   * @todo Migrate to Address type when data layer is updated
+   */
+  owners: string[];
+  /**
+   * Funder Ethereum addresses.
+   * @todo Migrate to Address type when data layer is updated
+   */
+  funders: string[];
+  /**
+   * Community member Ethereum addresses.
+   * @todo Migrate to Address type when data layer is updated
+   */
+  communities: string[];
   /** Community token contract address */
   communityToken?: Address;
   assessments: GardenAssessment[];

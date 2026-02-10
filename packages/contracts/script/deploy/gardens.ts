@@ -67,8 +67,6 @@ export class GardenDeployer {
       GARDEN_DESCRIPTION: config.description,
       GARDEN_LOCATION: config.location,
       GARDEN_BANNER: config.bannerImage,
-      GARDENERS: JSON.stringify(config.gardeners),
-      OPERATORS: JSON.stringify(config.operators),
       GARDEN_TOKEN: contractAddresses.gardenToken,
       COMMUNITY_TOKEN: communityToken,
     };

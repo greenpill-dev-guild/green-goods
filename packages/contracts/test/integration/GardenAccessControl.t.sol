@@ -13,6 +13,8 @@ import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 /// @notice Mock ERC721 for testing
 contract MockGardenNFT is ERC721 {
     uint256 private _tokenIdCounter;
+    address public hatsModule;
+    address public karmaGAPModule;
 
     constructor() ERC721("MockGarden", "GARDEN") { }
 
@@ -20,6 +22,55 @@ contract MockGardenNFT is ERC721 {
         uint256 tokenId = _tokenIdCounter++;
         _mint(to, tokenId);
         return tokenId;
+    }
+
+    function setHatsModule(address _module) external {
+        hatsModule = _module;
+    }
+
+    function setKarmaGAPModule(address _module) external {
+        karmaGAPModule = _module;
+    }
+}
+
+contract MockHatsModule {
+    enum Role {
+        Gardener,
+        Evaluator,
+        Operator,
+        Owner,
+        Funder,
+        Community
+    }
+
+    mapping(address garden => mapping(address account => mapping(uint8 role => bool))) private roles;
+
+    function setRole(address garden, address account, Role role, bool value) external {
+        roles[garden][account][uint8(role)] = value;
+    }
+
+    function isGardenerOf(address garden, address account) external view returns (bool) {
+        return roles[garden][account][uint8(Role.Gardener)];
+    }
+
+    function isEvaluatorOf(address garden, address account) external view returns (bool) {
+        return roles[garden][account][uint8(Role.Evaluator)];
+    }
+
+    function isOperatorOf(address garden, address account) external view returns (bool) {
+        return roles[garden][account][uint8(Role.Operator)];
+    }
+
+    function isOwnerOf(address garden, address account) external view returns (bool) {
+        return roles[garden][account][uint8(Role.Owner)];
+    }
+
+    function isFunderOf(address garden, address account) external view returns (bool) {
+        return roles[garden][account][uint8(Role.Funder)];
+    }
+
+    function isCommunityOf(address garden, address account) external view returns (bool) {
+        return roles[garden][account][uint8(Role.Community)];
     }
 }
 
@@ -29,6 +80,7 @@ contract GardenAccessControlTest is Test {
     GardenAccount public gardenAccountImpl;
     GardenAccount public gardenAccount;
     MockGardenNFT public gardenNFT;
+    MockHatsModule public hatsModule;
     ERC6551Registry public registry;
     AccountGuardian public guardian;
 
@@ -55,6 +107,8 @@ contract GardenAccessControlTest is Test {
         guardian = new AccountGuardian(owner);
         registry = new ERC6551Registry();
         gardenNFT = new MockGardenNFT();
+        hatsModule = new MockHatsModule();
+        gardenNFT.setHatsModule(address(hatsModule));
 
         // Deploy GardenAccount implementation
         gardenAccountImpl = new GardenAccount(
@@ -68,11 +122,6 @@ contract GardenAccessControlTest is Test {
         gardenAccount = GardenAccount(payable(tbaAddress));
 
         // Initialize garden
-        address[] memory initialGardeners = new address[](1);
-        initialGardeners[0] = gardener1;
-        address[] memory initialOperators = new address[](1);
-        initialOperators[0] = operator1;
-
         IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
             communityToken: address(0),
             name: "Test Garden",
@@ -80,12 +129,15 @@ contract GardenAccessControlTest is Test {
             location: "Test Location",
             bannerImage: "",
             metadata: "",
-            openJoining: false,
-            gardeners: initialGardeners,
-            gardenOperators: initialOperators
+            openJoining: false
         });
 
         gardenAccount.initialize(params);
+
+        // Set initial roles via mock Hats module
+        hatsModule.setRole(address(gardenAccount), owner, MockHatsModule.Role.Owner, true);
+        hatsModule.setRole(address(gardenAccount), operator1, MockHatsModule.Role.Operator, true);
+        hatsModule.setRole(address(gardenAccount), gardener1, MockHatsModule.Role.Gardener, true);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -97,11 +149,10 @@ contract GardenAccessControlTest is Test {
         assertTrue(accessControl.isGardener(gardener1), "gardener1 should be a gardener");
     }
 
-    function test_isGardener_returnsFalseForInitializer() public {
-        // The initializer (owner via TBA) is NOT automatically added as gardener
-        // NFT owner is only an operator, not a gardener (can add themselves if needed)
+    function test_isGardener_returnsTrueForOwner() public {
+        // Owner inherits gardener permissions in Hats-based roles
         IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
-        assertFalse(accessControl.isGardener(owner), "owner should NOT be a gardener (only operator)");
+        assertTrue(accessControl.isGardener(owner), "owner should be a gardener via inheritance");
     }
 
     function test_isGardener_returnsFalseForNonGardener() public {
@@ -114,10 +165,9 @@ contract GardenAccessControlTest is Test {
         assertTrue(accessControl.isOperator(operator1), "operator1 should be an operator");
     }
 
-    function test_isOperator_returnsTrueForInitializer() public {
-        // The initializer is automatically added as operator
+    function test_isOperator_returnsTrueForOwner() public {
         IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
-        assertTrue(accessControl.isOperator(owner), "owner should be an operator (initializer)");
+        assertTrue(accessControl.isOperator(owner), "owner should be an operator via inheritance");
     }
 
     function test_isOperator_returnsFalseForNonOperator() public {
@@ -126,9 +176,9 @@ contract GardenAccessControlTest is Test {
         assertFalse(accessControl.isOperator(randomUser), "randomUser should not be an operator");
     }
 
-    function test_isOwner_returnsTrueForNFTOwner() public {
+    function test_isOwner_returnsTrueForOwner() public {
         IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
-        assertTrue(accessControl.isOwner(owner), "NFT owner should be the garden owner");
+        assertTrue(accessControl.isOwner(owner), "owner should be the garden owner");
     }
 
     function test_isOwner_returnsFalseForNonOwner() public {
@@ -142,60 +192,37 @@ contract GardenAccessControlTest is Test {
     // Role Changes Reflected in Interface
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function test_isGardener_updatesAfterAddGardener() public {
+    function test_isGardener_updatesAfterRoleChange() public {
         IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
 
         // Initially not a gardener
         assertFalse(accessControl.isGardener(gardener2), "gardener2 should not be a gardener initially");
 
-        // Add gardener2 (operator1 can add gardeners)
-        vm.prank(operator1);
-        gardenAccount.addGardener(gardener2);
+        // Grant gardener role
+        hatsModule.setRole(address(gardenAccount), gardener2, MockHatsModule.Role.Gardener, true);
 
         // Now should be a gardener
         assertTrue(accessControl.isGardener(gardener2), "gardener2 should be a gardener after adding");
+
+        // Revoke gardener role
+        hatsModule.setRole(address(gardenAccount), gardener2, MockHatsModule.Role.Gardener, false);
+        assertFalse(accessControl.isGardener(gardener2), "gardener2 should not be a gardener after removal");
     }
 
-    function test_isGardener_updatesAfterRemoveGardener() public {
-        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
-
-        // Initially a gardener
-        assertTrue(accessControl.isGardener(gardener1), "gardener1 should be a gardener initially");
-
-        // Remove gardener1 (operator1 can remove gardeners)
-        vm.prank(operator1);
-        gardenAccount.removeGardener(gardener1);
-
-        // Now should not be a gardener
-        assertFalse(accessControl.isGardener(gardener1), "gardener1 should not be a gardener after removal");
-    }
-
-    function test_isOperator_updatesAfterAddOperator() public {
+    function test_isOperator_updatesAfterRoleChange() public {
         IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
         address newOperator = address(0x500);
 
         // Initially not an operator
         assertFalse(accessControl.isOperator(newOperator), "newOperator should not be an operator initially");
 
-        // Add operator (operator1 can add operators)
-        vm.prank(operator1);
-        gardenAccount.addGardenOperator(newOperator);
-
-        // Now should be an operator
+        // Grant operator role
+        hatsModule.setRole(address(gardenAccount), newOperator, MockHatsModule.Role.Operator, true);
         assertTrue(accessControl.isOperator(newOperator), "newOperator should be an operator after adding");
-    }
 
-    function test_isOperator_updatesAfterRemoveOperator() public {
-        IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
-
-        // Initially an operator
-        assertTrue(accessControl.isOperator(operator1), "operator1 should be an operator initially");
-
-        // Remove operator1 (only owner can remove operators)
-        gardenAccount.removeGardenOperator(operator1);
-
-        // Now should not be an operator
-        assertFalse(accessControl.isOperator(operator1), "operator1 should not be an operator after removal");
+        // Revoke operator role
+        hatsModule.setRole(address(gardenAccount), newOperator, MockHatsModule.Role.Operator, false);
+        assertFalse(accessControl.isOperator(newOperator), "newOperator should not be an operator after removal");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -203,30 +230,32 @@ contract GardenAccessControlTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_gardenAccount_implementsIGardenAccessControl() public {
-        // This test verifies that GardenAccount can be cast to IGardenAccessControl
         IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
-
-        // All interface methods should work without reverting
         accessControl.isGardener(owner);
+        accessControl.isEvaluator(owner);
         accessControl.isOperator(owner);
         accessControl.isOwner(owner);
+        accessControl.isFunder(owner);
+        accessControl.isCommunity(owner);
     }
 
-    function test_interfaceMethodsMatchMappings() public {
+    function test_interfaceMethodsMatchHatsModule() public {
         IGardenAccessControl accessControl = IGardenAccessControl(address(gardenAccount));
 
-        // isGardener should match gardeners mapping
         assertEq(
             accessControl.isGardener(gardener1),
-            gardenAccount.gardeners(gardener1),
-            "isGardener should match gardeners mapping"
+            hatsModule.isGardenerOf(address(gardenAccount), gardener1),
+            "gardener role should match hats module"
         );
-
-        // isOperator should match gardenOperators mapping
         assertEq(
             accessControl.isOperator(operator1),
-            gardenAccount.gardenOperators(operator1),
-            "isOperator should match gardenOperators mapping"
+            hatsModule.isOperatorOf(address(gardenAccount), operator1),
+            "operator role should match hats module"
+        );
+        assertEq(
+            accessControl.isOwner(owner),
+            hatsModule.isOwnerOf(address(gardenAccount), owner),
+            "owner role should match hats module"
         );
     }
 }

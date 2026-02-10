@@ -1,3 +1,4 @@
+import type { Garden, Work } from "@green-goods/shared";
 import { useEnsName, useNavigateToTop } from "@green-goods/shared/hooks";
 import { formatAddress } from "@green-goods/shared/utils";
 import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";

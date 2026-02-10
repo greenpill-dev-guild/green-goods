@@ -101,6 +101,7 @@ export default defineConfig(({ mode }) => {
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        importScripts: ["sw-custom.js"],
         runtimeCaching: [
           {
             // Only cache JS files from the same origin (avoids caching external analytics/ads)

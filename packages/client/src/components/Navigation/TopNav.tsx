@@ -1,3 +1,4 @@
+import type { Garden, Work } from "@green-goods/shared";
 import { useOffline } from "@green-goods/shared/hooks";
 import { cn } from "@green-goods/shared/utils";
 import { RiArrowLeftFill, RiNotificationFill, RiNotificationLine } from "@remixicon/react";
@@ -48,26 +49,27 @@ Notifications.displayName = "Notifications";
 // Styling configuration for different button states
 const BUTTON_VARIANTS = {
   work: {
-    focus: "focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",
-    icon: "focus:text-emerald-700 active:text-emerald-700",
+    focus:
+      "focus-visible:ring-emerald-200 focus-visible:border-emerald-600 active:border-emerald-600",
+    icon: "focus-visible:text-emerald-700 active:text-emerald-700",
   },
   sync: {
-    focus: "focus:ring-blue-200 focus:border-blue-600 active:border-blue-600",
-    icon: "focus:text-blue-700 active:text-blue-700",
+    focus: "focus-visible:ring-blue-200 focus-visible:border-blue-600 active:border-blue-600",
+    icon: "focus-visible:text-blue-700 active:text-blue-700",
   },
   offline: {
-    focus: "focus:ring-orange-200 focus:border-orange-600 active:border-orange-600",
-    icon: "focus:text-orange-700 active:text-orange-700",
+    focus: "focus-visible:ring-orange-200 focus-visible:border-orange-600 active:border-orange-600",
+    icon: "focus-visible:text-orange-700 active:text-orange-700",
   },
 } as const;
 
 // Base styling for navigation buttons
 const NAV_BUTTON_BASE = [
-  "relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border",
+  "relative flex items-center justify-center w-11 h-11 p-1 rounded-lg border",
   "bg-bg-white-0 border-stroke-soft-200 text-text-sub-600",
   "transition-all duration-200 tap-feedback",
   "active:scale-95",
-  "focus:outline-none focus:ring-2",
+  "focus-visible:outline-none focus-visible:ring-2",
 ] as const;
 
 // Create complete button styles for a given variant
@@ -150,12 +152,18 @@ export const TopNav: React.FC<TopNavProps> = ({
 
   const backButtonClasses = cn(
     "p-0 px-2 z-1 transition-all duration-200 tap-target-lg tap-feedback",
-    "focus:outline-none focus:ring-2 active:scale-95",
+    "focus-visible:outline-none focus-visible:ring-2 active:scale-95",
     backButtonStyles.focusStyles
   );
 
   return (
     <div className={containerClasses} {...props}>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary-base focus:text-white focus:rounded-lg focus:text-sm focus:font-medium"
+      >
+        Skip to content
+      </a>
       {onBackClick && (
         <Button
           variant="neutral"

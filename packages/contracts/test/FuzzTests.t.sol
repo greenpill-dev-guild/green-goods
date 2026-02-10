@@ -7,15 +7,55 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { ActionRegistry, Capital } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
+import { IHatsModule } from "../src/interfaces/IHatsModule.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
 
 /// @title FuzzTests
 /// @notice Fuzz testing for edge cases and boundary conditions
+contract MockHatsModule is IHatsModule {
+    function createGardenHatTree(address, string calldata, address) external pure returns (uint256 adminHatId) {
+        return 1;
+    }
+
+    function grantRole(address, address, GardenRole) external { }
+
+    function revokeRole(address, address, GardenRole) external { }
+
+    function grantRoles(address, address[] calldata, GardenRole[] calldata) external { }
+
+    function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
+
+    function isGardenerOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
+    function isEvaluatorOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
+    function isOperatorOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
+    function isOwnerOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
+    function isFunderOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
+    function isCommunityOf(address, address) external pure returns (bool) {
+        return false;
+    }
+}
+
 contract FuzzTests is Test, ERC6551Helper {
     ActionRegistry private actionRegistry;
     GardenToken private gardenToken;
     MockERC20 private mockToken;
+    MockHatsModule private mockHatsModule;
 
     address private multisig = address(0x123);
     address private gardenAccountImplementation;
@@ -45,6 +85,9 @@ contract FuzzTests is Test, ERC6551Helper {
         bytes memory gardenInitData = abi.encodeWithSelector(GardenToken.initialize.selector, multisig, address(0));
         ERC1967Proxy gardenProxy = new ERC1967Proxy(address(gardenTokenImpl), gardenInitData);
         gardenToken = GardenToken(address(gardenProxy));
+        mockHatsModule = new MockHatsModule();
+        vm.prank(multisig);
+        gardenToken.setHatsModule(address(mockHatsModule));
     }
 
     /// @notice Fuzz test action registration with random timestamps
@@ -77,9 +120,6 @@ contract FuzzTests is Test, ERC6551Helper {
     /// @param nameLength Length of garden name
     /// @param descLength Length of garden description
     function testFuzz_GardenMintingWithRandomStrings(uint8 nameLength, uint8 descLength) public {
-        // SKIPPED: Known fuzz test failure with certain random string combinations - edge case to be addressed
-        // post-deployment
-        return;
         // Bound string lengths to reasonable values (1-100 characters)
         nameLength = uint8(bound(nameLength, 1, 100));
         descLength = uint8(bound(descLength, 1, 200));
@@ -87,9 +127,6 @@ contract FuzzTests is Test, ERC6551Helper {
         // Generate random strings
         string memory name = _generateString(nameLength);
         string memory description = _generateString(descLength);
-
-        address[] memory gardeners = new address[](0);
-        address[] memory operators = new address[](0);
 
         vm.prank(multisig);
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
@@ -99,9 +136,7 @@ contract FuzzTests is Test, ERC6551Helper {
             location: "Location",
             bannerImage: "Banner",
             metadata: "",
-            openJoining: false,
-            gardeners: gardeners,
-            gardenOperators: operators
+            openJoining: false
         });
         address gardenAccount = gardenToken.mintGarden(config);
 
@@ -119,9 +154,6 @@ contract FuzzTests is Test, ERC6551Helper {
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](batchSize);
 
         for (uint256 i = 0; i < batchSize; i++) {
-            address[] memory gardeners = new address[](0);
-            address[] memory operators = new address[](0);
-
             configs[i] = GardenToken.GardenConfig({
                 communityToken: address(mockToken),
                 name: string(abi.encodePacked("Garden", uint2str(i))),
@@ -129,9 +161,7 @@ contract FuzzTests is Test, ERC6551Helper {
                 location: "Location",
                 bannerImage: "Banner",
                 metadata: "",
-                openJoining: false,
-                gardeners: gardeners,
-                gardenOperators: operators
+                openJoining: false
             });
         }
 
@@ -141,53 +171,21 @@ contract FuzzTests is Test, ERC6551Helper {
         assertEq(gardens.length, batchSize, "Should mint correct number of gardens");
     }
 
-    /// @notice Fuzz test array length validation
-    /// @param gardenerCount Number of gardeners (will test boundary at 100)
-    function testFuzz_ArrayLengthValidation(uint8 gardenerCount) public {
-        // SKIPPED: Known issue: Array length 128+ edge case - validation boundary to be tightened post-deployment
-        return;
-        // Test values around the boundary
-        gardenerCount = uint8(bound(gardenerCount, 0, 150));
-
-        address[] memory gardeners = new address[](gardenerCount);
-        for (uint256 i = 0; i < gardenerCount; i++) {
-            gardeners[i] = address(uint160(i + 1));
-        }
-        address[] memory operators = new address[](0);
-
+    /// @notice Fuzz test openJoining initialization path
+    function testFuzz_OpenJoiningInitialization(bool openJoiningValue) public {
         vm.prank(multisig);
+        GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
+            communityToken: address(mockToken),
+            name: "Test",
+            description: "Description",
+            location: "Location",
+            bannerImage: "Banner",
+            metadata: "",
+            openJoining: openJoiningValue
+        });
 
-        if (gardenerCount > 100) {
-            // Should revert for arrays > 100
-            vm.expectRevert("Too many gardeners");
-            GardenToken.GardenConfig memory revertConfig = GardenToken.GardenConfig({
-                communityToken: address(mockToken),
-                name: "Test",
-                description: "Description",
-                location: "Location",
-                bannerImage: "Banner",
-                metadata: "",
-                openJoining: false,
-                gardeners: gardeners,
-                gardenOperators: operators
-            });
-            gardenToken.mintGarden(revertConfig);
-        } else {
-            // Should succeed for arrays <= 100
-            GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-                communityToken: address(mockToken),
-                name: "Test",
-                description: "Description",
-                location: "Location",
-                bannerImage: "Banner",
-                metadata: "",
-                openJoining: false,
-                gardeners: gardeners,
-                gardenOperators: operators
-            });
-            address gardenAccount = gardenToken.mintGarden(config);
-            assertTrue(gardenAccount != address(0), "Garden should be created");
-        }
+        address gardenAccount = gardenToken.mintGarden(config);
+        assertTrue(gardenAccount != address(0), "Garden should be created");
     }
 
     /// @notice Fuzz test capital array combinations

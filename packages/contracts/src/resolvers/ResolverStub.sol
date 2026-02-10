@@ -10,7 +10,7 @@ error NotImplemented();
 /// @title ResolverStub
 /// @notice Minimal resolver stub for deterministic proxy deployment
 /// @dev This contract has no constructor parameters, making it identical across chains
-contract ResolverStub is UUPSUpgradeable, OwnableUpgradeable {
+contract ResolverStub is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Initialize the stub with proper ownership
     function initialize(address _owner) external initializer {
         __UUPSUpgradeable_init();

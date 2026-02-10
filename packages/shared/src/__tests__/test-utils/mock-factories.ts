@@ -92,7 +92,7 @@ export function createMockWorkApprovalDraft(
 export function createMockGarden(overrides?: Partial<Garden>): Garden {
   return {
     id: `garden-${Date.now()}`,
-    chainId: 84532,
+    chainId: 11155111,
     tokenAddress: MOCK_ADDRESSES.garden,
     tokenID: BigInt(1),
     name: "Test Garden",
@@ -138,7 +138,7 @@ export function createMockSmartAccountClient() {
       address: MOCK_ADDRESSES.smartAccount,
     },
     sendTransaction: vi.fn().mockResolvedValue(MOCK_TX_HASH),
-    chain: { id: 84532, name: "Base Sepolia" },
+    chain: { id: 11155111, name: "Sepolia" },
   };
 }
 

@@ -97,7 +97,7 @@ describe("modules/job-queue", () => {
         media: [file],
       },
       TEST_USER_ADDRESS,
-      { chainId: 84532 }
+      { chainId: 11155111 }
     );
 
     expect(jobId).toBeDefined();
@@ -125,7 +125,7 @@ describe("modules/job-queue", () => {
         gardenerAddress: "0xgardener",
       },
       TEST_USER_ADDRESS,
-      { chainId: 84532 }
+      { chainId: 11155111 }
     );
 
     const result = await jobQueue.flush({
@@ -155,7 +155,7 @@ describe("modules/job-queue", () => {
         media: [createMockFile("content", "x.jpg", "image/jpeg")],
       },
       TEST_USER_ADDRESS,
-      { chainId: 84532 }
+      { chainId: 11155111 }
     );
 
     const smartAccountClient = {

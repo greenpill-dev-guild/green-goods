@@ -166,3 +166,45 @@ export function buildBatchApprovalAttestTx(
     value: 0n,
   };
 }
+
+/**
+ * Build batch work attestation transaction params using EAS multiAttest
+ *
+ * This batches multiple work attestations into a single transaction,
+ * allowing wallet users to sync all queued work with one signature.
+ *
+ * @param easConfig - EAS configuration for the chain
+ * @param works - Array of { gardenAddress, attestationData } pairs
+ * @returns Transaction parameters (to, data, value)
+ * @throws Error if works array is empty
+ */
+export function buildBatchWorkAttestTx(
+  easConfig: EASConfig,
+  works: Array<{ gardenAddress: `0x${string}`; attestationData: Hex }>
+): { to: `0x${string}`; data: Hex; value: bigint } {
+  if (works.length === 0) {
+    throw new Error("Works array must not be empty");
+  }
+
+  const multiRequest: MultiAttestationRequest = {
+    schema: easConfig.WORK.uid as Hex,
+    data: works.map(({ gardenAddress, attestationData }) => ({
+      recipient: gardenAddress,
+      expirationTime: NO_EXPIRATION,
+      revocable: true,
+      refUID: ZERO_BYTES32 as Hex,
+      data: attestationData,
+      value: 0n,
+    })),
+  };
+
+  return {
+    to: easConfig.EAS.address as `0x${string}`,
+    data: encodeFunctionData({
+      abi: EASABI,
+      functionName: "multiAttest",
+      args: [[multiRequest]],
+    }),
+    value: 0n,
+  };
+}

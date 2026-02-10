@@ -1,11 +1,20 @@
 import { useGardenPermissions, useGardens } from "@green-goods/shared/hooks";
 import { resolveIPFSUrl } from "@green-goods/shared/modules";
-import { RiAddLine, RiEyeLine, RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
+import {
+  RiAddLine,
+  RiEyeLine,
+  RiPlantLine,
+  RiShieldCheckLine,
+  RiUserLine,
+  RiVipCrownLine,
+} from "@remixicon/react";
 import type { ReactNode } from "react";
+import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 export default function Gardens() {
+  const { formatMessage } = useIntl();
   const gardenPermissions = useGardenPermissions();
   const { data: gardens = [], isLoading, error } = useGardens();
 
@@ -106,9 +115,37 @@ export default function Gardens() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {gardens.map((garden) => {
           const canManage = gardenPermissions.canManageGarden(garden);
+          const isOwner = gardenPermissions.isOwnerOfGarden(garden);
+          const isOperator = gardenPermissions.isOperatorOfGarden(garden);
+          const isEvaluator = gardenPermissions.isEvaluatorOfGarden(garden);
           const resolvedBannerImage = garden.bannerImage
             ? resolveIPFSUrl(garden.bannerImage)
             : null;
+
+          const roleBadge = (() => {
+            if (isOwner) {
+              return {
+                label: formatMessage({ id: "app.roles.owner" }),
+                className: "bg-feature-lighter text-feature-dark",
+                Icon: RiVipCrownLine,
+              };
+            }
+            if (isOperator) {
+              return {
+                label: formatMessage({ id: "app.roles.operator" }),
+                className: "bg-success-lighter text-success-dark",
+                Icon: RiShieldCheckLine,
+              };
+            }
+            if (isEvaluator) {
+              return {
+                label: formatMessage({ id: "app.roles.evaluator" }),
+                className: "bg-info-lighter text-info-dark",
+                Icon: RiEyeLine,
+              };
+            }
+            return null;
+          })();
 
           return (
             <div
@@ -141,10 +178,12 @@ export default function Gardens() {
                     <div className="text-2xl font-bold opacity-80">{garden.name.charAt(0)}</div>
                   </div>
                 </div>
-                {canManage && (
-                  <div className="absolute top-2 right-2 flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark">
-                    <RiShieldCheckLine className="mr-1 h-3 w-3" />
-                    Operator
+                {roleBadge && (
+                  <div
+                    className={`absolute top-2 right-2 flex items-center rounded-full px-2 py-1 text-xs font-medium ${roleBadge.className}`}
+                  >
+                    <roleBadge.Icon className="mr-1 h-3 w-3" />
+                    {roleBadge.label}
                   </div>
                 )}
               </div>
@@ -154,10 +193,12 @@ export default function Gardens() {
                     <h3 className="mb-1 text-lg font-medium text-text-strong">{garden.name}</h3>
                     <p className="text-sm text-text-soft">{garden.location}</p>
                   </div>
-                  {!resolvedBannerImage && canManage && (
-                    <div className="ml-2 flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark">
-                      <RiShieldCheckLine className="mr-1 h-3 w-3" />
-                      Operator
+                  {!resolvedBannerImage && roleBadge && (
+                    <div
+                      className={`ml-2 flex items-center rounded-full px-2 py-1 text-xs font-medium ${roleBadge.className}`}
+                    >
+                      <roleBadge.Icon className="mr-1 h-3 w-3" />
+                      {roleBadge.label}
                     </div>
                   )}
                 </div>

@@ -957,8 +957,19 @@ export function createWalletProgressToasts(formatMessage: FormatMessageFn) {
  * @param stage - Current submission stage
  */
 export function showWalletProgress(
-  stage: "validating" | "uploading" | "confirming" | "syncing" | "success"
+  stage: "validating" | "uploading" | "confirming" | "syncing" | "success",
+  message?: string
 ): void {
+  if (stage === "uploading" && message) {
+    toastService.loading({
+      id: "wallet-submission",
+      title: walletDefaults.uploading.title,
+      message,
+      context: "wallet submission",
+      suppressLogging: true,
+    });
+    return;
+  }
   walletProgressToasts[stage]();
 }
 

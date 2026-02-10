@@ -10,6 +10,7 @@
 
 import { useCallback, useMemo, useRef } from "react";
 
+import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { useDrafts } from "./useDrafts";
 
@@ -132,7 +133,7 @@ export function useDraftAutoSave(
 
       return draftId;
     } catch (error) {
-      console.error("[useDraftAutoSave] Failed to save draft on exit:", error);
+      logger.error("Failed to save draft on exit", { source: "useDraftAutoSave", error });
       trackStorageError(error, {
         source: "useDraftAutoSave.saveOnExit",
         userAction: "saving draft on navigation exit",

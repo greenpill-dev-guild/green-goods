@@ -1,3 +1,4 @@
+import type { GardenAssessment } from "@green-goods/shared";
 import { getTag } from "@green-goods/shared/utils";
 import {
   RiCalendarLine,

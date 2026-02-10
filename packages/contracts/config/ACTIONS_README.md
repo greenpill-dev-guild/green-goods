@@ -414,7 +414,7 @@ cast call $ACTION_REGISTRY "getAction(uint256)" 1 --rpc-url $RPC
 
 ## Reference
 
-- Deployment script: `script/deploy.js`
+- Deployment script: `script/deploy.ts`
 - IPFS uploader: `script/utils/ipfs-uploader.ts`
 - Deployment guide: `/docs/DEPLOYMENT.md`
 - Contracts handbook: `/docs/CONTRACTS_HANDBOOK.md`

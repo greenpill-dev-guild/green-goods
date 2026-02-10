@@ -10,6 +10,7 @@
 import { get as idbGet, set as idbSet } from "idb-keyval";
 import { useEffect } from "react";
 
+import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { useWorkFlowStore, type WorkFlowState } from "../../stores/useWorkFlowStore";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
@@ -44,7 +45,7 @@ export function useWorkImages() {
           _setImages(storedImages);
         }
       } catch (error) {
-        console.error("[useWorkImages] Failed to load images from IDB", error);
+        logger.error("Failed to load images from IDB", { source: "useWorkImages", error });
         trackStorageError(error, {
           source: "useWorkImages.loadImages",
           userAction: "loading draft images from IndexedDB",
@@ -64,7 +65,7 @@ export function useWorkImages() {
         // This handles the reset case as well
         await idbSet(WORK_IMAGES_KEY, images);
       } catch (error) {
-        console.error("[useWorkImages] Failed to save images to IDB", error);
+        logger.error("Failed to save images to IDB", { source: "useWorkImages", error });
         trackStorageError(error, {
           source: "useWorkImages.saveImages",
           userAction: "saving images to IndexedDB",

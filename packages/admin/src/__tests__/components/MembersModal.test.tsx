@@ -90,7 +90,7 @@ describe("components/Garden/MembersModal", () => {
 
       render(createElement(MembersModal, { ...defaultProps, onClose }));
 
-      await user.click(screen.getByLabelText("Close modal"));
+      await user.click(screen.getByLabelText("Close"));
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 

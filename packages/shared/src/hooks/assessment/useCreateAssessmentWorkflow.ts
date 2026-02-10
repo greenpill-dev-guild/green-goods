@@ -3,6 +3,7 @@ import { useMachine } from "@xstate/react";
 import { ethers, type Eip1193Provider } from "ethers";
 import { useAccount } from "wagmi";
 import { getEASConfig } from "../../config/blockchain";
+import { logger } from "../../modules/app/logger";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -88,7 +89,10 @@ export function useCreateAssessmentWorkflow() {
         const uploadedMetrics = await uploadJSONToIPFS(metricsPayload);
         metricsCid = uploadedMetrics.cid;
       } catch (error) {
-        console.error("Failed to upload assessment metrics JSON", error);
+        logger.error("Failed to upload assessment metrics JSON", {
+          source: "useCreateAssessmentWorkflow",
+          error,
+        });
         throw new Error("Invalid metrics JSON. Please provide valid JSON content.");
       }
 

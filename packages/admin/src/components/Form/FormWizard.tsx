@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared/utils";
+import { cn, useTimeout } from "@green-goods/shared";
 import { RiArrowLeftLine, RiLoader4Line } from "@remixicon/react";
 import { type ReactNode, useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
@@ -52,16 +52,15 @@ export function FormWizard({
   const currentStepInfo = steps[currentStep];
 
   // Focus first focusable element when step changes
+  const { set: scheduleTimeout } = useTimeout();
   useEffect(() => {
-    // Small delay to ensure DOM is updated
-    const timeoutId = setTimeout(() => {
+    scheduleTimeout(() => {
       const firstFocusable = contentRef.current?.querySelector<HTMLElement>(
         'input:not([type="hidden"]), button:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
       );
       firstFocusable?.focus();
     }, 100);
-    return () => clearTimeout(timeoutId);
-  }, [currentStep]);
+  }, [currentStep, scheduleTimeout]);
 
   return (
     <div className="bg-bg-weak pb-20 sm:pb-24">

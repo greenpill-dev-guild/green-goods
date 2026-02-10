@@ -11,6 +11,8 @@ export interface DeploymentData {
   workResolver?: string;
   workApprovalResolver?: string;
   assessmentResolver?: string;
+  hatsModule?: string;
+  karmaGAPModule?: string;
   [key: string]: string | undefined;
 }
 
@@ -36,6 +38,7 @@ export interface NetworksConfig {
 const CHAIN_MAP: Record<string, string> = {
   localhost: "31337",
   arbitrum: "42161",
+  sepolia: "11155111",
   baseSepolia: "84532",
   celo: "42220",
 };

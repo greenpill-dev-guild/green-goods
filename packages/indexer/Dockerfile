@@ -26,8 +26,8 @@ RUN pnpm install --ignore-scripts
 # Copy the rest of the source
 COPY . .
 
-# Make entrypoint executable
-RUN chmod +x docker-entrypoint.sh
+# Make scripts executable
+RUN chmod +x scripts/*.sh
 
 # Install generated dependencies
 WORKDIR /app/generated
@@ -48,7 +48,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=5 \
     CMD curl -f http://localhost:9898/health || exit 1
 
 # Use entrypoint to fix ReScript module paths at runtime
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 
 # Use start instead of dev to avoid Docker-in-Docker issues
 # The external docker-compose provides postgres and hasura

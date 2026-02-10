@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { encodeFunctionData } from "viem";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { logger } from "../../modules/app/logger";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { USER_FRIENDLY_ERRORS } from "../../utils/errors/user-messages";
 import { useAuth } from "../auth/useAuth";
@@ -182,7 +183,7 @@ export function useGardenerProfile() {
       });
     },
     onError: (error) => {
-      console.error("Profile update failed:", error);
+      logger.error("Profile update failed", { source: "useGardenerProfile", error });
       toastService.error({
         title: "Profile update failed",
         message: "Please try again.",

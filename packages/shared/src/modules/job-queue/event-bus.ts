@@ -14,6 +14,7 @@ interface JobQueueEventMap {
   "job:failed": { jobId: string; job: Job; error: string };
   "queue:sync-completed": { result: { processed: number; failed: number; skipped: number } };
   "offline:status-changed": { isOnline: boolean };
+  "background:sync-requested": { source: "service-worker"; timestamp: number };
 }
 
 type JobQueueEventType = keyof JobQueueEventMap;

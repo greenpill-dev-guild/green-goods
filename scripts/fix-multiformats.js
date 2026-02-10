@@ -284,6 +284,112 @@ function patchPackageExports(pkgPath) {
   }
 }
 
+function readPackageVersion(pkgPath) {
+  const packageJsonPath = path.join(pkgPath, "package.json");
+  if (!fs.existsSync(packageJsonPath)) {
+    return null;
+  }
+
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+    return typeof packageJson.version === "string" ? packageJson.version : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Normalize Bun cache React runtime to the root installed React/ReactDOM version.
+ *
+ * This prevents mixed React dispatcher instances in test environments where tools
+ * resolve React via root node_modules while package-local symlinks resolve into
+ * .bun cache entries pinned to a different patch version.
+ */
+function synchronizeBunReactRuntime() {
+  const nodeModules = path.join(__dirname, "..", "node_modules");
+  const bunCache = path.join(nodeModules, ".bun");
+
+  if (!fs.existsSync(bunCache)) {
+    console.log("⏭️  .bun cache not found, skipping React runtime sync");
+    return;
+  }
+
+  const rootReactPath = path.join(nodeModules, "react");
+  const rootReactDomPath = path.join(nodeModules, "react-dom");
+
+  if (!fs.existsSync(rootReactPath) || !fs.existsSync(rootReactDomPath)) {
+    console.log("⏭️  Root react/react-dom not found, skipping React runtime sync");
+    return;
+  }
+
+  const rootReactVersion = readPackageVersion(rootReactPath);
+  const rootReactDomVersion = readPackageVersion(rootReactDomPath);
+  if (!rootReactVersion || !rootReactDomVersion) {
+    console.log("⏭️  Could not determine root react versions, skipping React runtime sync");
+    return;
+  }
+
+  const bunDirs = fs.readdirSync(bunCache);
+  let linked = 0;
+
+  const targets = [
+    {
+      prefix: "react@",
+      packageName: "react",
+      sourcePath: rootReactPath,
+      expectedVersion: rootReactVersion,
+    },
+    {
+      prefix: "react-dom@",
+      packageName: "react-dom",
+      sourcePath: rootReactDomPath,
+      expectedVersion: rootReactDomVersion,
+    },
+  ];
+
+  for (const target of targets) {
+    for (const bunDir of bunDirs) {
+      if (!bunDir.startsWith(target.prefix)) continue;
+
+      const cachePackagePath = path.join(
+        bunCache,
+        bunDir,
+        "node_modules",
+        target.packageName
+      );
+
+      if (!fs.existsSync(cachePackagePath)) continue;
+
+      const sourceRealPath = fs.realpathSync(target.sourcePath);
+      let cacheRealPath = null;
+      try {
+        cacheRealPath = fs.realpathSync(cachePackagePath);
+      } catch {
+        cacheRealPath = null;
+      }
+
+      if (cacheRealPath === sourceRealPath) continue;
+
+      fs.rmSync(cachePackagePath, { recursive: true, force: true });
+      const relativeTarget = path.relative(path.dirname(cachePackagePath), target.sourcePath);
+      fs.symlinkSync(
+        relativeTarget,
+        cachePackagePath,
+        process.platform === "win32" ? "junction" : "dir"
+      );
+
+      console.log(
+        `✅ Linked .bun/${bunDir}/${target.packageName} to root ${target.packageName}@${target.expectedVersion}`
+      );
+      linked++;
+    }
+  }
+
+  if (linked === 0) {
+    console.log("✅ React runtime already aligned in .bun cache");
+  }
+}
+
 /**
  * Recursively copy a directory
  */
@@ -319,6 +425,7 @@ function main() {
     patchUint8arrays();
     patchWalletConnect();
     fixBunCacheSymlinks();
+    synchronizeBunReactRuntime();
     console.log("✅ All multiformats compatibility fixes applied successfully!");
   } catch (error) {
     console.error("❌ Error applying multiformats fixes:", error);

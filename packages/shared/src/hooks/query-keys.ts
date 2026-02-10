@@ -147,6 +147,18 @@ export const queryKeys = {
     all: ["greengoods", "role"] as const,
     operatorGardens: (address?: string) =>
       ["greengoods", "role", "operatorGardens", address] as const,
+    gardenRoles: (gardenId?: string, address?: string) =>
+      ["greengoods", "role", "gardenRoles", gardenId, address] as const,
+    hasRole: (gardenId?: string, address?: string, role?: string) =>
+      ["greengoods", "role", "hasRole", gardenId, address, role] as const,
+    evaluatorGardens: (address?: string, gardenIds: string[] = []) =>
+      [
+        "greengoods",
+        "role",
+        "evaluatorGardens",
+        address,
+        JSON.stringify([...gardenIds].sort()),
+      ] as const,
   },
 
   // Draft related keys

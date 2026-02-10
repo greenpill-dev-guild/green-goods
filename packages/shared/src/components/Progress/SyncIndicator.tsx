@@ -48,33 +48,33 @@ const STATUS_CONFIG: Record<SyncStatus, StatusConfig> = {
   synced: {
     icon: "✓",
     label: "Synced",
-    color: "text-green-600 dark:text-green-400",
-    bgColor: "bg-green-100 dark:bg-green-900/30",
+    color: "text-success-base",
+    bgColor: "bg-success-lighter",
   },
   pending: {
     icon: "↑",
     label: "Pending",
-    color: "text-amber-600 dark:text-amber-400",
-    bgColor: "bg-amber-100 dark:bg-amber-900/30",
+    color: "text-warning-base",
+    bgColor: "bg-warning-lighter",
   },
   syncing: {
     icon: "⟳",
     label: "Syncing",
-    color: "text-blue-600 dark:text-blue-400",
-    bgColor: "bg-blue-100 dark:bg-blue-900/30",
+    color: "text-information-base",
+    bgColor: "bg-information-lighter",
     animate: true,
   },
   offline: {
     icon: "○",
     label: "Offline",
-    color: "text-gray-500 dark:text-gray-400",
-    bgColor: "bg-gray-100 dark:bg-gray-800",
+    color: "text-text-soft-400",
+    bgColor: "bg-bg-weak-50",
   },
   error: {
     icon: "!",
     label: "Error",
-    color: "text-red-600 dark:text-red-400",
-    bgColor: "bg-red-100 dark:bg-red-900/30",
+    color: "text-error-base",
+    bgColor: "bg-error-lighter",
   },
 };
 
@@ -135,7 +135,7 @@ function CompactIndicator({
             flex items-center justify-center
             text-[10px] font-bold text-white
             rounded-full
-            ${status === "error" ? "bg-red-500" : "bg-amber-500"}
+            ${status === "error" ? "bg-error-base" : "bg-warning-base"}
           `}
         >
           {status === "error" ? "!" : pendingCount}
@@ -183,14 +183,12 @@ function FullIndicator({
       <div className="flex-1 min-w-0">
         <div className={`text-sm font-medium ${config.color}`}>{config.label}</div>
         {stats.pending > 0 && (
-          <div className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="text-xs text-text-soft-400">
             {stats.pending} item{stats.pending !== 1 ? "s" : ""} waiting to sync
           </div>
         )}
         {stats.failed > 0 && (
-          <div className="text-xs text-red-500 dark:text-red-400">
-            {stats.failed} failed - tap to retry
-          </div>
+          <div className="text-xs text-error-base">{stats.failed} failed - tap to retry</div>
         )}
       </div>
 
@@ -200,10 +198,10 @@ function FullIndicator({
           onClick={onClick}
           className="
             px-3 py-1 text-xs font-medium
-            bg-white dark:bg-gray-700
-            text-gray-700 dark:text-gray-200
+            bg-bg-white-0
+            text-text-sub-600
             rounded-full shadow-sm
-            hover:bg-gray-50 dark:hover:bg-gray-600
+            hover:bg-bg-weak-50
             transition-colors
           "
         >

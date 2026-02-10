@@ -1,64 +1,23 @@
 import {
   cn,
+  createActionSchema,
+  debugError,
   DEFAULT_CHAIN_ID,
   defaultTemplate,
   instructionTemplates,
   toastService,
   uploadFileToIPFS,
+  useActionOperations,
+  type CreateActionFormData,
 } from "@green-goods/shared";
-import { useActionOperations } from "@green-goods/shared/hooks";
-import { debugError } from "@green-goods/shared/utils/debug";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
 import { FileUploadField } from "@/components/FileUploadField";
-
-const instructionInputSchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  label: z.string(),
-  placeholder: z.string().optional(),
-  required: z.boolean().optional(),
-});
-
-const createActionSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  startTime: z.coerce.date(),
-  endTime: z.coerce.date(),
-  capitals: z.array(z.number()).min(1, "Select at least one capital"),
-  media: z.array(z.instanceof(File)).min(1, "At least one image required"),
-  instructionConfig: z.object({
-    description: z.string(),
-    uiConfig: z.object({
-      media: z.object({
-        title: z.string(),
-        description: z.string(),
-        maxImageCount: z.number(),
-        minImageCount: z.number(),
-        required: z.boolean(),
-        needed: z.array(z.string()),
-        optional: z.array(z.string()),
-      }),
-      details: z.object({
-        title: z.string(),
-        description: z.string(),
-        feedbackPlaceholder: z.string(),
-        inputs: z.array(instructionInputSchema),
-      }),
-      review: z.object({
-        title: z.string(),
-        description: z.string(),
-      }),
-    }),
-  }),
-});
-
-type CreateActionForm = z.infer<typeof createActionSchema>;
 
 const stepConfigs: Step[] = [
   { id: "basics", title: "Basics", description: "Title and timeline" },
@@ -72,7 +31,7 @@ export default function CreateAction() {
   const { registerAction, isLoading } = useActionOperations(DEFAULT_CHAIN_ID);
   const [currentStep, setCurrentStep] = useState(0);
 
-  const form = useForm<CreateActionForm>({
+  const form = useForm<CreateActionFormData>({
     resolver: zodResolver(createActionSchema),
     defaultValues: {
       title: "",
@@ -84,7 +43,7 @@ export default function CreateAction() {
     },
   });
 
-  const onSubmit = async (data: CreateActionForm) => {
+  const onSubmit = async (data: CreateActionFormData) => {
     try {
       // Upload media to IPFS
       toastService.loading({ title: "Uploading media to IPFS..." });

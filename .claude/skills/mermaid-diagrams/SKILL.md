@@ -1,6 +1,12 @@
 ---
 name: mermaid-diagrams
 description: Create software diagrams using Mermaid syntax. Use for architecture explanations, workflow/flow diagrams, state machines, and relationship maps.
+version: "1.0"
+last_updated: "2026-02-08"
+last_verified: "2026-02-09"
+status: proven
+packages: []
+dependencies: []
 ---
 
 # Mermaid Diagramming
@@ -16,14 +22,16 @@ When invoked:
 
 ## Diagram Type Selection
 
+**All diagram types render in Markdown** (GitHub, GitLab, docs, PRs):
+
 | Type | Use Case |
 |------|----------|
-| **Class Diagram** | Domain modeling, OOP design, entity relationships |
+| **Flowchart/Graph** | Processes, algorithms, decision trees |
 | **Sequence Diagram** | API flows, authentication, component interactions |
-| **Flowchart** | Processes, algorithms, decision trees |
-| **ERD** | Database schemas, table relationships |
 | **State Diagram** | State machines, lifecycle states |
-| **C4 Diagram** | Multi-level architecture documentation |
+| **Gantt** | Timelines, project scheduling |
+| **Class Diagram** | Domain modeling, OOP design, entity relationships |
+| **ERD** | Database schemas, table relationships |
 
 ## Quick Examples
 
@@ -153,6 +161,38 @@ Before implementing a feature, diagram:
 - State transitions
 - API flow
 
+## Decision Tree
+
+```
+What diagram?
+│
+├─► API/component interaction? ──► Sequence Diagram
+│                                   → Participants = services/components
+│                                   → Arrows = calls/responses
+│
+├─► Process/algorithm/decision? ─► Flowchart (graph)
+│                                   → Nodes = steps/decisions
+│                                   → Edges = flow direction
+│                                   → Use LR for horizontal, TD for vertical
+│
+├─► Lifecycle/state transitions? ► State Diagram
+│                                   → States = entity states
+│                                   → Transitions = events/actions
+│                                   → Good for job queue, work status
+│
+├─► Domain modeling/types? ──────► Class Diagram
+│                                   → Classes = domain entities
+│                                   → Relationships = associations
+│
+├─► Database schema? ────────────► ERD
+│                                   → Entities = tables/collections
+│                                   → Relationships = foreign keys
+│
+└─► Timeline/schedule? ──────────► Gantt
+                                    → Tasks = milestones
+                                    → Sections = phases
+```
+
 ## Best Practices
 
 1. **Start simple** - Core entities first, details later
@@ -165,9 +205,18 @@ Before implementing a feature, diagram:
 
 **Supported platforms:**
 - GitHub/GitLab Markdown (native)
-- VS Code (with extension)
+- VS Code (with Mermaid extension)
 - Notion, Obsidian, Confluence
+- [Mermaid Live Editor](https://mermaid.live) - Interactive preview
 
-**Export:**
+**Export options:**
 - [Mermaid Live Editor](https://mermaid.live) - PNG/SVG export
 - CLI: `npx @mermaid-js/mermaid-cli -i input.mmd -o output.png`
+- Miro MCP: Available for architecture diagrams and collaborative planning (via `miro` MCP server)
+
+## Related Skills
+
+- `architecture` — System design decisions that diagrams document
+- `review` — Change impact diagrams used in Pass 0 of code reviews
+- `xstate` — State machine diagrams for workflow visualization
+- `plan` — Diagrams used in implementation plans

@@ -129,7 +129,7 @@ Now that you understand how packages depend on each other, let's look at what ea
   bun --filter indexer dev       # launches Envio stack + playground on http://localhost:8080
   bun --filter indexer codegen   # regenerate Envio types from config/schema
   ```
-- **Troubleshooting**: Use `bun reset` or `./reset-indexer.sh` to clear Docker volumes when Envio state is corrupted.
+- **Troubleshooting**: Use `bun reset` to clear Docker volumes when Envio state is corrupted.
 - **Key docs**: [Indexer Package](indexer) covers schema and event handlers.
 
 ### Contracts

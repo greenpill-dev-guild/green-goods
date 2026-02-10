@@ -5,11 +5,11 @@
     "clean": "tsc --clean",
     "build": "tsc --build",
     "watch": "tsc --watch",
-    "mocha": "ts-mocha test/**/*.ts",
+    "mocha": "node --import tsx ./node_modules/mocha/bin/mocha.js \"test/**/*.ts\"",
 
     "setup-generated": "cd generated && pnpm install && pnpm run build",
     "codegen": "envio codegen",
-    "dev": "./setup-and-start.sh",
+    "dev": "./scripts/dev.sh",
     "dev:docker": "docker compose -f docker-compose.indexer.yaml up --build",
     "dev:docker:detach": "docker compose -f docker-compose.indexer.yaml up --build -d",
     "dev:docker:logs": "docker compose -f docker-compose.indexer.yaml logs -f indexer",
@@ -18,8 +18,8 @@
     "start": "envio start",
     "stop": "pkill -f 'envio dev' || true && lsof -ti:9898 -ti:8080 2>/dev/null | xargs kill -9 2>/dev/null || true",
 
-    "doctor": "./doctor.sh",
-    "doctor:fix": "./doctor.sh --fix",
+    "doctor": "./scripts/doctor.sh",
+    "doctor:fix": "./scripts/doctor.sh --fix",
     "db:up": "cd generated && docker compose up -d",
     "db:down": "cd generated && docker compose down",
     "db:logs": "cd generated && docker compose logs -f",
@@ -29,7 +29,7 @@
     "test": "bun run mocha",
     "test:full": "bun run test:setup && bun run mocha",
     "lint": "oxlint src test",
-    "reset": "./reset-indexer.sh"
+    "reset": "./scripts/reset.sh"
   },
   "devDependencies": {
     "@types/chai": "^4.3.20",
@@ -47,6 +47,6 @@
     "rescript-envsafe": "^5.0.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }

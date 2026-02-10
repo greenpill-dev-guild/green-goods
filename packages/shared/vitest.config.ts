@@ -1,6 +1,28 @@
 import react from "@vitejs/plugin-react";
+import fs from "node:fs";
 import path from "path";
 import { defineConfig } from "vitest/config";
+
+const workspaceRoot = path.resolve(__dirname, "../..");
+const workspaceNodeModules = path.join(workspaceRoot, "node_modules");
+const rootReactPath = path.join(workspaceNodeModules, "react");
+const rootReactDomPath = path.join(workspaceNodeModules, "react-dom");
+
+function escapeRegex(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function aliasPrefix(from: string, to: string) {
+  return {
+    find: new RegExp(`^${escapeRegex(from)}(?:/(.*))?$`),
+    replacement: `${to}/$1`,
+  };
+}
+
+const sharedReactSymlinkPath = path.join(__dirname, "node_modules/react");
+const sharedReactDomSymlinkPath = path.join(__dirname, "node_modules/react-dom");
+const sharedReactRealPath = fs.realpathSync(sharedReactSymlinkPath);
+const sharedReactDomRealPath = fs.realpathSync(sharedReactDomSymlinkPath);
 
 export default defineConfig({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,11 +34,6 @@ export default defineConfig({
     testTimeout: 10000,
     pool: "threads",
     isolate: false,
-    deps: {
-      external: [],
-      inline: true,
-      interopDefault: true,
-    },
     server: {
       deps: {
         inline: [
@@ -27,13 +44,17 @@ export default defineConfig({
           "react",
           "react-dom",
           "react-intl",
+          "react-router",
+          "react-router-dom",
           "@testing-library/react",
           "@tanstack/react-query",
+          "zustand",
           "viem",
           "wagmi",
           "@walletconnect/utils",
           "@walletconnect/types",
         ],
+        external: [],
       },
     },
     coverage: {
@@ -67,19 +88,30 @@ export default defineConfig({
   },
   resolve: {
     dedupe: ["react", "react-dom", "multiformats", "uint8arrays"],
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    alias: [
+      // Rewrite any resolved shared-package React path (including Bun store realpaths)
+      // to the workspace root runtime so hooks always use a single dispatcher.
+      aliasPrefix(sharedReactSymlinkPath, rootReactPath),
+      aliasPrefix(sharedReactRealPath, rootReactPath),
+      aliasPrefix(sharedReactDomSymlinkPath, rootReactDomPath),
+      aliasPrefix(sharedReactDomRealPath, rootReactDomPath),
+      { find: "react", replacement: rootReactPath },
+      { find: "react-dom", replacement: rootReactDomPath },
+      { find: "react-dom/client", replacement: path.join(rootReactDomPath, "client.js") },
+      { find: "react-dom/test-utils", replacement: path.join(rootReactDomPath, "test-utils.js") },
+      { find: "react/jsx-runtime", replacement: path.join(rootReactPath, "jsx-runtime.js") },
+      { find: "react/jsx-dev-runtime", replacement: path.join(rootReactPath, "jsx-dev-runtime.js") },
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
       // Mock EAS SDK to avoid multiformats dependency chain in tests
-      "@ethereum-attestation-service/eas-sdk": path.resolve(
-        __dirname,
-        "./src/__mocks__/eas-sdk.ts"
-      ),
+      {
+        find: "@ethereum-attestation-service/eas-sdk",
+        replacement: path.resolve(__dirname, "./src/__mocks__/eas-sdk.ts"),
+      },
       // Mock WalletConnect utils to avoid uint8arrays dependency chain in tests
-      "@walletconnect/utils": path.resolve(
-        __dirname,
-        "./src/__mocks__/walletconnect-utils.ts"
-      ),
-    },
+      {
+        find: "@walletconnect/utils",
+        replacement: path.resolve(__dirname, "./src/__mocks__/walletconnect-utils.ts"),
+      },
+    ],
   },
 });
-

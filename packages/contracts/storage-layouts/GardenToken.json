@@ -1,0 +1,112 @@
+{
+  "storage": [
+    {
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint8"
+    },
+    {
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "label": "_name",
+      "offset": 0,
+      "slot": "101",
+      "type": "t_string_storage"
+    },
+    {
+      "label": "_symbol",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_string_storage"
+    },
+    {
+      "label": "_owners",
+      "offset": 0,
+      "slot": "103",
+      "type": "t_mapping(t_uint256,t_address)"
+    },
+    {
+      "label": "_balances",
+      "offset": 0,
+      "slot": "104",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "label": "_tokenApprovals",
+      "offset": 0,
+      "slot": "105",
+      "type": "t_mapping(t_uint256,t_address)"
+    },
+    {
+      "label": "_operatorApprovals",
+      "offset": 0,
+      "slot": "106",
+      "type": "t_mapping(t_address,t_mapping(t_address,t_bool))"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "107",
+      "type": "t_array(t_uint256)44_storage"
+    },
+    {
+      "label": "_owner",
+      "offset": 0,
+      "slot": "151",
+      "type": "t_address"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "_nextTokenId",
+      "offset": 0,
+      "slot": "201",
+      "type": "t_uint256"
+    },
+    {
+      "label": "deploymentRegistry",
+      "offset": 0,
+      "slot": "202",
+      "type": "t_address"
+    },
+    {
+      "label": "hatsModule",
+      "offset": 0,
+      "slot": "203",
+      "type": "t_contract(IHatsModule)5920"
+    },
+    {
+      "label": "karmaGAPModule",
+      "offset": 0,
+      "slot": "204",
+      "type": "t_contract(IKarmaGAPModule)6074"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "205",
+      "type": "t_array(t_uint256)46_storage"
+    }
+  ]
+}

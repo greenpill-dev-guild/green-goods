@@ -3,6 +3,7 @@ import type { WorkApproval, Address } from "../../types/domain";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
+import { logger } from "../../modules/app/logger";
 import { queryKeys, STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../query-keys";
 
 // Enhanced work approval interface for UI
@@ -118,7 +119,7 @@ export function useWorkApprovals(attesterAddress?: string) {
       try {
         return await getWorkApprovalsByAttester(attesterAddress!, chainId);
       } catch (error) {
-        console.warn("Error in online approvals query:", error);
+        logger.warn("Error in online approvals query", { source: "useWorkApprovals", error });
         return []; // Return empty array on error
       }
     },

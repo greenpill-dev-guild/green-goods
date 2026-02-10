@@ -2,6 +2,8 @@
 
 This package contains the frontend application for Green Goods, a Progressive Web App (PWA) designed to revolutionize community impact reporting. It enables Garden Operators and Gardeners to document and get approval for community actions, interact with blockchain components for attestations, and view impact data.
 
+> **Dependency Management**: use the [dependency-management skill](../../.claude/skills/dependency-management/SKILL.md) for package upgrades, lockfile updates, and vulnerability audits.
+
 📖 **[Client Documentation](https://docs.greengoods.app/developer/architecture/client-package)** — Complete client architecture and development guide
 
 **Essential Guides:**
@@ -33,12 +35,10 @@ The root `.env` file is automatically loaded by:
 - `VITE_PIMLICO_API_KEY`: **Required** - Pimlico API key for passkey smart accounts (get from [pimlico.io](https://pimlico.io))
 - `VITE_APP_URL`: Application URL for AppKit metadata (e.g., `https://greengoods.app` or `http://localhost:3001` for dev)
 - `VITE_PINATA_JWT`: Pinata JWT token for uploads (client-side)
-- `VITE_CHAIN_ID`: Chain selection (e.g., 42161 for Arbitrum, 84532 for Base Sepolia)
+- `VITE_CHAIN_ID`: Chain selection (e.g., 11155111 for Sepolia default, 42161 for Arbitrum, 42220 for Celo)
 - `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev)
 - `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development
 - `VITE_DEBUG_MODE`: Optional toggle to skip the two-media requirement in the Garden submission flow and enable verbose debug logging (use for manual testing only)
-- `VITE_PRIVY_APP_ID`: **Deprecated** - Legacy Privy authentication (being migrated away)
-
 **Setup:**
 1. Copy the root `.env.example` to `.env` at the project root
 2. Get your WalletConnect Project ID from [cloud.reown.com](https://cloud.reown.com/)
@@ -88,7 +88,7 @@ The project includes pre-configured VS Code settings that:
 
 **Code Quality Tools:**
 - **Biome**: Fast formatting and basic linting (35x faster than Prettier)
-- **0xlint**: Ultra-fast Rust-based linting (30ms on entire codebase)
+- **oxlint**: Ultra-fast Rust-based linting (30ms on entire codebase)
 - **TypeScript**: Strict type checking with excellent IDE integration
 - **Husky**: Automated git hooks for quality checks
 
@@ -109,7 +109,7 @@ bun run format
 # Run linting (ultra-fast)
 bun run lint
 
-# The lint command runs both Biome checks and 0xlint
+# The lint command runs both Biome checks and oxlint
 ```
 
 **Testing Commands:**
@@ -215,8 +215,7 @@ The client supports dual build systems for different use cases:
 bun run build
 ```
 - **Optimized**: Full Vite optimization with code splitting
-- **Bundle Size**: ~4.4MB main bundle with dynamic imports
-- **Features**: PWA support, optimal chunking, production-ready
+- **Features**: PWA support, dynamic imports, optimal chunking, production-ready
 
 ### Experimental Build
 ```bash
@@ -261,11 +260,11 @@ The project uses a high-performance linting setup:
   bun run lint
   ```
 
-The `lint` command runs both Biome checks and 0xlint to ensure code quality and consistency in milliseconds.
+The `lint` command runs both Biome checks and oxlint to ensure code quality and consistency in milliseconds.
 
 **Tools Used:**
 - **Biome**: Fast formatting and basic checks
-- **0xlint**: Ultra-fast Rust-based linting (30ms on 84 files)
+- **oxlint**: Ultra-fast Rust-based linting (30ms on 84 files)
 - **Combined**: Complete code quality coverage
 
 ## Key Technologies
@@ -289,23 +288,21 @@ The client application is built with a modern frontend stack:
 - **[React Hook Form](https://react-hook-form.com/):** Form validation and management
 
 ### Authentication & Blockchain
-- **[Privy](https://www.privy.io/):** User authentication and wallet management
+- **[Reown AppKit](https://reown.com/):** Wallet connection (MetaMask, WalletConnect, Coinbase)
+- **[Pimlico](https://pimlico.io/):** Passkey smart accounts for gasless transactions
 - **[EAS SDK](https://github.com/ethereum-attestation-service/eas-sdk):** Ethereum Attestation Service integration
 - **[Viem](https://viem.sh/):** Type-safe Ethereum client
 
 ### Development & Quality
 - **[Vitest](https://vitest.dev/):** Vite-native testing framework
 - **[Biome](https://biomejs.dev/):** Fast formatting and linting
-- **[0xlint](https://oxc-project.github.io/):** Ultra-fast Rust-based linting
+- **[oxlint](https://oxc-project.github.io/):** Ultra-fast Rust-based linting
 - **[PWA Features](https://vite-pwa-org.netlify.app/):** Progressive Web App capabilities
 
 ### Performance Optimizations
 - **Dynamic Imports**: Lazy loading for major components (Home, Garden, Profile views)
 - **Code Splitting**: Automatic chunking for optimal loading
-- **Bundle Optimization**: ~4.4MB main bundle with separate feature chunks
-  - `Assessment-*.js` (0.36 kB) - Assessment component
-  - `Garden-*.js` (10.81 kB) - Garden component  
-  - `WorkApproval-*.js` (66.11 kB) - Work approval component
+- **Bundle Optimization**: Separate feature chunks for Assessment, Garden, and WorkApproval components
 
 ## Architecture & Features
 
@@ -398,7 +395,7 @@ The `packages/client/src` directory is organized as follows:
 - **`config.ts`**: Configuration management for API endpoints, chains, and feature flags
 
 ### Hooks (`hooks/`)
-Centralized React hooks for shared functionality:
+Thin client-specific wrappers (business logic hooks live in `@green-goods/shared`):
 - **`index.ts`**: Central export file for all hooks
 - **`useChainConfig.ts`**: Chain configuration hooks (useCurrentChain, useEASConfig, useNetworkConfig, useChainConfig)
 - **`useDebounced.ts`**: Debouncing utilities (useDebounced, useDebouncedValue)
@@ -460,7 +457,7 @@ Main application pages with lazy loading:
   - `Account.tsx`: Account settings and wallet management
   - `Help.tsx`: Help documentation and support
 - **`Landing/`**: Public landing page for unauthenticated users
-- **`Login/`**: Authentication flow with Privy integration
+- **`Login/`**: Authentication flow with dual passkey/wallet support
 
 ### Providers (`providers/`)
 React context providers for global state:

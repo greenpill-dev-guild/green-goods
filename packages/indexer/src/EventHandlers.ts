@@ -1,6 +1,7 @@
 import {
   ActionRegistry,
   GardenAccount,
+  HatsModule,
   GardenToken,
   Capital,
   HypercertMinter,
@@ -10,7 +11,6 @@ import {
 import type {
   Action,
   Garden,
-  Gardener,
   ActionRegistry_ActionRegistered_handlerArgs,
   ActionRegistry_ActionStartTimeUpdated_handlerArgs,
   ActionRegistry_ActionEndTimeUpdated_handlerArgs,
@@ -22,10 +22,6 @@ import type {
   GardenAccount_DescriptionUpdated_handlerArgs,
   GardenAccount_LocationUpdated_handlerArgs,
   GardenAccount_BannerImageUpdated_handlerArgs,
-  GardenAccount_GardenerAdded_handlerArgs,
-  GardenAccount_GardenerRemoved_handlerArgs,
-  GardenAccount_GardenOperatorAdded_handlerArgs,
-  GardenAccount_GardenOperatorRemoved_handlerArgs,
   GardenAccount_GAPProjectCreated_handlerArgs,
   GardenAccount_OpenJoiningUpdated_handlerArgs,
   Hypercert,
@@ -33,6 +29,7 @@ import type {
   HypercertMinter_TransferSingle_handlerArgs,
   HypercertMinter_ClaimStored_handlerArgs,
   HandlerTypes_contractRegisterArgs,
+  HandlerTypes_handlerArgs,
   GardenToken_GardenMinted_eventArgs,
   contractRegistrations,
 } from "../generated/src/Types.gen";
@@ -46,6 +43,30 @@ import type {
  * Used to work around readonly entity types when building update objects.
  */
 type Mutable<T> = { -readonly [P in keyof T]: T[P] };
+
+type HatsModule_GardenHatTreeCreated_eventArgs = {
+  readonly garden: string;
+  readonly adminHatId: bigint;
+};
+
+type HatsModule_RoleGranted_eventArgs = {
+  readonly garden: string;
+  readonly account: string;
+  readonly role: bigint;
+};
+
+type HatsModule_RoleRevoked_eventArgs = {
+  readonly garden: string;
+  readonly account: string;
+  readonly role: bigint;
+};
+
+type HatsModule_PartialGrantFailed_eventArgs = {
+  readonly garden: string;
+  readonly account: string;
+  readonly role: bigint;
+  readonly reason: string;
+};
 
 /**
  * Extended transaction type that includes the hash field.
@@ -91,12 +112,41 @@ const CAPITAL_TYPE_MAP: Record<number, Capital> = {
 } as const;
 
 /**
+ * Garden role enum mapping (mirrors IHatsModule.GardenRole)
+ */
+const GARDEN_ROLE = {
+  Gardener: 0,
+  Evaluator: 1,
+  Operator: 2,
+  Owner: 3,
+  Funder: 4,
+  Community: 5,
+} as const;
+
+/**
  * Converts a numeric capital type from the blockchain to a Capital enum value.
  * Returns "UNKNOWN" for any unrecognized values.
  */
 function mapCapitalType(value: bigint): Capital {
   const numValue = Number(value);
   return CAPITAL_TYPE_MAP[numValue] ?? "UNKNOWN";
+}
+
+function normalizeAddress(address: string): string {
+  return address.toLowerCase();
+}
+
+function addUniqueAddress(list: string[], address: string): string[] {
+  const normalized = normalizeAddress(address);
+  if (list.some((item) => normalizeAddress(item) === normalized)) {
+    return list;
+  }
+  return [...list, normalized];
+}
+
+function removeAddress(list: string[], address: string): string[] {
+  const normalized = normalizeAddress(address);
+  return list.filter((item) => normalizeAddress(item) !== normalized);
 }
 
 // ============================================================================
@@ -120,6 +170,10 @@ function createDefaultGarden(gardenId: string, chainId: number, timestamp: numbe
     openJoining: false,
     gardeners: [],
     operators: [],
+    evaluators: [],
+    owners: [],
+    funders: [],
+    communities: [],
     createdAt: timestamp,
     gapProjectUID: undefined,
   };
@@ -265,12 +319,7 @@ GardenToken.GardenMinted.handler(
   async ({ event, context }: GardenToken_GardenMinted_handlerArgs<void>) => {
     const gardenId = event.params.account;
 
-    // Merge operators into gardeners list (operators are also gardeners by contract design)
-    // Note: The contract's initialize() should set gardeners[op] = true for all operators,
-    // but we ensure consistency here by merging the lists.
-    const allMemberAddresses = [...new Set([...event.params.gardeners, ...event.params.operators])];
-
-    // 1. Create Garden Entity
+    // Role arrays are derived from HatsModule RoleGranted/RoleRevoked events.
     const gardenEntity: Garden = {
       id: gardenId,
       chainId: event.chainId,
@@ -279,43 +328,18 @@ GardenToken.GardenMinted.handler(
       location: event.params.location,
       bannerImage: event.params.bannerImage,
       openJoining: event.params.openJoining,
-      gardeners: allMemberAddresses, // Operators are also gardeners
-      operators: event.params.operators,
+      gardeners: [],
+      operators: [],
+      evaluators: [],
+      owners: [],
+      funders: [],
+      communities: [],
       tokenAddress: event.srcAddress,
       tokenID: event.params.tokenId,
       createdAt: event.block.timestamp,
       gapProjectUID: undefined,
     };
     context.Garden.set(gardenEntity);
-
-    // 2. Create/Update Gardener Entities for all members (gardeners + operators)
-    for (const memberAddress of allMemberAddresses) {
-      const gardenerId = `${event.chainId}-${memberAddress}`;
-      const existingGardener = await context.Gardener.get(gardenerId);
-
-      if (existingGardener) {
-        const updatedGardens = [...new Set([...existingGardener.gardens, gardenId])];
-        context.Gardener.set({ ...existingGardener, gardens: updatedGardens });
-      } else {
-        const newGardener: Gardener = {
-          id: gardenerId,
-          chainId: event.chainId,
-          createdAt: event.block.timestamp,
-          firstGarden: gardenId,
-          gardens: [gardenId],
-          owner: undefined,
-          ensName: undefined,
-          passkeyCredentialId: undefined,
-          claimedAt: undefined,
-          ensAvatar: undefined,
-          ensDescription: undefined,
-          ensTwitter: undefined,
-          ensGithub: undefined,
-          ensEmail: undefined,
-        };
-        context.Gardener.set(newGardener);
-      }
-    }
   }
 );
 
@@ -400,182 +424,6 @@ GardenAccount.BannerImageUpdated.handler(
   }
 );
 
-// Handler for the GardenerAdded event
-GardenAccount.GardenerAdded.handler(
-  async ({ event, context }: GardenAccount_GardenerAdded_handlerArgs<void>) => {
-    const gardenId = event.srcAddress;
-    const gardenerAddress = event.params.gardener;
-
-    // Create unique gardener ID with chain prefix
-    const gardenerId = `${event.chainId}-${gardenerAddress}`;
-
-    // Check if gardener entity already exists
-    const existingGardener = await context.Gardener.get(gardenerId);
-
-    if (existingGardener) {
-      // Update existing gardener with new garden
-      const updatedGardens = [...new Set([...existingGardener.gardens, gardenId])];
-      const updatedGardener: Gardener = {
-        ...existingGardener,
-        gardens: updatedGardens,
-      };
-      context.Gardener.set(updatedGardener);
-    } else {
-      // Create new gardener entity
-      const newGardener: Gardener = {
-        id: gardenerId,
-        chainId: event.chainId,
-        createdAt: event.block.timestamp,
-        firstGarden: gardenId,
-        gardens: [gardenId],
-        owner: undefined,
-        ensName: undefined,
-        passkeyCredentialId: undefined,
-        claimedAt: undefined,
-        ensAvatar: undefined,
-        ensDescription: undefined,
-        ensTwitter: undefined,
-        ensGithub: undefined,
-        ensEmail: undefined,
-      };
-      context.Gardener.set(newGardener);
-    }
-
-    // Update garden entity
-    const existingGarden = await context.Garden.get(gardenId);
-    if (existingGarden) {
-      const updatedGardeners = [...existingGarden.gardeners, gardenerAddress];
-      const updatedGarden: Garden = {
-        ...existingGarden,
-        gardeners: updatedGardeners,
-      };
-      context.Garden.set(updatedGarden);
-    }
-  }
-);
-
-// Handler for the GardenerRemoved event
-GardenAccount.GardenerRemoved.handler(
-  async ({ event, context }: GardenAccount_GardenerRemoved_handlerArgs<void>) => {
-    const gardenId = event.srcAddress;
-    const gardenerAddress = event.params.gardener;
-    const gardenerId = `${event.chainId}-${gardenerAddress}`;
-
-    // Update gardener entity (remove garden from their list)
-    const existingGardener = await context.Gardener.get(gardenerId);
-    if (existingGardener) {
-      const updatedGardens = existingGardener.gardens.filter((id) => id !== gardenId);
-      const updatedGardener: Gardener = {
-        ...existingGardener,
-        gardens: updatedGardens,
-      };
-      context.Gardener.set(updatedGardener);
-    }
-
-    // Update garden entity
-    const existingGarden = await context.Garden.get(gardenId);
-    if (existingGarden) {
-      const updatedGardeners = existingGarden.gardeners.filter(
-        (gardener) => gardener !== gardenerAddress
-      );
-      const updatedGarden: Garden = {
-        ...existingGarden,
-        gardeners: updatedGardeners,
-      };
-      context.Garden.set(updatedGarden);
-    }
-  }
-);
-
-// Handler for the GardenOperatorAdded event
-// Note: In the contract, operators are also added as gardeners (addGardenOperator sets both mappings).
-// We mirror this behavior in the indexer for consistency.
-GardenAccount.GardenOperatorAdded.handler(
-  async ({ event, context }: GardenAccount_GardenOperatorAdded_handlerArgs<void>) => {
-    const gardenId = event.srcAddress;
-    const operatorAddress = event.params.operator;
-    const existingGarden = await context.Garden.get(gardenId);
-
-    if (existingGarden) {
-      // Add to operators list
-      const updatedOperators = [...existingGarden.operators, operatorAddress];
-
-      // Also add to gardeners list for consistency with contract behavior
-      // (GardenAccount.addGardenOperator sets both gardenOperators[op] = true AND gardeners[op] = true)
-      const isAlreadyGardener = existingGarden.gardeners.some(
-        (g) => g.toLowerCase() === operatorAddress.toLowerCase()
-      );
-      const updatedGardeners = isAlreadyGardener
-        ? existingGarden.gardeners
-        : [...existingGarden.gardeners, operatorAddress];
-
-      const updatedGarden: Garden = {
-        ...existingGarden,
-        operators: updatedOperators,
-        gardeners: updatedGardeners,
-      };
-
-      context.Garden.set(updatedGarden);
-    }
-
-    // Also update/create Gardener entity (since operators are gardeners)
-    const gardenerId = `${event.chainId}-${operatorAddress}`;
-    const existingGardener = await context.Gardener.get(gardenerId);
-
-    if (existingGardener) {
-      // Update existing gardener with new garden if not already present
-      const hasGarden = existingGardener.gardens.includes(gardenId);
-      if (!hasGarden) {
-        const updatedGardens = [...existingGardener.gardens, gardenId];
-        const updatedGardener: Gardener = {
-          ...existingGardener,
-          gardens: updatedGardens,
-        };
-        context.Gardener.set(updatedGardener);
-      }
-    } else {
-      // Create new gardener entity
-      const newGardener: Gardener = {
-        id: gardenerId,
-        chainId: event.chainId,
-        createdAt: event.block.timestamp,
-        firstGarden: gardenId,
-        gardens: [gardenId],
-        owner: undefined,
-        ensName: undefined,
-        passkeyCredentialId: undefined,
-        claimedAt: undefined,
-        ensAvatar: undefined,
-        ensDescription: undefined,
-        ensTwitter: undefined,
-        ensGithub: undefined,
-        ensEmail: undefined,
-      };
-      context.Gardener.set(newGardener);
-    }
-  }
-);
-
-// Handler for the GardenOperatorRemoved event
-GardenAccount.GardenOperatorRemoved.handler(
-  async ({ event, context }: GardenAccount_GardenOperatorRemoved_handlerArgs<void>) => {
-    const gardenId = event.srcAddress;
-    const existingGarden = await context.Garden.get(gardenId);
-
-    if (existingGarden) {
-      const updatedOperators = existingGarden.operators.filter(
-        (operator) => operator !== event.params.operator
-      );
-      const updatedGarden: Garden = {
-        ...existingGarden,
-        operators: updatedOperators,
-      };
-
-      context.Garden.set(updatedGarden);
-    }
-  }
-);
-
 // Handler for the GAPProjectCreated event
 GardenAccount.GAPProjectCreated.handler(
   async ({ event, context }: GardenAccount_GAPProjectCreated_handlerArgs<void>) => {
@@ -618,6 +466,198 @@ GardenAccount.OpenJoiningUpdated.handler(
     } else {
       context.log.warn(`Garden ${gardenId} not found when processing OpenJoiningUpdated event`);
     }
+  }
+);
+
+// ============================================================================
+// HATS MODULE EVENT HANDLERS
+// ============================================================================
+
+HatsModule.GardenHatTreeCreated.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<HatsModule_GardenHatTreeCreated_eventArgs, void>) => {
+    context.log.info(`Garden hat tree created`, {
+      garden: event.params.garden,
+      adminHatId: event.params.adminHatId.toString(),
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+    });
+  }
+);
+
+HatsModule.RoleGranted.handler(
+  async ({ event, context }: HandlerTypes_handlerArgs<HatsModule_RoleGranted_eventArgs, void>) => {
+    const gardenId = event.params.garden;
+    const account = event.params.account;
+    const role = Number(event.params.role);
+
+    let existingGarden = await context.Garden.get(gardenId);
+    if (!existingGarden) {
+      existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
+    }
+
+    let updatedGardeners = existingGarden.gardeners;
+    let updatedOperators = existingGarden.operators;
+    let updatedEvaluators = existingGarden.evaluators;
+    let updatedOwners = existingGarden.owners;
+    let updatedFunders = existingGarden.funders;
+    let updatedCommunities = existingGarden.communities;
+
+    if (role === GARDEN_ROLE.Gardener) {
+      updatedGardeners = addUniqueAddress(updatedGardeners, account);
+    } else if (role === GARDEN_ROLE.Operator) {
+      updatedOperators = addUniqueAddress(updatedOperators, account);
+    } else if (role === GARDEN_ROLE.Evaluator) {
+      updatedEvaluators = addUniqueAddress(updatedEvaluators, account);
+    } else if (role === GARDEN_ROLE.Owner) {
+      updatedOwners = addUniqueAddress(updatedOwners, account);
+    } else if (role === GARDEN_ROLE.Funder) {
+      updatedFunders = addUniqueAddress(updatedFunders, account);
+    } else if (role === GARDEN_ROLE.Community) {
+      updatedCommunities = addUniqueAddress(updatedCommunities, account);
+    }
+
+    if (
+      updatedGardeners !== existingGarden.gardeners ||
+      updatedOperators !== existingGarden.operators ||
+      updatedEvaluators !== existingGarden.evaluators ||
+      updatedOwners !== existingGarden.owners ||
+      updatedFunders !== existingGarden.funders ||
+      updatedCommunities !== existingGarden.communities
+    ) {
+      context.Garden.set({
+        ...existingGarden,
+        gardeners: updatedGardeners,
+        operators: updatedOperators,
+        evaluators: updatedEvaluators,
+        owners: updatedOwners,
+        funders: updatedFunders,
+        communities: updatedCommunities,
+      });
+    }
+
+    if (role === GARDEN_ROLE.Gardener) {
+      const gardenerId = `${event.chainId}-${normalizeAddress(account)}`;
+      const existingGardener = await context.Gardener.get(gardenerId);
+
+      if (existingGardener) {
+        if (!existingGardener.gardens.includes(gardenId)) {
+          context.Gardener.set({
+            ...existingGardener,
+            gardens: [...existingGardener.gardens, gardenId],
+          });
+        }
+      } else {
+        context.Gardener.set({
+          id: gardenerId,
+          chainId: event.chainId,
+          createdAt: event.block.timestamp,
+          firstGarden: gardenId,
+          gardens: [gardenId],
+          owner: undefined,
+          ensName: undefined,
+          passkeyCredentialId: undefined,
+          claimedAt: undefined,
+          ensAvatar: undefined,
+          ensDescription: undefined,
+          ensTwitter: undefined,
+          ensGithub: undefined,
+          ensEmail: undefined,
+        });
+      }
+    }
+  }
+);
+
+HatsModule.RoleRevoked.handler(
+  async ({ event, context }: HandlerTypes_handlerArgs<HatsModule_RoleRevoked_eventArgs, void>) => {
+    const gardenId = event.params.garden;
+    const account = event.params.account;
+    const role = Number(event.params.role);
+
+    const existingGarden = await context.Garden.get(gardenId);
+    if (!existingGarden) return;
+
+    let updatedGardeners = existingGarden.gardeners;
+    let updatedOperators = existingGarden.operators;
+    let updatedEvaluators = existingGarden.evaluators;
+    let updatedOwners = existingGarden.owners;
+    let updatedFunders = existingGarden.funders;
+    let updatedCommunities = existingGarden.communities;
+
+    if (role === GARDEN_ROLE.Operator) {
+      updatedOperators = removeAddress(updatedOperators, account);
+    }
+
+    if (role === GARDEN_ROLE.Gardener) {
+      updatedGardeners = removeAddress(updatedGardeners, account);
+    }
+
+    if (role === GARDEN_ROLE.Evaluator) {
+      updatedEvaluators = removeAddress(updatedEvaluators, account);
+    }
+
+    if (role === GARDEN_ROLE.Owner) {
+      updatedOwners = removeAddress(updatedOwners, account);
+    }
+
+    if (role === GARDEN_ROLE.Funder) {
+      updatedFunders = removeAddress(updatedFunders, account);
+    }
+
+    if (role === GARDEN_ROLE.Community) {
+      updatedCommunities = removeAddress(updatedCommunities, account);
+    }
+
+    if (
+      updatedGardeners !== existingGarden.gardeners ||
+      updatedOperators !== existingGarden.operators ||
+      updatedEvaluators !== existingGarden.evaluators ||
+      updatedOwners !== existingGarden.owners ||
+      updatedFunders !== existingGarden.funders ||
+      updatedCommunities !== existingGarden.communities
+    ) {
+      context.Garden.set({
+        ...existingGarden,
+        gardeners: updatedGardeners,
+        operators: updatedOperators,
+        evaluators: updatedEvaluators,
+        owners: updatedOwners,
+        funders: updatedFunders,
+        communities: updatedCommunities,
+      });
+    }
+
+    if (role === GARDEN_ROLE.Gardener) {
+      const gardenerId = `${event.chainId}-${normalizeAddress(account)}`;
+      const existingGardener = await context.Gardener.get(gardenerId);
+      if (existingGardener) {
+        context.Gardener.set({
+          ...existingGardener,
+          gardens: existingGardener.gardens.filter(
+            (id) => normalizeAddress(id) !== normalizeAddress(gardenId)
+          ),
+        });
+      }
+    }
+  }
+);
+
+HatsModule.PartialGrantFailed.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<HatsModule_PartialGrantFailed_eventArgs, void>) => {
+    context.log.warn(`Partial hat grant failed`, {
+      garden: event.params.garden,
+      account: event.params.account,
+      role: event.params.role.toString(),
+      reason: event.params.reason,
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+    });
   }
 );
 

@@ -17,6 +17,8 @@ export { useCopyToClipboard } from "./utils/useCopyToClipboard";
 // ============================================================================
 export type { ActionOperationResult } from "./action/useActionOperations";
 export { useActionOperations } from "./action/useActionOperations";
+export type { CreateActionFormData } from "./action/useActionForm";
+export { createActionSchema } from "./action/useActionForm";
 
 // ============================================================================
 // ANALYTICS
@@ -138,6 +140,16 @@ export type { RoleInfo, UserRole } from "./gardener/useRole";
 export { useRole } from "./gardener/useRole";
 
 // ============================================================================
+// ROLES
+// ============================================================================
+export type { UseGardenRolesResult } from "./roles/useGardenRoles";
+export { useGardenRoles } from "./roles/useGardenRoles";
+export type { UseHasRoleResult } from "./roles/useHasRole";
+export { useHasRole } from "./roles/useHasRole";
+export type { RolePermissions } from "./roles/useRolePermissions";
+export { useRolePermissions } from "./roles/useRolePermissions";
+
+// ============================================================================
 // HYPERCERTS
 // Hooks are grouped together with useHypercert* prefix for discoverability
 // ============================================================================
@@ -201,6 +213,7 @@ export { useDrafts } from "./work/useDrafts";
 export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
 export { useWorkApproval } from "./work/useWorkApproval";
 export { useBatchWorkApproval } from "./work/useBatchWorkApproval";
+export { useBatchWorkSync } from "./work/useBatchWorkSync";
 export type { EnhancedWorkApproval } from "./work/useWorkApprovals";
 export { useWorkApprovals } from "./work/useWorkApprovals";
 export type { WorkFormData } from "./work/useWorkForm";

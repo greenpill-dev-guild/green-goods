@@ -2,6 +2,8 @@
 
 Green Goods is open source and welcomes contributions from developers, designers, and documentation writers.
 
+> **Dependency Management**: Refer to the [dependency-management skill](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.claude/skills/dependency-management/SKILL.md) before changing package versions, lockfiles, or workspace dependencies.
+
 ---
 
 ## Quick Start
@@ -35,7 +37,7 @@ Auto-formats on save in VS Code.
 
 ### Linting
 
-**0xlint** + Biome:
+**oxlint** + Biome:
 ```bash
 bun lint
 ```
@@ -211,4 +213,3 @@ See [Contributing to Documentation](docs-contributing) for the full workflow, as
 - [Installation Guide](installation)
 - [Testing Details](testing)
 - [Architecture Docs](./architecture)
-

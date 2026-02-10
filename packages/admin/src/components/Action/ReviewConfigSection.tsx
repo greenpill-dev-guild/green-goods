@@ -1,3 +1,5 @@
+import type { ActionInstructionConfig } from "@green-goods/shared";
+
 interface ReviewConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["review"];
   onChange: (config: ActionInstructionConfig["uiConfig"]["review"]) => void;
