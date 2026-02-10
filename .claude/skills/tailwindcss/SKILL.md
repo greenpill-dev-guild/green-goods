@@ -251,7 +251,7 @@ Green Goods is mobile-first. Use standard Tailwind breakpoints:
 
 ## Part 5: CSS File Organization
 
-```
+```text
 packages/shared/src/styles/
 └── theme.css              # Shared theme: @property + @theme + dark mode
 

@@ -71,10 +71,10 @@ bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas  # 
 
 | Command | Purpose |
 |---------|---------|
-| `bun deploy.ts core --network <net>` | Deploy core contracts |
-| `bun deploy.ts garden <config.json> --network <net>` | Deploy garden config |
-| `bun deploy.ts hats-tree --network <net>` | Deploy Hats Protocol tree |
-| `bun deploy.ts status [network]` | Check deployment status |
+| `bun script/deploy.ts core --network <net>` | Deploy core contracts |
+| `bun script/deploy.ts garden <config.json> --network <net>` | Deploy garden config |
+| `bun script/deploy.ts hats-tree --network <net>` | Deploy Hats Protocol tree |
+| `bun script/deploy.ts status [network]` | Check deployment status |
 
 ### CLI Options
 

@@ -593,6 +593,7 @@ export {
   normalizeToFile,
   openBlockExplorerTx,
   openEASExplorer,
+  extractErrorMessage,
   parseAndFormatError,
   parseContractError,
   pollQueriesAfterTransaction,

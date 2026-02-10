@@ -219,6 +219,8 @@ async function monitorStorage() {
 ### Automated Cleanup
 
 ```typescript
+import { mediaResourceManager } from "@green-goods/shared/modules";
+
 async function cleanupOldData(userAddress: Address) {
   const stats = await jobQueue.getStats(userAddress);
 
@@ -230,8 +232,8 @@ async function cleanupOldData(userAddress: Address) {
     logger.info("Cleaned old completed jobs", { userAddress });
   }
 
-  // Revoke orphaned blob URLs
-  mediaResourceManager.revokeAll();
+  // Shared job-queue media lifecycle helper
+  mediaResourceManager.cleanupAll();
 }
 ```
 
@@ -319,9 +321,23 @@ docker compose -f docker-compose.indexer.yaml logs --tail 50
 ### Performance Metrics
 
 ```typescript
+import { logger } from "@green-goods/shared";
+
 // Collect Web Vitals
+declare global {
+  interface Window {
+    __webVitalsObserverInstalled?: boolean;
+  }
+}
+
 function collectWebVitals() {
-  if ("web-vital" in window) return;
+  if (typeof window === "undefined") return;
+  if (typeof PerformanceObserver === "undefined") {
+    logger.info("Web Vitals unavailable: PerformanceObserver is not supported");
+    return;
+  }
+  if (window.__webVitalsObserverInstalled) return;
+  window.__webVitalsObserverInstalled = true;
 
   const observer = new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) {
@@ -415,11 +431,21 @@ Green Goods uses **PostHog** for product analytics, error tracking, session reco
 ```typescript
 // packages/shared/src/modules/analytics/posthog.ts
 import posthog from "posthog-js";
+import { logger } from "@green-goods/shared";
 
 export function initPostHog() {
   if (typeof window === "undefined") return;
+  if (!import.meta.env.PROD) {
+    logger.info("Skipping PostHog init in non-production builds");
+    return;
+  }
+  const posthogKey = import.meta.env.VITE_POSTHOG_KEY?.trim();
+  if (!posthogKey) {
+    logger.warn("Skipping PostHog init: VITE_POSTHOG_KEY is missing");
+    return;
+  }
 
-  posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
+  posthog.init(posthogKey, {
     api_host: import.meta.env.VITE_POSTHOG_HOST || "https://us.i.posthog.com",
     person_profiles: "identified_only",
     capture_pageview: true,
@@ -621,6 +647,36 @@ VITE_POSTHOG_HOST=https://us.i.posthog.com  # Optional, defaults to US cloud
 ```
 
 ### PostHog Best Practices
+
+#### Development vs Production
+
+```typescript
+import posthog from "posthog-js";
+import { logger } from "@green-goods/shared";
+
+export function initPostHog() {
+  if (typeof window === "undefined") return;
+  if (!import.meta.env.PROD) {
+    logger.info("PostHog disabled outside production");
+    return;
+  }
+
+  const key = import.meta.env.VITE_POSTHOG_KEY?.trim();
+  if (!key) {
+    logger.info("PostHog disabled: missing VITE_POSTHOG_KEY");
+    return;
+  }
+
+  posthog.init(key, {
+    api_host: import.meta.env.VITE_POSTHOG_HOST || "https://us.i.posthog.com",
+  });
+}
+
+export function trackEvent(event: string, properties?: Record<string, unknown>) {
+  if (!import.meta.env.PROD) return;
+  posthog.capture(event, properties);
+}
+```
 
 | Practice | Details |
 |----------|---------|

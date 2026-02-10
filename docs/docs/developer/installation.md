@@ -152,6 +152,8 @@ STORACHA_KEY=your_storacha_key
 STORACHA_PROOF=your_storacha_proof
 ```
 
+`SEPOLIA_RPC_URL` should point to a dedicated provider endpoint (Infura, Alchemy, QuickNode, or a self-hosted node) for reliable development and CI/CD. Public shared URLs such as `https://ethereum-sepolia.publicnode.com` can hit rate limits or downtime; prefer API-keyed endpoints and configure failover/redundancy for team workflows and pipelines.
+
 **Get API Keys**:
 - Reown: [cloud.reown.com](https://cloud.reown.com/)
 - Pimlico: [dashboard.pimlico.io](https://dashboard.pimlico.io/)

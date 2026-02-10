@@ -163,8 +163,10 @@ A phantom dependency is a package your code imports but doesn't declare in `pack
 
 ```bash
 # Check for imports not in package.json
-# Look for import statements that reference packages not in dependencies
-grep -rn "from ['\"]" packages/shared/src/ | grep -v "@green-goods" | grep -v "^\." | sort -u
+# Match non-relative imports from real import/export statements (skip comments and local paths)
+rg -nP "^(?:import|export)\\s.+from\\s+['\"](?!\\.?/)(?!@green-goods/)[^'\"]+['\"]" \
+  packages/shared/src \
+  --glob '!**/node_modules/**'
 ```
 
 ### Fixing

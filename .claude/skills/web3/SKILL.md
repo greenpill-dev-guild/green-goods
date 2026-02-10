@@ -96,14 +96,41 @@ const isOpen = await readContract(wagmiConfig, {
 
 ### Writing to Contracts
 
-Use the wallet submission module for full lifecycle management:
+Use the wallet submission module for full lifecycle management via the job queue:
 
 ```typescript
 // packages/shared/src/modules/work/wallet-submission.ts
-import type { WalletSubmissionStage } from "@green-goods/shared";
+import { useJobQueue, type JobKind as QueueJobKind } from "@green-goods/shared";
 
-// Stage progression: "validating" → "uploading" → "confirming" → "syncing" → "complete"
+const JobKind = {
+  WORK_SUBMISSION: "work" as QueueJobKind,
+};
+
+function useSubmitWork() {
+  const { addJob } = useJobQueue();
+
+  async function submit({
+    gardenAddress,
+    actionUID,
+    data,
+  }: {
+    gardenAddress: Address;
+    actionUID: number;
+    data: WorkInput;
+  }) {
+    await addJob(JobKind.WORK_SUBMISSION, {
+      payload: {
+        gardenAddress,
+        actionUID,
+        data,
+      },
+      maxRetries: 5,
+    });
+  }
+}
 ```
+
+The queued job owns the full lifecycle: validation → IPFS upload → tx broadcast → indexer sync. This keeps submissions offline-safe and retryable.
 
 ### Transaction Simulation
 

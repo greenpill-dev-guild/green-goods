@@ -35,7 +35,7 @@ When invoked:
 
 ### Directory Structure
 
-```
+```text
 packages/shared/
 ├── .storybook/
 │   ├── main.ts           # Storybook configuration
@@ -321,7 +321,7 @@ import { Meta, ColorPalette, ColorItem } from "@storybook/blocks";
 
 ### Story Organization
 
-```
+```text
 Components/           # Reusable UI primitives
 ├── Button
 ├── Card
@@ -440,7 +440,7 @@ jobs:
 
 #### Workflow
 
-```
+```text
 1. PR opened → Chromatic builds Storybook
 2. Chromatic detects visual changes → flags for review
 3. Team reviews changes in Chromatic UI

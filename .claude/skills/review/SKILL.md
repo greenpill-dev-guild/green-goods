@@ -115,6 +115,7 @@ Every review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
 ```
 
 ### Pass 3: Architecture
+
 - Hooks in shared package only (see CLAUDE.md)
 - No hardcoded addresses — use deployment artifacts
 - Proper abstractions, single responsibility
@@ -122,6 +123,7 @@ Every review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
 - Zustand selector granularity (Rule #6)
 
 **What to look for:**
+
 | Issue | Severity | Example |
 |-------|----------|---------|
 | Hook defined outside shared | Critical | `useLocalHook()` in client package |
@@ -131,18 +133,21 @@ Every review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
 | Chained useMemo | Medium | `useMemo` depending on another useMemo output (Rule #9) |
 
 **Example comment:**
+
 ```markdown
 > **Critical: Hook defined in client package (line 8)**
 > `useGardenFilter()` is defined in `packages/client/src/hooks/`. ALL hooks MUST live in `@green-goods/shared` (CLAUDE.md Hook Boundary). Move to `packages/shared/src/hooks/garden/`.
 ```
 
 ### Pass 4: Environment Compatibility
+
 - No package-specific .env files
 - Platform compatibility (mobile Safari, offline)
 - Offline behavior for any write operations
 - Service worker impact
 
 **What to look for:**
+
 | Issue | Severity | Example |
 |-------|----------|---------|
 | Package-specific .env | Critical | `.env` file in `packages/client/` |
@@ -151,6 +156,7 @@ Every review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
 | Browser API without feature detection | Medium | Using API without checking availability |
 
 ### Pass 5: Verification Strategy
+
 ```bash
 bun format && bun lint && bun test && bun build
 ```
@@ -163,6 +169,7 @@ bun format && bun lint && bun test && bun build
 - Bundle size within budget (< 150KB main, < 50KB per route)
 
 ### Pass 6: Synthesis
+
 - **APPROVE** or **REQUEST CHANGES**
 - Summarize all findings by severity
 - Provide actionable next steps

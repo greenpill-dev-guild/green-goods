@@ -7,6 +7,7 @@ import {
   parseContractError,
   resolveEnsAddress,
   USER_FRIENDLY_ERRORS,
+  type Address,
   type GardenRole,
 } from "@green-goods/shared";
 import { RiClipboardLine, RiCloseLine } from "@remixicon/react";
@@ -18,7 +19,7 @@ interface AddMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
   memberType: GardenRole;
-  onAdd: (address: string) => Promise<void>;
+  onAdd: (address: Address) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -65,10 +66,12 @@ export function AddMemberModal({
     }
 
     try {
-      let addressToAdd = trimmed;
+      let addressToAdd: Address;
 
-      if (!isAddress(addressToAdd)) {
-        const lookup = resolvedEnsAddress ?? (await resolveEnsAddress(addressToAdd));
+      if (isAddress(trimmed)) {
+        addressToAdd = trimmed;
+      } else {
+        const lookup = resolvedEnsAddress ?? (await resolveEnsAddress(trimmed));
         if (!lookup || !isAddress(lookup)) {
           setError(formatMessage({ id: "app.admin.roles.error.ensResolutionFailed" }));
           return;

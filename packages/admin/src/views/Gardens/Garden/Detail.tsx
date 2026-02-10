@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN_ID, formatDate, toastService } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, formatDate, toastService, type Address } from "@green-goods/shared";
 import {
   queryInvalidation,
   useDelayedInvalidation,
@@ -490,7 +490,7 @@ export default function GardenDetail() {
         isOpen={addMemberModalOpen}
         onClose={() => setAddMemberModalOpen(false)}
         memberType={memberType}
-        onAdd={async (address: string) => {
+        onAdd={async (address: Address) => {
           const result = await roleActions[memberType].add(address);
 
           if (result.success) {
