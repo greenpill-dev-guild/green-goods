@@ -1,4 +1,4 @@
-import { cn, imageCompressor, logger } from "@green-goods/shared";
+import { cn, extractErrorMessage, imageCompressor, logger, toastService } from "@green-goods/shared";
 import { RiCloseLine, RiLoader4Line, RiUploadCloudLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 
@@ -84,6 +84,17 @@ export function FileUploadField({
       }
     } catch (error) {
       logger.error("File processing failed", { error });
+      const errorText = extractErrorMessage(error);
+      const shortError =
+        errorText.length > 120 ? `${errorText.slice(0, 117).trimEnd()}...` : errorText;
+      toastService.error({
+        title: "File processing failed",
+        message: `Please try again. ${shortError}`,
+        context: "file upload",
+        error,
+      });
+      setIsProcessing(false);
+      setProgress(0);
     } finally {
       setIsProcessing(false);
       setProgress(0);
@@ -132,6 +143,9 @@ export function FileUploadField({
 
   useEffect(() => {
     if (!showPreview) {
+      for (const url of previewUrls.values()) {
+        URL.revokeObjectURL(url);
+      }
       setPreviewUrls(new Map());
       return;
     }
@@ -146,7 +160,8 @@ export function FileUploadField({
 
     // Cleanup function to revoke URLs when files change
     return () => {
-      for (const url of urls.values()) {
+      const urlsToRevoke = new Set([...previewUrls.values(), ...urls.values()]);
+      for (const url of urlsToRevoke) {
         URL.revokeObjectURL(url);
       }
     };
