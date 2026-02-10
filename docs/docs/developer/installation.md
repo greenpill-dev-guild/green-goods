@@ -2,7 +2,7 @@
 
 Complete setup guide for local Green Goods development. Green Goods is an open-source monorepo platform for verifiable regenerative impact.
 
-> **Dependency Management**: See the [dependency-management skill](../../../.claude/skills/dependency-management/SKILL.md) for workspace protocol, lockfile, and audit/update workflows.
+> **Dependency Management**: See the [dependency-management skill](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.claude/skills/dependency-management/SKILL.md) for workspace protocol, lockfile, and audit/update workflows.
 
 **Tech Stack**: React 19 + TypeScript + Vite • TanStack Query + Zustand • Tailwind CSS v4 + Radix UI • Solidity + Foundry • Envio HyperIndex • IPFS (Storacha)
 

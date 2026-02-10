@@ -2,7 +2,7 @@
 
 Green Goods is open source and welcomes contributions from developers, designers, and documentation writers.
 
-> **Dependency Management**: Refer to the [dependency-management skill](../../../.claude/skills/dependency-management/SKILL.md) before changing package versions, lockfiles, or workspace dependencies.
+> **Dependency Management**: Refer to the [dependency-management skill](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.claude/skills/dependency-management/SKILL.md) before changing package versions, lockfiles, or workspace dependencies.
 
 ---
 
