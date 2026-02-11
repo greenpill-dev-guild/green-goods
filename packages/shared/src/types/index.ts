@@ -45,6 +45,21 @@ export type { ChainId, DeploymentConfig } from "./blockchain";
 // ============================================
 export type { CreateGardenParams, DeploymentParams, NetworkContracts } from "./contracts";
 // ============================================
+// Vault Types
+// ============================================
+export type {
+  DepositParams,
+  EmergencyPauseParams,
+  GardenVault,
+  HarvestParams,
+  SetDonationAddressParams,
+  VaultDeposit,
+  VaultEvent,
+  VaultEventType,
+  VaultPreview,
+  WithdrawParams,
+} from "./vaults";
+// ============================================
 // Domain Types
 // ============================================
 export type {

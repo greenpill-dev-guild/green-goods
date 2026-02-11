@@ -104,6 +104,39 @@ export const queryKeys = {
       ["greengoods", "gardens", "detail", gardenId, chainId] as const,
   },
 
+  // Vault / treasury related keys
+  vaults: {
+    all: ["greengoods", "vaults"] as const,
+    byChain: (chainId: number) => ["greengoods", "vaults", "chain", chainId] as const,
+    byGarden: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "vaults", "garden", gardenAddress, chainId] as const,
+    deposits: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "vaults", "deposits", gardenAddress, chainId] as const,
+    myDeposits: (gardenAddress: string, userAddress: string, chainId: number) =>
+      ["greengoods", "vaults", "myDeposits", gardenAddress, userAddress, chainId] as const,
+    eventsBase: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "vaults", "events", gardenAddress, chainId] as const,
+    events: (gardenAddress: string, chainId: number, limit?: number) =>
+      ["greengoods", "vaults", "events", gardenAddress, chainId, limit] as const,
+    preview: (
+      vaultAddress: string,
+      amount?: bigint,
+      shares?: bigint,
+      userAddress?: string,
+      chainId?: number
+    ) =>
+      [
+        "greengoods",
+        "vaults",
+        "preview",
+        vaultAddress,
+        amount?.toString(),
+        shares?.toString(),
+        userAddress,
+        chainId,
+      ] as const,
+  },
+
   // Action related keys
   actions: {
     all: ["greengoods", "actions"] as const,
@@ -279,6 +312,36 @@ export const queryInvalidation = {
     }
     return [queryKeys.assessments.all];
   },
+
+  // Queries to invalidate after a successful vault deposit
+  onVaultDeposit: (gardenAddress: string, userAddress: string | undefined, chainId: number) => {
+    const keys: Array<
+      | ReturnType<typeof queryKeys.vaults.byGarden>
+      | ReturnType<typeof queryKeys.vaults.deposits>
+      | ReturnType<typeof queryKeys.vaults.eventsBase>
+      | ReturnType<typeof queryKeys.vaults.myDeposits>
+    > = [
+      queryKeys.vaults.byGarden(gardenAddress, chainId),
+      queryKeys.vaults.deposits(gardenAddress, chainId),
+      queryKeys.vaults.eventsBase(gardenAddress, chainId),
+    ];
+
+    if (userAddress) {
+      keys.push(queryKeys.vaults.myDeposits(gardenAddress, userAddress, chainId));
+    }
+
+    return keys;
+  },
+
+  // Queries to invalidate after a successful vault withdraw
+  onVaultWithdraw: (gardenAddress: string, userAddress: string | undefined, chainId: number) =>
+    queryInvalidation.onVaultDeposit(gardenAddress, userAddress, chainId),
+
+  // Queries to invalidate after a successful harvest/emergency action
+  onVaultHarvest: (gardenAddress: string, chainId: number) => [
+    queryKeys.vaults.byGarden(gardenAddress, chainId),
+    queryKeys.vaults.eventsBase(gardenAddress, chainId),
+  ],
 };
 
 // Type-safe query key helpers
@@ -305,6 +368,13 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.hypercerts.list>
   | ReturnType<typeof queryKeys.hypercerts.detail>
   | ReturnType<typeof queryKeys.hypercerts.drafts>
+  | typeof queryKeys.vaults.all
+  | ReturnType<typeof queryKeys.vaults.byChain>
+  | ReturnType<typeof queryKeys.vaults.byGarden>
+  | ReturnType<typeof queryKeys.vaults.deposits>
+  | ReturnType<typeof queryKeys.vaults.myDeposits>
+  | ReturnType<typeof queryKeys.vaults.events>
+  | ReturnType<typeof queryKeys.vaults.preview>
   | typeof queryKeys.assessments.all
   | ReturnType<typeof queryKeys.assessments.byGarden>;
 

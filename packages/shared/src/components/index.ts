@@ -125,6 +125,10 @@ export { setToastTranslator, toastService } from "./Toast/toast.service";
 export { TranslationBadge } from "./TranslationBadge";
 export { SyncStatusBar } from "./SyncStatusBar";
 
+// Vault Components
+export type { AssetSelectorProps } from "./Vault/AssetSelector";
+export { AssetSelector } from "./Vault/AssetSelector";
+
 // Progress Components
 export type { SubmissionProgressState, SubmissionStage } from "../hooks/work/useSubmissionProgress";
 export { SubmissionProgress } from "./Progress/SubmissionProgress";

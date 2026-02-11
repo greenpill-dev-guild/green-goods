@@ -61,6 +61,7 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
       deployment.workApprovalResolver || "0x0000000000000000000000000000000000000000",
     deploymentRegistry:
       deployment.deploymentRegistry || "0x0000000000000000000000000000000000000000",
+    octantModule: deployment.octantModule || "0x0000000000000000000000000000000000000000",
     hatsModule: deployment.hatsModule || "0x0000000000000000000000000000000000000000",
     karmaGAPModule: deployment.karmaGAPModule || "0x0000000000000000000000000000000000000000",
     eas: networkConfig.contracts?.eas || "0x0000000000000000000000000000000000000000",

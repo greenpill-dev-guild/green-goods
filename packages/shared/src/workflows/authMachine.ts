@@ -39,6 +39,7 @@ import { type SmartAccountClient } from "permissionless";
 import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { logger } from "../modules/app/logger";
 import { assign, fromPromise, setup } from "xstate";
 
 // ============================================================================
@@ -537,7 +538,7 @@ export const authMachine = authSetup.createMachine({
                 // No wallet connected - could show error or open modal
                 // For now, do nothing (UI should disable button if no wallet)
                 actions: () =>
-                  console.warn("[AuthMachine] SWITCH_TO_WALLET: No external wallet connected"),
+                  logger.warn("[AuthMachine] SWITCH_TO_WALLET: No external wallet connected"),
               },
             ],
 

@@ -5,6 +5,7 @@ export interface NetworkContracts {
   workResolver: string;
   workApprovalResolver: string;
   deploymentRegistry: string;
+  octantModule: string;
   hatsModule: string;
   karmaGAPModule: string;
   eas: string;

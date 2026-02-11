@@ -11,6 +11,7 @@ export type {
   UseCopyToClipboardReturn,
 } from "./utils/useCopyToClipboard";
 export { useCopyToClipboard } from "./utils/useCopyToClipboard";
+export { useDebouncedValue } from "./utils/useDebouncedValue";
 
 // ============================================================================
 // ACTION
@@ -148,6 +149,21 @@ export type { UseHasRoleResult } from "./roles/useHasRole";
 export { useHasRole } from "./roles/useHasRole";
 export type { RolePermissions } from "./roles/useRolePermissions";
 export { useRolePermissions } from "./roles/useRolePermissions";
+
+// ============================================================================
+// VAULT / TREASURY
+// ============================================================================
+export { useGardenVaults } from "./vault/useGardenVaults";
+export { useVaultDeposits } from "./vault/useVaultDeposits";
+export { useVaultEvents } from "./vault/useVaultEvents";
+export { useVaultPreview } from "./vault/useVaultPreview";
+export {
+  useEmergencyPause,
+  useHarvest,
+  useSetDonationAddress,
+  useVaultDeposit,
+  useVaultWithdraw,
+} from "./vault/useVaultOperations";
 
 // ============================================================================
 // HYPERCERTS

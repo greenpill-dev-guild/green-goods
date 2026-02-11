@@ -111,6 +111,15 @@ export {
   getRpcUrl,
   isChainSupported,
 } from "./blockchain/chain-registry";
+export {
+  formatTokenAmount,
+  getNetDeposited,
+  getVaultAssetDecimals,
+  getVaultAssetSymbol,
+  isZeroAddressValue,
+  validateDecimalInput,
+  ZERO_ADDRESS,
+} from "./blockchain/vaults";
 // ============================================================================
 // CONTRACTS (ABIs & clients)
 // ============================================================================

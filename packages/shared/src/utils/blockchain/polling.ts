@@ -14,6 +14,7 @@
  */
 
 import { queryClient } from "../../config/react-query";
+import { logger } from "../../modules/app/logger";
 import { debugLog } from "../debug";
 
 interface PollConfig {
@@ -84,7 +85,7 @@ export async function pollQueriesAfterTransaction(config: PollConfig): Promise<v
   } = config;
 
   if (queryKeys.length === 0) {
-    console.warn("[Polling] No query keys provided, skipping polling");
+    logger.warn("[Polling] No query keys provided, skipping polling");
     return;
   }
 

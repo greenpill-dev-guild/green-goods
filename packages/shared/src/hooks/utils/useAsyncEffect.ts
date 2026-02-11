@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef, type DependencyList } from "react";
+import { logger } from "../../modules/app/logger";
 
 interface AsyncEffectCallbacks {
   /** Called when the component unmounts or dependencies change */
@@ -108,7 +109,7 @@ export function useAsyncEffect(
         callbacks.onError(error);
       } else {
         // Re-throw to preserve default behavior if no handler
-        console.error("[useAsyncEffect] Unhandled error:", error);
+        logger.error("[useAsyncEffect] Unhandled error", { error });
       }
     });
 
@@ -191,7 +192,7 @@ export function useAsyncSetup(
           if (callbacks?.onError) {
             callbacks.onError(error);
           } else {
-            console.error("[useAsyncSetup] Setup failed:", error);
+            logger.error("[useAsyncSetup] Setup failed", { error });
           }
         }
       });

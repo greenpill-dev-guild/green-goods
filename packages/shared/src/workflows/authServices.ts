@@ -23,6 +23,7 @@ import {
 import { fromPromise } from "xstate";
 
 import { getChain } from "../config/chains";
+import { logger } from "../modules/app/logger";
 import { createPasskey, getPasskeyRpId } from "../config/passkeyServer";
 import {
   createPimlicoClientForChain,
@@ -213,7 +214,7 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
         userName: storedUsername || "",
       };
     } catch (error) {
-      console.error("[Auth] Failed to restore session:", error);
+      logger.error("[Auth] Failed to restore session", { error });
       // Don't clear credential on network errors - user still has their passkey
       return null;
     }

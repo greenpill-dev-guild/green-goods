@@ -8,6 +8,7 @@
  */
 
 import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
+import { logger } from "../modules/app/logger";
 import { setStoredCredential, setStoredRpId } from "../modules/auth/session";
 
 // ============================================================================
@@ -43,7 +44,7 @@ export function getPasskeyRpId(): string {
   // In development on localhost, use hostname to allow local testing
   // Note: Passkeys created on localhost won't work in production
   if (import.meta.env.DEV && window.location.hostname === "localhost") {
-    console.warn(
+    logger.warn(
       "[Passkey] Using localhost as RP ID. Passkeys created here will NOT work in production."
     );
     return "localhost";

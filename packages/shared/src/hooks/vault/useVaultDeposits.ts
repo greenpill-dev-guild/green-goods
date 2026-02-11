@@ -1,0 +1,33 @@
+import { useQuery } from "@tanstack/react-query";
+import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { getVaultDeposits } from "../../modules/data/vaults";
+import type { VaultDeposit } from "../../types/vaults";
+import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+
+interface UseVaultDepositsOptions {
+  chainId?: number;
+  userAddress?: string;
+  enabled?: boolean;
+}
+
+export function useVaultDeposits(gardenAddress?: string, options: UseVaultDepositsOptions = {}) {
+  const chainId = options.chainId ?? DEFAULT_CHAIN_ID;
+  const enabled = options.enabled ?? true;
+  const normalizedGarden = gardenAddress?.toLowerCase();
+  const normalizedUser = options.userAddress?.toLowerCase();
+
+  const query = useQuery({
+    queryKey:
+      normalizedGarden && normalizedUser
+        ? queryKeys.vaults.myDeposits(normalizedGarden, normalizedUser, chainId)
+        : queryKeys.vaults.deposits(normalizedGarden ?? "__disabled__", chainId),
+    queryFn: () => getVaultDeposits(normalizedGarden ?? "", chainId, normalizedUser),
+    enabled: enabled && Boolean(normalizedGarden),
+    staleTime: STALE_TIME_MEDIUM,
+  });
+
+  return {
+    ...query,
+    deposits: (query.data ?? []) as VaultDeposit[],
+  };
+}
