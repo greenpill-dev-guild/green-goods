@@ -1,18 +1,20 @@
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
+  DEFAULT_CHAIN_ID,
   GardenTab,
   isGardenMember,
   useActions,
   useBrowserNavigation,
   useGardeners,
+  useGardenVaults,
   useGardens,
   useGardenTabs,
   useHasRole,
   useJoinGarden,
   useNavigateToTop,
   useUser,
+  useVaultDeposits,
   useWorks,
-} from "@green-goods/shared/hooks";
+} from "@green-goods/shared";
 import {
   RiCalendarEventFill,
   RiFileChartFill,
@@ -21,12 +23,13 @@ import {
   RiMapPin2Fill,
   RiUserAddLine,
 } from "@remixicon/react";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import type { Address } from "viem";
 import toast from "react-hot-toast";
 import { Button } from "@/components/Actions";
+import { TreasuryDrawer } from "@/components/Dialogs";
 import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
@@ -41,6 +44,7 @@ type GardenProps = {};
 export const Garden: React.FC<GardenProps> = () => {
   const intl = useIntl();
   const { primaryAddress } = useUser();
+  const [isTreasuryOpen, setIsTreasuryOpen] = useState(false);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -118,6 +122,18 @@ export const Garden: React.FC<GardenProps> = () => {
       };
     });
   }, [allGardeners, garden]);
+
+  const { vaults: gardenVaults = [] } = useGardenVaults(garden?.id, {
+    enabled: Boolean(garden?.id),
+  });
+  const { deposits: myVaultDeposits = [] } = useVaultDeposits(garden?.id, {
+    userAddress: primaryAddress ?? undefined,
+    enabled: Boolean(garden?.id && primaryAddress),
+  });
+  const hasTreasuryDeposits = useMemo(
+    () => myVaultDeposits.some((deposit) => deposit.shares > 0n),
+    [myVaultDeposits]
+  );
 
   if (!garden) return null;
 
@@ -262,6 +278,9 @@ export const Garden: React.FC<GardenProps> = () => {
                     works={mergedWorks}
                     garden={garden}
                     isOperator={canReview}
+                    showTreasuryButton={gardenVaults.length > 0}
+                    hasTreasuryDeposits={hasTreasuryDeposits}
+                    onTreasuryClick={() => setIsTreasuryOpen(true)}
                   />
                 </div>
               </div>
@@ -325,6 +344,14 @@ export const Garden: React.FC<GardenProps> = () => {
               {renderTabContent()}
             </div>
           </>
+        )}
+        {garden && (
+          <TreasuryDrawer
+            isOpen={isTreasuryOpen}
+            onClose={() => setIsTreasuryOpen(false)}
+            gardenAddress={garden.id}
+            gardenName={garden.name}
+          />
         )}
         <Outlet context={{ gardenId: garden.id }} />
       </div>

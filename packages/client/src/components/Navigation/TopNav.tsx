@@ -1,8 +1,12 @@
-import type { Garden, Work } from "@green-goods/shared";
-import { useOffline } from "@green-goods/shared/hooks";
-import { cn } from "@green-goods/shared/utils";
-import { RiArrowLeftFill, RiNotificationFill, RiNotificationLine } from "@remixicon/react";
+import { type Garden, type Work, cn, useOffline } from "@green-goods/shared";
+import {
+  RiArrowLeftFill,
+  RiBankLine,
+  RiNotificationFill,
+  RiNotificationLine,
+} from "@remixicon/react";
 import { useId } from "react";
+import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
@@ -13,6 +17,9 @@ type TopNavProps = {
   overlay?: boolean;
   /** Whether the current user is an operator of this garden */
   isOperator?: boolean;
+  showTreasuryButton?: boolean;
+  hasTreasuryDeposits?: boolean;
+  onTreasuryClick?: () => void;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 type NotificationsProps = {
@@ -27,7 +34,6 @@ const Notifications: React.FC<NotificationsProps> = ({ garden, works, popoverId 
   return (
     <div
       id={popoverId}
-      // @ts-expect-error - popover is a valid HTML attribute but not in React types yet
       popover="auto"
       className="fixed inset-0 w-full h-full bg-transparent p-6 m-0 border-0"
       style={{
@@ -109,7 +115,7 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
     <>
       <button
         type="button"
-        popovertarget={popoverId}
+        popoverTarget={popoverId}
         className={cn(styles.button, "dropdown dropdown-bottom dropdown-end tap-target-lg")}
         aria-label="View notifications"
       >
@@ -118,6 +124,29 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
       </button>
       <Notifications {...props} works={works} popoverId={popoverId} />
     </>
+  );
+};
+
+const TreasuryButton: React.FC<{
+  hasDeposits: boolean;
+  onClick: () => void;
+  ariaLabel: string;
+}> = ({ hasDeposits, onClick, ariaLabel }) => {
+  const styles = createButtonStyles("work");
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={styles.button}
+      aria-label={ariaLabel}
+      title={ariaLabel}
+    >
+      {hasDeposits && (
+        <span className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 border border-white" />
+      )}
+      <RiBankLine className={styles.icon} />
+    </button>
   );
 };
 
@@ -134,8 +163,12 @@ export const TopNav: React.FC<TopNavProps> = ({
   garden,
   overlay,
   isOperator = false,
+  showTreasuryButton = false,
+  hasTreasuryDeposits = false,
+  onTreasuryClick,
   ...props
 }: TopNavProps) => {
+  const { formatMessage } = useIntl();
   const { syncStatus, isOnline } = useOffline();
   const hasOfflineIssues = !navigator.onLine;
 
@@ -186,6 +219,13 @@ export const TopNav: React.FC<TopNavProps> = ({
       </div>
 
       <div className="flex grow" />
+      {garden && showTreasuryButton && onTreasuryClick && (
+        <TreasuryButton
+          hasDeposits={hasTreasuryDeposits}
+          onClick={onTreasuryClick}
+          ariaLabel={formatMessage({ id: "app.treasury.open" })}
+        />
+      )}
       {/* Only show notifications for operators - they need to review pending work */}
       {garden && isOperator && <NotificationCenter {...props} garden={garden} />}
     </div>
