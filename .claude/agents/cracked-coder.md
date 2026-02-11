@@ -147,8 +147,8 @@ it("should calculate garden metrics correctly", () => {
 **MANDATORY**: Run validation after ANY code modification.
 
 ```bash
-# Must pass all
-bun test
+# Must pass all (CRITICAL: use `bun run test` not `bun test` — see CLAUDE.md)
+bun run test
 bun lint
 bun build
 
@@ -261,7 +261,7 @@ Use MCP servers and CLI tools for deployment:
 All work must include:
 1. Implementation files
 2. Test files (TDD)
-3. Verification evidence (`bun test`, `bun lint`, `bun build` output)
+3. Verification evidence (`bun run test`, `bun lint`, `bun build` output)
 4. Brief summary of approach
 
 ## UI Implementation

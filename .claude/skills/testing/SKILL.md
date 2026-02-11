@@ -73,8 +73,10 @@ test('retries failed operations 3 times', async () => {
 **MANDATORY. Never skip.**
 
 ```bash
-bun test path/to/test.test.ts
+bun run test -- path/to/test.test.ts
 ```
+
+> **CRITICAL: `bun test` vs `bun run test`** — `bun test` invokes bun's built-in test runner which **ignores vitest config** (no jsdom, no aliases, no setup files). `bun run test` runs the package.json `"test"` script (vitest). **Always use `bun run test`** for vitest-based packages (shared, client, admin). To run a single test file: `bun run test -- path/to/test.test.ts`.
 
 Confirm:
 - Test fails (not errors)
@@ -105,7 +107,7 @@ async function retryOperation<T>(fn: () => Promise<T>): Promise<T> {
 **MANDATORY.**
 
 ```bash
-bun test path/to/test.test.ts
+bun run test -- path/to/test.test.ts
 ```
 
 #### REFACTOR - Clean Up

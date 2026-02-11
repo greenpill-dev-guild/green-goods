@@ -22,6 +22,18 @@ When invoked:
 - Follow conventional commit format for all commits.
 - Reference `CLAUDE.md` → Git Workflow section for branch naming rules.
 
+## Repository
+
+The canonical repository is `greenpill-dev-guild/green-goods`. There should be a single `origin` remote:
+
+```
+origin  git@github.com:greenpill-dev-guild/green-goods.git
+```
+
+**Do NOT add `camp-green` as a remote.** The `greenpill-dev-guild/camp-green` repository is **archived** and read-only — all issues, PRs, and pushes go to `green-goods`. If `gh` CLI commands fail with "Repository was archived", verify your remote with `git remote -v`.
+
+---
+
 ## Part 1: Branch Strategy
 
 ### Branch Naming

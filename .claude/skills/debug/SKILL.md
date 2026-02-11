@@ -99,7 +99,7 @@ Every debug session MUST use **TodoWrite**. See `CLAUDE.md` → Session Continui
 
 | Claim | Command |
 |-------|---------|
-| "Tests pass" | `bun test` |
+| "Tests pass" | `bun run test` (NOT `bun test` — see CLAUDE.md) |
 | "Build succeeds" | `bun build` |
 | "Linting clean" | `bun lint` |
 | "Types correct" | `bun run tsc --noEmit` |

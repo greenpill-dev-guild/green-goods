@@ -28,21 +28,23 @@ bun exec pm2 logs storybook
 bun format && bun lint
 
 # Run all tests across workspace
-bun test
+bun run test
 
 # Build everything (respects dependency order)
 bun build
 
 # Full validation before committing
-bun format && bun lint && bun test && bun build
+bun format && bun lint && bun run test && bun build
 ```
+
+> **CRITICAL: `bun test` vs `bun run test`** — These are **different commands**. `bun test` invokes bun's built-in test runner (ignores vitest config, no jsdom). `bun run test` executes the package.json `"test"` script (vitest with proper environment). **Always use `bun run test`** for packages that use vitest (shared, client, admin). The contracts package uses `forge test` under the hood, so either form works there.
 
 ### Package-Specific Commands
 
 **Client (PWA):**
 ```bash
 cd packages/client
-bun test              # Run tests
+bun run test          # Run tests (vitest)
 bun build            # Build (includes TypeScript check)
 bun lint             # Lint with oxlint
 ```
@@ -50,7 +52,7 @@ bun lint             # Lint with oxlint
 **Admin Dashboard:**
 ```bash
 cd packages/admin
-bun test              # Run tests
+bun run test          # Run tests (vitest)
 bun build            # Build (includes TypeScript check)
 bun lint             # Lint with oxlint
 ```
@@ -58,7 +60,7 @@ bun lint             # Lint with oxlint
 **Smart Contracts:**
 ```bash
 cd packages/contracts
-bun test              # Run unit tests (skips E2E)
+bun run test          # Run unit tests (skips E2E)
 bun build            # Compile contracts
 bun lint             # Format & lint with forge fmt + solhint
 bun deploy:testnet   # Deploy to Base Sepolia (default)
@@ -67,7 +69,7 @@ bun deploy:testnet   # Deploy to Base Sepolia (default)
 **Indexer:**
 ```bash
 cd packages/indexer
-bun test              # Run tests
+bun run test          # Run tests (mocha)
 bun build            # Build indexer
 bun dev              # Start via PM2 (uses Docker on macOS)
 bun run dev:docker    # Start Docker-based indexer directly
@@ -80,7 +82,7 @@ bun run dev:docker:down  # Stop Docker containers
 **Shared Package:**
 ```bash
 cd packages/shared
-bun test             # Run tests
+bun run test         # Run tests (vitest + jsdom)
 bun lint             # Lint with oxlint
 bun run storybook    # Start Storybook dev server (port 6006)
 bun run build-storybook  # Build static Storybook
@@ -414,7 +416,7 @@ bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas  # 
 When implementing features:
 1. Check existing patterns in the same package first
 2. Use TodoWrite for multi-step tasks
-3. Run validation (`bun format && bun lint && bun test`) before completing
+3. Run validation (`bun format && bun lint && bun run test`) before completing
 
 ### Anti-Patterns to Avoid
 - Adding features beyond what was requested
@@ -465,7 +467,7 @@ test(contracts): add comprehensive Hats Protocol test suite
 - Keep PRs focused on a single concern
 - Reference the issue/plan in the PR description
 - Use the `/review` skill (6-pass review) before merging
-- Run full validation: `bun format && bun lint && bun test && bun build`
+- Run full validation: `bun format && bun lint && bun run test && bun build`
 
 ## Architectural Rules (13 Core Rules)
 
@@ -487,7 +489,7 @@ These rules prevent performance leaks, fragile abstractions, and consistency dri
 | **10. Context Values** | Inline object literals | Wrap in useMemo |
 | **11. Barrel Imports** | Deep paths into `@green-goods/shared/...` | Import from `@green-goods/shared` root |
 | **12. Console.log Cleanup** | `console.log/warn/error` in production | Use logger service from shared |
-| **13. Provider Nesting** | Wrong provider hierarchy order | Follow documented order (Wagmi→Query→AppKit→Auth→App→JobQueue→Work) |
+| **13. Provider Nesting** | Wrong provider hierarchy order | Follow documented order (AppKit[Wagmi]→Auth→App; see `architectural-rules.md`) |
 
 ### Utility Hooks
 

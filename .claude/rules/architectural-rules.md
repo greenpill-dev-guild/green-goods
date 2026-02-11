@@ -399,25 +399,39 @@ SUGGEST: Follow exact order from shared.md context
 ```
 
 ### Required Order (outermost → innermost)
+
+**Admin** (`packages/admin/src/main.tsx`):
 ```tsx
-<WagmiProvider>
-  <QueryClientProvider>
-    <AppKitProvider>
-      <AuthProvider>
-        <AppProvider>
-          <JobQueueProvider>
-            <WorkProvider>
-              {children}
-            </WorkProvider>
-          </JobQueueProvider>
-        </AppProvider>
-      </AuthProvider>
-    </AppKitProvider>
-  </QueryClientProvider>
-</WagmiProvider>
+<QueryClientProvider>
+  <AppKitProvider>       {/* internally wraps WagmiProvider */}
+    <AuthProvider>
+      <AppProvider>
+        <App />
+      </AppProvider>
+    </AuthProvider>
+  </AppKitProvider>
+</QueryClientProvider>
 ```
 
-**Why:** Each provider depends on its ancestors. `AuthProvider` needs `AppKit` and `QueryClient`. `JobQueueProvider` needs `Auth`. Reordering causes runtime errors.
+**Client** (`packages/client/src/main.tsx` + `App.tsx`):
+```tsx
+<AppKitProvider>           {/* internally wraps WagmiProvider */}
+  <AuthProvider>
+    <AppProvider>
+      <PersistQueryClientProvider>  {/* in App.tsx */}
+        <RouterProvider />
+      </PersistQueryClientProvider>
+    </AppProvider>
+  </AuthProvider>
+</AppKitProvider>
+```
+
+**Notes:**
+- `AppKitProvider` wraps `WagmiProvider` internally — do not add a separate `WagmiProvider`.
+- `JobQueueProvider` and `WorkProvider` are used at the route/view level, not at the app root.
+- `QueryClientProvider` placement differs: admin uses it at root, client uses `PersistQueryClientProvider` inside `App.tsx` for offline cache persistence.
+
+**Why:** Each provider depends on its ancestors. `AuthProvider` needs `AppKit` (wallet state). `AppProvider` needs `Auth` (user context). Reordering causes runtime errors.
 
 ---
 
