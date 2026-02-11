@@ -123,8 +123,8 @@ export class CoreDeployer {
         );
       }
 
-      // Auto-update Envio configuration after successful deployment
-      if (!options.skipEnvio) {
+      // Auto-update Envio configuration after successful broadcast deployment
+      if (options.broadcast && !options.skipEnvio) {
         await this._updateEnvioConfig(options);
       }
 

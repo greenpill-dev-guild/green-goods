@@ -10,6 +10,9 @@ import { Capital } from "../src/registries/Action.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import { IOctantFactory } from "../src/interfaces/IOctantFactory.sol";
+import { AaveV3YDSStrategy } from "../src/strategies/AaveV3YDSStrategy.sol";
+import { MockYDSStrategy } from "../src/mocks/MockYDSStrategy.sol";
 
 /// @title Deploy
 /// @notice Production deployment script - orchestrates DeploymentBase + seed data
@@ -23,6 +26,15 @@ contract Deploy is Script, DeploymentBase {
     // ===== STATE =====
     address[] private gardenAddresses;
     uint256[] private gardenTokenIds;
+
+    // Arbitrum mainnet defaults for Octant phase-1 assets/strategy
+    uint256 private constant ARBITRUM_CHAIN_ID = 42_161;
+    uint256 private constant SEPOLIA_CHAIN_ID = 11_155_111;
+    address private constant ARBITRUM_AAVE_V3_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
+    address private constant ARBITRUM_WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+    address private constant ARBITRUM_DAI = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1;
+    address private constant ARBITRUM_AWETH = 0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8;
+    address private constant ARBITRUM_ADAI = 0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE;
 
     /// @notice Deployment mode flags
     struct DeploymentMode {
@@ -47,6 +59,7 @@ contract Deploy is Script, DeploymentBase {
 
             // 2. Add production-specific governance features (L2 only)
             if (!_isMainnetChain(block.chainid)) {
+                _configureOctant();
                 _addProductionFeatures(config);
 
                 // 3. Deploy seed data (gardens + actions) on broadcast runs.
@@ -115,6 +128,101 @@ contract Deploy is Script, DeploymentBase {
             }
             _initiateGovernanceTransfer(config.multisig);
         }
+    }
+
+    /// @notice Configure Octant factory/assets/strategies for vault creation on mint
+    /// @dev Uses environment-driven overrides; safe no-op when OCTANT_FACTORY_ADDRESS is unset.
+    function _configureOctant() internal {
+        if (address(octantModule) == address(0) || address(gardenToken) == address(0)) {
+            return;
+        }
+
+        address octantFactoryAddress = _envAddressOrZero("OCTANT_FACTORY_ADDRESS");
+        if (octantFactoryAddress == address(0)) {
+            return;
+        }
+
+        octantModule.setOctantFactory(octantFactoryAddress);
+        octantModule.setGardenToken(address(gardenToken));
+
+        if (block.chainid == ARBITRUM_CHAIN_ID) {
+            _configureArbitrumOctantAssets();
+            return;
+        }
+
+        if (block.chainid == SEPOLIA_CHAIN_ID) {
+            _configureSepoliaOctantAssets();
+            return;
+        }
+
+        _configureExplicitOctantAssets();
+    }
+
+    /// @notice Configure Arbitrum defaults (WETH + DAI) with AaveV3YDSStrategy instances
+    function _configureArbitrumOctantAssets() internal {
+        address wethAsset = _envAddressOrDefault("OCTANT_WETH_ASSET", ARBITRUM_WETH);
+        address daiAsset = _envAddressOrDefault("OCTANT_DAI_ASSET", ARBITRUM_DAI);
+        address strategyOwner = _envAddressOrDefault("OCTANT_STRATEGY_OWNER", msg.sender);
+
+        address wethStrategy = _envAddressOrZero("OCTANT_WETH_STRATEGY");
+        if (wethStrategy == address(0)) {
+            address wethAToken = _envAddressOrDefault("OCTANT_WETH_ATOKEN", ARBITRUM_AWETH);
+            wethStrategy = address(new AaveV3YDSStrategy(wethAsset, ARBITRUM_AAVE_V3_POOL, wethAToken, strategyOwner));
+        }
+
+        address daiStrategy = _envAddressOrZero("OCTANT_DAI_STRATEGY");
+        if (daiStrategy == address(0)) {
+            address daiAToken = _envAddressOrDefault("OCTANT_DAI_ATOKEN", ARBITRUM_ADAI);
+            daiStrategy = address(new AaveV3YDSStrategy(daiAsset, ARBITRUM_AAVE_V3_POOL, daiAToken, strategyOwner));
+        }
+
+        octantModule.setSupportedAsset(wethAsset, wethStrategy);
+        octantModule.setSupportedAsset(daiAsset, daiStrategy);
+    }
+
+    /// @notice Configure Sepolia with explicit mock/test assets and mock strategies
+    /// @dev Requires OCTANT_WETH_ASSET + OCTANT_DAI_ASSET when strategy overrides are not provided.
+    function _configureSepoliaOctantAssets() internal {
+        _configureExplicitOctantAssets();
+    }
+
+    /// @notice Configure supported assets entirely from explicit env variables
+    /// @dev If strategy is omitted but asset is provided, deploys MockYDSStrategy.
+    function _configureExplicitOctantAssets() internal {
+        address wethAsset = _envAddressOrZero("OCTANT_WETH_ASSET");
+        address daiAsset = _envAddressOrZero("OCTANT_DAI_ASSET");
+
+        address wethStrategy = _envAddressOrZero("OCTANT_WETH_STRATEGY");
+        address daiStrategy = _envAddressOrZero("OCTANT_DAI_STRATEGY");
+
+        if (wethAsset != address(0)) {
+            if (wethStrategy == address(0)) {
+                wethStrategy = address(new MockYDSStrategy());
+            }
+            octantModule.setSupportedAsset(wethAsset, wethStrategy);
+        }
+
+        if (daiAsset != address(0)) {
+            if (daiStrategy == address(0)) {
+                daiStrategy = address(new MockYDSStrategy());
+            }
+            octantModule.setSupportedAsset(daiAsset, daiStrategy);
+        }
+    }
+
+    /// @notice Read optional env var as address; returns zero when unset/invalid
+    function _envAddressOrZero(string memory key) internal view returns (address value) {
+        try vm.envAddress(key) returns (address parsed) {
+            value = parsed;
+        } catch {
+            value = address(0);
+        }
+    }
+
+    /// @notice Read optional env var with fallback default
+    function _envAddressOrDefault(string memory key, address fallbackValue) internal view returns (address value) {
+        address parsed = _envAddressOrZero(key);
+        return parsed == address(0) ? fallbackValue : parsed;
     }
 
     /// @notice Deploy seed data (gardens from config + core actions)
@@ -495,6 +603,8 @@ contract Deploy is Script, DeploymentBase {
         result.workApprovalResolver = address(workApprovalResolver);
         result.hatsModule = address(hatsModule);
         result.karmaGAPModule = address(karmaGAPModule);
+        result.octantModule = address(octantModule);
+        result.octantFactory = _getOctantFactoryAddress();
         result.gardenerAccountLogic = gardenerAccountLogic;
         result.gardenerRegistry = address(gardenerRegistry);
         result.assessmentSchemaUID = assessmentSchemaUID;
@@ -503,6 +613,19 @@ contract Deploy is Script, DeploymentBase {
         result.rootGardenAddress = gardenAddresses.length > 0 ? gardenAddresses[0] : address(0);
         result.rootGardenTokenId = gardenTokenIds.length > 0 ? gardenTokenIds[0] : 0;
         // guardian and accountProxy are computed via CREATE2, left as address(0)
+    }
+
+    /// @notice Resolve configured Octant factory from module (if deployed)
+    function _getOctantFactoryAddress() private view returns (address) {
+        if (address(octantModule) == address(0)) {
+            return address(0);
+        }
+
+        try octantModule.octantFactory() returns (IOctantFactory factory) {
+            return address(factory);
+        } catch {
+            return address(0);
+        }
     }
 
     /// @notice Save deployment results to JSON

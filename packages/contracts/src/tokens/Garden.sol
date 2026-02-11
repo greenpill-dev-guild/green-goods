@@ -10,6 +10,7 @@ import { TBALib } from "../lib/TBA.sol";
 import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
+import { OctantModule } from "../modules/Octant.sol";
 import { DeploymentRegistry } from "../DeploymentRegistry.sol";
 
 /// @title GardenToken Contract
@@ -21,14 +22,16 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     address public deploymentRegistry;
     IHatsModule public hatsModule;
     IKarmaGAPModule public karmaGAPModule;
+    OctantModule public octantModule;
 
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 46 slots (50 total - 4 used: _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule)
+     * Reserves 45 slots (50 total - 5 used: _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule,
+     * octantModule)
      * Note: _GARDEN_ACCOUNT_IMPLEMENTATION is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[46] private __gap;
+    uint256[45] private __gap;
 
     /// @notice Emitted when a new Garden is minted.
     /// @param tokenId The unique identifier of the minted Garden token.
@@ -48,6 +51,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Emitted when the Karma GAP module address is updated.
     event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
+
+    /// @notice Emitted when the Octant module address is updated.
+    event OctantModuleUpdated(address indexed oldModule, address indexed newModule);
 
     /// @notice Configuration for batch garden minting (Gas Optimized)
     struct GardenConfig {
@@ -117,6 +123,13 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         address oldModule = address(karmaGAPModule);
         karmaGAPModule = IKarmaGAPModule(_karmaGAPModule);
         emit KarmaGAPModuleUpdated(oldModule, _karmaGAPModule);
+    }
+
+    /// @notice Sets the OctantModule address (owner only).
+    function setOctantModule(address _octantModule) external onlyOwner {
+        address oldModule = address(octantModule);
+        octantModule = OctantModule(_octantModule);
+        emit OctantModuleUpdated(oldModule, _octantModule);
     }
 
     /// @notice Modifier to check if caller is authorized to mint gardens.
@@ -241,6 +254,16 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
                 gardenAccount, _msgSender(), config.name, config.description, config.location, config.bannerImage
             ) {
                 // Success handled by module events
+            } catch {
+                // Failure is non-blocking
+            }
+        }
+
+        // Octant vault setup (graceful degradation)
+        if (address(octantModule) != address(0)) {
+            try octantModule.onGardenMinted(gardenAccount, config.name) returns (address[] memory _vaults) {
+                // Success handled by module events
+                _vaults;
             } catch {
                 // Failure is non-blocking
             }

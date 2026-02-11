@@ -8,7 +8,6 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 
 import { WorkApprovalSchema, WorkSchema } from "../Schemas.sol";
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
-import { IGreenGoodsResolver } from "../interfaces/IGreenGoodsResolver.sol";
 import { IERC6551Account } from "../interfaces/IERC6551Account.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 import { ActionRegistry } from "../registries/Action.sol";
@@ -23,21 +22,18 @@ error NotGardenOperator();
 contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     address public immutable ACTION_REGISTRY;
 
-    /// @notice The GreenGoods resolver for triggering protocol integrations
-    IGreenGoodsResolver public greenGoodsResolver;
+    /// @dev Reserved slot — previously `greenGoodsResolver`. Do not reuse.
+    uint256 private __reservedSlot0;
 
     /// @notice The Karma GAP module for impact creation
     IKarmaGAPModule public karmaGAPModule;
-
-    /// @notice Emitted when the GreenGoods resolver is updated
-    event GreenGoodsResolverUpdated(address indexed oldResolver, address indexed newResolver);
 
     /// @notice Emitted when the KarmaGAPModule is updated
     event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
 
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 48 slots (50 total - 2 used: greenGoodsResolver, karmaGAPModule)
+     * Reserves 48 slots (50 total - 2 used: __reservedSlot0, karmaGAPModule)
      * Note: ACTION_REGISTRY is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
@@ -55,14 +51,6 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     function initialize(address _multisig) external initializer {
         __Ownable_init();
         _transferOwnership(_multisig);
-    }
-
-    /// @notice Sets the GreenGoods resolver address
-    /// @param _resolver The new resolver address
-    function setGreenGoodsResolver(address _resolver) external onlyOwner {
-        address oldResolver = address(greenGoodsResolver);
-        greenGoodsResolver = IGreenGoodsResolver(_resolver);
-        emit GreenGoodsResolverUpdated(oldResolver, _resolver);
     }
 
     /// @notice Sets the KarmaGAPModule address
@@ -126,45 +114,7 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
             _createGAPProjectImpact(schema, workAttestation);
         }
 
-        // GREENGOODS RESOLVER: Trigger all enabled integrations (Octant, Unlock, etc.)
-        // Only called for approved work; resolver uses try/catch internally
-        if (schema.approved && address(greenGoodsResolver) != address(0)) {
-            _callGreenGoodsResolver(schema, workAttestation, attestation);
-        }
-
         return (true);
-    }
-
-    /// @notice Calls the GreenGoods resolver for approved work
-    /// @dev Called after validation; uses try/catch to prevent resolver failures from reverting approval
-    function _callGreenGoodsResolver(
-        WorkApprovalSchema memory schema,
-        Attestation memory workAttestation,
-        Attestation calldata approvalAttestation
-    )
-        private
-    {
-        WorkSchema memory workSchema = abi.decode(workAttestation.data, (WorkSchema));
-
-        // Get first media IPFS CID (for proof)
-        string memory mediaIPFS = workSchema.media.length > 0 ? workSchema.media[0] : "";
-
-        // Call resolver with try/catch — integration failures don't block attestations
-        // solhint-disable-next-line no-empty-blocks
-        try greenGoodsResolver.onWorkApproved(
-            workAttestation.recipient, // garden address
-            schema.workUID, // work UID
-            approvalAttestation.uid, // approval UID
-            bytes32(schema.actionUID), // action UID (converted from uint256)
-            workAttestation.attester, // worker (who submitted work)
-            approvalAttestation.attester, // operator (who approved)
-            schema.feedback, // approval feedback
-            mediaIPFS // evidence
-        ) {
-            // Success - resolver events provide observability
-        } catch {
-            // Intentionally ignore resolver failures — approval succeeds even if integrations fail
-        }
     }
 
     /// @notice Handles the logic to be executed when an attestation is revoked.

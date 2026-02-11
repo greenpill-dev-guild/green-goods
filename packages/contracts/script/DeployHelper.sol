@@ -45,6 +45,8 @@ abstract contract DeployHelper is Script {
         address workApprovalResolver;
         address hatsModule;
         address karmaGAPModule;
+        address octantModule;
+        address octantFactory;
         address gardenerAccountLogic; // GardenerAccount implementation for user smart accounts
         address gardenerRegistry; // Gardener Registry (mainnet only, address(0) on L2s)
         bytes32 assessmentSchemaUID;
@@ -201,6 +203,8 @@ abstract contract DeployHelper is Script {
         console.log("GardenerAccountLogic:", result.gardenerAccountLogic);
         console.log("GardenToken:", result.gardenToken);
         console.log("ActionRegistry:", result.actionRegistry);
+        console.log("OctantModule:", result.octantModule);
+        console.log("OctantFactory:", result.octantFactory);
 
         string memory obj = "deployment";
         vm.serializeAddress(obj, "deploymentRegistry", result.deploymentRegistry);
@@ -214,6 +218,8 @@ abstract contract DeployHelper is Script {
         vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
         vm.serializeAddress(obj, "hatsModule", result.hatsModule);
         vm.serializeAddress(obj, "karmaGAPModule", result.karmaGAPModule);
+        vm.serializeAddress(obj, "octantModule", result.octantModule);
+        vm.serializeAddress(obj, "octantFactory", result.octantFactory);
         vm.serializeAddress(obj, "gardenerAccountLogic", result.gardenerAccountLogic);
         vm.serializeAddress(obj, "gardenerRegistry", result.gardenerRegistry);
 
