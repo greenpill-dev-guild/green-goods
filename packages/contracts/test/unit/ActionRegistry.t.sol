@@ -12,27 +12,36 @@ import {
 contract ActionRegistryTest is Test {
     ActionRegistry private actionRegistry;
     address private multisig = address(0x123);
-    address private owner = address(this);
+
+    // Events (mirrored from ActionRegistry for vm.expectEmit)
+    event ActionRegistered(
+        address owner,
+        uint256 indexed actionUID,
+        uint256 indexed startTime,
+        uint256 indexed endTime,
+        string title,
+        string instructions,
+        Capital[] capitals,
+        string[] media
+    );
+    event ActionStartTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed startTime);
+    event ActionEndTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed endTime);
+    event ActionTitleUpdated(address indexed owner, uint256 indexed actionUID, string indexed title);
+    event ActionInstructionsUpdated(address indexed owner, uint256 indexed actionUID, string indexed instructions);
+    event ActionMediaUpdated(address indexed owner, uint256 indexed actionUID, string[] indexed media);
 
     function setUp() public {
-        // Deploy the implementation
         ActionRegistry implementation = new ActionRegistry();
-
-        // Deploy the proxy with initialization
         bytes memory initData = abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig);
         ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
-
-        // Cast proxy to ActionRegistry interface
         actionRegistry = ActionRegistry(address(proxy));
     }
 
-    function testInitialize() public {
-        // Test that the contract is properly initialized
-        assertEq(actionRegistry.owner(), multisig, "Owner should be the multisig address");
-    }
+    // =========================================================================
+    // Helpers
+    // =========================================================================
 
-    function testRegisterAction() public {
-        // Test registering a new action
+    function _registerAction() internal returns (uint256 actionUID) {
         Capital[] memory capitals = new Capital[](1);
         capitals[0] = Capital.CULTURAL;
 
@@ -43,17 +52,63 @@ contract ActionRegistryTest is Test {
         actionRegistry.registerAction(
             block.timestamp, block.timestamp + 1 days, "Test Action", "instructionsCID", capitals, media
         );
+        return 0;
+    }
 
-        ActionRegistry.Action memory action = actionRegistry.getAction(0);
+    // =========================================================================
+    // Initialization Tests
+    // =========================================================================
+
+    function testInitialize() public {
+        assertEq(actionRegistry.owner(), multisig, "Owner should be the multisig address");
+    }
+
+    function test_initialize_revertsOnDoubleInit() public {
+        vm.expectRevert("Initializable: contract is already initialized");
+        actionRegistry.initialize(address(0x999));
+    }
+
+    // =========================================================================
+    // Registration Tests
+    // =========================================================================
+
+    function testRegisterAction() public {
+        uint256 actionUID = _registerAction();
+
+        ActionRegistry.Action memory action = actionRegistry.getAction(actionUID);
         assertEq(action.startTime, block.timestamp, "Start time should be the current time");
         assertEq(action.endTime, block.timestamp + 1 days, "End time should be one day later");
         assertEq(action.instructions, "instructionsCID", "Instructions should match");
         assertEq(action.media[0], "mediaCID1", "Media should match");
     }
 
+    function test_registerAction_emitsEvent() public {
+        Capital[] memory capitals = new Capital[](1);
+        capitals[0] = Capital.CULTURAL;
+
+        string[] memory media = new string[](1);
+        media[0] = "mediaCID1";
+
+        vm.expectEmit(true, true, true, true);
+        emit ActionRegistered(
+            multisig, 0, block.timestamp, block.timestamp + 1 days, "Test Action", "instructionsCID", capitals, media
+        );
+
+        vm.prank(multisig);
+        actionRegistry.registerAction(
+            block.timestamp, block.timestamp + 1 days, "Test Action", "instructionsCID", capitals, media
+        );
+    }
+
+    // =========================================================================
+    // Update Tests with Event Emissions
+    // =========================================================================
+
     function testUpdateActionStartTime() public {
-        // Test updating the start time of an action
-        testRegisterAction();
+        _registerAction();
+
+        vm.expectEmit(true, true, true, true);
+        emit ActionStartTimeUpdated(multisig, 0, block.timestamp + 1 hours);
 
         vm.prank(multisig);
         actionRegistry.updateActionStartTime(0, block.timestamp + 1 hours);
@@ -63,8 +118,10 @@ contract ActionRegistryTest is Test {
     }
 
     function testUpdateActionEndTime() public {
-        // Test updating the end time of an action
-        testRegisterAction();
+        _registerAction();
+
+        vm.expectEmit(true, true, true, true);
+        emit ActionEndTimeUpdated(multisig, 0, block.timestamp + 2 days);
 
         vm.prank(multisig);
         actionRegistry.updateActionEndTime(0, block.timestamp + 2 days);
@@ -73,9 +130,24 @@ contract ActionRegistryTest is Test {
         assertEq(action.endTime, block.timestamp + 2 days, "End time should be updated");
     }
 
+    function testUpdateActionTitle() public {
+        _registerAction();
+
+        vm.expectEmit(true, true, false, false);
+        emit ActionTitleUpdated(multisig, 0, "New Title");
+
+        vm.prank(multisig);
+        actionRegistry.updateActionTitle(0, "New Title");
+
+        ActionRegistry.Action memory action = actionRegistry.getAction(0);
+        assertEq(action.title, "New Title", "Title should be updated");
+    }
+
     function testUpdateActionInstructions() public {
-        // Test updating the instructions of an action
-        testRegisterAction();
+        _registerAction();
+
+        vm.expectEmit(true, true, false, false);
+        emit ActionInstructionsUpdated(multisig, 0, "newInstructionsCID");
 
         vm.prank(multisig);
         actionRegistry.updateActionInstructions(0, "newInstructionsCID");
@@ -85,8 +157,7 @@ contract ActionRegistryTest is Test {
     }
 
     function testUpdateActionMedia() public {
-        // Test updating the media of an action
-        testRegisterAction();
+        _registerAction();
 
         string[] memory newMedia = new string[](1);
         newMedia[0] = "newMediaCID";
@@ -98,8 +169,11 @@ contract ActionRegistryTest is Test {
         assertEq(action.media[0], "newMediaCID", "Media should be updated");
     }
 
+    // =========================================================================
+    // Access Control Tests
+    // =========================================================================
+
     function testOnlyOwnerCanRegister() public {
-        // Test that only the owner can register actions
         Capital[] memory capitals = new Capital[](1);
         capitals[0] = Capital.CULTURAL;
 
@@ -114,16 +188,18 @@ contract ActionRegistryTest is Test {
     }
 
     function testOnlyOwnerCanUpdate() public {
-        // Test that only the action owner can update the action
-        testRegisterAction();
+        _registerAction();
 
         vm.prank(address(0x999));
         vm.expectRevert(NotActionOwner.selector);
         actionRegistry.updateActionStartTime(0, block.timestamp + 1 hours);
     }
 
+    // =========================================================================
+    // Validation Tests
+    // =========================================================================
+
     function testRegisterActionRevertsWithInvalidTimeRange() public {
-        // Test that registering an action with end time before start time reverts
         Capital[] memory capitals = new Capital[](1);
         capitals[0] = Capital.CULTURAL;
 
@@ -133,49 +209,42 @@ contract ActionRegistryTest is Test {
         vm.prank(multisig);
         vm.expectRevert(EndTimeBeforeStartTime.selector);
         actionRegistry.registerAction(
-            block.timestamp + 2 days, // Start time after end time
-            block.timestamp + 1 days, // End time before start time
-            "Invalid Action",
-            "instructionsCID",
-            capitals,
-            media
+            block.timestamp + 2 days, block.timestamp + 1 days, "Invalid Action", "instructionsCID", capitals, media
         );
     }
 
     function testUpdateActionStartTimeRevertsWithInvalidTime() public {
-        // Register a valid action first
-        testRegisterAction();
+        _registerAction();
 
-        // Try to update start time to be after end time
         vm.prank(multisig);
         vm.expectRevert(StartTimeAfterEndTime.selector);
         actionRegistry.updateActionStartTime(0, block.timestamp + 2 days);
     }
 
     function testUpdateActionEndTimeRevertsWithInvalidTime() public {
-        // Register a valid action first
-        testRegisterAction();
+        _registerAction();
 
-        // Try to update end time to be before start time
         vm.prank(multisig);
         vm.expectRevert(EndTimeBeforeStartTime.selector);
         actionRegistry.updateActionEndTime(0, block.timestamp - 1 hours);
     }
 
-    // function testAuthorizeUpgrade() public {
-    //     // Test that only the owner can authorize an upgrade
-    //     address newImplementation = address(0x456);
+    // =========================================================================
+    // UUPS Upgrade Tests
+    // =========================================================================
 
-    //     vm.prank(multisig);
-    //     actionRegistry.upgradeTo(newImplementation);
-    // }
+    function test_authorizeUpgrade_ownerCanUpgrade() public {
+        ActionRegistry newImpl = new ActionRegistry();
 
-    // function testNonOwnerCannotUpgrade() public {
-    //     // Test that non-owners cannot authorize an upgrade
-    //     address newImplementation = address(0x456);
+        vm.prank(multisig);
+        actionRegistry.upgradeTo(address(newImpl));
+    }
 
-    //     vm.prank(address(0x999));
-    //     vm.expectRevert("Ownable: caller is not the owner");
-    //     actionRegistry.upgradeTo(newImplementation);
-    // }
+    function test_authorizeUpgrade_nonOwnerCannotUpgrade() public {
+        ActionRegistry newImpl = new ActionRegistry();
+
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        actionRegistry.upgradeTo(address(newImpl));
+    }
 }

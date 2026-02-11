@@ -235,15 +235,6 @@ contract WorkApprovalResolverTest is Test {
     // Configuration Tests
     // =========================================================================
 
-    function testSetGreenGoodsResolver() public {
-        address resolver = address(0xBEEF);
-
-        vm.prank(multisig);
-        workApprovalResolver.setGreenGoodsResolver(resolver);
-
-        assertEq(address(workApprovalResolver.greenGoodsResolver()), resolver);
-    }
-
     function testSetKarmaGAPModule() public {
         address module = address(0xCAFE);
 
@@ -251,12 +242,6 @@ contract WorkApprovalResolverTest is Test {
         workApprovalResolver.setKarmaGAPModule(module);
 
         assertEq(address(workApprovalResolver.karmaGAPModule()), module);
-    }
-
-    function testOnlyOwnerCanSetGreenGoodsResolver() public {
-        vm.prank(stranger);
-        vm.expectRevert("Ownable: caller is not the owner");
-        workApprovalResolver.setGreenGoodsResolver(address(0xBEEF));
     }
 
     function testOnlyOwnerCanSetKarmaGAPModule() public {
@@ -275,6 +260,96 @@ contract WorkApprovalResolverTest is Test {
         vm.prank(stranger);
         vm.expectRevert();
         workApprovalResolver.attest(attestation);
+    }
+
+    // =========================================================================
+    // Double Initialization Test
+    // =========================================================================
+
+    function test_initialize_revertsOnDoubleInit() public {
+        vm.expectRevert("Initializable: contract is already initialized");
+        workApprovalResolver.initialize(address(0x999));
+    }
+
+    // =========================================================================
+    // UUPS Upgrade Tests
+    // =========================================================================
+
+    function test_authorizeUpgrade_ownerCanUpgrade() public {
+        WorkApprovalResolver newImpl = new WorkApprovalResolver(address(mockEAS), address(actionRegistry));
+
+        vm.prank(multisig);
+        workApprovalResolver.upgradeTo(address(newImpl));
+    }
+
+    function test_authorizeUpgrade_nonOwnerCannotUpgrade() public {
+        WorkApprovalResolver newImpl = new WorkApprovalResolver(address(mockEAS), address(actionRegistry));
+
+        vm.prank(stranger);
+        vm.expectRevert("Ownable: caller is not the owner");
+        workApprovalResolver.upgradeTo(address(newImpl));
+    }
+
+    // =========================================================================
+    // GAP Integration Branch Tests
+    // =========================================================================
+
+    function testOnAttestApproval_skipsGAPWhenNoModule() public {
+        // Default: karmaGAPModule == address(0)
+        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, true);
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Approval should succeed without GAP module");
+    }
+
+    function testOnAttestApproval_callsGAPWhenConfigured() public {
+        MockKarmaForWorkApproval mockModule = new MockKarmaForWorkApproval();
+        vm.prank(multisig);
+        workApprovalResolver.setKarmaGAPModule(address(mockModule));
+
+        // Mock IERC6551Account.token() on the garden address (work attestation recipient)
+        // _createGAPProjectImpact calls token() BEFORE the try/catch block
+        vm.mockCall(
+            address(mockGarden),
+            abi.encodeWithSignature("token()"),
+            abi.encode(uint256(84_532), address(0xdead), uint256(1))
+        );
+
+        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, true);
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Approval should succeed with GAP module");
+    }
+
+    function testOnAttestRejection_doesNotCallGAP() public {
+        MockKarmaForWorkApproval mockModule = new MockKarmaForWorkApproval();
+        vm.prank(multisig);
+        workApprovalResolver.setKarmaGAPModule(address(mockModule));
+
+        // Rejection: approved = false → GAP branch skipped
+        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, false);
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Rejection should succeed without calling GAP");
+    }
+
+    // =========================================================================
+    // Event Tests for Configuration Setters
+    // =========================================================================
+
+    event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
+
+    function testSetKarmaGAPModule_emitsEvent() public {
+        address module = address(0xCAFE);
+
+        vm.expectEmit(true, true, false, false);
+        emit KarmaGAPModuleUpdated(address(0), module);
+
+        vm.prank(multisig);
+        workApprovalResolver.setKarmaGAPModule(module);
     }
 
     // =========================================================================
@@ -310,5 +385,23 @@ contract WorkApprovalResolverTest is Test {
             revocable: true,
             data: abi.encode(schema)
         });
+    }
+}
+
+/// @notice Mock KarmaGAPModule for testing the GAP integration branch
+contract MockKarmaForWorkApproval {
+    function createImpact(
+        address,
+        uint256,
+        string calldata,
+        string calldata,
+        string calldata,
+        bytes32
+    )
+        external
+        pure
+        returns (bytes32)
+    {
+        return bytes32(uint256(1));
     }
 }

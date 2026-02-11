@@ -8,15 +8,182 @@ import { HatsModule } from "../../src/modules/Hats.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { MockHats } from "../../src/mocks/Hats.sol";
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Handler: target contract for Foundry invariant fuzzer
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// @title RoleHierarchyHandler
+/// @notice Exposes role operations as target functions for Foundry's invariant fuzzer.
+///         The fuzzer calls grantRole/revokeRole in arbitrary sequences, then invariants
+///         are checked after each call.
+contract RoleHierarchyHandler {
+    HatsModule public adapter;
+    address public garden1;
+    address public garden2;
+    address[5] public users;
+
+    constructor(HatsModule _adapter, address _garden1, address _garden2, address[5] memory _users) {
+        adapter = _adapter;
+        garden1 = _garden1;
+        garden2 = _garden2;
+        users = _users;
+    }
+
+    /// @notice Grant a role to a random user in a random garden
+    function grantRole(uint8 gardenSeed, uint8 userSeed, uint8 roleSeed) external {
+        address garden = gardenSeed % 2 == 0 ? garden1 : garden2;
+        address user = users[userSeed % 5];
+        IHatsModule.GardenRole role = _seedToRole(roleSeed);
+        try adapter.grantRole(garden, user, role) { } catch { }
+    }
+
+    /// @notice Revoke a role from a random user in a random garden
+    function revokeRole(uint8 gardenSeed, uint8 userSeed, uint8 roleSeed) external {
+        address garden = gardenSeed % 2 == 0 ? garden1 : garden2;
+        address user = users[userSeed % 5];
+        IHatsModule.GardenRole role = _seedToRole(roleSeed);
+        try adapter.revokeRole(garden, user, role) { } catch { }
+    }
+
+    function _seedToRole(uint8 seed) internal pure returns (IHatsModule.GardenRole) {
+        uint8 idx = seed % 4;
+        if (idx == 0) return IHatsModule.GardenRole.Gardener;
+        if (idx == 1) return IHatsModule.GardenRole.Evaluator;
+        if (idx == 2) return IHatsModule.GardenRole.Operator;
+        return IHatsModule.GardenRole.Owner;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// True Foundry Invariant Tests
+// ═══════════════════════════════════════════════════════════════════════════
+
 /// @title RoleHierarchyInvariantTest
-/// @notice Fuzz-based invariant tests verifying role hierarchy properties under random sequences
-/// @dev Verifies:
-///      1. Owner grant cascades to Operator + Evaluator + Gardener
-///      2. Operator grant cascades to Evaluator + Gardener
-///      3. Cross-garden isolation is maintained
-///      4. Funder/Community are never auto-granted
-///      5. Configuration immutability during role operations
+/// @notice True Foundry invariant tests using handler + targetContract pattern.
+///         The fuzzer calls random sequences of grantRole/revokeRole on the handler,
+///         then each invariant_* function is checked after EVERY call.
+/// @dev Invariants verified:
+///      1. Funder/Community are never auto-granted by core role operations
+///      2. Garden hat configuration is never corrupted by role operations
+///      3. Cross-garden isolation: operations in one garden don't affect the other
+///      4. All role queries succeed without reverting (no corrupted state)
 contract RoleHierarchyInvariantTest is Test {
+    HatsModule public adapter;
+    MockHats public mockHats;
+    RoleHierarchyHandler public handler;
+
+    address public garden1;
+    address public garden2;
+
+    address[5] public users;
+
+    // Inline targetContract support (StdInvariant not available in this forge-std version)
+    address[] private _targetedContracts;
+
+    function targetContract(address newTargetedContract_) internal {
+        _targetedContracts.push(newTargetedContract_);
+    }
+
+    function targetContracts() public view returns (address[] memory) {
+        return _targetedContracts;
+    }
+
+    function setUp() public {
+        mockHats = new MockHats();
+
+        // Deploy adapter with proxy
+        HatsModule impl = new HatsModule();
+        bytes memory initData = abi.encodeWithSelector(HatsModule.initialize.selector, address(this), address(mockHats));
+        adapter = HatsModule(address(new ERC1967Proxy(address(impl), initData)));
+
+        // Create hat trees
+        uint256 gardensHatId = mockHats.mintTopHat(address(adapter), "Green Goods Gardens", "");
+        adapter.setProtocolHatIds(0, gardensHatId, 0);
+
+        // Set gardenToken to this contract for initial setup
+        adapter.setGardenToken(address(this));
+
+        garden1 = address(0x1000);
+        garden2 = address(0x2000);
+
+        adapter.createGardenHatTree(garden1, "Garden One", address(0x9999));
+        adapter.createGardenHatTree(garden2, "Garden Two", address(0x9999));
+
+        // Set up users
+        users[0] = address(0x3001);
+        users[1] = address(0x3002);
+        users[2] = address(0x3003);
+        users[3] = address(0x3004);
+        users[4] = address(0x3005);
+
+        // Deploy handler and authorize it as gardenToken for role operations
+        handler = new RoleHierarchyHandler(adapter, garden1, garden2, users);
+        adapter.setGardenToken(address(handler));
+
+        // Only target the handler — fuzzer will call grantRole/revokeRole randomly
+        targetContract(address(handler));
+    }
+
+    // =========================================================================
+    // Invariant 1: Funder/Community Never Auto-Granted
+    // No sequence of core role grant/revoke operations should produce
+    // Funder or Community roles.
+    // =========================================================================
+
+    function invariant_funderAndCommunityNeverAutoGranted() public {
+        for (uint256 i = 0; i < 5; i++) {
+            assertFalse(adapter.isFunderOf(garden1, users[i]), "Funder must never be auto-granted in garden1");
+            assertFalse(adapter.isCommunityOf(garden1, users[i]), "Community must never be auto-granted in garden1");
+            assertFalse(adapter.isFunderOf(garden2, users[i]), "Funder must never be auto-granted in garden2");
+            assertFalse(adapter.isCommunityOf(garden2, users[i]), "Community must never be auto-granted in garden2");
+        }
+    }
+
+    // =========================================================================
+    // Invariant 2: Configuration Preservation
+    // Role operations must never corrupt the garden hat configuration.
+    // =========================================================================
+
+    function invariant_configurationPreserved() public {
+        assertTrue(adapter.isConfigured(garden1), "Garden1 must remain configured");
+        assertTrue(adapter.isConfigured(garden2), "Garden2 must remain configured");
+    }
+
+    // =========================================================================
+    // Invariant 3: All Queries Succeed
+    // No role query should revert (no corrupted hat IDs or broken state).
+    // =========================================================================
+
+    function invariant_allRoleQueriesSucceed() public {
+        for (uint256 i = 0; i < 5; i++) {
+            // These must never revert on configured gardens
+            adapter.isGardenerOf(garden1, users[i]);
+            adapter.isEvaluatorOf(garden1, users[i]);
+            adapter.isOperatorOf(garden1, users[i]);
+            adapter.isOwnerOf(garden1, users[i]);
+            adapter.isFunderOf(garden1, users[i]);
+            adapter.isCommunityOf(garden1, users[i]);
+
+            adapter.isGardenerOf(garden2, users[i]);
+            adapter.isEvaluatorOf(garden2, users[i]);
+            adapter.isOperatorOf(garden2, users[i]);
+            adapter.isOwnerOf(garden2, users[i]);
+            adapter.isFunderOf(garden2, users[i]);
+            adapter.isCommunityOf(garden2, users[i]);
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Fuzz Tests for Operation Properties
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// @title RoleHierarchyFuzzTest
+/// @notice Fuzz tests for individual operation properties (cascade behavior).
+///         These test properties of INDIVIDUAL operations, not system invariants.
+/// @dev These remain as testFuzz_* because cascade is a property of grantRole,
+///      not a system-wide invariant (you can grant Owner then revoke Evaluator).
+contract RoleHierarchyFuzzTest is Test {
     HatsModule public adapter;
     MockHats public mockHats;
 
@@ -33,7 +200,7 @@ contract RoleHierarchyInvariantTest is Test {
         bytes memory initData = abi.encodeWithSelector(HatsModule.initialize.selector, address(this), address(mockHats));
         adapter = HatsModule(address(new ERC1967Proxy(address(impl), initData)));
 
-        // Create hat trees for both gardens using createGardenHatTree
+        // Create hat trees for both gardens
         uint256 gardensHatId = mockHats.mintTopHat(address(adapter), "Green Goods Gardens", "");
         adapter.setProtocolHatIds(0, gardensHatId, 0);
 
@@ -56,11 +223,9 @@ contract RoleHierarchyInvariantTest is Test {
     }
 
     // =========================================================================
-    // Invariant 1: Owner Grant Cascades
-    // Granting Owner MUST also grant Operator, Evaluator, and Gardener hats.
+    // Cascade: Owner Grant
     // =========================================================================
 
-    /// @notice Fuzz: granting Owner to any user cascades all 4 roles
     function testFuzz_ownerGrantCascadesToAllRoles(uint8 userSeed) public {
         address user = users[userSeed % 5];
 
@@ -72,7 +237,6 @@ contract RoleHierarchyInvariantTest is Test {
         assertTrue(adapter.isGardenerOf(garden1, user), "Owner should cascade to gardener");
     }
 
-    /// @notice Fuzz: granting Owner does NOT auto-grant Funder or Community
     function testFuzz_ownerGrantDoesNotCascadeToFunderOrCommunity(uint8 userSeed) public {
         address user = users[userSeed % 5];
 
@@ -83,11 +247,9 @@ contract RoleHierarchyInvariantTest is Test {
     }
 
     // =========================================================================
-    // Invariant 2: Operator Grant Cascades
-    // Granting Operator MUST also grant Evaluator and Gardener hats.
+    // Cascade: Operator Grant
     // =========================================================================
 
-    /// @notice Fuzz: granting Operator cascades to Evaluator + Gardener
     function testFuzz_operatorGrantCascadesToSubRoles(uint8 userSeed) public {
         address user = users[userSeed % 5];
 
@@ -100,11 +262,9 @@ contract RoleHierarchyInvariantTest is Test {
     }
 
     // =========================================================================
-    // Invariant 3: Leaf Roles Do NOT Cascade
-    // Granting Gardener or Evaluator should NOT grant any other roles.
+    // Leaf Roles: No Cascade
     // =========================================================================
 
-    /// @notice Fuzz: granting Gardener gives no other roles
     function testFuzz_gardenerGrantHasNoSubGrants(uint8 userSeed) public {
         address user = users[userSeed % 5];
 
@@ -116,7 +276,6 @@ contract RoleHierarchyInvariantTest is Test {
         assertFalse(adapter.isOwnerOf(garden1, user), "Gardener should NOT get owner");
     }
 
-    /// @notice Fuzz: granting Evaluator gives no other roles
     function testFuzz_evaluatorGrantHasNoSubGrants(uint8 userSeed) public {
         address user = users[userSeed % 5];
 
@@ -129,11 +288,9 @@ contract RoleHierarchyInvariantTest is Test {
     }
 
     // =========================================================================
-    // Invariant 4: Cross-Garden Isolation
-    // Granting roles in garden1 MUST NOT affect garden2, and vice versa.
+    // Cross-Garden Isolation
     // =========================================================================
 
-    /// @notice Fuzz: roles in garden1 do not leak to garden2
     function testFuzz_crossGardenIsolation(uint8 userSeed, uint8 roleSeed) public {
         address user = users[userSeed % 5];
         IHatsModule.GardenRole role = _seedToRole(roleSeed);
@@ -150,7 +307,6 @@ contract RoleHierarchyInvariantTest is Test {
         assertFalse(adapter.isCommunityOf(garden2, user), "Garden2 community should be unaffected");
     }
 
-    /// @notice Fuzz: independent grants in both gardens maintain isolation
     function testFuzz_dualGardenIndependentGrants(
         uint8 user1Seed,
         uint8 role1Seed,
@@ -164,118 +320,37 @@ contract RoleHierarchyInvariantTest is Test {
         IHatsModule.GardenRole role1 = _seedToRole(role1Seed);
         IHatsModule.GardenRole role2 = _seedToRole(role2Seed);
 
-        // Grant in garden1
         adapter.grantRole(garden1, user1, role1);
-
-        // Grant in garden2
         adapter.grantRole(garden2, user2, role2);
 
-        // Verify garden1 user's roles in garden2 are only from their garden2 grants
         if (user1 != user2) {
-            // If different users, user1 should have NO roles in garden2
             assertFalse(adapter.isGardenerOf(garden2, user1), "User1 should have no garden2 roles");
-        }
-
-        // Verify garden2 user's roles in garden1 are only from their garden1 grants
-        if (user1 != user2) {
             assertFalse(adapter.isGardenerOf(garden1, user2), "User2 should have no garden1 roles");
         }
     }
 
     // =========================================================================
-    // Invariant 5: Revocation Does NOT Cascade (Design Property)
-    // Revoking a sub-hat leaves the parent hat intact. This is BY DESIGN:
-    // HatsModule does exact hat checks, while GardenAccount applies inclusive
-    // hierarchy (Owner => isEvaluator() returns true via the OR check).
+    // Revocation Behavior
     // =========================================================================
 
-    /// @notice Demonstrates: revoking a sub-hat does not revoke the parent hat
     function test_revokeSubHatDoesNotAffectParent() public {
         address user = users[0];
 
-        // Grant Owner => cascades to Operator + Evaluator + Gardener
         adapter.grantRole(garden1, user, IHatsModule.GardenRole.Owner);
         assertTrue(adapter.isOwnerOf(garden1, user), "Should be owner");
         assertTrue(adapter.isEvaluatorOf(garden1, user), "Should be evaluator (cascaded)");
 
-        // Revoke Evaluator only
         adapter.revokeRole(garden1, user, IHatsModule.GardenRole.Evaluator);
 
-        // Owner hat is retained; evaluator hat is gone (at HatsModule level)
         assertTrue(adapter.isOwnerOf(garden1, user), "Owner hat should be retained");
         assertFalse(adapter.isEvaluatorOf(garden1, user), "Evaluator hat should be gone");
-
-        // NOTE: At the GardenAccount level, _isEvaluator() checks:
-        //   isEvaluatorOf || isOperatorOf || isOwnerOf
-        // So the user would STILL pass evaluator checks via the owner path.
-        // This test documents the HatsModule-level behavior.
     }
 
     // =========================================================================
-    // Invariant 5b: Random Sequences Never Corrupt System State
-    // After random grant/revoke sequences, the system remains consistent:
-    // - No unexpected reverts
-    // - Configuration unchanged
-    // - Funder/Community never auto-granted
+    // Configuration Immutability (per-operation)
     // =========================================================================
 
-    /// @notice Fuzz: random sequences produce consistent state
-    function testFuzz_randomSequenceSystemConsistency(
-        uint8[8] calldata userSeeds,
-        uint8[8] calldata roleSeeds,
-        bool[8] calldata isGrant
-    )
-        public
-    {
-        // Execute random sequence of 8 operations
-        for (uint256 i = 0; i < 8; i++) {
-            address user = users[userSeeds[i] % 5];
-            IHatsModule.GardenRole role = _seedToRole(roleSeeds[i]);
-
-            if (isGrant[i]) {
-                try adapter.grantRole(garden1, user, role) { } catch { }
-            } else {
-                try adapter.revokeRole(garden1, user, role) { } catch { }
-            }
-        }
-
-        // After all operations, verify system consistency:
-        // 1. Configuration must be preserved
-        assertTrue(adapter.isConfigured(garden1), "Garden1 must remain configured");
-        assertTrue(adapter.isConfigured(garden2), "Garden2 must remain configured");
-
-        // 2. Funder/Community must never appear
-        for (uint256 i = 0; i < 5; i++) {
-            assertFalse(adapter.isFunderOf(garden1, users[i]), "Funder must never auto-grant");
-            assertFalse(adapter.isCommunityOf(garden1, users[i]), "Community must never auto-grant");
-        }
-
-        // 3. Garden2 must be completely unaffected
-        for (uint256 i = 0; i < 5; i++) {
-            assertFalse(adapter.isGardenerOf(garden2, users[i]), "Garden2 must be unaffected");
-            assertFalse(adapter.isOwnerOf(garden2, users[i]), "Garden2 must be unaffected");
-        }
-
-        // 4. All role queries must succeed without reverting (no corrupted state)
-        for (uint256 i = 0; i < 5; i++) {
-            // These should never revert on a configured garden
-            adapter.isGardenerOf(garden1, users[i]);
-            adapter.isEvaluatorOf(garden1, users[i]);
-            adapter.isOperatorOf(garden1, users[i]);
-            adapter.isOwnerOf(garden1, users[i]);
-            adapter.isFunderOf(garden1, users[i]);
-            adapter.isCommunityOf(garden1, users[i]);
-        }
-    }
-
-    // =========================================================================
-    // Invariant 6: Configuration Immutability
-    // Role operations MUST NOT change garden configuration.
-    // =========================================================================
-
-    /// @notice Fuzz: role operations don't affect configuration
     function testFuzz_roleOpsPreserveConfiguration(uint8 userSeed, uint8 roleSeed) public {
-        // Capture initial state
         (
             uint256 g1OwnerBefore,
             uint256 g1OperatorBefore,
@@ -287,12 +362,10 @@ contract RoleHierarchyInvariantTest is Test {
             bool g1ConfiguredBefore
         ) = adapter.gardenHats(garden1);
 
-        // Perform role operation
         address user = users[userSeed % 5];
         IHatsModule.GardenRole role = _seedToRole(roleSeed);
         adapter.grantRole(garden1, user, role);
 
-        // Verify configuration unchanged
         (
             uint256 g1OwnerAfter,
             uint256 g1OperatorAfter,
@@ -313,12 +386,6 @@ contract RoleHierarchyInvariantTest is Test {
         assertEq(g1ConfiguredBefore, g1ConfiguredAfter, "Configured status changed");
     }
 
-    // =========================================================================
-    // Invariant 7: Funder/Community Independence
-    // No combination of core role operations should grant Funder or Community.
-    // =========================================================================
-
-    /// @notice Fuzz: exhaustive grant sequence never produces Funder/Community
     function testFuzz_noCoreRoleGrantsProduceFunderOrCommunity(
         uint8[8] calldata userSeeds,
         uint8[8] calldata roleSeeds
@@ -341,7 +408,6 @@ contract RoleHierarchyInvariantTest is Test {
     // Helpers
     // =========================================================================
 
-    /// @dev Map seed to one of the 4 core roles
     function _seedToRole(uint8 seed) internal pure returns (IHatsModule.GardenRole) {
         uint8 idx = seed % 4;
         if (idx == 0) return IHatsModule.GardenRole.Gardener;

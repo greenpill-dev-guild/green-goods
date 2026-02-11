@@ -7,51 +7,13 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { ActionRegistry, Capital } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
-import { IHatsModule } from "../src/interfaces/IHatsModule.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
+import { MockHatsModule } from "./helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
-
-contract MockHatsModule is IHatsModule {
-    function createGardenHatTree(address, string calldata, address) external pure returns (uint256 adminHatId) {
-        return 1;
-    }
-
-    function grantRole(address, address, GardenRole) external { }
-
-    function revokeRole(address, address, GardenRole) external { }
-
-    function grantRoles(address, address[] calldata, GardenRole[] calldata) external { }
-
-    function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
-
-    function isGardenerOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isEvaluatorOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isOperatorOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isOwnerOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isFunderOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isCommunityOf(address, address) external pure returns (bool) {
-        return false;
-    }
-}
 
 /// @title UpgradeSafetyTest
 /// @notice Tests for UUPS upgrade patterns and storage preservation

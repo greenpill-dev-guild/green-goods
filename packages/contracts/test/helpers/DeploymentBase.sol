@@ -22,6 +22,7 @@ import { AssessmentResolver } from "../../src/resolvers/Assessment.sol";
 import { ResolverStub } from "../../src/resolvers/ResolverStub.sol";
 import { HatsModule } from "../../src/modules/Hats.sol";
 import { KarmaGAPModule } from "../../src/modules/Karma.sol";
+import { OctantModule } from "../../src/modules/Octant.sol";
 import { HatsLib } from "../../src/lib/Hats.sol";
 
 /// @notice Schema registry interface
@@ -80,6 +81,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     AssessmentResolver public assessmentResolver;
     HatsModule public hatsModule;
     KarmaGAPModule public karmaGAPModule;
+    OctantModule public octantModule;
     address public gardenerAccountLogic; // Gardener implementation for user smart accounts (Kernel v3)
     GardenerRegistry public gardenerRegistry; // Gardener Registry (mainnet/sepolia only, null on L2s)
 
@@ -221,11 +223,16 @@ abstract contract DeploymentBase is Test, DeployHelper {
             )
         );
 
-        // 9. Wire modules
+        // 9. Deploy OctantModule (factory configured post-deployment if available)
+        octantModule = OctantModule(_deployOctantModule(owner, address(0), salt, factory));
+
+        // 10. Wire modules
         hatsModule.setGardenToken(address(gardenToken));
         hatsModule.setKarmaGAPModule(address(karmaGAPModule));
         gardenToken.setHatsModule(address(hatsModule));
         gardenToken.setKarmaGAPModule(address(karmaGAPModule));
+        gardenToken.setOctantModule(address(octantModule));
+        octantModule.setGardenToken(address(gardenToken));
         karmaGAPModule.setHatsModule(address(hatsModule));
         workApprovalResolver.setKarmaGAPModule(address(karmaGAPModule));
         assessmentResolver.setKarmaGAPModule(address(karmaGAPModule));
@@ -424,6 +431,35 @@ abstract contract DeploymentBase is Test, DeployHelper {
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(proxyBytecode, karmaSalt, factory);
+            if (deployed != predicted) {
+                revert DeploymentAddressMismatch();
+            }
+        }
+
+        return predicted;
+    }
+
+    /// @notice Deploy OctantModule with CREATE2 + proxy
+    function _deployOctantModule(
+        address owner,
+        address octantFactoryAddress,
+        bytes32 salt,
+        address factory
+    )
+        internal
+        returns (address)
+    {
+        OctantModule octantImpl = new OctantModule();
+        bytes memory initData =
+            abi.encodeWithSelector(OctantModule.initialize.selector, owner, octantFactoryAddress, 7 days);
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(octantImpl), initData));
+        bytes32 octantSalt = keccak256(abi.encodePacked(salt, "OctantModuleProxy"));
+        address predicted = Create2.computeAddress(octantSalt, keccak256(proxyBytecode), factory);
+        _logCreate2Prediction("OctantModule proxy", octantSalt, factory, predicted);
+
+        if (!_isDeployed(predicted)) {
+            address deployed = _deployCreate2(proxyBytecode, octantSalt, factory);
             if (deployed != predicted) {
                 revert DeploymentAddressMismatch();
             }

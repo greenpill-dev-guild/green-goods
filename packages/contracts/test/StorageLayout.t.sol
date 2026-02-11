@@ -7,10 +7,10 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { HatsModule } from "../src/modules/Hats.sol";
+import { OctantModule } from "../src/modules/Octant.sol";
 import { ActionRegistry } from "../src/registries/Action.sol";
-import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
 import { MockHats } from "../src/mocks/Hats.sol";
-import { MockERC20 } from "../src/mocks/ERC20.sol";
+import { MockOctantFactory } from "../src/mocks/Octant.sol";
 
 /// @title StorageLayoutTest
 /// @notice Verifies storage layout stability for UUPS upgradeable contracts
@@ -38,6 +38,7 @@ contract StorageLayoutTest is Test {
         // Set known values
         token.setHatsModule(address(0xAA));
         token.setKarmaGAPModule(address(0xBB));
+        token.setOctantModule(address(0xCC));
 
         // Verify hatsModule slot contains expected value
         // hatsModule is the 3rd custom variable after inherited storage
@@ -46,17 +47,55 @@ contract StorageLayoutTest is Test {
 
         address storedKarma = address(token.karmaGAPModule());
         assertEq(storedKarma, address(0xBB), "karmaGAPModule value should match");
+
+        address storedOctant = address(token.octantModule());
+        assertEq(storedOctant, address(0xCC), "octantModule value should match");
     }
 
-    /// @notice Verify GardenToken gap is exactly 46 slots
+    /// @notice Verify GardenToken gap is exactly 45 slots
     function testGardenTokenGapSize() public {
-        // The gap is declared as uint256[46] in GardenToken
-        // Total contract slots = 4 named + 46 gap = 50
+        // The gap is declared as uint256[45] in GardenToken
+        // Total contract slots = 5 named + 45 gap = 50
         // If someone adds a variable and forgets to shrink the gap, this will catch it
-        uint256 expectedNamedSlots = 4; // _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule
-        uint256 expectedGapSize = 46;
+        uint256 expectedNamedSlots = 5; // _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule, octantModule
+        uint256 expectedGapSize = 45;
         uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
         assertEq(expectedTotal, 50, "GardenToken should use exactly 50 custom slots");
+    }
+
+    // =========================================================================
+    // OctantModule Storage Layout
+    // =========================================================================
+
+    function testOctantModuleStorageSlots() public {
+        MockOctantFactory factory = new MockOctantFactory();
+        OctantModule impl = new OctantModule();
+        bytes memory initData =
+            abi.encodeWithSelector(OctantModule.initialize.selector, address(this), address(factory), 7 days);
+        OctantModule module = OctantModule(address(new ERC1967Proxy(address(impl), initData)));
+
+        module.setGardenToken(address(0xCC));
+        module.setSupportedAsset(address(0xAA), address(0xBB));
+
+        assertEq(address(module.octantFactory()), address(factory), "factory should match");
+        assertEq(module.defaultProfitUnlockTime(), 7 days, "unlock time should match");
+        assertEq(module.gardenToken(), address(0xCC), "garden token should match");
+        assertEq(module.supportedAssets(address(0xAA)), address(0xBB), "strategy should match");
+        assertEq(module.supportedAssetCount(), 1, "supportedAssetCount should match");
+    }
+
+    function testOctantModuleGapSize() public {
+        // Named storage: octantFactory + defaultProfitUnlockTime + gardenDonationAddresses(mapping)
+        // + gardenAssetVaults(mapping) + supportedAssets(mapping) + supportedAssetList(array)
+        // + supportedAssetCount + gardenToken = 8
+        // ReentrancyGuardUpgradeable adds 1 slot (_status)
+        // Gap = 41
+        // Total = 8 + 1 + 41 = 50
+        uint256 expectedNamedSlots = 8;
+        uint256 expectedReentrancySlots = 1;
+        uint256 expectedGapSize = 41;
+        uint256 expectedTotal = expectedNamedSlots + expectedReentrancySlots + expectedGapSize;
+        assertEq(expectedTotal, 50, "OctantModule should use exactly 50 custom slots");
     }
 
     // =========================================================================
@@ -178,6 +217,7 @@ contract StorageLayoutTest is Test {
         // Set state
         token.setHatsModule(address(0xAA));
         token.setKarmaGAPModule(address(0xBB));
+        token.setOctantModule(address(0xCC));
 
         // Upgrade to new implementation
         GardenToken newImpl = new GardenToken(address(1));
@@ -186,6 +226,7 @@ contract StorageLayoutTest is Test {
         // Verify state preserved
         assertEq(address(token.hatsModule()), address(0xAA), "hatsModule should survive upgrade");
         assertEq(address(token.karmaGAPModule()), address(0xBB), "karmaGAPModule should survive upgrade");
+        assertEq(address(token.octantModule()), address(0xCC), "octantModule should survive upgrade");
         assertEq(token.owner(), address(this), "owner should survive upgrade");
     }
 
@@ -216,5 +257,26 @@ contract StorageLayoutTest is Test {
         assertEq(adapter.gardensHatId(), 200, "gardensHatId should survive upgrade");
         assertEq(adapter.protocolGardenersHatId(), 300, "protocolGardenersHatId should survive upgrade");
         assertTrue(adapter.isConfigured(address(0xDD)), "garden config should survive upgrade");
+    }
+
+    function testOctantModuleUpgradePreservesState() public {
+        MockOctantFactory factory = new MockOctantFactory();
+        OctantModule impl = new OctantModule();
+        bytes memory initData =
+            abi.encodeWithSelector(OctantModule.initialize.selector, address(this), address(factory), 7 days);
+        OctantModule module = OctantModule(address(new ERC1967Proxy(address(impl), initData)));
+
+        module.setGardenToken(address(0xCC));
+        module.setSupportedAsset(address(0xAA), address(0xBB));
+
+        OctantModule newImpl = new OctantModule();
+        module.upgradeTo(address(newImpl));
+
+        assertEq(address(module.octantFactory()), address(factory), "factory should survive upgrade");
+        assertEq(module.defaultProfitUnlockTime(), 7 days, "unlock time should survive upgrade");
+        assertEq(module.gardenToken(), address(0xCC), "gardenToken should survive upgrade");
+        assertEq(module.supportedAssets(address(0xAA)), address(0xBB), "supported asset should survive upgrade");
+        assertEq(module.supportedAssetCount(), 1, "supported asset count should survive upgrade");
+        assertEq(module.owner(), address(this), "owner should survive upgrade");
     }
 }

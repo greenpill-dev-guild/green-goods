@@ -194,6 +194,18 @@ contract WorkResolverTest is Test {
     }
 
     // =========================================================================
+    // onAttest: Return Value Verification
+    // =========================================================================
+
+    function testOnAttestReturnsTrueForValidWork() public {
+        Attestation memory attestation = _buildWorkAttestation(gardener, activeActionId);
+
+        vm.prank(address(mockEAS));
+        bool result = workResolver.attest(attestation);
+        assertTrue(result, "onAttest should explicitly return true for valid work submission");
+    }
+
+    // =========================================================================
     // onRevoke Tests
     // =========================================================================
 
@@ -215,6 +227,34 @@ contract WorkResolverTest is Test {
         vm.prank(stranger);
         vm.expectRevert();
         workResolver.attest(attestation);
+    }
+
+    // =========================================================================
+    // Double Initialization Test
+    // =========================================================================
+
+    function test_initialize_revertsOnDoubleInit() public {
+        vm.expectRevert("Initializable: contract is already initialized");
+        workResolver.initialize(address(0x999));
+    }
+
+    // =========================================================================
+    // UUPS Upgrade Tests
+    // =========================================================================
+
+    function test_authorizeUpgrade_ownerCanUpgrade() public {
+        WorkResolver newImpl = new WorkResolver(address(mockEAS), address(actionRegistry));
+
+        vm.prank(multisig);
+        workResolver.upgradeTo(address(newImpl));
+    }
+
+    function test_authorizeUpgrade_nonOwnerCannotUpgrade() public {
+        WorkResolver newImpl = new WorkResolver(address(mockEAS), address(actionRegistry));
+
+        vm.prank(stranger);
+        vm.expectRevert("Ownable: caller is not the owner");
+        workResolver.upgradeTo(address(newImpl));
     }
 
     // =========================================================================

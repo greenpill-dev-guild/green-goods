@@ -6,48 +6,10 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 
 import { GardenToken } from "../../src/tokens/Garden.sol";
 import { GardenAccount } from "../../src/accounts/Garden.sol";
-import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
 import { MockNonERC20 } from "../../src/mocks/NonERC20.sol";
+import { MockHatsModule } from "../helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "../helpers/ERC6551Helper.sol";
-
-contract MockHatsModule is IHatsModule {
-    function createGardenHatTree(address, string calldata, address) external pure returns (uint256 adminHatId) {
-        return 1;
-    }
-
-    function grantRole(address, address, GardenRole) external { }
-
-    function revokeRole(address, address, GardenRole) external { }
-
-    function grantRoles(address, address[] calldata, GardenRole[] calldata) external { }
-
-    function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
-
-    function isGardenerOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isEvaluatorOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isOperatorOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isOwnerOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isFunderOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isCommunityOf(address, address) external pure returns (bool) {
-        return false;
-    }
-}
 
 contract GardenTokenTest is Test, ERC6551Helper {
     GardenToken private gardenToken;
@@ -65,6 +27,20 @@ contract GardenTokenTest is Test, ERC6551Helper {
     MockERC20 private mockToken;
     MockNonERC20 private mockNonERC20;
     MockHatsModule private mockHatsModule;
+
+    // Events (mirrored from GardenToken for vm.expectEmit)
+    event HatsModuleUpdated(address indexed oldModule, address indexed newModule);
+    event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
+    event OctantModuleUpdated(address indexed oldModule, address indexed newModule);
+    event GardenMinted(
+        uint256 indexed tokenId,
+        address indexed account,
+        string name,
+        string description,
+        string location,
+        string bannerImage,
+        bool openJoining
+    );
 
     function setUp() public {
         _deployERC6551Registry();
@@ -202,5 +178,98 @@ contract GardenTokenTest is Test, ERC6551Helper {
         assertTrue(gardenAccounts[1] != address(0), "Second garden should be created");
         assertEq(gardenToken.ownerOf(0), multisig, "First token should be minted");
         assertEq(gardenToken.ownerOf(1), multisig, "Second token should be minted");
+    }
+
+    // =========================================================================
+    // Event Emission Tests
+    // =========================================================================
+
+    function test_setHatsModule_emitsEvent() public {
+        vm.expectEmit(true, true, false, false);
+        emit HatsModuleUpdated(address(0), address(mockHatsModule));
+
+        vm.prank(multisig);
+        gardenToken.setHatsModule(address(mockHatsModule));
+    }
+
+    function test_setKarmaGAPModule_emitsEvent() public {
+        address module = address(0xCAFE);
+
+        vm.expectEmit(true, true, false, false);
+        emit KarmaGAPModuleUpdated(address(0), module);
+
+        vm.prank(multisig);
+        gardenToken.setKarmaGAPModule(module);
+    }
+
+    function test_setOctantModule_emitsEvent() public {
+        address module = address(0xBEEF);
+
+        vm.expectEmit(true, true, false, false);
+        emit OctantModuleUpdated(address(0), module);
+
+        vm.prank(multisig);
+        gardenToken.setOctantModule(module);
+    }
+
+    function test_mintGarden_emitsGardenMintedEvent() public {
+        _setHatsModule();
+
+        // We can't predict the exact garden account address, so check topic matching only
+        vm.expectEmit(true, false, false, false);
+        emit GardenMinted(0, address(0), "Test Garden", "Description", "Location", "Banner", false);
+
+        vm.prank(multisig);
+        gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+    }
+
+    // =========================================================================
+    // Setter Access Control Tests
+    // =========================================================================
+
+    function test_setKarmaGAPModule_onlyOwner() public {
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        gardenToken.setKarmaGAPModule(address(0xCAFE));
+    }
+
+    function test_setOctantModule_onlyOwner() public {
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        gardenToken.setOctantModule(address(0xBEEF));
+    }
+
+    function test_setDeploymentRegistry_onlyOwner() public {
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        gardenToken.setDeploymentRegistry(address(0xDEAD));
+    }
+
+    // =========================================================================
+    // Double Initialization Test
+    // =========================================================================
+
+    function test_initialize_revertsOnDoubleInit() public {
+        vm.expectRevert("Initializable: contract is already initialized");
+        gardenToken.initialize(address(0x999), address(0));
+    }
+
+    // =========================================================================
+    // UUPS Upgrade Tests
+    // =========================================================================
+
+    function test_authorizeUpgrade_ownerCanUpgrade() public {
+        GardenToken newImpl = new GardenToken(gardenAccountImplementation);
+
+        vm.prank(multisig);
+        gardenToken.upgradeTo(address(newImpl));
+    }
+
+    function test_authorizeUpgrade_nonOwnerCannotUpgrade() public {
+        GardenToken newImpl = new GardenToken(gardenAccountImplementation);
+
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        gardenToken.upgradeTo(address(newImpl));
     }
 }

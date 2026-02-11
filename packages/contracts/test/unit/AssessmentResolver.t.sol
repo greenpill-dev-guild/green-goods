@@ -232,8 +232,20 @@ contract AssessmentResolverTest is Test {
     }
 
     // =========================================================================
-    // Configuration Tests
+    // Configuration Tests (with Event Verification)
     // =========================================================================
+
+    event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
+
+    function testSetKarmaGAPModule_emitsEvent() public {
+        address module = address(0xCAFE);
+
+        vm.expectEmit(true, true, false, false);
+        emit KarmaGAPModuleUpdated(address(0), module);
+
+        vm.prank(multisig);
+        assessmentResolver.setKarmaGAPModule(module);
+    }
 
     function testSetKarmaGAPModule() public {
         address module = address(0xCAFE);
@@ -260,6 +272,255 @@ contract AssessmentResolverTest is Test {
         vm.prank(stranger);
         vm.expectRevert();
         assessmentResolver.attest(attestation);
+    }
+
+    // =========================================================================
+    // Double Initialization Test
+    // =========================================================================
+
+    function test_initialize_revertsOnDoubleInit() public {
+        vm.expectRevert("Initializable: contract is already initialized");
+        assessmentResolver.initialize(address(0x999));
+    }
+
+    // =========================================================================
+    // UUPS Upgrade Tests
+    // =========================================================================
+
+    function test_authorizeUpgrade_ownerCanUpgrade() public {
+        AssessmentResolver newImpl = new AssessmentResolver(address(mockEAS));
+
+        vm.prank(multisig);
+        assessmentResolver.upgradeTo(address(newImpl));
+    }
+
+    function test_authorizeUpgrade_nonOwnerCannotUpgrade() public {
+        AssessmentResolver newImpl = new AssessmentResolver(address(mockEAS));
+
+        vm.prank(stranger);
+        vm.expectRevert("Ownable: caller is not the owner");
+        assessmentResolver.upgradeTo(address(newImpl));
+    }
+
+    // =========================================================================
+    // Capital Validation Fuzz Tests
+    // =========================================================================
+
+    function testFuzz_assessmentCapitalValidation(uint8 capitalIndex) public {
+        // 8 valid capitals; anything else should fail
+        string[8] memory validCapitals =
+            ["social", "material", "financial", "living", "intellectual", "experiential", "spiritual", "cultural"];
+
+        AssessmentSchema memory schema = _validAssessment();
+        schema.capitals = new string[](1);
+
+        if (capitalIndex < 8) {
+            // Valid capital — should succeed
+            schema.capitals[0] = validCapitals[capitalIndex];
+            Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
+
+            vm.prank(address(mockEAS));
+            bool result = assessmentResolver.attest(attestation);
+            assertTrue(result, "Valid capital should be accepted");
+        } else {
+            // Invalid index — generate a garbage string
+            schema.capitals[0] = string(abi.encodePacked("invalid_", uint2str(capitalIndex)));
+            Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
+
+            vm.prank(address(mockEAS));
+            vm.expectRevert();
+            assessmentResolver.attest(attestation);
+        }
+    }
+
+    /// @notice Helper to convert uint to string (for fuzz test)
+    function uint2str(uint256 _i) internal pure returns (string memory) {
+        if (_i == 0) return "0";
+        uint256 j = _i;
+        uint256 len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint256 k = len;
+        while (_i != 0) {
+            k--;
+            bstr[k] = bytes1(uint8(48 + _i % 10));
+            _i /= 10;
+        }
+        return string(bstr);
+    }
+
+    // =========================================================================
+    // GAP Integration Branch Tests (karmaGAPModule configured vs not)
+    // =========================================================================
+
+    function testOnAttestSucceedsWithKarmaGAPModuleConfigured() public {
+        // Configure a mock KarmaGAPModule (just needs to not revert on createMilestone)
+        MockKarmaGAPModule mockModule = new MockKarmaGAPModule();
+
+        vm.prank(multisig);
+        assessmentResolver.setKarmaGAPModule(address(mockModule));
+
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, _validAssessment());
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+        assertTrue(result, "Assessment should succeed with GAP module configured");
+        assertTrue(mockModule.createMilestoneCalled(), "GAP module should have been called");
+    }
+
+    function testOnAttestSucceedsWithoutKarmaGAPModule() public {
+        // Default setup: no karmaGAPModule configured
+        assertEq(address(assessmentResolver.karmaGAPModule()), address(0));
+
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, _validAssessment());
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+        assertTrue(result, "Assessment should succeed without GAP module");
+    }
+
+    function testOnAttestSucceedsWhenKarmaGAPModuleReverts() public {
+        // Configure a failing mock
+        MockKarmaGAPModule mockModule = new MockKarmaGAPModule();
+        mockModule.setShouldRevert(true);
+
+        vm.prank(multisig);
+        assessmentResolver.setKarmaGAPModule(address(mockModule));
+
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, _validAssessment());
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+        assertTrue(result, "Assessment should succeed even when GAP module reverts (try/catch)");
+    }
+
+    // =========================================================================
+    // Metadata Building Branch Tests (JSON escaping, multi-capital arrays)
+    // =========================================================================
+
+    function testOnAttestWithSingleCapital() public {
+        AssessmentSchema memory schema = _validAssessment();
+        schema.capitals = new string[](1);
+        schema.capitals[0] = "financial";
+
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+        assertTrue(result, "Single capital assessment should succeed");
+    }
+
+    function testOnAttestWithAllEightCapitals() public {
+        AssessmentSchema memory schema = _validAssessment();
+        schema.capitals = new string[](8);
+        schema.capitals[0] = "social";
+        schema.capitals[1] = "material";
+        schema.capitals[2] = "financial";
+        schema.capitals[3] = "living";
+        schema.capitals[4] = "intellectual";
+        schema.capitals[5] = "experiential";
+        schema.capitals[6] = "spiritual";
+        schema.capitals[7] = "cultural";
+
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+        assertTrue(result, "All 8 capitals assessment should succeed");
+    }
+
+    function testOnAttestWithQuotesInMetricsJSON() public {
+        // Tests _escapeJSON branch — metricsJSON with double quotes
+        AssessmentSchema memory schema = _validAssessment();
+        schema.metricsJSON = 'ipfs://Qm"quoted"value';
+
+        // Configure GAP module so _buildMilestoneMetadata is actually called
+        MockKarmaGAPModule mockModule = new MockKarmaGAPModule();
+        vm.prank(multisig);
+        assessmentResolver.setKarmaGAPModule(address(mockModule));
+
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+        assertTrue(result, "Assessment with quotes in metrics should succeed");
+    }
+
+    function testOnAttestWithQuotesInAssessmentType() public {
+        AssessmentSchema memory schema = _validAssessment();
+        schema.assessmentType = 'bio"diversity';
+
+        MockKarmaGAPModule mockModule = new MockKarmaGAPModule();
+        vm.prank(multisig);
+        assessmentResolver.setKarmaGAPModule(address(mockModule));
+
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+        assertTrue(result, "Assessment with quotes in type should succeed");
+    }
+
+    function testOnAttestWithEmptyMetricsJSON() public {
+        AssessmentSchema memory schema = _validAssessment();
+        schema.metricsJSON = "";
+
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+        assertTrue(result, "Assessment with empty metrics should succeed");
+    }
+
+    // =========================================================================
+    // Each Individual Capital Validation Tests
+    // =========================================================================
+
+    function testOnAttestEachCapitalIndividually_social() public {
+        _testSingleCapital("social");
+    }
+
+    function testOnAttestEachCapitalIndividually_material() public {
+        _testSingleCapital("material");
+    }
+
+    function testOnAttestEachCapitalIndividually_financial() public {
+        _testSingleCapital("financial");
+    }
+
+    function testOnAttestEachCapitalIndividually_living() public {
+        _testSingleCapital("living");
+    }
+
+    function testOnAttestEachCapitalIndividually_intellectual() public {
+        _testSingleCapital("intellectual");
+    }
+
+    function testOnAttestEachCapitalIndividually_experiential() public {
+        _testSingleCapital("experiential");
+    }
+
+    function testOnAttestEachCapitalIndividually_spiritual() public {
+        _testSingleCapital("spiritual");
+    }
+
+    function testOnAttestEachCapitalIndividually_cultural() public {
+        _testSingleCapital("cultural");
+    }
+
+    function _testSingleCapital(string memory capital) internal {
+        AssessmentSchema memory schema = _validAssessment();
+        schema.capitals = new string[](1);
+        schema.capitals[0] = capital;
+
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+        assertTrue(result, string(abi.encodePacked("Capital '", capital, "' should be accepted")));
     }
 
     // =========================================================================
@@ -316,5 +577,25 @@ contract AssessmentResolverTest is Test {
             revocable: true,
             data: abi.encode(schema)
         });
+    }
+}
+
+/// @notice Minimal mock for IKarmaGAPModule.createMilestone used in assessment tests
+contract MockKarmaGAPModule {
+    bool private _createMilestoneCalled;
+    bool private _shouldRevert;
+
+    function createMilestone(address, string calldata, string calldata, string calldata) external returns (bytes32) {
+        if (_shouldRevert) revert("MockKarmaGAPModule: failed");
+        _createMilestoneCalled = true;
+        return bytes32(uint256(1));
+    }
+
+    function createMilestoneCalled() external view returns (bool) {
+        return _createMilestoneCalled;
+    }
+
+    function setShouldRevert(bool val) external {
+        _shouldRevert = val;
     }
 }

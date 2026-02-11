@@ -7,49 +7,13 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { ActionRegistry, Capital } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
-import { IHatsModule } from "../src/interfaces/IHatsModule.sol";
+import { OctantModule } from "../src/modules/Octant.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
+import { MockHatsModule } from "./helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
 
 /// @title FuzzTests
 /// @notice Fuzz testing for edge cases and boundary conditions
-contract MockHatsModule is IHatsModule {
-    function createGardenHatTree(address, string calldata, address) external pure returns (uint256 adminHatId) {
-        return 1;
-    }
-
-    function grantRole(address, address, GardenRole) external { }
-
-    function revokeRole(address, address, GardenRole) external { }
-
-    function grantRoles(address, address[] calldata, GardenRole[] calldata) external { }
-
-    function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
-
-    function isGardenerOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isEvaluatorOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isOperatorOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isOwnerOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isFunderOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isCommunityOf(address, address) external pure returns (bool) {
-        return false;
-    }
-}
 
 contract FuzzTests is Test, ERC6551Helper {
     ActionRegistry private actionRegistry;
@@ -235,6 +199,56 @@ contract FuzzTests is Test, ERC6551Helper {
             _i /= 10;
         }
         return string(bstr);
+    }
+
+    // =========================================================================
+    // Negative-Path Fuzz Tests
+    // =========================================================================
+
+    /// @notice Fuzz: registerAction reverts when startTime >= endTime
+    function testFuzz_registerAction_revertsInvalidDateRange(uint256 startTime, uint256 endTime) public {
+        vm.assume(startTime >= endTime);
+
+        Capital[] memory capitals = new Capital[](1);
+        capitals[0] = Capital.LIVING;
+
+        vm.prank(multisig);
+        vm.expectRevert();
+        actionRegistry.registerAction(startTime, endTime, "Invalid Dates", "instructions", capitals, new string[](0));
+    }
+
+    /// @notice Fuzz: gardenToken mint from random unauthorized address reverts
+    function testFuzz_gardenToken_mintRevertUnauthorized(address caller) public {
+        vm.assume(caller != multisig);
+        vm.assume(caller != address(0));
+
+        GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
+            communityToken: address(mockToken),
+            name: "Unauthorized Garden",
+            description: "Desc",
+            location: "Location",
+            bannerImage: "Banner",
+            metadata: "",
+            openJoining: false
+        });
+
+        vm.prank(caller);
+        vm.expectRevert();
+        gardenToken.mintGarden(config);
+    }
+
+    /// @notice Fuzz: octantModule harvest from random unauthorized address reverts
+    function testFuzz_octantModule_harvestRevertUnauthorized(address caller) public {
+        vm.assume(caller != address(0));
+        // No garden access control mock set up for random callers
+
+        OctantModule octantImpl = new OctantModule();
+        bytes memory initData = abi.encodeWithSelector(OctantModule.initialize.selector, multisig, address(0), 7 days);
+        OctantModule octant = OctantModule(address(new ERC1967Proxy(address(octantImpl), initData)));
+
+        vm.prank(caller);
+        vm.expectRevert();
+        octant.harvest(address(0x1), address(0x2));
     }
 
     /// @notice Convert bitmap to capital array
