@@ -33,6 +33,19 @@ contracts:
       - event: RoleGranted(address indexed garden, address indexed account, uint8 role)
       - event: RoleRevoked(address indexed garden, address indexed account, uint8 role)
       - event: PartialGrantFailed(address indexed garden, address indexed account, uint8 role, string reason)
+  - name: OctantModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: VaultCreated(address indexed garden, address indexed vault, address indexed asset)
+      - event: HarvestTriggered(address indexed garden, address indexed asset, address indexed caller)
+      - event: EmergencyPaused(address indexed garden, address indexed asset, address indexed caller)
+      - event: DonationAddressUpdated(address indexed garden, address indexed oldAddress, address indexed newAddress)
+      - event: SupportedAssetUpdated(address indexed asset, address indexed strategy)
+  - name: OctantVault
+    handler: src/EventHandlers.ts
+    events:
+      - event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
+      - event: Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
   - name: HypercertMinter
     handler: src/EventHandlers.ts
     events:
@@ -50,6 +63,10 @@ networks:
         address: "0x7de23111804b374E3a8d79932C4068d378F6843f"
       - name: HatsModule
         address: "0x0000000000000000000000000000000000000000"
+      - name: OctantModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: OctantVault
+        address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
   - id: 84532
@@ -62,6 +79,10 @@ networks:
       - name: GardenAccount
         address: "0xa624FDdBdfA1E13C739791fB65E2D174b7316519"
       - name: HatsModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: OctantModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: OctantVault
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
@@ -76,6 +97,10 @@ networks:
         address: "0x710cBFB9a29920B4577692eD495972fcd27286b4"
       - name: HatsModule
         address: "0x0000000000000000000000000000000000000000"
+      - name: OctantModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: OctantVault
+        address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
   - id: 11155111
@@ -87,3 +112,11 @@ networks:
         address: "0xEcbB6E69BE882d2e4E35CCe0E6637c7e1D64c791"
       - name: GardenAccount
         address: "0x83287652b4e1514e101a4053c9bcAFf6a24d051C"
+      - name: HatsModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: OctantModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: OctantVault
+        address: "0x0000000000000000000000000000000000000000"
+      - name: HypercertMinter
+        address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
