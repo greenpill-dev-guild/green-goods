@@ -10,80 +10,8 @@ import { GardenAccount } from "../../src/accounts/Garden.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { IKarmaGAPModule } from "../../src/interfaces/IKarmaGAPModule.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
+import { MockHatsModule } from "../helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "../helpers/ERC6551Helper.sol";
-
-contract MockHatsModule is IHatsModule {
-    struct CreateCall {
-        address garden;
-        string name;
-        address communityToken;
-    }
-
-    struct GrantCall {
-        address garden;
-        address account;
-        GardenRole role;
-    }
-
-    CreateCall public lastCreate;
-    bool public created;
-    GrantCall[] public grantCalls;
-
-    function grantCallsLength() external view returns (uint256) {
-        return grantCalls.length;
-    }
-
-    function createGardenHatTree(
-        address garden,
-        string calldata name,
-        address communityToken
-    )
-        external
-        returns (uint256 adminHatId)
-    {
-        lastCreate = CreateCall({ garden: garden, name: name, communityToken: communityToken });
-        created = true;
-        return 123;
-    }
-
-    function grantRole(address garden, address account, GardenRole role) external {
-        grantCalls.push(GrantCall({ garden: garden, account: account, role: role }));
-    }
-
-    function revokeRole(address, address, GardenRole) external { }
-
-    function grantRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            grantCalls.push(GrantCall({ garden: garden, account: accounts[i], role: roles[i] }));
-        }
-    }
-
-    function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
-
-    function isGardenerOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isEvaluatorOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isOperatorOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isOwnerOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isFunderOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isCommunityOf(address, address) external pure returns (bool) {
-        return false;
-    }
-}
 
 contract MockKarmaGAPModule is IKarmaGAPModule {
     struct ProjectCall {
@@ -225,5 +153,117 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
         (, address firstAccount, IHatsModule.GardenRole firstRole) = hatsModule.grantCalls(0);
         assertEq(firstAccount, multisig, "Owner grant should target minter");
         assertEq(uint8(firstRole), uint8(IHatsModule.GardenRole.Owner));
+    }
+
+    // =========================================================================
+    // Revert: Unauthorized Caller
+    // =========================================================================
+
+    function test_mintGarden_revertsForUnauthorizedCaller() public {
+        GardenToken.GardenConfig memory config = _defaultConfig();
+
+        vm.prank(address(0x999));
+        vm.expectRevert(GardenToken.DeploymentRegistryNotConfigured.selector);
+        gardenToken.mintGarden(config);
+    }
+
+    // =========================================================================
+    // Graceful Degradation: KarmaGAPModule not set
+    // =========================================================================
+
+    function test_mintGarden_succeedsWithoutKarmaModule() public {
+        // Remove karma module
+        vm.prank(multisig);
+        gardenToken.setKarmaGAPModule(address(0));
+
+        GardenToken.GardenConfig memory config = _defaultConfig();
+
+        vm.prank(multisig);
+        address gardenAccount = gardenToken.mintGarden(config);
+
+        assertTrue(gardenAccount != address(0), "Garden should mint without Karma module");
+        assertTrue(hatsModule.created(), "Hats module should still be called");
+        assertFalse(karmaModule.created(), "Karma module should NOT be called");
+    }
+
+    // =========================================================================
+    // Batch Mint Integration
+    // =========================================================================
+
+    function test_batchMintGardens_callsHatsForEachGarden() public {
+        GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](2);
+        configs[0] = _defaultConfig();
+        configs[1] = GardenToken.GardenConfig({
+            communityToken: address(communityToken),
+            name: "Garden Beta",
+            description: "Desc2",
+            location: "Location2",
+            bannerImage: "Banner2",
+            metadata: "",
+            openJoining: true
+        });
+
+        vm.prank(multisig);
+        address[] memory accounts = gardenToken.batchMintGardens(configs);
+
+        assertEq(accounts.length, 2, "Should create 2 gardens");
+        // 2 gardens x 1 owner grant each = 2 grant calls
+        assertEq(hatsModule.grantCallsLength(), 2, "Should have 2 owner grants");
+    }
+
+    // =========================================================================
+    // Event Emission
+    // =========================================================================
+
+    event GardenMinted(
+        uint256 indexed tokenId,
+        address indexed account,
+        string name,
+        string description,
+        string location,
+        string bannerImage,
+        bool openJoining
+    );
+
+    function test_mintGarden_emitsGardenMintedEvent() public {
+        GardenToken.GardenConfig memory config = _defaultConfig();
+
+        vm.expectEmit(true, false, false, false);
+        emit GardenMinted(0, address(0), "Garden Alpha", "Desc", "Location", "Banner", false);
+
+        vm.prank(multisig);
+        gardenToken.mintGarden(config);
+    }
+
+    // =========================================================================
+    // Revert: Missing HatsModule (via unit test interaction)
+    // =========================================================================
+
+    function test_mintGarden_revertsWhenHatsModuleRemoved() public {
+        // Remove hats module
+        vm.prank(multisig);
+        gardenToken.setHatsModule(address(0));
+
+        GardenToken.GardenConfig memory config = _defaultConfig();
+
+        vm.prank(multisig);
+        vm.expectRevert(GardenToken.HatsModuleNotSet.selector);
+        gardenToken.mintGarden(config);
+    }
+
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+
+    function _defaultConfig() internal view returns (GardenToken.GardenConfig memory) {
+        return GardenToken.GardenConfig({
+            communityToken: address(communityToken),
+            name: "Garden Alpha",
+            description: "Desc",
+            location: "Location",
+            bannerImage: "Banner",
+            metadata: "",
+            openJoining: false
+        });
     }
 }
