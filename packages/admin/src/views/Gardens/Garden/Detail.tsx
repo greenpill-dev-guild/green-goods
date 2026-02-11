@@ -1,22 +1,26 @@
-import { DEFAULT_CHAIN_ID, formatDate, toastService } from "@green-goods/shared";
 import {
+  DEFAULT_CHAIN_ID,
+  formatDate,
+  formatTokenAmount,
+  GARDEN_ROLE_COLORS,
+  GARDEN_ROLE_I18N_KEYS,
+  GARDEN_ROLE_ORDER,
+  type GardenOperationResult,
+  type GardenRole,
+  getNetDeposited,
+  getRoleColorClasses,
+  isZeroAddressValue,
   queryInvalidation,
+  resolveIPFSUrl,
+  toastService,
   useDelayedInvalidation,
   useGardenAssessments,
+  useGardenVaults,
   useGardenOperations,
   useGardenPermissions,
   useGardens,
   useWorks,
-  type GardenOperationResult,
-} from "@green-goods/shared/hooks";
-import { resolveIPFSUrl } from "@green-goods/shared/modules";
-import {
-  GARDEN_ROLE_COLORS,
-  GARDEN_ROLE_I18N_KEYS,
-  GARDEN_ROLE_ORDER,
-  getRoleColorClasses,
-  type GardenRole,
-} from "@green-goods/shared/utils";
+} from "@green-goods/shared";
 import {
   RiCheckboxCircleLine,
   RiDeleteBinLine,
@@ -27,9 +31,10 @@ import {
   RiShieldCheckLine,
   RiUserAddLine,
   RiUserLine,
+  RiBankLine,
 } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { AddressDisplay } from "@/components/AddressDisplay";
@@ -101,6 +106,28 @@ export default function GardenDetail() {
   const canManage = garden ? gardenPermissions.canManageGarden(garden) : false;
   const canReview = garden ? gardenPermissions.canReviewGarden(garden) : false;
   const canManageRoles = garden ? gardenPermissions.canAddMembers(garden) : false;
+
+  const { vaults: gardenVaults = [], isLoading: vaultsLoading } = useGardenVaults(id, {
+    enabled: Boolean(id),
+  });
+
+  const { vaultNetDeposited, vaultHarvestCount, vaultDepositorCount } = useMemo(() => {
+    let netDeposited = 0n;
+    let harvestCount = 0;
+    let depositorCount = 0;
+    for (const vault of gardenVaults) {
+      netDeposited += getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
+      harvestCount += vault.totalHarvestCount;
+      depositorCount += vault.depositorCount;
+    }
+    return { vaultNetDeposited: netDeposited, vaultHarvestCount: harvestCount, vaultDepositorCount: depositorCount };
+  }, [gardenVaults]);
+  const donationAddressUnset = useMemo(
+    () =>
+      gardenVaults.length > 0 &&
+      gardenVaults.some((vault) => isZeroAddressValue(vault.donationAddress)),
+    [gardenVaults]
+  );
 
   // Fetch work submissions for this garden using shared hook
   const { works } = useWorks(id!);
@@ -314,10 +341,62 @@ export default function GardenDetail() {
             label="Assessments"
             value={assessments.length}
           />
+          {gardenVaults.length > 0 && (
+            <>
+              <StatCard
+                icon={<RiBankLine className="h-5 w-5" />}
+                label={formatMessage({ id: "app.treasury.totalValueLocked" })}
+                value={formatTokenAmount(vaultNetDeposited)}
+              />
+              <StatCard
+                icon={<RiBankLine className="h-5 w-5" />}
+                label={formatMessage({ id: "app.treasury.totalHarvests" })}
+                value={vaultHarvestCount}
+              />
+              <StatCard
+                icon={<RiBankLine className="h-5 w-5" />}
+                label={formatMessage({ id: "app.treasury.depositorCount" })}
+                value={vaultDepositorCount}
+              />
+            </>
+          )}
         </section>
 
         {/* Work: Primary Content */}
         <section className="grid-area-work">
+          {gardenVaults.length > 0 && (
+            <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+                    {formatMessage({ id: "app.treasury.title" })}
+                  </h3>
+                  <p className="mt-1 text-sm text-text-sub">
+                    {formatMessage(
+                      { id: "app.treasury.gardenTreasuryDescription" },
+                      { gardenName: garden.name }
+                    )}
+                  </p>
+                </div>
+                <Link
+                  to={`/gardens/${id}/vault`}
+                  className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
+                >
+                  {formatMessage({ id: "app.treasury.manageVault" })}
+                </Link>
+              </div>
+              {donationAddressUnset && (
+                <p className="mt-3 rounded-md border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark">
+                  {formatMessage({ id: "app.treasury.setDonationFirst" })}
+                </p>
+              )}
+              {vaultsLoading && (
+                <p className="mt-3 text-sm text-text-soft">
+                  {formatMessage({ id: "app.treasury.loadingVaults" })}
+                </p>
+              )}
+            </div>
+          )}
           <WorkSubmissionsView gardenId={garden.id} canManage={canReview} />
         </section>
 

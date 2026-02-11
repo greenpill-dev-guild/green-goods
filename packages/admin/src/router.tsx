@@ -88,6 +88,16 @@ export const router = createRouter([
                     }),
                   },
                   {
+                    path: "gardens/:id/vault",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/Vault")).default,
+                    }),
+                  },
+                  {
+                    path: "treasury",
+                    lazy: async () => ({ Component: (await import("@/views/Treasury")).default }),
+                  },
+                  {
                     path: "actions",
                     lazy: async () => ({ Component: (await import("@/views/Actions")).default }),
                   },
