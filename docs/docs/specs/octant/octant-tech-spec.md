@@ -3,17 +3,17 @@ id: octant-tech-spec
 title: "GG-TECH-006: Octant Vaults Technical Specification"
 sidebar_label: Tech Spec
 sidebar_position: 3
-description: Technical specification for Octant Vault Integration with implementation details
+description: Technical specification for Octant Vault Integration — Arbitrum-native ERC-4626 vaults with Aave V3 yield strategies
 ---
 
 # GG-TECH-006: Octant Vaults Technical Specification
 
 **Document ID:** GG-TECH-006
 **Feature Reference:** GG-FEAT-006
-**Version:** 2.0
-**Status:** Draft
-**Last Updated:** January 22, 2026
-**Author:** Engineering Team
+**Version:** 3.0
+**Status:** Implementation Complete — Not Deployed (requires Octant V2 factory deployment and env configuration; see [§ Deployment](#7-deployment))
+**Last Updated:** February 9, 2026
+**Branch:** `feature/octant-defi-vaults`
 
 ---
 
@@ -21,166 +21,112 @@ description: Technical specification for Octant Vault Integration with implement
 
 ### 1.1 Purpose
 
-This technical specification defines the implementation details for the Octant Vault Integration feature, enabling Green Goods Gardens to deposit treasury capital into yield-generating vaults and donate the generated yield to fund verified environmental impact. The document covers both the **Arbitrum-native deployment** (Phase 1, recommended) and the **cross-chain Ethereum integration** (Phase 2) architectures.
+This technical specification defines the implementation details for the Octant Vault Integration feature, enabling anyone to deposit into per-garden ERC-4626 vaults on Arbitrum. Users interact with vaults directly — `vault.deposit()` and `vault.redeem()` — while OctantModule serves as a registry and admin layer for vault creation, harvest, donation configuration, and emergency pause.
 
 This specification serves as the engineering blueprint for:
-- Smart contract development and deployment
-- Frontend integration with the Admin Dashboard
-- Indexer and data layer configuration
+- Smart contract architecture (OctantModule, AaveV3YDSStrategy)
+- Frontend integration (Admin Dashboard + Client PWA)
+- Indexer and data layer configuration (Envio dual event source)
 - Testing and quality assurance
-- DevOps and deployment procedures
+- Deployment procedures
 
 ### 1.2 Scope
 
 **In Scope:**
-- Arbitrum-native YDS vault contracts (GardenVaultManager, YDS strategies)
-- Cross-chain vault controller contracts (CrossChainController, VaultController)
-- State synchronization between Arbitrum and Ethereum
-- Admin Dashboard vault management UI components
-- Envio indexer schema and handlers
-- Integration with Hats Protocol for authorization
-- Integration with ERC-6551 GardenAccounts
+- OctantModule — vault registry and admin layer (UUPS upgradeable)
+- Direct ERC-4626 vault interaction for deposits/withdrawals
+- AaveV3YDSStrategy for WETH + DAI on Arbitrum
+- MockYDSStrategy for testnet (Ethereum Sepolia)
+- Admin Dashboard vault management UI
+- Client PWA treasury drawer (deposit + withdraw)
+- Envio indexer schema and handlers (dual event source)
+- Integration with Hats Protocol for admin authorization
+- Vault creation at garden mint via GardenToken callback
 
 **Out of Scope:**
-- Conviction Voting integration for yield allocation (see GG-TECH-007)
-- Multi-strategy vault rebalancing (Phase 2)
-- Custom YDS strategy development (uses Octant-provided strategies)
-- Direct user deposits (users interact via Garden Operators)
-- Token bridging (only CCIP messages cross chains, not tokens)
+- Conviction Voting for yield allocation (Phase 2 — see GG-TECH-007)
+- Cross-chain CCIP integration (Phase 2 — see [Cross-Chain Appendix](./octant-cross-chain-appendix))
+- Multi-strategy per asset / rebalancing
+- Automated harvest (manual operator trigger only)
+- USDC vault support (architecture supports it via `setSupportedAsset()`)
+- Protocol fee on yield
+- Existing garden migration
 
-### 1.3 Definitions, Acronyms, and Abbreviations
+### 1.3 Definitions
 
 | Term | Definition |
 | :--- | :--- |
-| **YDS** | Yield Donating Strategy - ERC-4626 vault that donates profit to a configured address |
-| **CCIP** | Chainlink Cross-Chain Interoperability Protocol |
-| **PPS** | Price Per Share - ratio of vault assets to shares |
-| **TBA** | Token Bound Account (ERC-6551) |
-| **GardenAccount** | ERC-6551 account bound to Garden NFT, holds treasury |
-| **Operator** | Garden role authorized to manage vault operations |
-| **Guardian** | Garden role authorized for emergency actions |
-| **StateOracle** | Contract caching Ethereum vault state on Arbitrum |
-| **DON** | Decentralized Oracle Network (Chainlink) |
-| **EIP-4626** | Tokenized Vault Standard |
-| **Hats Protocol** | Onchain role management system |
+| **YDS** | Yield Donating Strategy — ERC-4626 vault that donates profit to a configured address |
+| **PPS** | Price Per Share — ratio of vault assets to shares |
+| **OctantModule** | Registry + admin layer for vault creation, harvest, donation config, emergency |
+| **ERC-4626** | Tokenized Vault Standard — the interface users interact with directly |
+| **Operator** | Garden role authorized for harvest, donation config (via Hats Protocol) |
+| **Owner** | Garden role authorized for emergency pause (in addition to Operator actions) |
 
 ### 1.4 References
 
 | Document | Description |
 | :--- | :--- |
-| GG-FEAT-006 | Octant Vaults Feature Specification |
-| GG-FEAT-007 | Gardens Conviction Voting Feature Specification |
-| GG-TECH-007 | Gardens Conviction Voting Technical Specification (yield allocation logic) |
-| GG-PRD-001 | Green Goods v1 Product Requirements Document |
+| GG-FEAT-006 | [Octant Vaults Feature Specification](./octant-feature-spec) |
+| Cross-Chain Appendix | [Archived Phase 2 CCIP Architecture](./octant-cross-chain-appendix) |
+| Final Plan | `.plans/octant-vaults-final-plan.md` — Authoritative implementation plan |
 | Octant V2 Docs | https://docs.v2.octant.build |
-| Chainlink CCIP Docs | https://docs.chain.link/ccip |
 | ERC-4626 Spec | https://eips.ethereum.org/EIPS/eip-4626 |
-| Hats Protocol Docs | https://docs.hatsprotocol.xyz |
 | Aave V3 Docs | https://docs.aave.com |
-| Yearn V3 Docs | https://docs.yearn.fi/developers/v3/overview |
-| Gardens V2 Docs | https://docs.gardens.fund |
-| Hypercerts Docs | https://hypercerts.org/docs |
+| Hats Protocol Docs | https://docs.hatsprotocol.xyz |
 
 ---
 
-## 2. System Overview
+## 2. System Architecture
 
-### 2.1 System Architecture
-
-The system supports two deployment modes:
-
-#### 2.1.1 Arbitrum-Native Architecture (Phase 1 - Recommended)
+### 2.1 High-Level Architecture
 
 ```mermaid
 graph TB
     subgraph Arbitrum["ARBITRUM ONE"]
-        Admin["Admin Dashboard<br/>(React)"]
-        GardenTBA["GardenTBA<br/>(ERC-6551) Treasury"]
-        Hats["Hats Protocol"]
+        Client["Client PWA<br/>(Deposit + Withdraw)"]
+        Admin["Admin Dashboard<br/>(Full Management)"]
 
-        Admin --> GardenTBA
-        GardenTBA <--> Hats
+        Client --> Vault
+        Admin --> OM
+        Admin --> Vault
 
-        GardenTBA --> GVM
+        GT["GardenToken (ERC-721)"] --> |onGardenMinted| OM
 
-        GVM["GardenVaultManager<br/>┌────────────────────────┐<br/>│ Strategy Registry      │<br/>│ Position Tracking      │<br/>│ Yield Harvesting       │<br/>└────────────────────────┘"]
+        OM["OctantModule (UUPS)<br/>┌────────────────────────┐<br/>│ Registry + Admin Only   │<br/>│ • Vault creation        │<br/>│ • Harvest (report)      │<br/>│ • Donation config       │<br/>│ • Emergency pause       │<br/>│ • Asset registry        │<br/>└────────────────────────┘"]
 
-        GVM --> AaveStrat["AaveV3YDSStrat"]
-        GVM --> YearnStrat["YearnV3YDSStrat"]
+        OM --> |deployNewVault| Factory["Octant V2<br/>Factory"]
+        Factory --> WETHVault
+        Factory --> DAIVault
 
-        AaveStrat --> AavePool["Aave V3<br/>Pool"]
-        YearnStrat --> YearnVault["Yearn V3<br/>Vault"]
+        subgraph Vaults["ERC-4626 VAULTS"]
+            WETHVault["WETH Vault"]
+            DAIVault["DAI Vault"]
+        end
 
-        AaveStrat --> Donation
-        YearnStrat --> Donation
+        Vault["Direct Vault Calls<br/>deposit() / redeem()"] --> WETHVault
+        Vault --> DAIVault
 
-        Donation["Donation Address<br/>(Payment Splitter)"]
+        WETHVault --> WETHStrat["AaveV3YDS<br/>(WETH → aWETH)"]
+        DAIVault --> DAIStrat["AaveV3YDS<br/>(DAI → aDAI)"]
+
+        WETHStrat --> AavePool["Aave V3 Pool"]
+        DAIStrat --> AavePool
+
+        WETHStrat --> Donation["Donation<br/>Address"]
+        DAIStrat --> Donation
 
         subgraph Indexer["ENVIO INDEXER"]
-            VP["VaultPosition entities"]
-            YD["YieldDonation events"]
-            SM["Strategy metadata"]
+            Source1["OctantModule Events"]
+            Source2["OctantVault Events<br/>(Dynamic Registration)"]
         end
     end
 
+    style Client fill:#4CAF50,color:#fff
     style Admin fill:#4CAF50,color:#fff
-    style GVM fill:#2196F3,color:#fff
+    style OM fill:#2196F3,color:#fff
     style Donation fill:#FF9800,color:#fff
 ```
-
-<details>
-<summary>PNG Fallback</summary>
-
-![Arbitrum-Native Architecture](./images/octant-arbitrum-native-tech.png)
-</details>
-
-#### 2.1.2 Cross-Chain Architecture (Phase 2)
-
-```mermaid
-graph TB
-    subgraph Arbitrum["ARBITRUM ONE"]
-        Admin["Admin Dashboard"]
-        GardenTBA["GardenTBA (ERC-6551)"]
-        StateOracle["State Oracle"]
-        Hats["Hats Protocol"]
-
-        Admin --> CCC
-        GardenTBA --> CCC
-        StateOracle --> CCC
-
-        CCC["CrossChainController<br/>(CCIPReceiver)"]
-        CCC --> CCIPArb["CCIP Router<br/>(Chainlink)"]
-    end
-
-    CCIPArb --> DON["CHAINLINK CCIP DON"]
-
-    DON --> CCIPEth
-
-    subgraph Ethereum["ETHEREUM MAINNET"]
-        CCIPEth["CCIP Router<br/>(Chainlink)"]
-        CCIPEth --> VaultCtrl["VaultController<br/>(CCIPReceiver)"]
-
-        subgraph Octant["Octant YDS Vaults"]
-            sDAI["sDAI YDS"]
-            sUSDS["sUSDS YDS"]
-        end
-
-        VaultCtrl --> sDAI
-        VaultCtrl --> sUSDS
-
-        HatsMirror["HatsMirror"]
-    end
-
-    style Admin fill:#4CAF50,color:#fff
-    style CCC fill:#2196F3,color:#fff
-    style VaultCtrl fill:#9C27B0,color:#fff
-```
-
-<details>
-<summary>PNG Fallback</summary>
-
-![Cross-Chain Architecture](./images/octant-cross-chain-tech.png)
-</details>
 
 ### 2.2 Environment
 
@@ -190,1149 +136,554 @@ graph TB
 | :--- | :--- | :--- |
 | Smart Contracts | Solidity | ^0.8.25 |
 | Contract Framework | Foundry | Latest |
-| Frontend | Vite + React + TypeScript | Vite 5.x, React 19.x |
-| State Management | Zustand + XState | 4.x, 5.x |
-| GraphQL Client | React Query + graphql-request | 5.x |
+| Frontend | Vite + React + TypeScript | Vite 7.x, React 19.x |
+| State Management | TanStack Query (server) + Zustand (client) | v5 |
+| GraphQL Client | TanStack Query + graphql-request | v5 |
 | Indexer | Envio | Latest |
-| Testing | Foundry (contracts), Vitest + Playwright (frontend) | Latest |
+| Testing | Foundry (contracts), Vitest (frontend) | Latest |
+| Formatting | Biome | Latest |
+| Linting | oxlint (frontend), solhint (contracts) | Latest |
 
 #### 2.2.2 Network Configuration
 
-| Network | Chain ID | RPC | Explorer |
+| Network | Chain ID | Purpose | Strategy Status |
 | :--- | :--- | :--- | :--- |
-| Arbitrum One | 42161 | https://arb1.arbitrum.io/rpc | https://arbiscan.io |
-| Arbitrum Sepolia | 421614 | https://sepolia-rollup.arbitrum.io/rpc | https://sepolia.arbiscan.io |
-| Ethereum Mainnet | 1 | https://eth.llamarpc.com | https://etherscan.io |
-| Ethereum Sepolia | 11155111 | https://rpc.sepolia.org | https://sepolia.etherscan.io |
+| Ethereum Sepolia | 11155111 | Testnet (MockYDSStrategy) | Defined |
+| Base Sepolia | 84532 | Testnet (placeholder only) | No strategy defined |
+| Arbitrum One | 42161 | Mainnet (AaveV3YDSStrategy) | Defined |
+| Celo | 42220 | Mainnet (placeholder only) | No strategy defined |
+
+> **Note:** Deployment artifacts and indexer config include placeholder entries for all 4 networks. Only **Ethereum Sepolia** (MockYDSStrategy) and **Arbitrum One** (AaveV3YDSStrategy) have defined strategies for Phase 1. Base Sepolia and Celo entries are structural placeholders — no vault strategies exist for those networks.
 
 #### 2.2.3 External Dependencies
 
 | Dependency | Network | Address |
 | :--- | :--- | :--- |
 | Aave V3 Pool | Arbitrum One | `0x794a61358D6845594F94dc1DB02A252b5b4814aD` |
-| Aave V3 PoolDataProvider | Arbitrum One | `0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654` |
-| waUSDC (ERC-4626) | Arbitrum One | `0xDAF2D8AAc9174B1168b9f78075FE64a04bae197B` |
-| USDC | Arbitrum One | `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` |
-| USDC.e (Bridged) | Arbitrum One | `0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8` |
+| WETH | Arbitrum One | `0x82aF49447D8a07e3bd95BD0d56f35241523fBab1` |
 | DAI | Arbitrum One | `0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1` |
+| aWETH | Arbitrum One | `0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8` |
+| aDAI | Arbitrum One | `0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE` |
 | Hats Protocol | Arbitrum One | `0x3bc1A0Ad72417f2d411118085256fC53CBdDd137` |
-| CCIP Router | Arbitrum One | `0x141fa059441E0ca23ce184B6A78bafD2A517DdE8` |
-| CCIP Router | Ethereum | `0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D` |
-| LINK Token | Arbitrum One | `0xf97f4df75117a78c1A5a0DBb814Af92458539FB4` |
-| sDAI | Ethereum | `0x83F20F44975D03b1b09E64809B757c47f942BEeA` |
-| sUSDS | Ethereum | `0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD` |
 
 ---
 
-## 3. Detailed Requirements
+## 3. Smart Contract Design
 
-### 3.1 Functional Requirements
+### 3.1 Contract Overview
 
-#### 3.1.1 Vault Position Management
+| Contract | Purpose | Upgrade | Location |
+| :--- | :--- | :--- | :--- |
+| OctantModule | Vault registry + admin layer | UUPS (fresh deploy) | `src/modules/Octant.sol` |
+| IOctantFactory | Factory interface for vault deployment | N/A (interface) | `src/interfaces/IOctantFactory.sol` |
+| IOctantVault | ERC-4626 vault interface | N/A (interface) | `src/interfaces/IOctantFactory.sol` |
+| IOctantStrategy | YDS strategy interface | N/A (interface) | `src/interfaces/IOctantFactory.sol` |
+| AaveV3YDSStrategy | Aave V3 yield strategy (mainnet) | Not upgradeable | `src/strategies/AaveV3YDSStrategy.sol` |
+| MockYDSStrategy | Test strategy (testnet) | Not upgradeable | `src/mocks/MockYDSStrategy.sol` |
+| MockOctantFactory | Test factory | Not upgradeable | `src/mocks/Octant.sol` |
+| MockOctantVault | Test vault | Not upgradeable | `src/mocks/Octant.sol` |
+| GardenToken | ERC-721 with vault creation callback | UUPS (fresh deploy) | `src/tokens/Garden.sol` |
 
-| ID | Title | Description | Priority | Acceptance Criteria |
-| :--- | :--- | :--- | :--- | :--- |
-| FR-001 | View Vault Positions | System shall display all active vault positions for a Garden with shares, value, and yield donated | High | Position data matches onchain state within 1 block |
-| FR-002 | Deposit to Vault | Operators shall be able to deposit Garden treasury assets into registered YDS strategies | Critical | Deposit transaction succeeds, shares credited, position updated |
-| FR-003 | Withdraw from Vault | Operators shall be able to withdraw assets from vault positions | Critical | Withdrawal transaction succeeds, assets returned to Garden |
-| FR-004 | Emergency Withdrawal | Guardians shall be able to trigger immediate full withdrawal | Critical | All positions liquidated, assets returned to Garden |
-| FR-005 | Harvest Yield | System shall harvest yield and route to HypercertYieldAllocator for conviction-based Hypercert fraction purchases | High | Yield routed to allocator, Hypercert fractions purchased based on conviction %, event emitted |
-| FR-006 | Conviction-Based Allocation | System shall allocate yield to Hypercerts proportionally based on conviction voting percentages from Gardens CVStrategy | High | Yield split matches conviction ratios, fractions purchased for Garden treasury |
+### 3.2 OctantModule
 
-#### 3.1.2 Strategy Management
+**Role:** Registry + admin layer. Never touches deposits or withdrawals.
 
-| ID | Title | Description | Priority | Acceptance Criteria |
-| :--- | :--- | :--- | :--- | :--- |
-| FR-010 | List Strategies | System shall display all registered YDS strategies with metadata | High | Strategies show name, asset, APY, TVL, limits |
-| FR-011 | Strategy Registration | Admin shall be able to register new YDS strategies | Medium | Strategy appears in registry, callable |
-| FR-012 | Strategy Deactivation | Admin shall be able to deactivate strategies | Medium | Strategy no longer accepts deposits |
+**Storage Layout:**
 
-#### 3.1.3 Authorization
+```solidity
+IOctantFactory public octantFactory;
+uint256 public defaultProfitUnlockTime;
+mapping(address garden => address donationAddress) public gardenDonationAddresses;
+mapping(address garden => mapping(address asset => address vault)) public gardenAssetVaults;
+mapping(address asset => address strategy) public supportedAssets;
+address[] public supportedAssetList;
+uint256 public supportedAssetCount;
+address public gardenToken;
+uint256[42] private __gap;
+```
 
-| ID | Title | Description | Priority | Acceptance Criteria |
-| :--- | :--- | :--- | :--- | :--- |
-| FR-020 | Operator Authorization | Only Operator Hat wearers can execute vault operations | Critical | Non-operators cannot call deposit/withdraw |
-| FR-021 | Guardian Authorization | Only Guardian Hat wearers can execute emergency withdrawal | Critical | Non-guardians cannot call emergencyWithdraw |
-| FR-022 | Garden Registration | Gardens must be registered before vault operations | High | Unregistered gardens cannot interact |
+**Functions:**
 
-### 3.2 Non-Functional Requirements
-
-#### 3.2.1 Performance
-
-| Metric | Requirement | Target |
+| Function | Access | Description |
 | :--- | :--- | :--- |
-| Deposit Transaction Gas | Arbitrum-native | less than 500,000 gas |
-| Deposit Transaction Gas | Cross-chain (CCIP) | less than 800,000 gas |
-| Position Query Latency | API response time | less than 200ms |
-| UI Load Time | Initial dashboard load | less than 2 seconds |
-| State Sync Frequency | Cross-chain updates | Every 1 hour |
+| `initialize(owner, factory, profitUnlockTime)` | — | One-time init |
+| `onGardenMinted(garden, name)` | onlyGardenToken | Creates vaults for all supported assets |
+| `harvest(garden, asset)` | Operator/Owner | Calls `strategy.report()`, requires donation address |
+| `emergencyPause(garden, asset)` | Owner only | Calls `strategy.shutdown()` (emits `StrategyShutdownFailed` on failure), always emits `EmergencyPaused` |
+| `setDonationAddress(garden, addr)` | Operator/Owner | Updates module mapping + all vault strategies |
+| `createVaultForAsset(garden, asset)` | Operator/Owner | Create vault for newly supported asset |
+| `setSupportedAsset(asset, strategy)` | Protocol Owner | Register/deactivate asset-strategy pair |
+| `setOctantFactory(factory)` | Protocol Owner | Update factory address |
+| `setDefaultProfitUnlockTime(time)` | Protocol Owner | Update profit unlock period |
+| `setGardenToken(addr)` | Protocol Owner | Register GardenToken |
+| `getVaultForAsset(garden, asset)` | Anyone | View vault address |
+| `getSupportedAssets()` | Anyone | View all registered asset addresses |
 
-#### 3.2.2 Security
+**Events:**
 
-| Requirement | Implementation |
+```solidity
+event VaultCreated(address indexed garden, address indexed vault, address indexed asset);
+event FactoryUpdated(address indexed oldFactory, address indexed newFactory);
+event GardenTokenUpdated(address indexed oldGardenToken, address indexed newGardenToken);
+event HarvestTriggered(address indexed garden, address indexed asset, address indexed caller);
+event EmergencyPaused(address indexed garden, address indexed asset, address indexed caller);
+event DonationAddressUpdated(address indexed garden, address indexed oldAddress, address indexed newAddress);
+event SupportedAssetUpdated(address indexed asset, address indexed strategy);
+event DefaultProfitUnlockTimeUpdated(uint256 oldUnlockTime, uint256 newUnlockTime);
+event StrategyShutdownFailed(address indexed garden, address indexed asset, address indexed strategy);
+```
+
+**Errors:**
+
+```solidity
+error UnauthorizedCaller(address caller);
+error ZeroAddress();
+error FactoryNotConfigured();
+error UnsupportedAsset(address asset);
+error AssetDeactivated(address asset);
+error NoVaultForAsset(address garden, address asset);
+error VaultAlreadyExists(address garden, address asset);
+error NoDonationAddress(address garden);
+```
+
+**Access Control:**
+
+```solidity
+modifier onlyGardenOperatorOrOwner(address garden) {
+    // Protocol owner (contract owner) always has access
+    if (msg.sender == owner()) { _; return; }
+
+    // Try garden-level role checks via IGardenAccessControl (isolated try/catch)
+    bool isOperator = false;
+    bool isGardenOwner = false;
+    try IGardenAccessControl(garden).isOperator(msg.sender) returns (bool result) {
+        isOperator = result;
+    } catch { }
+    try IGardenAccessControl(garden).isOwner(msg.sender) returns (bool result) {
+        isGardenOwner = result;
+    } catch { }
+
+    if (!isOperator && !isGardenOwner) revert UnauthorizedCaller(msg.sender);
+    _;
+}
+
+modifier onlyGardenOwner(address garden) {
+    // Protocol owner always has access
+    if (msg.sender == owner()) { _; return; }
+
+    bool isGardenOwner = false;
+    try IGardenAccessControl(garden).isOwner(msg.sender) returns (bool result) {
+        isGardenOwner = result;
+    } catch { }
+
+    if (!isGardenOwner) revert UnauthorizedCaller(msg.sender);
+    _;
+}
+```
+
+> **Note:** Access checks use try/catch isolation so the module remains non-opinionated about the garden's role backend. If `IGardenAccessControl` is not implemented on the garden address, the call fails gracefully and falls through to the revert.
+
+### 3.3 IOctantFactory Interface
+
+```solidity
+interface IOctantFactory {
+    function deployNewVault(
+        address asset,
+        string calldata name,
+        string calldata symbol,
+        address roleManager,
+        uint256 profitMaxUnlockTime
+    ) external returns (address vault);
+}
+```
+
+### 3.4 IOctantVault Interface (ERC-4626)
+
+```solidity
+interface IOctantVault {
+    // Core ERC-4626
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares);
+    function withdraw(uint256 assets, address receiver, address owner) external returns (uint256 shares);
+    function redeem(uint256 shares, address receiver, address owner) external returns (uint256 assets);
+
+    // View functions
+    function balanceOf(address account) external view returns (uint256);
+    function totalAssets() external view returns (uint256);
+    function totalSupply() external view returns (uint256);
+    function convertToAssets(uint256 shares) external view returns (uint256);
+    function convertToShares(uint256 assets) external view returns (uint256);
+    function previewDeposit(uint256 assets) external view returns (uint256);
+    function previewWithdraw(uint256 assets) external view returns (uint256);
+    function maxDeposit(address receiver) external view returns (uint256);
+    function maxWithdraw(address owner) external view returns (uint256);
+    function asset() external view returns (address);
+
+    // Strategy management
+    function addStrategy(address strategy) external;
+}
+```
+
+### 3.5 IOctantStrategy Interface
+
+```solidity
+interface IOctantStrategy {
+    function report() external returns (uint256 totalAssets);
+    function setDonationAddress(address donationAddress) external;
+    function shutdown() external;
+}
+```
+
+### 3.6 AaveV3YDSStrategy
+
+**Purpose:** Real yield strategy wrapping Aave V3 lending on Arbitrum. Deployed twice (once for WETH, once for DAI).
+
+**Architecture:**
+- Immutable dependencies: Aave Pool, underlying asset, aToken
+- Ownable: only owner (OctantModule) can deploy/free funds and set donation
+- Pause control: `depositsPaused` flag for emergency
+
+**Functions:**
+
+| Function | Access | Purpose |
+| :--- | :--- | :--- |
+| `deployFunds(amount)` | Owner | Deposit assets to Aave V3 pool |
+| `freeFunds(amount, receiver)` | Owner | Withdraw from Aave to receiver |
+| `report()` | IOctantStrategy | Return total AUM: idle + aToken balance |
+| `setDonationAddress(addr)` | Owner | Update yield recipient |
+| `setDepositsPaused(bool)` | Owner | Pause/unpause |
+| `shutdown()` | Owner | Emergency: pause deposits |
+
+**Yield Flow:**
+
+```
+Strategy holds WETH → deployFunds() → Aave pool → Earns aWETH interest
+report() returns: idle WETH + aToken balance = total AUM
+OctantModule.harvest() → strategy.report() → vault detects profit → mints shares to donation address
+```
+
+### 3.7 GardenToken Integration
+
+```solidity
+// In _initializeGardenModules(), after KarmaGAP block:
+if (address(octantModule) != address(0)) {
+    try octantModule.onGardenMinted(gardenAccount, config.name) {
+    } catch {
+        // Non-blocking — mirrors KarmaGAP pattern
+    }
+}
+```
+
+---
+
+## 4. Indexer Design
+
+### 4.1 Schema
+
+See GG-FEAT-006 Section 5.1 for entity definitions. Key entities:
+- `GardenVault` (id: `chainId-garden-asset`)
+- `VaultDeposit` (id: `chainId-vault-depositor`)
+- `VaultEvent` (id: `chainId-txHash-logIndex`)
+- `GardenVaultIndex` (garden → assets lookup)
+- `VaultAddressIndex` (vault → garden/asset reverse lookup)
+
+### 4.2 Event Sources (config.yaml)
+
+Two event sources needed (since deposits go directly to vault, not OctantModule):
+
+**1. OctantModule contract:**
+- `VaultCreated(garden, vault, asset)` → Create GardenVault, register dynamic vault
+- `HarvestTriggered(garden, asset, caller)` → Create VaultEvent (HARVEST)
+- `EmergencyPaused(garden, asset, caller)` → Set paused flag, create VaultEvent
+- `StrategyShutdownFailed(garden, asset, strategy)` → Log failed shutdown attempt (emitted in `emergencyPause` catch block)
+- `DonationAddressUpdated(garden, old, new)` → Update GardenVault donation address
+- `SupportedAssetUpdated(asset, strategy)` → Asset registry tracking
+
+**2. Dynamic OctantVault contracts (registered via `context.addOctantVault(vaultAddress)`):**
+- `Deposit(sender, owner, assets, shares)` → Create/update VaultDeposit, update GardenVault totals
+- `Withdraw(sender, receiver, owner, assets, shares)` → Update VaultDeposit, update totals
+
+### 4.3 Handler Patterns
+
+- Chain-prefixed entity IDs: `${chainId}-${garden}-${asset}`
+- Address normalization: all addresses lowercased before query/store
+- `VaultAddressIndex` enables reverse lookup from vault contract → (garden, asset)
+- `depositorCount` incremented only on first deposit (guard with existing deposit check)
+- Dynamic vault registration on `VaultCreated` via `context.addOctantVault(vaultAddress)`
+
+---
+
+## 5. Frontend Design
+
+### 5.1 Hooks (packages/shared/src/hooks/vault/)
+
+All hooks follow TanStack Query for reads, wagmi `useWriteContract` for writes.
+
+| Hook | Purpose |
 | :--- | :--- |
-| Role-Based Access Control | Hats Protocol integration |
-| Cross-Chain Message Validation | Source chain + sender verification |
-| Reentrancy Protection | OpenZeppelin ReentrancyGuard |
-| Integer Overflow Protection | Solidity 0.8.x built-in |
-| Upgrade Safety | UUPS proxy pattern with timelock |
-| Emergency Pause | Pausable modifier on critical functions |
+| `useGardenVaults(garden?, options)` | Fetch GardenVault entities from indexer |
+| `useVaultDeposits(garden?, options)` | Fetch VaultDeposit entities (my deposits) |
+| `useVaultEvents(garden?, options)` | Fetch VaultEvent history |
+| `useVaultPreview(options)` | Onchain multicall: previewDeposit, convertToAssets, maxDeposit, balanceOf, totalAssets |
+| `useVaultDeposit()` | Mutation: two-step approve + deposit (direct vault call) |
+| `useVaultWithdraw()` | Mutation: single-step redeem (direct vault call) |
+| `useHarvest()` | Mutation: OctantModule.harvest() |
+| `useEmergencyPause()` | Mutation: OctantModule.emergencyPause() |
+| `useSetDonationAddress()` | Mutation: OctantModule.setDonationAddress() |
 
-### 3.3 Interface Requirements
+**Passkey routing:** All write mutations check `isPasskeyUser` and route through `smartAccountClient.sendTransaction()` instead of wagmi's `writeContractAsync`.
 
-#### 3.3.1 Smart Contract Interfaces
+**Error handling:** All mutations use `createMutationErrorHandler()` with `toastService` for user feedback.
 
-```solidity
-// packages/contracts/src/interfaces/IGardenVaultManager.sol
-interface IGardenVaultManager {
-    struct StrategyInfo {
-        address strategyAddress;
-        address asset;
-        string name;
-        bool isActive;
-        uint256 minDeposit;
-        uint256 maxDeposit;
-    }
+**Query invalidation:** Mutations invalidate relevant cache keys (`onVaultDeposit`, `onVaultWithdraw`, `onVaultHarvest`).
 
-    struct VaultPosition {
-        uint256 shares;
-        uint256 depositedValue;
-        uint256 lastUpdateTimestamp;
-        bool exists;
-    }
-
-    function deposit(
-        address garden,
-        bytes32 strategyId,
-        uint256 amount
-    ) external returns (uint256 shares);
-
-    function withdraw(
-        address garden,
-        bytes32 strategyId,
-        uint256 shares,
-        address recipient
-    ) external returns (uint256 assets);
-
-    function harvestAndDonate(
-        address garden,
-        bytes32 strategyId
-    ) external returns (uint256 yieldAmount);
-
-    function getPositionValue(
-        address garden,
-        bytes32 strategyId
-    ) external view returns (
-        uint256 shares,
-        uint256 currentValue,
-        uint256 depositedValue
-    );
-
-    function getActiveStrategies() external view returns (StrategyInfo[] memory);
-}
-```
-
-```solidity
-// packages/contracts/src/interfaces/ICrossChainController.sol (Phase 2)
-interface ICrossChainController {
-    function executeVaultDeposit(
-        address garden,
-        uint256 amount,
-        bytes32 strategyId
-    ) external returns (bytes32 messageId);
-
-    function executeVaultWithdraw(
-        address garden,
-        uint256 shares,
-        address recipient
-    ) external returns (bytes32 messageId);
-
-    function emergencyWithdraw(
-        address garden
-    ) external returns (bytes32 messageId);
-
-    function getVaultPosition(
-        address garden
-    ) external view returns (
-        uint256 shares,
-        uint256 value,
-        uint256 pendingRewards,
-        uint256 lastUpdated
-    );
-}
-```
-
-#### 3.3.2 GraphQL API Interface
-
-```graphql
-type Query {
-  # Get all vault positions for a garden
-  gardenVaultPositions(gardenId: String!): [VaultPosition!]!
-
-  # Get specific position
-  vaultPosition(gardenId: String!, strategyId: String!): VaultPosition
-
-  # Get available strategies
-  ydsStrategies(asset: String, isActive: Boolean): [YDSStrategy!]!
-
-  # Get cross-chain message history (Phase 2)
-  crossChainMessages(
-    gardenId: String!
-    status: MessageStatus
-    first: Int
-    skip: Int
-  ): [CrossChainMessage!]!
-
-  # Get yield donation history
-  yieldDonations(
-    gardenId: String!
-    first: Int
-    skip: Int
-  ): [YieldDonation!]!
-}
-
-type VaultPosition {
-  id: ID!
-  garden: Garden!
-  strategyId: String!
-  strategy: YDSStrategy!
-  shares: BigInt!
-  depositedValue: BigInt!
-  currentValue: BigInt!
-  totalYieldDonated: BigInt!
-  lastUpdateTimestamp: BigInt!
-}
-
-type YDSStrategy {
-  id: ID!
-  address: String!
-  name: String!
-  asset: String!
-  apy: Float
-  tvl: BigInt
-  minDeposit: BigInt
-  maxDeposit: BigInt
-  isActive: Boolean!
-  donationAddress: String!
-}
-
-type YieldDonation {
-  id: ID!
-  garden: Garden!
-  strategy: YDSStrategy!
-  amount: BigInt!
-  donationAddress: String!
-  timestamp: BigInt!
-  txHash: String!
-}
-
-enum MessageStatus {
-  PENDING
-  CONFIRMED
-  FAILED
-}
-```
-
-#### 3.3.3 Frontend Component Interface
+### 5.2 ABIs (packages/shared/src/utils/blockchain/abis.ts)
 
 ```typescript
-// packages/shared/src/types/vault.ts
-export interface VaultPosition {
-  id: string;
-  gardenId: string;
-  strategyId: string;
-  strategyName: string;
-  asset: Address;
-  shares: bigint;
-  depositedValue: bigint;
-  currentValue: bigint;
-  unrealizedYield: bigint;
-  totalYieldDonated: bigint;
-  lastUpdated: number;
-}
+// OCTANT_VAULT_ABI — ERC-4626 functions for direct vault interaction
+// deposit, redeem, previewDeposit, convertToAssets, balanceOf, totalAssets, maxDeposit, asset
 
-export interface YDSStrategy {
-  id: string;
-  address: Address;
-  name: string;
-  asset: Address;
-  assetSymbol: string;
-  apy: number;
-  tvl: bigint;
-  minDeposit: bigint;
-  maxDeposit: bigint | null;
-  isActive: boolean;
-  riskLevel: 'low' | 'medium' | 'high';
-}
+// OCTANT_MODULE_ABI — Admin functions
+// harvest, emergencyPause, setDonationAddress, getVaultForAsset, gardenDonationAddresses
 
-export interface DepositParams {
-  gardenId: string;
-  strategyId: string;
-  amount: bigint;
-}
-
-export interface WithdrawParams {
-  gardenId: string;
-  strategyId: string;
-  shares: bigint;
-  recipient?: Address;
-}
-
-// packages/shared/src/hooks/vault/useVaultOperations.ts
-export interface UseVaultOperations {
-  // Read operations
-  positions: VaultPosition[];
-  strategies: YDSStrategy[];
-  isLoading: boolean;
-  error: Error | null;
-
-  // Write operations
-  deposit: (params: DepositParams) => Promise<TransactionResult>;
-  withdraw: (params: WithdrawParams) => Promise<TransactionResult>;
-  emergencyWithdraw: () => Promise<TransactionResult>;
-  harvestYield: (strategyId: string) => Promise<TransactionResult>;
-
-  // Utilities
-  refetch: () => Promise<void>;
-  estimateDepositShares: (strategyId: string, amount: bigint) => bigint;
-  estimateWithdrawAssets: (strategyId: string, shares: bigint) => bigint;
-}
+// ERC20_ALLOWANCE_ABI — Token approval
+// allowance, approve
 ```
 
----
-
-## 4. System Design
-
-### 4.1 Data Flow Diagrams
-
-#### 4.1.1 Arbitrum-Native Deposit Flow
-
-```mermaid
-sequenceDiagram
-    participant Operator as Operator (User)
-    participant Admin as Admin Dashboard
-    participant Hats as Hats Protocol
-    participant GardenTBA as GardenTBA (Treasury)
-    participant GVM as GardenVaultManager
-    participant Strategy as YDS Strategy
-    participant Protocol as Aave V3 / Yearn V3
-    participant Indexer as ENVIO INDEXER
-
-    Operator->>Admin: 1. Click Deposit
-    Admin->>Hats: 2. Check Hat Permission
-    Hats-->>Admin: Authorized
-
-    Admin->>GardenTBA: 3. Approve + Deposit
-    GardenTBA->>GVM: Call deposit()
-
-    Note over GVM: Validate operator<br/>Transfer asset from Garden<br/>Approve strategy<br/>Call strategy.deposit()
-
-    GVM->>Strategy: 4. Deposit to Underlying Protocol
-    Strategy->>Protocol: deposit()
-    Protocol-->>Strategy: shares
-
-    Strategy-->>GVM: 5. Return shares, emit event
-    GVM-->>Indexer: Index DepositExecuted<br/>Update VaultPosition
-```
-
-<details>
-<summary>PNG Fallback</summary>
-
-![Arbitrum-Native Deposit Flow](./images/octant-native-deposit-flow.png)
-</details>
-
-#### 4.1.2 Yield Harvest Flow
-
-```mermaid
-sequenceDiagram
-    participant Automation as Chainlink Automation
-    participant GVM as GardenVaultManager
-    participant Strategy as YDS Strategy
-    participant Allocator as HypercertYieldAllocator
-    participant Marketplace as Hypercert Marketplace
-
-    Automation->>GVM: 1. Trigger Harvest (or Manual/Keeper)
-    GVM->>Strategy: 2. Check Position Yield
-
-    Note over Strategy: currentValue = vault.convertToAssets(shares)<br/>if currentValue > depositedValue<br/>yield = currentValue - depositedValue
-
-    Strategy->>Strategy: 3. Convert yield to shares
-    Note over Strategy: yieldShares = vault.convertToShares(yield)<br/>assets = vault.redeem(yieldShares, ...)
-
-    Strategy->>Allocator: 4. Route to Conviction Allocator
-    Note over Allocator: (See GG-TECH-007 Section 4)<br/><br/>For each Hypercert with conviction:<br/>allocation = yield * (conviction / total)<br/>→ Purchase Hypercert fractions
-
-    Allocator->>Marketplace: 5. Purchase Hypercert Fractions
-    Note over Marketplace: Buy fractions based on conviction %<br/>Fractions held by Garden Treasury<br/>Increases Garden's impact ownership
-
-    Marketplace-->>Allocator: Fractions purchased
-    Allocator-->>GVM: 6. Emit YieldAllocated event
-```
-
-<details>
-<summary>PNG Fallback</summary>
-
-![Yield Harvest Flow](./images/octant-yield-harvest-flow.png)
-</details>
-
-**Note:** Yield is routed to the `HypercertYieldAllocator` contract which uses conviction voting percentages (from Gardens CVStrategy) to determine how yield is split across multiple Hypercerts. The yield is then used to **purchase Hypercert fractions** on the marketplace, with those fractions held by the Garden's treasury (GardenAccount TBA). This creates a direct link between vault yield and verified environmental impact ownership.
-
-:::info Cross-Reference
-For complete conviction voting implementation details, see:
-- [GG-TECH-007 Section 4: HypercertYieldAllocator Adapter Specification](/specs/gardens/gardens-tech-spec#4-hypercertyieldallocator-adapter-specification) for the adapter contract interfaces
-- [GG-TECH-007 Section 3: PR #714 Implementation Analysis](/specs/gardens/gardens-tech-spec#3-pr-714-implementation-analysis) for CVVault and CVYDSFacet integration
-- [GG-TECH-007 Section 6.1: Data Flow Diagrams](/specs/gardens/gardens-tech-spec#61-data-flow-diagrams) for conviction voting and yield allocation flow
-:::
-
-#### 4.1.3 Cross-Chain Deposit Flow (Phase 2)
-
-```mermaid
-sequenceDiagram
-    box Arbitrum
-    participant Operator
-    participant Dashboard
-    participant CCC as CrossChainController
-    participant CCIPArb as CCIP Router
-    end
-
-    participant DON as CCIP DON
-
-    box Ethereum
-    participant CCIPEth as CCIP Router
-    participant VaultCtrl as VaultController
-    participant Vault as Octant YDS Vault
-    end
-
-    Operator->>Dashboard: 1. Initiate Deposit
-    Dashboard->>CCC: 2. Encode CCIP message
-    CCC->>CCIPArb: ccipSend()
-    CCIPArb-->>CCC: messageId
-
-    Note over DON: 2. Relay via CCIP DON (10-20 min)
-
-    CCIPArb->>DON: Relay
-    DON->>CCIPEth: Deliver
-
-    CCIPEth->>VaultCtrl: 3. Deliver message
-    VaultCtrl->>Vault: 4. Execute deposit
-    Vault-->>VaultCtrl: shares
-
-    VaultCtrl->>CCIPEth: 5. Send confirmation
-    CCIPEth->>DON: Relay
-
-    Note over DON: 6. Relay confirmation (10-20 min)
-
-    DON->>CCIPArb: Deliver
-    CCIPArb->>CCC: _ccipReceive()
-    CCC->>CCC: 7. Update StateOracle
-```
-
-<details>
-<summary>PNG Fallback</summary>
-
-![Cross-Chain Deposit Flow](./images/octant-cross-chain-deposit-flow.png)
-</details>
-
-### 4.2 Data Model and Database Design
-
-#### 4.2.1 Envio Entity Schema
-
-```graphql
-# Core entities
-type Garden @entity {
-  id: ID!                              # Garden TBA address
-  nftTokenId: BigInt!
-  operator: String!
-  guardian: String
-  vaultPositions: [VaultPosition!]! @derivedFrom(field: "garden")
-  yieldDonations: [YieldDonation!]! @derivedFrom(field: "garden")
-  totalValueLocked: BigInt!
-  totalYieldDonated: BigInt!
-  createdAt: BigInt!
-  updatedAt: BigInt!
-}
-
-type VaultPosition @entity {
-  id: ID!                              # gardenId-strategyId
-  garden: Garden!
-  strategy: YDSStrategy!
-  shares: BigInt!
-  depositedValue: BigInt!              # Original deposit amount
-  currentValue: BigInt!                # Current value (updated on sync)
-  totalYieldDonated: BigInt!           # Cumulative yield donated
-  deposits: [PositionDeposit!]! @derivedFrom(field: "position")
-  withdrawals: [PositionWithdrawal!]! @derivedFrom(field: "position")
-  createdAt: BigInt!
-  updatedAt: BigInt!
-}
-
-type YDSStrategy @entity {
-  id: ID!                              # Strategy contract address
-  address: String!
-  name: String!
-  asset: String!                       # Underlying asset address
-  assetSymbol: String!
-  assetDecimals: Int!
-  apy: BigDecimal                      # Current APY (updated periodically)
-  tvl: BigInt!                         # Total value locked
-  minDeposit: BigInt!
-  maxDeposit: BigInt                   # null = unlimited
-  donationAddress: String!
-  isActive: Boolean!
-  riskLevel: String!                   # "low", "medium", "high"
-  positions: [VaultPosition!]! @derivedFrom(field: "strategy")
-  createdAt: BigInt!
-  updatedAt: BigInt!
-}
-
-type PositionDeposit @entity {
-  id: ID!                              # Transaction hash
-  position: VaultPosition!
-  amount: BigInt!
-  shares: BigInt!
-  timestamp: BigInt!
-  txHash: String!
-  blockNumber: BigInt!
-}
-
-type PositionWithdrawal @entity {
-  id: ID!                              # Transaction hash
-  position: VaultPosition!
-  shares: BigInt!
-  assets: BigInt!
-  recipient: String!
-  timestamp: BigInt!
-  txHash: String!
-  blockNumber: BigInt!
-}
-
-type YieldDonation @entity {
-  id: ID!                              # Transaction hash
-  garden: Garden!
-  strategy: YDSStrategy!
-  amount: BigInt!
-  donationAddress: String!
-  timestamp: BigInt!
-  txHash: String!
-  blockNumber: BigInt!
-}
-```
-
-#### 4.2.2 Entity Relationships
-
-```mermaid
-erDiagram
-    Garden ||--o{ VaultPosition : "has"
-    Garden ||--o{ YieldDonation : "receives"
-    VaultPosition }o--|| YDSStrategy : "uses"
-    VaultPosition ||--o{ PositionDeposit : "has"
-    VaultPosition ||--o{ PositionWithdrawal : "has"
-    YDSStrategy ||--o{ YieldDonation : "generates"
-
-    Garden {
-        string id PK
-        bigint nftTokenId
-        string operator
-        string guardian
-        bigint totalValueLocked
-        bigint totalYieldDonated
-    }
-
-    VaultPosition {
-        string id PK
-        string garden_id FK
-        string strategy_id FK
-        bigint shares
-        bigint depositedValue
-        bigint currentValue
-        bigint totalYieldDonated
-    }
-
-    YDSStrategy {
-        string id PK
-        string address
-        string name
-        string asset
-        decimal apy
-        bigint tvl
-        boolean isActive
-    }
-```
-
-<details>
-<summary>PNG Fallback</summary>
-
-![Entity Relationships](./images/octant-entity-relationships.png)
-</details>
-
----
-
-## 5. Implementation Plan
-
-### 5.1 Technology Stack
-
-| Layer | Technology | Justification |
-| :--- | :--- | :--- |
-| **Smart Contracts** | Solidity 0.8.25+ | Latest features, built-in overflow protection |
-| **Contract Framework** | Foundry | Fast compilation, powerful testing, fuzzing |
-| **Frontend** | Vite + React 19 + TypeScript | Fast HMR, type safety, existing codebase |
-| **State Management** | Zustand | Lightweight, TypeScript-first |
-| **Async State** | XState 5 | Complex transaction state machines |
-| **GraphQL Client** | React Query + graphql-request | Powerful caching, TypeScript-first, minimal bundle |
-| **Indexer** | Envio | TypeScript handlers, fast sync |
-| **Wallet** | wagmi + viem | Modern React hooks, TypeScript |
-| **AA/Passkeys** | Pimlico | ERC-4337 bundler, passkey support |
-| **Cross-Chain** | Chainlink CCIP | Industry standard, battle-tested |
-
-### 5.2 Milestones and Timeline
-
-| Milestone | Duration | Deliverables |
-| :--- | :--- | :--- |
-| **M1: Contract Development** | 2 weeks | GardenVaultManager, AaveV3YDSStrategy, tests |
-| **M2: Indexer + API** | 1 week | Envio schema, handlers, GraphQL API |
-| **M3: Frontend Integration** | 2 weeks | Dashboard components, deposit/withdraw flows |
-| **M4: Testing + Audit Prep** | 1 week | Integration tests, documentation, audit package |
-| **M5: Testnet Deployment** | 1 week | Arbitrum Sepolia deployment, QA |
-| **M6: Mainnet Launch** | 1 week | Arbitrum One deployment, monitoring |
-| **M7: Cross-Chain (Phase 2)** | 3 weeks | CCIP integration, Ethereum deployment |
-
-**Total: 11 weeks** (8 weeks Phase 1, 3 weeks Phase 2)
-
----
-
-## 6. Testing and Quality Assurance
-
-### 6.1 Testing Strategy
-
-#### 6.1.1 Unit Testing (Smart Contracts)
-
-**Framework:** Foundry Test
-
-**Coverage Target:** greater than 95%
-
-**Example Tests:**
-```solidity
-// packages/contracts/test/unit/GardenVaultManager.t.sol
-contract GardenVaultManagerTest is Test {
-    function testDeposit_Success() public {
-        // Arrange
-        vm.startPrank(operator);
-        usdc.approve(address(vaultManager), 1000e6);
-
-        // Act
-        uint256 shares = vaultManager.deposit(garden, strategyId, 1000e6);
-
-        // Assert
-        assertGt(shares, 0);
-        (uint256 posShares,,) = vaultManager.getPositionValue(garden, strategyId);
-        assertEq(posShares, shares);
-    }
-
-    function testDeposit_RevertIfNotOperator() public {
-        vm.prank(randomUser);
-        vm.expectRevert(GardenVaultManager.NotAuthorized.selector);
-        vaultManager.deposit(garden, strategyId, 1000e6);
-    }
-
-    function testFuzz_Deposit(uint256 amount) public {
-        amount = bound(amount, minDeposit, maxDeposit);
-        // ...
-    }
-}
-```
-
-#### 6.1.2 Integration Testing
-
-**Framework:** Foundry Fork Tests + Vitest
-
-```solidity
-// packages/contracts/test/integration/AaveIntegration.t.sol
-contract AaveIntegrationTest is Test {
-    function setUp() public {
-        // Fork Arbitrum mainnet
-        vm.createSelectFork(vm.envString("ARBITRUM_RPC_URL"));
-        // Deploy contracts
-    }
-
-    function testFullDepositWithdrawCycle() public {
-        // 1. Deposit USDC
-        vaultManager.deposit(garden, aaveUsdcStrategy, 10000e6);
-
-        // 2. Advance time to accrue yield
-        vm.warp(block.timestamp + 30 days);
-
-        // 3. Harvest yield
-        uint256 yield = vaultManager.harvestAndDonate(garden, aaveUsdcStrategy);
-        assertGt(yield, 0);
-
-        // 4. Withdraw principal
-        (uint256 shares,,) = vaultManager.getPositionValue(garden, aaveUsdcStrategy);
-        vaultManager.withdraw(garden, aaveUsdcStrategy, shares, garden);
-
-        // 5. Verify position closed
-        (shares,,) = vaultManager.getPositionValue(garden, aaveUsdcStrategy);
-        assertEq(shares, 0);
-    }
-}
-```
-
-#### 6.1.3 E2E Testing (Playwright)
+### 5.3 Vault Utilities (packages/shared/src/utils/blockchain/vaults.ts)
 
 ```typescript
-// tests/e2e/vault-deposit.spec.ts
-import { test, expect } from '@playwright/test';
+// Asset metadata lookup
+getVaultAssetSymbol(asset, chainId): string
+getVaultAssetDecimals(asset, chainId): number
 
-test.describe('Vault Deposit Flow', () => {
-  test('operator can deposit to Aave USDC strategy', async ({ page }) => {
-    // Navigate to treasury dashboard
-    await page.goto('/garden/0x123.../treasury');
+// Validation
+validateDecimalInput(value, decimals): boolean
 
-    // Open deposit modal
-    await page.getByRole('button', { name: 'Deposit' }).click();
+// Calculations
+getNetDeposited(totalDeposited, totalWithdrawn): bigint
+formatTokenAmount(amount, decimals, locale?): string
 
-    // Select strategy
-    await page.getByRole('combobox', { name: 'Strategy' }).click();
-    await page.getByRole('option', { name: 'Aave V3 USDC' }).click();
-
-    // Enter amount
-    await page.getByLabel('Amount').fill('1000');
-
-    // Preview should show estimated shares
-    await expect(page.getByText(/~[\d,.]+ shares/)).toBeVisible();
-
-    // Confirm deposit
-    await page.getByRole('button', { name: 'Confirm Deposit' }).click();
-
-    // Wait for transaction confirmation
-    await expect(page.getByText('Deposit successful')).toBeVisible({ timeout: 30000 });
-
-    // Verify position appears in dashboard
-    await expect(page.getByTestId('position-card-aave-usdc')).toBeVisible();
-    await expect(page.getByTestId('position-value')).toContainText('$1,000');
-  });
-});
+// Constants
+ZERO_ADDRESS: Address
+isZeroAddressValue(address): boolean
 ```
 
-### 6.2 Quality Metrics
+### 5.4 i18n Keys
 
-| Metric | Target | Measurement Method |
-| :--- | :--- | :--- |
-| Contract Test Coverage | greater than 95% | `forge coverage` |
-| Frontend Unit Test Coverage | greater than 80% | Vitest coverage report |
-| E2E Test Coverage | Critical paths 100% | Playwright test suite |
-| Mutation Testing Score | greater than 80% | `gambit` for Solidity |
-| Gas Optimization | less than 500k gas/deposit | Foundry gas reports |
-| Slither Findings | 0 High/Medium | `slither` analysis |
+All vault UI strings under `app.treasury.*` namespace in `en.json`, `es.json`, `pt.json`:
+- `app.treasury.title`, `deposit`, `withdraw`, `harvest`
+- `app.treasury.donationAddress`, `totalDeposited`, `totalYield`
+- `app.treasury.myShares`, `shareValue`, `noVault`
+- `app.treasury.setDonationFirst`, `emergencyPause`
+- `app.treasury.depositSuccess`, `withdrawSuccess`, `harvestSuccess`, `approving`
 
 ---
 
-## 7. Deployment and Maintenance
+## 6. Testing Strategy
 
-### 7.1 Deployment Checklist
+### 6.1 Contract Tests
 
-**Pre-Deployment:**
-- [ ] All tests passing
-- [ ] Slither analysis clean
-- [ ] Gas costs within budget
-- [ ] External audit complete (for mainnet)
-- [ ] Multisig wallets configured
-- [ ] Emergency contacts established
+| Test File | Type | Coverage |
+| :--- | :--- | :--- |
+| `test/unit/OctantModule.t.sol` | Unit | Access control, vault creation, asset registry, donation config, emergency |
+| `test/unit/DirectVaultInteraction.t.sol` | Unit | ERC-4626 compliance: deposit, redeem, multi-depositor, share accounting |
+| `test/integration/OctantVaultIntegration.t.sol` | Integration | Full lifecycle: mint → deposit → harvest → withdraw; multi-asset; emergency |
+| `test/fork/ArbitrumAaveStrategy.t.sol` | Fork | Real Aave V3 on Arbitrum: deploy → report → free funds |
+| `test/StorageLayout.t.sol` | Layout | OctantModule + GardenToken storage validation |
 
-**Deployment Order (Arbitrum-Native):**
-1. Deploy GardenVaultManager
-2. Deploy AaveV3YDSStrategy
-3. Deploy YearnV3YDSStrategy (if ready)
-4. Register strategies in GardenVaultManager
-5. Configure donation addresses
-6. Transfer ownership to multisig
+**Key test scenarios:**
+- Vault creation on garden mint (WETH + DAI for all supported assets)
+- Direct deposit: approve → `vault.deposit()` → verify shares
+- Direct redeem: `vault.redeem()` → verify assets returned
+- Harvest: requires donation address, calls `strategy.report()`
+- Emergency pause: owner-only, calls `strategy.shutdown()`, no forced withdrawal
+- Asset deactivation: blocks new vaults, existing vaults still work
+- `createVaultForAsset()`: adds vault for newly supported asset, reverts on duplicate
+- Multi-depositor: independent share tracking per user
 
-### 7.2 Monitoring
+### 6.2 Frontend Tests
 
-**Contract Monitoring:**
-- OpenZeppelin Defender for transaction monitoring
-- Tenderly alerts for failed transactions
-- Custom Grafana dashboards for TVL, yield, operations
+| Test File | Type | Coverage |
+| :--- | :--- | :--- |
+| `__tests__/hooks/vault/useVaultOperations.test.ts` | Unit | All 5 mutations, passkey routing, error handling |
 
-**Indexer Monitoring:**
-- Envio dashboard for sync status
-- Alerts for sync lag greater than 100 blocks
+**Key test scenarios:**
+- Two-step deposit (approve when insufficient allowance)
+- Single-step deposit (skip approve when sufficient)
+- Withdraw via redeem
+- Harvest calls OctantModule (not vault directly)
+- Emergency pause calls OctantModule
+- SetDonationAddress calls OctantModule
+- Passkey routing through smartAccountClient
+- Error handling via createMutationErrorHandler
+
+### 6.3 Quality Metrics
+
+| Metric | Target |
+| :--- | :--- |
+| Contract test coverage | > 80% |
+| Critical path coverage (deposit/withdraw/harvest) | 100% |
+| Frontend hook test coverage | > 70% |
+| Fork test passes against real Aave V3 | Required |
+| Contract size (OctantModule) | < 24KB |
+
+---
+
+## 7. Deployment
+
+> **Current Status:** All deployment artifacts contain placeholder zero addresses (`0x0000...`). Contracts are implemented and tested but not yet deployed to any chain.
+
+### 7.0 Deployment Prerequisites
+
+The deploy script (`Deploy.s.sol`) **silently skips** Octant setup if the required environment variables are not configured. This is intentional — the feature is opt-in at deploy time.
+
+**Required environment variables** (set in root `.env`):
+
+| Variable | Purpose | Example |
+| :--- | :--- | :--- |
+| `OCTANT_FACTORY_ADDRESS` | Octant V2 MultiStrategyVaultFactory address | Must be deployed first |
+| `OCTANT_WETH_ASSET` | WETH token address on target chain | `0x82aF49447D8a07e3bd95BD0d56f35241523fBab1` (Arbitrum) |
+| `OCTANT_DAI_ASSET` | DAI token address on target chain | `0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1` (Arbitrum) |
+
+**Activation logic** (`Deploy.s.sol:140-142`):
+```solidity
+address octantFactoryAddress = _envAddressOrZero("OCTANT_FACTORY_ADDRESS");
+if (octantFactoryAddress == address(0)) {
+    return; // Silently skips Octant setup — feature remains inactive
+}
+```
+
+**Activation checklist:**
+- [ ] Deploy Octant V2 factory on target chain (or obtain existing address)
+- [ ] Set all 3 env vars in root `.env`
+- [ ] Run `bun deploy:testnet` (or mainnet equivalent)
+- [ ] Verify `octantModule` and `octantFactory` are non-zero in deployment JSON
+- [ ] Update indexer `config.yaml` with real contract addresses
+- [ ] Re-index from deployment block number
+
+### 7.1 Deploy Sequence (Sepolia Testnet)
+
+1. Deploy Octant V2 factory
+2. Deploy fresh GardenToken impl + UUPS proxy
+3. Deploy fresh OctantModule impl + UUPS proxy, initialize with factory
+4. Deploy MockYDSStrategy for mock WETH + MockYDSStrategy for mock DAI
+5. Call `octantModule.setSupportedAsset(mockWETH, wethMockStrategy)`
+6. Call `octantModule.setSupportedAsset(mockDAI, daiMockStrategy)`
+7. Call `gardenToken.setOctantModule(octantModule)`
+8. Configure HatsModule, KarmaGAPModule, DeploymentRegistry
+
+### 7.2 Deploy Sequence (Arbitrum Mainnet)
+
+1. Deploy Octant V2 factory (or use existing)
+2. Deploy fresh GardenToken impl + UUPS proxy
+3. Deploy fresh OctantModule impl + UUPS proxy
+4. Deploy AaveV3YDSStrategy for WETH (Aave Pool + aWETH)
+5. Deploy AaveV3YDSStrategy for DAI (Aave Pool + aDAI)
+6. Call `octantModule.setSupportedAsset(weth, wethStrategy)`
+7. Call `octantModule.setSupportedAsset(dai, daiStrategy)`
+8. Call `gardenToken.setOctantModule(octantModule)`
+9. Configure HatsModule, KarmaGAPModule, DeploymentRegistry
+
+### 7.3 Deployment Artifacts
+
+| File | Updates |
+| :--- | :--- |
+| `deployments/11155111-latest.json` | Add `octantModule`, `octantFactory`, update `gardenToken` |
+| `deployments/84532-latest.json` | Add `octantModule`, `octantFactory`, update `gardenToken` |
+| `deployments/42161-latest.json` | Add `octantModule`, `octantFactory`, update `gardenToken` |
+| `deployments/42220-latest.json` | Add `octantModule`, `octantFactory`, update `gardenToken` |
+| `shared/config/blockchain.ts` | Add vault config per chain |
+| `shared/utils/blockchain/contracts.ts` | Load `octantModule` from deployment JSON |
+
+**Mandatory:** Use `deploy.ts`, never direct `forge script`. See CLAUDE.md § Contract Deployment.
 
 ---
 
 ## 8. Implementation Guide
 
-This section provides detailed implementation guidance for AI agents and developers building this feature.
-
 ### 8.1 Dependency Graph
-
-Build order for contracts and packages:
 
 ```mermaid
 graph TD
-    A["1. packages/contracts"] --> B["2. packages/shared"]
-    B --> C["3. packages/indexer"]
-    B --> D["4. packages/admin"]
+    A["Phase 1: Contracts"] --> B["Phase 2: Indexer"]
+    A --> C["Phase 3: Shared"]
+    C --> D["Phase 4: Admin"]
+    C --> E["Phase 5: Client"]
+    D --> F["Phase 6: Deploy + E2E"]
+    E --> F
 
-    subgraph Contracts["packages/contracts build order"]
-        C1["interfaces/IGardenVaultManager.sol"]
-        C2["interfaces/IOctantFactory.sol"]
-        C3["modules/Octant.sol"]
-        C4["vaults/GardenVaultManager.sol"]
-        C5["vaults/AaveV3YDSStrategy.sol"]
-
-        C1 --> C3
-        C2 --> C3
-        C3 --> C4
-        C4 --> C5
+    subgraph Contracts["Phase 1 Build Order"]
+        C1["IOctantFactory/Vault/Strategy interfaces"]
+        C2["OctantModule restructure"]
+        C3["AaveV3YDSStrategy"]
+        C4["MockYDSStrategy"]
+        C5["GardenToken integration"]
+        C6["Tests"]
+        C1 --> C2 --> C3
+        C1 --> C4
+        C2 --> C5
+        C3 --> C6
+        C5 --> C6
     end
 
-    subgraph Shared["packages/shared build order"]
-        S1["types/vault.ts"]
-        S2["stores/useVaultStore.ts"]
-        S3["hooks/vault/useVaultOperations.ts"]
-        S4["hooks/vault/useVaultPositions.ts"]
-
-        S1 --> S2
-        S2 --> S3
-        S3 --> S4
+    subgraph Shared["Phase 3 Build Order"]
+        S1["types/vaults.ts"]
+        S2["utils/blockchain/vaults.ts + abis.ts"]
+        S3["modules/data/vaults.ts"]
+        S4["hooks/vault/*.ts"]
+        S5["query-keys.ts + barrel exports"]
+        S1 --> S2 --> S3 --> S4 --> S5
     end
 ```
 
 ### 8.2 Error Taxonomy
 
-All vault-related errors with codes and recovery strategies:
+| Error | Source | Description | Recovery |
+| :--- | :--- | :--- | :--- |
+| `UnauthorizedCaller` | OctantModule | Caller doesn't have Operator/Owner role | Check role, prompt user |
+| `UnsupportedAsset` | OctantModule | Asset not in registry | Show supported assets |
+| `AssetDeactivated` | OctantModule | Asset removed from registry | Show active assets |
+| `NoVaultForAsset` | OctantModule | Garden has no vault for this asset | Create vault or select other |
+| `VaultAlreadyExists` | OctantModule | Duplicate vault creation attempt | Already exists, proceed |
+| `NoDonationAddress` | OctantModule | Harvest without donation config | Prompt to set donation address |
+| `FactoryNotConfigured` | OctantModule | Factory address not set | Admin configuration needed |
+| `ZeroAddress` | OctantModule + Strategy | Invalid zero address in setter or constructor | Fix address input |
+| `DepositsPaused` | Strategy | Emergency pause active | Show paused state |
 
-| Error Code | Name | Description | Recovery Strategy |
-|------------|------|-------------|-------------------|
-| `VAULT_001` | `NotAuthorized` | Caller doesn't wear required Hat | Check Hats role, prompt user to contact operator |
-| `VAULT_002` | `StrategyNotActive` | Strategy has been deactivated | Show alternative active strategies |
-| `VAULT_003` | `InsufficientBalance` | Garden doesn't have enough assets | Show current balance, adjust amount |
-| `VAULT_004` | `BelowMinDeposit` | Amount below strategy minimum | Show minimum deposit requirement |
-| `VAULT_005` | `AboveMaxDeposit` | Amount exceeds strategy cap | Show maximum allowed, split into multiple |
-| `VAULT_006` | `VaultCreationFailed` | Factory failed to create vault | Retry with different parameters |
-| `VAULT_007` | `CCIPMessageFailed` | Cross-chain message failed | Show CCIP explorer link, manual retry |
-| `VAULT_008` | `StateOracleStale` | State data older than threshold | Trigger manual sync, show warning |
-
-### 8.3 GraphQL Contracts
-
-Complete query/mutation signatures with expected responses:
-
-```typescript
-// packages/shared/src/modules/data/vault-queries.ts
-import { gql } from 'graphql-request';
-
-export const VAULT_POSITIONS_QUERY = gql`
-  query GetVaultPositions($gardenId: String!) {
-    vaultPositions(where: { garden_id: $gardenId }) {
-      id
-      strategy { id name asset apy }
-      shares
-      depositedValue
-      currentValue
-      totalYieldDonated
-      lastUpdateTimestamp
-    }
-  }
-`;
-
-// Expected response shape
-export interface VaultPositionsResponse {
-  vaultPositions: {
-    id: string;
-    strategy: {
-      id: string;
-      name: string;
-      asset: string;
-      apy: number;
-    };
-    shares: string;
-    depositedValue: string;
-    currentValue: string;
-    totalYieldDonated: string;
-    lastUpdateTimestamp: string;
-  }[];
-}
-
-export const YDS_STRATEGIES_QUERY = gql`
-  query GetYDSStrategies($asset: String, $isActive: Boolean) {
-    ydsStrategies(
-      where: { asset: $asset, isActive: $isActive }
-      orderBy: apy_DESC
-    ) {
-      id
-      address
-      name
-      asset
-      assetSymbol
-      apy
-      tvl
-      minDeposit
-      maxDeposit
-      riskLevel
-      isActive
-    }
-  }
-`;
-```
-
-### 8.4 Zustand Store Shape
-
-Complete store implementation following existing patterns:
-
-```typescript
-// packages/shared/src/stores/useVaultStore.ts
-import { create } from 'zustand';
-
-export enum VaultTxStatus {
-  Idle = 'idle',
-  Building = 'building',
-  Signing = 'signing',
-  PendingSource = 'pending_source',
-  PendingCCIP = 'pending_ccip',
-  PendingDest = 'pending_dest',
-  Confirmed = 'confirmed',
-  Failed = 'failed',
-}
-
-export interface VaultTxState {
-  status: VaultTxStatus;
-  messageId: string | null;
-  txHashSource: string | null;
-  txHashDest: string | null;
-  error: string | null;
-  estimatedCompletion: number | null;
-}
-
-interface VaultState {
-  // Positions
-  positions: VaultPosition[];
-  positionsLoading: boolean;
-  positionsError: string | null;
-
-  // Strategies
-  strategies: YDSStrategy[];
-  strategiesLoading: boolean;
-
-  // Form state
-  selectedStrategyId: string | null;
-  depositAmount: string;
-  withdrawShares: string;
-
-  // Transaction state
-  txState: VaultTxState;
-
-  // Actions
-  setSelectedStrategy: (id: string | null) => void;
-  setDepositAmount: (amount: string) => void;
-  setWithdrawShares: (shares: string) => void;
-  setTxState: (state: Partial<VaultTxState>) => void;
-  reset: () => void;
-}
-
-const initialTxState: VaultTxState = {
-  status: VaultTxStatus.Idle,
-  messageId: null,
-  txHashSource: null,
-  txHashDest: null,
-  error: null,
-  estimatedCompletion: null,
-};
-
-export const useVaultStore = create<VaultState>((set) => ({
-  positions: [],
-  positionsLoading: false,
-  positionsError: null,
-  strategies: [],
-  strategiesLoading: false,
-  selectedStrategyId: null,
-  depositAmount: '',
-  withdrawShares: '',
-  txState: initialTxState,
-
-  setSelectedStrategy: (id) => set({ selectedStrategyId: id }),
-  setDepositAmount: (amount) => set({ depositAmount: amount }),
-  setWithdrawShares: (shares) => set({ withdrawShares: shares }),
-  setTxState: (state) =>
-    set((prev) => ({ txState: { ...prev.txState, ...state } })),
-  reset: () =>
-    set({
-      selectedStrategyId: null,
-      depositAmount: '',
-      withdrawShares: '',
-      txState: initialTxState,
-    }),
-}));
-```
-
-### 8.5 Component API Contracts
-
-Props and events for UI components:
-
-```typescript
-// packages/admin/src/features/treasury/types.ts
-
-// VaultDashboard
-export interface VaultDashboardProps {
-  gardenId: string;
-}
-
-// PositionCard
-export interface PositionCardProps {
-  position: VaultPosition;
-  strategy: YDSStrategy;
-  onWithdraw: () => void;
-  onHarvest: () => void;
-}
-
-// DepositModal
-export interface DepositModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  gardenId: string;
-  strategies: YDSStrategy[];
-  gardenBalance: Record<string, bigint>;
-}
-
-export interface DepositModalEvents {
-  onDeposit: (params: DepositParams) => Promise<void>;
-  onPreview: (params: DepositParams) => Promise<DepositPreview>;
-}
-
-export interface DepositPreview {
-  estimatedShares: bigint;
-  pricePerShare: bigint;
-  fee: bigint;
-  estimatedCompletionTime: number;
-}
-
-// WithdrawModal
-export interface WithdrawModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  position: VaultPosition;
-  strategy: YDSStrategy;
-}
-```
-
-### 8.6 Performance Budgets
-
-Timing and size constraints:
+### 8.3 Performance Budgets
 
 | Metric | Target | Max | Measurement |
-|--------|--------|-----|-------------|
+| :--- | :--- | :--- | :--- |
 | Deposit TX gas | 400k | 500k | `forge test --gas-report` |
 | Withdraw TX gas | 350k | 450k | `forge test --gas-report` |
 | Position list render | 16ms | 50ms | React DevTools Profiler |
-| Strategy list load | 200ms | 500ms | Network waterfall |
 | Dashboard bundle size | 50kb | 100kb | `vite-bundle-analyzer` |
 | First Contentful Paint | 1.2s | 2s | Lighthouse |
-| Time to Interactive | 2.5s | 4s | Lighthouse |
 
-### 8.7 Accessibility Requirements
-
-WCAG 2.1 AA compliance for vault UI:
+### 8.4 Accessibility Requirements
 
 | Component | Requirement | Implementation |
-|-----------|-------------|----------------|
-| DepositModal | Focus trap | `Dialog` from Radix UI |
-| Amount inputs | Screen reader labels | `aria-label` with current balance |
-| Strategy selector | Keyboard navigation | Arrow keys, Enter to select |
-| Position cards | Status announcements | `aria-live="polite"` for updates |
-| Error states | Descriptive errors | `aria-describedby` linking to error |
-| Loading states | Progress indication | `aria-busy="true"`, skeleton screens |
-| Transaction status | Live updates | `role="status"` with progress |
-
-### 8.8 Observability and Telemetry
-
-Events and metrics for monitoring:
-
-```typescript
-// packages/shared/src/modules/analytics/vault-events.ts
-import { posthog } from '../posthog';
-
-export const VaultEvents = {
-  // User actions
-  DEPOSIT_INITIATED: 'vault_deposit_initiated',
-  DEPOSIT_CONFIRMED: 'vault_deposit_confirmed',
-  DEPOSIT_FAILED: 'vault_deposit_failed',
-  WITHDRAW_INITIATED: 'vault_withdraw_initiated',
-  WITHDRAW_CONFIRMED: 'vault_withdraw_confirmed',
-  EMERGENCY_INITIATED: 'vault_emergency_initiated',
-  HARVEST_TRIGGERED: 'vault_harvest_triggered',
-  STRATEGY_SELECTED: 'vault_strategy_selected',
-
-  // System events
-  STATE_SYNC: 'vault_state_sync',
-  CCIP_MESSAGE_SENT: 'vault_ccip_message_sent',
-  CCIP_MESSAGE_CONFIRMED: 'vault_ccip_message_confirmed',
-} as const;
-
-export interface VaultDepositEvent {
-  gardenId: string;
-  strategyId: string;
-  amount: string;
-  asset: string;
-  estimatedShares: string;
-}
-
-export interface VaultDepositConfirmedEvent {
-  gardenId: string;
-  messageId: string;
-  shares: string;
-  durationSeconds: number;
-}
-
-export function trackVaultDeposit(event: VaultDepositEvent) {
-  posthog.capture(VaultEvents.DEPOSIT_INITIATED, event);
-}
-
-export function trackVaultDepositConfirmed(event: VaultDepositConfirmedEvent) {
-  posthog.capture(VaultEvents.DEPOSIT_CONFIRMED, {
-    ...event,
-    // Performance metric
-    $set: { last_vault_deposit_duration: event.durationSeconds },
-  });
-}
-```
-
-**Grafana Dashboard Metrics:**
-
-| Metric Name | Type | Labels | Description |
-|-------------|------|--------|-------------|
-| `vault_tvl_total` | Gauge | garden, strategy | Total value locked per garden/strategy |
-| `vault_deposits_count` | Counter | garden, strategy, status | Number of deposit operations |
-| `vault_withdrawals_count` | Counter | garden, strategy, status | Number of withdrawal operations |
-| `vault_yield_donated_total` | Counter | garden, strategy | Cumulative yield donated |
-| `vault_ccip_latency_seconds` | Histogram | direction | CCIP message completion time |
-| `vault_state_sync_age_seconds` | Gauge | garden | Time since last state sync |
+| :--- | :--- | :--- |
+| DepositModal | Focus trap | Radix UI `Dialog` |
+| Amount inputs | Screen reader labels | `aria-label` with balance |
+| Asset selector | Keyboard navigation | Arrow keys, Enter |
+| Position cards | Status announcements | `aria-live="polite"` |
+| Error states | Descriptive errors | `aria-describedby` |
+| Loading states | Progress indication | `aria-busy="true"` |
 
 ---
 
 ## 9. Risk Management
 
-### 9.1 Risk Analysis
-
-| Risk | Likelihood | Impact | Score |
-| :--- | :--- | :--- | :--- |
-| Smart contract vulnerability | Low | Critical | High |
-| Aave V3 protocol exploit | Low | Critical | High |
-| CCIP message stuck (Phase 2) | Low | High | Medium |
-| Yield fluctuation | High | Low | Medium |
-| Arbitrum sequencer downtime | Low | Medium | Low |
-| Indexer desync | Medium | Low | Low |
-| Key compromise | Low | Critical | High |
-
-### 9.2 Mitigation Strategies
-
-| Risk | Mitigation |
-| :--- | :--- |
-| Smart contract vulnerability | External audit, formal verification, bug bounty |
-| Aave V3 protocol exploit | Diversify across strategies, implement emergency withdraw |
-| CCIP message stuck | Manual execution fallback, monitoring alerts |
-| Yield fluctuation | Set user expectations, show historical ranges |
-| Arbitrum sequencer downtime | Graceful degradation, cached state display |
-| Indexer desync | Multiple data sources, fallback to direct RPC |
-| Key compromise | Multisig, timelocks, Guardian role separation |
+| Risk | Severity | Mitigation |
+| :--- | :--- | :--- |
+| OctantModule exceeds 24KB | Low | Admin-only (no deposit/withdraw). Extract to `VaultLib.sol` if needed. |
+| Octant V2 factory not on Arbitrum | High | Deploy ourselves; IOctantFactory interface matches. |
+| Strategy attachment failure | Medium | try/catch in vault creation; graceful degradation. |
+| Dynamic vault indexing issues | Medium | Envio `context.addOctantVault()`. Fallback: pre-register addresses. |
+| Fresh GardenToken loses testnet data | Medium | Expected on testnet. Mainnet is first real deployment. |
+| Two-step deposit UX friction | Medium | Check allowance first, skip approve if sufficient. Permit2 in Phase 2. |
+| Aave V3 yield fluctuation | Medium | Show historical ranges. Extensible strategy system for Phase 2. |
 
 ---
 
@@ -1340,8 +691,9 @@ export function trackVaultDepositConfirmed(event: VaultDepositConfirmedEvent) {
 
 | Version | Date | Author | Changes |
 | :--- | :--- | :--- | :--- |
-| 1.0 | Jan 18, 2026 | Engineering | Initial specification |
-| 2.0 | Jan 22, 2026 | Claude | Added Implementation Guide, Mermaid diagrams, moved to Docusaurus |
+| 1.0 | Jan 18, 2026 | Engineering | Initial specification (GardenVaultManager + cross-chain) |
+| 2.0 | Jan 22, 2026 | Claude | Added Implementation Guide, Mermaid diagrams, Docusaurus |
+| 3.0 | Feb 9, 2026 | Claude | **Full rewrite**: OctantModule as registry + admin, direct ERC-4626 vault interaction, removed GardenVaultManager/CrossChainController/StateOracle/VaultController. Matches implementation on `feature/octant-defi-vaults`. |
 
 ---
 

@@ -3,28 +3,31 @@ id: octant-overview
 title: Octant Vaults Integration
 sidebar_label: Overview
 sidebar_position: 1
-description: Enable Garden treasuries to deposit into yield-generating vaults with yield routed to Hypercert fraction purchases via conviction voting
+description: Enable Gardens to deposit into yield-generating ERC-4626 vaults on Arbitrum, with yield routed to a configurable donation address
 ---
 
 # Octant Vaults Integration
 
-**Status:** In Development
+**Status:** Implementation Complete — Not Deployed (requires Octant V2 factory deployment and env configuration; see [Tech Spec § Deployment](./octant-tech-spec#7-deployment))
 **Feature ID:** GG-FEAT-006
 **Tech Spec ID:** GG-TECH-006
 **Priority:** High
-**Estimated Effort:** 8 weeks
+**Estimated Effort:** 3 weeks (parallelized)
+**Branch:** `feature/octant-defi-vaults`
 
 ## Overview
 
-Enable Garden treasuries (ERC-6551 GardenAccounts) to deposit capital into Yield Donating Strategy (YDS) vaults. Generated yield is allocated via conviction voting to **purchase Hypercert fractions** on behalf of the Garden, building a portfolio of verified environmental impact while preserving principal capital.
+Enable anyone to deposit capital into per-garden Yield Donating Strategy (YDS) vaults deployed on Arbitrum via the Octant V2 MultiStrategyVaultFactory. Each garden gets two ERC-4626 vaults (WETH + DAI) created automatically at mint time. Users interact with vaults directly — `vault.deposit()` and `vault.redeem()` — without any proxy or intermediary contract. Generated yield is routed to a configurable per-garden donation address (Phase 1), with conviction-based Hypercert fraction purchasing planned for Phase 2.
 
 ## Key Features
 
-- **Arbitrum-Native Deployment (Phase 1)**: Deploy YDS vaults directly on Arbitrum using Aave V3 and Yearn V3
+- **Arbitrum-Native Deployment (Phase 1)**: YDS vaults deployed directly on Arbitrum using Aave V3 for yield generation (WETH + DAI)
+- **Direct ERC-4626 Interaction**: Users call `vault.deposit()` and `vault.redeem()` directly — standard, composable, gas-efficient
+- **Open Access Deposits**: Anyone can deposit to support a garden; withdrawals are permissionless for own shares
+- **OctantModule Registry**: Admin layer for vault creation, harvest triggering, donation config, and emergency pause
+- **Hats Protocol Authorization**: Operator/Owner roles for admin operations (harvest, donation config, emergency)
+- **Donation Address Yield Routing**: Yield auto-minted as shares to a per-garden donation address via YDS `report()`
 - **Cross-Chain Integration (Phase 2)**: Optional Ethereum integration via Chainlink CCIP for deeper liquidity pools
-- **Conviction-Based Yield Allocation**: Yield purchases Hypercert fractions based on community voting
-- **Hats Protocol Authorization**: Role-based access control for Operators and Guardians
-- **Emergency Withdrawal**: Guardian-only immediate exit capability
 
 ## Documents
 
@@ -32,89 +35,53 @@ Enable Garden treasuries (ERC-6551 GardenAccounts) to deposit capital into Yield
 |----------|-------------|
 | [Feature Specification](./octant-feature-spec) | Product requirements, user stories, acceptance criteria |
 | [Technical Specification](./octant-tech-spec) | Engineering architecture, implementation details |
+| [Cross-Chain Appendix](./octant-cross-chain-appendix) | Archived Phase 2 CCIP architecture for future reference |
 
-## Architecture Phases
+## Architecture
 
-### Phase 1: Arbitrum-Native (Recommended)
+### Phase 1: Arbitrum-Native (Current)
 
 ```mermaid
 graph TB
     subgraph Arbitrum["ARBITRUM ONE"]
-        Admin["Admin Dashboard<br/>(React)"]
-        GardenTBA["GardenTBA<br/>(ERC-6551 Treasury)"]
-        Hats["Hats Protocol"]
+        Client["Client PWA<br/>(Deposit + Withdraw)"]
+        Admin["Admin Dashboard<br/>(Full Management)"]
 
-        Admin --> GardenTBA
-        GardenTBA <--> Hats
+        Client --> Vault
+        Admin --> OctantModule
+        Admin --> Vault
 
-        GardenTBA --> GVM["GardenVaultManager"]
+        OctantModule["OctantModule<br/>┌────────────────────────┐<br/>│ Vault Registry          │<br/>│ Harvest (report)        │<br/>│ Donation Config         │<br/>│ Emergency Pause         │<br/>│ Asset Registry          │<br/>└────────────────────────┘"]
 
-        subgraph Strategies["YDS Strategies"]
-            Aave["AaveV3YDSStrategy"]
-            Yearn["YearnV3YDSStrategy"]
+        OctantModule --> Vault["ERC-4626 Vault<br/>(Direct User Interaction)"]
+
+        Vault --> AaveStrat["AaveV3YDSStrategy"]
+        AaveStrat --> AavePool["Aave V3 Pool"]
+
+        AaveStrat --> Donation["Donation Address<br/>(Yield Recipient)"]
+
+        subgraph Indexer["ENVIO INDEXER"]
+            GV["GardenVault entities"]
+            VD["VaultDeposit tracking"]
+            VE["VaultEvent history"]
+            VI["GardenVaultIndex + VaultAddressIndex"]
         end
-
-        GVM --> Aave
-        GVM --> Yearn
-
-        Aave --> AavePool["Aave V3 Pool"]
-        Yearn --> YearnVault["Yearn V3 Vault"]
-
-        Aave --> Donation["HypercertYieldAllocator"]
-        Yearn --> Donation
     end
 
+    style Client fill:#4CAF50,color:#fff
     style Admin fill:#4CAF50,color:#fff
-    style GVM fill:#2196F3,color:#fff
+    style OctantModule fill:#2196F3,color:#fff
     style Donation fill:#FF9800,color:#fff
 ```
 
-### Phase 2: Cross-Chain (Optional)
+### Phase 2: Cross-Chain (Future)
 
-```mermaid
-graph TB
-    subgraph Arbitrum["ARBITRUM ONE"]
-        Dashboard["Admin Dashboard"]
-        GardenTBA["GardenTBA"]
-        StateOracle["StateOracle"]
-        CCC["CrossChainController"]
-        CCIPArb["CCIP Router"]
-    end
-
-    subgraph CCIP["CHAINLINK CCIP DON"]
-        DON["Message Relay"]
-    end
-
-    subgraph Ethereum["ETHEREUM MAINNET"]
-        CCIPEth["CCIP Router"]
-        VC["VaultController"]
-        subgraph Octant["Octant YDS Vaults"]
-            sDAI["sDAI YDS"]
-            sUSDS["sUSDS YDS"]
-        end
-        HatsMirror["HatsMirror"]
-    end
-
-    Dashboard --> CCC
-    GardenTBA --> CCC
-    CCC --> CCIPArb
-    CCIPArb --> DON
-    DON --> CCIPEth
-    CCIPEth --> VC
-    VC --> sDAI
-    VC --> sUSDS
-    VC --> HatsMirror
-
-    style Dashboard fill:#4CAF50,color:#fff
-    style CCC fill:#2196F3,color:#fff
-    style VC fill:#9C27B0,color:#fff
-```
+See [Cross-Chain Appendix](./octant-cross-chain-appendix) for the CCIP-based architecture enabling Ethereum vault access.
 
 ## Success Criteria
 
 - First deposit executed within 48 hours of feature launch
 - 90% of deposit/withdraw operations complete successfully
-- Average cross-chain message latency under 20 minutes (Phase 2)
 - Zero loss of user principal due to contract bugs
 - $50k+ TVL in Green Goods vaults within first month
 
@@ -122,7 +89,6 @@ graph TB
 
 - **GG-FEAT-002**: Passkey Auth (Operators need authenticated wallets)
 - **GG-FEAT-004**: Admin Dashboard v2 (UI container for vault management)
-- **GG-FEAT-005**: Hypercerts (Minted Hypercerts are purchase targets)
-- **GG-FEAT-007**: Gardens Conviction Voting (Determines yield allocation)
-- **Hats Protocol**: Operator role required for vault operations
-- **GardenAccount (ERC-6551)**: Token-bound accounts must hold depositable assets
+- **Hats Protocol**: Operator/Owner roles for admin vault operations
+- **Octant V2 Factory**: Deployed on Arbitrum for vault creation
+- **Aave V3**: Deployed on Arbitrum for yield generation
