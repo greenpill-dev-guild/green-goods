@@ -41,6 +41,20 @@ export type { AuthMode, BaseAuthContext } from "./auth";
 // ============================================
 export type { ChainId, DeploymentConfig } from "./blockchain";
 // ============================================
+// Conviction Types
+// ============================================
+export type {
+  SetConvictionStrategiesParams,
+  HypercertSignal,
+  HypercertEntry,
+  ConvictionWeight,
+  MemberPower,
+  VoterAllocation,
+  AllocateHypercertSupportParams,
+  RegisterHypercertParams,
+  DeregisterHypercertParams,
+} from "./conviction";
+// ============================================
 // Contract Types
 // ============================================
 export type { CreateGardenParams, DeploymentParams, NetworkContracts } from "./contracts";

@@ -103,6 +103,18 @@ export type { UseEnsQueryOptions, UseEnsQueryResult } from "./blockchain/useEnsQ
 export { useEnsQuery } from "./blockchain/useEnsQuery";
 
 // ============================================================================
+// CONVICTION VOTING
+// ============================================================================
+export { useConvictionStrategies } from "./conviction/useConvictionStrategies";
+export { useSetConvictionStrategies } from "./conviction/useSetConvictionStrategies";
+export { useRegisteredHypercerts } from "./conviction/useRegisteredHypercerts";
+export { useHypercertConviction } from "./conviction/useHypercertConviction";
+export { useMemberVotingPower } from "./conviction/useMemberVotingPower";
+export { useAllocateHypercertSupport } from "./conviction/useAllocateHypercertSupport";
+export { useRegisterHypercert } from "./conviction/useRegisterHypercert";
+export { useDeregisterHypercert } from "./conviction/useDeregisterHypercert";
+
+// ============================================================================
 // GARDEN
 // ============================================================================
 export type {

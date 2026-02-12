@@ -137,6 +137,22 @@ export const queryKeys = {
       ] as const,
   },
 
+  // Conviction voting related keys
+  conviction: {
+    all: ["greengoods", "conviction"] as const,
+    strategies: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "conviction", "strategies", gardenAddress, chainId] as const,
+    // Signal pool keys
+    registeredHypercerts: (poolAddress: string, chainId: number) =>
+      ["greengoods", "conviction", "registeredHypercerts", poolAddress, chainId] as const,
+    convictionWeights: (poolAddress: string, chainId: number) =>
+      ["greengoods", "conviction", "convictionWeights", poolAddress, chainId] as const,
+    voterAllocations: (poolAddress: string, voterAddress: string, chainId: number) =>
+      ["greengoods", "conviction", "voterAllocations", poolAddress, voterAddress, chainId] as const,
+    memberPower: (poolAddress: string, voterAddress: string, chainId: number) =>
+      ["greengoods", "conviction", "memberPower", poolAddress, voterAddress, chainId] as const,
+  },
+
   // Action related keys
   actions: {
     all: ["greengoods", "actions"] as const,
@@ -313,6 +329,24 @@ export const queryInvalidation = {
     return [queryKeys.assessments.all];
   },
 
+  // Queries to invalidate after conviction strategies are updated
+  onConvictionStrategiesUpdated: (gardenAddress: string, chainId: number) => [
+    queryKeys.conviction.strategies(gardenAddress, chainId),
+  ],
+
+  // Queries to invalidate after support is allocated in a signal pool
+  onSupportAllocated: (poolAddress: string, voterAddress: string, chainId: number) => [
+    queryKeys.conviction.convictionWeights(poolAddress, chainId),
+    queryKeys.conviction.voterAllocations(poolAddress, voterAddress, chainId),
+    queryKeys.conviction.memberPower(poolAddress, voterAddress, chainId),
+  ],
+
+  // Queries to invalidate after a hypercert is registered/deregistered
+  onHypercertRegistrationChanged: (poolAddress: string, chainId: number) => [
+    queryKeys.conviction.registeredHypercerts(poolAddress, chainId),
+    queryKeys.conviction.convictionWeights(poolAddress, chainId),
+  ],
+
   // Queries to invalidate after a successful vault deposit
   onVaultDeposit: (gardenAddress: string, userAddress: string | undefined, chainId: number) => {
     const keys: Array<
@@ -376,7 +410,13 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.vaults.events>
   | ReturnType<typeof queryKeys.vaults.preview>
   | typeof queryKeys.assessments.all
-  | ReturnType<typeof queryKeys.assessments.byGarden>;
+  | ReturnType<typeof queryKeys.assessments.byGarden>
+  | typeof queryKeys.conviction.all
+  | ReturnType<typeof queryKeys.conviction.strategies>
+  | ReturnType<typeof queryKeys.conviction.registeredHypercerts>
+  | ReturnType<typeof queryKeys.conviction.convictionWeights>
+  | ReturnType<typeof queryKeys.conviction.voterAllocations>
+  | ReturnType<typeof queryKeys.conviction.memberPower>;
 
 export type WorksQueryKey =
   | typeof queryKeys.works.all
