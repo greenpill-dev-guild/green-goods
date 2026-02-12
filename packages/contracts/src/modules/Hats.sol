@@ -6,6 +6,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
+import { ICVSyncPowerFacet } from "../interfaces/ICVSyncPowerFacet.sol";
 import { IHats } from "../interfaces/IHats.sol";
 import { IHatsModuleFactory } from "../interfaces/IHatsModuleFactory.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
@@ -88,6 +89,15 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
     error NotHatAdmin(address caller, uint256 hatId);
     error ArrayLengthMismatch();
     error GardenAlreadyConfigured(address garden);
+    error TooManyStrategies(uint256 count, uint256 max);
+    error InvalidStrategyAddress(address strategy);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Constants
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Maximum number of conviction strategies per garden (bounds gas in _syncConvictionPower)
+    uint256 public constant MAX_CONVICTION_STRATEGIES = 10;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
@@ -129,8 +139,11 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
     /// @notice Addresses authorized to configure gardens (e.g., migration scripts)
     mapping(address => bool) public configAuthority;
 
+    /// @notice Conviction voting strategies per garden for power sync on role revocation
+    mapping(address garden => address[] strategies) internal gardenConvictionStrategies;
+
     /// @notice Storage gap for future upgrades
-    uint256[38] private __gap;
+    uint256[37] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -456,6 +469,26 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
         emit CommunityMinBalanceUpdated(oldBalance, _minBalance);
     }
 
+    /// @inheritdoc IHatsModule
+    function setConvictionStrategies(address garden, address[] calldata strategies) external override {
+        _requireOwnerOrOperator(garden);
+        if (strategies.length > MAX_CONVICTION_STRATEGIES) {
+            revert TooManyStrategies(strategies.length, MAX_CONVICTION_STRATEGIES);
+        }
+        for (uint256 i = 0; i < strategies.length; i++) {
+            if (strategies[i] == address(0) || strategies[i].code.length == 0) {
+                revert InvalidStrategyAddress(strategies[i]);
+            }
+        }
+        gardenConvictionStrategies[garden] = strategies;
+        emit ConvictionStrategiesUpdated(garden, strategies);
+    }
+
+    /// @inheritdoc IHatsModule
+    function getConvictionStrategies(address garden) external view override returns (address[] memory) {
+        return gardenConvictionStrategies[garden];
+    }
+
     /// @notice Add or remove a config authority
     function setConfigAuthority(address authority, bool authorized) external onlyOwner {
         if (authority == address(0)) revert ZeroAddress();
@@ -542,6 +575,8 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
         if (role == GardenRole.Operator) {
             _syncProjectAdmin(garden, account, false);
         }
+        // Best-effort conviction power sync — sync failure MUST NOT revert role revocation
+        _syncConvictionPower(garden, account);
     }
 
     function _syncProjectAdmin(address garden, address account, bool add) internal {
@@ -552,6 +587,33 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
         } else {
             // solhint-disable-next-line no-empty-blocks
             try karmaGAPModule.removeProjectAdmin(garden, account) { } catch { }
+        }
+    }
+
+    /// @notice Best-effort conviction power sync on role revocation
+    /// @dev Iterates configured strategies and calls syncPower via ICVSyncPowerFacet.
+    ///      Failures emit events but do NOT revert.
+    ///
+    ///      Architecture note: ICVSyncPowerFacet targets Gardens V2 diamond facets that
+    ///      maintain per-member voting power. HypercertSignalPool does NOT implement this
+    ///      interface — it uses lazy eligibility evaluation (isEligibleVoter checks Hats
+    ///      at read time). The sync infrastructure is built for future Gardens V2 integration
+    ///      where power registries require explicit sync on role changes.
+    function _syncConvictionPower(address garden, address account) internal {
+        address[] storage strategies = gardenConvictionStrategies[garden];
+        uint256 len = strategies.length;
+        if (len == 0) return;
+
+        for (uint256 i = 0; i < len; i++) {
+            address strategy = strategies[i];
+            // solhint-disable-next-line no-empty-blocks
+            try ICVSyncPowerFacet(strategy).syncPower(account) {
+                emit ConvictionSyncTriggered(garden, account, strategy);
+            } catch Error(string memory reason) {
+                emit ConvictionSyncFailed(garden, account, strategy, reason);
+            } catch {
+                emit ConvictionSyncFailed(garden, account, strategy, "");
+            }
         }
     }
 

@@ -98,6 +98,12 @@ contract MockHatsModule is IHatsModule {
 
     function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
 
+    function setConvictionStrategies(address, address[] calldata) external { }
+
+    function getConvictionStrategies(address) external pure returns (address[] memory) {
+        return new address[](0);
+    }
+
     function isGardenerOf(address garden, address account) external view returns (bool) {
         return gardenerOf[garden][account];
     }

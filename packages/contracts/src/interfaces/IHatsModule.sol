@@ -38,6 +38,15 @@ interface IHatsModule {
     /// @notice Emitted when eligibility module creation or configuration fails
     event EligibilityModuleCreationFailed(uint256 indexed hatId, string moduleType);
 
+    /// @notice Emitted when conviction strategies are configured for a garden
+    event ConvictionStrategiesUpdated(address indexed garden, address[] strategies);
+
+    /// @notice Emitted when a conviction power sync is triggered
+    event ConvictionSyncTriggered(address indexed garden, address indexed account, address indexed strategy);
+
+    /// @notice Emitted when a conviction power sync fails (best-effort, does not revert)
+    event ConvictionSyncFailed(address indexed garden, address indexed account, address indexed strategy, string reason);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Garden Hat Tree Lifecycle (GardenToken only)
     // ═══════════════════════════════════════════════════════════════════════════
@@ -68,6 +77,18 @@ interface IHatsModule {
 
     /// @notice Batch revoke roles
     function revokeRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Conviction Strategy Sync (Owner or Operator)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Configure conviction voting strategies for a garden
+    /// @dev Role revocations will trigger best-effort power sync on these strategies.
+    ///      Reverts if array exceeds MAX_CONVICTION_STRATEGIES or contains non-contract addresses.
+    function setConvictionStrategies(address garden, address[] calldata strategies) external;
+
+    /// @notice Get conviction strategies configured for a garden
+    function getConvictionStrategies(address garden) external view returns (address[] memory);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Role Queries (View)
