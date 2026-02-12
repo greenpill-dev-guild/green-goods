@@ -4,6 +4,7 @@ import {
   isGardenMember,
   useActions,
   useBrowserNavigation,
+  useConvictionStrategies,
   useGardeners,
   useGardenVaults,
   useGardens,
@@ -29,7 +30,7 @@ import { Outlet, useLocation, useParams } from "react-router-dom";
 import type { Address } from "viem";
 import toast from "react-hot-toast";
 import { Button } from "@/components/Actions";
-import { TreasuryDrawer } from "@/components/Dialogs";
+import { ConvictionDrawer, TreasuryDrawer } from "@/components/Dialogs";
 import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
@@ -45,6 +46,7 @@ export const Garden: React.FC<GardenProps> = () => {
   const intl = useIntl();
   const { primaryAddress } = useUser();
   const [isTreasuryOpen, setIsTreasuryOpen] = useState(false);
+  const [isGovernanceOpen, setIsGovernanceOpen] = useState(false);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -134,6 +136,12 @@ export const Garden: React.FC<GardenProps> = () => {
     () => myVaultDeposits.some((deposit) => deposit.shares > 0n),
     [myVaultDeposits]
   );
+
+  const { strategies: convictionStrategies } = useConvictionStrategies(
+    (gardenIdParam as `0x${string}`) ?? undefined,
+    { enabled: Boolean(gardenIdParam) }
+  );
+  const hasGovernance = convictionStrategies.length > 0;
 
   if (!garden) return null;
 
@@ -278,6 +286,8 @@ export const Garden: React.FC<GardenProps> = () => {
                     works={mergedWorks}
                     garden={garden}
                     isOperator={canReview}
+                    showGovernanceButton={hasGovernance}
+                    onGovernanceClick={() => setIsGovernanceOpen(true)}
                     showTreasuryButton={gardenVaults.length > 0}
                     hasTreasuryDeposits={hasTreasuryDeposits}
                     onTreasuryClick={() => setIsTreasuryOpen(true)}
@@ -349,6 +359,14 @@ export const Garden: React.FC<GardenProps> = () => {
           <TreasuryDrawer
             isOpen={isTreasuryOpen}
             onClose={() => setIsTreasuryOpen(false)}
+            gardenAddress={garden.id}
+            gardenName={garden.name}
+          />
+        )}
+        {garden && hasGovernance && (
+          <ConvictionDrawer
+            isOpen={isGovernanceOpen}
+            onClose={() => setIsGovernanceOpen(false)}
             gardenAddress={garden.id}
             gardenName={garden.name}
           />

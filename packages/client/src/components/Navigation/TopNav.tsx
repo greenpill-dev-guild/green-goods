@@ -2,6 +2,7 @@ import { type Garden, type Work, cn, useOffline } from "@green-goods/shared";
 import {
   RiArrowLeftFill,
   RiBankLine,
+  RiGovernmentLine,
   RiNotificationFill,
   RiNotificationLine,
 } from "@remixicon/react";
@@ -20,6 +21,8 @@ type TopNavProps = {
   showTreasuryButton?: boolean;
   hasTreasuryDeposits?: boolean;
   onTreasuryClick?: () => void;
+  showGovernanceButton?: boolean;
+  onGovernanceClick?: () => void;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 type NotificationsProps = {
@@ -150,6 +153,25 @@ const TreasuryButton: React.FC<{
   );
 };
 
+const GovernanceButton: React.FC<{
+  onClick: () => void;
+  ariaLabel: string;
+}> = ({ onClick, ariaLabel }) => {
+  const styles = createButtonStyles("work");
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={styles.button}
+      aria-label={ariaLabel}
+      title={ariaLabel}
+    >
+      <RiGovernmentLine className={styles.icon} />
+    </button>
+  );
+};
+
 // Determine button variant based on app state
 const getButtonVariant = (syncStatus: string, isOnline: boolean): "work" | "sync" | "offline" => {
   if (syncStatus === "syncing") return "sync";
@@ -166,6 +188,8 @@ export const TopNav: React.FC<TopNavProps> = ({
   showTreasuryButton = false,
   hasTreasuryDeposits = false,
   onTreasuryClick,
+  showGovernanceButton = false,
+  onGovernanceClick,
   ...props
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
@@ -219,6 +243,12 @@ export const TopNav: React.FC<TopNavProps> = ({
       </div>
 
       <div className="flex grow" />
+      {garden && showGovernanceButton && onGovernanceClick && (
+        <GovernanceButton
+          onClick={onGovernanceClick}
+          ariaLabel={formatMessage({ id: "app.signal.governance" })}
+        />
+      )}
       {garden && showTreasuryButton && onTreasuryClick && (
         <TreasuryButton
           hasDeposits={hasTreasuryDeposits}
