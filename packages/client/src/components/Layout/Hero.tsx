@@ -130,10 +130,7 @@ export const Hero: FC<HeroProps> = () => {
           </span>
 
           <div className="bg-white p-4 rounded-xl shadow-sm">
-            <QRCodeCanvas 
-              value="https://greengoods.app" 
-              size={128}
-            />
+            <QRCodeCanvas value="https://greengoods.app" size={128} />
           </div>
         </div>
 
