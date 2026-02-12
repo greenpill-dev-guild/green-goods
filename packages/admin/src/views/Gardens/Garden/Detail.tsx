@@ -15,6 +15,7 @@ import {
   toastService,
   useDelayedInvalidation,
   useGardenAssessments,
+  useConvictionStrategies,
   useGardenVaults,
   useGardenOperations,
   useGardenPermissions,
@@ -111,6 +112,11 @@ export default function GardenDetail() {
     enabled: Boolean(id),
   });
 
+  const { strategies: convictionStrategies } = useConvictionStrategies(
+    (id as `0x${string}`) ?? undefined,
+    { enabled: Boolean(id) && canManage }
+  );
+
   const { vaultNetDeposited, vaultHarvestCount, vaultDepositorCount } = useMemo(() => {
     let netDeposited = 0n;
     let harvestCount = 0;
@@ -120,7 +126,11 @@ export default function GardenDetail() {
       harvestCount += vault.totalHarvestCount;
       depositorCount += vault.depositorCount;
     }
-    return { vaultNetDeposited: netDeposited, vaultHarvestCount: harvestCount, vaultDepositorCount: depositorCount };
+    return {
+      vaultNetDeposited: netDeposited,
+      vaultHarvestCount: harvestCount,
+      vaultDepositorCount: depositorCount,
+    };
   }, [gardenVaults]);
   const donationAddressUnset = useMemo(
     () =>
@@ -395,6 +405,37 @@ export default function GardenDetail() {
                   {formatMessage({ id: "app.treasury.loadingVaults" })}
                 </p>
               )}
+            </div>
+          )}
+          {canManage && (
+            <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+                    {formatMessage({ id: "app.conviction.title" })}
+                  </h3>
+                  <p className="mt-1 text-sm text-text-sub">
+                    {formatMessage(
+                      { id: "app.conviction.strategyCount" },
+                      { count: convictionStrategies.length }
+                    )}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    to={`/gardens/${id}/signal-pool`}
+                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
+                  >
+                    {formatMessage({ id: "app.signal.title" })}
+                  </Link>
+                  <Link
+                    to={`/gardens/${id}/strategies`}
+                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
+                  >
+                    {formatMessage({ id: "app.conviction.manageStrategies" })}
+                  </Link>
+                </div>
+              </div>
             </div>
           )}
           <WorkSubmissionsView gardenId={garden.id} canManage={canReview} />

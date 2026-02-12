@@ -94,6 +94,18 @@ export const router = createRouter([
                     }),
                   },
                   {
+                    path: "gardens/:id/strategies",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/Strategies")).default,
+                    }),
+                  },
+                  {
+                    path: "gardens/:id/signal-pool",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/SignalPool")).default,
+                    }),
+                  },
+                  {
                     path: "treasury",
                     lazy: async () => ({ Component: (await import("@/views/Treasury")).default }),
                   },
