@@ -2,7 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useCallback, useEffect, useState, type FC } from "react";
 import { useNavigate } from "react-router-dom";
 import { DeviceFrameset } from "react-device-frameset";
-
+import { QRCodeCanvas } from "qrcode.react";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
 import { useInstallGuidance, copyToClipboard } from "@green-goods/shared";
@@ -120,13 +120,22 @@ export const Hero: FC<HeroProps> = () => {
             defaultMessage:
               "Green Goods measures, tracks, and rewards the impact on local hubs with a simple progressive web app.",
           })}
-          <span className="font-bold text-2xl hidden sm:flex text-primary">
+        </p>
+        <div className="hidden sm:flex flex-col items-center lg:items-start gap-4 mt-4">
+          <span className="font-bold text-2xl text-primary">
             {intl.formatMessage({
               id: "app.hero.cta",
               defaultMessage: "Open the website on your phone to get started!",
             })}
           </span>
-        </p>
+
+          <div className="bg-white p-4 rounded-xl shadow-sm">
+            <QRCodeCanvas 
+              value="https://greengoods.app" 
+              size={128}
+            />
+          </div>
+        </div>
 
         {/* Smart PWA Installation Flow based on browser/platform detection */}
         {guidance.scenario === "already-installed" ? (
