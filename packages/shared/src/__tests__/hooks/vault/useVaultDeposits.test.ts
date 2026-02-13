@@ -86,10 +86,9 @@ describe("useVaultDeposits", () => {
     ];
     mockGetVaultDeposits.mockResolvedValue(mockDeposits);
 
-    const { result } = renderHook(
-      () => useVaultDeposits(TEST_GARDEN, { userAddress: TEST_USER }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useVaultDeposits(TEST_GARDEN, { userAddress: TEST_USER }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -112,10 +111,9 @@ describe("useVaultDeposits", () => {
   });
 
   it("disables query when no garden address is provided", () => {
-    const { result } = renderHook(
-      () => useVaultDeposits(undefined, { enabled: true }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useVaultDeposits(undefined, { enabled: true }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     expect(mockGetVaultDeposits).not.toHaveBeenCalled();
     expect(result.current.deposits).toEqual([]);
@@ -123,10 +121,9 @@ describe("useVaultDeposits", () => {
   });
 
   it("disables query when enabled is false", () => {
-    const { result } = renderHook(
-      () => useVaultDeposits(TEST_GARDEN, { enabled: false }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useVaultDeposits(TEST_GARDEN, { enabled: false }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     expect(mockGetVaultDeposits).not.toHaveBeenCalled();
     expect(result.current.fetchStatus).toBe("idle");
@@ -137,10 +134,9 @@ describe("useVaultDeposits", () => {
     const mixedGarden = "0xABCDef1234567890ABCDef1234567890ABCDef12";
     const mixedUser = "0xFEDCba9876543210FEDCba9876543210FEDCba98";
 
-    const { result } = renderHook(
-      () => useVaultDeposits(mixedGarden, { userAddress: mixedUser }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useVaultDeposits(mixedGarden, { userAddress: mixedUser }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -154,17 +150,12 @@ describe("useVaultDeposits", () => {
   it("respects custom chainId option", async () => {
     mockGetVaultDeposits.mockResolvedValue([]);
 
-    const { result } = renderHook(
-      () => useVaultDeposits(TEST_GARDEN, { chainId: 42161 }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useVaultDeposits(TEST_GARDEN, { chainId: 42161 }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockGetVaultDeposits).toHaveBeenCalledWith(
-      TEST_GARDEN.toLowerCase(),
-      42161,
-      undefined
-    );
+    expect(mockGetVaultDeposits).toHaveBeenCalledWith(TEST_GARDEN.toLowerCase(), 42161, undefined);
   });
 });

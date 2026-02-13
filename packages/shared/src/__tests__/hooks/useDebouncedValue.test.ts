@@ -23,10 +23,9 @@ describe("useDebouncedValue", () => {
   });
 
   it("does not update the value before the delay", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebouncedValue(value, 300),
-      { initialProps: { value: "a" } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebouncedValue(value, 300), {
+      initialProps: { value: "a" },
+    });
 
     rerender({ value: "b" });
     act(() => {
@@ -37,10 +36,9 @@ describe("useDebouncedValue", () => {
   });
 
   it("updates the value after the delay elapses", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebouncedValue(value, 300),
-      { initialProps: { value: "a" } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebouncedValue(value, 300), {
+      initialProps: { value: "a" },
+    });
 
     rerender({ value: "b" });
     act(() => {
@@ -51,10 +49,9 @@ describe("useDebouncedValue", () => {
   });
 
   it("resets the timer when value changes rapidly", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebouncedValue(value, 300),
-      { initialProps: { value: "a" } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebouncedValue(value, 300), {
+      initialProps: { value: "a" },
+    });
 
     // Change to "b" and advance 200ms (not enough)
     rerender({ value: "b" });
@@ -79,10 +76,9 @@ describe("useDebouncedValue", () => {
   });
 
   it("uses default delay of 300ms", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebouncedValue(value),
-      { initialProps: { value: 1 } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebouncedValue(value), {
+      initialProps: { value: 1 },
+    });
 
     rerender({ value: 2 });
 
@@ -98,10 +94,9 @@ describe("useDebouncedValue", () => {
   });
 
   it("works with bigint values", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebouncedValue(value, 300),
-      { initialProps: { value: 0n } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebouncedValue(value, 300), {
+      initialProps: { value: 0n },
+    });
 
     rerender({ value: 1000000000000000000n });
     act(() => {
@@ -112,10 +107,9 @@ describe("useDebouncedValue", () => {
   });
 
   it("cleans up timer on unmount", () => {
-    const { result, rerender, unmount } = renderHook(
-      ({ value }) => useDebouncedValue(value, 300),
-      { initialProps: { value: "a" } }
-    );
+    const { result, rerender, unmount } = renderHook(({ value }) => useDebouncedValue(value, 300), {
+      initialProps: { value: "a" },
+    });
 
     rerender({ value: "b" });
     unmount();
@@ -130,10 +124,9 @@ describe("useDebouncedValue", () => {
   });
 
   it("respects custom delay", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebouncedValue(value, 1000),
-      { initialProps: { value: "fast" } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebouncedValue(value, 1000), {
+      initialProps: { value: "fast" },
+    });
 
     rerender({ value: "slow" });
 

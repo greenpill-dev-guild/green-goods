@@ -112,10 +112,9 @@ describe("useGardenVaults", () => {
   });
 
   it("disables query when enabled is false", () => {
-    const { result } = renderHook(
-      () => useGardenVaults(TEST_GARDEN, { enabled: false }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useGardenVaults(TEST_GARDEN, { enabled: false }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     expect(mockGetGardenVaults).not.toHaveBeenCalled();
     expect(result.current.vaults).toEqual([]);
@@ -133,19 +132,15 @@ describe("useGardenVaults", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockGetGardenVaults).toHaveBeenCalledWith(
-      mixedCaseAddress.toLowerCase(),
-      TEST_CHAIN_ID
-    );
+    expect(mockGetGardenVaults).toHaveBeenCalledWith(mixedCaseAddress.toLowerCase(), TEST_CHAIN_ID);
   });
 
   it("respects custom chainId option", async () => {
     mockGetGardenVaults.mockResolvedValue([]);
 
-    const { result } = renderHook(
-      () => useGardenVaults(TEST_GARDEN, { chainId: 42161 }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useGardenVaults(TEST_GARDEN, { chainId: 42161 }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 

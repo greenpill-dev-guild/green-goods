@@ -57,10 +57,9 @@ describe("useVaultEvents", () => {
     ];
     mockGetVaultEvents.mockResolvedValue(mockEvents);
 
-    const { result } = renderHook(
-      () => useVaultEvents(TEST_GARDEN, { enabled: true }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useVaultEvents(TEST_GARDEN, { enabled: true }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -71,19 +70,17 @@ describe("useVaultEvents", () => {
   it("returns empty array when no data yet", () => {
     mockGetVaultEvents.mockReturnValue(new Promise(() => {}));
 
-    const { result } = renderHook(
-      () => useVaultEvents(TEST_GARDEN, { enabled: true }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useVaultEvents(TEST_GARDEN, { enabled: true }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     expect(result.current.events).toEqual([]);
   });
 
   it("disables query when no garden address is provided", () => {
-    const { result } = renderHook(
-      () => useVaultEvents(undefined, { enabled: true }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useVaultEvents(undefined, { enabled: true }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     expect(mockGetVaultEvents).not.toHaveBeenCalled();
     expect(result.current.events).toEqual([]);
@@ -91,10 +88,9 @@ describe("useVaultEvents", () => {
   });
 
   it("disables query when enabled is false", () => {
-    const { result } = renderHook(
-      () => useVaultEvents(TEST_GARDEN, { enabled: false }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useVaultEvents(TEST_GARDEN, { enabled: false }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     expect(mockGetVaultEvents).not.toHaveBeenCalled();
     expect(result.current.fetchStatus).toBe("idle");
@@ -103,10 +99,9 @@ describe("useVaultEvents", () => {
   it("uses default limit of 100", async () => {
     mockGetVaultEvents.mockResolvedValue([]);
 
-    const { result } = renderHook(
-      () => useVaultEvents(TEST_GARDEN),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useVaultEvents(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -116,10 +111,9 @@ describe("useVaultEvents", () => {
   it("respects custom limit option", async () => {
     mockGetVaultEvents.mockResolvedValue([]);
 
-    const { result } = renderHook(
-      () => useVaultEvents(TEST_GARDEN, { limit: 50 }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useVaultEvents(TEST_GARDEN, { limit: 50 }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -130,17 +124,12 @@ describe("useVaultEvents", () => {
     mockGetVaultEvents.mockResolvedValue([]);
     const mixedCase = "0xABCDef1234567890ABCDef1234567890ABCDef12";
 
-    const { result } = renderHook(
-      () => useVaultEvents(mixedCase),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useVaultEvents(mixedCase), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockGetVaultEvents).toHaveBeenCalledWith(
-      mixedCase.toLowerCase(),
-      TEST_CHAIN_ID,
-      100
-    );
+    expect(mockGetVaultEvents).toHaveBeenCalledWith(mixedCase.toLowerCase(), TEST_CHAIN_ID, 100);
   });
 });
