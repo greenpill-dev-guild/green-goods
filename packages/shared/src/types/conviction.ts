@@ -16,6 +16,7 @@ export interface SetConvictionStrategiesParams {
 /** Support change for a hypercert in the signal pool */
 export interface HypercertSignal {
   hypercertId: bigint;
+  /** Can be negative to reduce support (int256 on-chain) */
   deltaSupport: bigint;
 }
 

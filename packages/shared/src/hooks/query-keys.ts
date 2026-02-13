@@ -147,8 +147,6 @@ export const queryKeys = {
       ["greengoods", "conviction", "registeredHypercerts", poolAddress, chainId] as const,
     convictionWeights: (poolAddress: string, chainId: number) =>
       ["greengoods", "conviction", "convictionWeights", poolAddress, chainId] as const,
-    voterAllocations: (poolAddress: string, voterAddress: string, chainId: number) =>
-      ["greengoods", "conviction", "voterAllocations", poolAddress, voterAddress, chainId] as const,
     memberPower: (poolAddress: string, voterAddress: string, chainId: number) =>
       ["greengoods", "conviction", "memberPower", poolAddress, voterAddress, chainId] as const,
   },
@@ -337,8 +335,15 @@ export const queryInvalidation = {
   // Queries to invalidate after support is allocated in a signal pool
   onSupportAllocated: (poolAddress: string, voterAddress: string, chainId: number) => [
     queryKeys.conviction.convictionWeights(poolAddress, chainId),
-    queryKeys.conviction.voterAllocations(poolAddress, voterAddress, chainId),
     queryKeys.conviction.memberPower(poolAddress, voterAddress, chainId),
+  ],
+
+  // Queries to invalidate after pool configuration changes (decay, points, hat IDs)
+  // Note: uses conviction.all for broad memberPower invalidation since voter address is unavailable
+  onPoolConfigChanged: (poolAddress: string, chainId: number) => [
+    queryKeys.conviction.convictionWeights(poolAddress, chainId),
+    queryKeys.conviction.registeredHypercerts(poolAddress, chainId),
+    queryKeys.conviction.all,
   ],
 
   // Queries to invalidate after a hypercert is registered/deregistered
@@ -415,7 +420,6 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.conviction.strategies>
   | ReturnType<typeof queryKeys.conviction.registeredHypercerts>
   | ReturnType<typeof queryKeys.conviction.convictionWeights>
-  | ReturnType<typeof queryKeys.conviction.voterAllocations>
   | ReturnType<typeof queryKeys.conviction.memberPower>;
 
 export type WorksQueryKey =

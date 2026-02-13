@@ -1,25 +1,44 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
-import { encodeFunctionData } from "viem";
-import { useWriteContract } from "wagmi";
 import { toastService } from "../../components/toast";
 import type { AllocateHypercertSupportParams } from "../../types/conviction";
 import { HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis";
+import { normalizeAddress } from "../../utils/blockchain/address";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
+import { useContractTxSender } from "../blockchain/useContractTxSender";
 import { useUser } from "../auth/useUser";
-import { queryInvalidation } from "../query-keys";
+import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
+import { useDelayedInvalidation } from "../utils/useTimeout";
 
 export function useAllocateHypercertSupport() {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const { authMode, smartAccountClient, primaryAddress } = useUser();
-  const { writeContractAsync } = useWriteContract();
+  const { primaryAddress } = useUser();
+  const sendContractTx = useContractTxSender();
   const handleError = createMutationErrorHandler({
     source: "useAllocateHypercertSupport",
     toastContext: "conviction support",
   });
+
+  const lastParamsRef = useRef<{ pool: string; voter: string }>({ pool: "", voter: "" });
+  const { start: scheduleFollowUp } = useDelayedInvalidation(
+    useCallback(() => {
+      const { pool, voter } = lastParamsRef.current;
+      if (pool && voter) {
+        queryInvalidation
+          .onSupportAllocated(pool, voter, chainId)
+          .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      } else if (pool) {
+        queryInvalidation
+          .onHypercertRegistrationChanged(pool, chainId)
+          .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      }
+    }, [queryClient, chainId]),
+    INDEXER_LAG_FOLLOWUP_MS
+  );
 
   return useMutation({
     mutationFn: async (params: AllocateHypercertSupportParams) => {
@@ -28,34 +47,11 @@ export function useAllocateHypercertSupport() {
         deltaSupport: s.deltaSupport,
       }));
 
-      const request = {
+      return sendContractTx({
         address: params.poolAddress,
         abi: HYPERCERT_SIGNAL_POOL_ABI,
-        functionName: "allocateSupport" as const,
-        args: [signals] as const,
-      };
-
-      if (authMode === "passkey" && smartAccountClient?.account) {
-        const data = encodeFunctionData({
-          abi: request.abi,
-          functionName: request.functionName,
-          args: request.args,
-        });
-
-        return smartAccountClient.sendTransaction({
-          account: smartAccountClient.account,
-          chain: smartAccountClient.chain,
-          to: request.address,
-          value: 0n,
-          data,
-        });
-      }
-
-      return writeContractAsync({
-        address: request.address,
-        abi: request.abi,
-        functionName: request.functionName,
-        args: request.args,
+        functionName: "allocateSupport",
+        args: [signals],
       });
     },
     onMutate: () => {
@@ -70,10 +66,21 @@ export function useAllocateHypercertSupport() {
         title: formatMessage({ id: "app.signal.allocateSuccess" }),
       });
 
-      const voterAddress = primaryAddress ?? "";
-      queryInvalidation
-        .onSupportAllocated(params.poolAddress, voterAddress, chainId)
-        .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      const normalizedPool = normalizeAddress(params.poolAddress);
+      if (primaryAddress) {
+        const normalizedVoter = normalizeAddress(primaryAddress);
+        lastParamsRef.current = { pool: normalizedPool, voter: normalizedVoter };
+        queryInvalidation
+          .onSupportAllocated(normalizedPool, normalizedVoter, chainId)
+          .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      } else {
+        lastParamsRef.current = { pool: normalizedPool, voter: "" };
+        // Fallback: invalidate pool-level weights when no voter address available
+        queryInvalidation
+          .onHypercertRegistrationChanged(normalizedPool, chainId)
+          .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      }
+      scheduleFollowUp();
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
