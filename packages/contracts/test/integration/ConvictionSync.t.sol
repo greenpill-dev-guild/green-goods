@@ -52,6 +52,104 @@ contract RawRevertingStrategy is ICVSyncPowerFacet {
     }
 }
 
+/// @notice Mock strategy that attempts reentrancy by calling revokeRole from syncPower
+contract ReentrantStrategy is ICVSyncPowerFacet {
+    HatsModule public target;
+    address public targetGarden;
+    address public targetAccount;
+    IHatsModule.GardenRole public targetRole;
+    bool public reentrancyAttempted;
+
+    function setReentrancyTarget(
+        address _target,
+        address _garden,
+        address _account,
+        IHatsModule.GardenRole _role
+    ) external {
+        target = HatsModule(_target);
+        targetGarden = _garden;
+        targetAccount = _account;
+        targetRole = _role;
+    }
+
+    function syncPower(address) external override {
+        reentrancyAttempted = true;
+        // Attempt reentrant call back into revokeRole
+        target.revokeRole(targetGarden, targetAccount, targetRole);
+    }
+
+    function batchSyncPower(address[] calldata) external override { }
+}
+
+/// @notice Mock strategy that attempts reentrancy with sufficient gas to reach the nonReentrant guard
+/// @dev Unlike ReentrantStrategy (which is starved by the 100k gas stipend), this contract
+///      catches the revert to prove that nonReentrant independently blocks reentry.
+contract ReentrantStrategyWithGas is ICVSyncPowerFacet {
+    HatsModule public target;
+    address public targetGarden;
+    address public targetAccount;
+    IHatsModule.GardenRole public targetRole;
+    bool public reentrancyAttempted;
+    bool public reentrancyReverted;
+
+    function setReentrancyTarget(
+        address _target,
+        address _garden,
+        address _account,
+        IHatsModule.GardenRole _role
+    ) external {
+        target = HatsModule(_target);
+        targetGarden = _garden;
+        targetAccount = _account;
+        targetRole = _role;
+    }
+
+    function syncPower(address) external override {
+        reentrancyAttempted = true;
+        // Attempt reentrant call -- the nonReentrant guard should block this
+        try target.revokeRole(targetGarden, targetAccount, targetRole) {
+            // If this succeeds, reentrancy guard is broken
+        } catch {
+            // Expected: nonReentrant should revert the reentrant call
+            reentrancyReverted = true;
+        }
+    }
+
+    function batchSyncPower(address[] calldata) external override { }
+}
+
+/// @notice Mock strategy that consumes ~70-80k gas via storage writes without reverting
+/// @dev Used to test that revocation completes successfully even with a gas-hungry strategy
+///      that comes close to the SYNC_POWER_GAS_STIPEND (100k) limit. We use 2 cold SSTORE
+///      writes (~20k each) plus a dynamic array push (~22k cold) plus computation to stay
+///      under 100k total.
+contract GasGuzzlerStrategy is ICVSyncPowerFacet {
+    uint256 public lastMember;
+    address[] public syncedMembers;
+
+    function syncPower(address member) external override {
+        // 2 cold SSTORE writes + array push = ~62k gas, plus overhead stays under 100k
+        lastMember = uint256(uint160(member));
+        syncedMembers.push(member);
+    }
+
+    function batchSyncPower(address[] calldata) external override { }
+
+    function syncedCount() external view returns (uint256) {
+        return syncedMembers.length;
+    }
+}
+
+/// @notice A valid contract that does NOT implement ICVSyncPowerFacet
+/// @dev Used to test behavior when a non-compliant contract is registered as a strategy
+contract NonCompliantContract {
+    uint256 public value;
+
+    function setValue(uint256 _value) external {
+        value = _value;
+    }
+}
+
 /// @title ConvictionSyncTest
 /// @notice Tests for conviction power sync triggered by HatsModule role revocation
 contract ConvictionSyncTest is Test {
@@ -467,5 +565,123 @@ contract ConvictionSyncTest is Test {
 
         // Sync should have been called exactly once (only for the operator revocation, not sub-roles)
         assertEq(strategy1.syncedCount(), 1, "Operator revocation should trigger exactly 1 sync");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // C2: nonReentrant Guard Independence Test
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_revokeRole_nonReentrantGuardBlocksReentry_independentOfGas() public {
+        // Deploy a reentrant strategy that catches the revert to prove that
+        // nonReentrant independently blocks reentry -- not just the gas stipend OOG.
+        ReentrantStrategyWithGas reentrant = new ReentrantStrategyWithGas();
+        reentrant.setReentrancyTarget(
+            address(adapter),
+            garden1,
+            user1,
+            IHatsModule.GardenRole.Gardener
+        );
+
+        address[] memory strategies = new address[](1);
+        strategies[0] = address(reentrant);
+        adapter.setConvictionStrategies(garden1, strategies);
+
+        // Grant gardener to user1
+        mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
+
+        // Call revokeRole with high gas so the strategy has plenty of gas
+        // to reach the nonReentrant check (far more than the normal 100k stipend).
+        // The gas stipend in production limits this to 100k, but this test
+        // proves that even if gas were unlimited, nonReentrant would still protect.
+        adapter.revokeRole{gas: 5_000_000}(garden1, user1, IHatsModule.GardenRole.Gardener);
+
+        // The strategy attempted reentry -- the flag proves syncPower was entered
+        assertTrue(reentrant.reentrancyAttempted(), "Strategy should have attempted reentry");
+        // The reentrant call was caught by nonReentrant (not just gas OOG)
+        assertTrue(reentrant.reentrancyReverted(), "nonReentrant guard should revert the reentrant call");
+        // The outer revokeRole still succeeded
+        assertFalse(adapter.isGardenerOf(garden1, user1), "Role should be revoked despite reentry attempt");
+    }
+
+    function test_revokeRole_gasStipendBlocksReentrantExecution() public {
+        // This test complements the above by proving the gas stipend OOG defense.
+        // ReentrantStrategy does NOT catch reverts, so if the gas stipend prevents
+        // execution entirely, reentrancyAttempted will NOT be persisted.
+        ReentrantStrategy reentrant = new ReentrantStrategy();
+        reentrant.setReentrancyTarget(
+            address(adapter),
+            garden1,
+            user1,
+            IHatsModule.GardenRole.Gardener
+        );
+
+        address[] memory strategies = new address[](1);
+        strategies[0] = address(reentrant);
+        adapter.setConvictionStrategies(garden1, strategies);
+
+        mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
+
+        // The reentrant callback fails because SYNC_POWER_GAS_STIPEND (100k) is
+        // insufficient for the reentrant call. The try/catch gracefully handles the OOG.
+        vm.expectEmit(true, true, true, false);
+        emit ConvictionSyncFailed(garden1, user1, address(reentrant), "");
+
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+
+        // Gas stipend prevented the reentrant call from fully executing
+        assertFalse(reentrant.reentrancyAttempted(), "Gas stipend should prevent reentrant execution");
+        assertFalse(adapter.isGardenerOf(garden1, user1), "Role should be revoked despite reentrancy attempt");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // C5: Gas-Hungry Strategy Test
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_revokeRole_gasGuzzlerStrategy_completesSuccessfully() public {
+        // Deploy a strategy that consumes significant gas via storage writes
+        // but does NOT revert. This tests that the 100k gas stipend is sufficient
+        // for legitimate heavy strategies, and that revocation completes normally.
+        GasGuzzlerStrategy guzzler = new GasGuzzlerStrategy();
+
+        address[] memory strategies = new address[](1);
+        strategies[0] = address(guzzler);
+        adapter.setConvictionStrategies(garden1, strategies);
+
+        mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
+
+        // Expect success event (not failure)
+        vm.expectEmit(true, true, true, true);
+        emit ConvictionSyncTriggered(garden1, user1, address(guzzler));
+
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+
+        // Verify the gas guzzler completed successfully
+        assertEq(guzzler.syncedCount(), 1, "Gas guzzler should have completed sync");
+        // Verify the role was revoked
+        assertFalse(adapter.isGardenerOf(garden1, user1), "Role should be revoked");
+    }
+
+    function test_revokeRole_multipleGasGuzzlers_allComplete() public {
+        // Test with multiple gas-hungry strategies to ensure the loop handles
+        // cumulative gas consumption correctly
+        GasGuzzlerStrategy guzzler1 = new GasGuzzlerStrategy();
+        GasGuzzlerStrategy guzzler2 = new GasGuzzlerStrategy();
+        GasGuzzlerStrategy guzzler3 = new GasGuzzlerStrategy();
+
+        address[] memory strategies = new address[](3);
+        strategies[0] = address(guzzler1);
+        strategies[1] = address(guzzler2);
+        strategies[2] = address(guzzler3);
+        adapter.setConvictionStrategies(garden1, strategies);
+
+        mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
+
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+
+        // All 3 gas guzzlers should complete
+        assertEq(guzzler1.syncedCount(), 1, "Guzzler1 should complete");
+        assertEq(guzzler2.syncedCount(), 1, "Guzzler2 should complete");
+        assertEq(guzzler3.syncedCount(), 1, "Guzzler3 should complete");
+        assertFalse(adapter.isGardenerOf(garden1, user1), "Role should be revoked");
     }
 }

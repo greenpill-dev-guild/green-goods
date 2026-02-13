@@ -86,6 +86,12 @@ contract MockHatsModuleForJoin is IHatsModule {
     function isCommunityOf(address garden, address account) external view returns (bool) {
         return roles[garden][account][uint8(GardenRole.Community)];
     }
+
+    function setConvictionStrategies(address, address[] calldata) external { }
+
+    function getConvictionStrategies(address) external view returns (address[] memory) {
+        return new address[](0);
+    }
 }
 
 contract GardenJoinIntegrationTest is Test {

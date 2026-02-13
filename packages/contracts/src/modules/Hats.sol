@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
@@ -20,7 +21,13 @@ import { HatsLib } from "../lib/Hats.sol";
 /// - Each garden configures six hat IDs: owner, operator, evaluator, gardener, funder, community
 /// - Hat tree creation and role management are centralized here
 /// - Resolvers and UI call into this module for Hats-based permissions
-contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UUPSUpgradeable {
+contract HatsModule is
+    IGardenAccessControl,
+    IHatsModule,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable
+{
     // ═══════════════════════════════════════════════════════════════════════════
     // Types
     // ═══════════════════════════════════════════════════════════════════════════
@@ -91,6 +98,7 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
     error GardenAlreadyConfigured(address garden);
     error TooManyStrategies(uint256 count, uint256 max);
     error InvalidStrategyAddress(address strategy);
+    error DuplicateStrategy(address strategy);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constants
@@ -98,6 +106,12 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
 
     /// @notice Maximum number of conviction strategies per garden (bounds gas in _syncConvictionPower)
     uint256 public constant MAX_CONVICTION_STRATEGIES = 10;
+
+    /// @notice Gas stipend for each syncPower external call to prevent gas griefing
+    /// @dev A malicious strategy could consume all remaining gas, starving subsequent strategies.
+    ///      100k gas accommodates strategies with cold SSTORE operations (20k each) while
+    ///      preventing griefing. Worst case: 10 strategies * 100k = 1M gas for sync.
+    uint256 internal constant SYNC_POWER_GAS_STIPEND = 100_000;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
@@ -143,6 +157,33 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
     mapping(address garden => address[] strategies) internal gardenConvictionStrategies;
 
     /// @notice Storage gap for future upgrades
+    /// @dev Verified storage layout (forge inspect src/modules/Hats.sol:HatsModule storage-layout):
+    ///
+    ///      Inherited (OZ upgradeable bases):
+    ///        Slot 0       : Initializable (_initialized, _initializing)
+    ///        Slots 1-50   : Initializable __gap[50]
+    ///        Slot 51      : OwnableUpgradeable (_owner)
+    ///        Slots 52-100 : OwnableUpgradeable __gap[49]
+    ///        Slot 101     : ReentrancyGuardUpgradeable (_status)
+    ///        Slots 102-150: ReentrancyGuardUpgradeable __gap[49]
+    ///
+    ///      HatsModule own storage (13 vars, slots 151-163):
+    ///        Slot 151: hats (IHats)
+    ///        Slot 152: gardenToken (address)
+    ///        Slot 153: karmaGAPModule (IKarmaGAPModule)
+    ///        Slot 154: hatsModuleFactory (IHatsModuleFactory)
+    ///        Slot 155: funderEligibilityModule (address)
+    ///        Slot 156: communityEligibilityModule (address)
+    ///        Slot 157: communityMinBalance (uint256)
+    ///        Slot 158: communityHatId (uint256)
+    ///        Slot 159: gardensHatId (uint256)
+    ///        Slot 160: protocolGardenersHatId (uint256)
+    ///        Slot 161: gardenHats (mapping)
+    ///        Slot 162: configAuthority (mapping)
+    ///        Slot 163: gardenConvictionStrategies (mapping)
+    ///
+    ///      Gap (slots 164-200): 13 vars + 37 gap = 50 slots total for HatsModule.
+    ///      When adding new storage variables, decrease __gap size by the same number of slots.
     uint256[37] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -162,6 +203,7 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
         if (_hats == address(0)) revert ZeroAddress();
 
         __Ownable_init();
+        __ReentrancyGuard_init();
         _transferOwnership(_owner);
 
         hats = IHats(_hats);
@@ -338,7 +380,7 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
     }
 
     /// @inheritdoc IHatsModule
-    function revokeRole(address garden, address account, GardenRole role) external override {
+    function revokeRole(address garden, address account, GardenRole role) external override nonReentrant {
         _requireOwnerOrOperator(garden);
         _revokeRole(garden, account, role);
     }
@@ -354,7 +396,15 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
     }
 
     /// @inheritdoc IHatsModule
-    function revokeRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external override {
+    function revokeRoles(
+        address garden,
+        address[] calldata accounts,
+        GardenRole[] calldata roles
+    )
+        external
+        override
+        nonReentrant
+    {
         _requireOwnerOrOperator(garden);
         if (accounts.length != roles.length) revert ArrayLengthMismatch();
 
@@ -416,6 +466,7 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
         }
 
         delete gardenHats[garden];
+        delete gardenConvictionStrategies[garden];
         emit GardenDeconfigured(garden);
     }
 
@@ -478,6 +529,11 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
         for (uint256 i = 0; i < strategies.length; i++) {
             if (strategies[i] == address(0) || strategies[i].code.length == 0) {
                 revert InvalidStrategyAddress(strategies[i]);
+            }
+            for (uint256 j = 0; j < i; j++) {
+                if (strategies[j] == strategies[i]) {
+                    revert DuplicateStrategy(strategies[i]);
+                }
             }
         }
         gardenConvictionStrategies[garden] = strategies;
@@ -575,7 +631,11 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
         if (role == GardenRole.Operator) {
             _syncProjectAdmin(garden, account, false);
         }
-        // Best-effort conviction power sync — sync failure MUST NOT revert role revocation
+        // Best-effort conviction power sync -- sync failure MUST NOT revert role revocation.
+        // Sync fires post-transfer intentionally: strategies must see the updated hat state
+        // (i.e., the account no longer wears the hat). This is correct even for double-revocation
+        // or when the account still holds other garden roles -- strategies need the sync signal
+        // to re-evaluate the member's total power across all roles they still hold.
         _syncConvictionPower(garden, account);
     }
 
@@ -607,7 +667,7 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, UU
         for (uint256 i = 0; i < len; i++) {
             address strategy = strategies[i];
             // solhint-disable-next-line no-empty-blocks
-            try ICVSyncPowerFacet(strategy).syncPower(account) {
+            try ICVSyncPowerFacet(strategy).syncPower{gas: SYNC_POWER_GAS_STIPEND}(account) {
                 emit ConvictionSyncTriggered(garden, account, strategy);
             } catch Error(string memory reason) {
                 emit ConvictionSyncFailed(garden, account, strategy, reason);

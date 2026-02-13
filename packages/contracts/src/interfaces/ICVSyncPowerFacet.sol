@@ -10,6 +10,12 @@ pragma solidity ^0.8.25;
 ///      Strategies that need explicit sync on role changes should implement this.
 interface ICVSyncPowerFacet {
     /// @notice Sync a member's voting power with the live registry value
+    /// @dev Called by HatsModule._syncConvictionPower AFTER the hat has been transferred away
+    ///      from the member in _revokeRole. This means the member no longer wears the hat when
+    ///      syncPower fires. Implementors MUST handle the post-revocation state -- e.g., by
+    ///      reading the member's current hat status from IHats.isWearerOfHat rather than assuming
+    ///      the member still holds the role. If the implementation needs to know the previous
+    ///      state, it should maintain its own snapshot before the hat transfer.
     /// @param member The address whose power should be synced
     function syncPower(address member) external;
 
