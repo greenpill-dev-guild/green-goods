@@ -1,5 +1,6 @@
 import {
   type Address,
+  ConfirmDialog,
   formatAddress,
   useConvictionStrategies,
   useDeregisterHypercert,
@@ -20,6 +21,7 @@ export default function GardenSignalPoolView() {
   const { formatMessage } = useIntl();
   const [newHypercertId, setNewHypercertId] = useState("");
   const [inputError, setInputError] = useState("");
+  const [confirmDeregister, setConfirmDeregister] = useState<bigint | null>(null);
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => item.id === id);
@@ -232,7 +234,13 @@ export default function GardenSignalPoolView() {
                               #{hcId.toString()}
                             </p>
                             <div className="mt-1 flex items-center gap-2">
-                              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stroke-soft">
+                              <div
+                                className="h-1.5 flex-1 overflow-hidden rounded-full bg-stroke-soft"
+                                role="progressbar"
+                                aria-valuenow={Math.min(pct, 100)}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                              >
                                 <div
                                   className="h-full rounded-full bg-primary-base transition-all duration-500"
                                   style={{ width: `${Math.min(pct, 100)}%` }}
@@ -244,10 +252,7 @@ export default function GardenSignalPoolView() {
                           {canManage && (
                             <button
                               type="button"
-                              onClick={() => {
-                                if (!poolAddress) return;
-                                deregisterMutation.mutate({ poolAddress, hypercertId: hcId });
-                              }}
+                              onClick={() => setConfirmDeregister(hcId)}
                               disabled={deregisterMutation.isPending}
                               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50"
                               aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
@@ -295,6 +300,22 @@ export default function GardenSignalPoolView() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDeregister !== null}
+        onClose={() => setConfirmDeregister(null)}
+        title={formatMessage({ id: "app.signal.confirmDeregister" })}
+        description={formatMessage({ id: "app.signal.confirmDeregisterDescription" })}
+        variant="danger"
+        onConfirm={() => {
+          if (poolAddress && confirmDeregister !== null) {
+            deregisterMutation.mutate(
+              { poolAddress, hypercertId: confirmDeregister },
+              { onSettled: () => setConfirmDeregister(null) }
+            );
+          }
+        }}
+      />
     </div>
   );
 }

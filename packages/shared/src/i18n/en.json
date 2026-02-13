@@ -106,6 +106,7 @@
   "app.signal.loading": "Loading signal pool...",
   "app.signal.noHypercerts": "No hypercerts registered in this pool",
   "app.signal.notEligible": "You are not eligible to vote in this pool",
+  "app.signal.notEligibleExplanation": "You need the voter role to participate in governance. Contact a garden operator to request access.",
   "app.signal.pointsBudget": "{used}/{total} points allocated",
   "app.signal.registerSuccess": "Hypercert registered in signal pool",
   "app.signal.registering": "Registering hypercert...",

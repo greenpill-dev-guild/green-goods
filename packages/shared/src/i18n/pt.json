@@ -106,6 +106,7 @@
   "app.signal.loading": "Carregando pool de sinais...",
   "app.signal.noHypercerts": "Nenhum hipercertificado registrado neste pool",
   "app.signal.notEligible": "Você não é elegível para votar neste pool",
+  "app.signal.notEligibleExplanation": "Você precisa do papel de votante para participar da governanca. Entre em contato com um operador do jardim para solicitar acesso.",
   "app.signal.pointsBudget": "{used}/{total} pontos alocados",
   "app.signal.registerSuccess": "Hipercertificado registrado no pool de sinais",
   "app.signal.registering": "Registrando hipercertificado...",

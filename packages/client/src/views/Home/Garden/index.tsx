@@ -27,7 +27,7 @@ import {
 import React, { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
-import type { Address } from "viem";
+import { type Address, isAddress } from "viem";
 import toast from "react-hot-toast";
 import { Button } from "@/components/Actions";
 import { ConvictionDrawer, TreasuryDrawer } from "@/components/Dialogs";
@@ -137,10 +137,10 @@ export const Garden: React.FC<GardenProps> = () => {
     [myVaultDeposits]
   );
 
-  const { strategies: convictionStrategies } = useConvictionStrategies(
-    (gardenIdParam as `0x${string}`) ?? undefined,
-    { enabled: Boolean(gardenIdParam) }
-  );
+  const validGardenAddress = gardenIdParam && isAddress(gardenIdParam) ? gardenIdParam : undefined;
+  const { strategies: convictionStrategies } = useConvictionStrategies(validGardenAddress, {
+    enabled: Boolean(validGardenAddress),
+  });
   const hasGovernance = convictionStrategies.length > 0;
 
   if (!garden) return null;

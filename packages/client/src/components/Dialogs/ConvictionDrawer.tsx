@@ -35,7 +35,13 @@ function ConvictionBar({ weight, totalWeight }: { weight: ConvictionWeight; tota
           {formatMessage({ id: "app.signal.weight" }, { percentage: clampedPct })}
         </p>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-bg-weak">
+      <div
+        className="h-2 w-full overflow-hidden rounded-full bg-bg-weak"
+        role="progressbar"
+        aria-valuenow={clampedPct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <div
           className="h-full rounded-full bg-primary-base transition-all duration-500"
           style={{ width: `${clampedPct}%` }}
@@ -48,28 +54,40 @@ function ConvictionBar({ weight, totalWeight }: { weight: ConvictionWeight; tota
 interface SupportInputProps {
   hypercertId: bigint;
   currentStake: bigint;
-  onAllocate: (hypercertId: bigint, delta: bigint) => void;
+  onAllocate: (hypercertId: bigint, delta: bigint, onSuccess: () => void) => void;
   disabled: boolean;
+  isPending: boolean;
 }
 
-function SupportInput({ hypercertId, currentStake, onAllocate, disabled }: SupportInputProps) {
+function SupportInput({
+  hypercertId,
+  currentStake,
+  onAllocate,
+  disabled,
+  isPending,
+}: SupportInputProps) {
   const { formatMessage } = useIntl();
   const [input, setInput] = useState("");
   const [inputError, setInputError] = useState("");
 
   const handleAllocate = () => {
-    const value = Number.parseInt(input, 10);
-    if (Number.isNaN(value) || value === 0) {
+    let value: bigint;
+    try {
+      value = BigInt(input.trim());
+    } catch {
       setInputError(formatMessage({ id: "app.signal.invalidAmount" }));
       return;
     }
-    if (value < 0) {
+    if (value === 0n) {
+      setInputError(formatMessage({ id: "app.signal.invalidAmount" }));
+      return;
+    }
+    if (value < 0n) {
       setInputError(formatMessage({ id: "app.signal.mustBePositive" }));
       return;
     }
     setInputError("");
-    onAllocate(hypercertId, BigInt(value));
-    setInput("");
+    onAllocate(hypercertId, value, () => setInput(""));
   };
 
   return (
@@ -94,16 +112,18 @@ function SupportInput({ hypercertId, currentStake, onAllocate, disabled }: Suppo
             aria-label={formatMessage({ id: "app.signal.allocatePoints" })}
             className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-1.5 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 disabled:opacity-60"
           />
-          {inputError && <p className="mt-0.5 text-xs text-error-base">{inputError}</p>}
           <button
             type="button"
             onClick={handleAllocate}
-            disabled={disabled || !input.trim()}
+            disabled={disabled || isPending || !input.trim()}
             className="rounded-md bg-primary-base px-3 py-1.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {formatMessage({ id: "app.signal.support" })}
+            {isPending
+              ? formatMessage({ id: "app.signal.allocating" })
+              : formatMessage({ id: "app.signal.support" })}
           </button>
         </div>
+        {inputError && <p className="mt-0.5 text-xs text-error-base">{inputError}</p>}
       </div>
     </div>
   );
@@ -154,13 +174,13 @@ export function ConvictionDrawer({
     [power.allocations]
   );
 
-  const handleAllocate = (hypercertId: bigint, delta: bigint) => {
+  const handleAllocate = (hypercertId: bigint, delta: bigint, onSuccess?: () => void) => {
     if (!poolAddress) return;
     if (usedPoints + delta > power.pointsBudget) return;
-    allocateMutation.mutate({
-      poolAddress,
-      signals: [{ hypercertId, deltaSupport: delta }],
-    });
+    allocateMutation.mutate(
+      { poolAddress, signals: [{ hypercertId, deltaSupport: delta }] },
+      { onSuccess }
+    );
   };
 
   // Map allocations by hypercert ID for quick lookup
@@ -228,6 +248,11 @@ export function ConvictionDrawer({
                       className={`inline-flex h-2 w-2 rounded-full ${power.isEligible ? "bg-emerald-500" : "bg-text-soft"}`}
                     />
                   </div>
+                  {!power.isEligible && (
+                    <p className="mt-1 text-xs text-text-sub">
+                      {formatMessage({ id: "app.signal.notEligibleExplanation" })}
+                    </p>
+                  )}
                   <p className="mt-1 text-xs text-text-sub">
                     {formatMessage(
                       { id: "app.signal.pointsBudget" },
@@ -268,6 +293,7 @@ export function ConvictionDrawer({
                             currentStake={allocationMap.get(weight.hypercertId.toString()) ?? 0n}
                             onAllocate={handleAllocate}
                             disabled={!isOnline || !power.isEligible || allocateMutation.isPending}
+                            isPending={allocateMutation.isPending}
                           />
                         </div>
                       )}

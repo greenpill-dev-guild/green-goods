@@ -196,7 +196,10 @@ export function WithdrawModal({
               type="button"
               onClick={onSubmit}
               disabled={
-                Boolean(inputError) || shares <= 0n || shares > maxShares || withdrawMutation.isPending
+                Boolean(inputError) ||
+                shares <= 0n ||
+                shares > maxShares ||
+                withdrawMutation.isPending
               }
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
             >

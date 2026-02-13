@@ -44,7 +44,11 @@ export default function GardenVaultView() {
       harvestCount += vault.totalHarvestCount;
       depositorCount += vault.depositorCount;
     }
-    return { totalNetDeposited: netDeposited, totalHarvestCount: harvestCount, totalDepositorCount: depositorCount };
+    return {
+      totalNetDeposited: netDeposited,
+      totalHarvestCount: harvestCount,
+      totalDepositorCount: depositorCount,
+    };
   }, [vaults]);
 
   const donationAddress = useMemo(() => {

@@ -1,5 +1,6 @@
 import {
   type Address,
+  ConfirmDialog,
   useConvictionStrategies,
   useSetConvictionStrategies,
   useGardenPermissions,
@@ -18,6 +19,7 @@ export default function GardenStrategiesView() {
   const { formatMessage } = useIntl();
   const [newAddress, setNewAddress] = useState("");
   const [addressError, setAddressError] = useState("");
+  const [confirmRemoveIndex, setConfirmRemoveIndex] = useState<number | null>(null);
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => item.id === id);
@@ -82,9 +84,9 @@ export default function GardenStrategiesView() {
     );
   };
 
-  const handleRemoveStrategy = (index: number) => {
+  const handleRemoveStrategy = (index: number, onSettled?: () => void) => {
     const updated = strategies.filter((_, i) => i !== index);
-    setStrategies({ gardenAddress: id as Address, strategies: updated });
+    setStrategies({ gardenAddress: id as Address, strategies: updated }, { onSettled });
   };
 
   return (
@@ -157,7 +159,7 @@ export default function GardenStrategiesView() {
                     {canManage && (
                       <button
                         type="button"
-                        onClick={() => handleRemoveStrategy(index)}
+                        onClick={() => setConfirmRemoveIndex(index)}
                         disabled={isSaving}
                         className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50"
                         aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
@@ -200,6 +202,19 @@ export default function GardenStrategiesView() {
           </div>
         </section>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmRemoveIndex !== null}
+        onClose={() => setConfirmRemoveIndex(null)}
+        title={formatMessage({ id: "app.conviction.confirmRemoveStrategy" })}
+        description={formatMessage({ id: "app.conviction.confirmRemoveStrategyDescription" })}
+        variant="danger"
+        onConfirm={() => {
+          if (confirmRemoveIndex !== null) {
+            handleRemoveStrategy(confirmRemoveIndex, () => setConfirmRemoveIndex(null));
+          }
+        }}
+      />
     </div>
   );
 }
