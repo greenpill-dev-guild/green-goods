@@ -182,7 +182,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     // }
 
     /// @notice Join garden if open joining is enabled.
-    /// @dev Grants gardener hat via HatsModule.
+    /// @dev Grants gardener hat via HatsModule. The auth flow works because this call
+    ///      originates from the GardenAccount itself (msg.sender == garden address in
+    ///      HatsModule._requireOwnerOrOperator), which is an authorized caller.
     function joinGarden() external {
         if (!openJoining) revert InvalidInvite();
 

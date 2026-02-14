@@ -10,6 +10,7 @@ import { TBALib } from "../lib/TBA.sol";
 import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
+import { IGardensModule } from "../interfaces/IGardensModule.sol";
 import { OctantModule } from "../modules/Octant.sol";
 import { DeploymentRegistry } from "../DeploymentRegistry.sol";
 
@@ -23,15 +24,16 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     IHatsModule public hatsModule;
     IKarmaGAPModule public karmaGAPModule;
     OctantModule public octantModule;
+    IGardensModule public gardensModule;
 
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 45 slots (50 total - 5 used: _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule,
-     * octantModule)
+     * Reserves 44 slots (50 total - 6 used: _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule,
+     * octantModule, gardensModule)
      * Note: _GARDEN_ACCOUNT_IMPLEMENTATION is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[45] private __gap;
+    uint256[44] private __gap;
 
     /// @notice Emitted when a new Garden is minted.
     /// @param tokenId The unique identifier of the minted Garden token.
@@ -55,6 +57,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Emitted when the Octant module address is updated.
     event OctantModuleUpdated(address indexed oldModule, address indexed newModule);
 
+    /// @notice Emitted when the Gardens module address is updated.
+    event GardensModuleUpdated(address indexed oldModule, address indexed newModule);
+
     /// @notice Configuration for batch garden minting (Gas Optimized)
     struct GardenConfig {
         address communityToken;
@@ -64,6 +69,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         string bannerImage;
         string metadata;
         bool openJoining;
+        IGardensModule.WeightScheme weightScheme;
     }
 
     /// @notice Emitted for batch operations (Gas Optimized)
@@ -130,6 +136,13 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         address oldModule = address(octantModule);
         octantModule = OctantModule(_octantModule);
         emit OctantModuleUpdated(oldModule, _octantModule);
+    }
+
+    /// @notice Sets the GardensModule address (owner only).
+    function setGardensModule(address _gardensModule) external onlyOwner {
+        address oldModule = address(gardensModule);
+        gardensModule = IGardensModule(_gardensModule);
+        emit GardensModuleUpdated(oldModule, _gardensModule);
     }
 
     /// @notice Modifier to check if caller is authorized to mint gardens.
@@ -266,6 +279,16 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
                 _vaults;
             } catch {
                 // Failure is non-blocking
+            }
+        }
+
+        // Gardens V2 community + signal pools (graceful degradation)
+        if (address(gardensModule) != address(0)) {
+            // solhint-disable-next-line no-empty-blocks
+            try gardensModule.onGardenMinted(gardenAccount, config.weightScheme) returns (address, address[] memory) {
+                // Success handled by module events
+            } catch {
+                // Failure is non-blocking — garden mint MUST NOT revert
             }
         }
 

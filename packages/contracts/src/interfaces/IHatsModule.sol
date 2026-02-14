@@ -100,4 +100,31 @@ interface IHatsModule {
     function isOwnerOf(address garden, address account) external view returns (bool);
     function isFunderOf(address garden, address account) external view returns (bool);
     function isCommunityOf(address garden, address account) external view returns (bool);
+
+    /// @notice Get the hat IDs configured for a garden
+    /// @dev Returns all 8 fields of the GardenHats struct. Added to provide type-safe access
+    ///      from GardensModule (avoids raw staticcall to gardenHats mapping which is fragile
+    ///      across struct layout changes).
+    /// @param garden The garden address
+    /// @return ownerHatId The owner role hat ID
+    /// @return operatorHatId The operator role hat ID
+    /// @return evaluatorHatId The evaluator role hat ID
+    /// @return gardenerHatId The gardener role hat ID
+    /// @return funderHatId The funder role hat ID
+    /// @return communityHatId The community role hat ID
+    /// @return adminHatId The admin hat ID (parent of all role hats)
+    /// @return configured Whether the garden has been configured
+    function getGardenHatIds(address garden)
+        external
+        view
+        returns (
+            uint256 ownerHatId,
+            uint256 operatorHatId,
+            uint256 evaluatorHatId,
+            uint256 gardenerHatId,
+            uint256 funderHatId,
+            uint256 communityHatId,
+            uint256 adminHatId,
+            bool configured
+        );
 }

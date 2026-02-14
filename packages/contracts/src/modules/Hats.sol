@@ -150,11 +150,20 @@ contract HatsModule is
     /// @notice Hat configuration per garden
     mapping(address garden => GardenHats config) public gardenHats;
 
+    /// @notice GardensModule authorized to register conviction strategies
+    address public gardensModule;
+
     /// @notice Addresses authorized to configure gardens (e.g., migration scripts)
     mapping(address => bool) public configAuthority;
 
     /// @notice Conviction voting strategies per garden for power sync on role revocation
     mapping(address garden => address[] strategies) internal gardenConvictionStrategies;
+
+    /// @notice Monotonic counter for generating unique burn addresses during hat revocation.
+    /// @dev Each revocation transfers the hat to a unique address derived from this nonce,
+    ///      preventing AlreadyWearingHat reverts when the same hat type is revoked from
+    ///      multiple users (or the same user after re-grant). See _revokeRole().
+    uint256 private _revokeNonce;
 
     /// @notice Storage gap for future upgrades
     /// @dev Verified storage layout (forge inspect src/modules/Hats.sol:HatsModule storage-layout):
@@ -167,7 +176,7 @@ contract HatsModule is
     ///        Slot 101     : ReentrancyGuardUpgradeable (_status)
     ///        Slots 102-150: ReentrancyGuardUpgradeable __gap[49]
     ///
-    ///      HatsModule own storage (13 vars, slots 151-163):
+    ///      HatsModule own storage (15 vars, slots 151-165):
     ///        Slot 151: hats (IHats)
     ///        Slot 152: gardenToken (address)
     ///        Slot 153: karmaGAPModule (IKarmaGAPModule)
@@ -178,13 +187,15 @@ contract HatsModule is
     ///        Slot 158: communityHatId (uint256)
     ///        Slot 159: gardensHatId (uint256)
     ///        Slot 160: protocolGardenersHatId (uint256)
-    ///        Slot 161: gardenHats (mapping)
-    ///        Slot 162: configAuthority (mapping)
-    ///        Slot 163: gardenConvictionStrategies (mapping)
+    ///        Slot 161: gardensModule (address)
+    ///        Slot 162: gardenHats (mapping)
+    ///        Slot 163: configAuthority (mapping)
+    ///        Slot 164: gardenConvictionStrategies (mapping)
+    ///        Slot 165: _revokeNonce (uint256)
     ///
-    ///      Gap (slots 164-200): 13 vars + 37 gap = 50 slots total for HatsModule.
+    ///      Gap (slots 166-200): 15 vars + 35 gap = 50 slots total for HatsModule.
     ///      When adding new storage variables, decrease __gap size by the same number of slots.
-    uint256[37] private __gap;
+    uint256[35] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -304,6 +315,35 @@ contract HatsModule is
         return gardenHats[garden].configured;
     }
 
+    /// @inheritdoc IHatsModule
+    function getGardenHatIds(address garden)
+        external
+        view
+        override
+        returns (
+            uint256 ownerHatId,
+            uint256 operatorHatId,
+            uint256 evaluatorHatId,
+            uint256 gardenerHatId,
+            uint256 funderHatId,
+            uint256 communityHatId,
+            uint256 adminHatId,
+            bool configured
+        )
+    {
+        GardenHats storage config = gardenHats[garden];
+        return (
+            config.ownerHatId,
+            config.operatorHatId,
+            config.evaluatorHatId,
+            config.gardenerHatId,
+            config.funderHatId,
+            config.communityHatId,
+            config.adminHatId,
+            config.configured
+        );
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Garden Hat Tree Lifecycle
     // ═══════════════════════════════════════════════════════════════════════════
@@ -418,7 +458,10 @@ contract HatsModule is
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Configure hat IDs for a garden (manual override)
-    /// @dev Can be called by owner, config authority, or garden itself
+    /// @dev Can be called by owner, config authority, or garden itself.
+    ///      Sets adminHatId to 0 because manual configuration does not create a hat tree —
+    ///      the admin hat is only tracked for gardens created via createGardenHatTree().
+    ///      External consumers should check adminHatId != 0 to distinguish tree-created vs manual gardens.
     function configureGarden(
         address garden,
         uint256 ownerHatId,
@@ -545,6 +588,12 @@ contract HatsModule is
         return gardenConvictionStrategies[garden];
     }
 
+    /// @notice Set the GardensModule address authorized to register strategies
+    function setGardensModule(address _gardensModule) external onlyOwner {
+        if (_gardensModule == address(0)) revert ZeroAddress();
+        gardensModule = _gardensModule;
+    }
+
     /// @notice Add or remove a config authority
     function setConfigAuthority(address authority, bool authorized) external onlyOwner {
         if (authority == address(0)) revert ZeroAddress();
@@ -575,6 +624,7 @@ contract HatsModule is
         if (!gardenHats[garden].configured) revert GardenNotConfigured(garden);
         if (msg.sender == gardenToken) return;
         if (msg.sender == garden) return;
+        if (msg.sender == gardensModule) return;
         if (!isOwnerOf(garden, msg.sender) && !isOperatorOf(garden, msg.sender)) {
             revert NotGardenAdmin(msg.sender, garden);
         }
@@ -622,10 +672,13 @@ contract HatsModule is
 
         uint256 hatId = _getHatId(garden, role);
         // Only transfer if the account currently wears the hat.
-        // transferHat to a dead address reverts if the recipient already wears it
-        // (e.g., from a previous revocation), so we guard with isWearerOfHat.
+        // Hats Protocol reverts with AlreadyWearingHat if the recipient address already
+        // wears the hat (e.g., 0xdead from a previous revocation of the same hat type).
+        // We use a monotonic nonce to generate a unique burn address per revocation,
+        // ensuring each transfer targets a fresh address that never wears the hat.
         if (hats.isWearerOfHat(account, hatId)) {
-            hats.transferHat(hatId, account, address(0x000000000000000000000000000000000000dEaD));
+            address burnAddr = address(uint160(uint256(keccak256(abi.encodePacked("burn", _revokeNonce++)))));
+            hats.transferHat(hatId, account, burnAddr);
         }
         emit RoleRevoked(garden, account, role);
         if (role == GardenRole.Operator) {
@@ -667,7 +720,7 @@ contract HatsModule is
         for (uint256 i = 0; i < len; i++) {
             address strategy = strategies[i];
             // solhint-disable-next-line no-empty-blocks
-            try ICVSyncPowerFacet(strategy).syncPower{gas: SYNC_POWER_GAS_STIPEND}(account) {
+            try ICVSyncPowerFacet(strategy).syncPower{ gas: SYNC_POWER_GAS_STIPEND }(account) {
                 emit ConvictionSyncTriggered(garden, account, strategy);
             } catch Error(string memory reason) {
                 emit ConvictionSyncFailed(garden, account, strategy, reason);
