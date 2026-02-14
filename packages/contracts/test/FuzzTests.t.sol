@@ -8,9 +8,11 @@ import { ActionRegistry, Capital } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
+import { YieldSplitter } from "../src/yield/YieldSplitter.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
 import { MockHatsModule } from "./helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
+import { IGardensModule } from "../src/interfaces/IGardensModule.sol";
 
 /// @title FuzzTests
 /// @notice Fuzz testing for edge cases and boundary conditions
@@ -100,7 +102,8 @@ contract FuzzTests is Test, ERC6551Helper {
             location: "Location",
             bannerImage: "Banner",
             metadata: "",
-            openJoining: false
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Linear
         });
         address gardenAccount = gardenToken.mintGarden(config);
 
@@ -125,7 +128,8 @@ contract FuzzTests is Test, ERC6551Helper {
                 location: "Location",
                 bannerImage: "Banner",
                 metadata: "",
-                openJoining: false
+                openJoining: false,
+                weightScheme: IGardensModule.WeightScheme.Linear
             });
         }
 
@@ -145,7 +149,8 @@ contract FuzzTests is Test, ERC6551Helper {
             location: "Location",
             bannerImage: "Banner",
             metadata: "",
-            openJoining: openJoiningValue
+            openJoining: openJoiningValue,
+            weightScheme: IGardensModule.WeightScheme.Linear
         });
 
         address gardenAccount = gardenToken.mintGarden(config);
@@ -229,7 +234,8 @@ contract FuzzTests is Test, ERC6551Helper {
             location: "Location",
             bannerImage: "Banner",
             metadata: "",
-            openJoining: false
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Linear
         });
 
         vm.prank(caller);
@@ -249,6 +255,57 @@ contract FuzzTests is Test, ERC6551Helper {
         vm.prank(caller);
         vm.expectRevert();
         octant.harvest(address(0x1), address(0x2));
+    }
+
+    // =========================================================================
+    // YieldSplitter Fuzz Tests
+    // =========================================================================
+
+    /// @notice Fuzz: setSplitRatio always reverts when BPS don't sum to 10000
+    function testFuzz_setSplitRatio_revertsIfNotSumTo10000(
+        uint256 cookieJarBps,
+        uint256 fractionsBps,
+        uint256 juiceboxBps
+    )
+        public
+    {
+        // Bound first to prevent overflow, then reject valid triples
+        cookieJarBps = bound(cookieJarBps, 0, 10_000);
+        fractionsBps = bound(fractionsBps, 0, 10_000);
+        juiceboxBps = bound(juiceboxBps, 0, 10_000);
+        vm.assume(cookieJarBps + fractionsBps + juiceboxBps != 10_000);
+
+        // Deploy a minimal YieldSplitter for this fuzz test
+        YieldSplitter ys = _deployYieldSplitter();
+
+        vm.prank(multisig);
+        vm.expectRevert(YieldSplitter.InvalidSplitRatio.selector);
+        ys.setSplitRatio(address(0x100), cookieJarBps, fractionsBps, juiceboxBps);
+    }
+
+    /// @notice Fuzz: setSplitRatio succeeds for any valid BPS triple summing to 10000
+    function testFuzz_setSplitRatio_acceptsValidBps(uint256 cookieJarBps, uint256 fractionsBps) public {
+        cookieJarBps = bound(cookieJarBps, 0, 10_000);
+        fractionsBps = bound(fractionsBps, 0, 10_000 - cookieJarBps);
+        uint256 juiceboxBps = 10_000 - cookieJarBps - fractionsBps;
+
+        YieldSplitter ys = _deployYieldSplitter();
+        address garden = address(0x100);
+
+        vm.prank(multisig);
+        ys.setSplitRatio(garden, cookieJarBps, fractionsBps, juiceboxBps);
+
+        YieldSplitter.SplitConfig memory config = ys.getSplitConfig(garden);
+        assertEq(config.cookieJarBps + config.fractionsBps + config.juiceboxBps, 10_000, "BPS must always sum to 10000");
+    }
+
+    /// @notice Helper: deploy a minimal YieldSplitter for fuzz testing
+    function _deployYieldSplitter() internal returns (YieldSplitter) {
+        YieldSplitter impl = new YieldSplitter();
+        bytes memory initData =
+            abi.encodeWithSelector(YieldSplitter.initialize.selector, multisig, address(0x2), address(0x3), 0);
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        return YieldSplitter(address(proxy));
     }
 
     /// @notice Convert bitmap to capital array

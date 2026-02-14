@@ -92,6 +92,14 @@ contract MockHatsModuleForJoin is IHatsModule {
     function getConvictionStrategies(address) external view returns (address[] memory) {
         return new address[](0);
     }
+
+    function getGardenHatIds(address)
+        external
+        pure
+        returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, bool)
+    {
+        return (0, 0, 0, 0, 0, 0, 0, false);
+    }
 }
 
 contract GardenJoinIntegrationTest is Test {

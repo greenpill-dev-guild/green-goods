@@ -281,6 +281,93 @@ contract HatsModuleTest is Test {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // Garden Configuration Lifecycle Tests (L2)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_lifecycle_configureDeconfigureReconfigure() public {
+        // Phase 1: Configure with original hats
+        adapter.configureGarden(
+            garden1,
+            GARDEN1_OWNER_HAT,
+            GARDEN1_OPERATOR_HAT,
+            GARDEN1_EVALUATOR_HAT,
+            GARDEN1_GARDENER_HAT,
+            GARDEN1_FUNDER_HAT,
+            GARDEN1_COMMUNITY_HAT
+        );
+        assertTrue(adapter.isConfigured(garden1), "Should be configured after initial setup");
+
+        // Grant a role in the configured state
+        mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
+        mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
+        assertTrue(adapter.isGardenerOf(garden1, user1), "User1 should be gardener");
+
+        // Phase 2: Deconfigure
+        adapter.deconfigureGarden(garden1);
+        assertFalse(adapter.isConfigured(garden1), "Should not be configured after deconfigure");
+
+        // Role checks should revert for unconfigured garden
+        vm.expectRevert(abi.encodeWithSelector(HatsModule.GardenNotConfigured.selector, garden1));
+        adapter.isGardenerOf(garden1, user1);
+
+        // Phase 3: Reconfigure with DIFFERENT hat IDs (simulating a hat tree rebuild)
+        adapter.configureGarden(
+            garden1,
+            GARDEN2_OWNER_HAT,
+            GARDEN2_OPERATOR_HAT,
+            GARDEN2_EVALUATOR_HAT,
+            GARDEN2_GARDENER_HAT,
+            GARDEN2_FUNDER_HAT,
+            GARDEN2_COMMUNITY_HAT
+        );
+        assertTrue(adapter.isConfigured(garden1), "Should be configured after reconfigure");
+
+        // Verify the new hat IDs are in effect
+        (
+            uint256 ownerHat,
+            uint256 operatorHat,
+            uint256 evaluatorHat,
+            uint256 gardenerHat,
+            uint256 funderHat,
+            uint256 communityHat,
+            ,
+            bool configured
+        ) = adapter.gardenHats(garden1);
+        assertEq(ownerHat, GARDEN2_OWNER_HAT, "Owner hat should use new IDs");
+        assertEq(operatorHat, GARDEN2_OPERATOR_HAT, "Operator hat should use new IDs");
+        assertEq(evaluatorHat, GARDEN2_EVALUATOR_HAT, "Evaluator hat should use new IDs");
+        assertEq(gardenerHat, GARDEN2_GARDENER_HAT, "Gardener hat should use new IDs");
+        assertEq(funderHat, GARDEN2_FUNDER_HAT, "Funder hat should use new IDs");
+        assertEq(communityHat, GARDEN2_COMMUNITY_HAT, "Community hat should use new IDs");
+        assertTrue(configured, "Should show as configured");
+
+        // Old hat wearer (user1 on GARDEN1_GARDENER_HAT) should NOT be a gardener
+        // because garden1 now uses GARDEN2_GARDENER_HAT
+        assertFalse(adapter.isGardenerOf(garden1, user1), "User1 should not be gardener with new hats");
+
+        // Grant on new hat and verify
+        mockHats.setWearer(GARDEN2_OWNER_HAT, owner, true);
+        mockHats.setWearer(GARDEN2_GARDENER_HAT, user2, true);
+        assertTrue(adapter.isGardenerOf(garden1, user2), "User2 should be gardener with new hats");
+    }
+
+    function test_lifecycle_deconfigureRevertsForUnauthorized() public {
+        adapter.configureGarden(
+            garden1,
+            GARDEN1_OWNER_HAT,
+            GARDEN1_OPERATOR_HAT,
+            GARDEN1_EVALUATOR_HAT,
+            GARDEN1_GARDENER_HAT,
+            GARDEN1_FUNDER_HAT,
+            GARDEN1_COMMUNITY_HAT
+        );
+
+        vm.prank(user1);
+        vm.expectRevert();
+        adapter.deconfigureGarden(garden1);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // Role Check Tests
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -894,6 +981,56 @@ contract HatsModuleTest is Test {
         assertFalse(adapter.isEvaluatorOf(garden1, user1), "User1 should not auto-get evaluator");
         assertFalse(adapter.isOperatorOf(garden1, user1), "User1 should not auto-get operator");
         assertFalse(adapter.isOwnerOf(garden1, user1), "User1 should not auto-get owner");
+    }
+
+    function test_revokeRole_twoUsersWithSameHatType() public {
+        // L1: Validates H3 fix — revoking the same hat type from two different users
+        // must succeed because each revocation uses a unique burn address.
+        adapter.configureGarden(
+            garden1,
+            GARDEN1_OWNER_HAT,
+            GARDEN1_OPERATOR_HAT,
+            GARDEN1_EVALUATOR_HAT,
+            GARDEN1_GARDENER_HAT,
+            GARDEN1_FUNDER_HAT,
+            GARDEN1_COMMUNITY_HAT
+        );
+        mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
+        mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
+        mockHats.setWearer(GARDEN1_GARDENER_HAT, user2, true);
+
+        assertTrue(adapter.isGardenerOf(garden1, user1), "User1 should be gardener");
+        assertTrue(adapter.isGardenerOf(garden1, user2), "User2 should be gardener");
+
+        // First revocation
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+        assertFalse(adapter.isGardenerOf(garden1, user1), "User1 should not be gardener after revoke");
+
+        // Second revocation of same hat type — this was the H3 bug scenario
+        adapter.revokeRole(garden1, user2, IHatsModule.GardenRole.Gardener);
+        assertFalse(adapter.isGardenerOf(garden1, user2), "User2 should not be gardener after revoke");
+    }
+
+    function test_revokeRole_threeSequentialRevocationsOfSameHat() public {
+        // Stress test: three revoke→re-grant→revoke cycles on the same hat type
+        adapter.configureGarden(
+            garden1,
+            GARDEN1_OWNER_HAT,
+            GARDEN1_OPERATOR_HAT,
+            GARDEN1_EVALUATOR_HAT,
+            GARDEN1_GARDENER_HAT,
+            GARDEN1_FUNDER_HAT,
+            GARDEN1_COMMUNITY_HAT
+        );
+        mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
+        mockHats.setWearer(GARDEN1_GARDENER_HAT, user1, true);
+
+        for (uint256 i = 0; i < 3; i++) {
+            adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+            assertFalse(adapter.isGardenerOf(garden1, user1), "Should not be gardener after revoke");
+            adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+            assertTrue(adapter.isGardenerOf(garden1, user1), "Should be gardener after re-grant");
+        }
     }
 
     function test_revokeRole_revertsForUnauthorized() public {

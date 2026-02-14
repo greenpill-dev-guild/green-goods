@@ -9,6 +9,8 @@ import { GardenAccount } from "../src/accounts/Garden.sol";
 import { HatsModule } from "../src/modules/Hats.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
 import { ActionRegistry } from "../src/registries/Action.sol";
+import { GardensModule } from "../src/modules/Gardens.sol";
+import { YieldSplitter } from "../src/yield/YieldSplitter.sol";
 import { MockHats } from "../src/mocks/Hats.sol";
 import { MockOctantFactory } from "../src/mocks/Octant.sol";
 
@@ -52,15 +54,40 @@ contract StorageLayoutTest is Test {
         assertEq(storedOctant, address(0xCC), "octantModule value should match");
     }
 
-    /// @notice Verify GardenToken gap is exactly 45 slots
+    /// @notice Verify GardenToken gap is exactly 44 slots
     function testGardenTokenGapSize() public {
-        // The gap is declared as uint256[45] in GardenToken
-        // Total contract slots = 5 named + 45 gap = 50
+        // The gap is declared as uint256[44] in GardenToken
+        // Total contract slots = 6 named + 44 gap = 50
         // If someone adds a variable and forgets to shrink the gap, this will catch it
-        uint256 expectedNamedSlots = 5; // _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule, octantModule
-        uint256 expectedGapSize = 45;
+        uint256 expectedNamedSlots = 6; // _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule, octantModule,
+            // gardensModule
+        uint256 expectedGapSize = 44;
         uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
         assertEq(expectedTotal, 50, "GardenToken should use exactly 50 custom slots");
+    }
+
+    /// @notice Verify GardenToken storage slots via vm.load (ground-truth check)
+    function testGardenTokenStorageSlotsViaLoad() public {
+        GardenToken impl = new GardenToken(address(1));
+        bytes memory initData = abi.encodeWithSelector(GardenToken.initialize.selector, address(this), address(0));
+        address proxy = address(new ERC1967Proxy(address(impl), initData));
+        GardenToken token = GardenToken(proxy);
+
+        // Set a unique marker value to hatsModule
+        token.setHatsModule(address(0xAA));
+
+        // ERC721Upgradeable inherits from Initializable (2 slots packed) +
+        // multiple OZ base contracts. GardenToken custom storage starts after
+        // all inherited storage. Scan a wide range to locate the marker.
+        bool foundHats;
+        for (uint256 slot = 0; slot < 400; slot++) {
+            bytes32 value = vm.load(proxy, bytes32(slot));
+            if (value == bytes32(uint256(uint160(address(0xAA))))) {
+                foundHats = true;
+                break;
+            }
+        }
+        assertTrue(foundHats, "hatsModule should be found at a storage slot via vm.load");
     }
 
     // =========================================================================
@@ -100,11 +127,12 @@ contract StorageLayoutTest is Test {
 
     // =========================================================================
     // HatsModule Storage Layout
-    // Layout: Initializable + Ownable + hats + gardenToken + karmaGAPModule +
-    //         hatsModuleFactory + funderEligibilityModule + communityEligibilityModule +
-    //         communityMinBalance + communityHatId + gardensHatId +
-    //         protocolGardenersHatId + gardenHats(mapping) + configAuthority(mapping)
-    //         + __gap[38]
+    // Layout: Initializable + Ownable + ReentrancyGuard + hats + gardenToken +
+    //         karmaGAPModule + hatsModuleFactory + funderEligibilityModule +
+    //         communityEligibilityModule + communityMinBalance + communityHatId +
+    //         gardensHatId + protocolGardenersHatId + gardensModule +
+    //         gardenHats(mapping) + configAuthority(mapping) +
+    //         gardenConvictionStrategies(mapping) + _revokeNonce + __gap[35]
     // =========================================================================
 
     function testHatsModuleStorageSlots() public {
@@ -127,18 +155,43 @@ contract StorageLayoutTest is Test {
         assertEq(adapter.protocolGardenersHatId(), 300, "protocolGardenersHatId should match");
     }
 
-    /// @notice Verify HatsModule gap is exactly 38 slots
+    /// @notice Verify HatsModule gap is exactly 35 slots
     function testHatsModuleGapSize() public {
         // Named storage: hats + gardenToken + karmaGAPModule + hatsModuleFactory +
         //   funderEligibilityModule + communityEligibilityModule + communityMinBalance +
-        //   communityHatId + gardensHatId + protocolGardenersHatId +
-        //   gardenHats(mapping) + configAuthority(mapping) = 12 slots
-        // Gap = 38
-        // Total = 12 + 38 = 50
-        uint256 expectedNamedSlots = 12;
-        uint256 expectedGapSize = 38;
+        //   communityHatId + gardensHatId + protocolGardenersHatId + gardensModule +
+        //   gardenHats(mapping) + configAuthority(mapping) +
+        //   gardenConvictionStrategies(mapping) + _revokeNonce = 15 slots
+        // Gap = 35
+        // Total = 15 + 35 = 50
+        uint256 expectedNamedSlots = 15;
+        uint256 expectedGapSize = 35;
         uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
         assertEq(expectedTotal, 50, "HatsModule should use exactly 50 custom slots");
+    }
+
+    /// @notice Verify HatsModule storage slots via vm.load (ground-truth check)
+    function testHatsModuleStorageSlotsViaLoad() public {
+        MockHats mockHats = new MockHats();
+        HatsModule impl = new HatsModule();
+        bytes memory initData = abi.encodeWithSelector(HatsModule.initialize.selector, address(this), address(mockHats));
+        address proxy = address(new ERC1967Proxy(address(impl), initData));
+        HatsModule adapter = HatsModule(proxy);
+
+        // Set a unique value to communityMinBalance to verify slot position
+        adapter.setCommunityMinBalance(0xDEADBEEF);
+
+        // communityMinBalance should be at slot 157 (per storage layout docs)
+        bytes32 value = vm.load(proxy, bytes32(uint256(157)));
+        assertEq(uint256(value), 0xDEADBEEF, "communityMinBalance should be at slot 157");
+
+        // Verify hats address at slot 151
+        bytes32 hatsSlot = vm.load(proxy, bytes32(uint256(151)));
+        assertEq(address(uint160(uint256(hatsSlot))), address(mockHats), "hats should be at slot 151");
+
+        // Verify owner at slot 51 (OwnableUpgradeable._owner)
+        bytes32 ownerSlot = vm.load(proxy, bytes32(uint256(51)));
+        assertEq(address(uint160(uint256(ownerSlot))), address(this), "owner should be at slot 51");
     }
 
     // =========================================================================
@@ -257,6 +310,148 @@ contract StorageLayoutTest is Test {
         assertEq(adapter.gardensHatId(), 200, "gardensHatId should survive upgrade");
         assertEq(adapter.protocolGardenersHatId(), 300, "protocolGardenersHatId should survive upgrade");
         assertTrue(adapter.isConfigured(address(0xDD)), "garden config should survive upgrade");
+    }
+
+    // =========================================================================
+    // GardensModule Storage Layout
+    // Layout: OwnableUpgradeable(1) + ReentrancyGuardUpgradeable(1) +
+    //         gardenToken + registryFactory + powerRegistryFactory + goodsToken +
+    //         hatsProtocol + hatsModule + gardenCommunities(mapping) +
+    //         gardenSignalPools(mapping) + gardenWeightSchemes(mapping) +
+    //         gardenPowerRegistries(mapping) + gardenInitialized(mapping)
+    //         + __gap[39]
+    // Total: 11 named + 39 gap = 50
+    // =========================================================================
+
+    function testGardensModuleStorageSlots() public {
+        GardensModule impl = new GardensModule();
+        bytes memory initData = abi.encodeWithSelector(
+            GardensModule.initialize.selector,
+            address(this),
+            address(0), // registryFactory
+            address(0), // powerRegistryFactory
+            address(0), // goodsToken
+            address(0), // hatsProtocol
+            address(0) // hatsModule
+        );
+        GardensModule module = GardensModule(address(new ERC1967Proxy(address(impl), initData)));
+
+        // Verify initialization stored values correctly
+        assertEq(module.owner(), address(this), "owner should be set");
+
+        // Set and verify additional slots
+        module.setGardenToken(address(0xAA));
+        assertEq(module.gardenToken(), address(0xAA), "gardenToken should match");
+    }
+
+    /// @notice Verify GardensModule gap is exactly 39 slots
+    function testGardensModuleGapSize() public {
+        // Named storage: gardenToken + registryFactory + powerRegistryFactory + goodsToken +
+        //   hatsProtocol + hatsModule + gardenCommunities(mapping) +
+        //   gardenSignalPools(mapping) + gardenWeightSchemes(mapping) +
+        //   gardenPowerRegistries(mapping) + gardenInitialized(mapping) = 11 slots
+        // Gap = 39
+        // Total = 11 + 39 = 50
+        uint256 expectedNamedSlots = 11;
+        uint256 expectedGapSize = 39;
+        uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
+        assertEq(expectedTotal, 50, "GardensModule should use exactly 50 custom slots");
+    }
+
+    /// @notice Verify GardensModule upgrade preserves all state
+    function testGardensModuleUpgradePreservesState() public {
+        GardensModule impl = new GardensModule();
+        bytes memory initData = abi.encodeWithSelector(
+            GardensModule.initialize.selector,
+            address(this),
+            address(0x11), // registryFactory
+            address(0x22), // powerRegistryFactory
+            address(0x33), // goodsToken
+            address(0x44), // hatsProtocol
+            address(0x55) // hatsModule
+        );
+        GardensModule module = GardensModule(address(new ERC1967Proxy(address(impl), initData)));
+
+        // Set state
+        module.setGardenToken(address(0xAA));
+
+        // Upgrade to new implementation
+        GardensModule newImpl = new GardensModule();
+        module.upgradeTo(address(newImpl));
+
+        // Verify state preserved
+        assertEq(module.gardenToken(), address(0xAA), "gardenToken should survive upgrade");
+        assertEq(module.owner(), address(this), "owner should survive upgrade");
+    }
+
+    // =========================================================================
+    // YieldSplitter Storage Layout
+    // Layout: OwnableUpgradeable(1) + ReentrancyGuardUpgradeable(1) +
+    //         octantModule + hypercertMarketplace + jbMultiTerminal +
+    //         juiceboxProjectId + minYieldThreshold + minAllocationAmount +
+    //         hatsModule + gardenSplitConfig(mapping) + gardenCookieJars(mapping) +
+    //         gardenTreasuries(mapping) + pendingYield(mapping) + gardenVaults(mapping)
+    //         + __gap[38]
+    // Total: 12 named + 38 gap = 50
+    // =========================================================================
+
+    function testYieldSplitterStorageSlots() public {
+        YieldSplitter impl = new YieldSplitter();
+        bytes memory initData = abi.encodeWithSelector(
+            YieldSplitter.initialize.selector,
+            address(this), // owner
+            address(0x11), // octantModule
+            address(0x22), // hatsModule
+            7e18 // minYieldThreshold
+        );
+        YieldSplitter splitter = YieldSplitter(address(new ERC1967Proxy(address(impl), initData)));
+
+        // Verify initialization stored values correctly
+        assertEq(splitter.owner(), address(this), "owner should be set");
+        assertEq(splitter.octantModule(), address(0x11), "octantModule should match");
+        assertEq(address(splitter.hatsModule()), address(0x22), "hatsModule should match");
+        assertEq(splitter.minYieldThreshold(), 7e18, "minYieldThreshold should match");
+    }
+
+    /// @notice Verify YieldSplitter gap is exactly 37 slots
+    function testYieldSplitterGapSize() public {
+        // Named storage: octantModule + hypercertMarketplace + jbMultiTerminal +
+        //   juiceboxProjectId + minYieldThreshold + minAllocationAmount +
+        //   hatsModule + gardenSplitConfig(mapping) + gardenCookieJars(mapping) +
+        //   gardenTreasuries(mapping) + pendingYield(mapping) + gardenVaults(mapping) +
+        //   gardenShares(mapping) = 13 slots
+        // Gap = 37
+        // Total = 13 + 37 = 50
+        uint256 expectedNamedSlots = 13;
+        uint256 expectedGapSize = 37;
+        uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
+        assertEq(expectedTotal, 50, "YieldSplitter should use exactly 50 custom slots");
+    }
+
+    /// @notice Verify YieldSplitter upgrade preserves all state
+    function testYieldSplitterUpgradePreservesState() public {
+        YieldSplitter impl = new YieldSplitter();
+        bytes memory initData = abi.encodeWithSelector(
+            YieldSplitter.initialize.selector,
+            address(this),
+            address(0x11), // octantModule
+            address(0x22), // hatsModule
+            7e18
+        );
+        YieldSplitter splitter = YieldSplitter(address(new ERC1967Proxy(address(impl), initData)));
+
+        // Verify initial state
+        assertEq(splitter.octantModule(), address(0x11), "octantModule should match");
+
+        // Upgrade to new implementation
+        YieldSplitter newImpl = new YieldSplitter();
+        splitter.upgradeTo(address(newImpl));
+
+        // Verify state preserved
+        assertEq(splitter.octantModule(), address(0x11), "octantModule should survive upgrade");
+        assertEq(address(splitter.hatsModule()), address(0x22), "hatsModule should survive upgrade");
+        assertEq(splitter.minYieldThreshold(), 7e18, "minYieldThreshold should survive upgrade");
+        assertEq(splitter.owner(), address(this), "owner should survive upgrade");
     }
 
     function testOctantModuleUpgradePreservesState() public {

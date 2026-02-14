@@ -10,10 +10,13 @@ import { GardenAccount } from "../src/accounts/Garden.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
+import { GardensModule } from "../src/modules/Gardens.sol";
+import { YieldSplitter } from "../src/yield/YieldSplitter.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
 import { MockHatsModule } from "./helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
+import { IGardensModule } from "../src/interfaces/IGardensModule.sol";
 
 /// @title UpgradeSafetyTest
 /// @notice Tests for UUPS upgrade patterns and storage preservation
@@ -220,7 +223,8 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
             location: "Location",
             bannerImage: "banner.jpg",
             metadata: "",
-            openJoining: false
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Linear
         });
         address gardenAddress = gardenToken.mintGarden(config);
 
@@ -427,6 +431,187 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         assertEq(commTokenAfter, address(communityToken));
 
         emit log_named_string("[PASS]", "DeploymentRegistry upgrade preserves configs");
+    }
+
+    /// @notice Test 8: GardensModule upgrade preserves storage
+    function testGardensModuleUpgradePreservesStorage() public {
+        // Deploy GardensModule with proxy
+        GardensModule gardensModuleImpl = new GardensModule();
+        bytes memory gardensInitData = abi.encodeWithSelector(
+            GardensModule.initialize.selector,
+            multisig,
+            address(0), // registryFactory
+            address(0), // powerRegistryFactory
+            address(communityToken), // goodsToken
+            address(0x5555), // hatsProtocol
+            address(mockHatsModule) // hatsModule
+        );
+        ERC1967Proxy gardensProxy = new ERC1967Proxy(address(gardensModuleImpl), gardensInitData);
+        GardensModule gardensModule = GardensModule(address(gardensProxy));
+
+        // Set up some state
+        vm.startPrank(multisig);
+        gardensModule.setGardenToken(address(gardenToken));
+        gardensModule.setHatsProtocol(address(0x6666));
+        vm.stopPrank();
+
+        // Store original values
+        address originalOwner = gardensModule.owner();
+        address originalGardenToken = gardensModule.gardenToken();
+        address originalHatsProtocol = gardensModule.hatsProtocol();
+        address originalGoodsToken = address(gardensModule.goodsToken());
+
+        // Deploy new implementation and upgrade
+        GardensModule newGardensImpl = new GardensModule();
+        vm.prank(multisig);
+        gardensModule.upgradeTo(address(newGardensImpl));
+
+        // Verify storage preserved
+        assertEq(gardensModule.owner(), originalOwner, "GardensModule: owner should be preserved");
+        assertEq(gardensModule.gardenToken(), originalGardenToken, "GardensModule: gardenToken should be preserved");
+        assertEq(gardensModule.hatsProtocol(), originalHatsProtocol, "GardensModule: hatsProtocol should be preserved");
+        assertEq(address(gardensModule.goodsToken()), originalGoodsToken, "GardensModule: goodsToken should be preserved");
+
+        emit log_named_string("[PASS] GardensModule", "Storage preserved after upgrade");
+    }
+
+    /// @notice Test 9: GardensModule upgrade access control
+    function testGardensModuleUpgradeAccessControl() public {
+        GardensModule gardensModuleImpl = new GardensModule();
+        bytes memory gardensInitData = abi.encodeWithSelector(
+            GardensModule.initialize.selector,
+            multisig,
+            address(0),
+            address(0),
+            address(communityToken),
+            address(0x5555),
+            address(mockHatsModule)
+        );
+        ERC1967Proxy gardensProxy = new ERC1967Proxy(address(gardensModuleImpl), gardensInitData);
+        GardensModule gardensModule = GardensModule(address(gardensProxy));
+
+        GardensModule newImpl = new GardensModule();
+
+        // Unauthorized upgrade should revert
+        vm.prank(unauthorized);
+        vm.expectRevert("Ownable: caller is not the owner");
+        gardensModule.upgradeTo(address(newImpl));
+
+        // Authorized upgrade should succeed
+        vm.prank(multisig);
+        gardensModule.upgradeTo(address(newImpl));
+
+        emit log_named_string("[PASS] GardensModule", "Upgrade access control enforced");
+    }
+
+    /// @notice Test 10: GardensModule cannot re-initialize after upgrade
+    function testGardensModuleCannotReinitializeAfterUpgrade() public {
+        GardensModule gardensModuleImpl = new GardensModule();
+        bytes memory gardensInitData = abi.encodeWithSelector(
+            GardensModule.initialize.selector,
+            multisig,
+            address(0),
+            address(0),
+            address(communityToken),
+            address(0x5555),
+            address(mockHatsModule)
+        );
+        ERC1967Proxy gardensProxy = new ERC1967Proxy(address(gardensModuleImpl), gardensInitData);
+        GardensModule gardensModule = GardensModule(address(gardensProxy));
+
+        // Upgrade
+        GardensModule newImpl = new GardensModule();
+        vm.prank(multisig);
+        gardensModule.upgradeTo(address(newImpl));
+
+        // Re-initialize should fail
+        vm.prank(multisig);
+        vm.expectRevert("Initializable: contract is already initialized");
+        gardensModule.initialize(address(0x789), address(0), address(0), address(0), address(0), address(0));
+
+        assertEq(gardensModule.owner(), multisig, "Owner should be unchanged after failed re-init");
+        emit log_named_string("[PASS] GardensModule", "Cannot reinitialize after upgrade");
+    }
+
+    /// @notice Test 11: YieldSplitter upgrade preserves storage
+    function testYieldSplitterUpgradePreservesStorage() public {
+        YieldSplitter yieldSplitterImpl = new YieldSplitter();
+        bytes memory yieldInitData = abi.encodeWithSelector(
+            YieldSplitter.initialize.selector, multisig, address(0xA2), address(mockHatsModule), 7e18
+        );
+        ERC1967Proxy yieldProxy = new ERC1967Proxy(address(yieldSplitterImpl), yieldInitData);
+        YieldSplitter yieldSplitter = YieldSplitter(address(yieldProxy));
+
+        // Set up some state
+        address testGarden = address(0x100);
+        vm.startPrank(multisig);
+        yieldSplitter.setCookieJar(testGarden, address(0xCCC));
+        yieldSplitter.setGardenTreasury(testGarden, address(0xDDD));
+        yieldSplitter.setMinYieldThreshold(10e18);
+        vm.stopPrank();
+
+        // Store original values
+        address originalOwner = yieldSplitter.owner();
+        address originalOctant = yieldSplitter.octantModule();
+        uint256 originalThreshold = yieldSplitter.minYieldThreshold();
+
+        // Deploy new implementation and upgrade
+        YieldSplitter newYieldImpl = new YieldSplitter();
+        vm.prank(multisig);
+        yieldSplitter.upgradeTo(address(newYieldImpl));
+
+        // Verify storage preserved
+        assertEq(yieldSplitter.owner(), originalOwner, "YieldSplitter: owner should be preserved");
+        assertEq(yieldSplitter.octantModule(), originalOctant, "YieldSplitter: octantModule should be preserved");
+        assertEq(yieldSplitter.minYieldThreshold(), originalThreshold, "YieldSplitter: threshold should be preserved");
+
+        emit log_named_string("[PASS] YieldSplitter", "Storage preserved after upgrade");
+    }
+
+    /// @notice Test 12: YieldSplitter upgrade access control
+    function testYieldSplitterUpgradeAccessControl() public {
+        YieldSplitter yieldSplitterImpl = new YieldSplitter();
+        bytes memory yieldInitData = abi.encodeWithSelector(
+            YieldSplitter.initialize.selector, multisig, address(0xA2), address(mockHatsModule), 7e18
+        );
+        ERC1967Proxy yieldProxy = new ERC1967Proxy(address(yieldSplitterImpl), yieldInitData);
+        YieldSplitter yieldSplitter = YieldSplitter(address(yieldProxy));
+
+        YieldSplitter newImpl = new YieldSplitter();
+
+        // Unauthorized upgrade should revert
+        vm.prank(unauthorized);
+        vm.expectRevert("Ownable: caller is not the owner");
+        yieldSplitter.upgradeTo(address(newImpl));
+
+        // Authorized upgrade should succeed
+        vm.prank(multisig);
+        yieldSplitter.upgradeTo(address(newImpl));
+
+        emit log_named_string("[PASS] YieldSplitter", "Upgrade access control enforced");
+    }
+
+    /// @notice Test 13: YieldSplitter cannot re-initialize after upgrade
+    function testYieldSplitterCannotReinitializeAfterUpgrade() public {
+        YieldSplitter yieldSplitterImpl = new YieldSplitter();
+        bytes memory yieldInitData = abi.encodeWithSelector(
+            YieldSplitter.initialize.selector, multisig, address(0xA2), address(mockHatsModule), 7e18
+        );
+        ERC1967Proxy yieldProxy = new ERC1967Proxy(address(yieldSplitterImpl), yieldInitData);
+        YieldSplitter yieldSplitter = YieldSplitter(address(yieldProxy));
+
+        // Upgrade
+        YieldSplitter newImpl = new YieldSplitter();
+        vm.prank(multisig);
+        yieldSplitter.upgradeTo(address(newImpl));
+
+        // Re-initialize should fail
+        vm.prank(multisig);
+        vm.expectRevert("Initializable: contract is already initialized");
+        yieldSplitter.initialize(address(0x789), address(0), address(0), 0);
+
+        assertEq(yieldSplitter.owner(), multisig, "Owner should be unchanged after failed re-init");
+        emit log_named_string("[PASS] YieldSplitter", "Cannot reinitialize after upgrade");
     }
 
     /// @notice Helper function to convert uint to string

@@ -12,6 +12,7 @@ import { IKarmaGAPModule } from "../../src/interfaces/IKarmaGAPModule.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
 import { MockHatsModule } from "../helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "../helpers/ERC6551Helper.sol";
+import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 
 contract MockKarmaGAPModule is IKarmaGAPModule {
     struct ProjectCall {
@@ -119,7 +120,8 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
             location: "Location",
             bannerImage: "Banner",
             metadata: "",
-            openJoining: false
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Linear
         });
 
         vm.prank(multisig);
@@ -200,7 +202,8 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
             location: "Location2",
             bannerImage: "Banner2",
             metadata: "",
-            openJoining: true
+            openJoining: true,
+            weightScheme: IGardensModule.WeightScheme.Linear
         });
 
         vm.prank(multisig);
@@ -263,7 +266,8 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
             location: "Location",
             bannerImage: "Banner",
             metadata: "",
-            openJoining: false
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Linear
         });
     }
 }

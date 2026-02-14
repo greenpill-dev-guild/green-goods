@@ -13,6 +13,7 @@ import { IKarmaGAPModule } from "../../src/interfaces/IKarmaGAPModule.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
 import { MockHatsModule } from "../helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "../helpers/ERC6551Helper.sol";
+import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 
 /// @notice Minimal KarmaGAP mock for testing GAP view delegation
 contract MockKarmaGAPForAccount is IKarmaGAPModule {
@@ -116,7 +117,8 @@ contract GardenAccountTest is Test, ERC6551Helper {
             location: "Test Location",
             bannerImage: "test-banner.png",
             metadata: "ipfs://metadata",
-            openJoining: false
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Linear
         });
         gardenAddress = gardenToken.mintGarden(config);
         vm.stopPrank();

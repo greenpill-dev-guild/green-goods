@@ -65,7 +65,9 @@ contract ReentrantStrategy is ICVSyncPowerFacet {
         address _garden,
         address _account,
         IHatsModule.GardenRole _role
-    ) external {
+    )
+        external
+    {
         target = HatsModule(_target);
         targetGarden = _garden;
         targetAccount = _account;
@@ -97,7 +99,9 @@ contract ReentrantStrategyWithGas is ICVSyncPowerFacet {
         address _garden,
         address _account,
         IHatsModule.GardenRole _role
-    ) external {
+    )
+        external
+    {
         target = HatsModule(_target);
         targetGarden = _garden;
         targetAccount = _account;
@@ -575,12 +579,7 @@ contract ConvictionSyncTest is Test {
         // Deploy a reentrant strategy that catches the revert to prove that
         // nonReentrant independently blocks reentry -- not just the gas stipend OOG.
         ReentrantStrategyWithGas reentrant = new ReentrantStrategyWithGas();
-        reentrant.setReentrancyTarget(
-            address(adapter),
-            garden1,
-            user1,
-            IHatsModule.GardenRole.Gardener
-        );
+        reentrant.setReentrancyTarget(address(adapter), garden1, user1, IHatsModule.GardenRole.Gardener);
 
         address[] memory strategies = new address[](1);
         strategies[0] = address(reentrant);
@@ -593,7 +592,7 @@ contract ConvictionSyncTest is Test {
         // to reach the nonReentrant check (far more than the normal 100k stipend).
         // The gas stipend in production limits this to 100k, but this test
         // proves that even if gas were unlimited, nonReentrant would still protect.
-        adapter.revokeRole{gas: 5_000_000}(garden1, user1, IHatsModule.GardenRole.Gardener);
+        adapter.revokeRole{ gas: 5_000_000 }(garden1, user1, IHatsModule.GardenRole.Gardener);
 
         // The strategy attempted reentry -- the flag proves syncPower was entered
         assertTrue(reentrant.reentrancyAttempted(), "Strategy should have attempted reentry");
@@ -608,12 +607,7 @@ contract ConvictionSyncTest is Test {
         // ReentrantStrategy does NOT catch reverts, so if the gas stipend prevents
         // execution entirely, reentrancyAttempted will NOT be persisted.
         ReentrantStrategy reentrant = new ReentrantStrategy();
-        reentrant.setReentrancyTarget(
-            address(adapter),
-            garden1,
-            user1,
-            IHatsModule.GardenRole.Gardener
-        );
+        reentrant.setReentrancyTarget(address(adapter), garden1, user1, IHatsModule.GardenRole.Gardener);
 
         address[] memory strategies = new address[](1);
         strategies[0] = address(reentrant);

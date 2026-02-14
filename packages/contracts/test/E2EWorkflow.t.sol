@@ -12,6 +12,7 @@ import { HatsModule } from "../src/modules/Hats.sol";
 import { IHatsModule } from "../src/interfaces/IHatsModule.sol";
 import { MockHats } from "../src/mocks/Hats.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
+import { IGardensModule } from "../src/interfaces/IGardensModule.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
 import { WorkSchema, WorkApprovalSchema } from "../src/Schemas.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
@@ -75,7 +76,8 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
             location: "Test City",
             bannerImage: "ipfs://QmBanner",
             metadata: "",
-            openJoining: openJoining
+            openJoining: openJoining,
+            weightScheme: IGardensModule.WeightScheme.Linear
         });
         return gardenToken.mintGarden(config);
     }
