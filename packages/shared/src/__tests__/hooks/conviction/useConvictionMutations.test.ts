@@ -777,3 +777,179 @@ describe("Query hooks — error paths", () => {
     expect(result.current.power.isEligible).toBe(true);
   });
 });
+
+// ============================================
+// Additional Mutation Error/Invalidation Tests
+// ============================================
+
+describe("useSetDecay — error path", () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser.authMode = "wallet";
+    mockUser.smartAccountClient = null;
+    mockUser.primaryAddress = TEST_VOTER;
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+  });
+
+  it("calls error handler on tx failure", async () => {
+    mockWriteContractAsync.mockRejectedValueOnce(new Error("tx reverted"));
+
+    const { result } = renderHook(() => useSetDecay(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate({ poolAddress: TEST_POOL as Address, newDecay: 950000n });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(toastService.dismiss).toHaveBeenCalledWith("toast-id");
+    expect(mockErrorHandler).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        metadata: expect.objectContaining({ poolAddress: TEST_POOL }),
+      })
+    );
+  });
+});
+
+describe("useSetPointsPerVoter — error path and invalidation", () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser.authMode = "wallet";
+    mockUser.smartAccountClient = null;
+    mockUser.primaryAddress = TEST_VOTER;
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+  });
+
+  it("calls error handler on tx failure", async () => {
+    mockWriteContractAsync.mockRejectedValueOnce(new Error("gas estimation failed"));
+
+    const { result } = renderHook(() => useSetPointsPerVoter(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate({ poolAddress: TEST_POOL as Address, newPoints: 500n });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(toastService.dismiss).toHaveBeenCalledWith("toast-id");
+    expect(mockErrorHandler).toHaveBeenCalled();
+  });
+
+  it("invalidates pool config queries on success", async () => {
+    mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(() => useSetPointsPerVoter(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate({ poolAddress: TEST_POOL as Address, newPoints: 1000n });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: expect.arrayContaining(["greengoods", "conviction", "convictionWeights"]),
+      })
+    );
+  });
+});
+
+describe("useSetRoleHatIds — error path and invalidation", () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser.authMode = "wallet";
+    mockUser.smartAccountClient = null;
+    mockUser.primaryAddress = TEST_VOTER;
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+  });
+
+  it("calls error handler on tx failure", async () => {
+    mockWriteContractAsync.mockRejectedValueOnce(new Error("unauthorized"));
+
+    const { result } = renderHook(() => useSetRoleHatIds(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate({ poolAddress: TEST_POOL as Address, hatIds: [1n, 2n] });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(toastService.dismiss).toHaveBeenCalledWith("toast-id");
+    expect(mockErrorHandler).toHaveBeenCalled();
+  });
+
+  it("invalidates pool config queries on success", async () => {
+    mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(() => useSetRoleHatIds(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate({ poolAddress: TEST_POOL as Address, hatIds: [10n, 20n] });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: expect.arrayContaining(["greengoods", "conviction"]),
+      })
+    );
+  });
+});
+
+describe("useDeregisterHypercert — error path", () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser.authMode = "wallet";
+    mockUser.smartAccountClient = null;
+    mockUser.primaryAddress = TEST_VOTER;
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+  });
+
+  it("calls error handler on tx failure", async () => {
+    mockWriteContractAsync.mockRejectedValueOnce(new Error("tx failed"));
+
+    const { result } = renderHook(() => useDeregisterHypercert(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate({ poolAddress: TEST_POOL as Address, hypercertId: 42n });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(toastService.dismiss).toHaveBeenCalledWith("toast-id");
+    expect(mockErrorHandler).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        metadata: expect.objectContaining({ poolAddress: TEST_POOL }),
+      })
+    );
+  });
+});

@@ -6,3 +6,8 @@ export { useMemberVotingPower } from "./useMemberVotingPower";
 export { useAllocateHypercertSupport } from "./useAllocateHypercertSupport";
 export { useRegisterHypercert } from "./useRegisterHypercert";
 export { useDeregisterHypercert } from "./useDeregisterHypercert";
+export { useSetDecay } from "./useSetDecay";
+export { useSetPointsPerVoter } from "./useSetPointsPerVoter";
+export { useSetRoleHatIds } from "./useSetRoleHatIds";
+export { useGardenCommunity } from "./useGardenCommunity";
+export { useGardenPools } from "./useGardenPools";

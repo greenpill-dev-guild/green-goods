@@ -1,0 +1,39 @@
+import { readContract } from "@wagmi/core";
+import type { Address } from "../../types/domain";
+import { wagmiConfig } from "../../config/appkit";
+import { logger } from "../../modules/app/logger";
+import { isZeroAddress } from "./address";
+import { GARDEN_ACCOUNT_TOKEN_ABI, GARDEN_TOKEN_MODULES_ABI } from "./abis";
+
+export async function fetchGardensModuleAddress(
+  gardenAddress: Address,
+  chainId?: number
+): Promise<Address | undefined> {
+  try {
+    const tokenResult = await readContract(wagmiConfig, {
+      address: gardenAddress,
+      abi: GARDEN_ACCOUNT_TOKEN_ABI,
+      functionName: "token",
+      chainId,
+    });
+
+    if (!Array.isArray(tokenResult) || tokenResult.length < 3) {
+      logger.error("Unexpected token() return format", { tokenResult });
+      return undefined;
+    }
+    const [, tokenContract] = tokenResult as [bigint, Address, bigint];
+    if (!tokenContract || isZeroAddress(tokenContract)) return undefined;
+
+    const moduleAddress = await readContract(wagmiConfig, {
+      address: tokenContract,
+      abi: GARDEN_TOKEN_MODULES_ABI,
+      functionName: "gardensModule",
+      chainId,
+    });
+
+    return isZeroAddress(moduleAddress as Address) ? undefined : (moduleAddress as Address);
+  } catch (error) {
+    logger.error("Failed to fetch GardensModule address", { error, gardenAddress });
+    return undefined;
+  }
+}

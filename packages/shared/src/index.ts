@@ -180,6 +180,13 @@ export {
   useAllocateHypercertSupport,
   useRegisterHypercert,
   useDeregisterHypercert,
+  useSetDecay,
+  useSetPointsPerVoter,
+  useSetRoleHatIds,
+  useGardenCommunity,
+  useGardenPools,
+  useAllocateYield,
+  useYieldAllocations,
   useCreateAssessmentWorkflow,
   useCreateHypercertWorkflow,
   useCreateGardenWorkflow,
@@ -518,6 +525,17 @@ export type {
   AllocateHypercertSupportParams,
   RegisterHypercertParams,
   DeregisterHypercertParams,
+  SetDecayParams,
+  SetPointsPerVoterParams,
+  SetRoleHatIdsParams,
+  // Gardens community types
+  WeightSchemeConfig,
+  GardenCommunity,
+  GardenSignalPool,
+  SplitConfig,
+  YieldAllocation,
+  AllocateYieldParams,
+  SetSplitRatioParams,
   // Contract types
   CreateGardenParams,
   DeploymentParams,
@@ -530,8 +548,15 @@ export type {
   BaseAuthContext,
 } from "./types/index";
 
-// Re-export Capital enum and ACTION_DOMAINS constant
+// Re-export enums and constants
 export { ACTION_DOMAINS, Capital } from "./types/index";
+export {
+  WeightScheme,
+  PoolType,
+  WEIGHT_SCHEME_VALUES,
+  DEFAULT_SPLIT_CONFIG,
+  MIN_YIELD_THRESHOLD_USD,
+} from "./types/index";
 // ============================================================================
 // UTILITIES
 // ============================================================================

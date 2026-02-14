@@ -1,9 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { useIntl } from "react-intl";
-import { useRef } from "react";
-import { encodeFunctionData } from "viem";
-import { useWriteContract } from "wagmi";
+import { useCallback, useRef } from "react";
 import { toastService } from "../../components/toast";
 import type { Address } from "../../types/domain";
 import type {
@@ -14,8 +12,10 @@ import type {
   WithdrawParams,
 } from "../../types/vaults";
 import { useCurrentChain } from "../blockchain/useChainConfig";
+import { useContractTxSender } from "../blockchain/useContractTxSender";
 import { useUser } from "../auth/useUser";
-import { queryInvalidation } from "../query-keys";
+import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
+import { useDelayedInvalidation } from "../utils/useTimeout";
 import { wagmiConfig } from "../../config/appkit";
 import {
   ERC20_ALLOWANCE_ABI,
@@ -25,43 +25,6 @@ import {
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
-
-interface SendContractTxRequest {
-  address: Address;
-  abi: readonly Record<string, unknown>[];
-  functionName: string;
-  args: readonly unknown[];
-}
-
-function useContractTxSender() {
-  const { authMode, smartAccountClient } = useUser();
-  const { writeContractAsync } = useWriteContract();
-
-  return async (request: SendContractTxRequest): Promise<`0x${string}`> => {
-    if (authMode === "passkey" && smartAccountClient?.account) {
-      const data = encodeFunctionData({
-        abi: request.abi,
-        functionName: request.functionName as never,
-        args: request.args as never,
-      });
-
-      return smartAccountClient.sendTransaction({
-        account: smartAccountClient.account,
-        chain: smartAccountClient.chain,
-        to: request.address,
-        value: 0n,
-        data,
-      });
-    }
-
-    return writeContractAsync({
-      address: request.address,
-      abi: request.abi,
-      functionName: request.functionName as never,
-      args: request.args as never,
-    });
-  };
-}
 
 function getOctantModuleAddress(chainId: number): Address {
   const moduleAddress = getNetworkContracts(chainId).octantModule;
@@ -83,6 +46,24 @@ export function useVaultDeposit() {
   });
 
   const activeToastId = useRef<string | undefined>(undefined);
+  const lastParamsRef = useRef<{ gardenAddress: string; userAddress: string | undefined }>({
+    gardenAddress: "",
+    userAddress: undefined,
+  });
+  const { start: scheduleFollowUp } = useDelayedInvalidation(
+    useCallback(() => {
+      if (lastParamsRef.current.gardenAddress) {
+        queryInvalidation
+          .onVaultDeposit(
+            lastParamsRef.current.gardenAddress,
+            lastParamsRef.current.userAddress,
+            chainId
+          )
+          .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      }
+    }, [queryClient, chainId]),
+    INDEXER_LAG_FOLLOWUP_MS
+  );
 
   return useMutation({
     mutationFn: async (params: DepositParams) => {
@@ -91,13 +72,20 @@ export function useVaultDeposit() {
       }
 
       const receiver = (params.receiver ?? primaryAddress) as Address;
-      const allowanceResult = await readContract(wagmiConfig, {
-        address: params.assetAddress,
-        abi: ERC20_ALLOWANCE_ABI,
-        functionName: "allowance",
-        args: [primaryAddress as Address, params.vaultAddress],
-      });
-      const allowance = typeof allowanceResult === "bigint" ? allowanceResult : 0n;
+      let allowance: bigint;
+      try {
+        const allowanceResult = await readContract(wagmiConfig, {
+          address: params.assetAddress,
+          abi: ERC20_ALLOWANCE_ABI,
+          functionName: "allowance",
+          args: [primaryAddress as Address, params.vaultAddress],
+        });
+        allowance = typeof allowanceResult === "bigint" ? allowanceResult : 0n;
+      } catch {
+        // Non-standard tokens (e.g., USDT) may revert on allowance(); treat as zero
+        // so the approval step proceeds, which will surface its own error if unsupported.
+        allowance = 0n;
+      }
 
       if (allowance < params.amount) {
         await sendContractTx({
@@ -139,9 +127,14 @@ export function useVaultDeposit() {
         message: formatMessage({ id: "app.treasury.depositSuccess" }),
       });
 
+      lastParamsRef.current = {
+        gardenAddress: params.gardenAddress,
+        userAddress: primaryAddress ?? undefined,
+      };
       queryInvalidation
         .onVaultDeposit(params.gardenAddress, primaryAddress ?? undefined, chainId)
         .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      scheduleFollowUp();
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
@@ -166,6 +159,25 @@ export function useVaultWithdraw() {
     source: "useVaultWithdraw",
     toastContext: "vault withdraw",
   });
+
+  const lastParamsRef = useRef<{ gardenAddress: string; userAddress: string | undefined }>({
+    gardenAddress: "",
+    userAddress: undefined,
+  });
+  const { start: scheduleFollowUp } = useDelayedInvalidation(
+    useCallback(() => {
+      if (lastParamsRef.current.gardenAddress) {
+        queryInvalidation
+          .onVaultWithdraw(
+            lastParamsRef.current.gardenAddress,
+            lastParamsRef.current.userAddress,
+            chainId
+          )
+          .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      }
+    }, [queryClient, chainId]),
+    INDEXER_LAG_FOLLOWUP_MS
+  );
 
   return useMutation({
     mutationFn: async (params: WithdrawParams) => {
@@ -196,9 +208,14 @@ export function useVaultWithdraw() {
         message: formatMessage({ id: "app.treasury.withdrawSuccess" }),
       });
 
+      lastParamsRef.current = {
+        gardenAddress: params.gardenAddress,
+        userAddress: primaryAddress ?? undefined,
+      };
       queryInvalidation
         .onVaultWithdraw(params.gardenAddress, primaryAddress ?? undefined, chainId)
         .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      scheduleFollowUp();
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
@@ -222,6 +239,18 @@ export function useHarvest() {
     source: "useHarvest",
     toastContext: "vault harvest",
   });
+
+  const lastGardenRef = useRef<string>("");
+  const { start: scheduleFollowUp } = useDelayedInvalidation(
+    useCallback(() => {
+      if (lastGardenRef.current) {
+        queryInvalidation
+          .onVaultHarvest(lastGardenRef.current, chainId)
+          .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      }
+    }, [queryClient, chainId]),
+    INDEXER_LAG_FOLLOWUP_MS
+  );
 
   return useMutation({
     mutationFn: async (params: HarvestParams) => {
@@ -247,9 +276,11 @@ export function useHarvest() {
         message: formatMessage({ id: "app.treasury.harvestSuccess" }),
       });
 
+      lastGardenRef.current = params.gardenAddress;
       queryInvalidation
         .onVaultHarvest(params.gardenAddress, chainId)
         .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      scheduleFollowUp();
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
@@ -272,6 +303,18 @@ export function useEmergencyPause() {
     source: "useEmergencyPause",
     toastContext: "vault emergency pause",
   });
+
+  const lastGardenRef = useRef<string>("");
+  const { start: scheduleFollowUp } = useDelayedInvalidation(
+    useCallback(() => {
+      if (lastGardenRef.current) {
+        queryInvalidation
+          .onVaultDeposit(lastGardenRef.current, undefined, chainId)
+          .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      }
+    }, [queryClient, chainId]),
+    INDEXER_LAG_FOLLOWUP_MS
+  );
 
   return useMutation({
     mutationFn: async (params: EmergencyPauseParams) => {
@@ -296,9 +339,11 @@ export function useEmergencyPause() {
         title: formatMessage({ id: "app.treasury.emergencyPause" }),
       });
 
+      lastGardenRef.current = params.gardenAddress;
       queryInvalidation
         .onVaultDeposit(params.gardenAddress, undefined, chainId)
         .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      scheduleFollowUp();
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
@@ -321,6 +366,18 @@ export function useSetDonationAddress() {
     source: "useSetDonationAddress",
     toastContext: "set donation address",
   });
+
+  const lastGardenRef = useRef<string>("");
+  const { start: scheduleFollowUp } = useDelayedInvalidation(
+    useCallback(() => {
+      if (lastGardenRef.current) {
+        queryInvalidation
+          .onVaultHarvest(lastGardenRef.current, chainId)
+          .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      }
+    }, [queryClient, chainId]),
+    INDEXER_LAG_FOLLOWUP_MS
+  );
 
   return useMutation({
     mutationFn: async (params: SetDonationAddressParams) => {
@@ -345,9 +402,11 @@ export function useSetDonationAddress() {
         title: formatMessage({ id: "app.treasury.donationAddress" }),
       });
 
+      lastGardenRef.current = params.gardenAddress;
       queryInvalidation
         .onVaultHarvest(params.gardenAddress, chainId)
         .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      scheduleFollowUp();
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);

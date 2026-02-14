@@ -66,3 +66,21 @@ export interface DeregisterHypercertParams {
   poolAddress: Address;
   hypercertId: bigint;
 }
+
+/** Parameters for setting decay rate on a signal pool */
+export interface SetDecayParams {
+  poolAddress: Address;
+  newDecay: bigint;
+}
+
+/** Parameters for setting points per voter on a signal pool */
+export interface SetPointsPerVoterParams {
+  poolAddress: Address;
+  newPoints: bigint;
+}
+
+/** Parameters for setting role hat IDs on a signal pool */
+export interface SetRoleHatIdsParams {
+  poolAddress: Address;
+  hatIds: bigint[];
+}

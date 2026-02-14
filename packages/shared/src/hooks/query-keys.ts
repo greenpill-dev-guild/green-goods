@@ -151,6 +151,32 @@ export const queryKeys = {
       ["greengoods", "conviction", "memberPower", poolAddress, voterAddress, chainId] as const,
   },
 
+  // Community related keys (Gardens V2 integration)
+  community: {
+    all: ["greengoods", "community"] as const,
+    garden: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "community", "garden", gardenAddress, chainId] as const,
+    pools: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "community", "pools", gardenAddress, chainId] as const,
+  },
+
+  // Yield allocation related keys
+  yield: {
+    all: ["greengoods", "yield"] as const,
+    /** Base key for garden allocations - use for prefix-based invalidation */
+    allocationsBase: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "yield", "allocations", gardenAddress, chainId] as const,
+    /** Full key with limit - use for specific queries */
+    allocations: (gardenAddress: string, chainId: number, limit?: number) =>
+      ["greengoods", "yield", "allocations", gardenAddress, chainId, limit] as const,
+    byAsset: (assetAddress: string, chainId: number) =>
+      ["greengoods", "yield", "byAsset", assetAddress, chainId] as const,
+    splitConfig: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "yield", "splitConfig", gardenAddress, chainId] as const,
+    pendingYield: (gardenAddress: string, assetAddress: string, chainId: number) =>
+      ["greengoods", "yield", "pending", gardenAddress, assetAddress, chainId] as const,
+  },
+
   // Action related keys
   actions: {
     all: ["greengoods", "actions"] as const,
@@ -327,6 +353,38 @@ export const queryInvalidation = {
     return [queryKeys.assessments.all];
   },
 
+  // Invalidate community data for a garden
+  invalidateCommunity: (gardenAddress: string, chainId: number) => [
+    queryKeys.community.garden(gardenAddress, chainId),
+    queryKeys.community.pools(gardenAddress, chainId),
+  ],
+
+  // Invalidate yield data for a garden (uses allocationsBase for prefix matching regardless of limit)
+  invalidateYield: (gardenAddress: string, chainId: number) => [
+    queryKeys.yield.allocationsBase(gardenAddress, chainId),
+    queryKeys.yield.splitConfig(gardenAddress, chainId),
+  ],
+
+  // Queries to invalidate after community creation (garden mint)
+  onCommunityCreated: (gardenAddress: string, chainId: number) => [
+    queryKeys.community.garden(gardenAddress, chainId),
+    queryKeys.community.pools(gardenAddress, chainId),
+    queryKeys.community.all,
+  ],
+
+  // Queries to invalidate after yield allocation (uses allocationsBase for prefix matching regardless of limit)
+  onYieldAllocated: (gardenAddress: string, assetAddress: string, chainId: number) => [
+    queryKeys.yield.allocationsBase(gardenAddress, chainId),
+    queryKeys.yield.byAsset(assetAddress, chainId),
+    queryKeys.yield.pendingYield(gardenAddress, assetAddress, chainId),
+    queryKeys.yield.all,
+  ],
+
+  // Queries to invalidate after split ratio update
+  onSplitRatioUpdated: (gardenAddress: string, chainId: number) => [
+    queryKeys.yield.splitConfig(gardenAddress, chainId),
+  ],
+
   // Queries to invalidate after conviction strategies are updated
   onConvictionStrategiesUpdated: (gardenAddress: string, chainId: number) => [
     queryKeys.conviction.strategies(gardenAddress, chainId),
@@ -420,7 +478,16 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.conviction.strategies>
   | ReturnType<typeof queryKeys.conviction.registeredHypercerts>
   | ReturnType<typeof queryKeys.conviction.convictionWeights>
-  | ReturnType<typeof queryKeys.conviction.memberPower>;
+  | ReturnType<typeof queryKeys.conviction.memberPower>
+  | typeof queryKeys.community.all
+  | ReturnType<typeof queryKeys.community.garden>
+  | ReturnType<typeof queryKeys.community.pools>
+  | typeof queryKeys.yield.all
+  | ReturnType<typeof queryKeys.yield.allocationsBase>
+  | ReturnType<typeof queryKeys.yield.allocations>
+  | ReturnType<typeof queryKeys.yield.byAsset>
+  | ReturnType<typeof queryKeys.yield.splitConfig>
+  | ReturnType<typeof queryKeys.yield.pendingYield>;
 
 export type WorksQueryKey =
   | typeof queryKeys.works.all

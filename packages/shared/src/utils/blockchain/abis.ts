@@ -79,6 +79,13 @@ export const GARDEN_TOKEN_MODULES_ABI = [
     inputs: [],
     outputs: [{ name: "", type: "address" }],
   },
+  {
+    type: "function",
+    name: "gardensModule",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
 ] as const;
 
 export const HATS_MODULE_ABI = [
@@ -246,6 +253,136 @@ export const HYPERCERT_SIGNAL_POOL_ABI = [
     stateMutability: "nonpayable",
     inputs: [{ name: "newPoints", type: "uint256" }],
     outputs: [],
+  },
+] as const;
+
+export const GARDENS_MODULE_ABI = [
+  {
+    type: "function",
+    name: "getGardenCommunity",
+    stateMutability: "view",
+    inputs: [{ name: "garden", type: "address" }],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "getGardenSignalPools",
+    stateMutability: "view",
+    inputs: [{ name: "garden", type: "address" }],
+    outputs: [{ name: "", type: "address[]" }],
+  },
+  {
+    type: "function",
+    name: "getGardenWeightScheme",
+    stateMutability: "view",
+    inputs: [{ name: "garden", type: "address" }],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+  {
+    type: "function",
+    name: "getGardenPowerRegistry",
+    stateMutability: "view",
+    inputs: [{ name: "garden", type: "address" }],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "goodsToken",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "STAKE_AMOUNT_PER_MEMBER",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;
+
+export const YIELD_SPLITTER_ABI = [
+  {
+    type: "function",
+    name: "splitYield",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "asset", type: "address" },
+      { name: "vault", type: "address" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "setSplitRatio",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "cookieJarBps", type: "uint256" },
+      { name: "fractionsBps", type: "uint256" },
+      { name: "juiceboxBps", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "getSplitConfig",
+    stateMutability: "view",
+    inputs: [{ name: "garden", type: "address" }],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        components: [
+          { name: "cookieJarBps", type: "uint256" },
+          { name: "fractionsBps", type: "uint256" },
+          { name: "juiceboxBps", type: "uint256" },
+        ],
+      },
+    ],
+  },
+  {
+    type: "function",
+    name: "pendingYield",
+    stateMutability: "view",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "asset", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "minYieldThreshold",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;
+
+export const JUICEBOX_ABI = [
+  {
+    type: "function",
+    name: "pay",
+    stateMutability: "payable",
+    inputs: [
+      { name: "projectId", type: "uint256" },
+      { name: "token", type: "address" },
+      { name: "amount", type: "uint256" },
+      { name: "beneficiary", type: "address" },
+      { name: "minReturnedTokens", type: "uint256" },
+      { name: "memo", type: "string" },
+      { name: "metadata", type: "bytes" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "tokenOf",
+    stateMutability: "view",
+    inputs: [{ name: "projectId", type: "uint256" }],
+    outputs: [{ name: "", type: "address" }],
   },
 ] as const;
 

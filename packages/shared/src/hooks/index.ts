@@ -113,6 +113,17 @@ export { useMemberVotingPower } from "./conviction/useMemberVotingPower";
 export { useAllocateHypercertSupport } from "./conviction/useAllocateHypercertSupport";
 export { useRegisterHypercert } from "./conviction/useRegisterHypercert";
 export { useDeregisterHypercert } from "./conviction/useDeregisterHypercert";
+export { useSetDecay } from "./conviction/useSetDecay";
+export { useSetPointsPerVoter } from "./conviction/useSetPointsPerVoter";
+export { useSetRoleHatIds } from "./conviction/useSetRoleHatIds";
+export { useGardenCommunity } from "./conviction/useGardenCommunity";
+export { useGardenPools } from "./conviction/useGardenPools";
+
+// ============================================================================
+// YIELD
+// ============================================================================
+export { useAllocateYield } from "./yield/useAllocateYield";
+export { useYieldAllocations } from "./yield/useYieldAllocations";
 
 // ============================================================================
 // GARDEN

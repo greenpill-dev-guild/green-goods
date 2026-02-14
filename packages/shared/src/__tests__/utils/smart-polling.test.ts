@@ -7,19 +7,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Create hoisted mocks
-const { mockQueryData, mockInvalidateQueries, mockGetQueryData } = vi.hoisted(() => {
-  const data = new Map<string, unknown[]>();
-  const invalidate = vi.fn();
-  const getData = vi.fn((key: unknown[]) => {
-    const keyStr = JSON.stringify(key);
-    return data.get(keyStr) || [];
-  });
-  return {
-    mockQueryData: data,
-    mockInvalidateQueries: invalidate,
-    mockGetQueryData: getData,
-  };
-});
+const { mockQueryData, mockInvalidateQueries, mockGetQueryData, mockLoggerWarn } = vi.hoisted(
+  () => {
+    const data = new Map<string, unknown[]>();
+    const invalidate = vi.fn();
+    const getData = vi.fn((key: unknown[]) => {
+      const keyStr = JSON.stringify(key);
+      return data.get(keyStr) || [];
+    });
+    const logWarn = vi.fn();
+    return {
+      mockQueryData: data,
+      mockInvalidateQueries: invalidate,
+      mockGetQueryData: getData,
+      mockLoggerWarn: logWarn,
+    };
+  }
+);
 
 // Mock react-query
 vi.mock("../../config/react-query", () => ({
@@ -31,6 +35,15 @@ vi.mock("../../config/react-query", () => ({
 
 vi.mock("../../utils/debug", () => ({
   debugLog: vi.fn(),
+}));
+
+vi.mock("../../modules/app/logger", () => ({
+  logger: {
+    warn: mockLoggerWarn,
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
 }));
 
 import { pollQueriesAfterTransaction } from "../../utils/blockchain/polling";
@@ -190,15 +203,13 @@ describe("smart polling with early exit", () => {
   });
 
   it("should skip polling when no query keys provided", async () => {
-    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
-
     await pollQueriesAfterTransaction({
       queryKeys: [],
     });
 
-    expect(consoleWarn).toHaveBeenCalledWith("[Polling] No query keys provided, skipping polling");
+    expect(mockLoggerWarn).toHaveBeenCalledWith(
+      "[Polling] No query keys provided, skipping polling"
+    );
     expect(mockInvalidateQueries).not.toHaveBeenCalled();
-
-    consoleWarn.mockRestore();
   });
 });
