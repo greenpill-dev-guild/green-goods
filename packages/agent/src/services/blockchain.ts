@@ -75,6 +75,7 @@ interface CacheEntry<T> {
 class Blockchain {
   private chain: Chain;
   private chainId: number;
+  private rpcUrl: string | undefined;
   private publicClient: ReturnType<typeof createPublicClient>;
   private operatorCache: Map<string, CacheEntry<boolean>> = new Map();
   private gardenerCache: Map<string, CacheEntry<boolean>> = new Map();
@@ -83,6 +84,7 @@ class Blockchain {
   constructor(chain: Chain, rpcUrl?: string) {
     this.chain = chain;
     this.chainId = chain.id;
+    this.rpcUrl = rpcUrl;
     this.publicClient = createPublicClient({
       chain,
       transport: http(rpcUrl),
@@ -99,7 +101,7 @@ class Blockchain {
     const walletClient = createWalletClient({
       account,
       chain: this.chain,
-      transport: http(),
+      transport: http(this.rpcUrl),
     });
 
     const tx = await submitWorkBot(
@@ -129,7 +131,7 @@ class Blockchain {
     const walletClient = createWalletClient({
       account,
       chain: this.chain,
-      transport: http(),
+      transport: http(this.rpcUrl),
     });
 
     const tx = await submitApprovalBot(
@@ -268,10 +270,23 @@ class Blockchain {
 
 let _blockchain: Blockchain | null = null;
 
+/**
+ * Initialize the blockchain singleton.
+ *
+ * If already initialized with a different chain, logs a warning and returns
+ * the existing instance. Call `resetBlockchain()` first to switch chains.
+ */
 export function initBlockchain(chain: Chain, rpcUrl?: string): Blockchain {
-  if (!_blockchain) {
-    _blockchain = new Blockchain(chain, rpcUrl);
+  if (_blockchain) {
+    if (_blockchain.getChainId() !== chain.id) {
+      log.warn(
+        { existing: _blockchain.getChainId(), requested: chain.id },
+        "Blockchain already initialized with a different chain. Call resetBlockchain() to switch."
+      );
+    }
+    return _blockchain;
   }
+  _blockchain = new Blockchain(chain, rpcUrl);
   return _blockchain;
 }
 
@@ -280,6 +295,12 @@ export function getBlockchain(): Blockchain {
     throw new Error("Blockchain not initialized. Call initBlockchain() first.");
   }
   return _blockchain;
+}
+
+/** Reset the singleton to allow re-initialization with a different chain. */
+export function resetBlockchain(): void {
+  _blockchain?.clearCache();
+  _blockchain = null;
 }
 
 // Re-export convenience functions

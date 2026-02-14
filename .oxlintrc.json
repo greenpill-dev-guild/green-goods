@@ -23,7 +23,15 @@
     "react/no-unescaped-entities": "warn",
     "react/no-unknown-property": [
       "error",
-      { "ignore": ["popover", "popovertarget", "popoverTarget", "popovertargetaction", "popoverTargetAction"] }
+      {
+        "ignore": [
+          "popover",
+          "popovertarget",
+          "popoverTarget",
+          "popovertargetaction",
+          "popoverTargetAction"
+        ]
+      }
     ],
     "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/no-explicit-any": "off",
