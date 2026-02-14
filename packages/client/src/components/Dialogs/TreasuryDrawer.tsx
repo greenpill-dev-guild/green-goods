@@ -3,6 +3,7 @@ import {
   type GardenVault,
   type VaultDeposit,
   AssetSelector,
+  ConfirmDialog,
   formatAddress,
   formatTokenAmount,
   getNetDeposited,
@@ -44,6 +45,7 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
   const { isOnline } = useOffline();
   const withdrawMutation = useVaultWithdraw();
   const [sharesInput, setSharesInput] = useState("");
+  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
 
   const maxShares = deposit.shares;
   const inputError = useMemo(() => validateDecimalInput(sharesInput, 18), [sharesInput]);
@@ -58,6 +60,7 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
   }, [sharesInput, inputError]);
 
   const assetDecimals = getVaultAssetDecimals(vault.asset, vault.chainId);
+  const assetSymbol = getVaultAssetSymbol(vault.asset, vault.chainId);
   const debouncedShares = useDebouncedValue(parsedShares, 300);
 
   const { preview } = useVaultPreview({
@@ -67,7 +70,7 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
     enabled: Boolean(primaryAddress && debouncedShares > 0n),
   });
 
-  const onWithdraw = () => {
+  const executeWithdraw = () => {
     if (!primaryAddress || parsedShares <= 0n || parsedShares > maxShares) return;
 
     withdrawMutation.mutate(
@@ -86,9 +89,7 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
   return (
     <div className="rounded-lg border border-stroke-soft bg-bg-white p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-text-strong">
-          {getVaultAssetSymbol(vault.asset, vault.chainId)}
-        </p>
+        <p className="text-sm font-medium text-text-strong">{assetSymbol}</p>
         <p className="text-xs text-text-sub">
           {formatMessage({ id: "app.treasury.myShares" })}: {formatTokenAmount(maxShares, 18)}
         </p>
@@ -106,8 +107,9 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
           value={sharesInput}
           onChange={(event) => setSharesInput(event.target.value)}
           placeholder={formatMessage({ id: "app.treasury.withdrawShares" })}
+          aria-label={formatMessage({ id: "app.treasury.withdrawShares" })}
           aria-invalid={Boolean(inputError)}
-          className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+          className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
             inputError
               ? "border-error-base focus:border-error-base"
               : "border-stroke-sub bg-bg-white focus:border-primary-base"
@@ -116,7 +118,7 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
         <button
           type="button"
           onClick={() => setSharesInput(formatUnits(maxShares, 18))}
-          className="rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-xs font-medium text-text-sub hover:bg-bg-weak"
+          className="min-h-11 min-w-11 rounded-md border border-stroke-sub bg-bg-white px-3 py-2.5 text-xs font-medium text-text-sub hover:bg-bg-weak"
         >
           {formatMessage({ id: "app.treasury.max" })}
         </button>
@@ -129,7 +131,7 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
 
       <button
         type="button"
-        onClick={onWithdraw}
+        onClick={() => setShowWithdrawConfirm(true)}
         disabled={
           !isOnline || parsedShares <= 0n || parsedShares > maxShares || withdrawMutation.isPending
         }
@@ -139,6 +141,29 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
           ? formatMessage({ id: "app.treasury.withdrawing" })
           : formatMessage({ id: "app.treasury.withdraw" })}
       </button>
+
+      <ConfirmDialog
+        isOpen={showWithdrawConfirm}
+        onClose={() => setShowWithdrawConfirm(false)}
+        title={formatMessage({ id: "app.treasury.confirmWithdrawTitle" })}
+        description={formatMessage(
+          { id: "app.treasury.confirmWithdrawDescription" },
+          {
+            shares: formatTokenAmount(parsedShares, 18),
+            asset: assetSymbol,
+            estimatedValue: preview
+              ? formatTokenAmount(preview.previewAssets, assetDecimals)
+              : "--",
+          }
+        )}
+        confirmLabel={formatMessage({ id: "app.treasury.confirmWithdrawAction" })}
+        variant="warning"
+        isLoading={withdrawMutation.isPending}
+        onConfirm={() => {
+          setShowWithdrawConfirm(false);
+          executeWithdraw();
+        }}
+      />
     </div>
   );
 }
@@ -154,7 +179,12 @@ export function TreasuryDrawer({
   const { isOnline } = useOffline();
   const depositMutation = useVaultDeposit();
 
-  const { vaults, isLoading: vaultsLoading } = useGardenVaults(gardenAddress, { enabled: isOpen });
+  const {
+    vaults,
+    isLoading: vaultsLoading,
+    isError: vaultsError,
+    refetch: refetchVaults,
+  } = useGardenVaults(gardenAddress, { enabled: isOpen });
   const { deposits } = useVaultDeposits(gardenAddress, {
     userAddress: primaryAddress ?? undefined,
     enabled: isOpen && Boolean(primaryAddress),
@@ -232,9 +262,28 @@ export function TreasuryDrawer({
     >
       <div className="space-y-5 p-4 pb-6">
         {!isOnline && (
-          <p className="rounded-md border border-warning-light bg-warning-lighter px-3 py-2 text-xs text-warning-dark">
+          <p
+            role="status"
+            className="rounded-md border border-warning-light bg-warning-lighter px-3 py-2 text-xs text-warning-dark"
+          >
             {formatMessage({ id: "app.treasury.offlineWarning" })}
           </p>
+        )}
+
+        {vaultsError && (
+          <div
+            role="alert"
+            className="rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark"
+          >
+            <p>{formatMessage({ id: "app.treasury.errorLoading" })}</p>
+            <button
+              type="button"
+              onClick={() => refetchVaults?.()}
+              className="mt-2 rounded-lg bg-primary-base px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover active:scale-95"
+            >
+              {formatMessage({ id: "app.common.tryAgain" })}
+            </button>
+          </div>
         )}
 
         <section>
@@ -242,9 +291,14 @@ export function TreasuryDrawer({
             {formatMessage({ id: "app.treasury.overview" })}
           </h3>
           {vaultsLoading && (
-            <p className="mt-2 text-sm text-text-soft">
-              {formatMessage({ id: "app.treasury.loadingVaults" })}
-            </p>
+            <div className="mt-2 space-y-2.5 animate-pulse">
+              {Array.from({ length: 2 }, (_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="h-3 flex-1 rounded bg-bg-weak" />
+                  <div className="h-3 w-16 rounded bg-bg-weak" />
+                </div>
+              ))}
+            </div>
           )}
           {!vaultsLoading && vaults.length === 0 && (
             <p className="mt-2 text-sm text-text-soft">
@@ -345,8 +399,9 @@ export function TreasuryDrawer({
                 value={amountInput}
                 onChange={(event) => setAmountInput(event.target.value)}
                 placeholder={formatMessage({ id: "app.treasury.depositAmount" })}
+                aria-label={formatMessage({ id: "app.treasury.depositAmount" })}
                 aria-invalid={Boolean(inputError)}
-                className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+                className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
                   inputError
                     ? "border-error-base focus:border-error-base"
                     : "border-stroke-sub bg-bg-white focus:border-primary-base"
@@ -358,7 +413,7 @@ export function TreasuryDrawer({
                   if (!balance) return;
                   setAmountInput(formatUnits(balance.value, balance.decimals));
                 }}
-                className="rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-xs font-medium text-text-sub hover:bg-bg-weak"
+                className="min-h-11 min-w-11 rounded-md border border-stroke-sub bg-bg-white px-3 py-2.5 text-xs font-medium text-text-sub hover:bg-bg-weak"
               >
                 {formatMessage({ id: "app.treasury.max" })}
               </button>
