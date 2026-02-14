@@ -130,7 +130,7 @@ describe("components/hypercerts/AttestationSelector", () => {
       render(createElement(AttestationSelector, defaultProps));
 
       // Should show "4 attestations available" or similar
-      expect(screen.getByText(/4/)).toBeInTheDocument();
+      expect(screen.getByText(/4 available/)).toBeInTheDocument();
     });
 
     it("shows gardener names", () => {
