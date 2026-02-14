@@ -127,4 +127,12 @@ contract MockHatsModule is IHatsModule {
     function isCommunityOf(address garden, address account) external view returns (bool) {
         return communityOf[garden][account];
     }
+
+    function getGardenHatIds(address)
+        external
+        pure
+        returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, bool)
+    {
+        return (0, 0, 0, 0, 0, 0, 0, false);
+    }
 }

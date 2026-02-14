@@ -47,6 +47,8 @@ abstract contract DeployHelper is Script {
         address karmaGAPModule;
         address octantModule;
         address octantFactory;
+        address gardensModule;
+        address yieldSplitter;
         address gardenerAccountLogic; // GardenerAccount implementation for user smart accounts
         address gardenerRegistry; // Gardener Registry (mainnet only, address(0) on L2s)
         bytes32 assessmentSchemaUID;
@@ -125,6 +127,7 @@ abstract contract DeployHelper is Script {
         if (chainId == 11_155_111) return "sepolia";
         if (chainId == 31_337) return "localhost";
         if (chainId == 42_161) return "arbitrum";
+        if (chainId == 421_614) return "arbitrumSepolia";
         if (chainId == 84_532) return "baseSepolia";
         if (chainId == 42_220) return "celo";
 
@@ -205,6 +208,8 @@ abstract contract DeployHelper is Script {
         console.log("ActionRegistry:", result.actionRegistry);
         console.log("OctantModule:", result.octantModule);
         console.log("OctantFactory:", result.octantFactory);
+        console.log("GardensModule:", result.gardensModule);
+        console.log("YieldSplitter:", result.yieldSplitter);
 
         string memory obj = "deployment";
         vm.serializeAddress(obj, "deploymentRegistry", result.deploymentRegistry);
@@ -220,6 +225,8 @@ abstract contract DeployHelper is Script {
         vm.serializeAddress(obj, "karmaGAPModule", result.karmaGAPModule);
         vm.serializeAddress(obj, "octantModule", result.octantModule);
         vm.serializeAddress(obj, "octantFactory", result.octantFactory);
+        vm.serializeAddress(obj, "gardensModule", result.gardensModule);
+        vm.serializeAddress(obj, "yieldSplitter", result.yieldSplitter);
         vm.serializeAddress(obj, "gardenerAccountLogic", result.gardenerAccountLogic);
         vm.serializeAddress(obj, "gardenerRegistry", result.gardenerRegistry);
 
@@ -323,26 +330,13 @@ abstract contract DeployHelper is Script {
 
     /// @notice Generate schema string from fields array using JavaScript utility
     function _generateSchemaString(string memory schemaName) internal virtual returns (string memory) {
-        string[] memory inputs = new string[](5);
-        inputs[0] = "pnpm";
-        inputs[1] = "dlx";
-        inputs[2] = "tsx";
-        inputs[3] = "script/utils/generate-schemas.ts";
-        inputs[4] = schemaName;
+        string[] memory inputs = new string[](4);
+        inputs[0] = "bun";
+        inputs[1] = "run";
+        inputs[2] = "script/utils/generate-schemas.ts";
+        inputs[3] = schemaName;
 
         bytes memory result = vm.ffi(inputs);
         return string(result);
-    }
-
-    /// @notice Print deployment summary
-    // solhint-disable-next-line no-empty-blocks
-    function _printDeploymentSummary(DeploymentResult memory /* result */ ) internal view {
-        // TODO: Implement deployment summary logging
-    }
-
-    /// @notice Generate verification commands
-    // solhint-disable-next-line no-empty-blocks
-    function _generateVerificationCommands(DeploymentResult memory /* result */ ) internal view {
-        // TODO: Generate verification commands for deployment
     }
 }

@@ -23,6 +23,8 @@ import { ResolverStub } from "../../src/resolvers/ResolverStub.sol";
 import { HatsModule } from "../../src/modules/Hats.sol";
 import { KarmaGAPModule } from "../../src/modules/Karma.sol";
 import { OctantModule } from "../../src/modules/Octant.sol";
+import { GardensModule } from "../../src/modules/Gardens.sol";
+import { YieldSplitter } from "../../src/yield/YieldSplitter.sol";
 import { HatsLib } from "../../src/lib/Hats.sol";
 
 /// @notice Schema registry interface
@@ -82,6 +84,8 @@ abstract contract DeploymentBase is Test, DeployHelper {
     HatsModule public hatsModule;
     KarmaGAPModule public karmaGAPModule;
     OctantModule public octantModule;
+    GardensModule public gardensModule;
+    YieldSplitter public yieldSplitter;
     address public gardenerAccountLogic; // Gardener implementation for user smart accounts (Kernel v3)
     GardenerRegistry public gardenerRegistry; // Gardener Registry (mainnet/sepolia only, null on L2s)
 
@@ -226,16 +230,41 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // 9. Deploy OctantModule (factory configured post-deployment if available)
         octantModule = OctantModule(_deployOctantModule(owner, address(0), salt, factory));
 
-        // 10. Wire modules
+        // 10. Deploy GardensModule (registryFactory/powerRegistryFactory are address(0) for testnet)
+        gardensModule = GardensModule(
+            _deployGardensModule(
+                owner,
+                address(0), // registryFactory — Gardens V2 not deployed on all chains yet
+                address(0), // powerRegistryFactory — Gardens V2 not deployed on all chains yet
+                address(0), // goodsToken — configured post-deployment when available
+                HatsLib.getHatsProtocol(),
+                address(hatsModule),
+                salt,
+                factory
+            )
+        );
+
+        // 11. Deploy YieldSplitter ($7 threshold = 7e18 for 18-decimal stablecoins)
+        yieldSplitter =
+            YieldSplitter(_deployYieldSplitter(owner, address(octantModule), address(hatsModule), 7e18, salt, factory));
+
+        // 12. Wire modules
         hatsModule.setGardenToken(address(gardenToken));
         hatsModule.setKarmaGAPModule(address(karmaGAPModule));
         gardenToken.setHatsModule(address(hatsModule));
         gardenToken.setKarmaGAPModule(address(karmaGAPModule));
         gardenToken.setOctantModule(address(octantModule));
+        gardenToken.setGardensModule(address(gardensModule));
         octantModule.setGardenToken(address(gardenToken));
+        gardensModule.setGardenToken(address(gardenToken));
         karmaGAPModule.setHatsModule(address(hatsModule));
         workApprovalResolver.setKarmaGAPModule(address(karmaGAPModule));
         assessmentResolver.setKarmaGAPModule(address(karmaGAPModule));
+        // NOTE: YieldSplitter ↔ OctantModule wiring is per-garden, not per-deployment.
+        // When a garden is created, the operator calls:
+        //   octantModule.setDonationAddress(garden, address(yieldSplitter));
+        // This tells OctantModule to direct vault shares to YieldSplitter for that garden.
+        // The YieldSplitter's octantModule address is set at initialization (step 11 above).
     }
 
     /// @notice Deploy DeploymentRegistry with governance and proxy
@@ -468,6 +497,77 @@ abstract contract DeploymentBase is Test, DeployHelper {
         return predicted;
     }
 
+    /// @notice Deploy GardensModule with CREATE2 + proxy
+    function _deployGardensModule(
+        address owner,
+        address _registryFactory,
+        address _powerRegistryFactory,
+        address _goodsToken,
+        address _hatsProtocol,
+        address _hatsModule,
+        bytes32 salt,
+        address factory
+    )
+        internal
+        returns (address)
+    {
+        GardensModule gardensImpl = new GardensModule();
+        bytes memory initData = abi.encodeWithSelector(
+            GardensModule.initialize.selector,
+            owner,
+            _registryFactory,
+            _powerRegistryFactory,
+            _goodsToken,
+            _hatsProtocol,
+            _hatsModule
+        );
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(gardensImpl), initData));
+        bytes32 gardensSalt = keccak256(abi.encodePacked(salt, "GardensModuleProxy"));
+        address predicted = Create2.computeAddress(gardensSalt, keccak256(proxyBytecode), factory);
+        _logCreate2Prediction("GardensModule proxy", gardensSalt, factory, predicted);
+
+        if (!_isDeployed(predicted)) {
+            address deployed = _deployCreate2(proxyBytecode, gardensSalt, factory);
+            if (deployed != predicted) {
+                revert DeploymentAddressMismatch();
+            }
+        }
+
+        return predicted;
+    }
+
+    /// @notice Deploy YieldSplitter with CREATE2 + proxy
+    function _deployYieldSplitter(
+        address owner,
+        address _octantModule,
+        address _hatsModule,
+        uint256 _minYieldThreshold,
+        bytes32 salt,
+        address factory
+    )
+        internal
+        returns (address)
+    {
+        YieldSplitter yieldImpl = new YieldSplitter();
+        bytes memory initData =
+            abi.encodeWithSelector(YieldSplitter.initialize.selector, owner, _octantModule, _hatsModule, _minYieldThreshold);
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(yieldImpl), initData));
+        bytes32 yieldSalt = keccak256(abi.encodePacked(salt, "YieldSplitterProxy"));
+        address predicted = Create2.computeAddress(yieldSalt, keccak256(proxyBytecode), factory);
+        _logCreate2Prediction("YieldSplitter proxy", yieldSalt, factory, predicted);
+
+        if (!_isDeployed(predicted)) {
+            address deployed = _deployCreate2(proxyBytecode, yieldSalt, factory);
+            if (deployed != predicted) {
+                revert DeploymentAddressMismatch();
+            }
+        }
+
+        return predicted;
+    }
+
     /// @notice Deploy WorkResolver with ResolverStub + UUPS + CREATE2
     function _deployWorkResolver(
         address eas,
@@ -574,6 +674,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(fullProxyBytecode, assessmentResolverSalt, factory);
+            if (deployed != predicted) {
+                revert DeploymentAddressMismatch();
+            }
             UUPSUpgradeable(deployed).upgradeTo(address(implementation));
         }
 
@@ -703,6 +806,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
     }
 
     /// @notice Get EAS addresses for a chain
+    /// @dev These addresses MUST stay in sync with deployments/networks.json.
+    ///      The pure lookup avoids an extra vm.readFile in the hot path, but any
+    ///      new chain added to networks.json must also be added here.
     function _getEASForChain(uint256 chainId) internal pure virtual returns (address eas, address registry) {
         if (chainId == 11_155_111) {
             return (0xC2679fBD37d54388Ce493F1DB75320D236e1815e, 0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0);

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
+/* solhint-disable no-console */
 
 import { Script } from "forge-std/Script.sol";
+import { console } from "forge-std/console.sol";
 
 import { DeploymentBase } from "../test/helpers/DeploymentBase.sol";
 import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
@@ -10,7 +12,9 @@ import { Capital } from "../src/registries/Action.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import { IGardensModule } from "../src/interfaces/IGardensModule.sol";
 import { IOctantFactory } from "../src/interfaces/IOctantFactory.sol";
+// GardensModule and YieldSplitter deployed via inherited DeploymentBase
 import { AaveV3YDSStrategy } from "../src/strategies/AaveV3YDSStrategy.sol";
 import { MockYDSStrategy } from "../src/mocks/MockYDSStrategy.sol";
 
@@ -46,9 +50,6 @@ contract Deploy is Script, DeploymentBase {
     function run() external {
         DeploymentMode memory mode = _parseDeploymentMode();
         NetworkConfig memory config = loadNetworkConfig();
-
-        // Log chain-aware deployment strategy
-        _logDeploymentStrategy();
 
         vm.startBroadcast();
 
@@ -112,9 +113,8 @@ contract Deploy is Script, DeploymentBase {
         // solhint-disable-next-line no-empty-blocks
         try DeploymentRegistry(address(deploymentRegistry)).addToAllowlist(msg.sender) {
             // Success - deployer allowlisted
-            // solhint-disable-next-line no-empty-blocks
         } catch {
-            // Ignore failure - deployment continues
+            console.log("WARNING: Failed to add deployer to allowlist - manual action required");
         }
 
         // Add multisig to allowlist if configured
@@ -122,9 +122,8 @@ contract Deploy is Script, DeploymentBase {
             // solhint-disable-next-line no-empty-blocks
             try DeploymentRegistry(address(deploymentRegistry)).addToAllowlist(config.multisig) {
                 // Success - multisig allowlisted
-                // solhint-disable-next-line no-empty-blocks
             } catch {
-                // Ignore failure - deployment continues
+                console.log("WARNING: Failed to add multisig to allowlist - manual action required");
             }
             _initiateGovernanceTransfer(config.multisig);
         }
@@ -151,7 +150,8 @@ contract Deploy is Script, DeploymentBase {
         }
 
         if (block.chainid == SEPOLIA_CHAIN_ID) {
-            _configureSepoliaOctantAssets();
+            // Sepolia uses explicit env-driven assets (same as generic path)
+            _configureExplicitOctantAssets();
             return;
         }
 
@@ -178,12 +178,6 @@ contract Deploy is Script, DeploymentBase {
 
         octantModule.setSupportedAsset(wethAsset, wethStrategy);
         octantModule.setSupportedAsset(daiAsset, daiStrategy);
-    }
-
-    /// @notice Configure Sepolia with explicit mock/test assets and mock strategies
-    /// @dev Requires OCTANT_WETH_ASSET + OCTANT_DAI_ASSET when strategy overrides are not provided.
-    function _configureSepoliaOctantAssets() internal {
-        _configureExplicitOctantAssets();
     }
 
     /// @notice Configure supported assets entirely from explicit env variables
@@ -290,18 +284,18 @@ contract Deploy is Script, DeploymentBase {
             location: location,
             bannerImage: bannerImage,
             metadata: metadata,
-            openJoining: openJoining
+            openJoining: openJoining,
+            weightScheme: IGardensModule.WeightScheme.Linear
         });
     }
 
     /// @notice Upload actions to IPFS and return hashes
     // solhint-disable-next-line code-complexity
     function _uploadActionsToIPFS(uint256 expectedCount) internal returns (string[] memory) {
-        string[] memory inputs = new string[](4);
-        inputs[0] = "pnpm";
-        inputs[1] = "dlx";
-        inputs[2] = "tsx";
-        inputs[3] = "script/utils/ipfs-uploader.ts";
+        string[] memory inputs = new string[](3);
+        inputs[0] = "bun";
+        inputs[1] = "run";
+        inputs[2] = "script/utils/ipfs-uploader.ts";
 
         try vm.ffi(inputs) returns (bytes memory result) {
             if (result.length == 0) {
@@ -354,6 +348,9 @@ contract Deploy is Script, DeploymentBase {
     }
 
     /// @notice Find bounds of JSON array in potentially noisy output
+    /// @dev Uses a simple last-`]` / nearest-`[` heuristic. This works for flat
+    ///      string arrays (IPFS hashes) but does NOT handle nested arrays or
+    ///      bracket characters inside JSON string values.
     function _findJsonArrayBounds(bytes memory resultBytes) internal pure returns (int256 start, int256 end) {
         start = -1;
         end = -1;
@@ -442,14 +439,6 @@ contract Deploy is Script, DeploymentBase {
     // HELPER METHODS
     // ============================================
 
-    /// @notice Log deployment strategy based on chain
-    // solhint-disable-next-line no-console
-    function _logDeploymentStrategy() internal view {
-        uint256 chainId = block.chainid;
-
-        if (_isMainnetChain(chainId)) { } else { }
-    }
-
     /// @notice Parse deployment mode from environment
     function _parseDeploymentMode() internal view returns (DeploymentMode memory) {
         DeploymentMode memory mode;
@@ -486,40 +475,18 @@ contract Deploy is Script, DeploymentBase {
             // solhint-disable-next-line no-empty-blocks
             try DeploymentRegistry(address(deploymentRegistry)).addToAllowlist(multisig) {
                 // Success - multisig added to allowlist
-                // solhint-disable-next-line no-empty-blocks
             } catch {
-                // Ignore failure - governance transfer may still work
+                console.log("WARNING: Failed to add multisig to allowlist before governance transfer");
             }
         }
 
         // solhint-disable-next-line no-empty-blocks
         try DeploymentRegistry(address(deploymentRegistry)).initiateGovernanceTransfer(multisig) {
-            // Success - governance transfer initiated
-            // solhint-disable-next-line no-empty-blocks
+            console.log("Governance transfer initiated to:", multisig);
         } catch {
-            // Ignore failure - can be done manually post-deployment
+            console.log("WARNING: Failed to initiate governance transfer - manual action required post-deployment");
+            console.log("  Target multisig:", multisig);
         }
-    }
-
-    /// @notice Parse ISO timestamp (simplified)
-    function _parseISOTimestamp(string memory isoTimestamp) internal view returns (uint256) {
-        bytes memory timestampBytes = bytes(isoTimestamp);
-
-        if (
-            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2"
-                && timestampBytes[3] == "4"
-        ) {
-            return 1_704_067_200; // 2024-01-01
-        }
-
-        if (
-            timestampBytes.length >= 10 && timestampBytes[0] == "2" && timestampBytes[1] == "0" && timestampBytes[2] == "2"
-                && timestampBytes[3] == "5"
-        ) {
-            return 1_767_225_599; // 2025-12-31
-        }
-
-        return block.timestamp;
     }
 
     /// @notice Parse capital type from string
@@ -570,9 +537,23 @@ contract Deploy is Script, DeploymentBase {
     // ============================================
 
     /// @notice Print deployment summary
-    // solhint-disable-next-line no-empty-blocks
     function _printDeploymentSummary() internal view {
-        // TODO: Implement deployment summary logging
+        console.log("\n=== Deployment Summary ===");
+        console.log("Chain ID:", block.chainid);
+        console.log("GardenToken:", address(gardenToken));
+        console.log("ActionRegistry:", address(actionRegistry));
+        console.log("DeploymentRegistry:", address(deploymentRegistry));
+        console.log("HatsModule:", address(hatsModule));
+        console.log("OctantModule:", address(octantModule));
+        console.log("GardensModule:", address(gardensModule));
+        console.log("YieldSplitter:", address(yieldSplitter));
+        console.log("WorkResolver:", address(workResolver));
+        console.log("WorkApprovalResolver:", address(workApprovalResolver));
+        console.log("AssessmentResolver:", address(assessmentResolver));
+        if (gardenAddresses.length > 0) {
+            console.log("Gardens minted:", gardenAddresses.length);
+        }
+        console.log("==========================\n");
     }
 
     /// @notice Update only schema UIDs in existing deployment file (schema-only mode)
@@ -605,6 +586,8 @@ contract Deploy is Script, DeploymentBase {
         result.karmaGAPModule = address(karmaGAPModule);
         result.octantModule = address(octantModule);
         result.octantFactory = _getOctantFactoryAddress();
+        result.gardensModule = address(gardensModule);
+        result.yieldSplitter = address(yieldSplitter);
         result.gardenerAccountLogic = gardenerAccountLogic;
         result.gardenerRegistry = address(gardenerRegistry);
         result.assessmentSchemaUID = assessmentSchemaUID;
@@ -660,9 +643,16 @@ contract Deploy is Script, DeploymentBase {
         }
     }
 
-    /// @notice Generate verification commands
-    // solhint-disable-next-line no-empty-blocks
+    /// @notice Generate verification commands for deployed contracts
     function _generateVerificationCommands() internal view {
-        // TODO: Generate verification commands for deployment
+        if (address(gardenToken) == address(0)) return;
+        console.log("\n=== Verification Commands ===");
+        console.log("Run these if auto-verification failed:\n");
+        string memory cid = vm.toString(block.chainid);
+        string memory gt = vm.toString(address(gardenToken));
+        string memory ar = vm.toString(address(actionRegistry));
+        console.log(string.concat("forge verify-contract ", gt, " src/tokens/Garden.sol:GardenToken --chain ", cid));
+        console.log(string.concat("forge verify-contract ", ar, " src/registries/Action.sol:ActionRegistry --chain ", cid));
+        console.log("=============================\n");
     }
 }
