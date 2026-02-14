@@ -8,14 +8,19 @@ import { render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Mock the useRole hook
 const mockUseRole = vi.fn();
 
-vi.mock("@green-goods/shared/hooks", () => ({
-  useRole: () => mockUseRole(),
-}));
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    useRole: () => mockUseRole(),
+  };
+});
 
 // Mock the DashboardLayoutSkeleton
 vi.mock("@/components/Layout/DashboardLayoutSkeleton", () => ({
@@ -23,6 +28,15 @@ vi.mock("@/components/Layout/DashboardLayoutSkeleton", () => ({
 }));
 
 import RequireDeployer from "../../routes/RequireDeployer";
+
+const messages: Record<string, string> = {
+  "app.admin.auth.unauthorized": "Unauthorized",
+  "app.admin.auth.noPermission": "You don't have permission to access this area.",
+  "app.admin.auth.requireRole": "To access this area, you need to be:",
+  "app.admin.auth.requireDeployer":
+    "Added to the deployment registry allowlist for contract management",
+  "app.admin.auth.requireOperator": "An operator of at least one garden for garden management",
+};
 
 // Test components
 const ProtectedContent = () => createElement("div", null, "Deployer Only Content");
@@ -34,18 +48,22 @@ const renderWithProviders = (initialRoute = "/deployer") => {
 
   return render(
     createElement(
-      QueryClientProvider,
-      { client: queryClient },
+      IntlProvider,
+      { locale: "en", messages },
       createElement(
-        MemoryRouter,
-        { initialEntries: [initialRoute] },
+        QueryClientProvider,
+        { client: queryClient },
         createElement(
-          Routes,
-          null,
+          MemoryRouter,
+          { initialEntries: [initialRoute] },
           createElement(
-            Route,
-            { element: createElement(RequireDeployer) },
-            createElement(Route, { path: "/deployer", element: createElement(ProtectedContent) })
+            Routes,
+            null,
+            createElement(
+              Route,
+              { element: createElement(RequireDeployer) },
+              createElement(Route, { path: "/deployer", element: createElement(ProtectedContent) })
+            )
           )
         )
       )

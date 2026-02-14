@@ -1,5 +1,9 @@
 import {
+  type Address,
+  ConfirmDialog,
   DEFAULT_CHAIN_ID,
+  DEFAULT_SPLIT_CONFIG,
+  MIN_YIELD_THRESHOLD_USD,
   formatDate,
   formatTokenAmount,
   GARDEN_ROLE_COLORS,
@@ -10,25 +14,33 @@ import {
   getNetDeposited,
   getRoleColorClasses,
   isZeroAddressValue,
+  PoolType,
   queryInvalidation,
   resolveIPFSUrl,
   toastService,
+  useConvictionStrategies,
   useDelayedInvalidation,
   useGardenAssessments,
-  useConvictionStrategies,
-  useGardenVaults,
+  useGardenCommunity,
   useGardenOperations,
   useGardenPermissions,
+  useGardenPools,
   useGardens,
+  useGardenVaults,
   useWorks,
+  useYieldAllocations,
+  WeightScheme,
+  WEIGHT_SCHEME_VALUES,
 } from "@green-goods/shared";
 import {
   RiCheckboxCircleLine,
   RiDeleteBinLine,
   RiExternalLinkLine,
   RiFileList3Line,
+  RiGroupLine,
   RiMedalLine,
   RiAddLine,
+  RiPieChart2Line,
   RiShieldCheckLine,
   RiUserAddLine,
   RiUserLine,
@@ -58,6 +70,10 @@ export default function GardenDetail() {
   const [memberType, setMemberType] = useState<GardenRole>("gardener");
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [membersModalType, setMembersModalType] = useState<GardenRole>("gardener");
+  const [memberToRemove, setMemberToRemove] = useState<{
+    address: string;
+    role: GardenRole;
+  } | null>(null);
 
   const openAddMemberModal = (type: GardenRole) => {
     setMemberType(type);
@@ -88,6 +104,8 @@ export default function GardenDetail() {
 
   const assessments = assessmentList;
 
+  const gardenId = id ?? "";
+
   const {
     addGardener,
     removeGardener,
@@ -102,7 +120,7 @@ export default function GardenDetail() {
     addCommunity,
     removeCommunity,
     isLoading,
-  } = useGardenOperations(id!);
+  } = useGardenOperations(gardenId);
 
   const canManage = garden ? gardenPermissions.canManageGarden(garden) : false;
   const canReview = garden ? gardenPermissions.canReviewGarden(garden) : false;
@@ -116,6 +134,25 @@ export default function GardenDetail() {
     (id as `0x${string}`) ?? undefined,
     { enabled: Boolean(id) && canManage }
   );
+
+  const { community, isLoading: communityLoading } = useGardenCommunity(id as Address | undefined, {
+    enabled: Boolean(id),
+  });
+  const { pools } = useGardenPools(id as Address | undefined, { enabled: Boolean(id) });
+  const { allocations, isLoading: allocationsLoading } = useYieldAllocations(
+    id as Address | undefined,
+    { enabled: Boolean(id) }
+  );
+
+  const hypercertPool = pools.find((p) => p.poolType === PoolType.Hypercert);
+  const actionPool = pools.find((p) => p.poolType === PoolType.Action);
+
+  const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
+
+  const splitConfig = DEFAULT_SPLIT_CONFIG;
+  const cookieJarPct = (splitConfig.cookieJarBps / 100).toFixed(1);
+  const fractionsPct = (splitConfig.fractionsBps / 100).toFixed(1);
+  const juiceboxPct = (splitConfig.juiceboxBps / 100).toFixed(1);
 
   const { vaultNetDeposited, vaultHarvestCount, vaultDepositorCount } = useMemo(() => {
     let netDeposited = 0n;
@@ -140,10 +177,10 @@ export default function GardenDetail() {
   );
 
   // Fetch work submissions for this garden using shared hook
-  const { works } = useWorks(id!);
+  const { works } = useWorks(gardenId);
 
   const baseHeaderProps = {
-    backLink: { to: "/gardens", label: "Back to gardens" },
+    backLink: { to: "/gardens", label: formatMessage({ id: "app.garden.admin.backToGardens" }) },
     sticky: true,
   } as const;
 
@@ -151,8 +188,8 @@ export default function GardenDetail() {
     return (
       <div className="pb-6">
         <PageHeader
-          title="Loading garden…"
-          description="Fetching garden details."
+          title={formatMessage({ id: "app.garden.admin.loadingGarden" })}
+          description={formatMessage({ id: "app.garden.admin.loadingDescription" })}
           {...baseHeaderProps}
         />
         <div className="mt-6 px-6">
@@ -169,13 +206,15 @@ export default function GardenDetail() {
     return (
       <div className="pb-6">
         <PageHeader
-          title="Garden"
-          description="Unable to load garden details."
+          title={formatMessage({ id: "app.garden" })}
+          description={formatMessage({ id: "app.garden.admin.unableToLoad" })}
           {...baseHeaderProps}
         />
         <div className="mt-6 px-6">
-          <div className="rounded-md border border-error-light bg-error-lighter p-4">
-            <p className="text-sm text-error-dark">{error?.message ?? "Garden not found"}</p>
+          <div className="rounded-md border border-error-light bg-error-lighter p-4" role="alert">
+            <p className="text-sm text-error-dark">
+              {error?.message ?? formatMessage({ id: "app.garden.admin.notFound" })}
+            </p>
           </div>
         </div>
       </div>
@@ -271,11 +310,13 @@ export default function GardenDetail() {
               <Link
                 to={`/gardens/${id}/assessments`}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-bg-white/95 text-text-sub shadow-lg backdrop-blur transition hover:bg-bg-white active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
-                title="View Assessments"
-                aria-label="View Assessments"
+                title={formatMessage({ id: "app.garden.admin.viewAssessments" })}
+                aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
               >
                 <RiFileList3Line className="h-5 w-5" />
-                <span className="hidden text-sm font-medium sm:inline">View Assessments</span>
+                <span className="hidden text-sm font-medium sm:inline">
+                  {formatMessage({ id: "app.garden.admin.viewAssessments" })}
+                </span>
               </Link>
               <Link
                 to={`/gardens/${id}/hypercerts`}
@@ -292,11 +333,13 @@ export default function GardenDetail() {
                 <Link
                   to={`/gardens/${id}/assessments/create`}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-base text-primary-foreground shadow-lg transition hover:bg-primary-darker active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
-                  title="New Assessment"
-                  aria-label="New Assessment"
+                  title={formatMessage({ id: "app.garden.admin.newAssessment" })}
+                  aria-label={formatMessage({ id: "app.garden.admin.newAssessment" })}
                 >
                   <RiFileList3Line className="h-5 w-5" />
-                  <span className="hidden text-sm font-medium sm:inline">New Assessment</span>
+                  <span className="hidden text-sm font-medium sm:inline">
+                    {formatMessage({ id: "app.garden.admin.newAssessment" })}
+                  </span>
                 </Link>
               )}
               {canManage && (
@@ -333,22 +376,22 @@ export default function GardenDetail() {
         <section className="grid-area-stats grid grid-cols-1 gap-3 xs:grid-cols-2 sm:gap-4 md:grid-cols-4">
           <StatCard
             icon={<RiUserLine className="h-5 w-5" />}
-            label="Gardeners"
+            label={formatMessage({ id: "app.roles.gardener.plural" })}
             value={garden.gardeners.length}
           />
           <StatCard
             icon={<RiShieldCheckLine className="h-5 w-5" />}
-            label="Operators"
+            label={formatMessage({ id: "app.roles.operator.plural" })}
             value={garden.operators.length}
           />
           <StatCard
             icon={<RiCheckboxCircleLine className="h-5 w-5" />}
-            label="Work"
+            label={formatMessage({ id: "app.garden.admin.statWork" })}
             value={works.length}
           />
           <StatCard
             icon={<RiFileList3Line className="h-5 w-5" />}
-            label="Assessments"
+            label={formatMessage({ id: "app.garden.admin.statAssessments" })}
             value={assessments.length}
           />
           {gardenVaults.length > 0 && (
@@ -370,6 +413,19 @@ export default function GardenDetail() {
               />
             </>
           )}
+          <StatCard
+            icon={<RiGroupLine className="h-5 w-5" />}
+            label={formatMessage({ id: "app.community.title" })}
+            value={
+              communityLoading
+                ? "..."
+                : community
+                  ? formatMessage({
+                      id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}`,
+                    })
+                  : formatMessage({ id: "app.community.noCommunity" })
+            }
+          />
         </section>
 
         {/* Work: Primary Content */}
@@ -438,6 +494,218 @@ export default function GardenDetail() {
               </div>
             </div>
           )}
+
+          {/* Community Status Section */}
+          <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-feature-lighter">
+                  <RiGroupLine className="h-5 w-5 text-feature-dark" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+                    {formatMessage({ id: "app.community.title" })}
+                  </h3>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-sm text-text-sub">
+                    <span
+                      className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? "bg-emerald-500" : "bg-text-soft"}`}
+                      aria-hidden="true"
+                    />
+                    {community
+                      ? formatMessage({ id: "app.community.statusConnected" })
+                      : formatMessage({ id: "app.community.statusNotConnected" })}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Weight scheme display */}
+            <div className="mt-4 rounded-md bg-bg-weak p-3">
+              <p className="text-xs font-medium text-text-soft">
+                {formatMessage({ id: "app.community.weightScheme" })}
+              </p>
+              {communityLoading ? (
+                <p className="mt-1 text-sm text-text-sub">
+                  {formatMessage({ id: "app.community.loading" })}
+                </p>
+              ) : community ? (
+                <div className="mt-1">
+                  <p className="text-sm font-medium text-text-strong">
+                    {formatMessage({
+                      id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}`,
+                    })}
+                  </p>
+                  <p className="mt-0.5 text-xs text-text-sub">
+                    {formatMessage({
+                      id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}.description`,
+                    })}
+                  </p>
+                  <div className="mt-2 flex gap-3 text-xs text-text-sub">
+                    <span>
+                      {formatMessage({ id: "app.roles.community" })}:{" "}
+                      {WEIGHT_SCHEME_VALUES[community.weightScheme].community}
+                    </span>
+                    <span>
+                      {formatMessage({ id: "app.roles.gardener" })}:{" "}
+                      {WEIGHT_SCHEME_VALUES[community.weightScheme].gardener}
+                    </span>
+                    <span>
+                      {formatMessage({ id: "app.roles.operator" })}:{" "}
+                      {WEIGHT_SCHEME_VALUES[community.weightScheme].operator}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-1 text-sm text-text-sub">
+                  {formatMessage({ id: "app.community.noCommunity" })}
+                </p>
+              )}
+            </div>
+
+            {/* Signal pools summary */}
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="rounded-md bg-bg-weak p-3">
+                <p className="text-xs font-medium text-text-soft">
+                  {formatMessage({ id: "app.community.poolType.hypercert" })}
+                </p>
+                <p className="mt-1 text-sm text-text-sub">
+                  {hypercertPool ? (
+                    <AddressDisplay address={hypercertPool.poolAddress} className="text-sm" />
+                  ) : (
+                    <>&mdash;</>
+                  )}
+                </p>
+              </div>
+              <div className="rounded-md bg-bg-weak p-3">
+                <p className="text-xs font-medium text-text-soft">
+                  {formatMessage({ id: "app.community.poolType.action" })}
+                </p>
+                <p className="mt-1 text-sm text-text-sub">
+                  {actionPool ? (
+                    <AddressDisplay address={actionPool.poolAddress} className="text-sm" />
+                  ) : (
+                    <>&mdash;</>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Yield Allocation Section */}
+          <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-lighter">
+                  <RiPieChart2Line className="h-5 w-5 text-primary-dark" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+                    {formatMessage({ id: "app.yield.title" })}
+                  </h3>
+                  <p className="mt-0.5 text-sm text-text-sub">
+                    {formatMessage({ id: "app.yield.splitConfig" })}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Three-way split ratio display */}
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <div className="rounded-md bg-bg-weak p-3 text-center">
+                <p className="text-xs font-medium text-text-soft">
+                  {formatMessage({ id: "app.yield.cookieJar" })}
+                </p>
+                <p className="mt-1 text-lg font-semibold text-text-strong">{cookieJarPct}%</p>
+                <p className="mt-0.5 text-xs text-text-sub">
+                  {formatMessage({ id: "app.yield.cookieJarDescription" })}
+                </p>
+              </div>
+              <div className="rounded-md bg-bg-weak p-3 text-center">
+                <p className="text-xs font-medium text-text-soft">
+                  {formatMessage({ id: "app.yield.fractions" })}
+                </p>
+                <p className="mt-1 text-lg font-semibold text-text-strong">{fractionsPct}%</p>
+                <p className="mt-0.5 text-xs text-text-sub">
+                  {formatMessage({ id: "app.yield.fractionsDescription" })}
+                </p>
+              </div>
+              <div className="rounded-md bg-bg-weak p-3 text-center">
+                <p className="text-xs font-medium text-text-soft">
+                  {formatMessage({ id: "app.yield.juicebox" })}
+                </p>
+                <p className="mt-1 text-lg font-semibold text-text-strong">{juiceboxPct}%</p>
+                <p className="mt-0.5 text-xs text-text-sub">
+                  {formatMessage({ id: "app.yield.juiceboxDescription" })}
+                </p>
+              </div>
+            </div>
+
+            {/* Pending yield indicator */}
+            <div className="mt-3 rounded-md border border-information-light bg-information-lighter px-3 py-2">
+              <p className="text-xs text-information-dark">
+                {formatMessage(
+                  { id: "app.yield.threshold" },
+                  { amount: `$${MIN_YIELD_THRESHOLD_USD}` }
+                )}
+              </p>
+            </div>
+
+            {/* Allocation history */}
+            <div className="mt-4 border-t border-stroke-soft pt-4">
+              <h4 className="text-sm font-medium text-text-strong">
+                {formatMessage({ id: "app.yield.history" })}
+              </h4>
+              {allocationsLoading ? (
+                <div className="mt-2 space-y-2">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="animate-pulse rounded-md bg-bg-weak p-3">
+                      <div className="h-4 w-24 rounded bg-stroke-soft" />
+                      <div className="mt-1 h-3 w-16 rounded bg-stroke-soft" />
+                    </div>
+                  ))}
+                </div>
+              ) : allocations.length === 0 ? (
+                <p className="mt-2 text-center text-sm text-text-soft">
+                  {formatMessage({ id: "app.yield.noAllocations" })}
+                </p>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  {allocations.map((allocation) => (
+                    <div
+                      key={allocation.txHash}
+                      className="flex items-center justify-between rounded-md bg-bg-weak p-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-text-strong">
+                          {formatTokenAmount(
+                            allocation.cookieJarAmount +
+                              allocation.fractionsAmount +
+                              allocation.juiceboxAmount
+                          )}
+                        </p>
+                        <p className="text-xs text-text-sub">{formatDate(allocation.timestamp)}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs text-text-sub">
+                        <span>
+                          {formatMessage({ id: "app.yield.cookieJar" })}:{" "}
+                          {formatTokenAmount(allocation.cookieJarAmount)}
+                        </span>
+                        <span>
+                          {formatMessage({ id: "app.yield.fractions" })}:{" "}
+                          {formatTokenAmount(allocation.fractionsAmount)}
+                        </span>
+                        <span>
+                          {formatMessage({ id: "app.yield.juicebox" })}:{" "}
+                          {formatTokenAmount(allocation.juiceboxAmount)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           <WorkSubmissionsView gardenId={garden.id} canManage={canReview} />
         </section>
 
@@ -470,7 +738,7 @@ export default function GardenDetail() {
                         type="button"
                       >
                         <RiUserAddLine className="mr-1 h-4 w-4" />
-                        Add
+                        {formatMessage({ id: "app.garden.admin.add" })}
                       </button>
                     )}
                   </div>
@@ -497,27 +765,9 @@ export default function GardenDetail() {
                               </div>
                               {canManageRoles && (
                                 <button
-                                  onClick={async () => {
-                                    const result = await roleActions[role].remove(member);
-                                    if (result.success) {
-                                      scheduleBackgroundRefetch();
-                                    } else {
-                                      toastService.error({
-                                        title: formatMessage(
-                                          { id: "app.admin.roles.removeFailed" },
-                                          { role: roleLabel.singular }
-                                        ),
-                                        message:
-                                          result.error?.message ??
-                                          formatMessage(
-                                            { id: "app.admin.roles.removeFailed" },
-                                            { role: roleLabel.singular }
-                                          ),
-                                      });
-                                    }
-                                  }}
+                                  onClick={() => setMemberToRemove({ address: member, role })}
                                   disabled={isLoading}
-                                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
+                                  className="flex h-9 w-9 min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20 sm:min-h-0 sm:min-w-0"
                                   aria-label={formatMessage(
                                     { id: "app.admin.roles.remove" },
                                     { role: roleLabel.singular }
@@ -536,7 +786,10 @@ export default function GardenDetail() {
                             onClick={() => openMembersModal(role)}
                             className="mt-3 w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
                           >
-                            View All ({members.length})
+                            {formatMessage(
+                              { id: "app.garden.admin.viewAllCount" },
+                              { count: members.length }
+                            )}
                           </button>
                         )}
                       </>
@@ -552,26 +805,30 @@ export default function GardenDetail() {
         <aside className="grid-area-assessments rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
           <div className="flex items-center justify-between gap-2 border-b border-stroke-soft p-4 sm:p-6">
             <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
-              Recent Assessments
+              {formatMessage({ id: "app.garden.admin.recentAssessments" })}
             </h3>
             <Link
               to={`/gardens/${id}/assessments`}
               className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
-              aria-label="View all assessments"
+              aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
             >
-              View All
+              {formatMessage({ id: "app.garden.admin.viewAll" })}
             </Link>
           </div>
           <div className="p-4 sm:p-6">
             {fetchingAssessments ? (
-              <p className="py-4 text-center text-sm text-text-soft">Loading assessments...</p>
+              <p className="py-4 text-center text-sm text-text-soft">
+                {formatMessage({ id: "app.garden.admin.loadingAssessments" })}
+              </p>
             ) : assessmentsError ? (
               <p className="py-4 text-center text-sm text-error-base">
-                Failed to load assessments:{" "}
-                {assessmentsError instanceof Error ? assessmentsError.message : "Unknown error"}
+                {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}:{" "}
+                {assessmentsError instanceof Error ? assessmentsError.message : ""}
               </p>
             ) : assessments.length === 0 ? (
-              <p className="py-4 text-center text-sm text-text-soft">No assessments found</p>
+              <p className="py-4 text-center text-sm text-text-soft">
+                {formatMessage({ id: "app.garden.admin.noAssessments" })}
+              </p>
             ) : (
               <div className="space-y-3">
                 {assessments.map((assessment) => (
@@ -585,7 +842,9 @@ export default function GardenDetail() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-text-strong">
-                          {assessment.title || assessment.assessmentType || "Assessment"}
+                          {assessment.title ||
+                            assessment.assessmentType ||
+                            formatMessage({ id: "app.garden.admin.assessmentFallback" })}
                         </p>
                         <p className="text-xs text-text-soft">{formatDate(assessment.createdAt)}</p>
                       </div>
@@ -594,9 +853,10 @@ export default function GardenDetail() {
                       href={`${EAS_EXPLORER_URL}/attestation/view/${assessment.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-sm text-primary-dark transition hover:text-primary-darker"
+                      className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/40"
                     >
-                      View <RiExternalLinkLine className="ml-1 h-4 w-4" />
+                      {formatMessage({ id: "app.actions.view" })}{" "}
+                      <RiExternalLinkLine className="ml-1 h-4 w-4" />
                     </a>
                   </div>
                 ))}
@@ -654,6 +914,44 @@ export default function GardenDetail() {
         isLoading={isLoading}
         icon={<ActiveRoleIcon className="h-5 w-5" />}
         colorScheme={GARDEN_ROLE_COLORS[activeRole]}
+      />
+
+      <ConfirmDialog
+        isOpen={memberToRemove !== null}
+        onClose={() => setMemberToRemove(null)}
+        title={formatMessage({ id: "app.admin.roles.confirmRemoveTitle" })}
+        description={formatMessage(
+          { id: "app.admin.roles.confirmRemoveDescription" },
+          {
+            address: memberToRemove?.address ?? "",
+            role: memberToRemove ? getRoleLabel(memberToRemove.role).singular : "",
+          }
+        )}
+        confirmLabel={formatMessage({ id: "app.admin.roles.confirmRemoveAction" })}
+        variant="danger"
+        isLoading={isLoading}
+        onConfirm={async () => {
+          if (!memberToRemove) return;
+          const removeMemberRole = memberToRemove.role;
+          const removeMemberAddress = memberToRemove.address;
+          const roleLabel = getRoleLabel(removeMemberRole);
+          setMemberToRemove(null);
+
+          const result = await roleActions[removeMemberRole].remove(removeMemberAddress);
+          if (result.success) {
+            scheduleBackgroundRefetch();
+          } else {
+            toastService.error({
+              title: formatMessage(
+                { id: "app.admin.roles.removeFailed" },
+                { role: roleLabel.singular }
+              ),
+              message:
+                result.error?.message ??
+                formatMessage({ id: "app.admin.roles.removeFailed" }, { role: roleLabel.singular }),
+            });
+          }
+        }}
       />
     </div>
   );
