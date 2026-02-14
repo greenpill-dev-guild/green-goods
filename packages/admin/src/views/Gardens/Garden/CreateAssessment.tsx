@@ -1,4 +1,4 @@
-import { toastService } from "@green-goods/shared";
+import { toastService, logger } from "@green-goods/shared";
 import {
   type CreateAssessmentForm as WorkflowAssessmentForm,
   useCreateAssessmentWorkflow,
@@ -169,7 +169,7 @@ export default function CreateAssessment() {
       try {
         metricsObj = JSON.parse(formData.metrics.trim() || "{}");
       } catch (error) {
-        console.error("Invalid JSON in metrics field", error);
+        logger.error("Invalid JSON in metrics field", { error });
         toastService.error({
           title: "Invalid metrics JSON",
           message: "Check the metrics format and try again.",
@@ -205,7 +205,7 @@ export default function CreateAssessment() {
         context: "assessment submission",
         error,
       });
-      console.error("Assessment submission error:", error);
+      logger.error("Assessment submission error:", { error });
     }
   };
 
