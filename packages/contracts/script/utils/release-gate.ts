@@ -3,10 +3,13 @@ import * as path from "node:path";
 import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
 
+/** Valid deployment operation types for checkpoint tracking */
+export type DeploymentOperation = "deploy" | "upgrade" | "goods";
+
 export interface SepoliaCheckpoint {
   commitHash: string;
   timestamp: string;
-  operation: "deploy" | "upgrade";
+  operation: DeploymentOperation;
   deploymentHash: string;
   smokeResults: {
     contractsBytecodeVerified: boolean;
@@ -91,7 +94,7 @@ export function getSepoliaCheckpoint(): SepoliaCheckpoint | null {
 export function assertSepoliaGate(options: {
   network: string;
   broadcast: boolean;
-  operation: "deploy" | "upgrade";
+  operation: DeploymentOperation;
   overrideSepoliaGate?: boolean;
   freshnessDays?: number;
 }): void {
@@ -145,7 +148,7 @@ export function assertSepoliaGate(options: {
 
 export function writeSepoliaCheckpoint(options: {
   chainId: string;
-  operation: "deploy" | "upgrade";
+  operation: DeploymentOperation;
 }): SepoliaCheckpoint {
   const deploymentFile = path.join(contractsDir(), "deployments", `${options.chainId}-latest.json`);
   if (!fs.existsSync(deploymentFile)) {

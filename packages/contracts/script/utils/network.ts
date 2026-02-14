@@ -13,8 +13,20 @@ export interface NetworkConfig {
   name?: string;
 }
 
+export interface DeploymentDefaults {
+  factory: string;
+  tokenboundRegistry: string;
+  safe: string;
+  safeFactory: string;
+  safe4337Module: string;
+  greenGoodsSafe: string;
+  multisig: string;
+  [key: string]: string;
+}
+
 export interface NetworksFile {
   networks: Record<string, NetworkConfig>;
+  deploymentDefaults?: DeploymentDefaults;
 }
 
 export interface VerifierConfig {
@@ -22,7 +34,8 @@ export interface VerifierConfig {
   apiKey?: string;
 }
 
-const CHAIN_ID_MAP: Record<string, string> = {
+/** Canonical network name → chain ID string mapping. Single source of truth. */
+export const CHAIN_ID_MAP: Record<string, string> = {
   localhost: "31337",
   arbitrum: "42161",
   sepolia: "11155111",
@@ -179,5 +192,14 @@ export class NetworkManager {
    */
   getChainIdString(networkName: string): string {
     return CHAIN_ID_MAP[networkName] || this.getChainId(networkName).toString();
+  }
+
+  /**
+   * Get a deployment default value from networks.json
+   * @param key - The default key (e.g., 'multisig', 'greenGoodsSafe')
+   * @returns The address string, or undefined if not set
+   */
+  getDeploymentDefault(key: string): string | undefined {
+    return this.networksConfig.deploymentDefaults?.[key];
   }
 }

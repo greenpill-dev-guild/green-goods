@@ -1,8 +1,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { ConfigValidator, type ActionsConfig, type ActionConfig } from "../utils/validation";
-import { DeploymentAddresses } from "../utils/deployment-addresses";
+import type { ActionsConfig, ActionConfig } from "../utils/validation";
+import type { DeploymentAddresses } from "../utils/deployment-addresses";
+import type { NetworkManager } from "../utils/network";
 import { GardenDeployer } from "./gardens";
+import type { AnvilManager } from "./anvil";
 import type { ParsedOptions } from "../utils/cli-parser";
 
 /**
@@ -11,10 +13,8 @@ import type { ParsedOptions } from "../utils/cli-parser";
  * Extracted from deploy.js - handles deployment of actions from config
  */
 export class ActionDeployer extends GardenDeployer {
-  constructor() {
-    super();
-    this.validator = new ConfigValidator();
-    this.deploymentAddresses = new DeploymentAddresses();
+  constructor(networkManager?: NetworkManager, anvilManager?: AnvilManager, deploymentAddresses?: DeploymentAddresses) {
+    super(networkManager, anvilManager, deploymentAddresses);
   }
 
   /**

@@ -8,11 +8,15 @@ import { GardenDeployer } from "./gardens";
 import { ActionDeployer } from "./actions";
 import { AnvilManager } from "./anvil";
 import { HatsTreeDeployer } from "./hats";
+import { GoodsDeployer } from "./goods";
 
 /**
  * DeploymentCLI - Main command-line interface for deployments
  *
- * Refactored from monolithic deploy.js into modular structure
+ * Refactored from monolithic deploy.js into modular structure.
+ * Shared dependencies (NetworkManager, AnvilManager, DeploymentAddresses) are
+ * constructed once and injected into all deployers to avoid redundant file reads
+ * and ensure consistent configuration.
  */
 export class DeploymentCLI {
   private parser: CliParser;
@@ -23,16 +27,22 @@ export class DeploymentCLI {
   private actionDeployer: ActionDeployer;
   private anvilManager: AnvilManager;
   private hatsTreeDeployer: HatsTreeDeployer;
+  private goodsDeployer: GoodsDeployer;
 
   constructor() {
     this.parser = new CliParser();
+
+    // Shared dependencies — single instance each
     this.networkManager = new NetworkManager();
+    this.anvilManager = new AnvilManager(this.networkManager);
     this.deploymentAddresses = new DeploymentAddresses();
-    this.coreDeployer = new CoreDeployer();
-    this.gardenDeployer = new GardenDeployer();
-    this.actionDeployer = new ActionDeployer();
-    this.anvilManager = new AnvilManager();
-    this.hatsTreeDeployer = new HatsTreeDeployer();
+
+    // Inject shared dependencies into deployers
+    this.coreDeployer = new CoreDeployer(this.networkManager, this.anvilManager);
+    this.gardenDeployer = new GardenDeployer(this.networkManager, this.anvilManager, this.deploymentAddresses);
+    this.actionDeployer = new ActionDeployer(this.networkManager, this.anvilManager, this.deploymentAddresses);
+    this.hatsTreeDeployer = new HatsTreeDeployer(this.networkManager, this.deploymentAddresses);
+    this.goodsDeployer = new GoodsDeployer(this.networkManager, this.anvilManager);
   }
 
   /**
@@ -46,6 +56,7 @@ Usage: bun deploy.ts <command> [options]
 
 Commands:
   core                     Deploy core contracts
+  goods                    Deploy GOODS Juicebox project (requires env vars)
   garden <config.json>     Deploy garden from config file
   actions <config.json>    Deploy actions from config file
   hats-tree                Create and configure the Hats protocol tree
@@ -155,6 +166,10 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
       switch (command) {
         case "core":
           await this.coreDeployer.deployCoreContracts(options);
+          break;
+
+        case "goods":
+          await this.goodsDeployer.deployGoods(options);
           break;
 
         case "garden": {

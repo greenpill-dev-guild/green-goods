@@ -1,11 +1,11 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { NetworkManager } from "../utils/network";
 import { AnvilManager } from "./anvil";
 import { EnvioIntegration } from "../utils/envio-integration";
 import { DocsUpdater } from "../utils/docs-updater";
-import type { ParsedOptions } from "../utils/cli-parser";
+import { type ParsedOptions, redactSensitiveArgs } from "../utils/cli-parser";
 import { assertSepoliaGate, writeSepoliaCheckpoint } from "../utils/release-gate";
 
 /**
@@ -17,9 +17,9 @@ export class CoreDeployer {
   private networkManager: NetworkManager;
   private anvilManager: AnvilManager;
 
-  constructor() {
-    this.networkManager = new NetworkManager();
-    this.anvilManager = new AnvilManager();
+  constructor(networkManager?: NetworkManager, anvilManager?: AnvilManager) {
+    this.networkManager = networkManager ?? new NetworkManager();
+    this.anvilManager = anvilManager ?? new AnvilManager(this.networkManager);
   }
 
   /**
@@ -96,11 +96,10 @@ export class CoreDeployer {
     }
 
     console.log("\nExecuting deployment command:");
-    const displayArgs = args.map((arg, idx) => (idx > 0 && args[idx - 1] === "--private-key" ? "[REDACTED]" : arg));
-    console.log("forge", displayArgs.join(" "));
+    console.log("forge", redactSensitiveArgs(args).join(" "));
 
     try {
-      execSync(`forge ${args.join(" ")}`, {
+      execFileSync("forge", args, {
         stdio: "inherit",
         env: {
           ...process.env,
@@ -154,7 +153,7 @@ export class CoreDeployer {
     console.log(`RPC Source: ${networkConfig.rpcUrl}`);
 
     console.log("\n🔨 Running forge build preflight...");
-    execSync("forge build --skip test", {
+    execFileSync("forge", ["build", "--skip", "test"], {
       stdio: "inherit",
       env: {
         ...process.env,
@@ -203,7 +202,8 @@ export class CoreDeployer {
       console.log(`\nFlags: ${activeFlags.join(", ")}`);
     }
 
-    console.log("\nGovernance: 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19 (Green Goods Safe)\n");
+    const multisig = this.networkManager.getDeploymentDefault("multisig") ?? "not configured";
+    console.log(`\nGovernance: ${multisig} (Green Goods Safe)\n`);
 
     const allowlistAddresses: string[] = [];
     if (process.env.DEPLOYMENT_REGISTRY_ALLOWLIST) {
@@ -277,11 +277,15 @@ export class CoreDeployer {
           }
         };
 
-        // Register cleanup handlers
-        process.on("exit", cleanup);
-        process.on("SIGINT", cleanup);
-        process.on("SIGTERM", cleanup);
-        process.on("uncaughtException", cleanup);
+        // Register cleanup handlers for graceful shutdown signals.
+        // Note: "exit" is intentionally excluded — it runs synchronously
+        // and cannot await the async cleanup function.
+        const signalCleanup = async (): Promise<void> => {
+          await cleanup();
+          process.exit(0);
+        };
+        process.on("SIGINT", signalCleanup);
+        process.on("SIGTERM", signalCleanup);
       }
 
       // Optionally start indexer for localhost deployments

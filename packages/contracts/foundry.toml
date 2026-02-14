@@ -149,7 +149,10 @@ extra_output_files = [
 ]
 
 # RPC endpoints for different networks
-# Note: Fork test RPC URLs are loaded via vm.envString() to avoid initialization errors
+# IMPORTANT: Only add endpoints with guaranteed env vars here. Foundry eagerly resolves
+# all [rpc_endpoints] at startup via StdCheats.rpcUrlStructs(), so missing env vars break
+# ALL tests — not just fork tests. Fork tests load RPC URLs via vm.envString() instead.
+# Deploy scripts use profile-specific eth_rpc_url (see [profile.*] sections below).
 [rpc_endpoints]
 localhost = "http://localhost:8545"
 
