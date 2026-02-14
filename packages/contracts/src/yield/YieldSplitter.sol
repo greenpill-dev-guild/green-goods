@@ -202,57 +202,66 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         address registeredVault = gardenVaults[garden][asset];
         if (registeredVault != vault) revert InvalidVault(garden, asset, registeredVault, vault);
 
-        // Step 1: Check per-garden share balance (not total contract balance)
-        uint256 shares = gardenShares[garden][vault];
-        if (shares == 0 && pendingYield[garden][asset] == 0) revert NoVaultShares(garden, asset);
-
-        // Step 2: Redeem only this garden's shares for underlying asset
-        // Note: shares are zeroed AFTER successful redeem to prevent accounting mismatch
-        // if the vault returns 0 assets (valid per ERC-4626 when vault has zero underlying).
-        uint256 redeemed = 0;
-        if (shares > 0) {
-            redeemed = IOctantVault(vault).redeem(shares, address(this), address(this));
-            // Only zero shares after successful redeem with non-zero return
-            if (redeemed > 0) {
-                gardenShares[garden][vault] = 0;
-            }
-        }
+        // Step 1-2: Redeem shares and compute total yield (including any pending)
+        uint256 totalYield = _redeemAndAccumulate(garden, asset, vault);
 
         // Step 3: Minimum threshold check
-        uint256 totalYield = redeemed + pendingYield[garden][asset];
         if (totalYield < minYieldThreshold) {
             pendingYield[garden][asset] = totalYield;
-            emit YieldAccumulated(garden, asset, redeemed, totalYield);
+            emit YieldAccumulated(garden, asset, totalYield, totalYield);
             return;
         }
 
         // Clear pending (merged into totalYield)
         pendingYield[garden][asset] = 0;
 
-        // Step 4: Read split configuration
+        // Step 4: Read split configuration and calculate portions
         SplitConfig memory split = _getSplitConfig(garden);
-
-        // Step 5: Calculate portions
         uint256 cookieJarAmount = (totalYield * split.cookieJarBps) / BPS_DENOMINATOR;
         uint256 fractionsAmount = (totalYield * split.fractionsBps) / BPS_DENOMINATOR;
         uint256 juiceboxAmount = totalYield - cookieJarAmount - fractionsAmount; // remainder to avoid rounding dust
 
-        // Step 6: Route Cookie Jar portion
+        // Step 5: Route each portion to its destination
+        _routePortions(garden, asset, vault, cookieJarAmount, fractionsAmount, juiceboxAmount);
+
+        emit YieldSplit(garden, asset, cookieJarAmount, fractionsAmount, juiceboxAmount, totalYield);
+    }
+
+    /// @dev Redeem this garden's vault shares and return total yield (redeemed + pending)
+    function _redeemAndAccumulate(address garden, address asset, address vault) private returns (uint256) {
+        uint256 shares = gardenShares[garden][vault];
+        if (shares == 0 && pendingYield[garden][asset] == 0) revert NoVaultShares(garden, asset);
+
+        uint256 redeemed = 0;
+        if (shares > 0) {
+            redeemed = IOctantVault(vault).redeem(shares, address(this), address(this));
+            if (redeemed > 0) {
+                gardenShares[garden][vault] = 0;
+            }
+        }
+        return redeemed + pendingYield[garden][asset];
+    }
+
+    /// @dev Route split portions to Cookie Jar, Fractions, and Juicebox
+    function _routePortions(
+        address garden,
+        address asset,
+        address vault,
+        uint256 cookieJarAmount,
+        uint256 fractionsAmount,
+        uint256 juiceboxAmount
+    )
+        private
+    {
         if (cookieJarAmount > 0) {
             _routeToCookieJar(garden, asset, cookieJarAmount);
         }
-
-        // Step 7: Route Fractions portion (conviction-weighted purchases)
         if (fractionsAmount > 0) {
             _routeToFractions(garden, asset, fractionsAmount, vault);
         }
-
-        // Step 8: Route Juicebox portion
         if (juiceboxAmount > 0) {
             _routeToJuicebox(garden, asset, juiceboxAmount);
         }
-
-        emit YieldSplit(garden, asset, cookieJarAmount, fractionsAmount, juiceboxAmount, totalYield);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

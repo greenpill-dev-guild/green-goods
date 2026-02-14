@@ -12,7 +12,6 @@ import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import {
     IRegistryFactory,
     IRegistryCommunity,
-    INFTPowerRegistry,
     INFTPowerRegistryFactory,
     NFTPowerSource
 } from "../interfaces/IGardensV2.sol";
