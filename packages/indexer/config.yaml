@@ -46,6 +46,22 @@ contracts:
     events:
       - event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
       - event: Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
+  - name: GardensModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: CommunityCreated(address indexed garden, address indexed community, uint8 weightScheme, address goodsToken, address nftPowerRegistry)
+      - event: SignalPoolCreated(address indexed garden, address indexed pool, uint8 poolType, address indexed community)
+      - event: PowerRegistryDeployed(address indexed garden, address indexed registry, uint8 weightScheme)
+      - event: GoodsAirdropped(address indexed garden, uint256 totalAmount)
+  - name: YieldSplitter
+    handler: src/EventHandlers.ts
+    events:
+      - event: YieldSplit(address indexed garden, address indexed asset, uint256 cookieJarAmount, uint256 fractionsAmount, uint256 juiceboxAmount, uint256 totalYield)
+      - event: FractionPurchased(address indexed garden, uint256 indexed hypercertId, uint256 amount, uint256 fractionId, address treasury)
+      - event: YieldAccumulated(address indexed garden, address indexed asset, uint256 amount, uint256 totalPending)
+      - event: YieldToCookieJar(address indexed garden, address indexed asset, uint256 amount, address indexed jar)
+      - event: YieldToJuicebox(address indexed garden, address indexed asset, uint256 amount, uint256 projectId)
+      - event: YieldStranded(address indexed garden, address indexed asset, uint256 amount, string destination)
   - name: HypercertMinter
     handler: src/EventHandlers.ts
     events:
@@ -61,11 +77,17 @@ networks:
         address: "0x0a7Ca3203f25c1c028D54C19789e83b401383F92"
       - name: GardenAccount
         address: "0x7de23111804b374E3a8d79932C4068d378F6843f"
+      # TODO: Update addresses after deployment — these are pre-deployment placeholders.
+      # Run `bun deploy:testnet` then update with deployed addresses from the output.
       - name: HatsModule
         address: "0x0000000000000000000000000000000000000000"
       - name: OctantModule
         address: "0x0000000000000000000000000000000000000000"
       - name: OctantVault
+        address: "0x0000000000000000000000000000000000000000"
+      - name: GardensModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: YieldSplitter
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
@@ -84,6 +106,10 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: OctantVault
         address: "0x0000000000000000000000000000000000000000"
+      - name: GardensModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: YieldSplitter
+        address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
   - id: 42220
@@ -101,6 +127,10 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: OctantVault
         address: "0x0000000000000000000000000000000000000000"
+      - name: GardensModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: YieldSplitter
+        address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
   - id: 11155111
@@ -117,6 +147,10 @@ networks:
       - name: OctantModule
         address: "0x0000000000000000000000000000000000000000"
       - name: OctantVault
+        address: "0x0000000000000000000000000000000000000000"
+      - name: GardensModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: YieldSplitter
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"

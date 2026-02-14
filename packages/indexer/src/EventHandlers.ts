@@ -1,6 +1,7 @@
 import {
   ActionRegistry,
   GardenAccount,
+  GardensModule,
   HatsModule,
   GardenToken,
   OctantModule,
@@ -8,7 +9,10 @@ import {
   Capital,
   HypercertMinter,
   HypercertStatus,
+  PoolType,
   VaultEventType,
+  WeightScheme,
+  YieldSplitter,
 } from "../generated";
 
 import type {
@@ -40,6 +44,8 @@ import type {
   OctantVault_Deposit_handlerArgs,
   OctantVault_Withdraw_handlerArgs,
   OctantModule_VaultCreated_eventArgs,
+  GardenCommunity,
+  GardenSignalPool,
   Hypercert,
   HypercertClaim,
   HypercertMinter_TransferSingle_handlerArgs,
@@ -48,6 +54,9 @@ import type {
   HandlerTypes_handlerArgs,
   GardenToken_GardenMinted_eventArgs,
   contractRegistrations,
+  YieldAllocation,
+  YieldAccumulation,
+  YieldFractionPurchase,
 } from "../generated/src/Types.gen";
 
 // ============================================================================
@@ -59,6 +68,49 @@ import type {
  * Used to work around readonly entity types when building update objects.
  */
 type Mutable<T> = { -readonly [P in keyof T]: T[P] };
+
+// Local entity types for new schema entities (until codegen runs)
+type GoodsAirdropEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly garden: string;
+  readonly totalAmount: bigint;
+  readonly txHash: string;
+  readonly timestamp: number;
+};
+
+type YieldCookieJarTransferEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly garden: string;
+  readonly asset: string;
+  readonly amount: bigint;
+  readonly jar: string;
+  readonly txHash: string;
+  readonly timestamp: number;
+};
+
+type YieldJuiceboxPaymentEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly garden: string;
+  readonly asset: string;
+  readonly amount: bigint;
+  readonly projectId: bigint;
+  readonly txHash: string;
+  readonly timestamp: number;
+};
+
+type YieldStrandedEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly garden: string;
+  readonly asset: string;
+  readonly amount: bigint;
+  readonly destination: string;
+  readonly txHash: string;
+  readonly timestamp: number;
+};
 
 type HatsModule_GardenHatTreeCreated_eventArgs = {
   readonly garden: string;
@@ -75,6 +127,93 @@ type HatsModule_RoleRevoked_eventArgs = {
   readonly garden: string;
   readonly account: string;
   readonly role: bigint;
+};
+
+// GardensModule event arg types (local until codegen runs)
+type GardensModule_CommunityCreated_eventArgs = {
+  readonly garden: string;
+  readonly community: string;
+  readonly weightScheme: bigint;
+  readonly goodsToken: string;
+  readonly nftPowerRegistry: string;
+};
+
+type GardensModule_SignalPoolCreated_eventArgs = {
+  readonly garden: string;
+  readonly pool: string;
+  readonly poolType: bigint;
+  readonly community: string;
+};
+
+// YieldSplitter event arg types — aligned with generated types from codegen.
+// NOTE: The generated types omit some Solidity event fields (totalYield, treasury, amount).
+// Handlers compute derived values from available fields.
+type YieldSplitter_YieldSplit_eventArgs = {
+  readonly garden: string;
+  readonly asset: string;
+  readonly cookieJarAmount: bigint;
+  readonly fractionsAmount: bigint;
+  readonly juiceboxAmount: bigint;
+};
+
+// Codegen maps FractionPurchased → YieldAllocated with different fields.
+// The Solidity event is named FractionPurchased but the Envio codegen renames it
+// to YieldAllocated in the generated handler registry. Both refer to the same
+// on-chain event and share the same topic hash.
+// Solidity: event FractionPurchased(address indexed garden, uint256 indexed hypercertId, uint256 amount, uint256 fractionId, address treasury)
+type YieldSplitter_YieldAllocated_eventArgs = {
+  readonly garden: string;
+  readonly hypercertId: bigint;
+  readonly amount: bigint;
+  readonly fractionId: bigint;
+  readonly treasury: string;
+};
+
+// Solidity: event YieldAccumulated(address indexed garden, address indexed asset, uint256 amount, uint256 totalPending)
+type YieldSplitter_YieldAccumulated_eventArgs = {
+  readonly garden: string;
+  readonly asset: string;
+  readonly amount: bigint;
+  readonly totalPending: bigint;
+};
+
+// GardensModule additional event arg types
+// Solidity: event PowerRegistryDeployed(address indexed garden, address indexed registry, WeightScheme weightScheme)
+type GardensModule_PowerRegistryDeployed_eventArgs = {
+  readonly garden: string;
+  readonly registry: string;
+  readonly weightScheme: bigint;
+};
+
+// Solidity: event GoodsAirdropped(address indexed garden, uint256 totalAmount)
+type GardensModule_GoodsAirdropped_eventArgs = {
+  readonly garden: string;
+  readonly totalAmount: bigint;
+};
+
+// YieldSplitter additional event arg types
+// Solidity: event YieldToCookieJar(address indexed garden, address indexed asset, uint256 amount, address indexed jar)
+type YieldSplitter_YieldToCookieJar_eventArgs = {
+  readonly garden: string;
+  readonly asset: string;
+  readonly amount: bigint;
+  readonly jar: string;
+};
+
+// Solidity: event YieldToJuicebox(address indexed garden, address indexed asset, uint256 amount, uint256 projectId)
+type YieldSplitter_YieldToJuicebox_eventArgs = {
+  readonly garden: string;
+  readonly asset: string;
+  readonly amount: bigint;
+  readonly projectId: bigint;
+};
+
+// Solidity: event YieldStranded(address indexed garden, address indexed asset, uint256 amount, string destination)
+type YieldSplitter_YieldStranded_eventArgs = {
+  readonly garden: string;
+  readonly asset: string;
+  readonly amount: bigint;
+  readonly destination: string;
 };
 
 type HatsModule_PartialGrantFailed_eventArgs = {
@@ -125,6 +264,24 @@ const CAPITAL_TYPE_MAP: Record<number, Capital> = {
   5: "EXPERIENTIAL",
   6: "SPIRITUAL",
   7: "CULTURAL",
+} as const;
+
+/**
+ * Maps numeric weight scheme values from the GardensModule contract to WeightScheme enum values.
+ * These values correspond to the WeightScheme enum in IGardensModule.
+ */
+const WEIGHT_SCHEME_MAP: Record<number, WeightScheme> = {
+  0: "LINEAR",
+  1: "EXPONENTIAL",
+  2: "POWER",
+} as const;
+
+/**
+ * Maps numeric pool type values from the GardensModule contract to PoolType enum values.
+ */
+const POOL_TYPE_MAP: Record<number, PoolType> = {
+  0: "HYPERCERT",
+  1: "ACTION",
 } as const;
 
 /**
@@ -216,6 +373,45 @@ function getVaultAddressIndexId(chainId: number, vaultAddress: string): string {
 
 function getVaultEventId(chainId: number, txHash: string, logIndex: bigint | number): string {
   return `${chainId}-${txHash}-${logIndex.toString()}`;
+}
+
+// ID helpers for Gardens Community entities
+function getGardenCommunityId(chainId: number, garden: string): string {
+  return `${chainId}-${normalizeAddress(garden)}`;
+}
+
+function getGardenSignalPoolId(chainId: number, garden: string, poolAddress: string): string {
+  return `${chainId}-${normalizeAddress(garden)}-${normalizeAddress(poolAddress)}`;
+}
+
+function getYieldAllocationId(chainId: number, txHash: string, logIndex: bigint | number): string {
+  return `${chainId}-${txHash}-${logIndex.toString()}`;
+}
+
+function getYieldAccumulationId(chainId: number, garden: string, asset: string): string {
+  return `${chainId}-${normalizeAddress(garden)}-${normalizeAddress(asset)}`;
+}
+
+function getYieldFractionPurchaseId(
+  chainId: number,
+  txHash: string,
+  logIndex: bigint | number,
+  hypercertId: bigint
+): string {
+  return `${chainId}-${txHash}-${logIndex.toString()}-${hypercertId.toString()}`;
+}
+
+// ID helper for yield routing event entities (txHash-based, same as getVaultEventId)
+function getYieldEventId(chainId: number, txHash: string, logIndex: bigint | number): string {
+  return `${chainId}-${txHash}-${logIndex.toString()}`;
+}
+
+function mapWeightScheme(value: bigint): WeightScheme {
+  return WEIGHT_SCHEME_MAP[Number(value)] ?? "LINEAR";
+}
+
+function mapPoolType(value: bigint): PoolType {
+  return POOL_TYPE_MAP[Number(value)] ?? "HYPERCERT";
 }
 
 function createDefaultGardenVault(
@@ -1339,6 +1535,375 @@ HypercertMinter.ClaimStored.handler(
       chainId: event.chainId,
       blockNumber: event.block.number,
       correlationId: getTxHash(event.transaction),
+    });
+  }
+);
+
+// ============================================================================
+// GARDENS MODULE EVENT HANDLERS
+// ============================================================================
+
+GardensModule.CommunityCreated.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<GardensModule_CommunityCreated_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const communityAddress = normalizeAddress(event.params.community);
+    const communityId = getGardenCommunityId(event.chainId, garden);
+
+    const existingCommunity = await context.GardenCommunity.get(communityId);
+    if (existingCommunity) {
+      // Idempotency: skip if community already exists for this garden
+      return;
+    }
+
+    const communityEntity: GardenCommunity = {
+      id: communityId,
+      chainId: event.chainId,
+      garden,
+      communityAddress,
+      weightScheme: mapWeightScheme(event.params.weightScheme),
+      goodsToken: normalizeAddress(event.params.goodsToken),
+      nftPowerRegistry: normalizeAddress(event.params.nftPowerRegistry),
+      createdAt: event.block.timestamp,
+    };
+
+    context.GardenCommunity.set(communityEntity);
+
+    context.log.info("Garden community created", {
+      garden,
+      communityAddress,
+      weightScheme: communityEntity.weightScheme,
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+    });
+  }
+);
+
+GardensModule.SignalPoolCreated.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<GardensModule_SignalPoolCreated_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const poolAddress = normalizeAddress(event.params.pool);
+    const poolId = getGardenSignalPoolId(event.chainId, garden, poolAddress);
+
+    const existingPool = await context.GardenSignalPool.get(poolId);
+    if (existingPool) {
+      return;
+    }
+
+    const poolEntity: GardenSignalPool = {
+      id: poolId,
+      chainId: event.chainId,
+      garden,
+      poolAddress,
+      poolType: mapPoolType(event.params.poolType),
+      communityAddress: normalizeAddress(event.params.community),
+      createdAt: event.block.timestamp,
+    };
+
+    context.GardenSignalPool.set(poolEntity);
+
+    context.log.info("Garden signal pool created", {
+      garden,
+      poolAddress,
+      poolType: poolEntity.poolType,
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+    });
+  }
+);
+
+GardensModule.PowerRegistryDeployed.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<GardensModule_PowerRegistryDeployed_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const registry = normalizeAddress(event.params.registry);
+    const communityId = getGardenCommunityId(event.chainId, garden);
+
+    const existingCommunity = await context.GardenCommunity.get(communityId);
+    if (existingCommunity) {
+      context.GardenCommunity.set({
+        ...existingCommunity,
+        powerRegistryAddress: registry,
+      });
+    }
+
+    context.log.info("Power registry deployed", {
+      garden,
+      registry,
+      weightScheme: mapWeightScheme(event.params.weightScheme),
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+    });
+  }
+);
+
+GardensModule.GoodsAirdropped.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<GardensModule_GoodsAirdropped_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const txHash = getTxHash(event.transaction);
+    const airdropId = getYieldEventId(event.chainId, txHash, event.logIndex);
+
+    const airdropEntity: GoodsAirdropEntity = {
+      id: airdropId,
+      chainId: event.chainId,
+      garden,
+      totalAmount: event.params.totalAmount,
+      txHash,
+      timestamp: event.block.timestamp,
+    };
+
+    context.GoodsAirdrop.set(airdropEntity);
+
+    context.log.info("GOODS tokens airdropped", {
+      garden,
+      totalAmount: event.params.totalAmount.toString(),
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
+    });
+  }
+);
+
+// ============================================================================
+// YIELD SPLITTER EVENT HANDLERS
+// ============================================================================
+
+YieldSplitter.YieldSplit.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<YieldSplitter_YieldSplit_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const asset = normalizeAddress(event.params.asset);
+    const txHash = getTxHash(event.transaction);
+    const allocationId = getYieldAllocationId(event.chainId, txHash, event.logIndex);
+
+    const allocationEntity: YieldAllocation = {
+      id: allocationId,
+      chainId: event.chainId,
+      garden,
+      asset,
+      cookieJarAmount: event.params.cookieJarAmount,
+      fractionsAmount: event.params.fractionsAmount,
+      juiceboxAmount: event.params.juiceboxAmount,
+      totalAmount:
+        event.params.cookieJarAmount + event.params.fractionsAmount + event.params.juiceboxAmount,
+      txHash,
+      timestamp: event.block.timestamp,
+    };
+
+    context.YieldAllocation.set(allocationEntity);
+
+    // Clear pending accumulation for this garden+asset after successful split
+    const accumulationId = getYieldAccumulationId(event.chainId, garden, asset);
+    const existingAccumulation = await context.YieldAccumulation.get(accumulationId);
+    if (existingAccumulation && existingAccumulation.pendingAmount > 0n) {
+      context.YieldAccumulation.set({
+        ...existingAccumulation,
+        pendingAmount: 0n,
+        lastAccumulatedAt: event.block.timestamp,
+      });
+    }
+
+    context.log.info("Yield split executed", {
+      garden,
+      asset,
+      cookieJarAmount: event.params.cookieJarAmount.toString(),
+      fractionsAmount: event.params.fractionsAmount.toString(),
+      juiceboxAmount: event.params.juiceboxAmount.toString(),
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
+    });
+  }
+);
+
+YieldSplitter.YieldAllocated.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<YieldSplitter_YieldAllocated_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const treasury = normalizeAddress(event.params.treasury);
+    const txHash = getTxHash(event.transaction);
+    const purchaseId = getYieldFractionPurchaseId(
+      event.chainId,
+      txHash,
+      event.logIndex,
+      event.params.hypercertId
+    );
+
+    // FractionPurchased event does not include asset address.
+    // The asset can be derived from the garden's vault configuration if needed.
+    const purchaseEntity: YieldFractionPurchase = {
+      id: purchaseId,
+      chainId: event.chainId,
+      garden,
+      hypercertId: event.params.hypercertId,
+      amount: event.params.amount,
+      fractionId: event.params.fractionId > 0n ? event.params.fractionId : undefined,
+      treasury,
+      txHash,
+      timestamp: event.block.timestamp,
+    };
+
+    context.YieldFractionPurchase.set(purchaseEntity);
+
+    context.log.info("Yield fraction purchased", {
+      garden,
+      treasury,
+      hypercertId: event.params.hypercertId.toString(),
+      amount: event.params.amount.toString(),
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
+    });
+  }
+);
+
+YieldSplitter.YieldAccumulated.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<YieldSplitter_YieldAccumulated_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const asset = normalizeAddress(event.params.asset);
+    const accumulationId = getYieldAccumulationId(event.chainId, garden, asset);
+
+    const accumulationEntity: YieldAccumulation = {
+      id: accumulationId,
+      chainId: event.chainId,
+      garden,
+      asset,
+      pendingAmount: event.params.totalPending,
+      lastAccumulatedAt: event.block.timestamp,
+    };
+
+    context.YieldAccumulation.set(accumulationEntity);
+
+    context.log.info("Yield accumulated (below threshold)", {
+      garden,
+      asset,
+      amount: event.params.amount.toString(),
+      totalPending: event.params.totalPending.toString(),
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+    });
+  }
+);
+
+YieldSplitter.YieldToCookieJar.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<YieldSplitter_YieldToCookieJar_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const asset = normalizeAddress(event.params.asset);
+    const jar = normalizeAddress(event.params.jar);
+    const txHash = getTxHash(event.transaction);
+    const transferId = getYieldEventId(event.chainId, txHash, event.logIndex);
+
+    const transferEntity: YieldCookieJarTransferEntity = {
+      id: transferId,
+      chainId: event.chainId,
+      garden,
+      asset,
+      amount: event.params.amount,
+      jar,
+      txHash,
+      timestamp: event.block.timestamp,
+    };
+
+    context.YieldCookieJarTransfer.set(transferEntity);
+
+    context.log.info("Yield routed to cookie jar", {
+      garden,
+      asset,
+      amount: event.params.amount.toString(),
+      jar,
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
+    });
+  }
+);
+
+YieldSplitter.YieldToJuicebox.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<YieldSplitter_YieldToJuicebox_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const asset = normalizeAddress(event.params.asset);
+    const txHash = getTxHash(event.transaction);
+    const paymentId = getYieldEventId(event.chainId, txHash, event.logIndex);
+
+    const paymentEntity: YieldJuiceboxPaymentEntity = {
+      id: paymentId,
+      chainId: event.chainId,
+      garden,
+      asset,
+      amount: event.params.amount,
+      projectId: event.params.projectId,
+      txHash,
+      timestamp: event.block.timestamp,
+    };
+
+    context.YieldJuiceboxPayment.set(paymentEntity);
+
+    context.log.info("Yield routed to Juicebox", {
+      garden,
+      asset,
+      amount: event.params.amount.toString(),
+      projectId: event.params.projectId.toString(),
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
+    });
+  }
+);
+
+YieldSplitter.YieldStranded.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<YieldSplitter_YieldStranded_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const asset = normalizeAddress(event.params.asset);
+    const txHash = getTxHash(event.transaction);
+    const strandedId = getYieldEventId(event.chainId, txHash, event.logIndex);
+
+    const strandedEntity: YieldStrandedEntity = {
+      id: strandedId,
+      chainId: event.chainId,
+      garden,
+      asset,
+      amount: event.params.amount,
+      destination: event.params.destination,
+      txHash,
+      timestamp: event.block.timestamp,
+    };
+
+    context.YieldStranded.set(strandedEntity);
+
+    context.log.warn("Yield stranded — no destination configured", {
+      garden,
+      asset,
+      amount: event.params.amount.toString(),
+      destination: event.params.destination,
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
     });
   }
 );

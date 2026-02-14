@@ -141,6 +141,136 @@ type Gardener {
 }
 
 # =============================================================================
+# Gardens Community Entities
+# =============================================================================
+
+enum WeightScheme {
+  LINEAR
+  EXPONENTIAL
+  POWER
+}
+
+enum PoolType {
+  HYPERCERT
+  ACTION
+}
+
+type GardenCommunity {
+  id: ID! # chainId-garden
+  chainId: Int!
+  garden: String! # Garden address
+  communityAddress: String! # RegistryCommunity address
+  weightScheme: WeightScheme!
+  goodsToken: String! # GOODS token address
+  nftPowerRegistry: String! # NFTPowerRegistry address
+  powerRegistryAddress: String # Power registry address (set on PowerRegistryDeployed)
+  createdAt: Int!
+}
+
+type GardenSignalPool {
+  id: ID! # chainId-garden-poolAddress
+  chainId: Int!
+  garden: String! # Garden address
+  poolAddress: String! # CVStrategy pool address
+  poolType: PoolType!
+  communityAddress: String! # Parent RegistryCommunity
+  createdAt: Int!
+}
+
+# =============================================================================
+# Yield Allocation Entities
+# =============================================================================
+
+enum YieldSplitStatus {
+  SPLIT
+  ACCUMULATED
+}
+
+type YieldAllocation {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  garden: String! # Garden address
+  asset: String! # Asset address
+  cookieJarAmount: BigInt!
+  fractionsAmount: BigInt!
+  juiceboxAmount: BigInt!
+  totalAmount: BigInt!
+  txHash: String!
+  timestamp: Int!
+}
+
+type YieldAccumulation {
+  id: ID! # chainId-garden-asset
+  chainId: Int!
+  garden: String! # Garden address
+  asset: String! # Asset address
+  pendingAmount: BigInt!
+  lastAccumulatedAt: Int!
+}
+
+type YieldFractionPurchase {
+  id: ID! # chainId-txHash-logIndex-hypercertId
+  chainId: Int!
+  garden: String! # Garden address
+  hypercertId: BigInt!
+  amount: BigInt!
+  fractionId: BigInt
+  treasury: String! # Treasury address that received the fraction
+  txHash: String!
+  timestamp: Int!
+}
+
+# =============================================================================
+# Yield Routing Entities
+# =============================================================================
+
+type YieldCookieJarTransfer {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  garden: String! # Garden address
+  asset: String! # Asset address
+  amount: BigInt!
+  jar: String! # Cookie jar or treasury address
+  txHash: String!
+  timestamp: Int!
+}
+
+type YieldJuiceboxPayment {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  garden: String! # Garden address
+  asset: String! # Asset address
+  amount: BigInt!
+  projectId: BigInt!
+  txHash: String!
+  timestamp: Int!
+}
+
+type YieldStranded {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  garden: String! # Garden address
+  asset: String! # Asset address
+  amount: BigInt!
+  destination: String! # Destination that failed (e.g. "cookieJar", "juicebox", "recompound")
+  txHash: String!
+  timestamp: Int!
+}
+
+# =============================================================================
+# GoodsAirdrop Entity
+# =============================================================================
+
+type GoodsAirdrop {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  garden: String! # Garden address
+  totalAmount: BigInt!
+  txHash: String!
+  timestamp: Int!
+}
+
+# =============================================================================
 # Hypercert Entities
 # =============================================================================
 
