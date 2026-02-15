@@ -3,7 +3,7 @@ import {
   extractErrorMessage,
   imageCompressor,
   logger,
-  toastService
+  toastService,
 } from "@green-goods/shared";
 import { RiCloseLine, RiLoader4Line, RiUploadCloudLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
