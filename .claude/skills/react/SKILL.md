@@ -1,6 +1,12 @@
 ---
 name: react
 description: React patterns - state management (Zustand, Query), composition, performance. Use for components, state, hooks, optimization.
+version: "1.0"
+last_updated: "2026-02-08"
+last_verified: "2026-02-09"
+status: proven
+packages: [shared, client, admin]
+dependencies: []
 ---
 
 # React Skill
@@ -134,6 +140,99 @@ function Dashboard() {
 }
 ```
 
+### Advanced Zustand Patterns
+
+#### Persist Middleware
+
+Green Goods stores use `persist` for offline state survival:
+
+```typescript
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+export const useUIStore = create<UIState>()(
+  persist(
+    (set) => ({
+      debugMode: false,
+      isOfflineBannerVisible: false,
+      toggleDebug: () => set((s) => ({ debugMode: !s.debugMode })),
+    }),
+    {
+      name: "green-goods:debug-mode", // localStorage key
+      partialize: (state) => ({ debugMode: state.debugMode }), // Only persist specific fields
+    }
+  )
+);
+```
+
+**`partialize` is critical** — without it, transient UI state (modals, banners) gets persisted and restored on refresh, causing stale UI.
+
+#### Multi-Step Form Store
+
+Complex wizard stores (like `useCreateGardenStore`) manage step progression:
+
+```typescript
+export const useCreateGardenStore = create<CreateGardenState>()(
+  persist(
+    (set, get) => ({
+      form: initialFormState,
+      currentStep: 0,
+
+      setField: (key, value) =>
+        set((s) => ({ form: { ...s.form, [key]: value } })),
+
+      nextStep: () => {
+        const { currentStep, isStepValid } = get();
+        if (isStepValid(currentStep)) {
+          set({ currentStep: currentStep + 1 });
+        }
+      },
+
+      // Derived validation — computed from state, not stored
+      isStepValid: (stepId) => {
+        const { form } = get();
+        switch (stepId) {
+          case 0: return form.name.length > 0;
+          case 1: return form.operators.length > 0;
+          default: return true;
+        }
+      },
+
+      reset: () => set({ form: initialFormState, currentStep: 0 }),
+    }),
+    { name: "green-goods:create-garden" }
+  )
+);
+```
+
+#### Store Testing
+
+```typescript
+import { act } from "@testing-library/react";
+import { useCreateGardenStore } from "@green-goods/shared";
+
+beforeEach(() => {
+  // Reset store between tests
+  act(() => useCreateGardenStore.getState().reset());
+});
+
+test("advances step when valid", () => {
+  act(() => {
+    useCreateGardenStore.getState().setField("name", "My Garden");
+    useCreateGardenStore.getState().nextStep();
+  });
+  expect(useCreateGardenStore.getState().currentStep).toBe(1);
+});
+```
+
+#### When to Use Which Middleware
+
+| Middleware | Use When |
+|-----------|----------|
+| `persist` | State must survive page refresh (drafts, preferences) |
+| `devtools` | Development debugging (Redux DevTools integration) |
+| `immer` | Deep nested state updates (avoid in Green Goods — prefer flat state) |
+
 ### Hook Boundary Rule
 
 **All state hooks MUST be in `@green-goods/shared`:**
@@ -226,21 +325,220 @@ function ItemListProvider({ children }) {
 <Input variant="success" />
 ```
 
-### React 19: use() Instead of useContext()
+### React 19 Patterns
+
+Green Goods runs **React 19**. Use these new APIs:
+
+#### `use()` for Context and Promises
 
 ```typescript
-// Old pattern
-import { useContext } from "react";
-const value = useContext(MyContext);
+import { Suspense, use, useMemo } from "react";
 
-// React 19 pattern
-import { use } from "react";
+// Replace useContext
 const value = use(MyContext);
+
+// Read a promise (suspends until resolved)
+function GardenDetails({ gardenPromise }: { gardenPromise: Promise<Garden> }) {
+  const garden = use(gardenPromise); // Suspends component
+  return <h1>{garden.name}</h1>;
+}
+
+// Create the promise once per id, outside JSX
+function GardenDetailsContainer({ id }: { id: string }) {
+  const gardenPromise = useMemo(() => fetchGarden(id), [id]);
+
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <GardenDetails gardenPromise={gardenPromise} />
+    </Suspense>
+  );
+}
 ```
+
+#### `useActionState()` for Form Actions
+
+```typescript
+import { useActionState } from "react";
+
+function JoinGardenForm({ gardenAddress }: { gardenAddress: Address }) {
+  const [state, submitAction, isPending] = useActionState(
+    async (prevState: FormState, formData: FormData) => {
+      const result = await joinGarden(gardenAddress, formData);
+      if (!result.success) return { error: result.message };
+      return { success: true };
+    },
+    { error: null, success: false }
+  );
+
+  return (
+    <form action={submitAction}>
+      <input name="role" />
+      <button disabled={isPending}>
+        {isPending ? "Joining..." : "Join Garden"}
+      </button>
+      {state.error && <p className="text-destructive">{state.error}</p>}
+    </form>
+  );
+}
+```
+
+#### `useOptimistic()` for Instant UI Feedback
+
+```typescript
+import { useOptimistic } from "react";
+
+function WorkApprovalList({ approvals }: { approvals: WorkApproval[] }) {
+  const [optimisticApprovals, addOptimistic] = useOptimistic(
+    approvals,
+    (current, newApproval: WorkApproval) => [...current, newApproval]
+  );
+
+  const handleApprove = async (work: Work) => {
+    // Show immediately in UI
+    addOptimistic({ ...work, status: "approved", approvedAt: Date.now() });
+    // Then sync via job queue
+    await addJob({ kind: JobKind.APPROVAL, payload: { workUID: work.uid } });
+  };
+
+  return optimisticApprovals.map((a) => <ApprovalCard key={a.uid} approval={a} />);
+}
+```
+
+#### Ref Cleanup Functions (New in 19)
+
+```typescript
+// React 19: ref callbacks can return a cleanup function
+function VideoPlayer() {
+  return (
+    <video
+      ref={(node) => {
+        if (node) {
+          node.play();
+          // Cleanup runs when ref detaches
+          return () => node.pause();
+        }
+      }}
+    />
+  );
+}
+
+// Useful for event listeners on ref'd elements
+<div
+  ref={(node) => {
+    if (!node) return;
+    const handler = (e: Event) => { /* ... */ };
+    node.addEventListener("scroll", handler);
+    return () => node.removeEventListener("scroll", handler);
+  }}
+/>
+```
+
+#### When to Use React 19 vs Existing Patterns
+
+| Task | React 19 | Existing |
+|------|----------|----------|
+| Read context | `use(Context)` | `useContext(Context)` — both work |
+| Form submission | `useActionState` | React Hook Form + Zod (preferred for validation) |
+| Optimistic UI | `useOptimistic` | Manual state + rollback |
+| Async data | `use(promise)` + Suspense | TanStack Query (preferred for caching) |
+| Ref cleanup | Return cleanup from ref callback | `useEffect` cleanup |
+
+**Note:** For Green Goods, TanStack Query remains the primary data fetching solution (caching, invalidation, offline). Use `use()` for simple one-shot reads where Query is overkill.
 
 ---
 
-## Part 3: Performance Optimization
+## Part 3: React Compiler & Memoization
+
+### React Compiler is Enabled
+
+Green Goods uses `babel-plugin-react-compiler` in both `client` and `admin` Vite configs. The compiler **automatically memoizes** components, hooks, and expressions — eliminating most manual `useMemo`, `useCallback`, and `React.memo` usage.
+
+```typescript
+// vite.config.ts (client + admin)
+react({
+  babel: {
+    plugins: [["babel-plugin-react-compiler", {}]],
+  },
+})
+```
+
+### What the Compiler Handles Automatically
+
+| Pattern | Manual Code | Compiler | Action |
+|---------|------------|----------|--------|
+| Memoizing a computation | `useMemo(() => expensive(x), [x])` | Auto-memoized | **Don't add useMemo** |
+| Stabilizing a callback | `useCallback((e) => handler(e), [dep])` | Auto-memoized | **Don't add useCallback** |
+| Preventing child re-renders | `React.memo(Child)` | Auto-skipped | **Don't add React.memo** |
+| Object literals in JSX | `style={{ color: 'red' }}` | Auto-memoized | **Don't wrap in useMemo** |
+
+### When Manual Memoization is STILL Needed
+
+The compiler cannot optimize everything. Use manual memoization for:
+
+```typescript
+// 1. Values passed to non-React APIs (third-party libraries, Web APIs)
+const config = useMemo(() => buildConfig(data), [data]);
+thirdPartyLib.init(config); // Compiler can't track external consumption
+
+// 2. Expensive computations in custom hooks consumed by multiple components
+// The compiler optimizes per-component, not across component boundaries
+export function useFilteredGardens(gardens: Garden[], filters: Filters) {
+  return useMemo(
+    () => gardens.filter(g => matchesFilters(g, filters)),
+    [gardens, filters]
+  );
+}
+
+// 3. Query key stability (TanStack Query compares by reference)
+// The compiler may not stabilize objects used as query keys
+const queryKey = useMemo(() => queryKeys.gardens.list(chainId), [chainId]);
+```
+
+### Reconciliation with Architectural Rules
+
+**Rules 9 and 10** (chained useMemo, context provider values) are still valid principles, but the compiler handles most cases:
+
+| Rule | With Compiler | Guidance |
+|------|--------------|----------|
+| **Rule 9** (Chained useMemo) | Compiler auto-combines | Don't manually combine unless debugging perf |
+| **Rule 10** (Context Provider values) | Compiler auto-memoizes | Don't wrap in useMemo unless provider is in shared package consumed externally |
+
+### Anti-Patterns with the Compiler
+
+```typescript
+// ❌ Don't: Add useMemo/useCallback "just in case"
+const memoized = useMemo(() => items.map(transform), [items]);
+// The compiler already handles this — the useMemo is redundant noise
+
+// ✅ Do: Write plain code and let the compiler optimize
+const transformed = items.map(transform);
+
+// ❌ Don't: Wrap components in React.memo by default
+export default React.memo(GardenCard);
+// The compiler already skips re-renders when props haven't changed
+
+// ✅ Do: Export components directly
+export default GardenCard;
+```
+
+### When to Profile Before Memoizing
+
+If you suspect a performance issue:
+
+1. **Use React DevTools Profiler** — identify which components re-render
+2. **Check the compiler output** — `npx react-compiler-healthcheck` validates the compiler is working
+3. **Only then** add manual optimization if the compiler misses something
+
+### Shared Package Exception
+
+Hooks in `@green-goods/shared` may still benefit from manual memoization because:
+- They're consumed by both `client` and `admin` (compiler optimizes per-app build)
+- Complex derived state in hooks should be explicitly memoized for clarity
+- Query keys should use the `queryKeys` helper for guaranteed stability
+
+---
+
+## Part 4: Performance Optimization
 
 ### CRITICAL: Eliminating Waterfalls
 
@@ -288,10 +586,11 @@ const state = useAppStore();
 const gardens = useAppStore((state) => state.gardens);
 ```
 
-**When to use memoization:**
-- `useMemo`: For expensive computations (not primitives)
-- `useCallback`: Only when passed to memoized children
-- `React.memo`: For list items and stable-prop components
+**When to use memoization (with React Compiler active):**
+- The compiler handles most cases automatically (see Part 3)
+- Manual `useMemo`: Only for values passed to non-React APIs or shared hooks
+- Manual `useCallback`: Only when debugging a specific re-render issue
+- `React.memo`: Almost never needed — compiler auto-skips unchanged props
 
 ### MEDIUM: Rendering Performance
 
@@ -360,6 +659,17 @@ useQuery({
 - Don't over-globalize — Not everything needs global state
 - Don't duplicate server state — Let React Query manage it
 - Don't mutate directly — Use Zustand's `set()`
-- Don't store derived data — Compute it with `useMemo()`
+- Don't store derived data — Compute it inline (compiler memoizes automatically)
 - Don't use boolean props — Use explicit variants
-- Don't chain useMemo — Combine into single useMemo
+- Don't add useMemo/useCallback/React.memo by default — React Compiler handles it (see Part 3)
+
+## Related Skills
+
+- `tanstack-query` — Server state management that complements React's local state patterns
+- `offline` — Offline indicators and sync state that integrate with React components
+- `architecture` — Clean Architecture and composition patterns for React
+- `testing` — Vitest and React Testing Library patterns for component tests
+- `performance` — React Profiler, re-render optimization, and bundle analysis
+- `storybook` — Component documentation and visual testing
+- `ui-compliance` — WCAG accessibility, responsive design, and i18n for React components
+- `frontend-design` — Visual design direction and aesthetic choices for React UIs

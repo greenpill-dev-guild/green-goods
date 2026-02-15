@@ -58,22 +58,6 @@ export const DEPLOYMENT_REGISTRY_ABI = [
 ] as const;
 
 /**
- * HatsAccessControl ABI for checking operator permissions.
- */
-export const HATS_MODULE_ABI = [
-  {
-    type: "function",
-    name: "isOperator",
-    stateMutability: "view",
-    inputs: [
-      { name: "garden", type: "address" },
-      { name: "account", type: "address" },
-    ],
-    outputs: [{ name: "", type: "bool" }],
-  },
-] as const;
-
-/**
  * HypercertMinter createAllowlist function ABI.
  */
 export const CREATE_ALLOWLIST_ABI = [

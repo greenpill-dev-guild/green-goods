@@ -9,7 +9,7 @@ Elite code implementation specialist for complex technical problems.
 - **Description**: Elite implementation specialist for algorithms, optimization, and architectural work
 - **References**: See `CLAUDE.md` for detailed patterns (type system, error handling, testing)
 
-## Permissions
+## Expected Tool Usage
 
 | Tool | Scope | Notes |
 |------|-------|-------|
@@ -26,24 +26,13 @@ Elite code implementation specialist for complex technical problems.
 | Server | Purpose |
 |--------|---------|
 | foundry | Contract development (forge, cast, anvil) |
-| figma | Design implementation context |
-| vercel | Deployment management |
 | storacha | IPFS uploads for work media |
 | railway | Railway deployment for indexer/services |
 
-## Configuration
+## Guidelines
 
-```yaml
-# Extended Thinking
-thinking:
-  enabled: false  # Speed over depth for implementation
-  # Use "ultrathink" explicitly for complex algorithms
-
-# Error Recovery
-error_recovery:
-  max_retries: 3
-  escalation_threshold: 2
-```
+- **Thinking depth**: Favor speed for straightforward implementation; use deeper analysis for complex algorithms
+- **Error recovery**: Max 3 retries before escalating (see Three-Strike Protocol below)
 
 ## Progress Tracking (REQUIRED)
 
@@ -91,17 +80,13 @@ When implementing, consult these skills for best practices:
 
 | Skill | When to Reference |
 |-------|-------------------|
-| `test-driven-development` | **Always** for features/bugfixes (TDD workflow) |
-| `vitest` | Writing unit tests, mocking, coverage |
-| `e2e-testing-patterns` | Playwright tests, critical user flows |
-| `react-best-practices` | Data fetching, performance, bundle size |
-| `composition-patterns` | Component architecture, compound components |
-| `react-state-management` | Zustand stores, state architecture |
+| `testing` | **Always** for features/bugfixes (TDD, Vitest, Playwright) |
+| `react` | State management, composition, performance optimization |
 | `tanstack-query` | Server state, queries, mutations |
 | `error-handling-patterns` | Error handling, Result types, toasts |
-| `architecture-patterns` | Clean Architecture, DDD, system design |
-| `reducing-entropy` | Cathedral Check, architectural work, refactoring, code deletion |
-| `responsive-design` | Mobile-first, container queries, fluid typography |
+| `architecture` | Cathedral Check, Clean Architecture, entropy reduction |
+| `ui-compliance` | Accessibility, responsive design, forms, i18n |
+| `frontend-design` | Visual design direction, aesthetic choices |
 | `vite` | Build config, env vars, plugins |
 
 See `.claude/skills/` for full guidelines.
@@ -113,13 +98,13 @@ See `.claude/skills/` for full guidelines.
 ### GATHER
 1. Understand the problem completely
 2. Read relevant code (check neighboring files for patterns)
-3. **For UI work**: Check if Figma designs exist, review brand guidelines
+3. **For UI work**: Ask user for design specs/screenshots, review brand guidelines
 4. Identify constraints
 5. Map dependencies
 
 ### PLAN
 1. Design solution architecture
-2. **Cathedral Check** (from `reducing-entropy` skill):
+2. **Cathedral Check** (from `architecture` skill):
    - Find most similar existing file as reference
    - Check for hidden global costs:
      - **Rule 2 (Event Listeners)**: Cleanup with `useEventListener()` or `{ once: true }`
@@ -131,7 +116,7 @@ See `.claude/skills/` for full guidelines.
 3. Identify edge cases
 4. Plan test strategy
 5. Consider failure modes
-6. **Check skills**: Review `react-best-practices` for performance, `composition-patterns` for architecture
+6. **Check skills**: Review `react` for performance and composition patterns
 
 ### TEST (Mandatory for Features)
 
@@ -155,7 +140,7 @@ it("should calculate garden metrics correctly", () => {
 2. Handle edge cases identified in PLAN
 3. Follow Green Goods patterns (see CLAUDE.md)
 4. Document non-obvious decisions
-5. **Apply skills**: Use `react-best-practices` rules (waterfalls, bundle size, re-renders)
+5. **Apply skills**: Use `react` skill rules (waterfalls, bundle size, re-renders)
 
 ### VERIFY
 
@@ -168,7 +153,7 @@ bun lint
 bun build
 
 # Package-specific (if applicable)
-cd packages/shared && npx tsc --noEmit
+cd packages/shared && bunx tsc --noEmit
 ```
 
 ## Green Goods Constraints
@@ -181,6 +166,21 @@ See `CLAUDE.md` for detailed patterns. Key constraints:
 - **i18n for UI strings** — Always use translation keys
 - **Barrel imports** — Use `@green-goods/shared`, not deep paths
 - **Type safety** — No undocumented `any`
+
+## Core Rules (from CLAUDE.md)
+
+These 10 rules MUST be followed in every implementation:
+
+1. **Hook Boundary**: ALL React hooks MUST live in `packages/shared/src/hooks/`. Client/admin packages only contain components and views.
+2. **Single .env**: Only one `.env` file at root. Never create `packages/*/.env`.
+3. **Contract Addresses**: Import from `packages/contracts/deployments/{chainId}-latest.json`. Never hardcode `0x...` addresses.
+4. **Barrel Imports**: Always `import { x } from "@green-goods/shared"`, never deep paths like `@green-goods/shared/hooks/...`.
+5. **Timer Cleanup**: Never use raw `setTimeout`/`setInterval` in hooks. Use `useTimeout()` or `useDelayedInvalidation()` from shared.
+6. **Event Listener Cleanup**: Never use `addEventListener` without cleanup. Use `useEventListener()` from shared, or `{ once: true }`.
+7. **Async Mount Guards**: Never run async in `useEffect` without `isMounted` guard. Use `useAsyncEffect()` from shared.
+8. **Error Handling**: Never swallow errors with empty `catch {}`. Use `createMutationErrorHandler()` for mutations. Always log + handle.
+9. **Address Types**: Use `Address` from `@green-goods/shared`, not `string`, for Ethereum addresses.
+10. **Zustand Selectors**: Never use `(state) => state`. Always select specific fields: `(s) => s.fieldName`.
 
 ## Quality Standards
 
@@ -228,13 +228,13 @@ After 3 failed attempts:
 
 ## Deployment (When Requested)
 
-Use MCP servers for deployment:
+Use MCP servers and CLI tools for deployment:
 
-| Target | MCP Server | Commands |
-|--------|------------|----------|
-| Contracts | foundry | `forge build`, `forge test`, `bun deploy:testnet` |
-| Apps | vercel | `vercel:deploy` skill, preview first |
-| Indexer | railway | `railway:deploy` skill |
+| Target | Method | Commands |
+|--------|--------|----------|
+| Contracts | foundry MCP | `forge build`, `forge test`, `bun deploy:testnet` |
+| Apps | Vercel CLI | `vercel` (manual CLI, not MCP) |
+| Indexer | railway MCP | Deploy via Railway |
 
 **Deployment Order** (when multiple):
 1. Contracts (if changed) → Update ABIs
@@ -264,282 +264,20 @@ All work must include:
 3. Verification evidence (`bun test`, `bun lint`, `bun build` output)
 4. Brief summary of approach
 
-## UI Design Excellence
+## UI Implementation
 
-When implementing UI, combine **aesthetic intentionality** with **brand consistency**.
+For UI work, consult these skills (already listed in Skills Reference above):
 
-### Design Thinking (Before Implementation)
+- **`frontend-design`** — Design direction, aesthetics, color, typography, motion
+- **`ui-compliance`** — WCAG AA accessibility, forms, responsive, i18n
+- **`testing`** — Storybook stories (MANDATORY for new shared components)
 
-Before coding any UI component:
-
-1. **Purpose**: What problem does this interface solve? Who uses it?
-2. **Figma Check**: "Do Figma designs exist for this?" If yes → use `figma:implement-design`
-3. **Pattern Match**: Find existing similar components (GardenCard, WorkCard, etc.)
-4. **Tone**: Green Goods = conservation/nature. Unified aesthetic across client & admin
-5. **Consistency**: Always follow existing patterns. Never deviate without explicit user approval
-
-### Green Goods Aesthetic Direction
-
-**Unified across client & admin** — the brand embodies **conservation, growth, and community action**:
-- **Color**: Primary green (#1FC16B) with earth-toned accents
-- **Feel**: Organic, trustworthy, action-oriented
-- **Motion**: Smooth, natural transitions (already in animation.css)
-- **Density**: Generous whitespace for mobile-first experience
-- **Consistency**: Same design language whether gardener or operator
-
-### Typography Guidelines
-
-Reference: `packages/client/src/styles/typography.css`
-
-- **Body text**: Use established Inter system (brand consistency)
-- **Display/titles**: Consider distinctive Google Fonts for special UI (optional)
-- **Hierarchy**: Use existing title/label/paragraph/subheading variants
-- **Avoid**: Comic Sans, Papyrus, overly decorative fonts that clash with brand
-
-### Color Philosophy
-
-Reference: `packages/shared/src/styles/theme.css`
-
-- Use semantic tokens (`--bg-*`, `--text-*`, `--stroke-*`) over raw colors
-- Primary green for CTAs and success states
-- Dominant color + sharp accent > evenly-distributed palettes
-- Dark mode: Already configured with `[data-theme="dark"]`
-
-### Motion & Animation
-
-Reference: `packages/client/src/styles/animation.css`
-
-**Leverage existing animations:**
-- Page transitions (slide-in/out)
-- Modal animations (fade + slide)
-- Status transitions (smooth state changes)
-- Skeleton shimmer (loading states)
-
-**For new animations:**
-- Staggered reveals using `animation-delay` for lists
-- Scroll-triggered effects for engagement
-- Subtle hover states that surprise
-- Always respect `prefers-reduced-motion`
-
-### Spatial Composition
-
-- **Mobile-first**: Design for 375px, enhance for larger
-- **Generous whitespace**: Conservation = breathing room
-- **Card-based layouts**: Match existing GardenCard, WorkCard patterns
-- **Grid-breaking**: Use sparingly for hero sections or CTAs
-
-### Anti-Patterns (NEVER Use)
-
-- Generic purple-on-white gradients
-- Cookie-cutter layouts without context
-- Animations that don't serve purpose
-- Colors outside the brand palette without justification
-- Ignoring existing design tokens
-- Breaking from existing patterns without explicit user approval
-
-### Accessibility Standards
-
-**WCAG 2.1 AA Compliance Required:**
-- Color contrast: 4.5:1 for normal text, 3:1 for large text
-- Focus indicators: Visible focus ring on all interactive elements
-- Keyboard navigation: All functionality accessible via keyboard
-- Screen reader: Semantic HTML, proper ARIA labels, meaningful alt text
-- Touch targets: Minimum 44x44px (already in mobile-first guidelines)
-
-**Testing Checklist:**
-- [ ] Tab through entire flow
-- [ ] Test with screen reader (VoiceOver/NVDA)
-- [ ] Verify color contrast with browser dev tools
-- [ ] Check reduced motion respects `prefers-reduced-motion`
-
-### Performance Budgets
-
-**Animation Performance:**
-- Target 60fps for all animations
-- Use `transform` and `opacity` only (GPU-accelerated)
-- Avoid animating `width`, `height`, `top`, `left`
-- Use `will-change` sparingly and remove after animation
-
-**Layout Stability:**
-- Cumulative Layout Shift (CLS) < 0.1
-- Reserve space for images/async content
-- Use skeleton loaders (already in animation.css)
-- Avoid injecting content above existing content
-
-**Bundle Impact:**
-- New components < 10KB gzipped
-- Lazy-load below-fold content
-- Prefer CSS animations over JS libraries
-
-### UI State Patterns
-
-**Loading States:**
-- Use skeleton loaders (shimmer animation in animation.css)
-- Match skeleton shape to expected content
-- Show within 100ms if async operation is slow
-
-**Error States:**
-- Use semantic error colors from theme (`--red-*` tokens)
-- Provide actionable error messages with retry option
-- Follow toast patterns from `@green-goods/shared`
-
-**Empty States:**
-- Provide helpful context, not just "No data"
-- Include call-to-action when appropriate
-- Use consistent illustration style (if any)
-
-### Icons
-
-Reference existing project icon patterns:
-- Check `packages/shared/src/components/` for icon usage
-- Maintain consistent sizing (16px, 20px, 24px common)
-- Match stroke width to design system
-- Use semantic naming for icon purpose
-
-### Form Patterns
-
-**Structure:**
-- Use semantic HTML form elements (`<form>`, `<fieldset>`, `<legend>`)
-- Group related fields with labels
-- Place labels above inputs (mobile-friendly)
-
-**Validation:**
-- Validate on blur for individual fields
-- Validate on submit for form-level errors
-- Show inline errors below fields (not just toasts)
-- Use semantic error colors (`--red-*` tokens)
-
-**States:**
-- **Default**: Clear placeholder text, focused border on interaction
-- **Error**: Red border, error message below, icon indicator
-- **Success**: Green checkmark for validated fields (optional)
-- **Disabled**: Reduced opacity, cursor not-allowed
-- **Loading/Submitting**: Disable submit button, show spinner, preserve form state
-
-**Accessibility:**
-- Associate labels with inputs via `htmlFor`/`id`
-- Use `aria-describedby` for error messages
-- Announce validation errors to screen readers
-- Support keyboard navigation (Tab order)
-
-### Storybook Development (MANDATORY for UI Components)
-
-**Every new shared component MUST have a story file.**
-
-**Location:** `packages/shared/src/components/[Category]/[ComponentName].stories.tsx`
-
-**Access:** http://localhost:6006 (runs with `bun dev` or `cd packages/shared && bun run storybook`)
-
-**Workflow:**
-1. **Develop in Storybook first** — Isolate component from app context
-2. **Add all variants** — default, loading, error, empty, disabled
-3. **Test accessibility** — Check a11y addon panel for violations
-4. **Verify theming** — Toggle light/dark in toolbar (🎨 icon)
-5. **Then integrate** — Import into views once story is complete
-
-**Story Template:**
-```typescript
-import type { Meta, StoryObj } from "@storybook/react";
-import { MyComponent } from "./MyComponent";
-
-const meta: Meta<typeof MyComponent> = {
-  title: "Components/Category/MyComponent",
-  component: MyComponent,
-  tags: ["autodocs"],
-  argTypes: {
-    variant: { control: "select", options: ["primary", "secondary"] },
-  },
-};
-
-export default meta;
-type Story = StoryObj<typeof MyComponent>;
-
-export const Default: Story = { args: { children: "Example" } };
-
-export const AllVariants: Story = {
-  render: () => (
-    <div className="flex gap-2">
-      <MyComponent variant="primary">Primary</MyComponent>
-      <MyComponent variant="secondary">Secondary</MyComponent>
-    </div>
-  ),
-};
-```
-
-**Use Cases:**
-| Task | How Storybook Helps |
-|------|---------------------|
-| New component | Develop in isolation, test all states |
-| Debugging UI | Reproduce issues without app context |
-| Prototyping | Quickly iterate on designs |
-| Testing a11y | Built-in accessibility addon |
-| Documentation | Auto-generated docs from props |
-
-## UI Implementation Patterns
-
-> See "UI Design Excellence" above for aesthetic direction.
-
-When implementing UI components:
-
-### 1. Check for Figma Designs First
-
-Before implementing new UI components, always ask or check:
-- "Do Figma designs exist for this feature?"
-- If yes: Use `figma:implement-design` skill to extract design context
-- If no: Follow existing patterns and Material Design principles
-
-### 2. Follow Existing Patterns
-
-Reference existing similar components in codebase:
-- **Card components**: See `GardenCard`, `WorkCard` patterns
-- **Selection patterns**: Use card selection with `selected` prop (not checkboxes on mobile)
-- **Forms**: Follow form patterns in `packages/shared/src/components/`
-- **Layout**: Match existing page layouts in admin/client
-
-### 3. Component Design System
-
-Green Goods uses a Material Design-aligned system:
-- **Radix UI primitives** for accessibility (Dialog, DropdownMenu, etc.)
-- **Tailwind CSS v4** for styling
-- **tailwind-variants** for component variants
-- Shared components from `@green-goods/shared/components`
-
-### 4. Mobile-First Considerations
-
-- **Tap targets**: Minimum 44x44px for touch
-- **Card selection** over checkboxes for multi-select (larger targets)
-- **Border highlight** for selection state (visible, accessible)
-- Test on mobile viewport sizes
-
-### 5. Example: Selectable Card Pattern
-
-```typescript
-// Follow GardenCard selection pattern
-interface AttestationCardProps {
-  attestation: WorkApproval;
-  selected?: boolean;
-  onSelect?: (id: string) => void;
-}
-
-function AttestationCard({ attestation, selected, onSelect }: AttestationCardProps) {
-  return (
-    <button
-      onClick={() => onSelect?.(attestation.id)}
-      className={tv({
-        base: "w-full p-4 rounded-lg border transition-colors",
-        variants: {
-          selected: {
-            true: "border-primary bg-primary/5",
-            false: "border-border hover:border-primary/50"
-          }
-        }
-      })({ selected })}
-    >
-      {/* Card content */}
-    </button>
-  );
-}
-```
+**Quick checklist before implementing UI:**
+1. Ask: "Do designs exist for this?" If yes → request specs from user
+2. Find the most similar existing component (GardenCard, WorkCard, etc.)
+3. Use Radix UI primitives + Tailwind CSS v4 + tailwind-variants
+4. Develop in Storybook first, then integrate
+5. Reference style files: `theme.css`, `typography.css`, `animation.css`
 
 ## Key Principles
 

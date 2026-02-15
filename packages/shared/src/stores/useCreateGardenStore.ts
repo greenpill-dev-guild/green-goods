@@ -13,6 +13,8 @@ export interface CreateGardenFormState {
   location: string;
   bannerImage: string;
   communityToken: string;
+  metadata: string;
+  openJoining: boolean;
   gardeners: string[];
   operators: string[];
 }
@@ -74,6 +76,8 @@ export function createEmptyGardenForm(): CreateGardenFormState {
     location: "",
     bannerImage: "",
     communityToken: "",
+    metadata: "",
+    openJoining: false,
     gardeners: [],
     operators: [],
   };
@@ -218,7 +222,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
               isValidAddress(form.communityToken.trim())
             );
           case "team":
-            return form.gardeners.length > 0;
+            return form.gardeners.length > 0 && form.operators.length > 0;
           case "review":
             return true;
           default:
@@ -250,8 +254,8 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           description: form.description.trim(),
           location: form.location.trim(),
           bannerImage: form.bannerImage.trim(),
-          gardeners: form.gardeners,
-          gardenOperators: form.operators,
+          metadata: form.metadata.trim(),
+          openJoining: form.openJoining,
         } satisfies CreateGardenParams;
       },
     }),

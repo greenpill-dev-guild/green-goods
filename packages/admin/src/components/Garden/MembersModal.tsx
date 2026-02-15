@@ -1,6 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiDeleteBinLine, RiUserLine } from "@remixicon/react";
 import type { ReactNode } from "react";
+import { useIntl } from "react-intl";
 import { AddressDisplay } from "../AddressDisplay";
 
 type MembersModalProps = {
@@ -12,11 +13,38 @@ type MembersModalProps = {
   onRemove?: (member: string) => Promise<void>;
   isLoading?: boolean;
   icon?: ReactNode;
-  colorScheme?: "blue" | "green";
+  colorScheme?: "info" | "success" | "warning" | "feature" | "primary" | "neutral";
 };
 
+const COLOR_CLASSES = {
+  info: {
+    iconBg: "bg-information-lighter",
+    iconText: "text-information-base",
+  },
+  success: {
+    iconBg: "bg-success-lighter",
+    iconText: "text-success-base",
+  },
+  warning: {
+    iconBg: "bg-warning-lighter",
+    iconText: "text-warning-base",
+  },
+  feature: {
+    iconBg: "bg-feature-lighter",
+    iconText: "text-feature-dark",
+  },
+  primary: {
+    iconBg: "bg-primary-lighter",
+    iconText: "text-primary-base",
+  },
+  neutral: {
+    iconBg: "bg-bg-weak",
+    iconText: "text-text-soft",
+  },
+} as const;
+
 /**
- * Modal for displaying and managing garden members (gardeners or operators).
+ * Modal for displaying and managing garden members by role.
  * Uses Radix Dialog for accessibility and proper focus management.
  */
 export function MembersModal({
@@ -28,20 +56,10 @@ export function MembersModal({
   onRemove,
   isLoading = false,
   icon,
-  colorScheme = "blue",
+  colorScheme = "info",
 }: MembersModalProps) {
-  const colorClasses = {
-    blue: {
-      iconBg: "bg-information-lighter",
-      iconText: "text-information-base",
-    },
-    green: {
-      iconBg: "bg-success-lighter",
-      iconText: "text-success-base",
-    },
-  };
-
-  const colors = colorClasses[colorScheme];
+  const { formatMessage } = useIntl();
+  const colors = COLOR_CLASSES[colorScheme];
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -69,7 +87,10 @@ export function MembersModal({
                   {title}
                 </Dialog.Title>
                 <Dialog.Description className="text-xs text-text-soft sm:text-sm">
-                  {members.length} {members.length === 1 ? "member" : "members"}
+                  {formatMessage(
+                    { id: "app.admin.garden.members.count" },
+                    { count: members.length }
+                  )}
                 </Dialog.Description>
               </div>
             </div>
@@ -77,7 +98,7 @@ export function MembersModal({
               <button
                 type="button"
                 className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-text-soft transition hover:bg-bg-soft active:scale-95"
-                aria-label="Close modal"
+                aria-label={formatMessage({ id: "app.common.close" })}
               >
                 <RiCloseLine className="h-5 w-5" />
               </button>
@@ -93,7 +114,9 @@ export function MembersModal({
                 >
                   {icon || <RiUserLine className={`h-8 w-8 ${colors.iconText}`} />}
                 </div>
-                <p className="text-sm text-text-soft">No members found</p>
+                <p className="text-sm text-text-soft">
+                  {formatMessage({ id: "app.admin.garden.members.empty" })}
+                </p>
               </div>
             ) : (
               <div className="space-y-2 sm:space-y-3">
@@ -113,7 +136,12 @@ export function MembersModal({
                           address={member}
                           className="text-sm font-medium sm:text-base"
                         />
-                        <p className="text-xs text-text-soft">Member #{index + 1}</p>
+                        <p className="text-xs text-text-soft">
+                          {formatMessage(
+                            { id: "app.admin.garden.members.index" },
+                            { index: index + 1 }
+                          )}
+                        </p>
                       </div>
                     </div>
                     {canManage && onRemove && (
@@ -123,8 +151,8 @@ export function MembersModal({
                           await onRemove(member);
                         }}
                         disabled={isLoading}
-                        className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-error-dark transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
-                        aria-label="Remove member"
+                        className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-error-dark transition hover:bg-error-lighter active:scale-95 disabled:opacity-50"
+                        aria-label={formatMessage({ id: "app.admin.garden.members.remove" })}
                       >
                         <RiDeleteBinLine className="h-5 w-5" />
                       </button>

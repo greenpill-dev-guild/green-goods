@@ -25,6 +25,10 @@ export interface IndexerGarden {
   bannerImage: string | null;
   gardeners: string[] | null;
   operators: string[] | null;
+  evaluators: string[] | null;
+  owners: string[] | null;
+  funders: string[] | null;
+  communities: string[] | null;
   createdAt: number | null;
 }
 

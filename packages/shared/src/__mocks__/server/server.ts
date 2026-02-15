@@ -11,7 +11,7 @@ const handlers = [
     const allGardens = [
       {
         id: "0x1234567890123456789012345678901234567890",
-        chainId: 84532,
+        chainId: 11155111,
         tokenAddress: "0xabcd1234567890123456789012345678901234ef",
         tokenID: "1",
         name: "Test Garden 1",
@@ -21,10 +21,14 @@ const handlers = [
         createdAt: "2024-01-01T00:00:00Z",
         gardeners: ["0x2aa64E6d80390F5C017F0313cB908051BE2FD35e"],
         operators: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
+        evaluators: [],
+        owners: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
+        funders: [],
+        communities: [],
       },
       {
         id: "0x2345678901234567890123456789012345678901",
-        chainId: 84532,
+        chainId: 11155111,
         tokenAddress: "0xbcde2345678901234567890123456789012345f0",
         tokenID: "2",
         name: "Test Garden 2",
@@ -34,6 +38,10 @@ const handlers = [
         createdAt: "2024-01-02T00:00:00Z",
         gardeners: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
         operators: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
+        evaluators: [],
+        owners: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
+        funders: [],
+        communities: [],
       },
     ];
 
@@ -57,14 +65,22 @@ const handlers = [
         name: "Test Garden 1",
         operators: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
         gardeners: ["0x2aa64E6d80390F5C017F0313cB908051BE2FD35e"],
-        chainId: 84532,
+        evaluators: [],
+        owners: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
+        funders: [],
+        communities: [],
+        chainId: 11155111,
       },
       {
         id: "0x2345678901234567890123456789012345678901",
         name: "Test Garden 2",
         operators: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
         gardeners: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
-        chainId: 84532,
+        evaluators: [],
+        owners: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
+        funders: [],
+        communities: [],
+        chainId: 11155111,
       },
     ];
 
@@ -110,7 +126,7 @@ const handlers = [
         Garden: [
           {
             id,
-            chainId: 84532,
+            chainId: 11155111,
             tokenAddress: "0xabcd1234567890123456789012345678901234ef",
             tokenID: "1",
             name: "Test Garden Detail",
@@ -120,6 +136,10 @@ const handlers = [
             createdAt: "2024-01-01T00:00:00Z",
             gardeners: ["0x2aa64E6d80390F5C017F0313cB908051BE2FD35e"],
             operators: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
+            evaluators: [],
+            owners: ["0x04D60647836bcA09c37B379550038BdaaFD82503"],
+            funders: [],
+            communities: [],
           },
         ],
       },

@@ -12,39 +12,38 @@ import { createElement } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { AllowlistEntry, DistributionMode } from "@green-goods/shared";
 
-// Mock dependencies
-vi.mock("@green-goods/shared/utils", () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-}));
-
-vi.mock("@green-goods/shared", () => ({
-  TOTAL_UNITS: 100000000n,
-  copyToClipboard: vi.fn().mockResolvedValue(true),
-  sumUnits: (entries: AllowlistEntry[]) => entries.reduce((sum, e) => sum + e.units, 0n),
-  // Mock FormInput for address editing
-  // Workaround for vitest hoisting: vi.mock calls are hoisted above imports,
-  // so top-level `import React from 'react'` isn't available in the mock factory.
-  FormInput: ({
-    value,
-    onChange,
-    placeholder,
-    ...props
-  }: {
-    value?: string;
-    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    placeholder?: string;
-    [key: string]: unknown;
-  }) => {
-    const React = require("react");
-    return React.createElement("input", {
-      type: "text",
-      value: value ?? "",
+// Mock dependencies — use importOriginal to preserve `cn` and other utilities
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  return {
+    ...actual,
+    TOTAL_UNITS: 100000000n,
+    copyToClipboard: vi.fn().mockResolvedValue(true),
+    // Mock FormInput for address editing
+    // Workaround for vitest hoisting: vi.mock calls are hoisted above imports,
+    // so top-level `import React from 'react'` isn't available in the mock factory.
+    FormInput: ({
+      value,
       onChange,
       placeholder,
-      "data-testid": props["data-testid"] ?? "form-input",
-    });
-  },
-}));
+      ...props
+    }: {
+      value?: string;
+      onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+      placeholder?: string;
+      [key: string]: unknown;
+    }) => {
+      const React = require("react");
+      return React.createElement("input", {
+        type: "text",
+        value: value ?? "",
+        onChange,
+        placeholder,
+        "data-testid": props["data-testid"] ?? "form-input",
+      });
+    },
+  };
+});
 
 // Mock the DistributionChart component
 vi.mock("../../../components/hypercerts/DistributionChart", () => ({

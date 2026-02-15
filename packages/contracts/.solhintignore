@@ -4,3 +4,6 @@ cache
 coverage
 node_modules
 out
+
+# mock contracts (mimic external interfaces, don't enforce gas rules)
+src/mocks/

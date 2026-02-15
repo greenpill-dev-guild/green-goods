@@ -52,8 +52,8 @@
     "test:shared": "cd packages/shared && bun run test",
     "test:indexer": "cd packages/indexer && bun run test",
     "test:contracts": "cd packages/contracts && bun run test",
-    "anvil:start": "anvil --fork-url ${BASE_SEPOLIA_RPC_URL:-https://sepolia.base.org} --port 8545",
-    "anvil:start:block": "anvil --fork-url ${BASE_SEPOLIA_RPC_URL:-https://sepolia.base.org} --fork-block-number ${ANVIL_FORK_BLOCK} --port 8545",
+    "anvil:start": "anvil --fork-url ${SEPOLIA_RPC_URL:-https://ethereum-sepolia.publicnode.com} --port 8545",
+    "anvil:start:block": "anvil --fork-url ${SEPOLIA_RPC_URL:-https://ethereum-sepolia.publicnode.com} --fork-block-number ${ANVIL_FORK_BLOCK} --port 8545",
     "seed:test": "bun scripts/seed-test-data.ts",
     "seed:anvil": "ANVIL_RUNNING=true bun scripts/seed-test-data.ts",
     "lighthouse": "bun run lighthouse:client && bun run lighthouse:admin",
@@ -146,5 +146,13 @@
   ],
   "trustedDependencies": [
     "sharp"
-  ]
+  ],
+  "description": "A progressive web application for the Green Goods protocol.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "author": "",
+  "license": "MIT"
 }

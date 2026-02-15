@@ -89,7 +89,7 @@ describe("useActionOperations", () => {
 
   describe("when wallet is not connected", () => {
     it("returns error for registerAction when wallet not connected", async () => {
-      const { result } = renderHook(() => useActionOperations(84532));
+      const { result } = renderHook(() => useActionOperations(11155111));
 
       const response = await result.current.registerAction({
         startTime: 1234567890,
@@ -105,7 +105,7 @@ describe("useActionOperations", () => {
     });
 
     it("returns error for updateActionTitle when wallet not connected", async () => {
-      const { result } = renderHook(() => useActionOperations(84532));
+      const { result } = renderHook(() => useActionOperations(11155111));
 
       const response = await result.current.updateActionTitle("1", "New Title");
 
@@ -136,7 +136,7 @@ describe("useActionOperations", () => {
         executeWithToast: mockExecuteWithToast,
       });
 
-      const { result } = renderHook(() => useActionOperations(84532));
+      const { result } = renderHook(() => useActionOperations(11155111));
 
       await result.current.updateActionTitle("1", "New Title");
 
@@ -158,7 +158,7 @@ describe("useActionOperations", () => {
         },
       });
 
-      const { result } = renderHook(() => useActionOperations(84532));
+      const { result } = renderHook(() => useActionOperations(11155111));
 
       const response = await result.current.updateActionTitle("1", "New Title");
 
@@ -179,7 +179,7 @@ describe("useActionOperations", () => {
         executeWithToast: mockExecuteWithToast,
       });
 
-      const { result } = renderHook(() => useActionOperations(84532));
+      const { result } = renderHook(() => useActionOperations(11155111));
 
       await result.current.updateActionTitle("1", "Updated Title");
 
@@ -199,7 +199,7 @@ describe("useActionOperations", () => {
         executeWithToast: mockExecuteWithToast,
       });
 
-      const { result } = renderHook(() => useActionOperations(84532));
+      const { result } = renderHook(() => useActionOperations(11155111));
 
       const response = await result.current.updateActionTitle("1", "New Title");
 
@@ -208,13 +208,13 @@ describe("useActionOperations", () => {
     });
 
     it("exposes isLoading state", () => {
-      const { result } = renderHook(() => useActionOperations(84532));
+      const { result } = renderHook(() => useActionOperations(11155111));
 
       expect(result.current.isLoading).toBe(false);
     });
 
     it("exposes all action operations", () => {
-      const { result } = renderHook(() => useActionOperations(84532));
+      const { result } = renderHook(() => useActionOperations(11155111));
 
       expect(result.current).toHaveProperty("registerAction");
       expect(result.current).toHaveProperty("updateActionStartTime");

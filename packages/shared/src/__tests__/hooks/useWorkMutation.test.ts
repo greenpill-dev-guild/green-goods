@@ -25,6 +25,10 @@ vi.mock("../../modules/job-queue", () => ({
   },
 }));
 
+vi.mock("../../modules/work/simulate", () => ({
+  simulateWorkSubmission: vi.fn(),
+}));
+
 vi.mock("../../components/toast", () => ({
   toastService: {
     loading: vi.fn(),
@@ -59,7 +63,7 @@ vi.mock("../../stores/useWorkFlowStore", () => ({
 }));
 
 vi.mock("../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 vi.mock("../../utils/action/parsers", () => ({
@@ -176,7 +180,7 @@ describe("hooks/work/useWorkMutation", () => {
         MOCK_ADDRESSES.garden,
         1,
         "Test Action",
-        84532,
+        11155111,
         images,
         expect.objectContaining({ onProgress: expect.any(Function) })
       );

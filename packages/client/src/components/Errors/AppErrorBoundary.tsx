@@ -7,7 +7,7 @@ import {
   RiRefreshLine,
   RiWifiOffLine,
 } from "@remixicon/react";
-import { Component, ErrorInfo, ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button } from "../Actions";
 
 type Messages = typeof en;

@@ -1,4 +1,4 @@
-import { hapticSelection } from "@green-goods/shared";
+import { type Action, type Garden, hapticSelection } from "@green-goods/shared";
 import { RiHammerFill, RiPlantFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";

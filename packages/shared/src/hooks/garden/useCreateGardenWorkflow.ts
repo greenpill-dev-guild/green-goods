@@ -8,16 +8,20 @@
  */
 
 import { useMachine } from "@xstate/react";
-import { useCallback, useEffect, useMemo } from "react";
+import { waitForTransactionReceipt } from "@wagmi/core";
+import { fromPromise } from "xstate";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAccount, useWalletClient } from "wagmi";
 import {
   trackAdminGardenCreateFailed,
   trackAdminGardenCreateStarted,
   trackAdminGardenCreateSuccess,
 } from "../../modules/app/analytics-events";
+import { wagmiConfig } from "../../config/appkit";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useCreateGardenStore } from "../../stores/useCreateGardenStore";
 import { GardenTokenABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { createGardenMachine, type CreateGardenFormStatus } from "../../workflows/createGarden";
 
 /**
@@ -44,73 +48,115 @@ export function useCreateGardenWorkflow() {
   );
 
   // Get store actions for step navigation
-  const storeNextStep = useCreateGardenStore((s) => s.nextStep);
-  const storePrevStep = useCreateGardenStore((s) => s.previousStep);
   const storeGoToReview = useCreateGardenStore((s) => s.goToReview);
   const storeGoToFirstIncomplete = useCreateGardenStore((s) => s.goToFirstIncompleteStep);
   const storeReset = useCreateGardenStore((s) => s.reset);
+
+  // Store mutable dependencies in refs so the machine actor can read
+  // current values without recreating the machine on every change
+  const walletClientRef = useRef(walletClient);
+  const addressRef = useRef(address);
+  const chainIdRef = useRef(selectedChainId);
+  const addPendingTxRef = useRef(addPendingTransaction);
+
+  useEffect(() => {
+    walletClientRef.current = walletClient;
+  }, [walletClient]);
+  useEffect(() => {
+    addressRef.current = address;
+  }, [address]);
+  useEffect(() => {
+    chainIdRef.current = selectedChainId;
+  }, [selectedChainId]);
+  useEffect(() => {
+    addPendingTxRef.current = addPendingTransaction;
+  }, [addPendingTransaction]);
 
   const machine = useMemo(
     () =>
       createGardenMachine.provide({
         actors: {
-          submitGarden: async () => {
+          submitGarden: fromPromise<string, void>(async () => {
             const params = useCreateGardenStore.getState().getParams();
             if (!params) {
               throw new Error("Garden form is incomplete");
             }
 
-            if (!walletClient || !address) {
+            const currentWalletClient = walletClientRef.current;
+            const currentAddress = addressRef.current;
+            const currentChainId = chainIdRef.current;
+
+            if (!currentWalletClient || !currentAddress) {
               throw new Error("Connect a wallet to deploy the garden");
             }
 
-            // Track garden creation started
             trackAdminGardenCreateStarted({
               gardenName: params.name,
-              chainId: selectedChainId,
+              chainId: currentChainId,
             });
 
             try {
-              const contracts = getNetworkContracts(selectedChainId);
-              const txHash = await walletClient.writeContract({
+              const contracts = getNetworkContracts(currentChainId);
+              const config = {
+                communityToken: params.communityToken,
+                name: params.name,
+                description: params.description,
+                location: params.location,
+                bannerImage: params.bannerImage,
+                metadata: params.metadata ?? "",
+                openJoining: params.openJoining ?? false,
+              };
+
+              // Simulate first to catch contract reverts without spending gas
+              const simulation = await simulateTransaction(
+                contracts.gardenToken as `0x${string}`,
+                GardenTokenABI,
+                "mintGarden",
+                [config],
+                currentAddress
+              );
+
+              if (!simulation.success) {
+                throw new Error(simulation.error?.message ?? "Transaction simulation failed");
+              }
+
+              // Execute the transaction
+              const txHash = await currentWalletClient.writeContract({
                 address: contracts.gardenToken as `0x${string}`,
                 abi: GardenTokenABI,
                 functionName: "mintGarden",
-                account: address,
-                args: [
-                  params.communityToken,
-                  params.name,
-                  params.description,
-                  params.location,
-                  params.bannerImage,
-                  params.gardeners,
-                  params.gardenOperators,
-                ],
+                account: currentAddress,
+                args: [config],
               });
 
-              // Track garden creation success
+              addPendingTxRef.current(txHash, "garden:create");
+
+              // Wait for on-chain confirmation before declaring success
+              await waitForTransactionReceipt(wagmiConfig, {
+                hash: txHash,
+                chainId: currentChainId,
+              });
+
               trackAdminGardenCreateSuccess({
                 gardenName: params.name,
-                gardenAddress: contracts.gardenToken, // Note: actual garden address comes from event
-                chainId: selectedChainId,
+                gardenAddress: contracts.gardenToken,
+                chainId: currentChainId,
                 txHash,
               });
 
-              addPendingTransaction(txHash, "garden:create");
               return txHash;
             } catch (error) {
-              // Track garden creation failure
               trackAdminGardenCreateFailed({
                 gardenName: params.name,
-                chainId: selectedChainId,
+                chainId: currentChainId,
                 error: error instanceof Error ? error.message : "Unknown error",
               });
               throw error;
             }
-          },
+          }),
         },
-      } as any),
-    [address, walletClient, selectedChainId, addPendingTransaction]
+      }),
+    [] // Machine created once — actor reads current values from refs
   );
 
   const [state, send] = useMachine(machine);
@@ -134,20 +180,13 @@ export function useCreateGardenWorkflow() {
 
   const goNext = useCallback(() => {
     const formStatus = getFormStatus();
-    if (formStatus.canProceed) {
-      // Only advance store if machine will accept the event
-      storeNextStep();
-    }
     send({ type: "NEXT", formStatus });
-  }, [send, storeNextStep]);
+  }, [send]);
 
   const goBack = useCallback(() => {
     const formStatus = getFormStatus();
-    if (formStatus.currentStep > 0) {
-      storePrevStep();
-    }
     send({ type: "BACK", formStatus });
-  }, [send, storePrevStep]);
+  }, [send]);
 
   const goToReview = useCallback(() => {
     const formStatus = getFormStatus();

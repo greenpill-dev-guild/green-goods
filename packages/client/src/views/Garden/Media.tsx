@@ -1,3 +1,4 @@
+import type { Action } from "@green-goods/shared";
 import { mediaResourceManager, track } from "@green-goods/shared/modules";
 import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { RiCloseLine, RiImageFill, RiLoader4Line, RiZoomInLine } from "@remixicon/react";

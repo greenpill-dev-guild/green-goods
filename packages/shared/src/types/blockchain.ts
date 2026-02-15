@@ -16,6 +16,8 @@ export interface DeploymentConfig {
   workResolver?: Address;
   workApprovalResolver?: Address;
   deploymentRegistry?: Address;
+  hatsModule?: Address;
+  karmaGAPModule?: Address;
   eas?: {
     address: Address;
     schemaRegistry: Address;

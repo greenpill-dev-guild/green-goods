@@ -40,7 +40,7 @@ vi.mock("../../components/toast", () => ({
 }));
 
 vi.mock("../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 vi.mock("../../utils/debug", () => ({
@@ -118,7 +118,7 @@ describe("hooks/work/useWorkApproval", () => {
         draft,
         work.gardenAddress,
         work.gardenerAddress,
-        84532
+        11155111
       );
       expect(submitApprovalToQueue).not.toHaveBeenCalled();
     });
@@ -160,7 +160,7 @@ describe("hooks/work/useWorkApproval", () => {
       expect(submitApprovalToQueue).toHaveBeenCalledWith(
         draft,
         work,
-        84532,
+        11155111,
         MOCK_ADDRESSES.smartAccount
       );
       expect(jobQueue.processJob).toHaveBeenCalledWith("job-approval-1", {
@@ -222,7 +222,7 @@ describe("hooks/work/useWorkApproval", () => {
         expect.objectContaining({ feedback: "" }),
         work.gardenAddress,
         work.gardenerAddress,
-        84532
+        11155111
       );
     });
 
@@ -250,7 +250,7 @@ describe("hooks/work/useWorkApproval", () => {
         }),
         work.gardenAddress,
         work.gardenerAddress,
-        84532
+        11155111
       );
     });
   });

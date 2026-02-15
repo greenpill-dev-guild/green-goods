@@ -24,6 +24,7 @@ interface DeploymentArtifact {
 const CHAIN_MAP: Record<string, { name: string; chainId: number }> = {
   "42161": { name: "Arbitrum One", chainId: 42161 },
   "42220": { name: "Celo", chainId: 42220 },
+  "11155111": { name: "Sepolia", chainId: 11155111 },
   "84532": { name: "Base Sepolia", chainId: 84532 },
 };
 
@@ -197,8 +198,8 @@ ${schemaSection}
    * @param _chainIds - Optional chain IDs to include (currently unused, uses all chains)
    */
   generateContractAddressTable(_chainIds?: string[]): string {
-    let table = "| Contract | Arbitrum | Celo | Base Sepolia |\n";
-    table += "|----------|----------|------|-------------|\n";
+    let table = "| Contract | Arbitrum | Celo | Sepolia | Base Sepolia |\n";
+    table += "|----------|----------|------|---------|-------------|\n";
 
     const contractKeys = [
       "gardenToken",
@@ -215,7 +216,7 @@ ${schemaSection}
         .trim();
       table += `| ${label} | `;
 
-      for (const chainId of ["42161", "42220", "84532"]) {
+      for (const chainId of ["42161", "42220", "11155111", "84532"]) {
         const deploymentFile = path.join(this.contractsDir, `${chainId}-latest.json`);
         if (fs.existsSync(deploymentFile)) {
           const deployment = JSON.parse(fs.readFileSync(deploymentFile, "utf8"));

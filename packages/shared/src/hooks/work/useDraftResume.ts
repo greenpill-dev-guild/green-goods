@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { useDrafts } from "./useDrafts";
 
@@ -91,7 +92,7 @@ export function useDraftResume(options: UseDraftResumeOptions) {
         // Check if aborted before handling error
         if (controller.signal.aborted) return;
 
-        console.error("[useDraftResume] Failed to resume draft:", error);
+        logger.error("Failed to resume draft", { source: "useDraftResume", error });
         trackStorageError(error, {
           source: "useDraftResume.resumeFromUrl",
           userAction: "resuming draft from URL parameter",
@@ -156,7 +157,7 @@ export function useDraftResume(options: UseDraftResumeOptions) {
       try {
         await clearActiveDraft();
       } catch (error) {
-        console.error("[useDraftResume] Failed to clear draft:", error);
+        logger.error("Failed to clear draft", { source: "useDraftResume", error });
         trackStorageError(error, {
           source: "useDraftResume.handleStartFresh",
           userAction: "clearing active draft to start fresh",

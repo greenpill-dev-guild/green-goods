@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import type { Action, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
+import { serviceWorkerManager } from "../app/service-worker";
 import { createOfflineTxHash, jobQueue } from "../job-queue";
 
 /**
@@ -68,6 +69,10 @@ export async function submitWorkToQueue(
     userAddress,
     { chainId, clientWorkId }
   );
+
+  // Progressive enhancement: request background sync so queued jobs can flush
+  // when connectivity returns (supported browsers only).
+  void serviceWorkerManager.requestBackgroundSync();
 
   // Return an offline transaction hash for UI compatibility and clientWorkId for deduplication
   return { txHash: createOfflineTxHash(jobId), jobId, clientWorkId };

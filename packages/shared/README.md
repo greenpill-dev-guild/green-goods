@@ -2,6 +2,8 @@
 
 Shared utilities, hooks, providers, modules, and types for the Green Goods monorepo.
 
+> **Dependency Management**: follow the [dependency-management skill](../../.claude/skills/dependency-management/SKILL.md) when changing package dependencies, lockfiles, or audit policies.
+
 ## Installation
 
 This package is used internally by client and admin packages:
@@ -58,8 +60,10 @@ src/
 │   ├── blockchain/  # Chain config, ENS, deployment registry
 │   ├── garden/      # Garden operations, permissions, invites
 │   ├── gardener/    # Role, profile hooks
+│   ├── roles/       # Role management hooks
 │   ├── translation/ # i18n hooks
 │   ├── ui/          # UI utilities
+│   ├── utils/       # Utility hooks (useEventListener, useTimeout, useAsyncEffect)
 │   └── work/        # Work submission, approval, mutations
 ├── modules/         # Core business logic
 │   ├── app/         # Analytics (posthog), service worker

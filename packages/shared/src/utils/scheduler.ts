@@ -33,6 +33,22 @@ interface Scheduler {
   yield?(): Promise<void>;
 }
 
+type Deferred<T> = {
+  promise: Promise<T>;
+  resolve: (value: T | PromiseLike<T>) => void;
+  reject: (reason?: unknown) => void;
+};
+
+function createDeferred<T>(): Deferred<T> {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 declare global {
   interface Window {
     scheduler?: Scheduler;
@@ -80,8 +96,8 @@ export async function scheduleTask<T>(
     return window.scheduler!.postTask(callback, { priority, signal, delay });
   }
 
-  // Fallback implementation using setTimeout with Promise.withResolvers()
-  const { promise, resolve, reject } = Promise.withResolvers<T>();
+  // Fallback implementation using setTimeout
+  const { promise, resolve, reject } = createDeferred<T>();
 
   // For background priority, add small delay to allow other tasks
   const fallbackDelay = delay + (priority === "background" ? 1 : 0);
@@ -123,9 +139,9 @@ export async function yieldToMain(): Promise<void> {
     return window.scheduler.yield();
   }
 
-  // Fallback: yield via setTimeout(0) with Promise.withResolvers()
+  // Fallback: yield via setTimeout(0)
   // This moves to the back of the task queue
-  const { promise, resolve } = Promise.withResolvers<void>();
+  const { promise, resolve } = createDeferred<void>();
   setTimeout(resolve, 0);
   return promise;
 }
@@ -215,7 +231,7 @@ export async function processBatched<T, R>(
  * @returns Promise resolving to callback result
  */
 export async function runWhenIdle<T>(callback: () => T | Promise<T>, timeout = 5000): Promise<T> {
-  const { promise, resolve, reject } = Promise.withResolvers<T>();
+  const { promise, resolve, reject } = createDeferred<T>();
 
   const run = async () => {
     try {

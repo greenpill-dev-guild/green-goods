@@ -55,7 +55,7 @@ describe("modules/posthog", () => {
       identifyWithProperties("user-1", {
         auth_mode: "passkey",
         app: "client",
-        chain_id: 84532,
+        chain_id: 11155111,
         is_pwa: true,
         locale: "en",
       });

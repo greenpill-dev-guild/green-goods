@@ -1,6 +1,12 @@
 ---
 name: plan
 description: Planning & Execution - create plans, check progress, execute in batches. Use for implementation planning.
+version: "1.1"
+last_updated: "2026-02-09"
+last_verified: "2026-02-09"
+status: proven
+packages: []
+dependencies: []
 ---
 
 # Plan Skill
@@ -145,6 +151,46 @@ gh issue close [NUMBER] --comment "All steps complete, PR ready"
 
 ---
 
+## Part 5: When NOT to Plan
+
+### Skip Planning For
+
+| Scenario | Do Instead |
+|----------|------------|
+| Single-file bug fix with clear root cause | `/debug` → fix → test |
+| Typo or copy changes | Direct edit |
+| Config change (env var, build flag) | Direct edit → verify build |
+| Adding a test for existing behavior | `testing` skill directly |
+| Formatting or lint fix | `bun format && bun lint` |
+
+### Signs a Plan is Needed
+
+| Signal | Why |
+|--------|-----|
+| Touches 3+ packages | Cross-package coordination needed |
+| Modifies contracts | Deployment + migration implications |
+| Changes data model | Schema migration + re-indexing needed |
+| New user-facing feature | UX decisions + i18n + offline behavior |
+| Breaking change | Blast radius analysis + migration path |
+
+### Planning Traps to Avoid
+
+- **Over-planning polish work** — Small UI tweaks don't need 10-step plans
+- **Planning without reading code first** — Always audit existing patterns before writing a plan
+- **Planning what you don't understand** — Use `oracle` agent or `/debug` to investigate first
+- **Stale plans** — If a plan sits untouched for 7+ days, reassess before executing
+
+---
+
+## Anti-Patterns
+
+- **Planning without requirements** — Every plan step must trace to a requirement; if you can't articulate the requirement, you're not ready to plan
+- **Plans with vague steps** — "Update the component" is not a plan step; "Add `onSubmit` handler to `WorkForm` that calls `useJobQueue.addJob()`" is
+- **Skipping impact analysis** — A plan without "Files to Modify" will surprise you during execution
+- **Infinite planning** — If the plan exceeds 15 steps, split into multiple plans or incremental PRs
+- **Planning alone when blocked** — If you need information to plan, ask (use `AskUserQuestion` or `oracle`) instead of guessing
+- **Ignoring CLAUDE.md compliance** — Plans that skip the compliance checklist produce non-conforming code
+
 ## Validation Commands
 
 ```bash
@@ -156,3 +202,12 @@ bun format && bun lint && bun test && bun build
 - **100% requirement coverage** — Every requirement mapped
 - **Evidence before claims** — Verify before marking done
 - **Batch execution** — Pause for feedback
+- **Right-size the plan** — Match planning depth to task complexity
+
+## Related Skills
+
+- `architecture` — Architectural patterns considered during planning
+- `testing` — TDD strategy included in implementation plans
+- `mermaid-diagrams` — Visualizing plan architecture and dependencies
+- `debug` — Investigate root cause before planning a fix
+- `migration` — Cross-package migration plans need blast radius analysis

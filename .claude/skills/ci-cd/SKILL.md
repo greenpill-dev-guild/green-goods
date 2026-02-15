@@ -1,0 +1,286 @@
+---
+name: ci-cd
+description: GitHub Actions CI/CD patterns - workflow config, build matrix, caching, PR checks, status gates. Use for pipeline configuration and automation.
+version: "1.0"
+last_updated: "2026-02-08"
+last_verified: "2026-02-09"
+status: established
+packages: []
+dependencies: [git-workflow, testing]
+---
+
+# CI/CD Skill
+
+GitHub Actions CI/CD guide: workflow patterns, caching, status gates, and local simulation.
+
+---
+
+## Activation
+
+When invoked:
+- Check `.github/workflows/` for existing workflows before creating new ones.
+- Understand the per-package path-filtering pattern already in use.
+- Review `CLAUDE.md` → Common Development Commands for validation commands.
+
+> **Boundary with `deployment` skill**: This skill covers **pipeline configuration and automation** (GitHub Actions, hooks, caching). For actual deployment execution (Vercel, Railway, contract deployment), see the `deployment` skill.
+
+## Part 1: Pipeline Architecture
+
+### Existing Workflows (11)
+
+| Workflow | Trigger | Packages | Purpose |
+|----------|---------|----------|---------|
+| `admin-tests.yml` | PR, push | admin | Admin package tests |
+| `agent-tests.yml` | PR, push | agent | Agent package tests |
+| `client-tests.yml` | PR, push | client | Client package tests |
+| `contracts-tests.yml` | PR, push | contracts | Forge tests |
+| `indexer-tests.yml` | PR, push | indexer | Indexer tests |
+| `shared-tests.yml` | PR, push | shared | Shared package tests |
+| `e2e-tests.yml` | PR, push | client | Playwright E2E tests |
+| `lighthouse-ci.yml` | PR | client | Performance budgets |
+| `deploy-docs.yml` | Push to main | docs | Documentation site |
+| `deploy-ipfs.yml` | Manual | client | IPFS pinning |
+| `upload-sourcemaps.yml` | Push to main | client, admin | Error tracking |
+
+### Path-Filtering Pattern
+
+Each workflow only runs when relevant files change:
+
+```yaml
+on:
+  pull_request:
+    paths:
+      - 'packages/shared/**'
+      - 'packages/client/**'
+      - 'bun.lockb'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/shared/**'
+      - 'packages/client/**'
+```
+
+**Key**: Client and admin workflows also trigger on `packages/shared/**` changes since they depend on shared.
+
+### Concurrency Groups
+
+Prevent redundant runs on rapid pushes:
+
+```yaml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+```
+
+## Part 2: Workflow Patterns
+
+### Standard Job Structure
+
+```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.5.0" # Pin for reproducible CI; only use `latest` when intentionally tracking upstream changes
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build dependencies
+        run: bun --filter shared build
+
+      - name: Run tests
+        run: bun --filter client test
+
+      - name: Build
+        run: bun --filter client build
+```
+
+### Dependency Build Order in CI
+
+```yaml
+# When testing client or admin, build shared first
+- name: Build shared (dependency)
+  run: bun --filter shared build
+
+# When testing shared, build contracts first (for ABIs)
+- name: Build contracts (dependency)
+  run: bun --filter contracts build
+```
+
+### Artifact Passing Between Jobs
+
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: bun build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: packages/client/dist/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+```
+
+## Part 3: Caching Strategy
+
+### Bun Cache
+
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: ~/.bun/install/cache
+    key: bun-${{ runner.os }}-${{ hashFiles('bun.lockb') }}
+    restore-keys: |
+      bun-${{ runner.os }}-
+```
+
+### Foundry Cache
+
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: |
+      ~/.foundry/cache
+      packages/contracts/cache
+      packages/contracts/out
+    key: foundry-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}
+```
+
+### What NOT to Cache
+
+- `node_modules/` — Bun recreates from cache faster than restoring
+- Build artifacts that depend on env vars — stale builds cause subtle bugs
+- Lockfiles — always use `--frozen-lockfile`
+
+## Part 4: PR Status Gates
+
+### Required Checks
+
+| Check | Blocks Merge | Why |
+|-------|-------------|-----|
+| Package tests | Yes | Prevents regressions |
+| Build | Yes | Ensures deployability |
+| Lint | Yes | Code consistency |
+| E2E tests | No (advisory) | Flaky tests shouldn't block |
+| Lighthouse | No (advisory) | Performance awareness |
+
+### Branch Protection
+
+```text
+Settings → Branches → Branch protection rules:
+- Require status checks to pass before merging
+- Require branches to be up to date before merging
+- Require linear history (rebase merging)
+```
+
+## Part 5: Secrets Management
+
+### Naming Convention
+
+```text
+VITE_*              — Build-time env vars (exposed to client)
+PRIVATE_*           — Server-side only secrets
+DEPLOY_*            — Deployment credentials
+```
+
+### Environment-Specific Secrets
+
+| Secret | Environment | Purpose |
+|--------|-------------|---------|
+| `VITE_CHAIN_ID` | Per-environment | Target blockchain |
+| `DEPLOY_VERCEL_TOKEN` | Production | Vercel deployment |
+| `PRIVATE_DEPLOYER_KEY` | Production | Contract deployment |
+
+### Security Rules
+
+- Never echo secrets in workflow logs
+- Use `environment` protection rules for production secrets
+- Rotate secrets on team member departure
+- Use OIDC tokens where possible (no long-lived secrets)
+
+## Part 6: Local CI Simulation
+
+### Pre-Commit Validation
+
+Run the same checks locally before pushing:
+
+```bash
+# Full validation (same as CI)
+bun format && bun lint && bun test && bun build
+
+# Quick check (just the essentials)
+bun lint && bun test
+```
+
+### Husky Hooks
+
+```bash
+# .husky/pre-commit
+bun lint-staged
+
+# .husky/pre-push
+bun test && bun build
+```
+
+### Simulating CI Locally
+
+```bash
+# Test exactly what CI will test for a specific package
+bun --filter shared build && bun --filter client test && bun --filter client build
+
+# Run with frozen lockfile (catches dependency drift)
+bun install --frozen-lockfile
+```
+
+## Anti-Patterns
+
+- **Never run all tests without path filters** — wastes CI minutes on unchanged packages
+- **Never skip `--frozen-lockfile`** — causes "works on my machine" drift
+- **Never cache `node_modules/`** — Bun's own cache is faster and more reliable
+- **Never hardcode secrets in workflow files** — use GitHub Secrets
+- **Never ignore flaky tests** — fix or quarantine them, don't disable
+- **Never skip dependency build order** — shared must build before client/admin
+
+## Decision Tree
+
+```text
+What CI/CD work?
+│
+├── New workflow? ───────────────► Part 1: Pipeline Architecture
+│                                   → Follow path-filtering pattern
+│                                   → Add concurrency group
+│
+├── Workflow optimization? ──────► Part 3: Caching Strategy
+│                                   → Cache Bun + Foundry
+│                                   → Avoid caching node_modules
+│
+├── PR not passing checks? ─────► Part 4: Status Gates
+│                                   → Check which gate failed
+│                                   → Run locally to reproduce
+│
+├── Adding secrets? ────────────► Part 5: Secrets Management
+│                                   → Follow naming convention
+│                                   → Use environment protection
+│
+└── Testing CI locally? ────────► Part 6: Local Simulation
+                                    → bun format && bun lint && bun test && bun build
+```
+
+## Related Skills
+
+- `deployment` — Actual deployment execution (Vercel, Railway, contracts). CI/CD configures the pipeline; deployment executes it
+- `git-workflow` — Branch strategy and commit conventions that CI validates (see git-workflow skill for branching and conventional commits)
+- `testing` — Test patterns that CI pipelines execute

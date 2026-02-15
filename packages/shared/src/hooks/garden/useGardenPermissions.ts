@@ -6,8 +6,11 @@ import { isAddressInList } from "../../utils/blockchain/address";
 
 export interface GardenPermissions {
   canManageGarden: (garden: Garden) => boolean;
+  canReviewGarden: (garden: Garden) => boolean;
   canViewGarden: (garden: Garden) => boolean;
   isOperatorOfGarden: (garden: Garden) => boolean;
+  isOwnerOfGarden: (garden: Garden) => boolean;
+  isEvaluatorOfGarden: (garden: Garden) => boolean;
   canAddMembers: (garden: Garden) => boolean;
   canRemoveMembers: (garden: Garden) => boolean;
 }
@@ -24,30 +27,46 @@ export function useGardenPermissions(): GardenPermissions {
       return isAddressInList(address, garden.operators);
     };
 
+    const isOwnerOfGarden = (garden: Garden): boolean => {
+      return isAddressInList(address, garden.owners);
+    };
+
+    const isEvaluatorOfGarden = (garden: Garden): boolean => {
+      return isAddressInList(address, garden.evaluators);
+    };
+
     const canViewGarden = (_garden: Garden): boolean => {
       // Everyone can view gardens (read-only access)
       return true;
     };
 
     const canManageGarden = (garden: Garden): boolean => {
-      // Only operators of the specific garden can manage it
-      return isOperatorOfGarden(garden);
+      // Owners + operators can manage the garden
+      return isOperatorOfGarden(garden) || isOwnerOfGarden(garden);
+    };
+
+    const canReviewGarden = (garden: Garden): boolean => {
+      // Evaluators can review work and create assessments
+      return canManageGarden(garden) || isEvaluatorOfGarden(garden);
     };
 
     const canAddMembers = (garden: Garden): boolean => {
-      // Only operators can add members to their gardens
-      return isOperatorOfGarden(garden);
+      // Owners + operators can manage roles
+      return isOperatorOfGarden(garden) || isOwnerOfGarden(garden);
     };
 
     const canRemoveMembers = (garden: Garden): boolean => {
-      // Only operators can remove members from their gardens
-      return isOperatorOfGarden(garden);
+      // Owners + operators can manage roles
+      return isOperatorOfGarden(garden) || isOwnerOfGarden(garden);
     };
 
     return {
       canManageGarden,
+      canReviewGarden,
       canViewGarden,
       isOperatorOfGarden,
+      isOwnerOfGarden,
+      isEvaluatorOfGarden,
       canAddMembers,
       canRemoveMembers,
     };

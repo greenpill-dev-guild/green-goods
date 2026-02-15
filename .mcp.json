@@ -5,24 +5,6 @@
   "lastVerified": "2026-02-01",
 
   "servers": {
-    "figma": {
-      "description": "Figma design context extraction and Code Connect",
-      "url": "https://mcp.figma.com/mcp",
-      "enabled": true,
-      "status": "active",
-      "auth": "Greenpill Dev Guild (Pro seat)",
-      "usage": ["Design-to-code implementation", "Component discovery", "Design system rules"]
-    },
-
-    "vercel": {
-      "description": "Vercel deployment management",
-      "url": "https://mcp.vercel.com",
-      "enabled": true,
-      "status": "active",
-      "auth": "CLI authenticated (vercel v37.2.1)",
-      "usage": ["Deploy applications", "View deployment logs", "Manage environments"]
-    },
-
     "foundry": {
       "description": "Smart contract development tools (forge, cast, anvil)",
       "command": ["npx", "-y", "@pranesh.asp/foundry-mcp-server"],
@@ -73,12 +55,12 @@
       "note": "Read-only agent, no MCP servers needed"
     },
     "cracked-coder": {
-      "servers": ["foundry", "figma", "vercel", "storacha", "railway"],
-      "note": "Full implementation access: contracts, design, deploy, storage, services"
+      "servers": ["foundry", "storacha", "railway"],
+      "note": "Implementation access: contracts, storage, services"
     },
     "oracle": {
-      "servers": ["figma", "vercel", "miro"],
-      "note": "Research access: design discovery, deployment investigation, architecture diagrams"
+      "servers": ["miro"],
+      "note": "Research access: architecture diagrams"
     }
   }
 }

@@ -2,7 +2,7 @@
 // Provides pagination, filtering, and performance optimizations
 
 export const OPTIMIZED_QUERIES = {
-  // Gardens with pagination and filters (60% faster UI loads)
+  // Gardens with pagination and filters
   getGardensOptimized: `
     query GetGardensOptimized(
       $first: Int = 20
@@ -24,11 +24,13 @@ export const OPTIMIZED_QUERIES = {
         description
         location
         bannerImage
-        gardenerCount
-        operatorCount
         createdAt
         gardeners
         operators
+        evaluators
+        owners
+        funders
+        communities
       }
     }
   `,
@@ -43,7 +45,6 @@ export const OPTIMIZED_QUERIES = {
         first: $first
         where: {
           chainId: $chainId
-          status: ACTIVE
         }
         orderBy: endTime
         orderDirection: asc
@@ -56,16 +57,13 @@ export const OPTIMIZED_QUERIES = {
         startTime
         endTime
         ownerAddress
-        capitalCount
-        isActive
-        status
       }
     }
   `,
 
-  // Garden details with recent activity (optimized for dashboard)
-  getGardenWithActivity: `
-    query GetGardenWithActivity($id: ID!) {
+  // Garden details with all role arrays
+  getGardenDetails: `
+    query GetGardenDetails($id: ID!) {
       garden(id: $id) {
         id
         chainId
@@ -73,28 +71,19 @@ export const OPTIMIZED_QUERIES = {
         description
         location
         bannerImage
-        gardenerCount
-        operatorCount
         createdAt
         gardeners
         operators
-        
-        recentActivity: activities(
-          first: 10
-          orderBy: timestamp
-          orderDirection: desc
-        ) {
-          id
-          type
-          actor
-          timestamp
-          metadata
-        }
+        evaluators
+        owners
+        funders
+        communities
+        gapProjectUID
       }
     }
   `,
 
-  // User's gardens (for dashboard) - denormalized for performance
+  // User's gardens (for dashboard) - filter by membership in role arrays
   getUserGardens: `
     query GetUserGardens(
       $userAddress: String!
@@ -108,6 +97,7 @@ export const OPTIMIZED_QUERIES = {
           or: [
             { gardeners_contains: [$userAddress] }
             { operators_contains: [$userAddress] }
+            { owners_contains: [$userAddress] }
           ]
         }
         orderBy: createdAt
@@ -118,17 +108,17 @@ export const OPTIMIZED_QUERIES = {
         description
         location
         bannerImage
-        gardenerCount
-        operatorCount
         createdAt
+        gardeners
+        operators
+        owners
       }
     }
   `,
 
-  // Actions by status (optimized filtering)
-  getActionsByStatus: `
-    query GetActionsByStatus(
-      $status: ActionStatus!
+  // Actions with pagination
+  getActions: `
+    query GetActions(
       $chainId: Int
       $first: Int = 20
       $skip: Int = 0
@@ -137,7 +127,6 @@ export const OPTIMIZED_QUERIES = {
         first: $first
         skip: $skip
         where: {
-          status: $status
           chainId: $chainId
         }
         orderBy: createdAt
@@ -146,41 +135,10 @@ export const OPTIMIZED_QUERIES = {
         id
         title
         instructions
-        capitalCount
-        isActive
-        status
+        capitals
         startTime
         endTime
         ownerAddress
-      }
-    }
-  `,
-
-  // Garden activity feed (optimized for real-time updates)
-  getGardenActivityFeed: `
-    query GetGardenActivityFeed(
-      $gardenIds: [String!]
-      $first: Int = 50
-      $skip: Int = 0
-    ) {
-      gardenActivities(
-        first: $first
-        skip: $skip
-        where: {
-          garden_in: $gardenIds
-        }
-        orderBy: timestamp
-        orderDirection: desc
-      ) {
-        id
-        type
-        actor
-        timestamp
-        metadata
-        garden {
-          id
-          name
-        }
       }
     }
   `,
@@ -190,14 +148,10 @@ export const OPTIMIZED_QUERIES = {
 export interface GardenFilters {
   chainId?: number;
   name_contains?: string;
-  gardenerCount_gte?: number;
-  operatorCount_gte?: number;
 }
 
 export interface ActionFilters {
   chainId?: number;
-  status?: "UPCOMING" | "ACTIVE" | "EXPIRED";
-  capitalCount_gte?: number;
   title_contains?: string;
 }
 
@@ -222,9 +176,8 @@ export const QueryBuilders = {
   }),
 
   buildActionQuery: (filters: ActionFilters, pagination: PaginationOptions = {}) => ({
-    query: OPTIMIZED_QUERIES.getActionsByStatus,
+    query: OPTIMIZED_QUERIES.getActions,
     variables: {
-      status: filters.status || "ACTIVE",
       chainId: filters.chainId,
       first: pagination.first || 20,
       skip: pagination.skip || 0,

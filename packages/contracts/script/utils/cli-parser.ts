@@ -11,10 +11,13 @@ export interface ParsedOptions {
   updateSchemasOnly: boolean;
   force: boolean;
   dryRun: boolean;
+  pureSimulation: boolean;
   skipEnvio: boolean;
   skipVerification: boolean;
   startIndexer: boolean;
   saveReport: boolean;
+  overrideSepoliaGate: boolean;
+  deploymentSalt?: string;
   help?: boolean;
   error?: string;
 }
@@ -33,10 +36,12 @@ export class CliParser {
       updateSchemasOnly: false,
       force: false,
       dryRun: false,
+      pureSimulation: false,
       skipEnvio: false,
       skipVerification: false,
       startIndexer: false,
       saveReport: false,
+      overrideSepoliaGate: false,
     };
 
     for (let i = 1; i < args.length; i++) {
@@ -63,6 +68,9 @@ export class CliParser {
         case "--dry-run":
           options.dryRun = true;
           break;
+        case "--pure-simulation":
+          options.pureSimulation = true;
+          break;
         case "--skip-envio":
           options.skipEnvio = true;
           break;
@@ -74,6 +82,12 @@ export class CliParser {
           break;
         case "--save-report":
           options.saveReport = true;
+          break;
+        case "--override-sepolia-gate":
+          options.overrideSepoliaGate = true;
+          break;
+        case "--salt":
+          options.deploymentSalt = args[++i];
           break;
         case "--help":
         case "-h":
@@ -118,7 +132,7 @@ export class CliParser {
       // Skip flags and their values
       if (arg.startsWith("-")) {
         // Skip next arg if this is a flag that takes a value
-        if (arg === "--network" || arg === "-n" || arg === "--chain") {
+        if (arg === "--network" || arg === "-n" || arg === "--chain" || arg === "--salt") {
           i++;
         }
         continue;

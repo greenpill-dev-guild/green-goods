@@ -49,9 +49,9 @@ vi.mock("../../config/appkit", () => ({
 }));
 
 vi.mock("../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
   getDefaultChain: () => ({
-    chainId: 84532,
+    chainId: 11155111,
     rootGarden: { address: "0xRootGarden123456789012345678901234567890", tokenId: 0 },
   }),
 }));
@@ -67,7 +67,7 @@ vi.mock("../../utils/blockchain/contracts", () => ({
       outputs: [],
     },
     {
-      name: "gardeners",
+      name: "isGardener",
       type: "function",
       stateMutability: "view",
       inputs: [{ name: "account", type: "address" }],

@@ -1,3 +1,4 @@
+import type { Action, Garden } from "@green-goods/shared";
 import { mediaResourceManager } from "@green-goods/shared/modules";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import { RiFileFill, RiLeafFill, RiPencilFill, RiPlantFill, RiTimeFill } from "@remixicon/react";

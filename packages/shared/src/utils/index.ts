@@ -83,9 +83,20 @@ export {
   isAddressInList,
   isUserAddress,
   isValidAddressFormat,
+  isZeroAddress,
   normalizeAddress,
   truncateAddress,
 } from "./blockchain/address";
+export {
+  GARDEN_ROLE_COLORS,
+  GARDEN_ROLE_FUNCTIONS,
+  GARDEN_ROLE_I18N_KEYS,
+  GARDEN_ROLE_IDS,
+  GARDEN_ROLE_ORDER,
+  getRoleColorClasses,
+  ROLE_COLOR_CLASSES,
+} from "./blockchain/garden-roles";
+export type { GardenRole, RoleColorScheme } from "./blockchain/garden-roles";
 // ============================================================================
 // CHAIN REGISTRY
 // ============================================================================
@@ -153,7 +164,11 @@ export {
   openBlockExplorerTx,
   openEASExplorer,
 } from "./eas/explorers";
-export { buildApprovalAttestTx, buildWorkAttestTx } from "./eas/transaction-builder";
+export {
+  buildApprovalAttestTx,
+  buildBatchWorkAttestTx,
+  buildWorkAttestTx,
+} from "./eas/transaction-builder";
 // ============================================================================
 // ERRORS
 // ============================================================================

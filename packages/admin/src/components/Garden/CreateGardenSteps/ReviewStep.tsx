@@ -1,18 +1,7 @@
-import { ADDRESS_REGEX } from "@green-goods/shared/stores";
+import { isValidAddressFormat, useCreateGardenStore } from "@green-goods/shared";
 
-interface ReviewStepProps {
-  form: {
-    name: string;
-    description: string;
-    location: string;
-    communityToken: string;
-    bannerImage: string;
-    gardeners: string[];
-    operators: string[];
-  };
-}
-
-export function ReviewStep({ form }: ReviewStepProps) {
+export function ReviewStep() {
+  const form = useCreateGardenStore((s) => s.form);
   return (
     <div className="space-y-3">
       <div className="space-y-4 rounded-xl border border-gray-100 bg-bg-weak p-4">
@@ -40,7 +29,7 @@ export function ReviewStep({ form }: ReviewStepProps) {
               Community token
             </h4>
             <p className="mt-1 font-mono text-xs text-text-strong">{form.communityToken}</p>
-            {!ADDRESS_REGEX.test(form.communityToken.trim()) && (
+            {!isValidAddressFormat(form.communityToken.trim()) && (
               <p className="mt-1 text-xs text-red-600">The address doesn&apos;t look valid.</p>
             )}
           </div>

@@ -1,3 +1,4 @@
+import type { Garden, GardenerCard } from "@green-goods/shared";
 import { useEnsAvatar, useEnsName } from "@green-goods/shared/hooks";
 import { copyToClipboard, formatAddress } from "@green-goods/shared/utils";
 import {
@@ -13,9 +14,9 @@ import React, { forwardRef, memo, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useIntl } from "react-intl";
 import { FixedSizeList as List } from "react-window";
-import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
-import { Badge } from "@/components/Communication";
 import { Button } from "@/components/Actions";
+import { Badge } from "@/components/Communication";
+import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
 
 export type GardenMember = GardenerCard & {

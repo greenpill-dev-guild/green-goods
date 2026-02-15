@@ -209,6 +209,12 @@ export interface FileUploadContext {
   gardenAddress?: string;
   /** Auth mode if relevant */
   authMode?: "passkey" | "wallet" | null;
+  /** Optional callback fired when this file upload completes or fails */
+  onFileProgress?: (event: {
+    fileIndex?: number;
+    totalFiles?: number;
+    status: "uploaded" | "failed";
+  }) => void;
 }
 
 /**
@@ -223,18 +229,35 @@ export async function uploadFileToIPFS(
   file: File,
   context: FileUploadContext = {}
 ): Promise<{ cid: string }> {
-  return executeUpload(
-    async () => ({ cid: await storachaClient!.uploadFile(file) }),
-    "file_upload",
-    { source: context.source ?? "uploadFileToIPFS", gardenAddress: context.gardenAddress },
-    {
-      size: file.size,
-      type: file.type,
-      name: file.name,
-      index: context.fileIndex,
-      total: context.totalFiles,
-    }
-  );
+  try {
+    const result = await executeUpload(
+      async () => ({ cid: await storachaClient!.uploadFile(file) }),
+      "file_upload",
+      { source: context.source ?? "uploadFileToIPFS", gardenAddress: context.gardenAddress },
+      {
+        size: file.size,
+        type: file.type,
+        name: file.name,
+        index: context.fileIndex,
+        total: context.totalFiles,
+      }
+    );
+
+    context.onFileProgress?.({
+      fileIndex: context.fileIndex,
+      totalFiles: context.totalFiles,
+      status: "uploaded",
+    });
+
+    return result;
+  } catch (error) {
+    context.onFileProgress?.({
+      fileIndex: context.fileIndex,
+      totalFiles: context.totalFiles,
+      status: "failed",
+    });
+    throw error;
+  }
 }
 
 /**

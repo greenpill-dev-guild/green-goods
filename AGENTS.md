@@ -70,7 +70,7 @@ These universal programming principles guide all development in this codebase:
 
 ### Advanced TypeScript Patterns
 
-- **Never `any`** — Use `unknown` and type guards
+- **Avoid `any`** — Use `unknown` and type guards (see CLAUDE.md for acceptable exceptions)
 - **Discriminated unions** — Type-safe state handling with tagged unions
 - **`as const`** — Preserve literal types for constants
 - **AbortSignal** — Cancellable async operations
@@ -93,7 +93,7 @@ See `.claude/context/contracts.md` for detailed patterns.
 ## Non-Negotiable Rules
 
 - **Root `.env` only** — all packages read from the same file. Never introduce package-level env files or assume per-package overrides.
-- **Single chain** — always derive the chain from `getDefaultChain()` / `DEFAULT_CHAIN_ID` (Base Sepolia `84532` by default). Never pivot off wallet chain IDs.
+- **Single chain** — always derive the chain from `getDefaultChain()` / `DEFAULT_CHAIN_ID` (set by `VITE_CHAIN_ID`, defaults to Sepolia `11155111`). Never pivot off wallet chain IDs.
 - **Deployment wrapper** — interact with contracts through `deploy.ts` and the bun scripts (`bun --filter contracts deploy:*`, `upgrade:*`). Raw `forge script … --broadcast` is reserved for debugging.
 - **Schema immutability** — treat `packages/contracts/config/schemas.json` as read-only. Use `--update-schemas` via `deploy.ts` for metadata refreshes and create `schemas.test.json` for experiments.
 - **Secrets discipline** — do not log or commit values from `.env`. Update `.env.example` alongside any required new variables.
@@ -129,7 +129,7 @@ Default to local commands (rg, bun, forge) when the task is small. Escalate to M
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
 bun setup    # Checks deps, installs packages, creates .env
-bun dev      # Starts client, admin, indexer via PM2
+bun dev      # Starts all services via PM2
 ```
 
 After setup, edit `.env` with API keys (Reown, Pimlico, optionally Storacha).

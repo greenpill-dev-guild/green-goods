@@ -6,7 +6,7 @@
  * and optimistic update support.
  */
 
-import type { Abi, WalletClient } from "viem";
+import type { Abi, Address, WalletClient } from "viem";
 import { toastService } from "../../components/toast";
 import {
   trackAdminMemberAddFailed,
@@ -16,14 +16,16 @@ import {
   trackAdminMemberRemoveStarted,
   trackAdminMemberRemoveSuccess,
 } from "../../modules/app/analytics-events";
-import { GardenAccountABI } from "../../utils/blockchain/contracts";
+import { HATS_MODULE_ABI } from "../../utils/blockchain/abis";
+import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
+import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import type { ToastActionOptions } from "../app/useToastAction";
 
 /** Helper to track operation started - reduces duplicate conditionals */
 function trackOperationStarted(
   gardenAddress: string,
-  memberType: "gardener" | "operator",
+  memberType: GardenRole,
   operationType: "add" | "remove",
   targetAddress: string
 ): void {
@@ -35,7 +37,7 @@ function trackOperationStarted(
 /** Helper to track operation success */
 function trackOperationSuccess(
   gardenAddress: string,
-  memberType: "gardener" | "operator",
+  memberType: GardenRole,
   operationType: "add" | "remove",
   targetAddress: string,
   txHash: string
@@ -48,7 +50,7 @@ function trackOperationSuccess(
 /** Helper to track operation failure */
 function trackOperationFailed(
   gardenAddress: string,
-  memberType: "gardener" | "operator",
+  memberType: GardenRole,
   operationType: "add" | "remove",
   targetAddress: string,
   error: string
@@ -61,63 +63,74 @@ function trackOperationFailed(
 /**
  * Configuration for a garden operation
  */
-export interface GardenOperationConfig {
-  /** The contract function name to call */
-  functionName: "addGardener" | "removeGardener" | "addGardenOperator" | "removeGardenOperator";
-  /** Toast messages for loading, success, and error states */
-  messages: {
-    loading: string;
-    success: string;
-    error: string;
-  };
+export interface GardenOperationMessages {
+  loading: string;
+  success: string;
+  error: string;
+}
+
+export interface GardenOperationConfigBase {
   /** Type of member being modified (for optimistic updates) */
-  memberType: "gardener" | "operator";
+  memberType: GardenRole;
   /** Whether this is an add or remove operation */
   operationType: "add" | "remove";
+}
+
+export interface GardenOperationConfig extends GardenOperationConfigBase {
+  /** Toast messages for loading, success, and error states */
+  messages: GardenOperationMessages;
 }
 
 /**
  * Pre-defined operation configurations
  */
-export const GARDEN_OPERATIONS: Record<string, GardenOperationConfig> = {
+export const GARDEN_OPERATIONS: Record<string, GardenOperationConfigBase> = {
   addGardener: {
-    functionName: "addGardener",
-    messages: {
-      loading: "Adding gardener...",
-      success: "Gardener added successfully",
-      error: "Failed to add gardener",
-    },
     memberType: "gardener",
     operationType: "add",
   },
   removeGardener: {
-    functionName: "removeGardener",
-    messages: {
-      loading: "Removing gardener...",
-      success: "Gardener removed successfully",
-      error: "Failed to remove gardener",
-    },
     memberType: "gardener",
     operationType: "remove",
   },
   addOperator: {
-    functionName: "addGardenOperator",
-    messages: {
-      loading: "Adding operator...",
-      success: "Operator added successfully",
-      error: "Failed to add operator",
-    },
     memberType: "operator",
     operationType: "add",
   },
   removeOperator: {
-    functionName: "removeGardenOperator",
-    messages: {
-      loading: "Removing operator...",
-      success: "Operator removed successfully",
-      error: "Failed to remove operator",
-    },
     memberType: "operator",
+    operationType: "remove",
+  },
+  addEvaluator: {
+    memberType: "evaluator",
+    operationType: "add",
+  },
+  removeEvaluator: {
+    memberType: "evaluator",
+    operationType: "remove",
+  },
+  addOwner: {
+    memberType: "owner",
+    operationType: "add",
+  },
+  removeOwner: {
+    memberType: "owner",
+    operationType: "remove",
+  },
+  addFunder: {
+    memberType: "funder",
+    operationType: "add",
+  },
+  removeFunder: {
+    memberType: "funder",
+    operationType: "remove",
+  },
+  addCommunity: {
+    memberType: "community",
+    operationType: "add",
+  },
+  removeCommunity: {
+    memberType: "community",
     operationType: "remove",
   },
 };
@@ -137,7 +150,7 @@ export interface GardenOperationResult {
   success: boolean;
   /** Optimistic update data */
   optimisticUpdate?: {
-    memberType: "gardener" | "operator";
+    memberType: GardenRole;
     operationType: "add" | "remove";
     targetAddress: string;
   };
@@ -153,7 +166,7 @@ export interface GardenOperationResult {
  * Callback for applying optimistic updates
  */
 export type OptimisticUpdateCallback = (update: {
-  memberType: "gardener" | "operator";
+  memberType: GardenRole;
   operationType: "add" | "remove";
   targetAddress: string;
 }) => void;
@@ -198,12 +211,32 @@ export function createGardenOperation(
     setIsLoading(true);
 
     try {
+      const chainId = walletClient.chain?.id;
+      const hatsModuleAddress = await fetchHatsModuleAddress(gardenId as Address, chainId);
+      if (!hatsModuleAddress) {
+        setIsLoading(false);
+        return {
+          success: false,
+          error: {
+            name: "HatsModuleNotConfigured",
+            message: "Hats module is not configured for this garden",
+          },
+        };
+      }
+
+      const roleId = GARDEN_ROLE_IDS[config.memberType];
+
+      const targetContract = hatsModuleAddress as `0x${string}`;
+      const targetAbi = HATS_MODULE_ABI as Abi;
+      const targetFunctionName = config.operationType === "add" ? "grantRole" : "revokeRole";
+      const targetArgs = [gardenId, targetAddress, roleId];
+
       // Step 1: Simulate the transaction using shared utility
       const simulation = await simulateTransaction(
-        gardenId as `0x${string}`,
-        GardenAccountABI as Abi,
-        config.functionName,
-        [targetAddress],
+        targetContract,
+        targetAbi,
+        targetFunctionName,
+        targetArgs,
         address
       );
 
@@ -246,11 +279,11 @@ export function createGardenOperation(
       const hash = await executeWithToast(
         async () => {
           return await walletClient.writeContract({
-            address: gardenId as `0x${string}`,
-            abi: GardenAccountABI,
-            functionName: config.functionName,
+            address: targetContract,
+            abi: targetAbi,
+            functionName: targetFunctionName,
             account: address,
-            args: [targetAddress],
+            args: targetArgs,
             chain: walletClient.chain,
           });
         },

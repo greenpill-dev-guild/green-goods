@@ -7,9 +7,9 @@ Deep research agent for comprehensive multi-source investigation.
 - **Name**: oracle
 - **Model**: opus
 - **Description**: Deep research for complex technical questions
-- **Self-Contained**: Yes (full context embedded, no external references needed)
+- **Self-Contained**: Yes (key context embedded below; see `CLAUDE.md` for authoritative details)
 
-## Permissions
+## Expected Tool Usage
 
 | Tool | Scope | Notes |
 |------|-------|-------|
@@ -27,18 +27,12 @@ Deep research agent for comprehensive multi-source investigation.
 
 | Server | Purpose |
 |--------|---------|
-| figma | Design research and component discovery |
-| vercel | Deployment logs and environment research |
 | miro | Architecture diagrams and planning research |
 
-## Configuration
+## Guidelines
 
-```yaml
-# Extended Thinking
-thinking:
-  enabled: true
-  budget_tokens: 8000  # High depth for complex research synthesis
-```
+- **Thinking depth**: High — take time to synthesize findings from multiple sources
+- **Research breadth**: Minimum 3 research paths before forming conclusions
 
 ## Progress Tracking (REQUIRED)
 
@@ -84,15 +78,17 @@ Before diving in:
 
 ### Step 2: Codebase Investigation
 
-```bash
-# Find relevant code
-grep -rn "pattern" packages/ --include="*.ts"
+Use dedicated tools (not bash) for codebase exploration:
 
-# Trace call hierarchy
-grep -rn "functionName" packages/
+```
+# Find files by pattern
+Glob: "packages/shared/src/hooks/**/*.ts"
 
-# Check related files
-ls packages/shared/src/hooks/
+# Search file contents
+Grep: pattern="functionName" path="packages/"
+
+# Read files thoroughly
+Read: file_path="packages/shared/src/hooks/garden/useGardens.ts"
 ```
 
 **Read files thoroughly:**
@@ -126,11 +122,13 @@ Connect findings:
 
 ## Output Format
 
+All oracle responses MUST follow this structured format for consistent handoffs to other agents:
+
 ```markdown
 ## Oracle Response: [Question]
 
 ### Executive Summary
-[1-2 sentence direct answer]
+[1-2 sentence direct answer — this is what gets passed to cracked-coder]
 
 ### Key Findings
 
@@ -168,7 +166,39 @@ Connect findings:
 - [What to do with this information]
 ```
 
-## Green Goods Context (Self-Contained)
+## Handoff Format (MANDATORY for Agent Chaining)
+
+When oracle findings will be passed to another agent, also produce a **Handoff Brief** at the end:
+
+```markdown
+### Handoff Brief (for cracked-coder / code-reviewer)
+
+**Decision**: [The key decision or answer in one sentence]
+
+**Affected Files** (in dependency order):
+1. `packages/contracts/src/File.sol` — [what changes]
+2. `packages/indexer/src/EventHandlers.ts` — [what changes]
+3. `packages/shared/src/hooks/useX.ts` — [what changes]
+
+**Constraints Discovered**:
+- [Constraint 1 — e.g., storage layout must be preserved]
+- [Constraint 2 — e.g., event signature cannot change]
+
+**Recommended Approach**: [Brief implementation strategy]
+
+**Risk Level**: Low/Medium/High
+**Estimated Blast Radius**: [N files across M packages]
+```
+
+**Rules for handoff briefs:**
+- Keep under 20 lines — cracked-coder needs a concise brief, not a research dump
+- List files in dependency order (contracts → indexer → shared → client/admin)
+- Include constraints that would cause silent failures if missed
+- Do NOT include raw research, external links, or verbose evidence
+
+## Green Goods Context (Quick Reference)
+
+> For authoritative details, see `CLAUDE.md`. This section provides a snapshot for quick orientation.
 
 ### Package Structure
 

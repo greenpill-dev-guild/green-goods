@@ -52,6 +52,8 @@ export {
 } from "./Cards";
 
 // Form Components
+export type { FormFieldWrapperProps } from "./Form/FormFieldWrapper";
+export { FormFieldWrapper } from "./Form/FormFieldWrapper";
 export type { FormInputProps } from "./Form/FormInput";
 export { FormInput } from "./Form/FormInput";
 export type { FormLayoutProps } from "./Form/FormLayout";
@@ -121,6 +123,7 @@ export type {
 } from "./Toast/toast.service";
 export { setToastTranslator, toastService } from "./Toast/toast.service";
 export { TranslationBadge } from "./TranslationBadge";
+export { SyncStatusBar } from "./SyncStatusBar";
 
 // Progress Components
 export type { SubmissionProgressState, SubmissionStage } from "../hooks/work/useSubmissionProgress";

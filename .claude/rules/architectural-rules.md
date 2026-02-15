@@ -335,6 +335,92 @@ Located in `@green-goods/shared/hooks/utils/`:
 
 ---
 
+## Rule 11: Barrel Import Enforcement
+
+**Pattern:** Deep imports bypassing `@green-goods/shared` barrel exports
+
+```
+IF: Import uses @green-goods/shared/hooks/... or @green-goods/shared/stores/... etc.
+THEN: Warn about bypassing barrel exports
+SUGGEST: Import from @green-goods/shared root
+```
+
+### ❌ Anti-pattern
+```typescript
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useGardenStore } from "@green-goods/shared/stores/gardenStore";
+```
+
+### ✅ Correct pattern
+```typescript
+import { useAuth } from "@green-goods/shared";
+import { useGardenStore } from "@green-goods/shared";
+```
+
+---
+
+## Rule 12: Console.log Cleanup
+
+**Pattern:** `console.log/warn/error` in production code (not tests)
+
+```
+IF: console.log/warn/error appears in production source files
+THEN: Warn about unstructured logging
+SUGGEST: Use logger service from @green-goods/shared
+```
+
+### ❌ Anti-pattern
+```typescript
+// In production code
+console.log("Garden loaded", garden);
+console.error("Failed to submit work", error);
+```
+
+### ✅ Correct pattern
+```typescript
+import { logger } from "@green-goods/shared";
+
+logger.info("Garden loaded", { garden });
+logger.error("Failed to submit work", { error });
+```
+
+**Exceptions:** `console.error` in indexer event handlers is acceptable (no logger available in Envio runtime).
+
+---
+
+## Rule 13: Provider Nesting Order
+
+**Pattern:** Incorrect provider hierarchy causing initialization failures
+
+```
+IF: Provider nesting order differs from documented hierarchy
+THEN: Warn about potential initialization failures
+SUGGEST: Follow exact order from shared.md context
+```
+
+### Required Order (outermost → innermost)
+```tsx
+<WagmiProvider>
+  <QueryClientProvider>
+    <AppKitProvider>
+      <AuthProvider>
+        <AppProvider>
+          <JobQueueProvider>
+            <WorkProvider>
+              {children}
+            </WorkProvider>
+          </JobQueueProvider>
+        </AppProvider>
+      </AuthProvider>
+    </AppKitProvider>
+  </QueryClientProvider>
+</WagmiProvider>
+```
+
+**Why:** Each provider depends on its ancestors. `AuthProvider` needs `AppKit` and `QueryClient`. `JobQueueProvider` needs `Auth`. Reordering causes runtime errors.
+
+---
+
 ## Enforcement Checklist
 
 Use this checklist during code reviews:
@@ -349,3 +435,6 @@ Use this checklist during code reviews:
 - [ ] **Forms**: React Hook Form + Zod for all forms
 - [ ] **useMemo**: No chained dependencies; combine into single useMemo
 - [ ] **Context**: Provider values wrapped in useMemo
+- [ ] **Imports**: Barrel imports only, no deep paths into `@green-goods/shared`
+- [ ] **Logging**: No console.log/warn/error in production code; use logger
+- [ ] **Providers**: Nesting order matches documented hierarchy

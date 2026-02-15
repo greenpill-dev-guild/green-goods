@@ -653,6 +653,33 @@ class JobQueue {
   }
 
   /**
+   * Get pending work jobs with hydrated image files for a specific user.
+   * Useful for batch wallet sync where media files must be uploaded before attest.
+   */
+  async getJobsWithImages(
+    userAddress: string
+  ): Promise<
+    Array<{ job: Job<WorkJobPayload>; images: Array<{ id: string; file: File; url: string }> }>
+  > {
+    if (!userAddress) {
+      throw new Error("userAddress is required when getting jobs with images");
+    }
+
+    const jobs = (await jobQueueDB.getJobs({
+      userAddress,
+      kind: "work",
+      synced: false,
+    })) as Job<WorkJobPayload>[];
+
+    return await Promise.all(
+      jobs.map(async (job) => ({
+        job,
+        images: await jobQueueDB.getImagesForJob(job.id),
+      }))
+    );
+  }
+
+  /**
    * Check if there are pending jobs for a specific user
    * @param userAddress - User address to check
    */

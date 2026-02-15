@@ -5,7 +5,14 @@ import {
   RiZoomInLine,
   RiZoomOutLine,
 } from "@remixicon/react";
-import React, { TouchEvent, useCallback, useEffect, useRef, useState, WheelEvent } from "react";
+import React, {
+  type TouchEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type WheelEvent,
+} from "react";
 import { useTimeout } from "@green-goods/shared";
 import { cn } from "@green-goods/shared/utils";
 import { ImageWithFallback } from "@/components/Display";

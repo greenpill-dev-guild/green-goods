@@ -1,6 +1,12 @@
 ---
 name: vite
-description: Vite 6.x build tool. Use when configuring Vite, adding plugins, working with dev server, or building.
+description: Vite 7.x build tool. Use when configuring Vite, adding plugins, working with dev server, or building.
+version: "1.0"
+last_updated: "2026-02-08"
+last_verified: "2026-02-09"
+status: proven
+packages: [client, admin]
+dependencies: []
 ---
 
 # Vite Skill
@@ -326,6 +332,47 @@ export default defineConfig({
 
 ---
 
+## Decision Tree
+
+```
+What Vite work?
+│
+├─► Environment variables? ────► Environment Variables section
+│                                 → Must prefix with VITE_
+│                                 → Single root .env only
+│                                 → Update env.d.ts for TypeScript
+│
+├─► Build optimization? ───────► Build Optimization section
+│                                 → Code splitting with lazy()
+│                                 → Manual chunks for vendors
+│                                 → Bundle analysis with vite-bundle-visualizer
+│
+├─► Adding a plugin? ──────────► Configuration section
+│                                 → Add to plugins array
+│                                 → Check for config conflicts
+│                                 → Preserve existing React + PWA setup
+│
+├─► PWA/service worker? ───────► Green Goods Specifics → PWA
+│                                 → VitePWA plugin config
+│                                 → Workbox glob patterns
+│                                 → registerType: "autoUpdate"
+│
+├─► Asset handling? ───────────► Static Assets section
+│                                 → URL import (default)
+│                                 → ?raw for text content
+│                                 → ?worker for Web Workers
+│                                 → /public for unprocessed files
+│
+├─► CSS/styling? ──────────────► CSS Handling section
+│                                 → PostCSS + Tailwind (default)
+│                                 → CSS modules for isolation
+│                                 → Pre-processors if needed
+│
+└─► Debugging build? ──────────► Troubleshooting table
+                                  → DEBUG=vite:* for verbose
+                                  → Check alias, deps, env prefix
+```
+
 ## Troubleshooting
 
 | Issue | Solution |
@@ -335,3 +382,10 @@ export default defineConfig({
 | Import errors | Check `resolve.alias` configuration |
 | Build fails | Run `vite build --debug` for details |
 | ENV not available | Ensure `VITE_` prefix on variables |
+
+## Related Skills
+
+- `performance` — Bundle analysis and optimization that Vite enables
+- `react` — React project configuration and HMR patterns
+- `deployment` — Build artifact hosting and release workflows
+- `data-layer` — Data-layer and caching strategies that supersede the old offline/PWA approach

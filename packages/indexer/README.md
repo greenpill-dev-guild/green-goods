@@ -2,6 +2,8 @@
 
 This package contains the Envio indexer for Green Goods contracts. It exposes a GraphQL API used by the client for gardens, actions, work, approvals, and attestations.
 
+> **Dependency Management**: follow the [dependency-management skill](../../.claude/skills/dependency-management/SKILL.md) before updating indexer dependencies or regenerating lockfiles.
+
 📖 **[Indexer Documentation](https://docs.greengoods.app/developer/architecture/indexer-package)** — Complete indexer architecture and development guide
 
 ---
@@ -106,8 +108,8 @@ After codegen, run `bun run setup-generated` to rebuild ReScript.
 
 ### Pre-requisites
 
-- [Node.js (use v18 or newer)](https://nodejs.org/en/download/current)
-- [bun (use v9 or newer)](https://bun.io/installation)
+- [Node.js (use v20 or newer)](https://nodejs.org/en/download/current)
+- [bun (use v1 or newer)](https://bun.sh)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) - **Required** (script auto-starts it)
 
 ### Environment Variables
@@ -150,7 +152,7 @@ bun reset
 
 Or directly run:
 ```bash
-./reset-indexer.sh
+./scripts/reset.sh
 ```
 
 **Manual Reset:**

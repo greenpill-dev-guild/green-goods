@@ -95,7 +95,7 @@ vi.mock("permissionless/accounts", () => ({
 
 // Mock config modules
 vi.mock("../../config/chains", () => ({
-  getChain: vi.fn(() => ({ id: 84532, name: "Base Sepolia" })),
+  getChain: vi.fn(() => ({ id: 11155111, name: "Sepolia" })),
 }));
 
 vi.mock("../../config/pimlico", () => ({
@@ -112,8 +112,8 @@ vi.mock("../../config/pimlico", () => ({
 
 // Mock Pimlico passkey server client
 const mockPasskeyServerClient = {
-  chain: { id: 84532, name: "Base Sepolia" },
-  baseUrl: "https://api.pimlico.io/v2/84532/rpc",
+  chain: { id: 11155111, name: "Sepolia" },
+  baseUrl: "https://api.pimlico.io/v2/11155111/rpc",
   startRegistration: vi.fn(),
   verifyRegistration: vi.fn(),
   getCredentials: vi.fn(),
@@ -174,7 +174,7 @@ import {
 // TEST HELPERS
 // ============================================================================
 
-const MOCK_CHAIN_ID = 84532;
+const MOCK_CHAIN_ID = 11155111;
 const MOCK_USERNAME = "testuser";
 const MOCK_SMART_ACCOUNT_ADDRESS = "0xSmartAccount123456789012345678901234567890";
 

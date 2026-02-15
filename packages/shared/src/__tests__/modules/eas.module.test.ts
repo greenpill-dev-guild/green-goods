@@ -25,7 +25,7 @@ vi.mock("../../config", () => ({
     WORK: { uid: "0xWorkSchemaUID" },
     WORK_APPROVAL: { uid: "0xApprovalSchemaUID" },
   })),
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 // Mock IPFS (Storacha)
@@ -117,7 +117,7 @@ describe("modules/data/eas", () => {
         data: { attestations: mockAttestations },
       });
 
-      const result = await getWorks(gardenAddress, 84532);
+      const result = await getWorks(gardenAddress, 11155111);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -128,7 +128,7 @@ describe("modules/data/eas", () => {
         error: { message: "Query failed" },
       });
 
-      await expect(getWorks("0xGarden", 84532)).rejects.toThrow(
+      await expect(getWorks("0xGarden", 11155111)).rejects.toThrow(
         "Failed to fetch works: Query failed"
       );
     });
@@ -155,7 +155,7 @@ describe("modules/data/eas", () => {
         data: { attestations: mockAttestations },
       });
 
-      const result = await getWorkApprovals("0xGarden", 84532);
+      const result = await getWorkApprovals("0xGarden", 11155111);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -166,7 +166,7 @@ describe("modules/data/eas", () => {
         data: { attestations: [] },
       });
 
-      const result = await getWorkApprovals("0xGarden", 84532);
+      const result = await getWorkApprovals("0xGarden", 11155111);
 
       expect(result).toEqual([]);
     });

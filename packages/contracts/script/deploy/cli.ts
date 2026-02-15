@@ -7,6 +7,7 @@ import { CoreDeployer } from "./core";
 import { GardenDeployer } from "./gardens";
 import { ActionDeployer } from "./actions";
 import { AnvilManager } from "./anvil";
+import { HatsTreeDeployer } from "./hats";
 
 /**
  * DeploymentCLI - Main command-line interface for deployments
@@ -21,6 +22,7 @@ export class DeploymentCLI {
   private gardenDeployer: GardenDeployer;
   private actionDeployer: ActionDeployer;
   private anvilManager: AnvilManager;
+  private hatsTreeDeployer: HatsTreeDeployer;
 
   constructor() {
     this.parser = new CliParser();
@@ -30,6 +32,7 @@ export class DeploymentCLI {
     this.gardenDeployer = new GardenDeployer();
     this.actionDeployer = new ActionDeployer();
     this.anvilManager = new AnvilManager();
+    this.hatsTreeDeployer = new HatsTreeDeployer();
   }
 
   /**
@@ -45,6 +48,7 @@ Commands:
   core                     Deploy core contracts
   garden <config.json>     Deploy garden from config file
   actions <config.json>    Deploy actions from config file
+  hats-tree                Create and configure the Hats protocol tree
   status [network]         Check deployment status
   fork <network>           Start Anvil fork for network
 
@@ -54,20 +58,26 @@ Common Options:
   --update-schemas         Only update schemas, skip existing contracts
   --force                  Force fresh deployment
   --dry-run                Validate config without deploying
+  --pure-simulation        Run compile + config preflight only (no RPC calls)
+  --salt <value>           Override deployment salt string for CREATE2
+  --override-sepolia-gate  Bypass Sepolia gate for Arbitrum/Celo broadcast
   --help, -h               Show this help
 
 Examples:
   # Fresh deployment
-  bun deploy.ts core --network baseSepolia --broadcast
+  bun deploy.ts core --network sepolia --broadcast
   
   # Update schemas only
-  bun deploy.ts core --network baseSepolia --broadcast --update-schemas
+  bun deploy.ts core --network sepolia --broadcast --update-schemas
   
   # Deploy garden
   bun deploy.ts garden config/my-garden.json --network arbitrum --broadcast
   
   # Deploy actions
   bun deploy.ts actions config/my-actions.json --network arbitrum --broadcast
+
+  # Create Hats tree
+  bun deploy.ts hats-tree --network sepolia --broadcast
 
 Available networks: ${this.networkManager.getAvailableNetworks().join(", ")}
 
@@ -104,7 +114,7 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
       }
     } else {
       // List all networks
-      const networks = ["localhost", "arbitrum", "baseSepolia", "celo"];
+      const networks = ["localhost", "arbitrum", "celo", "sepolia", "baseSepolia"];
 
       for (const net of networks) {
         try {
@@ -164,6 +174,11 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
             process.exit(1);
           }
           await this.actionDeployer.deployActions(actionsConfigPath, options);
+          break;
+        }
+
+        case "hats-tree": {
+          await this.hatsTreeDeployer.setupHatsTree(options);
           break;
         }
 

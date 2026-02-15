@@ -1,6 +1,12 @@
 ---
 name: tanstack-query
 description: TanStack Query v5 for server state. Use when setting up data fetching, fixing v4→v5 migration, or debugging hydration.
+version: "1.0"
+last_updated: "2026-02-08"
+last_verified: "2026-02-09"
+status: proven
+packages: [shared, client, admin]
+dependencies: [react]
 ---
 
 # TanStack Query v5 Skill
@@ -428,3 +434,53 @@ const handleSelect = useCallback(
 - Use `useMemo` for expensive derived computations
 - Use `useCallback` for handlers passed to memoized components
 - Use `React.memo` for list item components with stable props
+
+---
+
+## Decision Tree
+
+```text
+What data fetching pattern?
+│
+├─► Simple data fetch? ────────► useQuery + queryKeys helper
+│                                 → Object syntax (v5 required)
+│                                 → Use queryKeys.X.list/detail
+│
+├─► After mutation? ───────────► useMutation + queryInvalidation
+│                                 → Invalidate related queries in onSuccess
+│                                 → Use toastService for user feedback
+│
+├─► Optimistic update? ────────► useMutation with onMutate
+│                                 → Cancel outgoing queries
+│                                 → Snapshot previous data
+│                                 → Rollback on error
+│
+├─► Dependent data? ───────────► useQuery with enabled flag
+│   (B depends on A)              → enabled: !!parentData
+│                                 → Never use useSuspenseQuery with enabled
+│
+├─► Multiple parallel? ────────► useQueries + combine
+│                                 → Map addresses/IDs to queries
+│                                 → Combine results
+│
+├─► Paginated list? ───────────► useInfiniteQuery
+│                                 → initialPageParam required (v5!)
+│                                 → Combine with @tanstack/react-virtual
+│
+├─► GraphQL endpoint? ─────────► useQuery + graphql-request
+│                                 → gql template literals
+│                                 → Same queryKeys pattern
+│
+└─► Migrating from v4? ────────► Check v5 Critical Changes section
+                                  → Object syntax
+                                  → isPending (not isLoading)
+                                  → gcTime (not cacheTime)
+                                  → No query callbacks
+```
+
+## Related Skills
+
+- `react` — Local state management that complements server state
+- `offline` — Job queue and sync patterns that work alongside queries
+- `error-handling-patterns` — Error handling for failed queries and mutations
+- `testing` — Testing queries, cache behavior, and optimistic updates
