@@ -80,6 +80,18 @@ export type {
 // ============================================
 export type { CreateGardenParams, DeploymentParams, NetworkContracts } from "./contracts";
 // ============================================
+// Cookie Jar Types
+// ============================================
+export type {
+  CookieJar,
+  CookieJarAdminParams,
+  CookieJarDepositParams,
+  CookieJarEmergencyWithdrawParams,
+  CookieJarUpdateIntervalParams,
+  CookieJarUpdateMaxWithdrawalParams,
+  CookieJarWithdrawParams,
+} from "./cookie-jar";
+// ============================================
 // Vault Types
 // ============================================
 export type {
@@ -102,12 +114,14 @@ export type {
   ActionCard,
   ActionInstructionConfig,
   Address,
+  AssessmentAttachment,
   AssessmentDraft,
   Garden,
   GardenAssessment,
   GardenCard,
   GardenerCard,
   Link,
+  SmartOutcome,
   Work,
   WorkApproval,
   WorkApprovalDraft,
@@ -116,9 +130,10 @@ export type {
   WorkDraft, // @deprecated - use WorkSubmission
   WorkInput,
   WorkMetadata,
+  WorkMetadataV1,
 } from "./domain";
-// Re-export Capital enum (value export, not type)
-export { Capital } from "./domain";
+// Re-export enums (value exports, not type)
+export { Capital, Confidence, CynefinPhase, Domain, VerificationMethod } from "./domain";
 
 // ============================================
 // Hypercert Types

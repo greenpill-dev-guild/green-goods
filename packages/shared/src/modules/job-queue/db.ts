@@ -170,6 +170,24 @@ class JobQueueDatabase {
       }
     }
 
+    // Also serialize audio notes if present in payload
+    if (job.payload && typeof job.payload === "object" && "audioNotes" in job.payload) {
+      const audioNotes = (job.payload as { audioNotes?: File[] }).audioNotes;
+      if (Array.isArray(audioNotes)) {
+        for (let index = 0; index < audioNotes.length; index++) {
+          const input = audioNotes[index] as unknown;
+          const file = normalizeToFile(input, {
+            fallbackName: `audio-note-${id}-${index}.webm`,
+          });
+
+          if (file) {
+            normalizedMediaFiles.push(file);
+          }
+          // Audio notes are optional — don't fail if normalization fails
+        }
+      }
+    }
+
     // Serialize all files BEFORE starting the transaction.
     // This is important because:
     // 1. arrayBuffer() is async and can't be called inside a transaction

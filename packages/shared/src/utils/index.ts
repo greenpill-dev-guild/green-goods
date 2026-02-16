@@ -1,6 +1,10 @@
 // Utilities — EXPLICIT EXPORTS for tree-shaking
 
 // ============================================================================
+// DOMAIN BITMASK
+// ============================================================================
+export { expandDomainMask, hasDomain } from "./domain";
+// ============================================================================
 // ACTION
 // ============================================================================
 export {
@@ -117,6 +121,7 @@ export {
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   isZeroAddressValue,
+  isZeroBytes32,
   validateDecimalInput,
   ZERO_ADDRESS,
 } from "./blockchain/vaults";

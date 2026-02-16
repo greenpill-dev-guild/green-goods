@@ -165,6 +165,18 @@ export {
   withTimeout,
 } from "./data/graphql-client";
 // ============================================================================
+// DATA / GARDENS (Gardens V2 Subgraph)
+// ============================================================================
+export {
+  getConvictionStrategiesFromSubgraph,
+  getConvictionWeightsFromSubgraph,
+  getGardenCommunityFromSubgraph,
+  getGardenPoolsFromSubgraph,
+  getMemberPowerFromSubgraph,
+  getRegisteredHypercertsFromSubgraph,
+} from "./data/gardens";
+
+// ============================================================================
 // DATA / GREENGOODS
 // ============================================================================
 export {
@@ -179,10 +191,14 @@ export {
 // DATA / HYPERCERTS
 // ============================================================================
 export {
+  type AssessmentMetadataPrefill,
   checkAttestationsBundled,
+  domainToActionDomain,
+  filterAttestationsByAssessment,
   getApprovedAttestations,
   getGardenHypercerts,
   getHypercertById,
+  prefillMetadataFromAssessment,
 } from "./data/hypercerts";
 // ============================================================================
 // DATA / VAULTS

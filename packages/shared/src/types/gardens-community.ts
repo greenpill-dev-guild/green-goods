@@ -92,11 +92,11 @@ export interface SplitConfig {
   juiceboxBps: number;
 }
 
-/** Default three-way split: ~33% each */
+/** Default three-way split: 48.65% Cookie Jar, 48.65% Fractions, 2.7% Juicebox */
 export const DEFAULT_SPLIT_CONFIG: SplitConfig = {
-  cookieJarBps: 3334,
-  fractionsBps: 3333,
-  juiceboxBps: 3333,
+  cookieJarBps: 4865,
+  fractionsBps: 4865,
+  juiceboxBps: 270,
 };
 
 /**

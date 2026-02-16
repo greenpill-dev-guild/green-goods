@@ -2,13 +2,11 @@ import deployment31337 from "../../../contracts/deployments/31337-latest.json";
 import deployment11155111 from "../../../contracts/deployments/11155111-latest.json";
 import deployment42161 from "../../../contracts/deployments/42161-latest.json";
 import deployment42220 from "../../../contracts/deployments/42220-latest.json";
-import deployment84532 from "../../../contracts/deployments/84532-latest.json";
 import networksConfig from "../../../contracts/deployments/networks.json";
 
 // Export types
 export interface EASConfig {
-  GARDEN_ASSESSMENT: { uid: string; schema: string };
-  ASSESSMENT?: { uid: string; schema: string };
+  ASSESSMENT: { uid: string; schema: string };
   WORK: { uid: string; schema: string };
   WORK_APPROVAL: { uid: string; schema: string };
   EAS: { address: string };
@@ -28,8 +26,6 @@ export interface NetworkConfig {
 // Internal type for deployment JSON structure
 interface DeploymentConfig {
   schemas?: {
-    gardenAssessmentSchemaUID?: string;
-    gardenAssessmentSchema?: string;
     assessmentSchemaUID?: string;
     assessmentSchema?: string;
     workSchemaUID?: string;
@@ -50,6 +46,9 @@ interface DeploymentConfig {
   octantFactory?: string;
   hatsModule?: string;
   karmaGAPModule?: string;
+  cookieJarModule?: string;
+  goodsToken?: string;
+  juiceboxProjectId?: number;
   rootGarden?: {
     address: string;
     tokenId: number;
@@ -72,14 +71,12 @@ const DEPLOYMENT_CONFIGS: Record<string, DeploymentConfig> = {
   "11155111": deployment11155111 as DeploymentConfig,
   "42161": deployment42161 as DeploymentConfig,
   "42220": deployment42220 as DeploymentConfig,
-  "84532": deployment84532 as DeploymentConfig,
 };
 
 const EAS_GRAPHQL_URLS: Record<string, string> = {
   "42161": "https://arbitrum.easscan.org/graphql",
   "42220": "https://celo.easscan.org/graphql",
   "11155111": "https://sepolia.easscan.org/graphql",
-  "84532": "https://base-sepolia.easscan.org/graphql",
 };
 
 const DEFAULT_EAS_GRAPHQL_URL = "https://sepolia.easscan.org/graphql";
@@ -118,12 +115,6 @@ export function getEASConfig(chainId?: number | string): EASConfig {
   const networkConfig = getNetworkConfigFromNetworksJson(chain);
 
   return {
-    GARDEN_ASSESSMENT: {
-      uid:
-        deployment.schemas?.gardenAssessmentSchemaUID ||
-        "0x0000000000000000000000000000000000000000000000000000000000000000",
-      schema: deployment.schemas?.gardenAssessmentSchema || "",
-    },
     ASSESSMENT: {
       uid:
         deployment.schemas?.assessmentSchemaUID ||
@@ -154,17 +145,11 @@ export function getEASConfig(chainId?: number | string): EASConfig {
 // Function to build RPC URL with Alchemy key
 function buildRpcUrl(rpcUrlTemplate: string, alchemyKey: string): string {
   // Handle different RPC URL patterns
-  if (rpcUrlTemplate.includes("${BASE_SEPOLIA_RPC_URL}")) {
-    return `https://base-sepolia.g.alchemy.com/v2/${alchemyKey}`;
-  }
   if (rpcUrlTemplate.includes("${ARBITRUM_RPC_URL}")) {
     return `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
   }
   if (rpcUrlTemplate.includes("${CELO_RPC_URL}")) {
     return `https://celo-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-  }
-  if (rpcUrlTemplate.includes("${BASE_RPC_URL}")) {
-    return `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`;
   }
   if (rpcUrlTemplate.includes("${OPTIMISM_RPC_URL}")) {
     return `https://opt-mainnet.g.alchemy.com/v2/${alchemyKey}`;

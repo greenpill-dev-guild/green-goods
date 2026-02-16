@@ -47,17 +47,13 @@ export interface EASGardenAssessment {
   gardenAddress: string;
   title: string;
   description: string;
-  assessmentType: string;
-  capitals: string[];
-  metricsCid: string | null;
-  metrics: Record<string, unknown> | null;
-  evidenceMedia: string[];
-  reportDocuments: string[];
-  impactAttestations: string[];
+  /** IPFS CID referencing the full assessment config JSON (assessment_v2) */
+  assessmentConfigCID: string;
+  /** Domain enum value (uint8 on-chain) */
+  domain: number;
   startDate: number | null;
   endDate: number | null;
   location: string;
-  tags: string[];
   createdAt: number;
 }
 
@@ -81,5 +77,8 @@ export interface EASWorkApproval {
   workUID: string;
   approved: boolean;
   feedback: string;
+  confidence: number;
+  verificationMethod: number;
+  reviewNotesCID: string;
   createdAt: number;
 }

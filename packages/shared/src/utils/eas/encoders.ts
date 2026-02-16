@@ -1,5 +1,11 @@
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
-import type { AssessmentDraft, WorkApprovalDraft, WorkDraft } from "../../types/domain";
+import type {
+  AssessmentDraft,
+  Domain,
+  WorkApprovalDraft,
+  WorkDraft,
+  WorkMetadata,
+} from "../../types/domain";
 
 import { getEASConfig } from "../../config/blockchain";
 import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
@@ -71,6 +77,10 @@ export interface EncodeWorkDataOptions {
   authMode?: "passkey" | "wallet" | null;
   /** Per-file upload progress callback */
   onFileProgress?: (progress: { completed: number; total: number; fileIndex: number }) => void;
+  /** Domain for v2 metadata */
+  domain?: Domain;
+  /** Action slug for v2 metadata */
+  actionSlug?: string;
 }
 
 /**
@@ -238,23 +248,70 @@ export async function encodeWorkData(
     throw firstError instanceof Error ? firstError : new Error(String(firstError));
   }
 
-  // Upload metadata JSON
-  try {
-    const metadata = await uploadJSONToIPFS(
-      {
-        plantSelection: data.plantSelection,
-        plantCount: data.plantCount,
-        timeSpentMinutes: data.timeSpentMinutes,
-        clientWorkId: data.metadata?.clientWorkId,
-        submittedAt: data.metadata?.submittedAt,
-      },
-      {
-        source: "encodeWorkData",
+  // Upload audio notes to IPFS (if any)
+  let audioNoteCids: string[] = [];
+  if (data.audioNotes && data.audioNotes.length > 0) {
+    const audioUploadPromises = data.audioNotes.map((file, index) =>
+      uploadFileToIPFS(file, {
+        fileIndex: index,
+        totalFiles: data.audioNotes!.length,
+        source: "encodeWorkData:audio",
         gardenAddress: options.gardenAddress,
         authMode: options.authMode,
-        metadataType: "work_metadata",
-      }
+      }).then((result) => result.cid)
     );
+
+    const audioResults = await Promise.allSettled(audioUploadPromises);
+    audioNoteCids = audioResults
+      .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+      .map((r) => r.value);
+
+    // If any audio uploads failed, log but don't block submission
+    const audioFailures = audioResults.filter((r) => r.status === "rejected");
+    if (audioFailures.length > 0) {
+      trackUploadError(new Error(`${audioFailures.length} audio file(s) failed to upload`), {
+        uploadCategory: "encoding",
+        source: "encodeWorkData:audio",
+        gardenAddress: options.gardenAddress,
+        authMode: options.authMode,
+        userAction: "uploading audio notes",
+        severity: "warning",
+        recoverable: true,
+      });
+    }
+  }
+
+  // Upload metadata JSON (v2 if domain/slug provided, legacy otherwise)
+  try {
+    const isV2 = options.domain !== undefined && options.actionSlug !== undefined;
+
+    const metadataPayload: WorkMetadata | Record<string, unknown> = isV2
+      ? {
+          schemaVersion: "work_metadata_v2" as const,
+          domain: options.domain!,
+          actionSlug: options.actionSlug!,
+          timeSpentMinutes: data.timeSpentMinutes ?? 0,
+          details: data.details ?? {},
+          ...(data.tags && data.tags.length > 0 ? { tags: data.tags } : {}),
+          ...(audioNoteCids.length > 0 ? { audioNoteCids } : {}),
+          clientWorkId:
+            ((data as Record<string, unknown>).clientWorkId as string) || crypto.randomUUID(),
+          submittedAt: new Date().toISOString(),
+        }
+      : {
+          // Legacy v1 format for backward compatibility during transition
+          details: data.details ?? {},
+          timeSpentMinutes: data.timeSpentMinutes,
+          ...(data.tags && data.tags.length > 0 ? { tags: data.tags } : {}),
+          ...(audioNoteCids.length > 0 ? { audioNoteCids } : {}),
+        };
+
+    const metadata = await uploadJSONToIPFS(metadataPayload, {
+      source: "encodeWorkData",
+      gardenAddress: options.gardenAddress,
+      authMode: options.authMode,
+      metadataType: isV2 ? "work_metadata_v2" : "work_metadata",
+    });
 
     completedFiles++;
 
@@ -329,6 +386,9 @@ export function encodeWorkApprovalData(data: WorkApprovalDraft, chainId: number 
     { name: "workUID", value: data.workUID, type: "bytes32" },
     { name: "approved", value: data.approved, type: "bool" },
     { name: "feedback", value: data.feedback ?? "", type: "string" },
+    { name: "confidence", value: data.confidence, type: "uint8" },
+    { name: "verificationMethod", value: data.verificationMethod, type: "uint8" },
+    { name: "reviewNotesCID", value: data.reviewNotesCID ?? "", type: "string" },
   ]) as `0x${string}`;
 
   return encodedData;
@@ -345,8 +405,26 @@ export interface EncodeAssessmentDataOptions {
 }
 
 /**
- * Prepares assessment attestation data, including IPFS uploads for metrics and media.
- * Includes comprehensive tracking for debugging upload failures.
+ * Assessment v2 IPFS JSON payload.
+ * Contains the full strategy kernel, domain selection, harvest intent,
+ * SDG alignment, and attachment CIDs. Referenced by CID in the EAS attestation.
+ */
+export interface AssessmentConfigPayload {
+  schemaVersion: "assessment_v2";
+  diagnosis: string;
+  smartOutcomes: Array<{ description: string; metric: string; target: number }>;
+  cynefinPhase: number;
+  domain: number;
+  selectedActionUIDs: string[];
+  reportingPeriod: { start: number; end: number };
+  sdgTargets: number[];
+  attachments: Array<{ name: string; cid: string; mimeType: string }>;
+}
+
+/**
+ * Prepares assessment v2 attestation data.
+ * Uploads attachments to IPFS, builds the full assessment config JSON,
+ * uploads it to IPFS, and encodes the EAS attestation with the config CID.
  */
 export async function encodeAssessmentData(
   data: AssessmentDraft,
@@ -361,12 +439,12 @@ export async function encodeAssessmentData(
   const schema = easConfig.ASSESSMENT.schema as `0x${string}`;
   const schemaEncoder = new SchemaEncoder(schema);
 
-  const totalFiles = data.evidenceMedia.length;
-  const totalSizeBytes = data.evidenceMedia.reduce((sum, file) => sum + (file?.size || 0), 0);
+  const totalFiles = data.attachments.length;
+  const totalSizeBytes = data.attachments.reduce((sum, file) => sum + (file?.size || 0), 0);
 
   trackUploadBatchProgress({
     stage: "started",
-    totalFiles: totalFiles + 1, // +1 for metrics JSON
+    totalFiles: totalFiles + 1, // +1 for config JSON
     completedFiles: 0,
     failedFiles: 0,
     totalSizeBytes,
@@ -374,35 +452,52 @@ export async function encodeAssessmentData(
     source: options.source ?? "encodeAssessmentData",
   });
 
-  // Upload metrics to IPFS
-  const metricsJSON = await uploadJSONToIPFS(data.metrics, {
-    source: options.source ?? "encodeAssessmentData",
-    authMode: options.authMode,
-    metadataType: "assessment_metrics",
-  });
-
-  // Upload evidence media with tracking
-  const evidenceMedia: string[] = [];
-  for (let index = 0; index < data.evidenceMedia.length; index++) {
-    const file = data.evidenceMedia[index];
+  // Upload attachment files to IPFS
+  const attachmentCids: Array<{ name: string; cid: string; mimeType: string }> = [];
+  for (let index = 0; index < data.attachments.length; index++) {
+    const file = data.attachments[index];
     const result = await uploadFileToIPFS(file, {
       fileIndex: index,
-      totalFiles: totalFiles,
+      totalFiles,
       source: options.source ?? "encodeAssessmentData",
       authMode: options.authMode,
     });
-    evidenceMedia.push(result.cid);
+    attachmentCids.push({
+      name: file.name,
+      cid: result.cid,
+      mimeType: file.type || "application/octet-stream",
+    });
 
     trackUploadBatchProgress({
       stage: "file_complete",
       totalFiles: totalFiles + 1,
-      completedFiles: index + 2, // +1 for metrics already uploaded
+      completedFiles: index + 1,
       failedFiles: 0,
       totalSizeBytes,
       elapsedMs: Date.now() - startTime,
       source: options.source ?? "encodeAssessmentData",
     });
   }
+
+  // Build the full assessment config JSON
+  const configPayload: AssessmentConfigPayload = {
+    schemaVersion: "assessment_v2",
+    diagnosis: data.diagnosis,
+    smartOutcomes: data.smartOutcomes,
+    cynefinPhase: data.cynefinPhase,
+    domain: data.domain,
+    selectedActionUIDs: data.selectedActionUIDs,
+    reportingPeriod: data.reportingPeriod,
+    sdgTargets: data.sdgTargets,
+    attachments: attachmentCids,
+  };
+
+  // Upload config JSON to IPFS
+  const configResult = await uploadJSONToIPFS(configPayload, {
+    source: options.source ?? "encodeAssessmentData",
+    authMode: options.authMode,
+    metadataType: "assessment_config_v2",
+  });
 
   trackUploadBatchProgress({
     stage: "completed",
@@ -414,19 +509,16 @@ export async function encodeAssessmentData(
     source: options.source ?? "encodeAssessmentData",
   });
 
+  // Encode EAS attestation data
+  // The on-chain schema will include assessmentConfigCID for the full JSON
   const encodedData = schemaEncoder.encodeData([
     { name: "title", value: data.title, type: "string" },
     { name: "description", value: data.description, type: "string" },
-    { name: "assessmentType", value: data.assessmentType, type: "string" },
-    { name: "capitals", value: data.capitals, type: "string[]" },
-    { name: "metricsJSON", value: metricsJSON.cid, type: "string" },
-    { name: "evidenceMedia", value: evidenceMedia, type: "string[]" },
-    { name: "reportDocuments", value: data.reportDocuments || [], type: "string[]" },
-    { name: "impactAttestations", value: data.impactAttestations || [], type: "bytes32[]" },
-    { name: "startDate", value: data.startDate, type: "uint256" },
-    { name: "endDate", value: data.endDate, type: "uint256" },
+    { name: "assessmentConfigCID", value: configResult.cid, type: "string" },
+    { name: "domain", value: data.domain, type: "uint8" },
+    { name: "startDate", value: data.reportingPeriod.start, type: "uint256" },
+    { name: "endDate", value: data.reportingPeriod.end, type: "uint256" },
     { name: "location", value: data.location, type: "string" },
-    { name: "tags", value: data.tags, type: "string[]" },
   ]) as `0x${string}`;
 
   return encodedData;

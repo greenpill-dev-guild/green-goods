@@ -8,6 +8,7 @@
 import { vi } from "vitest";
 
 import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types";
+import { Confidence, Domain, VerificationMethod } from "../../types";
 import type {
   AllowlistEntry,
   HypercertAttestation,
@@ -42,9 +43,9 @@ export function createMockWorkDraft(overrides?: Partial<WorkDraft>): WorkDraft {
     actionUID: 1,
     title: "Test Work Submission",
     feedback: "Test feedback for the work",
-    plantSelection: ["Rose", "Tulip"],
-    plantCount: 5,
+    timeSpentMinutes: 60,
     media: [],
+    details: {},
     ...overrides,
   };
 }
@@ -61,7 +62,7 @@ export function createMockWork(overrides?: Partial<Work>): Work {
     gardenerAddress: MOCK_ADDRESSES.gardener,
     gardenAddress: MOCK_ADDRESSES.garden,
     feedback: "Test feedback",
-    metadata: JSON.stringify({ plantCount: 5, plantSelection: ["Rose"] }),
+    metadata: JSON.stringify({ details: {}, timeSpentMinutes: 60 }),
     media: ["ipfs://QmTest123"],
     createdAt: Date.now(),
     status: "pending",
@@ -81,6 +82,8 @@ export function createMockWorkApprovalDraft(
     workUID: "0xWorkUID123",
     approved: true,
     feedback: "",
+    confidence: Confidence.MEDIUM,
+    verificationMethod: VerificationMethod.HUMAN,
     ...overrides,
   };
 }
@@ -115,6 +118,7 @@ export function createMockGarden(overrides?: Partial<Garden>): Garden {
 export function createMockAction(overrides?: Partial<Action>): Action {
   return {
     id: `action-${Date.now()}`,
+    slug: "agro.planting_event",
     startTime: Date.now() - 86400000, // 1 day ago
     endTime: Date.now() + 86400000, // 1 day from now
     title: "Test Action",
@@ -122,6 +126,7 @@ export function createMockAction(overrides?: Partial<Action>): Action {
     instructions: "Follow these test instructions",
     capitals: [],
     media: [],
+    domain: Domain.AGRO,
     createdAt: Date.now(),
     inputs: [],
     ...overrides,

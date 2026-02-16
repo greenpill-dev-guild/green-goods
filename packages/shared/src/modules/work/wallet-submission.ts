@@ -22,6 +22,7 @@ import type { EASWork, EASWorkApproval } from "../../types/eas-responses";
 import { ANALYTICS_EVENTS, trackWalletSubmissionTiming } from "../../modules/app/analytics-events";
 import { track } from "../../modules/app/posthog";
 import { pollQueriesAfterTransaction } from "../../utils/blockchain/polling";
+import { logger } from "../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import {
@@ -141,7 +142,7 @@ export async function submitWorkDirectly(
     if (DEBUG_ENABLED) {
       debugError(message);
     } else {
-      console.error(message);
+      logger.error(message);
     }
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
@@ -289,7 +290,7 @@ export async function submitWorkDirectly(
     if (DEBUG_ENABLED) {
       debugError(logMessage, err);
     } else {
-      console.error(logMessage, err);
+      logger.error(logMessage, { error: err });
     }
 
     // Use centralized error formatting
@@ -339,7 +340,7 @@ export async function submitApprovalDirectly(
     if (DEBUG_ENABLED) {
       debugError(message);
     } else {
-      console.error(message);
+      logger.error(message);
     }
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
@@ -437,7 +438,7 @@ export async function submitApprovalDirectly(
     if (DEBUG_ENABLED) {
       debugError(logMessage, err);
     } else {
-      console.error(logMessage, err);
+      logger.error(logMessage, { error: err });
     }
 
     // Use centralized error formatting
@@ -488,7 +489,7 @@ export async function submitBatchApprovalsDirectly(
     if (DEBUG_ENABLED) {
       debugError(logMessage);
     } else {
-      console.error(logMessage);
+      logger.error(logMessage);
     }
     throw new Error("No approvals provided. At least one approval is required.");
   }
@@ -614,7 +615,7 @@ export async function submitBatchApprovalsDirectly(
     if (DEBUG_ENABLED) {
       debugError(logMessage, err);
     } else {
-      console.error(logMessage, err);
+      logger.error(logMessage, { error: err });
     }
     throw new Error(formatWalletError(err));
   }

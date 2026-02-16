@@ -2,8 +2,8 @@
  * Transaction Polling Utility
  *
  * Handles polling queries after blockchain transactions to account for indexer lag.
- * Base Sepolia block time: ~2 seconds
- * Envio indexer lag: typically 1-3 blocks behind (2-6 seconds)
+ * Sepolia block time: ~12 seconds
+ * Envio indexer lag: typically 1-3 blocks behind
  *
  * Strategy: Smart polling with early exit when data changes
  * - Faster initial delays (1s, 2s, 4s) for responsiveness

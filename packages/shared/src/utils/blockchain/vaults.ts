@@ -13,9 +13,6 @@ const ASSET_SYMBOLS_BY_CHAIN: Record<number, Record<string, string>> = {
     "0x7b79995e5f793a07bc00c21412e50ecae098e7f9": "WETH",
     "0x68194a729c2450ad26072b3d33adacbcef39d574": "DAI",
   },
-  84532: {
-    "0x4200000000000000000000000000000000000006": "WETH",
-  },
   42220: {
     "0x122013fd7df1c6f636a5bb8f03108e876548b455": "WETH",
     "0xe4fe50cdd716ef9e15b9ddd5e5e946b23fc4f9e4": "DAI",
@@ -31,9 +28,6 @@ const ASSET_DECIMALS_BY_CHAIN: Record<number, Record<string, number>> = {
     "0x7b79995e5f793a07bc00c21412e50ecae098e7f9": 18,
     "0x68194a729c2450ad26072b3d33adacbcef39d574": 18,
   },
-  84532: {
-    "0x4200000000000000000000000000000000000006": 18,
-  },
   42220: {
     "0x122013fd7df1c6f636a5bb8f03108e876548b455": 18,
     "0xe4fe50cdd716ef9e15b9ddd5e5e946b23fc4f9e4": 18,
@@ -43,6 +37,16 @@ const ASSET_DECIMALS_BY_CHAIN: Record<number, Record<string, number>> = {
 export function isZeroAddressValue(address?: string | null): boolean {
   if (!address) return true;
   return address.toLowerCase() === ZERO_ADDRESS;
+}
+
+/**
+ * Checks if a bytes32 value is zero or falsy.
+ * Handles both falsy values (null, undefined, "") and truthy
+ * "0x000...0" strings of any length (20-byte addresses, 32-byte UIDs).
+ */
+export function isZeroBytes32(value: string | undefined | null): boolean {
+  if (!value) return true;
+  return /^0x0+$/i.test(value);
 }
 
 export function getVaultAssetSymbol(

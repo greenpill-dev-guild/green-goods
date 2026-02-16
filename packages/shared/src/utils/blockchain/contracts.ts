@@ -16,7 +16,6 @@ export { getChain } from "../../config/chains";
 // Import deployment configurations
 import deployment42161 from "../../../../contracts/deployments/42161-latest.json";
 import deployment42220 from "../../../../contracts/deployments/42220-latest.json";
-import deployment84532 from "../../../../contracts/deployments/84532-latest.json";
 import deployment11155111 from "../../../../contracts/deployments/11155111-latest.json";
 import networksConfig from "../../../../contracts/deployments/networks.json";
 import ActionRegistryABIJson from "../../../../contracts/out/Action.sol/ActionRegistry.json";
@@ -41,7 +40,6 @@ const DEPLOYMENT_CONFIGS: Record<string, Record<string, any>> = {
   "42161": deployment42161 as Record<string, any>,
   "42220": deployment42220 as Record<string, any>,
   "11155111": deployment11155111 as Record<string, any>,
-  "84532": deployment84532 as Record<string, any>,
 };
 
 function getDeploymentConfig(chainId: number | string): Record<string, any> {
@@ -73,6 +71,9 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
       networkConfig.contracts?.erc4337EntryPoint || "0x0000000000000000000000000000000000000000",
     multicallForwarder:
       networkConfig.contracts?.multicallForwarder || "0x0000000000000000000000000000000000000000",
+    cookieJarModule: deployment.cookieJarModule || "0x0000000000000000000000000000000000000000",
+    yieldSplitter: deployment.yieldSplitter || "0x0000000000000000000000000000000000000000",
+    gardensModule: deployment.gardensModule || "0x0000000000000000000000000000000000000000",
   };
 }
 

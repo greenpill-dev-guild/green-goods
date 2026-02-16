@@ -6,7 +6,10 @@
 // ============================================================================
 export type {
   AssetSelectorProps,
+  AudioPlayerProps,
+  AudioRecorderProps,
   CenteredSpinnerProps,
+  ConfidenceSelectorProps,
   ConfirmDialogProps,
   DatePickerProps,
   DateRangePickerProps,
@@ -17,6 +20,7 @@ export type {
   FormTextareaProps,
   HydrationFallbackProps,
   ImageWithFallbackProps,
+  MethodSelectorProps,
   SpinnerProps,
   StatusBadgeProps,
   ToastAction,
@@ -30,7 +34,10 @@ export type {
 export {
   approvalToasts,
   AssetSelector,
+  AudioPlayer,
+  AudioRecorder,
   CenteredSpinner,
+  ConfidenceSelector,
   ConfirmDialog,
   createApprovalToasts,
   createLocalizedToasts,
@@ -47,6 +54,7 @@ export {
   getStatusColors,
   HydrationFallback,
   ImageWithFallback,
+  MethodSelector,
   SyncStatusBar,
   queueToasts,
   Spinner,
@@ -68,6 +76,8 @@ export {
 export type {
   EASConfig,
   NetworkConfig,
+  SDGGoalId,
+  SDGTarget,
   SupportedChainId,
 } from "./config/index";
 export {
@@ -88,6 +98,7 @@ export {
   getDefaultChain,
   getEASConfig,
   getEasGraphqlUrl,
+  getGardensSubgraphUrl,
   getIndexerUrl,
   getNetworkConfig,
   getPasskeyRpId,
@@ -100,6 +111,8 @@ export {
   PASSKEY_RP_ID,
   PASSKEY_RP_NAME,
   queryClient,
+  SDG_TARGETS,
+  getSDGLabel,
   STALE_TIMES,
   SUPPORTED_CHAINS,
   wagmiConfig,
@@ -172,6 +185,16 @@ export {
   useCopyToClipboard,
   useDebouncedValue,
   useChainConfig,
+  // Cookie jar hooks
+  useGardenCookieJars,
+  useCookieJarWithdraw,
+  useCookieJarDeposit,
+  useCookieJarPause,
+  useCookieJarUnpause,
+  useCookieJarUpdateMaxWithdrawal,
+  useCookieJarUpdateInterval,
+  useCookieJarEmergencyWithdraw,
+  useUserCookieJars,
   useConvictionStrategies,
   useSetConvictionStrategies,
   useRegisteredHypercerts,
@@ -185,6 +208,7 @@ export {
   useSetRoleHatIds,
   useGardenCommunity,
   useGardenPools,
+  useCreateGardenPools,
   useAllocateYield,
   useYieldAllocations,
   useCreateAssessmentWorkflow,
@@ -198,6 +222,7 @@ export {
   useEnsAvatar,
   useEnsName,
   useGardenAssessments,
+  useGardenDomains,
   useGardenerProfile,
   useGardeners,
   useGardenInvites,
@@ -241,6 +266,7 @@ export {
   useBatchWorkSync,
   useWorkApproval,
   useWorkApprovals,
+  buildWorkFormSchema,
   useWorkForm,
   useWorkImages,
   useWorkMutation,
@@ -280,13 +306,23 @@ export {
   checkAttestationsBundled,
   createEasClient,
   createIndexerClient,
+  domainToActionDomain,
+  filterAttestationsByAssessment,
+  type AssessmentMetadataPrefill,
+  prefillMetadataFromAssessment,
   createOfflineTxHash,
   easGraphQL,
   formatJobError,
   getApprovedAttestations,
   getActions,
   getAuthMode,
+  getConvictionStrategiesFromSubgraph,
+  getConvictionWeightsFromSubgraph,
+  getGardenCommunityFromSubgraph,
   getGardenHypercerts,
+  getGardenPoolsFromSubgraph,
+  getMemberPowerFromSubgraph,
+  getRegisteredHypercertsFromSubgraph,
   getDistinctId,
   getFileByHash,
   getGardenAssessments,
@@ -391,7 +427,7 @@ export type { ContributorWeight, DistributionMode, MerkleLeaf, MerkleTree } from
 // ============================================================================
 // PROVIDERS (re-export via subpath import recommended: @green-goods/shared/providers)
 // ============================================================================
-export type { AuthContextType } from "./providers/index";
+export type { AuthContextType, WorkFormValue, WorkSelectionValue } from "./providers/index";
 export {
   AppKitProvider,
   AppProvider,
@@ -404,6 +440,8 @@ export {
   useAuthContext,
   useJobQueue,
   useWork,
+  useWorkFormContext,
+  useWorkSelection,
   WorkProvider,
 } from "./providers/index";
 // ============================================================================
@@ -436,7 +474,9 @@ export type {
   GardenCard,
   Garden,
   GardenAssessment,
+  AssessmentAttachment,
   AssessmentDraft,
+  SmartOutcome,
   ActionCard,
   Action,
   WorkInput,
@@ -444,6 +484,8 @@ export type {
   WorkCard,
   Work,
   WorkMetadata,
+  WorkMetadataV1,
+  WorkSubmission,
   WorkApprovalDraft,
   WorkApproval,
   ActionInstructionConfig,
@@ -508,6 +550,14 @@ export type {
   HarvestParams,
   EmergencyPauseParams,
   SetDonationAddressParams,
+  // Cookie jar types
+  CookieJar,
+  CookieJarAdminParams,
+  CookieJarDepositParams,
+  CookieJarEmergencyWithdrawParams,
+  CookieJarUpdateIntervalParams,
+  CookieJarUpdateMaxWithdrawalParams,
+  CookieJarWithdrawParams,
   // EAS response types
   EASAttestationRaw,
   EASAttestationsResponse,
@@ -549,7 +599,14 @@ export type {
 } from "./types/index";
 
 // Re-export enums and constants
-export { ACTION_DOMAINS, Capital } from "./types/index";
+export {
+  ACTION_DOMAINS,
+  Capital,
+  Confidence,
+  CynefinPhase,
+  Domain,
+  VerificationMethod,
+} from "./types/index";
 export {
   WeightScheme,
   PoolType,
@@ -684,11 +741,14 @@ export {
   validateDecimalInput,
   ValidationError,
   categorizeError,
+  expandDomainMask,
+  hasDomain,
   formatTokenAmount,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   isZeroAddressValue,
+  isZeroBytes32,
   ZERO_ADDRESS,
 } from "./utils/index";
 

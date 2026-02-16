@@ -1,4 +1,5 @@
 import { getEASConfig } from "../../config/blockchain";
+import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { easGraphQL } from "./graphql";
 import { createEasClient } from "./graphql-client";
 import { resolveIPFSUrl } from "./ipfs";
@@ -86,20 +87,15 @@ const parseDataToGardenAssessment = (
   const findField = (name: string) => fields.find((field) => field.name === name);
   const readValue = (name: string): unknown => findField(name)?.value?.value;
   const readString = (name: string): string => (readValue(name) as string) ?? "";
-  const readStringArray = (name: string): string[] => (readValue(name) as string[]) ?? [];
 
   const title = readString("title");
   const description = readString("description");
-  const assessmentType = readString("assessmentType");
-  const capitals = readStringArray("capitals");
-  const metricsCid: string | null = (readValue("metricsJSON") as string) ?? null;
-  const evidenceMediaHashes = readStringArray("evidenceMedia");
-  const reportDocumentsRaw = readStringArray("reportDocuments");
-  const impactAttestationsRaw = readStringArray("impactAttestations");
+  const assessmentConfigCID = readString("assessmentConfigCID");
+  const domainRaw = readValue("domain") as NumberConvertibleValue;
+  const domain = toNumberFromField(domainRaw) ?? 0;
   const startDateRaw = readValue("startDate") as NumberConvertibleValue;
   const endDateRaw = readValue("endDate") as NumberConvertibleValue;
   const location = readString("location");
-  const tags = readStringArray("tags");
 
   const startDate = toNumberFromField(startDateRaw);
   const endDate = toNumberFromField(endDateRaw);
@@ -110,17 +106,11 @@ const parseDataToGardenAssessment = (
     gardenAddress: attestation.recipient,
     title,
     description,
-    assessmentType,
-    capitals,
-    metricsCid,
-    metrics: null, // Consumers should fetch this separately
-    evidenceMedia: evidenceMediaHashes, // Return hashes only
-    reportDocuments: reportDocumentsRaw, // Return hashes only
-    impactAttestations: impactAttestationsRaw,
+    assessmentConfigCID,
+    domain,
     startDate,
     endDate,
     location,
-    tags,
     createdAt: attestation.time,
   };
 };
@@ -200,6 +190,10 @@ const parseDataToWorkApproval = (
     approved = rawApproved !== 0;
   }
 
+  const confidenceData = findField("confidence");
+  const verificationMethodData = findField("verificationMethod");
+  const reviewNotesCIDData = findField("reviewNotesCID");
+
   return {
     id: workApprovalUID,
     operatorAddress: attestation.attester,
@@ -208,6 +202,10 @@ const parseDataToWorkApproval = (
     workUID: (workUIDData?.value?.value as string) || "",
     approved,
     feedback: (feedbackData?.value?.value as string) || "",
+    confidence: toNumberFromField(confidenceData?.value?.value as NumberConvertibleValue) ?? 0,
+    verificationMethod:
+      toNumberFromField(verificationMethodData?.value?.value as NumberConvertibleValue) ?? 0,
+    reviewNotesCID: (reviewNotesCIDData?.value?.value as string) || "",
     createdAt: attestation.time,
   };
 };
@@ -230,7 +228,9 @@ export const getGardenAssessments = async (
   `);
 
   const easConfig = getEASConfig(chainId);
-  const schemaId = { equals: easConfig.GARDEN_ASSESSMENT.uid };
+  if (isZeroBytes32(easConfig.ASSESSMENT.uid)) return [];
+
+  const schemaId = { equals: easConfig.ASSESSMENT.uid };
   const client = createEasClient(chainId);
 
   const { data, error } = await client.query(
@@ -294,6 +294,8 @@ export const getWorks = async (
   `);
 
   const easConfig = getEASConfig(chainId);
+  if (isZeroBytes32(easConfig.WORK.uid)) return [];
+
   const schemaId = { equals: easConfig.WORK.uid };
   const client = createEasClient(chainId);
 
@@ -349,6 +351,8 @@ export const getWorksByGardener = async (
   `);
 
   const easConfig = getEASConfig(chainId);
+  if (isZeroBytes32(easConfig.WORK.uid)) return [];
+
   const client = createEasClient(chainId);
 
   const { data, error } = await client.query(
@@ -414,6 +418,8 @@ export const getWorkApprovals = async (
   `);
 
   const easConfig = getEASConfig(chainId);
+  if (isZeroBytes32(easConfig.WORK_APPROVAL.uid)) return [];
+
   const schemaId = { equals: easConfig.WORK_APPROVAL.uid };
   const client = createEasClient(chainId);
 
@@ -478,6 +484,8 @@ export const getWorkApprovalsByUIDs = async (
   `);
 
   const easConfig = getEASConfig(chainId);
+  if (isZeroBytes32(easConfig.WORK_APPROVAL.uid)) return [];
+
   const client = createEasClient(chainId);
 
   const { data, error } = await client.query(
@@ -536,6 +544,8 @@ export const getWorksByUIDs = async (
   `);
 
   const easConfig = getEASConfig(chainId);
+  if (isZeroBytes32(easConfig.WORK.uid)) return [];
+
   const client = createEasClient(chainId);
 
   const { data, error } = await client.query(

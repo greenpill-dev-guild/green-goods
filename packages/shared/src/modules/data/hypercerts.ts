@@ -11,6 +11,7 @@ import {
   type HypercertStatus,
   type MetricValue,
 } from "../../types/hypercerts";
+import { Domain, type GardenAssessment } from "../../types/domain";
 import type { EASWorkApproval } from "../../types/eas-responses";
 import { greenGoodsIndexer, GQLClient } from "./graphql-client";
 import { getWorks, getWorkApprovals, getWorkApprovalsByUIDs, getWorksByUIDs } from "./eas";
@@ -31,7 +32,7 @@ const HYPERCERTS_API_ENDPOINTS = {
 /** Get the Hypercerts API URL based on chain ID */
 function getHypercertsApiUrl(chainId?: number): string {
   // Test chains use staging API
-  const testChains = [11155111, 84532, 421614, 314159];
+  const testChains = [11155111, 421614, 314159];
   const isTestChain = chainId ? testChains.includes(chainId) : false;
   return isTestChain ? HYPERCERTS_API_ENDPOINTS.test : HYPERCERTS_API_ENDPOINTS.production;
 }
@@ -104,7 +105,7 @@ interface SdkHypercertResponse {
  * Fetches a hypercert from the official Hypercerts SDK API.
  * This is faster and more reliable than custom indexers for hypercert data.
  *
- * @param hypercertId - Format: "{chainId}-{tokenId}" e.g., "84532-123456789"
+ * @param hypercertId - Format: "{chainId}-{tokenId}" e.g., "11155111-123456789"
  * @returns Partial HypercertRecord with data from SDK API, or null if not found
  */
 export async function getHypercertFromSdkApi(
@@ -284,6 +285,126 @@ export function applyAttestationFilters(
   });
 }
 
+/**
+ * Maps numeric Domain enum values to ActionDomain strings used in hypercert attestations.
+ */
+const DOMAIN_TO_ACTION_DOMAIN: Record<number, ActionDomain> = {
+  [Domain.SOLAR]: "solar",
+  [Domain.AGRO]: "agroforestry",
+  [Domain.EDU]: "education",
+  [Domain.WASTE]: "waste",
+};
+
+/**
+ * Converts a numeric Domain enum to its ActionDomain string equivalent.
+ */
+export function domainToActionDomain(domain: Domain): ActionDomain | undefined {
+  return DOMAIN_TO_ACTION_DOMAIN[domain];
+}
+
+/**
+ * Filters attestations based on a GardenAssessment's parameters.
+ * Applies the assessment's reportingPeriod, domain, and selectedActionUIDs
+ * as filters to narrow down which work attestations are relevant for hypercert minting.
+ */
+export function filterAttestationsByAssessment(
+  attestations: HypercertAttestation[],
+  assessment: GardenAssessment
+): HypercertAttestation[] {
+  const actionDomain = domainToActionDomain(assessment.domain);
+  const { start, end } = assessment.reportingPeriod;
+
+  return attestations.filter((attestation) => {
+    // Filter by reporting period (work must fall within the assessment window)
+    if (start && attestation.createdAt < start) return false;
+    if (end && attestation.createdAt > end) return false;
+
+    // Filter by domain
+    if (actionDomain && attestation.domain && attestation.domain !== actionDomain) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+/**
+ * Metadata fields that can be prefilled from an assessment.
+ * Compatible with HypercertWizardStore.updateMetadata().
+ */
+export interface AssessmentMetadataPrefill {
+  title: string;
+  description: string;
+  workScopes: string[];
+  impactScopes: string[];
+  workTimeframeStart: number;
+  workTimeframeEnd: number;
+  sdgs: number[];
+  outcomes: import("../../types/hypercerts").OutcomeMetrics;
+}
+
+/**
+ * Derives hypercert metadata fields from a GardenAssessment.
+ *
+ * Mapping follows the WHAT / HOW MUCH framework:
+ * - WHAT (scope tags): domain name + SDG labels → workScopes;
+ *   SMART outcome descriptions → impactScopes
+ * - HOW MUCH (metrics): SMART outcomes → outcomes.predefined (with aggregation)
+ * - Timeframe: assessment reportingPeriod → workTimeframeStart/End
+ * - SDGs: direct passthrough from assessment sdgTargets
+ *
+ * @param assessment - The garden assessment to derive metadata from
+ * @param getSDGLabel - Optional SDG label lookup function (for tree-shaking in non-UI contexts)
+ */
+export function prefillMetadataFromAssessment(
+  assessment: GardenAssessment,
+  getSDGLabel?: (id: number) => string | undefined
+): AssessmentMetadataPrefill {
+  const actionDomain = domainToActionDomain(assessment.domain);
+
+  // WHAT — work scopes from domain + SDG labels
+  const workScopes: string[] = [];
+  if (actionDomain) {
+    workScopes.push(actionDomain);
+  }
+  if (getSDGLabel) {
+    for (const sdgId of assessment.sdgTargets) {
+      const label = getSDGLabel(sdgId);
+      if (label) workScopes.push(label);
+    }
+  }
+
+  // WHAT — impact scopes from SMART outcome descriptions
+  const impactScopes: string[] = assessment.smartOutcomes.map((o) => o.description).filter(Boolean);
+
+  // HOW MUCH — outcome metrics from SMART outcomes (predefined with aggregation)
+  const predefined: Record<string, import("../../types/hypercerts").PredefinedMetric> = {};
+  for (const outcome of assessment.smartOutcomes) {
+    if (outcome.metric) {
+      predefined[outcome.metric] = {
+        value: outcome.target,
+        unit: outcome.metric,
+        aggregation: "sum",
+        label: outcome.description || outcome.metric,
+      };
+    }
+  }
+
+  return {
+    title: assessment.title,
+    description: assessment.diagnosis,
+    workScopes,
+    impactScopes,
+    workTimeframeStart: assessment.reportingPeriod.start,
+    workTimeframeEnd: assessment.reportingPeriod.end,
+    sdgs: [...assessment.sdgTargets],
+    outcomes: {
+      predefined,
+      custom: {},
+    },
+  };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -357,8 +478,11 @@ export async function getApprovedAttestations(
   _limit = 100
 ): Promise<HypercertAttestation[]> {
   try {
-    // Fetch works and approvals in parallel from EAS
-    const [works, allApprovals] = await Promise.all([getWorks(gardenId), getWorkApprovals()]);
+    // Fetch works and approvals in parallel from EAS, scoped to garden
+    const [works, allApprovals] = await Promise.all([
+      getWorks(gardenId),
+      getWorkApprovals(gardenId),
+    ]);
 
     // Filter to only approved work approvals
     const approvedApprovals = allApprovals.filter((approval) => approval.approved);

@@ -49,7 +49,6 @@ export function getChainId(): number | null {
  * Common testnet chain IDs.
  */
 const TESTNET_CHAIN_IDS = new Set([
-  84532, // Base Sepolia
   11155111, // Ethereum Sepolia
   421614, // Arbitrum Sepolia
   80002, // Polygon Amoy
@@ -66,7 +65,6 @@ const MAINNET_CHAIN_IDS = new Set([
   42220, // Celo Mainnet
   137, // Polygon
   10, // Optimism
-  8453, // Base
 ]);
 
 /**

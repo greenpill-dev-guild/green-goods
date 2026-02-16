@@ -218,6 +218,16 @@ export function validateApprovalDraft(draft: WorkApprovalDraft): string[] {
     errors.push("Feedback cannot be empty if provided");
   }
 
+  // Confidence validation (decision #31: approvals require >= LOW, rejections use NONE)
+  if (draft.approved && typeof draft.confidence === "number" && draft.confidence < 1) {
+    errors.push("Confidence must be at least LOW for approvals");
+  }
+
+  // Verification method must be set for approvals
+  if (draft.approved && (!draft.verificationMethod || draft.verificationMethod === 0)) {
+    errors.push("At least one verification method is required for approvals");
+  }
+
   return errors;
 }
 

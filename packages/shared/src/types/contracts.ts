@@ -13,6 +13,9 @@ export interface NetworkContracts {
   communityToken: string;
   erc4337EntryPoint: string;
   multicallForwarder: string;
+  cookieJarModule: string;
+  yieldSplitter: string;
+  gardensModule: string;
 }
 
 // Garden creation parameters

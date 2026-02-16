@@ -152,6 +152,8 @@ describe("modules/work-submission", () => {
         workUID: "0xwork",
         actionUID: 1,
         approved: true,
+        confidence: 2,
+        verificationMethod: 1,
       },
       { gardenerAddress: "0xabc" } as any,
       11155111,

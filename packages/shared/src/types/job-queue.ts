@@ -56,8 +56,10 @@ export interface WorkJobPayload {
   title?: string;
   feedback: string;
   metadata?: Record<string, unknown>;
-  plantSelection: string[];
-  plantCount: number;
+  details?: Record<string, unknown>;
+  timeSpentMinutes?: number;
+  tags?: string[];
+  audioNotes?: File[];
   actionUID: number;
   gardenAddress: string;
   media?: File[];
@@ -70,6 +72,12 @@ export interface ApprovalJobPayload {
   gardenerAddress: string;
   approved: boolean;
   feedback?: string;
+  /** Verification confidence (NONE for rejections, >=LOW for approvals) */
+  confidence: number;
+  /** Bitmask of VerificationMethod flags */
+  verificationMethod: number;
+  /** Optional IPFS CID for review audio + notes */
+  reviewNotesCID?: string;
 }
 
 // ============================================

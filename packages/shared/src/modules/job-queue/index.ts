@@ -1,6 +1,6 @@
 import type { SmartAccountClient } from "permissionless";
 import { DEFAULT_CHAIN_ID } from "../../config";
-import type { WorkApprovalDraft, WorkSubmission } from "../../types/domain";
+import type { WorkSubmission } from "../../types/domain";
 import type {
   ApprovalJobPayload,
   Job,
@@ -61,25 +61,33 @@ async function executeWorkJob(
   smartAccountClient: SmartAccountClient
 ): Promise<string> {
   const images = await jobQueueDB.getImagesForJob(jobId);
-  const files = images.map((img) => img.file);
+  const allFiles = images.map((img) => img.file);
   const payload = job.payload as WorkJobPayload;
   const actionTitle = payload.title || `Action ${payload.actionUID}`;
+
+  // Separate audio from visual media by MIME type
+  const audioFiles = allFiles.filter((f) => f.type.startsWith("audio/"));
+  const mediaFiles = allFiles.filter((f) => !f.type.startsWith("audio/"));
 
   return await submitWorkWithPasskey({
     client: smartAccountClient,
     draft: {
       actionUID: payload.actionUID,
       title: actionTitle,
-      plantSelection: ensureArray<string>(payload.plantSelection),
-      plantCount: typeof payload.plantCount === "number" ? payload.plantCount : 0,
       feedback: payload.feedback,
-      media: files,
+      media: mediaFiles,
+      details: payload.details ?? {},
+      ...(typeof payload.timeSpentMinutes === "number"
+        ? { timeSpentMinutes: payload.timeSpentMinutes }
+        : {}),
+      ...(payload.tags ? { tags: payload.tags } : {}),
+      ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
     } as WorkSubmission,
     gardenAddress: payload.gardenAddress,
     actionUID: payload.actionUID,
     actionTitle,
     chainId,
-    images: files,
+    images: mediaFiles,
   });
 }
 
@@ -97,7 +105,10 @@ async function executeApprovalJob(
       workUID: payload.workUID,
       approved: payload.approved,
       feedback: payload.feedback,
-    } as WorkApprovalDraft,
+      confidence: payload.confidence,
+      verificationMethod: payload.verificationMethod,
+      reviewNotesCID: payload.reviewNotesCID,
+    },
     gardenAddress: payload.gardenAddress,
     chainId,
   });

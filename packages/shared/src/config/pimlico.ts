@@ -10,7 +10,6 @@ const PIMLICO_API_ENDPOINTS = {
   11155111: "https://api.pimlico.io/v2/11155111/rpc", // Sepolia
   42161: "https://api.pimlico.io/v2/42161/rpc", // Arbitrum
   42220: "https://api.pimlico.io/v2/42220/rpc", // Celo
-  84532: "https://api.pimlico.io/v2/84532/rpc", // Base Sepolia
 } as const;
 
 export function getPimlicoApiKey(): string {
@@ -91,8 +90,6 @@ function buildAlchemyRpcUrl(chainId: number, chain: Chain): string {
       return `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
     case 42220: // Celo
       return `https://celo-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-    case 84532: // Base Sepolia
-      return `https://base-sepolia.g.alchemy.com/v2/${alchemyKey}`;
     default:
       // Fallback to chain's default RPC
       return chain.rpcUrls.default.http[0];

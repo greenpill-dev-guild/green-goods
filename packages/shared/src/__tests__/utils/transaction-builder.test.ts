@@ -8,7 +8,6 @@ import {
 } from "../../utils/eas/transaction-builder";
 
 const mockEasConfig: EASConfig = {
-  GARDEN_ASSESSMENT: { uid: "0x" + "0".repeat(64), schema: "" },
   ASSESSMENT: { uid: "0x" + "1".repeat(64), schema: "" },
   WORK: { uid: "0x" + "2".repeat(64), schema: "" },
   WORK_APPROVAL: { uid: "0x" + "3".repeat(64), schema: "" },
