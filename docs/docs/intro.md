@@ -97,7 +97,7 @@ Builders integrating with Green Goods protocol or extending the platform. Access
 
 - 🔐 **Frictionless Onboarding**: Passkey authentication with Face ID/Touch ID
 - 📱 **Mobile-First PWA**: Install on your phone, works offline
-- ⛓️ **Multi-Chain**: Deployed on Arbitrum, Celo, and Base Sepolia
+- ⛓️ **Multi-Chain**: Deployed on Arbitrum, Celo, and Sepolia
 - 🌍 **Localization**: Available in English, Spanish, and Portuguese
 - 🤖 **Automated Impact Reporting**: Karma GAP integration for transparent tracking
 - 🎨 **Beautiful Design**: Modern UI with accessibility built-in

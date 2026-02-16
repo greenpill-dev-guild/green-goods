@@ -6,12 +6,17 @@ Loaded when working in `packages/contracts/`. Extends CLAUDE.md.
 
 | Command | Purpose |
 |---------|---------|
-| `bun test` | Run unit tests (skips E2E) |
+| `bun run test` | Run unit tests (skips E2E) |
 | `bun test:gas` | Tests with gas report |
-| `bun build` | Compile contracts |
+| `bun build` | Adaptive build (~2s cached, skips test/script when unchanged) |
+| `bun build:fast` | Explicit fast (~2s cached, source contracts only) |
+| `bun build:full` | Full compilation including tests (>180s cold) |
+| `bun run test:lite` | ~35 fast tests, excludes heavy/account suites |
 | `bun lint` | Format & lint with forge fmt + solhint |
-| `bun deploy:testnet` | Deploy to Base Sepolia |
+| `bun deploy:testnet` | Deploy to Sepolia |
 | `bun upgrade:testnet` | Upgrade existing contracts |
+
+> **Build modes:** Use `build:full` for deployment and CI. Use `build` (adaptive) for local iteration.
 
 ## Architecture
 
@@ -39,7 +44,7 @@ packages/contracts/
 ```bash
 # ✅ ALWAYS
 bun deploy:testnet
-bun script/deploy.ts core --network baseSepolia --broadcast
+bun script/deploy.ts core --network sepolia --broadcast
 
 # ❌ NEVER
 forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
@@ -57,7 +62,7 @@ forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
 
 This file defines **production EAS schemas** deployed on-chain. Modifying it:
 - Creates duplicate schemas with wrong metadata
-- Breaks indexer queries
+- Breaks EAS GraphQL queries (assessments, work approvals queried via easscan.org)
 - Makes historical attestations unfindable
 
 **For test schemas:** Create `schemas.test.json` instead.
@@ -67,7 +72,7 @@ This file defines **production EAS schemas** deployed on-chain. Modifying it:
 bun deploy:testnet
 
 # Update schema name/description only (not fields)
-bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 ```
 
 ### UUPS Upgrades (MANDATORY)
@@ -219,7 +224,7 @@ function testFuzz_mintGarden(address to, string calldata uri) public {
 const WORK_SCHEMA_UID = '0x123...';
 
 // ✅ Load from deployment
-import deployment from '../deployments/84532-latest.json';
+import deployment from '../deployments/11155111-latest.json';
 const WORK_SCHEMA_UID = deployment.schemas.workSchemaUID;
 ```
 
@@ -263,13 +268,16 @@ Before upgrading:
 
 ```bash
 # Tests passing
-bun test
+bun run test
+
+# Full build
+bun run build:full
 
 # Dry run
-bun script/deploy.ts core --network baseSepolia
+bun script/deploy.ts core --network sepolia
 
 # Deploy
-bun script/deploy.ts core --network baseSepolia --broadcast
+bun script/deploy.ts core --network sepolia --broadcast
 ```
 
 ## Reference Files

@@ -61,7 +61,7 @@ query AllActions($chainId: Int!) {
 **Endpoints**:
 - Arbitrum: https://arbitrum.easscan.org/graphql
 - Celo: https://celo.easscan.org/graphql
-- Base Sepolia: https://base-sepolia.easscan.org/graphql
+- Sepolia: https://sepolia.easscan.org/graphql
 
 **Provides**:
 - Work submission attestations
@@ -96,7 +96,7 @@ query WorkSubmissions($schemaId: String!, $recipient: String!) {
 }
 ```
 
-> **Schema IDs by Chain**: Schema IDs differ per chain. Find the current values for Arbitrum, Celo, and Base Sepolia in the [deployment artifacts](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts/deployments).
+> **Schema IDs by Chain**: Schema IDs differ per chain. Find the current values for Arbitrum, Celo, and Sepolia in the [deployment artifacts](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts/deployments).
 
 [Full API Reference →](../../developer/api-reference)
 
@@ -107,7 +107,7 @@ query WorkSubmissions($schemaId: String!, $recipient: String!) {
 **EAS Explorers** for direct attestation verification:
 - Arbitrum: https://arbitrum.easscan.org
 - Celo: https://celo.easscan.org
-- Base Sepolia: https://base-sepolia.easscan.org
+- Sepolia: https://sepolia.easscan.org
 
 **Contract Addresses**:
 - [Deployment artifacts](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts/deployments)

@@ -52,9 +52,9 @@ indexer ──→ GraphQL endpoint ──→ client (queries)
 
 ```bash
 # ✅ ALWAYS use the TypeScript CLI
-bun script/deploy.ts core --network baseSepolia              # Dry run
-bun script/deploy.ts core --network baseSepolia --broadcast  # Deploy
-bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas  # With schemas
+bun script/deploy.ts core --network sepolia              # Dry run
+bun script/deploy.ts core --network sepolia --broadcast  # Deploy
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # With schemas
 
 # ❌ NEVER use direct forge commands
 # forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
@@ -80,7 +80,7 @@ bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas  # 
 
 | Flag | Purpose |
 |------|---------|
-| `--network` | Target chain (localhost, baseSepolia, arbitrum, celo, sepolia) |
+| `--network` | Target chain (localhost, sepolia, arbitrum, celo) |
 | `--broadcast` | Actually send transactions (omit for dry run) |
 | `--update-schemas` | Update EAS schemas only |
 | `--force` | Force fresh deployment (skip cache) |
@@ -91,13 +91,13 @@ bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas  # 
 
 ```bash
 # 1. Tests passing
-cd packages/contracts && bun test
+cd packages/contracts && bun run test
 
-# 2. Build succeeds
-bun build
+# 2. Full build succeeds
+cd packages/contracts && bun run build:full
 
 # 3. Dry run successful
-bun script/deploy.ts core --network baseSepolia
+bun script/deploy.ts core --network sepolia
 
 # 4. Check deployer balance
 cast balance $(cast wallet address --account deployer) --rpc-url $RPC
@@ -111,8 +111,7 @@ cast block-number --rpc-url $RPC
 | Network | Chain ID | RPC Variable | Usage |
 |---------|----------|-------------|-------|
 | Localhost (Anvil) | 31337 | Local | Development |
-| Base Sepolia | 84532 | `BASE_SEPOLIA_RPC_URL` | Default testnet |
-| Sepolia | 11155111 | `SEPOLIA_RPC_URL` | Legacy testnet |
+| Sepolia | 11155111 | `SEPOLIA_RPC_URL` | Default testnet |
 | Arbitrum One | 42161 | `ARBITRUM_RPC_URL` | Production |
 | Celo | 42220 | `CELO_RPC_URL` | Production |
 
@@ -121,7 +120,7 @@ cast block-number --rpc-url $RPC
 After deployment, artifacts are written to:
 ```
 packages/contracts/deployments/
-├── 84532-latest.json    # Base Sepolia addresses
+├── 11155111-latest.json  # Sepolia addresses
 ├── 42161-latest.json    # Arbitrum addresses
 ├── 42220-latest.json    # Celo addresses
 ├── 31337-latest.json    # Localhost addresses
@@ -255,11 +254,11 @@ done
 
 ### Chain-Specific Validation
 
-| Variable | Base Sepolia (84532) | Arbitrum (42161) | Celo (42220) |
+| Variable | Sepolia (11155111) | Arbitrum (42161) | Celo (42220) |
 |----------|---------------------|-----------------|--------------|
-| `VITE_CHAIN_ID` | `84532` | `42161` | `42220` |
-| RPC URL required | `BASE_SEPOLIA_RPC_URL` | `ARBITRUM_RPC_URL` | `CELO_RPC_URL` |
-| Deployment artifact | `84532-latest.json` | `42161-latest.json` | `42220-latest.json` |
+| `VITE_CHAIN_ID` | `11155111` | `42161` | `42220` |
+| RPC URL required | `SEPOLIA_RPC_URL` | `ARBITRUM_RPC_URL` | `CELO_RPC_URL` |
+| Deployment artifact | `11155111-latest.json` | `42161-latest.json` | `42220-latest.json` |
 
 ### Validation Checklist
 
@@ -358,19 +357,19 @@ Failed deployment scenario:
 **Steps:**
 ```bash
 # 1. Check what actually deployed
-bun script/deploy.ts status baseSepolia
+bun script/deploy.ts status sepolia
 
 # 2. If artifacts were written incorrectly, restore from git
-git checkout -- packages/contracts/deployments/84532-latest.json
+git checkout -- packages/contracts/deployments/11155111-latest.json
 
 # 3. Fix the issue and redeploy
-bun script/deploy.ts core --network baseSepolia --broadcast
+bun script/deploy.ts core --network sepolia --broadcast
 ```
 
 **For UUPS proxies:** If the implementation is buggy, deploy a new implementation and upgrade:
 ```bash
 # The proxy address stays the same — only the implementation changes
-bun script/deploy.ts core --network baseSepolia --broadcast --force
+bun script/deploy.ts core --network sepolia --broadcast --force
 ```
 
 ### Indexer Rollback

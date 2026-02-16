@@ -242,7 +242,7 @@ test.describe("Admin Authentication", () => {
             state: {
               connections: {
                 __type: "Map",
-                value: [["mock", { accounts: [address], chainId: 1 }]], // Mainnet instead of Base Sepolia
+                value: [["mock", { accounts: [address], chainId: 1 }]], // Mainnet instead of Sepolia
               },
               current: "mock",
             },

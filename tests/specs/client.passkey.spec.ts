@@ -236,7 +236,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
       await setupPimlicoMock(page);
 
       // Make a direct request to verify mock works
-      const response = await page.request.post("https://api.pimlico.io/v2/84532/rpc", {
+      const response = await page.request.post("https://api.pimlico.io/v2/11155111/rpc", {
         data: {
           jsonrpc: "2.0",
           id: 1,
@@ -258,7 +258,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
     test("mock handles user operation estimation", async ({ page }) => {
       await setupPimlicoMock(page);
 
-      const response = await page.request.post("https://api.pimlico.io/v2/84532/rpc", {
+      const response = await page.request.post("https://api.pimlico.io/v2/11155111/rpc", {
         data: {
           jsonrpc: "2.0",
           id: 1,
@@ -287,7 +287,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
     test("mock handles paymaster sponsorship", async ({ page }) => {
       await setupPimlicoMock(page);
 
-      const response = await page.request.post("https://api.pimlico.io/v2/84532/rpc", {
+      const response = await page.request.post("https://api.pimlico.io/v2/11155111/rpc", {
         data: {
           jsonrpc: "2.0",
           id: 1,

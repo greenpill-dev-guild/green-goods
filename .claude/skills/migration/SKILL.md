@@ -85,10 +85,10 @@ diff layout-previous.txt layout-new.txt
 cd packages/contracts && bun test
 
 # 3. Deploy new implementation (dry run)
-bun script/deploy.ts core --network baseSepolia
+bun script/deploy.ts core --network sepolia
 
 # 4. Deploy for real
-bun script/deploy.ts core --network baseSepolia --broadcast
+bun script/deploy.ts core --network sepolia --broadcast
 ```
 
 ### Storage Layout Rules

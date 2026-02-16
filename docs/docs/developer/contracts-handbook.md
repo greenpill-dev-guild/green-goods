@@ -8,7 +8,7 @@ Operational guide for the Solidity workspace (`packages/contracts`). Every flow 
 - Foundry (forge, cast, anvil)
 - Root `.env` populated with:
   - `FOUNDRY_KEYSTORE_ACCOUNT`
-  - RPC URLs for the target networks (Base Sepolia is the default chain)
+  - RPC URLs for the target networks (Sepolia is the default chain)
   - Optional: `ETHERSCAN_API_KEY` (V2) for verification
 - Deployment key imported into Foundry keystore:
 
@@ -24,7 +24,7 @@ All deployments run through `deploy.ts`, wrapped by bun scripts so environment l
 # Local anvil deployment with fixtures
 bun --filter contracts deploy:local
 
-# Base Sepolia (default testnet) – broadcasts transactions
+# Sepolia (default testnet) – broadcasts transactions
 bun --filter contracts deploy:testnet
 
 # Mainnets (requires funded deployer)
@@ -35,8 +35,8 @@ bun --filter contracts deploy:arbitrum
 Optional parameters:
 
 - `bun --filter contracts deploy:dry:testnet` — simulates without broadcasting
-- `bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas` — refreshes schema metadata without redeploying contracts
-- `bun script/deploy.ts core --network baseSepolia --broadcast --force` — full reset (use only for initial network bring-up)
+- `bun script/deploy.ts core --network sepolia --broadcast --update-schemas` — refreshes schema metadata without redeploying contracts
+- `bun script/deploy.ts core --network sepolia --broadcast --force` — full reset (use only for initial network bring-up)
 
 Deployment artifacts live in `packages/contracts/deployments/<chainId>-latest.json`. Treat these files as source of truth for frontends and indexer.
 
@@ -45,7 +45,7 @@ Deployment artifacts live in `packages/contracts/deployments/<chainId>-latest.js
 Contracts use the UUPS proxy pattern. Trigger upgrades via the wrappers so implementation addresses and verifications stay in sync.
 
 ```bash
-# Upgrade the entire suite on Base Sepolia
+# Upgrade the entire suite on Sepolia
 bun --filter contracts upgrade:testnet
 
 # Mainnet upgrades
@@ -66,7 +66,7 @@ Common scenarios:
 - **Metadata refresh** (name/description fix):
 
   ```bash
-  bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
+  bun script/deploy.ts core --network sepolia --broadcast --update-schemas
   ```
 
 - **New schema version for testing**: create `config/schemas.test.json` and wire it into your local deployment branch; do not commit changes to `schemas.json`.

@@ -57,11 +57,11 @@ Gap size = 50 - (number of state variables)
 ```bash
 # Dry run
 bun upgrade:dry:testnet
-bun script/upgrade.ts all --network baseSepolia
+bun script/upgrade.ts all --network sepolia
 
 # Execute
 bun upgrade:testnet
-bun script/upgrade.ts all --network baseSepolia --broadcast
+bun script/upgrade.ts all --network sepolia --broadcast
 
 # Verify after upgrade
 cast call $CONTRACT "implementation()" --rpc-url $RPC

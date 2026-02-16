@@ -53,6 +53,28 @@ export function useLocalHook() { ... }  // DON'T DO THIS
 | App | `hooks/app/` | `useOffline`, `useToastAction`, `useTheme` |
 | Role | `hooks/gardener/` | `useRole`, `useGardenerProfile` |
 
+### EAS Data Layer
+
+EAS attestation data (assessments, work approvals, work submissions) is queried from EAS's own GraphQL indexer — **NOT** from the Envio indexer.
+
+| Module | Purpose | Source |
+|--------|---------|--------|
+| `modules/data/eas.ts` | Query assessments, work, work approvals | EAS GraphQL (`easscan.org`) |
+| `config/blockchain.ts` | Schema UIDs and EAS addresses | Deployment JSONs |
+| `utils/eas/encoders.ts` | Encode attestation data for EAS SDK | Local encoding |
+| `utils/eas/transaction-builder.ts` | Build batch attestation transactions | Local building |
+
+```typescript
+// Schema UIDs come from deployment artifacts, not hardcoded
+import { getEASConfig } from "@green-goods/shared";
+const easConfig = getEASConfig(chainId);
+const assessmentSchemaUID = easConfig.ASSESSMENT.uid;
+
+// EAS GraphQL endpoint per chain
+import { getEasGraphqlUrl } from "@green-goods/shared";
+const url = getEasGraphqlUrl(chainId); // e.g., "https://arbitrum.easscan.org/graphql"
+```
+
 ### Query Key Pattern (MANDATORY)
 
 Always use centralized query keys — never ad-hoc strings:

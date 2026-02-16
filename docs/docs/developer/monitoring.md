@@ -260,7 +260,7 @@ Green Goods deploys to different environments based on chain ID.
 ```typescript
 // From posthog.ts
 const TESTNET_CHAIN_IDS = new Set([
-  84532,    // Base Sepolia
+  11155111, // Sepolia
   11155111, // Ethereum Sepolia
   421614,   // Arbitrum Sepolia
   80002,    // Polygon Amoy
@@ -277,7 +277,7 @@ export function getEnvironment(chainId?: number): "testnet" | "mainnet" {
 
 | Environment | Chain ID | Domain | PostHog Behavior |
 |-------------|----------|--------|------------------|
-| Testnet | 84532 (Base Sepolia) | staging.greengoods.app | Full tracking (development data) |
+| Testnet | 11155111 (Sepolia) | staging.greengoods.app | Full tracking (development data) |
 | Mainnet | 42161 (Arbitrum) | greengoods.app | Full tracking (production data) |
 | Local | Any | localhost:3001 | Tracking disabled |
 
@@ -303,7 +303,7 @@ All events automatically include:
 {
   app_version: "0.4.0",
   environment: "testnet" | "mainnet",
-  chain_id: 84532
+  chain_id: 11155111
 }
 ```
 

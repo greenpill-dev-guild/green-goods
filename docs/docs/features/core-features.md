@@ -171,7 +171,7 @@ The Grantee Accountability Protocol (GAP) is a standardized framework for on-cha
 **Supported Networks**:
 - Arbitrum One (42161)
 - Celo (42220)
-- Base Sepolia (84532)
+- Sepolia (11155111)
 
 [Karma GAP Technical Details →](../developer/karma-gap)
 
@@ -201,7 +201,7 @@ Garden Assessment Attestation
 **View on EAS Explorers**:
 - [Arbitrum EAS](https://arbitrum.easscan.org)
 - [Celo EAS](https://celo.easscan.org)
-- [Base Sepolia EAS](https://base-sepolia.easscan.org)
+- [Sepolia EAS](https://sepolia.easscan.org)
 
 ### Future: Tokenized Rewards
 
@@ -349,7 +349,7 @@ Confirmation → Update UI
 **Deployed Networks**:
 - **Arbitrum One** (42161): Production L2
 - **Celo** (42220): Carbon-negative blockchain
-- **Base Sepolia** (84532): Testnet
+- **Sepolia** (11155111): Testnet
 
 **Future Expansion**:
 - Optimism

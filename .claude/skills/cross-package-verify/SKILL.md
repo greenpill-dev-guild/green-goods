@@ -37,14 +37,14 @@ Every verification MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuit
 ### Domain 1: Contracts
 
 ```bash
-# Build contracts
-cd packages/contracts && bun build
+# Build contracts (full via_ir for verification)
+cd packages/contracts && bun run build:full
 
 # Run full test suite
 cd packages/contracts && bun run test
 
 # Check for compilation warnings
-cd packages/contracts && forge build 2>&1 | grep -i warning
+cd packages/contracts && bun run build:full 2>&1 | grep -i warning
 
 # Verify storage layout for upgrade safety (if UUPS contracts changed)
 cd packages/contracts && forge inspect GardenToken storage-layout
@@ -194,7 +194,7 @@ Each agent runs independently and reports findings.
 When teams aren't available, use the Task tool to spawn parallel sub-agents:
 
 ```
-Task 1: "Verify contracts package — run forge build, forge test, check warnings"
+Task 1: "Verify contracts package — run bun run build:full, bun run test, check warnings"
 Task 2: "Verify shared package — run tsc --noEmit, bun run test, check exports"
 Task 3: "Verify client + admin — run tsc --noEmit, bun run test, bun build"
 Task 4: "Verify integration — cross-package imports, deployment artifacts, formatting"
@@ -221,7 +221,7 @@ If parallel execution isn't possible, run domains in dependency order:
 
 ```bash
 claude -p "Run full cross-package verification of the current branch. For each domain:
-1. Contracts: forge build, forge test, check warnings, verify test coverage for new functions
+1. Contracts: bun run build:full, bun run test, check warnings, verify test coverage for new functions
 2. Shared: tsc --noEmit, bun run test, bun lint, verify barrel exports
 3. Client: tsc --noEmit, bun run test, bun build, bun lint
 4. Admin: tsc --noEmit, bun run test, bun build, bun lint
@@ -265,7 +265,7 @@ claude -p "Run full cross-package verification. Report findings only — do not 
 3. **Shared barrel export**: `useNewHook` not exported from index.ts
 
 ### Medium Priority
-4. **Integration**: Deployment artifact `84532-latest.json` outdated
+4. **Integration**: Deployment artifact `11155111-latest.json` outdated
 5. **Integration**: 2 files not formatted (run `bun format`)
 
 ### Documentation Drift

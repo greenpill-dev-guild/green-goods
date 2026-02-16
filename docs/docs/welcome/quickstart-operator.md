@@ -43,7 +43,7 @@ There are two ways to become an operator:
 
 3. **Select network**:
    - **Production**: Arbitrum One (42161) or Celo (42220)
-   - **Testing**: Base Sepolia (84532)
+   - **Testing**: Sepolia (11155111)
 
 ### 1.2 Verify Permissions
 

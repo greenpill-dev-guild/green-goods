@@ -530,7 +530,7 @@ async function main() {
   if (!config.skipBuild) {
     printSection("Building Apps");
 
-    const chainId = config.env === "production" ? "42161" : "84532";
+    const chainId = config.env === "production" ? "42161" : "11155111";
 
     // Build shared first (dependency)
     printInfo("Building shared package...");

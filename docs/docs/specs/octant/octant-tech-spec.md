@@ -149,11 +149,11 @@ graph TB
 | Network | Chain ID | Purpose | Strategy Status |
 | :--- | :--- | :--- | :--- |
 | Ethereum Sepolia | 11155111 | Testnet (MockYDSStrategy) | Defined |
-| Base Sepolia | 84532 | Testnet (placeholder only) | No strategy defined |
+| Sepolia | 11155111 | Testnet (placeholder only) | No strategy defined |
 | Arbitrum One | 42161 | Mainnet (AaveV3YDSStrategy) | Defined |
 | Celo | 42220 | Mainnet (placeholder only) | No strategy defined |
 
-> **Note:** Deployment artifacts and indexer config include placeholder entries for all 4 networks. Only **Ethereum Sepolia** (MockYDSStrategy) and **Arbitrum One** (AaveV3YDSStrategy) have defined strategies for Phase 1. Base Sepolia and Celo entries are structural placeholders — no vault strategies exist for those networks.
+> **Note:** Deployment artifacts and indexer config include placeholder entries for all 4 networks. Only **Ethereum Sepolia** (MockYDSStrategy) and **Arbitrum One** (AaveV3YDSStrategy) have defined strategies for Phase 1. Celo entries are structural placeholders — no vault strategies exist for those networks.
 
 #### 2.2.3 External Dependencies
 
@@ -589,7 +589,7 @@ if (octantFactoryAddress == address(0)) {
 | File | Updates |
 | :--- | :--- |
 | `deployments/11155111-latest.json` | Add `octantModule`, `octantFactory`, update `gardenToken` |
-| `deployments/84532-latest.json` | Add `octantModule`, `octantFactory`, update `gardenToken` |
+| `deployments/11155111-latest.json` | Add `octantModule`, `octantFactory`, update `gardenToken` |
 | `deployments/42161-latest.json` | Add `octantModule`, `octantFactory`, update `gardenToken` |
 | `deployments/42220-latest.json` | Add `octantModule`, `octantFactory`, update `gardenToken` |
 | `shared/config/blockchain.ts` | Add vault config per chain |

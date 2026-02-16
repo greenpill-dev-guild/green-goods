@@ -130,7 +130,7 @@ if (!simulation.success) {
 
 ```typescript
 // ✅ ALWAYS: Import from deployment artifacts
-import deployment from "../../../contracts/deployments/84532-latest.json";
+import deployment from "../../../contracts/deployments/11155111-latest.json";
 const gardenToken = deployment.gardenToken;
 
 // ✅ ALSO: Use shared utilities
@@ -172,8 +172,7 @@ function ChainInfo() {
 
 | Chain ID | Network | Usage |
 |----------|---------|-------|
-| `84532` | Base Sepolia | Default testnet |
-| `11155111` | Sepolia | Legacy testnet |
+| `11155111` | Sepolia | Default testnet |
 | `42161` | Arbitrum One | Production |
 | `42220` | Celo | Production |
 | `31337` | Localhost (Anvil) | Local development |

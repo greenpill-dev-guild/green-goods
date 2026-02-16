@@ -274,7 +274,7 @@ This is the first official release of Green Goods — an offline-first platform 
 
 - **Documentation**: https://docs.greengoods.app
 - **GitHub Release**: [v0.4.0](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v0.4.0)
-- **Testnet**: Base Sepolia (chain ID: 84532)
+- **Testnet**: Sepolia (chain ID: 11155111)
 - **Mainnets**: Arbitrum One, Celo
 
 ---
@@ -293,7 +293,7 @@ This is the first official release of Green Goods — an offline-first platform 
 - ✅ Smart contracts (Garden, Action, Resolvers)
 
 **Deployments**:
-- Base Sepolia testnet
+- Sepolia testnet
 
 ### Q2 2024 - Multi-Chain Expansion 🌍
 

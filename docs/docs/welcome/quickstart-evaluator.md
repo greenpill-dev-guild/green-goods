@@ -92,7 +92,7 @@ query GardenActions($chainId: Int!) {
 **Variables**:
 ```json
 {
-  "chainId": 84532
+  "chainId": 11155111
 }
 ```
 
@@ -105,7 +105,7 @@ Work and approval data comes from **EAS GraphQL API**, not Green Goods indexer.
 **EAS Endpoints**:
 - Arbitrum: https://arbitrum.easscan.org/graphql
 - Celo: https://celo.easscan.org/graphql
-- Base Sepolia: https://base-sepolia.easscan.org/graphql
+- Sepolia: https://sepolia.easscan.org/graphql
 
 **Query work attestations**:
 ```graphql
@@ -189,7 +189,7 @@ Example: `0x1234567890abcdef...` (actual attestation UID from query result)
 
 **Arbitrum One**: https://arbitrum.easscan.org/attestation/view/[UID]
 **Celo**: https://celo.easscan.org/attestation/view/[UID]
-**Base Sepolia**: https://base-sepolia.easscan.org/attestation/view/[UID]
+**Sepolia**: https://sepolia.easscan.org/attestation/view/[UID]
 
 <!-- TODO: Add screenshot of EAS explorer page -->
 <!-- TODO: Add image - EAS Attestation -->
@@ -459,7 +459,7 @@ query ApprovalBreakdown($gardenId: String!) {
 
 ### "Attestation not found on-chain"
 
-- Verify correct chain (Arbitrum vs Celo vs Base Sepolia)
+- Verify correct chain (Arbitrum vs Celo vs Sepolia)
 - Check attestation UID is correct
 - Ensure transaction was confirmed (may take 15-30 seconds)
 

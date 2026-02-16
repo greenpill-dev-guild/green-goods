@@ -37,7 +37,7 @@ jobs:
       - name: Build client
         run: bun run --filter '@green-goods/client' build
         env:
-          VITE_CHAIN_ID: "84532"
+          VITE_CHAIN_ID: "11155111"
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY }}
           VITE_STORACHA_KEY: "dummy-key-for-build"
@@ -78,7 +78,7 @@ jobs:
       - name: Build admin
         run: bun run --filter '@green-goods/admin' build
         env:
-          VITE_CHAIN_ID: "84532"
+          VITE_CHAIN_ID: "11155111"
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY }}
           NODE_ENV: production

@@ -2,7 +2,7 @@
 
 > **Audience:** Engineers working on `packages/indexer` or consuming Envio artifacts.
 > **Related docs:** [Monorepo Structure](./architecture), [packages/indexer/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/indexer#readme)
-> **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Deployment data: `packages/contracts/deployments/*.json`. Updated November 2024.
+> **Networks:** Arbitrum One (42161), Celo (42220), Sepolia (11155111). Deployment data: `packages/contracts/deployments/*.json`. Updated November 2024.
 > **External references:** Review the [Envio documentation](https://docs.envio.dev/) when modifying handlers, and align GraphQL schemas with the official Envio guidance.
 
 Blockchain event indexer exposing Green Goods data via GraphQL.

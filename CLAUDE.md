@@ -60,11 +60,19 @@ bun lint             # Lint with oxlint
 **Smart Contracts:**
 ```bash
 cd packages/contracts
-bun run test          # Run unit tests (skips E2E)
-bun build            # Compile contracts
-bun lint             # Format & lint with forge fmt + solhint
-bun deploy:testnet   # Deploy to Base Sepolia (default)
+bun run test              # Run unit tests (skips E2E)
+bun build                 # Adaptive build (~2s cached, skips test/script when unchanged)
+bun build:fast            # Explicit fast (~2s cached, source contracts only)
+bun build:full            # Full compilation including tests (>180s cold, for CI/deploy)
+bun run test:lite         # ~35 fast tests, excludes heavy/account suites (~30s)
+bun run test:e2e          # Full E2E suite (workflow + karma fork)
+bun run test:e2e:workflow # E2E workflow test only
+bun run test:fork         # Fork tests (requires RPC URLs in .env)
+bun lint                  # Format & lint with forge fmt + solhint
+bun deploy:testnet        # Deploy to Sepolia (default)
 ```
+
+> **CRITICAL: Never use `forge build` or `forge test` directly.** Always use the `bun` scripts above. `bun build` runs the adaptive build script (`build-adaptive.ts`) which selects fast (~2s cached) vs full (~180s cold) mode based on what changed — raw `forge build` always does a slow full build. `bun run test` wraps `forge test` with the correct exclusions, environment loading, and pre-build steps.
 
 **Indexer:**
 ```bash
@@ -124,7 +132,7 @@ export function useLocalHook() { ... }  // DON'T DO THIS
 
 ```typescript
 // ✅ Correct
-import deployment from '../../../contracts/deployments/84532-latest.json';
+import deployment from '../../../contracts/deployments/11155111-latest.json';
 const gardenToken = deployment.gardenToken;
 
 // ❌ Wrong
@@ -209,7 +217,7 @@ The root `bun build` command handles this automatically.
 
 Single `.env` file at root - key variables:
 
-- `VITE_CHAIN_ID`: Target blockchain (84532=Base Sepolia, 42161=Arbitrum, 42220=Celo)
+- `VITE_CHAIN_ID`: Target blockchain (11155111=Sepolia, 42161=Arbitrum, 42220=Celo)
 - `VITE_PIMLICO_API_KEY`: For passkey authentication
 - `VITE_WALLETCONNECT_PROJECT_ID`: For wallet connections
 - `VITE_POSTHOG_KEY` & `VITE_POSTHOG_HOST`: PostHog analytics and error tracking
@@ -377,32 +385,148 @@ const pendingJobs = getJobs({ status: 'pending' });
 
 ## Contract Deployment
 
-**MANDATORY**: Use `deploy.ts`, never direct `forge script`.
+**MANDATORY**: Use `bun` scripts, never direct `forge` commands.
 
 ```bash
-# ✅ ALWAYS
-bun deploy:testnet
-bun script/deploy.ts core --network baseSepolia --broadcast
+# ✅ ALWAYS — use bun scripts for build, test, and deploy
+bun build                # Adaptive build (fast when possible)
+bun run test             # Unit tests with correct exclusions
+bun run test:e2e:workflow  # E2E tests with pre-build + env loading
+bun deploy:testnet       # Deploy via deploy.ts
+bun script/deploy.ts core --network sepolia --broadcast
 
-# ❌ NEVER
-forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
+# ❌ NEVER — raw forge commands bypass critical tooling
+forge build              # Skips adaptive build, always slow
+forge test               # Missing exclusions and env loading
+forge script script/Deploy.s.sol --broadcast --rpc-url $RPC  # Missing env, keystore, schema handling
 ```
 
-**Why**: `deploy.ts` loads root `.env`, uses Foundry keystore, handles schemas, updates Envio indexer.
+**Why**: `bun build` runs the adaptive build script (~2s cached vs ~180s). `bun run test` wraps forge with correct flags and environment. `deploy.ts` loads root `.env`, uses Foundry keystore, handles schemas, updates Envio indexer config.yaml.
 
-**Deployment Flags**:
+### What Gets Deployed
+
+`DeploymentBase._deployCoreContracts()` deploys the **full protocol stack** in order:
+
+1. **DeploymentRegistry** — Governance + proxy
+2. **Guardian** — Account guardian (CREATE2)
+3. **ActionRegistry** — Domain/action management (UUPS proxy)
+4. **WorkResolver** — EAS work submission resolver (ResolverStub + UUPS)
+5. **WorkApprovalResolver** — EAS work approval resolver (ResolverStub + UUPS)
+6. **AssessmentResolver** — EAS assessment resolver (ResolverStub + UUPS)
+7. **HatsModule** — Role/permission management adapter
+8. **GardenAccount** — Token-bound account (CREATE2)
+9. **AccountProxy** — TBA proxy (CREATE2)
+10. **GardenToken** — NFT + garden factory (CREATE2 + UUPS proxy)
+11. **KarmaGAPModule** — Karma GAP integration
+12. **OctantModule** — Octant vault integration
+13. **GardensModule** — Community, signal pools, power registry
+14. **YieldSplitter** — Yield distribution
+
+After deployment, all modules are **wired together** (e.g., `gardenToken.setHatsModule()`, `actionRegistry.setGardenToken()`, etc.).
+
+### Deployment Artifacts
+
+`_saveDeployment()` writes ALL addresses to `deployments/{chainId}-latest.json`. This JSON is the **source of truth** for:
+- Frontend config (`getEASConfig()`, `getDeploymentConfig()`)
+- Indexer config updates (`envio-integration.ts`)
+- Cross-package imports
+
+> **Zero addresses are not blockers.** A zero address (`0x000...`) in a deployment JSON means that module has not been deployed to that chain yet. This is normal — it simply means a deployment is needed. Optional modules (e.g., `gardensModule`, `yieldSplitter`, `octantModule`) may remain zero on chains where they aren't used. Only core contracts (`gardenToken`, `actionRegistry`, `workResolver`) must be non-zero for the protocol to function.
+
+### Post-Deploy: Envio Indexer Config
+
+`envio-integration.ts` reads the deployment JSON and updates `config.yaml` with deployed addresses. It **skips zero addresses** — undeployed modules are safely ignored and don't overwrite existing config.
+
+### EAS Architecture
+
+The Envio indexer does **NOT** index EAS attestation data. EAS attestation queries (assessments, work approvals) are handled by EAS's own GraphQL indexer at `easscan.org`:
+- `shared/modules/data/eas.ts` queries EAS GraphQL directly using schema UIDs from deployment JSONs
+- Schema UIDs are saved to `deployments/{chainId}-latest.json` during deployment (automatic with `--update-schemas`)
+- The Envio indexer only indexes Green Goods protocol events (ActionRegistry, GardenToken, GardenAccount, etc.)
+
+### Deployment Flags
+
 ```bash
-bun script/deploy.ts core --network baseSepolia              # Dry run
-bun script/deploy.ts core --network baseSepolia --broadcast  # Deploy
-bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas  # With schemas
+bun script/deploy.ts core --network sepolia              # Dry run (compile-only)
+bun script/deploy.ts core --network sepolia --broadcast  # Deploy full stack
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # Deploy + register EAS schemas
 ```
 
-**Pre-Deployment Checklist**:
-- [ ] Tests passing: `bun --filter contracts test`
-- [ ] Build succeeds: `bun --filter contracts build`
+### Validation Before Deployment
+
+Validate using tests, not manual on-chain checks:
+
+```bash
+# 1. Unit + integration tests (excludes E2E)
+cd packages/contracts && bun run test
+
+# 2. E2E workflow test (mock-based full flow)
+cd packages/contracts && bun run test:e2e:workflow
+
+# 3. Fork tests (requires RPC URLs in .env)
+cd packages/contracts && bun run test:fork
+
+# 4. Full build
+cd packages/contracts && bun build:full
+
+# 5. Dry run (compile check — does NOT simulate deployment)
+bun script/deploy.ts core --network sepolia
+```
+
+> **Note**: The dry run (`--pure-simulation`) only validates compilation, not deployment logic. The real validation comes from E2E tests and fork tests which use `DeploymentBase` — the same code path as production deployment.
+
+### Pre-Deployment Checklist
+
+- [ ] Tests passing: `cd packages/contracts && bun run test`
+- [ ] E2E passing: `cd packages/contracts && bun run test:e2e:workflow`
+- [ ] Build succeeds: `cd packages/contracts && bun build:full`
 - [ ] Dry run successful
-- [ ] Deployer funded
+- [ ] Deployer funded on target chain
 - [ ] RPC accessible
+- [ ] `.env` has correct `VITE_CHAIN_ID` for target chain
+
+### Deployment Order (Multi-Chain)
+
+Deploy in this order: **testnet first, then production**.
+
+```
+1. Sepolia (11155111)     — Primary testnet
+2. Celo (42220)           — Production
+3. Arbitrum (42161)       — Production
+```
+
+Per chain:
+```bash
+# Step 1: Deploy full stack + register schemas
+bun script/deploy.ts core --network <chain> --broadcast --update-schemas
+
+# Step 2: Check deployment JSON — zero addresses indicate modules needing deployment (not blockers)
+cat deployments/<chainId>-latest.json | jq '.hatsModule, .gardensModule, .yieldSplitter'
+
+# Step 3: Deploy seed data (actions + initial gardens)
+bun script/deploy.ts actions --network <chain> --broadcast
+
+# Step 4: Rebuild indexer (picks up new addresses from config.yaml)
+cd packages/indexer && bun build
+```
+
+### Post-Deployment Verification
+
+```bash
+# Check core contracts are deployed (these MUST be non-zero for protocol to work)
+jq '.gardenToken, .actionRegistry, .workResolver' deployments/<chainId>-latest.json
+
+# Check optional modules — zero address = not yet deployed on this chain (deploy when needed)
+jq '.hatsModule, .gardensModule, .yieldSplitter, .octantModule' deployments/<chainId>-latest.json
+
+# Check schema UIDs (zero = schemas not yet registered, run deploy with --update-schemas)
+jq '.schemas.workSchemaUID, .schemas.assessmentSchemaUID, .schemas.workApprovalSchemaUID' deployments/<chainId>-latest.json
+
+# Verify module wiring on-chain (only for non-zero modules)
+cast call <gardenToken> "hatsModule()(address)" --rpc-url <RPC>
+cast call <gardenToken> "gardensModule()(address)" --rpc-url <RPC>
+cast call <gardenToken> "actionRegistry()(address)" --rpc-url <RPC>
+```
 
 ## Output Consistency Standards
 
@@ -426,6 +550,7 @@ When implementing features:
 - Defining hooks outside `@green-goods/shared`
 - Using `any` without documentation
 - Swallowing errors silently
+- Running `forge build`/`forge test` directly (use `bun build`/`bun run test`)
 
 ## Git Workflow
 
@@ -469,27 +594,29 @@ test(contracts): add comprehensive Hats Protocol test suite
 - Use the `/review` skill (6-pass review) before merging
 - Run full validation: `bun format && bun lint && bun run test && bun build`
 
-## Architectural Rules (13 Core Rules)
+## Architectural Rules (14 Core Rules)
 
-> See `.claude/rules/architectural-rules.md` for full details and examples.
+> See `.claude/rules/architectural-rules.md` for full details, examples, and scope tags.
+> Each rule has a scope: `[react]` = shared/client/admin, `[all-ts]` = any TypeScript, `[contracts]` = Solidity/Foundry.
 
 These rules prevent performance leaks, fragile abstractions, and consistency drifts:
 
-| Rule | Pattern | Fix |
-|------|---------|-----|
-| **1. Timer Cleanup** | setTimeout in hooks | Use `useTimeout()` or `useDelayedInvalidation()` |
-| **2. Event Listeners** | addEventListener without cleanup | Use `useEventListener()` or `{ once: true }` |
-| **3. Async Races** | Async in useEffect without guard | Use isMounted flag or `useAsyncEffect()` |
-| **4. Error Handling** | Empty catch blocks | Use `createMutationErrorHandler()` |
-| **5. Address Types** | `string` for addresses | Use `Address` from shared types |
-| **6. Zustand Selectors** | `(state) => state` | Use granular field selectors |
-| **7. Query Keys** | Unstable object refs | Serialize or use useMemo |
-| **8. Form Validation** | Manual useState validation | Use React Hook Form + Zod |
-| **9. Chained useMemo** | useMemo depending on useMemo | Combine into single useMemo |
-| **10. Context Values** | Inline object literals | Wrap in useMemo |
-| **11. Barrel Imports** | Deep paths into `@green-goods/shared/...` | Import from `@green-goods/shared` root |
-| **12. Console.log Cleanup** | `console.log/warn/error` in production | Use logger service from shared |
-| **13. Provider Nesting** | Wrong provider hierarchy order | Follow documented order (AppKit[Wagmi]→Auth→App; see `architectural-rules.md`) |
+| Rule | Scope | Pattern | Fix |
+|------|-------|---------|-----|
+| **1. Timer Cleanup** | react | setTimeout in hooks | Use `useTimeout()` or `useDelayedInvalidation()` |
+| **2. Event Listeners** | react | addEventListener without cleanup | Use `useEventListener()` or `{ once: true }` |
+| **3. Async Races** | react | Async in useEffect without guard | Use isMounted flag or `useAsyncEffect()` |
+| **4. Error Handling** | all-ts | Empty catch blocks | Log + track + display; use `parseContractError()` |
+| **5. Address Types** | all-ts | `string` for addresses | Use `Address` from `@green-goods/shared` |
+| **6. Zustand Selectors** | react | `(state) => state` | Use granular field selectors |
+| **7. Query Keys** | react | Unstable object refs | Serialize or use useMemo |
+| **8. Form Validation** | react | Manual useState validation | Use React Hook Form + Zod |
+| **9. Chained useMemo** | react | useMemo depending on useMemo | Combine into single useMemo |
+| **10. Context Values** | react | Inline object literals | Wrap in useMemo |
+| **11. Barrel Imports** | all-ts | Deep paths into `@green-goods/shared/...` | Import from `@green-goods/shared` root |
+| **12. Console.log Cleanup** | all-ts | `console.log/warn/error` in production | Use logger service from shared |
+| **13. Provider Nesting** | react | Wrong provider hierarchy order | Follow documented order (see `architectural-rules.md`) |
+| **14. Bun Scripts** | contracts | Raw `forge build`/`forge test` | Use `bun build`/`bun run test` scripts |
 
 ### Utility Hooks
 

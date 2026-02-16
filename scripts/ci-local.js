@@ -42,10 +42,10 @@ const ciEnv = {
   // Agent tests
   ENCRYPTION_SECRET: "test-secret-for-ci-encryption-32chars",
   TELEGRAM_BOT_TOKEN: "test-bot-token",
-  VITE_RPC_URL_84532: "http://localhost:8545",
+  VITE_RPC_URL_11155111: "http://localhost:8545",
   // Client/Admin builds
   VITE_USE_HASH_ROUTER: "false",
-  VITE_CHAIN_ID: "84532",
+  VITE_CHAIN_ID: "11155111",
   VITE_WALLETCONNECT_PROJECT_ID: "test",
   VITE_PIMLICO_API_KEY: "test",
   VITE_ENVIO_INDEXER_URL: "http://localhost:8080",
@@ -347,7 +347,7 @@ async function main() {
       CI: "true",
       ENCRYPTION_SECRET: ciEnv.ENCRYPTION_SECRET,
       TELEGRAM_BOT_TOKEN: ciEnv.TELEGRAM_BOT_TOKEN,
-      VITE_RPC_URL_84532: ciEnv.VITE_RPC_URL_84532,
+      VITE_RPC_URL_11155111: ciEnv.VITE_RPC_URL_11155111,
     }
   );
 

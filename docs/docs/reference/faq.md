@@ -14,7 +14,7 @@ Green Goods is an offline-first Progressive Web App that makes it simple to docu
 
 - **Arbitrum One** (42161) - Production
 - **Celo** (42220) - Production
-- **Base Sepolia** (84532) - Testnet
+- **Sepolia** (11155111) - Testnet
 
 ### Is Green Goods free to use?
 

@@ -164,7 +164,7 @@ Monitor your impact, check approval status, and build your verifiable portfolio 
 **EAS Explorers**:
 - [Arbitrum](https://arbitrum.easscan.org)
 - [Celo](https://celo.easscan.org)
-- [Base Sepolia](https://base-sepolia.easscan.org)
+- [Sepolia](https://sepolia.easscan.org)
 
 <!-- TODO: Add screenshot of EAS attestation page -->
 <!-- TODO: Add image - EAS Attestation -->

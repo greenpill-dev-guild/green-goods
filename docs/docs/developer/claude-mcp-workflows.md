@@ -52,7 +52,7 @@ This guide documents how to use Claude Code with MCP (Model Context Protocol) in
    → forge test --match-contract BatchApproval
 
 4. "Estimate gas for approveWorks([addr1, addr2])"
-   → cast estimate on Base Sepolia
+   → cast estimate on Sepolia
 
 5. "Deploy to testnet" (when ready)
    → Use bun deploy:testnet (not raw forge script)
@@ -259,7 +259,7 @@ Different Claude agents have access to different MCP servers:
 "Compile contracts"
 "Run GardenToken tests"
 "Estimate gas for approveWork"
-"Check deployer balance on Base Sepolia"
+"Check deployer balance on Sepolia"
 "Query registered actions"
 ```
 

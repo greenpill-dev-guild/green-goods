@@ -225,7 +225,7 @@ NEVER hardcode addresses. Use deployment artifacts from `packages/contracts/depl
 const TOKEN = "0x1234567890abcdef...";
 
 // ✅ PASS — from artifacts
-import deployment from "../../../contracts/deployments/84532-latest.json";
+import deployment from "../../../contracts/deployments/11155111-latest.json";
 const TOKEN = deployment.gardenToken;
 ```
 

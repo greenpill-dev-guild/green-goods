@@ -84,8 +84,8 @@ Data or transactions permanently recorded on a blockchain. Green Goods stores at
 ## IPFS (InterPlanetary File System)
 A distributed file storage system. Green Goods stores work photos, metadata, and action instructions in IPFS via Storacha, with content identifiers (CIDs) referenced in on-chain attestations.
 
-## Base Sepolia
-The default testnet for Green Goods development. Base Sepolia is an Ethereum Layer 2 testnet provided by Coinbase, offering low-cost transactions for testing.
+## Sepolia
+The default testnet for Green Goods development. Sepolia is an Ethereum testnet offering low-cost transactions for testing.
 
 ## Arbitrum One
 A production Ethereum Layer 2 network where Green Goods is deployed. Arbitrum offers lower gas fees and faster transactions than Ethereum mainnet while maintaining security.

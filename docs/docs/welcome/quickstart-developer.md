@@ -170,7 +170,7 @@ bun test:e2e:smoke  # E2E smoke tests
 bun --filter contracts build
 ```
 
-### Deploy to Base Sepolia
+### Deploy to Sepolia
 
 **Dry run first** (simulation):
 ```bash

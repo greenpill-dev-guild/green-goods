@@ -1,7 +1,7 @@
 /**
  * Anvil Fork Configuration
  *
- * Provides configuration for forking Base Sepolia and deterministic test accounts.
+ * Provides configuration for forking Sepolia and deterministic test accounts.
  * Uses Anvil default accounts which are consistent across all runs.
  */
 
@@ -10,8 +10,8 @@
 // ============================================================================
 
 export const FORK_CONFIG = {
-  /** RPC URL for forking (Base Sepolia by default) */
-  rpcUrl: process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org",
+  /** RPC URL for forking (Sepolia by default) */
+  rpcUrl: process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org",
 
   /** Optional: specific block number for deterministic tests */
   blockNumber: process.env.ANVIL_FORK_BLOCK ? BigInt(process.env.ANVIL_FORK_BLOCK) : undefined,
@@ -77,19 +77,19 @@ export const TEST_ACCOUNTS = {
 } as const;
 
 // ============================================================================
-// CONTRACT ADDRESSES (Base Sepolia)
+// CONTRACT ADDRESSES (Sepolia)
 // ============================================================================
 
 /**
- * Well-known contract addresses on Base Sepolia.
+ * Well-known contract addresses on Sepolia.
  * Deployment-specific addresses are loaded dynamically from deployment artifacts.
  */
-export const BASE_SEPOLIA_CONTRACTS = {
-  /** EAS (Ethereum Attestation Service) on Base Sepolia */
-  eas: "0x4200000000000000000000000000000000000021" as const,
+export const SEPOLIA_CONTRACTS = {
+  /** EAS (Ethereum Attestation Service) on Sepolia */
+  eas: "0xC2679fBD37d54388Ce493F1DB75320D236e1815e" as const,
 
-  /** EAS Schema Registry on Base Sepolia */
-  schemaRegistry: "0x4200000000000000000000000000000000000020" as const,
+  /** EAS Schema Registry on Sepolia */
+  schemaRegistry: "0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0" as const,
 } as const;
 
 // ============================================================================

@@ -24,10 +24,10 @@ This file defines **production EAS schemas** deployed on-chain. Modifying it:
 bun deploy:testnet
 
 # Update schema name/description only (not fields)
-bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 
 # Skip schemas (if already deployed)
-bun script/deploy.ts core --network baseSepolia --broadcast --skip-schemas
+bun script/deploy.ts core --network sepolia --broadcast --skip-schemas
 ```
 
 ## Current Schemas
@@ -54,7 +54,7 @@ bun script/deploy.ts core --network baseSepolia --broadcast --skip-schemas
 const WORK_SCHEMA_UID = '0x123...';
 
 // ✅ Load from deployment
-import deployment from '../deployments/84532-latest.json';
+import deployment from '../deployments/11155111-latest.json';
 const WORK_SCHEMA_UID = deployment.schemas.workSchemaUID;
 ```
 

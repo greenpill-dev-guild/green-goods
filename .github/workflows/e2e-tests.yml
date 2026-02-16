@@ -67,7 +67,7 @@ jobs:
         run: bun run build:client
         env:
           VITE_USE_HASH_ROUTER: "true"
-          VITE_CHAIN_ID: "84532"
+          VITE_CHAIN_ID: "11155111"
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
           VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:8080' }}
@@ -146,7 +146,7 @@ jobs:
         run: bun run build:client
         env:
           VITE_USE_HASH_ROUTER: "true"
-          VITE_CHAIN_ID: "84532"
+          VITE_CHAIN_ID: "11155111"
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
           VITE_ENVIO_INDEXER_URL: "http://localhost:8080"

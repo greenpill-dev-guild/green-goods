@@ -23,7 +23,7 @@ The workflow (`.github/workflows/deploy-ipfs.yml`) triggers on:
 | Trigger | Behavior |
 |---------|----------|
 | Push to `main` | Deploy production (Arbitrum chain 42161) |
-| Push to `develop` | Deploy staging (Base Sepolia chain 84532) |
+| Push to `develop` | Deploy staging (Sepolia chain 11155111) |
 | Pull Request | Deploy preview with PR comment |
 | Manual dispatch | Choose client, admin, or both |
 
@@ -90,7 +90,7 @@ base: isIPFSBuild ? "./" : "/",  // Relative paths for IPFS
 | Branch | Environment | Chain ID | Domain |
 |--------|-------------|----------|--------|
 | `main` | production | 42161 (Arbitrum) | greengoods.app |
-| `develop` | staging | 84532 (Base Sepolia) | staging.greengoods.app |
+| `develop` | staging | 11155111 (Sepolia) | staging.greengoods.app |
 
 ---
 

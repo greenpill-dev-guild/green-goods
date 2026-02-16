@@ -94,7 +94,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'git commit'; then echo '📋 PRE-COMMIT: Run validation first: bun format && bun lint && bun test && bun build'; fi",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'git commit'; then echo '📋 PRE-COMMIT: Run validation first: bun format && bun lint && bun run test && bun build'; fi",
             "statusMessage": "Pre-commit reminder..."
           }
         ]
@@ -157,7 +157,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$FILE_PATH\" | grep -qE 'packages/contracts/src/.*\\.sol$'; then echo '🔨 CONTRACT CHANGED: Run `bun --filter contracts build` to update ABIs'; fi",
+            "command": "if echo \"$FILE_PATH\" | grep -qE 'packages/contracts/src/.*\\.sol$'; then echo '🔨 CONTRACT CHANGED: Run `cd packages/contracts && bun build` to update ABIs'; fi",
             "statusMessage": "Contract ABI check..."
           }
         ]
@@ -169,7 +169,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$FILE_PATH\" | grep -qE 'packages/contracts/src/.*\\.sol$'; then echo '🧪 CONTRACT CHANGED: Run tests with `cd packages/contracts && bun test` before committing'; fi",
+            "command": "if echo \"$FILE_PATH\" | grep -qE 'packages/contracts/src/.*\\.sol$'; then echo '🧪 CONTRACT CHANGED: Run tests with `cd packages/contracts && bun run test` before committing'; fi",
             "statusMessage": "Contract test reminder..."
           }
         ]

@@ -2,7 +2,7 @@
 
 > **Audience:** Smart contract engineers and protocol contributors working in `packages/contracts`.
 > **Related docs:** [Monorepo Structure](./architecture), [packages/contracts/README.md](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts#readme)
-> **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Deployment data: `packages/contracts/deployments/*.json`. Updated November 2024.
+> **Networks:** Arbitrum One (42161), Celo (42220), Sepolia (11155111). Deployment data: `packages/contracts/deployments/*.json`. Updated November 2024.
 > **External references:** See [Ethereum Attestation Service docs](https://docs.attest.org/) for resolver expectations and [OpenZeppelin Upgrades guide](https://docs.openzeppelin.com/contracts/4.x/api/proxy#UUPSUpgradeable) for UUPS patterns.
 
 Smart contracts powering Green Goods attestations and gardens.
@@ -18,7 +18,7 @@ Smart contracts powering Green Goods attestations and gardens.
 ```bash
 bun --filter contracts build          # Compile
 bun --filter contracts test           # Run tests
-bun --filter contracts deploy:testnet # Deploy to Base Sepolia
+bun --filter contracts deploy:testnet # Deploy to Sepolia
 bun --filter contracts deploy:celo    # Deploy to Celo
 ```
 
@@ -45,7 +45,7 @@ contract GardenToken is ERC721, UUPS {
 **Deployment**:
 - Arbitrum: `0x3DEc3c42C5872a86Fb0e60A4AaDD7aD51CaF076a`
 - Celo: `0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B`
-- Base Sepolia: `0x0B0EA0FfB996B0b04335507Ef1523124480f7310`
+- Sepolia: `0x0B0EA0FfB996B0b04335507Ef1523124480f7310`
 
 ### ActionRegistry
 
@@ -106,7 +106,7 @@ contract WorkApprovalResolver is SchemaResolver {
 
 **Via `deploy.ts` wrapper**:
 ```bash
-bun --filter contracts deploy:testnet    # Base Sepolia
+bun --filter contracts deploy:testnet    # Sepolia
 bun --filter contracts deploy:celo       # Celo mainnet
 bun --filter contracts deploy:arbitrum   # Arbitrum mainnet
 ```

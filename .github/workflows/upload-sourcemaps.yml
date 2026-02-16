@@ -87,7 +87,7 @@ jobs:
             echo "chain_id=42161" >> $GITHUB_OUTPUT
           else
             echo "env=staging" >> $GITHUB_OUTPUT
-            echo "chain_id=84532" >> $GITHUB_OUTPUT
+            echo "chain_id=11155111" >> $GITHUB_OUTPUT
           fi
 
           # Get version from package.json

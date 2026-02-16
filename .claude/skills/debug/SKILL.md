@@ -129,7 +129,7 @@ If you say these, STOP and verify first:
 cd packages/contracts && bun build
 
 # Inspect deployment addresses
-cat deployments/84532-latest.json | jq '.gardenToken'
+cat deployments/11155111-latest.json | jq '.gardenToken'
 
 # Verbose test output (traces all calls)
 forge test --match-test "testFailing" -vvvv

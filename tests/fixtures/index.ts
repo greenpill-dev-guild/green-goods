@@ -59,7 +59,7 @@ export {
   // Test accounts
   TEST_ACCOUNTS,
   // Well-known contract addresses
-  BASE_SEPOLIA_CONTRACTS,
+  SEPOLIA_CONTRACTS,
   // Timeouts
   ANVIL_TIMEOUTS,
   // Types

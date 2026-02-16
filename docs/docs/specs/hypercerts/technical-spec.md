@@ -306,7 +306,7 @@ erDiagram
 
 **Production Environment:**
 - **Blockchain:** Arbitrum One (Chain ID: 42161)
-- **Additional Networks:** Celo (42220), Base Sepolia (84532)
+- **Additional Networks:** Celo (42220), Sepolia (11155111)
 - **RPC:** Alchemy or Infura endpoints
 - **Indexer:** Green Goods Envio Indexer (self-hosted)
 - **Storage:** Storracha (w3up) for IPFS/Filecoin
@@ -315,7 +315,7 @@ erDiagram
 - **Wallet:** Reown AppKit (formerly WalletConnect)
 
 **Development Environment:**
-- **Blockchain:** Base Sepolia (Chain ID: 84532) - default
+- **Blockchain:** Sepolia (Chain ID: 11155111) - default
 - **Alternative:** Arbitrum Sepolia (Chain ID: 421614) - for Hypercerts testing
 - **Commands:** `bun --filter admin dev` runs on http://localhost:3002
 
@@ -1765,7 +1765,7 @@ export const CONTRACTS = {
   celo: {
     // ...
   },
-  baseSepolia: {
+  sepolia: {
     // Default dev network
     // ...
   }
@@ -3756,7 +3756,7 @@ export function createWizardTracker(gardenAddress: string, gardenName: string) {
 
 - **Frontend:** Vercel (static Vite build)
 - **Indexer:** Envio Cloud or self-hosted
-- **Networks:** Arbitrum One (production), Base Sepolia (staging)
+- **Networks:** Arbitrum One (production), Sepolia (staging)
 
 ### 10.2 Environment Variables
 

@@ -87,7 +87,7 @@ bun install && bun run tsc --noEmit
 ### Contracts Won't Compile
 ```bash
 cd packages/contracts
-forge clean && forge build
+rm -rf out cache && bun run build:full
 ```
 
 ## Three-Strike Protocol

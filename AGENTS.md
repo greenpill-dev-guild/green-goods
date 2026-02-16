@@ -199,7 +199,7 @@ Client and admin apps are deployed to IPFS via GitHub Actions (`.github/workflow
 
 **Triggers:**
 - Push to `main` → Production (Arbitrum)
-- Push to `develop` → Staging (Base Sepolia)
+- Push to `develop` → Staging (Sepolia)
 - Pull requests → Preview deployment with PR comment
 
 **Required GitHub Secrets:**

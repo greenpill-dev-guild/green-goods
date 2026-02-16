@@ -21,7 +21,7 @@ See [Deployment Flow](docs/developer/architecture/diagrams.md#deployment-flow) f
 **✅ ALWAYS:**
 ```bash
 bun deploy:testnet
-bun script/deploy.ts core --network baseSepolia --broadcast
+bun script/deploy.ts core --network sepolia --broadcast
 ```
 
 **❌ NEVER:**

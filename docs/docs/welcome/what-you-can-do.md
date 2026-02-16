@@ -212,7 +212,7 @@ The fastest way to create verifiable impact records:
 
 2. **On-Chain Verification**
    - View attestations on EAS explorer
-   - Verify on Arbitrum, Celo, or Base Sepolia
+   - Verify on Arbitrum, Celo, or Sepolia
    - Check cryptographic signatures
 
 3. **Admin UI**
@@ -349,7 +349,7 @@ query ApprovedWork($startDate: Int!, $endDate: Int!) {
 **Deployed Networks**:
 - **Arbitrum One** (42161): [Contract Addresses →](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/42161-latest.json)
 - **Celo** (42220): [Contract Addresses →](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/42220-latest.json)
-- **Base Sepolia** (84532): [Contract Addresses →](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/84532-latest.json)
+- **Sepolia** (11155111): [Contract Addresses →](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/11155111-latest.json)
 
 **Core Contracts**:
 - `GardenToken`: NFT registry of gardens

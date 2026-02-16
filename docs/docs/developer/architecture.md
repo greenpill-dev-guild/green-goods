@@ -1,7 +1,7 @@
 # Architecture
 
 > **Audience:** Contributors who need an end-to-end view across packages.
-> **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Deployment data lives in `packages/contracts/deployments/*.json`. Updated January 2026.
+> **Networks:** Arbitrum One (42161), Celo (42220), Sepolia (11155111). Deployment data lives in `packages/contracts/deployments/*.json`. Updated January 2026.
 > **External references:** Review [Envio docs](https://docs.envio.dev/) and [EAS docs](https://docs.attest.org/) when working on indexer or attestation flows.
 
 > **Key Terms:** [EAS](../glossary#eas-ethereum-attestation-service) (Ethereum Attestation Service), [Envio](../glossary#envio) (event indexer), [ERC-6551](../glossary#tba-tokenbound-account) (token-bound accounts). See the [Glossary](../glossary) for all technical terms.
@@ -44,7 +44,7 @@ See the [Package Dependencies diagram](diagrams#package-dependencies) for a visu
 - **Contracts (`packages/contracts`)** — Solidity suite implementing gardens, actions, attestation resolvers, and the Karma GAP bridge. Managed through `deploy.ts` wrappers.
 - **Agent (`packages/agent`)** — Multi-platform bot (Telegram primary) for notifications and interactions.
 
-All packages share the root `.env`; Base Sepolia (`84532`) is the default network. Use `bun dev` at the repository root for a full stack dev environment.
+All packages share the root `.env`; Sepolia (`11155111`) is the default network. Use `bun dev` at the repository root for a full stack dev environment.
 
 ---
 
@@ -56,7 +56,7 @@ All packages share the root `.env`; Base Sepolia (`84532`) is the default networ
 import { useAuth, useGardens, type Garden } from '@green-goods/shared';
 
 // Import deployment artifacts
-import deployment from '../../../contracts/deployments/84532-latest.json';
+import deployment from '../../../contracts/deployments/11155111-latest.json';
 import GardenABI from '../../../contracts/out/Garden.sol/Garden.json';
 ```
 
@@ -140,7 +140,7 @@ Now that you understand how packages depend on each other, let's look at what ea
   ```bash
   bun --filter contracts build
   bun --filter contracts test             # includes gas report
-  bun --filter contracts deploy:testnet   # wraps deploy.ts (Base Sepolia)
+  bun --filter contracts deploy:testnet   # wraps deploy.ts (Sepolia)
   ```
 - **Key docs**: [Contracts Package](contracts) and [Contracts Handbook](contracts-handbook) for deployment procedures.
 

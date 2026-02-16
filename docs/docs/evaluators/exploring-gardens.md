@@ -23,7 +23,7 @@ query Gardens($chainId: Int!) {
 ```
 
 **Filter By**:
-- Chain ID (84532 = Base Sepolia, 42161 = Arbitrum, 42220 = Celo)
+- Chain ID (11155111 = Sepolia, 42161 = Arbitrum, 42220 = Celo)
 - Location (city, region)
 - Specific garden IDs
 
@@ -113,7 +113,7 @@ query WorkSubmissions($schemaId: String!, $recipient: String!) {
 **EAS GraphQL endpoints**:
 - Arbitrum: https://arbitrum.easscan.org/graphql
 - Celo: https://celo.easscan.org/graphql
-- Base Sepolia: https://base-sepolia.easscan.org/graphql
+- Sepolia: https://sepolia.easscan.org/graphql
 
 ---
 

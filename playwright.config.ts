@@ -20,7 +20,7 @@ const environments = {
     client: `${protocol}://localhost:3001`,
     admin: `${protocol}://localhost:3002`,
     indexer: "http://localhost:8080/v1/graphql",
-    chain: "base-sepolia",
+    chain: "sepolia",
   },
 };
 
@@ -129,7 +129,7 @@ export default defineConfig({
     // INTEGRATION TESTING PROJECTS
     // ========================================================================
 
-    // Anvil Fork - Tests with local Anvil fork of Base Sepolia
+    // Anvil Fork - Tests with local Anvil fork of Sepolia
     // Run with: bun test:e2e:fork
     // Requires Anvil running: bun anvil:start
     {
@@ -148,7 +148,7 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
 
-    // Testnet - Tests against real Base Sepolia (manual only)
+    // Testnet - Tests against real Sepolia (manual only)
     // Run with: bun test:e2e:testnet
     // Requires: TEST_WALLET_PRIVATE_KEY env var
     {
@@ -179,7 +179,7 @@ export default defineConfig({
           timeout: 120000,
           env: {
             NODE_ENV: "test",
-            VITE_CHAIN_ID: "84532",
+            VITE_CHAIN_ID: "11155111",
             VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
           },
         },
@@ -191,7 +191,7 @@ export default defineConfig({
           timeout: 120000,
           env: {
             NODE_ENV: "test",
-            VITE_CHAIN_ID: "84532",
+            VITE_CHAIN_ID: "11155111",
             VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
           },
         },

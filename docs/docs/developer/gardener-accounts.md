@@ -256,12 +256,12 @@ event ProfileUpdated(
 #### Deploying Contracts
 
 ```bash
-# Deploy to testnet (Base Sepolia)
+# Deploy to testnet (Sepolia)
 cd packages/contracts
-bun script/deploy.ts core --network baseSepolia --broadcast
+bun script/deploy.ts core --network sepolia --broadcast
 
 # GardenerAccount logic will be deployed automatically
-# Address saved to deployments/84532-latest.json
+# Address saved to deployments/11155111-latest.json
 ```
 
 #### Upgrading GardenerAccount Logic
@@ -269,7 +269,7 @@ bun script/deploy.ts core --network baseSepolia --broadcast
 ```bash
 # Upgrade GardenerAccount implementation
 cd packages/contracts
-bun script/upgrade.ts gardener-account --network baseSepolia --broadcast
+bun script/upgrade.ts gardener-account --network sepolia --broadcast
 
 # This deploys new logic; existing accounts continue working
 # New accounts use updated logic automatically
@@ -282,7 +282,7 @@ After deploying, update indexer config with GardenerAccount address:
 ```yaml
 # packages/indexer/config.yaml
 networks:
-  - id: 84532
+  - id: 11155111
     contracts:
       - name: GardenerAccount
         address: "0x..." # From deployment artifacts

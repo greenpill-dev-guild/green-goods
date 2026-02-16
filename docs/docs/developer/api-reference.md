@@ -2,7 +2,7 @@
 
 GraphQL APIs, smart contract interfaces, and integration examples for Green Goods protocol.
 
-> **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532). Contract addresses and schema UIDs are published in `packages/contracts/deployments/*.json`. Updated November 2024.
+> **Networks:** Arbitrum One (42161), Celo (42220), Sepolia (11155111). Contract addresses and schema UIDs are published in `packages/contracts/deployments/*.json`. Updated November 2024.
 
 ---
 
@@ -26,7 +26,7 @@ Green Goods uses **two separate GraphQL APIs** for different data:
 **Endpoints (by network)**:
 - **Arbitrum**: https://arbitrum.easscan.org/graphql
 - **Celo**: https://celo.easscan.org/graphql
-- **Base Sepolia**: https://base-sepolia.easscan.org/graphql
+- **Sepolia**: https://sepolia.easscan.org/graphql
 
 **Provides:**
 - Work submission attestations
@@ -373,9 +373,9 @@ interface IActionRegistry {
 **See deployment files** for complete addresses:
 - [Arbitrum (42161)](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/42161-latest.json)
 - [Celo (42220)](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/42220-latest.json)
-- [Base Sepolia (84532)](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/84532-latest.json)
+- [Sepolia (11155111)](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/11155111-latest.json)
 
-**Key contracts** (Base Sepolia):
+**Key contracts** (Sepolia):
 - GardenToken: `0x0B0EA0FfB996B0b04335507Ef1523124480f7310`
 - ActionRegistry: `0x9685E9E5430C13AFF7ef32D9E8fc93d516e121E0`
 - WorkResolver: `0x028ff0640262a1847d512B3690266d0B35d5260F`

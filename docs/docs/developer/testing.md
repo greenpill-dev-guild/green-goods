@@ -774,8 +774,8 @@ forge coverage --report summary
 ```typescript
 // Create consistent test data
 export const createMockGarden = (overrides = {}): Garden => ({
-  id: "84532-1",
-  chainId: 84532,
+  id: "11155111-1",
+  chainId: 11155111,
   name: "Test Garden",
   description: "Test description",
   ...overrides,

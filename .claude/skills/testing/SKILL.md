@@ -160,7 +160,7 @@ test("adds numbers", () => {
 // With describe grouping
 describe("GardenService", () => {
   it("fetches gardens by chain", async () => {
-    const gardens = await fetchGardens(84532);
+    const gardens = await fetchGardens(11155111);
     expect(gardens).toHaveLength(3);
   });
 
@@ -272,7 +272,7 @@ const wrapper = ({ children }) => (
 );
 
 test("useGardens fetches gardens", async () => {
-  const { result } = renderHook(() => useGardens(84532), { wrapper });
+  const { result } = renderHook(() => useGardens(11155111), { wrapper });
 
   await waitFor(() => {
     expect(result.current.isSuccess).toBe(true);

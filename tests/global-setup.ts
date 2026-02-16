@@ -18,7 +18,7 @@ async function globalSetup(config: FullConfig) {
   process.env.TEST_INDEXER_URL = "http://localhost:8080/v1/graphql";
   process.env.TEST_CLIENT_URL = `${protocol}://localhost:3001`;
   process.env.TEST_ADMIN_URL = `${protocol}://localhost:3002`;
-  process.env.TEST_CHAIN_ID = "84532"; // Base Sepolia
+  process.env.TEST_CHAIN_ID = "11155111"; // Sepolia
 
   // Enable service worker only for PWA tests
   if (process.env.ENABLE_PWA_E2E === "true") {

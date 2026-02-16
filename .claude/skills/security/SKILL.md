@@ -262,7 +262,7 @@ function _authorizeUpgrade(address) internal override {}
 - [ ] **Error messages**: Custom errors (not `require` strings) for gas efficiency
 - [ ] **Fuzz testing**: Property-based tests for critical paths
 - [ ] **Invariant testing**: System-wide invariants hold
-- [ ] **Testnet verification**: Deployed and tested on Base Sepolia
+- [ ] **Testnet verification**: Deployed and tested on Sepolia
 
 ### Severity Classification
 

@@ -31,7 +31,7 @@ graph TD
   subgraph Chain["Blockchain Layer"]
     ARB[Arbitrum One]
     CELO[Celo]
-    BASE[Base Sepolia]
+    SEP[Sepolia]
     EAS[EAS Attestations]
   end
 
@@ -293,7 +293,7 @@ subscription NewApprovals {
 **Deployment**:
 - **Arbitrum One**: 0x8578004FD468212B9056052856c7cF282760Ef25 (ActionRegistry)
 - **Celo**: 0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92 (ActionRegistry)
-- **Base Sepolia**: 0x9685E9E5430C13AFF7ef32D9E8fc93d516e121E0 (ActionRegistry)
+- **Sepolia**: See [deployment artifacts](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts/deployments) (ActionRegistry)
 
 [Full Contract Addresses →](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/contracts/deployments)
 

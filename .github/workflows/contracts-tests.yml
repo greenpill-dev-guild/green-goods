@@ -40,7 +40,7 @@ jobs:
       - name: Build contracts
         run: |
           cd packages/contracts
-          bun run build
+          bun run build:full
 
       - name: Run tests
         run: |

@@ -220,7 +220,7 @@ eas.attest(AttestationRequest({
 **EAS Explorers**:
 - Arbitrum: [arbitrum.easscan.org](https://arbitrum.easscan.org)
 - Celo: [celo.easscan.org](https://celo.easscan.org)
-- Base Sepolia: [base-sepolia.easscan.org](https://base-sepolia.easscan.org)
+- Sepolia: [sepolia.easscan.org](https://sepolia.easscan.org)
 
 <!-- TODO: Add screenshot of EAS explorer -->
 <!-- TODO: Add image - EAS Explorer -->

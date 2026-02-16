@@ -135,7 +135,7 @@ Evaluators analyze verified impact data to make funding decisions, conduct resea
 - 🔍 **GraphQL API**: [Envio Indexer](https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql)
 - ⛓️ **On-chain verification**: Immutable attestations via EAS
 - 📈 **Karma GAP integration**: Standardized impact reporting
-- 🗂️ **Multiple chains**: Arbitrum, Celo, Base Sepolia
+- 🗂️ **Multiple chains**: Arbitrum, Celo, Sepolia
 - 📊 **Flexible queries**: Filter by any dimension
 
 ### Example Evaluation Workflows
@@ -215,7 +215,7 @@ Developers build on, extend, or contribute to the Green Goods platform and proto
 - Solidity smart contracts
 - EAS attestations
 - Tokenbound accounts (ERC-6551)
-- Deployed on Arbitrum, Celo, Base Sepolia
+- Deployed on Arbitrum, Celo, Sepolia
 
 <!-- TODO: Add architecture diagram -->
 <!-- TODO: Add image - System Architecture -->

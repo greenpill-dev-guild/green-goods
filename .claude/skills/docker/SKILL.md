@@ -215,7 +215,7 @@ environment:
 
   # RPC URLs from host (no defaults — must be set)
   ARBITRUM_RPC_URL: ${ARBITRUM_RPC_URL:-}
-  BASE_SEPOLIA_RPC_URL: ${BASE_SEPOLIA_RPC_URL:-}
+  SEPOLIA_RPC_URL: ${SEPOLIA_RPC_URL:-}
 ```
 
 ### Default Credentials (Development Only)

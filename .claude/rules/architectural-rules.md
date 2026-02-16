@@ -1,19 +1,19 @@
 # Architectural Rules
 
-> **Auto-generated from codebase analysis. Enforce during code reviews.**
-
-These rules prevent common anti-patterns that cause performance leaks, fragile abstractions, and consistency drifts.
+> **Scope**: These rules apply when writing or reviewing code in this monorepo. Each rule has a scope tag — skip rules that don't match the package you're editing.
+>
+> **Scope tags**: `react` = shared/client/admin | `all-ts` = any TypeScript | `contracts` = Solidity/Foundry | `universal` = everywhere
 
 ---
 
-## Rule 1: Timer Cleanup in Hooks
+## Rule 1: Timer Cleanup in Hooks `[react]`
 
 **Pattern:** `setTimeout`/`setInterval` inside React hooks or mutation callbacks
 
 ```
 IF: setTimeout/setInterval is used inside a React hook or mutation callback
-THEN: Warn about timer leak on component unmount
-SUGGEST: Use useTimeout() or useDelayedInvalidation() from @green-goods/shared
+THEN: Timer leaks on component unmount
+FIX: Use useTimeout() or useDelayedInvalidation() from @green-goods/shared
 ```
 
 ### ❌ Anti-pattern
@@ -39,14 +39,14 @@ onSuccess: () => {
 
 ---
 
-## Rule 2: Event Listener Cleanup
+## Rule 2: Event Listener Cleanup `[react]`
 
 **Pattern:** `addEventListener` without corresponding `removeEventListener`
 
 ```
 IF: addEventListener is called inside a hook/effect/callback
-THEN: Warn about listener leak if no matching removeEventListener exists
-SUGGEST: Use useEventListener() from @green-goods/shared, or { once: true }
+THEN: Listener leaks if no matching removeEventListener exists
+FIX: Use useEventListener() from @green-goods/shared, or { once: true }
 ```
 
 ### ❌ Anti-pattern
@@ -65,22 +65,24 @@ navigator.serviceWorker.addEventListener("controllerchange", handler, { once: tr
 import { useEventListener } from '@green-goods/shared';
 useEventListener(navigator.serviceWorker, "controllerchange", handler);
 
-// Option 3: Manual cleanup
-const handler = () => window.location.reload();
-target.addEventListener("event", handler);
-return () => target.removeEventListener("event", handler);
+// Option 3: Manual cleanup in useEffect return
+useEffect(() => {
+  const handler = () => window.location.reload();
+  target.addEventListener("event", handler);
+  return () => target.removeEventListener("event", handler);
+}, []);
 ```
 
 ---
 
-## Rule 3: Async Cleanup Race Prevention
+## Rule 3: Async Cleanup Race Prevention `[react]`
 
 **Pattern:** Promise chains in useEffect without mount guards
 
 ```
 IF: Async operation runs in useEffect without isMounted guard
-THEN: Warn about state updates after unmount and stale closures
-SUGGEST: Use isMounted flag or useAsyncEffect() from @green-goods/shared
+THEN: State updates after unmount and stale closures
+FIX: Use isMounted flag or useAsyncEffect() from @green-goods/shared
 ```
 
 ### ❌ Anti-pattern
@@ -111,14 +113,15 @@ useAsyncEffect(async ({ isMounted }) => {
 
 ---
 
-## Rule 4: Error Handling Consistency
+## Rule 4: Error Handling Consistency `[all-ts]`
 
 **Pattern:** Inconsistent error handling (some log, some toast, some silent)
 
 ```
 IF: catch block has empty body or only console.log/warn
-THEN: Warn about silent error swallowing
-SUGGEST: Use createMutationErrorHandler() for mutations, trackNetworkError() for network calls
+THEN: Error is swallowed — no user feedback, no tracking
+FIX: Log + track + display. In mutation hooks inside shared, use createMutationErrorHandler().
+     In components, use parseContractError() + toast.
 ```
 
 ### ❌ Anti-pattern
@@ -130,9 +133,25 @@ try { await riskyOp(); } catch (e) { }
 try { await riskyOp(); } catch (e) { console.warn(e); }
 ```
 
-### ✅ Correct pattern
+### ✅ Correct pattern (in components/views)
 ```typescript
-import { createMutationErrorHandler } from '@green-goods/shared/utils/errors';
+import { parseContractError, USER_FRIENDLY_ERRORS, logger } from '@green-goods/shared';
+
+try {
+  await contractCall();
+} catch (error) {
+  const parsed = parseContractError(error);
+  const message = USER_FRIENDLY_ERRORS[parsed.name] || 'Transaction failed';
+  logger.error("Contract call failed", { error, parsed });
+  toast.error(message);
+}
+```
+
+### ✅ Correct pattern (in shared mutation hooks — internal import)
+```typescript
+// NOTE: createMutationErrorHandler is internal to @green-goods/shared.
+// It is NOT barrel-exported. Use it only inside packages/shared/src/hooks/.
+import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 
 const handleError = createMutationErrorHandler({
   source: "useMyHook",
@@ -146,14 +165,14 @@ onError: (error) => handleError(error, { authMode, gardenAddress });
 
 ---
 
-## Rule 5: Address Type Enforcement
+## Rule 5: Address Type Enforcement `[all-ts]`
 
 **Pattern:** Using `string` instead of `Address` type for Ethereum addresses
 
 ```
 IF: Variable/parameter named *address, *Address, or represents an Ethereum address
-THEN: Warn about type safety loss
-SUGGEST: Use Address type from '@green-goods/shared/types'
+THEN: Type safety loss — wrong values pass silently
+FIX: Use Address type from @green-goods/shared
 ```
 
 ### ❌ Anti-pattern
@@ -166,7 +185,7 @@ interface Garden {
 
 ### ✅ Correct pattern
 ```typescript
-import type { Address } from '@green-goods/shared/types';
+import type { Address } from '@green-goods/shared';
 
 interface Garden {
   tokenAddress: Address;
@@ -176,14 +195,14 @@ interface Garden {
 
 ---
 
-## Rule 6: Zustand Selector Granularity
+## Rule 6: Zustand Selector Granularity `[react]`
 
 **Pattern:** Selecting entire store state instead of specific slices
 
 ```
 IF: useZustandStore(state => state) or useZustandStore() without selector
-THEN: Warn about unnecessary re-renders on any state change
-SUGGEST: Select only needed fields with separate selectors
+THEN: Component re-renders on ANY state change
+FIX: Select only needed fields with separate selectors
 ```
 
 ### ❌ Anti-pattern
@@ -200,14 +219,14 @@ const distributionMode = useHypercertWizardStore(s => s.distributionMode);
 
 ---
 
-## Rule 7: Query Key Stability
+## Rule 7: Query Key Stability `[react]`
 
 **Pattern:** Object parameters in query keys without serialization
 
 ```
-IF: TanStack Query key includes object/array parameter that may be recreated each render
-THEN: Warn about cache key instability causing duplicate fetches
-SUGGEST: Serialize objects in query keys or ensure stable references via useMemo
+IF: TanStack Query key includes object/array that may be recreated each render
+THEN: Cache key instability causes duplicate fetches
+FIX: Serialize objects in query keys or ensure stable references via useMemo
 ```
 
 ### ❌ Anti-pattern
@@ -227,14 +246,14 @@ queryKey: ["data", gardenId, stableFilters]
 
 ---
 
-## Rule 8: Form Validation Consistency
+## Rule 8: Form Validation Consistency `[react]`
 
 **Pattern:** Manual validation mixed with React Hook Form
 
 ```
 IF: Form uses useState for field values alongside manual validation
-THEN: Warn about inconsistent form patterns
-SUGGEST: Use React Hook Form + Zod schema in a useXxxForm() hook
+THEN: Inconsistent form patterns across codebase
+FIX: Use React Hook Form + Zod schema in a useXxxForm() hook in packages/shared
 ```
 
 ### ❌ Anti-pattern
@@ -244,7 +263,6 @@ const [error, setError] = useState("");
 
 const handleSubmit = () => {
   if (!value) { setError("Required"); return; }
-  // ...
 };
 ```
 
@@ -265,14 +283,14 @@ export function useXxxForm() {
 
 ---
 
-## Rule 9: Chained useMemo Dependencies
+## Rule 9: Chained useMemo Dependencies `[react]`
 
 **Pattern:** useMemo depending on another useMemo's output object
 
 ```
 IF: useMemo B depends on useMemo A's output (object/array property)
-THEN: Warn about reference instability causing unnecessary recalculations
-SUGGEST: Combine into single useMemo or use primitive values as dependencies
+THEN: Reference instability causes unnecessary recalculations
+FIX: Combine into single useMemo or use primitive values as dependencies
 ```
 
 ### ❌ Anti-pattern
@@ -291,14 +309,14 @@ const { membership, addresses } = useMemo(() => {
 
 ---
 
-## Rule 10: Context Provider Value Memoization
+## Rule 10: Context Provider Value Memoization `[react]`
 
 **Pattern:** Context value objects recreated on every render
 
 ```
 IF: Context Provider value is an object literal without useMemo
-THEN: Warn about all consumers re-rendering on provider's every render
-SUGGEST: Wrap context value in useMemo with appropriate dependencies
+THEN: ALL consumers re-render on provider's every render
+FIX: Wrap context value in useMemo with appropriate dependencies
 ```
 
 ### ❌ Anti-pattern
@@ -319,30 +337,15 @@ const value = useMemo(() => ({
 
 ---
 
-## Utility Hooks Reference
-
-Located in `@green-goods/shared/hooks/utils/`:
-
-| Hook | Purpose |
-|------|---------|
-| `useEventListener(target, event, handler)` | Auto-cleanup event listeners |
-| `useWindowEvent(event, handler)` | Window events with cleanup |
-| `useDocumentEvent(event, handler)` | Document events with cleanup |
-| `useTimeout()` | Returns `{ set, clear, isPending }` with auto-cleanup |
-| `useDelayedInvalidation(fn, delay)` | Delayed query invalidation with cleanup |
-| `useAsyncEffect(asyncFn, deps)` | Async effects with isMounted guard |
-| `useAsyncSetup(setupFn, deps)` | Async init returning cleanup function |
-
----
-
-## Rule 11: Barrel Import Enforcement
+## Rule 11: Barrel Import Enforcement `[all-ts]`
 
 **Pattern:** Deep imports bypassing `@green-goods/shared` barrel exports
 
 ```
 IF: Import uses @green-goods/shared/hooks/... or @green-goods/shared/stores/... etc.
-THEN: Warn about bypassing barrel exports
-SUGGEST: Import from @green-goods/shared root
+THEN: Bypasses barrel exports, breaks tree-shaking, couples to internal structure
+FIX: Import from @green-goods/shared root
+EXCEPTION: Internal code within packages/shared/src/ uses relative imports (this is expected)
 ```
 
 ### ❌ Anti-pattern
@@ -359,19 +362,19 @@ import { useGardenStore } from "@green-goods/shared";
 
 ---
 
-## Rule 12: Console.log Cleanup
+## Rule 12: Console.log Cleanup `[all-ts]`
 
 **Pattern:** `console.log/warn/error` in production code (not tests)
 
 ```
 IF: console.log/warn/error appears in production source files
-THEN: Warn about unstructured logging
-SUGGEST: Use logger service from @green-goods/shared
+THEN: Unstructured logging — no levels, no context, no filtering
+FIX: Use logger service from @green-goods/shared
+EXCEPTION: console.error in indexer event handlers is acceptable (Envio runtime has no logger)
 ```
 
 ### ❌ Anti-pattern
 ```typescript
-// In production code
 console.log("Garden loaded", garden);
 console.error("Failed to submit work", error);
 ```
@@ -384,18 +387,16 @@ logger.info("Garden loaded", { garden });
 logger.error("Failed to submit work", { error });
 ```
 
-**Exceptions:** `console.error` in indexer event handlers is acceptable (no logger available in Envio runtime).
-
 ---
 
-## Rule 13: Provider Nesting Order
+## Rule 13: Provider Nesting Order `[react]`
 
 **Pattern:** Incorrect provider hierarchy causing initialization failures
 
 ```
 IF: Provider nesting order differs from documented hierarchy
-THEN: Warn about potential initialization failures
-SUGGEST: Follow exact order from shared.md context
+THEN: Runtime errors — providers depend on ancestors for context
+FIX: Follow exact order below
 ```
 
 ### Required Order (outermost → innermost)
@@ -426,29 +427,80 @@ SUGGEST: Follow exact order from shared.md context
 </AppKitProvider>
 ```
 
-**Notes:**
-- `AppKitProvider` wraps `WagmiProvider` internally — do not add a separate `WagmiProvider`.
-- `JobQueueProvider` and `WorkProvider` are used at the route/view level, not at the app root.
-- `QueryClientProvider` placement differs: admin uses it at root, client uses `PersistQueryClientProvider` inside `App.tsx` for offline cache persistence.
+**Key constraints:**
+- `AppKitProvider` wraps `WagmiProvider` internally — never add a separate `WagmiProvider`
+- `JobQueueProvider` and `WorkProvider` go at route/view level, not app root
+- `QueryClientProvider` placement differs: admin at root, client uses `PersistQueryClientProvider` inside `App.tsx`
 
-**Why:** Each provider depends on its ancestors. `AuthProvider` needs `AppKit` (wallet state). `AppProvider` needs `Auth` (user context). Reordering causes runtime errors.
+---
+
+## Rule 14: Always Use Bun Scripts for Contracts `[contracts]`
+
+**Pattern:** Running `forge build`, `forge test`, or `forge script` directly
+
+```
+IF: forge build, forge test, or forge script is used directly
+THEN: Bypasses adaptive build (~180s vs ~2s), missing test exclusions, missing env loading
+FIX: Use the bun scripts defined in packages/contracts/package.json
+```
+
+### ❌ Anti-pattern
+```bash
+forge build
+forge test --match-contract 'E2EWorkflowTest' -vvv
+forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
+```
+
+### ✅ Correct pattern
+```bash
+cd packages/contracts && bun build            # Adaptive build
+cd packages/contracts && bun run test          # Unit tests (excludes E2E)
+cd packages/contracts && bun run test:e2e:workflow  # E2E workflow
+cd packages/contracts && bun run test:fork     # Fork tests
+bun script/deploy.ts core --network sepolia --broadcast  # Deploy
+```
+
+---
+
+## Utility Hooks Reference
+
+These hooks from `@green-goods/shared` enforce Rules 1-3. Import from the barrel:
+
+```typescript
+import {
+  useEventListener, useWindowEvent, useDocumentEvent,  // Rule 2
+  useTimeout, useDelayedInvalidation,                    // Rule 1
+  useAsyncEffect, useAsyncSetup,                         // Rule 3
+} from '@green-goods/shared';
+```
+
+| Hook | Rule | Purpose |
+|------|------|---------|
+| `useEventListener(target, event, handler)` | 2 | Auto-cleanup event listeners |
+| `useWindowEvent(event, handler)` | 2 | Window events with cleanup |
+| `useDocumentEvent(event, handler)` | 2 | Document events with cleanup |
+| `useTimeout()` | 1 | Returns `{ set, clear, isPending }` with auto-cleanup |
+| `useDelayedInvalidation(fn, delay)` | 1 | Delayed query invalidation with cleanup |
+| `useAsyncEffect(asyncFn, deps)` | 3 | Async effects with isMounted guard |
+| `useAsyncSetup(setupFn, deps)` | 3 | Async init returning cleanup function |
 
 ---
 
 ## Enforcement Checklist
 
-Use this checklist during code reviews:
+> Use during `/review` passes. Skip rules outside your current scope tag.
 
-- [ ] **Timers**: All setTimeout/setInterval use utility hooks or manual cleanup
-- [ ] **Listeners**: All addEventListener have matching removeEventListener or { once: true }
-- [ ] **Async**: All useEffect with async have isMounted guards
-- [ ] **Errors**: No empty catch blocks; all errors logged + tracked + displayed
-- [ ] **Types**: All Ethereum addresses use `Address` type
-- [ ] **Zustand**: No `(state) => state` selectors; use granular selectors
-- [ ] **Query Keys**: Objects in query keys are serialized or stable
-- [ ] **Forms**: React Hook Form + Zod for all forms
-- [ ] **useMemo**: No chained dependencies; combine into single useMemo
-- [ ] **Context**: Provider values wrapped in useMemo
-- [ ] **Imports**: Barrel imports only, no deep paths into `@green-goods/shared`
-- [ ] **Logging**: No console.log/warn/error in production code; use logger
-- [ ] **Providers**: Nesting order matches documented hierarchy
+- [ ] **[react]** Timers: setTimeout/setInterval use utility hooks or manual cleanup
+- [ ] **[react]** Listeners: addEventListener have matching removeEventListener or `{ once: true }`
+- [ ] **[react]** Async: useEffect with async have isMounted guards
+- [ ] **[all-ts]** Errors: No empty catch blocks; errors logged + tracked + displayed
+- [ ] **[all-ts]** Types: Ethereum addresses use `Address` type
+- [ ] **[react]** Zustand: No `(state) => state` selectors; use granular selectors
+- [ ] **[react]** Query Keys: Objects in query keys are serialized or stable
+- [ ] **[react]** Forms: React Hook Form + Zod for all forms
+- [ ] **[react]** useMemo: No chained dependencies; combine into single useMemo
+- [ ] **[react]** Context: Provider values wrapped in useMemo
+- [ ] **[all-ts]** Imports: Barrel imports only from `@green-goods/shared` (no deep paths)
+- [ ] **[all-ts]** Logging: No console.log/warn/error in production code; use logger
+- [ ] **[react]** Providers: Nesting order matches documented hierarchy
+- [ ] **[contracts]** Build/Test: Using bun scripts, never raw forge commands

@@ -69,7 +69,9 @@
     "build:indexer": "cd packages/indexer && bun run build",
     "build:contracts": "cd packages/contracts && bun run build",
     "sourcemaps": "node scripts/upload-sourcemaps.js",
-    "sourcemaps:dry-run": "node scripts/upload-sourcemaps.js --dry-run"
+    "sourcemaps:dry-run": "node scripts/upload-sourcemaps.js --dry-run",
+    "verify:contracts": "./scripts/verify-production.sh",
+    "verify:contracts:fast": "./scripts/verify-production.sh --skip-e2e --skip-dry-run"
   },
   "overrides": {
     "multiformats": "^13.4.2",

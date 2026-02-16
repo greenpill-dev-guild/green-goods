@@ -1,7 +1,7 @@
 # Karma GAP Integration
 
 > **Audience:** Engineers working on the GAP bridge inside `packages/contracts` or consuming GAP data in clients/indexer.
-> **Networks:** Arbitrum One (42161), Celo (42220), Base Sepolia (84532), plus Optimism/Sepolia/Sei variants supported by Karma. Resolver addresses live in `packages/contracts/src/lib/Karma.sol`. Updated November 2024.
+> **Networks:** Arbitrum One (42161), Celo (42220), Sepolia (11155111), plus Optimism/Sepolia/Sei variants supported by Karma. Resolver addresses live in `packages/contracts/src/lib/Karma.sol`. Updated November 2024.
 > **External references:** [Karma GAP documentation](https://docs.karmahq.xyz/karma-gap/) explains the attestation format and SDK expectations; review it when updating the bridge.
 
 Appendix covering how Green Goods synchronises approved work with the Karma Grantee Accountability Protocol (GAP).
@@ -9,7 +9,7 @@ Appendix covering how Green Goods synchronises approved work with the Karma Gran
 ## Overview
 
 - GAP attestation support is embedded in the contracts package.
-- Integration is active on Base Sepolia, Arbitrum, Celo, Optimism, Optimism Sepolia, Sepolia, Sei, and Sei Testnet (addresses are centralised in `packages/contracts/src/lib/Karma.sol`).
+- Integration is active on Sepolia, Arbitrum, Celo, Optimism, Optimism Sepolia, Sepolia, Sei, and Sei Testnet (addresses are centralised in `packages/contracts/src/lib/Karma.sol`).
 - The bridge is optional at runtime; core protocol flows continue even if a GAP call fails.
 
 ## Contract Touchpoints
