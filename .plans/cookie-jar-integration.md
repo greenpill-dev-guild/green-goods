@@ -1,8 +1,22 @@
 # Cookie Jar Integration into Green Goods Protocol
 
-**Status**: Planning
-**Branch**: `feature/cookie-jar-integration` (to be created)
-**Depends On**: Octant vault integration (in progress on `feature/octant-defi-vaults`)
+**Status**: ACTIVE (contracts + hooks done, UI remaining)
+**Branch**: `feature/action-domains` (contracts landed here)
+**Depends On**: Octant vault integration (COMPLETE on `feature/octant-defi-vaults`)
+**Created**: 2026-02-10
+**Last Updated**: 2026-02-15
+
+## Implementation Notes
+
+Contracts phase shipped ahead of the full plan — `CookieJarModule.sol`, unit tests, shared hooks (`useCookieJarAdmin`, `useCookieJarDeposit`, `useCookieJarWithdraw`, `useGardenCookieJars`, `useUserCookieJars`), and the admin `CookieJars.tsx` view all exist. Factory integration and client PWA UI remain.
+
+### Remaining Work: Cookie Jar UI (from cookie-jar-ui.md)
+
+**Client PWA**: Add cookie jar tab to `TreasuryDrawer.tsx`, create `WalletDrawer` at `views/Home/WalletDrawer/` with withdraw UI.
+**Admin**: Finalize `CookieJars.tsx` with deposit form, jar management (pause/unpause, update limits), and emergency withdraw.
+**Shared**: Add `COOKIE_JAR_ABI` + `COOKIE_JAR_MODULE_ABI` to `abis.ts`, add `app.cookieJar.*` i18n keys, add `cookie-jar` query keys.
+
+See decision log and full architecture below (unchanged from original plan).
 
 ---
 
@@ -319,10 +333,9 @@ The Cookie Jar factory must be deployed on the **same chain** as Green Goods. Cu
 
 | Chain | Green Goods | Cookie Jar Factory | Status |
 |-------|-------------|-------------------|--------|
-| Base Sepolia (84532) | Deployed | Deployed (testnet V2) | Ready |
+| Sepolia (11155111) | Deployed | Deployed (testnet V2) | Ready |
 | Arbitrum (42161) | Deployed | Not deployed | **Needs deployment** |
 | Celo (42220) | Deployed | Deployed | Ready |
-| Sepolia (11155111) | Deployed | Deployed (testnet V2) | Ready |
 
 **Action Required**: Deploy Cookie Jar Factory on Arbitrum mainnet before Green Goods mainnet integration.
 
@@ -959,7 +972,7 @@ Step 1: Details → Step 2: Team → Step 3: Cookie Jar (NEW) → Step 4: Review
 | Step | Description |
 |------|-------------|
 | 6.1 | Deploy Cookie Jar Factory on Arbitrum (if not already deployed) |
-| 6.2 | Deploy CookieJarModule on Base Sepolia testnet |
+| 6.2 | Deploy CookieJarModule on Sepolia testnet |
 | 6.3 | E2E test: create garden → verify jar created → operator deposits → gardener withdraws |
 | 6.4 | E2E test: multi-token deposit → swap → withdraw ETH |
 | 6.5 | E2E test: cooldown enforcement, non-member rejection |

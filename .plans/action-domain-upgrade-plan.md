@@ -1,10 +1,14 @@
 # Green Goods Action Domain Upgrade v1 — Aligned Plan
 
-**Branch**: `feature/gardens-conviction-voting-nft`
-**Status**: Planning (aligned with current architecture)
-**Dependencies**: Conviction voting branch (in-flight), `feature/octant-defi-vaults` (OctantModule)
-**Prior Plans**: `.plans/action-creation-flow-audit.md`, `.plans/gardens-conviction-community-and-octant-yield-plan.md`
-**Supersedes**: Original "Action Finalization v1" plan (misaligned with repo)
+**Branch**: `feature/action-domains`
+**Status**: ACTIVE (contracts done, UI in progress)
+**Dependencies**: Conviction voting (COMPLETE), Octant vaults (COMPLETE)
+**Created**: 2026-02-13
+**Last Updated**: 2026-02-15
+**Supersedes**: Original "Action Finalization v1" plan
+
+### Implementation Notes
+Contracts phase complete: `Domain` enum, `gardenDomains` bitmask, 22-action config in `actions.json`, `ActionRegistry` domain functions all on `feature/action-domains`. Client domain filtering (Phase 3, decisions 13-14) is the primary remaining work — garden filtering by domain mask, domain tabs from union of gardens' domains.
 
 ---
 

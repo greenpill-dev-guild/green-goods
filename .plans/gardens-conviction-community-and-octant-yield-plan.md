@@ -1,10 +1,14 @@
 # Gardens Conviction Voting Community + Octant Yield Allocation Plan
 
-**GitHub Branch**: `feature/gardens-conviction-voting-nft`
-**Status**: Planning
-**Dependencies**: `feature/octant-defi-vaults` (OctantModule + vaults)
-**Prior Plans**: `.plans/nft-conviction-voting-implementation.md`, `.plans/gardens-nft-conviction-voting-architecture (2).md`
+**Branch**: `feature/gardens-conviction-voting-nft`
+**Status**: ACTIVE (GardensModule + conviction hooks done, yield split + GOODS token wiring remaining)
+**Dependencies**: Octant vaults (COMPLETE)
 **Target Chain**: Arbitrum One (42161) — testnet: Arbitrum Sepolia (421614)
+**Created**: 2026-02-12
+**Last Updated**: 2026-02-15
+
+### Implementation Notes
+GardensModule.sol (30KB), 7 conviction voting hooks, indexer events, and admin strategy/pool management all shipped. Three-way yield split (Cookie Jar + Hypercerts + Juicebox) is partially wired in YieldSplitter but not end-to-end functional. GOODS Juicebox project token exists (`tokens/Goods.sol`) but treasury integration not live. $7 minimum threshold and split ratio adjustment not deployed.
 
 ---
 

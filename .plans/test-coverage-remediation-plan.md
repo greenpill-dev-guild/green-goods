@@ -1,7 +1,19 @@
 # Test Coverage & Quality Remediation Plan
 
+**Status**: ACTIVE
+**Tracks**: https://github.com/greenpill-dev-guild/green-goods/issues/312
+**Created**: 2026-02-13
+**Last Updated**: 2026-02-15
+
 > Merged from: 6-teammate adversarial audit (Opus team) + Codex audit ([#312](https://github.com/greenpill-dev-guild/green-goods/issues/312))
-> Tracks: https://github.com/greenpill-dev-guild/green-goods/issues/312
+
+## Implementation Notes
+
+### Gardens Protocol Test Coverage (COMPLETE)
+200 new/existing tests pass across 4 test suites: `GardensModule.t.sol` (82 tests), `GardenAccount.t.sol` (75 tests), `GardenToken.t.sol` (35 tests), `FullModuleWiring.t.sol` (8 integration tests). Known pre-existing failures documented in `HatsModule.t.sol` and `RoleHierarchy.t.sol`.
+
+### Fork Test Suite (PENDING)
+Comprehensive E2E fork tests planned: `ForkTestBase.sol` (shared infra), `FullProtocolE2E.t.sol`, `EASAttestationLifecycle.t.sol`, `GardensV2Community.t.sol`. Extends `DeploymentBase` to reuse production deployment logic against real on-chain contracts. See Phase 3 below.
 
 ## Context
 
