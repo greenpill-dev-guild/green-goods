@@ -5,11 +5,14 @@ import { WeightScheme, type GardenCommunity } from "../../types/gardens-communit
 import { wagmiConfig } from "../../config/appkit";
 import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis";
 import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules";
+import { getGardenCommunityFromSubgraph } from "../../modules/data/gardens";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { queryKeys, STALE_TIME_SLOW } from "../query-keys";
 
 interface UseGardenCommunityOptions {
+  /** RegistryCommunity address -- when provided, uses subgraph instead of RPC */
+  communityAddress?: Address;
   enabled?: boolean;
 }
 
@@ -20,6 +23,7 @@ export function useGardenCommunity(
   const chainId = useCurrentChain();
   const enabled = options.enabled ?? true;
   const normalizedGarden = gardenAddress ? normalizeAddress(gardenAddress) : undefined;
+  const communityAddress = options.communityAddress;
 
   const query = useQuery({
     // Safe fallback: query is disabled when normalizedGarden is undefined (see enabled below),
@@ -28,15 +32,50 @@ export function useGardenCommunity(
     queryFn: async (): Promise<GardenCommunity | null> => {
       if (!normalizedGarden) return null;
 
+      // Fast path: use subgraph when community address is known
+      if (communityAddress) {
+        const subgraphResult = await getGardenCommunityFromSubgraph(
+          communityAddress,
+          normalizedGarden as Address,
+          chainId
+        );
+        if (subgraphResult) {
+          // Enrich with on-chain data not available in subgraph
+          // (weightScheme and powerRegistry require RPC calls)
+          const gardensModule = await fetchGardensModuleAddress(
+            normalizedGarden as Address,
+            chainId
+          );
+          if (gardensModule) {
+            const [weightSchemeRaw, powerRegistryAddress] = await Promise.all([
+              readContract(wagmiConfig, {
+                address: gardensModule,
+                abi: GARDENS_MODULE_ABI,
+                functionName: "getGardenWeightScheme",
+                args: [normalizedGarden],
+                chainId,
+              }),
+              readContract(wagmiConfig, {
+                address: gardensModule,
+                abi: GARDENS_MODULE_ABI,
+                functionName: "getGardenPowerRegistry",
+                args: [normalizedGarden],
+                chainId,
+              }),
+            ]);
+            subgraphResult.weightScheme = Number(weightSchemeRaw) as WeightScheme;
+            subgraphResult.powerRegistryAddress = powerRegistryAddress as Address;
+          }
+          return subgraphResult;
+        }
+      }
+
+      // Fallback: full RPC resolution when community address is not known
       const gardensModule = await fetchGardensModuleAddress(normalizedGarden as Address, chainId);
       if (!gardensModule) return null;
 
-      // All function names below are declared in GARDENS_MODULE_ABI (see abis.ts).
-      // Per-garden calls (getGardenCommunity, getGardenWeightScheme, getGardenPowerRegistry)
-      // take the garden address; module-level calls (goodsToken, STAKE_AMOUNT_PER_MEMBER) are
-      // global to the GardensModule contract and take no args.
       const [
-        communityAddress,
+        resolvedCommunity,
         weightSchemeRaw,
         powerRegistryAddress,
         goodsTokenAddress,
@@ -79,7 +118,7 @@ export function useGardenCommunity(
 
       return {
         gardenAddress: normalizedGarden as Address,
-        communityAddress: communityAddress as Address,
+        communityAddress: resolvedCommunity as Address,
         powerRegistryAddress: powerRegistryAddress as Address,
         goodsTokenAddress: goodsTokenAddress as Address,
         weightScheme: Number(weightSchemeRaw) as WeightScheme,

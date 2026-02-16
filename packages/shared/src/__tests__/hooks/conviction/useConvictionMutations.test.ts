@@ -6,7 +6,12 @@
  * Covers: useSetConvictionStrategies, useAllocateHypercertSupport,
  * useRegisterHypercert, useDeregisterHypercert, useSetDecay,
  * useSetPointsPerVoter, useSetRoleHatIds, plus error paths for
- * the existing query hooks.
+ * the subgraph-backed query hooks.
+ *
+ * After the RPC → subgraph refactor:
+ * - Mutation hooks still use contract writes (wagmi writeContractAsync)
+ * - Query hooks now delegate to modules/data/gardens.ts (subgraph queries)
+ * - Query invalidation after mutations triggers subgraph refetch
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -15,21 +20,34 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const TEST_CHAIN_ID = 84532;
+const TEST_CHAIN_ID = 11155111;
 const TEST_POOL = "0x1111111111111111111111111111111111111111";
 const TEST_VOTER = "0x2222222222222222222222222222222222222222";
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
 const TEST_HATS_MODULE = "0x4444444444444444444444444444444444444444";
 const TEST_STRATEGY = "0x5555555555555555555555555555555555555555";
+const TEST_COMMUNITY = "0x7777777777777777777777777777777777777777";
 const MOCK_TX_HASH = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" as const;
 
 // --- Mocks ---
 
 const mockWriteContractAsync = vi.fn();
-const mockReadContract = vi.fn();
 const mockCreateMutationErrorHandler = vi.fn();
 const mockErrorHandler = vi.fn();
 const mockFetchHatsModuleAddress = vi.fn();
+
+// Mock subgraph data functions (used by query hooks imported here)
+const mockGetMemberPower = vi.fn();
+const mockGetConvictionWeights = vi.fn();
+const mockGetRegisteredHypercerts = vi.fn();
+const mockGetConvictionStrategies = vi.fn();
+
+vi.mock("../../../modules/data/gardens", () => ({
+  getMemberPowerFromSubgraph: (...args: unknown[]) => mockGetMemberPower(...args),
+  getConvictionWeightsFromSubgraph: (...args: unknown[]) => mockGetConvictionWeights(...args),
+  getRegisteredHypercertsFromSubgraph: (...args: unknown[]) => mockGetRegisteredHypercerts(...args),
+  getConvictionStrategiesFromSubgraph: (...args: unknown[]) => mockGetConvictionStrategies(...args),
+}));
 
 const toastService = {
   loading: vi.fn(() => "toast-id"),
@@ -51,7 +69,7 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("@wagmi/core", () => ({
-  readContract: (...args: unknown[]) => mockReadContract(...args),
+  readContract: vi.fn(),
 }));
 
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
@@ -689,10 +707,10 @@ describe("useSetRoleHatIds", () => {
 });
 
 // ============================================
-// Query Hook Error Path Tests
+// Query Hook Error Path Tests (subgraph-based)
 // ============================================
 
-describe("Query hooks — error paths", () => {
+describe("Query hooks — subgraph error paths", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
@@ -705,8 +723,8 @@ describe("Query hooks — error paths", () => {
     });
   });
 
-  it("useMemberVotingPower returns isError when readContract rejects", async () => {
-    mockReadContract.mockRejectedValueOnce(new Error("RPC error"));
+  it("useMemberVotingPower returns isError when subgraph query fails", async () => {
+    mockGetMemberPower.mockRejectedValueOnce(new Error("Subgraph unavailable"));
 
     const { result } = renderHook(
       () => useMemberVotingPower(TEST_POOL as Address, TEST_VOTER as Address),
@@ -722,8 +740,8 @@ describe("Query hooks — error paths", () => {
     });
   });
 
-  it("useHypercertConviction returns isError when readContract rejects", async () => {
-    mockReadContract.mockRejectedValueOnce(new Error("RPC error"));
+  it("useHypercertConviction returns isError when subgraph query fails", async () => {
+    mockGetConvictionWeights.mockRejectedValueOnce(new Error("Subgraph timeout"));
 
     const { result } = renderHook(() => useHypercertConviction(TEST_POOL as Address), {
       wrapper: createWrapper(queryClient),
@@ -733,8 +751,8 @@ describe("Query hooks — error paths", () => {
     expect(result.current.weights).toEqual([]);
   });
 
-  it("useRegisteredHypercerts returns isError when readContract rejects", async () => {
-    mockReadContract.mockRejectedValueOnce(new Error("RPC error"));
+  it("useRegisteredHypercerts returns isError when subgraph query fails", async () => {
+    mockGetRegisteredHypercerts.mockRejectedValueOnce(new Error("Network error"));
 
     const { result } = renderHook(() => useRegisteredHypercerts(TEST_POOL as Address), {
       wrapper: createWrapper(queryClient),
@@ -744,37 +762,35 @@ describe("Query hooks — error paths", () => {
     expect(result.current.hypercertIds).toEqual([]);
   });
 
-  it("useConvictionStrategies returns isError when fetchHatsModuleAddress rejects", async () => {
-    mockFetchHatsModuleAddress.mockRejectedValueOnce(new Error("Network error"));
+  it("useConvictionStrategies returns isError when subgraph query fails", async () => {
+    mockGetConvictionStrategies.mockRejectedValueOnce(new Error("Subgraph error"));
 
-    const { result } = renderHook(() => useConvictionStrategies(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHook(
+      () => useConvictionStrategies(TEST_GARDEN as Address, TEST_COMMUNITY as Address),
+      { wrapper: createWrapper(queryClient) }
+    );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.strategies).toEqual([]);
   });
 
-  it("useMemberVotingPower handles mixed-case addresses", async () => {
-    const mixedCasePool = "0xAbCdEf1234567890AbCdEf1234567890AbCdEf12";
-    const mixedCaseVoter = "0x9876543210aBcDeF9876543210aBcDeF98765432";
-
-    mockReadContract
-      .mockResolvedValueOnce(true) // isEligibleVoter
-      .mockResolvedValueOnce(100n) // voterTotalStake
-      .mockResolvedValueOnce(500n) // pointsPerVoter
-      .mockResolvedValueOnce([[], []]); // empty allocations
+  it("useMemberVotingPower returns correct data on success", async () => {
+    mockGetMemberPower.mockResolvedValueOnce({
+      totalStake: 100n,
+      pointsBudget: 500n,
+      isEligible: true,
+      allocations: [],
+    });
 
     const { result } = renderHook(
-      () => useMemberVotingPower(mixedCasePool as Address, mixedCaseVoter as Address),
+      () => useMemberVotingPower(TEST_POOL as Address, TEST_VOTER as Address),
       { wrapper: createWrapper(queryClient) }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // Verify readContract was called (addresses passed through to wagmi)
-    expect(mockReadContract).toHaveBeenCalled();
     expect(result.current.power.isEligible).toBe(true);
+    expect(result.current.power.totalStake).toBe(100n);
   });
 });
 

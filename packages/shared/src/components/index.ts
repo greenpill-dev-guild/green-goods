@@ -9,6 +9,10 @@
  * that are used across both client and admin packages.
  */
 
+// Audio Components
+export { AudioPlayer, type AudioPlayerProps } from "./Audio";
+export { AudioRecorder, type AudioRecorderProps } from "./Audio";
+
 // DatePicker Components
 export { DatePicker, type DatePickerProps } from "./DatePicker";
 export { DateRangePicker, type DateRangePickerProps } from "./DatePicker";
@@ -66,6 +70,11 @@ export type {
   FormCheckboxProps,
 } from "./Form/FormCheckbox";
 export { CheckboxGroup, FormCheckbox } from "./Form/FormCheckbox";
+// Confidence & Verification Selectors
+export type { ConfidenceSelectorProps } from "./Form/ConfidenceSelector";
+export { ConfidenceSelector } from "./Form/ConfidenceSelector";
+export type { MethodSelectorProps } from "./Form/MethodSelector";
+export { MethodSelector } from "./Form/MethodSelector";
 // Select Components
 export type { FormSelectOption, FormSelectProps } from "./Form/Select";
 export {

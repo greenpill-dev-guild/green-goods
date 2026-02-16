@@ -11,7 +11,7 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const TEST_CHAIN_ID = 84532;
+const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
 const TEST_ASSET = "0x4444444444444444444444444444444444444444";
 const TEST_VAULT = "0x2222222222222222222222222222222222222222";
@@ -86,6 +86,12 @@ vi.mock("../../../utils/blockchain/address", () => ({
   normalizeAddress: (addr: string) => addr.toLowerCase(),
 }));
 
+vi.mock("../../../utils/blockchain/contracts", () => ({
+  getNetworkContracts: () => ({
+    yieldSplitter: TEST_YIELD_SPLITTER,
+  }),
+}));
+
 // Mock the indexer client for useYieldAllocations
 const mockQuery = vi.fn();
 vi.mock("../../../modules/data/graphql-client", () => ({
@@ -138,10 +144,9 @@ describe("useAllocateYield", () => {
   it("sends splitYield tx to YieldSplitter", async () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
 
-    const { result } = renderHook(
-      () => useAllocateYield({ yieldSplitterAddress: TEST_YIELD_SPLITTER as `0x${string}` }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useAllocateYield(), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await act(async () => {
       result.current.mutate({
@@ -165,10 +170,9 @@ describe("useAllocateYield", () => {
   it("shows toast lifecycle on success", async () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
 
-    const { result } = renderHook(
-      () => useAllocateYield({ yieldSplitterAddress: TEST_YIELD_SPLITTER as `0x${string}` }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useAllocateYield(), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await act(async () => {
       result.current.mutate({
@@ -189,10 +193,9 @@ describe("useAllocateYield", () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(
-      () => useAllocateYield({ yieldSplitterAddress: TEST_YIELD_SPLITTER as `0x${string}` }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useAllocateYield(), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await act(async () => {
       result.current.mutate({
@@ -214,10 +217,9 @@ describe("useAllocateYield", () => {
   it("calls error handler on tx failure", async () => {
     mockWriteContractAsync.mockRejectedValueOnce(new Error("user rejected"));
 
-    const { result } = renderHook(
-      () => useAllocateYield({ yieldSplitterAddress: TEST_YIELD_SPLITTER as `0x${string}` }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useAllocateYield(), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await act(async () => {
       result.current.mutate({
@@ -417,10 +419,9 @@ describe("useAllocateYield — additional coverage", () => {
     mockWriteContractAsync.mockResolvedValueOnce(MOCK_TX_HASH);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(
-      () => useAllocateYield({ yieldSplitterAddress: TEST_YIELD_SPLITTER as `0x${string}` }),
-      { wrapper: createWrapper(queryClient) }
-    );
+    const { result } = renderHook(() => useAllocateYield(), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await act(async () => {
       result.current.mutate({

@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { readContract } from "@wagmi/core";
 import type { Address } from "../../types/domain";
-import { wagmiConfig } from "../../config/appkit";
-import { HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis";
+import { getRegisteredHypercertsFromSubgraph } from "../../modules/data/gardens";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { queryKeys, STALE_TIME_SLOW } from "../query-keys";
@@ -23,15 +21,7 @@ export function useRegisteredHypercerts(
     queryKey: queryKeys.conviction.registeredHypercerts(normalizedPool ?? "", chainId),
     queryFn: async (): Promise<bigint[]> => {
       if (!normalizedPool) return [];
-
-      const result = await readContract(wagmiConfig, {
-        address: normalizedPool,
-        abi: HYPERCERT_SIGNAL_POOL_ABI,
-        functionName: "getRegisteredHypercerts",
-        chainId,
-      });
-
-      return (result as bigint[]) ?? [];
+      return getRegisteredHypercertsFromSubgraph(normalizedPool, chainId);
     },
     enabled: enabled && Boolean(normalizedPool),
     staleTime: STALE_TIME_SLOW,

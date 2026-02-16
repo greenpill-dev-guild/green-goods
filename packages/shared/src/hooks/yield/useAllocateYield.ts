@@ -6,26 +6,24 @@ import type { Address } from "../../types/domain";
 import type { AllocateYieldParams } from "../../types/gardens-community";
 import { YIELD_SPLITTER_ABI } from "../../utils/blockchain/abis";
 import { normalizeAddress } from "../../utils/blockchain/address";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
 import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 
-interface UseAllocateYieldOptions {
-  /** YieldSplitter contract address */
-  yieldSplitterAddress: Address;
-}
-
 /**
  * Mutation hook to trigger yield allocation via YieldSplitter.splitYield().
  * This is permissionless -- anyone can trigger it, not just operators.
+ * Resolves the YieldSplitter address from deployment config automatically.
  */
-export function useAllocateYield(options: UseAllocateYieldOptions) {
+export function useAllocateYield() {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sendContractTx = useContractTxSender();
+  const yieldSplitterAddress = getNetworkContracts(chainId).yieldSplitter as Address;
   const handleError = createMutationErrorHandler({
     source: "useAllocateYield",
     toastContext: "yield allocation",
@@ -47,7 +45,7 @@ export function useAllocateYield(options: UseAllocateYieldOptions) {
   return useMutation({
     mutationFn: async (params: AllocateYieldParams) => {
       return sendContractTx({
-        address: options.yieldSplitterAddress,
+        address: yieldSplitterAddress,
         abi: YIELD_SPLITTER_ABI,
         functionName: "splitYield",
         args: [params.gardenAddress, params.assetAddress, params.vaultAddress],

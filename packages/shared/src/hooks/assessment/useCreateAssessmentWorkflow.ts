@@ -6,6 +6,7 @@ import { getEASConfig } from "../../config/blockchain";
 import { logger } from "../../modules/app/logger";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
+import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createAssessmentMachine } from "../../workflows/createAssessment";
 
@@ -61,8 +62,9 @@ export function useCreateAssessmentWorkflow() {
       const easConfig = getEASConfig(selectedChainId);
       if (
         !contracts?.eas ||
-        !easConfig.GARDEN_ASSESSMENT.uid ||
-        !easConfig.GARDEN_ASSESSMENT.schema
+        !easConfig.ASSESSMENT.uid ||
+        isZeroBytes32(easConfig.ASSESSMENT.uid) ||
+        !easConfig.ASSESSMENT.schema
       ) {
         throw new Error(`EAS configuration missing for chain ${selectedChainId}`);
       }
@@ -80,7 +82,7 @@ export function useCreateAssessmentWorkflow() {
       const signer = await ethersProvider.getSigner();
       eas.connect(signer);
 
-      const schemaEncoder = new SchemaEncoder(easConfig.GARDEN_ASSESSMENT.schema);
+      const schemaEncoder = new SchemaEncoder(easConfig.ASSESSMENT.schema);
 
       let metricsCid = "";
       try {
@@ -137,7 +139,7 @@ export function useCreateAssessmentWorkflow() {
 
       // EAS SDK attest returns Transaction<string> where wait() returns the attestation UID
       const attestResult: Transaction<string> = await eas.attest({
-        schema: easConfig.GARDEN_ASSESSMENT.uid,
+        schema: easConfig.ASSESSMENT.uid,
         data: {
           // params already has gardenId from CreateAssessmentForm type
           recipient: params.gardenId,

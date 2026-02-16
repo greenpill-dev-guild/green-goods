@@ -137,6 +137,17 @@ export const queryKeys = {
       ] as const,
   },
 
+  // Cookie jar related keys
+  cookieJar: {
+    all: ["greengoods", "cookieJar"] as const,
+    byGarden: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "cookieJar", "garden", gardenAddress, chainId] as const,
+    jarDetail: (jarAddress: string, chainId: number) =>
+      ["greengoods", "cookieJar", "detail", jarAddress, chainId] as const,
+    userHistory: (jarAddress: string, userAddress: string, chainId: number) =>
+      ["greengoods", "cookieJar", "history", jarAddress, userAddress, chainId] as const,
+  },
+
   // Conviction voting related keys
   conviction: {
     all: ["greengoods", "conviction"] as const,
@@ -439,6 +450,41 @@ export const queryInvalidation = {
     queryKeys.vaults.byGarden(gardenAddress, chainId),
     queryKeys.vaults.eventsBase(gardenAddress, chainId),
   ],
+
+  // Queries to invalidate after a cookie jar withdrawal
+  onCookieJarWithdraw: (
+    gardenAddress: string,
+    jarAddress: string,
+    userAddress: string | undefined,
+    chainId: number
+  ) => {
+    const keys: Array<
+      | ReturnType<typeof queryKeys.cookieJar.byGarden>
+      | ReturnType<typeof queryKeys.cookieJar.jarDetail>
+      | ReturnType<typeof queryKeys.cookieJar.userHistory>
+    > = [
+      queryKeys.cookieJar.byGarden(gardenAddress, chainId),
+      queryKeys.cookieJar.jarDetail(jarAddress, chainId),
+    ];
+
+    if (userAddress) {
+      keys.push(queryKeys.cookieJar.userHistory(jarAddress, userAddress, chainId));
+    }
+
+    return keys;
+  },
+
+  // Queries to invalidate after a cookie jar deposit
+  onCookieJarDeposit: (gardenAddress: string, jarAddress: string, chainId: number) => [
+    queryKeys.cookieJar.byGarden(gardenAddress, chainId),
+    queryKeys.cookieJar.jarDetail(jarAddress, chainId),
+  ],
+
+  // Queries to invalidate after a cookie jar admin action (pause/unpause/update limits)
+  onCookieJarAdminAction: (gardenAddress: string, jarAddress: string, chainId: number) => [
+    queryKeys.cookieJar.byGarden(gardenAddress, chainId),
+    queryKeys.cookieJar.jarDetail(jarAddress, chainId),
+  ],
 };
 
 // Type-safe query key helpers
@@ -482,6 +528,10 @@ export type QueryKey =
   | typeof queryKeys.community.all
   | ReturnType<typeof queryKeys.community.garden>
   | ReturnType<typeof queryKeys.community.pools>
+  | typeof queryKeys.cookieJar.all
+  | ReturnType<typeof queryKeys.cookieJar.byGarden>
+  | ReturnType<typeof queryKeys.cookieJar.jarDetail>
+  | ReturnType<typeof queryKeys.cookieJar.userHistory>
   | typeof queryKeys.yield.all
   | ReturnType<typeof queryKeys.yield.allocationsBase>
   | ReturnType<typeof queryKeys.yield.allocations>

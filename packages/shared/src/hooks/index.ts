@@ -103,6 +103,21 @@ export type { UseEnsQueryOptions, UseEnsQueryResult } from "./blockchain/useEnsQ
 export { useEnsQuery } from "./blockchain/useEnsQuery";
 
 // ============================================================================
+// COOKIE JAR
+// ============================================================================
+export { useGardenCookieJars } from "./cookie-jar/useGardenCookieJars";
+export { useCookieJarWithdraw } from "./cookie-jar/useCookieJarWithdraw";
+export { useCookieJarDeposit } from "./cookie-jar/useCookieJarDeposit";
+export {
+  useCookieJarPause,
+  useCookieJarUnpause,
+  useCookieJarUpdateMaxWithdrawal,
+  useCookieJarUpdateInterval,
+  useCookieJarEmergencyWithdraw,
+} from "./cookie-jar/useCookieJarAdmin";
+export { useUserCookieJars } from "./cookie-jar/useUserCookieJars";
+
+// ============================================================================
 // CONVICTION VOTING
 // ============================================================================
 export { useConvictionStrategies } from "./conviction/useConvictionStrategies";
@@ -118,6 +133,7 @@ export { useSetPointsPerVoter } from "./conviction/useSetPointsPerVoter";
 export { useSetRoleHatIds } from "./conviction/useSetRoleHatIds";
 export { useGardenCommunity } from "./conviction/useGardenCommunity";
 export { useGardenPools } from "./conviction/useGardenPools";
+export { useCreateGardenPools } from "./conviction/useCreateGardenPools";
 
 // ============================================================================
 // YIELD
@@ -147,6 +163,7 @@ export {
   isGardenMember,
   useJoinGarden,
 } from "./garden/useJoinGarden";
+export { useGardenDomains } from "./garden/useGardenDomains";
 export type {
   GardenFilterScope,
   GardenFiltersState,
@@ -256,7 +273,7 @@ export { useBatchWorkSync } from "./work/useBatchWorkSync";
 export type { EnhancedWorkApproval } from "./work/useWorkApprovals";
 export { useWorkApprovals } from "./work/useWorkApprovals";
 export type { WorkFormData } from "./work/useWorkForm";
-export { useWorkForm, workFormSchema } from "./work/useWorkForm";
+export { buildWorkFormSchema, useWorkForm, workFormSchema } from "./work/useWorkForm";
 export { useWorkImages } from "./work/useWorkImages";
 export { useWorkMutation } from "./work/useWorkMutation";
 export type { UseWorksOptions } from "./work/useWorks";

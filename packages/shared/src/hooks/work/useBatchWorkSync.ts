@@ -35,17 +35,21 @@ interface EncodedWorkJob {
 }
 
 function toWorkDraft(payload: WorkJobPayload, mediaFiles: File[], createdAt: number): WorkDraft {
+  // Separate audio from visual media
+  const audioFiles = mediaFiles.filter((f) => f.type.startsWith("audio/"));
+  const visualFiles = mediaFiles.filter((f) => !f.type.startsWith("audio/"));
+
   return {
     actionUID: payload.actionUID,
     title: payload.title || `Action ${payload.actionUID} - ${new Date(createdAt).toISOString()}`,
     feedback: payload.feedback,
-    plantSelection: Array.isArray(payload.plantSelection) ? payload.plantSelection : [],
-    plantCount: typeof payload.plantCount === "number" ? payload.plantCount : 0,
-    media: mediaFiles,
-    metadata:
-      payload.metadata && typeof payload.metadata === "object"
-        ? (payload.metadata as Record<string, unknown>)
-        : undefined,
+    media: visualFiles,
+    details: payload.details ?? {},
+    ...(typeof payload.timeSpentMinutes === "number"
+      ? { timeSpentMinutes: payload.timeSpentMinutes }
+      : { timeSpentMinutes: 0 }),
+    ...(payload.tags ? { tags: payload.tags } : {}),
+    ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
   };
 }
 

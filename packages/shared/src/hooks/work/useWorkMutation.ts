@@ -78,8 +78,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         const draftSummary = {
           hasFeedback: Boolean(draft.feedback),
           feedbackLength: draft.feedback?.length ?? 0,
-          plantSelection: draft.plantSelection,
-          plantCount: draft.plantCount ?? null,
+          detailKeys: Object.keys(draft.details ?? {}),
+          hasTags: Boolean(draft.tags?.length),
+          hasAudioNotes: Boolean(draft.audioNotes?.length),
         };
         debugLog("[WorkMutation] Preparing work submission payload", {
           authMode,
@@ -262,8 +263,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           gardenAddress,
           feedback: variables.draft.feedback || "",
           metadata: JSON.stringify({
-            plantCount: variables.draft.plantCount,
-            plantSelection: variables.draft.plantSelection,
+            details: variables.draft.details ?? {},
+            timeSpentMinutes: variables.draft.timeSpentMinutes,
           }),
           media: [],
           createdAt: Math.floor(Date.now() / 1000),

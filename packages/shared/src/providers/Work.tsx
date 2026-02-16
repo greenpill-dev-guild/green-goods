@@ -3,14 +3,14 @@
  *
  * Orchestrates work submission functionality by composing hooks.
  * Split into two contexts for performance optimization:
- * - WorkSelectionContext: Low-frequency updates (gardens, actions, tabs)
+ * - WorkSelectionContext: Low-frequency updates (gardens, actions, tabs, domain)
  * - WorkFormContext: High-frequency updates (form state, images)
  *
  * @module providers/work
  */
 
 import React, { useCallback, useContext } from "react";
-import type { Action, Garden, WorkDraft } from "../types/domain";
+import type { Action, Domain, Garden, WorkDraft } from "../types/domain";
 import type { Control, FormState, UseFormRegister } from "react-hook-form";
 import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../components/toast";
@@ -34,7 +34,7 @@ export { WorkTab };
 // ============================================================================
 
 /**
- * Low-frequency selection data (gardens, actions, navigation)
+ * Low-frequency selection data (gardens, actions, navigation, domain)
  */
 export interface WorkSelectionValue {
   gardens: Garden[];
@@ -46,6 +46,9 @@ export interface WorkSelectionValue {
   setGardenAddress: (value: string | null) => void;
   actionUID: number | null;
   setActionUID: (value: number | null) => void;
+  /** Selected domain for domain-centric filtering */
+  selectedDomain: Domain | null;
+  setSelectedDomain: (domain: Domain | null) => void;
 }
 
 /**
@@ -58,8 +61,6 @@ export interface WorkFormValue {
   images: File[];
   setImages: React.Dispatch<React.SetStateAction<File[]>>;
   feedback: string;
-  plantSelection: string[];
-  plantCount: number | undefined;
   timeSpentMinutes: number | undefined;
   values: Record<string, unknown>;
   reset: () => void;
@@ -87,8 +88,6 @@ export interface WorkDataProps {
     gardenAddress: string | null;
     setGardenAddress: (value: string | null) => void;
     feedback: string;
-    plantSelection: string[];
-    plantCount: number | undefined;
     timeSpentMinutes: number | undefined;
     values: Record<string, unknown>;
     reset: () => void;
@@ -123,7 +122,7 @@ const WorkContext = React.createContext<WorkDataProps>({
 // ============================================================================
 
 /**
- * Access low-frequency selection data (gardens, actions, tabs).
+ * Access low-frequency selection data (gardens, actions, tabs, domain).
  * Use this when you only need selection state to avoid re-renders on form changes.
  */
 export function useWorkSelection(): WorkSelectionValue {
@@ -184,17 +183,27 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       : [];
 
   // UI state via Zustand with useShallow for multi-select optimization
-  const { actionUID, gardenAddress, activeTab, setActionUID, setGardenAddress, setActiveTab } =
-    useWorkFlowStore(
-      useShallow((s) => ({
-        actionUID: s.actionUID,
-        gardenAddress: s.gardenAddress,
-        activeTab: s.activeTab,
-        setActionUID: s.setActionUID,
-        setGardenAddress: s.setGardenAddress,
-        setActiveTab: s.setActiveTab,
-      }))
-    );
+  const {
+    actionUID,
+    gardenAddress,
+    activeTab,
+    selectedDomain,
+    setActionUID,
+    setGardenAddress,
+    setActiveTab,
+    setSelectedDomain,
+  } = useWorkFlowStore(
+    useShallow((s) => ({
+      actionUID: s.actionUID,
+      gardenAddress: s.gardenAddress,
+      activeTab: s.activeTab,
+      selectedDomain: s.selectedDomain,
+      setActionUID: s.setActionUID,
+      setGardenAddress: s.setGardenAddress,
+      setActiveTab: s.setActiveTab,
+      setSelectedDomain: s.setSelectedDomain,
+    }))
+  );
 
   // Use extracted hooks
   const { images, setImages } = useWorkImages();
@@ -225,13 +234,17 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   // Upload work handler
   const handleUploadWork = useCallback(
     async (data: WorkFormData) => {
+      // Build generic details from form data (exclude fixed fields)
+      const { feedback: _feedback, timeSpentMinutes: _time, ...dynamicFields } = data;
+
+      const storeAudioNotes = useWorkFlowStore.getState().audioNotes;
       const draft = {
-        feedback: data.feedback,
-        plantSelection: data.plantSelection,
-        ...(typeof data.plantCount === "number" ? { plantCount: data.plantCount } : {}),
+        feedback: data.feedback ?? "",
+        details: dynamicFields as Record<string, unknown>,
         ...(typeof data.timeSpentMinutes === "number"
           ? { timeSpentMinutes: data.timeSpentMinutes }
           : {}),
+        ...(storeAudioNotes.length > 0 ? { audioNotes: storeAudioNotes } : {}),
       };
 
       const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images, {
@@ -282,6 +295,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     setGardenAddress,
     actionUID,
     setActionUID,
+    selectedDomain,
+    setSelectedDomain,
   };
 
   // Form context value (high-frequency updates)
@@ -293,8 +308,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     images,
     setImages,
     feedback: workForm.feedback,
-    plantSelection: workForm.plantSelection,
-    plantCount: workForm.plantCount,
     timeSpentMinutes: workForm.timeSpentMinutes,
     values: workForm.values,
     reset: workForm.reset,
@@ -321,8 +334,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       gardenAddress,
       setGardenAddress,
       feedback: workForm.feedback,
-      plantSelection: workForm.plantSelection,
-      plantCount: workForm.plantCount,
       timeSpentMinutes: workForm.timeSpentMinutes,
       values: workForm.values,
       reset: workForm.reset,
