@@ -52,19 +52,6 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
-  - id: 84532
-    start_block: 32407622
-    contracts:
-      - name: ActionRegistry
-        address: "0x9685E9E5430C13AFF7ef32D9E8fc93d516e121E0"
-      - name: GardenToken
-        address: "0x0B0EA0FfB996B0b04335507Ef1523124480f7310"
-      - name: GardenAccount
-        address: "0xa624FDdBdfA1E13C739791fB65E2D174b7316519"
-      - name: HatsModule
-        address: "0x0000000000000000000000000000000000000000"
-      - name: HypercertMinter
-        address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
   - id: 42220
     start_block: 48697725
     contracts:

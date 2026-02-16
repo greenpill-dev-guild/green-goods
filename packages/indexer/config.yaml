@@ -7,7 +7,8 @@ contracts:
   - name: ActionRegistry
     handler: src/EventHandlers.ts
     events:
-      - event: ActionRegistered(address owner, uint256 indexed actionUID, uint256 indexed startTime, uint256 indexed endTime, string title, string instructions, uint8[] capitals, string[] media)
+      - event: ActionRegistered(address owner, uint256 indexed actionUID, uint256 indexed startTime, uint256 indexed endTime, string title, string slug, string instructions, uint8[] capitals, string[] media, uint8 domain)
+      - event: GardenDomainsUpdated(address indexed garden, uint8 indexed domainMask)
       - event: ActionStartTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed startTime)
       - event: ActionEndTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed endTime)
       - event: ActionTitleUpdated(address indexed owner, uint256 indexed actionUID, string indexed title)
@@ -53,6 +54,7 @@ contracts:
       - event: SignalPoolCreated(address indexed garden, address indexed pool, uint8 poolType, address indexed community)
       - event: PowerRegistryDeployed(address indexed garden, address indexed registry, uint8 weightScheme)
       - event: GoodsAirdropped(address indexed garden, uint256 totalAmount)
+      - event: GardenTreasurySeeded(address indexed garden, uint256 amount)
   - name: YieldSplitter
     handler: src/EventHandlers.ts
     events:
@@ -62,6 +64,10 @@ contracts:
       - event: YieldToCookieJar(address indexed garden, address indexed asset, uint256 amount, address indexed jar)
       - event: YieldToJuicebox(address indexed garden, address indexed asset, uint256 amount, uint256 projectId)
       - event: YieldStranded(address indexed garden, address indexed asset, uint256 amount, string destination)
+  - name: CookieJarModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: JarCreated(address indexed garden, address indexed asset, address jar)
   - name: HypercertMinter
     handler: src/EventHandlers.ts
     events:
@@ -89,26 +95,7 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: YieldSplitter
         address: "0x0000000000000000000000000000000000000000"
-      - name: HypercertMinter
-        address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
-  - id: 84532
-    start_block: 32407622
-    contracts:
-      - name: ActionRegistry
-        address: "0x9685E9E5430C13AFF7ef32D9E8fc93d516e121E0"
-      - name: GardenToken
-        address: "0x0B0EA0FfB996B0b04335507Ef1523124480f7310"
-      - name: GardenAccount
-        address: "0xa624FDdBdfA1E13C739791fB65E2D174b7316519"
-      - name: HatsModule
-        address: "0x0000000000000000000000000000000000000000"
-      - name: OctantModule
-        address: "0x0000000000000000000000000000000000000000"
-      - name: OctantVault
-        address: "0x0000000000000000000000000000000000000000"
-      - name: GardensModule
-        address: "0x0000000000000000000000000000000000000000"
-      - name: YieldSplitter
+      - name: CookieJarModule
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
@@ -131,6 +118,8 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: YieldSplitter
         address: "0x0000000000000000000000000000000000000000"
+      - name: CookieJarModule
+        address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
   - id: 11155111
@@ -151,6 +140,8 @@ networks:
       - name: GardensModule
         address: "0x0000000000000000000000000000000000000000"
       - name: YieldSplitter
+        address: "0x0000000000000000000000000000000000000000"
+      - name: CookieJarModule
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"

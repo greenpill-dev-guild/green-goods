@@ -80,10 +80,6 @@ services:
       # Hasura connection
       HASURA_GRAPHQL_ENDPOINT: http://graphql-engine:8080
       HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-testing}
-      # RPC URLs (loaded from host environment)
-      ARBITRUM_RPC_URL: ${ARBITRUM_RPC_URL:-}
-      BASE_SEPOLIA_RPC_URL: ${BASE_SEPOLIA_RPC_URL:-}
-      CELO_RPC_URL: ${CELO_RPC_URL:-}
     volumes:
       # Mount source for hot reloading during development
       - ./src:/app/src:ro

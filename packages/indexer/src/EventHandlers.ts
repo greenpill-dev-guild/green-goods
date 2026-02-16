@@ -6,6 +6,7 @@ import {
   GardenToken,
   OctantModule,
   OctantVault,
+  CookieJarModule,
   Capital,
   HypercertMinter,
   HypercertStatus,
@@ -14,6 +15,8 @@ import {
   WeightScheme,
   YieldSplitter,
 } from "../generated";
+
+import type { Domain_t } from "../generated/src/db/Enums.gen";
 
 import type {
   Action,
@@ -57,6 +60,7 @@ import type {
   YieldAllocation,
   YieldAccumulation,
   YieldFractionPurchase,
+  YieldSplitter_FractionPurchased_eventArgs,
 } from "../generated/src/Types.gen";
 
 // ============================================================================
@@ -112,6 +116,31 @@ type YieldStrandedEntity = {
   readonly timestamp: number;
 };
 
+type GardenHatTreeEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly garden: string;
+  readonly adminHatId: string;
+  readonly ownerHatId: string | undefined;
+  readonly operatorHatId: string | undefined;
+  readonly evaluatorHatId: string | undefined;
+  readonly gardenerHatId: string | undefined;
+  readonly funderHatId: string | undefined;
+  readonly communityHatId: string | undefined;
+  readonly createdAt: number;
+};
+
+type PartialGrantFailureEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly garden: string;
+  readonly account: string;
+  readonly role: number;
+  readonly reason: string;
+  readonly txHash: string;
+  readonly timestamp: number;
+};
+
 type HatsModule_GardenHatTreeCreated_eventArgs = {
   readonly garden: string;
   readonly adminHatId: bigint;
@@ -127,6 +156,21 @@ type HatsModule_RoleRevoked_eventArgs = {
   readonly garden: string;
   readonly account: string;
   readonly role: bigint;
+};
+
+// ActionRegistry domain event arg types (local until codegen runs)
+type ActionRegistry_GardenDomainsUpdated_eventArgs = {
+  readonly garden: string;
+  readonly domainMask: bigint;
+};
+
+type GardenDomainsEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly garden: string;
+  readonly domainMask: number;
+  readonly domains: Domain_t[];
+  readonly updatedAt: number;
 };
 
 // GardensModule event arg types (local until codegen runs)
@@ -154,20 +198,10 @@ type YieldSplitter_YieldSplit_eventArgs = {
   readonly cookieJarAmount: bigint;
   readonly fractionsAmount: bigint;
   readonly juiceboxAmount: bigint;
+  readonly totalYield: bigint;
 };
 
-// Codegen maps FractionPurchased → YieldAllocated with different fields.
-// The Solidity event is named FractionPurchased but the Envio codegen renames it
-// to YieldAllocated in the generated handler registry. Both refer to the same
-// on-chain event and share the same topic hash.
-// Solidity: event FractionPurchased(address indexed garden, uint256 indexed hypercertId, uint256 amount, uint256 fractionId, address treasury)
-type YieldSplitter_YieldAllocated_eventArgs = {
-  readonly garden: string;
-  readonly hypercertId: bigint;
-  readonly amount: bigint;
-  readonly fractionId: bigint;
-  readonly treasury: string;
-};
+// YieldSplitter_FractionPurchased_eventArgs is now imported from generated types.
 
 // Solidity: event YieldAccumulated(address indexed garden, address indexed asset, uint256 amount, uint256 totalPending)
 type YieldSplitter_YieldAccumulated_eventArgs = {
@@ -189,6 +223,20 @@ type GardensModule_PowerRegistryDeployed_eventArgs = {
 type GardensModule_GoodsAirdropped_eventArgs = {
   readonly garden: string;
   readonly totalAmount: bigint;
+};
+
+// Solidity: event GardenTreasurySeeded(address indexed garden, uint256 amount)
+type GardensModule_GardenTreasurySeeded_eventArgs = {
+  readonly garden: string;
+  readonly amount: bigint;
+};
+
+type GardenTreasuryEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly garden: string;
+  readonly totalSeeded: bigint;
+  readonly lastSeededAt: number;
 };
 
 // YieldSplitter additional event arg types
@@ -221,6 +269,23 @@ type HatsModule_PartialGrantFailed_eventArgs = {
   readonly account: string;
   readonly role: bigint;
   readonly reason: string;
+};
+
+// CookieJarModule event arg types (local until codegen runs)
+// Solidity: event JarCreated(address indexed garden, address indexed asset, address jar)
+type CookieJarModule_JarCreated_eventArgs = {
+  readonly garden: string;
+  readonly asset: string;
+  readonly jar: string;
+};
+
+type CookieJarEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly garden: string;
+  readonly asset: string;
+  readonly jarAddress: string;
+  readonly createdAt: number;
 };
 
 /**
@@ -265,6 +330,39 @@ const CAPITAL_TYPE_MAP: Record<number, Capital> = {
   6: "SPIRITUAL",
   7: "CULTURAL",
 } as const;
+
+/**
+ * Maps numeric domain type values from the smart contract to Domain enum string values.
+ * These values correspond to the Domain enum in the ActionRegistry contract.
+ */
+const DOMAIN_TYPE_MAP: Record<number, Domain_t> = {
+  0: "SOLAR",
+  1: "AGRO",
+  2: "EDU",
+  3: "WASTE",
+} as const;
+
+/**
+ * Converts a numeric domain type from the blockchain to a Domain enum value.
+ * Returns "UNKNOWN" for any unrecognized values.
+ */
+function mapDomainType(value: bigint): Domain_t {
+  const numValue = Number(value);
+  return DOMAIN_TYPE_MAP[numValue] ?? "UNKNOWN";
+}
+
+/**
+ * Expands a domain bitmask into an array of Domain enum strings.
+ * Bit 0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE
+ */
+function expandDomainMask(mask: number): Domain_t[] {
+  const domains: Domain_t[] = [];
+  if (mask & 1) domains.push("SOLAR");
+  if (mask & 2) domains.push("AGRO");
+  if (mask & 4) domains.push("EDU");
+  if (mask & 8) domains.push("WASTE");
+  return domains;
+}
 
 /**
  * Maps numeric weight scheme values from the GardensModule contract to WeightScheme enum values.
@@ -406,6 +504,10 @@ function getYieldEventId(chainId: number, txHash: string, logIndex: bigint | num
   return `${chainId}-${txHash}-${logIndex.toString()}`;
 }
 
+function getCookieJarId(chainId: number, garden: string, asset: string): string {
+  return `${chainId}-${normalizeAddress(garden)}-${normalizeAddress(asset)}`;
+}
+
 function mapWeightScheme(value: bigint): WeightScheme {
   return WEIGHT_SCHEME_MAP[Number(value)] ?? "LINEAR";
 }
@@ -456,13 +558,38 @@ ActionRegistry.ActionRegistered.handler(
       startTime: event.params.startTime,
       endTime: event.params.endTime,
       title: event.params.title,
+      slug: event.params.slug,
       instructions: event.params.instructions,
       capitals,
       media: event.params.media,
+      domain: mapDomainType(event.params.domain),
       createdAt: event.block.timestamp,
     };
 
     context.Action.set(actionEntity);
+  }
+);
+
+// Handler for the GardenDomainsUpdated event
+ActionRegistry.GardenDomainsUpdated.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<ActionRegistry_GardenDomainsUpdated_eventArgs, void>) => {
+    const gardenAddress = normalizeAddress(event.params.garden);
+    const domainMask = Number(event.params.domainMask);
+    const entityId = `${event.chainId}-${gardenAddress}`;
+
+    const gardenDomainsEntity: GardenDomainsEntity = {
+      id: entityId,
+      chainId: event.chainId,
+      garden: gardenAddress,
+      domainMask,
+      domains: expandDomainMask(domainMask),
+      updatedAt: event.block.timestamp,
+    };
+
+    context.GardenDomains.set(gardenDomainsEntity);
   }
 );
 
@@ -736,8 +863,27 @@ HatsModule.GardenHatTreeCreated.handler(
     event,
     context,
   }: HandlerTypes_handlerArgs<HatsModule_GardenHatTreeCreated_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+
+    const hatTreeEntity: GardenHatTreeEntity = {
+      id: garden,
+      chainId: event.chainId,
+      garden,
+      adminHatId: event.params.adminHatId.toString(),
+      // Role hat IDs will be available when GardenConfigured event is added to config.yaml
+      ownerHatId: undefined,
+      operatorHatId: undefined,
+      evaluatorHatId: undefined,
+      gardenerHatId: undefined,
+      funderHatId: undefined,
+      communityHatId: undefined,
+      createdAt: event.block.timestamp,
+    };
+
+    context.GardenHatTree.set(hatTreeEntity);
+
     context.log.info(`Garden hat tree created`, {
-      garden: event.params.garden,
+      garden,
       adminHatId: event.params.adminHatId.toString(),
       chainId: event.chainId,
       blockNumber: event.block.number,
@@ -908,9 +1054,27 @@ HatsModule.PartialGrantFailed.handler(
     event,
     context,
   }: HandlerTypes_handlerArgs<HatsModule_PartialGrantFailed_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const account = normalizeAddress(event.params.account);
+    const txHash = getTxHash(event.transaction);
+    const failureId = getYieldEventId(event.chainId, txHash, event.logIndex);
+
+    const failureEntity: PartialGrantFailureEntity = {
+      id: failureId,
+      chainId: event.chainId,
+      garden,
+      account,
+      role: Number(event.params.role),
+      reason: event.params.reason,
+      txHash,
+      timestamp: event.block.timestamp,
+    };
+
+    context.PartialGrantFailure.set(failureEntity);
+
     context.log.warn(`Partial hat grant failed`, {
-      garden: event.params.garden,
-      account: event.params.account,
+      garden,
+      account,
       role: event.params.role.toString(),
       reason: event.params.reason,
       chainId: event.chainId,
@@ -1566,6 +1730,7 @@ GardensModule.CommunityCreated.handler(
       weightScheme: mapWeightScheme(event.params.weightScheme),
       goodsToken: normalizeAddress(event.params.goodsToken),
       nftPowerRegistry: normalizeAddress(event.params.nftPowerRegistry),
+      powerRegistryAddress: undefined,
       createdAt: event.block.timestamp,
     };
 
@@ -1674,6 +1839,36 @@ GardensModule.GoodsAirdropped.handler(
   }
 );
 
+GardensModule.GardenTreasurySeeded.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<GardensModule_GardenTreasurySeeded_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const treasuryId = getGardenCommunityId(event.chainId, garden); // reuse chainId-garden pattern
+
+    const existingTreasury = await context.GardenTreasury.get(treasuryId);
+
+    const treasuryEntity: GardenTreasuryEntity = {
+      id: treasuryId,
+      chainId: event.chainId,
+      garden,
+      totalSeeded: (existingTreasury?.totalSeeded ?? 0n) + event.params.amount,
+      lastSeededAt: event.block.timestamp,
+    };
+
+    context.GardenTreasury.set(treasuryEntity);
+
+    context.log.info("Garden treasury seeded with GOODS", {
+      garden,
+      amount: event.params.amount.toString(),
+      totalSeeded: treasuryEntity.totalSeeded.toString(),
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+    });
+  }
+);
+
 // ============================================================================
 // YIELD SPLITTER EVENT HANDLERS
 // ============================================================================
@@ -1696,8 +1891,7 @@ YieldSplitter.YieldSplit.handler(
       cookieJarAmount: event.params.cookieJarAmount,
       fractionsAmount: event.params.fractionsAmount,
       juiceboxAmount: event.params.juiceboxAmount,
-      totalAmount:
-        event.params.cookieJarAmount + event.params.fractionsAmount + event.params.juiceboxAmount,
+      totalAmount: event.params.totalYield,
       txHash,
       timestamp: event.block.timestamp,
     };
@@ -1728,11 +1922,11 @@ YieldSplitter.YieldSplit.handler(
   }
 );
 
-YieldSplitter.YieldAllocated.handler(
+YieldSplitter.FractionPurchased.handler(
   async ({
     event,
     context,
-  }: HandlerTypes_handlerArgs<YieldSplitter_YieldAllocated_eventArgs, void>) => {
+  }: HandlerTypes_handlerArgs<YieldSplitter_FractionPurchased_eventArgs, void>) => {
     const garden = normalizeAddress(event.params.garden);
     const treasury = normalizeAddress(event.params.treasury);
     const txHash = getTxHash(event.transaction);
@@ -1904,6 +2098,47 @@ YieldSplitter.YieldStranded.handler(
       chainId: event.chainId,
       blockNumber: event.block.number,
       correlationId: txHash,
+    });
+  }
+);
+
+// ============================================================================
+// COOKIE JAR MODULE EVENT HANDLERS
+// ============================================================================
+
+CookieJarModule.JarCreated.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<CookieJarModule_JarCreated_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const asset = normalizeAddress(event.params.asset);
+    const jarAddress = normalizeAddress(event.params.jar);
+    const jarId = getCookieJarId(event.chainId, garden, asset);
+
+    const existingJar = await context.CookieJar.get(jarId);
+    if (existingJar) {
+      // Idempotency: skip if jar already exists for this garden+asset
+      return;
+    }
+
+    const jarEntity: CookieJarEntity = {
+      id: jarId,
+      chainId: event.chainId,
+      garden,
+      asset,
+      jarAddress,
+      createdAt: event.block.timestamp,
+    };
+
+    context.CookieJar.set(jarEntity);
+
+    context.log.info("Cookie jar created", {
+      garden,
+      asset,
+      jarAddress,
+      chainId: event.chainId,
+      blockNumber: event.block.number,
     });
   }
 );

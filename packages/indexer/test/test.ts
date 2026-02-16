@@ -5,8 +5,16 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const generated = require("../generated");
 const { TestHelpers } = generated;
-const { MockDb, Addresses, ActionRegistry, GardenToken, HatsModule, OctantModule, OctantVault } =
-  TestHelpers;
+const {
+  MockDb,
+  Addresses,
+  ActionRegistry,
+  GardenToken,
+  HatsModule,
+  OctantModule,
+  OctantVault,
+  GardensModule,
+} = TestHelpers;
 
 const CHAIN_ID_ARBITRUM = 42161;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -94,9 +102,11 @@ describe("ActionRegistry", () => {
       startTime: 1000n,
       endTime: 2000n,
       title: "Plant Trees",
+      slug: "waste.plant_trees",
       instructions: "Instructions",
       capitals: [0, 3],
       media: ["ipfs://QmTest"],
+      domain: 3,
       mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 12345),
     });
 
@@ -105,8 +115,192 @@ describe("ActionRegistry", () => {
 
     assert.ok(action);
     assert.equal(action.ownerAddress, createMockAddress(0));
+    assert.equal(action.slug, "waste.plant_trees");
+    assert.equal(action.domain, "WASTE");
     assert.deepEqual(action.capitals, ["SOCIAL", "LIVING"]);
     assert.equal(action.createdAt, 12345);
+  });
+
+  it("maps all domain values correctly", async () => {
+    const domainTests = [
+      { domain: 0, expected: "SOLAR" },
+      { domain: 1, expected: "AGRO" },
+      { domain: 2, expected: "EDU" },
+      { domain: 3, expected: "WASTE" },
+    ];
+
+    for (const { domain, expected } of domainTests) {
+      const mockDb = MockDb.createMockDb();
+      const event = ActionRegistry.ActionRegistered.createMockEvent({
+        owner: createMockAddress(0),
+        actionUID: BigInt(domain),
+        startTime: 1000n,
+        endTime: 2000n,
+        title: `${expected} Action`,
+        slug: `${expected.toLowerCase()}.test`,
+        instructions: "Instructions",
+        capitals: [0],
+        media: [],
+        domain,
+        mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 12345),
+      });
+
+      const result = await ActionRegistry.ActionRegistered.processEvent({ event, mockDb });
+      const action = result.entities.Action.get(`${CHAIN_ID_ARBITRUM}-${domain}`);
+
+      assert.ok(action, `Action for domain ${expected} should exist`);
+      assert.equal(action.domain, expected, `Domain should be ${expected}`);
+    }
+  });
+
+  it("maps unknown domain values to UNKNOWN", async () => {
+    const mockDb = MockDb.createMockDb();
+    const event = ActionRegistry.ActionRegistered.createMockEvent({
+      owner: createMockAddress(0),
+      actionUID: 999n,
+      startTime: 1000n,
+      endTime: 2000n,
+      title: "Unknown Domain Action",
+      slug: "unknown.test",
+      instructions: "Instructions",
+      capitals: [0],
+      media: [],
+      domain: 255,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 12345),
+    });
+
+    const result = await ActionRegistry.ActionRegistered.processEvent({ event, mockDb });
+    const action = result.entities.Action.get(`${CHAIN_ID_ARBITRUM}-999`);
+
+    assert.ok(action);
+    assert.equal(action.domain, "UNKNOWN");
+  });
+});
+
+describe("ActionRegistry GardenDomains", () => {
+  it("GardenDomainsUpdated creates entity with expanded domain array", async () => {
+    const mockDb = MockDb.createMockDb();
+    const gardenAddress = createMockAddress(200);
+
+    const event = ActionRegistry.GardenDomainsUpdated.createMockEvent({
+      garden: gardenAddress,
+      domainMask: 0x0f,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 20000),
+    });
+
+    const result = await ActionRegistry.GardenDomainsUpdated.processEvent({ event, mockDb });
+    const entity = result.entities.GardenDomains.get(
+      `${CHAIN_ID_ARBITRUM}-${gardenAddress.toLowerCase()}`
+    );
+
+    assert.ok(entity, "GardenDomains entity should exist");
+    assert.equal(entity.chainId, CHAIN_ID_ARBITRUM);
+    assert.equal(entity.garden, gardenAddress.toLowerCase());
+    assert.equal(entity.domainMask, 0x0f);
+    assert.deepEqual(entity.domains, ["SOLAR", "AGRO", "EDU", "WASTE"]);
+    assert.equal(entity.updatedAt, 20000);
+  });
+
+  it("expands single-domain bitmasks correctly", async () => {
+    const singleDomainTests = [
+      { mask: 0x01, expected: ["SOLAR"] },
+      { mask: 0x02, expected: ["AGRO"] },
+      { mask: 0x04, expected: ["EDU"] },
+      { mask: 0x08, expected: ["WASTE"] },
+    ];
+
+    for (const { mask, expected } of singleDomainTests) {
+      const mockDb = MockDb.createMockDb();
+      const gardenAddress = createMockAddress(201 + mask);
+
+      const event = ActionRegistry.GardenDomainsUpdated.createMockEvent({
+        garden: gardenAddress,
+        domainMask: mask,
+        mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 20001),
+      });
+
+      const result = await ActionRegistry.GardenDomainsUpdated.processEvent({ event, mockDb });
+      const entity = result.entities.GardenDomains.get(
+        `${CHAIN_ID_ARBITRUM}-${gardenAddress.toLowerCase()}`
+      );
+
+      assert.ok(entity, `Entity should exist for mask 0x${mask.toString(16).padStart(2, "0")}`);
+      assert.deepEqual(
+        entity.domains,
+        expected,
+        `Mask 0x${mask.toString(16).padStart(2, "0")} should expand to ${expected}`
+      );
+    }
+  });
+
+  it("expands partial bitmask combinations correctly", async () => {
+    const mockDb = MockDb.createMockDb();
+    const gardenAddress = createMockAddress(210);
+
+    // Solar + Waste = 0b1001 = 0x09
+    const event = ActionRegistry.GardenDomainsUpdated.createMockEvent({
+      garden: gardenAddress,
+      domainMask: 0x09,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 20002),
+    });
+
+    const result = await ActionRegistry.GardenDomainsUpdated.processEvent({ event, mockDb });
+    const entity = result.entities.GardenDomains.get(
+      `${CHAIN_ID_ARBITRUM}-${gardenAddress.toLowerCase()}`
+    );
+
+    assert.ok(entity);
+    assert.equal(entity.domainMask, 0x09);
+    assert.deepEqual(entity.domains, ["SOLAR", "WASTE"]);
+  });
+
+  it("handles empty bitmask (no domains)", async () => {
+    const mockDb = MockDb.createMockDb();
+    const gardenAddress = createMockAddress(211);
+
+    const event = ActionRegistry.GardenDomainsUpdated.createMockEvent({
+      garden: gardenAddress,
+      domainMask: 0x00,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 20003),
+    });
+
+    const result = await ActionRegistry.GardenDomainsUpdated.processEvent({ event, mockDb });
+    const entity = result.entities.GardenDomains.get(
+      `${CHAIN_ID_ARBITRUM}-${gardenAddress.toLowerCase()}`
+    );
+
+    assert.ok(entity);
+    assert.equal(entity.domainMask, 0);
+    assert.deepEqual(entity.domains, []);
+  });
+
+  it("overwrites previous domain configuration on update", async () => {
+    let mockDb = MockDb.createMockDb();
+    const gardenAddress = createMockAddress(212);
+
+    // First: set all domains
+    const event1 = ActionRegistry.GardenDomainsUpdated.createMockEvent({
+      garden: gardenAddress,
+      domainMask: 0x0f,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 20004),
+    });
+    mockDb = await ActionRegistry.GardenDomainsUpdated.processEvent({ event: event1, mockDb });
+
+    // Second: narrow to Agro + Edu only
+    const event2 = ActionRegistry.GardenDomainsUpdated.createMockEvent({
+      garden: gardenAddress,
+      domainMask: 0x06,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 20005),
+    });
+    mockDb = await ActionRegistry.GardenDomainsUpdated.processEvent({ event: event2, mockDb });
+
+    const entity = mockDb.entities.GardenDomains.get(
+      `${CHAIN_ID_ARBITRUM}-${gardenAddress.toLowerCase()}`
+    );
+    assert.ok(entity);
+    assert.equal(entity.domainMask, 0x06);
+    assert.deepEqual(entity.domains, ["AGRO", "EDU"]);
+    assert.equal(entity.updatedAt, 20005);
   });
 });
 
@@ -790,5 +984,471 @@ describe("OctantVault (dynamic)", () => {
     assert.equal(depositEntityB.shares, 29n);
     assert.equal(gardenVault.depositorCount, 2);
     assert.equal(gardenVault.totalDeposited, 100n);
+  });
+});
+
+describe("GardensModule", () => {
+  it("CommunityCreated creates GardenCommunity entity with correct fields", async () => {
+    const mockDb = MockDb.createMockDb();
+    const garden = createMockAddress(160);
+    const community = createMockAddress(161);
+    const goodsToken = createMockAddress(162);
+    const nftPowerRegistry = createMockAddress(163);
+
+    const event = GardensModule.CommunityCreated.createMockEvent({
+      garden,
+      community,
+      weightScheme: 0,
+      goodsToken,
+      nftPowerRegistry,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 100000, {
+        txHash: createMockTxHash(20),
+        logIndex: 20,
+      }),
+    });
+
+    const result = await GardensModule.CommunityCreated.processEvent({ event, mockDb });
+
+    const expectedId = `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}`;
+    const communityEntity = result.entities.GardenCommunity.get(expectedId);
+    assert.ok(communityEntity, "GardenCommunity entity should exist");
+    assert.equal(communityEntity.chainId, CHAIN_ID_ARBITRUM);
+    assert.equal(communityEntity.garden, garden.toLowerCase());
+    assert.equal(communityEntity.communityAddress, community.toLowerCase());
+    assert.equal(communityEntity.weightScheme, "LINEAR");
+    assert.equal(communityEntity.goodsToken, goodsToken.toLowerCase());
+    assert.equal(communityEntity.nftPowerRegistry, nftPowerRegistry.toLowerCase());
+    assert.equal(communityEntity.powerRegistryAddress, undefined);
+    assert.equal(communityEntity.createdAt, 100000);
+  });
+
+  it("CommunityCreated maps weight schemes correctly", async () => {
+    const weightSchemeTests = [
+      { value: 0, expected: "LINEAR" },
+      { value: 1, expected: "EXPONENTIAL" },
+      { value: 2, expected: "POWER" },
+    ];
+
+    for (const { value, expected } of weightSchemeTests) {
+      const mockDb = MockDb.createMockDb();
+      const garden = createMockAddress(170 + value);
+
+      const event = GardensModule.CommunityCreated.createMockEvent({
+        garden,
+        community: createMockAddress(171 + value),
+        weightScheme: value,
+        goodsToken: createMockAddress(172 + value),
+        nftPowerRegistry: createMockAddress(173 + value),
+        mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 100100 + value, {
+          txHash: createMockTxHash(30 + value),
+          logIndex: 30 + value,
+        }),
+      });
+
+      const result = await GardensModule.CommunityCreated.processEvent({ event, mockDb });
+      const communityEntity = result.entities.GardenCommunity.get(
+        `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}`
+      );
+
+      assert.ok(communityEntity, `Community for weight scheme ${expected} should exist`);
+      assert.equal(communityEntity.weightScheme, expected, `Weight scheme should be ${expected}`);
+    }
+  });
+
+  it("CommunityCreated is idempotent — skips duplicate creation", async () => {
+    let mockDb = MockDb.createMockDb();
+    const garden = createMockAddress(180);
+    const communityA = createMockAddress(181);
+    const communityB = createMockAddress(182);
+
+    const event1 = GardensModule.CommunityCreated.createMockEvent({
+      garden,
+      community: communityA,
+      weightScheme: 0,
+      goodsToken: createMockAddress(183),
+      nftPowerRegistry: createMockAddress(184),
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 101000, {
+        txHash: createMockTxHash(40),
+        logIndex: 40,
+      }),
+    });
+    mockDb = await GardensModule.CommunityCreated.processEvent({ event: event1, mockDb });
+
+    // Second event for same garden should be skipped
+    const event2 = GardensModule.CommunityCreated.createMockEvent({
+      garden,
+      community: communityB,
+      weightScheme: 1,
+      goodsToken: createMockAddress(185),
+      nftPowerRegistry: createMockAddress(186),
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 102000, {
+        txHash: createMockTxHash(41),
+        logIndex: 41,
+      }),
+    });
+    mockDb = await GardensModule.CommunityCreated.processEvent({ event: event2, mockDb });
+
+    const entity = mockDb.entities.GardenCommunity.get(
+      `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}`
+    );
+    assert.ok(entity);
+    // Should retain original community address, not the duplicate
+    assert.equal(entity.communityAddress, communityA.toLowerCase());
+    assert.equal(entity.weightScheme, "LINEAR");
+  });
+
+  it("SignalPoolCreated creates GardenSignalPool entity", async () => {
+    const mockDb = MockDb.createMockDb();
+    const garden = createMockAddress(190);
+    const pool = createMockAddress(191);
+    const community = createMockAddress(192);
+
+    const event = GardensModule.SignalPoolCreated.createMockEvent({
+      garden,
+      pool,
+      poolType: 0,
+      community,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 110000, {
+        txHash: createMockTxHash(50),
+        logIndex: 50,
+      }),
+    });
+
+    const result = await GardensModule.SignalPoolCreated.processEvent({ event, mockDb });
+
+    const expectedId = `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}-${pool.toLowerCase()}`;
+    const poolEntity = result.entities.GardenSignalPool.get(expectedId);
+    assert.ok(poolEntity, "GardenSignalPool entity should exist");
+    assert.equal(poolEntity.chainId, CHAIN_ID_ARBITRUM);
+    assert.equal(poolEntity.garden, garden.toLowerCase());
+    assert.equal(poolEntity.poolAddress, pool.toLowerCase());
+    assert.equal(poolEntity.poolType, "HYPERCERT");
+    assert.equal(poolEntity.communityAddress, community.toLowerCase());
+    assert.equal(poolEntity.createdAt, 110000);
+  });
+
+  it("SignalPoolCreated maps pool types correctly", async () => {
+    const poolTypeTests = [
+      { value: 0, expected: "HYPERCERT" },
+      { value: 1, expected: "ACTION" },
+    ];
+
+    for (const { value, expected } of poolTypeTests) {
+      const mockDb = MockDb.createMockDb();
+      const garden = createMockAddress(200 + value);
+      const pool = createMockAddress(201 + value);
+
+      const event = GardensModule.SignalPoolCreated.createMockEvent({
+        garden,
+        pool,
+        poolType: value,
+        community: createMockAddress(202 + value),
+        mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 111000 + value, {
+          txHash: createMockTxHash(60 + value),
+          logIndex: 60 + value,
+        }),
+      });
+
+      const result = await GardensModule.SignalPoolCreated.processEvent({ event, mockDb });
+      const poolEntity = result.entities.GardenSignalPool.get(
+        `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}-${pool.toLowerCase()}`
+      );
+
+      assert.ok(poolEntity, `Pool for type ${expected} should exist`);
+      assert.equal(poolEntity.poolType, expected, `Pool type should be ${expected}`);
+    }
+  });
+
+  it("SignalPoolCreated is idempotent — skips duplicate pool", async () => {
+    let mockDb = MockDb.createMockDb();
+    const garden = createMockAddress(210);
+    const pool = createMockAddress(211);
+
+    const event1 = GardensModule.SignalPoolCreated.createMockEvent({
+      garden,
+      pool,
+      poolType: 0,
+      community: createMockAddress(212),
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 112000, {
+        txHash: createMockTxHash(70),
+        logIndex: 70,
+      }),
+    });
+    mockDb = await GardensModule.SignalPoolCreated.processEvent({ event: event1, mockDb });
+
+    const event2 = GardensModule.SignalPoolCreated.createMockEvent({
+      garden,
+      pool,
+      poolType: 1,
+      community: createMockAddress(213),
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 113000, {
+        txHash: createMockTxHash(71),
+        logIndex: 71,
+      }),
+    });
+    mockDb = await GardensModule.SignalPoolCreated.processEvent({ event: event2, mockDb });
+
+    const entity = mockDb.entities.GardenSignalPool.get(
+      `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}-${pool.toLowerCase()}`
+    );
+    assert.ok(entity);
+    // Original pool type should be preserved
+    assert.equal(entity.poolType, "HYPERCERT");
+  });
+
+  it("PowerRegistryDeployed updates existing GardenCommunity with registry address", async () => {
+    let mockDb = MockDb.createMockDb();
+    const garden = createMockAddress(220);
+    const community = createMockAddress(221);
+    const registry = createMockAddress(222);
+
+    // First create a community
+    const createEvent = GardensModule.CommunityCreated.createMockEvent({
+      garden,
+      community,
+      weightScheme: 1,
+      goodsToken: createMockAddress(223),
+      nftPowerRegistry: createMockAddress(224),
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 120000, {
+        txHash: createMockTxHash(80),
+        logIndex: 80,
+      }),
+    });
+    mockDb = await GardensModule.CommunityCreated.processEvent({ event: createEvent, mockDb });
+
+    // Then deploy power registry
+    const deployEvent = GardensModule.PowerRegistryDeployed.createMockEvent({
+      garden,
+      registry,
+      weightScheme: 1,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 121000, {
+        txHash: createMockTxHash(81),
+        logIndex: 81,
+      }),
+    });
+    mockDb = await GardensModule.PowerRegistryDeployed.processEvent({
+      event: deployEvent,
+      mockDb,
+    });
+
+    const communityEntity = mockDb.entities.GardenCommunity.get(
+      `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}`
+    );
+    assert.ok(communityEntity);
+    assert.equal(communityEntity.powerRegistryAddress, registry.toLowerCase());
+    // Other fields should remain unchanged
+    assert.equal(communityEntity.weightScheme, "EXPONENTIAL");
+    assert.equal(communityEntity.communityAddress, community.toLowerCase());
+  });
+
+  it("PowerRegistryDeployed is safe when no community exists", async () => {
+    let mockDb = MockDb.createMockDb();
+    const garden = createMockAddress(230);
+    const registry = createMockAddress(231);
+
+    const event = GardensModule.PowerRegistryDeployed.createMockEvent({
+      garden,
+      registry,
+      weightScheme: 0,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 130000, {
+        txHash: createMockTxHash(90),
+        logIndex: 90,
+      }),
+    });
+
+    // Should not throw — handler has an if-guard on existingCommunity
+    mockDb = await GardensModule.PowerRegistryDeployed.processEvent({ event, mockDb });
+
+    const communityEntity = mockDb.entities.GardenCommunity.get(
+      `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}`
+    );
+    assert.equal(communityEntity, undefined);
+  });
+
+  it("GoodsAirdropped creates GoodsAirdrop entity", async () => {
+    const mockDb = MockDb.createMockDb();
+    const garden = createMockAddress(240);
+
+    const event = GardensModule.GoodsAirdropped.createMockEvent({
+      garden,
+      totalAmount: 5000n,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 140000, {
+        txHash: createMockTxHash(100),
+        logIndex: 100,
+      }),
+    });
+
+    const result = await GardensModule.GoodsAirdropped.processEvent({ event, mockDb });
+
+    const expectedId = `${CHAIN_ID_ARBITRUM}-${createMockTxHash(100)}-100`;
+    const airdropEntity = result.entities.GoodsAirdrop.get(expectedId);
+    assert.ok(airdropEntity, "GoodsAirdrop entity should exist");
+    assert.equal(airdropEntity.chainId, CHAIN_ID_ARBITRUM);
+    assert.equal(airdropEntity.garden, garden.toLowerCase());
+    assert.equal(airdropEntity.totalAmount, 5000n);
+    assert.equal(airdropEntity.txHash, createMockTxHash(100));
+    assert.equal(airdropEntity.timestamp, 140000);
+  });
+
+  it("GardenTreasurySeeded creates GardenTreasury entity", async () => {
+    const mockDb = MockDb.createMockDb();
+    const garden = createMockAddress(250);
+
+    const event = GardensModule.GardenTreasurySeeded.createMockEvent({
+      garden,
+      amount: 1000n,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 150000, {
+        txHash: createMockTxHash(110),
+        logIndex: 110,
+      }),
+    });
+
+    const result = await GardensModule.GardenTreasurySeeded.processEvent({ event, mockDb });
+
+    const expectedId = `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}`;
+    const treasuryEntity = result.entities.GardenTreasury.get(expectedId);
+    assert.ok(treasuryEntity, "GardenTreasury entity should exist");
+    assert.equal(treasuryEntity.chainId, CHAIN_ID_ARBITRUM);
+    assert.equal(treasuryEntity.garden, garden.toLowerCase());
+    assert.equal(treasuryEntity.totalSeeded, 1000n);
+    assert.equal(treasuryEntity.lastSeededAt, 150000);
+  });
+
+  it("GardenTreasurySeeded accumulates totalSeeded across multiple events", async () => {
+    let mockDb = MockDb.createMockDb();
+    const garden = createMockAddress(260);
+
+    const event1 = GardensModule.GardenTreasurySeeded.createMockEvent({
+      garden,
+      amount: 500n,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 160000, {
+        txHash: createMockTxHash(120),
+        logIndex: 120,
+      }),
+    });
+    mockDb = await GardensModule.GardenTreasurySeeded.processEvent({ event: event1, mockDb });
+
+    const event2 = GardensModule.GardenTreasurySeeded.createMockEvent({
+      garden,
+      amount: 300n,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 161000, {
+        txHash: createMockTxHash(121),
+        logIndex: 121,
+      }),
+    });
+    mockDb = await GardensModule.GardenTreasurySeeded.processEvent({ event: event2, mockDb });
+
+    const treasuryEntity = mockDb.entities.GardenTreasury.get(
+      `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}`
+    );
+    assert.ok(treasuryEntity);
+    assert.equal(treasuryEntity.totalSeeded, 800n);
+    assert.equal(treasuryEntity.lastSeededAt, 161000);
+  });
+
+  it("Full GardensModule lifecycle: community, pool, power registry, airdrop, treasury", async () => {
+    let mockDb = MockDb.createMockDb();
+    const garden = createMockAddress(270);
+    const community = createMockAddress(271);
+    const pool = createMockAddress(272);
+    const registry = createMockAddress(273);
+    const goodsToken = createMockAddress(274);
+    const nftPowerRegistry = createMockAddress(275);
+
+    // Step 1: Create community
+    const communityEvent = GardensModule.CommunityCreated.createMockEvent({
+      garden,
+      community,
+      weightScheme: 2,
+      goodsToken,
+      nftPowerRegistry,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 200000, {
+        txHash: createMockTxHash(130),
+        logIndex: 130,
+      }),
+    });
+    mockDb = await GardensModule.CommunityCreated.processEvent({
+      event: communityEvent,
+      mockDb,
+    });
+
+    // Step 2: Create signal pool
+    const poolEvent = GardensModule.SignalPoolCreated.createMockEvent({
+      garden,
+      pool,
+      poolType: 1,
+      community,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 200001, {
+        txHash: createMockTxHash(131),
+        logIndex: 131,
+      }),
+    });
+    mockDb = await GardensModule.SignalPoolCreated.processEvent({ event: poolEvent, mockDb });
+
+    // Step 3: Deploy power registry
+    const registryEvent = GardensModule.PowerRegistryDeployed.createMockEvent({
+      garden,
+      registry,
+      weightScheme: 2,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 200002, {
+        txHash: createMockTxHash(132),
+        logIndex: 132,
+      }),
+    });
+    mockDb = await GardensModule.PowerRegistryDeployed.processEvent({
+      event: registryEvent,
+      mockDb,
+    });
+
+    // Step 4: Airdrop GOODS
+    const airdropEvent = GardensModule.GoodsAirdropped.createMockEvent({
+      garden,
+      totalAmount: 10000n,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 200003, {
+        txHash: createMockTxHash(133),
+        logIndex: 133,
+      }),
+    });
+    mockDb = await GardensModule.GoodsAirdropped.processEvent({ event: airdropEvent, mockDb });
+
+    // Step 5: Seed treasury
+    const treasuryEvent = GardensModule.GardenTreasurySeeded.createMockEvent({
+      garden,
+      amount: 2000n,
+      mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 200004, {
+        txHash: createMockTxHash(134),
+        logIndex: 134,
+      }),
+    });
+    mockDb = await GardensModule.GardenTreasurySeeded.processEvent({
+      event: treasuryEvent,
+      mockDb,
+    });
+
+    // Verify all entities
+    const communityEntity = mockDb.entities.GardenCommunity.get(
+      `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}`
+    );
+    assert.ok(communityEntity, "Community should exist");
+    assert.equal(communityEntity.weightScheme, "POWER");
+    assert.equal(communityEntity.powerRegistryAddress, registry.toLowerCase());
+
+    const poolEntity = mockDb.entities.GardenSignalPool.get(
+      `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}-${pool.toLowerCase()}`
+    );
+    assert.ok(poolEntity, "Signal pool should exist");
+    assert.equal(poolEntity.poolType, "ACTION");
+
+    const airdropEntity = mockDb.entities.GoodsAirdrop.get(
+      `${CHAIN_ID_ARBITRUM}-${createMockTxHash(133)}-133`
+    );
+    assert.ok(airdropEntity, "Airdrop should exist");
+    assert.equal(airdropEntity.totalAmount, 10000n);
+
+    const treasuryEntity = mockDb.entities.GardenTreasury.get(
+      `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}`
+    );
+    assert.ok(treasuryEntity, "Treasury should exist");
+    assert.equal(treasuryEntity.totalSeeded, 2000n);
   });
 });
