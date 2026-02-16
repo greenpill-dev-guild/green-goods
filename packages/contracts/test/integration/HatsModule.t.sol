@@ -7,7 +7,27 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { HatsModule } from "../../src/modules/Hats.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { IHatsModuleFactory } from "../../src/interfaces/IHatsModuleFactory.sol";
+import { ICVSyncPowerFacet } from "../../src/interfaces/ICVSyncPowerFacet.sol";
 import { MockHats } from "../../src/mocks/Hats.sol";
+
+/// @notice Mock conviction strategy that records syncPower calls
+contract MockConvictionStrategy is ICVSyncPowerFacet {
+    address[] public syncedMembers;
+
+    function syncPower(address member) external {
+        syncedMembers.push(member);
+    }
+
+    function batchSyncPower(address[] calldata members) external {
+        for (uint256 i = 0; i < members.length; i++) {
+            syncedMembers.push(members[i]);
+        }
+    }
+
+    function syncedMembersLength() external view returns (uint256) {
+        return syncedMembers.length;
+    }
+}
 
 contract RevertingHatsModuleFactory is IHatsModuleFactory {
     function createHatsModule(address, uint256, bytes calldata, bytes calldata, uint256) external pure returns (address) {
@@ -916,7 +936,7 @@ contract HatsModuleTest is Test {
     // Role Hierarchy Sub-Grant Tests (C2 fix verification)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function test_grantOwner_autoGrantsOperatorEvaluatorGardener() public {
+    function test_grantOwner_autoGrantsOperatorAndGardener() public {
         adapter.configureGarden(
             garden1,
             GARDEN1_OWNER_HAT,
@@ -928,14 +948,15 @@ contract HatsModuleTest is Test {
         );
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
 
-        // Grant Owner to user1 — should cascade to Operator, Evaluator, Gardener
+        // Grant Owner to user1 — cascades to Operator + Gardener (NOT Evaluator)
+        // Evaluator is independent: only cascaded when Operator is directly granted
         adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Owner);
 
         assertTrue(adapter.isOwnerOf(garden1, user1), "User1 should be owner");
         assertTrue(adapter.isOperatorOf(garden1, user1), "User1 should auto-get operator");
-        assertTrue(adapter.isEvaluatorOf(garden1, user1), "User1 should auto-get evaluator");
         assertTrue(adapter.isGardenerOf(garden1, user1), "User1 should auto-get gardener");
-        // Funder and Community are NOT auto-granted
+        // Evaluator, Funder, and Community are NOT auto-granted from Owner
+        assertFalse(adapter.isEvaluatorOf(garden1, user1), "User1 should not auto-get evaluator");
         assertFalse(adapter.isFunderOf(garden1, user1), "User1 should not auto-get funder");
         assertFalse(adapter.isCommunityOf(garden1, user1), "User1 should not auto-get community");
     }
@@ -1098,5 +1119,36 @@ contract HatsModuleTest is Test {
 
         vm.expectRevert(HatsModule.ZeroAddress.selector);
         adapter.revokeRole(garden1, address(0), IHatsModule.GardenRole.Gardener);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Conviction Power Sync on Grant Tests (H-7 fix verification)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_grantRole_syncsConvictionPower() public {
+        // Configure garden
+        adapter.configureGarden(
+            garden1,
+            GARDEN1_OWNER_HAT,
+            GARDEN1_OPERATOR_HAT,
+            GARDEN1_EVALUATOR_HAT,
+            GARDEN1_GARDENER_HAT,
+            GARDEN1_FUNDER_HAT,
+            GARDEN1_COMMUNITY_HAT
+        );
+        mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
+
+        // Deploy and register a mock conviction strategy
+        MockConvictionStrategy strategy = new MockConvictionStrategy();
+        address[] memory strategies = new address[](1);
+        strategies[0] = address(strategy);
+        adapter.setConvictionStrategies(garden1, strategies);
+
+        // Grant gardener role to user1
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+
+        // Verify syncPower was called for user1
+        assertEq(strategy.syncedMembersLength(), 1, "syncPower should be called once on grant");
+        assertEq(strategy.syncedMembers(0), user1, "syncPower should be called for the granted user");
     }
 }

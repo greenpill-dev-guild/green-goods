@@ -20,7 +20,9 @@ export interface ActionMedia {
 
 export interface ActionConfig {
   title: string;
-  instructions: string;
+  slug: string;
+  domain: string;
+  description: string;
   startTime: string;
   endTime: string;
   capitals: string[];
@@ -41,6 +43,14 @@ export const CAPITAL_MAPPING: Record<string, number> = {
   EXPERIENTIAL: 5,
   SPIRITUAL: 6,
   CULTURAL: 7,
+};
+
+// Domain enum mapping (matches Solidity Domain enum)
+export const DOMAIN_MAPPING: Record<string, number> = {
+  SOLAR: 0,
+  AGRO: 1,
+  EDU: 2,
+  WASTE: 3,
 };
 
 export class ConfigValidator {
@@ -88,11 +98,29 @@ export class ConfigValidator {
    * @throws Error if validation fails
    */
   validateSingleAction(action: ActionConfig, index: number): boolean {
-    const required: (keyof ActionConfig)[] = ["title", "instructions", "startTime", "endTime", "capitals", "media"];
+    const required: (keyof ActionConfig)[] = ["title", "slug", "domain", "startTime", "endTime", "capitals"];
     const missing = required.filter((field) => !action[field]);
 
     if (missing.length > 0) {
       throw new Error(`Action ${index}: Missing required fields: ${missing.join(", ")}`);
+    }
+
+    // Validate slug format (domain.action_name)
+    if (!/^[a-z]+\.[a-z_]+$/.test(action.slug)) {
+      throw new Error(`Action ${index}: Invalid slug format "${action.slug}". Expected "domain.action_name"`);
+    }
+
+    // Validate domain
+    if (!Object.hasOwn(DOMAIN_MAPPING, action.domain)) {
+      throw new Error(
+        `Action ${index}: Invalid domain "${action.domain}". Valid: ${Object.keys(DOMAIN_MAPPING).join(", ")}`,
+      );
+    }
+
+    // Validate slug prefix matches domain
+    const slugDomain = action.slug.split(".")[0].toUpperCase();
+    if (slugDomain !== action.domain) {
+      throw new Error(`Action ${index}: Slug prefix "${slugDomain}" doesn't match domain "${action.domain}"`);
     }
 
     // Validate capitals
@@ -127,9 +155,9 @@ export class ConfigValidator {
       console.warn(`⚠️  Warning: Action ${index} "${action.title}" ends in less than 24 hours (${action.endTime})`);
     }
 
-    // Validate media
-    if (!Array.isArray(action.media) || action.media.length === 0) {
-      throw new Error(`Action ${index}: Media must be a non-empty array`);
+    // Validate media (allow empty arrays for the new schema)
+    if (!Array.isArray(action.media)) {
+      throw new Error(`Action ${index}: Media must be an array`);
     }
 
     return true;

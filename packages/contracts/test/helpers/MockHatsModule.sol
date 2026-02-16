@@ -86,9 +86,12 @@ contract MockHatsModule is IHatsModule {
 
     function grantRole(address garden, address account, GardenRole role) external {
         grantCalls.push(GrantCall({ garden: garden, account: account, role: role }));
+        _setRole(garden, account, role, true);
     }
 
-    function revokeRole(address, address, GardenRole) external { }
+    function revokeRole(address garden, address account, GardenRole role) external {
+        _setRole(garden, account, role, false);
+    }
 
     function grantRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external {
         for (uint256 i = 0; i < accounts.length; i++) {
@@ -134,5 +137,18 @@ contract MockHatsModule is IHatsModule {
         returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, bool)
     {
         return (0, 0, 0, 0, 0, 0, 0, false);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Internal
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function _setRole(address garden, address account, GardenRole role, bool value) internal {
+        if (role == GardenRole.Owner) ownerOf[garden][account] = value;
+        else if (role == GardenRole.Operator) operatorOf[garden][account] = value;
+        else if (role == GardenRole.Evaluator) evaluatorOf[garden][account] = value;
+        else if (role == GardenRole.Gardener) gardenerOf[garden][account] = value;
+        else if (role == GardenRole.Funder) funderOf[garden][account] = value;
+        else if (role == GardenRole.Community) communityOf[garden][account] = value;
     }
 }

@@ -321,14 +321,14 @@ contract HatsModule is
         view
         override
         returns (
-            uint256 ownerHatId,
-            uint256 operatorHatId,
-            uint256 evaluatorHatId,
-            uint256 gardenerHatId,
-            uint256 funderHatId,
-            uint256 communityHatId,
-            uint256 adminHatId,
-            bool configured
+            uint256, // ownerHatId
+            uint256, // operatorHatId
+            uint256, // evaluatorHatId
+            uint256, // gardenerHatId
+            uint256, // funderHatId
+            uint256, // communityHatId
+            uint256, // adminHatId
+            bool // configured
         )
     {
         GardenHats storage config = gardenHats[garden];
@@ -647,6 +647,10 @@ contract HatsModule is
             // (Evaluator + Gardener) are handled recursively by _grantSubRole
             _grantSubRole(garden, account, GardenRole.Operator, "operator");
         }
+
+        // Best-effort conviction power sync on role grant
+        // Sync fires post-mint so strategies see updated hat state
+        _syncConvictionPower(garden, account);
     }
 
     function _grantSubRole(address garden, address account, GardenRole role, string memory label) internal {
@@ -656,7 +660,6 @@ contract HatsModule is
             // Recursively grant sub-roles for Operator (Evaluator + Gardener + GAP sync)
             if (role == GardenRole.Operator) {
                 _syncProjectAdmin(garden, account, true);
-                _grantSubRole(garden, account, GardenRole.Evaluator, "evaluator");
                 _grantSubRole(garden, account, GardenRole.Gardener, "gardener");
             }
         } catch Error(string memory errorMsg) {

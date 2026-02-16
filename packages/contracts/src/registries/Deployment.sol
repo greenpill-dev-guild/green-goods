@@ -5,10 +5,10 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { EnumerableSetUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
-/// @title DeploymentRegistry
+/// @title Deployment
 /// @notice A governance-controlled registry for managing contract deployments across networks
 /// @dev Provides a centralized way to access deployed contract addresses with allowlist mechanism
-contract DeploymentRegistry is OwnableUpgradeable, UUPSUpgradeable {
+contract Deployment is OwnableUpgradeable, UUPSUpgradeable {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     /// @notice Core contract addresses for each network

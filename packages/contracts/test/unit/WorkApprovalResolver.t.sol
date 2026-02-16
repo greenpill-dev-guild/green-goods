@@ -6,9 +6,17 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { Attestation } from "@eas/IEAS.sol";
 
 import { WorkApprovalSchema, WorkSchema } from "../../src/Schemas.sol";
-import { WorkApprovalResolver, NotInWorkRegistry, NotGardenOperator } from "../../src/resolvers/WorkApproval.sol";
+import {
+    WorkApprovalResolver,
+    NotInWorkRegistry,
+    NotGardenOperator,
+    InvalidConfidence,
+    InvalidVerificationMethod,
+    ActionMismatch,
+    InvalidSchema
+} from "../../src/resolvers/WorkApproval.sol";
 import { NotInActionRegistry } from "../../src/resolvers/Work.sol";
-import { ActionRegistry, Capital } from "../../src/registries/Action.sol";
+import { ActionRegistry, Capital, Domain } from "../../src/registries/Action.sol";
 import { MockEAS } from "../../src/mocks/EAS.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
 
@@ -52,7 +60,14 @@ contract WorkApprovalResolverTest is Test {
 
         vm.prank(multisig);
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 30 days, "Plant Trees", "ipfs://instructions", capitals, new string[](0)
+            block.timestamp,
+            block.timestamp + 30 days,
+            "Plant Trees",
+            "agro.planting",
+            "ipfs://instructions",
+            capitals,
+            new string[](0),
+            Domain.AGRO
         );
         activeActionId = 0;
 
@@ -97,7 +112,7 @@ contract WorkApprovalResolverTest is Test {
     }
 
     function testIsPayable() public {
-        assertTrue(workApprovalResolver.isPayable(), "Resolver should be payable");
+        assertFalse(workApprovalResolver.isPayable(), "Resolver should not be payable");
     }
 
     function testActionRegistrySet() public {
@@ -108,28 +123,20 @@ contract WorkApprovalResolverTest is Test {
     // onAttest: Happy Path Tests
     // =========================================================================
 
-    function testOnAttestValidEvaluatorApproval() public {
-        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, true);
-
-        vm.prank(address(mockEAS));
-        bool result = workApprovalResolver.attest(attestation);
-        assertTrue(result, "Valid evaluator approval should succeed");
-    }
-
     function testOnAttestValidOperatorApproval() public {
         Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
 
         vm.prank(address(mockEAS));
         bool result = workApprovalResolver.attest(attestation);
-        assertTrue(result, "Operator should also be able to approve work");
+        assertTrue(result, "Operator should be able to approve work");
     }
 
-    function testOnAttestValidRejection() public {
-        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, false);
+    function testOnAttestValidOperatorRejection() public {
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, false);
 
         vm.prank(address(mockEAS));
         bool result = workApprovalResolver.attest(attestation);
-        assertTrue(result, "Rejection (approved=false) should also succeed");
+        assertTrue(result, "Operator should be able to reject work");
     }
 
     // =========================================================================
@@ -165,7 +172,7 @@ contract WorkApprovalResolverTest is Test {
     // onAttest: Identity Validation (SECOND check)
     // =========================================================================
 
-    function testOnAttestRevertsForNonEvaluatorNonOperator() public {
+    function testOnAttestRevertsForStranger() public {
         Attestation memory attestation = _buildApprovalAttestation(stranger, workUID, activeActionId, true);
 
         vm.prank(address(mockEAS));
@@ -173,8 +180,17 @@ contract WorkApprovalResolverTest is Test {
         workApprovalResolver.attest(attestation);
     }
 
-    function testOnAttestRevertsForGardenerOnly() public {
-        // Gardeners cannot approve work - only evaluators and operators can
+    function testOnAttestRevertsForEvaluator() public {
+        // Evaluators handle assessments, not work approvals — only operators can
+        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, true);
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(NotGardenOperator.selector);
+        workApprovalResolver.attest(attestation);
+    }
+
+    function testOnAttestRevertsForGardener() public {
+        // Gardeners cannot approve work — only operators can
         Attestation memory attestation = _buildApprovalAttestation(gardener, workUID, activeActionId, true);
 
         vm.prank(address(mockEAS));
@@ -188,47 +204,55 @@ contract WorkApprovalResolverTest is Test {
 
     function testOnAttestRevertsForNonExistentAction() public {
         uint256 nonExistentAction = 999;
-        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, nonExistentAction, true);
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, nonExistentAction, true);
 
+        // Cross-validation (ActionMismatch) fires before registry check (NotInActionRegistry)
+        // because work.actionUID (0) != approval.actionUID (999)
         vm.prank(address(mockEAS));
-        vm.expectRevert(NotInActionRegistry.selector);
+        vm.expectRevert(ActionMismatch.selector);
         workApprovalResolver.attest(attestation);
     }
 
     // =========================================================================
-    // onRevoke Tests
+    // onAttest: Action Cross-Validation
     // =========================================================================
 
-    function testOnRevokeByEvaluator() public {
-        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, true);
+    function test_revert_ActionMismatch() public {
+        // Register a second action
+        Capital[] memory capitals = new Capital[](1);
+        capitals[0] = Capital.LIVING;
+
+        vm.prank(multisig);
+        actionRegistry.registerAction(
+            block.timestamp,
+            block.timestamp + 30 days,
+            "Different Action",
+            "agro.different",
+            "ipfs://different",
+            capitals,
+            new string[](0),
+            Domain.AGRO
+        );
+        uint256 differentActionId = 1;
+
+        // Work was submitted with activeActionId (0), but approval references differentActionId (1)
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, differentActionId, true);
 
         vm.prank(address(mockEAS));
-        bool result = workApprovalResolver.revoke(attestation);
-        assertTrue(result, "Evaluator should be able to revoke approval");
+        vm.expectRevert(ActionMismatch.selector);
+        workApprovalResolver.attest(attestation);
     }
 
-    function testOnRevokeByOperator() public {
+    // =========================================================================
+    // onRevoke Tests — revocation is always rejected
+    // =========================================================================
+
+    function testOnRevokeAlwaysReturnsFalse() public {
         Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
 
         vm.prank(address(mockEAS));
         bool result = workApprovalResolver.revoke(attestation);
-        assertTrue(result, "Operator should be able to revoke approval");
-    }
-
-    function testOnRevokeRevertsForNonEvaluator() public {
-        Attestation memory attestation = _buildApprovalAttestation(stranger, workUID, activeActionId, true);
-
-        vm.prank(address(mockEAS));
-        vm.expectRevert(NotGardenOperator.selector);
-        workApprovalResolver.revoke(attestation);
-    }
-
-    function testOnRevokeRevertsForGardener() public {
-        Attestation memory attestation = _buildApprovalAttestation(gardener, workUID, activeActionId, true);
-
-        vm.prank(address(mockEAS));
-        vm.expectRevert(NotGardenOperator.selector);
-        workApprovalResolver.revoke(attestation);
+        assertFalse(result, "Revocation should always be rejected");
     }
 
     // =========================================================================
@@ -255,7 +279,7 @@ contract WorkApprovalResolverTest is Test {
     // =========================================================================
 
     function testOnlyEASCanCallAttest() public {
-        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, true);
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
 
         vm.prank(stranger);
         vm.expectRevert();
@@ -296,7 +320,7 @@ contract WorkApprovalResolverTest is Test {
 
     function testOnAttestApproval_skipsGAPWhenNoModule() public {
         // Default: karmaGAPModule == address(0)
-        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, true);
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
 
         vm.prank(address(mockEAS));
         bool result = workApprovalResolver.attest(attestation);
@@ -313,10 +337,10 @@ contract WorkApprovalResolverTest is Test {
         vm.mockCall(
             address(mockGarden),
             abi.encodeWithSignature("token()"),
-            abi.encode(uint256(84_532), address(0xdead), uint256(1))
+            abi.encode(uint256(11_155_111), address(0xdead), uint256(1))
         );
 
-        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, true);
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
 
         vm.prank(address(mockEAS));
         bool result = workApprovalResolver.attest(attestation);
@@ -329,7 +353,7 @@ contract WorkApprovalResolverTest is Test {
         workApprovalResolver.setKarmaGAPModule(address(mockModule));
 
         // Rejection: approved = false → GAP branch skipped
-        Attestation memory attestation = _buildApprovalAttestation(evaluator, workUID, activeActionId, false);
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, false);
 
         vm.prank(address(mockEAS));
         bool result = workApprovalResolver.attest(attestation);
@@ -353,6 +377,154 @@ contract WorkApprovalResolverTest is Test {
     }
 
     // =========================================================================
+    // onAttest: Confidence Validation (FOURTH check)
+    // =========================================================================
+
+    function testOnAttestRevertsForInvalidConfidence() public {
+        // confidence=4 exceeds max value of 3 (HIGH)
+        Attestation memory attestation =
+            _buildApprovalAttestationExtended(operator, workUID, activeActionId, true, 4, 1, "");
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(InvalidConfidence.selector);
+        workApprovalResolver.attest(attestation);
+    }
+
+    function testOnAttestRevertsForConfidence255() public {
+        // Edge case: max uint8 value
+        Attestation memory attestation =
+            _buildApprovalAttestationExtended(operator, workUID, activeActionId, true, 255, 1, "");
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(InvalidConfidence.selector);
+        workApprovalResolver.attest(attestation);
+    }
+
+    function testOnAttestApprovalWithZeroConfidence() public {
+        // approved=true, confidence=0 (NONE) is valid — no minimum confidence required
+        Attestation memory attestation =
+            _buildApprovalAttestationExtended(operator, workUID, activeActionId, true, 0, 1, "");
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Approval with NONE confidence should succeed");
+    }
+
+    function testOnAttestApprovalWithLowConfidence() public {
+        // approved=true, confidence=1 (LOW) should succeed
+        Attestation memory attestation =
+            _buildApprovalAttestationExtended(operator, workUID, activeActionId, true, 1, 1, "");
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Approval with LOW confidence should succeed");
+    }
+
+    function testOnAttestApprovalWithHighConfidence() public {
+        // approved=true, confidence=3 (HIGH) should succeed
+        Attestation memory attestation =
+            _buildApprovalAttestationExtended(operator, workUID, activeActionId, true, 3, 1, "");
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Approval with HIGH confidence should succeed");
+    }
+
+    function testOnAttestRejectionWithZeroConfidence() public {
+        // approved=false, confidence=0 (NONE) should succeed for rejections
+        Attestation memory attestation =
+            _buildApprovalAttestationExtended(operator, workUID, activeActionId, false, 0, 0, "");
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Rejection with NONE confidence should succeed");
+    }
+
+    // =========================================================================
+    // onAttest: VerificationMethod Validation (FIFTH check)
+    // =========================================================================
+
+    function testOnAttestRevertsForInvalidVerificationMethod() public {
+        // verificationMethod=16 exceeds the 4-bit bitmask (max 15)
+        Attestation memory attestation =
+            _buildApprovalAttestationExtended(operator, workUID, activeActionId, true, 2, 16, "");
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(InvalidVerificationMethod.selector);
+        workApprovalResolver.attest(attestation);
+    }
+
+    function testOnAttestRevertsForVerificationMethod255() public {
+        // Edge case: max uint8 value
+        Attestation memory attestation =
+            _buildApprovalAttestationExtended(operator, workUID, activeActionId, true, 2, 255, "");
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(InvalidVerificationMethod.selector);
+        workApprovalResolver.attest(attestation);
+    }
+
+    function testOnAttestValidCombinedVerificationMethods() public {
+        // HUMAN(1) + IOT(2) = 3 — valid bitmask combination
+        Attestation memory attestation =
+            _buildApprovalAttestationExtended(operator, workUID, activeActionId, true, 2, 3, "");
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Combined HUMAN+IOT method should succeed");
+    }
+
+    function testOnAttestAllVerificationMethods() public {
+        // HUMAN(1) + IOT(2) + ONCHAIN(4) + AGENT(8) = 15 — all methods
+        Attestation memory attestation =
+            _buildApprovalAttestationExtended(operator, workUID, activeActionId, true, 3, 15, "");
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "All verification methods combined should succeed");
+    }
+
+    // =========================================================================
+    // onAttest: ReviewNotesCID (optional field — no revert expected)
+    // =========================================================================
+
+    function testOnAttestWithReviewNotesCID() public {
+        Attestation memory attestation = _buildApprovalAttestationExtended(
+            operator, workUID, activeActionId, true, 2, 1, "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"
+        );
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Approval with reviewNotesCID should succeed");
+    }
+
+    function testOnAttestWithEmptyReviewNotesCID() public {
+        Attestation memory attestation =
+            _buildApprovalAttestationExtended(operator, workUID, activeActionId, true, 2, 1, "");
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(attestation);
+        assertTrue(result, "Approval with empty reviewNotesCID should succeed");
+    }
+
+    // =========================================================================
+    // Schema UID Validation Tests
+    // =========================================================================
+
+    function test_revert_InvalidSchema() public {
+        bytes32 expectedSchema = bytes32(uint256(200));
+        vm.prank(multisig);
+        workApprovalResolver.setSchemaUID(expectedSchema);
+
+        // Build attestation with a different schema UID (101 != 200)
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(InvalidSchema.selector);
+        workApprovalResolver.attest(attestation);
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 
@@ -366,11 +538,32 @@ contract WorkApprovalResolverTest is Test {
         view
         returns (Attestation memory)
     {
+        return _buildApprovalAttestationExtended(
+            attester, _workUID, actionUID, approved, approved ? 2 : 0, approved ? 1 : 0, ""
+        );
+    }
+
+    function _buildApprovalAttestationExtended(
+        address attester,
+        bytes32 _workUID,
+        uint256 actionUID,
+        bool approved,
+        uint8 confidence,
+        uint8 verificationMethod,
+        string memory reviewNotesCID
+    )
+        internal
+        view
+        returns (Attestation memory)
+    {
         WorkApprovalSchema memory schema = WorkApprovalSchema({
             actionUID: actionUID,
             workUID: _workUID,
             approved: approved,
-            feedback: approved ? "Good work" : "Needs improvement"
+            feedback: approved ? "Good work" : "Needs improvement",
+            confidence: confidence,
+            verificationMethod: verificationMethod,
+            reviewNotesCID: reviewNotesCID
         });
 
         return Attestation({
@@ -380,7 +573,7 @@ contract WorkApprovalResolverTest is Test {
             expirationTime: 0,
             revocationTime: 0,
             refUID: _workUID,
-            recipient: address(mockGarden), // Same garden as work attestation
+            recipient: address(mockGarden),
             attester: attester,
             revocable: true,
             data: abi.encode(schema)

@@ -27,7 +27,7 @@ const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
   "assessment-resolver": "upgradeAssessmentResolver()",
-  "deployment-registry": "upgradeDeploymentRegistry()",
+  "deployment-registry": "upgradeDeployment()",
   all: "upgradeAll()",
 };
 
@@ -151,7 +151,7 @@ Contracts:
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver
   assessment-resolver     Upgrade AssessmentResolver
-  deployment-registry     Upgrade DeploymentRegistry
+  deployment-registry     Upgrade Deployment
   all                     Upgrade all contracts
 
 Options:

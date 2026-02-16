@@ -6,6 +6,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 
 import { GardenToken } from "../../src/tokens/Garden.sol";
 import { GardenAccount } from "../../src/accounts/Garden.sol";
+import { ActionRegistry } from "../../src/registries/Action.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
 import { MockNonERC20 } from "../../src/mocks/NonERC20.sol";
 import { MockHatsModule } from "../helpers/MockHatsModule.sol";
@@ -70,7 +71,8 @@ contract GardenTokenTest is Test, ERC6551Helper {
             bannerImage: "Banner",
             metadata: "",
             openJoining: false,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
     }
 
@@ -118,7 +120,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
         address notAuthorized = address(0x999);
 
         vm.prank(notAuthorized);
-        vm.expectRevert(GardenToken.DeploymentRegistryNotConfigured.selector);
+        vm.expectRevert(GardenToken.DeploymentNotConfigured.selector);
         gardenToken.mintGarden(_defaultConfig(address(mockToken)));
     }
 
@@ -170,7 +172,8 @@ contract GardenTokenTest is Test, ERC6551Helper {
             bannerImage: "Banner 2",
             metadata: "",
             openJoining: true,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
 
         vm.prank(multisig);
@@ -242,10 +245,10 @@ contract GardenTokenTest is Test, ERC6551Helper {
         gardenToken.setOctantModule(address(0xBEEF));
     }
 
-    function test_setDeploymentRegistry_onlyOwner() public {
+    function test_setDeployment_onlyOwner() public {
         vm.prank(address(0x999));
         vm.expectRevert("Ownable: caller is not the owner");
-        gardenToken.setDeploymentRegistry(address(0xDEAD));
+        gardenToken.setDeployment(address(0xDEAD));
     }
 
     // =========================================================================
@@ -274,5 +277,286 @@ contract GardenTokenTest is Test, ERC6551Helper {
         vm.prank(address(0x999));
         vm.expectRevert("Ownable: caller is not the owner");
         gardenToken.upgradeTo(address(newImpl));
+    }
+
+    // =========================================================================
+    // Domain Masking Integration Tests
+    // =========================================================================
+
+    function test_mintGarden_setsDomainMaskOnActionRegistry() public {
+        _setHatsModule();
+
+        // Deploy and wire ActionRegistry
+        ActionRegistry ar = ActionRegistry(
+            address(
+                new ERC1967Proxy(
+                    address(new ActionRegistry()), abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig)
+                )
+            )
+        );
+
+        vm.startPrank(multisig);
+        ar.setGardenToken(address(gardenToken));
+        gardenToken.setActionRegistry(address(ar));
+        vm.stopPrank();
+
+        // Mint garden with domainMask = 0x05 (Solar + Edu)
+        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        config.domainMask = 0x05;
+
+        vm.prank(multisig);
+        address garden = gardenToken.mintGarden(config);
+
+        // Verify domain mask was set
+        assertEq(ar.gardenDomains(garden), 0x05, "Domain mask should be set on ActionRegistry");
+    }
+
+    function test_mintGarden_zeroDomainMask_skipsActionRegistry() public {
+        _setHatsModule();
+
+        ActionRegistry ar = ActionRegistry(
+            address(
+                new ERC1967Proxy(
+                    address(new ActionRegistry()), abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig)
+                )
+            )
+        );
+
+        vm.startPrank(multisig);
+        ar.setGardenToken(address(gardenToken));
+        gardenToken.setActionRegistry(address(ar));
+        vm.stopPrank();
+
+        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        config.domainMask = 0; // zero = skip
+
+        vm.prank(multisig);
+        address garden = gardenToken.mintGarden(config);
+
+        assertEq(ar.gardenDomains(garden), 0x00, "Zero mask should not set domains");
+    }
+
+    function test_mintGarden_allDomains_0x0F() public {
+        _setHatsModule();
+
+        ActionRegistry ar = ActionRegistry(
+            address(
+                new ERC1967Proxy(
+                    address(new ActionRegistry()), abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig)
+                )
+            )
+        );
+
+        vm.startPrank(multisig);
+        ar.setGardenToken(address(gardenToken));
+        gardenToken.setActionRegistry(address(ar));
+        vm.stopPrank();
+
+        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        config.domainMask = 0x0F; // all 4 domains
+
+        vm.prank(multisig);
+        address garden = gardenToken.mintGarden(config);
+
+        assertEq(ar.gardenDomains(garden), 0x0F, "All domains should be set");
+    }
+
+    function test_mintGarden_withoutActionRegistry_stillSucceeds() public {
+        _setHatsModule();
+
+        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        config.domainMask = 0x0F; // all domains, but no ActionRegistry wired
+
+        vm.prank(multisig);
+        address garden = gardenToken.mintGarden(config);
+        assertTrue(garden != address(0), "Mint should succeed without ActionRegistry");
+    }
+
+    // =========================================================================
+    // Module Setter Access Control (Completeness)
+    // =========================================================================
+
+    function test_setGardensModule_onlyOwner() public {
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        gardenToken.setGardensModule(address(0xCAFE));
+    }
+
+    function test_setActionRegistry_onlyOwner() public {
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        gardenToken.setActionRegistry(address(0xCAFE));
+    }
+
+    function test_setCookieJarModule_onlyOwner() public {
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        gardenToken.setCookieJarModule(address(0xCAFE));
+    }
+
+    function test_setHatsModule_onlyOwner() public {
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        gardenToken.setHatsModule(address(0xCAFE));
+    }
+
+    // =========================================================================
+    // Module Setter Event Emissions (Completeness)
+    // =========================================================================
+
+    event GardensModuleUpdated(address indexed oldModule, address indexed newModule);
+    event ActionRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
+    event CookieJarModuleUpdated(address indexed oldModule, address indexed newModule);
+
+    function test_setGardensModule_emitsEvent() public {
+        address newModule = address(0xBEEF);
+        vm.expectEmit(true, true, false, false);
+        emit GardensModuleUpdated(address(0), newModule);
+
+        vm.prank(multisig);
+        gardenToken.setGardensModule(newModule);
+    }
+
+    function test_setActionRegistry_emitsEvent() public {
+        address newRegistry = address(0xBEEF);
+        vm.expectEmit(true, true, false, false);
+        emit ActionRegistryUpdated(address(0), newRegistry);
+
+        vm.prank(multisig);
+        gardenToken.setActionRegistry(newRegistry);
+    }
+
+    function test_setCookieJarModule_emitsEvent() public {
+        address newModule = address(0xBEEF);
+        vm.expectEmit(true, true, false, false);
+        emit CookieJarModuleUpdated(address(0), newModule);
+
+        vm.prank(multisig);
+        gardenToken.setCookieJarModule(newModule);
+    }
+
+    // =========================================================================
+    // Batch Mint Uniqueness
+    // =========================================================================
+
+    function test_batchMintGardens_producesUniqueGardenAddresses() public {
+        _setHatsModule();
+
+        GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](3);
+        configs[0] = _defaultConfig(address(mockToken));
+        configs[0].name = "Garden 0";
+        configs[1] = _defaultConfig(address(mockToken));
+        configs[1].name = "Garden 1";
+        configs[2] = _defaultConfig(address(mockToken));
+        configs[2].name = "Garden 2";
+
+        vm.prank(multisig);
+        address[] memory accounts = gardenToken.batchMintGardens(configs);
+
+        // Verify all addresses are unique
+        assertTrue(accounts[0] != accounts[1], "Garden 0 and 1 should differ");
+        assertTrue(accounts[1] != accounts[2], "Garden 1 and 2 should differ");
+        assertTrue(accounts[0] != accounts[2], "Garden 0 and 2 should differ");
+    }
+
+    // =========================================================================
+    // Transfer Restriction Tests
+    // =========================================================================
+
+    function test_transferRestriction_locked() public {
+        _setHatsModule();
+
+        vm.prank(multisig);
+        address gardenAccount = gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+        assertTrue(gardenAccount != address(0), "Garden should be minted");
+
+        // Set transfer restriction to Locked
+        vm.prank(multisig);
+        gardenToken.setTransferRestriction(GardenToken.TransferRestriction.Locked);
+
+        // Try to transfer — should revert
+        vm.prank(multisig);
+        vm.expectRevert(GardenToken.TransfersLocked.selector);
+        gardenToken.transferFrom(multisig, address(0x999), 0);
+    }
+
+    function test_transferRestriction_ownerOnly() public {
+        _setHatsModule();
+
+        vm.prank(multisig);
+        address gardenAccount = gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+        assertTrue(gardenAccount != address(0), "Garden should be minted");
+
+        // Set restriction to OwnerOnly
+        vm.prank(multisig);
+        gardenToken.setTransferRestriction(GardenToken.TransferRestriction.OwnerOnly);
+
+        // Transfer by owner should succeed
+        vm.prank(multisig);
+        gardenToken.transferFrom(multisig, address(0x999), 0);
+        assertEq(gardenToken.ownerOf(0), address(0x999), "Token should transfer to new owner");
+
+        // Mint another token for non-owner transfer test
+        vm.prank(multisig);
+        gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+
+        // Approve a non-owner to transfer
+        vm.prank(multisig);
+        gardenToken.approve(address(0x888), 1);
+
+        // Non-owner transfer should revert
+        vm.prank(address(0x888));
+        vm.expectRevert(GardenToken.TransfersRestricted.selector);
+        gardenToken.transferFrom(multisig, address(0x777), 1);
+    }
+
+    function test_transferRestriction_unrestricted() public {
+        _setHatsModule();
+
+        vm.prank(multisig);
+        gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+
+        // Default is Unrestricted — transfer should work
+        vm.prank(multisig);
+        gardenToken.transferFrom(multisig, address(0x999), 0);
+        assertEq(gardenToken.ownerOf(0), address(0x999), "Token should transfer successfully");
+    }
+
+    function test_setTransferRestriction_onlyOwner() public {
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        gardenToken.setTransferRestriction(GardenToken.TransferRestriction.Locked);
+    }
+
+    function test_batchMintGardens_withDomainMasks() public {
+        _setHatsModule();
+
+        ActionRegistry ar = ActionRegistry(
+            address(
+                new ERC1967Proxy(
+                    address(new ActionRegistry()), abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig)
+                )
+            )
+        );
+
+        vm.startPrank(multisig);
+        ar.setGardenToken(address(gardenToken));
+        gardenToken.setActionRegistry(address(ar));
+        vm.stopPrank();
+
+        GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](3);
+        configs[0] = _defaultConfig(address(mockToken));
+        configs[0].domainMask = 0x01; // Solar
+        configs[1] = _defaultConfig(address(mockToken));
+        configs[1].domainMask = 0x06; // Agro + Edu
+        configs[2] = _defaultConfig(address(mockToken));
+        configs[2].domainMask = 0x0F; // All
+
+        vm.prank(multisig);
+        address[] memory accounts = gardenToken.batchMintGardens(configs);
+
+        assertEq(ar.gardenDomains(accounts[0]), 0x01, "Garden 0 should have Solar");
+        assertEq(ar.gardenDomains(accounts[1]), 0x06, "Garden 1 should have Agro+Edu");
+        assertEq(ar.gardenDomains(accounts[2]), 0x0F, "Garden 2 should have all domains");
     }
 }

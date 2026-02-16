@@ -14,7 +14,7 @@ import { GardenAccount } from "../src/accounts/Garden.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
-import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
+import { Deployment } from "../src/registries/Deployment.sol";
 
 /// @title Upgrade Script for Green Goods Contracts
 /// @notice Handles UUPS proxy upgrades for all upgradeable contracts
@@ -226,30 +226,30 @@ contract Upgrade is Script {
         vm.stopBroadcast();
     }
 
-    /// @notice Upgrade DeploymentRegistry
-    function upgradeDeploymentRegistry() public {
+    /// @notice Upgrade Deployment
+    function upgradeDeployment() public {
         address proxy = loadProxyAddress("deploymentRegistry");
-        console.log("Upgrading DeploymentRegistry proxy at:", proxy);
+        console.log("Upgrading Deployment proxy at:", proxy);
 
         // Validate proxy
-        validateProxy(proxy, "DeploymentRegistry");
+        validateProxy(proxy, "Deployment");
 
         // Get current implementation
         bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
         bytes32 currentImpl = vm.load(proxy, implementationSlot);
         address currentImplAddr = address(uint160(uint256(currentImpl)));
-        console.log("Current DeploymentRegistry implementation:", currentImplAddr);
+        console.log("Current Deployment implementation:", currentImplAddr);
 
         vm.startBroadcast();
 
-        DeploymentRegistry newImpl = new DeploymentRegistry();
-        console.log("New DeploymentRegistry implementation:", address(newImpl));
+        Deployment newImpl = new Deployment();
+        console.log("New Deployment implementation:", address(newImpl));
 
         // Verify implementations differ
         if (address(newImpl) == currentImplAddr) revert SameImplementation();
 
         UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
-        console.log("DeploymentRegistry upgraded successfully");
+        console.log("Deployment upgraded successfully");
 
         vm.stopBroadcast();
     }
@@ -264,7 +264,7 @@ contract Upgrade is Script {
         upgradeWorkResolver();
         upgradeWorkApprovalResolver();
         upgradeAssessmentResolver();
-        upgradeDeploymentRegistry();
+        upgradeDeployment();
         // NOTE: upgradeGardenerAccount() removed - Gardener.sol has been removed
     }
 

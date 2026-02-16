@@ -10,7 +10,7 @@ import { HatsModule } from "../src/modules/Hats.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
 import { ActionRegistry } from "../src/registries/Action.sol";
 import { GardensModule } from "../src/modules/Gardens.sol";
-import { YieldSplitter } from "../src/yield/YieldSplitter.sol";
+import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { MockHats } from "../src/mocks/Hats.sol";
 import { MockOctantFactory } from "../src/mocks/Octant.sol";
 
@@ -28,8 +28,9 @@ contract StorageLayoutTest is Test {
     // =========================================================================
     // GardenToken Storage Layout
     // Layout: Initializable(2 slots packed) + ERC721(6 slots) + Ownable(1 slot)
-    //         + _nextTokenId + deploymentRegistry + hatsModule + karmaGAPModule + __gap[46]
-    // Total slots after inherited: 4 named + 46 gap = 50
+    //         + _nextTokenId + deploymentRegistry + hatsModule + karmaGAPModule + octantModule
+    //         + gardensModule + actionRegistry + __gap[43]
+    // Total slots after inherited: 7 named + 43 gap = 50
     // =========================================================================
 
     function testGardenTokenStorageSlots() public {
@@ -54,14 +55,14 @@ contract StorageLayoutTest is Test {
         assertEq(storedOctant, address(0xCC), "octantModule value should match");
     }
 
-    /// @notice Verify GardenToken gap is exactly 44 slots
+    /// @notice Verify GardenToken gap is exactly 43 slots
     function testGardenTokenGapSize() public {
-        // The gap is declared as uint256[44] in GardenToken
-        // Total contract slots = 6 named + 44 gap = 50
+        // The gap is declared as uint256[43] in GardenToken
+        // Total contract slots = 7 named + 43 gap = 50
         // If someone adds a variable and forgets to shrink the gap, this will catch it
-        uint256 expectedNamedSlots = 6; // _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule, octantModule,
-            // gardensModule
-        uint256 expectedGapSize = 44;
+        uint256 expectedNamedSlots = 7; // _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule, octantModule,
+            // gardensModule, actionRegistry
+        uint256 expectedGapSize = 43;
         uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
         assertEq(expectedTotal, 50, "GardenToken should use exactly 50 custom slots");
     }
@@ -109,18 +110,20 @@ contract StorageLayoutTest is Test {
         assertEq(module.gardenToken(), address(0xCC), "garden token should match");
         assertEq(module.supportedAssets(address(0xAA)), address(0xBB), "strategy should match");
         assertEq(module.supportedAssetCount(), 1, "supportedAssetCount should match");
+        assertEq(module.pendingDeactivations(address(0xAA)), 0, "no pending deactivation initially");
     }
 
     function testOctantModuleGapSize() public {
         // Named storage: octantFactory + defaultProfitUnlockTime + gardenDonationAddresses(mapping)
         // + gardenAssetVaults(mapping) + supportedAssets(mapping) + supportedAssetList(array)
-        // + supportedAssetCount + gardenToken = 8
+        // + supportedAssetCount + gardenToken + vaultStrategies(mapping)
+        // + pendingDeactivations(mapping) = 10
         // ReentrancyGuardUpgradeable adds 1 slot (_status)
-        // Gap = 41
-        // Total = 8 + 1 + 41 = 50
-        uint256 expectedNamedSlots = 8;
+        // Gap = 39
+        // Total = 10 + 1 + 39 = 50
+        uint256 expectedNamedSlots = 10;
         uint256 expectedReentrancySlots = 1;
-        uint256 expectedGapSize = 41;
+        uint256 expectedGapSize = 39;
         uint256 expectedTotal = expectedNamedSlots + expectedReentrancySlots + expectedGapSize;
         assertEq(expectedTotal, 50, "OctantModule should use exactly 50 custom slots");
     }
@@ -245,13 +248,14 @@ contract StorageLayoutTest is Test {
         assertEq(registry.owner(), address(this), "owner should be set");
     }
 
-    /// @notice Verify ActionRegistry gap is exactly 47 slots
+    /// @notice Verify ActionRegistry gap is exactly 44 slots
     function testActionRegistryGapSize() public {
-        // Named storage: _nextActionUID + actionToOwner(mapping) + idToAction(mapping) = 3 slots
-        // Gap = 47
-        // Total = 3 + 47 = 50
-        uint256 expectedNamedSlots = 3;
-        uint256 expectedGapSize = 47;
+        // Named storage: _nextActionUID + actionToOwner(mapping) + idToAction(mapping)
+        //   + gardenDomains(mapping) + hatsModule + gardenToken = 6 slots
+        // Gap = 44
+        // Total = 6 + 44 = 50
+        uint256 expectedNamedSlots = 6;
+        uint256 expectedGapSize = 44;
         uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
         assertEq(expectedTotal, 50, "ActionRegistry should use exactly 50 custom slots");
     }
@@ -385,7 +389,7 @@ contract StorageLayoutTest is Test {
     }
 
     // =========================================================================
-    // YieldSplitter Storage Layout
+    // YieldResolver Storage Layout
     // Layout: OwnableUpgradeable(1) + ReentrancyGuardUpgradeable(1) +
     //         octantModule + hypercertMarketplace + jbMultiTerminal +
     //         juiceboxProjectId + minYieldThreshold + minAllocationAmount +
@@ -395,16 +399,16 @@ contract StorageLayoutTest is Test {
     // Total: 12 named + 38 gap = 50
     // =========================================================================
 
-    function testYieldSplitterStorageSlots() public {
-        YieldSplitter impl = new YieldSplitter();
+    function testYieldResolverStorageSlots() public {
+        YieldResolver impl = new YieldResolver();
         bytes memory initData = abi.encodeWithSelector(
-            YieldSplitter.initialize.selector,
+            YieldResolver.initialize.selector,
             address(this), // owner
             address(0x11), // octantModule
             address(0x22), // hatsModule
             7e18 // minYieldThreshold
         );
-        YieldSplitter splitter = YieldSplitter(address(new ERC1967Proxy(address(impl), initData)));
+        YieldResolver splitter = YieldResolver(address(new ERC1967Proxy(address(impl), initData)));
 
         // Verify initialization stored values correctly
         assertEq(splitter.owner(), address(this), "owner should be set");
@@ -413,8 +417,8 @@ contract StorageLayoutTest is Test {
         assertEq(splitter.minYieldThreshold(), 7e18, "minYieldThreshold should match");
     }
 
-    /// @notice Verify YieldSplitter gap is exactly 37 slots
-    function testYieldSplitterGapSize() public {
+    /// @notice Verify YieldResolver gap is exactly 37 slots
+    function testYieldResolverGapSize() public {
         // Named storage: octantModule + hypercertMarketplace + jbMultiTerminal +
         //   juiceboxProjectId + minYieldThreshold + minAllocationAmount +
         //   hatsModule + gardenSplitConfig(mapping) + gardenCookieJars(mapping) +
@@ -425,26 +429,26 @@ contract StorageLayoutTest is Test {
         uint256 expectedNamedSlots = 13;
         uint256 expectedGapSize = 37;
         uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
-        assertEq(expectedTotal, 50, "YieldSplitter should use exactly 50 custom slots");
+        assertEq(expectedTotal, 50, "YieldResolver should use exactly 50 custom slots");
     }
 
-    /// @notice Verify YieldSplitter upgrade preserves all state
-    function testYieldSplitterUpgradePreservesState() public {
-        YieldSplitter impl = new YieldSplitter();
+    /// @notice Verify YieldResolver upgrade preserves all state
+    function testYieldResolverUpgradePreservesState() public {
+        YieldResolver impl = new YieldResolver();
         bytes memory initData = abi.encodeWithSelector(
-            YieldSplitter.initialize.selector,
+            YieldResolver.initialize.selector,
             address(this),
             address(0x11), // octantModule
             address(0x22), // hatsModule
             7e18
         );
-        YieldSplitter splitter = YieldSplitter(address(new ERC1967Proxy(address(impl), initData)));
+        YieldResolver splitter = YieldResolver(address(new ERC1967Proxy(address(impl), initData)));
 
         // Verify initial state
         assertEq(splitter.octantModule(), address(0x11), "octantModule should match");
 
         // Upgrade to new implementation
-        YieldSplitter newImpl = new YieldSplitter();
+        YieldResolver newImpl = new YieldResolver();
         splitter.upgradeTo(address(newImpl));
 
         // Verify state preserved

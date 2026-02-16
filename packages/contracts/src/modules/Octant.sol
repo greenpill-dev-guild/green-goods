@@ -9,6 +9,12 @@ import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/I
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { IOctantFactory, IOctantStrategy, IOctantVault } from "../interfaces/IOctantFactory.sol";
 
+/// @notice Minimal YieldResolver interface for share registration
+interface IYieldResolver {
+    function registerShares(address garden, address vault, uint256 shares) external;
+    function setGardenVault(address garden, address asset, address vault) external;
+}
+
 interface IGardenMetadata {
     function name() external view returns (string memory);
 }
@@ -30,6 +36,14 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
     event SupportedAssetUpdated(address indexed asset, address indexed strategy);
     event DefaultProfitUnlockTimeUpdated(uint256 oldUnlockTime, uint256 newUnlockTime);
     event StrategyShutdownFailed(address indexed garden, address indexed asset, address indexed strategy);
+    event HarvestReportFailed(address indexed garden, address indexed asset, address strategy);
+    event DonationAddressUpdateFailed(address indexed garden, address indexed asset, address strategy);
+    event StrategyAttachmentFailed(address indexed garden, address indexed asset, address vault, address strategy);
+    event AssetDeactivationScheduled(address indexed asset, uint256 executeAfter);
+    event AssetDeactivationExecuted(address indexed asset);
+    event AssetDeactivationCancelled(address indexed asset);
+    event YieldResolverUpdated(address indexed oldResolver, address indexed newResolver);
+    event SharesRegistered(address indexed garden, address indexed vault, uint256 shares);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Errors
@@ -43,6 +57,15 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
     error NoDonationAddress(address garden);
     error NoVaultForAsset(address garden, address asset);
     error VaultAlreadyExists(address garden, address asset);
+    error NotAContract(address);
+    error DeactivationNotReady(address asset, uint256 readyTimestamp);
+    error NoDeactivationPending(address asset);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Constants
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    uint256 public constant DEACTIVATION_DELAY = 3 days;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
@@ -59,7 +82,17 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
 
     address public gardenToken;
 
-    uint256[41] private __gap;
+    /// @notice Records which strategy was attached to each vault at creation time
+    /// @dev Persists even after the asset is deactivated, so existing vaults remain harvestable
+    mapping(address vault => address strategy) public vaultStrategies;
+
+    /// @notice Pending asset deactivation timestamps (0 = no pending deactivation)
+    mapping(address asset => uint256 executeAfter) public pendingDeactivations;
+
+    /// @notice YieldResolver address for share registration during harvest
+    address public yieldResolver;
+
+    uint256[38] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Modifiers
@@ -182,7 +215,34 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
         address strategy = _resolveStrategy(vault, asset);
         if (strategy == address(0)) revert UnsupportedAsset(asset);
 
-        IOctantStrategy(strategy).report();
+        // Snapshot YieldResolver's share balance before processing
+        address resolver = yieldResolver;
+        uint256 sharesBefore = 0;
+        if (resolver != address(0)) {
+            sharesBefore = IOctantVault(vault).balanceOf(resolver);
+        }
+
+        // Trigger vault profit/loss accounting (mints shares to donation address)
+        try IOctantVault(vault).process_report(strategy) { }
+        catch {
+            // Fallback to direct strategy report if process_report fails
+            try IOctantStrategy(strategy).report() { }
+            catch {
+                emit HarvestReportFailed(garden, asset, strategy);
+            }
+        }
+
+        // Register any new shares minted to YieldResolver for this garden
+        if (resolver != address(0)) {
+            uint256 sharesAfter = IOctantVault(vault).balanceOf(resolver);
+            if (sharesAfter > sharesBefore) {
+                uint256 newShares = sharesAfter - sharesBefore;
+                try IYieldResolver(resolver).registerShares(garden, vault, newShares) {
+                    emit SharesRegistered(garden, vault, newShares);
+                } catch { }
+            }
+        }
+
         emit HarvestTriggered(garden, asset, msg.sender);
     }
 
@@ -224,7 +284,10 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
             address strategy = _resolveStrategy(vault, asset);
             if (strategy == address(0)) continue;
 
-            try IOctantStrategy(strategy).setDonationAddress(donationAddress) { } catch { }
+            try IOctantStrategy(strategy).setDonationAddress(donationAddress) { }
+            catch {
+                emit DonationAddressUpdateFailed(garden, asset, strategy);
+            }
         }
 
         emit DonationAddressUpdated(garden, oldAddress, donationAddress);
@@ -256,6 +319,9 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
     // ═══════════════════════════════════════════════════════════════════════════
 
     function setOctantFactory(address _factory) external onlyOwner {
+        if (_factory != address(0) && _factory.code.length == 0) {
+            revert NotAContract(_factory);
+        }
         address oldFactory = address(octantFactory);
         octantFactory = IOctantFactory(_factory);
         emit FactoryUpdated(oldFactory, _factory);
@@ -274,6 +340,17 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
         emit GardenTokenUpdated(oldGardenToken, _gardenToken);
     }
 
+    function setYieldResolver(address _yieldResolver) external onlyOwner {
+        address oldResolver = yieldResolver;
+        yieldResolver = _yieldResolver;
+        emit YieldResolverUpdated(oldResolver, _yieldResolver);
+    }
+
+    /// @notice Add/update/deactivate a supported asset strategy
+    /// @dev Deactivation (strategy == address(0)) uses a two-step timelock:
+    ///      1. First call schedules deactivation after DEACTIVATION_DELAY
+    ///      2. Second call after delay executes the deactivation
+    ///      Adding/updating a strategy is immediate and clears any pending deactivation.
     function setSupportedAsset(address asset, address strategy) external onlyOwner {
         if (asset == address(0)) revert ZeroAddress();
 
@@ -281,19 +358,60 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
             supportedAssetList.push(asset);
         }
 
+        // Deactivation path: two-step timelock
+        if (strategy == address(0)) {
+            uint256 scheduled = pendingDeactivations[asset];
+
+            if (scheduled == 0) {
+                // Step 1: Schedule deactivation
+                uint256 executeAfter = block.timestamp + DEACTIVATION_DELAY;
+                pendingDeactivations[asset] = executeAfter;
+                emit AssetDeactivationScheduled(asset, executeAfter);
+                return;
+            }
+
+            if (block.timestamp < scheduled) {
+                // Too early to execute
+                revert DeactivationNotReady(asset, scheduled);
+            }
+
+            // Step 2: Execute deactivation
+            delete pendingDeactivations[asset];
+
+            address currentStrategy = supportedAssets[asset];
+            if (currentStrategy != address(0)) {
+                unchecked {
+                    supportedAssetCount -= 1;
+                }
+            }
+
+            supportedAssets[asset] = address(0);
+            emit AssetDeactivationExecuted(asset);
+            emit SupportedAssetUpdated(asset, address(0));
+            return;
+        }
+
+        // Activation/update path: immediate, clear any pending deactivation
+        if (pendingDeactivations[asset] != 0) {
+            delete pendingDeactivations[asset];
+        }
+
         address previousStrategy = supportedAssets[asset];
         if (previousStrategy == address(0) && strategy != address(0)) {
             unchecked {
                 supportedAssetCount += 1;
             }
-        } else if (previousStrategy != address(0) && strategy == address(0)) {
-            unchecked {
-                supportedAssetCount -= 1;
-            }
         }
 
         supportedAssets[asset] = strategy;
         emit SupportedAssetUpdated(asset, strategy);
+    }
+
+    /// @notice Cancel a pending asset deactivation
+    function cancelDeactivation(address asset) external onlyOwner {
+        if (pendingDeactivations[asset] == 0) revert NoDeactivationPending(asset);
+        delete pendingDeactivations[asset];
+        emit AssetDeactivationCancelled(asset);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -330,24 +448,35 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
         gardenAssetVaults[garden][asset] = vault;
 
         // Strategy attachment is best-effort to keep mint path non-fragile.
-        try IOctantVault(vault).addStrategy(strategy) { } catch { }
+        try IOctantVault(vault).add_strategy(strategy, true) { }
+        catch {
+            emit StrategyAttachmentFailed(garden, asset, vault, strategy);
+        }
+        vaultStrategies[vault] = strategy;
 
         address donationAddress = gardenDonationAddresses[garden];
         if (donationAddress != address(0)) {
             address attachedStrategy = _resolveStrategy(vault, asset);
             if (attachedStrategy != address(0)) {
-                try IOctantStrategy(attachedStrategy).setDonationAddress(donationAddress) { } catch { }
+                try IOctantStrategy(attachedStrategy).setDonationAddress(donationAddress) { }
+                catch {
+                    emit DonationAddressUpdateFailed(garden, asset, attachedStrategy);
+                }
             }
+        }
+
+        // Register vault with YieldResolver for splitYield() validation
+        if (yieldResolver != address(0)) {
+            try IYieldResolver(yieldResolver).setGardenVault(garden, asset, vault) { } catch { }
         }
 
         emit VaultCreated(garden, vault, asset);
     }
 
     function _resolveStrategy(address vault, address asset) private view returns (address) {
-        try IOctantVault(vault).strategy() returns (address strategy) {
-            if (strategy != address(0)) return strategy;
-        } catch { }
-
+        // Check vault-level strategy first (persists after asset deactivation)
+        address strategy = vaultStrategies[vault];
+        if (strategy != address(0)) return strategy;
         return supportedAssets[asset];
     }
 

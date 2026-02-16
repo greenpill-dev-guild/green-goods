@@ -226,15 +226,16 @@ contract RoleHierarchyFuzzTest is Test {
     // Cascade: Owner Grant
     // =========================================================================
 
-    function testFuzz_ownerGrantCascadesToAllRoles(uint8 userSeed) public {
+    function testFuzz_ownerGrantCascadesToOperatorAndGardener(uint8 userSeed) public {
         address user = users[userSeed % 5];
 
         adapter.grantRole(garden1, user, IHatsModule.GardenRole.Owner);
 
         assertTrue(adapter.isOwnerOf(garden1, user), "Should be owner");
         assertTrue(adapter.isOperatorOf(garden1, user), "Owner should cascade to operator");
-        assertTrue(adapter.isEvaluatorOf(garden1, user), "Owner should cascade to evaluator");
         assertTrue(adapter.isGardenerOf(garden1, user), "Owner should cascade to gardener");
+        // Evaluator is independent — only cascaded when Operator is directly granted
+        assertFalse(adapter.isEvaluatorOf(garden1, user), "Owner should NOT cascade to evaluator");
     }
 
     function testFuzz_ownerGrantDoesNotCascadeToFunderOrCommunity(uint8 userSeed) public {
@@ -336,14 +337,16 @@ contract RoleHierarchyFuzzTest is Test {
     function test_revokeSubHatDoesNotAffectParent() public {
         address user = users[0];
 
+        // Owner cascades to Operator + Gardener (not Evaluator)
         adapter.grantRole(garden1, user, IHatsModule.GardenRole.Owner);
         assertTrue(adapter.isOwnerOf(garden1, user), "Should be owner");
-        assertTrue(adapter.isEvaluatorOf(garden1, user), "Should be evaluator (cascaded)");
+        assertTrue(adapter.isGardenerOf(garden1, user), "Should be gardener (cascaded)");
 
-        adapter.revokeRole(garden1, user, IHatsModule.GardenRole.Evaluator);
+        // Revoking Gardener (a cascaded sub-role) should not affect the parent Owner hat
+        adapter.revokeRole(garden1, user, IHatsModule.GardenRole.Gardener);
 
         assertTrue(adapter.isOwnerOf(garden1, user), "Owner hat should be retained");
-        assertFalse(adapter.isEvaluatorOf(garden1, user), "Evaluator hat should be gone");
+        assertFalse(adapter.isGardenerOf(garden1, user), "Gardener hat should be gone");
     }
 
     // =========================================================================

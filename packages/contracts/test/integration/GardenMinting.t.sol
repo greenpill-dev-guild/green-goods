@@ -68,7 +68,19 @@ contract MockKarmaGAPModule is IKarmaGAPModule {
         return bytes32(0);
     }
 
-    function createMilestone(address, string calldata, string calldata, string calldata) external returns (bytes32) {
+    function createMilestone(
+        address,
+        string calldata,
+        string calldata,
+        uint256,
+        uint256,
+        uint8,
+        string calldata,
+        string calldata
+    )
+        external
+        returns (bytes32)
+    {
         return bytes32(0);
     }
 
@@ -121,7 +133,8 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
             bannerImage: "Banner",
             metadata: "",
             openJoining: false,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
 
         vm.prank(multisig);
@@ -165,7 +178,7 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
         GardenToken.GardenConfig memory config = _defaultConfig();
 
         vm.prank(address(0x999));
-        vm.expectRevert(GardenToken.DeploymentRegistryNotConfigured.selector);
+        vm.expectRevert(GardenToken.DeploymentNotConfigured.selector);
         gardenToken.mintGarden(config);
     }
 
@@ -203,7 +216,8 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
             bannerImage: "Banner2",
             metadata: "",
             openJoining: true,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
 
         vm.prank(multisig);
@@ -267,7 +281,8 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
             bannerImage: "Banner",
             metadata: "",
             openJoining: false,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
     }
 }

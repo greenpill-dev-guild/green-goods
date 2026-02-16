@@ -51,22 +51,6 @@ library HatsLib {
         0x000007e600020002000000000000000000000000000000000000000000000000;
 
     // ============================================================================
-    // GREEN GOODS HAT TREE - BASE SEPOLIA (Legacy Testnet)
-    // ============================================================================
-
-    /// @notice Green Goods Community Top Hat on Base Sepolia
-    /// @dev Placeholder - Base Sepolia support is optional
-    uint256 internal constant BASE_SEPOLIA_COMMUNITY_HAT = 0;
-
-    /// @notice Green Goods Gardens Hat on Base Sepolia
-    /// @dev Placeholder - Base Sepolia support is optional
-    uint256 internal constant BASE_SEPOLIA_GARDENS_HAT = 0;
-
-    /// @notice Green Goods Protocol Gardeners Hat on Base Sepolia
-    /// @dev Placeholder - Base Sepolia support is optional
-    uint256 internal constant BASE_SEPOLIA_PROTOCOL_GARDENERS_HAT = 0;
-
-    // ============================================================================
     // GREEN GOODS HAT TREE - CELO
     // ============================================================================
 
@@ -94,14 +78,6 @@ library HatsLib {
     /// @notice ERC20Eligibility module (Arbitrum)
     /// @dev Placeholder until module instances are deployed and configured
     address internal constant ARBITRUM_ERC20_ELIGIBILITY = address(0);
-
-    /// @notice AllowlistEligibility module (Base Sepolia)
-    /// @dev Placeholder until module instances are deployed and configured
-    address internal constant BASE_SEPOLIA_ALLOWLIST_ELIGIBILITY = address(0);
-
-    /// @notice ERC20Eligibility module (Base Sepolia)
-    /// @dev Placeholder until module instances are deployed and configured
-    address internal constant BASE_SEPOLIA_ERC20_ELIGIBILITY = address(0);
 
     /// @notice AllowlistEligibility module (Sepolia)
     /// @dev Placeholder until module instances are deployed and configured
@@ -136,7 +112,6 @@ library HatsLib {
         uint256 chainId = block.chainid;
         if (chainId == 42_161) return ARBITRUM_GARDENS_HAT;
         if (chainId == 11_155_111) return SEPOLIA_GARDENS_HAT;
-        if (chainId == 84_532) return BASE_SEPOLIA_GARDENS_HAT;
         if (chainId == 42_220) return CELO_GARDENS_HAT;
         _revertUnsupported();
     }
@@ -148,7 +123,6 @@ library HatsLib {
         uint256 chainId = block.chainid;
         if (chainId == 42_161) return ARBITRUM_COMMUNITY_HAT;
         if (chainId == 11_155_111) return SEPOLIA_COMMUNITY_HAT;
-        if (chainId == 84_532) return BASE_SEPOLIA_COMMUNITY_HAT;
         if (chainId == 42_220) return CELO_COMMUNITY_HAT;
         _revertUnsupported();
     }
@@ -160,7 +134,6 @@ library HatsLib {
         uint256 chainId = block.chainid;
         if (chainId == 42_161) return ARBITRUM_PROTOCOL_GARDENERS_HAT;
         if (chainId == 11_155_111) return SEPOLIA_PROTOCOL_GARDENERS_HAT;
-        if (chainId == 84_532) return BASE_SEPOLIA_PROTOCOL_GARDENERS_HAT;
         if (chainId == 42_220) return CELO_PROTOCOL_GARDENERS_HAT;
         _revertUnsupported();
     }
@@ -171,7 +144,6 @@ library HatsLib {
         uint256 chainId = block.chainid;
         if (chainId == 42_161) return ARBITRUM_ALLOWLIST_ELIGIBILITY;
         if (chainId == 11_155_111) return SEPOLIA_ALLOWLIST_ELIGIBILITY;
-        if (chainId == 84_532) return BASE_SEPOLIA_ALLOWLIST_ELIGIBILITY;
         if (chainId == 42_220) return CELO_ALLOWLIST_ELIGIBILITY;
         return address(0);
     }
@@ -182,7 +154,6 @@ library HatsLib {
         uint256 chainId = block.chainid;
         if (chainId == 42_161) return ARBITRUM_ERC20_ELIGIBILITY;
         if (chainId == 11_155_111) return SEPOLIA_ERC20_ELIGIBILITY;
-        if (chainId == 84_532) return BASE_SEPOLIA_ERC20_ELIGIBILITY;
         if (chainId == 42_220) return CELO_ERC20_ELIGIBILITY;
         return address(0);
     }
@@ -194,10 +165,10 @@ library HatsLib {
     }
 
     /// @notice Checks if Hats Protocol is supported on current chain
-    /// @dev Arbitrum, Celo, Sepolia testnet, and Base Sepolia (legacy testnet)
+    /// @dev Arbitrum, Celo, and Sepolia testnet
     /// @return True if supported
     function isSupported() internal view returns (bool) {
         uint256 chainId = block.chainid;
-        return chainId == 42_161 || chainId == 11_155_111 || chainId == 84_532 || chainId == 42_220;
+        return chainId == 42_161 || chainId == 11_155_111 || chainId == 42_220;
     }
 }

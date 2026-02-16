@@ -5,7 +5,7 @@
 # Tests need this to instantiate GardenAccount
 # Incremental builds with sparse_mode are fast after initial compilation
 [profile.default]
-solc = "0.8.25"
+solc = "0.8.28"
 ffi = true
 auto_detect_solc = false
 block_timestamp = 1_680_220_800 # March 31, 2023 at 00:00 GMT
@@ -14,7 +14,7 @@ evm_version = "shanghai"
 fuzz = { runs = 1_000 }
 gas_reports = []         # Disabled for speed
 optimizer = true
-optimizer_runs = 200     # Higher runs = better gas, slightly slower compile
+optimizer_runs = 0       # Dev mode: skip optimization for fastest compile
 verbosity = 1
 libs = ['lib', 'node_modules', '../../node_modules']
 out = 'out'
@@ -29,6 +29,10 @@ fs_permissions = [
 ]
 cache = true
 cache_path = "cache"
+extra_output_files = [
+  "abi",
+  "evm.bytecode"
+]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CORE PROFILE — Fast Iteration (Explicit Contract Selection)
@@ -37,7 +41,7 @@ cache_path = "cache"
 # Core contracts now use IGardenAccount interface, so they compile without via_ir
 # NOTE: Use --contracts flag instead of ignore pattern for reliable exclusion
 [profile.core]
-solc = "0.8.25"
+solc = "0.8.28"
 ffi = true
 auto_detect_solc = false
 block_timestamp = 1_680_220_800
@@ -60,10 +64,13 @@ cache_path = "cache"
 # ═══════════════════════════════════════════════════════════════════════════════
 # LITE PROFILE — Fast Tests (Tests Without Account Instantiation)
 # ═══════════════════════════════════════════════════════════════════════════════
-# Use: FOUNDRY_PROFILE=lite forge test --match-path "test/ActionRegistry*"
-# For tests that don't instantiate GardenAccount (use interfaces only)
+# NOTE: via_ir=false does NOT work for the full source tree. Action.sol and
+# DeploymentRegistry.sol also need via_ir due to stack-too-deep errors.
+# This profile only works for files that don't transitively import these.
+# For general fast builds, use `forge build --skip test --skip script` with
+# the default profile (via_ir=true, optimizer_runs=0, cache handles the rest).
 [profile.lite]
-solc = "0.8.25"
+solc = "0.8.28"
 ffi = true
 auto_detect_solc = false
 block_timestamp = 1_680_220_800
@@ -79,7 +86,6 @@ src = 'src'
 test = 'test'
 via_ir = false
 sparse_mode = true
-ignore = ["lib/**", "src/accounts/**"]  # Exclude accounts
 gas_reports = []
 fs_permissions = [
   { access = "read-write", path = "./" }
@@ -119,13 +125,22 @@ via_ir = true            # Required for full codebase
 match_contract = "E2E"
 verbosity = 3
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# FORK PROFILE — Fork Tests Against Real Infrastructure
+# ═══════════════════════════════════════════════════════════════════════════════
+[profile.fork]
+via_ir = true
+gas_limit = 30_000_000
+fuzz = { runs = 32 }
+verbosity = 3
+
 [etherscan]
   arbitrum = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42161" }
   sepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api-sepolia.etherscan.io/api", chainId = "11155111" }
-  baseSepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "84532" }
   celo = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42220" }
 
 [fmt]
+  ignore = ["src/vendor/**"]
   bracket_spacing = true
   int_types = "long"
   line_length = 124
@@ -141,11 +156,6 @@ exclude_lints = [
   "mixed-case-variable",
   "erc20-unchecked-transfer",
   "incorrect-shift"
-]
-
-extra_output_files = [
-  "abi",
-  "evm.bytecode"
 ]
 
 # RPC endpoints for different networks
@@ -166,10 +176,10 @@ eth_rpc_url = "${ARBITRUM_RPC_URL}"
 [profile.sepolia]
 eth_rpc_url = "${SEPOLIA_RPC_URL}"
 
-[profile.baseSepolia]
-eth_rpc_url = "${BASE_SEPOLIA_RPC_URL}"
-
 [profile.celo]
 eth_rpc_url = "${CELO_RPC_URL}"
+# NOTE: evm_version = "shanghai" (from default profile) is safe for Celo.
+# Celo L2 (migrated March 26, 2025) enables Shanghai + Cancun hardforks,
+# so PUSH0 (EIP-3855) is fully supported. No paris fallback needed.
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

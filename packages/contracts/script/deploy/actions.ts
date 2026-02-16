@@ -96,33 +96,36 @@ export class ActionDeployer extends GardenDeployer {
     console.log(`  End:   ${threeMonthsLater.toISOString()} → ${endTime}`);
     console.log("─".repeat(60));
     actions.forEach((action, index) => {
-      console.log(`  ${index}: ${action.title}`);
+      console.log(`  ${index}: [${action.domain}] ${action.slug} - ${action.title}`);
     });
     console.log("─".repeat(60));
 
     const actionsCode = actions
       .map((action, index) => {
         // Use dynamic timestamps instead of config values
+        const mediaEntries = action.media.map((m, i) => `media${index}[${i}] = "${m}";`).join("\n            ");
 
         return `
-        // Action ${index + 1}: ${action.title}
+        // Action ${index + 1}: [${action.domain}] ${action.slug} - ${action.title}
         {
             Capital[] memory capitals${index} = new Capital[](${action.capitals.length});
             ${action.capitals.map((capital, i) => `capitals${index}[${i}] = Capital.${capital};`).join("\n            ")}
-            
+
             string[] memory media${index} = new string[](${action.media.length});
-            ${action.media.map((m, i) => `media${index}[${i}] = "${m}";`).join("\n            ")}
-            
+            ${mediaEntries}
+
             registry.registerAction(
                 ${startTime},
                 ${endTime},
                 "${action.title}",
-                "${action.instructions}",
+                "${action.slug}",
+                "${action.description}",
                 capitals${index},
-                media${index}
+                media${index},
+                Domain.${action.domain}
             );
-            
-            console.log("Registered action: ${action.title}");
+
+            console.log("Registered action: ${action.slug}");
         }`;
       })
       .join("\n");
@@ -131,15 +134,15 @@ export class ActionDeployer extends GardenDeployer {
 pragma solidity ^0.8.25;
 
 import { Script, console } from "forge-std/Script.sol";
-import { ActionRegistry, Capital } from "../../src/registries/Action.sol";
+import { ActionRegistry, Capital, Domain } from "../../src/registries/Action.sol";
 
 contract DeployActionsGenerated is Script {
     function run() external {
         vm.startBroadcast();
-        
+
         ActionRegistry registry = ActionRegistry(${actionRegistryAddress});
         ${actionsCode}
-        
+
         vm.stopBroadcast();
         console.log("All actions deployed successfully!");
     }

@@ -40,7 +40,7 @@ contract DirectVaultInteractionTest is Test {
         vault.deposit(150 ether, USER_A);
 
         vm.prank(USER_A);
-        uint256 assets = vault.redeem(40 ether, USER_A, USER_A);
+        uint256 assets = vault.redeem(40 ether, USER_A, USER_A, 0, new address[](0));
 
         assertEq(assets, 40 ether, "redeem should return 1:1 assets");
         assertEq(vault.balanceOf(USER_A), 110 ether, "shares should decrease after redeem");
@@ -56,7 +56,7 @@ contract DirectVaultInteractionTest is Test {
         vault.deposit(100 ether, USER_A);
 
         vm.prank(USER_A);
-        uint256 shares = vault.withdraw(30 ether, USER_A, USER_A);
+        uint256 shares = vault.withdraw(30 ether, USER_A, USER_A, 0, new address[](0));
 
         assertEq(shares, 30 ether, "withdraw should burn 1:1 shares");
         assertEq(vault.balanceOf(USER_A), 70 ether, "shares should decrease after withdraw");
@@ -120,13 +120,13 @@ contract DirectVaultInteractionTest is Test {
 
         vm.prank(USER_A);
         vm.expectRevert(MockOctantVault.InsufficientShares.selector);
-        vault.redeem(51 ether, USER_A, USER_A);
+        vault.redeem(51 ether, USER_A, USER_A, 0, new address[](0));
     }
 
     function test_redeem_revertsWithZeroDeposit() public {
         vm.prank(USER_A);
         vm.expectRevert(MockOctantVault.InsufficientShares.selector);
-        vault.redeem(1 ether, USER_A, USER_A);
+        vault.redeem(1 ether, USER_A, USER_A, 0, new address[](0));
     }
 
     // =========================================================================
@@ -139,26 +139,27 @@ contract DirectVaultInteractionTest is Test {
 
         vm.prank(USER_A);
         vm.expectRevert(MockOctantVault.InsufficientShares.selector);
-        vault.withdraw(51 ether, USER_A, USER_A);
+        vault.withdraw(51 ether, USER_A, USER_A, 0, new address[](0));
     }
 
     // =========================================================================
-    // Revert: addStrategy access control
+    // Revert: add_strategy access control
     // =========================================================================
 
-    function test_addStrategy_revertsForNonRoleManager() public {
+    function test_add_strategy_revertsForNonRoleManager() public {
         vm.prank(USER_A);
         vm.expectRevert(MockOctantVault.UnauthorizedRoleManager.selector);
-        vault.addStrategy(address(0xDEAD));
+        vault.add_strategy(address(0xDEAD), true);
     }
 
-    function test_addStrategy_succeedsForRoleManager() public {
+    function test_add_strategy_succeedsForRoleManager() public {
         address strategy = address(0xDEAD);
 
         vm.prank(ROLE_MANAGER);
-        vault.addStrategy(strategy);
+        vault.add_strategy(strategy, true);
 
-        assertEq(vault.strategy(), strategy, "strategy should be set by role manager");
+        (uint256 activation,,,) = vault.strategies(strategy);
+        assertTrue(activation > 0, "strategy should be active after add_strategy");
     }
 
     // =========================================================================
@@ -170,7 +171,7 @@ contract DirectVaultInteractionTest is Test {
         vault.deposit(100 ether, USER_A);
 
         vm.prank(USER_A);
-        vault.redeem(100 ether, USER_A, USER_A);
+        vault.redeem(100 ether, USER_A, USER_A, 0, new address[](0));
 
         assertEq(vault.balanceOf(USER_A), 0, "should have zero shares after full redeem");
         assertEq(vault.totalAssets(), 0, "vault should be empty after full redeem");

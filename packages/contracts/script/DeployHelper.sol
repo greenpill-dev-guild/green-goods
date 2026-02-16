@@ -49,6 +49,7 @@ abstract contract DeployHelper is Script {
         address octantFactory;
         address gardensModule;
         address yieldSplitter;
+        address cookieJarModule;
         address gardenerAccountLogic; // GardenerAccount implementation for user smart accounts
         address gardenerRegistry; // Gardener Registry (mainnet only, address(0) on L2s)
         bytes32 assessmentSchemaUID;
@@ -127,8 +128,6 @@ abstract contract DeployHelper is Script {
         if (chainId == 11_155_111) return "sepolia";
         if (chainId == 31_337) return "localhost";
         if (chainId == 42_161) return "arbitrum";
-        if (chainId == 421_614) return "arbitrumSepolia";
-        if (chainId == 84_532) return "baseSepolia";
         if (chainId == 42_220) return "celo";
 
         // Default to localhost for unknown chains
@@ -143,7 +142,7 @@ abstract contract DeployHelper is Script {
 
         // Generate salt from configurable string for deterministic CREATE2 deployments.
         // Override with DEPLOYMENT_SALT env var when a fresh address set is required.
-        string memory saltInput = "greenGoodsCleanDeploy2025:13";
+        string memory saltInput = "greenGoodsCleanDeploy2025:14";
         try vm.envString("DEPLOYMENT_SALT") returns (string memory overrideSalt) {
             if (bytes(overrideSalt).length > 0) {
                 saltInput = overrideSalt;
@@ -200,7 +199,7 @@ abstract contract DeployHelper is Script {
     /// @notice Save deployment result to JSON with schema configuration
     function _saveDeployment(DeploymentResult memory result) internal {
         console.log("\n=== Saving Deployment ===");
-        console.log("DeploymentRegistry:", result.deploymentRegistry);
+        console.log("Deployment:", result.deploymentRegistry);
         console.log("Guardian:", result.guardian);
         console.log("GardenAccountImpl:", result.gardenAccountImpl);
         console.log("GardenerAccountLogic:", result.gardenerAccountLogic);
@@ -209,7 +208,8 @@ abstract contract DeployHelper is Script {
         console.log("OctantModule:", result.octantModule);
         console.log("OctantFactory:", result.octantFactory);
         console.log("GardensModule:", result.gardensModule);
-        console.log("YieldSplitter:", result.yieldSplitter);
+        console.log("CookieJarModule:", result.cookieJarModule);
+        console.log("YieldResolver:", result.yieldSplitter);
 
         string memory obj = "deployment";
         vm.serializeAddress(obj, "deploymentRegistry", result.deploymentRegistry);
@@ -227,6 +227,7 @@ abstract contract DeployHelper is Script {
         vm.serializeAddress(obj, "octantFactory", result.octantFactory);
         vm.serializeAddress(obj, "gardensModule", result.gardensModule);
         vm.serializeAddress(obj, "yieldSplitter", result.yieldSplitter);
+        vm.serializeAddress(obj, "cookieJarModule", result.cookieJarModule);
         vm.serializeAddress(obj, "gardenerAccountLogic", result.gardenerAccountLogic);
         vm.serializeAddress(obj, "gardenerRegistry", result.gardenerRegistry);
 

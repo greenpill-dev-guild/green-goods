@@ -5,7 +5,7 @@ pragma solidity ^0.8.25;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title MockAToken
-/// @notice Mock aToken that tracks deposits/withdrawals for unit testing AaveV3YDSStrategy
+/// @notice Mock aToken that tracks deposits/withdrawals for unit testing AaveV3
 contract MockAToken {
     mapping(address account => uint256 balance) public balanceOf;
 

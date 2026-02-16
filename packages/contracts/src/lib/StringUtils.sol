@@ -5,30 +5,68 @@ pragma solidity ^0.8.25;
 /// @notice Library for string manipulation utilities
 /// @dev Extracted from GardenAccount to reduce contract size
 library StringUtils {
-    /// @notice Escapes double quotes in JSON strings
+    /// @notice Escapes special characters in JSON strings per RFC 8259
+    /// @dev Escapes: backslash, double quote, newline, carriage return, tab,
+    ///      and all control characters (U+0000 through U+001F) as \uXXXX.
+    ///      Backslashes are escaped FIRST to prevent double-escaping.
     /// @param str The string to escape
-    /// @return The escaped string with backslashes before quotes
+    /// @return The escaped string safe for embedding in JSON values
     function escapeJSON(string memory str) internal pure returns (string memory) {
         bytes memory b = bytes(str);
-        uint256 quoteCount = 0;
+        uint256 extraBytes = 0;
 
+        // Pass 1: count extra bytes needed
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == "\"") quoteCount++;
+            bytes1 ch = b[i];
+            if (ch == "\\" || ch == "\"" || ch == "\n" || ch == "\r" || ch == "\t") {
+                extraBytes += 1; // each becomes 2 chars (e.g., \ → \\)
+            } else if (uint8(ch) < 0x20) {
+                extraBytes += 5; // control char → \uXXXX (6 chars total, 1 already counted)
+            }
         }
 
-        if (quoteCount == 0) return str;
+        if (extraBytes == 0) return str;
 
-        bytes memory escaped = new bytes(b.length + quoteCount);
+        // Pass 2: build escaped string
+        bytes memory escaped = new bytes(b.length + extraBytes);
         uint256 j = 0;
 
         for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] == "\"") {
+            bytes1 ch = b[i];
+            if (ch == "\\") {
                 escaped[j++] = "\\";
+                escaped[j++] = "\\";
+            } else if (ch == "\"") {
+                escaped[j++] = "\\";
+                escaped[j++] = "\"";
+            } else if (ch == "\n") {
+                escaped[j++] = "\\";
+                escaped[j++] = "n";
+            } else if (ch == "\r") {
+                escaped[j++] = "\\";
+                escaped[j++] = "r";
+            } else if (ch == "\t") {
+                escaped[j++] = "\\";
+                escaped[j++] = "t";
+            } else if (uint8(ch) < 0x20) {
+                // Other control characters → \u00XX
+                escaped[j++] = "\\";
+                escaped[j++] = "u";
+                escaped[j++] = "0";
+                escaped[j++] = "0";
+                escaped[j++] = _hexChar(uint8(ch) >> 4);
+                escaped[j++] = _hexChar(uint8(ch) & 0x0f);
+            } else {
+                escaped[j++] = ch;
             }
-            escaped[j++] = b[i];
         }
 
         return string(escaped);
+    }
+
+    /// @notice Returns the hex character for a nibble (0-15)
+    function _hexChar(uint8 nibble) private pure returns (bytes1) {
+        return nibble < 10 ? bytes1(nibble + 0x30) : bytes1(nibble + 0x57);
     }
 
     /// @notice Converts uint256 to string
@@ -169,6 +207,22 @@ library StringUtils {
             hexString[i * 2] = hexAlphabet[uint8(_bytes[i] >> 4)];
             hexString[i * 2 + 1] = hexAlphabet[uint8(_bytes[i] & 0x0f)];
         }
+        return string(hexString);
+    }
+
+    /// @notice Converts address to hex string (without 0x prefix)
+    /// @param account The address to convert
+    /// @return The hex string representation (40 characters)
+    function addressToHexString(address account) internal pure returns (string memory) {
+        bytes20 value = bytes20(account);
+        bytes memory hexString = new bytes(40);
+        bytes memory hexAlphabet = "0123456789abcdef";
+
+        for (uint256 i = 0; i < 20; i++) {
+            hexString[i * 2] = hexAlphabet[uint8(value[i] >> 4)];
+            hexString[i * 2 + 1] = hexAlphabet[uint8(value[i] & 0x0f)];
+        }
+
         return string(hexString);
     }
 }

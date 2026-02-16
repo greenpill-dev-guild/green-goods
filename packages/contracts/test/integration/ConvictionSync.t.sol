@@ -479,34 +479,19 @@ contract ConvictionSyncTest is Test {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Grant Does NOT Trigger Sync
+    // Grant Triggers Sync (post-mint so strategies see updated hat state)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function test_grantRole_doesNotTriggerSync() public {
+    function test_grantRole_doesTriggerSync() public {
         // Configure strategies
         address[] memory strategies = new address[](1);
         strategies[0] = address(strategy1);
         adapter.setConvictionStrategies(garden1, strategies);
 
-        vm.recordLogs();
         adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
-        Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        // Verify no conviction sync events
-        bytes32 triggeredSig = keccak256("ConvictionSyncTriggered(address,address,address)");
-        bytes32 failedSig = keccak256("ConvictionSyncFailed(address,address,address,string)");
-
-        for (uint256 i = 0; i < logs.length; i++) {
-            if (logs[i].topics.length > 0) {
-                assertTrue(
-                    logs[i].topics[0] != triggeredSig && logs[i].topics[0] != failedSig,
-                    "grantRole should not emit any conviction sync events"
-                );
-            }
-        }
-
-        // Strategy should NOT have been called
-        assertEq(strategy1.syncedCount(), 0, "Strategy should not be called on grant");
+        // Strategy SHOULD have been called — _grantRole calls _syncConvictionPower
+        assertEq(strategy1.syncedCount(), 1, "Strategy should be called on grant");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

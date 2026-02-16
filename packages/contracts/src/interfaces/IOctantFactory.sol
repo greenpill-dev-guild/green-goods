@@ -25,7 +25,8 @@ interface IOctantFactory {
 }
 
 /// @title IOctantVault
-/// @notice Minimal interface for interacting with an Octant vault
+/// @notice Interface for interacting with an Octant MultistrategyVault
+/// @dev Uses snake_case function names matching the real Yearn V3 convention
 interface IOctantVault {
     /// @notice Deposits assets into the vault
     /// @param assets Amount of assets to deposit
@@ -37,15 +38,35 @@ interface IOctantVault {
     /// @param assets Amount of assets to withdraw
     /// @param receiver Address to receive assets
     /// @param owner Address that owns the shares
+    /// @param maxLoss Maximum acceptable loss in basis points (0 = no loss tolerated)
+    /// @param strategies_ Ordered list of strategies to withdraw from (empty = use default queue)
     /// @return shares Amount of shares burned
-    function withdraw(uint256 assets, address receiver, address owner) external returns (uint256 shares);
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner,
+        uint256 maxLoss,
+        address[] calldata strategies_
+    )
+        external
+        returns (uint256 shares);
 
     /// @notice Redeems shares for underlying assets
     /// @param shares Amount of vault shares to redeem
     /// @param receiver Address to receive assets
     /// @param owner Address that owns the shares
+    /// @param maxLoss Maximum acceptable loss in basis points (0 = no loss tolerated)
+    /// @param strategies_ Ordered list of strategies to redeem from (empty = use default queue)
     /// @return assets Amount of assets returned
-    function redeem(uint256 shares, address receiver, address owner) external returns (uint256 assets);
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner,
+        uint256 maxLoss,
+        address[] calldata strategies_
+    )
+        external
+        returns (uint256 assets);
 
     /// @notice Returns the total assets in the vault
     /// @return Total assets
@@ -94,13 +115,32 @@ interface IOctantVault {
     /// @return assets Maximum withdraw amount
     function maxWithdraw(address account) external view returns (uint256 assets);
 
-    /// @notice Returns the attached strategy address
-    /// @return strategy Strategy address
-    function strategy() external view returns (address strategy);
+    /// @notice Adds a new strategy to the vault
+    /// @param newStrategy Strategy address to add
+    /// @param addToQueue Whether to add the strategy to the default withdrawal queue
+    function add_strategy(address newStrategy, bool addToQueue) external;
 
-    /// @notice Attaches or replaces the strategy
+    /// @notice Revokes an existing strategy from the vault
+    /// @param strategy Strategy address to revoke
+    function revoke_strategy(address strategy) external;
+
+    /// @notice Updates the maximum debt for a strategy
     /// @param strategy Strategy address
-    function addStrategy(address strategy) external;
+    /// @param newMaxDebt New maximum debt value
+    function update_max_debt_for_strategy(address strategy, uint256 newMaxDebt) external;
+
+    /// @notice Updates the debt of a strategy (triggers deposit/withdraw to strategy)
+    /// @param strategy Strategy address
+    /// @param targetDebt Target debt amount
+    /// @param maxLoss Maximum acceptable loss in basis points during debt reduction
+    /// @return newDebt Actual new debt after update
+    function update_debt(address strategy, uint256 targetDebt, uint256 maxLoss) external returns (uint256 newDebt);
+
+    /// @notice Processes a strategy report (profit/loss accounting)
+    /// @param strategy Strategy address
+    /// @return gain Profit amount
+    /// @return loss Loss amount
+    function process_report(address strategy) external returns (uint256 gain, uint256 loss);
 }
 
 /// @title IOctantStrategy

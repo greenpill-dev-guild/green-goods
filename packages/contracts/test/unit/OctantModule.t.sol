@@ -6,8 +6,8 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 
 import { OctantModule } from "../../src/modules/Octant.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
-import { MockOctantFactory, MockOctantVault } from "../../src/mocks/Octant.sol";
-import { MockYDSStrategy } from "../../src/mocks/MockYDSStrategy.sol";
+import { MockOctantFactory, MockOctantVault, RevertingOctantFactory } from "../../src/mocks/Octant.sol";
+import { MockYDSStrategy, RevertingStrategy } from "../../src/mocks/YDSStrategy.sol";
 
 contract MockGardenWithAccess is MockGardenAccessControl {
     string public name;
@@ -61,6 +61,15 @@ contract OctantModuleTest is Test {
         garden2.setOwner(GARDEN_OWNER_2, true);
     }
 
+    /// @dev Helper: complete the two-step timelock deactivation for an asset
+    function _deactivateAsset(address asset) internal {
+        // Step 1: Schedule
+        module.setSupportedAsset(asset, address(0));
+        // Step 2: Warp past delay and execute
+        vm.warp(block.timestamp + module.DEACTIVATION_DELAY());
+        module.setSupportedAsset(asset, address(0));
+    }
+
     function test_onGardenMinted_createsVaultsForSupportedAssets() public {
         module.setSupportedAsset(WETH, address(wethStrategy));
         module.setSupportedAsset(DAI, address(daiStrategy));
@@ -77,8 +86,10 @@ contract OctantModuleTest is Test {
         assertTrue(daiVault != address(0), "dai vault should exist");
         assertEq(MockOctantVault(wethVault).roleManager(), address(module), "module must be role manager");
         assertEq(MockOctantVault(daiVault).roleManager(), address(module), "module must be role manager");
-        assertEq(MockOctantVault(wethVault).strategy(), address(wethStrategy), "weth strategy should attach");
-        assertEq(MockOctantVault(daiVault).strategy(), address(daiStrategy), "dai strategy should attach");
+        (uint256 wethActivation,,,) = MockOctantVault(wethVault).strategies(address(wethStrategy));
+        assertTrue(wethActivation > 0, "weth strategy should attach");
+        (uint256 daiActivation,,,) = MockOctantVault(daiVault).strategies(address(daiStrategy));
+        assertTrue(daiActivation > 0, "dai strategy should attach");
     }
 
     function test_onGardenMinted_revertsForUnauthorizedCaller() public {
@@ -162,7 +173,7 @@ contract OctantModuleTest is Test {
         module.createVaultForAsset(address(garden), WETH);
 
         module.setSupportedAsset(WETH, address(wethStrategy));
-        module.setSupportedAsset(WETH, address(0));
+        _deactivateAsset(WETH);
 
         vm.prank(OPERATOR);
         vm.expectRevert(abi.encodeWithSelector(OctantModule.AssetDeactivated.selector, WETH));
@@ -172,7 +183,7 @@ contract OctantModuleTest is Test {
     function test_setSupportedAsset_maintainsArrayWithoutDuplicates() public {
         module.setSupportedAsset(WETH, address(wethStrategy));
         module.setSupportedAsset(WETH, address(daiStrategy));
-        module.setSupportedAsset(WETH, address(0));
+        _deactivateAsset(WETH);
 
         address[] memory assets = module.getSupportedAssets();
         assertEq(assets.length, 1, "asset list should not duplicate entries");
@@ -189,8 +200,8 @@ contract OctantModuleTest is Test {
         vm.prank(OPERATOR);
         module.setDonationAddress(address(garden), DONATION_1);
 
-        // Deactivate WETH for new gardens.
-        module.setSupportedAsset(WETH, address(0));
+        // Deactivate WETH for new gardens (two-step timelock).
+        _deactivateAsset(WETH);
 
         vm.prank(OPERATOR_2);
         vm.expectRevert(abi.encodeWithSelector(OctantModule.AssetDeactivated.selector, WETH));
@@ -251,6 +262,9 @@ contract OctantModuleTest is Test {
     event FactoryUpdated(address indexed oldFactory, address indexed newFactory);
     event GardenTokenUpdated(address indexed oldGardenToken, address indexed newGardenToken);
     event DefaultProfitUnlockTimeUpdated(uint256 oldUnlockTime, uint256 newUnlockTime);
+    event AssetDeactivationScheduled(address indexed asset, uint256 executeAfter);
+    event AssetDeactivationExecuted(address indexed asset);
+    event AssetDeactivationCancelled(address indexed asset);
 
     function test_setSupportedAsset_emitsEvent() public {
         vm.expectEmit(true, true, false, false);
@@ -311,13 +325,13 @@ contract OctantModuleTest is Test {
     // =========================================================================
 
     function test_setOctantFactory_updatesFactory() public {
-        address newFactory = address(0xF1);
+        MockOctantFactory newFactory = new MockOctantFactory();
 
         vm.expectEmit(true, true, false, false);
-        emit FactoryUpdated(address(factory), newFactory);
+        emit FactoryUpdated(address(factory), address(newFactory));
 
-        module.setOctantFactory(newFactory);
-        assertEq(address(module.octantFactory()), newFactory, "factory should update");
+        module.setOctantFactory(address(newFactory));
+        assertEq(address(module.octantFactory()), address(newFactory), "factory should update");
     }
 
     function test_setOctantFactory_onlyOwner() public {
@@ -390,5 +404,212 @@ contract OctantModuleTest is Test {
         vm.prank(UNAUTHORIZED);
         vm.expectRevert("Ownable: caller is not the owner");
         module.upgradeTo(address(newImpl));
+    }
+
+    // =========================================================================
+    // Silent Strategy Failure Event Tests
+    // =========================================================================
+
+    event HarvestReportFailed(address indexed garden, address indexed asset, address strategy);
+    event DonationAddressUpdateFailed(address indexed garden, address indexed asset, address strategy);
+    event StrategyAttachmentFailed(address indexed garden, address indexed asset, address vault, address strategy);
+
+    function test_harvest_emitsHarvestReportFailed_whenStrategyReverts() public {
+        RevertingStrategy revertingStrategy = new RevertingStrategy();
+        revertingStrategy.setRevertReport(true);
+
+        module.setSupportedAsset(WETH, address(revertingStrategy));
+
+        vm.prank(GARDEN_TOKEN);
+        module.onGardenMinted(address(garden), "Community Garden");
+
+        vm.prank(OPERATOR);
+        module.setDonationAddress(address(garden), DONATION_1);
+
+        vm.expectEmit(true, true, false, true);
+        emit HarvestReportFailed(address(garden), WETH, address(revertingStrategy));
+
+        vm.prank(OPERATOR);
+        module.harvest(address(garden), WETH);
+    }
+
+    function test_setDonationAddress_emitsDonationAddressUpdateFailed_whenStrategyReverts() public {
+        RevertingStrategy revertingStrategy = new RevertingStrategy();
+        revertingStrategy.setRevertSetDonation(true);
+
+        module.setSupportedAsset(WETH, address(revertingStrategy));
+
+        vm.prank(GARDEN_TOKEN);
+        module.onGardenMinted(address(garden), "Community Garden");
+
+        vm.expectEmit(true, true, false, true);
+        emit DonationAddressUpdateFailed(address(garden), WETH, address(revertingStrategy));
+
+        vm.prank(OPERATOR);
+        module.setDonationAddress(address(garden), DONATION_1);
+    }
+
+    function test_createVault_emitsStrategyAttachmentFailed_whenAddStrategyReverts() public {
+        RevertingOctantFactory revertingFactory = new RevertingOctantFactory();
+        module.setOctantFactory(address(revertingFactory));
+
+        RevertingStrategy revertingStrategy = new RevertingStrategy();
+        module.setSupportedAsset(WETH, address(revertingStrategy));
+
+        vm.expectEmit(true, true, false, false);
+        emit StrategyAttachmentFailed(address(garden), WETH, address(0), address(revertingStrategy));
+
+        vm.prank(GARDEN_TOKEN);
+        module.onGardenMinted(address(garden), "Community Garden");
+    }
+
+    function test_setOctantFactory_revertsForEOAAddress() public {
+        address eoa = address(0xDEAD);
+
+        vm.expectRevert(abi.encodeWithSelector(OctantModule.NotAContract.selector, eoa));
+        module.setOctantFactory(eoa);
+    }
+
+    function test_setOctantFactory_allowsZeroAddress() public {
+        // Zero address should be allowed (to disable factory)
+        module.setOctantFactory(address(0));
+        assertEq(address(module.octantFactory()), address(0), "factory should be zeroed");
+    }
+
+    function test_setOctantFactory_allowsContractAddress() public {
+        MockOctantFactory newFactory = new MockOctantFactory();
+
+        module.setOctantFactory(address(newFactory));
+        assertEq(address(module.octantFactory()), address(newFactory), "factory should update to contract");
+    }
+
+    // =========================================================================
+    // Asset Deactivation Timelock Tests
+    // =========================================================================
+
+    function test_setSupportedAsset_schedulesDeactivation() public {
+        module.setSupportedAsset(WETH, address(wethStrategy));
+
+        uint256 expectedExecuteAfter = block.timestamp + module.DEACTIVATION_DELAY();
+
+        vm.expectEmit(true, false, false, true);
+        emit AssetDeactivationScheduled(WETH, expectedExecuteAfter);
+
+        // First call with address(0) should schedule, not deactivate
+        module.setSupportedAsset(WETH, address(0));
+
+        // Asset should still be active
+        assertEq(module.supportedAssets(WETH), address(wethStrategy), "strategy should NOT be deactivated yet");
+        assertEq(module.supportedAssetCount(), 1, "asset count should remain 1");
+        assertEq(module.pendingDeactivations(WETH), expectedExecuteAfter, "pending deactivation should be set");
+    }
+
+    function test_setSupportedAsset_executesDeactivationAfterDelay() public {
+        module.setSupportedAsset(WETH, address(wethStrategy));
+
+        // Step 1: Schedule
+        module.setSupportedAsset(WETH, address(0));
+
+        // Step 2: Warp past delay
+        vm.warp(block.timestamp + module.DEACTIVATION_DELAY());
+
+        vm.expectEmit(true, false, false, false);
+        emit AssetDeactivationExecuted(WETH);
+
+        // Execute deactivation
+        module.setSupportedAsset(WETH, address(0));
+
+        // Asset should now be deactivated
+        assertEq(module.supportedAssets(WETH), address(0), "strategy should be deactivated");
+        assertEq(module.supportedAssetCount(), 0, "asset count should be 0");
+        assertEq(module.pendingDeactivations(WETH), 0, "pending deactivation should be cleared");
+    }
+
+    function test_setSupportedAsset_revertsBeforeDelay() public {
+        module.setSupportedAsset(WETH, address(wethStrategy));
+
+        // Step 1: Schedule
+        module.setSupportedAsset(WETH, address(0));
+        uint256 readyTimestamp = module.pendingDeactivations(WETH);
+
+        // Warp to just before the delay expires (1 second too early)
+        vm.warp(readyTimestamp - 1);
+
+        vm.expectRevert(abi.encodeWithSelector(OctantModule.DeactivationNotReady.selector, WETH, readyTimestamp));
+        module.setSupportedAsset(WETH, address(0));
+
+        // Asset should still be active
+        assertEq(module.supportedAssets(WETH), address(wethStrategy), "strategy should still be active");
+    }
+
+    function test_cancelDeactivation_clearsSchedule() public {
+        module.setSupportedAsset(WETH, address(wethStrategy));
+
+        // Schedule deactivation
+        module.setSupportedAsset(WETH, address(0));
+        assertTrue(module.pendingDeactivations(WETH) != 0, "should have pending deactivation");
+
+        // Cancel it
+        vm.expectEmit(true, false, false, false);
+        emit AssetDeactivationCancelled(WETH);
+        module.cancelDeactivation(WETH);
+
+        // Pending should be cleared
+        assertEq(module.pendingDeactivations(WETH), 0, "pending deactivation should be cleared");
+
+        // Strategy should still be active
+        assertEq(module.supportedAssets(WETH), address(wethStrategy), "strategy should remain active");
+
+        // A new deactivation attempt should re-schedule (not execute)
+        module.setSupportedAsset(WETH, address(0));
+        assertTrue(module.pendingDeactivations(WETH) != 0, "should re-schedule after cancel");
+        assertEq(module.supportedAssets(WETH), address(wethStrategy), "strategy should still be active after re-schedule");
+    }
+
+    function test_cancelDeactivation_revertsIfNoPending() public {
+        module.setSupportedAsset(WETH, address(wethStrategy));
+
+        vm.expectRevert(abi.encodeWithSelector(OctantModule.NoDeactivationPending.selector, WETH));
+        module.cancelDeactivation(WETH);
+    }
+
+    function test_setSupportedAsset_addingStrategyClearsDeactivation() public {
+        module.setSupportedAsset(WETH, address(wethStrategy));
+
+        // Schedule deactivation
+        module.setSupportedAsset(WETH, address(0));
+        assertTrue(module.pendingDeactivations(WETH) != 0, "should have pending deactivation");
+
+        // Re-activate with a new strategy (should clear pending deactivation)
+        module.setSupportedAsset(WETH, address(daiStrategy));
+
+        assertEq(module.supportedAssets(WETH), address(daiStrategy), "strategy should be updated immediately");
+        assertEq(module.pendingDeactivations(WETH), 0, "pending deactivation should be cleared");
+        assertEq(module.supportedAssetCount(), 1, "asset count should remain 1");
+    }
+
+    function test_setSupportedAsset_addingStrategyNoTimelock() public {
+        // Adding a new asset should work immediately (no delay)
+        module.setSupportedAsset(WETH, address(wethStrategy));
+        assertEq(module.supportedAssets(WETH), address(wethStrategy), "strategy should be set immediately");
+        assertEq(module.supportedAssetCount(), 1, "asset count should be 1");
+
+        // Updating an existing asset strategy should also be immediate
+        module.setSupportedAsset(WETH, address(daiStrategy));
+        assertEq(module.supportedAssets(WETH), address(daiStrategy), "strategy update should be immediate");
+        assertEq(module.supportedAssetCount(), 1, "asset count should still be 1");
+    }
+
+    function test_cancelDeactivation_onlyOwner() public {
+        module.setSupportedAsset(WETH, address(wethStrategy));
+        module.setSupportedAsset(WETH, address(0));
+
+        vm.prank(UNAUTHORIZED);
+        vm.expectRevert("Ownable: caller is not the owner");
+        module.cancelDeactivation(WETH);
+    }
+
+    function test_deactivationDelay_isThreeDays() public {
+        assertEq(module.DEACTIVATION_DELAY(), 3 days, "deactivation delay should be 3 days");
     }
 }

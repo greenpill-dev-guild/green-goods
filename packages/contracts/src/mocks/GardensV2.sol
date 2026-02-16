@@ -80,12 +80,22 @@ contract MockRegistryCommunity is IRegistryCommunity {
     PoolRecord[] public pools;
     uint256 private nextPoolId = 1;
 
+    /// @notice When true, createPool will revert (for testing failure scenarios)
+    bool public shouldRevertPoolCreation;
+
     constructor(address _gardenToken, address _councilSafe) {
         gardenToken = _gardenToken;
         councilSafe = _councilSafe;
     }
 
+    /// @notice Toggle pool creation failure mode
+    function setShouldRevertPoolCreation(bool _shouldRevert) external {
+        shouldRevertPoolCreation = _shouldRevert;
+    }
+
     function createPool(CreatePoolParams calldata params) external override returns (uint256 poolId, address strategy) {
+        if (shouldRevertPoolCreation) revert("Pool creation disabled");
+
         poolId = nextPoolId++;
 
         // Deploy a dummy strategy address (unique per pool)
@@ -100,6 +110,17 @@ contract MockRegistryCommunity is IRegistryCommunity {
                 metadata: params.metadata
             })
         );
+    }
+
+    /// @notice Mock stakeAndRegisterMember — records registration for testing
+    mapping(address => bool) public registeredMembers;
+
+    function stakeAndRegisterMember(address member) external override {
+        registeredMembers[member] = true;
+    }
+
+    function isRegisteredMember(address member) external view returns (bool) {
+        return registeredMembers[member];
     }
 
     function getPoolCount() external view returns (uint256) {
@@ -122,8 +143,19 @@ contract MockRegistryFactory is IRegistryFactory {
     address[] public createdCommunities;
     MockRegistryCommunity public lastCreated;
 
+    /// @notice When true, newly created communities will revert on createPool
+    bool public createFailingCommunities;
+
+    /// @notice Toggle whether new communities should fail on pool creation
+    function setCreateFailingCommunities(bool _shouldFail) external {
+        createFailingCommunities = _shouldFail;
+    }
+
     function createRegistryCommunity(CreateCommunityParams calldata params) external override returns (address community) {
         MockRegistryCommunity mock = new MockRegistryCommunity(params.gardenToken, params.councilSafe);
+        if (createFailingCommunities) {
+            mock.setShouldRevertPoolCreation(true);
+        }
         community = address(mock);
         lastCreated = mock;
         createdCommunities.push(community);

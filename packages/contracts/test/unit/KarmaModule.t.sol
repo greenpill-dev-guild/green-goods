@@ -11,7 +11,7 @@ import { MockGAP } from "../../src/mocks/GAP.sol";
 /// @title KarmaModuleTest
 /// @notice Unit tests for KarmaGAPModule (src/modules/Karma.sol) — the real production module
 /// @dev The existing KarmaGAPModule.t.sol only tests MockGAP. This file tests the actual module.
-/// Tests both unsupported chain (localhost 31337) and supported chain (Base Sepolia 84532) paths.
+/// Tests both unsupported chain (localhost 31337) and supported chain (Sepolia 11155111) paths.
 contract KarmaModuleTest is Test {
     KarmaGAPModule internal module;
     MockGAP internal mockGAP;
@@ -26,8 +26,8 @@ contract KarmaModuleTest is Test {
     address internal constant OPERATOR = address(0xA8);
     address internal constant ADMIN = address(0xA9);
 
-    /// @dev KarmaLib.getGapContract() returns this for chainId 84532 (Base Sepolia)
-    address internal constant GAP_ADDRESS = 0x4Ca7230fB6b78875bdd1B1e4F665B7B7f1891239;
+    /// @dev KarmaLib.getGapContract() returns this for chainId 11155111 (Sepolia)
+    address internal constant GAP_ADDRESS = 0x9E5560f5b084c227Dc40672f48F59DA617eeFA28;
 
     // Events from IKarmaGAPModule
     event GAPProjectCreated(bytes32 indexed projectUID, address indexed garden, string projectName);
@@ -179,7 +179,7 @@ contract KarmaModuleTest is Test {
     function test_createMilestone_revertsForNonAssessmentResolver() public {
         vm.prank(UNAUTHORIZED);
         vm.expectRevert(IKarmaGAPModule.NotAssessmentResolver.selector);
-        module.createMilestone(GARDEN, "Title", "Desc", "meta");
+        module.createMilestone(GARDEN, "Title", "Desc", 1_000_000, 2_000_000, 0, "Location", "QmConfig");
     }
 
     function test_addProjectAdmin_revertsForUnauthorizedCaller() public {
@@ -255,16 +255,16 @@ contract KarmaModuleTest is Test {
         emit GAPOperationFailed(GARDEN, "createMilestone", "No project");
 
         vm.prank(ASSESSMENT_RESOLVER);
-        bytes32 uid = module.createMilestone(GARDEN, "Title", "Desc", "meta");
+        bytes32 uid = module.createMilestone(GARDEN, "Title", "Desc", 1_000_000, 2_000_000, 0, "Location", "QmConfig");
         assertEq(uid, bytes32(0));
     }
 
     // =========================================================================
-    // Supported Chain Tests (chainId 84532 — Base Sepolia)
+    // Supported Chain Tests (chainId 11155111 — Sepolia)
     // =========================================================================
 
     function _setupSupportedChain() internal {
-        vm.chainId(84_532);
+        vm.chainId(11_155_111);
         MockGAP impl = new MockGAP();
         vm.etch(GAP_ADDRESS, address(impl).code);
         mockGAP = MockGAP(GAP_ADDRESS);
@@ -414,7 +414,9 @@ contract KarmaModuleTest is Test {
         module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
 
         vm.prank(ASSESSMENT_RESOLVER);
-        bytes32 milestoneUID = module.createMilestone(GARDEN, "Q1 Assessment", "Biodiversity review", "{\"type\":\"bio\"}");
+        bytes32 milestoneUID = module.createMilestone(
+            GARDEN, "Q1 Assessment", "Biodiversity review", 1_700_000_000, 1_702_000_000, 1, "Garden Plot A", "QmConfigCID"
+        );
 
         assertTrue(milestoneUID != bytes32(0), "Should return non-zero milestone UID");
     }
@@ -430,7 +432,7 @@ contract KarmaModuleTest is Test {
         emit GAPOperationFailed(GARDEN, "createMilestone", "Chain not supported");
 
         vm.prank(ASSESSMENT_RESOLVER);
-        bytes32 uid = module.createMilestone(GARDEN, "Title", "Desc", "meta");
+        bytes32 uid = module.createMilestone(GARDEN, "Title", "Desc", 1_000_000, 2_000_000, 0, "Location", "QmConfig");
         assertEq(uid, bytes32(0));
     }
 
@@ -446,7 +448,7 @@ contract KarmaModuleTest is Test {
         emit GAPOperationFailed(GARDEN, "createMilestone", "Attestation failed");
 
         vm.prank(ASSESSMENT_RESOLVER);
-        bytes32 uid = module.createMilestone(GARDEN, "Title", "Desc", "meta");
+        bytes32 uid = module.createMilestone(GARDEN, "Title", "Desc", 1_000_000, 2_000_000, 0, "Location", "QmConfig");
         assertEq(uid, bytes32(0));
     }
 
@@ -462,8 +464,8 @@ contract KarmaModuleTest is Test {
         assertFalse(module.isSupported());
     }
 
-    function test_isSupported_returnsTrueOnBaseSepolia() public {
-        vm.chainId(84_532);
+    function test_isSupported_returnsTrueOnSepolia() public {
+        vm.chainId(11_155_111);
         assertTrue(module.isSupported());
     }
 

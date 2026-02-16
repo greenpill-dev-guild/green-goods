@@ -12,7 +12,9 @@ import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 import { IGardensModule } from "../interfaces/IGardensModule.sol";
 import { OctantModule } from "../modules/Octant.sol";
-import { DeploymentRegistry } from "../DeploymentRegistry.sol";
+import { ICookieJarModule } from "../interfaces/ICookieJarModule.sol";
+import { Deployment } from "../registries/Deployment.sol";
+import { ActionRegistry } from "../registries/Action.sol";
 
 /// @title GardenToken Contract
 /// @notice This contract manages the minting of Garden tokens and the creation of associated Garden accounts.
@@ -25,15 +27,27 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     IKarmaGAPModule public karmaGAPModule;
     OctantModule public octantModule;
     IGardensModule public gardensModule;
+    ActionRegistry public actionRegistry;
+    ICookieJarModule public cookieJarModule;
+
+    /// @notice Transfer restriction mode for garden NFTs
+    enum TransferRestriction {
+        Unrestricted,
+        OwnerOnly,
+        Locked
+    }
+
+    /// @notice Current transfer restriction mode
+    TransferRestriction public transferRestriction;
 
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 44 slots (50 total - 6 used: _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule,
-     * octantModule, gardensModule)
+     * Reserves 41 slots (50 total - 9 used: _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule,
+     * octantModule, gardensModule, actionRegistry, cookieJarModule, transferRestriction)
      * Note: _GARDEN_ACCOUNT_IMPLEMENTATION is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[44] private __gap;
+    uint256[41] private __gap;
 
     /// @notice Emitted when a new Garden is minted.
     /// @param tokenId The unique identifier of the minted Garden token.
@@ -60,6 +74,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Emitted when the Gardens module address is updated.
     event GardensModuleUpdated(address indexed oldModule, address indexed newModule);
 
+    /// @notice Emitted when the ActionRegistry address is updated.
+    event ActionRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
+
+    /// @notice Emitted when the CookieJar module address is updated.
+    event CookieJarModuleUpdated(address indexed oldModule, address indexed newModule);
+
     /// @notice Configuration for batch garden minting (Gas Optimized)
     struct GardenConfig {
         address communityToken;
@@ -70,6 +90,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         string metadata;
         bool openJoining;
         IGardensModule.WeightScheme weightScheme;
+        uint8 domainMask;
     }
 
     /// @notice Emitted for batch operations (Gas Optimized)
@@ -81,7 +102,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     error UnauthorizedMinter();
 
     /// @notice Error thrown when deployment registry is not configured
-    error DeploymentRegistryNotConfigured();
+    error DeploymentNotConfigured();
     /// @notice Error thrown when invalid batch size is provided
     error InvalidBatchSize();
     /// @notice Error thrown when community token address is zero
@@ -92,6 +113,10 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     error InvalidERC20Token();
     /// @notice Error thrown when hats module is not configured
     error HatsModuleNotSet();
+    /// @notice Error thrown when transfers are locked
+    error TransfersLocked();
+    /// @notice Error thrown when transfers are restricted to owner only
+    error TransfersRestricted();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     /// @param gardenAccountImplementation The address of the Garden account implementation.
@@ -113,7 +138,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Sets the deployment registry address (owner only).
     /// @param _deploymentRegistry The deployment registry address.
-    function setDeploymentRegistry(address _deploymentRegistry) external onlyOwner {
+    function setDeployment(address _deploymentRegistry) external onlyOwner {
         deploymentRegistry = _deploymentRegistry;
     }
 
@@ -145,15 +170,34 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         emit GardensModuleUpdated(oldModule, _gardensModule);
     }
 
+    /// @notice Sets the ActionRegistry address (owner only).
+    function setActionRegistry(address _actionRegistry) external onlyOwner {
+        address oldRegistry = address(actionRegistry);
+        actionRegistry = ActionRegistry(_actionRegistry);
+        emit ActionRegistryUpdated(oldRegistry, _actionRegistry);
+    }
+
+    /// @notice Sets the CookieJarModule address (owner only).
+    function setCookieJarModule(address _cookieJarModule) external onlyOwner {
+        address oldModule = address(cookieJarModule);
+        cookieJarModule = ICookieJarModule(_cookieJarModule);
+        emit CookieJarModuleUpdated(oldModule, _cookieJarModule);
+    }
+
+    /// @notice Set the transfer restriction mode (owner only)
+    function setTransferRestriction(TransferRestriction _restriction) external onlyOwner {
+        transferRestriction = _restriction;
+    }
+
     /// @notice Modifier to check if caller is authorized to mint gardens.
     /// @dev Checks if caller is owner or in deployment registry allowlist.
     modifier onlyAuthorizedMinter() {
         if (owner() != msg.sender) {
             if (deploymentRegistry == address(0)) {
-                revert DeploymentRegistryNotConfigured();
+                revert DeploymentNotConfigured();
             }
 
-            try DeploymentRegistry(deploymentRegistry).isInAllowlist(msg.sender) returns (bool isAllowed) {
+            try Deployment(deploymentRegistry).isInAllowlist(msg.sender) returns (bool isAllowed) {
                 if (!isAllowed) {
                     revert UnauthorizedMinter();
                 }
@@ -292,6 +336,26 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             }
         }
 
+        // Cookie Jar: create per-asset jars (graceful degradation)
+        if (address(cookieJarModule) != address(0)) {
+            // solhint-disable-next-line no-empty-blocks
+            try cookieJarModule.onGardenMinted(gardenAccount) returns (address[] memory _jars) {
+                _jars; // Success handled by module events
+            } catch {
+                // Failure is non-blocking — garden mint MUST NOT revert
+            }
+        }
+
+        // Set initial garden domains on ActionRegistry (graceful degradation)
+        if (config.domainMask > 0 && address(actionRegistry) != address(0)) {
+            // solhint-disable-next-line no-empty-blocks
+            try actionRegistry.setGardenDomainsFromMint(gardenAccount, config.domainMask) {
+                // Success handled by ActionRegistry events
+            } catch {
+                // Non-blocking — garden mint MUST NOT revert
+            }
+        }
+
         // Initialize garden account with metadata
         IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
             communityToken: config.communityToken,
@@ -328,6 +392,15 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         } catch {
             revert InvalidERC20Token();
         }
+    }
+
+    /// @notice Restricts token transfers based on the current transfer restriction mode
+    /// @dev Allows minting (from == address(0)) regardless of restriction mode
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override {
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+        if (from == address(0)) return; // allow minting
+        if (transferRestriction == TransferRestriction.Locked) revert TransfersLocked();
+        if (transferRestriction == TransferRestriction.OwnerOnly && msg.sender != owner()) revert TransfersRestricted();
     }
 
     /// @notice Authorizes contract upgrades.

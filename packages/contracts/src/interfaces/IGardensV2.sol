@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 /// @title IGardensV2
-/// @notice Minimal interfaces for Gardens V2 contracts on Arbitrum Sepolia
+/// @notice Minimal interfaces for Gardens V2 contracts (Sepolia, Arbitrum, Celo)
 /// @dev Only the functions Green Goods calls are included. Full contracts at:
 ///      https://github.com/1Hive/gardens-v2
 
@@ -11,7 +11,7 @@ pragma solidity ^0.8.25;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// @notice Creates RegistryCommunity instances
-/// @dev Deployed on Arb Sepolia at 0xf42f88c13804147b2fdda13c093ce14219aea395
+/// @dev Deployed on Sepolia, Arbitrum, and Celo. See test/fork/helpers/GardensV2Addresses.sol.
 interface IRegistryFactory {
     /// @notice Parameters for creating a RegistryCommunity
     struct CreateCommunityParams {
@@ -74,20 +74,39 @@ interface IRegistryCommunity {
 
     /// @notice Get the community's council Safe
     function councilSafe() external view returns (address);
+
+    /// @notice Stake GOODS and register a member in the community
+    /// @param member The address to register
+    function stakeAndRegisterMember(address member) external;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // NFT Power Registry
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// @notice Configuration for a voting power source in NFTPowerRegistry
-struct NFTPowerSource {
-    address hatsProtocol; // Hats Protocol contract
-    uint256 hatId; // The specific hat ID
-    uint256 weight; // Weight in basis points (100 = 1x, 200 = 2x, etc.)
+/// @notice NFT type for power source balance resolution
+/// @dev Ordering MUST match vendor NFTPowerRegistry.NFTType: ERC721=0, ERC1155=1, HAT=2
+enum NFTType {
+    ERC721, // balanceOf(account) count
+    ERC1155, // balanceOf(account, tokenId) count
+    HAT // isWearerOfHat(account, hatId) binary (0 or 1)
+
 }
 
-/// @notice Registry that maps Hats roles to conviction voting power
+/// @notice Configuration for a voting power source in NFTPowerRegistry
+/// @dev 1:1 with vendor NFTPowerRegistry.NFTPowerSource (5 fields).
+///      For HAT sources: token = hatsProtocol address, tokenId is ignored.
+///      For ERC721 sources: hatId is ignored.
+///      For ERC1155 sources: hatId is ignored, tokenId selects the token.
+struct NFTPowerSource {
+    address token; // NFT contract or Hats Protocol address
+    NFTType nftType; // How to read the balance
+    uint256 weight; // Basis points multiplier (10000 = 1x)
+    uint256 tokenId; // ERC1155 token ID (ignored for ERC721/HAT)
+    uint256 hatId; // Hats Protocol hat ID (ignored for ERC721/ERC1155)
+}
+
+/// @notice Registry that maps NFT ownership and Hats roles to conviction voting power
 /// @dev One per garden, immutable after deployment
 interface INFTPowerRegistry {
     /// @notice Get the voting power for an address

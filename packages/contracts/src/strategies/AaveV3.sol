@@ -15,10 +15,10 @@ interface IAToken {
     function balanceOf(address account) external view returns (uint256);
 }
 
-/// @title AaveV3YDSStrategy
+/// @title AaveV3
 /// @notice Minimal strategy wrapper used by Octant vault integration
 /// @dev Exposes report/shutdown/donation hooks expected by OctantModule
-contract AaveV3YDSStrategy is Ownable, IOctantStrategy {
+contract AaveV3 is Ownable, IOctantStrategy {
     error ZeroAddress();
     error DepositsPaused();
 

@@ -5,13 +5,14 @@ import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import { YieldSplitter } from "../../src/yield/YieldSplitter.sol";
+import { YieldResolver } from "../../src/resolvers/Yield.sol";
 import {
     MockCookieJar,
+    MockCVStrategy,
     MockHypercertMarketplace,
     MockJBMultiTerminalForYield,
     MockOctantVaultForYield
-} from "../../src/mocks/MockYieldDeps.sol";
+} from "../../src/mocks/YieldDeps.sol";
 import { MockHatsModule } from "../helpers/MockHatsModule.sol";
 
 /// @title MockWETH for testing
@@ -23,10 +24,10 @@ contract MockWETH is ERC20 {
     }
 }
 
-/// @title YieldSplitterTest
-/// @notice Unit tests for YieldSplitter contract
-contract YieldSplitterTest is Test {
-    YieldSplitter public yieldSplitter;
+/// @title YieldResolverTest
+/// @notice Unit tests for YieldResolver contract
+contract YieldResolverTest is Test {
+    YieldResolver public yieldSplitter;
     MockWETH public weth;
     MockOctantVaultForYield public vault;
     MockCookieJar public cookieJar;
@@ -51,13 +52,13 @@ contract YieldSplitterTest is Test {
         jbTerminal = new MockJBMultiTerminalForYield();
         hatsModule = new MockHatsModule();
 
-        // Deploy YieldSplitter behind proxy
-        YieldSplitter impl = new YieldSplitter();
+        // Deploy YieldResolver behind proxy
+        YieldResolver impl = new YieldResolver();
         bytes memory initData = abi.encodeWithSelector(
-            YieldSplitter.initialize.selector, owner, octantModule, address(hatsModule), MIN_YIELD_THRESHOLD
+            YieldResolver.initialize.selector, owner, octantModule, address(hatsModule), MIN_YIELD_THRESHOLD
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
-        yieldSplitter = YieldSplitter(address(proxy));
+        yieldSplitter = YieldResolver(address(proxy));
 
         // Configure the yield splitter
         vm.startPrank(owner);
@@ -99,10 +100,10 @@ contract YieldSplitterTest is Test {
     }
 
     function test_initialize_revertsWithZeroOwner() public {
-        YieldSplitter impl = new YieldSplitter();
+        YieldResolver impl = new YieldResolver();
         bytes memory initData =
-            abi.encodeWithSelector(YieldSplitter.initialize.selector, address(0), octantModule, address(hatsModule), 0);
-        vm.expectRevert(YieldSplitter.ZeroAddress.selector);
+            abi.encodeWithSelector(YieldResolver.initialize.selector, address(0), octantModule, address(hatsModule), 0);
+        vm.expectRevert(YieldResolver.ZeroAddress.selector);
         new ERC1967Proxy(address(impl), initData);
     }
 
@@ -111,10 +112,10 @@ contract YieldSplitterTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_getSplitConfig_returnsDefaultsWhenNotSet() public {
-        YieldSplitter.SplitConfig memory config = yieldSplitter.getSplitConfig(garden);
-        assertEq(config.cookieJarBps, 3334, "Default cookie jar BPS should be 3334");
-        assertEq(config.fractionsBps, 3333, "Default fractions BPS should be 3333");
-        assertEq(config.juiceboxBps, 3333, "Default juicebox BPS should be 3333");
+        YieldResolver.SplitConfig memory config = yieldSplitter.getSplitConfig(garden);
+        assertEq(config.cookieJarBps, 4865, "Default cookie jar BPS should be 4865");
+        assertEq(config.fractionsBps, 4865, "Default fractions BPS should be 4865");
+        assertEq(config.juiceboxBps, 270, "Default juicebox BPS should be 270");
         assertEq(config.cookieJarBps + config.fractionsBps + config.juiceboxBps, 10_000, "Should sum to 10000");
     }
 
@@ -126,7 +127,7 @@ contract YieldSplitterTest is Test {
         vm.prank(operator);
         yieldSplitter.setSplitRatio(garden, 5000, 3000, 2000);
 
-        YieldSplitter.SplitConfig memory config = yieldSplitter.getSplitConfig(garden);
+        YieldResolver.SplitConfig memory config = yieldSplitter.getSplitConfig(garden);
         assertEq(config.cookieJarBps, 5000, "Cookie jar should be 50%");
         assertEq(config.fractionsBps, 3000, "Fractions should be 30%");
         assertEq(config.juiceboxBps, 2000, "Juicebox should be 20%");
@@ -136,20 +137,20 @@ contract YieldSplitterTest is Test {
         vm.prank(owner);
         yieldSplitter.setSplitRatio(garden, 10_000, 0, 0);
 
-        YieldSplitter.SplitConfig memory config = yieldSplitter.getSplitConfig(garden);
+        YieldResolver.SplitConfig memory config = yieldSplitter.getSplitConfig(garden);
         assertEq(config.cookieJarBps, 10_000, "Cookie jar should be 100%");
     }
 
     function test_setSplitRatio_revertsIfNotSumTo10000() public {
         vm.prank(owner);
-        vm.expectRevert(YieldSplitter.InvalidSplitRatio.selector);
+        vm.expectRevert(YieldResolver.InvalidSplitRatio.selector);
         yieldSplitter.setSplitRatio(garden, 5000, 3000, 1000);
     }
 
     function test_setSplitRatio_revertsForUnauthorized() public {
         vm.prank(address(0x999));
-        vm.expectRevert(abi.encodeWithSelector(YieldSplitter.UnauthorizedCaller.selector, address(0x999)));
-        yieldSplitter.setSplitRatio(garden, 3334, 3333, 3333);
+        vm.expectRevert(abi.encodeWithSelector(YieldResolver.UnauthorizedCaller.selector, address(0x999)));
+        yieldSplitter.setSplitRatio(garden, 4865, 4865, 270);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -172,12 +173,13 @@ contract YieldSplitterTest is Test {
 
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
-        // Should have split — pendingYield contains only the escrowed fractions portion
-        uint256 expectedFractionsPending = (amount * 3333) / 10_000;
+        // Should have split — pendingYield should be 0, fractions escrowed separately
+        assertEq(yieldSplitter.getPendingYield(garden, address(weth)), 0, "Pending should be 0 after split");
+        uint256 expectedFractionsEscrowed = (amount * 4865) / 10_000;
         assertEq(
-            yieldSplitter.getPendingYield(garden, address(weth)),
-            expectedFractionsPending,
-            "Pending should contain escrowed fractions portion"
+            yieldSplitter.getEscrowedFractions(garden, address(weth)),
+            expectedFractionsEscrowed,
+            "Escrowed fractions should contain fractions portion"
         );
     }
 
@@ -193,13 +195,14 @@ contract YieldSplitterTest is Test {
         _fundVaultAndMintShares(second);
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
-        // Should merge and split — pendingYield now contains only the escrowed fractions portion
+        // Should merge and split — pendingYield cleared, fractions escrowed separately
         uint256 totalYield = first + second; // 9e18
-        uint256 expectedFractionsPending = (totalYield * 3333) / 10_000;
+        uint256 expectedFractionsEscrowed = (totalYield * 4865) / 10_000;
+        assertEq(yieldSplitter.getPendingYield(garden, address(weth)), 0, "Pending should be 0 after merge+split");
         assertEq(
-            yieldSplitter.getPendingYield(garden, address(weth)),
-            expectedFractionsPending,
-            "Pending should contain escrowed fractions portion after merge+split"
+            yieldSplitter.getEscrowedFractions(garden, address(weth)),
+            expectedFractionsEscrowed,
+            "Escrowed fractions should contain fractions portion after merge+split"
         );
     }
 
@@ -217,13 +220,13 @@ contract YieldSplitterTest is Test {
 
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
-        // Default: ~33/33/33
-        // cookieJar: 10000 * 3334 / 10000 = 3334
-        // fractions: 10000 * 3333 / 10000 = 3333
-        // juicebox: 10000 - 3334 - 3333 = 3333
+        // Default: ~48.65/48.65/2.7
+        // cookieJar: 10000 * 4865 / 10000 = 4865
+        // fractions: 10000 * 4865 / 10000 = 4865
+        // juicebox: 10000 - 4865 - 4865 = 270
 
-        // Cookie jar should have received ~33%
-        assertEq(weth.balanceOf(address(cookieJar)), 3334, "Cookie jar should receive ~33%");
+        // Cookie jar should have received ~48.65%
+        assertEq(weth.balanceOf(address(cookieJar)), 4865, "Cookie jar should receive ~48.65%");
     }
 
     function test_splitYield_customRatio50_30_20() public {
@@ -370,12 +373,12 @@ contract YieldSplitterTest is Test {
 
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
-        // Fractions should escrow to pendingYield (not recompound into vault)
+        // Fractions should escrow separately (not recompound into vault)
         // This prevents geometric decay across split cycles
         assertEq(
-            yieldSplitter.getPendingYield(garden, address(weth)),
+            yieldSplitter.getEscrowedFractions(garden, address(weth)),
             amount,
-            "Fractions portion should be escrowed in pendingYield"
+            "Fractions portion should be escrowed in escrowedFractions"
         );
         assertEq(vault.balanceOf(address(yieldSplitter)), 0, "Should NOT have recompounded shares");
     }
@@ -385,12 +388,12 @@ contract YieldSplitterTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_splitYield_revertsWithZeroGarden() public {
-        vm.expectRevert(YieldSplitter.ZeroAddress.selector);
+        vm.expectRevert(YieldResolver.ZeroAddress.selector);
         yieldSplitter.splitYield(address(0), address(weth), address(vault));
     }
 
     function test_splitYield_revertsWithNoShares() public {
-        vm.expectRevert(abi.encodeWithSelector(YieldSplitter.NoVaultShares.selector, garden, address(weth)));
+        vm.expectRevert(abi.encodeWithSelector(YieldResolver.NoVaultShares.selector, garden, address(weth)));
         yieldSplitter.splitYield(garden, address(weth), address(vault));
     }
 
@@ -446,9 +449,9 @@ contract YieldSplitterTest is Test {
 
     function test_constants() public {
         assertEq(yieldSplitter.BPS_DENOMINATOR(), 10_000, "BPS denominator should be 10000");
-        assertEq(yieldSplitter.DEFAULT_COOKIE_JAR_BPS(), 3334, "Default cookie jar BPS should be 3334");
-        assertEq(yieldSplitter.DEFAULT_FRACTIONS_BPS(), 3333, "Default fractions BPS should be 3333");
-        assertEq(yieldSplitter.DEFAULT_JUICEBOX_BPS(), 3333, "Default juicebox BPS should be 3333");
+        assertEq(yieldSplitter.DEFAULT_COOKIE_JAR_BPS(), 4865, "Default cookie jar BPS should be 4865");
+        assertEq(yieldSplitter.DEFAULT_FRACTIONS_BPS(), 4865, "Default fractions BPS should be 4865");
+        assertEq(yieldSplitter.DEFAULT_JUICEBOX_BPS(), 270, "Default juicebox BPS should be 270");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -464,7 +467,7 @@ contract YieldSplitterTest is Test {
         yieldSplitter.rescueTokens(address(weth), recipient, amount);
 
         assertEq(weth.balanceOf(recipient), amount, "Recipient should receive rescued tokens");
-        assertEq(weth.balanceOf(address(yieldSplitter)), 0, "YieldSplitter should have 0 balance");
+        assertEq(weth.balanceOf(address(yieldSplitter)), 0, "YieldResolver should have 0 balance");
     }
 
     function test_rescueTokens_emitsEvent() public {
@@ -472,7 +475,7 @@ contract YieldSplitterTest is Test {
         weth.mint(address(yieldSplitter), amount);
 
         vm.expectEmit(true, true, false, true);
-        emit YieldSplitter.TokensRescued(address(weth), address(0x400), amount);
+        emit YieldResolver.TokensRescued(address(weth), address(0x400), amount);
 
         vm.prank(owner);
         yieldSplitter.rescueTokens(address(weth), address(0x400), amount);
@@ -488,13 +491,13 @@ contract YieldSplitterTest is Test {
 
     function test_rescueTokens_revertsWithZeroTokenAddress() public {
         vm.prank(owner);
-        vm.expectRevert(YieldSplitter.ZeroAddress.selector);
+        vm.expectRevert(YieldResolver.ZeroAddress.selector);
         yieldSplitter.rescueTokens(address(0), address(0x400), 1000);
     }
 
     function test_rescueTokens_revertsWithZeroRecipient() public {
         vm.prank(owner);
-        vm.expectRevert(YieldSplitter.ZeroAddress.selector);
+        vm.expectRevert(YieldResolver.ZeroAddress.selector);
         yieldSplitter.rescueTokens(address(weth), address(0), 1000);
     }
 
@@ -511,7 +514,7 @@ contract YieldSplitterTest is Test {
 
     function test_setSplitRatio_emitsSplitRatioUpdated() public {
         vm.expectEmit(true, false, false, true);
-        emit YieldSplitter.SplitRatioUpdated(garden, 5000, 3000, 2000);
+        emit YieldResolver.SplitRatioUpdated(garden, 5000, 3000, 2000);
 
         vm.prank(operator);
         yieldSplitter.setSplitRatio(garden, 5000, 3000, 2000);
@@ -519,7 +522,7 @@ contract YieldSplitterTest is Test {
 
     function test_setMinYieldThreshold_emitsMinYieldThresholdUpdated() public {
         vm.expectEmit(false, false, false, true);
-        emit YieldSplitter.MinYieldThresholdUpdated(MIN_YIELD_THRESHOLD, 100e18);
+        emit YieldResolver.MinYieldThresholdUpdated(MIN_YIELD_THRESHOLD, 100e18);
 
         vm.prank(owner);
         yieldSplitter.setMinYieldThreshold(100e18);
@@ -532,12 +535,12 @@ contract YieldSplitterTest is Test {
         vm.prank(owner);
         yieldSplitter.setMinYieldThreshold(0);
 
-        // Default split: 3334/3333/3333 on 10000
-        // cookieJar = 10000 * 3334 / 10000 = 3334
-        // fractions = 10000 * 3333 / 10000 = 3333
-        // juicebox  = 10000 - 3334 - 3333  = 3333
+        // Default split: 4865/4865/270 on 10000
+        // cookieJar = 10000 * 4865 / 10000 = 4865
+        // fractions = 10000 * 4865 / 10000 = 4865
+        // juicebox  = 10000 - 4865 - 4865  = 270
         vm.expectEmit(true, true, false, true);
-        emit YieldSplitter.YieldSplit(garden, address(weth), 3334, 3333, 3333, amount);
+        emit YieldResolver.YieldSplit(garden, address(weth), 4865, 4865, 270, amount);
 
         yieldSplitter.splitYield(garden, address(weth), address(vault));
     }
@@ -547,7 +550,7 @@ contract YieldSplitterTest is Test {
         _fundVaultAndMintShares(smallAmount);
 
         vm.expectEmit(true, true, false, true);
-        emit YieldSplitter.YieldAccumulated(garden, address(weth), smallAmount, smallAmount);
+        emit YieldResolver.YieldAccumulated(garden, address(weth), smallAmount, smallAmount);
 
         yieldSplitter.splitYield(garden, address(weth), address(vault));
     }
@@ -560,7 +563,7 @@ contract YieldSplitterTest is Test {
         address wrongVault = address(0x999);
 
         vm.expectRevert(
-            abi.encodeWithSelector(YieldSplitter.InvalidVault.selector, garden, address(weth), address(vault), wrongVault)
+            abi.encodeWithSelector(YieldResolver.InvalidVault.selector, garden, address(weth), address(vault), wrongVault)
         );
         yieldSplitter.splitYield(garden, address(weth), wrongVault);
     }
@@ -569,10 +572,16 @@ contract YieldSplitterTest is Test {
     // Set Garden Vault
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function test_setGardenVault_onlyOwner() public {
+    function test_setGardenVault_onlyOwnerOrOctantModule() public {
+        // Unauthorized caller should be rejected
         vm.prank(address(0x999));
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert(abi.encodeWithSelector(YieldResolver.UnauthorizedCaller.selector, address(0x999)));
         yieldSplitter.setGardenVault(garden, address(weth), address(0x42));
+
+        // OctantModule should be allowed
+        vm.prank(octantModule);
+        yieldSplitter.setGardenVault(garden, address(weth), address(0x42));
+        assertEq(yieldSplitter.gardenVaults(garden, address(weth)), address(0x42));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -607,7 +616,7 @@ contract YieldSplitterTest is Test {
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
         // Garden A: cookie jar should have received its share
-        uint256 expectedCookieJarA = (amountA * 3334) / 10_000;
+        uint256 expectedCookieJarA = (amountA * 4865) / 10_000;
         assertEq(weth.balanceOf(address(cookieJar)), expectedCookieJarA, "Garden A cookie jar should receive yield");
 
         // Garden B: cookie jar should be untouched
@@ -620,7 +629,7 @@ contract YieldSplitterTest is Test {
         yieldSplitter.splitYield(gardenB, address(weth), address(vaultB));
 
         // Garden B: cookie jar should now have received its share
-        uint256 expectedCookieJarB = (amountB * 3334) / 10_000;
+        uint256 expectedCookieJarB = (amountB * 4865) / 10_000;
         assertEq(weth.balanceOf(address(cookieJarB)), expectedCookieJarB, "Garden B cookie jar should receive yield");
 
         // Garden A: cookie jar should NOT have changed
@@ -659,11 +668,11 @@ contract YieldSplitterTest is Test {
 
         // Split garden B — should distribute (above threshold), fractions escrowed
         yieldSplitter.splitYield(gardenB, address(weth), address(vaultB));
-        uint256 expectedFractionsPendingB = (largeB * 3333) / 10_000;
+        uint256 expectedFractionsEscrowB = (largeB * 4865) / 10_000;
         assertEq(
-            yieldSplitter.getPendingYield(gardenB, address(weth)),
-            expectedFractionsPendingB,
-            "Garden B pending should contain escrowed fractions"
+            yieldSplitter.getEscrowedFractions(gardenB, address(weth)),
+            expectedFractionsEscrowB,
+            "Garden B escrowed fractions should contain fractions portion"
         );
 
         // Garden A pending should NOT have been affected by B's split
@@ -683,7 +692,7 @@ contract YieldSplitterTest is Test {
         // Verify the vault was updated by trying to split with old vault (should revert)
         _fundVaultAndMintShares(10_000);
         vm.expectRevert(
-            abi.encodeWithSelector(YieldSplitter.InvalidVault.selector, garden, address(weth), newVault, address(vault))
+            abi.encodeWithSelector(YieldResolver.InvalidVault.selector, garden, address(weth), newVault, address(vault))
         );
         yieldSplitter.splitYield(garden, address(weth), address(vault));
     }
@@ -693,9 +702,9 @@ contract YieldSplitterTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Test BPS split with 1 wei yield
-    /// With default split (3334/3333/3333) and totalYield=1:
-    ///   cookieJar = 1 * 3334 / 10000 = 0
-    ///   fractions = 1 * 3333 / 10000 = 0
+    /// With default split (4865/4865/270) and totalYield=1:
+    ///   cookieJar = 1 * 4865 / 10000 = 0
+    ///   fractions = 1 * 4865 / 10000 = 0
     ///   juicebox  = 1 - 0 - 0 = 1
     /// All dust goes to juicebox (remainder recipient)
     function test_splitYield_dustAmount_1wei() public {
@@ -707,7 +716,7 @@ contract YieldSplitterTest is Test {
 
         // Expected: cookieJar=0, fractions=0, juicebox=1 (remainder)
         vm.expectEmit(true, true, false, true);
-        emit YieldSplitter.YieldSplit(garden, address(weth), 0, 0, 1, amount);
+        emit YieldResolver.YieldSplit(garden, address(weth), 0, 0, 1, amount);
 
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
@@ -721,10 +730,10 @@ contract YieldSplitterTest is Test {
     }
 
     /// @notice Test BPS split with 3 wei yield
-    /// With default split (3334/3333/3333) and totalYield=3:
-    ///   cookieJar = 3 * 3334 / 10000 = 1 (10002 / 10000 = 1)
-    ///   fractions = 3 * 3333 / 10000 = 0 (9999 / 10000 = 0)
-    ///   juicebox  = 3 - 1 - 0 = 2
+    /// With default split (4865/4865/270) and totalYield=3:
+    ///   cookieJar = 3 * 4865 / 10000 = 1 (14595 / 10000 = 1)
+    ///   fractions = 3 * 4865 / 10000 = 1 (14595 / 10000 = 1)
+    ///   juicebox  = 3 - 1 - 1 = 1
     function test_splitYield_dustAmount_3wei() public {
         uint256 amount = 3;
         _fundVaultAndMintShares(amount);
@@ -732,15 +741,15 @@ contract YieldSplitterTest is Test {
         vm.prank(owner);
         yieldSplitter.setMinYieldThreshold(0);
 
-        uint256 expectedCookieJar = (amount * 3334) / 10_000; // = 1
-        uint256 expectedFractions = (amount * 3333) / 10_000; // = 0
+        uint256 expectedCookieJar = (amount * 4865) / 10_000; // = 1
+        uint256 expectedFractions = (amount * 4865) / 10_000; // = 1
         uint256 expectedJuicebox = amount - expectedCookieJar - expectedFractions; // = 2
 
         // Verify the three amounts sum to totalYield
         assertEq(expectedCookieJar + expectedFractions + expectedJuicebox, amount, "Split must sum to totalYield");
 
         vm.expectEmit(true, true, false, true);
-        emit YieldSplitter.YieldSplit(garden, address(weth), expectedCookieJar, expectedFractions, expectedJuicebox, amount);
+        emit YieldResolver.YieldSplit(garden, address(weth), expectedCookieJar, expectedFractions, expectedJuicebox, amount);
 
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
@@ -750,9 +759,9 @@ contract YieldSplitterTest is Test {
 
     /// @notice Test BPS split with 9999 wei yield (just below BPS denominator)
     /// Verify no rounding errors accumulate:
-    ///   cookieJar = 9999 * 3334 / 10000 = 33336666 / 10000 = 3333
-    ///   fractions = 9999 * 3333 / 10000 = 33326667 / 10000 = 3332
-    ///   juicebox  = 9999 - 3333 - 3332 = 3334
+    ///   cookieJar = 9999 * 4865 / 10000 = 48645135 / 10000 = 4864
+    ///   fractions = 9999 * 4865 / 10000 = 48645135 / 10000 = 4864
+    ///   juicebox  = 9999 - 4864 - 4864 = 271
     function test_splitYield_dustAmount_9999wei() public {
         uint256 amount = 9999;
         _fundVaultAndMintShares(amount);
@@ -760,15 +769,15 @@ contract YieldSplitterTest is Test {
         vm.prank(owner);
         yieldSplitter.setMinYieldThreshold(0);
 
-        uint256 expectedCookieJar = (amount * 3334) / 10_000;
-        uint256 expectedFractions = (amount * 3333) / 10_000;
+        uint256 expectedCookieJar = (amount * 4865) / 10_000;
+        uint256 expectedFractions = (amount * 4865) / 10_000;
         uint256 expectedJuicebox = amount - expectedCookieJar - expectedFractions;
 
         // Key assertion: no wei lost or created
         assertEq(expectedCookieJar + expectedFractions + expectedJuicebox, amount, "Split must sum to totalYield (9999)");
 
         vm.expectEmit(true, true, false, true);
-        emit YieldSplitter.YieldSplit(garden, address(weth), expectedCookieJar, expectedFractions, expectedJuicebox, amount);
+        emit YieldResolver.YieldSplit(garden, address(weth), expectedCookieJar, expectedFractions, expectedJuicebox, amount);
 
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
@@ -777,10 +786,10 @@ contract YieldSplitterTest is Test {
     }
 
     /// @notice Test BPS split with 10000 wei (exact BPS denominator)
-    /// Clean division: 10000 * 3334 / 10000 = 3334
-    ///                 10000 * 3333 / 10000 = 3333
-    ///                 10000 - 3334 - 3333  = 3333
-    /// Total: 3334 + 3333 + 3333 = 10000
+    /// Clean division: 10000 * 4865 / 10000 = 4865
+    ///                 10000 * 4865 / 10000 = 4865
+    ///                 10000 - 4865 - 4865  = 270
+    /// Total: 4865 + 4865 + 270 = 10000
     function test_splitYield_exactBpsDenominator() public {
         uint256 amount = 10_000;
         _fundVaultAndMintShares(amount);
@@ -789,31 +798,87 @@ contract YieldSplitterTest is Test {
         yieldSplitter.setMinYieldThreshold(0);
 
         // Exact division case
-        uint256 expectedCookieJar = 3334;
-        uint256 expectedFractions = 3333;
-        uint256 expectedJuicebox = 3333;
+        uint256 expectedCookieJar = 4865;
+        uint256 expectedFractions = 4865;
+        uint256 expectedJuicebox = 270;
 
         // Verify exact sum
         assertEq(expectedCookieJar + expectedFractions + expectedJuicebox, amount, "Exact BPS split must sum to 10000");
 
         vm.expectEmit(true, true, false, true);
-        emit YieldSplitter.YieldSplit(garden, address(weth), expectedCookieJar, expectedFractions, expectedJuicebox, amount);
+        emit YieldResolver.YieldSplit(garden, address(weth), expectedCookieJar, expectedFractions, expectedJuicebox, amount);
 
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
-        // Verify cookie jar received exact 3334
-        assertEq(weth.balanceOf(address(cookieJar)), 3334, "Cookie jar should receive exactly 3334");
+        // Verify cookie jar received exact 4865
+        assertEq(weth.balanceOf(address(cookieJar)), 4865, "Cookie jar should receive exactly 4865");
 
-        // Verify JB terminal received exact 3333
+        // Verify JB terminal received exact 270
         assertEq(jbTerminal.getPayCallCount(), 1, "JB should receive one payment");
         (,, uint256 payAmount,) = jbTerminal.payCalls(0);
-        assertEq(payAmount, 3333, "JB should receive exactly 3333");
+        assertEq(payAmount, 270, "JB should receive exactly 270");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Cross-Garden Share Validation (Aggregate Tracking)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_registerShares_crossGardenValidation() public {
+        // Two gardens sharing the same vault
+        address gardenB = address(0x101);
+
+        vm.startPrank(owner);
+        yieldSplitter.setGardenVault(gardenB, address(weth), address(vault));
+        yieldSplitter.setCookieJar(gardenB, address(new MockCookieJar()));
+        yieldSplitter.setGardenTreasury(gardenB, address(0x201));
+        vm.stopPrank();
+
+        // Mint 100 vault shares to the splitter
+        uint256 totalShares = 100;
+        weth.mint(address(vault), totalShares);
+        vault.mintShares(address(yieldSplitter), totalShares);
+
+        // Garden A registers 60 shares
+        vm.prank(octantModule);
+        yieldSplitter.registerShares(garden, address(vault), 60);
+
+        // Garden B registers 40 shares (total = 100, which equals balance)
+        vm.prank(octantModule);
+        yieldSplitter.registerShares(gardenB, address(vault), 40);
+
+        // Verify both registered
+        assertEq(yieldSplitter.gardenShares(garden, address(vault)), 60, "Garden A should have 60 shares");
+        assertEq(yieldSplitter.gardenShares(gardenB, address(vault)), 40, "Garden B should have 40 shares");
+        assertEq(yieldSplitter.totalRegisteredShares(address(vault)), 100, "Aggregate should be 100");
+    }
+
+    function test_registerShares_aggregateExceedsBalance() public {
+        // Two gardens sharing the same vault
+        address gardenB = address(0x101);
+
+        vm.startPrank(owner);
+        yieldSplitter.setGardenVault(gardenB, address(weth), address(vault));
+        vm.stopPrank();
+
+        // Mint 100 vault shares to the splitter
+        uint256 totalShares = 100;
+        weth.mint(address(vault), totalShares);
+        vault.mintShares(address(yieldSplitter), totalShares);
+
+        // Garden A registers 60 shares
+        vm.prank(octantModule);
+        yieldSplitter.registerShares(garden, address(vault), 60);
+
+        // Garden B tries to register 50 shares (total 110 > 100 balance) — should revert
+        vm.prank(octantModule);
+        vm.expectRevert(abi.encodeWithSelector(YieldResolver.NoVaultShares.selector, gardenB, address(vault)));
+        yieldSplitter.registerShares(gardenB, address(vault), 50);
     }
 }
 
-/// @title YieldSplitterHarness
+/// @title YieldResolverHarness
 /// @notice Test harness exposing internal functions for unit testing
-contract YieldSplitterHarness is YieldSplitter {
+contract YieldResolverHarness is YieldResolver {
     function exposed_purchaseFraction(
         address garden,
         address asset,
@@ -826,10 +891,6 @@ contract YieldSplitterHarness is YieldSplitter {
         return _purchaseFraction(garden, asset, hypercertId, amount);
     }
 
-    function exposed_recompound(address garden, address asset, uint256 amount, address vault) external {
-        _recompound(garden, asset, amount, vault);
-    }
-
     function exposed_routeToCookieJar(address garden, address asset, uint256 amount) external {
         _routeToCookieJar(garden, asset, amount);
     }
@@ -839,10 +900,10 @@ contract YieldSplitterHarness is YieldSplitter {
     }
 }
 
-/// @title YieldSplitterFailureTest
+/// @title YieldResolverFailureTest
 /// @notice Tests for failure paths, allowance cleanup, and marketplace purchase
-contract YieldSplitterFailureTest is Test {
-    YieldSplitterHarness public harness;
+contract YieldResolverFailureTest is Test {
+    YieldResolverHarness public harness;
     MockWETH public weth;
     MockOctantVaultForYield public vault;
     MockCookieJar public cookieJar;
@@ -864,11 +925,11 @@ contract YieldSplitterFailureTest is Test {
         hatsModule = new MockHatsModule();
 
         // Deploy harness behind proxy
-        YieldSplitterHarness impl = new YieldSplitterHarness();
+        YieldResolverHarness impl = new YieldResolverHarness();
         bytes memory initData =
-            abi.encodeWithSelector(YieldSplitter.initialize.selector, owner, octantModule, address(hatsModule), 0);
+            abi.encodeWithSelector(YieldResolver.initialize.selector, owner, octantModule, address(hatsModule), 0);
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
-        harness = YieldSplitterHarness(address(proxy));
+        harness = YieldResolverHarness(address(proxy));
 
         // Configure
         vm.startPrank(owner);
@@ -943,23 +1004,6 @@ contract YieldSplitterFailureTest is Test {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // _recompound — Failure Path
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    function test_recompound_fallsBackToTreasuryOnVaultFailure() public {
-        uint256 amount = 1000;
-        _fundHarness(amount);
-
-        // Use address(0) as vault to force failure
-        address badVault = address(new MockOctantVaultForYield(address(0)));
-
-        harness.exposed_recompound(garden, address(weth), amount, badVault);
-
-        // Treasury should receive the funds
-        assertEq(weth.balanceOf(treasury), amount, "Treasury should receive funds after recompound failure");
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
     // _routeToJuicebox — Failure Path
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1008,8 +1052,312 @@ contract YieldSplitterFailureTest is Test {
         _fundHarness(amount);
 
         vm.expectEmit(true, true, false, true);
-        emit YieldSplitter.FractionPurchased(garden, 42, amount, 1, treasury);
+        emit YieldResolver.FractionPurchased(garden, 42, amount, 1, treasury);
 
         harness.exposed_purchaseFraction(garden, address(weth), 42, amount);
+    }
+}
+
+/// @title YieldResolverConvictionTest
+/// @notice Tests for conviction-weighted fraction purchasing via CVStrategy
+contract YieldResolverConvictionTest is Test {
+    YieldResolver public yieldSplitter;
+    MockWETH public weth;
+    MockOctantVaultForYield public vault;
+    MockCookieJar public cookieJar;
+    MockHypercertMarketplace public marketplace;
+    MockJBMultiTerminalForYield public jbTerminal;
+    MockHatsModule public hatsModule;
+    MockCVStrategy public cvStrategy;
+
+    address public owner = address(0x1);
+    address public octantModule = address(0x2);
+    address public garden = address(0x100);
+    address public treasury = address(0x200);
+
+    function setUp() public {
+        // Deploy mocks
+        weth = new MockWETH();
+        vault = new MockOctantVaultForYield(address(weth));
+        cookieJar = new MockCookieJar();
+        marketplace = new MockHypercertMarketplace();
+        jbTerminal = new MockJBMultiTerminalForYield();
+        hatsModule = new MockHatsModule();
+        cvStrategy = new MockCVStrategy();
+
+        // Deploy YieldResolver behind proxy
+        YieldResolver impl = new YieldResolver();
+        bytes memory initData = abi.encodeWithSelector(
+            YieldResolver.initialize.selector,
+            owner,
+            octantModule,
+            address(hatsModule),
+            0 // zero threshold for easier testing
+        );
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        yieldSplitter = YieldResolver(address(proxy));
+
+        // Configure the yield splitter
+        vm.startPrank(owner);
+        yieldSplitter.setCookieJar(garden, address(cookieJar));
+        yieldSplitter.setGardenTreasury(garden, treasury);
+        yieldSplitter.setGardenVault(garden, address(weth), address(vault));
+        yieldSplitter.setHypercertMarketplace(address(marketplace));
+        yieldSplitter.setJBMultiTerminal(address(jbTerminal));
+        yieldSplitter.setJuiceboxProjectId(1);
+        // Set 100% to fractions for cleaner conviction testing
+        yieldSplitter.setSplitRatio(garden, 0, 10_000, 0);
+        // Wire the CVStrategy pool
+        yieldSplitter.setGardenHypercertPool(garden, address(cvStrategy));
+        // Allow small test amounts (default 1e15 is too high for unit test values)
+        yieldSplitter.setMinAllocationAmount(0);
+        vm.stopPrank();
+    }
+
+    /// @notice Helper: Fund vault and mint shares to the yield splitter
+    function _fundVaultAndMintShares(uint256 amount) internal {
+        weth.mint(address(vault), amount);
+        vault.mintShares(address(yieldSplitter), amount);
+        vm.prank(octantModule);
+        yieldSplitter.registerShares(garden, address(vault), amount);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Conviction Routing — Proportional Distribution
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_routeToFractions_withConviction_distributesProportionally() public {
+        uint256 amount = 10_000;
+        _fundVaultAndMintShares(amount);
+
+        // Add 3 proposals with different conviction weights: 50%, 30%, 20%
+        cvStrategy.addProposal(100, 5000); // proposal 1: conviction = 5000
+        cvStrategy.addProposal(60, 3000); // proposal 2: conviction = 3000
+        cvStrategy.addProposal(40, 2000); // proposal 3: conviction = 2000
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Marketplace should have received 3 purchases
+        assertEq(marketplace.getPurchaseCount(), 3, "Should have 3 fraction purchases");
+
+        // Verify proportional amounts: total conviction = 10000
+        // Proposal 1: 5000/10000 * 10000 = 5000
+        // Proposal 2: 3000/10000 * 10000 = 3000
+        // Proposal 3: 2000/10000 * 10000 = 2000
+        (, uint256 amount1,,) = marketplace.purchases(0);
+        (, uint256 amount2,,) = marketplace.purchases(1);
+        (, uint256 amount3,,) = marketplace.purchases(2);
+        assertEq(amount1, 5000, "Proposal 1 should get 50%");
+        assertEq(amount2, 3000, "Proposal 2 should get 30%");
+        assertEq(amount3, 2000, "Proposal 3 should get 20%");
+
+        // Verify hypercert IDs match proposal IDs (1-indexed)
+        (uint256 hcId1,,,) = marketplace.purchases(0);
+        (uint256 hcId2,,,) = marketplace.purchases(1);
+        (uint256 hcId3,,,) = marketplace.purchases(2);
+        assertEq(hcId1, 1, "First purchase should be proposal 1");
+        assertEq(hcId2, 2, "Second purchase should be proposal 2");
+        assertEq(hcId3, 3, "Third purchase should be proposal 3");
+
+        // No dust escrowed (clean division)
+        assertEq(yieldSplitter.getEscrowedFractions(garden, address(weth)), 0, "No dust should be escrowed");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Conviction Routing — Escrow Fallbacks
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_routeToFractions_noPool_escrows() public {
+        uint256 amount = 10_000;
+        _fundVaultAndMintShares(amount);
+
+        // Remove pool
+        vm.prank(owner);
+        yieldSplitter.setGardenHypercertPool(garden, address(0));
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Should escrow entire amount
+        assertEq(yieldSplitter.getEscrowedFractions(garden, address(weth)), amount, "Should escrow when no pool configured");
+        assertEq(marketplace.getPurchaseCount(), 0, "No purchases should be made");
+    }
+
+    function test_routeToFractions_noMarketplace_escrows() public {
+        uint256 amount = 10_000;
+        _fundVaultAndMintShares(amount);
+
+        // Remove marketplace
+        vm.prank(owner);
+        yieldSplitter.setHypercertMarketplace(address(0));
+
+        cvStrategy.addProposal(100, 5000);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        assertEq(yieldSplitter.getEscrowedFractions(garden, address(weth)), amount, "Should escrow when no marketplace");
+    }
+
+    function test_routeToFractions_noProposals_escrows() public {
+        uint256 amount = 10_000;
+        _fundVaultAndMintShares(amount);
+
+        // Pool has 0 proposals (proposalCounter == 0)
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        assertEq(yieldSplitter.getEscrowedFractions(garden, address(weth)), amount, "Should escrow when no proposals");
+    }
+
+    function test_routeToFractions_zeroConviction_escrows() public {
+        uint256 amount = 10_000;
+        _fundVaultAndMintShares(amount);
+
+        // Add proposals with zero conviction
+        cvStrategy.addProposal(100, 0);
+        cvStrategy.addProposal(200, 0);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        assertEq(
+            yieldSplitter.getEscrowedFractions(garden, address(weth)), amount, "Should escrow when all conviction is 0"
+        );
+        assertEq(marketplace.getPurchaseCount(), 0, "No purchases when zero conviction");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Conviction Routing — Inactive Proposals
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_routeToFractions_inactiveProposals_skipped() public {
+        uint256 amount = 10_000;
+        _fundVaultAndMintShares(amount);
+
+        // Add 3 proposals, but make proposal 2 Cancelled (status=3)
+        cvStrategy.addProposal(100, 5000);
+        cvStrategy.addProposal(60, 3000);
+        cvStrategy.addProposal(40, 2000);
+        cvStrategy.setProposalStatus(2, 3); // Cancelled
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Only proposals 1 and 3 should receive allocations
+        // Total conviction = 5000 + 2000 = 7000
+        // Proposal 1: 5000/7000 * 10000 = 7142
+        // Proposal 3: 2000/7000 * 10000 = 2857
+        // Dust: 10000 - 7142 - 2857 = 1
+        assertEq(marketplace.getPurchaseCount(), 2, "Only 2 active proposals should get purchases");
+
+        (, uint256 amount1,,) = marketplace.purchases(0);
+        (, uint256 amount3,,) = marketplace.purchases(1);
+        assertEq(amount1, 7142, "Proposal 1 should get 5000/7000 of 10000");
+        assertEq(amount3, 2857, "Proposal 3 should get 2000/7000 of 10000");
+
+        // Verify 1 wei of rounding dust is escrowed
+        uint256 expectedDust = amount - amount1 - amount3;
+        assertEq(expectedDust, 1, "Rounding dust should be 1 wei");
+        assertEq(
+            yieldSplitter.getEscrowedFractions(garden, address(weth)), expectedDust, "Rounding dust should be escrowed"
+        );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Conviction Routing — Pool Reverts
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_routeToFractions_poolReverts_escrows() public {
+        uint256 amount = 10_000;
+        _fundVaultAndMintShares(amount);
+
+        cvStrategy.addProposal(100, 5000);
+        cvStrategy.setShouldRevert(true);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        assertEq(yieldSplitter.getEscrowedFractions(garden, address(weth)), amount, "Should escrow when pool reverts");
+        assertEq(marketplace.getPurchaseCount(), 0, "No purchases when pool reverts");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Conviction Routing — Purchase Fails (Existing _purchaseFraction Behavior)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_routeToFractions_purchaseFails_escrowed() public {
+        uint256 amount = 10_000;
+        _fundVaultAndMintShares(amount);
+
+        cvStrategy.addProposal(100, 10_000); // Single proposal gets 100%
+        marketplace.setShouldRevert(true); // Marketplace will reject purchases
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // _purchaseFraction catch block escrows on failure
+        assertEq(
+            yieldSplitter.getEscrowedFractions(garden, address(weth)),
+            amount,
+            "Failed purchases should be escrowed by _purchaseFraction"
+        );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // setGardenHypercertPool — Access Control
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_setGardenHypercertPool_onlyOwner() public {
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        yieldSplitter.setGardenHypercertPool(garden, address(0x42));
+    }
+
+    function test_setGardenHypercertPool_setsPool() public {
+        address newPool = address(0x42);
+        vm.prank(owner);
+        yieldSplitter.setGardenHypercertPool(garden, newPool);
+        assertEq(yieldSplitter.gardenHypercertPools(garden), newPool, "Pool should be set");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Conviction Routing — Rounding Dust
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_routeToFractions_roundingDust_escrowed() public {
+        uint256 amount = 10;
+        _fundVaultAndMintShares(amount);
+
+        // 3 proposals with equal conviction: 10 / 3 = 3 each, 1 dust
+        cvStrategy.addProposal(100, 1000);
+        cvStrategy.addProposal(100, 1000);
+        cvStrategy.addProposal(100, 1000);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        assertEq(marketplace.getPurchaseCount(), 3, "All 3 proposals should get purchases");
+
+        (, uint256 a1,,) = marketplace.purchases(0);
+        (, uint256 a2,,) = marketplace.purchases(1);
+        (, uint256 a3,,) = marketplace.purchases(2);
+        assertEq(a1, 3, "Each proposal gets 3");
+        assertEq(a2, 3, "Each proposal gets 3");
+        assertEq(a3, 3, "Each proposal gets 3");
+
+        // 1 wei dust should be escrowed
+        assertEq(yieldSplitter.getEscrowedFractions(garden, address(weth)), 1, "1 wei rounding dust should be escrowed");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Conviction Routing — ConvictionRouted Event
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_routeToFractions_emitsConvictionRouted() public {
+        uint256 amount = 10_000;
+        _fundVaultAndMintShares(amount);
+
+        cvStrategy.addProposal(100, 5000);
+        cvStrategy.addProposal(60, 3000);
+
+        // Expect ConvictionRouted event: 2 active proposals, total conviction = 8000
+        vm.expectEmit(true, true, false, true);
+        emit YieldResolver.ConvictionRouted(garden, address(weth), 2, 8000);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
     }
 }

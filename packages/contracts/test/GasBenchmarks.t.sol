@@ -7,20 +7,20 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { HatsModule } from "../src/modules/Hats.sol";
 import { IHatsModule } from "../src/interfaces/IHatsModule.sol";
 import { MockHats } from "../src/mocks/Hats.sol";
-import { ActionRegistry, Capital } from "../src/registries/Action.sol";
+import { ActionRegistry, Capital, Domain } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
 import { IGardensModule } from "../src/interfaces/IGardensModule.sol";
-import { YieldSplitter } from "../src/yield/YieldSplitter.sol";
+import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {
     MockCookieJar,
     MockHypercertMarketplace,
     MockJBMultiTerminalForYield,
     MockOctantVaultForYield
-} from "../src/mocks/MockYieldDeps.sol";
+} from "../src/mocks/YieldDeps.sol";
 import { MockHatsModule as MockHatsModuleForBench } from "./helpers/MockHatsModule.sol";
 
 /// @title GasBenchmarks
@@ -122,7 +122,8 @@ contract GasBenchmarks is Test, ERC6551Helper {
             bannerImage: "Banner",
             metadata: "",
             openJoining: false,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
 
         uint256 gasBefore = gasleft();
@@ -151,7 +152,8 @@ contract GasBenchmarks is Test, ERC6551Helper {
             bannerImage: "Banner",
             metadata: "",
             openJoining: false,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
 
         uint256 gasBefore = gasleft();
@@ -180,7 +182,8 @@ contract GasBenchmarks is Test, ERC6551Helper {
                 bannerImage: "Banner",
                 metadata: "",
                 openJoining: false,
-                weightScheme: IGardensModule.WeightScheme.Linear
+                weightScheme: IGardensModule.WeightScheme.Linear,
+                domainMask: 0
             });
         }
 
@@ -321,7 +324,14 @@ contract GasBenchmarks is Test, ERC6551Helper {
 
         uint256 gasBefore = gasleft();
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 30 days, "Plant Trees", "ipfs://instructions", capitals, media
+            block.timestamp,
+            block.timestamp + 30 days,
+            "Plant Trees",
+            "agro.planting_event",
+            "ipfs://instructions",
+            capitals,
+            media,
+            Domain.AGRO
         );
         uint256 gasUsed = gasBefore - gasleft();
 
@@ -342,7 +352,14 @@ contract GasBenchmarks is Test, ERC6551Helper {
 
         uint256 gasBefore = gasleft();
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 30 days, "Complex Action", "ipfs://instructions", capitals, media
+            block.timestamp,
+            block.timestamp + 30 days,
+            "Complex Action",
+            "solar.node_ops",
+            "ipfs://instructions",
+            capitals,
+            media,
+            Domain.SOLAR
         );
         uint256 gasUsed = gasBefore - gasleft();
 
@@ -414,7 +431,8 @@ contract GasBenchmarks is Test, ERC6551Helper {
             bannerImage: "Banner",
             metadata: "",
             openJoining: false,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
 
         garden = gardenToken.mintGarden(config);
@@ -425,13 +443,13 @@ contract GasBenchmarks is Test, ERC6551Helper {
     }
 
     // =========================================================================
-    // YieldSplitter Benchmarks
+    // YieldResolver Benchmarks
     // =========================================================================
 
     /// @notice Benchmark: splitYield (redeem + three-way split)
     function testGas_splitYield() public {
-        // Deploy YieldSplitter infrastructure
-        (YieldSplitter ys, MockOctantVaultForYield ysVault, MockWETHForBench ysWeth) = _setupYieldSplitter();
+        // Deploy YieldResolver infrastructure
+        (YieldResolver ys, MockOctantVaultForYield ysVault, MockWETHForBench ysWeth) = _setupYieldResolver();
 
         // Fund vault and mint shares
         ysWeth.mint(address(ysVault), 10_000);
@@ -448,7 +466,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
 
     /// @notice Benchmark: setSplitRatio
     function testGas_setSplitRatio() public {
-        (YieldSplitter ys,,) = _setupYieldSplitter();
+        (YieldResolver ys,,) = _setupYieldResolver();
 
         uint256 gasBefore = gasleft();
         ys.setSplitRatio(address(0x100), 5000, 3000, 2000);
@@ -460,7 +478,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
 
     /// @notice Benchmark: rescueTokens
     function testGas_rescueTokens() public {
-        (YieldSplitter ys,, MockWETHForBench ysWeth) = _setupYieldSplitter();
+        (YieldResolver ys,, MockWETHForBench ysWeth) = _setupYieldResolver();
         ysWeth.mint(address(ys), 5000);
 
         uint256 gasBefore = gasleft();
@@ -471,9 +489,9 @@ contract GasBenchmarks is Test, ERC6551Helper {
         assertLt(gasUsed, MAX_RESCUE_TOKENS_GAS, "Gas budget exceeded for rescueTokens");
     }
 
-    function _setupYieldSplitter()
+    function _setupYieldResolver()
         internal
-        returns (YieldSplitter ys, MockOctantVaultForYield ysVault, MockWETHForBench ysWeth)
+        returns (YieldResolver ys, MockOctantVaultForYield ysVault, MockWETHForBench ysWeth)
     {
         ysWeth = new MockWETHForBench();
         ysVault = new MockOctantVaultForYield(address(ysWeth));
@@ -481,11 +499,11 @@ contract GasBenchmarks is Test, ERC6551Helper {
         MockJBMultiTerminalForYield jbTerminal = new MockJBMultiTerminalForYield();
         MockHatsModuleForBench hatsModuleBench = new MockHatsModuleForBench();
 
-        YieldSplitter impl = new YieldSplitter();
+        YieldResolver impl = new YieldResolver();
         bytes memory initData =
-            abi.encodeWithSelector(YieldSplitter.initialize.selector, owner, address(0x2), address(hatsModuleBench), 0);
+            abi.encodeWithSelector(YieldResolver.initialize.selector, owner, address(0x2), address(hatsModuleBench), 0);
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
-        ys = YieldSplitter(address(proxy));
+        ys = YieldResolver(address(proxy));
 
         address ysGarden = address(0x100);
         ys.setCookieJar(ysGarden, address(cookieJar));

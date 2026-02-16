@@ -10,16 +10,16 @@ import {
     AssessmentResolver,
     NotGardenOperator,
     TitleRequired,
-    AssessmentTypeRequired,
-    AtLeastOneCapitalRequired,
-    InvalidCapital
+    ConfigCIDRequired,
+    InvalidDomain,
+    InvalidSchema
 } from "../../src/resolvers/Assessment.sol";
 import { MockEAS } from "../../src/mocks/EAS.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
 
 /// @title AssessmentResolverTest
-/// @notice Unit tests for AssessmentResolver onAttest validation logic
-/// @dev Tests identity checks, required field validation, and capital validation
+/// @notice Unit tests for AssessmentResolver v2 onAttest validation logic
+/// @dev Tests identity checks, required field validation, and domain validation
 contract AssessmentResolverTest is Test {
     AssessmentResolver private assessmentResolver;
     MockEAS private mockEAS;
@@ -57,7 +57,7 @@ contract AssessmentResolverTest is Test {
     }
 
     function testIsPayable() public {
-        assertTrue(assessmentResolver.isPayable(), "Resolver should be payable");
+        assertFalse(assessmentResolver.isPayable(), "Resolver should not be payable");
     }
 
     // =========================================================================
@@ -80,26 +80,18 @@ contract AssessmentResolverTest is Test {
         assertTrue(result, "Operator should also be able to create assessments");
     }
 
-    function testOnAttestAllValidCapitals() public {
-        // Test all 8 valid capital types
-        string[] memory allCapitals = new string[](8);
-        allCapitals[0] = "social";
-        allCapitals[1] = "material";
-        allCapitals[2] = "financial";
-        allCapitals[3] = "living";
-        allCapitals[4] = "intellectual";
-        allCapitals[5] = "experiential";
-        allCapitals[6] = "spiritual";
-        allCapitals[7] = "cultural";
+    function testOnAttestAllValidDomains() public {
+        // Test all 4 valid domain values (SOLAR=0, AGRO=1, EDU=2, WASTE=3)
+        for (uint8 d = 0; d <= 3; d++) {
+            AssessmentSchema memory schema = _validAssessment();
+            schema.domain = d;
 
-        AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = allCapitals;
+            Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
 
-        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
-
-        vm.prank(address(mockEAS));
-        bool result = assessmentResolver.attest(attestation);
-        assertTrue(result, "All 8 valid capitals should be accepted");
+            vm.prank(address(mockEAS));
+            bool result = assessmentResolver.attest(attestation);
+            assertTrue(result, "Valid domain should be accepted");
+        }
     }
 
     // =========================================================================
@@ -138,69 +130,61 @@ contract AssessmentResolverTest is Test {
         assessmentResolver.attest(attestation);
     }
 
-    function testOnAttestRevertsForEmptyAssessmentType() public {
+    function testOnAttestRevertsForEmptyConfigCID() public {
         AssessmentSchema memory schema = _validAssessment();
-        schema.assessmentType = "";
+        schema.assessmentConfigCID = "";
 
         Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(AssessmentTypeRequired.selector);
-        assessmentResolver.attest(attestation);
-    }
-
-    function testOnAttestRevertsForEmptyCapitals() public {
-        AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = new string[](0);
-
-        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
-
-        vm.prank(address(mockEAS));
-        vm.expectRevert(AtLeastOneCapitalRequired.selector);
+        vm.expectRevert(ConfigCIDRequired.selector);
         assessmentResolver.attest(attestation);
     }
 
     // =========================================================================
-    // onAttest: Capital Validation
+    // onAttest: Domain Validation
     // =========================================================================
 
-    function testOnAttestRevertsForInvalidCapital() public {
+    function testOnAttestRevertsForInvalidDomain() public {
         AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = new string[](1);
-        schema.capitals[0] = "invalid_capital";
+        schema.domain = 4; // Invalid — only 0-3 are valid
 
         Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(abi.encodeWithSelector(InvalidCapital.selector, "invalid_capital"));
+        vm.expectRevert(abi.encodeWithSelector(InvalidDomain.selector, uint8(4)));
         assessmentResolver.attest(attestation);
     }
 
-    function testOnAttestRevertsForMixedValidAndInvalidCapitals() public {
+    function testOnAttestRevertsForMaxUint8Domain() public {
         AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = new string[](3);
-        schema.capitals[0] = "social"; // valid
-        schema.capitals[1] = "living"; // valid
-        schema.capitals[2] = "bogus"; // invalid
+        schema.domain = 255;
 
         Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(abi.encodeWithSelector(InvalidCapital.selector, "bogus"));
+        vm.expectRevert(abi.encodeWithSelector(InvalidDomain.selector, uint8(255)));
         assessmentResolver.attest(attestation);
     }
 
-    function testOnAttestRevertsForCapitalCaseSensitivity() public {
-        // Capitals must be lowercase
+    // =========================================================================
+    // onAttest: Domain Fuzz Tests
+    // =========================================================================
+
+    function testFuzz_assessmentDomainValidation(uint8 domain) public {
         AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = new string[](1);
-        schema.capitals[0] = "Social"; // uppercase S should fail
+        schema.domain = domain;
 
         Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(abi.encodeWithSelector(InvalidCapital.selector, "Social"));
-        assessmentResolver.attest(attestation);
+        if (domain <= 3) {
+            bool result = assessmentResolver.attest(attestation);
+            assertTrue(result, "Valid domain should be accepted");
+        } else {
+            vm.expectRevert(abi.encodeWithSelector(InvalidDomain.selector, domain));
+            assessmentResolver.attest(attestation);
+        }
     }
 
     // =========================================================================
@@ -303,56 +287,6 @@ contract AssessmentResolverTest is Test {
     }
 
     // =========================================================================
-    // Capital Validation Fuzz Tests
-    // =========================================================================
-
-    function testFuzz_assessmentCapitalValidation(uint8 capitalIndex) public {
-        // 8 valid capitals; anything else should fail
-        string[8] memory validCapitals =
-            ["social", "material", "financial", "living", "intellectual", "experiential", "spiritual", "cultural"];
-
-        AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = new string[](1);
-
-        if (capitalIndex < 8) {
-            // Valid capital — should succeed
-            schema.capitals[0] = validCapitals[capitalIndex];
-            Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
-
-            vm.prank(address(mockEAS));
-            bool result = assessmentResolver.attest(attestation);
-            assertTrue(result, "Valid capital should be accepted");
-        } else {
-            // Invalid index — generate a garbage string
-            schema.capitals[0] = string(abi.encodePacked("invalid_", uint2str(capitalIndex)));
-            Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
-
-            vm.prank(address(mockEAS));
-            vm.expectRevert();
-            assessmentResolver.attest(attestation);
-        }
-    }
-
-    /// @notice Helper to convert uint to string (for fuzz test)
-    function uint2str(uint256 _i) internal pure returns (string memory) {
-        if (_i == 0) return "0";
-        uint256 j = _i;
-        uint256 len;
-        while (j != 0) {
-            len++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(len);
-        uint256 k = len;
-        while (_i != 0) {
-            k--;
-            bstr[k] = bytes1(uint8(48 + _i % 10));
-            _i /= 10;
-        }
-        return string(bstr);
-    }
-
-    // =========================================================================
     // GAP Integration Branch Tests (karmaGAPModule configured vs not)
     // =========================================================================
 
@@ -398,129 +332,20 @@ contract AssessmentResolverTest is Test {
     }
 
     // =========================================================================
-    // Metadata Building Branch Tests (JSON escaping, multi-capital arrays)
+    // Schema UID Validation Tests
     // =========================================================================
 
-    function testOnAttestWithSingleCapital() public {
-        AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = new string[](1);
-        schema.capitals[0] = "financial";
-
-        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
-
-        vm.prank(address(mockEAS));
-        bool result = assessmentResolver.attest(attestation);
-        assertTrue(result, "Single capital assessment should succeed");
-    }
-
-    function testOnAttestWithAllEightCapitals() public {
-        AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = new string[](8);
-        schema.capitals[0] = "social";
-        schema.capitals[1] = "material";
-        schema.capitals[2] = "financial";
-        schema.capitals[3] = "living";
-        schema.capitals[4] = "intellectual";
-        schema.capitals[5] = "experiential";
-        schema.capitals[6] = "spiritual";
-        schema.capitals[7] = "cultural";
-
-        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
-
-        vm.prank(address(mockEAS));
-        bool result = assessmentResolver.attest(attestation);
-        assertTrue(result, "All 8 capitals assessment should succeed");
-    }
-
-    function testOnAttestWithQuotesInMetricsJSON() public {
-        // Tests _escapeJSON branch — metricsJSON with double quotes
-        AssessmentSchema memory schema = _validAssessment();
-        schema.metricsJSON = 'ipfs://Qm"quoted"value';
-
-        // Configure GAP module so _buildMilestoneMetadata is actually called
-        MockKarmaGAPModule mockModule = new MockKarmaGAPModule();
+    function test_revert_InvalidSchema() public {
+        bytes32 expectedSchema = bytes32(uint256(200));
         vm.prank(multisig);
-        assessmentResolver.setKarmaGAPModule(address(mockModule));
+        assessmentResolver.setSchemaUID(expectedSchema);
 
-        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
-
-        vm.prank(address(mockEAS));
-        bool result = assessmentResolver.attest(attestation);
-        assertTrue(result, "Assessment with quotes in metrics should succeed");
-    }
-
-    function testOnAttestWithQuotesInAssessmentType() public {
-        AssessmentSchema memory schema = _validAssessment();
-        schema.assessmentType = 'bio"diversity';
-
-        MockKarmaGAPModule mockModule = new MockKarmaGAPModule();
-        vm.prank(multisig);
-        assessmentResolver.setKarmaGAPModule(address(mockModule));
-
-        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
+        // Build attestation with a different schema UID (102 != 200)
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, _validAssessment());
 
         vm.prank(address(mockEAS));
-        bool result = assessmentResolver.attest(attestation);
-        assertTrue(result, "Assessment with quotes in type should succeed");
-    }
-
-    function testOnAttestWithEmptyMetricsJSON() public {
-        AssessmentSchema memory schema = _validAssessment();
-        schema.metricsJSON = "";
-
-        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
-
-        vm.prank(address(mockEAS));
-        bool result = assessmentResolver.attest(attestation);
-        assertTrue(result, "Assessment with empty metrics should succeed");
-    }
-
-    // =========================================================================
-    // Each Individual Capital Validation Tests
-    // =========================================================================
-
-    function testOnAttestEachCapitalIndividually_social() public {
-        _testSingleCapital("social");
-    }
-
-    function testOnAttestEachCapitalIndividually_material() public {
-        _testSingleCapital("material");
-    }
-
-    function testOnAttestEachCapitalIndividually_financial() public {
-        _testSingleCapital("financial");
-    }
-
-    function testOnAttestEachCapitalIndividually_living() public {
-        _testSingleCapital("living");
-    }
-
-    function testOnAttestEachCapitalIndividually_intellectual() public {
-        _testSingleCapital("intellectual");
-    }
-
-    function testOnAttestEachCapitalIndividually_experiential() public {
-        _testSingleCapital("experiential");
-    }
-
-    function testOnAttestEachCapitalIndividually_spiritual() public {
-        _testSingleCapital("spiritual");
-    }
-
-    function testOnAttestEachCapitalIndividually_cultural() public {
-        _testSingleCapital("cultural");
-    }
-
-    function _testSingleCapital(string memory capital) internal {
-        AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = new string[](1);
-        schema.capitals[0] = capital;
-
-        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
-
-        vm.prank(address(mockEAS));
-        bool result = assessmentResolver.attest(attestation);
-        assertTrue(result, string(abi.encodePacked("Capital '", capital, "' should be accepted")));
+        vm.expectRevert(InvalidSchema.selector);
+        assessmentResolver.attest(attestation);
     }
 
     // =========================================================================
@@ -528,32 +353,14 @@ contract AssessmentResolverTest is Test {
     // =========================================================================
 
     function _validAssessment() internal pure returns (AssessmentSchema memory) {
-        string[] memory capitals = new string[](2);
-        capitals[0] = "living";
-        capitals[1] = "social";
-
-        string[] memory evidence = new string[](1);
-        evidence[0] = "ipfs://QmEvidence";
-
-        string[] memory reports = new string[](1);
-        reports[0] = "ipfs://QmReport";
-
-        string[] memory tags = new string[](1);
-        tags[0] = "biodiversity";
-
         return AssessmentSchema({
             title: "Q1 Assessment",
-            description: "Biodiversity assessment",
-            assessmentType: "biodiversity",
-            capitals: capitals,
-            metricsJSON: "ipfs://QmMetrics",
-            evidenceMedia: evidence,
-            reportDocuments: reports,
-            impactAttestations: new bytes32[](0),
+            description: "Solar panel installation assessment",
+            assessmentConfigCID: "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+            domain: 0, // SOLAR
             startDate: 1_000_000,
             endDate: 2_000_000,
-            location: "Garden Plot A",
-            tags: tags
+            location: "Garden Plot A"
         });
     }
 
@@ -585,7 +392,19 @@ contract MockKarmaGAPModule {
     bool private _createMilestoneCalled;
     bool private _shouldRevert;
 
-    function createMilestone(address, string calldata, string calldata, string calldata) external returns (bytes32) {
+    function createMilestone(
+        address,
+        string calldata,
+        string calldata,
+        uint256,
+        uint256,
+        uint8,
+        string calldata,
+        string calldata
+    )
+        external
+        returns (bytes32)
+    {
         if (_shouldRevert) revert("MockKarmaGAPModule: failed");
         _createMilestoneCalled = true;
         return bytes32(uint256(1));

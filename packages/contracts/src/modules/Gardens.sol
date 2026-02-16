@@ -13,8 +13,14 @@ import {
     IRegistryFactory,
     IRegistryCommunity,
     INFTPowerRegistryFactory,
-    NFTPowerSource
+    NFTPowerSource,
+    NFTType
 } from "../interfaces/IGardensV2.sol";
+
+/// @notice Minimal interface for GOODS token minting
+interface IGoodsToken {
+    function mint(address to, uint256 amount) external;
+}
 
 /// @title GardensModule
 /// @notice Orchestrates Gardens V2 community + signal pool creation on garden mint
@@ -35,10 +41,13 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
 
     error ZeroAddress();
     error NotGardenToken(address caller);
+    error NotGardenOperator();
     error GardenAlreadyInitialized(address garden);
     error GardenNotInitialized(address garden);
     error PoolsAlreadyExist(address garden);
     error InvalidWeightScheme();
+    error FactoriesNotConfigured(string missing);
+    error OnlySelfCall();
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constants
@@ -52,8 +61,8 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     uint256 public constant DEFAULT_MIN_THRESHOLD_POINTS = 2_500_000;
     uint256 public constant D = 10_000_000; // Scaling factor for CV params
 
-    /// @notice GOODS amount per member for community staking (1 GOODS)
-    uint256 public constant STAKE_AMOUNT_PER_MEMBER = 1e18;
+    /// @notice Initial member slots for treasury seeding (mint enough GOODS for ~100 members)
+    uint256 public constant INITIAL_MEMBER_SLOTS = 100;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
@@ -92,9 +101,16 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     /// @notice Whether a garden has been initialized
     mapping(address garden => bool initialized) public gardenInitialized;
 
+    /// @notice GOODS amount per member for community staking (configurable, default 1 GOODS)
+    uint256 public stakeAmountPerMember;
+
+    /// @notice When true, onGardenMinted reverts if registryFactory or powerRegistryFactory is missing
+    /// @dev Enable for production deployments to prevent partial initialization
+    bool public requireFullSetup;
+
     /// @notice Storage gap for future upgrades
-    /// @dev 11 storage vars + 39 gap = 50 slots total
-    uint256[39] private __gap;
+    /// @dev 13 storage vars + 37 gap = 50 slots total
+    uint256[37] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -134,6 +150,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         goodsToken = IERC20(_goodsToken);
         hatsProtocol = _hatsProtocol;
         hatsModule = IHatsModule(_hatsModule);
+        stakeAmountPerMember = 1e18; // Default: 1 GOODS per member
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -142,6 +159,8 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
 
     /// @inheritdoc IGardensModule
     /// @dev Called by GardenToken during mint. All external calls wrapped in try/catch.
+    ///      Community is created FIRST (independent), then power registry, then pools.
+    ///      If pool creation fails, garden still initializes — operators can call createGardenPools() later.
     function onGardenMinted(
         address garden,
         WeightScheme scheme
@@ -155,39 +174,83 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         if (garden == address(0)) revert ZeroAddress();
         if (gardenInitialized[garden]) revert GardenAlreadyInitialized(garden);
 
+        // Fail fast in production mode if factories are not configured
+        if (requireFullSetup) {
+            if (address(registryFactory) == address(0)) revert FactoriesNotConfigured("registryFactory");
+            if (address(powerRegistryFactory) == address(0)) revert FactoriesNotConfigured("powerRegistryFactory");
+        }
+
         // Store weight scheme immediately (even if later steps fail)
         gardenWeightSchemes[garden] = scheme;
         gardenInitialized[garden] = true;
 
-        // Step 1: Deploy NFTPowerRegistry with role weights
-        address registry = _deployPowerRegistry(garden, scheme);
-        if (registry != address(0)) {
-            gardenPowerRegistries[garden] = registry;
-        }
-
-        // Step 2: Create RegistryCommunity via factory
+        // Step 1: Create community (independent, no deps on registry/pools)
         community = _createCommunity(garden);
         if (community != address(0)) {
             gardenCommunities[garden] = community;
         }
 
-        // Step 3: Create signal pools
+        // Step 2: Deploy power registry (needs hats, NOT community)
+        address registry = _deployPowerRegistry(garden, scheme);
+        if (registry != address(0)) {
+            gardenPowerRegistries[garden] = registry;
+        }
+
+        // Step 3: Seed GOODS treasury for member staking
+        if (address(goodsToken) != address(0) && community != address(0)) {
+            uint256 treasuryAmount = stakeAmountPerMember * INITIAL_MEMBER_SLOTS;
+            // solhint-disable-next-line no-empty-blocks
+            try IGoodsToken(address(goodsToken)).mint(garden, treasuryAmount) {
+                emit GardenTreasurySeeded(garden, treasuryAmount);
+            } catch {
+                // Non-blocking — garden works without GOODS treasury
+            }
+        }
+
+        // Step 4: Attempt pool creation (separate try/catch from community creation)
+        // Uses self-call pattern to enable try/catch on internal logic.
+        // If this fails, garden still initializes — operators can call createGardenPools() later.
+        if (community != address(0)) {
+            // solhint-disable-next-line no-empty-blocks
+            try this.attemptPoolCreation(garden, community, registry) returns (address[] memory createdPools) {
+                pools = createdPools;
+                // Inner try/catch in _createPool may catch reverts gracefully (returning empty array)
+                if (pools.length == 0) {
+                    emit GardenPartiallyInitialized(garden, true, false);
+                }
+            } catch {
+                pools = new address[](0);
+                emit GardenPartiallyInitialized(garden, true, false);
+            }
+        } else {
+            pools = new address[](0);
+            emit GardenPartiallyInitialized(garden, false, false);
+        }
+
+        return (community, pools);
+    }
+
+    /// @notice Create and register signal pools — external for try/catch isolation
+    /// @dev Only callable by this contract itself (self-call pattern). Enables try/catch
+    ///      on pool creation logic within onGardenMinted. Does NOT use nonReentrant because
+    ///      the parent call (onGardenMinted) already holds the reentrancy lock.
+    function attemptPoolCreation(
+        address garden,
+        address community,
+        address registry
+    )
+        external
+        returns (address[] memory pools)
+    {
+        if (msg.sender != address(this)) revert OnlySelfCall();
+
         pools = _createSignalPools(garden, community, registry);
         if (pools.length > 0) {
             for (uint256 i = 0; i < pools.length; i++) {
                 gardenSignalPools[garden].push(pools[i]);
             }
+            _registerPoolsInHatsModule(garden, pools);
         }
-
-        // Step 4: Register pools in HatsModule for conviction sync
-        _registerPoolsInHatsModule(garden, pools);
-
-        // Emit partial initialization warning if community or pools creation failed
-        if (community == address(0) || pools.length < 2) {
-            emit GardenPartiallyInitialized(garden, community != address(0), pools.length >= 2);
-        }
-
-        return (community, pools);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -234,6 +297,39 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // Pool Management
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @inheritdoc IGardensModule
+    /// @dev Garden must have a community. Callable by garden operators or protocol owner.
+    function createGardenPools(address garden) external override returns (address[] memory pools) {
+        // Access control: garden operator or owner
+        if (msg.sender != owner()) {
+            if (address(hatsModule) == address(0)) revert ZeroAddress();
+            if (!hatsModule.isOperatorOf(garden, msg.sender)) revert NotGardenOperator();
+        }
+
+        return _executeCreatePools(garden);
+    }
+
+    /// @notice Internal pool creation logic shared by createGardenPools and retryCreatePools
+    function _executeCreatePools(address garden) internal returns (address[] memory pools) {
+        if (!gardenInitialized[garden]) revert GardenNotInitialized(garden);
+        address community = gardenCommunities[garden];
+        if (community == address(0)) revert ZeroAddress();
+        if (gardenSignalPools[garden].length > 0) revert PoolsAlreadyExist(garden);
+
+        address registry = gardenPowerRegistries[garden];
+        pools = _createSignalPools(garden, community, registry);
+        if (pools.length > 0) {
+            for (uint256 i = 0; i < pools.length; i++) {
+                gardenSignalPools[garden].push(pools[i]);
+            }
+            _registerPoolsInHatsModule(garden, pools);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // Admin Functions
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -273,6 +369,17 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         hatsModule = IHatsModule(_hatsModule);
     }
 
+    /// @notice Set the GOODS stake amount per community member
+    function setStakeAmountPerMember(uint256 amount) external onlyOwner {
+        stakeAmountPerMember = amount;
+    }
+
+    /// @notice Enable or disable fail-fast validation for missing factories
+    /// @dev Enable for production deployments to prevent partial initialization
+    function setRequireFullSetup(bool _requireFullSetup) external onlyOwner {
+        requireFullSetup = _requireFullSetup;
+    }
+
     /// @notice Reset garden initialization to allow re-running onGardenMinted
     /// @dev Use when partial failure leaves garden in half-configured state
     function resetGardenInitialization(address garden) external onlyOwner {
@@ -295,22 +402,10 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         }
     }
 
-    /// @notice Retry signal pool creation for a garden that had a partial failure
-    /// @dev Garden must have a community but no pools
+    /// @notice Retry signal pool creation — owner-only entry point
+    /// @dev Uses internal _executeCreatePools to avoid msg.sender change from external self-call
     function retryCreatePools(address garden) external onlyOwner returns (address[] memory pools) {
-        if (!gardenInitialized[garden]) revert GardenNotInitialized(garden);
-        address community = gardenCommunities[garden];
-        if (community == address(0)) revert ZeroAddress();
-        if (gardenSignalPools[garden].length > 0) revert PoolsAlreadyExist(garden);
-        address registry = gardenPowerRegistries[garden];
-
-        pools = _createSignalPools(garden, community, registry);
-        if (pools.length > 0) {
-            for (uint256 i = 0; i < pools.length; i++) {
-                gardenSignalPools[garden].push(pools[i]);
-            }
-            _registerPoolsInHatsModule(garden, pools);
-        }
+        return _executeCreatePools(garden);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -356,9 +451,27 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         }
 
         NFTPowerSource[] memory sources = new NFTPowerSource[](3);
-        sources[0] = NFTPowerSource({ hatsProtocol: hatsProtocol, hatId: operatorHatId, weight: operatorW });
-        sources[1] = NFTPowerSource({ hatsProtocol: hatsProtocol, hatId: gardenerHatId, weight: gardenerW });
-        sources[2] = NFTPowerSource({ hatsProtocol: hatsProtocol, hatId: communityHatId, weight: communityW });
+        sources[0] = NFTPowerSource({
+            token: hatsProtocol,
+            nftType: NFTType.HAT,
+            weight: operatorW,
+            tokenId: 0,
+            hatId: operatorHatId
+        });
+        sources[1] = NFTPowerSource({
+            token: hatsProtocol,
+            nftType: NFTType.HAT,
+            weight: gardenerW,
+            tokenId: 0,
+            hatId: gardenerHatId
+        });
+        sources[2] = NFTPowerSource({
+            token: hatsProtocol,
+            nftType: NFTType.HAT,
+            weight: communityW,
+            tokenId: 0,
+            hatId: communityHatId
+        });
 
         // solhint-disable-next-line no-empty-blocks
         try powerRegistryFactory.deploy(sources) returns (address deployed) {
@@ -384,7 +497,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
 
         IRegistryFactory.CreateCommunityParams memory params = IRegistryFactory.CreateCommunityParams({
             gardenToken: address(goodsToken),
-            registerStakeAmount: STAKE_AMOUNT_PER_MEMBER,
+            registerStakeAmount: stakeAmountPerMember,
             communityFee: 0,
             feeReceiver: address(0),
             councilSafe: garden, // Garden account (TBA) acts as council Safe

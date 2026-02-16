@@ -7,12 +7,14 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { IHypercertMarketplace } from "./IHypercertMarketplace.sol";
+import { IHypercertMarketplace } from "../interfaces/IHypercertMarketplace.sol";
+import { ICVStrategy } from "../interfaces/ICVStrategy.sol";
 import { IOctantVault } from "../interfaces/IOctantFactory.sol";
 import { IJBMultiTerminal } from "../interfaces/IJuicebox.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
+import { ICookieJarModule } from "../interfaces/ICookieJarModule.sol";
 
-/// @title YieldSplitter
+/// @title YieldResolver
 /// @notice Splits yield from Octant ERC-4626 vaults into three configurable destinations:
 ///         1. Cookie Jar (gardener operational compensation)
 ///         2. Hypercert fractions (conviction-weighted purchases)
@@ -20,7 +22,7 @@ import { IHatsModule } from "../interfaces/IHatsModule.sol";
 /// @dev Receives ERC-4626 vault shares as donation address from OctantModule.
 ///      Permissionless splitYield() — anyone can trigger allocation.
 ///      All external calls wrapped in try/catch for graceful degradation.
-contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
+contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
     using SafeERC20 for IERC20;
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -60,8 +62,6 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
     event YieldToJuicebox(address indexed garden, address indexed asset, uint256 amount, uint256 projectId);
 
-    event YieldRecompounded(address indexed garden, address indexed asset, uint256 amount);
-
     event FractionPurchased(
         address indexed garden, uint256 indexed hypercertId, uint256 amount, uint256 fractionId, address treasury
     );
@@ -76,6 +76,10 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
     event YieldStranded(address indexed garden, address indexed asset, uint256 amount, string destination);
 
+    event EscrowedFractionsWithdrawn(address indexed garden, address indexed asset, uint256 amount, address indexed to);
+
+    event ConvictionRouted(address indexed garden, address indexed asset, uint256 proposalCount, uint256 totalConviction);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
@@ -85,15 +89,16 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     error UnauthorizedCaller(address caller);
     error NoVaultShares(address garden, address asset);
     error InvalidVault(address garden, address asset, address expected, address provided);
+    error NoEscrowedFractions(address garden, address asset);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constants
     // ═══════════════════════════════════════════════════════════════════════════
 
     uint256 public constant BPS_DENOMINATOR = 10_000;
-    uint256 public constant DEFAULT_COOKIE_JAR_BPS = 3334;
-    uint256 public constant DEFAULT_FRACTIONS_BPS = 3333;
-    uint256 public constant DEFAULT_JUICEBOX_BPS = 3333;
+    uint256 public constant DEFAULT_COOKIE_JAR_BPS = 4865;
+    uint256 public constant DEFAULT_FRACTIONS_BPS = 4865;
+    uint256 public constant DEFAULT_JUICEBOX_BPS = 270;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
@@ -143,13 +148,31 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     ///      Incremented on share receipt (via registerShares), decremented on splitYield redemption.
     mapping(address garden => mapping(address vault => uint256 shares)) public gardenShares;
 
+    /// @notice CookieJarModule for per-asset jar lookups
+    ICookieJarModule public cookieJarModule;
+
+    /// @notice Escrowed fractions yield per garden per asset (separate from pendingYield)
+    /// @dev Accumulated until fraction purchasing is enabled. NOT merged into splitYield totals
+    ///      to prevent geometric decay — if merged, each cycle would re-split the fractions
+    ///      portion across all three destinations, leaking ~51% per cycle.
+    mapping(address garden => mapping(address asset => uint256 escrowed)) public escrowedFractions;
+
+    /// @notice Total registered shares across all gardens per vault
+    /// @dev Prevents cross-garden share inflation: sum of all gardenShares[*][vault] must not exceed actual balance
+    mapping(address vault => uint256 totalShares) public totalRegisteredShares;
+
+    /// @notice HypercertSignalPool (CVStrategy) address per garden for conviction-weighted fraction purchases
+    /// @dev Set post-mint by owner when a garden's signal pool is created. Zero address = escrow mode.
+    mapping(address garden => address pool) public gardenHypercertPools;
+
     /// @notice Storage gap for future upgrades
-    /// @dev 13 storage vars + 37 gap = 50 slots total
+    /// @dev 17 storage vars + 33 gap = 50 slots total
     ///      Vars: octantModule, hypercertMarketplace, jbMultiTerminal, juiceboxProjectId,
     ///            minYieldThreshold, minAllocationAmount, hatsModule,
     ///            gardenSplitConfig, gardenCookieJars, gardenTreasuries, pendingYield, gardenVaults,
-    ///            gardenShares
-    uint256[37] private __gap;
+    ///            gardenShares, cookieJarModule, escrowedFractions, totalRegisteredShares,
+    ///            gardenHypercertPools
+    uint256[33] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -160,7 +183,7 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         _disableInitializers();
     }
 
-    /// @notice Initialize the YieldSplitter
+    /// @notice Initialize the YieldResolver
     /// @param _owner The owner address
     /// @param _octantModule OctantModule address
     /// @param _hatsModule HatsModule address for access control
@@ -234,9 +257,10 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
         uint256 redeemed = 0;
         if (shares > 0) {
-            redeemed = IOctantVault(vault).redeem(shares, address(this), address(this));
+            redeemed = IOctantVault(vault).redeem(shares, address(this), address(this), 1, new address[](0));
             if (redeemed > 0) {
                 gardenShares[garden][vault] = 0;
+                totalRegisteredShares[vault] -= shares;
             }
         }
         return redeemed + pendingYield[garden][asset];
@@ -308,12 +332,14 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     }
 
     /// @notice Set vault address for a garden+asset pair
-    function setGardenVault(address garden, address asset, address vault) external onlyOwner {
+    /// @dev Callable by OctantModule (during vault creation) or protocol owner
+    function setGardenVault(address garden, address asset, address vault) external {
+        if (msg.sender != octantModule && msg.sender != owner()) revert UnauthorizedCaller(msg.sender);
         gardenVaults[garden][asset] = vault;
     }
 
     /// @notice Register vault shares received for a specific garden
-    /// @dev Called by OctantModule when shares are minted to YieldSplitter as donation address.
+    /// @dev Called by OctantModule when shares are minted to YieldResolver as donation address.
     ///      Tracks per-garden balances to prevent cross-garden share drainage.
     ///      Validates that shares don't exceed this contract's actual vault balance to prevent
     ///      phantom share inflation from a compromised OctantModule.
@@ -329,6 +355,11 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         uint256 actualBalance = IOctantVault(vault).balanceOf(address(this));
         uint256 newTotal = gardenShares[garden][vault] + shares;
         if (newTotal > actualBalance) revert NoVaultShares(garden, vault);
+
+        // Validate aggregate shares across all gardens don't exceed actual vault balance
+        uint256 newAggregate = totalRegisteredShares[vault] + shares;
+        if (newAggregate > actualBalance) revert NoVaultShares(garden, vault);
+        totalRegisteredShares[vault] = newAggregate;
 
         gardenShares[garden][vault] = newTotal;
     }
@@ -369,6 +400,36 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         hatsModule = IHatsModule(_hatsModule);
     }
 
+    function setCookieJarModule(address _cookieJarModule) external onlyOwner {
+        cookieJarModule = ICookieJarModule(_cookieJarModule);
+    }
+
+    /// @notice Set the HypercertSignalPool (CVStrategy) address for a garden
+    /// @dev Pool addresses are only known after gardens are minted and signal pools are created.
+    ///      Set to address(0) to revert to escrow mode for a garden.
+    function setGardenHypercertPool(address garden, address pool) external onlyOwner {
+        gardenHypercertPools[garden] = pool;
+    }
+
+    /// @notice Withdraw escrowed fractions yield to a garden's treasury
+    /// @dev Escrowed fractions accumulate until conviction-weighted purchasing is implemented.
+    ///      This function allows the owner to redirect escrowed funds to the garden treasury
+    ///      rather than leaving them permanently locked. Partial withdrawals are supported.
+    /// @param garden The garden whose escrowed fractions to withdraw
+    /// @param asset The ERC-20 asset to withdraw
+    /// @param amount The amount to withdraw (must be <= escrowed balance)
+    /// @param to The recipient address (typically the garden treasury)
+    function withdrawEscrowedFractions(address garden, address asset, uint256 amount, address to) external onlyOwner {
+        if (garden == address(0) || asset == address(0) || to == address(0)) revert ZeroAddress();
+
+        uint256 escrowed = escrowedFractions[garden][asset];
+        if (escrowed == 0 || amount > escrowed) revert NoEscrowedFractions(garden, asset);
+
+        escrowedFractions[garden][asset] = escrowed - amount;
+        IERC20(asset).safeTransfer(to, amount);
+        emit EscrowedFractionsWithdrawn(garden, asset, amount, to);
+    }
+
     /// @notice Rescue ERC-20 tokens stranded in this contract
     /// @dev Primary recovery mechanism for stranded funds. Tokens can become stranded when:
     ///      1. Neither Cookie Jar nor treasury is configured (YieldStranded events emitted)
@@ -399,6 +460,11 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         return pendingYield[garden][asset];
     }
 
+    /// @notice Get escrowed fractions yield for a garden+asset (awaiting fraction purchasing)
+    function getEscrowedFractions(address garden, address asset) external view returns (uint256) {
+        return escrowedFractions[garden][asset];
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Internal — Route to Cookie Jar
     // ═══════════════════════════════════════════════════════════════════════════
@@ -415,7 +481,17 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     ///      monitoring should alert on YieldStranded events so configuration can be corrected
     ///      before the next yield split.
     function _routeToCookieJar(address garden, address asset, uint256 amount) internal {
-        address jar = gardenCookieJars[garden];
+        // Try per-asset jar from CookieJarModule first, fall back to legacy mapping
+        address jar = address(0);
+        if (address(cookieJarModule) != address(0)) {
+            // solhint-disable-next-line no-empty-blocks
+            try cookieJarModule.getGardenJar(garden, asset) returns (address _jar) {
+                jar = _jar;
+            } catch { }
+        }
+        if (jar == address(0)) {
+            jar = gardenCookieJars[garden];
+        }
         if (jar == address(0)) {
             // No Cookie Jar configured — send to garden treasury as fallback
             address treasury = gardenTreasuries[garden];
@@ -438,53 +514,145 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Route yield portion to hypercert fraction purchases (conviction-weighted)
-    /// @dev DEFERRED: Fraction purchasing is not yet implemented. All funds routed here
-    ///      are escrowed in pendingYield until signal pool integration is completed.
-    ///      This prevents geometric decay: recompounding would re-split the fractions portion
-    ///      each cycle, leaking ~66.67% to Cookie Jar + Juicebox per cycle at default ratios.
-    ///      When implemented, this function will:
-    ///        1. Read conviction weights from the garden's HypercertSignalPool
-    ///        2. Purchase fractions proportional to each hypercert's conviction weight
-    ///        3. Emit FractionPurchased events for each purchase
-    ///      See: .plans/gardens-conviction-community-and-octant-yield-plan.md (Phase 3)
+    /// @dev Reads conviction weights from the garden's HypercertSignalPool (CVStrategy) and
+    ///      distributes yield proportionally to each active proposal's conviction score.
+    ///      Graceful degradation: if no pool is configured, no marketplace is set, the pool
+    ///      has no proposals, all proposals have zero conviction, or the pool reverts, the
+    ///      entire amount is escrowed in escrowedFractions for later processing.
+    ///      Rounding dust (from integer division) goes to escrowedFractions to avoid loss.
     /// @param garden The garden whose yield is being routed
     /// @param asset The ERC-20 asset being routed (e.g., WETH)
     /// @param amount The amount of asset to route to fractions
-    /// @param vault The vault (unused until fraction purchasing is live)
+    /// @param vault The vault (unused, kept for interface consistency)
     function _routeToFractions(address garden, address asset, uint256 amount, address vault) internal {
-        // Suppress unused parameter warning — vault will be needed for fraction purchasing
-        (vault);
-        // Escrow fractions portion until fraction purchasing is enabled
-        // This prevents geometric decay across split cycles
-        pendingYield[garden][asset] += amount;
-        emit YieldAccumulated(garden, asset, amount, pendingYield[garden][asset]);
+        (vault); // Suppress unused parameter warning
+
+        // Guard 1: No pool configured — escrow
+        address pool = gardenHypercertPools[garden];
+        if (pool == address(0) || address(hypercertMarketplace) == address(0)) {
+            _escrowFractions(garden, asset, amount);
+            return;
+        }
+
+        // Read proposal count — wrap in try/catch for graceful degradation
+        uint256 proposalCount;
+        // solhint-disable-next-line no-empty-blocks
+        try ICVStrategy(pool).proposalCounter() returns (uint256 count) {
+            proposalCount = count;
+        } catch {
+            _escrowFractions(garden, asset, amount);
+            return;
+        }
+
+        if (proposalCount == 0) {
+            _escrowFractions(garden, asset, amount);
+            return;
+        }
+
+        // Read conviction values for all active proposals
+        (uint256[] memory convictions, uint256 totalConviction, uint256 activeCount) =
+            _readConvictionWeights(pool, proposalCount);
+
+        if (totalConviction == 0) {
+            _escrowFractions(garden, asset, amount);
+            return;
+        }
+
+        // Distribute proportionally based on conviction weights
+        uint256 distributed = _distributeFractions(garden, asset, amount, convictions, proposalCount, totalConviction);
+
+        // Rounding dust goes to escrow (prevents wei loss)
+        if (amount > distributed) {
+            escrowedFractions[garden][asset] += amount - distributed;
+        }
+
+        emit ConvictionRouted(garden, asset, activeCount, totalConviction);
     }
 
-    /// @notice Re-deposit funds into vault (recompound when no fractions available)
-    /// @dev Recompounded shares are tracked via gardenShares[garden][vault]. On the next
-    ///      splitYield() call, these shares will be redeemed and re-split according to the
-    ///      current split ratio. This means the "fractions" portion effectively loops back
-    ///      through the split on every cycle until fraction purchasing is implemented.
-    ///      The economic effect is: each cycle, the fractionsBps portion stays in the vault
-    ///      and compounds, while cookieJarBps and juiceboxBps portions are distributed.
-    ///      Over N cycles, the fraction portion decays geometrically:
-    ///      retained = totalYield * (fractionsBps/10000)^N
-    function _recompound(address garden, address asset, uint256 amount, address vault) internal {
-        IERC20(asset).forceApprove(vault, amount);
-        // solhint-disable-next-line no-empty-blocks
-        try IOctantVault(vault).deposit(amount, address(this)) returns (uint256 newShares) {
-            // Track recompounded shares back to this garden
-            gardenShares[garden][vault] += newShares;
-            emit YieldRecompounded(garden, asset, amount);
-        } catch {
-            // Reset dangling allowance from the failed deposit
-            IERC20(asset).forceApprove(vault, 0);
-            // If recompound fails, send to treasury as fallback
-            address treasury = gardenTreasuries[garden];
-            if (treasury != address(0)) {
-                IERC20(asset).safeTransfer(treasury, amount);
-            } else {
-                emit YieldStranded(garden, asset, amount, "recompound");
+    /// @notice Escrow fractions yield for later processing
+    /// @dev Extracted helper to reduce cyclomatic complexity of _routeToFractions
+    function _escrowFractions(address garden, address asset, uint256 amount) private {
+        escrowedFractions[garden][asset] += amount;
+        emit YieldAccumulated(garden, asset, amount, escrowedFractions[garden][asset]);
+    }
+
+    /// @notice Read conviction weights from a CVStrategy pool for all active proposals
+    /// @dev Returns per-proposal convictions (1-indexed, stored at [i-1]), total conviction, and active count.
+    ///      Proposals that are not Active (status != 1) or whose calls revert are skipped.
+    /// @param pool The CVStrategy pool address
+    /// @param proposalCount The total number of proposals in the pool
+    /// @return convictions Array of conviction values per proposal (0 for skipped)
+    /// @return totalConviction Sum of all active conviction values
+    /// @return activeCount Number of proposals with non-zero conviction
+    function _readConvictionWeights(
+        address pool,
+        uint256 proposalCount
+    )
+        private
+        view
+        returns (uint256[] memory convictions, uint256 totalConviction, uint256 activeCount)
+    {
+        convictions = new uint256[](proposalCount);
+
+        for (uint256 i = 1; i <= proposalCount; i++) {
+            // Check proposal status — only Active (status == 1) proposals participate
+            // solhint-disable-next-line no-empty-blocks
+            try ICVStrategy(pool).getProposal(i) returns (
+                address,
+                address,
+                address,
+                uint256,
+                uint256,
+                uint8 proposalStatus,
+                uint256,
+                uint256,
+                uint256,
+                uint256,
+                uint256,
+                uint256
+            ) {
+                if (proposalStatus != 1) continue; // Skip non-Active proposals
+            } catch {
+                continue; // Skip proposals that revert
+            }
+
+            // Read fresh conviction
+            try ICVStrategy(pool).calculateProposalConviction(i) returns (uint256 conviction) {
+                convictions[i - 1] = conviction;
+                totalConviction += conviction;
+                if (conviction > 0) activeCount++;
+                // solhint-disable-next-line no-empty-blocks
+            } catch { }
+        }
+    }
+
+    /// @notice Distribute yield to fraction purchases based on conviction weights
+    /// @param garden The garden address
+    /// @param asset The ERC-20 asset
+    /// @param amount Total amount to distribute
+    /// @param convictions Per-proposal conviction values
+    /// @param proposalCount Total proposals
+    /// @param totalConviction Sum of all conviction values
+    /// @return distributed Total amount actually distributed to purchases
+    function _distributeFractions(
+        address garden,
+        address asset,
+        uint256 amount,
+        uint256[] memory convictions,
+        uint256 proposalCount,
+        uint256 totalConviction
+    )
+        private
+        returns (uint256 distributed)
+    {
+        for (uint256 i = 1; i <= proposalCount; i++) {
+            uint256 conviction = convictions[i - 1];
+            if (conviction == 0) continue;
+
+            uint256 allocation = (conviction * amount) / totalConviction;
+            if (allocation > 0) {
+                _purchaseFraction(garden, asset, i, allocation);
+                distributed += allocation;
             }
         }
     }
@@ -514,9 +682,9 @@ contract YieldSplitter is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         } catch {
             // Reset dangling allowance from the failed purchase
             IERC20(asset).forceApprove(address(hypercertMarketplace), 0);
-            // Purchase failed — escrow funds back to pendingYield for next split cycle
-            pendingYield[garden][asset] += amount;
-            emit YieldAccumulated(garden, asset, amount, pendingYield[garden][asset]);
+            // Purchase failed — escrow funds back for retry (NOT pendingYield to avoid decay)
+            escrowedFractions[garden][asset] += amount;
+            emit YieldAccumulated(garden, asset, amount, escrowedFractions[garden][asset]);
         }
     }
 

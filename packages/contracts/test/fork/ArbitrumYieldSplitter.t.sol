@@ -6,7 +6,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import { YieldSplitter } from "../../src/yield/YieldSplitter.sol";
+import { YieldResolver } from "../../src/resolvers/Yield.sol";
 import { IOctantVault } from "../../src/interfaces/IOctantFactory.sol";
 import { IJBMultiTerminal } from "../../src/interfaces/IJuicebox.sol";
 
@@ -73,17 +73,17 @@ contract MockHatsModuleForYieldFork {
     }
 }
 
-/// @title ArbitrumYieldSplitterForkTest
-/// @notice Fork tests for YieldSplitter against Arbitrum mainnet with real WETH
+/// @title ArbitrumYieldResolverForkTest
+/// @notice Fork tests for YieldResolver against Arbitrum mainnet with real WETH
 /// @dev Gracefully skips when ARBITRUM_RPC_URL is not set
-contract ArbitrumYieldSplitterForkTest is Test {
+contract ArbitrumYieldResolverForkTest is Test {
     /// @notice Real WETH on Arbitrum
     address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
     /// @notice Juicebox Multi-Terminal on Arbitrum
     address internal constant JB_MULTI_TERMINAL = 0x82129d4109625F94582bDdF6101a8Cd1a27919f5;
 
-    YieldSplitter public yieldSplitter;
+    YieldResolver public yieldSplitter;
     MockVaultForFork public vault;
     MockHatsModuleForYieldFork public mockHatsModule;
 
@@ -122,16 +122,16 @@ contract ArbitrumYieldSplitterForkTest is Test {
     // Deploy helper (call after fork is active)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function _deployYieldSplitter() internal {
+    function _deployYieldResolver() internal {
         mockHatsModule = new MockHatsModuleForYieldFork();
         vault = new MockVaultForFork(WETH);
 
-        YieldSplitter impl = new YieldSplitter();
+        YieldResolver impl = new YieldResolver();
         bytes memory initData = abi.encodeWithSelector(
-            YieldSplitter.initialize.selector, owner, octantModule, address(mockHatsModule), MIN_YIELD_THRESHOLD
+            YieldResolver.initialize.selector, owner, octantModule, address(mockHatsModule), MIN_YIELD_THRESHOLD
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
-        yieldSplitter = YieldSplitter(address(proxy));
+        yieldSplitter = YieldResolver(address(proxy));
 
         // Configure garden
         vm.startPrank(owner);
@@ -163,7 +163,7 @@ contract ArbitrumYieldSplitterForkTest is Test {
         // Verify WETH is deployed
         assertGt(WETH.code.length, 0, "WETH should be deployed on Arbitrum");
 
-        _deployYieldSplitter();
+        _deployYieldResolver();
 
         assertEq(yieldSplitter.owner(), owner, "owner should be set");
         assertEq(yieldSplitter.octantModule(), octantModule, "octant module should be set");
@@ -181,7 +181,7 @@ contract ArbitrumYieldSplitterForkTest is Test {
             return;
         }
 
-        _deployYieldSplitter();
+        _deployYieldResolver();
 
         uint256 depositAmount = 1 ether;
         deal(WETH, address(vault), depositAmount);
@@ -200,7 +200,7 @@ contract ArbitrumYieldSplitterForkTest is Test {
             return;
         }
 
-        _deployYieldSplitter();
+        _deployYieldResolver();
 
         uint256 yieldAmount = 1 ether;
         _fundVaultAndMintShares(yieldAmount);
@@ -209,14 +209,14 @@ contract ArbitrumYieldSplitterForkTest is Test {
         uint256 cookieJarBefore = IERC20(WETH).balanceOf(cookieJar);
         uint256 treasuryBefore = IERC20(WETH).balanceOf(treasury);
 
-        // Execute split — default ratios: 3334/3333/3333 bps
+        // Execute split — default ratios: 4865/4865/270 bps
         yieldSplitter.splitYield(garden, WETH, address(vault));
 
-        // Cookie Jar should receive ~33.34%
+        // Cookie Jar should receive ~48.65%
         uint256 cookieJarAfter = IERC20(WETH).balanceOf(cookieJar);
         uint256 cookieJarReceived = cookieJarAfter - cookieJarBefore;
-        uint256 expectedCookieJar = (yieldAmount * 3334) / 10_000;
-        assertEq(cookieJarReceived, expectedCookieJar, "cookie jar should receive ~33.34% of yield");
+        uint256 expectedCookieJar = (yieldAmount * 4865) / 10_000;
+        assertEq(cookieJarReceived, expectedCookieJar, "cookie jar should receive ~48.65% of yield");
 
         // Juicebox terminal is not configured, so JB portion goes to treasury as fallback
         // Fractions portion recompounds into vault (no marketplace configured)
@@ -225,7 +225,7 @@ contract ArbitrumYieldSplitterForkTest is Test {
         uint256 treasuryReceived = treasuryAfter - treasuryBefore;
 
         // Juicebox portion = totalYield - cookieJar - fractions = remainder
-        uint256 expectedFractions = (yieldAmount * 3333) / 10_000;
+        uint256 expectedFractions = (yieldAmount * 4865) / 10_000;
         uint256 expectedJuicebox = yieldAmount - expectedCookieJar - expectedFractions;
         assertEq(treasuryReceived, expectedJuicebox, "treasury should receive JB fallback portion");
     }
@@ -240,7 +240,7 @@ contract ArbitrumYieldSplitterForkTest is Test {
             return;
         }
 
-        _deployYieldSplitter();
+        _deployYieldResolver();
 
         // Fund with amount below threshold
         uint256 subThreshold = MIN_YIELD_THRESHOLD / 2; // 0.005 ETH
@@ -269,7 +269,7 @@ contract ArbitrumYieldSplitterForkTest is Test {
 
         // Cookie jar should now have received its share of total (subThreshold + secondAmount)
         uint256 totalYield = subThreshold + secondAmount;
-        uint256 expectedCookieJar = (totalYield * 3334) / 10_000;
+        uint256 expectedCookieJar = (totalYield * 4865) / 10_000;
         uint256 cookieJarBalAfter = IERC20(WETH).balanceOf(cookieJar);
         assertEq(cookieJarBalAfter, expectedCookieJar, "cookie jar should receive accumulated + new yield");
     }
@@ -284,7 +284,7 @@ contract ArbitrumYieldSplitterForkTest is Test {
             return;
         }
 
-        _deployYieldSplitter();
+        _deployYieldResolver();
 
         // Set 50/25/25 split
         vm.prank(owner);
@@ -312,12 +312,12 @@ contract ArbitrumYieldSplitterForkTest is Test {
             return;
         }
 
-        _deployYieldSplitter();
+        _deployYieldResolver();
 
         vm.prank(operator);
         yieldSplitter.setSplitRatio(garden, 4000, 3000, 3000);
 
-        YieldSplitter.SplitConfig memory config = yieldSplitter.getSplitConfig(garden);
+        YieldResolver.SplitConfig memory config = yieldSplitter.getSplitConfig(garden);
         assertEq(config.cookieJarBps, 4000, "cookie jar bps should be 4000");
         assertEq(config.fractionsBps, 3000, "fractions bps should be 3000");
         assertEq(config.juiceboxBps, 3000, "juicebox bps should be 3000");
@@ -333,10 +333,10 @@ contract ArbitrumYieldSplitterForkTest is Test {
             return;
         }
 
-        _deployYieldSplitter();
+        _deployYieldResolver();
 
         vm.prank(owner);
-        vm.expectRevert(YieldSplitter.InvalidSplitRatio.selector);
+        vm.expectRevert(YieldResolver.InvalidSplitRatio.selector);
         yieldSplitter.setSplitRatio(garden, 5000, 3000, 3000); // Sums to 11000
     }
 
@@ -363,7 +363,7 @@ contract ArbitrumYieldSplitterForkTest is Test {
             return;
         }
 
-        _deployYieldSplitter();
+        _deployYieldResolver();
 
         // Configure the real JB terminal with a non-existent project ID
         vm.startPrank(owner);
@@ -384,8 +384,8 @@ contract ArbitrumYieldSplitterForkTest is Test {
         uint256 treasuryReceived = treasuryAfter - treasuryBefore;
 
         // JB portion should have been sent to treasury as fallback
-        uint256 expectedCookieJar = (yieldAmount * 3334) / 10_000;
-        uint256 expectedFractions = (yieldAmount * 3333) / 10_000;
+        uint256 expectedCookieJar = (yieldAmount * 4865) / 10_000;
+        uint256 expectedFractions = (yieldAmount * 4865) / 10_000;
         uint256 expectedJuicebox = yieldAmount - expectedCookieJar - expectedFractions;
         assertEq(treasuryReceived, expectedJuicebox, "JB fallback should go to treasury");
     }
@@ -400,10 +400,10 @@ contract ArbitrumYieldSplitterForkTest is Test {
             return;
         }
 
-        _deployYieldSplitter();
+        _deployYieldResolver();
 
         // No shares minted — should revert
-        vm.expectRevert(abi.encodeWithSelector(YieldSplitter.NoVaultShares.selector, garden, WETH));
+        vm.expectRevert(abi.encodeWithSelector(YieldResolver.NoVaultShares.selector, garden, WETH));
         yieldSplitter.splitYield(garden, WETH, address(vault));
     }
 
@@ -417,7 +417,7 @@ contract ArbitrumYieldSplitterForkTest is Test {
             return;
         }
 
-        _deployYieldSplitter();
+        _deployYieldResolver();
 
         address newOctant = address(0xEE);
         uint256 newThreshold = 50e18;
@@ -444,14 +444,14 @@ contract ArbitrumYieldSplitterForkTest is Test {
             return;
         }
 
-        _deployYieldSplitter();
+        _deployYieldResolver();
 
         address unconfiguredGarden = address(0xFFFF);
-        YieldSplitter.SplitConfig memory config = yieldSplitter.getSplitConfig(unconfiguredGarden);
+        YieldResolver.SplitConfig memory config = yieldSplitter.getSplitConfig(unconfiguredGarden);
 
-        assertEq(config.cookieJarBps, 3334, "default cookie jar should be 3334 bps");
-        assertEq(config.fractionsBps, 3333, "default fractions should be 3333 bps");
-        assertEq(config.juiceboxBps, 3333, "default juicebox should be 3333 bps");
+        assertEq(config.cookieJarBps, 4865, "default cookie jar should be 4865 bps");
+        assertEq(config.fractionsBps, 4865, "default fractions should be 4865 bps");
+        assertEq(config.juiceboxBps, 270, "default juicebox should be 270 bps");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -464,11 +464,11 @@ contract ArbitrumYieldSplitterForkTest is Test {
             return;
         }
 
-        _deployYieldSplitter();
+        _deployYieldResolver();
 
         assertEq(yieldSplitter.BPS_DENOMINATOR(), 10_000, "BPS denominator should be 10000");
-        assertEq(yieldSplitter.DEFAULT_COOKIE_JAR_BPS(), 3334, "default cookie jar bps should be 3334");
-        assertEq(yieldSplitter.DEFAULT_FRACTIONS_BPS(), 3333, "default fractions bps should be 3333");
-        assertEq(yieldSplitter.DEFAULT_JUICEBOX_BPS(), 3333, "default juicebox bps should be 3333");
+        assertEq(yieldSplitter.DEFAULT_COOKIE_JAR_BPS(), 4865, "default cookie jar bps should be 4865");
+        assertEq(yieldSplitter.DEFAULT_FRACTIONS_BPS(), 4865, "default fractions bps should be 4865");
+        assertEq(yieldSplitter.DEFAULT_JUICEBOX_BPS(), 270, "default juicebox bps should be 270");
     }
 }

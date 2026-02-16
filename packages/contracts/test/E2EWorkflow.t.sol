@@ -7,7 +7,7 @@ import { Attestation } from "@eas/IEAS.sol";
 
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
-import { ActionRegistry, Capital } from "../src/registries/Action.sol";
+import { ActionRegistry, Capital, Domain } from "../src/registries/Action.sol";
 import { HatsModule } from "../src/modules/Hats.sol";
 import { IHatsModule } from "../src/interfaces/IHatsModule.sol";
 import { MockHats } from "../src/mocks/Hats.sol";
@@ -77,7 +77,8 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
             bannerImage: "ipfs://QmBanner",
             metadata: "",
             openJoining: openJoining,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
         return gardenToken.mintGarden(config);
     }
@@ -108,9 +109,11 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
             block.timestamp,
             block.timestamp + 30 days,
             "Plant Native Trees",
+            "agro.planting_event",
             "ipfs://QmInstructions",
             capitals,
-            new string[](0)
+            new string[](0),
+            Domain.AGRO
         );
 
         WorkSchema memory workSubmission = WorkSchema({
@@ -139,8 +142,15 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         vm.prank(gardener1);
         mockEAS.setAttestationByUID(workUID, workAttestation);
 
-        WorkApprovalSchema memory approval =
-            WorkApprovalSchema({ actionUID: 0, workUID: workUID, approved: true, feedback: "Great work" });
+        WorkApprovalSchema memory approval = WorkApprovalSchema({
+            actionUID: 0,
+            workUID: workUID,
+            approved: true,
+            feedback: "Great work",
+            confidence: 2,
+            verificationMethod: 1,
+            reviewNotesCID: ""
+        });
 
         bytes32 approvalUID = bytes32(uint256(2));
         Attestation memory approvalAttestation = Attestation({

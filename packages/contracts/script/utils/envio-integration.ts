@@ -26,6 +26,7 @@ interface DeploymentData {
   gardenAccountImpl?: string;
   accountProxy?: string;
   hatsModule?: string;
+  cookieJarModule?: string;
   [key: string]: string | undefined;
 }
 
@@ -236,6 +237,15 @@ export class EnvioIntegration {
       upsertContract("GardenToken", deployment.gardenToken);
       upsertContract("GardenAccount", gardenAccountAddress);
       upsertContract("HatsModule", deployment.hatsModule);
+      upsertContract("OctantModule", deployment.octantModule);
+      // OctantVault address is managed by OctantModule — not directly in deployment JSON.
+      // It is set per garden via VaultCreated events, so we skip it here (it stays at its
+      // existing config.yaml value or placeholder zero address).
+      upsertContract("GardensModule", deployment.gardensModule);
+      upsertContract("YieldSplitter", deployment.yieldSplitter);
+      upsertContract("CookieJarModule", deployment.cookieJarModule);
+      // HypercertMinter has a fixed address per chain, managed in config.yaml.
+      // EAS attestation data is queried from EAS GraphQL (easscan.org), not indexed by Envio.
 
       const orderedContracts: EnvioContract[] = [];
       const seen = new Set<string>();
@@ -246,7 +256,18 @@ export class EnvioIntegration {
         seen.add(updated.name);
       });
 
-      const preferredOrder = ["ActionRegistry", "GardenToken", "GardenAccount", "HatsModule"];
+      const preferredOrder = [
+        "ActionRegistry",
+        "GardenToken",
+        "GardenAccount",
+        "HatsModule",
+        "OctantModule",
+        "OctantVault",
+        "GardensModule",
+        "YieldSplitter",
+        "CookieJarModule",
+        "HypercertMinter",
+      ];
       preferredOrder.forEach((name) => {
         const contract = contractsByName.get(name);
         if (contract && !seen.has(name)) {
@@ -306,6 +327,18 @@ export class EnvioIntegration {
       console.log(`   GardenAccount: ${gardenAccountAddress}`);
       if (deployment.hatsModule && deployment.hatsModule !== ZERO_ADDRESS) {
         console.log(`   HatsModule: ${deployment.hatsModule}`);
+      }
+      if (deployment.octantModule && deployment.octantModule !== ZERO_ADDRESS) {
+        console.log(`   OctantModule: ${deployment.octantModule}`);
+      }
+      if (deployment.gardensModule && deployment.gardensModule !== ZERO_ADDRESS) {
+        console.log(`   GardensModule: ${deployment.gardensModule}`);
+      }
+      if (deployment.yieldSplitter && deployment.yieldSplitter !== ZERO_ADDRESS) {
+        console.log(`   YieldSplitter: ${deployment.yieldSplitter}`);
+      }
+      if (deployment.cookieJarModule && deployment.cookieJarModule !== ZERO_ADDRESS) {
+        console.log(`   CookieJarModule: ${deployment.cookieJarModule}`);
       }
       console.log(`   start_block: ${startBlock}`);
 

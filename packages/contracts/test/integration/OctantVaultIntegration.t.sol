@@ -7,7 +7,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { OctantModule } from "../../src/modules/Octant.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
 import { MockOctantFactory, MockOctantVault } from "../../src/mocks/Octant.sol";
-import { MockYDSStrategy } from "../../src/mocks/MockYDSStrategy.sol";
+import { MockYDSStrategy } from "../../src/mocks/YDSStrategy.sol";
 
 contract MockIntegratedGarden is MockGardenAccessControl {
     string public name;
@@ -80,7 +80,7 @@ contract OctantVaultIntegrationTest is Test {
         assertEq(wethStrategy.reportCount(), 1, "harvest should trigger report");
 
         vm.prank(USER);
-        uint256 assets = wethVault.redeem(40 ether, USER, USER);
+        uint256 assets = wethVault.redeem(40 ether, USER, USER, 0, new address[](0));
         assertEq(assets, 40 ether, "redeem should return expected assets");
         assertEq(wethVault.balanceOf(USER), 60 ether, "remaining shares should be tracked");
     }

@@ -2,12 +2,12 @@
 pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
-import { GAPJsonBuilder } from "../../src/lib/GAPJsonBuilder.sol";
+import { JsonBuilder, InvalidDomainValue } from "../../src/lib/JsonBuilder.sol";
 
-/// @title GAPJsonBuilderWrapper
+/// @title JsonBuilderWrapper
 /// @notice Wrapper to expose internal library functions for testing
 /// @dev Library functions are internal, so we need a wrapper contract to call them
-contract GAPJsonBuilderWrapper {
+contract JsonBuilderWrapper {
     function buildProjectDetails(
         string calldata name,
         string calldata description,
@@ -18,7 +18,7 @@ contract GAPJsonBuilderWrapper {
         pure
         returns (string memory)
     {
-        return GAPJsonBuilder.buildProjectDetails(name, description, location, bannerImage);
+        return JsonBuilder.buildProjectDetails(name, description, location, bannerImage);
     }
 
     function buildImpact(
@@ -26,38 +26,41 @@ contract GAPJsonBuilderWrapper {
         string calldata impactDescription,
         string calldata proofIPFS,
         bytes32 workUID,
-        uint256 tokenId,
-        uint256 timestamp,
-        uint256 chainId
+        address garden,
+        uint256 timestamp
     )
         external
         pure
         returns (string memory)
     {
-        return GAPJsonBuilder.buildImpact(workTitle, impactDescription, proofIPFS, workUID, tokenId, timestamp, chainId);
+        return JsonBuilder.buildImpact(workTitle, impactDescription, proofIPFS, workUID, garden, timestamp);
     }
 
     function buildMilestone(
         string calldata title,
         string calldata desc,
-        string calldata meta
+        uint256 startDate,
+        uint256 endDate,
+        uint8 domain,
+        string calldata location,
+        string calldata assessmentConfigCID
     )
         external
         pure
         returns (string memory)
     {
-        return GAPJsonBuilder.buildMilestone(title, desc, meta);
+        return JsonBuilder.buildMilestone(title, desc, startDate, endDate, domain, location, assessmentConfigCID);
     }
 }
 
-/// @title GAPJsonBuilderTest
-/// @notice Unit tests for GAPJsonBuilder library functions
+/// @title JsonBuilderTest
+/// @notice Unit tests for JsonBuilder library functions
 /// @dev Tests JSON structure, escaping, edge cases, and schema conformance
-contract GAPJsonBuilderTest is Test {
-    GAPJsonBuilderWrapper private wrapper;
+contract JsonBuilderTest is Test {
+    JsonBuilderWrapper private wrapper;
 
     function setUp() public {
-        wrapper = new GAPJsonBuilderWrapper();
+        wrapper = new JsonBuilderWrapper();
     }
 
     // =========================================================================
@@ -77,7 +80,7 @@ contract GAPJsonBuilderTest is Test {
     function testProjectDetailsImageURL() public {
         string memory json = wrapper.buildProjectDetails("Garden", "Desc", "Loc", "QmABC123");
 
-        assertTrue(_contains(json, "https://w3s.link/ipfs/QmABC123"), "Should build full IPFS URL");
+        assertTrue(_contains(json, "ipfs://QmABC123"), "Should build IPFS protocol URL");
     }
 
     function testProjectDetailsEmptyBannerImage() public {
@@ -114,9 +117,10 @@ contract GAPJsonBuilderTest is Test {
 
     function testImpactBasicStructure() public {
         bytes32 workUID = bytes32(uint256(42));
+        address garden = address(0xBEEF);
 
         string memory json =
-            wrapper.buildImpact("Planted Trees", "Planted 100 trees", "QmProof", workUID, 1, 1_700_000_000, 42_161);
+            wrapper.buildImpact("Planted Trees", "Planted 100 trees", "QmProof", workUID, garden, 1_700_000_000);
 
         assertTrue(_contains(json, "\"title\":\"Planted Trees\""), "Should contain title");
         assertTrue(_contains(json, "\"text\":\"Planted 100 trees\""), "Should contain text");
@@ -125,7 +129,7 @@ contract GAPJsonBuilderTest is Test {
 
     function testImpactISODateFormat() public {
         // Unix timestamp 1700000000 = 2023-11-14T22:13:20.000Z
-        string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), 1, 1_700_000_000, 42_161);
+        string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000);
 
         assertTrue(_contains(json, "\"startDate\":\"2023-11-14T22:13:20.000Z\""), "Should format startDate as ISO");
         assertTrue(_contains(json, "\"endDate\":\"2023-11-14T22:13:20.000Z\""), "Should format endDate as ISO");
@@ -133,7 +137,7 @@ contract GAPJsonBuilderTest is Test {
 
     function testImpactDeliverables() public {
         string memory json =
-            wrapper.buildImpact("Work", "Impact desc", "QmEvidenceHash", bytes32(0), 1, 1_700_000_000, 42_161);
+            wrapper.buildImpact("Work", "Impact desc", "QmEvidenceHash", bytes32(0), address(0xBEEF), 1_700_000_000);
 
         assertTrue(_contains(json, "\"deliverables\":[{"), "Should contain deliverables array");
         assertTrue(_contains(json, "\"name\":\"Work Evidence\""), "Should have deliverable name");
@@ -142,24 +146,26 @@ contract GAPJsonBuilderTest is Test {
 
     function testImpactGreenGoodsLink() public {
         bytes32 workUID = bytes32(uint256(0xABCD));
+        address garden = address(0x1234);
 
-        string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", workUID, 5, 1_700_000_000, 42_161);
+        string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", workUID, garden, 1_700_000_000);
 
-        assertTrue(_contains(json, "https://greengoods.me/garden/42161/5/work/0x"), "Should contain Green Goods link");
+        assertTrue(_contains(json, "https://greengoods.app/#/home/0x"), "Should use app domain + hash route");
+        assertTrue(_contains(json, "/work/0x"), "Should include work route with UID");
         assertTrue(_contains(json, "\"label\":\"View in Green Goods\""), "Should have link label");
     }
 
-    function testImpactDifferentChainIds() public {
-        string memory jsonArb = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), 1, 1_700_000_000, 42_161);
-        string memory jsonCelo = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), 1, 1_700_000_000, 42_220);
+    function testImpactUsesGardenAddressInLink() public {
+        address garden = address(0x1234);
+        string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), garden, 1_700_000_000);
 
-        assertTrue(_contains(jsonArb, "/42161/"), "Arbitrum chain ID in link");
-        assertTrue(_contains(jsonCelo, "/42220/"), "Celo chain ID in link");
+        assertTrue(_contains(json, "0000000000000000000000000000000000001234"), "Should include garden address hex");
     }
 
     function testImpactEscapesUserInput() public {
-        string memory json =
-            wrapper.buildImpact('Work "Title"', 'Impact "Description"', "QmProof", bytes32(0), 1, 1_700_000_000, 42_161);
+        string memory json = wrapper.buildImpact(
+            'Work "Title"', 'Impact "Description"', "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000
+        );
 
         assertTrue(_contains(json, 'Work \\"Title\\"'), "Title quotes escaped");
         assertTrue(_contains(json, 'Impact \\"Description\\"'), "Description quotes escaped");
@@ -170,31 +176,62 @@ contract GAPJsonBuilderTest is Test {
     // =========================================================================
 
     function testMilestoneBasicStructure() public {
-        string memory json = wrapper.buildMilestone("Q1 Assessment", "Completed assessment", "{}");
+        string memory json = wrapper.buildMilestone(
+            "Q1 Assessment", "Completed assessment", 1_700_000_000, 1_702_000_000, 0, "Garden Plot A", "QmConfig123"
+        );
 
         assertTrue(_contains(json, "\"title\":\"Q1 Assessment\""), "Should contain title");
         assertTrue(_contains(json, "\"text\":\"Completed assessment\""), "Should contain text");
         assertTrue(_contains(json, "\"type\":\"project-milestone\""), "Should have correct type");
     }
 
-    function testMilestoneIncludesMetadata() public {
-        string memory meta = "{\"score\":95,\"assessor\":\"0x123\"}";
-        string memory json = wrapper.buildMilestone("Assessment", "Desc", meta);
+    function testMilestoneISODates() public {
+        string memory json = wrapper.buildMilestone("Assessment", "Desc", 1_700_000_000, 1_702_000_000, 0, "Loc", "QmCID");
 
-        assertTrue(_contains(json, "\"data\":{\"score\":95,\"assessor\":\"0x123\"}"), "Should include raw metadata");
+        assertTrue(_contains(json, "\"startDate\":\"2023-11-14T22:13:20.000Z\""), "Should format startDate as ISO");
+        assertTrue(_contains(json, "\"endDate\":\"2023-12-08T01:46:40.000Z\""), "Should format endDate as ISO");
     }
 
-    function testMilestoneEmptyMetadata() public {
-        string memory json = wrapper.buildMilestone("Assessment", "Desc", "{}");
+    function testMilestoneDomainNames() public {
+        // Test all 4 domains produce human-readable names
+        string memory jsonSolar = wrapper.buildMilestone("A", "D", 0, 0, 0, "", "");
+        assertTrue(_contains(jsonSolar, "\"domain\":\"SOLAR\""), "Domain 0 should be SOLAR");
 
-        assertTrue(_contains(json, "\"data\":{}"), "Should handle empty metadata object");
+        string memory jsonAgro = wrapper.buildMilestone("A", "D", 0, 0, 1, "", "");
+        assertTrue(_contains(jsonAgro, "\"domain\":\"AGRO\""), "Domain 1 should be AGRO");
+
+        string memory jsonEdu = wrapper.buildMilestone("A", "D", 0, 0, 2, "", "");
+        assertTrue(_contains(jsonEdu, "\"domain\":\"EDU\""), "Domain 2 should be EDU");
+
+        string memory jsonWaste = wrapper.buildMilestone("A", "D", 0, 0, 3, "", "");
+        assertTrue(_contains(jsonWaste, "\"domain\":\"WASTE\""), "Domain 3 should be WASTE");
+    }
+
+    function testMilestoneLocation() public {
+        string memory json = wrapper.buildMilestone("Assessment", "Desc", 0, 0, 0, "Garden Plot A", "QmCID");
+
+        assertTrue(_contains(json, "\"location\":\"Garden Plot A\""), "Should include location");
+    }
+
+    function testMilestoneConfigCID() public {
+        string memory json = wrapper.buildMilestone(
+            "Assessment", "Desc", 0, 0, 0, "Loc", "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"
+        );
+
+        assertTrue(
+            _contains(
+                json, "\"assessmentConfigCID\":\"ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi\""
+            ),
+            "Should include assessmentConfigCID with ipfs:// prefix"
+        );
     }
 
     function testMilestoneEscapesInput() public {
-        string memory json = wrapper.buildMilestone('Title "A"', 'Desc "B"', "{}");
+        string memory json = wrapper.buildMilestone('Title "A"', 'Desc "B"', 0, 0, 0, 'Loc "C"', "QmCID");
 
         assertTrue(_contains(json, 'Title \\"A\\"'), "Title should be escaped");
         assertTrue(_contains(json, 'Desc \\"B\\"'), "Description should be escaped");
+        assertTrue(_contains(json, 'Loc \\"C\\"'), "Location should be escaped");
     }
 
     // =========================================================================
@@ -210,7 +247,7 @@ contract GAPJsonBuilderTest is Test {
     }
 
     function testImpactStartsAndEndsCorrectly() public {
-        string memory json = wrapper.buildImpact("Work", "Desc", "Qm", bytes32(0), 1, 1_700_000_000, 42_161);
+        string memory json = wrapper.buildImpact("Work", "Desc", "Qm", bytes32(0), address(0xBEEF), 1_700_000_000);
         bytes memory b = bytes(json);
 
         assertEq(b[0], bytes1("{"), "Should start with {");
@@ -218,7 +255,7 @@ contract GAPJsonBuilderTest is Test {
     }
 
     function testMilestoneStartsAndEndsCorrectly() public {
-        string memory json = wrapper.buildMilestone("Title", "Desc", "{}");
+        string memory json = wrapper.buildMilestone("Title", "Desc", 0, 0, 0, "", "");
         bytes memory b = bytes(json);
 
         assertEq(b[0], bytes1("{"), "Should start with {");
@@ -245,10 +282,25 @@ contract GAPJsonBuilderTest is Test {
         assertEq(b[b.length - 1], bytes1("}"), "Should end with }");
     }
 
-    function testFuzz_milestoneNeverReverts(string calldata title, string calldata desc) public {
-        string memory json = wrapper.buildMilestone(title, desc, "{}");
+    function testFuzz_milestoneValidDomainNeverReverts(
+        string calldata title,
+        string calldata desc,
+        uint256 start,
+        uint256 end,
+        uint8 domain
+    )
+        public
+    {
+        vm.assume(domain <= 3);
+        string memory json = wrapper.buildMilestone(title, desc, start, end, domain, "", "QmCID");
         bytes memory b = bytes(json);
         assertTrue(b.length > 0, "Should produce non-empty output");
+    }
+
+    function testFuzz_milestoneRevertsForInvalidDomain(uint8 domain) public {
+        vm.assume(domain > 3);
+        vm.expectRevert(abi.encodeWithSelector(InvalidDomainValue.selector, domain));
+        wrapper.buildMilestone("Title", "Desc", 0, 0, domain, "", "QmCID");
     }
 
     // =========================================================================

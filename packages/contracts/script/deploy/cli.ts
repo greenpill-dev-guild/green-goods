@@ -9,6 +9,7 @@ import { ActionDeployer } from "./actions";
 import { AnvilManager } from "./anvil";
 import { HatsTreeDeployer } from "./hats";
 import { GoodsDeployer } from "./goods";
+import { OctantFactoryDeployer } from "./octant-factory";
 
 /**
  * DeploymentCLI - Main command-line interface for deployments
@@ -28,6 +29,7 @@ export class DeploymentCLI {
   private anvilManager: AnvilManager;
   private hatsTreeDeployer: HatsTreeDeployer;
   private goodsDeployer: GoodsDeployer;
+  private octantFactoryDeployer: OctantFactoryDeployer;
 
   constructor() {
     this.parser = new CliParser();
@@ -43,6 +45,7 @@ export class DeploymentCLI {
     this.actionDeployer = new ActionDeployer(this.networkManager, this.anvilManager, this.deploymentAddresses);
     this.hatsTreeDeployer = new HatsTreeDeployer(this.networkManager, this.deploymentAddresses);
     this.goodsDeployer = new GoodsDeployer(this.networkManager, this.anvilManager);
+    this.octantFactoryDeployer = new OctantFactoryDeployer(this.networkManager, this.anvilManager);
   }
 
   /**
@@ -57,6 +60,7 @@ Usage: bun deploy.ts <command> [options]
 Commands:
   core                     Deploy core contracts
   goods                    Deploy GOODS Juicebox project (requires env vars)
+  octant-factory           Deploy Octant vault factory (auto-updates deployment JSON)
   garden <config.json>     Deploy garden from config file
   actions <config.json>    Deploy actions from config file
   hats-tree                Create and configure the Hats protocol tree
@@ -86,6 +90,9 @@ Examples:
   
   # Deploy actions
   bun deploy.ts actions config/my-actions.json --network arbitrum --broadcast
+
+  # Deploy Octant vault factory
+  bun deploy.ts octant-factory --network arbitrum --broadcast
 
   # Create Hats tree
   bun deploy.ts hats-tree --network sepolia --broadcast
@@ -119,13 +126,15 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
         console.log(`   Work Resolver: ${addresses.workResolver}`);
         console.log(`   Work Approval Resolver: ${addresses.workApprovalResolver}`);
         console.log(`   Assessment Resolver: ${addresses.assessmentResolver}`);
+        console.log(`   Octant Module: ${addresses.octantModule || "not deployed"}`);
+        console.log(`   Octant Factory: ${addresses.octantFactory || "not deployed"}`);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.log(`❌ ${network}: ${errorMsg}`);
       }
     } else {
       // List all networks
-      const networks = ["localhost", "arbitrum", "celo", "sepolia", "baseSepolia"];
+      const networks = ["localhost", "arbitrum", "celo", "sepolia"];
 
       for (const net of networks) {
         try {
@@ -170,6 +179,10 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
 
         case "goods":
           await this.goodsDeployer.deployGoods(options);
+          break;
+
+        case "octant-factory":
+          await this.octantFactoryDeployer.deployOctantFactory(options);
           break;
 
         case "garden": {

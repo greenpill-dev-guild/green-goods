@@ -8,7 +8,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import { DeployHelper } from "../../script/DeployHelper.sol";
-import { DeploymentRegistry } from "../../src/DeploymentRegistry.sol";
+import { Deployment } from "../../src/registries/Deployment.sol";
 import { AccountGuardian } from "@tokenbound/AccountGuardian.sol";
 import { AccountProxy } from "@tokenbound/AccountProxy.sol";
 import { GardenAccount } from "../../src/accounts/Garden.sol";
@@ -24,7 +24,9 @@ import { HatsModule } from "../../src/modules/Hats.sol";
 import { KarmaGAPModule } from "../../src/modules/Karma.sol";
 import { OctantModule } from "../../src/modules/Octant.sol";
 import { GardensModule } from "../../src/modules/Gardens.sol";
-import { YieldSplitter } from "../../src/yield/YieldSplitter.sol";
+import { CookieJarModule } from "../../src/modules/CookieJar.sol";
+import { MockCookieJarFactory } from "./MockCookieJarFactory.sol";
+import { YieldResolver } from "../../src/resolvers/Yield.sol";
 import { HatsLib } from "../../src/lib/Hats.sol";
 
 /// @notice Schema registry interface
@@ -74,7 +76,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     bytes32 public constant SCHEMA_DESCRIPTION_SCHEMA = 0x21cbc60aac46ba22125ff85dd01882ebe6e87eb4fc46628589931ccbef9b8c94;
 
     // ===== DEPLOYED CONTRACTS =====
-    DeploymentRegistry public deploymentRegistry;
+    Deployment public deploymentRegistry;
     GardenAccount public gardenAccountImpl;
     GardenToken public gardenToken;
     ActionRegistry public actionRegistry;
@@ -85,7 +87,8 @@ abstract contract DeploymentBase is Test, DeployHelper {
     KarmaGAPModule public karmaGAPModule;
     OctantModule public octantModule;
     GardensModule public gardensModule;
-    YieldSplitter public yieldSplitter;
+    CookieJarModule public cookieJarModule;
+    YieldResolver public yieldSplitter;
     address public gardenerAccountLogic; // Gardener implementation for user smart accounts (Kernel v3)
     GardenerRegistry public gardenerRegistry; // Gardener Registry (mainnet/sepolia only, null on L2s)
 
@@ -150,8 +153,8 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // Get EAS addresses for current L2 chain
         (address eas, address easSchemaRegistry) = _getEASForChain(block.chainid);
 
-        // 1. Deploy DeploymentRegistry
-        deploymentRegistry = DeploymentRegistry(deployDeploymentRegistryWithGovernance(owner, deployer));
+        // 1. Deploy Deployment
+        deploymentRegistry = Deployment(deployDeploymentWithGovernance(owner, deployer));
 
         // 2. Deploy core protocol contracts
         _deployCoreContracts(communityToken, owner, eas, easSchemaRegistry, salt, factory, tokenboundRegistry);
@@ -244,40 +247,64 @@ abstract contract DeploymentBase is Test, DeployHelper {
             )
         );
 
-        // 11. Deploy YieldSplitter ($7 threshold = 7e18 for 18-decimal stablecoins)
+        // 11. Deploy YieldResolver ($7 threshold = 7e18 for 18-decimal stablecoins)
         yieldSplitter =
-            YieldSplitter(_deployYieldSplitter(owner, address(octantModule), address(hatsModule), 7e18, salt, factory));
+            YieldResolver(_deployYieldResolver(owner, address(octantModule), address(hatsModule), 7e18, salt, factory));
 
-        // 12. Wire modules
+        // 12. Deploy MockCookieJarFactory + CookieJarModule (after YieldResolver)
+        MockCookieJarFactory mockJarFactory = new MockCookieJarFactory();
+        cookieJarModule = CookieJarModule(
+            _deployCookieJarModule(
+                owner,
+                address(hatsModule),
+                address(yieldSplitter),
+                address(mockJarFactory),
+                HatsLib.getHatsProtocol(),
+                salt,
+                factory
+            )
+        );
+
+        // 13. Wire modules
         hatsModule.setGardenToken(address(gardenToken));
         hatsModule.setKarmaGAPModule(address(karmaGAPModule));
         gardenToken.setHatsModule(address(hatsModule));
         gardenToken.setKarmaGAPModule(address(karmaGAPModule));
         gardenToken.setOctantModule(address(octantModule));
         gardenToken.setGardensModule(address(gardensModule));
+        gardenToken.setActionRegistry(address(actionRegistry));
+        actionRegistry.setGardenToken(address(gardenToken));
+        actionRegistry.setHatsModule(address(hatsModule));
         octantModule.setGardenToken(address(gardenToken));
         gardensModule.setGardenToken(address(gardenToken));
+        hatsModule.setGardensModule(address(gardensModule));
         karmaGAPModule.setHatsModule(address(hatsModule));
         workApprovalResolver.setKarmaGAPModule(address(karmaGAPModule));
         assessmentResolver.setKarmaGAPModule(address(karmaGAPModule));
-        // NOTE: YieldSplitter ↔ OctantModule wiring is per-garden, not per-deployment.
-        // When a garden is created, the operator calls:
+        // CookieJarModule wiring
+        if (address(cookieJarModule) != address(0)) {
+            cookieJarModule.setGardenToken(address(gardenToken));
+            gardenToken.setCookieJarModule(address(cookieJarModule));
+            yieldSplitter.setCookieJarModule(address(cookieJarModule));
+        }
+        // Wire OctantModule → YieldResolver (for share registration during harvest)
+        octantModule.setYieldResolver(address(yieldSplitter));
+        // NOTE: Per-garden donation address is set by operators post-deployment:
         //   octantModule.setDonationAddress(garden, address(yieldSplitter));
-        // This tells OctantModule to direct vault shares to YieldSplitter for that garden.
-        // The YieldSplitter's octantModule address is set at initialization (step 11 above).
+        // The YieldResolver's octantModule address is set at initialization (step 11 above).
     }
 
-    /// @notice Deploy DeploymentRegistry with governance and proxy
-    function deployDeploymentRegistryWithGovernance(address initialOwner, address _deployer) public returns (address) {
-        DeploymentRegistry implementation = new DeploymentRegistry();
+    /// @notice Deploy Deployment with governance and proxy
+    function deployDeploymentWithGovernance(address initialOwner, address _deployer) public returns (address) {
+        Deployment implementation = new Deployment();
         // Initialize with initialOwner as the contract owner
-        bytes memory initData = abi.encodeWithSelector(DeploymentRegistry.initialize.selector, initialOwner);
+        bytes memory initData = abi.encodeWithSelector(Deployment.initialize.selector, initialOwner);
         ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
 
         // Add deployer to allowlist if different from owner
         if (_deployer != initialOwner) {
             // solhint-disable-next-line no-empty-blocks
-            try DeploymentRegistry(address(proxy)).addToAllowlist(_deployer) {
+            try Deployment(address(proxy)).addToAllowlist(_deployer) {
                 // Success - deployer added to allowlist
                 // solhint-disable-next-line no-empty-blocks
             } catch {
@@ -537,8 +564,8 @@ abstract contract DeploymentBase is Test, DeployHelper {
         return predicted;
     }
 
-    /// @notice Deploy YieldSplitter with CREATE2 + proxy
-    function _deployYieldSplitter(
+    /// @notice Deploy YieldResolver with CREATE2 + proxy
+    function _deployYieldResolver(
         address owner,
         address _octantModule,
         address _hatsModule,
@@ -549,17 +576,60 @@ abstract contract DeploymentBase is Test, DeployHelper {
         internal
         returns (address)
     {
-        YieldSplitter yieldImpl = new YieldSplitter();
+        YieldResolver yieldImpl = new YieldResolver();
         bytes memory initData =
-            abi.encodeWithSelector(YieldSplitter.initialize.selector, owner, _octantModule, _hatsModule, _minYieldThreshold);
+            abi.encodeWithSelector(YieldResolver.initialize.selector, owner, _octantModule, _hatsModule, _minYieldThreshold);
         bytes memory proxyBytecode =
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(yieldImpl), initData));
-        bytes32 yieldSalt = keccak256(abi.encodePacked(salt, "YieldSplitterProxy"));
+        bytes32 yieldSalt = keccak256(abi.encodePacked(salt, "YieldResolverProxy"));
         address predicted = Create2.computeAddress(yieldSalt, keccak256(proxyBytecode), factory);
-        _logCreate2Prediction("YieldSplitter proxy", yieldSalt, factory, predicted);
+        _logCreate2Prediction("YieldResolver proxy", yieldSalt, factory, predicted);
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(proxyBytecode, yieldSalt, factory);
+            if (deployed != predicted) {
+                revert DeploymentAddressMismatch();
+            }
+        }
+
+        return predicted;
+    }
+
+    /// @notice Deploy CookieJarModule with CREATE2 + proxy
+    /// @dev Requires a pre-deployed CookieJarFactory address (from sibling cookie-jar repo)
+    function _deployCookieJarModule(
+        address owner,
+        address _hatsModule,
+        address _yieldSplitter,
+        address _cookieJarFactory,
+        address _hatsProtocol,
+        bytes32 salt,
+        address factory
+    )
+        internal
+        returns (address)
+    {
+        // Deploy CookieJarModule with proxy
+        CookieJarModule cookieJarImpl = new CookieJarModule();
+        // Empty supported assets array — configured post-deployment per chain
+        address[] memory emptyAssets = new address[](0);
+        bytes memory initData = abi.encodeWithSelector(
+            CookieJarModule.initialize.selector,
+            owner,
+            _hatsModule,
+            _yieldSplitter,
+            _cookieJarFactory,
+            _hatsProtocol,
+            emptyAssets
+        );
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(cookieJarImpl), initData));
+        bytes32 cookieJarSalt = keccak256(abi.encodePacked(salt, "CookieJarModuleProxy"));
+        address predicted = Create2.computeAddress(cookieJarSalt, keccak256(proxyBytecode), factory);
+        _logCreate2Prediction("CookieJarModule proxy", cookieJarSalt, factory, predicted);
+
+        if (!_isDeployed(predicted)) {
+            address deployed = _deployCreate2(proxyBytecode, cookieJarSalt, factory);
             if (deployed != predicted) {
                 revert DeploymentAddressMismatch();
             }
@@ -750,9 +820,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
         _createSchemaNameAttestation(easContract, workApprovalSchemaUID, _getSchemaName(schemaJson, "workApproval"));
         _createSchemaNameAttestation(easContract, assessmentSchemaUID, _getSchemaName(schemaJson, "assessment"));
 
-        // Description attestations: only on Base Sepolia
-        // Schema description schema (0x21cbc6...) only exists on Base Sepolia, not other networks
-        if (block.chainid == 84_532) {
+        // Description attestations: only on Sepolia
+        // Schema description schema (0x21cbc6...) only exists on Sepolia, not other networks
+        if (block.chainid == 11_155_111) {
             _createSchemaDescriptionAttestation(easContract, workSchemaUID, _getSchemaDescription(schemaJson, "work"));
             _createSchemaDescriptionAttestation(
                 easContract, workApprovalSchemaUID, _getSchemaDescription(schemaJson, "workApproval")
@@ -773,7 +843,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
 
     /// @notice Configure deployment registry
     function _configureRegistry(address communityToken, address eas, address easSchemaRegistry) internal virtual {
-        DeploymentRegistry.NetworkConfig memory config = DeploymentRegistry.NetworkConfig({
+        Deployment.NetworkConfig memory config = Deployment.NetworkConfig({
             eas: eas,
             easSchemaRegistry: easSchemaRegistry,
             communityToken: communityToken,
@@ -812,8 +882,6 @@ abstract contract DeploymentBase is Test, DeployHelper {
     function _getEASForChain(uint256 chainId) internal pure virtual returns (address eas, address registry) {
         if (chainId == 11_155_111) {
             return (0xC2679fBD37d54388Ce493F1DB75320D236e1815e, 0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0);
-        } else if (chainId == 84_532) {
-            return (0x4200000000000000000000000000000000000021, 0x4200000000000000000000000000000000000020);
         } else if (chainId == 42_161) {
             return (0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458, 0xA310da9c5B885E7fb3fbA9D66E9Ba6Df512b78eB);
         } else if (chainId == 42_220) {

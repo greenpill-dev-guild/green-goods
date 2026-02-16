@@ -4,14 +4,14 @@ pragma solidity >=0.8.25;
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import { ActionRegistry, Capital } from "../src/registries/Action.sol";
+import { ActionRegistry, Capital, Domain } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
-import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
+import { Deployment } from "../src/registries/Deployment.sol";
 import { GardensModule } from "../src/modules/Gardens.sol";
-import { YieldSplitter } from "../src/yield/YieldSplitter.sol";
+import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
 import { MockHatsModule } from "./helpers/MockHatsModule.sol";
@@ -27,7 +27,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
     GardenToken private gardenToken;
     WorkResolver private workResolver;
     AssessmentResolver private assessmentResolver;
-    DeploymentRegistry private deploymentRegistry;
+    Deployment private deploymentRegistry;
 
     // Mock dependencies
     MockEAS private mockEAS;
@@ -86,11 +86,11 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         workResolver = WorkResolver(payable(address(workProxy)));
         workResolverProxy = address(workProxy);
 
-        // Deploy DeploymentRegistry with proxy
-        DeploymentRegistry deploymentRegistryImpl = new DeploymentRegistry();
-        bytes memory deploymentInitData = abi.encodeWithSelector(DeploymentRegistry.initialize.selector, multisig);
+        // Deploy Deployment with proxy
+        Deployment deploymentRegistryImpl = new Deployment();
+        bytes memory deploymentInitData = abi.encodeWithSelector(Deployment.initialize.selector, multisig);
         ERC1967Proxy deploymentProxy = new ERC1967Proxy(address(deploymentRegistryImpl), deploymentInitData);
-        deploymentRegistry = DeploymentRegistry(address(deploymentProxy));
+        deploymentRegistry = Deployment(address(deploymentProxy));
         deploymentRegistryProxy = address(deploymentProxy);
     }
 
@@ -106,7 +106,14 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
 
         vm.prank(multisig);
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 30 days, "Original Action", "ipfs://instructions", capitals, media
+            block.timestamp,
+            block.timestamp + 30 days,
+            "Original Action",
+            "agro.planting_event",
+            "ipfs://instructions",
+            capitals,
+            media,
+            Domain.AGRO
         );
 
         // Store original values
@@ -196,7 +203,14 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
 
         vm.prank(multisig);
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 7 days, "Gap Test Action", "instructions", capitals, new string[](0)
+            block.timestamp,
+            block.timestamp + 7 days,
+            "Gap Test Action",
+            "test.gap",
+            "instructions",
+            capitals,
+            new string[](0),
+            Domain.SOLAR
         );
 
         // Deploy new implementation (same code, testing upgrade process)
@@ -224,7 +238,8 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
             bannerImage: "banner.jpg",
             metadata: "",
             openJoining: false,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
         address gardenAddress = gardenToken.mintGarden(config);
 
@@ -240,9 +255,11 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
                 block.timestamp,
                 block.timestamp + 30 days,
                 string(abi.encodePacked("Action ", uint2str(i))),
+                string(abi.encodePacked("test.action", uint2str(i))),
                 string(abi.encodePacked("ipfs://instructions", uint2str(i))),
                 capitals,
-                new string[](0)
+                new string[](0),
+                Domain.AGRO
             );
         }
         vm.stopPrank();
@@ -275,7 +292,14 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         // Verify contracts still functional after upgrade
         vm.prank(multisig);
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 7 days, "Post-Upgrade Action", "ipfs://new", capitals, new string[](0)
+            block.timestamp,
+            block.timestamp + 7 days,
+            "Post-Upgrade Action",
+            "test.post_upgrade",
+            "ipfs://new",
+            capitals,
+            new string[](0),
+            Domain.AGRO
         );
 
         ActionRegistry.Action memory newAction = actionRegistry.getAction(3);
@@ -292,7 +316,14 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
 
         vm.prank(multisig);
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 30 days, "Original Action", "ipfs://v1", capitals, new string[](0)
+            block.timestamp,
+            block.timestamp + 30 days,
+            "Original Action",
+            "test.original_v1",
+            "ipfs://v1",
+            capitals,
+            new string[](0),
+            Domain.SOLAR
         );
 
         ActionRegistry.Action memory original = actionRegistry.getAction(0);
@@ -305,7 +336,14 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         // Add more state
         vm.prank(multisig);
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 30 days, "After First Upgrade", "ipfs://v2", capitals, new string[](0)
+            block.timestamp,
+            block.timestamp + 30 days,
+            "After First Upgrade",
+            "test.after_first",
+            "ipfs://v2",
+            capitals,
+            new string[](0),
+            Domain.SOLAR
         );
 
         // Second upgrade
@@ -323,7 +361,14 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         // Add more state after second upgrade
         vm.prank(multisig);
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 30 days, "After Second Upgrade", "ipfs://v3", capitals, new string[](0)
+            block.timestamp,
+            block.timestamp + 30 days,
+            "After Second Upgrade",
+            "test.after_second",
+            "ipfs://v3",
+            capitals,
+            new string[](0),
+            Domain.SOLAR
         );
 
         ActionRegistry.Action memory finalAction = actionRegistry.getAction(2);
@@ -355,10 +400,10 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         emit log_named_string("[PASS]", "Cannot reinitialize after upgrade");
     }
 
-    /// @notice Test 7: DeploymentRegistry upgrade preserves network configs
-    function testDeploymentRegistryUpgrade() public {
+    /// @notice Test 7: Deployment upgrade preserves network configs
+    function testDeploymentUpgrade() public {
         // Setup network configurations
-        DeploymentRegistry.NetworkConfig memory config = DeploymentRegistry.NetworkConfig({
+        Deployment.NetworkConfig memory config = Deployment.NetworkConfig({
             eas: address(0x1000),
             easSchemaRegistry: address(0x1001),
             communityToken: address(communityToken),
@@ -375,7 +420,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
             greenWillRegistry: address(0)
         });
 
-        uint256 chainId = 84_532; // Base Sepolia
+        uint256 chainId = 11_155_111; // Sepolia
 
         vm.prank(multisig);
         deploymentRegistry.setNetworkConfig(chainId, config);
@@ -403,7 +448,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         assertEq(commToken, address(communityToken));
 
         // Upgrade
-        DeploymentRegistry newImpl = new DeploymentRegistry();
+        Deployment newImpl = new Deployment();
         vm.prank(multisig);
         deploymentRegistry.upgradeTo(address(newImpl));
 
@@ -430,7 +475,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         assertEq(gardTokAfter, address(gardenToken));
         assertEq(commTokenAfter, address(communityToken));
 
-        emit log_named_string("[PASS]", "DeploymentRegistry upgrade preserves configs");
+        emit log_named_string("[PASS]", "Deployment upgrade preserves configs");
     }
 
     /// @notice Test 8: GardensModule upgrade preserves storage
@@ -533,14 +578,14 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         emit log_named_string("[PASS] GardensModule", "Cannot reinitialize after upgrade");
     }
 
-    /// @notice Test 11: YieldSplitter upgrade preserves storage
-    function testYieldSplitterUpgradePreservesStorage() public {
-        YieldSplitter yieldSplitterImpl = new YieldSplitter();
+    /// @notice Test 11: YieldResolver upgrade preserves storage
+    function testYieldResolverUpgradePreservesStorage() public {
+        YieldResolver yieldSplitterImpl = new YieldResolver();
         bytes memory yieldInitData = abi.encodeWithSelector(
-            YieldSplitter.initialize.selector, multisig, address(0xA2), address(mockHatsModule), 7e18
+            YieldResolver.initialize.selector, multisig, address(0xA2), address(mockHatsModule), 7e18
         );
         ERC1967Proxy yieldProxy = new ERC1967Proxy(address(yieldSplitterImpl), yieldInitData);
-        YieldSplitter yieldSplitter = YieldSplitter(address(yieldProxy));
+        YieldResolver yieldSplitter = YieldResolver(address(yieldProxy));
 
         // Set up some state
         address testGarden = address(0x100);
@@ -556,28 +601,28 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         uint256 originalThreshold = yieldSplitter.minYieldThreshold();
 
         // Deploy new implementation and upgrade
-        YieldSplitter newYieldImpl = new YieldSplitter();
+        YieldResolver newYieldImpl = new YieldResolver();
         vm.prank(multisig);
         yieldSplitter.upgradeTo(address(newYieldImpl));
 
         // Verify storage preserved
-        assertEq(yieldSplitter.owner(), originalOwner, "YieldSplitter: owner should be preserved");
-        assertEq(yieldSplitter.octantModule(), originalOctant, "YieldSplitter: octantModule should be preserved");
-        assertEq(yieldSplitter.minYieldThreshold(), originalThreshold, "YieldSplitter: threshold should be preserved");
+        assertEq(yieldSplitter.owner(), originalOwner, "YieldResolver: owner should be preserved");
+        assertEq(yieldSplitter.octantModule(), originalOctant, "YieldResolver: octantModule should be preserved");
+        assertEq(yieldSplitter.minYieldThreshold(), originalThreshold, "YieldResolver: threshold should be preserved");
 
-        emit log_named_string("[PASS] YieldSplitter", "Storage preserved after upgrade");
+        emit log_named_string("[PASS] YieldResolver", "Storage preserved after upgrade");
     }
 
-    /// @notice Test 12: YieldSplitter upgrade access control
-    function testYieldSplitterUpgradeAccessControl() public {
-        YieldSplitter yieldSplitterImpl = new YieldSplitter();
+    /// @notice Test 12: YieldResolver upgrade access control
+    function testYieldResolverUpgradeAccessControl() public {
+        YieldResolver yieldSplitterImpl = new YieldResolver();
         bytes memory yieldInitData = abi.encodeWithSelector(
-            YieldSplitter.initialize.selector, multisig, address(0xA2), address(mockHatsModule), 7e18
+            YieldResolver.initialize.selector, multisig, address(0xA2), address(mockHatsModule), 7e18
         );
         ERC1967Proxy yieldProxy = new ERC1967Proxy(address(yieldSplitterImpl), yieldInitData);
-        YieldSplitter yieldSplitter = YieldSplitter(address(yieldProxy));
+        YieldResolver yieldSplitter = YieldResolver(address(yieldProxy));
 
-        YieldSplitter newImpl = new YieldSplitter();
+        YieldResolver newImpl = new YieldResolver();
 
         // Unauthorized upgrade should revert
         vm.prank(unauthorized);
@@ -588,20 +633,20 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         vm.prank(multisig);
         yieldSplitter.upgradeTo(address(newImpl));
 
-        emit log_named_string("[PASS] YieldSplitter", "Upgrade access control enforced");
+        emit log_named_string("[PASS] YieldResolver", "Upgrade access control enforced");
     }
 
-    /// @notice Test 13: YieldSplitter cannot re-initialize after upgrade
-    function testYieldSplitterCannotReinitializeAfterUpgrade() public {
-        YieldSplitter yieldSplitterImpl = new YieldSplitter();
+    /// @notice Test 13: YieldResolver cannot re-initialize after upgrade
+    function testYieldResolverCannotReinitializeAfterUpgrade() public {
+        YieldResolver yieldSplitterImpl = new YieldResolver();
         bytes memory yieldInitData = abi.encodeWithSelector(
-            YieldSplitter.initialize.selector, multisig, address(0xA2), address(mockHatsModule), 7e18
+            YieldResolver.initialize.selector, multisig, address(0xA2), address(mockHatsModule), 7e18
         );
         ERC1967Proxy yieldProxy = new ERC1967Proxy(address(yieldSplitterImpl), yieldInitData);
-        YieldSplitter yieldSplitter = YieldSplitter(address(yieldProxy));
+        YieldResolver yieldSplitter = YieldResolver(address(yieldProxy));
 
         // Upgrade
-        YieldSplitter newImpl = new YieldSplitter();
+        YieldResolver newImpl = new YieldResolver();
         vm.prank(multisig);
         yieldSplitter.upgradeTo(address(newImpl));
 
@@ -611,7 +656,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         yieldSplitter.initialize(address(0x789), address(0), address(0), 0);
 
         assertEq(yieldSplitter.owner(), multisig, "Owner should be unchanged after failed re-init");
-        emit log_named_string("[PASS] YieldSplitter", "Cannot reinitialize after upgrade");
+        emit log_named_string("[PASS] YieldResolver", "Cannot reinitialize after upgrade");
     }
 
     /// @notice Helper function to convert uint to string

@@ -7,3 +7,5 @@ ds-test=./lib/tokenbound/lib/forge-std/lib/ds-test/src/
 @ens=./node_modules/@ensdomains/ens-contracts/contracts/
 @openzeppelin/contracts=./lib/tokenbound/lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable=./node_modules/@openzeppelin/contracts-upgradeable/
+@gardens/=./src/vendor/gardens/
+@octant/=./src/vendor/octant/

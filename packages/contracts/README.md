@@ -57,7 +57,6 @@ FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
 
 # Network RPC URLs
 SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
 CELO_RPC_URL=https://forno.celo.org
 ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
 
@@ -70,7 +69,6 @@ ETHERSCAN_API_KEY=your-api-key-here
 Ensure your deployer address has sufficient native tokens:
 
 - **Sepolia**: Get free ETH from [Sepolia PoW faucet](https://sepolia-faucet.pk910.de/)
-- **Base Sepolia (optional)**: Get free ETH from [Coinbase Faucet](https://www.coinbase.com/faucets/base-ethereum-goerli-faucet)
 - **Celo Mainnet**: Purchase CELO and send to your deployer address
 - **Arbitrum Mainnet**: Purchase ETH and send to your deployer address
 
@@ -191,7 +189,7 @@ bun dev                 # Start local blockchain
 If you only need to update EAS schemas:
 
 ```bash
-bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 ```
 
 #### Force Fresh Deployment
@@ -199,7 +197,7 @@ bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
 Force redeploy everything, even if contracts already exist:
 
 ```bash
-bun script/deploy.ts core --network baseSepolia --broadcast --force
+bun script/deploy.ts core --network sepolia --broadcast --force
 ```
 
 **⚠️ Warning:** This creates new contract addresses. Existing integrations will break.
@@ -259,7 +257,6 @@ This infrastructure is always deployed - no flags needed.
 
 - **localhost** (31337) - Local development
 - **sepolia** (11155111) - Ethereum testnet
-- **baseSepolia** (84532) - Base Sepolia testnet
 - **arbitrum** (42161) - Arbitrum One
 - **celo** (42220) - Celo
 
@@ -323,10 +320,10 @@ Schemas are defined in `config/schemas.json` and deployed automatically with cor
 
 ```bash
 # Update schemas only (skip contracts)
-bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 
 # Force fresh deployment (redeploy everything)
-bun script/deploy.ts core --network baseSepolia --broadcast --force
+bun script/deploy.ts core --network sepolia --broadcast --force
 ```
 
 See `docs/UPGRADES.md` for detailed schema versioning strategy and `docs/DEPLOYMENT.md` for schema deployment troubleshooting.
@@ -353,11 +350,8 @@ Create a `.env` file:
 FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
 
 # Network RPC URLs
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
 SEPOLIA_RPC_URL=https://...
 ARBITRUM_RPC_URL=https://...
-BASE_RPC_URL=https://...
-OPTIMISM_RPC_URL=https://...
 CELO_RPC_URL=https://...
 
 # Optional - for contract verification
@@ -429,10 +423,10 @@ bun upgrade:arbitrum
 ### Individual Contract Upgrades
 
 ```bash
-bun script/upgrade.ts action-registry --network baseSepolia --broadcast
-bun script/upgrade.ts garden-token --network baseSepolia --broadcast
-bun script/upgrade.ts work-resolver --network baseSepolia --broadcast
-bun script/upgrade.ts assessment-resolver --network baseSepolia --broadcast
+bun script/upgrade.ts action-registry --network sepolia --broadcast
+bun script/upgrade.ts garden-token --network sepolia --broadcast
+bun script/upgrade.ts work-resolver --network sepolia --broadcast
+bun script/upgrade.ts assessment-resolver --network sepolia --broadcast
 ```
 
 ### Upgrading with Resolver Address Changes
@@ -591,7 +585,6 @@ FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer
 SEPOLIA_RPC_URL=https://ethereum-sepolia.publicnode.com
 ARBITRUM_RPC_URL=https://arbitrum-one.publicnode.com
 CELO_RPC_URL=https://forno.celo.org
-BASE_RPC_URL=https://mainnet.base.org
 
 # Optional - for contract verification
 ETHERSCAN_API_KEY=your-etherscan-v2-api-key

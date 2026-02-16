@@ -3,10 +3,15 @@ pragma solidity ^0.8.25;
 
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { IHatsModule } from "../interfaces/IHatsModule.sol";
 
 error NotActionOwner();
 error EndTimeBeforeStartTime();
 error StartTimeAfterEndTime();
+error NotGardenOperator();
+error InvalidDomainMask();
+error NotGardenToken();
+error ZeroAddress();
 
 // ENUMS
 enum Capital {
@@ -20,6 +25,15 @@ enum Capital {
     CULTURAL
 }
 
+/// @notice Domain categories for actions
+enum Domain {
+    SOLAR, // 0
+    AGRO, // 1
+    EDU, // 2
+    WASTE // 3
+
+}
+
 /// @title Action Registry Contract
 /// @notice This contract allows the owner to register and manage actions.
 /// @dev This contract is upgradeable using the UUPS proxy pattern.
@@ -29,9 +43,11 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         uint256 startTime;
         uint256 endTime;
         string title;
+        string slug;
         string instructions;
         Capital[] capitals;
         string[] media;
+        Domain domain;
     }
 
     /// @notice Emitted when a new action is registered.
@@ -40,19 +56,32 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @param startTime The start time of the action.
     /// @param endTime The end time of the action.
     /// @param title The title of the action.
+    /// @param slug The slug identifier of the action.
     /// @param instructions The instructions of the action.
     /// @param capitals The capitals of the action.
     /// @param media The media of the action.
+    /// @param domain The domain category of the action.
     event ActionRegistered(
         address owner,
         uint256 indexed actionUID,
         uint256 indexed startTime,
         uint256 indexed endTime,
         string title,
+        string slug,
         string instructions,
         Capital[] capitals,
-        string[] media
+        string[] media,
+        Domain domain
     );
+
+    /// @notice Emitted when a garden's domain bitmask is updated.
+    event GardenDomainsUpdated(address indexed garden, uint8 indexed domainMask);
+
+    /// @notice Emitted when the HatsModule address is updated.
+    event HatsModuleUpdated(address indexed oldModule, address indexed newModule);
+
+    /// @notice Emitted when the GardenToken address is updated.
+    event GardenTokenUpdated(address indexed oldToken, address indexed newToken);
 
     /// @notice Emitted when an existing action is start time is updated.
     /// @param owner The address of the action owner.
@@ -89,12 +118,22 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     mapping(uint256 actionUID => address owner) public actionToOwner;
     mapping(uint256 actionUID => Action action) public idToAction;
 
+    /// @notice Domain bitmask per garden (bit 0=Solar, 1=Agro, 2=Edu, 3=Waste)
+    mapping(address garden => uint8 domainMask) public gardenDomains;
+
+    /// @notice HatsModule for operator role checks
+    address public hatsModule;
+
+    /// @notice GardenToken address (for setGardenDomainsFromMint authorization)
+    address public gardenToken;
+
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 47 slots (50 total - 3 used: _nextActionUID, actionToOwner, idToAction)
+     * Reserves 44 slots (50 total - 6 used: _nextActionUID, actionToOwner, idToAction,
+     * gardenDomains, hatsModule, gardenToken)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[47] private __gap;
+    uint256[44] private __gap;
 
     modifier onlyActionOwner(uint256 actionUID) {
         if (_msgSender() != actionToOwner[actionUID]) {
@@ -123,16 +162,21 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @notice Registers a new action with the specified parameters.
     /// @param _startTime The start time of the action.
     /// @param _endTime The end time of the action.
+    /// @param _title The title of the action.
+    /// @param _slug The slug identifier (e.g., "waste.cleanup_event").
     /// @param _instructions The CID JSON instructions for the action.
     /// @param _capitals An array of Capital structs associated with the action.
     /// @param _media An array of media CIDs associated with the action.
+    /// @param _domain The domain category for this action.
     function registerAction(
         uint256 _startTime,
         uint256 _endTime,
         string calldata _title,
+        string calldata _slug,
         string calldata _instructions,
         Capital[] calldata _capitals,
-        string[] calldata _media
+        string[] calldata _media,
+        Domain _domain
     )
         external
         onlyOwner
@@ -142,9 +186,11 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         uint256 actionUID = _nextActionUID++;
 
         actionToOwner[actionUID] = _msgSender();
-        idToAction[actionUID] = Action(_startTime, _endTime, _title, _instructions, _capitals, _media);
+        idToAction[actionUID] = Action(_startTime, _endTime, _title, _slug, _instructions, _capitals, _media, _domain);
 
-        emit ActionRegistered(_msgSender(), actionUID, _startTime, _endTime, _title, _instructions, _capitals, _media);
+        emit ActionRegistered(
+            _msgSender(), actionUID, _startTime, _endTime, _title, _slug, _instructions, _capitals, _media, _domain
+        );
     }
 
     /// @notice Updates the start time of an existing action.
@@ -198,6 +244,57 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         idToAction[actionUID].media = _media;
 
         emit ActionMediaUpdated(actionToOwner[actionUID], actionUID, _media);
+    }
+
+    // =========================================================================
+    // Domain Management
+    // =========================================================================
+
+    /// @notice Sets the domain bitmask for a garden. Callable by garden operators.
+    /// @param garden The garden address
+    /// @param _domainMask Bitmask of enabled domains (bit 0=Solar, 1=Agro, 2=Edu, 3=Waste)
+    function setGardenDomains(address garden, uint8 _domainMask) external {
+        if (_domainMask > 0x0F) revert InvalidDomainMask();
+        if (hatsModule == address(0)) revert ZeroAddress();
+        if (!IHatsModule(hatsModule).isOperatorOf(garden, _msgSender())) revert NotGardenOperator();
+        gardenDomains[garden] = _domainMask;
+        emit GardenDomainsUpdated(garden, _domainMask);
+    }
+
+    /// @notice Sets the domain bitmask for a garden during mint. Callable by GardenToken only.
+    /// @param garden The garden address
+    /// @param _domainMask Bitmask of enabled domains (bit 0=Solar, 1=Agro, 2=Edu, 3=Waste)
+    function setGardenDomainsFromMint(address garden, uint8 _domainMask) external {
+        if (_msgSender() != gardenToken) revert NotGardenToken();
+        if (_domainMask > 0x0F) revert InvalidDomainMask();
+        gardenDomains[garden] = _domainMask;
+        emit GardenDomainsUpdated(garden, _domainMask);
+    }
+
+    /// @notice Checks if a garden has a specific domain enabled
+    /// @param garden The garden address
+    /// @param _domain The domain to check
+    /// @return Whether the garden has the domain enabled
+    function gardenHasDomain(address garden, Domain _domain) external view returns (bool) {
+        return (gardenDomains[garden] & (1 << uint8(_domain))) != 0;
+    }
+
+    /// @notice Sets the HatsModule address (owner only)
+    /// @param _hatsModule The new HatsModule address
+    function setHatsModule(address _hatsModule) external onlyOwner {
+        if (_hatsModule == address(0)) revert ZeroAddress();
+        address oldModule = hatsModule;
+        hatsModule = _hatsModule;
+        emit HatsModuleUpdated(oldModule, _hatsModule);
+    }
+
+    /// @notice Sets the GardenToken address (owner only)
+    /// @param _gardenToken The new GardenToken address
+    function setGardenToken(address _gardenToken) external onlyOwner {
+        if (_gardenToken == address(0)) revert ZeroAddress();
+        address oldToken = gardenToken;
+        gardenToken = _gardenToken;
+        emit GardenTokenUpdated(oldToken, _gardenToken);
     }
 
     /// @dev Authorizes an upgrade to the contract's implementation.

@@ -6,17 +6,17 @@ import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 
 import { DeploymentBase } from "../test/helpers/DeploymentBase.sol";
-import { DeploymentRegistry } from "../src/DeploymentRegistry.sol";
+import { Deployment } from "../src/registries/Deployment.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
-import { Capital } from "../src/registries/Action.sol";
+import { Capital, Domain } from "../src/registries/Action.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { IGardensModule } from "../src/interfaces/IGardensModule.sol";
 import { IOctantFactory } from "../src/interfaces/IOctantFactory.sol";
-// GardensModule and YieldSplitter deployed via inherited DeploymentBase
-import { AaveV3YDSStrategy } from "../src/strategies/AaveV3YDSStrategy.sol";
-import { MockYDSStrategy } from "../src/mocks/MockYDSStrategy.sol";
+// GardensModule and YieldResolver deployed via inherited DeploymentBase
+import { AaveV3 } from "../src/strategies/AaveV3.sol";
+import { MockYDSStrategy } from "../src/mocks/YDSStrategy.sol";
 
 /// @title Deploy
 /// @notice Production deployment script - orchestrates DeploymentBase + seed data
@@ -26,6 +26,7 @@ contract Deploy is Script, DeploymentBase {
     error ActionIPFSUploadFailed();
     error ActionDeploymentFailed();
     error InvalidCapitalType();
+    error InvalidDomainType();
 
     // ===== STATE =====
     address[] private gardenAddresses;
@@ -111,7 +112,7 @@ contract Deploy is Script, DeploymentBase {
     function _addProductionFeatures(NetworkConfig memory config) internal {
         // Add deployer to allowlist for minting during setup
         // solhint-disable-next-line no-empty-blocks
-        try DeploymentRegistry(address(deploymentRegistry)).addToAllowlist(msg.sender) {
+        try Deployment(address(deploymentRegistry)).addToAllowlist(msg.sender) {
             // Success - deployer allowlisted
         } catch {
             console.log("WARNING: Failed to add deployer to allowlist - manual action required");
@@ -120,7 +121,7 @@ contract Deploy is Script, DeploymentBase {
         // Add multisig to allowlist if configured
         if (config.multisig != address(0) && config.multisig != msg.sender) {
             // solhint-disable-next-line no-empty-blocks
-            try DeploymentRegistry(address(deploymentRegistry)).addToAllowlist(config.multisig) {
+            try Deployment(address(deploymentRegistry)).addToAllowlist(config.multisig) {
                 // Success - multisig allowlisted
             } catch {
                 console.log("WARNING: Failed to add multisig to allowlist - manual action required");
@@ -158,7 +159,7 @@ contract Deploy is Script, DeploymentBase {
         _configureExplicitOctantAssets();
     }
 
-    /// @notice Configure Arbitrum defaults (WETH + DAI) with AaveV3YDSStrategy instances
+    /// @notice Configure Arbitrum defaults (WETH + DAI) with AaveV3 instances
     function _configureArbitrumOctantAssets() internal {
         address wethAsset = _envAddressOrDefault("OCTANT_WETH_ASSET", ARBITRUM_WETH);
         address daiAsset = _envAddressOrDefault("OCTANT_DAI_ASSET", ARBITRUM_DAI);
@@ -167,13 +168,13 @@ contract Deploy is Script, DeploymentBase {
         address wethStrategy = _envAddressOrZero("OCTANT_WETH_STRATEGY");
         if (wethStrategy == address(0)) {
             address wethAToken = _envAddressOrDefault("OCTANT_WETH_ATOKEN", ARBITRUM_AWETH);
-            wethStrategy = address(new AaveV3YDSStrategy(wethAsset, ARBITRUM_AAVE_V3_POOL, wethAToken, strategyOwner));
+            wethStrategy = address(new AaveV3(wethAsset, ARBITRUM_AAVE_V3_POOL, wethAToken, strategyOwner));
         }
 
         address daiStrategy = _envAddressOrZero("OCTANT_DAI_STRATEGY");
         if (daiStrategy == address(0)) {
             address daiAToken = _envAddressOrDefault("OCTANT_DAI_ATOKEN", ARBITRUM_ADAI);
-            daiStrategy = address(new AaveV3YDSStrategy(daiAsset, ARBITRUM_AAVE_V3_POOL, daiAToken, strategyOwner));
+            daiStrategy = address(new AaveV3(daiAsset, ARBITRUM_AAVE_V3_POOL, daiAToken, strategyOwner));
         }
 
         octantModule.setSupportedAsset(wethAsset, wethStrategy);
@@ -285,7 +286,8 @@ contract Deploy is Script, DeploymentBase {
             bannerImage: bannerImage,
             metadata: metadata,
             openJoining: openJoining,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
     }
 
@@ -420,6 +422,10 @@ contract Deploy is Script, DeploymentBase {
     /// @notice Register a single action
     function _registerSingleAction(string memory json, string memory basePath, string memory ipfsHash) internal {
         string memory title = abi.decode(vm.parseJson(json, string.concat(basePath, ".title")), (string));
+        string memory slug = abi.decode(vm.parseJson(json, string.concat(basePath, ".slug")), (string));
+        string memory domainStr = abi.decode(vm.parseJson(json, string.concat(basePath, ".domain")), (string));
+        Domain domain = _parseDomain(domainStr);
+
         // Use dynamic timestamps: start = now, end = now + 3 months (ignoring config values)
         uint256 startTime = block.timestamp;
         uint256 endTime = block.timestamp + 90 days; // ~3 months
@@ -432,7 +438,7 @@ contract Deploy is Script, DeploymentBase {
 
         string[] memory media = abi.decode(vm.parseJson(json, string.concat(basePath, ".media")), (string[]));
 
-        actionRegistry.registerAction(startTime, endTime, title, ipfsHash, capitals, media);
+        actionRegistry.registerAction(startTime, endTime, title, slug, ipfsHash, capitals, media, domain);
     }
 
     // ============================================
@@ -471,9 +477,9 @@ contract Deploy is Script, DeploymentBase {
 
     /// @notice Initiate governance transfer to multisig
     function _initiateGovernanceTransfer(address multisig) internal {
-        if (!DeploymentRegistry(address(deploymentRegistry)).isInAllowlist(multisig)) {
+        if (!Deployment(address(deploymentRegistry)).isInAllowlist(multisig)) {
             // solhint-disable-next-line no-empty-blocks
-            try DeploymentRegistry(address(deploymentRegistry)).addToAllowlist(multisig) {
+            try Deployment(address(deploymentRegistry)).addToAllowlist(multisig) {
                 // Success - multisig added to allowlist
             } catch {
                 console.log("WARNING: Failed to add multisig to allowlist before governance transfer");
@@ -481,7 +487,7 @@ contract Deploy is Script, DeploymentBase {
         }
 
         // solhint-disable-next-line no-empty-blocks
-        try DeploymentRegistry(address(deploymentRegistry)).initiateGovernanceTransfer(multisig) {
+        try Deployment(address(deploymentRegistry)).initiateGovernanceTransfer(multisig) {
             console.log("Governance transfer initiated to:", multisig);
         } catch {
             console.log("WARNING: Failed to initiate governance transfer - manual action required post-deployment");
@@ -503,6 +509,18 @@ contract Deploy is Script, DeploymentBase {
         if (hash == keccak256(bytes("SPIRITUAL"))) return Capital.SPIRITUAL;
 
         revert InvalidCapitalType();
+    }
+
+    /// @notice Parse domain type from string
+    function _parseDomain(string memory domainStr) internal pure returns (Domain) {
+        bytes32 hash = keccak256(bytes(domainStr));
+
+        if (hash == keccak256(bytes("SOLAR"))) return Domain.SOLAR;
+        if (hash == keccak256(bytes("AGRO"))) return Domain.AGRO;
+        if (hash == keccak256(bytes("EDU"))) return Domain.EDU;
+        if (hash == keccak256(bytes("WASTE"))) return Domain.WASTE;
+
+        revert InvalidDomainType();
     }
 
     /// @notice Load gardens config JSON
@@ -542,11 +560,11 @@ contract Deploy is Script, DeploymentBase {
         console.log("Chain ID:", block.chainid);
         console.log("GardenToken:", address(gardenToken));
         console.log("ActionRegistry:", address(actionRegistry));
-        console.log("DeploymentRegistry:", address(deploymentRegistry));
+        console.log("Deployment:", address(deploymentRegistry));
         console.log("HatsModule:", address(hatsModule));
         console.log("OctantModule:", address(octantModule));
         console.log("GardensModule:", address(gardensModule));
-        console.log("YieldSplitter:", address(yieldSplitter));
+        console.log("YieldResolver:", address(yieldSplitter));
         console.log("WorkResolver:", address(workResolver));
         console.log("WorkApprovalResolver:", address(workApprovalResolver));
         console.log("AssessmentResolver:", address(assessmentResolver));
@@ -588,6 +606,7 @@ contract Deploy is Script, DeploymentBase {
         result.octantFactory = _getOctantFactoryAddress();
         result.gardensModule = address(gardensModule);
         result.yieldSplitter = address(yieldSplitter);
+        result.cookieJarModule = address(cookieJarModule);
         result.gardenerAccountLogic = gardenerAccountLogic;
         result.gardenerRegistry = address(gardenerRegistry);
         result.assessmentSchemaUID = assessmentSchemaUID;

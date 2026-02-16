@@ -5,13 +5,13 @@ import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import { YieldSplitter } from "../../src/yield/YieldSplitter.sol";
+import { YieldResolver } from "../../src/resolvers/Yield.sol";
 import {
     MockCookieJar,
     MockHypercertMarketplace,
     MockJBMultiTerminalForYield,
     MockOctantVaultForYield
-} from "../../src/mocks/MockYieldDeps.sol";
+} from "../../src/mocks/YieldDeps.sol";
 import { MockHatsModule } from "../helpers/MockHatsModule.sol";
 
 /// @title MockDAI for integration testing
@@ -36,7 +36,7 @@ contract MockWETHForIntegration is ERC20 {
 /// @notice Integration tests for the full yield split flow:
 ///         deposit → harvest → split → verify jar + fractions + JB
 contract YieldToFractionsTest is Test {
-    YieldSplitter public splitter;
+    YieldResolver public splitter;
     MockDAI public dai;
     MockWETHForIntegration public weth;
     MockOctantVaultForYield public daiVault;
@@ -73,12 +73,12 @@ contract YieldToFractionsTest is Test {
         dai.mint(address(daiVault), 1_000_000e18);
         weth.mint(address(wethVault), 1_000_000e18);
 
-        // Deploy YieldSplitter
-        YieldSplitter impl = new YieldSplitter();
+        // Deploy YieldResolver
+        YieldResolver impl = new YieldResolver();
         bytes memory initData =
-            abi.encodeWithSelector(YieldSplitter.initialize.selector, owner, address(0), address(hatsModule), MIN_THRESHOLD);
+            abi.encodeWithSelector(YieldResolver.initialize.selector, owner, address(0), address(hatsModule), MIN_THRESHOLD);
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
-        splitter = YieldSplitter(address(proxy));
+        splitter = YieldResolver(address(proxy));
 
         // Configure
         vm.startPrank(owner);
@@ -115,20 +115,22 @@ contract YieldToFractionsTest is Test {
         // Anyone triggers split
         splitter.splitYield(garden, address(dai), address(daiVault));
 
-        // Verify Cookie Jar received ~33%
-        uint256 expectedCookieJar = (yieldAmount * 3334) / 10_000;
-        assertEq(dai.balanceOf(address(cookieJar)), expectedCookieJar, "Cookie Jar should receive ~33%");
+        // Verify Cookie Jar received ~48.65%
+        uint256 expectedCookieJar = (yieldAmount * 4865) / 10_000;
+        assertEq(dai.balanceOf(address(cookieJar)), expectedCookieJar, "Cookie Jar should receive ~48.65%");
 
-        // Verify JB received ~33%
+        // Verify JB received ~2.7%
         assertEq(jbTerminal.getPayCallCount(), 1, "JB should receive 1 payment");
         (,, uint256 jbAmount,) = jbTerminal.payCalls(0);
-        uint256 expectedJuicebox = yieldAmount - expectedCookieJar - ((yieldAmount * 3333) / 10_000);
-        assertEq(jbAmount, expectedJuicebox, "JB amount should be ~33%");
+        uint256 expectedJuicebox = yieldAmount - expectedCookieJar - ((yieldAmount * 4865) / 10_000);
+        assertEq(jbAmount, expectedJuicebox, "JB amount should be ~2.7%");
 
-        // Fractions escrow to pendingYield (~33%) — prevents geometric decay
-        uint256 expectedFractions = (yieldAmount * 3333) / 10_000;
+        // Fractions escrow separately (~48.65%) — prevents geometric decay
+        uint256 expectedFractions = (yieldAmount * 4865) / 10_000;
         assertEq(
-            splitter.getPendingYield(garden, address(dai)), expectedFractions, "Fractions should escrow to pendingYield"
+            splitter.getEscrowedFractions(garden, address(dai)),
+            expectedFractions,
+            "Fractions should escrow to escrowedFractions"
         );
         assertEq(daiVault.balanceOf(address(splitter)), 0, "Should NOT recompound into vault");
     }
@@ -173,8 +175,10 @@ contract YieldToFractionsTest is Test {
 
         splitter.splitYield(garden, address(dai), address(daiVault));
 
-        // All should escrow to pendingYield (prevents geometric decay)
-        assertEq(splitter.getPendingYield(garden, address(dai)), yieldAmount, "Should fully escrow to pendingYield");
+        // All should escrow to escrowedFractions (prevents geometric decay)
+        assertEq(
+            splitter.getEscrowedFractions(garden, address(dai)), yieldAmount, "Should fully escrow to escrowedFractions"
+        );
         assertEq(daiVault.balanceOf(address(splitter)), 0, "Should NOT recompound into vault");
         assertEq(dai.balanceOf(address(cookieJar)), 0, "Cookie Jar should be empty");
         assertEq(jbTerminal.getPayCallCount(), 0, "JB should receive nothing");
@@ -199,16 +203,18 @@ contract YieldToFractionsTest is Test {
         _mintAndRegisterShares(daiVault, 3e18);
         splitter.splitYield(garden, address(dai), address(daiVault));
 
-        // Total split: $8 — pendingYield now contains only the escrowed fractions portion
+        // Total split: $8 — escrowedFractions now contains the fractions portion
         uint256 totalSplit = 8e18;
-        uint256 expectedFractionsPending = (totalSplit * 3333) / 10_000;
+        uint256 expectedFractionsEscrow = (totalSplit * 4865) / 10_000;
         assertEq(
-            splitter.getPendingYield(garden, address(dai)),
-            expectedFractionsPending,
-            "Pending should contain escrowed fractions portion"
+            splitter.getEscrowedFractions(garden, address(dai)),
+            expectedFractionsEscrow,
+            "Escrowed fractions should contain fractions portion"
         );
+        // pendingYield should be cleared (merged into total for split)
+        assertEq(splitter.getPendingYield(garden, address(dai)), 0, "Pending yield should be cleared after split");
 
-        uint256 expectedCookieJar = (totalSplit * 3334) / 10_000;
+        uint256 expectedCookieJar = (totalSplit * 4865) / 10_000;
         assertEq(dai.balanceOf(address(cookieJar)), expectedCookieJar, "Cookie Jar from merged yield");
     }
 
@@ -228,8 +234,8 @@ contract YieldToFractionsTest is Test {
         // Cookie Jar: 60%
         assertEq(dai.balanceOf(address(cookieJar)), 60e18, "Cookie Jar = 60%");
 
-        // Fractions: 20% → escrowed in pendingYield
-        assertEq(splitter.getPendingYield(garden, address(dai)), 20e18, "Fractions = 20% escrowed in pendingYield");
+        // Fractions: 20% → escrowed in escrowedFractions
+        assertEq(splitter.getEscrowedFractions(garden, address(dai)), 20e18, "Fractions = 20% escrowed");
         assertEq(daiVault.balanceOf(address(splitter)), 0, "Should NOT recompound into vault");
 
         // JB: 20%

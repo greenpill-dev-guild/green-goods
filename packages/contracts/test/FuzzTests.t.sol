@@ -4,11 +4,11 @@ pragma solidity >=0.8.25;
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import { ActionRegistry, Capital } from "../src/registries/Action.sol";
+import { ActionRegistry, Capital, Domain } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
-import { YieldSplitter } from "../src/yield/YieldSplitter.sol";
+import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
 import { MockHatsModule } from "./helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
@@ -74,7 +74,9 @@ contract FuzzTests is Test, ERC6551Helper {
         string[] memory media = new string[](0);
 
         vm.prank(multisig);
-        actionRegistry.registerAction(startTime, endTime, "Fuzz Test Action", "instructions", capitals, media);
+        actionRegistry.registerAction(
+            startTime, endTime, "Fuzz Test Action", "test.fuzz", "instructions", capitals, media, Domain.AGRO
+        );
 
         ActionRegistry.Action memory action = actionRegistry.getAction(0);
         assertEq(action.startTime, startTime, "Start time should match");
@@ -103,7 +105,8 @@ contract FuzzTests is Test, ERC6551Helper {
             bannerImage: "Banner",
             metadata: "",
             openJoining: false,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
         address gardenAccount = gardenToken.mintGarden(config);
 
@@ -129,7 +132,8 @@ contract FuzzTests is Test, ERC6551Helper {
                 bannerImage: "Banner",
                 metadata: "",
                 openJoining: false,
-                weightScheme: IGardensModule.WeightScheme.Linear
+                weightScheme: IGardensModule.WeightScheme.Linear,
+                domainMask: 0
             });
         }
 
@@ -150,7 +154,8 @@ contract FuzzTests is Test, ERC6551Helper {
             bannerImage: "Banner",
             metadata: "",
             openJoining: openJoiningValue,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
 
         address gardenAccount = gardenToken.mintGarden(config);
@@ -170,7 +175,14 @@ contract FuzzTests is Test, ERC6551Helper {
 
         vm.prank(multisig);
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 1 days, "Fuzz Capital Test", "instructions", capitals, media
+            block.timestamp,
+            block.timestamp + 1 days,
+            "Fuzz Capital Test",
+            "test.capital",
+            "instructions",
+            capitals,
+            media,
+            Domain.SOLAR
         );
 
         ActionRegistry.Action memory action = actionRegistry.getAction(0);
@@ -219,7 +231,9 @@ contract FuzzTests is Test, ERC6551Helper {
 
         vm.prank(multisig);
         vm.expectRevert();
-        actionRegistry.registerAction(startTime, endTime, "Invalid Dates", "instructions", capitals, new string[](0));
+        actionRegistry.registerAction(
+            startTime, endTime, "Invalid Dates", "test.invalid", "instructions", capitals, new string[](0), Domain.WASTE
+        );
     }
 
     /// @notice Fuzz: gardenToken mint from random unauthorized address reverts
@@ -235,7 +249,8 @@ contract FuzzTests is Test, ERC6551Helper {
             bannerImage: "Banner",
             metadata: "",
             openJoining: false,
-            weightScheme: IGardensModule.WeightScheme.Linear
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
 
         vm.prank(caller);
@@ -258,7 +273,7 @@ contract FuzzTests is Test, ERC6551Helper {
     }
 
     // =========================================================================
-    // YieldSplitter Fuzz Tests
+    // YieldResolver Fuzz Tests
     // =========================================================================
 
     /// @notice Fuzz: setSplitRatio always reverts when BPS don't sum to 10000
@@ -275,11 +290,11 @@ contract FuzzTests is Test, ERC6551Helper {
         juiceboxBps = bound(juiceboxBps, 0, 10_000);
         vm.assume(cookieJarBps + fractionsBps + juiceboxBps != 10_000);
 
-        // Deploy a minimal YieldSplitter for this fuzz test
-        YieldSplitter ys = _deployYieldSplitter();
+        // Deploy a minimal YieldResolver for this fuzz test
+        YieldResolver ys = _deployYieldResolver();
 
         vm.prank(multisig);
-        vm.expectRevert(YieldSplitter.InvalidSplitRatio.selector);
+        vm.expectRevert(YieldResolver.InvalidSplitRatio.selector);
         ys.setSplitRatio(address(0x100), cookieJarBps, fractionsBps, juiceboxBps);
     }
 
@@ -289,23 +304,23 @@ contract FuzzTests is Test, ERC6551Helper {
         fractionsBps = bound(fractionsBps, 0, 10_000 - cookieJarBps);
         uint256 juiceboxBps = 10_000 - cookieJarBps - fractionsBps;
 
-        YieldSplitter ys = _deployYieldSplitter();
+        YieldResolver ys = _deployYieldResolver();
         address garden = address(0x100);
 
         vm.prank(multisig);
         ys.setSplitRatio(garden, cookieJarBps, fractionsBps, juiceboxBps);
 
-        YieldSplitter.SplitConfig memory config = ys.getSplitConfig(garden);
+        YieldResolver.SplitConfig memory config = ys.getSplitConfig(garden);
         assertEq(config.cookieJarBps + config.fractionsBps + config.juiceboxBps, 10_000, "BPS must always sum to 10000");
     }
 
-    /// @notice Helper: deploy a minimal YieldSplitter for fuzz testing
-    function _deployYieldSplitter() internal returns (YieldSplitter) {
-        YieldSplitter impl = new YieldSplitter();
+    /// @notice Helper: deploy a minimal YieldResolver for fuzz testing
+    function _deployYieldResolver() internal returns (YieldResolver) {
+        YieldResolver impl = new YieldResolver();
         bytes memory initData =
-            abi.encodeWithSelector(YieldSplitter.initialize.selector, multisig, address(0x2), address(0x3), 0);
+            abi.encodeWithSelector(YieldResolver.initialize.selector, multisig, address(0x2), address(0x3), 0);
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
-        return YieldSplitter(address(proxy));
+        return YieldResolver(address(proxy));
     }
 
     /// @notice Convert bitmap to capital array

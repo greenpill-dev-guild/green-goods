@@ -39,7 +39,6 @@ export const CHAIN_ID_MAP: Record<string, string> = {
   localhost: "31337",
   arbitrum: "42161",
   sepolia: "11155111",
-  baseSepolia: "84532",
   celo: "42220",
 };
 

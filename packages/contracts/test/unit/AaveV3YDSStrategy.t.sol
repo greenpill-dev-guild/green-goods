@@ -3,14 +3,14 @@ pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
 
-import { AaveV3YDSStrategy } from "../../src/strategies/AaveV3YDSStrategy.sol";
-import { MockAavePool, MockAToken } from "../../src/mocks/MockAavePool.sol";
+import { AaveV3 } from "../../src/strategies/AaveV3.sol";
+import { MockAavePool, MockAToken } from "../../src/mocks/AavePool.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
 
-/// @title AaveV3YDSStrategyTest
-/// @notice Unit tests for AaveV3YDSStrategy using MockAavePool (no fork RPC needed)
-contract AaveV3YDSStrategyTest is Test {
-    AaveV3YDSStrategy internal strategy;
+/// @title AaveV3Test
+/// @notice Unit tests for AaveV3 using MockAavePool (no fork RPC needed)
+contract AaveV3Test is Test {
+    AaveV3 internal strategy;
     MockERC20 internal asset;
     MockAToken internal aToken;
     MockAavePool internal pool;
@@ -24,7 +24,7 @@ contract AaveV3YDSStrategyTest is Test {
         aToken = new MockAToken();
         pool = new MockAavePool(address(aToken));
 
-        strategy = new AaveV3YDSStrategy(address(asset), address(pool), address(aToken), owner);
+        strategy = new AaveV3(address(asset), address(pool), address(aToken), owner);
 
         // Fund the strategy with some tokens for testing
         asset.transfer(address(strategy), 1000 ether);
@@ -45,28 +45,28 @@ contract AaveV3YDSStrategyTest is Test {
     }
 
     function test_constructor_revertsForZeroAsset() public {
-        vm.expectRevert(AaveV3YDSStrategy.ZeroAddress.selector);
-        new AaveV3YDSStrategy(address(0), address(pool), address(aToken), owner);
+        vm.expectRevert(AaveV3.ZeroAddress.selector);
+        new AaveV3(address(0), address(pool), address(aToken), owner);
     }
 
     function test_constructor_revertsForZeroPool() public {
-        vm.expectRevert(AaveV3YDSStrategy.ZeroAddress.selector);
-        new AaveV3YDSStrategy(address(asset), address(0), address(aToken), owner);
+        vm.expectRevert(AaveV3.ZeroAddress.selector);
+        new AaveV3(address(asset), address(0), address(aToken), owner);
     }
 
     function test_constructor_revertsForZeroAToken() public {
-        vm.expectRevert(AaveV3YDSStrategy.ZeroAddress.selector);
-        new AaveV3YDSStrategy(address(asset), address(pool), address(0), owner);
+        vm.expectRevert(AaveV3.ZeroAddress.selector);
+        new AaveV3(address(asset), address(pool), address(0), owner);
     }
 
     function test_constructor_revertsForZeroOwner() public {
-        vm.expectRevert(AaveV3YDSStrategy.ZeroAddress.selector);
-        new AaveV3YDSStrategy(address(asset), address(pool), address(aToken), address(0));
+        vm.expectRevert(AaveV3.ZeroAddress.selector);
+        new AaveV3(address(asset), address(pool), address(aToken), address(0));
     }
 
     function test_constructor_transfersOwnershipWhenDifferentFromSender() public {
         address differentOwner = address(0xBEEF);
-        AaveV3YDSStrategy s = new AaveV3YDSStrategy(address(asset), address(pool), address(aToken), differentOwner);
+        AaveV3 s = new AaveV3(address(asset), address(pool), address(aToken), differentOwner);
         assertEq(s.owner(), differentOwner);
     }
 
@@ -80,7 +80,7 @@ contract AaveV3YDSStrategyTest is Test {
     }
 
     function test_setDonationAddress_revertsForZeroAddress() public {
-        vm.expectRevert(AaveV3YDSStrategy.ZeroAddress.selector);
+        vm.expectRevert(AaveV3.ZeroAddress.selector);
         strategy.setDonationAddress(address(0));
     }
 
@@ -92,7 +92,7 @@ contract AaveV3YDSStrategyTest is Test {
 
     function test_setDonationAddress_emitsEvent() public {
         vm.expectEmit(true, true, false, false);
-        emit AaveV3YDSStrategy.DonationAddressUpdated(address(0), donation);
+        emit AaveV3.DonationAddressUpdated(address(0), donation);
         strategy.setDonationAddress(donation);
     }
 
@@ -116,13 +116,13 @@ contract AaveV3YDSStrategyTest is Test {
     function test_deployFunds_revertsWhenPaused() public {
         strategy.setDepositsPaused(true);
 
-        vm.expectRevert(AaveV3YDSStrategy.DepositsPaused.selector);
+        vm.expectRevert(AaveV3.DepositsPaused.selector);
         strategy.deployFunds(100 ether);
     }
 
     function test_deployFunds_emitsEvent() public {
         vm.expectEmit(false, false, false, true);
-        emit AaveV3YDSStrategy.FundsDeployed(100 ether);
+        emit AaveV3.FundsDeployed(100 ether);
         strategy.deployFunds(100 ether);
     }
 
@@ -155,7 +155,7 @@ contract AaveV3YDSStrategyTest is Test {
         address receiver = address(0xCAFE);
 
         vm.expectEmit(false, true, false, true);
-        emit AaveV3YDSStrategy.FundsFreed(50 ether, receiver);
+        emit AaveV3.FundsFreed(50 ether, receiver);
         strategy.freeFunds(50 ether, receiver);
     }
 
@@ -182,14 +182,14 @@ contract AaveV3YDSStrategyTest is Test {
 
     function test_report_returnsZeroWithNoFunds() public {
         // Drain the strategy
-        AaveV3YDSStrategy emptyStrategy = new AaveV3YDSStrategy(address(asset), address(pool), address(aToken), owner);
+        AaveV3 emptyStrategy = new AaveV3(address(asset), address(pool), address(aToken), owner);
         uint256 total = emptyStrategy.report();
         assertEq(total, 0, "Empty strategy should report 0");
     }
 
     function test_report_emitsEvent() public {
         vm.expectEmit(false, false, false, true);
-        emit AaveV3YDSStrategy.StrategyReported(1000 ether);
+        emit AaveV3.StrategyReported(1000 ether);
         strategy.report();
     }
 

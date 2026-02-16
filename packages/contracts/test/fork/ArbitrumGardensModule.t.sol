@@ -454,7 +454,7 @@ contract ArbitrumGardensModuleForkTest is Test {
         assertEq(gardensModule.DEFAULT_MAX_RATIO(), 2_000_000, "default max ratio should be 2000000");
         assertEq(gardensModule.DEFAULT_WEIGHT(), 10_000, "default weight should be 10000");
         assertEq(gardensModule.DEFAULT_MIN_THRESHOLD_POINTS(), 2_500_000, "default min threshold should be 2500000");
-        assertEq(gardensModule.STAKE_AMOUNT_PER_MEMBER(), 1e18, "stake per member should be 1 GOODS");
+        assertEq(gardensModule.stakeAmountPerMember(), 1e18, "stake per member should be 1 GOODS");
         assertEq(gardensModule.D(), 10_000_000, "scaling factor D should be 10000000");
     }
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /// @title IGardensModule
 /// @notice Interface for the GardensModule that orchestrates Gardens V2 community creation on garden mint
 /// @dev Called by GardenToken during mintGarden() to create RegistryCommunity + signal pools
@@ -76,6 +78,23 @@ interface IGardensModule {
         returns (address community, address[] memory pools);
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // Events (additional)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Emitted when GOODS tokens are minted to a garden treasury for member staking
+    event GardenTreasurySeeded(address indexed garden, uint256 amount);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Pool Management
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Create signal pools for a garden. Callable by garden operators or owner.
+    /// @dev Garden must have a community. Pools are created inside the community contract.
+    /// @param garden The garden account address
+    /// @return pools Array of created signal pool addresses
+    function createGardenPools(address garden) external returns (address[] memory pools);
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // View Functions
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -93,4 +112,10 @@ interface IGardensModule {
 
     /// @notice Check if a garden has been initialized with Gardens V2
     function isGardenInitialized(address garden) external view returns (bool);
+
+    /// @notice Get the GOODS stake amount required per community member
+    function stakeAmountPerMember() external view returns (uint256);
+
+    /// @notice Get the GOODS token
+    function goodsToken() external view returns (IERC20);
 }
