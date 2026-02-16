@@ -130,7 +130,15 @@ export const Hero: FC<HeroProps> = () => {
           </span>
 
           <div className="bg-white p-4 rounded-xl shadow-sm">
-            <QRCodeCanvas value="https://greengoods.app" size={128} />
+            <QRCodeCanvas 
+             value={window.location.origin} 
+             size={128} 
+             aria-label={intl.formatMessage({
+                id: "app.hero.qr.ariaLabel",
+                defaultMessage: "QR code linking to Green Goods app",
+              })}
+              role="img"
+            />
           </div>
         </div>
 
