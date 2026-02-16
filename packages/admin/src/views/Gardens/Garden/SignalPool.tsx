@@ -2,9 +2,10 @@ import {
   type Address,
   ConfirmDialog,
   formatAddress,
-  useConvictionStrategies,
+  PoolType,
   useDeregisterHypercert,
   useGardenPermissions,
+  useGardenPools,
   useGardens,
   useHypercertConviction,
   useRegisterHypercert,
@@ -12,36 +13,47 @@ import {
 } from "@green-goods/shared";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { RiDeleteBinLine } from "@remixicon/react";
 
+/**
+ * Unified signal pool management view.
+ *
+ * Supports both pool types via the :poolType URL param:
+ * - "hypercert" -> PoolType.Hypercert (index 0) — hypercert curation
+ * - "action"    -> PoolType.Action    (index 1) — action signaling
+ *
+ * Both pool types share the same contract ABI (registerHypercert/deregisterHypercert)
+ * because "hypercertId" at the contract level is a generic proposal identifier.
+ */
 export default function GardenSignalPoolView() {
-  const { id } = useParams<{ id: string }>();
+  const { id, poolType: poolTypeParam } = useParams<{ id: string; poolType: string }>();
   const { formatMessage } = useIntl();
-  const [newHypercertId, setNewHypercertId] = useState("");
+  const [newItemId, setNewItemId] = useState("");
   const [inputError, setInputError] = useState("");
   const [confirmDeregister, setConfirmDeregister] = useState<bigint | null>(null);
+
+  const isActionPool = poolTypeParam === "action";
+  const targetPoolType = isActionPool ? PoolType.Action : PoolType.Hypercert;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => item.id === id);
   const permissions = useGardenPermissions();
 
-  // Load configured strategy addresses
-  const { strategies } = useConvictionStrategies((id as Address) ?? undefined, {
+  // Load pools from GardensModule — typed with PoolType
+  const { pools } = useGardenPools(id as Address | undefined, {
     enabled: Boolean(id),
   });
 
-  // Design: gardens have exactly one signal pool. strategies[0] is intentional —
-  // the HatsModule stores an array for future extensibility, but the current
-  // architecture is 1-pool-per-garden by design.
-  const poolAddress = strategies[0] as Address | undefined;
+  const pool = pools.find((p) => p.poolType === targetPoolType);
+  const poolAddress = pool?.poolAddress;
 
-  // Load registered hypercerts from the signal pool
+  // Load registered items from the signal pool
   const {
-    hypercertIds,
-    isLoading: hypercertsLoading,
-    isError: hypercertsError,
+    hypercertIds: registeredIds,
+    isLoading: itemsLoading,
+    isError: itemsError,
   } = useRegisteredHypercerts(poolAddress, {
     enabled: Boolean(poolAddress),
   });
@@ -58,11 +70,31 @@ export default function GardenSignalPoolView() {
     enabled: Boolean(poolAddress),
   });
 
+  // i18n key helpers based on pool type
+  const titleKey = isActionPool ? "app.signal.actionPool.title" : "app.signal.hypercertPool.title";
+  const descriptionKey = isActionPool
+    ? "app.signal.actionPool.description"
+    : "app.signal.hypercertPool.description";
+  const emptyKey = isActionPool ? "app.signal.actionPool.noActions" : "app.signal.noHypercerts";
+  const countKey = isActionPool ? "app.signal.actionPool.actionCount" : "app.signal.hypercertCount";
+  const idRequiredKey = isActionPool
+    ? "app.signal.actionPool.actionIdRequired"
+    : "app.conviction.hypercertIdRequired";
+  const alreadyRegisteredKey = isActionPool
+    ? "app.signal.actionPool.alreadyRegistered"
+    : "app.signal.alreadyRegistered";
+  const confirmDeregisterKey = isActionPool
+    ? "app.signal.actionPool.confirmDeregister"
+    : "app.signal.hypercertPool.confirmDeregister";
+  const confirmDeregisterDescKey = isActionPool
+    ? "app.signal.actionPool.confirmDeregisterDescription"
+    : "app.signal.hypercertPool.confirmDeregisterDescription";
+
   if (gardensLoading) {
     return (
       <div className="pb-6">
         <PageHeader
-          title={formatMessage({ id: "app.signal.title" })}
+          title={formatMessage({ id: titleKey })}
           description={formatMessage({ id: "app.signal.loading" })}
           backLink={{
             to: "/gardens",
@@ -77,7 +109,7 @@ export default function GardenSignalPoolView() {
     return (
       <div className="pb-6">
         <PageHeader
-          title={formatMessage({ id: "app.signal.title" })}
+          title={formatMessage({ id: titleKey })}
           description={formatMessage({ id: "app.conviction.gardenNotFound" })}
           backLink={{
             to: "/gardens",
@@ -99,9 +131,9 @@ export default function GardenSignalPoolView() {
   }
 
   const handleRegister = () => {
-    const trimmed = newHypercertId.trim();
+    const trimmed = newItemId.trim();
     if (!trimmed) {
-      setInputError(formatMessage({ id: "app.conviction.hypercertIdRequired" }));
+      setInputError(formatMessage({ id: idRequiredKey }));
       return;
     }
 
@@ -111,8 +143,8 @@ export default function GardenSignalPoolView() {
         setInputError(formatMessage({ id: "app.conviction.errorInvalidHypercertId" }));
         return;
       }
-      if (hypercertIds.some((id) => id === parsed)) {
-        setInputError(formatMessage({ id: "app.signal.alreadyRegistered" }));
+      if (registeredIds.some((existingId) => existingId === parsed)) {
+        setInputError(formatMessage({ id: alreadyRegisteredKey }));
         return;
       }
     } catch {
@@ -124,24 +156,21 @@ export default function GardenSignalPoolView() {
     setInputError("");
     registerMutation.mutate(
       { poolAddress, hypercertId: BigInt(trimmed) },
-      { onSuccess: () => setNewHypercertId("") }
+      { onSuccess: () => setNewItemId("") }
     );
   };
 
-  const getWeightPercentage = (hypercertId: bigint): number => {
+  const getWeightPercentage = (itemId: bigint): number => {
     if (totalWeight === 0n) return 0;
-    const weight = weightMap.get(hypercertId.toString()) ?? 0n;
+    const weight = weightMap.get(itemId.toString()) ?? 0n;
     return Number((weight * 100n) / totalWeight);
   };
 
   return (
     <div className="pb-6">
       <PageHeader
-        title={formatMessage({ id: "app.signal.title" })}
-        description={formatMessage(
-          { id: "app.conviction.description" },
-          { gardenName: garden.name }
-        )}
+        title={formatMessage({ id: titleKey })}
+        description={formatMessage({ id: descriptionKey }, { gardenName: garden.name })}
         backLink={{
           to: `/gardens/${garden.id}`,
           label: formatMessage({ id: "app.conviction.backToGarden" }),
@@ -150,15 +179,44 @@ export default function GardenSignalPoolView() {
       />
 
       <div className="mx-auto mt-6 max-w-4xl space-y-6 px-4 sm:px-6">
-        {/* Pool info */}
+        {/* Pool type switcher */}
+        <nav className="flex gap-2" aria-label={formatMessage({ id: "app.community.pools" })}>
+          <Link
+            to={`/gardens/${id}/signal-pool/hypercert`}
+            aria-current={!isActionPool ? "page" : undefined}
+            className={`inline-flex items-center rounded-md px-3 py-2 text-sm font-medium transition ${
+              !isActionPool
+                ? "bg-primary-base text-primary-foreground"
+                : "border border-stroke-sub bg-bg-white text-text-sub hover:bg-bg-weak"
+            }`}
+          >
+            {formatMessage({ id: "app.signal.viewHypercertPool" })}
+          </Link>
+          <Link
+            to={`/gardens/${id}/signal-pool/action`}
+            aria-current={isActionPool ? "page" : undefined}
+            className={`inline-flex items-center rounded-md px-3 py-2 text-sm font-medium transition ${
+              isActionPool
+                ? "bg-primary-base text-primary-foreground"
+                : "border border-stroke-sub bg-bg-white text-text-sub hover:bg-bg-weak"
+            }`}
+          >
+            {formatMessage({ id: "app.signal.viewActionPool" })}
+          </Link>
+        </nav>
+
+        {/* Pool not deployed */}
         {!poolAddress && (
           <div className="rounded-md border border-information-light bg-information-lighter px-4 py-3 text-sm text-information-dark">
-            {formatMessage({ id: "app.conviction.notDeployed" })}
+            {formatMessage({ id: "app.signal.poolNotFound" })}
           </div>
         )}
 
-        {(hypercertsError || weightsError) && (
-          <div className="rounded-md border border-error-light bg-error-lighter px-4 py-3 text-sm text-error-dark">
+        {(itemsError || weightsError) && (
+          <div
+            className="rounded-md border border-error-light bg-error-lighter px-4 py-3 text-sm text-error-dark"
+            role="alert"
+          >
             {formatMessage({ id: "app.conviction.errorLoadingFailed" })}
           </div>
         )}
@@ -177,13 +235,12 @@ export default function GardenSignalPoolView() {
               </div>
               <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
                 <p className="text-xs text-text-soft">
-                  {formatMessage({ id: "app.signal.hypercertCount" }, { count: 0 }).replace(
-                    /^0\s*/,
-                    ""
-                  )}
+                  {formatMessage({ id: countKey }, { count: 0 }).replace(/^0\s*/, "")}
                 </p>
                 <p className="mt-1 text-xl font-semibold text-text-strong">
-                  {hypercertsLoading ? "..." : hypercertIds.length}
+                  {itemsLoading
+                    ? formatMessage({ id: "app.common.loading" })
+                    : registeredIds.length}
                 </p>
               </div>
               <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
@@ -195,7 +252,7 @@ export default function GardenSignalPoolView() {
                     ? formatMessage({ id: "app.common.loading" })
                     : weights.length > 0
                       ? formatMessage({ id: "app.signal.conviction" })
-                      : formatMessage({ id: "app.signal.noHypercerts" })}
+                      : formatMessage({ id: emptyKey })}
                 </p>
               </div>
             </section>
@@ -212,26 +269,26 @@ export default function GardenSignalPoolView() {
               </div>
 
               <div className="p-4 sm:p-6">
-                {hypercertsLoading || weightsLoading ? (
-                  <p className="py-4 text-center text-sm text-text-soft">
+                {itemsLoading || weightsLoading ? (
+                  <p className="py-4 text-center text-sm text-text-soft" role="status">
                     {formatMessage({ id: "app.signal.loading" })}
                   </p>
-                ) : hypercertIds.length === 0 ? (
+                ) : registeredIds.length === 0 ? (
                   <p className="py-4 text-center text-sm text-text-soft">
-                    {formatMessage({ id: "app.signal.noHypercerts" })}
+                    {formatMessage({ id: emptyKey })}
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {hypercertIds.map((hcId) => {
-                      const pct = getWeightPercentage(hcId);
+                    {registeredIds.map((itemId) => {
+                      const pct = getWeightPercentage(itemId);
                       return (
                         <div
-                          key={hcId.toString()}
+                          key={itemId.toString()}
                           className="flex items-center justify-between gap-3 rounded-md bg-bg-weak p-3"
                         >
                           <div className="min-w-0 flex-1">
                             <p className="font-mono text-sm font-medium text-text-strong">
-                              #{hcId.toString()}
+                              #{itemId.toString()}
                             </p>
                             <div className="mt-1 flex items-center gap-2">
                               <div
@@ -240,6 +297,10 @@ export default function GardenSignalPoolView() {
                                 aria-valuenow={Math.min(pct, 100)}
                                 aria-valuemin={0}
                                 aria-valuemax={100}
+                                aria-label={formatMessage(
+                                  { id: "app.signal.weightFor" },
+                                  { id: itemId.toString() }
+                                )}
                               >
                                 <div
                                   className="h-full rounded-full bg-primary-base transition-all duration-500"
@@ -252,7 +313,7 @@ export default function GardenSignalPoolView() {
                           {canManage && (
                             <button
                               type="button"
-                              onClick={() => setConfirmDeregister(hcId)}
+                              onClick={() => setConfirmDeregister(itemId)}
                               disabled={deregisterMutation.isPending}
                               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50"
                               aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
@@ -266,27 +327,45 @@ export default function GardenSignalPoolView() {
                   </div>
                 )}
 
-                {/* Register hypercert form */}
+                {/* Register item form */}
                 {canManage && (
                   <div className="mt-4 flex gap-2">
                     <div className="flex-1">
                       <input
                         type="text"
-                        value={newHypercertId}
+                        value={newItemId}
                         onChange={(e) => {
-                          setNewHypercertId(e.target.value);
+                          setNewItemId(e.target.value);
                           setInputError("");
                         }}
-                        placeholder="Hypercert token ID"
+                        placeholder={formatMessage({
+                          id: isActionPool
+                            ? "app.signal.actionPool.actionIdPlaceholder"
+                            : "app.signal.hypercertPool.hypercertIdPlaceholder",
+                        })}
                         className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 font-mono text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20"
-                        aria-label="Hypercert token ID"
+                        aria-label={formatMessage({
+                          id: isActionPool
+                            ? "app.signal.actionPool.actionIdPlaceholder"
+                            : "app.signal.hypercertPool.hypercertIdPlaceholder",
+                        })}
+                        aria-invalid={inputError ? true : undefined}
+                        aria-describedby={inputError ? "register-input-error" : undefined}
                       />
-                      {inputError && <p className="mt-1 text-xs text-error-base">{inputError}</p>}
+                      {inputError && (
+                        <p
+                          id="register-input-error"
+                          className="mt-1 text-xs text-error-base"
+                          role="alert"
+                        >
+                          {inputError}
+                        </p>
+                      )}
                     </div>
                     <button
                       type="button"
                       onClick={handleRegister}
-                      disabled={!newHypercertId.trim() || registerMutation.isPending}
+                      disabled={!newItemId.trim() || registerMutation.isPending}
                       className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker active:scale-95 disabled:opacity-50"
                     >
                       {registerMutation.isPending
@@ -304,8 +383,8 @@ export default function GardenSignalPoolView() {
       <ConfirmDialog
         isOpen={confirmDeregister !== null}
         onClose={() => setConfirmDeregister(null)}
-        title={formatMessage({ id: "app.signal.confirmDeregister" })}
-        description={formatMessage({ id: "app.signal.confirmDeregisterDescription" })}
+        title={formatMessage({ id: confirmDeregisterKey })}
+        description={formatMessage({ id: confirmDeregisterDescKey })}
         variant="danger"
         onConfirm={() => {
           if (poolAddress && confirmDeregister !== null) {

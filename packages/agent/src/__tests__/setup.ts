@@ -126,7 +126,7 @@ export function resetMocks(): void {
 const originalEnv = {
   ENCRYPTION_SECRET: process.env.ENCRYPTION_SECRET,
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
-  VITE_RPC_URL_84532: process.env.VITE_RPC_URL_84532,
+  VITE_RPC_URL_11155111: process.env.VITE_RPC_URL_11155111,
   NODE_ENV: process.env.NODE_ENV,
 };
 
@@ -134,7 +134,7 @@ const originalEnv = {
 process.env.NODE_ENV = "test";
 process.env.ENCRYPTION_SECRET = "test-secret-key-for-encryption-32chars!";
 process.env.TELEGRAM_BOT_TOKEN = "123456:ABC-TEST-TOKEN";
-process.env.VITE_RPC_URL_84532 = "http://localhost:8545";
+process.env.VITE_RPC_URL_11155111 = "http://localhost:8545";
 
 afterAll(() => {
   // Restore original env values
@@ -353,13 +353,13 @@ vi.mock("bun:sqlite", () => ({
 // The agent only uses a small subset of the shared package.
 vi.mock("@green-goods/shared", () => ({
   // Blockchain functions used by agent
-  getDefaultChain: () => ({ id: 84532, name: "Base Sepolia" }),
+  getDefaultChain: () => ({ id: 11155111, name: "Sepolia" }),
   submitApprovalBot: vi.fn().mockResolvedValue({ hash: "0x" + "0".repeat(64) }),
   submitWorkBot: vi.fn().mockResolvedValue({ hash: "0x" + "0".repeat(64) }),
 
   // Config constants
-  DEFAULT_CHAIN_ID: 84532,
-  SUPPORTED_CHAINS: [{ id: 84532, name: "Base Sepolia" }],
+  DEFAULT_CHAIN_ID: 11155111,
+  SUPPORTED_CHAINS: [{ id: 11155111, name: "Sepolia" }],
 
   // Type guards and utilities
   isAddress: (value: string) => /^0x[a-fA-F0-9]{40}$/.test(value),

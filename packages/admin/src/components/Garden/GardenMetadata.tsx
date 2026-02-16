@@ -45,7 +45,8 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
 
   const getOpenSeaUrl = () => {
     // OpenSea URLs differ by chain
-    const chainSlug = chainId === 84532 ? "base-sepolia" : chainId === 42161 ? "arbitrum" : "base";
+    const chainSlug =
+      chainId === 11155111 ? "sepolia" : chainId === 42161 ? "arbitrum" : "ethereum";
     return `https://testnets.opensea.io/assets/${chainSlug}/${tokenAddress}/${tokenId}`;
   };
 

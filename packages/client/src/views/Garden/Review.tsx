@@ -1,22 +1,23 @@
-import type { Action, Garden } from "@green-goods/shared";
+import { type Action, AudioPlayer, type Garden } from "@green-goods/shared";
 import { mediaResourceManager } from "@green-goods/shared/modules";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
-import { RiFileFill, RiLeafFill, RiPencilFill, RiPlantFill, RiTimeFill } from "@remixicon/react";
+import { RiFileFill, RiPencilFill, RiTimeFill } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { WorkView } from "@/components/Features/Work";
 
 /** Stable tracking ID for work draft media URLs (shared with Media.tsx) */
 const WORK_DRAFT_TRACKING_ID = "work-draft";
+const VIDEO_TRACKING_ID = "work-draft-video";
+const AUDIO_REVIEW_TRACKING_ID = "work-review-audio";
 
 interface WorkReviewProps {
   reviewConfig?: Action["review"];
   garden: Garden;
   action: Action;
   images: File[];
+  audioNotes?: File[];
   values: Record<string, unknown>;
-  plantSelection: string[];
-  plantCount: number;
   timeSpentMinutes?: number;
   feedback: string;
 }
@@ -26,9 +27,8 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   garden,
   reviewConfig,
   images,
+  audioNotes = [],
   values,
-  plantSelection,
-  plantCount,
   timeSpentMinutes,
   feedback,
 }) => {
@@ -43,6 +43,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
       defaultMessage: "Check if the information is correct",
     });
 
+  // Build details from action inputs dynamically
   const dynamicDetails = (action.inputs || [])
     .map((input) => {
       const raw = values?.[input.key];
@@ -69,7 +70,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
 
   const formattedTimeSpent = formatTimeSpent(timeSpentMinutes);
 
-  const baseDetails = [
+  const details = [
     // Time spent - shown first as a key metric
     ...(formattedTimeSpent
       ? [
@@ -83,22 +84,9 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
           },
         ]
       : []),
-    {
-      label: intl.formatMessage({
-        id: "app.garden.review.plantTypes",
-        defaultMessage: "Plant Types",
-      }),
-      value: plantSelection.join(", ") || "",
-      icon: RiPlantFill,
-    },
-    {
-      label: intl.formatMessage({
-        id: "app.garden.review.plantAmount",
-        defaultMessage: "Plant Amount",
-      }),
-      value: String(plantCount || ""),
-      icon: RiLeafFill,
-    },
+    // Dynamic action-specific fields
+    ...dynamicDetails,
+    // Feedback last (if provided)
     ...(feedback && feedback.trim().length > 0
       ? [
           {
@@ -113,22 +101,72 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
       : []),
   ];
 
-  // Reuse stable URLs from mediaResourceManager (same tracking ID as Media.tsx)
-  const mediaUrls = useMemo(
-    () => images.map((file) => mediaResourceManager.getOrCreateUrl(file, WORK_DRAFT_TRACKING_ID)),
-    [images]
+  // Separate photos from video
+  const { photoFiles, videoFile } = useMemo(() => {
+    const video = images.find((f) => f.type.startsWith("video/"));
+    const photos = images.filter((f) => !f.type.startsWith("video/"));
+    return { photoFiles: photos, videoFile: video ?? null };
+  }, [images]);
+
+  // Stable URLs for photos (same tracking ID as Media.tsx)
+  const photoUrls = useMemo(
+    () =>
+      photoFiles.map((file) => mediaResourceManager.getOrCreateUrl(file, WORK_DRAFT_TRACKING_ID)),
+    [photoFiles]
   );
 
+  // Stable URL for video
+  const videoUrl = useMemo(
+    () => (videoFile ? mediaResourceManager.getOrCreateUrl(videoFile, VIDEO_TRACKING_ID) : null),
+    [videoFile]
+  );
+
+  const hasVideo = videoFile !== null;
+
   return (
-    <WorkView
-      title={reviewTitle}
-      info={reviewDescription}
-      garden={garden}
-      actionTitle={action.title}
-      media={mediaUrls}
-      details={[...baseDetails, ...dynamicDetails]}
-      headerIcon={RiFileFill}
-      primaryActions={[]}
-    />
+    <div className="flex flex-col gap-4">
+      <WorkView
+        title={reviewTitle}
+        info={reviewDescription}
+        garden={garden}
+        actionTitle={action.title}
+        media={photoUrls}
+        showMedia={!hasVideo && photoUrls.length > 0}
+        details={details}
+        headerIcon={RiFileFill}
+        primaryActions={[]}
+      />
+
+      {/* Video preview (mutually exclusive with photo gallery in WorkView) */}
+      {hasVideo && videoUrl && (
+        <div className="padded">
+          <p className="text-xs tracking-tight mb-1 uppercase text-text-sub">
+            {intl.formatMessage({
+              id: "app.garden.review.video",
+              defaultMessage: "Video",
+            })}
+          </p>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated content */}
+          <video src={videoUrl} controls className="w-full rounded-lg">
+            <track kind="captions" />
+          </video>
+        </div>
+      )}
+
+      {/* Audio notes preview */}
+      {audioNotes.length > 0 && (
+        <div className="padded flex flex-col gap-2">
+          <p className="text-xs tracking-tight mb-1 uppercase text-text-sub">
+            {intl.formatMessage({
+              id: "app.garden.review.audioNotes",
+              defaultMessage: "Audio Notes",
+            })}
+          </p>
+          {audioNotes.map((file, index) => (
+            <AudioPlayer key={`review-audio-${file.name}-${index}`} file={file} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 };

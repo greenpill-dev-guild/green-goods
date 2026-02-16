@@ -21,6 +21,8 @@ import { Outlet, useLocation } from "react-router-dom";
 import { PullToRefresh } from "@/components/Inputs";
 import { GardenList } from "./GardenList";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
+import { WalletDrawerIcon } from "./WalletDrawer/Icon";
+import { WalletDrawer } from "./WalletDrawer";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
 /** Storage key for welcome prompt - shown once per device */
@@ -56,6 +58,9 @@ const Home: React.FC = () => {
     filters,
     normalizedAddress
   );
+
+  // Wallet drawer state
+  const [isWalletDrawerOpen, setIsWalletDrawerOpen] = useState(false);
 
   // UI state from store
   const { isGardenFilterOpen, openGardenFilter, closeGardenFilter } = useUIStore();
@@ -193,6 +198,7 @@ const Home: React.FC = () => {
                   </span>
                 )}
               </button>
+              <WalletDrawerIcon onClick={() => setIsWalletDrawerOpen(true)} />
               <WorkDashboardIcon />
             </div>
           </div>
@@ -225,6 +231,7 @@ const Home: React.FC = () => {
         </PullToRefresh>
       )}
       <Outlet />
+      <WalletDrawer isOpen={isWalletDrawerOpen} onClose={() => setIsWalletDrawerOpen(false)} />
     </article>
   );
 };

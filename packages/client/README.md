@@ -33,7 +33,7 @@ The root `.env` file is automatically loaded by:
 - `VITE_PIMLICO_API_KEY`: **Required** - Pimlico API key for passkey smart accounts (get from [pimlico.io](https://pimlico.io))
 - `VITE_APP_URL`: Application URL for AppKit metadata (e.g., `https://greengoods.app` or `http://localhost:3001` for dev)
 - `VITE_PINATA_JWT`: Pinata JWT token for uploads (client-side)
-- `VITE_CHAIN_ID`: Chain selection (e.g., 42161 for Arbitrum, 84532 for Base Sepolia)
+- `VITE_CHAIN_ID`: Chain selection (e.g., 42161 for Arbitrum, 11155111 for Sepolia)
 - `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev)
 - `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development
 - `VITE_DEBUG_MODE`: Optional toggle to skip the two-media requirement in the Garden submission flow and enable verbose debug logging (use for manual testing only)

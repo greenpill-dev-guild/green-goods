@@ -8,6 +8,8 @@ import {
   buildContributorWeights,
   calculateDistribution,
   formatHypercertMetadata,
+  getSDGLabel,
+  prefillMetadataFromAssessment,
   toastService,
   useAdminStore,
   useHypercertAttestations,
@@ -16,6 +18,7 @@ import {
   useHypercertDraft,
   useHypercerts,
   useMintHypercert,
+  useGardenAssessments,
   useHypercertWizardStore,
   type HypercertAttestation,
   type CategorizedError,
@@ -106,8 +109,28 @@ export function HypercertWizard({
   const { currentStep, nextStep, previousStep, setStep, canProceed } = useCreateHypercertWorkflow();
 
   const { attestations, isLoading, hasError } = useHypercertAttestations(gardenId);
+  const { data: assessments } = useGardenAssessments(gardenId);
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(null);
   const { hypercerts } = useHypercerts({ gardenId });
   const { mint, retry, cancel } = useMintHypercert();
+
+  // Resolve the selected assessment object for prefill
+  const selectedAssessment = useMemo(
+    () => assessments?.find((a) => a.id === selectedAssessmentId) ?? null,
+    [assessments, selectedAssessmentId]
+  );
+
+  // Prefill metadata when an assessment is selected (one-time apply)
+  const lastPrefillId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selectedAssessment) return;
+    // Only prefill once per assessment selection (don't re-apply on re-renders)
+    if (lastPrefillId.current === selectedAssessment.id) return;
+    lastPrefillId.current = selectedAssessment.id;
+
+    const prefill = prefillMetadataFromAssessment(selectedAssessment, getSDGLabel);
+    updateMetadata(prefill);
+  }, [selectedAssessment, updateMetadata]);
 
   // State for confirm dialog when blocking navigation
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -573,6 +596,9 @@ export function HypercertWizard({
               isLoading={isLoading}
               hasError={hasError}
               bundledInfo={bundledAttestations}
+              assessments={assessments}
+              selectedAssessmentId={selectedAssessmentId}
+              onAssessmentChange={setSelectedAssessmentId}
             />
           )}
 
@@ -583,6 +609,7 @@ export function HypercertWizard({
               suggestedWorkScopes={suggestedScopes}
               suggestedStart={suggestedTimeframe.start}
               suggestedEnd={suggestedTimeframe.end}
+              selectedAssessment={selectedAssessment}
             />
           )}
 
@@ -600,11 +627,13 @@ export function HypercertWizard({
             <HypercertPreview
               metadata={previewMetadata}
               gardenName={gardenName}
+              gardenId={gardenId}
               attestationCount={selectedAttestations.length}
               totalUnits={TOTAL_UNITS}
               allowlist={allowlist}
               mintingState={mintingState}
               chainId={chainId}
+              selectedAssessment={selectedAssessment}
               onEditMetadata={() => setStep(2)}
               onEditDistribution={() => setStep(3)}
             />

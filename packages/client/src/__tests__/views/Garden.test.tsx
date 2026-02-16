@@ -12,8 +12,17 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock shared config
-vi.mock("@green-goods/shared/config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 84532,
+vi.mock("@green-goods/shared/config/blockchain", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/config/blockchain")>();
+  return {
+    ...actual,
+    DEFAULT_CHAIN_ID: 11155111,
+  };
+});
+
+// Mock shared modules (logger)
+vi.mock("@green-goods/shared/modules", () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
 // Mock shared hooks
@@ -24,6 +33,7 @@ vi.mock("@green-goods/shared/hooks", () => ({
     showDraftDialog: false,
     handleContinueDraft: vi.fn(),
     handleStartFresh: vi.fn().mockResolvedValue(undefined),
+    clearActiveDraft: vi.fn().mockResolvedValue(undefined),
   }),
   useDrafts: () => ({
     activeDraftId: null,
@@ -48,8 +58,10 @@ const mockForm = {
   setGardenAddress: vi.fn(),
   register: vi.fn(),
   control: {},
+  setValue: vi.fn(),
   uploadWork: vi.fn().mockResolvedValue(true),
   feedback: "",
+  timeSpentMinutes: undefined,
   plantSelection: [],
   plantCount: undefined,
   values: {},
@@ -89,6 +101,10 @@ vi.mock("@green-goods/shared/providers", () => ({
     isLoading: false,
     workMutation: { isPending: false, isError: false },
   }),
+  useWorkSelection: () => ({
+    selectedDomain: null,
+    setSelectedDomain: vi.fn(),
+  }),
   WorkTab: {
     Intro: "intro",
     Media: "media",
@@ -98,11 +114,16 @@ vi.mock("@green-goods/shared/providers", () => ({
 }));
 
 // Mock stores
+const mockWorkFlowState = {
+  submissionCompleted: false,
+  audioNotes: [] as File[],
+  setAudioNotes: vi.fn(),
+  reset: vi.fn(),
+};
 vi.mock("@green-goods/shared/stores/useWorkFlowStore", () => ({
   useWorkFlowStore: Object.assign(
-    (selector: (state: { submissionCompleted: boolean }) => boolean) =>
-      selector({ submissionCompleted: false }),
-    { getState: () => ({ reset: vi.fn() }) }
+    (selector: (state: typeof mockWorkFlowState) => unknown) => selector(mockWorkFlowState),
+    { getState: () => mockWorkFlowState }
   ),
 }));
 

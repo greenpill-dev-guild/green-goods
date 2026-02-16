@@ -19,6 +19,7 @@ import {
   resolveIPFSUrl,
   toastService,
   useConvictionStrategies,
+  useCreateGardenPools,
   useDelayedInvalidation,
   useGardenAssessments,
   useGardenCommunity,
@@ -26,6 +27,7 @@ import {
   useGardenPermissions,
   useGardenPools,
   useGardens,
+  useGardenCookieJars,
   useGardenVaults,
   useWorks,
   useYieldAllocations,
@@ -34,6 +36,7 @@ import {
 } from "@green-goods/shared";
 import {
   RiCheckboxCircleLine,
+  RiCupLine,
   RiDeleteBinLine,
   RiExternalLinkLine,
   RiFileList3Line,
@@ -130,6 +133,10 @@ export default function GardenDetail() {
     enabled: Boolean(id),
   });
 
+  const { jarCount: cookieJarCount } = useGardenCookieJars(id, {
+    enabled: Boolean(id),
+  });
+
   const { strategies: convictionStrategies } = useConvictionStrategies(
     (id as `0x${string}`) ?? undefined,
     { enabled: Boolean(id) && canManage }
@@ -139,6 +146,9 @@ export default function GardenDetail() {
     enabled: Boolean(id),
   });
   const { pools } = useGardenPools(id as Address | undefined, { enabled: Boolean(id) });
+  const { createPools, isCreating: isCreatingPools } = useCreateGardenPools(
+    id as Address | undefined
+  );
   const { allocations, isLoading: allocationsLoading } = useYieldAllocations(
     id as Address | undefined,
     { enabled: Boolean(id) }
@@ -479,10 +489,16 @@ export default function GardenDetail() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link
-                    to={`/gardens/${id}/signal-pool`}
+                    to={`/gardens/${id}/signal-pool/hypercert`}
                     className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
                   >
-                    {formatMessage({ id: "app.signal.title" })}
+                    {formatMessage({ id: "app.signal.viewHypercertPool" })}
+                  </Link>
+                  <Link
+                    to={`/gardens/${id}/signal-pool/action`}
+                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
+                  >
+                    {formatMessage({ id: "app.signal.viewActionPool" })}
                   </Link>
                   <Link
                     to={`/gardens/${id}/strategies`}
@@ -491,6 +507,33 @@ export default function GardenDetail() {
                     {formatMessage({ id: "app.conviction.manageStrategies" })}
                   </Link>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Cookie Jar Section */}
+          {cookieJarCount > 0 && (
+            <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-lighter">
+                    <RiCupLine className="h-5 w-5 text-warning-dark" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+                      {formatMessage({ id: "app.cookieJar.title" })}
+                    </h3>
+                    <p className="mt-0.5 text-sm text-text-sub">
+                      {cookieJarCount} {formatMessage({ id: "app.cookieJar.active" })}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  to={`/gardens/${id}/cookie-jars`}
+                  className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
+                >
+                  {formatMessage({ id: "app.actions.view" })}
+                </Link>
               </div>
             </div>
           )}
@@ -563,32 +606,65 @@ export default function GardenDetail() {
             </div>
 
             {/* Signal pools summary */}
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div className="rounded-md bg-bg-weak p-3">
-                <p className="text-xs font-medium text-text-soft">
-                  {formatMessage({ id: "app.community.poolType.hypercert" })}
-                </p>
-                <p className="mt-1 text-sm text-text-sub">
-                  {hypercertPool ? (
-                    <AddressDisplay address={hypercertPool.poolAddress} className="text-sm" />
-                  ) : (
-                    <>&mdash;</>
-                  )}
-                </p>
+            {pools.length > 0 ? (
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="rounded-md bg-bg-weak p-3">
+                  <p className="text-xs font-medium text-text-soft">
+                    {formatMessage({ id: "app.community.poolType.hypercert" })}
+                  </p>
+                  <p className="mt-1 text-sm text-text-sub">
+                    {hypercertPool ? (
+                      <AddressDisplay address={hypercertPool.poolAddress} className="text-sm" />
+                    ) : (
+                      <>&mdash;</>
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-md bg-bg-weak p-3">
+                  <p className="text-xs font-medium text-text-soft">
+                    {formatMessage({ id: "app.community.poolType.action" })}
+                  </p>
+                  <p className="mt-1 text-sm text-text-sub">
+                    {actionPool ? (
+                      <AddressDisplay address={actionPool.poolAddress} className="text-sm" />
+                    ) : (
+                      <>&mdash;</>
+                    )}
+                  </p>
+                </div>
               </div>
-              <div className="rounded-md bg-bg-weak p-3">
-                <p className="text-xs font-medium text-text-soft">
-                  {formatMessage({ id: "app.community.poolType.action" })}
+            ) : (
+              <div className="mt-3 rounded-md border border-warning-light bg-warning-lighter p-3">
+                <p className="text-sm text-warning-dark">
+                  {formatMessage({ id: "app.community.noPoolsYet" })}
                 </p>
-                <p className="mt-1 text-sm text-text-sub">
-                  {actionPool ? (
-                    <AddressDisplay address={actionPool.poolAddress} className="text-sm" />
-                  ) : (
-                    <>&mdash;</>
-                  )}
-                </p>
+                {canManage && community && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await createPools();
+                        toastService.success({
+                          title: formatMessage({ id: "app.community.poolsCreated" }),
+                        });
+                        scheduleBackgroundRefetch();
+                      } catch {
+                        toastService.error({
+                          title: formatMessage({ id: "app.community.poolsCreateFailed" }),
+                        });
+                      }
+                    }}
+                    disabled={isCreatingPools}
+                    className="mt-2 inline-flex items-center gap-2 rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker active:scale-95 disabled:opacity-50"
+                  >
+                    <RiAddLine className="h-4 w-4" />
+                    {isCreatingPools
+                      ? formatMessage({ id: "app.community.creatingPools" })
+                      : formatMessage({ id: "app.community.createPools" })}
+                  </button>
+                )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Yield Allocation Section */}

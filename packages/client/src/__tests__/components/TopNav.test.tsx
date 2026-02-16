@@ -7,17 +7,15 @@
 
 import { render, screen } from "@testing-library/react";
 import { createElement } from "react";
+import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock hooks
-vi.mock("@green-goods/shared/hooks", () => ({
+// Mock shared barrel (TopNav imports cn, useOffline, Garden, Work from @green-goods/shared)
+vi.mock("@green-goods/shared", () => ({
   useOffline: vi.fn(() => ({
     syncStatus: "idle",
     isOnline: true,
   })),
-}));
-
-vi.mock("@green-goods/shared/utils", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
 }));
 
@@ -46,13 +44,16 @@ vi.mock("@/components/Actions", async () => {
 import { Work } from "@green-goods/shared/types";
 import { TopNav } from "../../components/Navigation/TopNav";
 
+const renderWithIntl = (element: React.ReactElement) =>
+  render(createElement(IntlProvider, { locale: "en", messages: {} }, element));
+
 // ============================================================================
 // Test Data
 // ============================================================================
 
 const mockGarden = {
   id: "0xGarden123",
-  chainId: 84532,
+  chainId: 11155111,
   tokenAddress: "0xToken456",
   tokenID: 1n,
   name: "Test Garden",
@@ -102,7 +103,7 @@ describe("components/Navigation/TopNav", () => {
 
   describe("Notification visibility based on operator status (BUG-012)", () => {
     it("shows notification bell when user is an operator", () => {
-      render(
+      renderWithIntl(
         createElement(TopNav, {
           garden: mockGarden as any,
           works: mockWorks as any,
@@ -116,7 +117,7 @@ describe("components/Navigation/TopNav", () => {
     });
 
     it("hides notification bell when user is NOT an operator", () => {
-      render(
+      renderWithIntl(
         createElement(TopNav, {
           garden: mockGarden as any,
           works: mockWorks as any,
@@ -130,7 +131,7 @@ describe("components/Navigation/TopNav", () => {
     });
 
     it("hides notification bell when isOperator is not provided (defaults to false)", () => {
-      render(
+      renderWithIntl(
         createElement(TopNav, {
           garden: mockGarden as any,
           works: mockWorks as any,
@@ -160,7 +161,7 @@ describe("components/Navigation/TopNav", () => {
         },
       ];
 
-      render(
+      renderWithIntl(
         createElement(TopNav, {
           garden: mockGarden as any,
           works: worksWithPending as any,
@@ -179,7 +180,7 @@ describe("components/Navigation/TopNav", () => {
         { ...mockWorks[1], status: "pending" },
       ];
 
-      render(
+      renderWithIntl(
         createElement(TopNav, {
           garden: mockGarden as any,
           works: worksWithPending as any,
@@ -196,7 +197,7 @@ describe("components/Navigation/TopNav", () => {
     it("renders back button when onBackClick is provided", () => {
       const handleBack = vi.fn();
 
-      render(
+      renderWithIntl(
         createElement(TopNav, {
           onBackClick: handleBack,
         })
@@ -208,7 +209,7 @@ describe("components/Navigation/TopNav", () => {
     });
 
     it("does not render back button when onBackClick is not provided", () => {
-      const { container } = render(createElement(TopNav, {}));
+      const { container } = renderWithIntl(createElement(TopNav, {}));
 
       // Should not have any buttons when no back click and no garden
       const buttons = container.querySelectorAll("button");
@@ -218,7 +219,7 @@ describe("components/Navigation/TopNav", () => {
 
   describe("Children rendering", () => {
     it("renders children in the center area", () => {
-      render(
+      renderWithIntl(
         createElement(
           TopNav,
           {},

@@ -21,9 +21,9 @@ vi.mock("@green-goods/shared/utils", () => ({
 // Mock only the specific functions we need
 vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
   getNetworkConfig: () => ({
-    blockExplorer: "https://sepolia.basescan.org",
+    blockExplorer: "https://sepolia.etherscan.io",
   }),
   getBlockchainErrorI18nKey: (error: string) => `app.errors.blockchain.${error}`,
 }));
@@ -44,6 +44,8 @@ function createMockMintingState(overrides: Partial<MintingState> = {}): MintingS
     txHash: null,
     hypercertId: null,
     error: null,
+    poolRegistered: null,
+    signalPoolAddress: null,
     ...overrides,
   };
 }
@@ -51,7 +53,7 @@ function createMockMintingState(overrides: Partial<MintingState> = {}): MintingS
 describe("components/hypercerts/MintProgress", () => {
   const defaultProps = {
     state: createMockMintingState(),
-    chainId: 84532,
+    chainId: 11155111,
   };
 
   beforeEach(() => {
@@ -249,7 +251,7 @@ describe("components/hypercerts/MintProgress", () => {
           ...defaultProps,
           state: createMockMintingState({
             status: "confirmed",
-            hypercertId: "84532-12345",
+            hypercertId: "11155111-12345",
           }),
         })
       );
@@ -264,13 +266,13 @@ describe("components/hypercerts/MintProgress", () => {
           ...defaultProps,
           state: createMockMintingState({
             status: "confirmed",
-            hypercertId: "84532-12345",
+            hypercertId: "11155111-12345",
           }),
         })
       );
 
       // Multiple elements may match due to sr-only announcement
-      expect(screen.getAllByText(/84532-12345/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/11155111-12345/).length).toBeGreaterThan(0);
     });
 
     it("shows all steps as complete", () => {
@@ -279,7 +281,7 @@ describe("components/hypercerts/MintProgress", () => {
           ...defaultProps,
           state: createMockMintingState({
             status: "confirmed",
-            hypercertId: "84532-12345",
+            hypercertId: "11155111-12345",
           }),
         })
       );
@@ -348,13 +350,13 @@ describe("components/hypercerts/MintProgress", () => {
           state: createMockMintingState({
             status: "confirmed",
             txHash: "0xabc123def456",
-            hypercertId: "84532-12345",
+            hypercertId: "11155111-12345",
           }),
         })
       );
 
       const link = screen.getByRole("link");
-      expect(link).toHaveAttribute("href", "https://sepolia.basescan.org/tx/0xabc123def456");
+      expect(link).toHaveAttribute("href", "https://sepolia.etherscan.io/tx/0xabc123def456");
     });
 
     it("opens transaction link in new tab", () => {
@@ -364,7 +366,7 @@ describe("components/hypercerts/MintProgress", () => {
           state: createMockMintingState({
             status: "confirmed",
             txHash: "0xabc123def456",
-            hypercertId: "84532-12345",
+            hypercertId: "11155111-12345",
           }),
         })
       );

@@ -1,12 +1,13 @@
 import type { Action, Garden } from "@green-goods/shared";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
+import { logger } from "@green-goods/shared/modules";
 import {
   useActionTranslation,
   useDraftAutoSave,
   useDraftResume,
   useGardenTranslation,
 } from "@green-goods/shared/hooks";
-import { useWork, WorkTab } from "@green-goods/shared/providers";
+import { useWork, useWorkSelection, WorkTab } from "@green-goods/shared/providers";
 import { useWorkFlowStore } from "@green-goods/shared/stores/useWorkFlowStore";
 import { findActionByUID } from "@green-goods/shared/utils";
 import {
@@ -15,6 +16,7 @@ import {
   RiHammerFill,
   RiImageFill,
   RiPlantFill,
+  RiVideoFill,
 } from "@remixicon/react";
 import React, { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
@@ -82,13 +84,17 @@ const Work: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const chainId = DEFAULT_CHAIN_ID;
   const { form, activeTab, setActiveTab, actions, gardens, isLoading, workMutation } = useWork();
+  const { selectedDomain, setSelectedDomain } = useWorkSelection();
 
   const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
   const submissionCompleted = useWorkFlowStore((s) => s.submissionCompleted);
+  const audioNotes = useWorkFlowStore((s) => s.audioNotes);
+  const setAudioNotes = useWorkFlowStore((s) => s.setAudioNotes);
 
   // Media upload click handlers (exposed by WorkMedia for PostHog tracking)
   const galleryClickRef = useRef<(() => void) | null>(null);
   const cameraClickRef = useRef<(() => void) | null>(null);
+  const videoClickRef = useRef<(() => void) | null>(null);
 
   if (!form) {
     return null;
@@ -104,16 +110,16 @@ const Work: React.FC = () => {
     setGardenAddress,
     register,
     control,
+    setValue,
     uploadWork,
     feedback,
-    plantSelection,
-    plantCount,
     timeSpentMinutes,
+    values,
   } = form;
 
   // Draft save on exit (only saves when user navigates away, not automatically)
   const { saveOnExit } = useDraftAutoSave(
-    { gardenAddress, actionUID, feedback, plantSelection, plantCount, timeSpentMinutes },
+    { gardenAddress, actionUID, feedback, timeSpentMinutes },
     images
   );
 
@@ -129,8 +135,6 @@ const Work: React.FC = () => {
       gardenAddress,
       actionUID,
       feedback,
-      plantSelection,
-      plantCount,
       timeSpentMinutes,
     },
     isOnIntroTab: activeTab === WorkTab.Intro,
@@ -158,7 +162,7 @@ const Work: React.FC = () => {
 
     // Clear the draft on successful submission
     clearActiveDraft().catch((error) => {
-      console.error("[Garden] Failed to clear draft after submission:", error);
+      logger.error("Failed to clear draft after submission", { error, source: "Garden" });
     });
 
     const timer = setTimeout(() => {
@@ -258,7 +262,7 @@ const Work: React.FC = () => {
   const getReviewData = () => {
     const garden: Garden = translatedGarden || {
       id: gardenAddress || "",
-      chainId: 84532,
+      chainId,
       tokenAddress: "",
       tokenID: BigInt(0),
       name: intl.formatMessage({ id: "app.garden.unknown", defaultMessage: "Unknown Garden" }),
@@ -274,6 +278,8 @@ const Work: React.FC = () => {
 
     const action: Action = translatedAction || {
       id: `${chainId}-${actionUID ?? 0}`,
+      slug: "",
+      domain: selectedDomain ?? 0,
       startTime: Date.now(),
       endTime: Date.now(),
       title: intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected Action" }),
@@ -298,7 +304,7 @@ const Work: React.FC = () => {
     try {
       return Boolean(await uploadWork());
     } catch (error) {
-      console.error("[GardenFlow] Work submission failed:", error);
+      logger.error("Work submission failed", { error, source: "GardenFlow" });
       return false;
     }
   };
@@ -367,6 +373,22 @@ const Work: React.FC = () => {
             mode="stroke"
             leadingIcon={<RiCameraFill className="text-primary w-5 h-5" />}
           />
+          <Button
+            onClick={() => {
+              if (videoClickRef.current) {
+                videoClickRef.current();
+              } else {
+                document.getElementById("work-media-video")?.click();
+              }
+            }}
+            label=""
+            className="w-12 px-0 shrink-0"
+            variant="neutral"
+            type="button"
+            shape="pilled"
+            mode="stroke"
+            leadingIcon={<RiVideoFill className="text-primary w-5 h-5" />}
+          />
         </>
       ),
       backButton: () => changeTab(WorkTab.Intro),
@@ -406,8 +428,10 @@ const Work: React.FC = () => {
             gardens={gardens}
             selectedActionUID={actionUID}
             selectedGardenAddress={gardenAddress}
+            selectedDomain={selectedDomain}
             setActionUID={setActionUID}
             setGardenAddress={setGardenAddress}
+            setSelectedDomain={setSelectedDomain}
           />
         );
       case WorkTab.Media:
@@ -416,9 +440,12 @@ const Work: React.FC = () => {
             config={mediaConfig}
             images={images}
             setImages={setImages}
+            audioNotes={audioNotes}
+            setAudioNotes={setAudioNotes}
             minRequired={minRequired}
             onGalleryClickRef={galleryClickRef}
             onCameraClickRef={cameraClickRef}
+            onVideoClickRef={videoClickRef}
           />
         );
       case WorkTab.Details:
@@ -428,6 +455,7 @@ const Work: React.FC = () => {
             inputs={detailInputs}
             register={register}
             control={control}
+            setValue={setValue}
           />
         );
       case WorkTab.Review: {
@@ -445,10 +473,9 @@ const Work: React.FC = () => {
             garden={garden}
             action={action}
             images={images}
-            values={form.values}
+            audioNotes={audioNotes}
+            values={values}
             feedback={feedback}
-            plantCount={plantCount ?? 0}
-            plantSelection={plantSelection}
             timeSpentMinutes={timeSpentMinutes}
           />
         );

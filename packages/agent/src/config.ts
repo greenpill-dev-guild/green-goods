@@ -7,15 +7,14 @@
 
 import { getDefaultChain } from "@green-goods/shared";
 import type { Chain } from "viem";
-import { arbitrum, base, baseSepolia, celo, optimism } from "viem/chains";
+import { arbitrum, celo, optimism, sepolia } from "viem/chains";
 import { logger } from "./services/logger";
 
 // Map chain IDs to viem Chain objects
 const CHAIN_MAP: Record<number, Chain> = {
-  [baseSepolia.id]: baseSepolia,
+  [sepolia.id]: sepolia,
   [arbitrum.id]: arbitrum,
   [celo.id]: celo,
-  [base.id]: base,
   [optimism.id]: optimism,
 };
 
@@ -58,7 +57,7 @@ export interface Config {
 export function loadConfig(): Config {
   const nodeEnv = process.env.NODE_ENV || "development";
   const networkConfig = getDefaultChain();
-  const chain = CHAIN_MAP[networkConfig.chainId] || baseSepolia;
+  const chain = CHAIN_MAP[networkConfig.chainId] || sepolia;
 
   // Required: Telegram bot token
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN;

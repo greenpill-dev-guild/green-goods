@@ -2,6 +2,7 @@ import { toastService } from "@green-goods/shared";
 import {
   type CreateAssessmentForm as WorkflowAssessmentForm,
   useCreateAssessmentWorkflow,
+  useGardenDomains,
 } from "@green-goods/shared/hooks";
 import { useAdminStore } from "@green-goods/shared/stores";
 import { clearFormDraft, loadFormDraft, saveFormDraft } from "@green-goods/shared/utils";
@@ -11,38 +12,33 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAccount } from "wagmi";
-import { EvidenceStep } from "@/components/Assessment/CreateAssessmentSteps/EvidenceStep";
-import { OverviewStep } from "@/components/Assessment/CreateAssessmentSteps/OverviewStep";
-import { ReviewStep } from "@/components/Assessment/CreateAssessmentSteps/ReviewStep";
+import { DomainActionStep } from "@/components/Assessment/CreateAssessmentSteps/DomainActionStep";
+import { SdgHarvestStep } from "@/components/Assessment/CreateAssessmentSteps/SdgHarvestStep";
 import {
   type CreateAssessmentForm,
+  STEP_FIELDS,
   createAssessmentSchema,
   createDefaultAssessmentForm,
 } from "@/components/Assessment/CreateAssessmentSteps/shared";
-import { TimelineStep } from "@/components/Assessment/CreateAssessmentSteps/TimelineStep";
+import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
 import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
 
 const stepConfigs: Step[] = [
   {
-    id: "overview",
-    title: "Overview",
-    description: "Title, type, description, and capitals",
+    id: "strategy",
+    title: "Strategy Kernel",
+    description: "Diagnosis, outcomes, and complexity",
   },
   {
-    id: "timeline",
-    title: "Timeline & location",
-    description: "Dates, location, and tags",
+    id: "domain",
+    title: "Domain & Actions",
+    description: "Domain selection and coherent actions",
   },
   {
-    id: "evidence",
-    title: "Metrics & evidence",
-    description: "Metrics JSON, media, and references",
-  },
-  {
-    id: "review",
-    title: "Review",
-    description: "Confirm details before submitting",
+    id: "sdgHarvest",
+    title: "SDG & Harvest",
+    description: "SDG alignment and reporting period",
   },
 ];
 
@@ -52,9 +48,10 @@ export default function CreateAssessment() {
   const { address } = useAccount();
   const { lastAttestationId, setLastAttestationId } = useAdminStore();
   const [currentStep, setCurrentStep] = useState(0);
-  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
 
-  const DRAFT_KEY = `assessment-draft-${gardenId}`;
+  const { data: gardenDomainMask } = useGardenDomains(gardenId);
+
+  const DRAFT_KEY = `assessment-v2-draft-${gardenId}`;
 
   const {
     state,
@@ -72,8 +69,6 @@ export default function CreateAssessment() {
     formState: { errors },
     reset: resetForm,
     trigger,
-    getValues,
-    setValue,
     watch,
   } = useForm<CreateAssessmentForm>({
     resolver: zodResolver(createAssessmentSchema),
@@ -91,19 +86,16 @@ export default function CreateAssessment() {
     const draft = loadFormDraft<CreateAssessmentForm>(DRAFT_KEY);
     if (draft) {
       resetForm(draft);
-      if (draft.evidenceMedia) {
-        setEvidenceFiles(draft.evidenceMedia as File[]);
-      }
     }
   }, [DRAFT_KEY, resetForm]);
 
   // Save draft on form change
   useEffect(() => {
     const subscription = watch((value) => {
-      saveFormDraft(DRAFT_KEY, { ...value, evidenceMedia: evidenceFiles });
+      saveFormDraft(DRAFT_KEY, value);
     });
     return () => subscription.unsubscribe();
-  }, [watch, DRAFT_KEY, evidenceFiles]);
+  }, [watch, DRAFT_KEY]);
 
   // Navigate on success
   useEffect(() => {
@@ -118,10 +110,6 @@ export default function CreateAssessment() {
       navigate(`/gardens/${gardenId}/assessments`);
     }
   }, [isSuccess, navigate, gardenId, DRAFT_KEY]);
-
-  useEffect(() => {
-    setValue("evidenceMedia", evidenceFiles, { shouldDirty: true });
-  }, [evidenceFiles, setValue]);
 
   useEffect(() => {
     if (lastAttestationId) {
@@ -164,34 +152,31 @@ export default function CreateAssessment() {
         return;
       }
 
-      // Parse metrics from string to object
-      let metricsObj: Record<string, unknown> = {};
-      try {
-        metricsObj = JSON.parse(formData.metrics.trim() || "{}");
-      } catch (error) {
-        console.error("Invalid JSON in metrics field", error);
-        toastService.error({
-          title: "Invalid metrics JSON",
-          message: "Check the metrics format and try again.",
-          context: "assessment submission",
-          error,
-        });
-        return;
-      }
-
+      // Build workflow payload from v2 form data
+      // The workflow hook still expects the old CreateAssessmentForm shape,
+      // so we map the new fields to the existing interface.
+      // This mapping will be updated when the workflow hook is upgraded.
       const payload: WorkflowAssessmentForm & { gardenId: string } = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        assessmentType: formData.assessmentType.trim(),
-        capitals: formData.capitals.map((capital) => capital.trim()),
-        metrics: metricsObj,
-        evidenceMedia: evidenceFiles,
-        reportDocuments: formData.reportDocuments.map((doc) => doc.trim()),
-        impactAttestations: formData.impactAttestations.map((uid) => uid.trim()),
-        startDate: Math.floor(new Date(formData.startDate).getTime() / 1000),
-        endDate: Math.floor(new Date(formData.endDate).getTime() / 1000),
+        // Map new fields to legacy interface until workflow is upgraded
+        assessmentType: `domain-${formData.domain}`,
+        capitals: [],
+        metrics: {
+          diagnosis: formData.diagnosis,
+          smartOutcomes: formData.smartOutcomes,
+          cynefinPhase: formData.cynefinPhase,
+          domain: formData.domain,
+          selectedActionUIDs: formData.selectedActionUIDs,
+          sdgTargets: formData.sdgTargets,
+        },
+        evidenceMedia: formData.attachments ?? [],
+        reportDocuments: [],
+        impactAttestations: [],
+        startDate: Math.floor(new Date(formData.reportingPeriodStart).getTime() / 1000),
+        endDate: Math.floor(new Date(formData.reportingPeriodEnd).getTime() / 1000),
         location: formData.location.trim(),
-        tags: formData.tags.map((tag) => tag.trim()),
+        tags: formData.sdgTargets.map((id) => `sdg-${id}`),
         gardenId,
       };
 
@@ -205,7 +190,6 @@ export default function CreateAssessment() {
         context: "assessment submission",
         error,
       });
-      console.error("Assessment submission error:", error);
     }
   };
 
@@ -213,19 +197,11 @@ export default function CreateAssessment() {
     const step = stepConfigs[currentStep];
     if (!step) return;
 
-    // Map step IDs to field names for validation
-    const fieldMap = {
-      overview: ["title", "assessmentType", "description", "capitals"],
-      timeline: ["startDate", "endDate", "location", "tags"],
-      evidence: ["metrics", "reportDocuments", "impactAttestations"],
-    } as const satisfies Record<string, readonly (keyof CreateAssessmentForm)[]>;
-
-    const fields = fieldMap[step.id as keyof typeof fieldMap];
+    const fieldMap: Record<string, readonly (keyof CreateAssessmentForm)[]> = STEP_FIELDS;
+    const fields = fieldMap[step.id];
     if (fields) {
       const valid = await trigger([...fields], { shouldFocus: true });
-      if (!valid) {
-        return;
-      }
+      if (!valid) return;
     }
 
     setCurrentStep((prev) => Math.min(prev + 1, stepConfigs.length - 1));
@@ -248,23 +224,15 @@ export default function CreateAssessment() {
     });
   });
 
-  const shouldShowReview = stepConfigs[currentStep]?.id === "review";
-
-  // Check if current step fields are valid
+  // Check if current step fields have errors
   const isCurrentStepValid = () => {
     const step = stepConfigs[currentStep];
-    if (!step || step.id === "review") return true;
+    if (!step) return true;
 
-    const fieldMap: Record<string, Array<keyof CreateAssessmentForm>> = {
-      overview: ["title", "assessmentType", "description", "capitals"],
-      timeline: ["startDate", "endDate", "location"],
-      evidence: ["metrics"],
-    };
-
+    const fieldMap: Record<string, readonly (keyof CreateAssessmentForm)[]> = STEP_FIELDS;
     const fields = fieldMap[step.id];
     if (!fields) return true;
 
-    // Check if any of the required fields have errors
     return fields.every((field) => !errors[field]);
   };
 
@@ -314,35 +282,31 @@ export default function CreateAssessment() {
           nextLabel="Continue"
           submitLabel="Submit assessment"
         >
-          {stepConfigs[currentStep]?.id === "overview" && (
-            <OverviewStep
+          {stepConfigs[currentStep]?.id === "strategy" && (
+            <StrategyKernelStep
               register={register}
               errors={errors}
               control={control}
               isSubmitting={isSubmitting}
             />
           )}
-          {stepConfigs[currentStep]?.id === "timeline" && (
-            <TimelineStep
+          {stepConfigs[currentStep]?.id === "domain" && (
+            <DomainActionStep
+              register={register}
+              errors={errors}
+              control={control}
+              isSubmitting={isSubmitting}
+              gardenDomainMask={typeof gardenDomainMask === "number" ? gardenDomainMask : undefined}
+            />
+          )}
+          {stepConfigs[currentStep]?.id === "sdgHarvest" && (
+            <SdgHarvestStep
               register={register}
               errors={errors}
               control={control}
               isSubmitting={isSubmitting}
             />
           )}
-          {stepConfigs[currentStep]?.id === "evidence" && (
-            <EvidenceStep
-              register={register}
-              errors={errors}
-              control={control}
-              isSubmitting={isSubmitting}
-              evidenceFiles={evidenceFiles}
-              setEvidenceFiles={setEvidenceFiles}
-              setValue={setValue}
-              getValues={getValues}
-            />
-          )}
-          {shouldShowReview && <ReviewStep watch={watch} evidenceFiles={evidenceFiles} />}
         </FormWizard>
       </form>
     </>

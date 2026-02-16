@@ -157,7 +157,7 @@ describe("components/Cards/ActionCard", () => {
 describe("components/Cards/GardenCard", () => {
   const mockGarden = {
     id: "0xGarden123",
-    chainId: 84532,
+    chainId: 11155111,
     tokenAddress: "0xToken456",
     tokenID: 1n,
     name: "Community Garden",
