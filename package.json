@@ -84,7 +84,6 @@
     "dotenv": "^17.2.1",
     "ethers": "^6.16.0",
     "multiformats": "^13.4.2",
-    "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-intl": "^7.1.0",
