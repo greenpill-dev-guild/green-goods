@@ -41,6 +41,14 @@ Use when:
 
 ## Triage Protocol
 
+### Step 0: Scope & Intent Verification
+
+Before ANY triage work:
+
+1. **Confirm target**: Which repo and package(s) does this issue concern? If unclear, ASK.
+2. **Confirm intent**: If user said "generate a prompt" or "create an issue" → produce the artifact as text/file. Do NOT execute implementation.
+3. **Read-only reminder**: Triage classifies and routes. It does NOT implement, edit code, or make changes.
+
 ### Step 1: Understand
 
 Read the issue/bug/request and gather minimal context:
@@ -133,6 +141,10 @@ Agent: cracked-coder (if >50 LOC implementation needed)
 - **Entry Point**: `/debug` (root cause investigation)
 - **Skill Chain**: `debug` → `tanstack-query` → `testing`
 - **Agent**: `cracked-coder` (if fix is non-trivial)
+
+### Target Scope
+- **Repo**: [green-goods / gardens / cookie-jar]
+- **Package(s)**: [list affected packages]
 
 ### Context for Next Agent
 [1-2 sentence summary of what was found during triage]

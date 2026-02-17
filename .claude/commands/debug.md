@@ -45,7 +45,7 @@ Systematic debugging and emergency troubleshooting.
 ```bash
 git status
 git log --oneline -10
-bun test 2>&1 | head -50
+bun run test 2>&1 | head -50
 bun build 2>&1 | head -50
 ```
 

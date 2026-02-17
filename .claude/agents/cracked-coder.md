@@ -93,14 +93,27 @@ See `.claude/skills/` for full guidelines.
 
 ---
 
-## Workflow: GATHER → PLAN → TEST → IMPLEMENT → VERIFY
+## Workflow: SCOPE → GATHER → PLAN → TEST → IMPLEMENT → VERIFY
+
+### SCOPE (Step 0 — MANDATORY)
+
+Before ANY work begins:
+
+1. **Confirm target scope**: Which package(s) does this task target? If unclear, ASK the user before proceeding.
+2. **Confirm intent**:
+   - "plan", "generate a prompt", "create a plan" → Produce the artifact as text/file. Save to `.plans/`. Do NOT execute.
+   - "review" or "audit" → Use code-reviewer agent or audit skill. Do NOT implement fixes.
+   - "implement", "build", "fix", "add" → Proceed with full workflow below.
+3. **Check prior work**: Run `git diff` and `git log --oneline -20` to see what's already done on this branch. Do NOT redo completed work.
+4. **Pre-flight for teams**: If orchestrating multiple agents, complete the Team Pre-Flight checklist (see below) before spawning.
 
 ### GATHER
 1. Understand the problem completely
-2. Read relevant code (check neighboring files for patterns)
-3. **For UI work**: Ask user for design specs/screenshots, review brand guidelines
-4. Identify constraints
-5. Map dependencies
+2. **Verify target package** matches user's intent. Restrict reads/edits to that package unless cross-package changes are clearly needed.
+3. Read relevant code (check neighboring files for patterns)
+4. **For UI work**: Ask user for design specs/screenshots, review brand guidelines
+5. Identify constraints
+6. Map dependencies
 
 ### PLAN
 1. Design solution architecture
@@ -117,6 +130,8 @@ See `.claude/skills/` for full guidelines.
 4. Plan test strategy
 5. Consider failure modes
 6. **Check skills**: Review `react` for performance and composition patterns
+
+**PHASE GATE**: If the user only asked for a plan, STOP HERE. Save the plan to `.plans/` and present it to the user. Do NOT proceed to TEST or IMPLEMENT without explicit "implement" instruction.
 
 ### TEST (Mandatory for Features)
 
@@ -135,12 +150,37 @@ it("should calculate garden metrics correctly", () => {
 });
 ```
 
+#### Test Adequacy Checklist
+
+Before moving to IMPLEMENT, verify your tests meet these criteria:
+
+| Check | Requirement |
+|-------|-------------|
+| **No no-op assertions** | Every `expect()` asserts real behavior. No `expect(true).toBe(true)` placeholders. |
+| **Error paths covered** | At least one test per mutation/async operation that verifies error handling. |
+| **Cleanup verified** | Hooks with timers, listeners, or async effects have unmount/cleanup tests (Rules 1-3). |
+| **Edge cases present** | Empty inputs, null/undefined, boundary values, and concurrent calls are tested. |
+| **Mock fidelity** | Mocks return shapes matching real data. Use `createMock*` factories from test-utils. |
+| **Assertions are specific** | Use `.toHaveBeenCalledWith(exact)` over `.toHaveBeenCalled()` where args matter. |
+
+If any check fails, add the missing test before proceeding.
+
 ### IMPLEMENT
 1. Write minimal code to make tests pass
 2. Handle edge cases identified in PLAN
 3. Follow Green Goods patterns (see CLAUDE.md)
 4. Document non-obvious decisions
 5. **Apply skills**: Use `react` skill rules (waterfalls, bundle size, re-renders)
+
+#### Solidity Conventions (contracts package)
+
+Before compiling, verify:
+- [ ] All enum imports come from the **concrete contract**, not the interface
+- [ ] All addresses are checksummed (use `cast to-check-sum-address` if unsure)
+- [ ] Mock contracts implement ALL functions called in tests
+- [ ] Type imports are explicit — never assume inheritance provides them
+- [ ] Import paths resolve to actual files (verify with `ls` before compiling)
+- [ ] Interface-level vs file-level declarations checked — only import what's actually exported
 
 ### VERIFY
 
@@ -282,6 +322,43 @@ For UI work, consult these skills (already listed in Skills Reference above):
 3. Use Radix UI primitives + Tailwind CSS v4 + tailwind-variants
 4. Develop in Storybook first, then integrate
 5. Reference style files: `theme.css`, `typography.css`, `animation.css`
+
+## Audit & Cleanup Mode
+
+When performing audits, dead code cleanup, or bulk removals:
+
+### Verify-Before-Acting Protocol (MANDATORY)
+
+**NEVER act on unverified findings.** Every audit finding must be confirmed before removal.
+
+1. **Discovery**: Identify candidates (dead exports, unused code, etc.)
+2. **Verification**: For EACH candidate, grep the entire repo to confirm zero usage
+3. **Present findings**: Show verified list to user with evidence (grep results)
+4. **Wait for approval**: Do NOT remove anything until user confirms the findings list
+5. **Incremental removal**: Remove ONE item at a time → build → test → commit if green
+6. **Auto-revert**: If any build/test fails after removal, immediately revert and log as false positive
+
+### Anti-patterns
+
+- **Never report counts before verification** ("found 170 unused exports" without grep proof)
+- **Never bulk-remove** barrel exports without per-export grep confirmation
+- **Never trust static analysis alone** — cross-reference every candidate against actual imports
+
+## Team Workflow Pre-Flight
+
+Before spawning agent teams, complete this checklist:
+
+1. **Diff check**: `git diff main...HEAD` — what's already changed on this branch?
+2. **Task deduplication**: Which planned tasks are already implemented? Mark them done.
+3. **Dependency graph**: Map which tasks must complete before others can start
+4. **Present analysis**: Show pre-flight report to user BEFORE spawning any agents
+5. **Scale check**: Keep agent count proportional to truly independent work items
+
+### Anti-patterns
+
+- **Never spawn agents without checking prior session work** — avoids redoing 5+ completed tasks
+- **Never let agents proceed on tasks with unmet upstream dependencies** — stale ABIs break everything
+- **Never execute a workflow when user only asked to "generate a prompt"** — produce the artifact as text/file
 
 ## Key Principles
 

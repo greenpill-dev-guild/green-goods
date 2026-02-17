@@ -82,6 +82,13 @@ cd packages/shared && bunx tsc --noEmit --listFiles 2>/dev/null | head -5
 - All hooks are in correct location
 - Query key stability
 
+**Test quality checks (shared):**
+- No `expect(true).toBe(true)` or other no-op assertions in test files
+- New hooks have corresponding test files with error path coverage
+- No `.skip` tests added without a tracking comment explaining why
+- Critical paths (auth, job queue, contract errors) maintain 80%+ coverage
+- Mock factories are used instead of ad-hoc inline mocks where available
+
 ### Domain 3: Client Package
 
 ```bash
@@ -104,6 +111,12 @@ cd packages/client && bun lint
 - Build succeeds (includes bundle size check)
 - No unhandled promise rejections
 - Offline behavior intact for write operations
+
+**Test quality checks (client + admin):**
+- No `expect(true).toBe(true)` or placeholder assertions in view/component tests
+- Renamed `.skip` files (e.g., `*.test.skip.tsx`) have a tracking issue or plan for re-enablement
+- Component tests assert rendered content or user interactions, not just "renders without crashing"
+- Mock modules include all exports accessed by the component under test (avoid missing export errors)
 
 ### Domain 4: Admin Package
 

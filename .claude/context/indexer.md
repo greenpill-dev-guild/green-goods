@@ -13,7 +13,7 @@ Loaded when working in `packages/indexer/`. Extends CLAUDE.md.
 | `bun stop` | Stop native indexer |
 | `bun reset` | Reset state completely |
 | `bun codegen` | Regenerate after schema/config changes |
-| `bun test` | Run tests |
+| `bun run test` | Run tests |
 
 **Prerequisite:** Docker Desktop must be running.
 

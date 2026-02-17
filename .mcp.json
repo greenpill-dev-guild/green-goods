@@ -31,14 +31,6 @@
       }
     },
 
-    "miro": {
-      "description": "Miro whiteboard collaboration",
-      "url": "https://mcp.miro.com/",
-      "enabled": true,
-      "status": "available",
-      "usage": ["Architecture diagrams", "Planning sessions", "Research visualization"]
-    },
-
     "railway": {
       "description": "Railway deployment management",
       "command": ["npx", "-y", "@railway/mcp-server"],

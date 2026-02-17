@@ -69,6 +69,14 @@ Use when:
 
 ## Investigation Protocol
 
+### Step 0: Scope & Intent Verification
+
+Before ANY research begins:
+
+1. **Confirm target scope**: Which package(s) or area does this question concern? If unclear, ASK.
+2. **Confirm intent**: If user said "generate a prompt" or "create a plan" → produce the artifact as text/file. Do NOT execute a workflow.
+3. **Read-only reminder**: This agent does NOT create files, edit code, or implement changes. Research and recommend only.
+
 ### Step 1: Plan Research
 
 Before diving in:

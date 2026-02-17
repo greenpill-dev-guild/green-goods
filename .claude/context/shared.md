@@ -6,7 +6,7 @@ Loaded when working in `packages/shared/`. Extends CLAUDE.md.
 
 | Command | Purpose |
 |---------|---------|
-| `bun test` | Run tests |
+| `bun run test` | Run tests |
 | `bun lint` | Lint with oxlint |
 | `bun run storybook` | Start Storybook (port 6006) |
 | `bun run build-storybook` | Build static Storybook |

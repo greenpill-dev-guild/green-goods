@@ -106,7 +106,7 @@ bun update
 # 4. Validate after update
 bun install --frozen-lockfile  # Should work
 bun build                      # Build all packages
-bun test                       # Run all tests
+bun run test                   # Run all tests
 ```
 
 ### The fix-multiformats.js Script

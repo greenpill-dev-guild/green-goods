@@ -53,7 +53,7 @@ After each batch:
 
 Run after each batch:
 ```bash
-bun format && bun lint && bun test && bun build
+bun format && bun lint && bun run test && bun build
 ```
 
 ## Output

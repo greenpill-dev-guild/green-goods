@@ -181,7 +181,7 @@ cd packages/contracts && forge fmt
 bun format && bun lint
 
 # Full validation
-bun format && bun lint && bun test && bun build
+bun format && bun lint && bun run test && bun build
 
 # Check if formatting is clean (CI mode)
 bunx biome check --write=false

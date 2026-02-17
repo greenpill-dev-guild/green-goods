@@ -88,9 +88,26 @@ cd packages/contracts && forge test --match-test "test_regression_bugDescription
 ```
 
 **Confirm:**
-- [ ] Test fails (not errors — it runs but assertion fails)
+- [ ] Test fails (not errors -- it runs but assertion fails)
 - [ ] Failure message describes the actual bug behavior
 - [ ] Test reproduces the bug consistently
+
+#### Regression Test Placement
+
+Place the regression test alongside existing tests for the affected module, not in a separate `regression/` folder (unless Solidity):
+
+| Package | Placement | Example |
+|---------|-----------|---------|
+| **shared** | `packages/shared/src/__tests__/` mirroring source path | `__tests__/hooks/garden/useGardenMetrics.test.ts` |
+| **client** | `packages/client/src/__tests__/` mirroring source path | `__tests__/views/Login.test.tsx` |
+| **admin** | `packages/admin/src/__tests__/` mirroring source path | `__tests__/views/Dashboard.test.tsx` |
+| **contracts** | `packages/contracts/test/regression/` (dedicated folder) | `test/regression/BugDescription.t.sol` |
+
+**Test quality requirements for regression tests:**
+- Every `expect()` must assert real behavior -- no `expect(true).toBe(true)` placeholders
+- Assert the specific value or state that was wrong, not just "doesn't throw"
+- Include the bug description in the test name for future traceability
+- If the bug involves error handling, assert the error message or type, not just that an error occurred
 
 ### Step 2: Root Cause
 

@@ -67,7 +67,7 @@ Create a plan file in `.plans/`:
 - If step N fails: [what to do]
 
 ## Validation
-- [ ] `bun test` passes in all packages
+- [ ] `bun run test` passes in all packages
 - [ ] `bun build` succeeds
 - [ ] Integration test on testnet
 ```
@@ -82,7 +82,7 @@ forge inspect src/Contract.sol:Contract storage-layout --pretty > layout-new.txt
 diff layout-previous.txt layout-new.txt
 
 # 2. Run upgrade safety tests
-cd packages/contracts && bun test
+cd packages/contracts && bun run test
 
 # 3. Deploy new implementation (dry run)
 bun script/deploy.ts core --network sepolia
@@ -314,7 +314,7 @@ bun install
 
 # 5. Fix breaking changes package by package
 # 6. Validate
-bun format && bun lint && bun test && bun build
+bun format && bun lint && bun run test && bun build
 ```
 
 ### Common Migration Patterns
@@ -349,7 +349,7 @@ bun format && bun lint && bun test && bun build
 
 ### After Migration
 
-- [ ] `bun test` passes in ALL packages
+- [ ] `bun run test` passes in ALL packages
 - [ ] `bun build` succeeds
 - [ ] No TypeScript errors (`tsc --noEmit`)
 - [ ] Integration tested on testnet

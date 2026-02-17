@@ -233,7 +233,7 @@ gh pr comment [PR_NUMBER] --body "[review content]"
 ```bash
 # Prepare
 git log main..HEAD --oneline
-bun build && bun test && bun lint
+bun build && bun run test && bun lint
 
 # Create PR
 gh pr create --title "feat(scope): description" --body "..."

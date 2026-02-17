@@ -106,7 +106,7 @@ Use kebab-case: `[descriptive-name].todo.md` in `.plans/`
 2. **Gather git context**: `git status`, `git diff --stat`
 3. **File-by-file status**: DONE / PARTIAL / NOT DONE
 4. **Requirements coverage table**
-5. **Run validation**: `bun format && bun lint && bun test && bun build`
+5. **Run validation**: `bun format && bun lint && bun run test && bun build`
 
 ---
 
@@ -271,7 +271,7 @@ This gives Claude and future contributors unambiguous constraints without readin
 ## Validation Commands
 
 ```bash
-bun format && bun lint && bun test && bun build
+bun format && bun lint && bun run test && bun build
 ```
 
 ## Key Principles

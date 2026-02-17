@@ -34,7 +34,7 @@ Run comprehensive codebase analysis to identify quality issues.
 1. **Automated Checks**
    - TypeScript: `bun run tsc --noEmit`
    - Linting: `bun lint`
-   - Tests: `bun test`
+   - Tests: `bun run test`
    - Build: `bun build`
 
 2. **Green Goods Compliance**

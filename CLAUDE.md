@@ -143,20 +143,7 @@ const gardenToken = deployment.gardenToken;
 const GARDEN_TOKEN = '0x1234...';  // Never hardcode
 ```
 
-**Offline Sync**: Client uses IndexedDB + Service Workers for offline operation with job queue for background sync.
-
-```typescript
-// Job queue handles offline work submission
-import { useJobQueue, JobKind } from '@green-goods/shared';
-const { addJob } = useJobQueue();
-
-// Queue work for sync when online
-await addJob({
-  kind: JobKind.WORK_SUBMISSION,
-  payload: { gardenAddress, actionUID, ... },
-  maxRetries: 3
-});
-```
+**Offline Sync**: Client uses IndexedDB + Service Workers for offline operation with job queue for background sync. See "Offline & Job Queue" section below for code patterns.
 
 **Authentication**: Dual auth system - Reown AppKit for wallets, Pimlico for passkey accounts.
 
@@ -389,23 +376,7 @@ const pendingJobs = getJobs({ status: 'pending' });
 
 ## Contract Deployment
 
-**MANDATORY**: Use `bun` scripts, never direct `forge` commands.
-
-```bash
-# ✅ ALWAYS — use bun scripts for build, test, and deploy
-bun build                # Adaptive build (fast when possible)
-bun run test             # Unit tests with correct exclusions
-bun run test:e2e:workflow  # E2E tests with pre-build + env loading
-bun deploy:testnet       # Deploy via deploy.ts
-bun script/deploy.ts core --network sepolia --broadcast
-
-# ❌ NEVER — raw forge commands bypass critical tooling
-forge build              # Skips adaptive build, always slow
-forge test               # Missing exclusions and env loading
-forge script script/Deploy.s.sol --broadcast --rpc-url $RPC  # Missing env, keystore, schema handling
-```
-
-**Why**: `bun build` runs the adaptive build script (~2s cached vs ~180s). `bun run test` wraps forge with correct flags and environment. `deploy.ts` loads root `.env`, uses Foundry keystore, handles schemas, updates Envio indexer config.yaml.
+**MANDATORY**: Use `bun` scripts for all contract operations (see "Smart Contracts" in Package-Specific Commands above and Rule 14). `deploy.ts` loads root `.env`, uses Foundry keystore, handles schemas, and updates Envio indexer config.yaml.
 
 ### What Gets Deployed
 
@@ -435,8 +406,6 @@ forge script script/Deploy.s.sol --broadcast --rpc-url $RPC  # Missing env, keys
 22. **Hypercert/market contracts** — `hypercertMinter`, `hypercertExchange`, `transferManager`, `strategyHypercertFractionOffer` (chain-dependent)
 23. **Root garden bootstrap** — root garden metadata/address + token ID (chain-dependent)
 24. **Schemas payload** — `workSchemaUID`, `workApprovalSchemaUID`, and `assessmentSchemaUID`
-
-Some modules may remain zero-address on a given chain until explicitly activated. Deployment artifacts still reserve all keys so downstream packages can detect availability safely.
 
 ### Deployment Artifacts
 
@@ -468,36 +437,12 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # Depl
 
 ### Validation Before Deployment
 
-Use the unified verification script for full production readiness:
-
 ```bash
-# Full verification: build → lint → unit tests → E2E → dry runs (Sepolia, Arbitrum, Celo)
-bun run verify:contracts
-
-# Fast iteration (skip E2E + dry runs)
-bun run verify:contracts:fast
+bun run verify:contracts              # Full: build → lint → tests → E2E → dry runs (all chains)
+bun run verify:contracts:fast         # Fast: skip E2E + dry runs
 ```
 
-Or run individual steps manually:
-
-```bash
-# 1. Unit + integration tests (excludes E2E)
-cd packages/contracts && bun run test
-
-# 2. E2E workflow test (mock-based full flow)
-cd packages/contracts && bun run test:e2e:workflow
-
-# 3. Fork tests (requires RPC URLs in .env)
-cd packages/contracts && bun run test:fork
-
-# 4. Full build
-cd packages/contracts && bun build:full
-
-# 5. Dry run (compile check — does NOT simulate deployment)
-bun script/deploy.ts core --network sepolia
-```
-
-> **Note**: The dry run (`--pure-simulation`) only validates compilation, not deployment logic. The real validation comes from E2E tests and fork tests which use `DeploymentBase` — the same code path as production deployment.
+For individual steps, see "Smart Contracts" in Package-Specific Commands above. The dry run only validates compilation — real validation comes from E2E and fork tests which use `DeploymentBase`, the same code path as production deployment.
 
 ### Pre-Deployment Checklist
 
@@ -551,27 +496,12 @@ cast call <gardenToken> "actionRegistry()(address)" --rpc-url <RPC>
 
 ## Output Consistency Standards
 
-### Code Style
 - **Format**: Always run `bun format` (Biome) before suggesting code
-- **Imports**: Use `@green-goods/shared` barrel exports
+- **Imports**: Use `@green-goods/shared` barrel exports, never deep paths
 - **Naming**: Follow existing patterns in neighboring files
 - **Comments**: Only add where logic isn't self-evident
-
-### Response Patterns
-When implementing features:
-1. Check existing patterns in the same package first
-2. Use TodoWrite for multi-step tasks
-3. Run validation (`bun format && bun lint && bun run test`) before completing
-
-### Anti-Patterns to Avoid
-- Adding features beyond what was requested
-- Creating abstractions for one-time operations
-- Adding backwards-compatibility shims unnecessarily
-- Hardcoding addresses (use deployment artifacts)
-- Defining hooks outside `@green-goods/shared`
-- Using `any` without documentation
-- Swallowing errors silently
-- Running `forge build`/`forge test` directly (use `bun build`/`bun run test`)
+- **Validation**: Run `bun format && bun lint && bun run test` before completing
+- **Progress**: Use TodoWrite for multi-step tasks
 
 ## Git Workflow
 
@@ -658,32 +588,6 @@ import {
 } from '@green-goods/shared';
 ```
 
-### Quick Reference
-
-```typescript
-// ❌ NEVER: Raw setTimeout in hooks
-setTimeout(() => invalidate(), 3000);
-
-// ✅ ALWAYS: Use utility hook
-const schedule = useDelayedInvalidation(invalidate, 3000);
-schedule();
-
-// ❌ NEVER: addEventListener without cleanup
-element.addEventListener('click', handler);
-
-// ✅ ALWAYS: Use utility hook or { once: true }
-useEventListener(element, 'click', handler);
-
-// ❌ NEVER: Async effect without guard
-useEffect(() => { fetch().then(setData); }, []);
-
-// ✅ ALWAYS: Use mount guard
-useAsyncEffect(async ({ isMounted }) => {
-  const data = await fetch();
-  if (isMounted()) setData(data);
-}, []);
-```
-
 ## Claude Code Integration
 
 This project has extensive Claude Code tooling configured in `.claude/`.
@@ -710,75 +614,26 @@ All work enters through one of these flows:
 | Entry Point | Flow | TDD |
 |-------------|------|-----|
 | **PRD** | `/plan` → Specs → Stories → Features | No |
-| **Feature** | cracked-coder (GATHER → PLAN → TEST → IMPLEMENT → VERIFY) | **Yes** |
+| **Feature** | cracked-coder (SCOPE → GATHER → PLAN → TEST → IMPLEMENT → VERIFY) | **Yes** |
 | **Bug** | `/debug` → root cause → cracked-coder (if complex) | If complex |
 | **Polish** | Direct Claude (no agent needed) | No |
-
-### Available Command Skills (4)
-
-| Skill | Purpose |
-|-------|---------|
-| `/plan` | Create, check, and execute implementation plans |
-| `/review` | Perform 6-pass code review, process feedback |
-| `/debug` | Systematic debugging with root cause analysis |
-| `/audit` | Comprehensive codebase health analysis |
 
 ### Available Skills (33)
 
 See [.claude/skills/index.md](.claude/skills/index.md) for quick reference with invocation keywords.
 
-**Command Skills (Workflow Orchestration):**
+**Command Skills**: `/plan`, `/review`, `/debug`, `/audit`
 
-| Skill | Invoke With | Purpose |
-|-------|-------------|---------|
-| **plan** | `/plan`, "plan this" | Create plans, check progress, execute in batches |
-| **review** | `/review`, "review this PR" | 6-pass ultra-critical review, GitHub posting |
-| **debug** | `/debug`, "debug this" | Root cause analysis, verification before completion |
-| **audit** | `/audit`, "audit codebase" | Dead code detection, architectural anti-patterns |
+**By Domain** (see index.md for full invocation keywords):
 
-**Development Skills (Implementation):**
-
-| Skill | Invoke With | Purpose |
-|-------|-------------|---------|
-| **testing** | "write tests", "TDD", "unit test" | TDD workflow, Vitest unit tests, Playwright E2E |
-| **react** | "component", "state", "hooks" | State management (Zustand, Query), React 19 APIs, composition, performance |
-| **web3** | "wallet", "transaction", "Wagmi", "passkey" | Wagmi/Viem, wallet + passkey auth, contract interactions, chain ops, tx lifecycle |
-| **tanstack-query** | "query", "fetch data", "mutation" | TanStack Query v5, server state, caching |
-| **error-handling-patterns** | "error handling", "try/catch" | Error boundaries, Result types, retry patterns |
-| **data-layer** | "offline", "PWA", "job queue", "sync", "IndexedDB", "storage quota" | Job queue, service workers, IndexedDB schema, background sync, quota management |
-| **i18n** | "translation", "i18n", "locale" | Browser Translation API, runtime translation, RTL support |
-| **xstate** | "state machine", "workflow", "XState" | Multi-step flows, actor model, React integration |
-| **vite** | "build", "bundle", "env vars" | Vite 7.x config, plugins, optimization |
-| **contracts** | "Solidity", "smart contract", "deploy" | Foundry dev, UUPS, gas, security checklist, deployment |
-| **indexer** | "indexer", "event handler", "GraphQL" | Envio handlers, entity design, Docker |
-| **agent** | "bot", "Telegram", "handler" | Bot handlers, platform adapters, crypto services, rate limiting |
-| **deployment** | "deploy", "release", "Railway", "Vercel" | Full pipeline: contracts → indexer → apps, env promotion, rollback |
-| **security** | "security audit", "vulnerability", "access control" | Smart contract security, static analysis, Hats Protocol access control, threat modeling |
-| **migration** | "migration", "upgrade", "breaking change" | Cross-package migrations, UUPS upgrades, re-indexing, schema changes |
-| **docker** | "Docker", "container", "compose" | Docker Compose patterns, indexer stack, container debugging |
-| **git-workflow** | "branch", "commit", "merge conflict" | Branching strategy, conventional commits, conflict resolution, release workflow |
-| **ci-cd** | "CI", "GitHub Actions", "pipeline" | GitHub Actions workflows, caching, PR status gates, local CI simulation |
-| **dependency-management** | "dependency", "lockfile", "bun install" | Workspace protocol, lockfile conflicts, audit/update, phantom dependencies |
-
-**Design Skills (UI/UX):**
-
-| Skill | Invoke With | Purpose |
-|-------|-------------|---------|
-| **frontend-design** | "design UI", "build page", "visual design" | Distinctive, production-grade interfaces, bold aesthetics |
-| **tailwindcss** | "TailwindCSS", "@theme", "design tokens", "dark mode" | TailwindCSS v4 configuration, theme system, design tokens, CSS architecture |
-| **radix-ui** | "dialog", "select", "accordion", "Radix" | Radix UI primitives with TailwindCSS v4, accessible interactive components |
-| **storybook** | "story", "Storybook", "component docs" | CSF3 stories, visual regression, design system documentation |
-| **ui-compliance** | "accessibility", "a11y", "responsive" | WCAG, forms, mobile-first, animation, i18n |
-| **mermaid-diagrams** | "diagram", "flowchart", "mermaid" | Create diagrams for architecture, flows, ERDs |
-
-**Architecture & Operations Skills:**
-
-| Skill | Invoke With | Purpose |
-|-------|-------------|---------|
-| **architecture** | "architecture", "refactor", "clean code" | Clean Architecture, DDD, entropy reduction |
-| **biome** | "format", "Biome", "import sorting" | Biome formatting configuration, import organization |
-| **performance** | "performance", "bundle size", "profiling" | Bundle analysis, React Profiler, memory management |
-| **monitoring** | "monitoring", "health check", "observability", "PostHog" | Transaction tracking, SW health, storage quotas, indexer sync lag, PostHog analytics |
+| Category | Skills |
+|----------|--------|
+| **Workflow** | plan, review, debug, audit |
+| **Frontend** | react, tanstack-query, frontend-design, radix-ui, tailwindcss, storybook, ui-compliance, i18n, xstate |
+| **Web3** | web3, contracts, security, deployment |
+| **Data** | data-layer, error-handling-patterns, testing |
+| **Infra** | vite, indexer, docker, ci-cd, agent |
+| **Operations** | architecture, biome, performance, monitoring, migration, dependency-management, git-workflow, mermaid-diagrams |
 
 ### Available Agents (5)
 

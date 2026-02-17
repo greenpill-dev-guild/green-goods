@@ -219,10 +219,10 @@ Run the same checks locally before pushing:
 
 ```bash
 # Full validation (same as CI)
-bun format && bun lint && bun test && bun build
+bun format && bun lint && bun run test && bun build
 
 # Quick check (just the essentials)
-bun lint && bun test
+bun lint && bun run test
 ```
 
 ### Husky Hooks
@@ -232,7 +232,7 @@ bun lint && bun test
 bun lint-staged
 
 # .husky/pre-push
-bun test && bun build
+bun run test && bun build
 ```
 
 ### Simulating CI Locally
@@ -276,7 +276,7 @@ What CI/CD work?
 │                                   → Use environment protection
 │
 └── Testing CI locally? ────────► Part 6: Local Simulation
-                                    → bun format && bun lint && bun test && bun build
+                                    → bun format && bun lint && bun run test && bun build
 ```
 
 ## Related Skills

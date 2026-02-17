@@ -30,7 +30,7 @@ bash .claude/scripts/validate-hook-location.sh
 node .claude/scripts/check-i18n-completeness.js
 
 # Run validation
-bun format && bun lint && bun test && bun build
+bun format && bun lint && bun run test && bun build
 ```
 
 ## 6-Pass Review Protocol

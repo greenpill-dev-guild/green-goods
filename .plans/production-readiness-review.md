@@ -331,7 +331,6 @@ cd packages/contracts && bun run test && bun run test:fork
 packages/contracts — GardensModule, UnifiedPowerRegistry, vendor/gardens/
 
 ## Issues to Address
-1. [BLOCKER] GardensModule not deployed on Sepolia or Arbitrum
 2. [CRITICAL] UnifiedPowerRegistry not in indexer config.yaml
 3. [HIGH] No Sepolia fork test for ConvictionVoting (9 tests Arbitrum, 0 Sepolia)
 4. [MEDIUM] `onGardenMinted()` marks gardenInitialized=true BEFORE community/pool creation
@@ -358,7 +357,6 @@ cd packages/contracts && bun run test && bun run test:fork
 packages/contracts — KarmaGAPModule, lib/Karma.sol, lib/JsonBuilder.sol
 
 ## Issues to Address
-1. [BLOCKER] KarmaGAPModule not deployed on Sepolia or Arbitrum
 2. [CRITICAL] No fork test against real Karma GAP contract
 3. [LOW] createProject() partial state if MemberOf/Details attestation fails
 
@@ -409,7 +407,6 @@ cd packages/contracts && bun run test && bun run test:fork
 packages/contracts — HatsModule, lib/Hats.sol
 
 ## Issues to Address
-1. [BLOCKER] HatsModule not deployed on Sepolia or Arbitrum (zero address)
 2. [HIGH] SepoliaHats fork test has only 1 test vs 4 on Arbitrum
 3. [MEDIUM] Phantom hat wearers from revocation burn addresses (inherent to Hats design)
 4. [LOW] SYNC_POWER_GAS_STIPEND=100_000 may be too low for complex strategies
@@ -435,7 +432,6 @@ cd packages/contracts && bun run test && bun run test:fork
 packages/contracts — CookieJarModule
 
 ## Issues to Address
-1. [BLOCKER] CookieJarModule not deployed on Sepolia or Arbitrum
 2. [CRITICAL] Zero fork test coverage — only unit tests exist
 3. [LOW] Storage gap comment slightly misleading (ReentrancyGuard slot counting)
 
@@ -463,12 +459,10 @@ cd packages/contracts && bun run test && bun run test:fork
 packages/contracts — YieldSplitter (Juicebox integration), interfaces/IJuicebox.sol, mocks/Juicebox.sol
 
 ## Issues to Address
-1. [HIGH] DeployJuicebox.s.sol was deleted (git status shows D) — verify JB deploy path
-2. [MEDIUM] Juicebox gets only 2.7% of yield split (DEFAULT_JUICEBOX_BPS = 270)
+1. Ensure if no Juicebox yield properly sent to safe and Green Goods mock token used for Garden communities
 3. [LOW] JB integration tested indirectly via ArbitrumYieldSplitter — no dedicated fork test
 
 ## Required Deliverables
-- Confirm Juicebox deployment is handled by deploy.ts or is external-only (document decision)
 - Verify JB Terminal/Multi-Terminal addresses are correct in ArbitrumYieldSplitter fork test
 - Document the 48.65/48.65/2.7 split rationale and configurability
 - If JB is deployer-managed: add JB deployment to deploy.ts pipeline
@@ -487,7 +481,6 @@ cd packages/contracts && bun run test:fork
 packages/contracts — registries/ENS.sol (L2Sender), registries/ENSReceiver.sol (L1Receiver)
 
 ## Issues to Address
-1. [BLOCKER] GreenGoodsENS not deployed on any chain
 2. [HIGH] No Sepolia fork test (11 tests on Arbitrum only)
 3. [MEDIUM] GardenToken ETH forwarding to ENS has no minter refund mechanism
 4. [LOW] NAME_CHANGE_COOLDOWN=30 days hardcoded — not configurable without upgrade
@@ -514,9 +507,6 @@ cd packages/contracts && bun run test && bun run test:fork
 packages/contracts — GardenToken, GardenAccount, ActionRegistry, DeploymentRegistry, Resolvers, Schemas
 
 ## Issues to Address
-1. [HIGH] Both chains missing assessmentSchemaUID and workApprovalSchemaUID — need --update-schemas
-2. [HIGH] Sepolia missing assessmentResolver (zero address)
-3. [HIGH] Arbitrum missing guardian and accountProxy (zero addresses)
 4. [MEDIUM] YieldSplitter splitYield() is permissionless — document timing risk
 5. [MEDIUM] YieldSplitter _redeemAndAccumulate() redeems ALL shares — may hit withdrawal limits
 
@@ -758,7 +748,6 @@ No code changes — documentation and config only
 packages/indexer — config.yaml, envio-integration.ts
 
 ## Issues to Address
-1. [BLOCKER] 7/11 contract sources have zero addresses — nothing indexed
 2. [CRITICAL] HypercertMarketplaceAdapter not in config.yaml at all
 3. [CRITICAL] UnifiedPowerRegistry not in config.yaml at all
 4. [LOW] ENS text record fields on Gardener entity never populated by handlers

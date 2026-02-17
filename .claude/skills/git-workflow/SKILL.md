@@ -144,7 +144,7 @@ For actual code conflicts:
 2. Understand the intent of each change
 3. Merge manually, preserving both intents
 4. Run `bun build` to verify
-5. Run `bun test` to verify behavior
+5. Run `bun run test` to verify behavior
 
 ## Part 4: Release Workflow
 
@@ -157,7 +157,7 @@ v{major}.{minor}.{patch}-rc.{n}  # Release candidates
 
 ### Pre-Release Validation Checklist
 
-- [ ] All tests passing: `bun test`
+- [ ] All tests passing: `bun run test`
 - [ ] Lint clean: `bun lint`
 - [ ] Build succeeds: `bun build`
 - [ ] Format clean: `bun format --check`
@@ -207,7 +207,7 @@ git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"%s" | sort
 
 Before requesting review:
 1. Run `/review` skill (6-pass review)
-2. Full validation: `bun format && bun lint && bun test && bun build`
+2. Full validation: `bun format && bun lint && bun run test && bun build`
 3. Self-review the diff once
 4. PR description filled out
 

@@ -62,6 +62,19 @@
         ]
       },
       {
+        "_category": "Quality",
+        "_description": "Block bun test (without run) — wrong test runner",
+        "_security": "Pattern-based check preventing wrong test runner usage",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE '(^|[;&|] *)bun test( |$)' && ! echo \"$TOOL_INPUT\" | grep -qE 'bun run test'; then echo '🚫 BLOCKED: Use `bun run test` not `bun test` — bun test uses the built-in runner which ignores vitest config and jsdom. See CLAUDE.md.' >&2; exit 2; fi",
+            "statusMessage": "Checking test runner command..."
+          }
+        ]
+      },
+      {
         "_category": "Safety",
         "_description": "Production deployment confirmation",
         "_security": "Pattern detection for production deployments - warns but allows",
@@ -336,12 +349,12 @@
       },
       {
         "_category": "Lifecycle",
-        "_description": "code-reviewer protocol reminder",
+        "_description": "code-reviewer protocol reminder — read-only enforcement",
         "matcher": "code-reviewer",
         "hooks": [
           {
             "type": "command",
-            "command": "echo '🔍 code-reviewer: Follow 6-pass protocol, post findings to GitHub.'",
+            "command": "echo '🔍 code-reviewer: READ-ONLY. Follow 6-pass protocol. Present findings with severity (must-fix/should-fix/nice-to-have). Do NOT implement fixes — STOP after findings and wait for user instruction.'",
             "statusMessage": "Initializing code-reviewer..."
           }
         ]

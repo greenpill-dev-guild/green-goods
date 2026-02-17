@@ -1,10 +1,39 @@
 # Test Coverage & Quality Remediation Plan
 
-**Status**: ACTIVE
+**Status**: ACTIVE (Phases 1-2 DONE, Phases 3-4 remaining)
 **Tracks**: https://github.com/greenpill-dev-guild/green-goods/issues/312
 **Created**: 2026-02-13
-**Last Updated**: 2026-02-16
-**Completed**: Gardens Protocol Test Coverage (200 tests), CLAUDE.md `bun test` → `bun run test` fix
+**Last Updated**: 2026-02-17
+**Completed**: Gardens Protocol Test Coverage (200 tests), CLAUDE.md `bun test` → `bun run test` fix, Phase 1 (test foundation), Phase 2 (command policy + agent/skill updates)
+
+### Phase 1+2 Completion Summary (2026-02-17)
+
+Executed by 6-teammate pair-lane team (chain/middleware/app drivers + observers):
+
+| Item | Result | Details |
+|------|--------|---------|
+| 1.1 TopNav tests | Previously done | IntlProvider wrapper |
+| 1.2 RequireOperatorOrDeployer | Previously done | Denial assertion |
+| 1.3 Indexer @ts-nocheck | DONE | Replaced with single scoped @ts-expect-error |
+| 1.4 Login.test.tsx placeholder | DONE | Real credential detection assertions |
+| 1.5 No-op assertions | DONE | 10 expect(true) replaced with behavioral assertions |
+| 1.6 Cards.test.skip.tsx | DONE | 27 tests re-enabled (dual mock path fix) |
+| 1.7 Gardens.test.skip.tsx | DONE | 7 tests re-enabled |
+| 1.8 unauthorized-actions.test.skip.tsx | DONE | 6 tests re-enabled |
+| 1.9 Home.test.tsx.skip | DONE | 5 tests re-enabled |
+| 1.10 Skip governance | DONE | 2 remaining skips have #312 + owner + 2026-03-17 expiry |
+| 1.11 Admin thresholds | Previously done | 70% global |
+| 1.12 Indexer coverage | DONE | c8 + mocha, 58% baseline |
+| 1.13 Client test-utils | DONE | Created with provider wrappers |
+| 2.1 bun test refs | DONE | All actionable refs fixed in .claude/ files |
+| 2.2 Testing skill | DONE | Hook cleanup, mutation errors, offline, critical paths |
+| 2.3 cracked-coder checklist | DONE | Test Adequacy Checklist after TEST phase |
+| 2.4 code-reviewer pass | DONE | Pass 5.5: Test Coverage Check |
+| 2.5 contracts skill | Previously done | Part 5 patterns |
+| 2.6 tdd-bugfix | DONE | Regression test placement guidance |
+| 2.7 cross-package-verify | DONE | Test quality checks at Domain 2 + Domain 3 |
+
+Net result: **45 previously-skipped tests re-enabled**, zero expect(true) assertions, zero @ts-nocheck in tests, all agent/skill files updated with test quality guidance.
 
 > Merged from: 6-teammate adversarial audit (Opus team) + Codex audit ([#312](https://github.com/greenpill-dev-guild/green-goods/issues/312))
 

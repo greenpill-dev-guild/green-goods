@@ -67,6 +67,15 @@ Use when:
 
 ## Migration Protocol
 
+### Phase 0: Scope & Pre-Flight Verification
+
+Before ANY work begins:
+
+1. **Confirm target scope**: Which package(s) and chain(s) are in scope? If unclear, ASK the user.
+2. **Confirm intent**: If user said "generate a prompt" or "create a plan" → save plan to `.plans/`. Do NOT execute.
+3. **Check prior work**: Run `git diff main...HEAD` and `git log --oneline -20` to see what's already migrated. Do NOT redo completed work.
+4. **Dependency pre-check**: If orchestrating agents, map task dependencies BEFORE spawning. Agents must NOT proceed on tasks with unmet upstream dependencies.
+
 ### Phase 1: Blast Radius Assessment
 
 Before ANY code changes:
