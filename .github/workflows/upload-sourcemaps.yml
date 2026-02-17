@@ -20,6 +20,9 @@ on:
           - client
           - admin
 
+permissions:
+  contents: read
+
 concurrency:
   group: sourcemaps-${{ github.ref }}
   cancel-in-progress: true
