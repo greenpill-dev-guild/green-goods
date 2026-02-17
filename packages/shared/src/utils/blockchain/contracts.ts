@@ -23,12 +23,16 @@ import EASABIJson from "../../../../contracts/out/EAS.sol/MockEAS.json";
 import GardenAccountABIJson from "../../../../contracts/out/Garden.sol/GardenAccount.json";
 // Import ABIs directly from contracts/out (single source of truth)
 import GardenTokenABIJson from "../../../../contracts/out/Garden.sol/GardenToken.json";
+import GreenGoodsENSABIJson from "../../../../contracts/out/ENS.sol/GreenGoodsENS.json";
+import IHatsABIJson from "../../../../contracts/out/IHats.sol/IHats.json";
 
 // Export the ABIs for viem compatibility
 export const GardenTokenABI = GardenTokenABIJson.abi as Abi;
 export const GardenAccountABI = GardenAccountABIJson.abi as Abi;
 export const ActionRegistryABI = ActionRegistryABIJson.abi as Abi;
 export const EASABI = EASABIJson.abi as Abi;
+export const GreenGoodsENSABI = GreenGoodsENSABIJson.abi as Abi;
+export const HatsABI = IHatsABIJson.abi as Abi;
 
 function getNetworkConfigFromNetworksJson(chainId: number) {
   const networksData = networksConfig as { networks: Record<string, any> };
@@ -74,6 +78,16 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
     cookieJarModule: deployment.cookieJarModule || "0x0000000000000000000000000000000000000000",
     yieldSplitter: deployment.yieldSplitter || "0x0000000000000000000000000000000000000000",
     gardensModule: deployment.gardensModule || "0x0000000000000000000000000000000000000000",
+    greenGoodsENS: deployment.greenGoodsENS || "0x0000000000000000000000000000000000000000",
+    // Hypercert marketplace integration
+    hypercertExchange: deployment.hypercertExchange || "0x0000000000000000000000000000000000000000",
+    hypercertMinter: deployment.hypercertMinter || "0x0000000000000000000000000000000000000000",
+    transferManager: deployment.transferManager || "0x0000000000000000000000000000000000000000",
+    marketplaceAdapter:
+      deployment.marketplaceAdapter || "0x0000000000000000000000000000000000000000",
+    hypercertsModule: deployment.hypercertsModule || "0x0000000000000000000000000000000000000000",
+    strategyHypercertFractionOffer:
+      deployment.strategyHypercertFractionOffer || "0x0000000000000000000000000000000000000000",
   };
 }
 

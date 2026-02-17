@@ -201,6 +201,18 @@ export {
   prefillMetadataFromAssessment,
 } from "./data/hypercerts";
 // ============================================================================
+// DATA / MARKETPLACE (On-chain reads & event queries)
+// ============================================================================
+export {
+  getRegisteredOrders,
+  getActiveOrder,
+  previewPurchase,
+  getMinPrice,
+  getSellerOrders,
+  getTradeHistory,
+  getListingHistory,
+} from "./data/marketplace";
+// ============================================================================
 // DATA / VAULTS
 // ============================================================================
 export {
@@ -284,3 +296,25 @@ export {
   validateApprovalDraft,
   validateWorkDraft,
 } from "./work/work-submission";
+
+// ============================================================================
+// MARKETPLACE (HypercertExchange SDK integration)
+// ============================================================================
+export {
+  // Client
+  getMarketplaceClient,
+  getMarketplaceAddresses,
+  isMarketplaceSupported,
+  resetMarketplaceClients,
+  // Signing
+  type MakerAskOrder,
+  type ValidationResult,
+  buildMakerAsk,
+  signMakerAsk,
+  validateOrder,
+  // Approvals
+  type MarketplaceApprovals,
+  type EncodedApprovalCall,
+  checkMarketplaceApprovals,
+  buildApprovalTransactions,
+} from "./marketplace";

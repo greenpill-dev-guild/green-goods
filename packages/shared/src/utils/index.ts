@@ -133,10 +133,13 @@ export {
   createClients,
   GardenAccountABI,
   GardenTokenABI,
+  GreenGoodsENSABI,
+  HatsABI,
   getNetworkContracts,
 } from "./blockchain/contracts";
 export type { ResolveEnsAddressOptions, ResolveEnsOptions } from "./blockchain/ens";
-export { resolveEnsAddress, resolveEnsName } from "./blockchain/ens";
+export { resolveEnsAddress, resolveEnsName, suggestSlug, validateSlug } from "./blockchain/ens";
+export type { SlugValidationResult } from "./blockchain/ens";
 // ============================================================================
 // BLOCKCHAIN POLLING
 // ============================================================================

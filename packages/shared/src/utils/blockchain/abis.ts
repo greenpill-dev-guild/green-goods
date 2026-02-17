@@ -294,7 +294,7 @@ export const GARDENS_MODULE_ABI = [
   },
   {
     type: "function",
-    name: "STAKE_AMOUNT_PER_MEMBER",
+    name: "stakeAmountPerMember",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],

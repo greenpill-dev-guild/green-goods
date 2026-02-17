@@ -18,6 +18,14 @@ export function ReviewStep() {
             </h4>
             <p className="mt-1 text-sm text-text-strong">{form.location}</p>
           </div>
+          {form.slug && (
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-text-soft">
+                ENS subdomain
+              </h4>
+              <p className="mt-1 font-mono text-xs text-text-strong">{form.slug}.greengoods.eth</p>
+            </div>
+          )}
           <div className="md:col-span-2">
             <h4 className="text-xs font-semibold uppercase tracking-wide text-text-soft">
               Description

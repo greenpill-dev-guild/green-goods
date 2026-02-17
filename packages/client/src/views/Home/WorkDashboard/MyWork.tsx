@@ -1,4 +1,4 @@
-import type { Work } from "@green-goods/shared";
+import { logger, type Work } from "@green-goods/shared";
 import React from "react";
 
 import { useOffline } from "@green-goods/shared/hooks";
@@ -24,7 +24,7 @@ export const MyWorkTab: React.FC<MyWorkTabProps> = ({ works, isLoading, onWorkCl
     try {
       await flush();
     } catch (error) {
-      console.error("Failed to flush queue:", error);
+      logger.error("Failed to flush queue:", { error });
       trackSyncError(error, {
         source: "MyWork.handleFlushAll",
         userAction: "manually flushing pending work uploads",

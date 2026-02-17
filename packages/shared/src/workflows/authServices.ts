@@ -7,14 +7,16 @@
  * - restoreSession: Check for existing session on app start
  * - registerPasskey: Create new passkey (new user)
  * - authenticatePasskey: Login with existing passkey (returning user)
- * - claimENS: Claim ENS subdomain on mainnet
+ *
+ * Note: ENS claiming was decoupled from the auth machine into a standalone
+ * useMutation hook (useENSClaim) for better separation of concerns.
  *
  * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
-import { createSmartAccountClient, type SmartAccountClient } from "permissionless";
+import { createSmartAccountClient } from "permissionless";
 import { toKernelSmartAccount } from "permissionless/accounts";
-import { encodeFunctionData, type Hex, http } from "viem";
+import { type Hex, http } from "viem";
 import {
   entryPoint07Address,
   type P256Credential,
@@ -61,12 +63,6 @@ interface PasskeyInput {
 /** Input for session restore */
 interface RestoreInput {
   chainId: number;
-}
-
-/** Input for ENS claiming */
-interface ClaimENSInput {
-  smartAccountClient: SmartAccountClient | null;
-  name: string;
 }
 
 const DEFAULT_SPONSORSHIP_POLICY_ID = "sp_next_monster_badoon";
@@ -180,7 +176,7 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
     // If user was last authenticated with wallet, don't auto-restore passkey session
     // This prevents passkey from "stealing" the session when user explicitly chose wallet
     if (storedAuthMode === "wallet") {
-      console.debug("[Auth] Auth mode is wallet, skipping passkey session restore");
+      logger.debug("[Auth] Auth mode is wallet, skipping passkey session restore");
       return null;
     }
 
@@ -189,7 +185,7 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
     const storedUsername = getStoredUsername();
 
     if (!storedCredential) {
-      console.debug("[Auth] No stored credential found");
+      logger.debug("[Auth] No stored credential found");
       return null;
     }
 
@@ -205,7 +201,7 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
         userName: storedUsername || "unknown",
       });
 
-      console.debug("[Auth] Session restored for:", address);
+      logger.debug("[Auth] Session restored for:", { address });
 
       return {
         credential: storedCredential,
@@ -260,7 +256,7 @@ export const registerPasskeyService = fromPromise<PasskeySessionResult, PasskeyI
         userName,
       });
 
-      console.debug("[Auth] Registration complete - Address:", address);
+      logger.debug("[Auth] Registration complete", { address });
 
       return {
         credential,
@@ -312,14 +308,11 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
       // Get RP ID - MUST match what was used during registration
       const rpId = getPasskeyRpId();
 
-      console.debug(
-        "[Passkey] Authentication - RP ID:",
+      logger.debug("[Passkey] Authentication", {
         rpId,
-        "| Origin:",
-        window.location.origin,
-        "| Credential:",
-        credential.id.substring(0, 16) + "..."
-      );
+        origin: window.location.origin,
+        credential: credential.id.substring(0, 16) + "...",
+      });
 
       // Prompt WebAuthn authentication (biometric)
       const authResponse = await window.navigator.credentials.get({
@@ -358,7 +351,7 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
         userName: resolvedUsername,
       });
 
-      console.debug("[Auth] Authentication complete - Address:", address);
+      logger.debug("[Auth] Authentication complete", { address });
 
       return {
         credential,
@@ -378,58 +371,6 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
 );
 
 // ============================================================================
-// SERVICE: Claim ENS
-// ============================================================================
-
-/**
- * Claim ENS subdomain on mainnet.
- */
-export const claimENSService = fromPromise<void, ClaimENSInput>(async ({ input }) => {
-  const { smartAccountClient, name } = input;
-
-  if (!smartAccountClient) {
-    throw new Error("Smart account client required for ENS claim");
-  }
-
-  const ensRegistrarAddress = import.meta.env.VITE_ENS_REGISTRAR_ADDRESS as Hex | undefined;
-
-  if (
-    !ensRegistrarAddress ||
-    ensRegistrarAddress === "0x0000000000000000000000000000000000000000"
-  ) {
-    console.debug("[AuthServices] ENS claiming skipped: VITE_ENS_REGISTRAR_ADDRESS not configured");
-    return;
-  }
-
-  // ENSRegistrar ABI
-  const ensRegistrarABI = [
-    {
-      inputs: [
-        { name: "name", type: "string" },
-        { name: "owner", type: "address" },
-      ],
-      name: "register",
-      outputs: [],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-  ] as const;
-
-  const data = encodeFunctionData({
-    abi: ensRegistrarABI,
-    functionName: "register",
-    args: [name, smartAccountClient.account!.address],
-  });
-
-  await smartAccountClient.sendTransaction({
-    account: smartAccountClient.account!,
-    to: ensRegistrarAddress,
-    data,
-    chain: undefined,
-  });
-});
-
-// ============================================================================
 // EXPORT ALL SERVICES
 // ============================================================================
 
@@ -437,5 +378,4 @@ export const authServices = {
   restoreSession: restoreSessionService,
   registerPasskey: registerPasskeyService,
   authenticatePasskey: authenticatePasskeyService,
-  claimENS: claimENSService,
 };

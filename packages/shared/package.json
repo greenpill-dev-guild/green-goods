@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "@hypercerts-org/contracts": "^2.0.0-alpha.0",
+    "@hypercerts-org/marketplace-sdk": "^0.8.0",
     "@hypercerts-org/sdk": "^2.9.1",
     "@radix-ui/react-popover": "^1.1.15",
     "@reown/appkit": "^1.8.14",

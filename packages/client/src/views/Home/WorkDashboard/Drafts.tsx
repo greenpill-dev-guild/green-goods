@@ -1,3 +1,4 @@
+import { logger, toastService } from "@green-goods/shared";
 import { ConfirmDialog } from "@green-goods/shared/components";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import { type DraftWithImages, useActions, useDrafts, useGardens } from "@green-goods/shared/hooks";
@@ -56,7 +57,18 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
       try {
         await deleteDraft(draftToDelete.id);
       } catch (error) {
-        console.error("[DraftsTab] Failed to delete draft:", error);
+        logger.error("[DraftsTab] Failed to delete draft:", { error });
+        toastService.error({
+          title: intl.formatMessage({
+            id: "app.drafts.delete.error",
+            defaultMessage: "Failed to delete draft",
+          }),
+          message: intl.formatMessage({
+            id: "app.drafts.delete.errorMessage",
+            defaultMessage: "Please try again.",
+          }),
+          context: "drafts",
+        });
       }
       setDraftToDelete(null);
     }

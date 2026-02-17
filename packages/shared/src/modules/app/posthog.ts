@@ -16,6 +16,8 @@
 
 import { posthog } from "posthog-js";
 
+import { logger } from "./logger";
+
 const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
 
@@ -230,7 +232,7 @@ export function track(event: string, properties: Record<string, unknown> = {}) {
   // Throttle diagnostic events
   if (shouldThrottleEvent(event)) {
     if (IS_DEBUG) {
-      console.log(`[PostHog] THROTTLED: ${event}`);
+      logger.info(`[PostHog] THROTTLED: ${event}`);
     }
     return;
   }
@@ -249,14 +251,14 @@ export function track(event: string, properties: Record<string, unknown> = {}) {
   };
 
   if (IS_DEBUG) {
-    console.log(`[PostHog] track: ${event}`, enrichedProperties);
+    logger.info(`[PostHog] track: ${event}`, enrichedProperties);
   }
 
   // Skip in dev mode or if PostHog isn't ready
   if (IS_DEV) return;
   if (!isPostHogReady()) {
     if (IS_DEBUG) {
-      console.warn("[PostHog] Not ready, skipping capture");
+      logger.warn("[PostHog] Not ready, skipping capture");
     }
     return;
   }
@@ -276,7 +278,7 @@ export function track(event: string, properties: Record<string, unknown> = {}) {
  */
 export function identify(distinctId: string) {
   if (IS_DEBUG) {
-    console.log(`[PostHog] identify: ${distinctId}`);
+    logger.info(`[PostHog] identify: ${distinctId}`);
   }
   if (IS_DEV || !isPostHogReady()) return;
   posthog.identify(distinctId);
@@ -299,7 +301,10 @@ export function identifyWithProperties(
   }
 ) {
   if (IS_DEBUG) {
-    console.log(`[PostHog] identifyWithProperties: ${distinctId}`, properties);
+    logger.info(
+      `[PostHog] identifyWithProperties: ${distinctId}`,
+      properties as Record<string, unknown>
+    );
   }
   if (IS_DEV || !isPostHogReady()) return;
 
@@ -322,7 +327,7 @@ export function identifyWithProperties(
  */
 export function reset() {
   if (IS_DEBUG) {
-    console.log("[PostHog] reset");
+    logger.info("[PostHog] reset");
   }
   if (IS_DEV || !isPostHogReady()) return;
   posthog.reset();
@@ -488,13 +493,13 @@ export function registerGlobalProperties(): boolean {
   if (IS_DEV) {
     globalPropertiesRegistered = true;
     if (IS_DEBUG) {
-      console.log("[PostHog] Skipping global properties registration (dev mode)", getAppContext());
+      logger.info("[PostHog] Skipping global properties registration (dev mode)", getAppContext());
     }
     return true;
   }
   if (!isPostHogReady()) {
     if (IS_DEBUG) {
-      console.warn("[PostHog] Not ready, skipping global properties registration");
+      logger.warn("[PostHog] Not ready, skipping global properties registration");
     }
     return false;
   }
@@ -511,7 +516,7 @@ export function registerGlobalProperties(): boolean {
   globalPropertiesRegistered = true;
 
   if (IS_DEBUG) {
-    console.log("[PostHog] Registered global properties:", context);
+    logger.info("[PostHog] Registered global properties", context);
   }
 
   return true;

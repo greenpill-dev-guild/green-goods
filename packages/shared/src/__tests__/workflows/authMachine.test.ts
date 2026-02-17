@@ -72,14 +72,12 @@ function createTestMachine(
     restoreSession?: () => Promise<PasskeySessionResult | null>;
     registerPasskey?: () => Promise<PasskeySessionResult>;
     authenticatePasskey?: () => Promise<PasskeySessionResult>;
-    claimENS?: () => Promise<void>;
   } = {}
 ) {
   const {
     restoreSession = () => Promise.resolve(null),
     registerPasskey = () => Promise.resolve(createMockPasskeySessionResult()),
     authenticatePasskey = () => Promise.resolve(createMockPasskeySessionResult()),
-    claimENS = () => Promise.resolve(),
   } = serviceOverrides;
 
   return authMachine.provide({
@@ -87,7 +85,6 @@ function createTestMachine(
       restoreSession: fromPromise(async () => restoreSession()),
       registerPasskey: fromPromise(async () => registerPasskey()),
       authenticatePasskey: fromPromise(async () => authenticatePasskey()),
-      claimENS: fromPromise(async () => claimENS()),
     },
   });
 }
@@ -388,26 +385,6 @@ describe("workflows/authMachine", () => {
       expect(snapshot.context.credential).toBeNull();
       expect(snapshot.context.smartAccountClient).toBeNull();
     });
-
-    it("transitions to claiming_ens on CLAIM_ENS", async () => {
-      const mockSession = createMockPasskeySessionResult();
-      let claimCalled = false;
-      const machine = createTestMachine({
-        restoreSession: () => Promise.resolve(mockSession),
-        claimENS: () => {
-          claimCalled = true;
-          return Promise.resolve();
-        },
-      });
-      const actor = await startAndSettle(machine);
-
-      actor.send({ type: "CLAIM_ENS", name: "test.greengoods.eth" });
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      expect(claimCalled).toBe(true);
-      // Should return to passkey state after claiming
-      expect(actor.getSnapshot().matches({ authenticated: "passkey" })).toBe(true);
-    });
   });
 
   describe("authenticated.wallet state", () => {
@@ -635,48 +612,6 @@ describe("workflows/authMachine", () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(actor.getSnapshot().context.error).toBeNull();
-    });
-  });
-
-  // ==========================================================================
-  // ENS CLAIMING TESTS
-  // ==========================================================================
-
-  describe("ENS claiming", () => {
-    it("calls claimENS service with correct params", async () => {
-      const mockSession = createMockPasskeySessionResult();
-      let receivedName: string | null = null;
-
-      const machine = createTestMachine({
-        restoreSession: () => Promise.resolve(mockSession),
-        claimENS: () => {
-          // Note: In actual implementation, we'd capture the input
-          receivedName = "test.greengoods.eth";
-          return Promise.resolve();
-        },
-      });
-      const actor = await startAndSettle(machine);
-
-      actor.send({ type: "CLAIM_ENS", name: "test.greengoods.eth" });
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      expect(receivedName).toBe("test.greengoods.eth");
-    });
-
-    it("returns to passkey state on ENS claim error", async () => {
-      const mockSession = createMockPasskeySessionResult();
-      const machine = createTestMachine({
-        restoreSession: () => Promise.resolve(mockSession),
-        claimENS: () => Promise.reject(new Error("ENS claim failed")),
-      });
-      const actor = await startAndSettle(machine);
-
-      actor.send({ type: "CLAIM_ENS", name: "test.greengoods.eth" });
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      // Should still be authenticated, just with error
-      expect(actor.getSnapshot().matches({ authenticated: "passkey" })).toBe(true);
-      expect(actor.getSnapshot().context.error?.message).toBe("ENS claim failed");
     });
   });
 });

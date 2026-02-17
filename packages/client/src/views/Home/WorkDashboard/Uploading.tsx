@@ -1,4 +1,4 @@
-import { hapticLight, type Work } from "@green-goods/shared";
+import { hapticLight, logger, type Work } from "@green-goods/shared";
 import React, { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -104,7 +104,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
         await flush();
       }
     } catch (error) {
-      console.error("Failed to sync all items:", error);
+      logger.error("Failed to sync all items:", { error });
       trackSyncError(error, {
         source: "Uploading.handleSyncAll",
         userAction: authMode === "wallet" ? "retrying failed uploads" : "syncing all pending items",

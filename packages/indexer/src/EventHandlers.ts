@@ -2,6 +2,7 @@ import {
   ActionRegistry,
   GardenAccount,
   GardensModule,
+  GreenGoodsENS,
   HatsModule,
   GardenToken,
   OctantModule,
@@ -179,7 +180,6 @@ type GardensModule_CommunityCreated_eventArgs = {
   readonly community: string;
   readonly weightScheme: bigint;
   readonly goodsToken: string;
-  readonly nftPowerRegistry: string;
 };
 
 type GardensModule_SignalPoolCreated_eventArgs = {
@@ -212,11 +212,11 @@ type YieldSplitter_YieldAccumulated_eventArgs = {
 };
 
 // GardensModule additional event arg types
-// Solidity: event PowerRegistryDeployed(address indexed garden, address indexed registry, WeightScheme weightScheme)
-type GardensModule_PowerRegistryDeployed_eventArgs = {
+// Solidity: event GardenPowerRegistered(address indexed garden, WeightScheme weightScheme, uint256 sourceCount)
+type GardensModule_GardenPowerRegistered_eventArgs = {
   readonly garden: string;
-  readonly registry: string;
   readonly weightScheme: bigint;
+  readonly sourceCount: bigint;
 };
 
 // Solidity: event GoodsAirdropped(address indexed garden, uint256 totalAmount)
@@ -450,6 +450,8 @@ function createDefaultGarden(gardenId: string, chainId: number, timestamp: numbe
     communities: [],
     createdAt: timestamp,
     gapProjectUID: undefined,
+    slug: undefined,
+    ensStatus: undefined,
   };
 }
 
@@ -723,6 +725,8 @@ GardenToken.GardenMinted.handler(
       tokenID: event.params.tokenId,
       createdAt: event.block.timestamp,
       gapProjectUID: undefined,
+      slug: undefined,
+      ensStatus: undefined,
     };
     context.Garden.set(gardenEntity);
   }
@@ -1375,17 +1379,132 @@ OctantVault.Withdraw.handler(async ({ event, context }: OctantVault_Withdraw_han
 });
 
 // ============================================================================
-// TODO: ENS & GARDENER IDENTITY EVENT HANDLERS
+// ENS REGISTRATION EVENT HANDLERS (L2 CCIP Tracking)
 // ============================================================================
-// These handlers are ready for implementation when ENSRegistrar and Gardener
-// contracts are deployed. See GitHub issue for tracking:
-// - ENSRegistrar.SubdomainRegistered: Handle ENS subdomain registration
-// - GardenerContract.AccountDeployed: Handle gardener account deployment
-//
-// Implementation notes:
-// 1. Uncomment the contracts in config.yaml when ready to deploy
-// 2. Import ENSRegistrar and Gardener from generated module
-// 3. Implement handlers following the same patterns as above
+
+// GreenGoodsENS event arg types (local until codegen runs)
+// Solidity: event NameRegistrationSent(bytes32 indexed messageId, string slug, address indexed owner, NameType nameType, uint256 ccipFee)
+type GreenGoodsENS_NameRegistrationSent_eventArgs = {
+  readonly messageId: string;
+  readonly slug: string;
+  readonly owner: string;
+  readonly nameType: bigint;
+  readonly ccipFee: bigint;
+};
+
+// Solidity: event NameReleaseSent(bytes32 indexed messageId, string slug, address indexed previousOwner)
+type GreenGoodsENS_NameReleaseSent_eventArgs = {
+  readonly messageId: string;
+  readonly slug: string;
+  readonly previousOwner: string;
+};
+
+type ENSRegistrationEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly slug: string;
+  readonly owner: string;
+  readonly nameType: string;
+  readonly ccipMessageId: string;
+  readonly status: string;
+  readonly ccipFee: bigint;
+  readonly registeredAt: number;
+  readonly txHash: string;
+};
+
+/**
+ * Maps NameType enum from the GreenGoodsENS contract.
+ * 0 = Gardener, 1 = Garden
+ */
+const ENS_NAME_TYPE_MAP: Record<number, string> = {
+  0: "Gardener",
+  1: "Garden",
+} as const;
+
+function mapENSNameType(value: bigint): string {
+  return ENS_NAME_TYPE_MAP[Number(value)] ?? "Gardener";
+}
+
+GreenGoodsENS.NameRegistrationSent.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<GreenGoodsENS_NameRegistrationSent_eventArgs, void>) => {
+    const slug = event.params.slug;
+    const owner = normalizeAddress(event.params.owner);
+    const nameType = mapENSNameType(event.params.nameType);
+    const txHash = getTxHash(event.transaction);
+
+    // Create ENSRegistration entity (slug is the ID)
+    const registrationEntity: ENSRegistrationEntity = {
+      id: `${event.chainId}-${slug}`,
+      chainId: event.chainId,
+      slug,
+      owner,
+      nameType,
+      ccipMessageId: event.params.messageId,
+      status: "pending",
+      ccipFee: event.params.ccipFee,
+      registeredAt: event.block.timestamp,
+      txHash,
+    };
+
+    context.ENSRegistration.set(registrationEntity);
+
+    // If this is a Garden registration, update the Garden entity with slug and ensStatus
+    if (nameType === "Garden") {
+      const existingGarden = await context.Garden.get(owner);
+      if (existingGarden) {
+        context.Garden.set({
+          ...existingGarden,
+          slug,
+          ensStatus: "pending",
+        });
+      }
+    }
+
+    context.log.info("ENS name registration sent via CCIP", {
+      slug,
+      owner,
+      nameType,
+      ccipMessageId: event.params.messageId,
+      ccipFee: event.params.ccipFee.toString(),
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
+    });
+  }
+);
+
+GreenGoodsENS.NameReleaseSent.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<GreenGoodsENS_NameReleaseSent_eventArgs, void>) => {
+    const slug = event.params.slug;
+    const previousOwner = normalizeAddress(event.params.previousOwner);
+    const txHash = getTxHash(event.transaction);
+
+    // Update the ENSRegistration status to reflect the release
+    const existingRegistration = await context.ENSRegistration.get(`${event.chainId}-${slug}`);
+    if (existingRegistration) {
+      context.ENSRegistration.set({
+        ...existingRegistration,
+        status: "released",
+        ccipMessageId: event.params.messageId,
+      });
+    }
+
+    context.log.info("ENS name release sent via CCIP", {
+      slug,
+      previousOwner,
+      ccipMessageId: event.params.messageId,
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
+    });
+  }
+);
 
 // ============================================================================
 // HYPERCERT EVENT HANDLERS
@@ -1729,8 +1848,7 @@ GardensModule.CommunityCreated.handler(
       communityAddress,
       weightScheme: mapWeightScheme(event.params.weightScheme),
       goodsToken: normalizeAddress(event.params.goodsToken),
-      nftPowerRegistry: normalizeAddress(event.params.nftPowerRegistry),
-      powerRegistryAddress: undefined,
+      powerSourceCount: undefined,
       createdAt: event.block.timestamp,
     };
 
@@ -1782,26 +1900,25 @@ GardensModule.SignalPoolCreated.handler(
   }
 );
 
-GardensModule.PowerRegistryDeployed.handler(
+GardensModule.GardenPowerRegistered.handler(
   async ({
     event,
     context,
-  }: HandlerTypes_handlerArgs<GardensModule_PowerRegistryDeployed_eventArgs, void>) => {
+  }: HandlerTypes_handlerArgs<GardensModule_GardenPowerRegistered_eventArgs, void>) => {
     const garden = normalizeAddress(event.params.garden);
-    const registry = normalizeAddress(event.params.registry);
     const communityId = getGardenCommunityId(event.chainId, garden);
 
     const existingCommunity = await context.GardenCommunity.get(communityId);
     if (existingCommunity) {
       context.GardenCommunity.set({
         ...existingCommunity,
-        powerRegistryAddress: registry,
+        powerSourceCount: Number(event.params.sourceCount),
       });
     }
 
-    context.log.info("Power registry deployed", {
+    context.log.info("Garden power registered", {
       garden,
-      registry,
+      sourceCount: Number(event.params.sourceCount),
       weightScheme: mapWeightScheme(event.params.weightScheme),
       chainId: event.chainId,
       blockNumber: event.block.number,

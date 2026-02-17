@@ -3,12 +3,14 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { CreateGardenParams } from "../types/contracts";
+import { validateSlug } from "../utils/blockchain/ens";
 
 // Storage key for garden creation flow persistence
 const CREATE_GARDEN_STORAGE_KEY = "green-goods:create-garden";
 
 export interface CreateGardenFormState {
   name: string;
+  slug: string;
   description: string;
   location: string;
   bannerImage: string;
@@ -72,6 +74,7 @@ const defaultSteps: CreateGardenStep[] = [
 export function createEmptyGardenForm(): CreateGardenFormState {
   return {
     name: "",
+    slug: "",
     description: "",
     location: "",
     bannerImage: "",
@@ -217,6 +220,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           case "details":
             return (
               form.name.trim().length > 0 &&
+              validateSlug(form.slug.trim()).valid &&
               form.description.trim().length > 0 &&
               form.location.trim().length > 0 &&
               isValidAddress(form.communityToken.trim())
@@ -251,6 +255,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         return {
           communityToken: form.communityToken.trim(),
           name: form.name.trim(),
+          slug: form.slug.trim(),
           description: form.description.trim(),
           location: form.location.trim(),
           bannerImage: form.bannerImage.trim(),

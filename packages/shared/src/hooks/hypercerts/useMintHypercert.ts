@@ -311,10 +311,10 @@ export function useMintHypercert(): UseMintHypercertResult {
             })) as Address[];
 
             if (!pools || pools.length === 0) {
-              logger.info(
-                "[useMintHypercert] No signal pools for garden, skipping registration",
-                { gardenAddress, chainId }
-              );
+              logger.info("[useMintHypercert] No signal pools for garden, skipping registration", {
+                gardenAddress,
+                chainId,
+              });
               return { registered: false, poolAddress: null };
             }
 

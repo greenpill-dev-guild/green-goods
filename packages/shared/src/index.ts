@@ -47,6 +47,7 @@ export {
   createWorkToasts,
   DatePicker,
   DateRangePicker,
+  ENSProgressTimeline,
   ErrorBoundary,
   FormInput,
   FormLayout,
@@ -144,6 +145,15 @@ export type {
   UseHypercertDraftResult,
   UseHypercertsResult,
   UseMintHypercertResult,
+  // Marketplace hook types
+  UseHypercertListingsResult,
+  UseMarketplaceApprovalsResult,
+  UseTradeHistoryResult,
+  UseCreateListingResult,
+  ListingStep,
+  UseCancelListingResult,
+  UseBatchListForYieldResult,
+  BatchProgress,
   UseAnalyticsIdentityOptions,
   UsePageViewOptions,
   UseCopyToClipboardOptions,
@@ -153,6 +163,8 @@ export type {
   GardenOperationResult,
   WorkFormData,
   WorksQueryKey,
+  ENSClaimResult,
+  SlugFormValues,
 } from "./hooks/index";
 export {
   checkGardenOpenJoining,
@@ -221,6 +233,13 @@ export {
   useEnsAddress,
   useEnsAvatar,
   useEnsName,
+  // ENS registration hooks
+  useENSClaim,
+  useENSRegistrationStatus,
+  useProtocolMemberStatus,
+  slugSchema,
+  useSlugForm,
+  useSlugAvailability,
   useGardenAssessments,
   useGardenDomains,
   useGardenerProfile,
@@ -238,6 +257,13 @@ export {
   useHypercertDraft,
   useHypercerts,
   useMintHypercert,
+  // Marketplace hooks
+  useHypercertListings,
+  useMarketplaceApprovals,
+  useTradeHistory,
+  useCreateListing,
+  useCancelListing,
+  useBatchListForYield,
   useInstallGuidance,
   useJoinGarden,
   useMerged,
@@ -294,6 +320,11 @@ export type {
   // Logger types
   LogContext,
   Logger,
+  // Marketplace SDK types
+  MakerAskOrder,
+  ValidationResult,
+  MarketplaceApprovals,
+  EncodedApprovalCall,
 } from "./modules/index";
 export {
   // Session management
@@ -329,6 +360,14 @@ export {
   getGardeners,
   getGardens,
   getHypercertById,
+  // Marketplace data functions
+  getRegisteredOrders,
+  getActiveOrder,
+  previewPurchase,
+  getMinPrice,
+  getSellerOrders,
+  getTradeHistory,
+  getListingHistory,
   getStoredUsername,
   getSubmissionStatusText,
   getWorkApprovals,
@@ -392,6 +431,16 @@ export {
   useJobQueueEvents,
   validateApprovalDraft,
   validateWorkDraft,
+  // Marketplace SDK integration (client, signing, approvals)
+  getMarketplaceClient,
+  getMarketplaceAddresses,
+  isMarketplaceSupported,
+  resetMarketplaceClients,
+  buildMakerAsk,
+  signMakerAsk,
+  validateOrder,
+  checkMarketplaceApprovals,
+  buildApprovalTransactions,
 } from "./modules/index";
 // ============================================================================
 // HYPERCERTS LIB
@@ -422,12 +471,16 @@ export {
   validateAllowlist,
   validateMetadata,
   verifyProof,
+  // Marketplace adapter ABIs
+  MARKETPLACE_ADAPTER_ABI,
+  HYPERCERTS_MODULE_ABI,
+  TRANSFER_MANAGER_ABI,
 } from "./lib/hypercerts";
 export type { ContributorWeight, DistributionMode, MerkleLeaf, MerkleTree } from "./lib/hypercerts";
 // ============================================================================
 // PROVIDERS (re-export via subpath import recommended: @green-goods/shared/providers)
 // ============================================================================
-export type { AuthContextType, WorkFormValue, WorkSelectionValue } from "./providers/index";
+export type { AuthContextType, Locale, WorkFormValue, WorkSelectionValue } from "./providers/index";
 export {
   AppKitProvider,
   AppProvider,
@@ -470,6 +523,7 @@ export {
 export type {
   // Domain types
   Address,
+  ENSRegistrationData,
   GardenerCard,
   GardenCard,
   Garden,
@@ -503,8 +557,13 @@ export type {
   HypercertAttestation,
   HypercertDraft,
   HypercertMetadata,
+  HypercertListing,
   HypercertRecord,
   HypercertStatus,
+  ListingStatus,
+  CreateListingParams,
+  FractionTrade,
+  RegisteredOrderView,
   MetricValue,
   OutcomeMetrics,
   PredefinedMetric,
@@ -601,6 +660,7 @@ export type {
 // Re-export enums and constants
 export {
   ACTION_DOMAINS,
+  LISTING_DEFAULTS,
   Capital,
   Confidence,
   CynefinPhase,
@@ -637,6 +697,7 @@ export type {
   Resolved,
   ResolveEnsAddressOptions,
   ResolveEnsOptions,
+  SlugValidationResult,
   SimulationResult,
   Theme,
   TimeFilter,
@@ -684,6 +745,8 @@ export {
   GardenAccountABI,
   getRoleColorClasses,
   GardenTokenABI,
+  GreenGoodsENSABI,
+  HatsABI,
   gardenHasMember,
   getBlockchainErrorI18nKey,
   getBlockExplorerTxUrl,
@@ -725,6 +788,8 @@ export {
   resetHapticsState,
   resolveEnsAddress,
   resolveEnsName,
+  suggestSlug,
+  validateSlug,
   resolveGardenMemberKey,
   saveFormDraft,
   setHapticsEnabled,
@@ -778,7 +843,6 @@ export {
   type CreateGardenEvent,
   type MintHypercertContext,
   type MintHypercertEvent,
-  claimENSService,
   createAssessmentMachine,
   createGardenMachine,
   getAuthActor,

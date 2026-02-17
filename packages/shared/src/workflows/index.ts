@@ -36,7 +36,6 @@ export {
   restoreSessionService,
   registerPasskeyService,
   authenticatePasskeyService,
-  claimENSService,
 } from "./authServices";
 
 // Auth Actor (Singleton)

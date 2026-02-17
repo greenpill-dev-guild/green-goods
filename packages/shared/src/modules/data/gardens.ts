@@ -159,8 +159,6 @@ export async function getGardenCommunityFromSubgraph(
   return {
     gardenAddress,
     communityAddress: community.id as Address,
-    // Power registry is not directly in the subgraph -- will remain as fetched from contract
-    powerRegistryAddress: "0x0000000000000000000000000000000000000000" as Address,
     goodsTokenAddress: community.registerToken as Address,
     // WeightScheme is not in the subgraph -- default to Linear; caller can override
     weightScheme: WeightScheme.Linear,

@@ -1,22 +1,31 @@
 import {
+  capitalize,
   copyToClipboard,
+  debugError,
+  ENSProgressTimeline,
   hapticLight,
   hapticSuccess,
-  toastService,
-  type Garden,
-} from "@green-goods/shared";
-import {
+  isAlreadyGardenerError,
   isGardenMember,
+  parseAndFormatError,
+  toastService,
+  useApp,
   useAuth,
+  useENSClaim,
+  useENSRegistrationStatus,
   useEnsName,
   useGardens,
   useInstallGuidance,
   useJoinGarden,
+  useOffline,
+  useProtocolMemberStatus,
+  useSlugAvailability,
+  useSlugForm,
   useTheme,
-} from "@green-goods/shared/hooks";
-import { type Locale, useApp } from "@green-goods/shared/providers";
-import { capitalize, isAlreadyGardenerError, parseAndFormatError } from "@green-goods/shared/utils";
-import { debugError } from "@green-goods/shared/utils/debug";
+  useTimeout,
+  type Garden,
+  type Locale,
+} from "@green-goods/shared";
 import {
   RiAlertLine,
   RiCheckLine,
@@ -25,7 +34,9 @@ import {
   RiEarthFill,
   RiExternalLinkLine,
   RiFileCopyLine,
+  RiGlobalLine,
   RiKeyLine,
+  RiLoader4Line,
   RiLogoutBoxRLine,
   RiMapPinLine,
   RiMoonLine,
@@ -35,7 +46,7 @@ import {
   RiSunLine,
   RiWalletLine,
 } from "@remixicon/react";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/Actions";
@@ -140,6 +151,55 @@ export const ProfileAccount: React.FC = () => {
       }));
   }, [gardens, primaryAddress]);
 
+  // ── ENS Claim Section ─────────────────────────────────
+  const ensDiscoveryTimeout = useTimeout();
+  const { isOnline } = useOffline();
+  const { data: isProtocolMember = false } = useProtocolMemberStatus(
+    primaryAddress as `0x${string}` | undefined
+  );
+  const slugForm = useSlugForm();
+  const slugValue = slugForm.watch("slug");
+  const { data: isSlugAvailable, isFetching: isCheckingSlug } = useSlugAvailability(
+    slugValue || undefined
+  );
+  const ensClaim = useENSClaim();
+  const [claimedSlug, setClaimedSlug] = useState<string | null>(null);
+  const { data: registrationData } = useENSRegistrationStatus(claimedSlug ?? undefined);
+
+  // Check if user already has a name (pending or active)
+  const hasExistingName =
+    registrationData?.status === "pending" || registrationData?.status === "active";
+  const showENSSection = primaryAddress && isProtocolMember && !hasExistingName;
+
+  // SW notification when ENS registration completes (pending -> active)
+  const ensNotifiedRef = useRef(false);
+  useEffect(() => {
+    if (claimedSlug && registrationData?.status === "active" && !ensNotifiedRef.current) {
+      ensNotifiedRef.current = true;
+      const sw = navigator.serviceWorker?.controller;
+      if (sw) {
+        sw.postMessage({
+          type: "ENS_REGISTRATION_COMPLETE",
+          slug: claimedSlug,
+        });
+      }
+    }
+  }, [claimedSlug, registrationData?.status]);
+
+  const handleENSClaim = async () => {
+    const result = slugForm.trigger("slug");
+    if (!(await result)) return;
+    const slug = slugForm.getValues("slug");
+    try {
+      await ensClaim.mutateAsync({ slug });
+      setClaimedSlug(slug);
+      slugForm.reset();
+    } catch {
+      // Error handling is in the mutation hook
+    }
+  };
+  // ─────────────────────────────────────────────────────
+
   const handleJoinGarden = async (garden: Garden) => {
     // Provide haptic feedback when join button is pressed
     hapticLight();
@@ -162,6 +222,24 @@ export const ProfileAccount: React.FC = () => {
         }),
         context: "joinGarden",
       });
+
+      // One-time ENS discovery toast after joining first garden
+      const wasFirstJoin = allGardens.filter((g) => g.isMember).length === 0;
+      if (wasFirstJoin) {
+        ensDiscoveryTimeout.set(() => {
+          toastService.info({
+            title: intl.formatMessage({
+              id: "app.account.ensDiscovery",
+              defaultMessage: "Claim your .greengoods.eth name",
+            }),
+            message: intl.formatMessage({
+              id: "app.account.ensDiscoveryMessage",
+              defaultMessage: "As a protocol member, you can claim a personal ENS subdomain.",
+            }),
+            context: "ensDiscovery",
+          });
+        }, 2000);
+      }
     } catch (err) {
       // Handle "already a member" as success, not error
       if (isAlreadyGardenerError(err)) {
@@ -687,6 +765,149 @@ export const ProfileAccount: React.FC = () => {
               </div>
             </Card>
           )}
+        </>
+      )}
+
+      {/* ENS Claim Section */}
+      {showENSSection && (
+        <>
+          <h5 className="text-label-md text-text-strong-950">
+            {intl.formatMessage({
+              id: "app.profile.ensName",
+              defaultMessage: "ENS Name",
+            })}
+          </h5>
+          <Card>
+            <div className="flex flex-col gap-3 w-full">
+              <div className="flex items-start gap-3">
+                <Avatar>
+                  <div className="flex items-center justify-center text-center mx-auto text-primary">
+                    <RiGlobalLine className="w-4" />
+                  </div>
+                </Avatar>
+                <div className="flex flex-col gap-1 grow">
+                  <div className="text-sm font-medium">
+                    {intl.formatMessage({
+                      id: "app.profile.claimENSTitle",
+                      defaultMessage: "Claim your greengoods.eth name",
+                    })}
+                  </div>
+                  <div className="text-xs text-text-sub-600">
+                    {intl.formatMessage({
+                      id: "app.profile.claimENSDescription",
+                      defaultMessage:
+                        "Get a personal subdomain as a protocol member. Registration takes ~15-20 minutes via cross-chain messaging.",
+                    })}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="relative">
+                  <input
+                    {...slugForm.register("slug")}
+                    placeholder={intl.formatMessage({
+                      id: "app.profile.slugPlaceholder",
+                      defaultMessage: "your-name",
+                    })}
+                    inputMode="text"
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 py-2.5 pr-10 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                  {/* Availability indicator */}
+                  {slugValue && slugValue.length >= 3 && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {isCheckingSlug ? (
+                        <RiLoader4Line
+                          className="h-4 w-4 animate-spin text-text-soft-400"
+                          aria-label="Checking availability"
+                        />
+                      ) : isSlugAvailable ? (
+                        <RiCheckLine
+                          className="h-4 w-4 text-green-500"
+                          aria-label="Name available"
+                        />
+                      ) : isSlugAvailable === false ? (
+                        <RiAlertLine className="h-4 w-4 text-error-base" aria-label="Name taken" />
+                      ) : null}
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-text-sub-600">
+                  {slugValue
+                    ? `${slugValue}.greengoods.eth`
+                    : intl.formatMessage({
+                        id: "app.profile.slugHint",
+                        defaultMessage: "Choose your personal subdomain on greengoods.eth",
+                      })}
+                </span>
+                {slugForm.formState.errors.slug && (
+                  <span className="text-xs text-error-base">
+                    {slugForm.formState.errors.slug.message}
+                  </span>
+                )}
+                {!isCheckingSlug && isSlugAvailable === false && slugValue && (
+                  <span className="text-xs text-error-base">
+                    {intl.formatMessage({
+                      id: "app.profile.slugTaken",
+                      defaultMessage: "This name is already taken",
+                    })}
+                  </span>
+                )}
+                <Button
+                  variant="primary"
+                  mode="filled"
+                  size="xsmall"
+                  onClick={handleENSClaim}
+                  disabled={
+                    !isOnline ||
+                    ensClaim.isPending ||
+                    !isSlugAvailable ||
+                    isCheckingSlug ||
+                    !slugValue
+                  }
+                  leadingIcon={
+                    ensClaim.isPending ? (
+                      <RiLoader4Line className="w-4 animate-spin" />
+                    ) : (
+                      <RiGlobalLine className="w-4" />
+                    )
+                  }
+                  label={
+                    !isOnline
+                      ? intl.formatMessage({
+                          id: "app.profile.claimOffline",
+                          defaultMessage: "Go online to claim",
+                        })
+                      : ensClaim.isPending
+                        ? intl.formatMessage({
+                            id: "app.profile.claiming",
+                            defaultMessage: "Claiming...",
+                          })
+                        : intl.formatMessage({
+                            id: "app.profile.claimButton",
+                            defaultMessage: "Claim name",
+                          })
+                  }
+                  className="w-full"
+                />
+              </div>
+            </div>
+          </Card>
+        </>
+      )}
+
+      {/* ENS Registration Progress (pending or active) */}
+      {claimedSlug && registrationData && registrationData.status !== "available" && (
+        <>
+          <h5 className="text-label-md text-text-strong-950">
+            {intl.formatMessage({
+              id: "app.profile.ensRegistration",
+              defaultMessage: "ENS Registration",
+            })}
+          </h5>
+          <ENSProgressTimeline data={registrationData} slug={claimedSlug} />
         </>
       )}
 

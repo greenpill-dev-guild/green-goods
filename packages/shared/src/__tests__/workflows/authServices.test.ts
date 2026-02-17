@@ -5,7 +5,7 @@
  * - restoreSessionService: Restore session from Pimlico server using stored username
  * - registerPasskeyService: Create new passkey and store on Pimlico server
  * - authenticatePasskeyService: Login with passkey from Pimlico server
- * - claimENSService: Claim ENS subdomain
+ * (claimENSService was removed — ENS claiming is now a standalone mutation hook)
  *
  * Note: These services are XState 5 `fromPromise` actors. To test them,
  * we create a minimal test machine and verify the service behavior.
@@ -165,7 +165,6 @@ import { createPasskey } from "../../config/passkeyServer";
 import { clearStoredUsername, setStoredUsername } from "../../modules/auth/session";
 import {
   authenticatePasskeyService,
-  claimENSService,
   registerPasskeyService,
   restoreSessionService,
 } from "../../workflows/authServices";
@@ -529,21 +528,6 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
           ]),
         }),
       });
-    });
-  });
-
-  // ==========================================================================
-  // CLAIM ENS SERVICE
-  // ==========================================================================
-
-  describe("claimENSService", () => {
-    it("throws when smart account client is missing", async () => {
-      await expect(
-        invokeService(claimENSService, {
-          smartAccountClient: null,
-          name: "test.greengoods.eth",
-        })
-      ).rejects.toThrow("Smart account client required for ENS claim");
     });
   });
 

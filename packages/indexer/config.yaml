@@ -50,9 +50,9 @@ contracts:
   - name: GardensModule
     handler: src/EventHandlers.ts
     events:
-      - event: CommunityCreated(address indexed garden, address indexed community, uint8 weightScheme, address goodsToken, address nftPowerRegistry)
+      - event: CommunityCreated(address indexed garden, address indexed community, uint8 weightScheme, address goodsToken)
       - event: SignalPoolCreated(address indexed garden, address indexed pool, uint8 poolType, address indexed community)
-      - event: PowerRegistryDeployed(address indexed garden, address indexed registry, uint8 weightScheme)
+      - event: GardenPowerRegistered(address indexed garden, uint8 weightScheme, uint256 sourceCount)
       - event: GoodsAirdropped(address indexed garden, uint256 totalAmount)
       - event: GardenTreasurySeeded(address indexed garden, uint256 amount)
   - name: YieldSplitter
@@ -73,6 +73,11 @@ contracts:
     events:
       - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
       - event: ClaimStored(uint256 indexed claimID, string uri, uint256 totalUnits)
+  - name: GreenGoodsENS
+    handler: src/EventHandlers.ts
+    events:
+      - event: NameRegistrationSent(bytes32 indexed messageId, string slug, address indexed owner, uint8 nameType, uint256 ccipFee)
+      - event: NameReleaseSent(bytes32 indexed messageId, string slug, address indexed previousOwner)
 networks:
   - id: 42161
     start_block: 422901795
@@ -99,6 +104,8 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+      - name: GreenGoodsENS
+        address: "0x0000000000000000000000000000000000000000"
   - id: 42220
     start_block: 48697725
     contracts:
@@ -122,6 +129,8 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+      - name: GreenGoodsENS
+        address: "0x0000000000000000000000000000000000000000"
   - id: 11155111
     start_block: 0
     contracts:
@@ -145,3 +154,5 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+      - name: GreenGoodsENS
+        address: "0x0000000000000000000000000000000000000000"

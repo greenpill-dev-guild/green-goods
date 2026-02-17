@@ -1,5 +1,4 @@
-import { useGardenAssessments } from "@green-goods/shared/hooks";
-import { useAdminStore } from "@green-goods/shared/stores";
+import { useGardenAssessments, useAdminStore, logger } from "@green-goods/shared";
 import { RiAddLine, RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -199,7 +198,7 @@ function parseAssessment(decodedDataJson: string | null) {
       endDate: toNumber(readValue("endDate")),
     };
   } catch (error) {
-    console.error("Failed to parse assessment attestation", error);
+    logger.error("Failed to parse assessment attestation", { error });
     return null;
   }
 }

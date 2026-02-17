@@ -20,7 +20,12 @@ import {
 import { wagmiConfig } from "../../config/appkit";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useCreateGardenStore } from "../../stores/useCreateGardenStore";
-import { GardenTokenABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import {
+  createClients,
+  GardenTokenABI,
+  GreenGoodsENSABI,
+  getNetworkContracts,
+} from "../../utils/blockchain/contracts";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { createGardenMachine, type CreateGardenFormStatus } from "../../workflows/createGarden";
 
@@ -102,12 +107,35 @@ export function useCreateGardenWorkflow() {
               const config = {
                 communityToken: params.communityToken,
                 name: params.name,
+                slug: params.slug ?? "",
                 description: params.description,
                 location: params.location,
                 bannerImage: params.bannerImage,
                 metadata: params.metadata ?? "",
                 openJoining: params.openJoining ?? false,
               };
+
+              // Estimate CCIP fee for ENS registration (if slug provided and ENS module configured)
+              let ccipFee = 0n;
+              const ensAddress = contracts.greenGoodsENS as `0x${string}`;
+              if (
+                config.slug &&
+                ensAddress &&
+                ensAddress !== "0x0000000000000000000000000000000000000000"
+              ) {
+                try {
+                  const { publicClient } = createClients(currentChainId);
+                  ccipFee = (await publicClient.readContract({
+                    address: ensAddress,
+                    abi: GreenGoodsENSABI,
+                    functionName: "getRegistrationFee",
+                    args: [config.slug, currentAddress, 1], // 1 = Garden NameType
+                  })) as bigint;
+                } catch {
+                  // ENS fee estimation failed -- proceed without ENS (graceful degradation)
+                  ccipFee = 0n;
+                }
+              }
 
               // Simulate first to catch contract reverts without spending gas
               const simulation = await simulateTransaction(
@@ -122,13 +150,14 @@ export function useCreateGardenWorkflow() {
                 throw new Error(simulation.error?.message ?? "Transaction simulation failed");
               }
 
-              // Execute the transaction
+              // Execute the transaction (payable -- includes CCIP fee for ENS)
               const txHash = await currentWalletClient.writeContract({
                 address: contracts.gardenToken as `0x${string}`,
                 abi: GardenTokenABI,
                 functionName: "mintGarden",
                 account: currentAddress,
                 args: [config],
+                value: ccipFee,
               });
 
               addPendingTxRef.current(txHash, "garden:create");

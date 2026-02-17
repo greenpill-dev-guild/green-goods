@@ -143,3 +143,4 @@ export type { SubmissionProgressState, SubmissionStage } from "../hooks/work/use
 export { SubmissionProgress } from "./Progress/SubmissionProgress";
 export type { SyncStatus } from "./Progress/SyncIndicator";
 export { SyncIndicator } from "./Progress/SyncIndicator";
+export { ENSProgressTimeline } from "./Progress/ENSProgressTimeline";

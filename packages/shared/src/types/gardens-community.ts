@@ -9,10 +9,14 @@ import type { Address } from "./domain";
  * Selected at garden mint time and immutable thereafter.
  *
  * Values correspond to the Solidity enum WeightScheme in IGardensModule.sol.
- * Each scheme defines (community, gardener, operator) weights in basis points:
- * - Linear:      (100, 200, 300)   -> 1x, 2x, 3x
- * - Exponential: (200, 400, 1600)  -> 1x, 2x, 8x
- * - Power:       (300, 900, 8100)  -> 1x, 3x, 27x
+ * Each scheme defines (community, gardener, operator) weights in basis points
+ * (10_000 = 1x multiplier). Weights must be >= 10_000 so that HAT-based
+ * sources (binary balance=1) produce non-zero power after integer division
+ * in UnifiedPowerRegistry: (1 * weight) / 10_000 > 0.
+ *
+ * - Linear:      (10_000, 20_000, 30_000)     -> 1x, 2x, 3x
+ * - Exponential: (20_000, 40_000, 160_000)    -> 1x, 2x, 8x
+ * - Power:       (30_000, 90_000, 810_000)    -> 1x, 3x, 27x
  */
 export enum WeightScheme {
   Linear = 0,
@@ -29,9 +33,9 @@ export interface WeightSchemeConfig {
 
 /** Maps WeightScheme enum to its (community, gardener, operator) bps values */
 export const WEIGHT_SCHEME_VALUES: Record<WeightScheme, WeightSchemeConfig> = {
-  [WeightScheme.Linear]: { community: 100, gardener: 200, operator: 300 },
-  [WeightScheme.Exponential]: { community: 200, gardener: 400, operator: 1600 },
-  [WeightScheme.Power]: { community: 300, gardener: 900, operator: 8100 },
+  [WeightScheme.Linear]: { community: 10_000, gardener: 20_000, operator: 30_000 },
+  [WeightScheme.Exponential]: { community: 20_000, gardener: 40_000, operator: 160_000 },
+  [WeightScheme.Power]: { community: 30_000, gardener: 90_000, operator: 810_000 },
 };
 
 // ============================================
@@ -44,14 +48,14 @@ export interface GardenCommunity {
   gardenAddress: Address;
   /** RegistryCommunity contract address */
   communityAddress: Address;
-  /** NFTPowerRegistry address for Hats-based voting power */
-  powerRegistryAddress: Address;
   /** GOODS token address used for staking */
   goodsTokenAddress: Address;
   /** Immutable weight scheme selected at mint time */
   weightScheme: WeightScheme;
   /** Minimum GOODS stake required to join (in wei) */
   stakeAmount: bigint;
+  /** Number of power sources registered in the unified registry (informational) */
+  powerSourceCount?: number;
 }
 
 // ============================================

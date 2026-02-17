@@ -5,12 +5,25 @@ import {
   ImageWithFallback,
   useGardens,
   useHypercerts,
+  useHypercertListings,
+  useGardenPermissions,
   type OptimisticHypercertData,
 } from "@green-goods/shared";
-import { RiExternalLinkLine, RiLoader4Line, RiCheckLine } from "@remixicon/react";
+import {
+  RiExternalLinkLine,
+  RiLoader4Line,
+  RiCheckLine,
+  RiExchangeDollarLine,
+} from "@remixicon/react";
+import { useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { useIntl } from "react-intl";
+import type { Address } from "viem";
+import { formatEther } from "viem";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { MarketplaceApprovalGate } from "@/components/hypercerts/MarketplaceApprovalGate";
+import { CreateListingDialog } from "@/components/hypercerts/CreateListingDialog";
+import { TradeHistoryTable } from "@/components/hypercerts/TradeHistoryTable";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
 
@@ -64,6 +77,9 @@ export default function HypercertDetail() {
   const location = useLocation();
   const { data: gardens = [] } = useGardens();
   const garden = gardens.find((item) => item.id === id);
+  const permissions = useGardenPermissions();
+  const canManage = garden ? permissions.canManageGarden(garden) : false;
+  const [listingDialogOpen, setListingDialogOpen] = useState(false);
 
   // Extract optimistic data from navigation state (passed after minting)
   const locationState = location.state as { optimisticData?: OptimisticHypercertData } | null;
@@ -248,6 +264,18 @@ export default function HypercertDetail() {
               </section>
             ) : null}
 
+            {/* Marketplace Section */}
+            {canManage && garden && (
+              <MarketplaceSection
+                gardenAddress={garden.id as Address}
+                hypercertId={hypercertId ? BigInt(hypercertId.split("-").pop() || "0") : 0n}
+                hypercertIdString={hypercertId || ""}
+                chainId={garden.chainId ?? DEFAULT_CHAIN_ID}
+                listingDialogOpen={listingDialogOpen}
+                setListingDialogOpen={setListingDialogOpen}
+              />
+            )}
+
             {hypercert.attestations && hypercert.attestations.length > 0 && (
               <section className="rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
                 <h3 className="text-sm font-semibold text-text-strong">
@@ -309,5 +337,119 @@ export default function HypercertDetail() {
         )}
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Marketplace Section
+// ---------------------------------------------------------------------------
+
+function MarketplaceSection({
+  gardenAddress,
+  hypercertId,
+  hypercertIdString,
+  chainId,
+  listingDialogOpen,
+  setListingDialogOpen,
+}: {
+  gardenAddress: Address;
+  hypercertId: bigint;
+  hypercertIdString: string;
+  chainId: number;
+  listingDialogOpen: boolean;
+  setListingDialogOpen: (open: boolean) => void;
+}) {
+  const { listings } = useHypercertListings(gardenAddress);
+
+  // Find active listing for this hypercert
+  const activeListing = listings.find((l) => l.active && l.hypercertId === hypercertId);
+
+  const now = Math.floor(Date.now() / 1000);
+  const isExpired = activeListing ? activeListing.endTime <= now : false;
+
+  return (
+    <>
+      <section className="rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-text-strong">
+            <RiExchangeDollarLine className="h-4 w-4 text-primary-base" />
+            Marketplace
+          </h3>
+          {!activeListing && (
+            <button
+              type="button"
+              onClick={() => setListingDialogOpen(true)}
+              className="flex items-center gap-1.5 rounded-md bg-primary-base px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary-darker"
+            >
+              <RiExchangeDollarLine className="h-3.5 w-3.5" />
+              List for Yield
+            </button>
+          )}
+        </div>
+
+        <MarketplaceApprovalGate>
+          {activeListing ? (
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    isExpired
+                      ? "bg-warning-lighter text-warning-dark"
+                      : "bg-success-lighter text-success-dark"
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      isExpired ? "bg-warning-base" : "bg-success-base"
+                    }`}
+                  />
+                  {isExpired ? "Expired" : "Listed for Yield"}
+                </span>
+              </div>
+              <div className="grid gap-2 text-xs text-text-sub sm:grid-cols-3">
+                <div>
+                  <span className="font-medium text-text-strong">Price:</span>{" "}
+                  {formatEther(activeListing.pricePerUnit)} ETH/unit
+                </div>
+                <div>
+                  <span className="font-medium text-text-strong">Expires:</span>{" "}
+                  {new Date(activeListing.endTime * 1000).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </div>
+                <div>
+                  <span className="font-medium text-text-strong">Order ID:</span> #
+                  {activeListing.orderId}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-text-soft">
+              This hypercert is not listed on the marketplace. List it for yield to allow supporters
+              to purchase fractions.
+            </p>
+          )}
+        </MarketplaceApprovalGate>
+      </section>
+
+      {/* Trade History */}
+      {hypercertId > 0n && (
+        <section className="rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-text-strong">Trade History</h3>
+          <TradeHistoryTable hypercertId={hypercertId} chainId={chainId} />
+        </section>
+      )}
+
+      {/* Create Listing Dialog */}
+      <CreateListingDialog
+        open={listingDialogOpen}
+        onOpenChange={setListingDialogOpen}
+        gardenAddress={gardenAddress}
+        hypercertId={hypercertId}
+        fractionId={hypercertId}
+      />
+    </>
   );
 }

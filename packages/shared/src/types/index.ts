@@ -116,6 +116,7 @@ export type {
   Address,
   AssessmentAttachment,
   AssessmentDraft,
+  ENSRegistrationData,
   Garden,
   GardenAssessment,
   GardenCard,
@@ -138,7 +139,7 @@ export { Capital, Confidence, CynefinPhase, Domain, VerificationMethod } from ".
 // ============================================
 // Hypercert Types
 // ============================================
-export { ACTION_DOMAINS } from "./hypercerts";
+export { ACTION_DOMAINS, LISTING_DEFAULTS } from "./hypercerts";
 export type {
   ActionDomain,
   ActionType,
@@ -146,18 +147,23 @@ export type {
   AllowlistEntry,
   AttestationRef,
   CapitalType,
+  CreateListingParams,
   CustomMetric,
+  FractionTrade,
   GreenGoodsExtension,
   HypercertAllowlistClaim,
   HypercertAttestation,
   HypercertDraft,
+  HypercertListing,
   HypercertMetadata,
   HypercertRecord,
   HypercertStatus,
+  ListingStatus,
   MetricValue,
   OutcomeMetrics,
   PredefinedMetric,
   PropertyDefinition,
+  RegisteredOrderView,
   ScopeDefinition,
   TimeframeDefinition,
   WorkApprovalNode,

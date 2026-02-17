@@ -16,12 +16,21 @@ export interface NetworkContracts {
   cookieJarModule: string;
   yieldSplitter: string;
   gardensModule: string;
+  greenGoodsENS: string;
+  // Hypercert marketplace integration
+  hypercertExchange: string;
+  hypercertMinter: string;
+  transferManager: string;
+  marketplaceAdapter: string;
+  hypercertsModule: string;
+  strategyHypercertFractionOffer: string;
 }
 
 // Garden creation parameters
 export interface CreateGardenParams {
   communityToken: string;
   name: string;
+  slug: string;
   description: string;
   location: string;
   bannerImage: string;

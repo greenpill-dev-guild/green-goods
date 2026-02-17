@@ -4,6 +4,7 @@ import {
   trackUploadSuccess,
   type UploadErrorCategory,
 } from "../app/error-tracking";
+import { logger } from "../app/logger";
 
 interface IpfsConfig {
   /** Base64-encoded ed25519 private key */
@@ -101,7 +102,7 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
     return { cid };
   } catch (error) {
     const uploadDuration = Date.now() - startTime;
-    console.error(`Failed to upload to Storacha (${category}):`, error);
+    logger.error(`Failed to upload to Storacha (${category})`, { error });
 
     trackUploadError(error, {
       uploadCategory: category,
@@ -170,13 +171,13 @@ export async function initializeIpfs(config: IpfsConfig): Promise<{
     }
 
     ipfsInitializationStatus = "success";
-    console.log(`✅ Storacha initialized (${Date.now() - startTime}ms) - Space: ${space.did()}`);
+    logger.info(`Storacha initialized (${Date.now() - startTime}ms) - Space: ${space.did()}`);
 
     return { client: storachaClient, gatewayUrl };
   } catch (error) {
     ipfsInitializationStatus = "failed";
     ipfsInitializationError = error instanceof Error ? error.message : String(error);
-    console.error("Failed to initialize Storacha client:", error);
+    logger.error("Failed to initialize Storacha client", { error });
 
     // Track initialization failure
     trackUploadError(error, {
@@ -414,7 +415,7 @@ export async function initializeIpfsFromEnv(
     ipfsInitializationStatus = "skipped_no_config";
     // Only warn in development, not in CI/production builds with placeholders
     if (import.meta.env.DEV) {
-      console.warn(
+      logger.warn(
         "VITE_STORACHA_KEY and VITE_STORACHA_PROOF are not configured. " +
           "Media features will be unavailable. " +
           "See: https://docs.storacha.network/how-to/upload-from-ci/"
@@ -427,7 +428,7 @@ export async function initializeIpfsFromEnv(
     await initializeIpfs({ key, proof, gatewayBaseUrl });
     return true;
   } catch (err) {
-    console.error("Failed to initialize Storacha:", err);
+    logger.error("Failed to initialize Storacha", { error: err });
     return false;
   }
 }

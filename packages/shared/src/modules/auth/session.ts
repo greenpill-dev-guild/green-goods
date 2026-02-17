@@ -15,6 +15,8 @@
 
 import type { P256Credential } from "viem/account-abstraction";
 
+import { logger } from "../app/logger";
+
 // ============================================================================
 // STORAGE KEYS
 // ============================================================================
@@ -226,7 +228,7 @@ export function getStoredCredential(): P256Credential | null {
       raw: undefined as unknown as PublicKeyCredential,
     };
   } catch {
-    console.warn("[Session] Failed to parse stored credential, clearing...");
+    logger.warn("[Session] Failed to parse stored credential, clearing...");
     localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
     return null;
   }

@@ -7,6 +7,7 @@ import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis";
 import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules";
 import { getGardenCommunityFromSubgraph } from "../../modules/data/gardens";
 import { normalizeAddress } from "../../utils/blockchain/address";
+import { logger } from "../../modules/app/logger";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { queryKeys, STALE_TIME_SLOW } from "../query-keys";
 
@@ -41,30 +42,37 @@ export function useGardenCommunity(
         );
         if (subgraphResult) {
           // Enrich with on-chain data not available in subgraph
-          // (weightScheme and powerRegistry require RPC calls)
-          const gardensModule = await fetchGardensModuleAddress(
-            normalizedGarden as Address,
-            chainId
-          );
-          if (gardensModule) {
-            const [weightSchemeRaw, powerRegistryAddress] = await Promise.all([
-              readContract(wagmiConfig, {
+          // (weightScheme requires an RPC call)
+          try {
+            const gardensModule = await fetchGardensModuleAddress(
+              normalizedGarden as Address,
+              chainId
+            );
+            if (gardensModule) {
+              const weightSchemeRaw = await readContract(wagmiConfig, {
                 address: gardensModule,
                 abi: GARDENS_MODULE_ABI,
                 functionName: "getGardenWeightScheme",
                 args: [normalizedGarden],
                 chainId,
-              }),
-              readContract(wagmiConfig, {
-                address: gardensModule,
-                abi: GARDENS_MODULE_ABI,
-                functionName: "getGardenPowerRegistry",
-                args: [normalizedGarden],
+              });
+              subgraphResult.weightScheme = Number(weightSchemeRaw) as WeightScheme;
+            } else {
+              logger.warn("GardensModule not found — weight scheme defaulting to subgraph value", {
+                source: "useGardenCommunity",
+                gardenAddress: normalizedGarden,
                 chainId,
-              }),
-            ]);
-            subgraphResult.weightScheme = Number(weightSchemeRaw) as WeightScheme;
-            subgraphResult.powerRegistryAddress = powerRegistryAddress as Address;
+                defaultScheme: subgraphResult.weightScheme,
+              });
+            }
+          } catch (enrichError) {
+            logger.warn("Failed to enrich weight scheme from RPC — using subgraph default", {
+              source: "useGardenCommunity",
+              gardenAddress: normalizedGarden,
+              chainId,
+              defaultScheme: subgraphResult.weightScheme,
+              error: enrichError,
+            });
           }
           return subgraphResult;
         }
@@ -74,52 +82,39 @@ export function useGardenCommunity(
       const gardensModule = await fetchGardensModuleAddress(normalizedGarden as Address, chainId);
       if (!gardensModule) return null;
 
-      const [
-        resolvedCommunity,
-        weightSchemeRaw,
-        powerRegistryAddress,
-        goodsTokenAddress,
-        stakeAmount,
-      ] = await Promise.all([
-        readContract(wagmiConfig, {
-          address: gardensModule,
-          abi: GARDENS_MODULE_ABI,
-          functionName: "getGardenCommunity",
-          args: [normalizedGarden],
-          chainId,
-        }),
-        readContract(wagmiConfig, {
-          address: gardensModule,
-          abi: GARDENS_MODULE_ABI,
-          functionName: "getGardenWeightScheme",
-          args: [normalizedGarden],
-          chainId,
-        }),
-        readContract(wagmiConfig, {
-          address: gardensModule,
-          abi: GARDENS_MODULE_ABI,
-          functionName: "getGardenPowerRegistry",
-          args: [normalizedGarden],
-          chainId,
-        }),
-        readContract(wagmiConfig, {
-          address: gardensModule,
-          abi: GARDENS_MODULE_ABI,
-          functionName: "goodsToken",
-          chainId,
-        }),
-        readContract(wagmiConfig, {
-          address: gardensModule,
-          abi: GARDENS_MODULE_ABI,
-          functionName: "STAKE_AMOUNT_PER_MEMBER",
-          chainId,
-        }),
-      ]);
+      const [resolvedCommunity, weightSchemeRaw, goodsTokenAddress, stakeAmount] =
+        await Promise.all([
+          readContract(wagmiConfig, {
+            address: gardensModule,
+            abi: GARDENS_MODULE_ABI,
+            functionName: "getGardenCommunity",
+            args: [normalizedGarden],
+            chainId,
+          }),
+          readContract(wagmiConfig, {
+            address: gardensModule,
+            abi: GARDENS_MODULE_ABI,
+            functionName: "getGardenWeightScheme",
+            args: [normalizedGarden],
+            chainId,
+          }),
+          readContract(wagmiConfig, {
+            address: gardensModule,
+            abi: GARDENS_MODULE_ABI,
+            functionName: "goodsToken",
+            chainId,
+          }),
+          readContract(wagmiConfig, {
+            address: gardensModule,
+            abi: GARDENS_MODULE_ABI,
+            functionName: "stakeAmountPerMember",
+            chainId,
+          }),
+        ]);
 
       return {
         gardenAddress: normalizedGarden as Address,
         communityAddress: resolvedCommunity as Address,
-        powerRegistryAddress: powerRegistryAddress as Address,
         goodsTokenAddress: goodsTokenAddress as Address,
         weightScheme: Number(weightSchemeRaw) as WeightScheme,
         stakeAmount: stakeAmount as bigint,

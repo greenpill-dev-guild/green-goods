@@ -16,3 +16,6 @@ export { SubmissionProgress } from "./SubmissionProgress";
 // Sync Indicator
 export type { SyncStatus } from "./SyncIndicator";
 export { SyncIndicator } from "./SyncIndicator";
+
+// ENS Progress Timeline
+export { ENSProgressTimeline } from "./ENSProgressTimeline";

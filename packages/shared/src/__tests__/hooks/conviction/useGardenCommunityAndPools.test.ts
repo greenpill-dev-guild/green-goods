@@ -8,7 +8,7 @@
  * - Otherwise falls back to RPC via fetchGardensModuleAddress + readContract
  *
  * useGardenCommunity additionally enriches subgraph results with on-chain
- * weightScheme and powerRegistryAddress via RPC (not available in subgraph).
+ * weightScheme via RPC (not available in subgraph).
  *
  * Covers:
  * - Subgraph fast path with communityAddress
@@ -27,7 +27,6 @@ const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
 const TEST_GARDENS_MODULE = "0x6666666666666666666666666666666666666666";
 const TEST_COMMUNITY = "0x7777777777777777777777777777777777777777";
-const TEST_POWER_REGISTRY = "0x8888888888888888888888888888888888888888";
 const TEST_GOODS_TOKEN = "0x9999999999999999999999999999999999999999";
 const TEST_POOL_1 = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const TEST_POOL_2 = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -98,16 +97,13 @@ describe("useGardenCommunity — subgraph path", () => {
     mockGetGardenCommunity.mockResolvedValueOnce({
       gardenAddress: TEST_GARDEN.toLowerCase() as Address,
       communityAddress: TEST_COMMUNITY as Address,
-      powerRegistryAddress: "0x0000000000000000000000000000000000000000" as Address,
       goodsTokenAddress: TEST_GOODS_TOKEN as Address,
       weightScheme: WeightScheme.Linear,
       stakeAmount: 1000000000000000000n,
     });
-    // RPC enrichment: fetchGardensModuleAddress + readContract for weightScheme and powerRegistry
+    // RPC enrichment: fetchGardensModuleAddress + readContract for weightScheme
     mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
-    mockReadContract
-      .mockResolvedValueOnce(1) // getGardenWeightScheme (Exponential)
-      .mockResolvedValueOnce(TEST_POWER_REGISTRY); // getGardenPowerRegistry
+    mockReadContract.mockResolvedValueOnce(1); // getGardenWeightScheme (Exponential)
 
     const { result } = renderHook(
       () =>
@@ -123,7 +119,6 @@ describe("useGardenCommunity — subgraph path", () => {
     expect(result.current.community?.communityAddress).toBe(TEST_COMMUNITY);
     // Enriched from RPC
     expect(result.current.community?.weightScheme).toBe(WeightScheme.Exponential);
-    expect(result.current.community?.powerRegistryAddress).toBe(TEST_POWER_REGISTRY);
     expect(result.current.community?.goodsTokenAddress).toBe(TEST_GOODS_TOKEN);
     expect(result.current.community?.stakeAmount).toBe(1000000000000000000n);
   });
@@ -171,13 +166,12 @@ describe("useGardenCommunity — subgraph path", () => {
     mockGetGardenCommunity.mockResolvedValueOnce({
       gardenAddress: mixedCase.toLowerCase() as Address,
       communityAddress: TEST_COMMUNITY as Address,
-      powerRegistryAddress: "0x0000000000000000000000000000000000000000" as Address,
       goodsTokenAddress: TEST_GOODS_TOKEN as Address,
       weightScheme: WeightScheme.Linear,
       stakeAmount: 1000000000000000000n,
     });
     mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
-    mockReadContract.mockResolvedValueOnce(0).mockResolvedValueOnce(TEST_POWER_REGISTRY);
+    mockReadContract.mockResolvedValueOnce(0);
 
     const { result } = renderHook(
       () =>
@@ -215,13 +209,12 @@ describe("useGardenCommunity — subgraph path", () => {
     mockGetGardenCommunity.mockResolvedValueOnce({
       gardenAddress: TEST_GARDEN.toLowerCase() as Address,
       communityAddress: TEST_COMMUNITY as Address,
-      powerRegistryAddress: "0x0000000000000000000000000000000000000000" as Address,
       goodsTokenAddress: TEST_GOODS_TOKEN as Address,
       weightScheme: WeightScheme.Linear,
       stakeAmount: 1000000000000000000n,
     });
     mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
-    mockReadContract.mockResolvedValueOnce(1).mockResolvedValueOnce(TEST_POWER_REGISTRY);
+    mockReadContract.mockResolvedValueOnce(1); // getGardenWeightScheme
 
     const { result } = renderHook(
       () =>
@@ -255,9 +248,8 @@ describe("useGardenCommunity — RPC fallback", () => {
     mockReadContract
       .mockResolvedValueOnce(TEST_COMMUNITY) // getGardenCommunity
       .mockResolvedValueOnce(1) // getGardenWeightScheme (Exponential)
-      .mockResolvedValueOnce(TEST_POWER_REGISTRY) // getGardenPowerRegistry
       .mockResolvedValueOnce(TEST_GOODS_TOKEN) // goodsToken
-      .mockResolvedValueOnce(1000000000000000000n); // STAKE_AMOUNT_PER_MEMBER
+      .mockResolvedValueOnce(1000000000000000000n); // stakeAmountPerMember
 
     const { result } = renderHook(() => useGardenCommunity(TEST_GARDEN as Address), {
       wrapper: createWrapper(queryClient),
@@ -289,7 +281,6 @@ describe("useGardenCommunity — RPC fallback", () => {
     mockReadContract
       .mockResolvedValueOnce(TEST_COMMUNITY)
       .mockResolvedValueOnce(0) // Linear
-      .mockResolvedValueOnce(TEST_POWER_REGISTRY)
       .mockResolvedValueOnce(TEST_GOODS_TOKEN)
       .mockResolvedValueOnce(1000000000000000000n);
 
@@ -306,7 +297,6 @@ describe("useGardenCommunity — RPC fallback", () => {
     mockReadContract
       .mockResolvedValueOnce(TEST_COMMUNITY)
       .mockResolvedValueOnce(2) // Power
-      .mockResolvedValueOnce(TEST_POWER_REGISTRY)
       .mockResolvedValueOnce(TEST_GOODS_TOKEN)
       .mockResolvedValueOnce(500000000000000000n);
 

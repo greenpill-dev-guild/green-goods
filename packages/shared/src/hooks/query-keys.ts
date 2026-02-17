@@ -224,6 +224,10 @@ export const queryKeys = {
     name: (address: string) => ["greengoods", "ens", "name", address] as const,
     address: (name: string) => ["greengoods", "ens", "address", name] as const,
     avatar: (address: string) => ["greengoods", "ens", "avatar", address] as const,
+    registrationStatus: (slug: string) => ["greengoods", "ens", "registration", slug] as const,
+    availability: (slug: string) => ["greengoods", "ens", "availability", slug] as const,
+    protocolMembership: (address: string) =>
+      ["greengoods", "ens", "protocolMembership", address] as const,
   },
 
   // Role related keys (operator/deployer detection)
@@ -264,6 +268,23 @@ export const queryKeys = {
     detail: (hypercertId?: string) => ["greengoods", "hypercerts", "detail", hypercertId] as const,
     drafts: (gardenId?: string, operatorAddress?: string) =>
       ["greengoods", "hypercerts", "drafts", gardenId, operatorAddress] as const,
+  },
+
+  // Marketplace related keys (HypercertMarketplaceAdapter)
+  marketplace: {
+    all: ["greengoods", "marketplace"] as const,
+    orders: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "marketplace", "orders", gardenAddress, chainId] as const,
+    activeOrder: (hypercertId: string, currency: string, chainId: number) =>
+      ["greengoods", "marketplace", "active-order", hypercertId, currency, chainId] as const,
+    sellerOrders: (seller: string, chainId: number) =>
+      ["greengoods", "marketplace", "seller-orders", seller, chainId] as const,
+    preview: (hypercertId: string, amount: string, currency: string, chainId: number) =>
+      ["greengoods", "marketplace", "preview", hypercertId, amount, currency, chainId] as const,
+    tradeHistory: (hypercertId: string, chainId: number) =>
+      ["greengoods", "marketplace", "trades", hypercertId, chainId] as const,
+    approvals: (operator: string, chainId: number) =>
+      ["greengoods", "marketplace", "approvals", operator, chainId] as const,
   },
 } as const;
 
@@ -340,6 +361,26 @@ export const queryInvalidation = {
     queryKeys.hypercerts.attestations(gardenId),
   ],
 
+  // Invalidate marketplace data
+  invalidateMarketplace: (gardenAddress?: string, chainId?: number) => {
+    if (gardenAddress && chainId) {
+      return [queryKeys.marketplace.orders(gardenAddress, chainId), queryKeys.marketplace.all];
+    }
+    return [queryKeys.marketplace.all];
+  },
+
+  // Queries to invalidate after listing creation or cancellation
+  onMarketplaceListingChanged: (gardenAddress: string, chainId: number) => [
+    queryKeys.marketplace.orders(gardenAddress, chainId),
+    queryKeys.marketplace.all,
+  ],
+
+  // Queries to invalidate after a fraction is purchased via yield
+  onFractionPurchased: (hypercertId: string, chainId: number) => [
+    queryKeys.marketplace.tradeHistory(hypercertId, chainId),
+    queryKeys.marketplace.all,
+  ],
+
   // Invalidate gardener profile
   invalidateGardenerProfile: (address?: string, chainId?: number) => {
     if (address && chainId) {
@@ -354,6 +395,24 @@ export const queryInvalidation = {
       return [queryKeys.ens.name(address), queryKeys.ens.avatar(address)];
     }
     return [queryKeys.ens.all];
+  },
+
+  // Invalidate ENS registration data (after claim or status change)
+  invalidateEnsRegistration: (slug?: string, address?: string) => {
+    const keys: Array<
+      | typeof queryKeys.ens.all
+      | ReturnType<typeof queryKeys.ens.registrationStatus>
+      | ReturnType<typeof queryKeys.ens.availability>
+      | ReturnType<typeof queryKeys.ens.protocolMembership>
+    > = [];
+    if (slug) {
+      keys.push(queryKeys.ens.registrationStatus(slug));
+      keys.push(queryKeys.ens.availability(slug));
+    }
+    if (address) {
+      keys.push(queryKeys.ens.protocolMembership(address));
+    }
+    return keys.length > 0 ? keys : [queryKeys.ens.all];
   },
 
   // Invalidate assessments (uses byGardenBase for prefix matching regardless of limit)
@@ -537,7 +596,21 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.yield.allocations>
   | ReturnType<typeof queryKeys.yield.byAsset>
   | ReturnType<typeof queryKeys.yield.splitConfig>
-  | ReturnType<typeof queryKeys.yield.pendingYield>;
+  | ReturnType<typeof queryKeys.yield.pendingYield>
+  | typeof queryKeys.ens.all
+  | ReturnType<typeof queryKeys.ens.name>
+  | ReturnType<typeof queryKeys.ens.address>
+  | ReturnType<typeof queryKeys.ens.avatar>
+  | ReturnType<typeof queryKeys.ens.registrationStatus>
+  | ReturnType<typeof queryKeys.ens.availability>
+  | ReturnType<typeof queryKeys.ens.protocolMembership>
+  | typeof queryKeys.marketplace.all
+  | ReturnType<typeof queryKeys.marketplace.orders>
+  | ReturnType<typeof queryKeys.marketplace.activeOrder>
+  | ReturnType<typeof queryKeys.marketplace.sellerOrders>
+  | ReturnType<typeof queryKeys.marketplace.preview>
+  | ReturnType<typeof queryKeys.marketplace.tradeHistory>
+  | ReturnType<typeof queryKeys.marketplace.approvals>;
 
 export type WorksQueryKey =
   | typeof queryKeys.works.all

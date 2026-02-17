@@ -1,9 +1,11 @@
 import { formatDate, type HypercertRecord } from "@green-goods/shared";
-import { useGardens, useGardenPermissions, useHypercerts } from "@green-goods/shared/hooks";
+import { useGardens, useGardenPermissions, useHypercerts } from "@green-goods/shared";
 import { RiAddLine, RiAwardLine, RiExternalLinkLine } from "@remixicon/react";
 import { Link, useParams } from "react-router-dom";
 import { useIntl } from "react-intl";
+import type { Address } from "viem";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { ActiveListingsTable } from "@/components/hypercerts/ActiveListingsTable";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
 
@@ -116,6 +118,16 @@ export default function Hypercerts() {
                 {formatMessage({ id: "app.hypercerts.list.empty.cta" })}
               </Link>
             )}
+          </div>
+        )}
+
+        {/* Active Marketplace Listings */}
+        {!isLoading && hypercerts.length > 0 && canManage && garden && (
+          <div className="mb-6">
+            <h3 className="mb-3 text-sm font-semibold text-text-strong">
+              Active Marketplace Listings
+            </h3>
+            <ActiveListingsTable gardenAddress={garden.id as Address} />
           </div>
         )}
 

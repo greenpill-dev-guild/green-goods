@@ -10,6 +10,7 @@ import type {
   EASWork,
   EASWorkApproval,
 } from "../../types/eas-responses";
+import { logger } from "../app/logger";
 
 const GATEWAY_BASE_URL = "https://w3s.link";
 
@@ -50,7 +51,8 @@ const toNumberFromField = (value: NumberConvertibleValue): number | null => {
     if (value.startsWith("0x")) {
       try {
         return Number(BigInt(value));
-      } catch {
+      } catch (error) {
+        logger.debug("Failed to parse hex string to BigInt", { error, value });
         return null;
       }
     }
@@ -61,7 +63,8 @@ const toNumberFromField = (value: NumberConvertibleValue): number | null => {
     if ("hex" in value && typeof value.hex === "string") {
       try {
         return Number(BigInt(value.hex));
-      } catch {
+      } catch (error) {
+        logger.debug("Failed to parse hex object to BigInt", { error, hex: value.hex });
         return null;
       }
     }

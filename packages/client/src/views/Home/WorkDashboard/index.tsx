@@ -1,5 +1,6 @@
 import {
   hapticLight,
+  logger,
   toastService,
   type Job,
   type Work,
@@ -175,7 +176,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         try {
           online = await getWorks([gardenId], DEFAULT_CHAIN_ID);
         } catch (err) {
-          console.warn(`[WorkDashboard] Failed to fetch works for garden ${gardenId}:`, err);
+          logger.warn(`[WorkDashboard] Failed to fetch works for garden ${gardenId}:`, {
+            error: err,
+          });
           // Continue with offline works for this garden and other gardens
         }
 
@@ -462,7 +465,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         viewTransition: true,
       });
     } catch (err) {
-      console.error("Navigation error:", err);
+      logger.error("Navigation error:", { error: err });
       toastService.error({
         title: intl.formatMessage({
           id: "app.workDashboard.error.navigationFailed",

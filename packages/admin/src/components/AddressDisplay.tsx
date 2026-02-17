@@ -1,4 +1,4 @@
-import { cn, copyToClipboard, formatAddress } from "@green-goods/shared/utils";
+import { cn, copyToClipboard, formatAddress, logger } from "@green-goods/shared";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import { useEffect, useId, useState } from "react";
 
@@ -36,7 +36,7 @@ export function AddressDisplay({
       await copyToClipboard(address);
       setCopied(true);
     } catch (err) {
-      console.error("Failed to copy address:", err);
+      logger.error("Failed to copy address", { error: err });
     }
   };
 

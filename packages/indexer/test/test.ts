@@ -993,14 +993,11 @@ describe("GardensModule", () => {
     const garden = createMockAddress(160);
     const community = createMockAddress(161);
     const goodsToken = createMockAddress(162);
-    const nftPowerRegistry = createMockAddress(163);
-
     const event = GardensModule.CommunityCreated.createMockEvent({
       garden,
       community,
       weightScheme: 0,
       goodsToken,
-      nftPowerRegistry,
       mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 100000, {
         txHash: createMockTxHash(20),
         logIndex: 20,
@@ -1017,8 +1014,7 @@ describe("GardensModule", () => {
     assert.equal(communityEntity.communityAddress, community.toLowerCase());
     assert.equal(communityEntity.weightScheme, "LINEAR");
     assert.equal(communityEntity.goodsToken, goodsToken.toLowerCase());
-    assert.equal(communityEntity.nftPowerRegistry, nftPowerRegistry.toLowerCase());
-    assert.equal(communityEntity.powerRegistryAddress, undefined);
+    assert.equal(communityEntity.powerSourceCount, undefined);
     assert.equal(communityEntity.createdAt, 100000);
   });
 
@@ -1038,7 +1034,6 @@ describe("GardensModule", () => {
         community: createMockAddress(171 + value),
         weightScheme: value,
         goodsToken: createMockAddress(172 + value),
-        nftPowerRegistry: createMockAddress(173 + value),
         mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 100100 + value, {
           txHash: createMockTxHash(30 + value),
           logIndex: 30 + value,
@@ -1066,7 +1061,6 @@ describe("GardensModule", () => {
       community: communityA,
       weightScheme: 0,
       goodsToken: createMockAddress(183),
-      nftPowerRegistry: createMockAddress(184),
       mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 101000, {
         txHash: createMockTxHash(40),
         logIndex: 40,
@@ -1080,7 +1074,6 @@ describe("GardensModule", () => {
       community: communityB,
       weightScheme: 1,
       goodsToken: createMockAddress(185),
-      nftPowerRegistry: createMockAddress(186),
       mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 102000, {
         txHash: createMockTxHash(41),
         logIndex: 41,
@@ -1196,11 +1189,10 @@ describe("GardensModule", () => {
     assert.equal(entity.poolType, "HYPERCERT");
   });
 
-  it("PowerRegistryDeployed updates existing GardenCommunity with registry address", async () => {
+  it("GardenPowerRegistered updates existing GardenCommunity with source count", async () => {
     let mockDb = MockDb.createMockDb();
     const garden = createMockAddress(220);
     const community = createMockAddress(221);
-    const registry = createMockAddress(222);
 
     // First create a community
     const createEvent = GardensModule.CommunityCreated.createMockEvent({
@@ -1208,7 +1200,6 @@ describe("GardensModule", () => {
       community,
       weightScheme: 1,
       goodsToken: createMockAddress(223),
-      nftPowerRegistry: createMockAddress(224),
       mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 120000, {
         txHash: createMockTxHash(80),
         logIndex: 80,
@@ -1216,18 +1207,18 @@ describe("GardensModule", () => {
     });
     mockDb = await GardensModule.CommunityCreated.processEvent({ event: createEvent, mockDb });
 
-    // Then deploy power registry
-    const deployEvent = GardensModule.PowerRegistryDeployed.createMockEvent({
+    // Then register garden power
+    const registerEvent = GardensModule.GardenPowerRegistered.createMockEvent({
       garden,
-      registry,
       weightScheme: 1,
+      sourceCount: 3n,
       mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 121000, {
         txHash: createMockTxHash(81),
         logIndex: 81,
       }),
     });
-    mockDb = await GardensModule.PowerRegistryDeployed.processEvent({
-      event: deployEvent,
+    mockDb = await GardensModule.GardenPowerRegistered.processEvent({
+      event: registerEvent,
       mockDb,
     });
 
@@ -1235,21 +1226,20 @@ describe("GardensModule", () => {
       `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}`
     );
     assert.ok(communityEntity);
-    assert.equal(communityEntity.powerRegistryAddress, registry.toLowerCase());
+    assert.equal(communityEntity.powerSourceCount, 3);
     // Other fields should remain unchanged
     assert.equal(communityEntity.weightScheme, "EXPONENTIAL");
     assert.equal(communityEntity.communityAddress, community.toLowerCase());
   });
 
-  it("PowerRegistryDeployed is safe when no community exists", async () => {
+  it("GardenPowerRegistered is safe when no community exists", async () => {
     let mockDb = MockDb.createMockDb();
     const garden = createMockAddress(230);
-    const registry = createMockAddress(231);
 
-    const event = GardensModule.PowerRegistryDeployed.createMockEvent({
+    const event = GardensModule.GardenPowerRegistered.createMockEvent({
       garden,
-      registry,
       weightScheme: 0,
+      sourceCount: 3n,
       mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 130000, {
         txHash: createMockTxHash(90),
         logIndex: 90,
@@ -1257,7 +1247,7 @@ describe("GardensModule", () => {
     });
 
     // Should not throw — handler has an if-guard on existingCommunity
-    mockDb = await GardensModule.PowerRegistryDeployed.processEvent({ event, mockDb });
+    mockDb = await GardensModule.GardenPowerRegistered.processEvent({ event, mockDb });
 
     const communityEntity = mockDb.entities.GardenCommunity.get(
       `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}`
@@ -1346,14 +1336,12 @@ describe("GardensModule", () => {
     assert.equal(treasuryEntity.lastSeededAt, 161000);
   });
 
-  it("Full GardensModule lifecycle: community, pool, power registry, airdrop, treasury", async () => {
+  it("Full GardensModule lifecycle: community, pool, power registration, airdrop, treasury", async () => {
     let mockDb = MockDb.createMockDb();
     const garden = createMockAddress(270);
     const community = createMockAddress(271);
     const pool = createMockAddress(272);
-    const registry = createMockAddress(273);
     const goodsToken = createMockAddress(274);
-    const nftPowerRegistry = createMockAddress(275);
 
     // Step 1: Create community
     const communityEvent = GardensModule.CommunityCreated.createMockEvent({
@@ -1361,7 +1349,6 @@ describe("GardensModule", () => {
       community,
       weightScheme: 2,
       goodsToken,
-      nftPowerRegistry,
       mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 200000, {
         txHash: createMockTxHash(130),
         logIndex: 130,
@@ -1385,17 +1372,17 @@ describe("GardensModule", () => {
     });
     mockDb = await GardensModule.SignalPoolCreated.processEvent({ event: poolEvent, mockDb });
 
-    // Step 3: Deploy power registry
-    const registryEvent = GardensModule.PowerRegistryDeployed.createMockEvent({
+    // Step 3: Register garden power
+    const registryEvent = GardensModule.GardenPowerRegistered.createMockEvent({
       garden,
-      registry,
       weightScheme: 2,
+      sourceCount: 3n,
       mockEventData: createMockBlockData(CHAIN_ID_ARBITRUM, 200002, {
         txHash: createMockTxHash(132),
         logIndex: 132,
       }),
     });
-    mockDb = await GardensModule.PowerRegistryDeployed.processEvent({
+    mockDb = await GardensModule.GardenPowerRegistered.processEvent({
       event: registryEvent,
       mockDb,
     });
@@ -1431,7 +1418,7 @@ describe("GardensModule", () => {
     );
     assert.ok(communityEntity, "Community should exist");
     assert.equal(communityEntity.weightScheme, "POWER");
-    assert.equal(communityEntity.powerRegistryAddress, registry.toLowerCase());
+    assert.equal(communityEntity.powerSourceCount, 3);
 
     const poolEntity = mockDb.entities.GardenSignalPool.get(
       `${CHAIN_ID_ARBITRUM}-${garden.toLowerCase()}-${pool.toLowerCase()}`

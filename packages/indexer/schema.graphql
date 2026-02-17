@@ -72,6 +72,10 @@ type Garden {
   
   # Karma GAP Integration
   gapProjectUID: String # Karma GAP project attestation UID (bytes32)
+
+  # ENS Integration
+  slug: String          # ENS subdomain slug (e.g., "my-garden" for my-garden.greengoods.eth)
+  ensStatus: String     # "pending" | "active" | "released" — tracked via CCIP events
 }
 
 type GardenHatTree {
@@ -215,8 +219,7 @@ type GardenCommunity {
   communityAddress: String! # RegistryCommunity address
   weightScheme: WeightScheme!
   goodsToken: String! # GOODS token address
-  nftPowerRegistry: String! # NFTPowerRegistry address
-  powerRegistryAddress: String # Power registry address (set on PowerRegistryDeployed)
+  powerSourceCount: Int # Number of power sources registered (set on GardenPowerRegistered)
   createdAt: Int!
 }
 
@@ -393,6 +396,23 @@ type CookieJar {
   asset: String!             # Asset address
   jarAddress: String!        # Vault contract address
   createdAt: Int!
+}
+
+# =============================================================================
+# ENS Registration Entity (L2 CCIP tracking)
+# =============================================================================
+
+type ENSRegistration {
+  id: ID!                 # chainId-slug (e.g., "42161-alice")
+  chainId: Int!
+  slug: String!
+  owner: String!          # Address that initiated the claim
+  nameType: String!       # "Gardener" | "Garden"
+  ccipMessageId: String!  # CCIP message ID (bytes32) for cross-chain tracking
+  status: String!         # "pending" | "active" | "released"
+  ccipFee: BigInt!        # Fee paid for CCIP delivery
+  registeredAt: Int!      # Block timestamp of L2 registration
+  txHash: String!
 }
 
 # =============================================================================

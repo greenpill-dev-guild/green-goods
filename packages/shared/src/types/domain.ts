@@ -474,6 +474,25 @@ export interface ActionInstructionConfig {
 }
 
 // ============================================
+// ENS Registration Types
+// ============================================
+
+/**
+ * ENS registration status data tracked through CCIP delivery.
+ * Fully serializable for IndexedDB persistence via PersistQueryClientProvider.
+ */
+export interface ENSRegistrationData {
+  status: "available" | "pending" | "active" | "timed_out";
+  ccipMessageId?: string;
+  submittedAt?: number;
+  registration?: {
+    owner: Address;
+    nameType: number;
+    registeredAt: string; // Serialized bigint (string, not BigInt) for IndexedDB
+  };
+}
+
+// ============================================
 // UI Helper Types
 // ============================================
 

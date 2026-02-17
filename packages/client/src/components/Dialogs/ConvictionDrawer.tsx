@@ -335,15 +335,15 @@ export function ConvictionDrawer({
                   <div className="mt-1 flex gap-2 text-xs text-text-sub">
                     <span>
                       {formatMessage({ id: "app.roles.community" })}:{" "}
-                      {WEIGHT_SCHEME_VALUES[community.weightScheme].community}
+                      {WEIGHT_SCHEME_VALUES[community.weightScheme].community / 10_000}x
                     </span>
                     <span>
                       {formatMessage({ id: "app.roles.gardener" })}:{" "}
-                      {WEIGHT_SCHEME_VALUES[community.weightScheme].gardener}
+                      {WEIGHT_SCHEME_VALUES[community.weightScheme].gardener / 10_000}x
                     </span>
                     <span>
                       {formatMessage({ id: "app.roles.operator" })}:{" "}
-                      {WEIGHT_SCHEME_VALUES[community.weightScheme].operator}
+                      {WEIGHT_SCHEME_VALUES[community.weightScheme].operator / 10_000}x
                     </span>
                   </div>
                 </div>

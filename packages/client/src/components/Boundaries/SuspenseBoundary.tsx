@@ -1,5 +1,5 @@
 import React, { Component, Suspense, type ReactNode, type ErrorInfo } from "react";
-import { cn } from "@green-goods/shared";
+import { cn, logger } from "@green-goods/shared";
 import { Spinner } from "@green-goods/shared/components";
 
 /**
@@ -288,7 +288,7 @@ export const SuspenseBoundary: React.FC<SuspenseBoundaryProps> = ({
       errorFallback={errorFallback}
       onError={(error, errorInfo) => {
         if (boundaryId) {
-          console.error(`[SuspenseBoundary:${boundaryId}]`, error);
+          logger.error(`[SuspenseBoundary:${boundaryId}]`, { error });
         }
         onError?.(error, errorInfo);
       }}

@@ -142,6 +142,17 @@ export { useAllocateYield } from "./yield/useAllocateYield";
 export { useYieldAllocations } from "./yield/useYieldAllocations";
 
 // ============================================================================
+// ENS (Subdomain registration via CCIP)
+// ============================================================================
+export type { ENSClaimResult } from "./ens/useENSClaim";
+export { useENSClaim } from "./ens/useENSClaim";
+export { useENSRegistrationStatus } from "./ens/useENSRegistrationStatus";
+export { useProtocolMemberStatus } from "./ens/useProtocolMemberStatus";
+export type { SlugFormValues } from "./ens/useSlugForm";
+export { slugSchema, useSlugForm } from "./ens/useSlugForm";
+export { useSlugAvailability } from "./ens/useSlugAvailability";
+
+// ============================================================================
 // GARDEN
 // ============================================================================
 export type {
@@ -227,6 +238,19 @@ export type {
 export { useHypercerts } from "./hypercerts/useHypercerts";
 export type { UseMintHypercertResult } from "./hypercerts/useMintHypercert";
 export { useMintHypercert } from "./hypercerts/useMintHypercert";
+// Marketplace hooks
+export type { UseHypercertListingsResult } from "./hypercerts/useHypercertListings";
+export { useHypercertListings } from "./hypercerts/useHypercertListings";
+export type { UseMarketplaceApprovalsResult } from "./hypercerts/useMarketplaceApprovals";
+export { useMarketplaceApprovals } from "./hypercerts/useMarketplaceApprovals";
+export type { UseTradeHistoryResult } from "./hypercerts/useTradeHistory";
+export { useTradeHistory } from "./hypercerts/useTradeHistory";
+export type { UseCreateListingResult, ListingStep } from "./hypercerts/useCreateListing";
+export { useCreateListing } from "./hypercerts/useCreateListing";
+export type { UseCancelListingResult } from "./hypercerts/useCancelListing";
+export { useCancelListing } from "./hypercerts/useCancelListing";
+export type { UseBatchListForYieldResult, BatchProgress } from "./hypercerts/useBatchListForYield";
+export { useBatchListForYield } from "./hypercerts/useBatchListForYield";
 
 // ============================================================================
 // QUERY KEYS
