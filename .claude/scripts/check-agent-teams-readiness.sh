@@ -77,7 +77,7 @@ if [ "${#FAILURES[@]}" -gt 0 ]; then
   echo ""
   echo "Suggested remediation:"
   echo "1. Upgrade Claude Code (for example: claude update)."
-  echo "2. Ensure /Users/afo/Code/greenpill/green-goods/.claude/settings.json includes:"
+  echo "2. Ensure $SETTINGS_FILE includes:"
   echo "   - env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=\"1\""
   echo "   - teammateMode=\"in-process\" (or install tmux for split modes)"
   echo "3. Re-run: bash .claude/scripts/check-agent-teams-readiness.sh"

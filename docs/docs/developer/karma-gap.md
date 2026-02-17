@@ -9,7 +9,7 @@ Appendix covering how Green Goods synchronises approved work with the Karma Gran
 ## Overview
 
 - GAP attestation support is embedded in the contracts package.
-- Integration is active on Sepolia, Arbitrum, Celo, Optimism, Optimism Sepolia, Sepolia, Sei, and Sei Testnet (addresses are centralised in `packages/contracts/src/lib/Karma.sol`).
+- Integration is active on Sepolia, Arbitrum, Celo, Optimism, Optimism Sepolia, Sei, and Sei Testnet (addresses are centralised in `packages/contracts/src/lib/Karma.sol`).
 - The bridge is optional at runtime; core protocol flows continue even if a GAP call fails.
 
 ## Contract Touchpoints

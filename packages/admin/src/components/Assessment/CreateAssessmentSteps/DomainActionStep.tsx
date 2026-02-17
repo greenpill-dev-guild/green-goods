@@ -1,4 +1,4 @@
-import { cn, Domain, useActions, DEFAULT_CHAIN_ID } from "@green-goods/shared";
+import { cn, Domain, useActions, useCurrentChain } from "@green-goods/shared";
 import {
   type Control,
   type FieldErrors,
@@ -30,7 +30,6 @@ function expandDomainMask(mask: number): Domain[] {
 const ALL_DOMAINS = [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE];
 
 interface DomainActionStepProps {
-  register: UseFormRegister<CreateAssessmentForm>;
   errors: FieldErrors<CreateAssessmentForm>;
   control: Control<CreateAssessmentForm>;
   isSubmitting: boolean;
@@ -43,7 +42,6 @@ interface DomainActionStepProps {
  * Domain selector (from garden domain bitmask) + action multi-select (filtered by chosen domain).
  */
 export function DomainActionStep({
-  register: _register,
   errors,
   control,
   isSubmitting,
@@ -72,8 +70,9 @@ export function DomainActionStep({
 
   const selectedDomain = Number(domainField.value) as Domain;
 
-  // Fetch all actions and filter by selected domain
-  const { data: allActions = [] } = useActions(DEFAULT_CHAIN_ID);
+  // Fetch all actions from the current chain and filter by selected domain
+  const chainId = useCurrentChain();
+  const { data: allActions = [] } = useActions(chainId);
   const domainActions = useMemo(
     () => allActions.filter((action) => action.domain === selectedDomain),
     [allActions, selectedDomain]
@@ -135,7 +134,7 @@ export function DomainActionStep({
         {domainActions.length === 0 ? (
           <div className="rounded-md border border-dashed border-stroke-soft p-6 text-center">
             <p className="text-sm text-text-soft">
-              No actions registered for {DOMAIN_CONFIG[selectedDomain]?.label ?? "this domain"}.
+              No actions registered for {DOMAIN_CONFIG[selectedDomain].label}.
             </p>
           </div>
         ) : (

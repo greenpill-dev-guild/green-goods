@@ -261,7 +261,6 @@ Green Goods deploys to different environments based on chain ID.
 // From posthog.ts
 const TESTNET_CHAIN_IDS = new Set([
   11155111, // Sepolia
-  11155111, // Ethereum Sepolia
   421614,   // Arbitrum Sepolia
   80002,    // Polygon Amoy
   11155420, // Optimism Sepolia

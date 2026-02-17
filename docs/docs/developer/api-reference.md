@@ -375,11 +375,14 @@ interface IActionRegistry {
 - [Celo (42220)](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/42220-latest.json)
 - [Sepolia (11155111)](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/11155111-latest.json)
 
-**Key contracts** (Sepolia):
-- GardenToken: `0x0B0EA0FfB996B0b04335507Ef1523124480f7310`
-- ActionRegistry: `0x9685E9E5430C13AFF7ef32D9E8fc93d516e121E0`
-- WorkResolver: `0x028ff0640262a1847d512B3690266d0B35d5260F`
-- WorkApprovalResolver: `0x54b9Dd27d4eD2282D8Cd12CD55ee4B983eC9E3D6`
+**Key contracts** (Sepolia) — example addresses:
+
+> These Sepolia addresses are examples and may change on redeploy. For the authoritative, up-to-date values, always refer to the [Sepolia deployment artifact](https://github.com/greenpill-dev-guild/green-goods/blob/main/packages/contracts/deployments/11155111-latest.json).
+
+- GardenToken: `0xEcbB6E69BE882d2e4E35CCe0E6637c7e1D64c791`
+- ActionRegistry: `0x547e82BF9c8496f41927583793242f6b91C182A6`
+- WorkResolver: `0x054814d58b3A160ca0243FFC77f2F5d62709f396`
+- WorkApprovalResolver: `0x4708E9b199412cc2Cf4d394430BD3DF1f31F2Be5`
 
 ---
 
