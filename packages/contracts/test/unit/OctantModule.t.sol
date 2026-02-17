@@ -17,7 +17,7 @@ import { MockYDSStrategy, RevertingStrategy } from "../../src/mocks/YDSStrategy.
 
 /// @title RevertingYieldResolver
 /// @notice Mock YieldResolver that always reverts on registerShares()
-/// @dev Used to test the silent catch at Octant.sol:246-248
+/// @dev Used to test non-blocking catch path when share registration fails
 contract RevertingYieldResolver {
     bool public wasCalled;
 
@@ -718,7 +718,10 @@ contract OctantModuleTest is Test {
         MockOctantVault(vault).setProcessReportYield(address(revertingResolver), 100);
 
         // Harvest should complete even though registerShares fails
-        // SharesRegistered should NOT be emitted (it's inside the try success block)
+        // and emit observability event for failed registration.
+        vm.expectEmit(true, true, true, true);
+        emit OctantModule.SharesRegistrationFailed(address(garden), vault, address(revertingResolver), 100);
+
         vm.prank(OPERATOR);
         module.harvest(address(garden), WETH);
 
