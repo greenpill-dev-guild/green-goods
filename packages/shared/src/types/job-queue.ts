@@ -12,6 +12,8 @@
 
 import type { SmartAccountClient } from "permissionless";
 
+import type { Address } from "./domain";
+
 // ============================================
 // Core Job Types
 // ============================================
@@ -28,7 +30,7 @@ export interface Job<T = unknown> {
   synced: boolean;
   chainId?: number;
   /** User address (smart account or wallet) that created this job */
-  userAddress: string;
+  userAddress: Address;
 }
 
 export interface QueueEvent {
@@ -61,15 +63,15 @@ export interface WorkJobPayload {
   tags?: string[];
   audioNotes?: File[];
   actionUID: number;
-  gardenAddress: string;
+  gardenAddress: Address;
   media?: File[];
 }
 
 export interface ApprovalJobPayload {
   actionUID: number;
   workUID: string;
-  gardenAddress: string;
-  gardenerAddress: string;
+  gardenAddress: Address;
+  gardenerAddress: Address;
   approved: boolean;
   feedback?: string;
   /** Verification confidence (NONE for rejections, >=LOW for approvals) */
@@ -147,8 +149,8 @@ export interface CachedWork {
   id: string;
   title: string;
   actionUID: number;
-  gardenerAddress: string;
-  gardenAddress: string;
+  gardenerAddress: Address;
+  gardenAddress: Address;
   feedback: string;
   metadata: string;
   media: string[];
@@ -193,9 +195,9 @@ export type DraftStep = "intro" | "media" | "details" | "review";
  */
 export interface WorkDraftRecord {
   id: string;
-  userAddress: string;
+  userAddress: Address;
   chainId: number;
-  gardenAddress: string | null;
+  gardenAddress: Address | null;
   actionUID: number | null;
   feedback: string;
   plantSelection: string[];

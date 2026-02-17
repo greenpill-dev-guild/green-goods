@@ -12,6 +12,7 @@ export type {
 } from "./utils/useCopyToClipboard";
 export { useCopyToClipboard } from "./utils/useCopyToClipboard";
 export { useDebouncedValue } from "./utils/useDebouncedValue";
+export { useAddressInput } from "./utils/useAddressInput";
 
 // ============================================================================
 // ACTION

@@ -11,7 +11,9 @@ interface WorkDashboardIconProps {
 export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className }) => {
   const intl = useIntl();
   const { isOnline, pendingCount, syncStatus } = useOffline();
-  const { isWorkDashboardOpen, openWorkDashboard, closeWorkDashboard } = useUIStore();
+  const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
+  const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+  const closeWorkDashboard = useUIStore((s) => s.closeWorkDashboard);
 
   // Only show notifications for actual pending work items
   const isSyncing = syncStatus === "syncing";

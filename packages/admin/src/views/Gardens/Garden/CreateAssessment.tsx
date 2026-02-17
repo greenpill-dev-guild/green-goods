@@ -48,7 +48,8 @@ export default function CreateAssessment() {
   const { id: gardenId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { address } = useAccount();
-  const { lastAttestationId, setLastAttestationId } = useAdminStore();
+  const lastAttestationId = useAdminStore((s) => s.lastAttestationId);
+  const setLastAttestationId = useAdminStore((s) => s.setLastAttestationId);
   const [currentStep, setCurrentStep] = useState(0);
 
   const { data: gardenDomainMask } = useGardenDomains(gardenId);

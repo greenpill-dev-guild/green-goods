@@ -28,7 +28,8 @@ export function Sidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
   const { role } = useRole();
-  const { sidebarOpen, setSidebarOpen } = useUIStore();
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+  const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
 
   const filteredNavigation = navigation.filter((item) => item.roles.includes(role));
 
