@@ -210,6 +210,35 @@ bun script/deploy.ts core --network sepolia --broadcast --force
 - Environment Setup: [docs/ENVIRONMENT_SETUP.md](./docs/ENVIRONMENT_SETUP.md)
 - Troubleshooting: [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
 
+
+## HatsModule Operational Notes
+
+### Phantom hat wearers after revocation
+
+Hats Protocol does not provide a burn function for ordinary wearer hats. Revocation is implemented by transferring the hat to another address, which means revocations can accumulate historical "phantom" wearers.
+
+In `HatsModule`, revocation transfers to a unique nonce-derived burn address instead of a fixed sink (for example `0xdead`). This avoids `AlreadyWearingHat` reverts when the same hat type is revoked multiple times.
+
+**Behavioral implications:**
+- Revoked users no longer wear the role hat (`isWearerOfHat(user, hatId) == false`)
+- Total historical wearers can still grow over time
+- Indexers and analytics should treat revocation events as canonical membership state transitions
+
+**Cleanup strategy:**
+- Use `RoleRevoked` as the source of truth for active membership snapshots
+- Rebuild role membership by replaying `RoleGranted` and `RoleRevoked` events in order
+- Ignore holder counts that include burn recipients when presenting active member metrics
+
+### Conviction power sync gas stipend
+
+`HatsModule` calls conviction strategies with a defensive gas stipend (`SYNC_POWER_GAS_STIPEND = 100_000`). This isolates role changes from downstream strategy complexity by making sync best-effort.
+
+If a strategy requires more gas, role revocation still succeeds and the module emits `ConvictionSyncFailed`. Operators should monitor these failures and either optimize strategy gas usage or increase stipend in a future upgrade if sustained failures occur.
+
+### Duplicate strategy validation complexity
+
+`setConvictionStrategies` currently validates duplicates with an O(n²) nested loop. This is acceptable because `MAX_CONVICTION_STRATEGIES` is hard-capped at 10, keeping worst-case comparisons bounded (45 checks).
+
 ## Deployment System
 
 The contracts use a unified deployment CLI that handles:
@@ -660,7 +689,7 @@ bun lint
 - **`.solhint.json`**: Solidity linting rules
 - **`biome.json`**: JavaScript/TypeScript formatting (for scripts)
 
-### Deployment System
+## Deployment System
 
 **Deployment CLI:**
 ```bash
