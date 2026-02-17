@@ -106,15 +106,21 @@ packages/contracts/out/*
 !packages/contracts/out/Garden.sol/
 !packages/contracts/out/Action.sol/
 !packages/contracts/out/EAS.sol/
+!packages/contracts/out/ENS.sol/
+!packages/contracts/out/IHats.sol/
 # Step 4: Re-ignore everything inside those subdirectories
 packages/contracts/out/Garden.sol/*
 packages/contracts/out/Action.sol/*
 packages/contracts/out/EAS.sol/*
+packages/contracts/out/ENS.sol/*
+packages/contracts/out/IHats.sol/*
 # Step 5: Un-ignore only the specific ABI files we need
 !packages/contracts/out/Garden.sol/GardenAccount.json
 !packages/contracts/out/Garden.sol/GardenToken.json
 !packages/contracts/out/Action.sol/ActionRegistry.json
 !packages/contracts/out/EAS.sol/MockEAS.json
+!packages/contracts/out/ENS.sol/GreenGoodsENS.json
+!packages/contracts/out/IHats.sol/IHats.json
 
 # Vite dev build output
 dev-dist

@@ -1,5 +1,5 @@
 ---
-id: specs/action-registry-v1
+id: action-registry-v1
 title: Action Registry v1 Architecture (4 Core Domains)
 sidebar_label: Action Registry v1
 description: Domain-first action registry design for Solar Hub Development, Agroforestry, Ethereum Education, and Waste Management.

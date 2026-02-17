@@ -736,7 +736,7 @@ vaults: {
 - [ERC-4626 Spec](https://eips.ethereum.org/EIPS/eip-4626)
 - [Hats Protocol Docs](https://docs.hatsprotocol.xyz)
 - [Cross-Chain Appendix](./octant-cross-chain-appendix) — Archived Phase 2 CCIP architecture
-- [Final Implementation Plan](/.plans/octant-vaults-final-plan.md) — Authoritative plan document
+- Final Implementation Plan: `.plans/octant-vaults-final-plan.md` — Authoritative plan document (in project root)
 
 ---
 

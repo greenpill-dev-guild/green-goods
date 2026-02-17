@@ -180,6 +180,7 @@ function showHelp() {
   console.log("  --help, -h          Show this help message");
   console.log("");
   console.log("This script runs the same checks as GitHub Actions CI:");
+  console.log("  0. Contract ABI artifact tracking (pre-flight)");
   console.log("  1. Format check (biome)");
   console.log("  2. Lint (oxlint + solhint)");
   console.log("  3. Type checking (TypeScript)");
@@ -278,6 +279,62 @@ async function main() {
           "Indexer generated files not found. Use --skip-indexer, --generate-indexer, or run: cd packages/indexer && bun run codegen && bun run setup-generated"
         );
         config.skipIndexer = true;
+      }
+    }
+  }
+
+  // ============================================================================
+  // Pre-flight: Contract ABI Artifact Tracking
+  // ============================================================================
+  // Shared imports ABIs directly from contracts/out/. CI doesn't build contracts
+  // first — it relies on these files being committed. If a new ABI import is added
+  // but the .gitignore isn't updated, ALL downstream builds fail (13+ checks).
+  printSection("Contract ABI Artifact Tracking");
+  {
+    const contractsTs = resolve(projectRoot, "packages/shared/src/utils/blockchain/contracts.ts");
+    if (existsSync(contractsTs)) {
+      const content = readFileSync(contractsTs, "utf8");
+      const importPattern = /from\s+["']\.\.\/\.\.\/\.\.\/\.\.\/contracts\/out\/(.+?)["']/g;
+      let match;
+      const missingArtifacts = [];
+
+      while ((match = importPattern.exec(content)) !== null) {
+        const artifactRelPath = `packages/contracts/out/${match[1]}`;
+        const artifactAbsPath = resolve(projectRoot, artifactRelPath);
+
+        if (!existsSync(artifactAbsPath)) {
+          missingArtifacts.push({ path: artifactRelPath, reason: "file does not exist — run contract build" });
+          continue;
+        }
+
+        // Check if git is tracking the file (not ignored by .gitignore)
+        try {
+          const child = spawn("git", ["check-ignore", "-q", artifactRelPath], {
+            cwd: projectRoot,
+            stdio: "pipe",
+          });
+          const exitCode = await new Promise((res) => child.on("close", res));
+          if (exitCode === 0) {
+            // exit 0 means git IGNORES the file
+            missingArtifacts.push({ path: artifactRelPath, reason: "tracked by .gitignore — update .gitignore to un-ignore it" });
+          }
+        } catch {
+          // git check-ignore not available, skip
+        }
+      }
+
+      if (missingArtifacts.length > 0) {
+        printError("Contract ABI artifacts imported by shared but not available in git:");
+        for (const { path, reason } of missingArtifacts) {
+          console.log(`  ${colors.red}✗ ${path}${colors.reset}`);
+          console.log(`    ${colors.yellow}→ ${reason}${colors.reset}`);
+        }
+        console.log("");
+        console.log(`${colors.yellow}Fix: Update .gitignore to un-ignore these paths, then git add the files.${colors.reset}`);
+        console.log(`${colors.yellow}See the .gitignore "Keep only the specific ABIs" section for the pattern.${colors.reset}`);
+        failures.push("ABI artifact tracking");
+      } else {
+        printSuccess("All contract ABI imports are tracked in git");
       }
     }
   }
