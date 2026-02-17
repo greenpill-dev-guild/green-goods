@@ -21,6 +21,7 @@ error RefundTransferFailed();
 error NoWithdrawableBalance();
 error WithdrawTransferFailed();
 error OnlySelf();
+error InvalidCooldown();
 
 interface IHats {
     function isWearerOfHat(address account, uint256 hatId) external view returns (bool);
@@ -51,7 +52,8 @@ contract GreenGoodsENS is Ownable {
 
     uint256 public constant MIN_SLUG_LENGTH = 3;
     uint256 public constant MAX_SLUG_LENGTH = 50;
-    uint256 public constant NAME_CHANGE_COOLDOWN = 30 days;
+    uint256 public constant DEFAULT_NAME_CHANGE_COOLDOWN = 30 days;
+    uint256 public nameChangeCooldown;
 
     /// @notice Authorized callers (GardenToken contract, owner)
     mapping(address => bool) public authorizedCallers;
@@ -70,6 +72,7 @@ contract GreenGoodsENS is Ownable {
     event L1ReceiverUpdated(address indexed oldReceiver, address indexed newReceiver);
     event AuthorizedCallerUpdated(address indexed caller, bool authorized);
     event ProtocolHatIdUpdated(uint256 oldHatId, uint256 newHatId);
+    event NameChangeCooldownUpdated(uint256 oldCooldown, uint256 newCooldown);
     event RefundFailed(address indexed recipient, uint256 amount);
     event RefundClaimed(address indexed recipient, uint256 amount);
 
@@ -86,6 +89,7 @@ contract GreenGoodsENS is Ownable {
         l1Receiver = _l1Receiver;
         HATS = IHats(_hats);
         protocolHatId = _protocolHatId;
+        nameChangeCooldown = DEFAULT_NAME_CHANGE_COOLDOWN;
         _transferOwnership(_owner);
     }
 
@@ -127,7 +131,7 @@ contract GreenGoodsENS is Ownable {
         _sendSponsoredRegistrationMessage(slug, msg.sender, NameType.Gardener);
     }
 
-    /// @notice Release current name (gardener names only, 30-day cooldown)
+    /// @notice Release current name (gardener names only, owner-configurable cooldown)
     /// @dev Garden names (NameType.Garden) are immutable and cannot be released.
     function releaseName() external payable {
         string memory currentSlug = ownerToSlug[msg.sender];
@@ -155,7 +159,7 @@ contract GreenGoodsENS is Ownable {
         bytes32 slugHash = keccak256(bytes(slug));
         if (slugOwner[slugHash] != address(0)) return false;
         uint256 releasedAt = slugReleasedAt[slug];
-        if (releasedAt > 0 && block.timestamp < releasedAt + NAME_CHANGE_COOLDOWN) return false;
+        if (releasedAt > 0 && block.timestamp < releasedAt + nameChangeCooldown) return false;
         return true;
     }
 
@@ -255,7 +259,7 @@ contract GreenGoodsENS is Ownable {
         if (slugOwner[slugHash] != address(0)) revert NameTaken();
 
         uint256 releasedAt = slugReleasedAt[slug];
-        if (releasedAt > 0 && block.timestamp < releasedAt + NAME_CHANGE_COOLDOWN) {
+        if (releasedAt > 0 && block.timestamp < releasedAt + nameChangeCooldown) {
             revert NameInCooldown();
         }
 
@@ -327,6 +331,14 @@ contract GreenGoodsENS is Ownable {
         uint256 old = protocolHatId;
         protocolHatId = _protocolHatId;
         emit ProtocolHatIdUpdated(old, _protocolHatId);
+    }
+
+    /// @notice Update the cooldown enforced after releasing a slug.
+    function setNameChangeCooldown(uint256 _cooldown) external onlyOwner {
+        if (_cooldown == 0) revert InvalidCooldown();
+        uint256 old = nameChangeCooldown;
+        nameChangeCooldown = _cooldown;
+        emit NameChangeCooldownUpdated(old, _cooldown);
     }
 
     /// @notice Withdraw stuck ETH (excess CCIP fees, etc.)
