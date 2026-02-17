@@ -58,6 +58,19 @@ contract MockMarketplaceAdapter {
 
 /// @title MockGardensModule
 /// @notice Simple mock for IGardensModule.getGardenSignalPools
+
+contract MockGardenToken {
+    mapping(address account => uint256 balance) private _balances;
+
+    function setBalance(address account, uint256 balance) external {
+        _balances[account] = balance;
+    }
+
+    function balanceOf(address account) external view returns (uint256) {
+        return _balances[account];
+    }
+}
+
 contract MockGardensModule {
     mapping(address garden => address[] pools) internal _pools;
 
@@ -85,7 +98,8 @@ contract HypercertsModuleTest is Test {
 
     address public owner = address(0x1);
     address public garden = address(0x100);
-    address public gardenTokenAddr = address(0x200);
+    MockGardenToken public gardenToken;
+    address public gardenTokenAddr;
     address public operator = address(0x300);
     address public stranger = address(0x400);
     address public signalPool = address(0x500);
@@ -96,6 +110,9 @@ contract HypercertsModuleTest is Test {
         adapter = new MockMarketplaceAdapter();
         gardensModule = new MockGardensModule();
         hatsModule = new MockHatsModule();
+        gardenToken = new MockGardenToken();
+        gardenTokenAddr = address(gardenToken);
+        gardenToken.setBalance(garden, 1);
 
         // Deploy HypercertsModule behind UUPS proxy
         HypercertsModule impl = new HypercertsModule();
@@ -300,6 +317,51 @@ contract HypercertsModuleTest is Test {
     function test_getGardenHypercerts_emptyForUnknownGarden() public {
         uint256[] memory ids = hypercertsModule.getGardenHypercerts(address(0xDEAD));
         assertEq(ids.length, 0, "Unknown garden should have no hypercerts");
+    }
+
+
+    function test_untrackGardenHypercert_removesTrackedId() public {
+        vm.startPrank(operator);
+        uint256 id1 = hypercertsModule.mintAndRegister(garden, 100, bytes32(0), "ipfs://a");
+        uint256 id2 = hypercertsModule.mintAndRegister(garden, 200, bytes32(0), "ipfs://b");
+
+        hypercertsModule.untrackGardenHypercert(garden, id1);
+        vm.stopPrank();
+
+        uint256[] memory ids = hypercertsModule.getGardenHypercerts(garden);
+        assertEq(ids.length, 1, "Should keep one hypercert after removal");
+        assertEq(ids[0], id2, "Remaining hypercert should be second ID");
+        assertEq(hypercertsModule.hypercertGarden(id1), address(0), "Reverse mapping should be cleared");
+    }
+
+    function test_setters_revertOnZeroAddress() public {
+        vm.startPrank(owner);
+
+        vm.expectRevert(HypercertsModule.ZeroAddress.selector);
+        hypercertsModule.setHypercertMinter(address(0));
+
+        vm.expectRevert(HypercertsModule.ZeroAddress.selector);
+        hypercertsModule.setMarketplaceAdapter(address(0));
+
+        vm.expectRevert(HypercertsModule.ZeroAddress.selector);
+        hypercertsModule.setGardensModule(address(0));
+
+        vm.expectRevert(HypercertsModule.ZeroAddress.selector);
+        hypercertsModule.setHatsModule(address(0));
+
+        vm.expectRevert(HypercertsModule.ZeroAddress.selector);
+        hypercertsModule.setGardenToken(address(0));
+
+        vm.stopPrank();
+    }
+
+    function test_mintAndRegister_revertsWhenGardenNotBackedByGardenToken() public {
+        address orphanGarden = address(0x999);
+        hatsModule.setOperator(orphanGarden, operator, true);
+
+        vm.prank(operator);
+        vm.expectRevert(abi.encodeWithSelector(HypercertsModule.Unauthorized.selector, operator));
+        hypercertsModule.mintAndRegister(orphanGarden, 1000, bytes32(0), "ipfs://metadata");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

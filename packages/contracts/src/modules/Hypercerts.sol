@@ -2,7 +2,9 @@
 pragma solidity ^0.8.25;
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import { IHypercertMinter } from "../interfaces/IHypercertExchange.sol";
 import { OrderStructs } from "../interfaces/IHypercertExchange.sol";
@@ -34,7 +36,7 @@ interface IMarketplaceAdapter {
 /// @notice Orchestrates hypercert minting, garden tracking, and marketplace listing for yield
 /// @dev UUPS upgradeable module that bridges hypercert minting with signal pool registration
 ///      and marketplace listing. Access controlled via Hats Protocol roles.
-contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
+contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
     // ═══════════════════════════════════════════════════════════════════════════
     // Events
     // ═══════════════════════════════════════════════════════════════════════════
@@ -50,7 +52,9 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
     error Unauthorized(address caller);
     error NotActive();
     error InvalidHypercert(uint256 hypercertId);
+    error HypercertNotTracked(uint256 hypercertId);
     error ArrayLengthMismatch();
+    error ZeroAddress();
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
@@ -66,7 +70,8 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
     mapping(address garden => uint256[] hypercertIds) internal _gardenHypercerts;
     mapping(uint256 hypercertId => address garden) public hypercertGarden;
 
-    uint256[42] private __gap;
+    /// @dev 8 storage slots + 1 reentrancy guard slot + 41 gap = 50 total slots
+    uint256[41] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -91,6 +96,7 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
         if (_owner == address(0)) revert Unauthorized(address(0));
 
         __Ownable_init();
+        __ReentrancyGuard_init();
         _transferOwnership(_owner);
 
         hypercertMinter = _hypercertMinter;
@@ -117,6 +123,7 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
         string calldata metadataUri
     )
         external
+        nonReentrant
         returns (uint256 hypercertId)
     {
         _requireOperator(garden);
@@ -221,23 +228,48 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function setHypercertMinter(address _hypercertMinter) external onlyOwner {
+        if (_hypercertMinter == address(0)) revert ZeroAddress();
         hypercertMinter = _hypercertMinter;
     }
 
     function setMarketplaceAdapter(address _marketplaceAdapter) external onlyOwner {
+        if (_marketplaceAdapter == address(0)) revert ZeroAddress();
         marketplaceAdapter = IMarketplaceAdapter(_marketplaceAdapter);
     }
 
     function setGardensModule(address _gardensModule) external onlyOwner {
+        if (_gardensModule == address(0)) revert ZeroAddress();
         gardensModule = IGardensModule(_gardensModule);
     }
 
     function setHatsModule(address _hatsModule) external onlyOwner {
+        if (_hatsModule == address(0)) revert ZeroAddress();
         hatsModule = IHatsModule(_hatsModule);
     }
 
     function setGardenToken(address _gardenToken) external onlyOwner {
+        if (_gardenToken == address(0)) revert ZeroAddress();
         gardenToken = _gardenToken;
+    }
+
+    /// @notice Remove a tracked hypercert from a garden mapping
+    /// @dev Maintains dense array via swap-and-pop and clears reverse mapping.
+    function untrackGardenHypercert(address garden, uint256 hypercertId) external {
+        _requireOperator(garden);
+        if (hypercertGarden[hypercertId] != garden) revert InvalidHypercert(hypercertId);
+
+        uint256[] storage ids = _gardenHypercerts[garden];
+        uint256 len = ids.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (ids[i] == hypercertId) {
+                ids[i] = ids[len - 1];
+                ids.pop();
+                delete hypercertGarden[hypercertId];
+                return;
+            }
+        }
+
+        revert HypercertNotTracked(hypercertId);
     }
 
     function setPaused(bool _paused) external onlyOwner {
@@ -250,6 +282,8 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Require the caller is an operator or owner of the garden, or the module owner
     function _requireOperator(address garden) internal view {
+        if (garden == address(0) || gardenToken == address(0)) revert Unauthorized(msg.sender);
+        if (IERC721(gardenToken).balanceOf(garden) == 0) revert Unauthorized(msg.sender);
         if (address(hatsModule) == address(0)) revert Unauthorized(msg.sender);
         if (!hatsModule.isOperatorOf(garden, msg.sender) && !hatsModule.isOwnerOf(garden, msg.sender)) {
             if (msg.sender != owner()) revert Unauthorized(msg.sender);

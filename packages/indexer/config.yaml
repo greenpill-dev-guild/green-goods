@@ -73,6 +73,12 @@ contracts:
     events:
       - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
       - event: ClaimStored(uint256 indexed claimID, string uri, uint256 totalUnits)
+  - name: HypercertMarketplaceAdapter
+    handler: src/EventHandlers.ts
+    events:
+      - event: OrderRegistered(uint256 indexed orderId, uint256 indexed hypercertId, address indexed seller, address currency, uint256 pricePerUnit, uint256 endTime)
+      - event: OrderDeactivated(uint256 indexed orderId, address indexed deactivatedBy)
+      - event: FractionPurchased(uint256 indexed orderId, uint256 indexed hypercertId, address indexed recipient, uint256 units, uint256 payment)
   - name: GreenGoodsENS
     handler: src/EventHandlers.ts
     events:
@@ -104,6 +110,8 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+      - name: HypercertMarketplaceAdapter
+        address: "0x0000000000000000000000000000000000000000"
       - name: GreenGoodsENS
         address: "0x0000000000000000000000000000000000000000"
   - id: 42220
@@ -129,6 +137,8 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+      - name: HypercertMarketplaceAdapter
+        address: "0x0000000000000000000000000000000000000000"
       - name: GreenGoodsENS
         address: "0x0000000000000000000000000000000000000000"
   - id: 11155111
@@ -154,5 +164,7 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+      - name: HypercertMarketplaceAdapter
+        address: "0x0000000000000000000000000000000000000000"
       - name: GreenGoodsENS
         address: "0x0000000000000000000000000000000000000000"
