@@ -52,8 +52,10 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
     /// @notice garden => jar addresses array
     mapping(address => address[]) public gardenJarList;
 
-    /// @notice Storage gap for future upgrades
-    /// @dev 11 explicit vars + 1 ReentrancyGuard slot + 38 gap = 50 slots total
+    /// @notice Storage gap reserved for future CookieJarModule variables
+    /// @dev This contract declares 11 storage entries above and reserves 38 more here.
+    ///      Inherited contracts (OwnableUpgradeable/ReentrancyGuardUpgradeable/UUPSUpgradeable)
+    ///      maintain their own storage layouts independently.
     uint256[38] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
