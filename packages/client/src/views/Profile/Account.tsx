@@ -2,6 +2,11 @@ import {
   capitalize,
   copyToClipboard,
   debugError,
+  ConfirmDialog,
+  createPublicClientForChain,
+  DEFAULT_CHAIN_ID,
+  getDefaultChain,
+  GardenAccountABI,
   ENSProgressTimeline,
   hapticLight,
   hapticSuccess,
@@ -49,6 +54,7 @@ import {
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { type Address } from "viem";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
@@ -126,6 +132,9 @@ export const ProfileAccount: React.FC = () => {
 
   // Join garden hook
   const { joinGarden, isJoining, joiningGardenId } = useJoinGarden();
+  const [pendingGarden, setPendingGarden] = useState<Garden | null>(null);
+  const [estimatedGas, setEstimatedGas] = useState<bigint | null>(null);
+  const [isEstimatingGas, setIsEstimatingGas] = useState(false);
 
   // Show only open gardens or gardens where user is a member
   // Uses garden.openJoining from indexer instead of per-garden RPC calls
@@ -201,10 +210,36 @@ export const ProfileAccount: React.FC = () => {
   // ─────────────────────────────────────────────────────
 
   const handleJoinGarden = async (garden: Garden) => {
+    setPendingGarden(garden);
+    setEstimatedGas(null);
+    if (!primaryAddress) return;
+
+    setIsEstimatingGas(true);
+    try {
+      const chainId = Number(getDefaultChain().chainId ?? DEFAULT_CHAIN_ID);
+      const publicClient = createPublicClientForChain(chainId);
+      const gas = await publicClient.estimateContractGas({
+        abi: GardenAccountABI,
+        address: garden.id as Address,
+        functionName: "joinGarden",
+        args: [],
+        account: primaryAddress as Address,
+      });
+      setEstimatedGas(gas);
+    } catch {
+      setEstimatedGas(null);
+    } finally {
+      setIsEstimatingGas(false);
+    }
+  };
+
+  const handleConfirmJoinGarden = async () => {
+    if (!pendingGarden) return;
+
     // Provide haptic feedback when join button is pressed
     hapticLight();
     try {
-      await joinGarden(garden.id);
+      await joinGarden(pendingGarden.id);
 
       // Provide haptic feedback for successful join
       hapticSuccess();
@@ -214,7 +249,7 @@ export const ProfileAccount: React.FC = () => {
             id: "app.account.joinedGarden",
             defaultMessage: "Joined {gardenName}",
           },
-          { gardenName: garden.name }
+          { gardenName: pendingGarden.name }
         ),
         message: intl.formatMessage({
           id: "app.account.joinedGardenMessage",
@@ -253,14 +288,15 @@ export const ProfileAccount: React.FC = () => {
               id: "app.account.alreadyMemberMessage",
               defaultMessage: "You're already a member of {gardenName}",
             },
-            { gardenName: garden.name }
+            { gardenName: pendingGarden.name }
           ),
           context: "joinGarden",
         });
+        setPendingGarden(null);
         return;
       }
 
-      debugError(`Failed to join garden ${garden.id}`, err);
+      debugError(`Failed to join garden ${pendingGarden.id}`, err);
 
       const { title, message } = parseAndFormatError(err);
 
@@ -270,6 +306,8 @@ export const ProfileAccount: React.FC = () => {
         context: "joinGarden",
         error: err,
       });
+    } finally {
+      setPendingGarden(null);
     }
   };
 
@@ -729,6 +767,14 @@ export const ProfileAccount: React.FC = () => {
                         />
                       )}
                     </div>
+                    {!garden.isMember && (
+                      <p className="mt-2 text-xs text-text-sub-600">
+                        {intl.formatMessage({
+                          id: "app.profile.gardenerRoleDescription",
+                          defaultMessage: "Join as a Gardener to submit work in this garden.",
+                        })}
+                      </p>
+                    )}
                   </Card>
                 );
               })}
@@ -767,6 +813,52 @@ export const ProfileAccount: React.FC = () => {
           )}
         </>
       )}
+
+      <ConfirmDialog
+        isOpen={pendingGarden !== null}
+        onClose={() => setPendingGarden(null)}
+        onConfirm={handleConfirmJoinGarden}
+        title={intl.formatMessage({
+          id: "app.profile.joinGardenConfirmTitle",
+          defaultMessage: "Join Garden",
+        })}
+        description={
+          pendingGarden
+            ? intl.formatMessage(
+                {
+                  id: "app.profile.joinGardenConfirmDescription",
+                  defaultMessage:
+                    "Garden: {gardenName}. {gardenDescription} You'll join as a Gardener, able to submit work. Estimated gas: {gasEstimate}.",
+                },
+                {
+                  gardenName: pendingGarden.name,
+                  gardenDescription: pendingGarden.description
+                    ? `${pendingGarden.description}.`
+                    : intl.formatMessage({
+                        id: "app.profile.joinGardenNoDescription",
+                        defaultMessage: "No garden description provided.",
+                      }),
+                  gasEstimate: isEstimatingGas
+                    ? intl.formatMessage({
+                        id: "app.profile.joinGardenGasLoading",
+                        defaultMessage: "calculating",
+                      })
+                    : estimatedGas
+                      ? intl.formatNumber(estimatedGas)
+                      : intl.formatMessage({
+                          id: "app.profile.joinGardenGasUnavailable",
+                          defaultMessage: "unavailable",
+                        }),
+                }
+              )
+            : undefined
+        }
+        confirmLabel={intl.formatMessage({
+          id: "app.profile.joinGardenConfirmAction",
+          defaultMessage: "Confirm Join",
+        })}
+        isLoading={isJoining}
+      />
 
       {/* ENS Claim Section */}
       {showENSSection && (
