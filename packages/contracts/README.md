@@ -810,3 +810,39 @@ echo $CELO_RPC_URL
 - 📝 [Schema Definitions](./config/schemas.json) — EAS schema configuration
 - 🌐 [Network Configuration](./deployments/networks.json) — Multi-chain settings
 - 🏗️ [Action Definitions](./config/actions.json) — Core garden actions
+
+
+## ENS Cross-Chain (CCIP) Flow
+
+`GreenGoodsENS` runs on L2 (Arbitrum One or Sepolia testnet) and sends registration/release intents to L1 via Chainlink CCIP. `GreenGoodsENSReceiver` runs on Ethereum mainnet and executes ENS writes for `*.greengoods.eth`.
+
+### End-to-End Message Path (Arbitrum → Mainnet)
+
+1. A garden mint (`GardenToken.mintGarden`) or member name claim (`GreenGoodsENS.claimName`) triggers L2 registration logic.
+2. `GreenGoodsENS` validates slug + local collision/cooldown constraints and builds a CCIP `EVM2AnyMessage` payload.
+3. `GreenGoodsENS` estimates fee with `IRouterClient.getFee(...)` and sends message through `IRouterClient.ccipSend(...)` to the L1 chain selector.
+4. Chainlink CCIP DON relays the message to Ethereum mainnet's CCIP router.
+5. Mainnet router calls `GreenGoodsENSReceiver.ccipReceive(...)`.
+6. `GreenGoodsENSReceiver` validates source chain + sender, decodes operation (`register` / `release`), and writes ENS via registry + resolver for `greengoods.eth` subdomains.
+7. L2 keeps a protective cache (`slugOwner`, `ownerToSlug`) to prevent duplicate claims before L1 finalization.
+
+### Deployment Targets
+
+Use the deployment wrapper (`script/deploy.ts`) rather than raw forge commands.
+
+```bash
+# 1) Deploy L2 sender on Sepolia (CCIP test path)
+bun script/deploy.ts core --network sepolia --broadcast
+
+# 2) Deploy L2 sender on Arbitrum One (production L2 sender)
+bun script/deploy.ts core --network arbitrum --broadcast
+
+# 3) Deploy L1 receiver on Ethereum mainnet
+bun script/deploy.ts core --network mainnet --broadcast
+```
+
+After both sides are deployed:
+
+- Set `ENS_L1_RECEIVER` before L2 deploys (or call `setL1Receiver` on `GreenGoodsENS`).
+- Set `ENS_L2_SENDER` before L1 deploys (or call `setL2Sender` on `GreenGoodsENSReceiver`).
+- Verify receiver has ENS operator approval on `greengoods.eth`.
