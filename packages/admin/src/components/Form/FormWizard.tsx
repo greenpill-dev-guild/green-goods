@@ -20,6 +20,7 @@ interface FormWizardProps {
   children: ReactNode;
   nextLabel?: string;
   submitLabel?: string;
+  headerStatus?: ReactNode;
 }
 
 /**
@@ -40,6 +41,7 @@ export function FormWizard({
   children,
   nextLabel,
   submitLabel,
+  headerStatus,
 }: FormWizardProps) {
   const { formatMessage } = useIntl();
   const resolvedNextLabel = nextLabel ?? formatMessage({ id: "app.form.next" });
@@ -79,6 +81,10 @@ export function FormWizard({
 
       {/* Full-width sticky step indicator */}
       <StepIndicator steps={steps} currentStep={currentStep} onStepClick={onStepClick} />
+
+      {headerStatus && (
+        <div className="mx-auto max-w-4xl px-4 pt-3 sm:px-6 sm:pt-4">{headerStatus}</div>
+      )}
 
       {/* Form content - centered with max-width, optimized padding */}
       <div ref={contentRef} className="mx-auto max-w-4xl px-4 py-4 sm:px-6 sm:py-6">

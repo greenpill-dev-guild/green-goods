@@ -9,11 +9,12 @@ import {
   useGardenDomains,
 } from "@green-goods/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { RiErrorWarningLine } from "@remixicon/react";
-import { useEffect, useState } from "react";
+import { RiErrorWarningLine, RiWallet3Line } from "@remixicon/react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAccount } from "wagmi";
+import { useAccount, useConnect } from "wagmi";
 import { DomainActionStep } from "@/components/Assessment/CreateAssessmentSteps/DomainActionStep";
 import { SdgHarvestStep } from "@/components/Assessment/CreateAssessmentSteps/SdgHarvestStep";
 import {
@@ -47,7 +48,9 @@ const stepConfigs: Step[] = [
 export default function CreateAssessment() {
   const { id: gardenId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { address } = useAccount();
+  const { formatMessage } = useIntl();
+  const { address, isConnected } = useAccount();
+  const { connectors } = useConnect();
   const { lastAttestationId, setLastAttestationId } = useAdminStore();
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -119,16 +122,31 @@ export default function CreateAssessment() {
     }
   }, [lastAttestationId, setLastAttestationId]);
 
+
+
+  const hasInjectedProvider = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    if (typeof window.ethereum !== "undefined") return true;
+    return connectors.some((connector) => connector.type === "injected");
+  }, [connectors]);
+
   useEffect(() => {
-    resetWorkflow();
-  }, [resetWorkflow]);
+    if (isConnected || hasInjectedProvider) return;
+
+    toastService.error({
+      title: formatMessage({ id: "app.assessment.walletProviderMissing.title" }),
+      message: formatMessage({ id: "app.assessment.walletProviderMissing.message" }),
+      context: "assessment submission",
+      suppressLogging: true,
+    });
+  }, [formatMessage, hasInjectedProvider, isConnected]);
 
   const onValid = async (formData: CreateAssessmentForm) => {
     try {
       if (!address) {
         toastService.error({
-          title: "Wallet required",
-          message: "Please connect your wallet before submitting an assessment.",
+          title: formatMessage({ id: "app.assessment.walletRequired.title" }),
+          message: formatMessage({ id: "app.assessment.walletRequired.message" }),
           context: "assessment submission",
           suppressLogging: true,
         });
@@ -137,19 +155,20 @@ export default function CreateAssessment() {
 
       if (!gardenId) {
         toastService.error({
-          title: "Select a garden",
-          message: "Choose a garden to link this assessment.",
+          title: formatMessage({ id: "app.assessment.selectGarden.title" }),
+          message: formatMessage({ id: "app.assessment.selectGarden.message" }),
           context: "assessment submission",
           suppressLogging: true,
         });
         return;
       }
 
-      if (typeof window === "undefined" || typeof window.ethereum === "undefined") {
+      if (!hasInjectedProvider) {
         toastService.error({
-          title: "Wallet provider missing",
-          message: "Open MetaMask or another Web3 wallet, then try again.",
+          title: formatMessage({ id: "app.assessment.walletProviderMissing.title" }),
+          message: formatMessage({ id: "app.assessment.walletProviderMissing.message" }),
           context: "assessment submission",
+          suppressLogging: true,
         });
         return;
       }
@@ -187,8 +206,8 @@ export default function CreateAssessment() {
       setLastAttestationId(uid);
     } catch (error) {
       toastService.error({
-        title: "Submission failed",
-        message: "Something went wrong. Please try again.",
+        title: formatMessage({ id: "app.assessment.submissionFailed.title" }),
+        message: formatMessage({ id: "app.assessment.submissionFailed.message" }),
         context: "assessment submission",
         error,
       });
@@ -219,8 +238,8 @@ export default function CreateAssessment() {
 
   const handleFormSubmit = handleSubmit(onValid, () => {
     toastService.error({
-      title: "Incomplete form",
-      message: "Check the highlighted fields and try again.",
+      title: formatMessage({ id: "app.assessment.incompleteForm.title" }),
+      message: formatMessage({ id: "app.assessment.incompleteForm.message" }),
       context: "assessment submission",
       suppressLogging: true,
     });
@@ -239,6 +258,23 @@ export default function CreateAssessment() {
   };
 
   const nextDisabled = !isCurrentStepValid();
+
+  const walletStatusIndicator = (
+    <div className="inline-flex items-center gap-2 rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-xs text-text-sub">
+      <RiWallet3Line className="h-4 w-4" />
+      <span className="font-medium text-text-strong">
+        {formatMessage({ id: "app.assessment.walletStatus.label" })}
+      </span>
+      <span
+        className={isConnected ? "text-success-dark" : "text-warning-dark"}
+        data-testid="assessment-wallet-status"
+      >
+        {isConnected
+          ? formatMessage({ id: "app.assessment.walletStatus.connected" })
+          : formatMessage({ id: "app.assessment.walletStatus.disconnected" })}
+      </span>
+    </div>
+  );
 
   return (
     <>
@@ -283,6 +319,7 @@ export default function CreateAssessment() {
           nextDisabled={nextDisabled}
           nextLabel="Continue"
           submitLabel="Submit assessment"
+          headerStatus={walletStatusIndicator}
         >
           {stepConfigs[currentStep]?.id === "strategy" && (
             <StrategyKernelStep
