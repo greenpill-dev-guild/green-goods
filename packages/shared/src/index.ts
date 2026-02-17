@@ -185,6 +185,7 @@ export {
   useBrowserNavigation,
   useCopyToClipboard,
   useDebouncedValue,
+  useAddressInput,
   // Cookie jar hooks
   useGardenCookieJars,
   useCookieJarWithdraw,

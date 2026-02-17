@@ -98,9 +98,8 @@ export interface GardenerCard {
   id: string; // Privy ID
   /**
    * Smart Account Ethereum address.
-   * @todo Migrate to Address type when data layer is updated
    */
-  account?: string;
+  account?: Address;
   username?: string | null; // Unique username
   email?: string;
   phone?: string;
@@ -121,9 +120,8 @@ export interface GardenCard {
   bannerImage: string;
   /**
    * Operator Ethereum addresses.
-   * @todo Migrate to Address type when data layer is updated
    */
-  operators: string[];
+  operators: Address[];
 }
 
 /** Full garden entity with all related data (assessments, works, gardeners) */
@@ -136,29 +134,24 @@ export interface Garden extends GardenCard {
   createdAt: number;
   /**
    * Gardener Ethereum addresses.
-   * @todo Migrate to Address type when data layer is updated
    */
-  gardeners: string[];
+  gardeners: Address[];
   /**
    * Evaluator Ethereum addresses.
-   * @todo Migrate to Address type when data layer is updated
    */
-  evaluators: string[];
+  evaluators: Address[];
   /**
    * Owner Ethereum addresses.
-   * @todo Migrate to Address type when data layer is updated
    */
-  owners: string[];
+  owners: Address[];
   /**
    * Funder Ethereum addresses.
-   * @todo Migrate to Address type when data layer is updated
    */
-  funders: string[];
+  funders: Address[];
   /**
    * Community member Ethereum addresses.
-   * @todo Migrate to Address type when data layer is updated
    */
-  communities: string[];
+  communities: Address[];
   /** Community token contract address */
   communityToken?: Address;
   assessments: GardenAssessment[];
@@ -198,14 +191,12 @@ export interface GardenAssessment {
   schemaVersion: "assessment_v2";
   /**
    * Assessment author's Ethereum address.
-   * @todo Migrate to Address type when data layer is updated
    */
-  authorAddress: string;
+  authorAddress: Address;
   /**
    * Garden contract address.
-   * @todo Migrate to Address type when data layer is updated
    */
-  gardenAddress: string;
+  gardenAddress: Address;
   title: string;
   description: string;
 
@@ -370,14 +361,12 @@ export interface WorkCard {
   actionUID: number;
   /**
    * Gardener's Ethereum address.
-   * @todo Migrate to Address type when data layer is updated
    */
   gardenerAddress: string;
   /**
    * Garden contract address.
-   * @todo Migrate to Address type when data layer is updated
    */
-  gardenAddress: string;
+  gardenAddress: Address;
   feedback: string;
   metadata: string;
   media: string[];

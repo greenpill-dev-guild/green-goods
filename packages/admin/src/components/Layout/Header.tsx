@@ -3,7 +3,7 @@ import { RiMenuLine } from "@remixicon/react";
 import { UserProfile } from "./UserProfile";
 
 export function Header() {
-  const { setSidebarOpen } = useUIStore();
+  const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
   const chainLabel = getChainName(DEFAULT_CHAIN_ID);
 
   return (
