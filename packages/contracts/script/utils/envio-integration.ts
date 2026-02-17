@@ -27,6 +27,8 @@ interface DeploymentData {
   accountProxy?: string;
   hatsModule?: string;
   cookieJarModule?: string;
+  marketplaceAdapter?: string;
+  unifiedPowerRegistry?: string;
   [key: string]: string | undefined;
 }
 
@@ -244,6 +246,8 @@ export class EnvioIntegration {
       upsertContract("GardensModule", deployment.gardensModule);
       upsertContract("YieldSplitter", deployment.yieldSplitter);
       upsertContract("CookieJarModule", deployment.cookieJarModule);
+      upsertContract("HypercertMarketplaceAdapter", deployment.marketplaceAdapter);
+      upsertContract("UnifiedPowerRegistry", deployment.unifiedPowerRegistry);
       // HypercertMinter has a fixed address per chain, managed in config.yaml.
       // EAS attestation data is queried from EAS GraphQL (easscan.org), not indexed by Envio.
 
@@ -267,6 +271,8 @@ export class EnvioIntegration {
         "YieldSplitter",
         "CookieJarModule",
         "HypercertMinter",
+        "HypercertMarketplaceAdapter",
+        "UnifiedPowerRegistry",
       ];
       preferredOrder.forEach((name) => {
         const contract = contractsByName.get(name);
@@ -339,6 +345,12 @@ export class EnvioIntegration {
       }
       if (deployment.cookieJarModule && deployment.cookieJarModule !== ZERO_ADDRESS) {
         console.log(`   CookieJarModule: ${deployment.cookieJarModule}`);
+      }
+      if (deployment.marketplaceAdapter && deployment.marketplaceAdapter !== ZERO_ADDRESS) {
+        console.log(`   HypercertMarketplaceAdapter: ${deployment.marketplaceAdapter}`);
+      }
+      if (deployment.unifiedPowerRegistry && deployment.unifiedPowerRegistry !== ZERO_ADDRESS) {
+        console.log(`   UnifiedPowerRegistry: ${deployment.unifiedPowerRegistry}`);
       }
       console.log(`   start_block: ${startBlock}`);
 
