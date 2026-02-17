@@ -139,12 +139,12 @@ export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
     });
   }, [platform, locale, installState]);
 
-  function switchLanguage(lang: Locale) {
+  const switchLanguage = useCallback((lang: Locale) => {
     setLocale(lang);
     localStorage.setItem("gg-language", lang);
-  }
+  }, []);
 
-  const promptInstall = () => {
+  const promptInstall = useCallback(() => {
     if (deferredPrompt) {
       deferredPrompt.prompt(); // Show the install prompt
       deferredPrompt.userChoice.then((choiceResult) => {
@@ -156,7 +156,7 @@ export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
         setDeferredPrompt(null); // Clear the saved prompt
       });
     }
-  };
+  }, [deferredPrompt]);
 
   useEffect(() => {
     // Only run install check if not already detected as installed during initialization
