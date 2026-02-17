@@ -169,8 +169,8 @@ const { user, isPasskeyUser, loginWithPasskey, loginWithWallet } = useAuth();
 
 **Shared Package Structure** (`packages/shared/src/`):
 - `components/` - Reusable UI components
-- `hooks/` - Domain-organized hooks (`app/`, `auth/`, `garden/`, `work/`, `blockchain/`)
-- `modules/` - Business logic modules
+- `hooks/` - Domain-organized hooks (`action/`, `app/`, `assessment/`, `auth/`, `blockchain/`, `conviction/`, `cookie-jar/`, `ens/`, `garden/`, `gardener/`, `hypercerts/`, `roles/`, `translation/`, `utils/`, `vault/`, `work/`, `yield/`)
+- `modules/` - Business logic modules (including `marketplace/` adapters)
 - `providers/` - React context providers
 - `stores/` - Zustand state stores
 - `types/` - TypeScript type definitions
@@ -409,24 +409,34 @@ forge script script/Deploy.s.sol --broadcast --rpc-url $RPC  # Missing env, keys
 
 ### What Gets Deployed
 
-`DeploymentBase._deployCoreContracts()` deploys the **full protocol stack** in order:
+`DeploymentBase._deployCoreContracts()` deploys and wires the **full protocol stack** (18+ addresses plus schema UIDs):
 
-1. **DeploymentRegistry** — Governance + proxy
-2. **Guardian** — Account guardian (CREATE2)
+1. **DeploymentRegistry** — Governance + deployment registry
+2. **Guardian** — Recovery guard + account safety controls
 3. **ActionRegistry** — Domain/action management (UUPS proxy)
 4. **WorkResolver** — EAS work submission resolver (ResolverStub + UUPS)
 5. **WorkApprovalResolver** — EAS work approval resolver (ResolverStub + UUPS)
 6. **AssessmentResolver** — EAS assessment resolver (ResolverStub + UUPS)
-7. **HatsModule** — Role/permission management adapter
-8. **GardenAccount** — Token-bound account (CREATE2)
-9. **AccountProxy** — TBA proxy (CREATE2)
-10. **GardenToken** — NFT + garden factory (CREATE2 + UUPS proxy)
-11. **KarmaGAPModule** — Karma GAP integration
-12. **OctantModule** — Octant vault integration
-13. **GardensModule** — Community, signal pools, power registry
-14. **YieldSplitter** — Yield distribution
+7. **HatsModule** — Role/permission adapter
+8. **GardenAccount implementation** — ERC-6551 account logic
+9. **AccountProxy** — ERC-6551 account proxy factory target
+10. **GardenToken** — Garden NFT + token-bound account mint flow
+11. **GardenerAccount logic** — Gardener smart account implementation
+12. **KarmaGAPModule** — GAP integration module
+13. **OctantFactory** — Octant integration dependency
+14. **OctantModule** — Yield vault integration module
+15. **GardensModule** — Community/signal module integration
+16. **CookieJarModule** — Cookie Jar allowance integration
+17. **YieldSplitter** — Yield distribution and payout routing
+18. **GreenGoodsENS** — ENS integration contract
+19. **UnifiedPowerRegistry** — Cross-module power registry (when enabled)
+20. **HypercertsModule** — Hypercert orchestration module
+21. **MarketplaceAdapter** — Hypercert marketplace adapter
+22. **Hypercert/market contracts** — `hypercertMinter`, `hypercertExchange`, `transferManager`, `strategyHypercertFractionOffer` (chain-dependent)
+23. **Root garden bootstrap** — root garden metadata/address + token ID (chain-dependent)
+24. **Schemas payload** — `workSchemaUID`, `workApprovalSchemaUID`, and `assessmentSchemaUID`
 
-After deployment, all modules are **wired together** (e.g., `gardenToken.setHatsModule()`, `actionRegistry.setGardenToken()`, etc.).
+Some modules may remain zero-address on a given chain until explicitly activated. Deployment artifacts still reserve all keys so downstream packages can detect availability safely.
 
 ### Deployment Artifacts
 

@@ -104,14 +104,14 @@ Test against real network state without spending gas:
 
 ```bash
 # Run E2E tests against forked networks
-bun test:e2e:celo       # Fork and test Celo mainnet
-bun test:e2e:arbitrum   # Fork and test Arbitrum mainnet
+bun run test:e2e:celo       # Fork and test Celo mainnet
+bun run test:e2e:arbitrum   # Fork and test Arbitrum mainnet
 
 # Or manually fork with Anvil
 anvil --fork-url $CELO_RPC_URL
 
 # Then run tests on fork
-forge test --fork-url http://localhost:8545 -vv
+bun run test:e2e:celo    # or bun run test:e2e:arbitrum / :sepolia
 ```
 
 **Use when:** Testing upgrades, validating against real state, debugging production issues
@@ -170,9 +170,9 @@ bun upgrade:celo        # Upgrade Celo mainnet
 bun upgrade:arbitrum    # Upgrade Arbitrum mainnet
 
 # 🧪 TESTING
-bun test                # Run all tests
-bun test:e2e:celo       # Fork and test Celo mainnet
-bun test:e2e:arbitrum   # Fork and test Arbitrum mainnet
+bun run test                # Run all tests
+bun run test:e2e:celo       # Fork and test Celo mainnet
+bun run test:e2e:arbitrum   # Fork and test Arbitrum mainnet
 
 # 🔧 DEVELOPMENT
 bun build               # Compile contracts
@@ -205,10 +205,10 @@ bun script/deploy.ts core --network sepolia --broadcast --force
 ---
 
 **📖 For detailed documentation, see:**
-- Full Deployment Guide: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
-- Upgrade Guide: [docs/UPGRADES.md](./docs/UPGRADES.md)
-- Environment Setup: [docs/ENVIRONMENT_SETUP.md](./docs/ENVIRONMENT_SETUP.md)
-- Troubleshooting: [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
+- Full Deployment Guide: [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook)
+- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook)
+- Environment Setup: [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer)
+- Troubleshooting: [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer)
 
 ## Deployment System
 
@@ -291,21 +291,21 @@ Green Goods integrates with the **Karma Grantee Accountability Protocol (GAP)** 
 - Identity-first security - all resolvers verify roles before any logic
 
 **Documentation:**
-- User Guide: [docs/KARMA_GAP.md](../../docs/KARMA_GAP.md)
-- Implementation: [docs/KARMA_GAP_IMPLEMENTATION.md](../../docs/KARMA_GAP_IMPLEMENTATION.md)
-- Upgrade Guide: [docs/UPGRADES.md](../../docs/UPGRADES.md)
+- User Guide: [Karma GAP Integration](https://docs.greengoods.app/developer/karma-gap)
+- Implementation: [Karma GAP Integration](https://docs.greengoods.app/developer/karma-gap)
+- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook)
 - KarmaLib Source: `src/lib/Karma.sol`
 - Interfaces: `src/interfaces/IKarmaGap.sol`
 
 **Testing:**
 ```bash
 # Run E2E tests (includes GAP integration)
-bun test:e2e
+bun run test:e2e
 
 # Test specific networks
-bun test:e2e:arbitrum   # Fork Arbitrum
-bun test:e2e:celo       # Fork Celo
-bun test:e2e:testnet    # Fork Sepolia
+bun run test:e2e:arbitrum   # Fork Arbitrum
+bun run test:e2e:celo       # Fork Celo
+bun run test:e2e:testnet    # Fork Sepolia
 ```
 
 ### Schema Evolution
@@ -326,7 +326,7 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 bun script/deploy.ts core --network sepolia --broadcast --force
 ```
 
-See `docs/UPGRADES.md` for detailed schema versioning strategy and `docs/DEPLOYMENT.md` for schema deployment troubleshooting.
+See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) for schema versioning strategy and deployment troubleshooting.
 
 ## Configuration
 
@@ -451,7 +451,7 @@ forge script script/Upgrade.s.sol:Upgrade \
   --network arbitrum --broadcast
 ```
 
-See `docs/UPGRADES.md` for complete upgrade guide.
+See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) for the complete upgrade guide.
 
 ### When to Deploy vs Upgrade
 
@@ -467,7 +467,7 @@ See `docs/UPGRADES.md` for complete upgrade guide.
 
 ### Documentation
 
-See [UPGRADES.md](docs/UPGRADES.md) for complete upgrade guide including:
+See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) for the complete upgrade guide including:
 - Deploy vs Upgrade decision matrix
 - Storage gap usage
 - Multisig upgrade process
@@ -507,7 +507,7 @@ bun install
 bun build
 
 # Run comprehensive test suite
-bun test
+bun run test
 
 # Format Solidity code
 bun format
@@ -525,16 +525,16 @@ bun dev
 bun compile
 
 # Run tests with gas reporting
-bun test
+bun run test
 
 # Run specific test contract
-forge test --match-contract YourTestContract -vv
+bun run test:match test/unit/YourTestContract.t.sol
 
 # Run specific test function
-forge test --match-test testYourFunction -vvv
+bun run test:match test/unit/YourTestContract.t.sol
 
 # Watch mode for continuous testing
-forge test --watch
+bun run test --watch
 ```
 
 **Local Development:**
@@ -614,17 +614,17 @@ Networks are configured in `deployments/networks.json`. The system automatically
 **Advanced Testing:**
 ```bash
 # Fork testing against live networks
-bun test:e2e:celo       # Automated fork test
+bun run test:e2e:celo       # Automated fork test
 # Or manually: anvil --fork-url $CELO_RPC_URL
 
 # Gas profiling
-forge test --gas-report
+bun run test:gas
 
 # Coverage analysis
 forge coverage
 
 # Invariant testing
-forge test --match-contract InvariantTest
+bun run test:match test/invariant/InvariantTest.t.sol
 ```
 
 **Test Best Practices:**
@@ -711,7 +711,7 @@ bun envio:cleanup
 - Use events instead of storage for non-critical data
 - Consider CREATE2 for deterministic addresses
 - Batch operations when possible
-- Use `forge test --gas-report` to profile gas usage
+- Use `bun run test:gas` to profile gas usage
 
 ### Troubleshooting
 
@@ -744,10 +744,10 @@ cast balance $DEPLOYER_ADDRESS --rpc-url $CELO_RPC_URL
 **Test Failures:**
 ```bash
 # Run with maximum verbosity
-forge test -vvvv
+bun run test
 
 # Debug specific test
-forge test --match-test testYourFunction --debug
+bun run test:match test/unit/YourTestContract.t.sol
 
 # Check coverage
 forge coverage --report lcov
@@ -759,7 +759,7 @@ forge coverage --report lcov
 forge create src/YourContract.sol:YourContract --estimate
 
 # Profile gas usage
-forge test --gas-report
+bun run test:gas
 
 # Check gas limit
 cast block latest --field gasLimit --rpc-url $CELO_RPC_URL

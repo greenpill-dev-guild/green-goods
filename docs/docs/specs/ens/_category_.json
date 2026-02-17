@@ -1,0 +1,8 @@
+{
+  "label": "ENS",
+  "position": 25,
+  "link": {
+    "type": "doc",
+    "id": "ens-spec-index"
+  }
+}

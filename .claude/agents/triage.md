@@ -165,10 +165,10 @@ packages/
 | Domain | Primary Skill | Secondary |
 |--------|--------------|-----------|
 | React/UI | `react` | `frontend-design`, `radix-ui` |
-| Data fetching | `tanstack-query` | `offline` |
+| Data fetching | `tanstack-query` | `data-layer` |
 | Blockchain | `web3` | `contracts` |
 | Errors | `error-handling-patterns` | `monitoring` |
-| Storage | `storage` | `offline` |
+| Storage | `data-layer` | `monitoring` |
 | State machines | `xstate` | `react` |
 | Testing | `testing` | `storybook` |
 | Build | `vite` | `performance` |

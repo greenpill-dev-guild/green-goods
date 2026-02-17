@@ -135,7 +135,7 @@ bun build
 bun lint
 
 # Full workspace test
-bun test
+bun run test
 
 # Format check
 bun format --check
@@ -217,14 +217,14 @@ client: Test migration from old schema → new schema
 
 ```bash
 # Per-package validation
-bun --filter contracts build && bun --filter contracts test
+bun --filter contracts build && bun --filter contracts run test
 bun --filter indexer build
-bun --filter shared build && bun --filter shared test
-bun --filter client build && bun --filter client test
-bun --filter admin build && bun --filter admin test
+bun --filter shared build && bun --filter shared run test
+bun --filter client build && bun --filter client run test
+bun --filter admin build && bun --filter admin run test
 
 # Cross-package validation
-bun build && bun lint && bun test
+bun build && bun lint && bun run test
 ```
 
 ## Core Rules (from CLAUDE.md)

@@ -138,9 +138,12 @@ The root `.env` is automatically loaded by the indexer's Docker Compose setup an
 
 ### Entities (from `schema.graphql`)
 
-- Gardens and Actions
-- Work Submissions and Approvals
-- EAS Attestations
+- Gardens and Actions (`Garden`, `Action`, `Gardener`)
+- Garden governance (`GardenCommunity`, `GardenSignalPool`, `GardenHatTree`, `PartialGrantFailure`)
+- Vaults and yield accounting (`GardenVault`, `GardenVaultIndex`, `VaultDeposit`, `VaultEvent`, `VaultAddressIndex`)
+- Yield distribution outputs (`YieldAllocation`, `YieldAccumulation`, `YieldFractionPurchase`, `YieldCookieJarTransfer`, `YieldJuiceboxPayment`, `YieldStranded`)
+- Hypercert ecosystem (`Hypercert`, `HypercertClaim`, `GoodsAirdrop`, `GardenTreasury`)
+- Integrations (`CookieJar`, `ENSRegistration`, `GardenDomains`)
 
 ### Client Configuration
 
