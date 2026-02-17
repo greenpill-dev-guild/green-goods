@@ -6,9 +6,11 @@ import {
   formatDate,
   logger,
   MethodSelector,
+  parseContractError,
   toastService,
   uploadFileToIPFS,
   uploadJSONToIPFS,
+  USER_FRIENDLY_ERRORS,
   useActions,
   useGardenPermissions,
   useGardens,
@@ -27,7 +29,7 @@ import {
   RiTimeLine,
   RiUserLine,
 } from "@remixicon/react";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
@@ -115,7 +117,7 @@ export default function WorkDetail() {
 
   const defaultMethod = getDefaultMethodForDomain(action?.slug);
 
-  const { control, watch } = useForm<WorkApprovalFormData>({
+  const { control, watch, getValues } = useForm<WorkApprovalFormData>({
     resolver: zodResolver(workApprovalSchema),
     defaultValues: {
       confidence: Confidence.NONE,
@@ -126,6 +128,9 @@ export default function WorkDetail() {
 
   const confidence = watch("confidence");
   const verificationMethod = watch("verificationMethod");
+  const hasLowConfidenceHint = confidence < Confidence.LOW;
+  const hasMissingVerificationMethodHint = verificationMethod === 0;
+  const hasApprovalValidationHints = hasLowConfidenceHint || hasMissingVerificationMethodHint;
 
   // Audio recording state
   const [reviewAudioFile, setReviewAudioFile] = useState<File | null>(null);
@@ -133,105 +138,109 @@ export default function WorkDetail() {
 
   const approvalMutation = useWorkApproval();
 
-  const handleApprovalSubmit = useCallback(
-    async (approved: boolean) => {
-      if (!work || !gardenId) return;
+  const handleApprovalSubmit = async (approved: boolean) => {
+    if (!work || !gardenId) return;
 
-      // Validate form data manually since approval/rejection isn't a form field
-      const formData = {
-        confidence: approved ? confidence : Confidence.NONE,
-        verificationMethod: approved ? verificationMethod : 0,
-        feedback: watch("feedback"),
+    // Validate form data manually since approval/rejection isn't a form field
+    const formData = {
+      confidence: approved ? confidence : Confidence.NONE,
+      verificationMethod: approved ? verificationMethod : 0,
+      feedback: getValues("feedback"),
+    };
+
+    // Validation for approvals
+    if (approved) {
+      if (formData.confidence < Confidence.LOW) {
+        // Can't approve with NONE confidence
+        return;
+      }
+      if (formData.verificationMethod === 0) {
+        // Must select at least 1 verification method
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Build review notes CID if audio exists
+      let reviewNotesCID: string | undefined;
+
+      if (reviewAudioFile) {
+        // IPFS upload chain: audio file -> IPFS CID -> JSON envelope -> IPFS CID
+        try {
+          const { cid: audioCid } = await uploadFileToIPFS(reviewAudioFile, {
+            source: "WorkDetail.reviewNotes",
+          });
+
+          const reviewNotesJson: Record<string, unknown> = {
+            schemaVersion: "review_notes_v1",
+            audioNoteCids: [audioCid],
+            reviewerComments: formData.feedback || "",
+          };
+
+          const { cid: jsonCid } = await uploadJSONToIPFS(reviewNotesJson, {
+            source: "WorkDetail.reviewNotes",
+            metadataType: "review_notes",
+          });
+
+          reviewNotesCID = jsonCid;
+        } catch (uploadError) {
+          logger.error("Failed to upload review notes to IPFS", {
+            error: uploadError,
+            source: "WorkDetail",
+          });
+          // Show user-facing error so the failure isn't silent
+          toastService.error({
+            title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
+            message: formatMessage({ id: "app.toast.approval.errorWallet.message" }),
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const draft: WorkApprovalDraft = {
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved,
+        feedback: formData.feedback || undefined,
+        confidence: approved ? formData.confidence : Confidence.NONE,
+        verificationMethod: approved ? formData.verificationMethod : 0,
+        reviewNotesCID,
       };
 
-      // Validation for approvals
-      if (approved) {
-        if (formData.confidence < Confidence.LOW) {
-          // Can't approve with NONE confidence
-          return;
-        }
-        if (formData.verificationMethod === 0) {
-          // Must select at least 1 verification method
-          return;
-        }
-      }
+      await approvalMutation.mutateAsync({ draft, work });
 
-      setIsSubmitting(true);
+      // Navigate back to garden detail on success
+      navigate(`/gardens/${gardenId}`);
+    } catch (error) {
+      const parsed = parseContractError(error);
+      const normalizedName = parsed.name.toLowerCase();
+      const knownMessage =
+        USER_FRIENDLY_ERRORS[normalizedName] ??
+        Object.entries(USER_FRIENDLY_ERRORS).find(([pattern]) => {
+          const lowerMessage = parsed.message.toLowerCase();
+          return normalizedName.includes(pattern) || lowerMessage.includes(pattern);
+        })?.[1];
 
-      try {
-        // Build review notes CID if audio exists
-        let reviewNotesCID: string | undefined;
+      logger.error("Work approval submission failed", {
+        error,
+        source: "WorkDetail",
+      });
 
-        if (reviewAudioFile) {
-          // IPFS upload chain: audio file -> IPFS CID -> JSON envelope -> IPFS CID
-          try {
-            const { cid: audioCid } = await uploadFileToIPFS(reviewAudioFile, {
-              source: "WorkDetail.reviewNotes",
-            });
-
-            const reviewNotesJson: Record<string, unknown> = {
-              schemaVersion: "review_notes_v1",
-              audioNoteCids: [audioCid],
-              reviewerComments: formData.feedback || "",
-            };
-
-            const { cid: jsonCid } = await uploadJSONToIPFS(reviewNotesJson, {
-              source: "WorkDetail.reviewNotes",
-              metadataType: "review_notes",
-            });
-
-            reviewNotesCID = jsonCid;
-          } catch (uploadError) {
-            logger.error("Failed to upload review notes to IPFS", {
-              error: uploadError,
-              source: "WorkDetail",
-            });
-            // Show user-facing error so the failure isn't silent
-            toastService.error({
-              title: formatMessage({
-                id: "app.work.review.uploadFailed",
-                defaultMessage: "Failed to upload review notes. Please try again.",
-              }),
-            });
-            setIsSubmitting(false);
-            return;
-          }
-        }
-
-        const draft: WorkApprovalDraft = {
-          actionUID: work.actionUID,
-          workUID: work.id,
-          approved,
-          feedback: formData.feedback || undefined,
-          confidence: approved ? formData.confidence : Confidence.NONE,
-          verificationMethod: approved ? formData.verificationMethod : 0,
-          reviewNotesCID,
-        };
-
-        await approvalMutation.mutateAsync({ draft, work });
-
-        // Navigate back to garden detail on success
-        navigate(`/gardens/${gardenId}`);
-      } catch (error) {
-        logger.error("Work approval submission failed", {
-          error,
-          source: "WorkDetail",
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [
-      work,
-      gardenId,
-      confidence,
-      verificationMethod,
-      watch,
-      reviewAudioFile,
-      approvalMutation,
-      navigate,
-    ]
-  );
+      toastService.error({
+        title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
+        message:
+          knownMessage ??
+          (parsed.isKnown
+            ? parsed.message
+            : formatMessage({ id: "app.toast.approval.errorWallet.message" })),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // ─────────────────────────────────────────────────────────────
   // Loading / Error states
@@ -498,9 +507,7 @@ export default function WorkDetail() {
                       <button
                         type="button"
                         onClick={() => handleApprovalSubmit(true)}
-                        disabled={
-                          isSubmitting || confidence < Confidence.LOW || verificationMethod === 0
-                        }
+                        disabled={isSubmitting || hasApprovalValidationHints}
                         className="flex-1 rounded-lg bg-success-base px-4 py-2.5 text-sm font-medium text-static-white transition hover:bg-success-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-base focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isSubmitting ? "Submitting..." : "Approve"}
@@ -516,12 +523,12 @@ export default function WorkDetail() {
                     </div>
 
                     {/* Validation hints */}
-                    {confidence < Confidence.LOW && (
+                    {hasLowConfidenceHint && (
                       <p className="text-xs text-warning-base">
                         Select Low confidence or higher to approve.
                       </p>
                     )}
-                    {verificationMethod === 0 && (
+                    {hasMissingVerificationMethodHint && (
                       <p className="text-xs text-warning-base">
                         Select at least one verification method to approve.
                       </p>
