@@ -42,6 +42,7 @@ export function PositionCard({
   const assetDecimals = getVaultAssetDecimals(vault.asset, vault.chainId);
   const netDeposited = getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
   const hasDeposits = netDeposited > 0n;
+  const assetSymbol = getVaultAssetSymbol(vault.asset, vault.chainId);
   const { preview } = useVaultPreview({
     vaultAddress: vault.vaultAddress,
     userAddress: ZERO_ADDRESS as Address,
@@ -66,7 +67,7 @@ export function PositionCard({
     <article className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-base font-semibold text-text-strong sm:text-lg">
-          {getVaultAssetSymbol(vault.asset, vault.chainId)}
+          {assetSymbol}
         </h3>
         {vault.paused && (
           <span className="rounded-full bg-error-lighter px-2 py-1 text-xs font-medium text-error-dark">
@@ -81,7 +82,7 @@ export function PositionCard({
             {formatMessage({ id: "app.treasury.netDeposited" })}
           </p>
           <p className="mt-1 font-semibold text-text-strong">
-            {formatTokenAmount(netDeposited, assetDecimals)}
+            {formatTokenAmount(netDeposited, assetDecimals)} {assetSymbol}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
@@ -89,7 +90,7 @@ export function PositionCard({
             {formatMessage({ id: "app.treasury.currentYield" })}
           </p>
           <p className="mt-1 font-semibold text-text-strong">
-            {formatTokenAmount(currentYield, assetDecimals)}
+            {formatTokenAmount(currentYield, assetDecimals)} {assetSymbol}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">

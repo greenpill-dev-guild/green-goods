@@ -2,6 +2,7 @@ import {
   type Address,
   formatTokenAmount,
   getNetDeposited,
+  getVaultAssetSymbol,
   isZeroAddressValue,
   useGardenPermissions,
   useGardenVaults,
@@ -50,6 +51,19 @@ export default function GardenVaultView() {
       totalDepositorCount: depositorCount,
     };
   }, [vaults]);
+
+  const tvlDenomination = useMemo(() => {
+    const symbols = new Set(
+      vaults.map((vault) => getVaultAssetSymbol(vault.asset, vault.chainId)).filter(Boolean)
+    );
+
+    if (symbols.size === 1) return Array.from(symbols)[0];
+    if (symbols.size > 1) {
+      return formatMessage({ id: "app.treasury.multiAssetDenomination" }, { count: symbols.size });
+    }
+
+    return formatMessage({ id: "app.treasury.tokenDenominationFallback" });
+  }, [formatMessage, vaults]);
 
   const donationAddress = useMemo(() => {
     const configured = vaults.find((vault) => !isZeroAddressValue(vault.donationAddress));
@@ -119,7 +133,7 @@ export default function GardenVaultView() {
               {formatMessage({ id: "app.treasury.totalValueLocked" })}
             </p>
             <p className="mt-1 text-xl font-semibold text-text-strong">
-              {formatTokenAmount(totalNetDeposited)}
+              {formatTokenAmount(totalNetDeposited)} {tvlDenomination}
             </p>
           </div>
           <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
