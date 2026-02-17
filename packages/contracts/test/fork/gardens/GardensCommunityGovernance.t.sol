@@ -5,7 +5,16 @@ import { ForkTestBase } from "../helpers/ForkTestBase.sol";
 import { GardensModule } from "../../../src/modules/Gardens.sol";
 import { GardenToken } from "../../../src/tokens/Garden.sol";
 import { IGardensModule } from "../../../src/interfaces/IGardensModule.sol";
-import { IRegistryCommunity } from "../../../src/interfaces/IGardensV2.sol";
+import {
+    IRegistryCommunity,
+    CVStrategyInitializeParamsV0_3,
+    CVParams,
+    PointSystem,
+    ProposalType,
+    PointSystemConfig,
+    ArbitrableConfig,
+    Metadata
+} from "../../../src/interfaces/IGardensV2.sol";
 import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -125,6 +134,7 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
         GardenToken.GardenConfig memory config2 = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Exponential Garden",
+            slug: "",
             description: "Uses exponential weighting",
             location: "Test Location",
             bannerImage: "ipfs://QmTest",
@@ -147,6 +157,7 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
         GardenToken.GardenConfig memory config3 = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Power Garden",
+            slug: "",
             description: "Uses power weighting",
             location: "Test Location",
             bannerImage: "ipfs://QmTest",
@@ -224,24 +235,39 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
         }
 
         // Build pool params with Unlimited point system (no registry needed)
-        IRegistryCommunity.CVParams memory cvParams = IRegistryCommunity.CVParams({
-            maxRatio: GardensModule(address(gardensModule)).DEFAULT_MAX_RATIO(),
-            weight: GardensModule(address(gardensModule)).DEFAULT_WEIGHT(),
-            decay: GardensModule(address(gardensModule)).DEFAULT_DECAY(),
-            minThresholdPoints: GardensModule(address(gardensModule)).DEFAULT_MIN_THRESHOLD_POINTS()
+        CVStrategyInitializeParamsV0_3 memory strategyParams = CVStrategyInitializeParamsV0_3({
+            cvParams: CVParams({
+                maxRatio: GardensModule(address(gardensModule)).DEFAULT_MAX_RATIO(),
+                weight: GardensModule(address(gardensModule)).DEFAULT_WEIGHT(),
+                decay: GardensModule(address(gardensModule)).DEFAULT_DECAY(),
+                minThresholdPoints: GardensModule(address(gardensModule)).DEFAULT_MIN_THRESHOLD_POINTS()
+            }),
+            proposalType: ProposalType.Signaling,
+            pointSystem: PointSystem.Unlimited,
+            pointConfig: PointSystemConfig({ maxAmount: 0 }),
+            arbitrableConfig: ArbitrableConfig({
+                arbitrator: address(0),
+                tribunalSafe: address(0),
+                submitterCollateralAmount: 0,
+                challengerCollateralAmount: 0,
+                defaultRuling: 0,
+                defaultRulingTimeout: 0
+            }),
+            registryCommunity: community,
+            votingPowerRegistry: address(0), // Not needed for Unlimited
+            sybilScorer: address(0),
+            sybilScorerThreshold: 0,
+            initialAllowlist: new address[](0),
+            superfluidToken: address(0),
+            streamingRatePerSecond: 0
         });
 
-        IRegistryCommunity.CreatePoolParams memory poolParams = IRegistryCommunity.CreatePoolParams({
-            pointSystem: IRegistryCommunity.PointSystem.Unlimited,
-            cvParams: cvParams,
-            votingPowerRegistry: address(0), // Not needed for Unlimited
-            initialMembers: new address[](0),
-            metadata: "Direct Unlimited Pool"
-        });
+        Metadata memory poolMetadata = Metadata({ protocol: 1, pointer: "Direct Unlimited Pool" });
 
         // Prank as the garden TBA (council Safe) to create pool directly on the community
         vm.prank(garden);
-        (uint256 poolId, address strategy) = IRegistryCommunity(community).createPool(poolParams);
+        (uint256 poolId, address strategy) =
+            IRegistryCommunity(community).createPool(address(0), strategyParams, poolMetadata);
 
         assertTrue(strategy != address(0), "strategy should be deployed");
         emit log_named_uint("poolId", poolId);

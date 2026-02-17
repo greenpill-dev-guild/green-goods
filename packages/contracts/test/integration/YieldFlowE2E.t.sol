@@ -135,6 +135,9 @@ contract YieldFlowE2ETest is Test {
         // Wire the garden's vault into YieldResolver
         address wethVault = octantModule.getVaultForAsset(address(garden), address(weth));
         yieldResolver.setGardenVault(address(garden), address(weth), wethVault);
+
+        // Wire OctantModule → YieldResolver for harvest share registration
+        octantModule.setYieldResolver(address(yieldResolver));
         vm.stopPrank();
 
         // Set donation address to YieldResolver
@@ -226,6 +229,88 @@ contract YieldFlowE2ETest is Test {
         assertEq(
             yieldResolver.getPendingYield(address(garden), address(weth)), 0, "Pending yield should be zero after split"
         );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Integration: harvest() → registerShares (CRIT-4 coverage)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Verify harvest() automatically registers shares with YieldResolver
+    /// @dev Exercises the ACTUAL OctantModule→YieldResolver integration path:
+    ///      harvest → process_report (mints shares to resolver) → registerShares
+    ///      This is the path that was previously untested — the E2E test above used
+    ///      a manually-created MockOctantVaultForYield instead of the real vault flow.
+    function test_harvestRegistersSharesWithYieldResolver() public {
+        address wethVault = octantModule.getVaultForAsset(address(garden), address(weth));
+        assertTrue(wethVault != address(0), "WETH vault should exist");
+
+        // Step 1: User deposits into vault (creates share supply)
+        uint256 depositAmount = 100 ether;
+        vm.prank(USER);
+        MockOctantVault(wethVault).deposit(depositAmount, USER);
+
+        // Step 2: Configure vault to mint yield shares to YieldResolver during process_report
+        uint256 yieldShares = 10 ether;
+        MockOctantVault(wethVault).setProcessReportYield(address(yieldResolver), yieldShares);
+        wethStrategy.simulateYield(yieldShares);
+
+        // Step 3: Verify resolver has zero shares before harvest
+        assertEq(
+            yieldResolver.gardenShares(address(garden), wethVault),
+            0,
+            "Garden should have 0 shares in resolver before harvest"
+        );
+
+        // Step 4: Operator triggers harvest — should auto-register shares with resolver
+        vm.expectEmit(true, true, false, true);
+        emit OctantModule.SharesRegistered(address(garden), wethVault, yieldShares);
+
+        vm.prank(OPERATOR);
+        octantModule.harvest(address(garden), address(weth));
+
+        // Step 5: Verify shares were registered in YieldResolver via the harvest path
+        assertEq(
+            yieldResolver.gardenShares(address(garden), wethVault),
+            yieldShares,
+            "Garden should have yield shares registered after harvest"
+        );
+
+        // Step 6: Verify aggregate tracking is correct
+        assertEq(
+            yieldResolver.totalRegisteredShares(wethVault), yieldShares, "Total registered shares should match yield shares"
+        );
+    }
+
+    /// @notice Verify multiple harvests accumulate shares correctly in YieldResolver
+    function test_multipleHarvestsAccumulateShares() public {
+        address wethVault = octantModule.getVaultForAsset(address(garden), address(weth));
+
+        // Initial deposit
+        vm.prank(USER);
+        MockOctantVault(wethVault).deposit(100 ether, USER);
+
+        // Harvest #1: 10 shares
+        MockOctantVault(wethVault).setProcessReportYield(address(yieldResolver), 10 ether);
+        wethStrategy.simulateYield(10 ether);
+
+        vm.prank(OPERATOR);
+        octantModule.harvest(address(garden), address(weth));
+        assertEq(yieldResolver.gardenShares(address(garden), wethVault), 10 ether, "After harvest 1");
+
+        // Harvest #2: 5 more shares (cumulative: 15)
+        MockOctantVault(wethVault).setProcessReportYield(address(yieldResolver), 5 ether);
+        wethStrategy.simulateYield(5 ether);
+
+        vm.prank(OPERATOR);
+        octantModule.harvest(address(garden), address(weth));
+        assertEq(yieldResolver.gardenShares(address(garden), wethVault), 15 ether, "After harvest 2");
+
+        // Harvest #3: 0 yield (no shares minted) — should be no-op
+        wethStrategy.simulateYield(0);
+
+        vm.prank(OPERATOR);
+        octantModule.harvest(address(garden), address(weth));
+        assertEq(yieldResolver.gardenShares(address(garden), wethVault), 15 ether, "After harvest 3 (no yield)");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

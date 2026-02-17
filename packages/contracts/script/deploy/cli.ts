@@ -122,7 +122,7 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
         console.log(`   Action Registry: ${addresses.actionRegistry}`);
         console.log(`   Community Token: ${communityToken}`);
         console.log(`   Deployment Registry: ${addresses.deploymentRegistry}`);
-        console.log(`   Gardener Account Logic: ${addresses.gardenerAccountLogic}`);
+        console.log(`   Garden Account Impl: ${addresses.gardenAccountImpl}`);
         console.log(`   Work Resolver: ${addresses.workResolver}`);
         console.log(`   Work Approval Resolver: ${addresses.workApprovalResolver}`);
         console.log(`   Assessment Resolver: ${addresses.assessmentResolver}`);

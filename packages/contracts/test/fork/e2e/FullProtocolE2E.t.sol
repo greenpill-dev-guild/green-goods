@@ -74,7 +74,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
             data: AttestationRequestData({
                 recipient: garden,
                 expirationTime: 0,
-                revocable: true,
+                revocable: false, // Work schema is non-revocable per schemas.json
                 refUID: bytes32(0),
                 data: abi.encode(workData),
                 value: 0
@@ -101,7 +101,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
             data: AttestationRequestData({
                 recipient: garden,
                 expirationTime: 0,
-                revocable: true,
+                revocable: false, // Work approval schema is non-revocable per schemas.json
                 refUID: workAttestUID,
                 data: abi.encode(approvalData),
                 value: 0
@@ -164,6 +164,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Module Wiring Garden",
+            slug: "",
             description: "Tests all modules",
             location: "Test Location Alpha",
             bannerImage: "ipfs://QmBanner123",
@@ -238,6 +239,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Should Fail",
+            slug: "",
             description: "Missing HatsModule",
             location: "Nowhere",
             bannerImage: "",
@@ -273,6 +275,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         configs[0] = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Batch Garden Alpha",
+            slug: "",
             description: "First batch garden",
             location: "Location A",
             bannerImage: "ipfs://QmAlpha",
@@ -285,6 +288,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         configs[1] = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Batch Garden Beta",
+            slug: "",
             description: "Second batch garden",
             location: "Location B",
             bannerImage: "ipfs://QmBeta",
@@ -297,6 +301,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         configs[2] = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Batch Garden Gamma",
+            slug: "",
             description: "Third batch garden",
             location: "Location C",
             bannerImage: "ipfs://QmGamma",
@@ -356,6 +361,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Open Joining Garden",
+            slug: "",
             description: "Anyone can join",
             location: "Open Location",
             bannerImage: "ipfs://QmOpen",

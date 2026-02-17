@@ -172,7 +172,7 @@ contract ArbitrumGardensModuleForkTest is Test {
             GardensModule.initialize.selector,
             owner,
             address(0), // registryFactory — not deployed on mainnet Arbitrum yet
-            address(0), // powerRegistryFactory — not deployed yet
+            address(0), // powerRegistry — not deployed yet
             address(goodsToken),
             HATS_PROTOCOL,
             address(mockHatsModule)
@@ -315,7 +315,7 @@ contract ArbitrumGardensModuleForkTest is Test {
         assertEq(gardensModule.getGardenCommunity(garden), address(0), "community should be zero before mint");
         assertEq(gardensModule.getGardenPowerRegistry(garden), address(0), "registry should be zero before mint");
 
-        // Mint (registryFactory and powerRegistryFactory are address(0), so steps 1-3 gracefully return empty)
+        // Mint (registryFactory and powerRegistry are address(0), so steps 1-3 gracefully return empty)
         vm.prank(gardenTokenAddr);
         (address community, address[] memory pools) =
             gardensModule.onGardenMinted(garden, IGardensModule.WeightScheme.Linear);
@@ -388,7 +388,7 @@ contract ArbitrumGardensModuleForkTest is Test {
         _deployModule();
         mockHatsModule.setGardenHats(garden, 100, 101, 102, 103, 104, 105, 106);
 
-        // Module has address(0) for registryFactory and powerRegistryFactory
+        // Module has address(0) for registryFactory and powerRegistry
         // onGardenMinted should NOT revert — it should gracefully skip factory steps
         vm.prank(gardenTokenAddr);
         (address community, address[] memory pools) =
@@ -428,13 +428,13 @@ contract ArbitrumGardensModuleForkTest is Test {
         vm.startPrank(owner);
         gardensModule.setHatsProtocol(newHats);
         gardensModule.setRegistryFactory(newRegistryFactory);
-        gardensModule.setPowerRegistryFactory(newPowerFactory);
+        gardensModule.setPowerRegistry(newPowerFactory);
         gardensModule.setGoodsToken(newGoodsToken);
         vm.stopPrank();
 
         assertEq(gardensModule.hatsProtocol(), newHats, "hats protocol should be updated");
         assertEq(address(gardensModule.registryFactory()), newRegistryFactory, "registry factory should be updated");
-        assertEq(address(gardensModule.powerRegistryFactory()), newPowerFactory, "power registry factory should be updated");
+        assertEq(address(gardensModule.powerRegistry()), newPowerFactory, "power registry should be updated");
         assertEq(address(gardensModule.goodsToken()), newGoodsToken, "goods token should be updated");
     }
 

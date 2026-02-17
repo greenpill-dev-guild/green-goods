@@ -12,6 +12,31 @@ import { MockNonERC20 } from "../../src/mocks/NonERC20.sol";
 import { MockHatsModule } from "../helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "../helpers/ERC6551Helper.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
+import { IGreenGoodsENS } from "../../src/interfaces/IGreenGoodsENS.sol";
+
+/// @title RevertingENSModule
+/// @notice Mock ENS module that always reverts on registerGarden
+/// @dev Used to test the try-catch at GardenToken.sol:376-380
+contract RevertingENSModule is IGreenGoodsENS {
+    bool public registerGardenCalled;
+
+    function registerGarden(string calldata, address) external payable override {
+        registerGardenCalled = true;
+        revert("RevertingENSModule: registerGarden failed");
+    }
+
+    function claimName(string calldata) external payable override { }
+    function claimNameSponsored(string calldata) external override { }
+    function releaseName() external payable override { }
+
+    function available(string calldata) external pure override returns (bool) {
+        return true;
+    }
+
+    function getRegistrationFee(string calldata, address, NameType) external pure override returns (uint256) {
+        return 0;
+    }
+}
 
 contract GardenTokenTest is Test, ERC6551Helper {
     GardenToken private gardenToken;
@@ -66,6 +91,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
         return GardenToken.GardenConfig({
             communityToken: token,
             name: "Test Garden",
+            slug: "",
             description: "Description",
             location: "Location",
             bannerImage: "Banner",
@@ -167,6 +193,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
         configs[1] = GardenToken.GardenConfig({
             communityToken: address(mockToken),
             name: "Garden 2",
+            slug: "",
             description: "Description 2",
             location: "Location 2",
             bannerImage: "Banner 2",
@@ -558,5 +585,36 @@ contract GardenTokenTest is Test, ERC6551Helper {
         assertEq(ar.gardenDomains(accounts[0]), 0x01, "Garden 0 should have Solar");
         assertEq(ar.gardenDomains(accounts[1]), 0x06, "Garden 1 should have Agro+Edu");
         assertEq(ar.gardenDomains(accounts[2]), 0x0F, "Garden 2 should have all domains");
+    }
+
+    // =========================================================================
+    // Fault Injection: ENS Registration Failure (GardenToken.sol:376-380)
+    // =========================================================================
+
+    /// @notice FAULT INJECTION: ENS registerGarden reverts, garden mint still succeeds
+    /// @dev Tests the try-catch at GardenToken.sol:376-380. When the ENS module fails
+    ///      to register the garden subdomain, the catch block silently absorbs the error
+    ///      and garden minting completes normally. This proves ENS is non-blocking.
+    function test_mintGarden_ensModuleFails_gardenStillMinted() public {
+        _setHatsModule();
+
+        // Wire a reverting ENS module
+        RevertingENSModule revertingENS = new RevertingENSModule();
+        vm.prank(multisig);
+        gardenToken.setENSModule(address(revertingENS));
+
+        // Mint with a slug (triggers ENS registration path at line 374)
+        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        config.slug = "test-garden"; // Non-empty slug triggers ENS path
+
+        vm.prank(multisig);
+        address gardenAccount = gardenToken.mintGarden(config);
+
+        // Garden should be successfully minted despite ENS failure
+        assertTrue(gardenAccount != address(0), "Garden should be minted despite ENS failure");
+        assertEq(gardenToken.balanceOf(multisig), 1, "Owner should have 1 garden NFT");
+
+        // ENS module was called but reverted
+        assertTrue(revertingENS.registerGardenCalled(), "ENS registerGarden should have been called");
     }
 }

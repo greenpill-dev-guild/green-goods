@@ -6,6 +6,9 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import { YieldResolver } from "../../src/resolvers/Yield.sol";
+import { HypercertMarketplaceAdapter } from "../../src/markets/HypercertMarketplaceAdapter.sol";
+import { OrderStructs } from "../../src/interfaces/IHypercertExchange.sol";
+import { MockHypercertExchange } from "../../src/mocks/HypercertExchange.sol";
 import {
     MockCookieJar,
     MockCVStrategy,
@@ -820,6 +823,117 @@ contract YieldResolverTest is Test {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // Non-1:1 Share Pricing (CRIT-5→M coverage)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Verify splitYield correctly uses redeemed asset value (not share count) when price > 1:1
+    /// @dev Simulates 10% yield accrual: 100 shares → 110 assets. The split must operate on
+    ///      the 110 assets returned by redeem(), NOT the 100 shares burned.
+    function test_splitYield_nonOneToOneSharePrice_aboveOne() public {
+        uint256 shares = 100e18;
+
+        // Set exchange rate to 110% (10% yield accrual)
+        vault.setExchangeRate(110, 100);
+
+        // Fund vault with enough WETH for the higher redemption value
+        uint256 expectedAssets = (shares * 110) / 100; // 110e18
+        weth.mint(address(vault), expectedAssets);
+        vault.mintShares(address(yieldSplitter), shares);
+
+        vm.prank(octantModule);
+        yieldSplitter.registerShares(garden, address(vault), shares);
+
+        vm.prank(owner);
+        yieldSplitter.setMinYieldThreshold(0);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Verify amounts based on 110e18 assets (not 100e18 shares)
+        uint256 expectedCookieJar = (expectedAssets * 4865) / 10_000;
+        assertEq(
+            weth.balanceOf(address(cookieJar)),
+            expectedCookieJar,
+            "Cookie jar should receive ~48.65% of redeemed ASSETS (110e18), not shares (100e18)"
+        );
+
+        // Verify shares are fully consumed
+        assertEq(yieldSplitter.gardenShares(garden, address(vault)), 0, "All shares should be consumed");
+
+        // Verify total distributed equals total redeemed assets
+        uint256 escrowedFractions = yieldSplitter.getEscrowedFractions(garden, address(weth));
+        uint256 jbAmount = 0;
+        if (jbTerminal.getPayCallCount() > 0) {
+            (,, jbAmount,) = jbTerminal.payCalls(0);
+        }
+        assertEq(
+            weth.balanceOf(address(cookieJar)) + escrowedFractions + jbAmount,
+            expectedAssets,
+            "Total distributed must equal redeemed assets (110e18)"
+        );
+    }
+
+    /// @notice Verify splitYield with share price slightly below 1:1 (within maxLoss=1bps)
+    /// @dev 10000 shares at 99.99% rate → 9999 assets. Within 1bps tolerance.
+    function test_splitYield_nonOneToOneSharePrice_slightlyBelowOne() public {
+        uint256 shares = 10_000;
+
+        // Set exchange rate to 99.99% (0.01% loss — within 1bps maxLoss)
+        vault.setExchangeRate(9999, 10_000);
+
+        uint256 expectedAssets = (shares * 9999) / 10_000; // 9999
+        weth.mint(address(vault), expectedAssets);
+        vault.mintShares(address(yieldSplitter), shares);
+
+        vm.prank(octantModule);
+        yieldSplitter.registerShares(garden, address(vault), shares);
+
+        vm.prank(owner);
+        yieldSplitter.setMinYieldThreshold(0);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Should successfully redeem at discounted rate
+        uint256 expectedCookieJar = (expectedAssets * 4865) / 10_000;
+        assertEq(weth.balanceOf(address(cookieJar)), expectedCookieJar, "Should split based on discounted redemption value");
+    }
+
+    /// @notice Verify rounding dust from non-1:1 redemption is absorbed by remainder calculation
+    /// @dev 100 shares at 103/100 rate = 103 assets. BPS split produces rounding dust
+    ///      that the juicebox remainder calculation absorbs (no lost wei).
+    function test_splitYield_roundingDustAbsorbedByRemainder() public {
+        uint256 shares = 100;
+
+        // Rate 103/100: 100 shares → 103 assets
+        vault.setExchangeRate(103, 100);
+
+        uint256 expectedAssets = (shares * 103) / 100; // 103
+        weth.mint(address(vault), expectedAssets);
+        vault.mintShares(address(yieldSplitter), shares);
+
+        vm.prank(octantModule);
+        yieldSplitter.registerShares(garden, address(vault), shares);
+
+        vm.prank(owner);
+        yieldSplitter.setMinYieldThreshold(0);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Verify total distributed equals total redeemed (zero wei loss)
+        uint256 cookieJarBal = weth.balanceOf(address(cookieJar));
+        uint256 escrowedFractions = yieldSplitter.getEscrowedFractions(garden, address(weth));
+        uint256 jbAmount = 0;
+        if (jbTerminal.getPayCallCount() > 0) {
+            (,, jbAmount,) = jbTerminal.payCalls(0);
+        }
+
+        assertEq(
+            cookieJarBal + escrowedFractions + jbAmount,
+            expectedAssets,
+            "Total distributed must equal total redeemed (zero wei loss)"
+        );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // Cross-Garden Share Validation (Aggregate Tracking)
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1041,6 +1155,83 @@ contract YieldResolverFailureTest is Test {
 
         // Funds should remain in harness
         assertEq(weth.balanceOf(address(harness)), amount, "Funds should stay in contract");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FAULT INJECTION: buyFraction Failure → Escrow + Allowance Cleanup (Yield.sol:683-692)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice FAULT INJECTION: buyFraction reverts → funds escrowed, allowance reset to 0
+    /// @dev Tests the catch block at Yield.sol:686-692. When the marketplace rejects
+    ///      the purchase, the allowance must be reset (prevent dangling approval) and
+    ///      the amount escrowed into escrowedFractions (not lost, not sent elsewhere).
+    function test_purchaseFraction_failure_escrowed_allowanceZeroed() public {
+        uint256 amount = 5000;
+        _fundHarness(amount);
+
+        // Configure marketplace to revert
+        marketplace.setShouldRevert(true);
+
+        harness.exposed_purchaseFraction(garden, address(weth), 42, amount);
+
+        // Allowance must be cleared (Yield.sol:688)
+        uint256 allowance = weth.allowance(address(harness), address(marketplace));
+        assertEq(allowance, 0, "Allowance should be reset to 0 after buyFraction failure");
+
+        // Funds must be escrowed (Yield.sol:690)
+        uint256 escrowed = harness.getEscrowedFractions(garden, address(weth));
+        assertEq(escrowed, amount, "Failed purchase amount should be escrowed in escrowedFractions");
+
+        // Funds should still be in the contract (not lost)
+        assertEq(weth.balanceOf(address(harness)), amount, "WETH should remain in contract");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FAULT INJECTION: JB Pay Failure → Treasury Fallback (Yield.sol:715-735)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice FAULT INJECTION: JB pay reverts, treasury receives fallback transfer
+    /// @dev Tests the catch block at Yield.sol:725-735. When Juicebox payment fails,
+    ///      the allowance is reset AND the amount falls back to gardenTreasuries[garden].
+    function test_routeToJuicebox_failure_fallbackToTreasury() public {
+        uint256 amount = 3000;
+        _fundHarness(amount);
+
+        jbTerminal.setShouldRevert(true);
+
+        harness.exposed_routeToJuicebox(garden, address(weth), amount);
+
+        // Allowance must be cleared (Yield.sol:727)
+        uint256 allowance = weth.allowance(address(harness), address(jbTerminal));
+        assertEq(allowance, 0, "JB allowance should be reset to 0 after pay() failure");
+
+        // Treasury receives the fallback (Yield.sol:731)
+        assertEq(weth.balanceOf(treasury), amount, "Treasury should receive funds as JB fallback");
+
+        // Contract should have no remaining balance
+        assertEq(weth.balanceOf(address(harness)), 0, "Contract should have 0 balance after treasury fallback");
+    }
+
+    /// @notice FAULT INJECTION: JB pay reverts AND no treasury → YieldStranded event
+    /// @dev Tests the deepest fallback at Yield.sol:733. When both Juicebox and treasury
+    ///      are unavailable, tokens remain stranded in the contract and YieldStranded is emitted.
+    function test_routeToJuicebox_failure_noTreasury_emitsYieldStranded() public {
+        uint256 amount = 2000;
+        _fundHarness(amount);
+
+        jbTerminal.setShouldRevert(true);
+
+        // Remove treasury — forces the stranded path
+        vm.prank(owner);
+        harness.setGardenTreasury(garden, address(0));
+
+        vm.expectEmit(true, true, false, true);
+        emit YieldResolver.YieldStranded(garden, address(weth), amount, "juicebox");
+
+        harness.exposed_routeToJuicebox(garden, address(weth), amount);
+
+        // Funds stranded in contract (Yield.sol:733 — no transfer, only event)
+        assertEq(weth.balanceOf(address(harness)), amount, "Funds should remain stranded in contract");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1359,5 +1550,228 @@ contract YieldResolverConvictionTest is Test {
         emit YieldResolver.ConvictionRouted(garden, address(weth), 2, 8000);
 
         yieldSplitter.splitYield(garden, address(weth), address(vault));
+    }
+}
+
+/// @title YieldResolverWithExchangeTest
+/// @notice Integration test: YieldResolver → HypercertMarketplaceAdapter → MockHypercertExchange
+/// @dev Verifies the full yield split flow through the real adapter to a mock exchange,
+///      ensuring executeTakerBid is called with correct taker parameters.
+contract YieldResolverWithExchangeTest is Test {
+    YieldResolver public yieldSplitter;
+    HypercertMarketplaceAdapter public adapter;
+    MockHypercertExchange public mockExchange;
+    MockWETH public weth;
+    MockOctantVaultForYield public vault;
+    MockCookieJar public cookieJar;
+    MockJBMultiTerminalForYield public jbTerminal;
+    MockHatsModule public hatsModule;
+    MockCVStrategy public cvStrategy;
+
+    address public owner = address(0x1);
+    address public octantModule = address(0x2);
+    address public garden = address(0x100);
+    address public treasury = address(0x200);
+    address public seller = address(0x300);
+    address public mockMinter = address(0x400);
+
+    uint256 public constant PRICE_PER_UNIT = 1e13; // ~$0.00001
+
+    function setUp() public {
+        // Deploy mocks
+        weth = new MockWETH();
+        vault = new MockOctantVaultForYield(address(weth));
+        cookieJar = new MockCookieJar();
+        jbTerminal = new MockJBMultiTerminalForYield();
+        hatsModule = new MockHatsModule();
+        cvStrategy = new MockCVStrategy();
+        mockExchange = new MockHypercertExchange();
+
+        // Deploy real adapter behind proxy
+        HypercertMarketplaceAdapter adapterImpl = new HypercertMarketplaceAdapter();
+        bytes memory adapterInitData = abi.encodeWithSelector(
+            HypercertMarketplaceAdapter.initialize.selector, owner, address(mockExchange), mockMinter
+        );
+        ERC1967Proxy adapterProxy = new ERC1967Proxy(address(adapterImpl), adapterInitData);
+        adapter = HypercertMarketplaceAdapter(address(adapterProxy));
+
+        // Deploy YieldResolver behind proxy
+        YieldResolver impl = new YieldResolver();
+        bytes memory initData =
+            abi.encodeWithSelector(YieldResolver.initialize.selector, owner, octantModule, address(hatsModule), 0);
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        yieldSplitter = YieldResolver(address(proxy));
+
+        // Configure yield splitter to use real adapter
+        vm.startPrank(owner);
+        yieldSplitter.setCookieJar(garden, address(cookieJar));
+        yieldSplitter.setGardenTreasury(garden, treasury);
+        yieldSplitter.setGardenVault(garden, address(weth), address(vault));
+        yieldSplitter.setHypercertMarketplace(address(adapter));
+        yieldSplitter.setJBMultiTerminal(address(jbTerminal));
+        yieldSplitter.setJuiceboxProjectId(1);
+        yieldSplitter.setSplitRatio(garden, 0, 10_000, 0); // 100% to fractions
+        yieldSplitter.setGardenHypercertPool(garden, address(cvStrategy));
+        yieldSplitter.setMinAllocationAmount(0);
+        vm.stopPrank();
+
+        // Register a maker order in the adapter
+        _registerTestOrder();
+    }
+
+    /// @notice Helper: Create and register a test maker ask order
+    function _registerTestOrder() internal {
+        uint256[] memory itemIds = new uint256[](1);
+        itemIds[0] = 1;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 1;
+
+        OrderStructs.Maker memory makerAsk = OrderStructs.Maker({
+            quoteType: OrderStructs.QuoteType.MakerAsk,
+            globalNonce: 0,
+            subsetNonce: 0,
+            orderNonce: 0,
+            strategyId: 0,
+            collectionType: OrderStructs.CollectionType.Hypercert,
+            collection: mockMinter,
+            currency: address(weth),
+            signer: seller,
+            startTime: block.timestamp,
+            endTime: block.timestamp + 90 days,
+            price: PRICE_PER_UNIT,
+            itemIds: itemIds,
+            amounts: amounts,
+            additionalParameters: abi.encode(uint256(1), type(uint256).max, uint256(0), true)
+        });
+
+        bytes memory signature = "mock-signature";
+
+        // hypercertId = 1 (matches the proposal ID we'll add to cvStrategy)
+        adapter.registerOrder(makerAsk, signature, 1);
+    }
+
+    /// @notice Helper: Fund vault and mint shares to the yield splitter
+    function _fundVaultAndMintShares(uint256 amount) internal {
+        weth.mint(address(vault), amount);
+        vault.mintShares(address(yieldSplitter), amount);
+        vm.prank(octantModule);
+        yieldSplitter.registerShares(garden, address(vault), amount);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Integration: Yield → Adapter → Exchange
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_endToEnd_yieldSplitViaExchange() public {
+        uint256 yieldAmount = 1e18; // 1 WETH yield
+        _fundVaultAndMintShares(yieldAmount);
+
+        // Add a single proposal with conviction pointing to hypercertId=1
+        cvStrategy.addProposal(100, 10_000);
+
+        // Execute the full flow
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Verify the exchange received the executeTakerBid call
+        assertEq(mockExchange.getExecutionCount(), 1, "Exchange should have 1 execution");
+
+        // Verify taker parameters
+        (
+            address recipient,
+            uint256 unitAmount,
+            uint256 pricePerUnit,
+            address executionSeller,
+            address currency,
+            uint256 totalPayment
+        ) = mockExchange.executions(0);
+
+        assertEq(recipient, treasury, "Taker recipient should be garden treasury");
+        assertEq(pricePerUnit, PRICE_PER_UNIT, "Price per unit should match order");
+        assertEq(executionSeller, seller, "Seller should match order signer");
+        assertEq(currency, address(weth), "Currency should be WETH");
+
+        // Calculate expected units: 1e18 / 1e13 = 1e5 = 100,000 units
+        uint256 expectedUnits = yieldAmount / PRICE_PER_UNIT;
+        assertEq(unitAmount, expectedUnits, "Should purchase correct number of units");
+        assertEq(totalPayment, expectedUnits * PRICE_PER_UNIT, "Payment should equal units * price");
+
+        // Verify 0 escrowed fractions (successful purchase)
+        assertEq(
+            yieldSplitter.getEscrowedFractions(garden, address(weth)),
+            0,
+            "No fractions should be escrowed after successful purchase"
+        );
+
+        // Verify seller received payment (mock exchange transfers to seller)
+        assertEq(weth.balanceOf(seller), totalPayment, "Seller should receive payment");
+    }
+
+    function test_endToEnd_exchangeReverts_escrowed() public {
+        uint256 yieldAmount = 1e18;
+        _fundVaultAndMintShares(yieldAmount);
+
+        cvStrategy.addProposal(100, 10_000);
+        mockExchange.setShouldRevert(true);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Exchange reverted → adapter reverted → _purchaseFraction catch block escrowed
+        assertEq(mockExchange.getExecutionCount(), 0, "Exchange should have 0 executions");
+        assertEq(
+            yieldSplitter.getEscrowedFractions(garden, address(weth)),
+            yieldAmount,
+            "Full amount should be escrowed when exchange reverts"
+        );
+    }
+
+    function test_endToEnd_multipleProposals_proportionalPurchases() public {
+        // Register a second order for hypercertId=2
+        uint256[] memory itemIds = new uint256[](1);
+        itemIds[0] = 2;
+        uint256[] memory amounts_arr = new uint256[](1);
+        amounts_arr[0] = 1;
+
+        OrderStructs.Maker memory makerAsk2 = OrderStructs.Maker({
+            quoteType: OrderStructs.QuoteType.MakerAsk,
+            globalNonce: 0,
+            subsetNonce: 0,
+            orderNonce: 1,
+            strategyId: 0,
+            collectionType: OrderStructs.CollectionType.Hypercert,
+            collection: mockMinter,
+            currency: address(weth),
+            signer: seller,
+            startTime: block.timestamp,
+            endTime: block.timestamp + 90 days,
+            price: PRICE_PER_UNIT,
+            itemIds: itemIds,
+            amounts: amounts_arr,
+            additionalParameters: abi.encode(uint256(1), type(uint256).max, uint256(0), true)
+        });
+        adapter.registerOrder(makerAsk2, "mock-sig-2", 2);
+
+        // Fund and set up 2 proposals: 60% and 40% conviction
+        uint256 yieldAmount = 1e18;
+        _fundVaultAndMintShares(yieldAmount);
+
+        cvStrategy.addProposal(100, 6000); // proposal 1: 60%
+        cvStrategy.addProposal(100, 4000); // proposal 2: 40%
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Both proposals should trigger exchange executions
+        assertEq(mockExchange.getExecutionCount(), 2, "Should have 2 exchange executions");
+
+        // Verify proportional allocation
+        (, uint256 units1,,,,) = mockExchange.executions(0);
+        (, uint256 units2,,,,) = mockExchange.executions(1);
+
+        uint256 totalUnits = yieldAmount / PRICE_PER_UNIT; // 100,000
+        uint256 expectedUnits1 = (6000 * yieldAmount / 10_000) / PRICE_PER_UNIT; // 60% = 60,000
+        uint256 expectedUnits2 = (4000 * yieldAmount / 10_000) / PRICE_PER_UNIT; // 40% = 40,000
+
+        assertEq(units1, expectedUnits1, "Proposal 1 should get 60% of units");
+        assertEq(units2, expectedUnits2, "Proposal 2 should get 40% of units");
+        assertEq(units1 + units2, totalUnits, "Total units should sum to expected");
     }
 }

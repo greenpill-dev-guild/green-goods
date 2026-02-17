@@ -4,62 +4,79 @@ pragma solidity ^0.8.25;
 import {
     IRegistryFactory,
     IRegistryCommunity,
-    INFTPowerRegistry,
-    INFTPowerRegistryFactory,
+    IUnifiedPowerRegistry,
+    RegistryCommunityInitializeParamsV2,
+    CVStrategyInitializeParamsV0_3,
+    CVParams,
+    PointSystem,
+    Metadata,
     NFTPowerSource
 } from "../interfaces/IGardensV2.sol";
+import { IVotingPowerRegistry } from "../vendor/gardens/IVotingPowerRegistry.sol";
+import { MockCVStrategy } from "./CVStrategy.sol";
 
-/// @title MockNFTPowerRegistry
-/// @notice Mock NFTPowerRegistry for testing
-contract MockNFTPowerRegistry is INFTPowerRegistry {
-    NFTPowerSource[] public sources;
+/// @title MockUnifiedPowerRegistry
+/// @notice Mock unified power registry for testing
+contract MockUnifiedPowerRegistry is IUnifiedPowerRegistry, IVotingPowerRegistry {
+    mapping(address garden => NFTPowerSource[] sources) internal _gardenSources;
+    mapping(address pool => address garden) public poolGarden;
     mapping(address member => uint256 power) public mockPower;
 
-    constructor(NFTPowerSource[] memory _sources) {
-        for (uint256 i = 0; i < _sources.length; i++) {
-            sources.push(_sources[i]);
+    function registerGarden(address garden, NFTPowerSource[] calldata sources) external override {
+        require(_gardenSources[garden].length == 0, "Garden already registered");
+        for (uint256 i = 0; i < sources.length; i++) {
+            _gardenSources[garden].push(sources[i]);
         }
     }
 
-    function getVotingPower(address member) external view override returns (uint256) {
+    function registerPool(address pool, address garden) external override {
+        require(poolGarden[pool] == address(0), "Pool already registered");
+        poolGarden[pool] = garden;
+    }
+
+    function getGardenSources(address garden) external view override returns (NFTPowerSource[] memory) {
+        return _gardenSources[garden];
+    }
+
+    function getGardenSourceCount(address garden) external view override returns (uint256) {
+        return _gardenSources[garden].length;
+    }
+
+    function getPoolGarden(address pool) external view override returns (address) {
+        return poolGarden[pool];
+    }
+
+    function isGardenRegistered(address garden) external view override returns (bool) {
+        return _gardenSources[garden].length > 0;
+    }
+
+    // IVotingPowerRegistry implementation
+    function getMemberPowerInStrategy(address member, address /* strategy */ ) external view override returns (uint256) {
         return mockPower[member];
     }
 
-    function getSourceCount() external view override returns (uint256) {
-        return sources.length;
+    function getMemberStakedAmount(address /* member */ ) external pure override returns (uint256) {
+        return 0;
     }
 
+    function ercAddress() external pure override returns (address) {
+        return address(0);
+    }
+
+    function isMember(address member) external view override returns (bool) {
+        return mockPower[member] > 0;
+    }
+
+    function deregisterGarden(address garden, address[] calldata pools) external override {
+        delete _gardenSources[garden];
+        for (uint256 i = 0; i < pools.length; i++) {
+            delete poolGarden[pools[i]];
+        }
+    }
+
+    // Test helpers
     function setMockPower(address member, uint256 power) external {
         mockPower[member] = power;
-    }
-
-    function getSource(uint256 index) external view returns (NFTPowerSource memory) {
-        return sources[index];
-    }
-}
-
-/// @title MockNFTPowerRegistryFactory
-/// @notice Mock factory for deploying NFTPowerRegistry instances
-contract MockNFTPowerRegistryFactory is INFTPowerRegistryFactory {
-    address[] public deployedRegistries;
-
-    function deploy(NFTPowerSource[] calldata _sources) external override returns (address registry) {
-        // Convert calldata to memory for constructor
-        NFTPowerSource[] memory memSources = new NFTPowerSource[](_sources.length);
-        for (uint256 i = 0; i < _sources.length; i++) {
-            memSources[i] = _sources[i];
-        }
-        MockNFTPowerRegistry mock = new MockNFTPowerRegistry(memSources);
-        registry = address(mock);
-        deployedRegistries.push(registry);
-    }
-
-    function getDeployedCount() external view returns (uint256) {
-        return deployedRegistries.length;
-    }
-
-    function getDeployedRegistry(uint256 index) external view returns (address) {
-        return deployedRegistries[index];
     }
 }
 
@@ -93,21 +110,38 @@ contract MockRegistryCommunity is IRegistryCommunity {
         shouldRevertPoolCreation = _shouldRevert;
     }
 
-    function createPool(CreatePoolParams calldata params) external override returns (uint256 poolId, address strategy) {
+    /// @notice 3-arg createPool matching real CommunityPoolFacet signature
+    function createPool(
+        address, /* _token */
+        CVStrategyInitializeParamsV0_3 memory _params,
+        Metadata memory _metadata
+    )
+        external
+        override
+        returns (uint256 poolId, address strategy)
+    {
         if (shouldRevertPoolCreation) revert("Pool creation disabled");
 
         poolId = nextPoolId++;
 
-        // Deploy a dummy strategy address (unique per pool)
-        strategy = address(uint160(uint256(keccak256(abi.encodePacked(poolId, block.timestamp, msg.sender)))));
+        // Deploy a real MockCVStrategy so pools have code (required by HatsModule.setConvictionStrategies)
+        MockCVStrategy strat = new MockCVStrategy(
+            _params.votingPowerRegistry,
+            address(this),
+            _params.cvParams.decay,
+            _params.cvParams.maxRatio,
+            _params.cvParams.weight,
+            _params.cvParams.minThresholdPoints
+        );
+        strategy = address(strat);
 
         pools.push(
             PoolRecord({
                 poolId: poolId,
                 strategy: strategy,
-                pointSystem: params.pointSystem,
-                votingPowerRegistry: params.votingPowerRegistry,
-                metadata: params.metadata
+                pointSystem: _params.pointSystem,
+                votingPowerRegistry: _params.votingPowerRegistry,
+                metadata: _metadata.pointer
             })
         );
     }
@@ -151,8 +185,12 @@ contract MockRegistryFactory is IRegistryFactory {
         createFailingCommunities = _shouldFail;
     }
 
-    function createRegistryCommunity(CreateCommunityParams calldata params) external override returns (address community) {
-        MockRegistryCommunity mock = new MockRegistryCommunity(params.gardenToken, params.councilSafe);
+    function createRegistry(RegistryCommunityInitializeParamsV2 memory params)
+        external
+        override
+        returns (address community)
+    {
+        MockRegistryCommunity mock = new MockRegistryCommunity(params._gardenToken, params._councilSafe);
         if (createFailingCommunities) {
             mock.setShouldRevertPoolCreation(true);
         }

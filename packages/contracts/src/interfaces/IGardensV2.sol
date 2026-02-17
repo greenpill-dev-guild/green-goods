@@ -7,28 +7,115 @@ pragma solidity ^0.8.25;
 ///      https://github.com/1Hive/gardens-v2
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Shared Types (Allo Protocol)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// @notice Allo Protocol metadata struct
+/// @dev Matches allo-v2-contracts/core/interfaces/IRegistry.sol Metadata
+struct Metadata {
+    uint256 protocol; // 1 = IPFS
+    string pointer; // Content hash
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Registry Factory
 // ═══════════════════════════════════════════════════════════════════════════
+
+/// @notice Parameters for creating a RegistryCommunity
+/// @dev Must match gardens-v2 RegistryCommunityInitializeParams exactly (12 fields).
+///      _nonce and _registryFactory are set by the factory itself during createRegistry().
+struct RegistryCommunityInitializeParamsV2 {
+    address _allo; // Allo protocol address
+    address _gardenToken; // GOODS ERC-20 for member staking (cast to IERC20 by factory)
+    uint256 _registerStakeAmount; // Amount of tokens to stake (e.g., 1e18)
+    uint256 _communityFee; // Fee percentage (0 = no fee)
+    uint256 _nonce; // Set by factory — pass 0
+    address _registryFactory; // Set by factory — pass address(0)
+    address _feeReceiver; // Address to receive fees
+    Metadata _metadata; // Community metadata
+    address payable _councilSafe; // Gnosis Safe for council governance
+    string _communityName; // Human-readable community name
+    bool _isKickEnabled; // Whether members can be kicked
+    string covenantIpfsHash; // IPFS hash for community covenant
+}
 
 /// @notice Creates RegistryCommunity instances
 /// @dev Deployed on Sepolia, Arbitrum, and Celo. See test/fork/helpers/GardensV2Addresses.sol.
 interface IRegistryFactory {
-    /// @notice Parameters for creating a RegistryCommunity
-    struct CreateCommunityParams {
-        address gardenToken; // GOODS ERC-20 for member staking
-        uint256 registerStakeAmount; // Amount of GOODS to stake (e.g., 1e18)
-        uint256 communityFee; // Fee percentage (0 = no fee)
-        address feeReceiver; // Address to receive fees
-        address councilSafe; // Gnosis Safe for council governance
-        string communityName; // Human-readable community name
-        bool isKickEnabled; // Whether members can be kicked
-        string covenantIpfsHash; // IPFS hash for community covenant
-    }
-
     /// @notice Create a new RegistryCommunity
+    /// @dev Matches gardens-v2 RegistryFactory.createRegistry() signature.
+    ///      The factory sets _nonce and _registryFactory fields internally.
     /// @param params Community creation parameters
     /// @return community The created community address
-    function createRegistryCommunity(CreateCommunityParams calldata params) external returns (address community);
+    function createRegistry(RegistryCommunityInitializeParamsV2 memory params) external returns (address community);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CV Strategy Types
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// @notice Proposal types for conviction pools
+/// @dev Ordinals MUST match Gardens V2 ICVStrategy.ProposalType
+enum ProposalType {
+    Signaling,
+    Funding,
+    Streaming
+}
+
+/// @notice Point system types for conviction pools
+/// @dev Ordinals MUST match Gardens V2 ICVStrategy.PointSystem:
+///      Fixed=0, Capped=1, Unlimited=2, Quadratic=3, Custom=4
+enum PointSystem {
+    Fixed,
+    Capped,
+    Unlimited,
+    Quadratic,
+    Custom // Uses external IVotingPowerRegistry
+
+}
+
+/// @notice Parameters for conviction voting
+/// @dev Matches Gardens V2 ICVStrategy.CVParams
+struct CVParams {
+    uint256 maxRatio; // Maximum allocation ratio (scaled by D)
+    uint256 weight; // Weight for conviction calculation (scaled by D)
+    uint256 decay; // Decay factor for conviction (scaled by D)
+    uint256 minThresholdPoints; // Minimum threshold points
+}
+
+/// @notice Capped point system configuration
+/// @dev Matches Gardens V2 ICVStrategy.PointSystemConfig
+struct PointSystemConfig {
+    uint256 maxAmount; // Maximum amount for capped point system
+}
+
+/// @notice Arbitration configuration for conviction pools
+/// @dev Matches Gardens V2 ICVStrategy.ArbitrableConfig. Use address(0) for all fields
+///      when arbitration is not needed (signaling pools).
+struct ArbitrableConfig {
+    address arbitrator; // IArbitrator — address(0) for none
+    address tribunalSafe; // Tribunal Safe — address(0) for none
+    uint256 submitterCollateralAmount; // Submitter collateral (0 for signaling)
+    uint256 challengerCollateralAmount; // Challenger collateral (0 for signaling)
+    uint256 defaultRuling; // Default ruling (0 for signaling)
+    uint256 defaultRulingTimeout; // Timeout in seconds (0 for signaling)
+}
+
+/// @notice V0.3 strategy initialization parameters
+/// @dev Matches gardens-v2 ICVStrategy.CVStrategyInitializeParamsV0_3 exactly (12 fields).
+struct CVStrategyInitializeParamsV0_3 {
+    CVParams cvParams;
+    ProposalType proposalType;
+    PointSystem pointSystem;
+    PointSystemConfig pointConfig;
+    ArbitrableConfig arbitrableConfig;
+    address registryCommunity; // The community this pool belongs to
+    address votingPowerRegistry; // External registry for Custom point system
+    address sybilScorer; // Sybil resistance scorer — address(0) for none
+    uint256 sybilScorerThreshold; // Threshold for sybil scorer (0 if no scorer)
+    address[] initialAllowlist; // Initial allowlisted addresses
+    address superfluidToken; // Superfluid token — address(0) for none
+    uint256 streamingRatePerSecond; // Streaming rate (0 for non-streaming)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -37,37 +124,21 @@ interface IRegistryFactory {
 
 /// @notice A Gardens V2 community that manages conviction voting pools
 interface IRegistryCommunity {
-    /// @notice Point system types for conviction pools
-    enum PointSystem {
-        Fixed,
-        Capped,
-        Unlimited,
-        Custom // Uses external IVotingPowerRegistry
-
-    }
-
-    /// @notice Parameters for conviction voting
-    struct CVParams {
-        uint256 maxRatio; // Maximum allocation ratio (scaled by D)
-        uint256 weight; // Weight for conviction calculation (scaled by D)
-        uint256 decay; // Decay factor for conviction (scaled by D)
-        uint256 minThresholdPoints; // Minimum threshold points
-    }
-
-    /// @notice Parameters for creating a conviction pool
-    struct CreatePoolParams {
-        PointSystem pointSystem; // Which point system to use
-        CVParams cvParams; // Conviction voting parameters
-        address votingPowerRegistry; // External registry for Custom point system
-        address[] initialMembers; // Members to add on creation
-        string metadata; // IPFS metadata
-    }
-
     /// @notice Create a new conviction voting pool
-    /// @param params Pool creation parameters
-    /// @return poolId The pool ID
+    /// @dev Matches gardens-v2 CommunityPoolFacet.createPool(address, CVStrategyInitializeParamsV0_3, Metadata).
+    ///      The _token argument is the pool's funding token (use address(0) for native / signaling).
+    /// @param _token Pool funding token (address(0) for native/signaling)
+    /// @param _params Strategy initialization parameters
+    /// @param _metadata Pool metadata
+    /// @return poolId The Allo pool ID
     /// @return strategy The deployed CVStrategy address
-    function createPool(CreatePoolParams calldata params) external returns (uint256 poolId, address strategy);
+    function createPool(
+        address _token,
+        CVStrategyInitializeParamsV0_3 memory _params,
+        Metadata memory _metadata
+    )
+        external
+        returns (uint256 poolId, address strategy);
 
     /// @notice Get the community's staking token
     function gardenToken() external view returns (address);
@@ -106,22 +177,27 @@ struct NFTPowerSource {
     uint256 hatId; // Hats Protocol hat ID (ignored for ERC721/ERC1155)
 }
 
-/// @notice Registry that maps NFT ownership and Hats roles to conviction voting power
-/// @dev One per garden, immutable after deployment
-interface INFTPowerRegistry {
-    /// @notice Get the voting power for an address
-    /// @param member The address to check
-    /// @return power The total voting power (sum of weights for all hats worn)
-    function getVotingPower(address member) external view returns (uint256 power);
+/// @notice Unified registry storing per-garden voting power configurations
+/// @dev Single UUPS-upgradeable contract replacing per-garden NFTPowerRegistry deployments
+interface IUnifiedPowerRegistry {
+    /// @notice Register power sources for a garden (immutable after registration)
+    function registerGarden(address garden, NFTPowerSource[] calldata sources) external;
 
-    /// @notice Get the number of configured power sources
-    function getSourceCount() external view returns (uint256);
-}
+    /// @notice Map a pool/strategy to its garden
+    function registerPool(address pool, address garden) external;
 
-/// @notice Factory for deploying NFTPowerRegistry instances
-interface INFTPowerRegistryFactory {
-    /// @notice Deploy a new NFTPowerRegistry with the given power sources
-    /// @param sources Array of power source configurations
-    /// @return registry The deployed registry address
-    function deploy(NFTPowerSource[] calldata sources) external returns (address registry);
+    /// @notice Get the power sources for a garden
+    function getGardenSources(address garden) external view returns (NFTPowerSource[] memory);
+
+    /// @notice Get the number of power sources for a garden
+    function getGardenSourceCount(address garden) external view returns (uint256);
+
+    /// @notice Get the garden for a pool
+    function getPoolGarden(address pool) external view returns (address);
+
+    /// @notice Check if a garden has been registered
+    function isGardenRegistered(address garden) external view returns (bool);
+
+    /// @notice Remove a garden's power sources and pool mappings (for reset flows)
+    function deregisterGarden(address garden, address[] calldata pools) external;
 }

@@ -1,15 +1,38 @@
 {
   "accountProxy": "0xad621aF21dBfdaCe0A078C021Ab2FDDA080a52D1",
   "actionRegistry": "0x547e82BF9c8496f41927583793242f6b91C182A6",
+  "assessmentResolver": "0x0000000000000000000000000000000000000000",
   "deploymentRegistry": "0x34A1D3fff3958843C43aD80F30b94c510645C316",
+  "gardenAccountImpl": "0x83287652b4e1514e101a4053c9bcAFf6a24d051C",
+  "gardenToken": "0x19f367E448208377dA8C81E770bC6777c7815516",
+  "guardian": "0xFdF620FEafE1f15B9f3725283A72088791eDFC74",
+  "workApprovalResolver": "0x4708E9b199412cc2Cf4d394430BD3DF1f31F2Be5",
+  "workResolver": "0x054814d58b3A160ca0243FFC77f2F5d62709f396",
+  "cookieJarModule": "0x0000000000000000000000000000000000000000",
+  "gardensModule": "0x0000000000000000000000000000000000000000",
+  "hatsModule": "0x0000000000000000000000000000000000000000",
+  "karmaGAPModule": "0x0000000000000000000000000000000000000000",
+  "octantModule": "0x0000000000000000000000000000000000000000",
+  "octantFactory": "0x0000000000000000000000000000000000000000",
+  "unifiedPowerRegistry": "0x0000000000000000000000000000000000000000",
+  "yieldSplitter": "0x0000000000000000000000000000000000000000",
+  "hypercertsModule": "0x0000000000000000000000000000000000000000",
+  "hypercertExchange": "0x0000000000000000000000000000000000000000",
+  "hypercertMinter": "0x0000000000000000000000000000000000000000",
+  "marketplaceAdapter": "0x0000000000000000000000000000000000000000",
+  "transferManager": "0x0000000000000000000000000000000000000000",
+  "strategyHypercertFractionOffer": "0x0000000000000000000000000000000000000000",
+  "greenGoodsENS": "0x0000000000000000000000000000000000000000",
+  "gardenerAccountLogic": "0x0000000000000000000000000000000000000000",
+  "gardenerRegistry": "0x0000000000000000000000000000000000000000",
   "eas": {
     "address": "0xC2679fBD37d54388Ce493F1DB75320D236e1815e",
     "schemaRegistry": "0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0"
   },
-  "gardenAccountImpl": "0x83287652b4e1514e101a4053c9bcAFf6a24d051C",
-  "gardenToken": "0x19f367E448208377dA8C81E770bC6777c7815516",
-  "hatsModule": "0x0000000000000000000000000000000000000000",
-  "guardian": "0xFdF620FEafE1f15B9f3725283A72088791eDFC74",
+  "rootGarden": {
+    "address": "0x0000000000000000000000000000000000000000",
+    "tokenId": 0
+  },
   "schemas": {
     "assessmentDescription": "Assessment v2 schema for Green Goods gardens. Stores title, description, and location on-chain. The full strategy kernel (diagnosis, SMART outcomes, Cynefin phase, domain, SDG targets, attachments) is stored in IPFS and referenced by assessmentConfigCID.",
     "assessmentName": "Green Goods Assessment v2",
@@ -23,7 +46,5 @@
     "workName": "Green Goods Work Submission",
     "workSchema": "uint256 actionUID,string title,string feedback,string metadata,string[] media",
     "workSchemaUID": "0x0000000000000000000000000000000000000000000000000000000000000000"
-  },
-  "workApprovalResolver": "0x4708E9b199412cc2Cf4d394430BD3DF1f31F2Be5",
-  "workResolver": "0x054814d58b3A160ca0243FFC77f2F5d62709f396"
+  }
 }

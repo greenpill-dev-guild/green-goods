@@ -11,6 +11,7 @@ import { WorkResolver } from "../src/resolvers/Work.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { Deployment } from "../src/registries/Deployment.sol";
 import { GardensModule } from "../src/modules/Gardens.sol";
+import { UnifiedPowerRegistry } from "../src/registries/Power.sol";
 import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
@@ -233,6 +234,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Active Garden",
+            slug: "",
             description: "Garden with active state",
             location: "Location",
             bannerImage: "banner.jpg",
@@ -486,7 +488,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
             GardensModule.initialize.selector,
             multisig,
             address(0), // registryFactory
-            address(0), // powerRegistryFactory
+            address(0), // powerRegistry
             address(communityToken), // goodsToken
             address(0x5555), // hatsProtocol
             address(mockHatsModule) // hatsModule
@@ -657,6 +659,81 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
 
         assertEq(yieldSplitter.owner(), multisig, "Owner should be unchanged after failed re-init");
         emit log_named_string("[PASS] YieldResolver", "Cannot reinitialize after upgrade");
+    }
+
+    /// @notice Test 14: UnifiedPowerRegistry upgrade preserves storage
+    function testUnifiedPowerRegistryUpgradePreservesStorage() public {
+        // Import locally to avoid polluting top-level imports
+        UnifiedPowerRegistry uprImpl = new UnifiedPowerRegistry();
+        bytes memory uprInitData = abi.encodeWithSelector(
+            UnifiedPowerRegistry.initialize.selector,
+            multisig,
+            address(0x5555), // hatsProtocol
+            address(0x6666) // gardensModule
+        );
+        ERC1967Proxy uprProxy = new ERC1967Proxy(address(uprImpl), uprInitData);
+        UnifiedPowerRegistry upr = UnifiedPowerRegistry(address(uprProxy));
+
+        // Store original values
+        address originalOwner = upr.owner();
+        address originalHats = upr.hatsProtocol();
+        address originalGardens = upr.gardensModule();
+
+        // Deploy new implementation and upgrade
+        UnifiedPowerRegistry newUprImpl = new UnifiedPowerRegistry();
+        vm.prank(multisig);
+        upr.upgradeTo(address(newUprImpl));
+
+        // Verify storage preserved
+        assertEq(upr.owner(), originalOwner, "UnifiedPowerRegistry: owner should be preserved");
+        assertEq(upr.hatsProtocol(), originalHats, "UnifiedPowerRegistry: hatsProtocol should be preserved");
+        assertEq(upr.gardensModule(), originalGardens, "UnifiedPowerRegistry: gardensModule should be preserved");
+
+        emit log_named_string("[PASS] UnifiedPowerRegistry", "Storage preserved after upgrade");
+    }
+
+    /// @notice Test 15: UnifiedPowerRegistry upgrade access control
+    function testUnifiedPowerRegistryUpgradeAccessControl() public {
+        UnifiedPowerRegistry uprImpl = new UnifiedPowerRegistry();
+        bytes memory uprInitData =
+            abi.encodeWithSelector(UnifiedPowerRegistry.initialize.selector, multisig, address(0x5555), address(0x6666));
+        ERC1967Proxy uprProxy = new ERC1967Proxy(address(uprImpl), uprInitData);
+        UnifiedPowerRegistry upr = UnifiedPowerRegistry(address(uprProxy));
+
+        UnifiedPowerRegistry newImpl = new UnifiedPowerRegistry();
+
+        // Unauthorized upgrade should revert
+        vm.prank(unauthorized);
+        vm.expectRevert("Ownable: caller is not the owner");
+        upr.upgradeTo(address(newImpl));
+
+        // Authorized upgrade should succeed
+        vm.prank(multisig);
+        upr.upgradeTo(address(newImpl));
+
+        emit log_named_string("[PASS] UnifiedPowerRegistry", "Upgrade access control enforced");
+    }
+
+    /// @notice Test 16: UnifiedPowerRegistry cannot re-initialize after upgrade
+    function testUnifiedPowerRegistryCannotReinitializeAfterUpgrade() public {
+        UnifiedPowerRegistry uprImpl = new UnifiedPowerRegistry();
+        bytes memory uprInitData =
+            abi.encodeWithSelector(UnifiedPowerRegistry.initialize.selector, multisig, address(0x5555), address(0x6666));
+        ERC1967Proxy uprProxy = new ERC1967Proxy(address(uprImpl), uprInitData);
+        UnifiedPowerRegistry upr = UnifiedPowerRegistry(address(uprProxy));
+
+        // Upgrade
+        UnifiedPowerRegistry newImpl = new UnifiedPowerRegistry();
+        vm.prank(multisig);
+        upr.upgradeTo(address(newImpl));
+
+        // Re-initialize should fail
+        vm.prank(multisig);
+        vm.expectRevert("Initializable: contract is already initialized");
+        upr.initialize(address(0x789), address(0), address(0));
+
+        assertEq(upr.owner(), multisig, "Owner should be unchanged after failed re-init");
+        emit log_named_string("[PASS] UnifiedPowerRegistry", "Cannot reinitialize after upgrade");
     }
 
     /// @notice Helper function to convert uint to string

@@ -2,6 +2,7 @@
   "gardens": [
     {
       "name": "Green Goods Community Garden",
+      "slug": "community",
       "description": "The global community garden for all Green Goods participants. This is the root garden that serves as the entry point for new users and community activities. All participants start here and can join specialized gardens as they engage with the platform.",
       "location": "Mama Earth",
       "bannerImage": "QmS8mL4x9fnNutV63pSfwRhhVgoVpw4gaDCCGaTpv6oMGW",
@@ -22,21 +23,6 @@
         "0x3f649dbfafbe454940b8a82c5058b8d176dd3871",
         "0xbaD8bcc9Eb5749829cF12189fDD5c1230D6C85e8",
         "0xa9d20b435A85fAAa002f32d66F7D21564130E9cf"
-      ]
-    },
-    {
-      "name": "Octant Community Garden",
-      "description": "A specialized garden for members of the Octant community, focusing on collaborative projects and initiatives that align with the orgs mission and values.",
-      "location": "Golem City",
-      "bannerImage": "bafybeif7he4d2ou2ncqsnxgjuld6wypxv4jy4gcrhh7y4hbug5b73ao3my",
-      "metadata": "",
-      "openJoining": true,
-      "gardeners": ["0x476E2651BF97dE8a26e4A05a9c8e00A6EFa1390c", "0x809C9f8dd8CA93A41c3adca4972Fa234C28F7714"],
-      "operators": [
-        "0xbaD8bcc9Eb5749829cF12189fDD5c1230D6C85e8",
-        "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
-        "0x6166E1964447E0959bC7c8d543DB3ab82dB65044",
-        "0xAcD59e854adf632d2322404198624F757C868C97"
       ]
     }
   ]

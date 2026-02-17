@@ -1151,4 +1151,96 @@ contract HatsModuleTest is Test {
         assertEq(strategy.syncedMembersLength(), 1, "syncPower should be called once on grant");
         assertEq(strategy.syncedMembers(0), user1, "syncPower should be called for the granted user");
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Protocol Gardener Hat Auto-Mint Tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    uint256 constant PROTOCOL_GARDENERS_HAT = 100;
+
+    function _setupProtocolGardenersHat() internal {
+        // Activate the protocol gardeners hat
+        mockHats.setHatActive(PROTOCOL_GARDENERS_HAT, true);
+        // Set the protocol gardeners hat ID on the adapter
+        adapter.setProtocolHatIds(0, 0, PROTOCOL_GARDENERS_HAT);
+    }
+
+    function _configureGarden1WithOwner() internal {
+        adapter.configureGarden(
+            garden1,
+            GARDEN1_OWNER_HAT,
+            GARDEN1_OPERATOR_HAT,
+            GARDEN1_EVALUATOR_HAT,
+            GARDEN1_GARDENER_HAT,
+            GARDEN1_FUNDER_HAT,
+            GARDEN1_COMMUNITY_HAT
+        );
+        mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
+    }
+
+    function test_grantRole_autoMintsProtocolGardenersHat() public {
+        _setupProtocolGardenersHat();
+        _configureGarden1WithOwner();
+
+        // Before grant, user1 should NOT wear protocol gardeners hat
+        assertFalse(
+            mockHats.isWearerOfHat(user1, PROTOCOL_GARDENERS_HAT),
+            "User should not wear protocol gardeners hat before grant"
+        );
+
+        // Grant gardener role to user1
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+
+        // After grant, user1 SHOULD wear both garden gardener hat AND protocol gardeners hat
+        assertTrue(mockHats.isWearerOfHat(user1, GARDEN1_GARDENER_HAT), "User should wear garden gardener hat");
+        assertTrue(
+            mockHats.isWearerOfHat(user1, PROTOCOL_GARDENERS_HAT),
+            "User should also wear protocol gardeners hat after any role grant"
+        );
+    }
+
+    function test_grantRole_protocolHatIdempotentForExistingWearer() public {
+        _setupProtocolGardenersHat();
+        _configureGarden1WithOwner();
+
+        // Pre-assign protocol gardeners hat to user1
+        mockHats.mintHat(PROTOCOL_GARDENERS_HAT, user1);
+        assertTrue(mockHats.isWearerOfHat(user1, PROTOCOL_GARDENERS_HAT), "Should already wear protocol hat");
+
+        // Grant gardener role — should NOT revert even though user1 already has protocol hat
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+
+        // Still wearing both hats
+        assertTrue(mockHats.isWearerOfHat(user1, GARDEN1_GARDENER_HAT), "Should wear garden hat");
+        assertTrue(mockHats.isWearerOfHat(user1, PROTOCOL_GARDENERS_HAT), "Should still wear protocol hat");
+    }
+
+    function test_grantRole_skipsProtocolMintWhenHatIdZero() public {
+        // Don't setup protocol hat — leave protocolGardenersHatId = 0
+        _configureGarden1WithOwner();
+
+        // Grant gardener role — should succeed without protocol hat mint
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+
+        assertTrue(mockHats.isWearerOfHat(user1, GARDEN1_GARDENER_HAT), "Should wear garden hat");
+        // No protocol hat to check (ID is 0)
+    }
+
+    function test_grantRole_protocolMintGracefulOnInactiveHat() public {
+        _setupProtocolGardenersHat();
+        _configureGarden1WithOwner();
+
+        // Deactivate the protocol gardeners hat — simulates hat being toggled off
+        mockHats.setHatActive(PROTOCOL_GARDENERS_HAT, false);
+
+        // Grant should still succeed (protocol mint is best-effort)
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+
+        // Garden hat should be granted
+        assertTrue(mockHats.isWearerOfHat(user1, GARDEN1_GARDENER_HAT), "Should wear garden hat");
+        // Protocol hat NOT worn because hat is inactive (mint failed silently)
+        assertFalse(
+            mockHats.isWearerOfHat(user1, PROTOCOL_GARDENERS_HAT), "Should NOT wear protocol hat when hat is inactive"
+        );
+    }
 }

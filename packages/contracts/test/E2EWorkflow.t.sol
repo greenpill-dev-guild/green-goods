@@ -14,8 +14,32 @@ import { MockHats } from "../src/mocks/Hats.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
 import { IGardensModule } from "../src/interfaces/IGardensModule.sol";
 import { MockEAS } from "../src/mocks/EAS.sol";
-import { WorkSchema, WorkApprovalSchema } from "../src/Schemas.sol";
+import { WorkSchema, WorkApprovalSchema, AssessmentSchema } from "../src/Schemas.sol";
+import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import { IKarmaGAPModule } from "../src/interfaces/IKarmaGAPModule.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
+
+/// @title RevertingKarmaGAPModule
+/// @notice Fault-injection mock that always reverts on createMilestone()
+/// @dev Used to test the try-catch in AssessmentResolver._createGAPProjectMilestone()
+contract RevertingKarmaGAPModule {
+    function createMilestone(
+        address,
+        string calldata,
+        string calldata,
+        uint256,
+        uint256,
+        uint8,
+        string calldata,
+        string calldata
+    )
+        external
+        pure
+        returns (bytes32)
+    {
+        revert("KarmaGAP: milestone creation failed");
+    }
+}
 
 /// @title E2EWorkflow Test
 /// @notice End-to-end integration tests for Hats-only workflows
@@ -23,6 +47,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
     GardenToken private gardenToken;
     ActionRegistry private actionRegistry;
     HatsModule private hatsModule;
+    AssessmentResolver private assessmentResolver;
     MockHats private mockHats;
     MockERC20 private communityToken;
     MockEAS private mockEAS;
@@ -31,7 +56,10 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
     address private gardener1 = address(0x201);
     address private gardener2 = address(0x202);
     address private operator1 = address(0x301);
+    address private evaluator1 = address(0x401);
     address private nonMember = address(0x999);
+
+    bytes32 private constant ASSESSMENT_SCHEMA_UID = bytes32(uint256(102));
 
     function setUp() public {
         _deployERC6551Registry();
@@ -65,6 +93,16 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         uint256 gardensHatId = mockHats.mintTopHat(address(hatsModule), "Green Goods Gardens", "");
         vm.prank(multisig);
         hatsModule.setProtocolHatIds(0, gardensHatId, 0);
+
+        // Deploy AssessmentResolver with MockEAS as EAS
+        AssessmentResolver assessmentResolverImpl = new AssessmentResolver(address(mockEAS));
+        bytes memory assessmentInitData = abi.encodeWithSelector(AssessmentResolver.initialize.selector, multisig);
+        assessmentResolver =
+            AssessmentResolver(payable(address(new ERC1967Proxy(address(assessmentResolverImpl), assessmentInitData))));
+
+        // Configure schema UID on the resolver
+        vm.prank(multisig);
+        assessmentResolver.setSchemaUID(ASSESSMENT_SCHEMA_UID);
     }
 
     function _mintGarden(bool openJoining) internal returns (address garden) {
@@ -72,6 +110,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "E2E Test Garden",
+            slug: "",
             description: "A complete workflow test garden",
             location: "Test City",
             bannerImage: "ipfs://QmBanner",
@@ -87,6 +126,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         vm.startPrank(multisig);
         hatsModule.grantRole(garden, operator1, IHatsModule.GardenRole.Operator);
         hatsModule.grantRole(garden, gardener1, IHatsModule.GardenRole.Gardener);
+        hatsModule.grantRole(garden, evaluator1, IHatsModule.GardenRole.Evaluator);
         vm.stopPrank();
     }
 
@@ -201,5 +241,140 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         gardenAccount.joinGarden();
 
         assertTrue(gardenAccount.isGardener(gardener2));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Phase 5: Assessment Attestation Tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Helper to build a valid AssessmentSchema
+    function _buildAssessmentSchema() internal view returns (AssessmentSchema memory) {
+        return AssessmentSchema({
+            title: "Quarterly Biodiversity Assessment",
+            description: "Q1 biodiversity metrics for the garden",
+            assessmentConfigCID: "ipfs://QmAssessmentConfig",
+            domain: 1, // AGRO
+            startDate: block.timestamp,
+            endDate: block.timestamp + 30 days,
+            location: "Test City Garden Site"
+        });
+    }
+
+    /// @notice Helper to build an Attestation struct for assessment
+    function _buildAssessmentAttestation(
+        address garden,
+        address attester,
+        AssessmentSchema memory schema
+    )
+        internal
+        pure
+        returns (Attestation memory)
+    {
+        return Attestation({
+            uid: bytes32(uint256(10)),
+            schema: ASSESSMENT_SCHEMA_UID,
+            time: uint64(1),
+            expirationTime: 0,
+            revocationTime: 0,
+            refUID: bytes32(0),
+            recipient: garden,
+            attester: attester,
+            revocable: false,
+            data: abi.encode(schema)
+        });
+    }
+
+    /// @notice Assessment via evaluator succeeds through AssessmentResolver
+    function test_assessmentAttestation_validEvaluator_succeeds() public {
+        address garden = _mintGarden(false);
+        _grantRoles(garden);
+
+        AssessmentSchema memory schema = _buildAssessmentSchema();
+        Attestation memory attestation = _buildAssessmentAttestation(garden, evaluator1, schema);
+
+        // Call resolver's attest() as MockEAS (the onlyEAS modifier checks msg.sender == EAS address)
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+
+        assertTrue(result, "Assessment attestation should succeed for evaluator");
+    }
+
+    /// @notice Assessment via operator also succeeds (operators have assessment rights)
+    function test_assessmentAttestation_validOperator_succeeds() public {
+        address garden = _mintGarden(false);
+        _grantRoles(garden);
+
+        AssessmentSchema memory schema = _buildAssessmentSchema();
+        Attestation memory attestation = _buildAssessmentAttestation(garden, operator1, schema);
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+
+        assertTrue(result, "Assessment attestation should succeed for operator");
+    }
+
+    /// @notice Non-member cannot create assessment (reverts with NotGardenOperator)
+    function test_assessmentAttestation_nonMember_reverts() public {
+        address garden = _mintGarden(false);
+        _grantRoles(garden);
+
+        AssessmentSchema memory schema = _buildAssessmentSchema();
+        Attestation memory attestation = _buildAssessmentAttestation(garden, nonMember, schema);
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert();
+        assessmentResolver.attest(attestation);
+    }
+
+    /// @notice FAULT INJECTION: KarmaGAPModule reverts on createMilestone, assessment still succeeds
+    /// @dev Tests the try-catch in AssessmentResolver._createGAPProjectMilestone() (line 137-151)
+    ///      This is the critical catch branch that is untested when mocks never revert.
+    function test_assessmentAttestation_karmaGAPModuleFails_assessmentStillSucceeds() public {
+        address garden = _mintGarden(false);
+        _grantRoles(garden);
+
+        // Wire a reverting KarmaGAPModule to the resolver
+        RevertingKarmaGAPModule revertingModule = new RevertingKarmaGAPModule();
+        vm.prank(multisig);
+        assessmentResolver.setKarmaGAPModule(address(revertingModule));
+
+        AssessmentSchema memory schema = _buildAssessmentSchema();
+        Attestation memory attestation = _buildAssessmentAttestation(garden, evaluator1, schema);
+
+        // Assessment MUST succeed even though KarmaGAP integration fails
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+
+        assertTrue(result, "Assessment should succeed despite KarmaGAP milestone failure");
+    }
+
+    /// @notice Assessment with invalid domain (>3) reverts
+    function test_assessmentAttestation_invalidDomain_reverts() public {
+        address garden = _mintGarden(false);
+        _grantRoles(garden);
+
+        AssessmentSchema memory schema = _buildAssessmentSchema();
+        schema.domain = 4; // Invalid: must be 0-3
+
+        Attestation memory attestation = _buildAssessmentAttestation(garden, evaluator1, schema);
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert();
+        assessmentResolver.attest(attestation);
+    }
+
+    /// @notice Assessment with wrong schema UID reverts
+    function test_assessmentAttestation_wrongSchemaUID_reverts() public {
+        address garden = _mintGarden(false);
+        _grantRoles(garden);
+
+        AssessmentSchema memory schema = _buildAssessmentSchema();
+        Attestation memory attestation = _buildAssessmentAttestation(garden, evaluator1, schema);
+        // Tamper with schema UID
+        attestation.schema = bytes32(uint256(999));
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert();
+        assessmentResolver.attest(attestation);
     }
 }

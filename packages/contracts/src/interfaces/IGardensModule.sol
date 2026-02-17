@@ -12,11 +12,12 @@ interface IGardensModule {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Configurable weight schemes for conviction voting power
-    /// @dev Operator selects at mint time; immutable per garden
+    /// @dev Operator selects at mint time; immutable per garden.
+    ///      Weights are in basis points (10_000 = 1x) and must be >= 10_000 for HAT sources.
     enum WeightScheme {
-        Linear, // (100, 200, 300) — flat, 3x operator influence
-        Exponential, // (200, 400, 1600) — moderate, 8x operator influence
-        Power // (300, 900, 8100) — steep, 27x operator influence
+        Linear, // (10_000, 20_000, 30_000) — flat, 3x operator influence
+        Exponential, // (20_000, 40_000, 160_000) — moderate, 8x operator influence
+        Power // (30_000, 90_000, 810_000) — steep, 27x operator influence
 
     }
 
@@ -33,18 +34,14 @@ interface IGardensModule {
 
     /// @notice Emitted when a Gardens V2 community is created for a garden
     event CommunityCreated(
-        address indexed garden,
-        address indexed community,
-        WeightScheme weightScheme,
-        address goodsToken,
-        address nftPowerRegistry
+        address indexed garden, address indexed community, WeightScheme weightScheme, address goodsToken
     );
 
     /// @notice Emitted when a signal pool is created for a garden
     event SignalPoolCreated(address indexed garden, address indexed pool, PoolType poolType, address indexed community);
 
-    /// @notice Emitted when a power registry is deployed for a garden
-    event PowerRegistryDeployed(address indexed garden, address indexed registry, WeightScheme weightScheme);
+    /// @notice Emitted when power sources are registered for a garden in the unified registry
+    event GardenPowerRegistered(address indexed garden, WeightScheme weightScheme, uint256 sourceCount);
 
     /// @notice Emitted when GOODS tokens are airdropped to initial hat wearers
     event GoodsAirdropped(address indexed garden, uint256 totalAmount);
@@ -60,6 +57,18 @@ interface IGardensModule {
 
     /// @notice Emitted when a signal pool creation fails (non-blocking)
     event PoolCreationFailed(address indexed garden, address indexed community, string metadata);
+
+    /// @notice Emitted when pool registration in PowerRegistry or HatsModule fails (non-blocking)
+    event PoolRegistrationFailed(address indexed garden, address indexed target, string reason);
+
+    /// @notice Emitted when an admin configuration value is updated
+    event ConfigUpdated(string indexed key, address indexed oldValue, address indexed newValue);
+
+    /// @notice Emitted when the stake amount per member is updated
+    event StakeAmountUpdated(uint256 oldAmount, uint256 newAmount);
+
+    /// @notice Emitted when the require-full-setup flag is toggled
+    event RequireFullSetupUpdated(bool newValue);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Garden Mint Callback
@@ -107,7 +116,7 @@ interface IGardensModule {
     /// @notice Get the weight scheme for a garden
     function getGardenWeightScheme(address garden) external view returns (WeightScheme);
 
-    /// @notice Get the NFTPowerRegistry for a garden
+    /// @notice Get the power registry address for a garden
     function getGardenPowerRegistry(address garden) external view returns (address);
 
     /// @notice Check if a garden has been initialized with Gardens V2

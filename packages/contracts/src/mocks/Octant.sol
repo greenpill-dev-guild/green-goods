@@ -52,6 +52,11 @@ contract MockOctantVault is IOctantVault {
     mapping(address account => uint256 balance) public balances;
     mapping(address strategy => bool active) public activeStrategies;
 
+    /// @notice Recipient for process_report yield simulation (e.g., YieldResolver)
+    address public processReportShareRecipient;
+    /// @notice Number of shares to mint during next process_report call
+    uint256 public processReportShareAmount;
+
     error InsufficientShares();
     error UnauthorizedRoleManager();
 
@@ -74,6 +79,13 @@ contract MockOctantVault is IOctantVault {
         require(_denominator > 0, "denominator must be > 0");
         rateNumerator = _numerator;
         rateDenominator = _denominator;
+    }
+
+    /// @notice Configure shares to mint during process_report (simulates yield → donation address)
+    /// @dev Shares are consumed after minting. Call again before each harvest to simulate new yield.
+    function setProcessReportYield(address recipient, uint256 shareAmount) external {
+        processReportShareRecipient = recipient;
+        processReportShareAmount = shareAmount;
     }
 
     function deposit(uint256 assets, address receiver) external override returns (uint256 shares) {
@@ -181,10 +193,56 @@ contract MockOctantVault is IOctantVault {
         return targetDebt;
     }
 
-    function process_report(address strategy) external override returns (uint256, uint256) {
+    function process_report(address strategy) external virtual override returns (uint256, uint256) {
         // Mimic real Yearn V3: vault calls strategy.report() internally during process_report
         IOctantStrategy(strategy).report();
+
+        // Simulate yield: mint shares to donation address (e.g., YieldResolver)
+        if (processReportShareAmount > 0 && processReportShareRecipient != address(0)) {
+            balances[processReportShareRecipient] += processReportShareAmount;
+            totalSupply += processReportShareAmount;
+            processReportShareAmount = 0; // Consume pending yield
+        }
+
         return (0, 0);
+    }
+}
+
+/// @title ProcessReportRevertingVault
+/// @notice Vault whose process_report always reverts, for testing harvest fallback to strategy.report()
+/// @dev Inherits MockOctantVault for full functionality, then overrides process_report to revert.
+///      Unlike RevertingOctantVault, this vault supports add_strategy/balanceOf normally.
+contract ProcessReportRevertingVault is MockOctantVault {
+    constructor(
+        address _asset,
+        string memory _name,
+        string memory _symbol,
+        address _roleManager,
+        uint256 _profitUnlockTime
+    )
+        MockOctantVault(_asset, _name, _symbol, _roleManager, _profitUnlockTime)
+    { }
+
+    function process_report(address) external pure override returns (uint256, uint256) {
+        revert("process_report reverted");
+    }
+}
+
+/// @title ProcessReportRevertingFactory
+/// @notice Factory that deploys ProcessReportRevertingVaults for testing harvest fallback
+contract ProcessReportRevertingFactory is IOctantFactory {
+    function deployNewVault(
+        address asset,
+        string memory _name,
+        string memory _symbol,
+        address roleManager,
+        uint256 _profitUnlockTime
+    )
+        external
+        override
+        returns (address vault)
+    {
+        vault = address(new ProcessReportRevertingVault(asset, _name, _symbol, roleManager, _profitUnlockTime));
     }
 }
 

@@ -117,6 +117,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(mockToken),
             name: "Gas Test Garden",
+            slug: "",
             description: "A garden for gas benchmarking",
             location: "Location",
             bannerImage: "Banner",
@@ -147,6 +148,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(mockToken),
             name: "Garden With Gardeners",
+            slug: "",
             description: "5 initial gardeners",
             location: "Location",
             bannerImage: "Banner",
@@ -177,6 +179,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
             configs[i] = GardenToken.GardenConfig({
                 communityToken: address(mockToken),
                 name: string(abi.encodePacked("Batch Garden ", _uint2str(i))),
+                slug: "",
                 description: "Batch description",
                 location: "Location",
                 bannerImage: "Banner",
@@ -426,6 +429,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(mockToken),
             name: "Benchmark Garden",
+            slug: "",
             description: "Gas benchmark garden",
             location: "Location",
             bannerImage: "Banner",

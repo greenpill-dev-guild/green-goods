@@ -31,6 +31,8 @@ abstract contract DeployHelper is Script {
         address multisig;
         address ensRegistry;
         address ensResolver;
+        address ccipRouter;
+        uint64 ccipChainSelector;
     }
 
     struct DeploymentResult {
@@ -48,10 +50,14 @@ abstract contract DeployHelper is Script {
         address octantModule;
         address octantFactory;
         address gardensModule;
+        address unifiedPowerRegistry;
         address yieldSplitter;
         address cookieJarModule;
-        address gardenerAccountLogic; // GardenerAccount implementation for user smart accounts
-        address gardenerRegistry; // Gardener Registry (mainnet only, address(0) on L2s)
+        address hypercertsModule;
+        address marketplaceAdapter;
+        address greenGoodsENS;
+        address gardenerAccountLogic; // DEPRECATED: kept for JSON backward compatibility
+        address gardenerRegistry; // DEPRECATED: replaced by GreenGoodsENS (CCIP), kept for JSON compat
         bytes32 assessmentSchemaUID;
         bytes32 workSchemaUID;
         bytes32 workApprovalSchemaUID;
@@ -105,6 +111,23 @@ abstract contract DeployHelper is Script {
             // ENS not configured for this network (L2 chains) - defaults to address(0)
         }
 
+        // CCIP router (for ENS cross-chain registration)
+        // solhint-disable-next-line no-empty-blocks
+        try vm.parseJson(json, string.concat(basePath, ".contracts.ccipRouter")) returns (bytes memory data) {
+            config.ccipRouter = abi.decode(data, (address));
+            // solhint-disable-next-line no-empty-blocks
+        } catch {
+            // CCIP not configured for this network - defaults to address(0)
+        }
+
+        // solhint-disable-next-line no-empty-blocks
+        try vm.parseJson(json, string.concat(basePath, ".ccipChainSelector")) returns (bytes memory data) {
+            config.ccipChainSelector = uint64(abi.decode(data, (uint256)));
+            // solhint-disable-next-line no-empty-blocks
+        } catch {
+            // CCIP chain selector not configured - defaults to 0
+        }
+
         // Get deployment defaults
         config.safe = json.readAddress(".deploymentDefaults.safe");
         config.safeFactory = json.readAddress(".deploymentDefaults.safeFactory");
@@ -117,6 +140,9 @@ abstract contract DeployHelper is Script {
         if (config.ensRegistry != address(0)) {
             console.log("ENS Registry:", config.ensRegistry);
             console.log("ENS Resolver:", config.ensResolver);
+        }
+        if (config.ccipRouter != address(0)) {
+            console.log("CCIP Router:", config.ccipRouter);
         }
 
         return config;
@@ -202,7 +228,7 @@ abstract contract DeployHelper is Script {
         console.log("Deployment:", result.deploymentRegistry);
         console.log("Guardian:", result.guardian);
         console.log("GardenAccountImpl:", result.gardenAccountImpl);
-        console.log("GardenerAccountLogic:", result.gardenerAccountLogic);
+        console.log("GardenerAccountLogic (deprecated):", result.gardenerAccountLogic);
         console.log("GardenToken:", result.gardenToken);
         console.log("ActionRegistry:", result.actionRegistry);
         console.log("OctantModule:", result.octantModule);
@@ -226,8 +252,12 @@ abstract contract DeployHelper is Script {
         vm.serializeAddress(obj, "octantModule", result.octantModule);
         vm.serializeAddress(obj, "octantFactory", result.octantFactory);
         vm.serializeAddress(obj, "gardensModule", result.gardensModule);
+        vm.serializeAddress(obj, "unifiedPowerRegistry", result.unifiedPowerRegistry);
         vm.serializeAddress(obj, "yieldSplitter", result.yieldSplitter);
         vm.serializeAddress(obj, "cookieJarModule", result.cookieJarModule);
+        vm.serializeAddress(obj, "hypercertsModule", result.hypercertsModule);
+        vm.serializeAddress(obj, "marketplaceAdapter", result.marketplaceAdapter);
+        vm.serializeAddress(obj, "greenGoodsENS", result.greenGoodsENS);
         vm.serializeAddress(obj, "gardenerAccountLogic", result.gardenerAccountLogic);
         vm.serializeAddress(obj, "gardenerRegistry", result.gardenerRegistry);
 

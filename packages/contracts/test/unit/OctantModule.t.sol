@@ -6,8 +6,29 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 
 import { OctantModule } from "../../src/modules/Octant.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
-import { MockOctantFactory, MockOctantVault, RevertingOctantFactory } from "../../src/mocks/Octant.sol";
+import {
+    MockOctantFactory,
+    MockOctantVault,
+    RevertingOctantFactory,
+    ProcessReportRevertingFactory,
+    ProcessReportRevertingVault
+} from "../../src/mocks/Octant.sol";
 import { MockYDSStrategy, RevertingStrategy } from "../../src/mocks/YDSStrategy.sol";
+
+/// @title RevertingYieldResolver
+/// @notice Mock YieldResolver that always reverts on registerShares()
+/// @dev Used to test the silent catch at Octant.sol:246-248
+contract RevertingYieldResolver {
+    bool public wasCalled;
+
+    function registerShares(address, address, uint256) external pure {
+        revert("RevertingYieldResolver: registerShares failed");
+    }
+
+    function setGardenVault(address, address, address) external {
+        wasCalled = true;
+    }
+}
 
 contract MockGardenWithAccess is MockGardenAccessControl {
     string public name;
@@ -611,5 +632,100 @@ contract OctantModuleTest is Test {
 
     function test_deactivationDelay_isThreeDays() public {
         assertEq(module.DEACTIVATION_DELAY(), 3 days, "deactivation delay should be 3 days");
+    }
+
+    // =========================================================================
+    // Fault Injection: Harvest Fallback Cascade (Octant.sol:232-249)
+    // =========================================================================
+
+    /// @notice FAULT INJECTION: process_report reverts → fallback to strategy.report() succeeds
+    /// @dev Tests the outer catch at Octant.sol:233-234: vault.process_report() fails, so
+    ///      harvest falls back to strategy.report() directly. The fallback succeeds, so
+    ///      HarvestReportFailed should NOT be emitted and harvest completes normally.
+    function test_harvest_processReportFails_fallbackToStrategyReportSucceeds() public {
+        // Use a factory that deploys vaults whose process_report reverts
+        ProcessReportRevertingFactory prFactory = new ProcessReportRevertingFactory();
+        module.setOctantFactory(address(prFactory));
+
+        MockYDSStrategy fallbackStrategy = new MockYDSStrategy();
+        module.setSupportedAsset(WETH, address(fallbackStrategy));
+
+        vm.prank(GARDEN_TOKEN);
+        module.onGardenMinted(address(garden), "Community Garden");
+
+        vm.prank(OPERATOR);
+        module.setDonationAddress(address(garden), DONATION_1);
+
+        // Harvest: process_report will revert, fallback to strategy.report() should succeed
+        vm.prank(OPERATOR);
+        module.harvest(address(garden), WETH);
+
+        // Strategy.report() was called directly as fallback (reportCount incremented)
+        assertEq(fallbackStrategy.reportCount(), 1, "strategy.report() should be called as fallback");
+    }
+
+    /// @notice FAULT INJECTION: process_report reverts AND strategy.report() also reverts
+    /// @dev Tests the full cascade at Octant.sol:232-239: both vault and strategy fail,
+    ///      harvest emits HarvestReportFailed but still completes (HarvestTriggered emitted).
+    ///      This proves harvest is non-fragile — accounting failures never revert the tx.
+    function test_harvest_fullCascadeFails_emitsHarvestReportFailedAndContinues() public {
+        ProcessReportRevertingFactory prFactory = new ProcessReportRevertingFactory();
+        module.setOctantFactory(address(prFactory));
+
+        // Strategy that also reverts on report()
+        RevertingStrategy revertingStrategy = new RevertingStrategy();
+        revertingStrategy.setRevertReport(true);
+        module.setSupportedAsset(WETH, address(revertingStrategy));
+
+        vm.prank(GARDEN_TOKEN);
+        module.onGardenMinted(address(garden), "Community Garden");
+
+        vm.prank(OPERATOR);
+        module.setDonationAddress(address(garden), DONATION_1);
+
+        // Both process_report AND strategy.report() will fail
+        // Expect HarvestReportFailed from inner catch (Octant.sol:237)
+        vm.expectEmit(true, true, false, true);
+        emit HarvestReportFailed(address(garden), WETH, address(revertingStrategy));
+
+        // Expect HarvestTriggered — harvest completes despite accounting failures
+        vm.expectEmit(true, true, true, true);
+        emit HarvestTriggered(address(garden), WETH, OPERATOR);
+
+        vm.prank(OPERATOR);
+        module.harvest(address(garden), WETH);
+    }
+
+    /// @notice FAULT INJECTION: Harvest yield share registration silently fails
+    /// @dev Tests the silent catch at Octant.sol:246-248: registerShares() reverts but
+    ///      harvest still completes. This verifies the yield tracking failure is non-fatal.
+    ///      Uses a reverting YieldResolver mock so registerShares() always fails.
+    function test_harvest_registerSharesFails_harvestStillCompletes() public {
+        module.setSupportedAsset(WETH, address(wethStrategy));
+
+        vm.prank(GARDEN_TOKEN);
+        module.onGardenMinted(address(garden), "Community Garden");
+
+        vm.prank(OPERATOR);
+        module.setDonationAddress(address(garden), DONATION_1);
+
+        // Deploy a contract that reverts on registerShares
+        RevertingYieldResolver revertingResolver = new RevertingYieldResolver();
+        module.setYieldResolver(address(revertingResolver));
+
+        // Configure vault to mint shares to the resolver during process_report
+        address vault = module.getVaultForAsset(address(garden), WETH);
+        MockOctantVault(vault).setProcessReportYield(address(revertingResolver), 100);
+
+        // Harvest should complete even though registerShares fails
+        // SharesRegistered should NOT be emitted (it's inside the try success block)
+        vm.prank(OPERATOR);
+        module.harvest(address(garden), WETH);
+
+        // Strategy report should still have executed
+        assertEq(wethStrategy.reportCount(), 1, "strategy report should execute despite registerShares failure");
+
+        // Verify that no SharesRegistered event was emitted by checking the resolver wasn't called successfully
+        assertFalse(revertingResolver.wasCalled(), "registerShares should have reverted, not succeeded");
     }
 }

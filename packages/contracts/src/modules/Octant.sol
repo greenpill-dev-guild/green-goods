@@ -36,6 +36,7 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
     event SupportedAssetUpdated(address indexed asset, address indexed strategy);
     event DefaultProfitUnlockTimeUpdated(uint256 oldUnlockTime, uint256 newUnlockTime);
     event StrategyShutdownFailed(address indexed garden, address indexed asset, address indexed strategy);
+    event VaultResumed(address indexed garden, address indexed asset, address indexed newStrategy);
     event HarvestReportFailed(address indexed garden, address indexed asset, address strategy);
     event DonationAddressUpdateFailed(address indexed garden, address indexed asset, address strategy);
     event StrategyAttachmentFailed(address indexed garden, address indexed asset, address vault, address strategy);
@@ -92,7 +93,12 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
     /// @notice YieldResolver address for share registration during harvest
     address public yieldResolver;
 
-    uint256[38] private __gap;
+    /// @notice Storage gap for future upgrades
+    /// @dev 11 storage vars + 39 gap = 50 slots total
+    ///      Vars: octantFactory, defaultProfitUnlockTime, gardenDonationAddresses,
+    ///            gardenAssetVaults, supportedAssets, supportedAssetList, supportedAssetCount,
+    ///            gardenToken, vaultStrategies, pendingDeactivations, yieldResolver
+    uint256[39] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Modifiers
@@ -259,6 +265,51 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
         }
 
         emit EmergencyPaused(garden, asset, msg.sender);
+    }
+
+    /// @notice Resume a vault after emergency pause by attaching a new strategy
+    /// @dev Call after emergencyPause() to restore vault operations. Unlike the best-effort
+    ///      strategy attachment during mint, this reverts if add_strategy fails — resume
+    ///      must guarantee the strategy is attached before the vault is considered operational.
+    /// @param garden The garden address
+    /// @param asset The underlying asset
+    /// @param newStrategy The replacement strategy to attach
+    function resumeVault(
+        address garden,
+        address asset,
+        address newStrategy
+    )
+        external
+        nonReentrant
+        onlyGardenOwner(garden)
+    {
+        if (newStrategy == address(0)) revert ZeroAddress();
+
+        address vault = gardenAssetVaults[garden][asset];
+        if (vault == address(0)) revert NoVaultForAsset(garden, asset);
+
+        // Revoke old strategy if one was previously attached
+        address oldStrategy = vaultStrategies[vault];
+        if (oldStrategy != address(0)) {
+            // solhint-disable-next-line no-empty-blocks
+            try IOctantVault(vault).revoke_strategy(oldStrategy) { } catch { }
+        }
+
+        // Attach new strategy — reverts on failure (no best-effort for resume)
+        IOctantVault(vault).add_strategy(newStrategy, true);
+        vaultStrategies[vault] = newStrategy;
+
+        // Propagate donation address to the new strategy
+        address donationAddress = gardenDonationAddresses[garden];
+        if (donationAddress != address(0)) {
+            // solhint-disable-next-line no-empty-blocks
+            try IOctantStrategy(newStrategy).setDonationAddress(donationAddress) { }
+            catch {
+                emit DonationAddressUpdateFailed(garden, asset, newStrategy);
+            }
+        }
+
+        emit VaultResumed(garden, asset, newStrategy);
     }
 
     function setDonationAddress(
@@ -448,11 +499,12 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
         gardenAssetVaults[garden][asset] = vault;
 
         // Strategy attachment is best-effort to keep mint path non-fragile.
-        try IOctantVault(vault).add_strategy(strategy, true) { }
-        catch {
+        // Only record vaultStrategies on success to prevent phantom strategy references.
+        try IOctantVault(vault).add_strategy(strategy, true) {
+            vaultStrategies[vault] = strategy;
+        } catch {
             emit StrategyAttachmentFailed(garden, asset, vault, strategy);
         }
-        vaultStrategies[vault] = strategy;
 
         address donationAddress = gardenDonationAddresses[garden];
         if (donationAddress != address(0)) {

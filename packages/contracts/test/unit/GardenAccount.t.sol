@@ -142,6 +142,18 @@ contract MockGardensModuleForAccount is IGardensModule {
     }
 }
 
+/// @title RevertingCommunityForAccount
+/// @notice Mock RegistryCommunity that always reverts on stakeAndRegisterMember
+/// @dev Used to test the try-catch in GardenAccount._autoRegisterInCommunity() (line 382-386)
+contract RevertingCommunityForAccount {
+    bool public stakeAttempted;
+
+    function stakeAndRegisterMember(address) external {
+        stakeAttempted = true;
+        revert("RevertingCommunity: stakeAndRegisterMember failed");
+    }
+}
+
 /// @title GardenAccountTest
 /// @notice Unit tests for GardenAccount — the token-bound account for gardens
 /// @dev Mints a real garden via GardenToken to get a properly initialized TBA
@@ -190,6 +202,7 @@ contract GardenAccountTest is Test, ERC6551Helper {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Test Garden",
+            slug: "",
             description: "A test garden",
             location: "Test Location",
             bannerImage: "test-banner.png",
@@ -245,6 +258,7 @@ contract GardenAccountTest is Test, ERC6551Helper {
         IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
             communityToken: address(communityToken),
             name: "Re-init",
+            slug: "",
             description: "",
             location: "",
             bannerImage: "",
@@ -938,6 +952,44 @@ contract GardenAccountTest is Test, ERC6551Helper {
         }
 
         assertEq(gardenAccount.gardenMemberCount(), 3, "All 3 gardeners should have joined");
+    }
+
+    // =========================================================================
+    // Fault Injection: Auto-Stake Failure (Garden.sol:382-386)
+    // =========================================================================
+
+    /// @notice FAULT INJECTION: Community stakeAndRegisterMember reverts, joinGarden still succeeds
+    /// @dev Tests the try-catch at GardenAccount.sol:382-386. When the community contract
+    ///      reverts during staking, the catch block silently absorbs the failure and the
+    ///      gardener role is still granted. This proves auto-registration is non-blocking.
+    function test_joinGarden_autoStakeFails_gardenerRoleStillGranted() public {
+        // Setup: fully configured GardensModule with a REVERTING community
+        MockGardensModuleForAccount gardensModuleMock = new MockGardensModuleForAccount();
+        MockERC20 goodsToken_ = new MockERC20();
+        RevertingCommunityForAccount revertingCommunity = new RevertingCommunityForAccount();
+
+        gardensModuleMock.setGardenCommunity(gardenAddress, address(revertingCommunity));
+        gardensModuleMock.setStakeAmountPerMember(1e18);
+        gardensModuleMock.setGoodsToken(address(goodsToken_));
+
+        vm.prank(multisig);
+        gardenToken.setGardensModule(address(gardensModuleMock));
+
+        // Fund garden TBA with GOODS (so it passes the balance check at line 376)
+        goodsToken_.mint(gardenAddress, 100e18);
+
+        vm.prank(operator);
+        gardenAccount.setOpenJoining(true);
+
+        // Join: auto-stake will fail (community reverts), but gardener role MUST succeed
+        vm.prank(stranger);
+        gardenAccount.joinGarden();
+
+        // Gardener role granted despite stake failure (catch block at line 384-386)
+        assertTrue(hatsModule.isGardenerOf(gardenAddress, stranger), "Gardener role should be granted despite auto-stake failure");
+
+        // Community did NOT register the member (it reverted)
+        assertTrue(revertingCommunity.stakeAttempted(), "stakeAndRegisterMember should have been called");
     }
 
     function test_setMaxGardeners() public {

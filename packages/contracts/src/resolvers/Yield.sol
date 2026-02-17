@@ -257,6 +257,10 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
         uint256 redeemed = 0;
         if (shares > 0) {
+            // maxLoss=1 (1 bps) allows up to 0.01% rounding loss during redemption.
+            // ERC-4626 vaults may return slightly fewer assets than expected due to
+            // integer division in share→asset conversion. The vault reverts if loss
+            // exceeds this threshold, preventing material share drain.
             redeemed = IOctantVault(vault).redeem(shares, address(this), address(this), 1, new address[](0));
             if (redeemed > 0) {
                 gardenShares[garden][vault] = 0;

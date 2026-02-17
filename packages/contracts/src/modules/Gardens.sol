@@ -12,7 +12,15 @@ import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import {
     IRegistryFactory,
     IRegistryCommunity,
-    INFTPowerRegistryFactory,
+    IUnifiedPowerRegistry,
+    RegistryCommunityInitializeParamsV2,
+    CVStrategyInitializeParamsV0_3,
+    CVParams,
+    PointSystem,
+    ProposalType,
+    PointSystemConfig,
+    ArbitrableConfig,
+    Metadata,
     NFTPowerSource,
     NFTType
 } from "../interfaces/IGardensV2.sol";
@@ -28,7 +36,7 @@ interface IGoodsToken {
 ///
 /// **Architecture:**
 /// - Called by GardenToken during mintGarden() via try/catch (failure MUST NOT revert mint)
-/// - Deploys one NFTPowerRegistry per garden with role-weighted voting power
+/// - Registers per-garden voting power sources in a unified power registry
 /// - Creates one RegistryCommunity per garden using shared GOODS token
 /// - Creates two signal pools: HypercertSignalPool + ActionSignalPool
 /// - Registers pools in HatsModule for conviction sync on role revocation
@@ -74,8 +82,8 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     /// @notice The Gardens V2 RegistryFactory
     IRegistryFactory public registryFactory;
 
-    /// @notice The NFTPowerRegistry factory
-    INFTPowerRegistryFactory public powerRegistryFactory;
+    /// @notice The unified power registry (single instance for all gardens)
+    IUnifiedPowerRegistry public powerRegistry;
 
     /// @notice GOODS protocol token for community staking
     IERC20 public goodsToken;
@@ -95,18 +103,18 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     /// @notice Weight scheme per garden
     mapping(address garden => WeightScheme scheme) public gardenWeightSchemes;
 
-    /// @notice NFTPowerRegistry per garden
-    mapping(address garden => address registry) public gardenPowerRegistries;
-
     /// @notice Whether a garden has been initialized
     mapping(address garden => bool initialized) public gardenInitialized;
 
     /// @notice GOODS amount per member for community staking (configurable, default 1 GOODS)
     uint256 public stakeAmountPerMember;
 
-    /// @notice When true, onGardenMinted reverts if registryFactory or powerRegistryFactory is missing
+    /// @notice When true, onGardenMinted reverts if registryFactory or powerRegistry is missing
     /// @dev Enable for production deployments to prevent partial initialization
     bool public requireFullSetup;
+
+    /// @notice Allo Protocol address (required for createRegistry params)
+    address public alloAddress;
 
     /// @notice Storage gap for future upgrades
     /// @dev 13 storage vars + 37 gap = 50 slots total
@@ -124,14 +132,14 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     /// @notice Initialize the GardensModule
     /// @param _owner The owner address
     /// @param _registryFactory Gardens V2 RegistryFactory address (address(0) allowed for testnet)
-    /// @param _powerRegistryFactory NFTPowerRegistry factory address (address(0) allowed for testnet)
+    /// @param _powerRegistry UnifiedPowerRegistry address (address(0) allowed for testnet)
     /// @param _goodsToken GOODS token address (address(0) allowed for testnet, set later via setGoodsToken)
     /// @param _hatsProtocol Hats Protocol address
     /// @param _hatsModule HatsModule address
     function initialize(
         address _owner,
         address _registryFactory,
-        address _powerRegistryFactory,
+        address _powerRegistry,
         address _goodsToken,
         address _hatsProtocol,
         address _hatsModule
@@ -146,7 +154,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         _transferOwnership(_owner);
 
         registryFactory = IRegistryFactory(_registryFactory);
-        powerRegistryFactory = INFTPowerRegistryFactory(_powerRegistryFactory);
+        powerRegistry = IUnifiedPowerRegistry(_powerRegistry);
         goodsToken = IERC20(_goodsToken);
         hatsProtocol = _hatsProtocol;
         hatsModule = IHatsModule(_hatsModule);
@@ -177,7 +185,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         // Fail fast in production mode if factories are not configured
         if (requireFullSetup) {
             if (address(registryFactory) == address(0)) revert FactoriesNotConfigured("registryFactory");
-            if (address(powerRegistryFactory) == address(0)) revert FactoriesNotConfigured("powerRegistryFactory");
+            if (address(powerRegistry) == address(0)) revert FactoriesNotConfigured("powerRegistry");
         }
 
         // Store weight scheme immediately (even if later steps fail)
@@ -190,11 +198,8 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
             gardenCommunities[garden] = community;
         }
 
-        // Step 2: Deploy power registry (needs hats, NOT community)
-        address registry = _deployPowerRegistry(garden, scheme);
-        if (registry != address(0)) {
-            gardenPowerRegistries[garden] = registry;
-        }
+        // Step 2: Register power sources in unified registry (needs hats, NOT community)
+        _registerGardenPower(garden, scheme);
 
         // Step 3: Seed GOODS treasury for member staking
         if (address(goodsToken) != address(0) && community != address(0)) {
@@ -212,7 +217,8 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         // If this fails, garden still initializes — operators can call createGardenPools() later.
         if (community != address(0)) {
             // solhint-disable-next-line no-empty-blocks
-            try this.attemptPoolCreation(garden, community, registry) returns (address[] memory createdPools) {
+            try this.attemptPoolCreation(garden, community, address(powerRegistry)) returns (address[] memory createdPools)
+            {
                 pools = createdPools;
                 // Inner try/catch in _createPool may catch reverts gracefully (returning empty array)
                 if (pools.length == 0) {
@@ -249,6 +255,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
             for (uint256 i = 0; i < pools.length; i++) {
                 gardenSignalPools[garden].push(pools[i]);
             }
+            _registerPoolsInPowerRegistry(garden, pools);
             _registerPoolsInHatsModule(garden, pools);
         }
     }
@@ -273,8 +280,12 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     }
 
     /// @inheritdoc IGardensModule
+    /// @dev Returns the unified power registry if garden is registered, address(0) otherwise
     function getGardenPowerRegistry(address garden) external view override returns (address) {
-        return gardenPowerRegistries[garden];
+        if (address(powerRegistry) != address(0) && powerRegistry.isGardenRegistered(garden)) {
+            return address(powerRegistry);
+        }
+        return address(0);
     }
 
     /// @inheritdoc IGardensModule
@@ -289,7 +300,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     function isWiringComplete() external view returns (bool wired, string memory missing) {
         if (gardenToken == address(0)) return (false, "gardenToken not set");
         if (address(registryFactory) == address(0)) return (false, "registryFactory not set");
-        if (address(powerRegistryFactory) == address(0)) return (false, "powerRegistryFactory not set");
+        if (address(powerRegistry) == address(0)) return (false, "powerRegistry not set");
         if (address(goodsToken) == address(0)) return (false, "goodsToken not set");
         if (hatsProtocol == address(0)) return (false, "hatsProtocol not set");
         if (address(hatsModule) == address(0)) return (false, "hatsModule not set");
@@ -302,7 +313,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
 
     /// @inheritdoc IGardensModule
     /// @dev Garden must have a community. Callable by garden operators or protocol owner.
-    function createGardenPools(address garden) external override returns (address[] memory pools) {
+    function createGardenPools(address garden) external override nonReentrant returns (address[] memory pools) {
         // Access control: garden operator or owner
         if (msg.sender != owner()) {
             if (address(hatsModule) == address(0)) revert ZeroAddress();
@@ -319,12 +330,12 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         if (community == address(0)) revert ZeroAddress();
         if (gardenSignalPools[garden].length > 0) revert PoolsAlreadyExist(garden);
 
-        address registry = gardenPowerRegistries[garden];
-        pools = _createSignalPools(garden, community, registry);
+        pools = _createSignalPools(garden, community, address(powerRegistry));
         if (pools.length > 0) {
             for (uint256 i = 0; i < pools.length; i++) {
                 gardenSignalPools[garden].push(pools[i]);
             }
+            _registerPoolsInPowerRegistry(garden, pools);
             _registerPoolsInHatsModule(garden, pools);
         }
     }
@@ -336,57 +347,83 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     /// @notice Set the GardenToken address authorized to call onGardenMinted
     function setGardenToken(address _gardenToken) external onlyOwner {
         if (_gardenToken == address(0)) revert ZeroAddress();
+        emit ConfigUpdated("gardenToken", gardenToken, _gardenToken);
         gardenToken = _gardenToken;
     }
 
     /// @notice Set the RegistryFactory address
     function setRegistryFactory(address _registryFactory) external onlyOwner {
         if (_registryFactory == address(0)) revert ZeroAddress();
+        emit ConfigUpdated("registryFactory", address(registryFactory), _registryFactory);
         registryFactory = IRegistryFactory(_registryFactory);
     }
 
-    /// @notice Set the NFTPowerRegistry factory address
-    function setPowerRegistryFactory(address _powerRegistryFactory) external onlyOwner {
-        if (_powerRegistryFactory == address(0)) revert ZeroAddress();
-        powerRegistryFactory = INFTPowerRegistryFactory(_powerRegistryFactory);
+    /// @notice Set the unified power registry address
+    function setPowerRegistry(address _powerRegistry) external onlyOwner {
+        if (_powerRegistry == address(0)) revert ZeroAddress();
+        emit ConfigUpdated("powerRegistry", address(powerRegistry), _powerRegistry);
+        powerRegistry = IUnifiedPowerRegistry(_powerRegistry);
     }
 
     /// @notice Set the GOODS token address
     function setGoodsToken(address _goodsToken) external onlyOwner {
         if (_goodsToken == address(0)) revert ZeroAddress();
+        emit ConfigUpdated("goodsToken", address(goodsToken), _goodsToken);
         goodsToken = IERC20(_goodsToken);
     }
 
     /// @notice Set the Hats Protocol address
     function setHatsProtocol(address _hatsProtocol) external onlyOwner {
         if (_hatsProtocol == address(0)) revert ZeroAddress();
+        emit ConfigUpdated("hatsProtocol", hatsProtocol, _hatsProtocol);
         hatsProtocol = _hatsProtocol;
     }
 
     /// @notice Set the HatsModule address
     function setHatsModule(address _hatsModule) external onlyOwner {
         if (_hatsModule == address(0)) revert ZeroAddress();
+        emit ConfigUpdated("hatsModule", address(hatsModule), _hatsModule);
         hatsModule = IHatsModule(_hatsModule);
     }
 
     /// @notice Set the GOODS stake amount per community member
     function setStakeAmountPerMember(uint256 amount) external onlyOwner {
+        emit StakeAmountUpdated(stakeAmountPerMember, amount);
         stakeAmountPerMember = amount;
     }
 
     /// @notice Enable or disable fail-fast validation for missing factories
     /// @dev Enable for production deployments to prevent partial initialization
     function setRequireFullSetup(bool _requireFullSetup) external onlyOwner {
+        emit RequireFullSetupUpdated(_requireFullSetup);
         requireFullSetup = _requireFullSetup;
     }
 
+    /// @notice Set the Allo Protocol address (required for createRegistry params)
+    function setAlloAddress(address _alloAddress) external onlyOwner {
+        if (_alloAddress == address(0)) revert ZeroAddress();
+        emit ConfigUpdated("alloAddress", alloAddress, _alloAddress);
+        alloAddress = _alloAddress;
+    }
+
     /// @notice Reset garden initialization to allow re-running onGardenMinted
-    /// @dev Use when partial failure leaves garden in half-configured state
+    /// @dev Use when partial failure leaves garden in half-configured state.
+    ///      Also cleans up the UnifiedPowerRegistry so re-initialization can register fresh sources.
     function resetGardenInitialization(address garden) external onlyOwner {
+        // Clean up power registry (sources + pool mappings) before clearing local state
+        if (address(powerRegistry) != address(0)) {
+            address[] memory pools = gardenSignalPools[garden];
+            // solhint-disable-next-line no-empty-blocks
+            try powerRegistry.deregisterGarden(garden, pools) {
+                // Success — garden can be re-registered with fresh sources
+            } catch {
+                // Non-blocking — registry may not have this garden registered
+            }
+        }
+
         gardenInitialized[garden] = false;
         delete gardenCommunities[garden];
         delete gardenSignalPools[garden];
-        delete gardenPowerRegistries[garden];
         delete gardenWeightSchemes[garden];
         emit GardenInitializationReset(garden);
     }
@@ -413,30 +450,31 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Resolve weight scheme to (community, gardener, operator) weights in basis points
-    /// @dev Linear(100,200,300), Exponential(200,400,1600), Power(300,900,8100)
+    /// @dev Weights must be >= 10_000 so that HAT sources (balance=1) produce non-zero power
+    ///      after integer division: (1 * weight) / 10_000 > 0.
+    ///      Linear(10_000,20_000,30_000), Exponential(20_000,40_000,160_000), Power(30_000,90_000,810_000)
     function _getWeights(WeightScheme scheme)
         internal
         pure
         returns (uint256 communityW, uint256 gardenerW, uint256 operatorW)
     {
-        if (scheme == WeightScheme.Linear) return (100, 200, 300);
-        if (scheme == WeightScheme.Exponential) return (200, 400, 1600);
-        if (scheme == WeightScheme.Power) return (300, 900, 8100);
+        if (scheme == WeightScheme.Linear) return (10_000, 20_000, 30_000);
+        if (scheme == WeightScheme.Exponential) return (20_000, 40_000, 160_000);
+        if (scheme == WeightScheme.Power) return (30_000, 90_000, 810_000);
         revert InvalidWeightScheme();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Internal — Deploy Power Registry
+    // Internal — Register Garden Power
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Deploy NFTPowerRegistry with role-weighted sources
-    /// @dev Returns address(0) gracefully if powerRegistryFactory or hatsProtocol is not set.
-    ///      This is expected on testnets where Gardens V2 infra is not yet deployed — the zero
-    ///      check allows onGardenMinted to proceed with partial initialization (power registry
-    ///      skipped, pools may still be created if registryFactory is set).
-    function _deployPowerRegistry(address garden, WeightScheme scheme) internal returns (address registry) {
-        if (address(powerRegistryFactory) == address(0)) return address(0);
-        if (hatsProtocol == address(0)) return address(0);
+    /// @notice Register power sources in the unified registry for a garden
+    /// @dev Returns false gracefully if powerRegistry or hatsProtocol is not set.
+    ///      This is expected on testnets where Gardens V2 infra is not yet deployed — the false
+    ///      return allows onGardenMinted to proceed with partial initialization.
+    function _registerGardenPower(address garden, WeightScheme scheme) internal returns (bool registered) {
+        if (address(powerRegistry) == address(0)) return false;
+        if (hatsProtocol == address(0)) return false;
 
         (uint256 communityW, uint256 gardenerW, uint256 operatorW) = _getWeights(scheme);
 
@@ -444,10 +482,10 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         // These are available after createGardenHatTree() which runs before onGardenMinted
         (, uint256 operatorHatId,, uint256 gardenerHatId,, uint256 communityHatId,,) = _getGardenHats(garden);
 
-        // Guard: hat IDs must be non-zero to avoid deploying a registry with top-hat defaults
+        // Guard: hat IDs must be non-zero to avoid registering with top-hat defaults
         if (operatorHatId == 0 || gardenerHatId == 0 || communityHatId == 0) {
             emit CommunityCreationFailed(garden, "Hat IDs not available");
-            return address(0);
+            return false;
         }
 
         NFTPowerSource[] memory sources = new NFTPowerSource[](3);
@@ -474,13 +512,13 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         });
 
         // solhint-disable-next-line no-empty-blocks
-        try powerRegistryFactory.deploy(sources) returns (address deployed) {
-            registry = deployed;
-            emit PowerRegistryDeployed(garden, registry, scheme);
+        try powerRegistry.registerGarden(garden, sources) {
+            registered = true;
+            emit GardenPowerRegistered(garden, scheme, sources.length);
         } catch Error(string memory reason) {
             emit CommunityCreationFailed(garden, reason);
         } catch {
-            emit CommunityCreationFailed(garden, "PowerRegistry deploy failed");
+            emit CommunityCreationFailed(garden, "PowerRegistry registration failed");
         }
     }
 
@@ -492,26 +530,30 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     /// @dev Returns address(0) gracefully if registryFactory is not set (testnet deployment
     ///      where Gardens V2 RegistryFactory is unavailable). Callers handle the zero return
     ///      via partial initialization flow.
+    ///      Uses createRegistry() with RegistryCommunityInitializeParamsV2 matching the real
+    ///      Gardens V2 RegistryFactory signature. _nonce and _registryFactory are set by the factory.
     function _createCommunity(address garden) internal returns (address community) {
         if (address(registryFactory) == address(0)) return address(0);
 
-        IRegistryFactory.CreateCommunityParams memory params = IRegistryFactory.CreateCommunityParams({
-            gardenToken: address(goodsToken),
-            registerStakeAmount: stakeAmountPerMember,
-            communityFee: 0,
-            feeReceiver: address(0),
-            councilSafe: garden, // Garden account (TBA) acts as council Safe
-            communityName: "Green Goods Community",
-            isKickEnabled: false,
+        RegistryCommunityInitializeParamsV2 memory params = RegistryCommunityInitializeParamsV2({
+            _allo: alloAddress,
+            _gardenToken: address(goodsToken),
+            _registerStakeAmount: stakeAmountPerMember,
+            _communityFee: 0,
+            _nonce: 0, // Set by factory
+            _registryFactory: address(0), // Set by factory
+            _feeReceiver: address(0),
+            _metadata: Metadata({ protocol: 1, pointer: "" }),
+            _councilSafe: payable(garden), // Garden account (TBA) acts as council Safe
+            _communityName: "Green Goods Community",
+            _isKickEnabled: false,
             covenantIpfsHash: ""
         });
 
         // solhint-disable-next-line no-empty-blocks
-        try registryFactory.createRegistryCommunity(params) returns (address created) {
+        try registryFactory.createRegistry(params) returns (address created) {
             community = created;
-            emit CommunityCreated(
-                garden, community, gardenWeightSchemes[garden], address(goodsToken), gardenPowerRegistries[garden]
-            );
+            emit CommunityCreated(garden, community, gardenWeightSchemes[garden], address(goodsToken));
         } catch Error(string memory reason) {
             emit CommunityCreationFailed(garden, reason);
         } catch {
@@ -537,24 +579,23 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         pools = new address[](2);
         uint256 created = 0;
 
-        // Pool 1: HypercertSignalPool
-        IRegistryCommunity.CVParams memory cvParams = IRegistryCommunity.CVParams({
+        CVParams memory cvParams = CVParams({
             maxRatio: DEFAULT_MAX_RATIO,
             weight: DEFAULT_WEIGHT,
             decay: DEFAULT_DECAY,
             minThresholdPoints: DEFAULT_MIN_THRESHOLD_POINTS
         });
 
+        // Pool 1: HypercertSignalPool
         address hypercertPool =
-            _createPool(community, IRegistryCommunity.PointSystem.Custom, cvParams, registry, "Hypercert Signal Pool");
+            _createPool(garden, community, PointSystem.Custom, cvParams, registry, "Hypercert Signal Pool");
         if (hypercertPool != address(0)) {
             pools[created++] = hypercertPool;
             emit SignalPoolCreated(garden, hypercertPool, PoolType.HypercertSignal, community);
         }
 
         // Pool 2: ActionSignalPool
-        address actionPool =
-            _createPool(community, IRegistryCommunity.PointSystem.Custom, cvParams, registry, "Action Signal Pool");
+        address actionPool = _createPool(garden, community, PointSystem.Custom, cvParams, registry, "Action Signal Pool");
         if (actionPool != address(0)) {
             pools[created++] = actionPool;
             emit SignalPoolCreated(garden, actionPool, PoolType.ActionSignal, community);
@@ -572,30 +613,71 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         return pools;
     }
 
-    /// @notice Create a single conviction pool
+    /// @notice Create a single conviction pool via the 3-arg createPool signature
+    /// @dev Matches gardens-v2 CommunityPoolFacet.createPool(address, CVStrategyInitializeParamsV0_3, Metadata).
+    ///      Constructs the full V0_3 params with signaling defaults (no arbitration, no sybil, no streaming).
     function _createPool(
+        address garden,
         address community,
-        IRegistryCommunity.PointSystem pointSystem,
-        IRegistryCommunity.CVParams memory cvParams,
+        PointSystem pointSystem,
+        CVParams memory cvParams,
         address registry,
-        string memory metadata
+        string memory metadataPointer
     )
         internal
         returns (address strategy)
     {
-        IRegistryCommunity.CreatePoolParams memory params = IRegistryCommunity.CreatePoolParams({
-            pointSystem: pointSystem,
+        CVStrategyInitializeParamsV0_3 memory strategyParams = CVStrategyInitializeParamsV0_3({
             cvParams: cvParams,
+            proposalType: ProposalType.Signaling,
+            pointSystem: pointSystem,
+            pointConfig: PointSystemConfig({ maxAmount: 0 }),
+            arbitrableConfig: ArbitrableConfig({
+                arbitrator: address(0),
+                tribunalSafe: address(0),
+                submitterCollateralAmount: 0,
+                challengerCollateralAmount: 0,
+                defaultRuling: 0,
+                defaultRulingTimeout: 0
+            }),
+            registryCommunity: community,
             votingPowerRegistry: registry,
-            initialMembers: new address[](0),
-            metadata: metadata
+            sybilScorer: address(0),
+            sybilScorerThreshold: 0,
+            initialAllowlist: new address[](0),
+            superfluidToken: address(0),
+            streamingRatePerSecond: 0
         });
 
+        Metadata memory poolMetadata = Metadata({ protocol: 1, pointer: metadataPointer });
+
         // solhint-disable-next-line no-empty-blocks
-        try IRegistryCommunity(community).createPool(params) returns (uint256, address _strategy) {
+        try IRegistryCommunity(community).createPool(address(0), strategyParams, poolMetadata) returns (
+            uint256, address _strategy
+        ) {
             strategy = _strategy;
         } catch {
-            emit PoolCreationFailed(community, community, metadata);
+            emit PoolCreationFailed(garden, community, metadataPointer);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Internal — Register Pools in Power Registry
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Register pool → garden mapping in the unified power registry
+    function _registerPoolsInPowerRegistry(address garden, address[] memory pools) internal {
+        if (address(powerRegistry) == address(0)) return;
+
+        for (uint256 i = 0; i < pools.length; i++) {
+            if (pools[i] != address(0)) {
+                // solhint-disable-next-line no-empty-blocks
+                try powerRegistry.registerPool(pools[i], garden) {
+                    // Success
+                } catch {
+                    emit PoolRegistrationFailed(garden, pools[i], "PowerRegistry registration failed");
+                }
+            }
         }
     }
 
@@ -627,7 +709,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         try hatsModule.setConvictionStrategies(garden, validPools) {
             // Success
         } catch {
-            // Registration failed — non-blocking
+            emit PoolRegistrationFailed(garden, address(hatsModule), "HatsModule strategy registration failed");
         }
     }
 

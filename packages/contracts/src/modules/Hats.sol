@@ -368,27 +368,39 @@ contract HatsModule is
             revert NotHatAdmin(address(this), gardensHat);
         }
 
-        // Create garden admin hat under Gardens hat
-        adminHatId =
-            hats.createHat(gardensHat, _buildDetails(name, "Admin"), type(uint32).max, address(0), address(0), true, "");
+        // Create garden admin hat under Gardens hat.
+        // Use address(this) as default eligibility/toggle module — the real Hats Protocol
+        // rejects address(0). Since HatsModule doesn't implement IHatsEligibility/IHatsToggle,
+        // the Hats Protocol falls back to defaults (hat is active, all wearers are eligible).
+        // _configureEligibilityModules() overrides eligibility for specific roles afterwards.
+        address defaultModule = address(this);
+        adminHatId = hats.createHat(
+            gardensHat, _buildDetails(name, "Admin"), type(uint32).max, defaultModule, defaultModule, true, ""
+        );
 
         // Mint admin hat to garden account + module (for role administration)
         hats.mintHat(adminHatId, garden);
         hats.mintHat(adminHatId, address(this));
 
         // Create role hats under admin hat
-        uint256 ownerHatId =
-            hats.createHat(adminHatId, _buildDetails(name, "Owner"), type(uint32).max, address(0), address(0), true, "");
-        uint256 operatorHatId =
-            hats.createHat(adminHatId, _buildDetails(name, "Operator"), type(uint32).max, address(0), address(0), true, "");
-        uint256 evaluatorHatId =
-            hats.createHat(adminHatId, _buildDetails(name, "Evaluator"), type(uint32).max, address(0), address(0), true, "");
-        uint256 gardenerHatId =
-            hats.createHat(adminHatId, _buildDetails(name, "Gardener"), type(uint32).max, address(0), address(0), true, "");
-        uint256 funderHatId =
-            hats.createHat(adminHatId, _buildDetails(name, "Funder"), type(uint32).max, address(0), address(0), true, "");
-        uint256 communityHatIdLocal =
-            hats.createHat(adminHatId, _buildDetails(name, "Community"), type(uint32).max, address(0), address(0), true, "");
+        uint256 ownerHatId = hats.createHat(
+            adminHatId, _buildDetails(name, "Owner"), type(uint32).max, defaultModule, defaultModule, true, ""
+        );
+        uint256 operatorHatId = hats.createHat(
+            adminHatId, _buildDetails(name, "Operator"), type(uint32).max, defaultModule, defaultModule, true, ""
+        );
+        uint256 evaluatorHatId = hats.createHat(
+            adminHatId, _buildDetails(name, "Evaluator"), type(uint32).max, defaultModule, defaultModule, true, ""
+        );
+        uint256 gardenerHatId = hats.createHat(
+            adminHatId, _buildDetails(name, "Gardener"), type(uint32).max, defaultModule, defaultModule, true, ""
+        );
+        uint256 funderHatId = hats.createHat(
+            adminHatId, _buildDetails(name, "Funder"), type(uint32).max, defaultModule, defaultModule, true, ""
+        );
+        uint256 communityHatIdLocal = hats.createHat(
+            adminHatId, _buildDetails(name, "Community"), type(uint32).max, defaultModule, defaultModule, true, ""
+        );
 
         _configureEligibilityModules(funderHatId, communityHatIdLocal, operatorHatId, communityToken);
 
@@ -636,6 +648,15 @@ contract HatsModule is
 
         uint256 hatId = _getHatId(garden, role);
         hats.mintHat(hatId, account);
+
+        // Auto-mint protocol-wide gardener hat (enables ENS name claims)
+        // Best-effort: skip silently if already wearing or hat doesn't exist
+        if (protocolGardenersHatId != 0) {
+            if (!hats.isWearerOfHat(account, protocolGardenersHatId)) {
+                try hats.mintHat(protocolGardenersHatId, account) { } catch { }
+            }
+        }
+
         emit RoleGranted(garden, account, role);
 
         if (role == GardenRole.Operator) {

@@ -6,8 +6,7 @@ export interface DeploymentData {
   actionRegistry: string;
   gardenToken: string;
   deploymentRegistry: string;
-  gardenerAccountLogic: string;
-  gardenAccountImpl?: string;
+  gardenAccountImpl: string;
   accountProxy?: string;
   workResolver?: string;
   workApprovalResolver?: string;
@@ -52,7 +51,7 @@ export class DeploymentAddresses {
     }
 
     const deploymentData = JSON.parse(fs.readFileSync(deploymentFile, "utf8")) as DeploymentData;
-    const requiredAddresses = ["actionRegistry", "gardenToken", "deploymentRegistry", "gardenerAccountLogic"];
+    const requiredAddresses = ["actionRegistry", "gardenToken", "deploymentRegistry", "gardenAccountImpl"];
     const missing = requiredAddresses.filter((addr) => !deploymentData[addr]);
 
     if (missing.length > 0) {

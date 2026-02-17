@@ -56,6 +56,16 @@ contract MockHypercertMarketplace is IHypercertMarketplace {
     function setShouldRevert(bool _shouldRevert) external {
         shouldRevert = _shouldRevert;
     }
+
+    /// @notice Preview purchase — returns amount as units (1:1 mock)
+    function previewPurchase(uint256, uint256 amount, address) external pure returns (uint256 units) {
+        return amount;
+    }
+
+    /// @notice Get min price — returns 1 (1 wei per unit mock)
+    function getMinPrice(uint256, address) external pure returns (uint256 pricePerUnit) {
+        return 1;
+    }
 }
 
 /// @title MockJBMultiTerminal

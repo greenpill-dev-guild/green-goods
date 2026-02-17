@@ -10,6 +10,7 @@ import { HatsModule } from "../src/modules/Hats.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
 import { ActionRegistry } from "../src/registries/Action.sol";
 import { GardensModule } from "../src/modules/Gardens.sol";
+import { UnifiedPowerRegistry } from "../src/registries/Power.sol";
 import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { MockHats } from "../src/mocks/Hats.sol";
 import { MockOctantFactory } from "../src/mocks/Octant.sol";
@@ -319,12 +320,12 @@ contract StorageLayoutTest is Test {
     // =========================================================================
     // GardensModule Storage Layout
     // Layout: OwnableUpgradeable(1) + ReentrancyGuardUpgradeable(1) +
-    //         gardenToken + registryFactory + powerRegistryFactory + goodsToken +
+    //         gardenToken + registryFactory + powerRegistry + goodsToken +
     //         hatsProtocol + hatsModule + gardenCommunities(mapping) +
     //         gardenSignalPools(mapping) + gardenWeightSchemes(mapping) +
-    //         gardenPowerRegistries(mapping) + gardenInitialized(mapping)
-    //         + __gap[39]
-    // Total: 11 named + 39 gap = 50
+    //         gardenInitialized(mapping) + stakeAmountPerMember + requireFullSetup
+    //         + __gap[38]
+    // Total: 12 named + 38 gap = 50
     // =========================================================================
 
     function testGardensModuleStorageSlots() public {
@@ -333,7 +334,7 @@ contract StorageLayoutTest is Test {
             GardensModule.initialize.selector,
             address(this),
             address(0), // registryFactory
-            address(0), // powerRegistryFactory
+            address(0), // powerRegistry
             address(0), // goodsToken
             address(0), // hatsProtocol
             address(0) // hatsModule
@@ -348,16 +349,16 @@ contract StorageLayoutTest is Test {
         assertEq(module.gardenToken(), address(0xAA), "gardenToken should match");
     }
 
-    /// @notice Verify GardensModule gap is exactly 39 slots
+    /// @notice Verify GardensModule gap is exactly 38 slots
     function testGardensModuleGapSize() public {
-        // Named storage: gardenToken + registryFactory + powerRegistryFactory + goodsToken +
+        // Named storage: gardenToken + registryFactory + powerRegistry + goodsToken +
         //   hatsProtocol + hatsModule + gardenCommunities(mapping) +
         //   gardenSignalPools(mapping) + gardenWeightSchemes(mapping) +
-        //   gardenPowerRegistries(mapping) + gardenInitialized(mapping) = 11 slots
-        // Gap = 39
-        // Total = 11 + 39 = 50
-        uint256 expectedNamedSlots = 11;
-        uint256 expectedGapSize = 39;
+        //   gardenInitialized(mapping) + stakeAmountPerMember + requireFullSetup = 12 slots
+        // Gap = 38
+        // Total = 12 + 38 = 50
+        uint256 expectedNamedSlots = 12;
+        uint256 expectedGapSize = 38;
         uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
         assertEq(expectedTotal, 50, "GardensModule should use exactly 50 custom slots");
     }
@@ -369,7 +370,7 @@ contract StorageLayoutTest is Test {
             GardensModule.initialize.selector,
             address(this),
             address(0x11), // registryFactory
-            address(0x22), // powerRegistryFactory
+            address(0x22), // powerRegistry (unified)
             address(0x33), // goodsToken
             address(0x44), // hatsProtocol
             address(0x55) // hatsModule
@@ -386,6 +387,62 @@ contract StorageLayoutTest is Test {
         // Verify state preserved
         assertEq(module.gardenToken(), address(0xAA), "gardenToken should survive upgrade");
         assertEq(module.owner(), address(this), "owner should survive upgrade");
+    }
+
+    // =========================================================================
+    // UnifiedPowerRegistry Storage Layout
+    // Layout: OwnableUpgradeable(1) + gardenSources(mapping) + poolGarden(mapping)
+    //         + hatsProtocol + gardensModule + __gap[46]
+    // Total: 4 named + 46 gap = 50
+    // =========================================================================
+
+    function testUnifiedPowerRegistryStorageSlots() public {
+        UnifiedPowerRegistry impl = new UnifiedPowerRegistry();
+        bytes memory initData = abi.encodeWithSelector(
+            UnifiedPowerRegistry.initialize.selector,
+            address(this),
+            address(0x11), // hatsProtocol
+            address(0x22) // gardensModule
+        );
+        UnifiedPowerRegistry upr = UnifiedPowerRegistry(address(new ERC1967Proxy(address(impl), initData)));
+
+        // Verify initialization stored values correctly
+        assertEq(upr.owner(), address(this), "owner should be set");
+        assertEq(upr.hatsProtocol(), address(0x11), "hatsProtocol should match");
+        assertEq(upr.gardensModule(), address(0x22), "gardensModule should match");
+    }
+
+    /// @notice Verify UnifiedPowerRegistry gap is exactly 46 slots
+    function testUnifiedPowerRegistryGapSize() public {
+        // Named storage: gardenSources(mapping) + poolGarden(mapping)
+        //   + hatsProtocol + gardensModule = 4 slots
+        // Gap = 46
+        // Total = 4 + 46 = 50
+        uint256 expectedNamedSlots = 4;
+        uint256 expectedGapSize = 46;
+        uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
+        assertEq(expectedTotal, 50, "UnifiedPowerRegistry should use exactly 50 custom slots");
+    }
+
+    /// @notice Verify UnifiedPowerRegistry upgrade preserves all state
+    function testUnifiedPowerRegistryUpgradePreservesState() public {
+        UnifiedPowerRegistry impl = new UnifiedPowerRegistry();
+        bytes memory initData = abi.encodeWithSelector(
+            UnifiedPowerRegistry.initialize.selector,
+            address(this),
+            address(0x11), // hatsProtocol
+            address(0x22) // gardensModule
+        );
+        UnifiedPowerRegistry upr = UnifiedPowerRegistry(address(new ERC1967Proxy(address(impl), initData)));
+
+        // Upgrade to new implementation
+        UnifiedPowerRegistry newImpl = new UnifiedPowerRegistry();
+        upr.upgradeTo(address(newImpl));
+
+        // Verify state preserved
+        assertEq(upr.hatsProtocol(), address(0x11), "hatsProtocol should survive upgrade");
+        assertEq(upr.gardensModule(), address(0x22), "gardensModule should survive upgrade");
+        assertEq(upr.owner(), address(this), "owner should survive upgrade");
     }
 
     // =========================================================================

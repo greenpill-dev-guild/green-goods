@@ -110,7 +110,7 @@ contract GardensV2CommunityForkTest is ForkTestBase {
         // retryCreateCommunity should not revert (graceful try/catch in _createCommunity)
         address retryResult = gardensModule.retryCreateCommunity(garden);
 
-        // Result will be address(0) since mockFactory isn't a real contract with createRegistryCommunity
+        // Result will be address(0) since mockFactory isn't a real contract with createRegistry
         // The important thing is the call didn't revert -- the retry path is functional
         assertEq(retryResult, address(0), "retry with mock factory should gracefully return zero");
     }
@@ -139,6 +139,7 @@ contract GardensV2CommunityForkTest is ForkTestBase {
         GardenToken.GardenConfig memory config2 = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Exponential Garden",
+            slug: "",
             description: "Uses exponential weighting",
             location: "Test Location",
             bannerImage: "ipfs://QmTest",
@@ -153,6 +154,7 @@ contract GardensV2CommunityForkTest is ForkTestBase {
         GardenToken.GardenConfig memory config3 = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Power Garden",
+            slug: "",
             description: "Uses power weighting",
             location: "Test Location",
             bannerImage: "ipfs://QmTest",
@@ -210,7 +212,7 @@ contract GardensV2CommunityForkTest is ForkTestBase {
 
         // Set all missing dependencies to make wiring complete
         gardensModule.setRegistryFactory(address(0xF1));
-        gardensModule.setPowerRegistryFactory(address(0xF2));
+        gardensModule.setPowerRegistry(address(0xF2));
 
         // goodsToken was set to address(0) during deploy -- need to set it
         if (address(gardensModule.goodsToken()) == address(0)) {

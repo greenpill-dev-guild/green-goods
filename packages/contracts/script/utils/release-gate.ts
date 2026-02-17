@@ -60,7 +60,7 @@ function hasRequiredDeploymentFields(deployment: Record<string, unknown>): boole
   const requiredKeys = [
     "actionRegistry",
     "gardenToken",
-    "gardenerAccountLogic",
+    "gardenAccountImpl",
     "workResolver",
     "workApprovalResolver",
     "assessmentResolver",

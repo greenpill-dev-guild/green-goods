@@ -6,15 +6,11 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import { GardensModule } from "../../src/modules/Gardens.sol";
+import { GoodsToken } from "../../src/tokens/Goods.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
-import { IRegistryCommunity, NFTPowerSource } from "../../src/interfaces/IGardensV2.sol";
-import {
-    MockRegistryFactory,
-    MockRegistryCommunity,
-    MockNFTPowerRegistry,
-    MockNFTPowerRegistryFactory
-} from "../../src/mocks/GardensV2.sol";
+import { IRegistryCommunity, PointSystem, NFTPowerSource } from "../../src/interfaces/IGardensV2.sol";
+import { MockRegistryFactory, MockRegistryCommunity, MockUnifiedPowerRegistry } from "../../src/mocks/GardensV2.sol";
 
 /// @title MockGOODSToken
 /// @notice Simple ERC20 mock for GOODS token with mint
@@ -148,7 +144,7 @@ contract GardensModuleTest is Test {
     GardensModule public gardensModule;
     MockGOODSToken public goodsToken;
     MockRegistryFactory public registryFactory;
-    MockNFTPowerRegistryFactory public powerRegistryFactory;
+    MockUnifiedPowerRegistry public mockPowerRegistry;
     MockHatsModuleForGardens public hatsModule;
 
     address public owner = address(0x1);
@@ -162,7 +158,7 @@ contract GardensModuleTest is Test {
         // Deploy mocks
         goodsToken = new MockGOODSToken();
         registryFactory = new MockRegistryFactory();
-        powerRegistryFactory = new MockNFTPowerRegistryFactory();
+        mockPowerRegistry = new MockUnifiedPowerRegistry();
         hatsModule = new MockHatsModuleForGardens();
 
         // Deploy GardensModule behind proxy
@@ -171,7 +167,7 @@ contract GardensModuleTest is Test {
             GardensModule.initialize.selector,
             owner,
             address(registryFactory),
-            address(powerRegistryFactory),
+            address(mockPowerRegistry),
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -205,12 +201,8 @@ contract GardensModuleTest is Test {
         assertEq(address(gardensModule.registryFactory()), address(registryFactory), "RegistryFactory should be set");
     }
 
-    function test_initialize_setsPowerRegistryFactory() public {
-        assertEq(
-            address(gardensModule.powerRegistryFactory()),
-            address(powerRegistryFactory),
-            "PowerRegistryFactory should be set"
-        );
+    function test_initialize_setsPowerRegistry() public {
+        assertEq(address(gardensModule.powerRegistry()), address(mockPowerRegistry), "PowerRegistry should be set");
     }
 
     function test_initialize_setsGoodsToken() public {
@@ -235,7 +227,7 @@ contract GardensModuleTest is Test {
             GardensModule.initialize.selector,
             address(0), // zero owner
             address(registryFactory),
-            address(powerRegistryFactory),
+            address(mockPowerRegistry),
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -409,7 +401,7 @@ contract GardensModuleTest is Test {
             GardensModule.initialize.selector,
             owner,
             address(0), // no registry factory
-            address(powerRegistryFactory),
+            address(mockPowerRegistry),
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -490,7 +482,7 @@ contract GardensModuleTest is Test {
             GardensModule.initialize.selector,
             owner,
             address(0), // no registry factory
-            address(powerRegistryFactory),
+            address(mockPowerRegistry),
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -557,11 +549,8 @@ contract GardensModuleTest is Test {
         vm.prank(gardenToken);
         gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
 
-        address registry = gardensModule.getGardenPowerRegistry(garden1);
-        assertTrue(registry != address(0), "Registry should exist");
-
-        assertEq(powerRegistryFactory.getDeployedCount(), 1, "Factory should have deployed 1 registry");
-        assertEq(powerRegistryFactory.getDeployedRegistry(0), registry, "Registry addresses should match");
+        assertTrue(mockPowerRegistry.isGardenRegistered(garden1), "Garden should be registered in power registry");
+        assertEq(mockPowerRegistry.getGardenSourceCount(garden1), 3, "Power registry should have 3 sources for garden");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -644,10 +633,10 @@ contract GardensModuleTest is Test {
         gardensModule.setRegistryFactory(address(0x42));
     }
 
-    function test_setPowerRegistryFactory_onlyOwner() public {
+    function test_setPowerRegistry_onlyOwner() public {
         vm.prank(address(0x999));
         vm.expectRevert("Ownable: caller is not the owner");
-        gardensModule.setPowerRegistryFactory(address(0x42));
+        gardensModule.setPowerRegistry(address(0x42));
     }
 
     function test_setGoodsToken_onlyOwner() public {
@@ -722,13 +711,13 @@ contract GardensModuleTest is Test {
     // Graceful Degradation
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function test_onGardenMinted_succeedsWithNoPowerRegistryFactory() public {
+    function test_onGardenMinted_succeedsWithNoPowerRegistry() public {
         GardensModule impl2 = new GardensModule();
         bytes memory initData2 = abi.encodeWithSelector(
             GardensModule.initialize.selector,
             owner,
             address(registryFactory),
-            address(0), // no power registry factory
+            address(0), // no power registry
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -745,7 +734,7 @@ contract GardensModuleTest is Test {
         // Community should still be created
         assertTrue(community != address(0), "Community should still be created");
         // Power registry should be zero
-        assertEq(module2.getGardenPowerRegistry(garden1), address(0), "Power registry should be zero when factory absent");
+        assertEq(module2.getGardenPowerRegistry(garden1), address(0), "Power registry should be zero when absent");
         // Pools should still be auto-created (pool creation doesn't require power registry to succeed)
         assertEq(pools.length, 2, "Pools should be created even without power registry");
         // Garden should still be initialized
@@ -758,7 +747,7 @@ contract GardensModuleTest is Test {
             GardensModule.initialize.selector,
             owner,
             address(0), // no registry factory
-            address(powerRegistryFactory),
+            address(mockPowerRegistry),
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -793,6 +782,17 @@ contract GardensModuleTest is Test {
         assertEq(gardensModule.D(), 10_000_000, "D scaling factor should match");
     }
 
+    /// @notice Verify PointSystem enum ordinals match Gardens V2 ICVStrategy.PointSystem exactly.
+    /// @dev If this test fails, ABI-encoded pool creation calls send the wrong enum value on-chain.
+    ///      Reference: gardens-v2/pkg/contracts/src/CVStrategy/ICVStrategy.sol
+    function test_pointSystemEnum_ordinalsMatchGardensV2() public {
+        assertEq(uint256(PointSystem.Fixed), 0, "Fixed must be 0");
+        assertEq(uint256(PointSystem.Capped), 1, "Capped must be 1");
+        assertEq(uint256(PointSystem.Unlimited), 2, "Unlimited must be 2");
+        assertEq(uint256(PointSystem.Quadratic), 3, "Quadratic must be 3");
+        assertEq(uint256(PointSystem.Custom), 4, "Custom must be 4");
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Event Emissions
     // ═══════════════════════════════════════════════════════════════════════════
@@ -801,9 +801,7 @@ contract GardensModuleTest is Test {
         vm.prank(gardenToken);
 
         vm.expectEmit(true, false, false, false);
-        emit IGardensModule.CommunityCreated(
-            garden1, address(0), IGardensModule.WeightScheme.Linear, address(0), address(0)
-        );
+        emit IGardensModule.CommunityCreated(garden1, address(0), IGardensModule.WeightScheme.Linear, address(0));
 
         gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
     }
@@ -832,7 +830,8 @@ contract GardensModuleTest is Test {
         assertFalse(gardensModule.isGardenInitialized(garden1), "Should no longer be initialized");
         assertEq(gardensModule.getGardenCommunity(garden1), address(0), "Community should be cleared");
         assertEq(gardensModule.getGardenSignalPools(garden1).length, 0, "Pools should be cleared");
-        assertEq(gardensModule.getGardenPowerRegistry(garden1), address(0), "Power registry should be cleared");
+        // Unified registry is a singleton — getGardenPowerRegistry returns address(0) only when
+        // the garden is not registered in the unified registry (reset doesn't affect the registry itself)
     }
 
     function test_resetGardenInitialization_allowsReinit() public {
@@ -897,7 +896,7 @@ contract GardensModuleTest is Test {
             GardensModule.initialize.selector,
             owner,
             address(0), // no registry factory
-            address(powerRegistryFactory),
+            address(mockPowerRegistry), // power registry
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -932,54 +931,39 @@ contract GardensModuleTest is Test {
     // Power Registry Source Weights
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function test_onGardenMinted_linearWeightsAre100_200_300() public {
+    function test_onGardenMinted_linearWeightsAre10000_20000_30000() public {
         vm.prank(gardenToken);
         gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
 
-        address registry = gardensModule.getGardenPowerRegistry(garden1);
-        MockNFTPowerRegistry mockRegistry = MockNFTPowerRegistry(registry);
+        assertTrue(mockPowerRegistry.isGardenRegistered(garden1), "Garden should be registered");
+        NFTPowerSource[] memory sources = mockPowerRegistry.getGardenSources(garden1);
+        assertEq(sources.length, 3, "Should have 3 sources");
 
-        assertEq(mockRegistry.getSourceCount(), 3, "Should have 3 sources");
-
-        NFTPowerSource memory operatorSource = mockRegistry.getSource(0);
-        NFTPowerSource memory gardenerSource = mockRegistry.getSource(1);
-        NFTPowerSource memory communitySource = mockRegistry.getSource(2);
-
-        assertEq(operatorSource.weight, 300, "Operator weight should be 300 for Linear");
-        assertEq(gardenerSource.weight, 200, "Gardener weight should be 200 for Linear");
-        assertEq(communitySource.weight, 100, "Community weight should be 100 for Linear");
+        assertEq(sources[0].weight, 30_000, "Operator weight should be 30000 for Linear");
+        assertEq(sources[1].weight, 20_000, "Gardener weight should be 20000 for Linear");
+        assertEq(sources[2].weight, 10_000, "Community weight should be 10000 for Linear");
     }
 
-    function test_onGardenMinted_exponentialWeightsAre200_400_1600() public {
+    function test_onGardenMinted_exponentialWeightsAre20000_40000_160000() public {
         vm.prank(gardenToken);
         gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Exponential);
 
-        address registry = gardensModule.getGardenPowerRegistry(garden1);
-        MockNFTPowerRegistry mockRegistry = MockNFTPowerRegistry(registry);
+        NFTPowerSource[] memory sources = mockPowerRegistry.getGardenSources(garden1);
 
-        NFTPowerSource memory operatorSource = mockRegistry.getSource(0);
-        NFTPowerSource memory gardenerSource = mockRegistry.getSource(1);
-        NFTPowerSource memory communitySource = mockRegistry.getSource(2);
-
-        assertEq(operatorSource.weight, 1600, "Operator weight should be 1600 for Exponential");
-        assertEq(gardenerSource.weight, 400, "Gardener weight should be 400 for Exponential");
-        assertEq(communitySource.weight, 200, "Community weight should be 200 for Exponential");
+        assertEq(sources[0].weight, 160_000, "Operator weight should be 160000 for Exponential");
+        assertEq(sources[1].weight, 40_000, "Gardener weight should be 40000 for Exponential");
+        assertEq(sources[2].weight, 20_000, "Community weight should be 20000 for Exponential");
     }
 
-    function test_onGardenMinted_powerWeightsAre300_900_8100() public {
+    function test_onGardenMinted_powerWeightsAre30000_90000_810000() public {
         vm.prank(gardenToken);
         gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Power);
 
-        address registry = gardensModule.getGardenPowerRegistry(garden1);
-        MockNFTPowerRegistry mockRegistry = MockNFTPowerRegistry(registry);
+        NFTPowerSource[] memory sources = mockPowerRegistry.getGardenSources(garden1);
 
-        NFTPowerSource memory operatorSource = mockRegistry.getSource(0);
-        NFTPowerSource memory gardenerSource = mockRegistry.getSource(1);
-        NFTPowerSource memory communitySource = mockRegistry.getSource(2);
-
-        assertEq(operatorSource.weight, 8100, "Operator weight should be 8100 for Power");
-        assertEq(gardenerSource.weight, 900, "Gardener weight should be 900 for Power");
-        assertEq(communitySource.weight, 300, "Community weight should be 300 for Power");
+        assertEq(sources[0].weight, 810_000, "Operator weight should be 810000 for Power");
+        assertEq(sources[1].weight, 90_000, "Gardener weight should be 90000 for Power");
+        assertEq(sources[2].weight, 30_000, "Community weight should be 30000 for Power");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -999,7 +983,7 @@ contract GardensModuleTest is Test {
             GardensModule.initialize.selector,
             owner,
             address(registryFactory),
-            address(powerRegistryFactory),
+            address(mockPowerRegistry),
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -1019,7 +1003,7 @@ contract GardensModuleTest is Test {
             GardensModule.initialize.selector,
             owner,
             address(0), // no registry factory
-            address(powerRegistryFactory),
+            address(mockPowerRegistry),
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -1035,13 +1019,13 @@ contract GardensModuleTest is Test {
         assertEq(missing, "registryFactory not set");
     }
 
-    function test_isWiringComplete_detectsMissingPowerRegistryFactory() public {
+    function test_isWiringComplete_detectsMissingPowerRegistry() public {
         GardensModule impl2 = new GardensModule();
         bytes memory initData2 = abi.encodeWithSelector(
             GardensModule.initialize.selector,
             owner,
             address(registryFactory),
-            address(0), // no power registry factory
+            address(0), // no power registry
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -1053,8 +1037,8 @@ contract GardensModuleTest is Test {
         module2.setGardenToken(gardenToken);
 
         (bool wired, string memory missing) = module2.isWiringComplete();
-        assertFalse(wired, "Should not be wired without powerRegistryFactory");
-        assertEq(missing, "powerRegistryFactory not set");
+        assertFalse(wired, "Should not be wired without powerRegistry");
+        assertEq(missing, "powerRegistry not set");
     }
 
     function test_isWiringComplete_detectsMissingGoodsToken() public {
@@ -1063,7 +1047,7 @@ contract GardensModuleTest is Test {
             GardensModule.initialize.selector,
             owner,
             address(registryFactory),
-            address(powerRegistryFactory),
+            address(mockPowerRegistry),
             address(0), // no goods token
             hatsProtocol,
             address(hatsModule)
@@ -1085,7 +1069,7 @@ contract GardensModuleTest is Test {
             GardensModule.initialize.selector,
             owner,
             address(registryFactory),
-            address(powerRegistryFactory),
+            address(mockPowerRegistry),
             address(goodsToken),
             address(0), // no hats protocol
             address(hatsModule)
@@ -1107,7 +1091,7 @@ contract GardensModuleTest is Test {
             GardensModule.initialize.selector,
             owner,
             address(registryFactory),
-            address(powerRegistryFactory),
+            address(mockPowerRegistry),
             address(goodsToken),
             hatsProtocol,
             address(0) // no hats module
@@ -1167,11 +1151,12 @@ contract GardensModuleTest is Test {
             gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Exponential);
         address registry2 = gardensModule.getGardenPowerRegistry(garden1);
 
-        // Should have new community, registry, and pools
+        // Should have new community and pools; registry is the same singleton
         assertTrue(community2 != address(0), "New community should be created");
-        assertTrue(registry2 != address(0), "New registry should be created");
+        assertTrue(registry2 != address(0), "Registry should still be set");
         assertTrue(community1 != community2, "New community should differ from original");
-        assertTrue(registry1 != registry2, "New registry should differ from original");
+        // Unified registry is a singleton — both return the same address
+        assertEq(registry1, registry2, "Registry should be the same singleton");
         assertEq(pools2.length, 2, "New pools should be created");
 
         // Verify new weight scheme
@@ -1240,13 +1225,15 @@ contract GardensModuleTest is Test {
 
         vm.stopPrank();
 
-        // Each garden has independent state
+        // Each garden has independent state (except unified registry)
         assertTrue(com1 != com2, "Communities should be distinct");
         assertEq(pools1.length, 2, "Garden1 should have 2 pools");
         assertEq(pools2.length, 2, "Garden2 should have 2 pools");
-        assertTrue(
-            gardensModule.getGardenPowerRegistry(garden1) != gardensModule.getGardenPowerRegistry(garden2),
-            "Registries should be distinct"
+        // Unified registry is a singleton — both gardens use the same registry
+        assertEq(
+            gardensModule.getGardenPowerRegistry(garden1),
+            gardensModule.getGardenPowerRegistry(garden2),
+            "Both gardens should share the unified registry"
         );
 
         // Modifying garden1 doesn't affect garden2
@@ -1273,10 +1260,10 @@ contract GardensModuleTest is Test {
         gardensModule.setRegistryFactory(address(0));
     }
 
-    function test_setPowerRegistryFactory_revertsWithZero() public {
+    function test_setPowerRegistry_revertsWithZero() public {
         vm.prank(owner);
         vm.expectRevert(GardensModule.ZeroAddress.selector);
-        gardensModule.setPowerRegistryFactory(address(0));
+        gardensModule.setPowerRegistry(address(0));
     }
 
     function test_setGoodsToken_revertsWithZero() public {
@@ -1353,8 +1340,8 @@ contract GardensModuleTest is Test {
         bytes memory initData2 = abi.encodeWithSelector(
             GardensModule.initialize.selector,
             owner,
-            address(0), // no registry factory → no community
-            address(powerRegistryFactory),
+            address(0), // no registry factory => no community
+            address(mockPowerRegistry), // power registry
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -1399,7 +1386,7 @@ contract GardensModuleTest is Test {
             GardensModule.initialize.selector,
             owner,
             address(0), // no registry factory
-            address(powerRegistryFactory),
+            address(mockPowerRegistry),
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -1417,14 +1404,14 @@ contract GardensModuleTest is Test {
         module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
     }
 
-    function test_requireFullSetup_revertsWhenPowerRegistryFactoryMissing() public {
-        // Deploy module without power registry factory
+    function test_requireFullSetup_revertsWhenPowerRegistryMissing() public {
+        // Deploy module without power registry
         GardensModule impl2 = new GardensModule();
         bytes memory initData2 = abi.encodeWithSelector(
             GardensModule.initialize.selector,
             owner,
             address(registryFactory),
-            address(0), // no power registry factory
+            address(0), // no power registry
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -1438,7 +1425,7 @@ contract GardensModuleTest is Test {
         vm.stopPrank();
 
         vm.prank(gardenToken);
-        vm.expectRevert(abi.encodeWithSelector(GardensModule.FactoriesNotConfigured.selector, "powerRegistryFactory"));
+        vm.expectRevert(abi.encodeWithSelector(GardensModule.FactoriesNotConfigured.selector, "powerRegistry"));
         module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
     }
 
@@ -1482,5 +1469,80 @@ contract GardensModuleTest is Test {
         assertEq(community, address(0), "Community should be zero when factory absent");
         assertEq(pools.length, 0, "No pools");
         assertTrue(module2.isGardenInitialized(garden1), "Garden should still be initialized");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Real GoodsToken — Minter Role Wiring (Task #6 / M3)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Verifies that GardensModule can mint real GoodsToken after ownership transfer.
+    ///         This mirrors the production deployment wiring in DeploymentBase:
+    ///         1. Deploy GoodsToken with deployer as owner
+    ///         2. gardensModule.setGoodsToken(address(goodsToken))
+    ///         3. goodsToken.transferOwnership(address(gardensModule))
+    ///         After wiring, onGardenMinted Step 3 (treasury seeding) succeeds.
+    function test_gardensModule_canMintGoodsToken() public {
+        // 1. Deploy real GoodsToken (onlyOwner mint, not MockGOODSToken)
+        GoodsToken realGoods = new GoodsToken("Green Goods", "GOODS", address(this), 0, 10_000_000e18);
+
+        // 2. Deploy a fresh GardensModule wired to real GoodsToken
+        GardensModule impl2 = new GardensModule();
+        bytes memory initData2 = abi.encodeWithSelector(
+            GardensModule.initialize.selector,
+            owner,
+            address(registryFactory),
+            address(mockPowerRegistry),
+            address(realGoods), // real GoodsToken
+            hatsProtocol,
+            address(hatsModule)
+        );
+        ERC1967Proxy proxy2 = new ERC1967Proxy(address(impl2), initData2);
+        GardensModule module2 = GardensModule(address(proxy2));
+
+        // 3. Wire: set gardenToken + transfer GoodsToken ownership to module
+        vm.prank(owner);
+        module2.setGardenToken(gardenToken);
+        realGoods.transferOwnership(address(module2));
+
+        // 4. Mint garden — should seed treasury via goodsToken.mint()
+        uint256 expectedAmount = 1e18 * 100; // stakeAmountPerMember(1e18) * INITIAL_MEMBER_SLOTS(100)
+
+        vm.prank(gardenToken);
+        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+
+        assertEq(realGoods.balanceOf(garden1), expectedAmount, "Garden should receive GOODS from real token");
+        assertEq(realGoods.totalSupply(), expectedAmount, "Total supply should match minted amount");
+    }
+
+    /// @notice Verifies treasury seeding silently fails when GoodsToken ownership NOT transferred.
+    ///         This documents the pre-fix behavior: onGardenMinted does NOT revert, it catches.
+    function test_gardensModule_mintFailsGracefullyWithoutOwnership() public {
+        // Deploy real GoodsToken but do NOT transfer ownership
+        GoodsToken realGoods = new GoodsToken("Green Goods", "GOODS", address(this), 0, 10_000_000e18);
+
+        GardensModule impl2 = new GardensModule();
+        bytes memory initData2 = abi.encodeWithSelector(
+            GardensModule.initialize.selector,
+            owner,
+            address(registryFactory),
+            address(mockPowerRegistry),
+            address(realGoods),
+            hatsProtocol,
+            address(hatsModule)
+        );
+        ERC1967Proxy proxy2 = new ERC1967Proxy(address(impl2), initData2);
+        GardensModule module2 = GardensModule(address(proxy2));
+
+        vm.prank(owner);
+        module2.setGardenToken(gardenToken);
+        // NOTE: NOT calling realGoods.transferOwnership(address(module2))
+
+        // Mint should succeed (try/catch in onGardenMinted catches the mint failure)
+        vm.prank(gardenToken);
+        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+
+        // But treasury is NOT seeded
+        assertEq(realGoods.balanceOf(garden1), 0, "No GOODS minted without ownership");
+        assertTrue(module2.isGardenInitialized(garden1), "Garden still initialized despite mint failure");
     }
 }

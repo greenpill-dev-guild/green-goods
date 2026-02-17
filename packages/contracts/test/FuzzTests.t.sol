@@ -100,6 +100,7 @@ contract FuzzTests is Test, ERC6551Helper {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(mockToken),
             name: name,
+            slug: "",
             description: description,
             location: "Location",
             bannerImage: "Banner",
@@ -127,6 +128,7 @@ contract FuzzTests is Test, ERC6551Helper {
             configs[i] = GardenToken.GardenConfig({
                 communityToken: address(mockToken),
                 name: string(abi.encodePacked("Garden", uint2str(i))),
+                slug: "",
                 description: "Description",
                 location: "Location",
                 bannerImage: "Banner",
@@ -149,6 +151,7 @@ contract FuzzTests is Test, ERC6551Helper {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(mockToken),
             name: "Test",
+            slug: "",
             description: "Description",
             location: "Location",
             bannerImage: "Banner",
@@ -244,6 +247,7 @@ contract FuzzTests is Test, ERC6551Helper {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(mockToken),
             name: "Unauthorized Garden",
+            slug: "",
             description: "Desc",
             location: "Location",
             bannerImage: "Banner",

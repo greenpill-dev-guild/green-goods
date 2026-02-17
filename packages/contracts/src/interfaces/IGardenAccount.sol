@@ -17,6 +17,7 @@ interface IGardenAccount {
     struct InitParams {
         address communityToken;
         string name;
+        string slug;
         string description;
         string location;
         string bannerImage;

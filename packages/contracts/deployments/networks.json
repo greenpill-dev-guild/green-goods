@@ -23,8 +23,10 @@
         "ensRegistry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
         "ensResolver": "0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63",
         "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
-        "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
-      }
+        "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11",
+        "ccipRouter": "0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D"
+      },
+      "ccipChainSelector": 5009297550715157269
     },
     "sepolia": {
       "chainId": 11155111,
@@ -50,8 +52,10 @@
         "ensRegistry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
         "ensResolver": "0x8FADE66B79cC9f707aB26799354482EB93a5B7dD",
         "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
-        "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
-      }
+        "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11",
+        "ccipRouter": "0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59"
+      },
+      "ccipChainSelector": 16015286601757825753
     },
     "localhost": {
       "chainId": 31337,
@@ -74,8 +78,10 @@
         "easSchemaRegistry": "0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0",
         "communityToken": "0x4cB67033da4FD849a552A4C5553E7F532B93E516",
         "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
-        "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11"
-      }
+        "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11",
+        "ccipRouter": "0x0000000000000000000000000000000000000000"
+      },
+      "ccipChainSelector": 0
     },
     "arbitrum": {
       "chainId": 42161,
@@ -101,8 +107,10 @@
         "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
         "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11",
         "ensRegistry": "0x0000000000000000000000000000000000000000",
-        "ensResolver": "0x0000000000000000000000000000000000000000"
-      }
+        "ensResolver": "0x0000000000000000000000000000000000000000",
+        "ccipRouter": "0x141fa059441E0ca23ce184B6A78bafD2A517DdE8"
+      },
+      "ccipChainSelector": 4949039107694359620
     },
     "celo": {
       "chainId": 42220,
@@ -128,8 +136,10 @@
         "erc4337EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
         "multicallForwarder": "0xcA11bde05977b3631167028862bE2a173976CA11",
         "ensRegistry": "0x0000000000000000000000000000000000000000",
-        "ensResolver": "0x0000000000000000000000000000000000000000"
-      }
+        "ensResolver": "0x0000000000000000000000000000000000000000",
+        "ccipRouter": "0x0000000000000000000000000000000000000000"
+      },
+      "ccipChainSelector": 0
     }
   },
   "deploymentDefaults": {

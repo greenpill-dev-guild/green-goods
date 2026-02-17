@@ -7,9 +7,17 @@ import { GardensV2Addresses } from "./GardensV2Addresses.sol";
 
 import { GardenToken } from "../../../src/tokens/Garden.sol";
 import { ActionRegistry, Capital, Domain } from "../../../src/registries/Action.sol";
+import { IHats } from "../../../src/interfaces/IHats.sol";
 import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
 import { IGardensModule } from "../../../src/interfaces/IGardensModule.sol";
 import { MockERC20 } from "../../../src/mocks/ERC20.sol";
+import { WorkSchema, WorkApprovalSchema, AssessmentSchema } from "../../../src/Schemas.sol";
+import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
+
+/// @notice Minimal EAS interface for ForkTestBase helpers (avoids IEAS naming conflict with DeploymentBase)
+interface IEASBase {
+    function attest(AttestationRequest calldata request) external payable returns (bytes32);
+}
 
 /// @title ForkTestBase
 /// @notice Shared base contract for fork tests. Provides multi-chain fork setup,
@@ -18,6 +26,14 @@ import { MockERC20 } from "../../../src/mocks/ERC20.sol";
 /// (canonical ERC6551 registry deployment). Test contracts should inherit this
 /// and call _tryChainFork() + _deployFullStackOnFork() in setUp or per-test.
 abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ERC721 Receiver (required for GardenToken._safeMint to this contract)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function onERC721Received(address, address, uint256, bytes calldata) external pure returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Constants
     // ═══════════════════════════════════════════════════════════════════════════
@@ -115,6 +131,7 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
     /// @notice Deploy the full protocol stack on the current fork
     /// @dev Must be called after _tryChainFork() succeeds. Deploys ERC6551 registry,
     /// community token, and the entire protocol stack using production deployment logic.
+    /// After deployment, creates a fresh Hats tree so the test contract has admin rights.
     function _deployFullStackOnFork() internal {
         // 1. Set up test actors
         forkOwner = address(this);
@@ -136,6 +153,59 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
         // - Schema registration
         // - Module wiring
         deployFullStack(address(communityToken), address(this));
+
+        // 5. Set up a fresh Hats tree for the test environment
+        // The on-chain Hats tree has admins we don't control. Creating our own
+        // tree lets the HatsModule create garden sub-trees during mintGarden().
+        _setupHatsTreeOnFork();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Hats Tree Setup
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Create a fresh Hats tree on the real Hats Protocol and reconfigure HatsModule
+    /// @dev On fork chains, the pre-existing hat trees have admins we can't impersonate.
+    ///      This creates a new tree owned by the test contract:
+    ///      1. mintTopHat → creates tree with address(this) as top hat wearer
+    ///      2. createHat → community, gardens, gardeners hats under the top hat
+    ///      3. mintHat → grants community hat to HatsModule (admin of gardens hat)
+    ///      4. setProtocolHatIds → reconfigures HatsModule to use the new tree
+    function _setupHatsTreeOnFork() internal {
+        IHats hats = IHats(HATS_PROTOCOL);
+
+        // Use a non-zero placeholder for eligibility/toggle modules.
+        // The real Hats Protocol rejects address(0). When these addresses have no code,
+        // the protocol falls back to defaults: hat is active, all wearers are eligible.
+        address permissive = address(0xdead);
+
+        // 1. Create a new top hat tree owned by this test contract
+        uint256 topHat = hats.mintTopHat(address(this), "Fork Test Tree", "");
+
+        // 2. Create Community hat (level 1) under top hat
+        uint256 communityHat = hats.createHat(
+            topHat,
+            "Fork Test Community",
+            100, // maxSupply
+            permissive, // eligibility
+            permissive, // toggle
+            true, // mutable
+            ""
+        );
+
+        // 3. Create Gardens hat (level 2) under Community hat
+        // This is the parent for per-garden admin hats created by HatsModule
+        uint256 gardensHat = hats.createHat(communityHat, "Fork Test Gardens", 100, permissive, permissive, true, "");
+
+        // 4. Create Gardeners hat (level 2) under Community hat
+        uint256 gardenersHat = hats.createHat(communityHat, "Fork Test Gardeners", 100, permissive, permissive, true, "");
+
+        // 5. Mint Community hat to HatsModule — makes it admin of Gardens hat
+        // isAdminOfHat(hatsModule, gardensHat) checks: does hatsModule wear communityHat?
+        hats.mintHat(communityHat, address(hatsModule));
+
+        // 6. Reconfigure HatsModule to use our new hat IDs
+        hatsModule.setProtocolHatIds(communityHat, gardensHat, gardenersHat);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -172,6 +242,7 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: name,
+            slug: "",
             description: "Fork test garden",
             location: "Test Location",
             bannerImage: "ipfs://QmTest",
@@ -213,5 +284,154 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
             new string[](0),
             Domain.AGRO
         );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Composite Helpers (garden + roles + action in one call)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Mint a garden, grant operator/gardener/evaluator roles, and register an action
+    /// @param name The garden name
+    /// @return gardenAccount The garden TBA address
+    /// @return actionUID The registered action UID
+    function _setupGardenWithRolesAndAction(string memory name)
+        internal
+        returns (address gardenAccount, uint256 actionUID)
+    {
+        gardenAccount = _mintTestGarden(name, 0x0F);
+        _grantGardenRole(gardenAccount, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(gardenAccount, forkGardener, IHatsModule.GardenRole.Gardener);
+        _grantGardenRole(gardenAccount, forkEvaluator, IHatsModule.GardenRole.Evaluator);
+        actionUID = _registerTestAction();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EAS Attestation Helpers
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Submit a work attestation as a specific attester
+    /// @param attester The address submitting the work (pranked)
+    /// @param gardenAccount The garden receiving the attestation
+    /// @param actionUID The action UID for the work
+    /// @return attestationUID The UID of the created attestation
+    function _submitWorkAttestation(
+        address attester,
+        address gardenAccount,
+        uint256 actionUID
+    )
+        internal
+        returns (bytes32 attestationUID)
+    {
+        string[] memory media = new string[](1);
+        media[0] = "ipfs://QmForkTestPhoto";
+
+        WorkSchema memory work = WorkSchema({
+            actionUID: actionUID,
+            title: "Fork Test Work",
+            feedback: "Completed task",
+            metadata: "",
+            media: media
+        });
+
+        (address eas,) = _getEASForChain(block.chainid);
+
+        AttestationRequest memory request = AttestationRequest({
+            schema: workSchemaUID,
+            data: AttestationRequestData({
+                recipient: gardenAccount,
+                expirationTime: 0,
+                revocable: true,
+                refUID: bytes32(0),
+                data: abi.encode(work),
+                value: 0
+            })
+        });
+
+        vm.prank(attester);
+        attestationUID = IEASBase(eas).attest(request);
+    }
+
+    /// @notice Submit a work approval attestation as a specific approver
+    /// @param approver The address approving the work (pranked)
+    /// @param gardenAccount The garden receiving the approval
+    /// @param actionUID The action UID being approved
+    /// @param workAttUID The work attestation UID being approved
+    /// @return approvalUID The UID of the created approval attestation
+    function _submitWorkApproval(
+        address approver,
+        address gardenAccount,
+        uint256 actionUID,
+        bytes32 workAttUID
+    )
+        internal
+        returns (bytes32 approvalUID)
+    {
+        WorkApprovalSchema memory approval = WorkApprovalSchema({
+            actionUID: actionUID,
+            workUID: workAttUID,
+            approved: true,
+            feedback: "Verified on-site",
+            confidence: 2,
+            verificationMethod: 1,
+            reviewNotesCID: ""
+        });
+
+        (address eas,) = _getEASForChain(block.chainid);
+
+        AttestationRequest memory request = AttestationRequest({
+            schema: workApprovalSchemaUID,
+            data: AttestationRequestData({
+                recipient: gardenAccount,
+                expirationTime: 0,
+                revocable: true,
+                refUID: workAttUID,
+                data: abi.encode(approval),
+                value: 0
+            })
+        });
+
+        vm.prank(approver);
+        approvalUID = IEASBase(eas).attest(request);
+    }
+
+    /// @notice Submit an assessment attestation as a specific evaluator
+    /// @param evaluator The address submitting the assessment (pranked)
+    /// @param gardenAccount The garden receiving the assessment
+    /// @param domain The assessment domain (0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE)
+    /// @return assessmentUID The UID of the created assessment attestation
+    function _submitAssessment(
+        address evaluator,
+        address gardenAccount,
+        uint8 domain
+    )
+        internal
+        returns (bytes32 assessmentUID)
+    {
+        AssessmentSchema memory assessment = AssessmentSchema({
+            title: "Fork Test Assessment",
+            description: "Environmental impact assessment",
+            assessmentConfigCID: "ipfs://QmForkTestConfig",
+            domain: domain,
+            startDate: block.timestamp,
+            endDate: block.timestamp + 30 days,
+            location: "Fork Test Site"
+        });
+
+        (address eas,) = _getEASForChain(block.chainid);
+
+        AttestationRequest memory request = AttestationRequest({
+            schema: assessmentSchemaUID,
+            data: AttestationRequestData({
+                recipient: gardenAccount,
+                expirationTime: 0,
+                revocable: false,
+                refUID: bytes32(0),
+                data: abi.encode(assessment),
+                value: 0
+            })
+        });
+
+        vm.prank(evaluator);
+        assessmentUID = IEASBase(eas).attest(request);
     }
 }

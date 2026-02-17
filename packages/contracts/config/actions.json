@@ -201,7 +201,7 @@
       "capitals": ["MATERIAL", "SOCIAL", "INTELLECTUAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreicqol4i3cj27zul3fof4zp7ozxu7cqndl3koqbdvtnpss6yyfdxoq"],
       "uiConfig": {
         "media": {
           "title": "Capture Site Photos",
@@ -265,8 +265,18 @@
       },
       "bandFields": [],
       "metricOutputs": [
-        { "key": "hubsOnboarded", "unit": "hubs", "aggregation": "count", "derivedFrom": [] },
-        { "key": "readinessPercent", "unit": "%", "aggregation": "latest", "derivedFrom": ["readinessScore"] }
+        {
+          "key": "hubsOnboarded",
+          "unit": "hubs",
+          "aggregation": "count",
+          "derivedFrom": []
+        },
+        {
+          "key": "readinessPercent",
+          "unit": "%",
+          "aggregation": "latest",
+          "derivedFrom": ["readinessScore"]
+        }
       ]
     },
     {
@@ -277,7 +287,7 @@
       "capitals": ["MATERIAL", "FINANCIAL", "INTELLECTUAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreihwt2b2ci5zh4sr2lf6ljkuww3nzfww2fvalarkugmiuyq2xkylau"],
       "uiConfig": {
         "media": {
           "title": "Capture Install Photos",
@@ -330,10 +340,30 @@
       "tagSets": {},
       "bandFields": [],
       "metricOutputs": [
-        { "key": "installedCapacityKw", "unit": "kW", "aggregation": "sum", "derivedFrom": ["milestoneValue"] },
-        { "key": "batteryCapacityKwh", "unit": "kWh", "aggregation": "sum", "derivedFrom": ["milestoneValue"] },
-        { "key": "internetMbps", "unit": "Mbps", "aggregation": "latest", "derivedFrom": ["milestoneValue"] },
-        { "key": "progressCount", "unit": "milestones", "aggregation": "count", "derivedFrom": [] }
+        {
+          "key": "installedCapacityKw",
+          "unit": "kW",
+          "aggregation": "sum",
+          "derivedFrom": ["milestoneValue"]
+        },
+        {
+          "key": "batteryCapacityKwh",
+          "unit": "kWh",
+          "aggregation": "sum",
+          "derivedFrom": ["milestoneValue"]
+        },
+        {
+          "key": "internetMbps",
+          "unit": "Mbps",
+          "aggregation": "latest",
+          "derivedFrom": ["milestoneValue"]
+        },
+        {
+          "key": "progressCount",
+          "unit": "milestones",
+          "aggregation": "count",
+          "derivedFrom": []
+        }
       ]
     },
     {
@@ -344,7 +374,7 @@
       "capitals": ["SOCIAL", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreiagjssmggxhapo4zkqfwgop5sgghzn5sqaffvn7hkr4efnzwho6lq"],
       "uiConfig": {
         "media": {
           "title": "Capture Hub in Use",
@@ -401,9 +431,24 @@
       },
       "bandFields": [],
       "metricOutputs": [
-        { "key": "hoursOpen", "unit": "hours", "aggregation": "sum", "derivedFrom": ["hoursOpen"] },
-        { "key": "usersServed", "unit": "users", "aggregation": "sum", "derivedFrom": ["usersServed"] },
-        { "key": "sessionsCount", "unit": "sessions", "aggregation": "count", "derivedFrom": [] }
+        {
+          "key": "hoursOpen",
+          "unit": "hours",
+          "aggregation": "sum",
+          "derivedFrom": ["hoursOpen"]
+        },
+        {
+          "key": "usersServed",
+          "unit": "users",
+          "aggregation": "sum",
+          "derivedFrom": ["usersServed"]
+        },
+        {
+          "key": "sessionsCount",
+          "unit": "sessions",
+          "aggregation": "count",
+          "derivedFrom": []
+        }
       ]
     },
     {
@@ -414,7 +459,7 @@
       "capitals": ["MATERIAL", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreiebd4pva3rg36qqoe2de76fntbvopjmr34xksxuoyozwfmvazvl5u"],
       "uiConfig": {
         "media": {
           "title": "Capture Meter/Inverter Photo",
@@ -463,11 +508,31 @@
       "tagSets": {
         "issues": ["Maintenance needed", "Outage event", "Weather impact", "Equipment fault", "Grid issue", "None"]
       },
-      "bandFields": [{ "key": "uptimeBand", "bands": ["0-25%", "26-50%", "51-75%", "76-90%", "91-100%"] }],
+      "bandFields": [
+        {
+          "key": "uptimeBand",
+          "bands": ["0-25%", "26-50%", "51-75%", "76-90%", "91-100%"]
+        }
+      ],
       "metricOutputs": [
-        { "key": "kwhGenerated", "unit": "kWh", "aggregation": "sum", "derivedFrom": ["kwhGenerated"] },
-        { "key": "uptimePercent", "unit": "%", "aggregation": "avg", "derivedFrom": ["uptimeBand"] },
-        { "key": "downtimeFrequency", "unit": "events", "aggregation": "count", "derivedFrom": [] }
+        {
+          "key": "kwhGenerated",
+          "unit": "kWh",
+          "aggregation": "sum",
+          "derivedFrom": ["kwhGenerated"]
+        },
+        {
+          "key": "uptimePercent",
+          "unit": "%",
+          "aggregation": "avg",
+          "derivedFrom": ["uptimeBand"]
+        },
+        {
+          "key": "downtimeFrequency",
+          "unit": "events",
+          "aggregation": "count",
+          "derivedFrom": []
+        }
       ]
     },
     {
@@ -478,7 +543,7 @@
       "capitals": ["FINANCIAL", "INTELLECTUAL", "MATERIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreibajlut7buza7dmacd3tji5rgexfkq3nwxs5ccr2khfmt26shmvam"],
       "uiConfig": {
         "media": {
           "title": "Capture Node Proof",
@@ -527,10 +592,25 @@
       "tagSets": {
         "network": ["Ethereum", "Arbitrum", "Base", "Celo", "Optimism", "Other"]
       },
-      "bandFields": [{ "key": "uptimeBand", "bands": ["0-25%", "26-50%", "51-75%", "76-90%", "91-100%"] }],
+      "bandFields": [
+        {
+          "key": "uptimeBand",
+          "bands": ["0-25%", "26-50%", "51-75%", "76-90%", "91-100%"]
+        }
+      ],
       "metricOutputs": [
-        { "key": "nodeUptime", "unit": "%", "aggregation": "avg", "derivedFrom": ["uptimeBand"] },
-        { "key": "ethYield", "unit": "ETH", "aggregation": "sum", "derivedFrom": ["yieldEth"] }
+        {
+          "key": "nodeUptime",
+          "unit": "%",
+          "aggregation": "avg",
+          "derivedFrom": ["uptimeBand"]
+        },
+        {
+          "key": "ethYield",
+          "unit": "ETH",
+          "aggregation": "sum",
+          "derivedFrom": ["yieldEth"]
+        }
       ]
     },
     {
@@ -541,7 +621,7 @@
       "capitals": ["LIVING", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreihs273zgo6d4mjgc23tilqpfekmfxivlcxrc73vj2y6qe2tpah2e4"],
       "uiConfig": {
         "media": {
           "title": "Capture Baseline Photos",
@@ -569,7 +649,7 @@
               "type": "band",
               "required": true,
               "options": [],
-              "bands": ["< 100 m\u00b2", "100-500 m\u00b2", "500-2000 m\u00b2", "2000-10000 m\u00b2", "> 1 hectare"]
+              "bands": ["< 100 m²", "100-500 m²", "500-2000 m²", "2000-10000 m²", "> 1 hectare"]
             },
             {
               "key": "speciesTags",
@@ -602,12 +682,22 @@
       "bandFields": [
         {
           "key": "siteAreaBand",
-          "bands": ["< 100 m\u00b2", "100-500 m\u00b2", "500-2000 m\u00b2", "2000-10000 m\u00b2", "> 1 hectare"]
+          "bands": ["< 100 m²", "100-500 m²", "500-2000 m²", "2000-10000 m²", "> 1 hectare"]
         }
       ],
       "metricOutputs": [
-        { "key": "plannedTrees", "unit": "trees", "aggregation": "sum", "derivedFrom": ["plannedSeedlings"] },
-        { "key": "plannedAreaBand", "unit": "m\u00b2", "aggregation": "latest", "derivedFrom": ["siteAreaBand"] }
+        {
+          "key": "plannedTrees",
+          "unit": "trees",
+          "aggregation": "sum",
+          "derivedFrom": ["plannedSeedlings"]
+        },
+        {
+          "key": "plannedAreaBand",
+          "unit": "m²",
+          "aggregation": "latest",
+          "derivedFrom": ["siteAreaBand"]
+        }
       ]
     },
     {
@@ -618,7 +708,7 @@
       "capitals": ["LIVING", "MATERIAL", "SOCIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreia3ec5jntxsr52joflpelwhdxy466tc64xm5spse7xz4xk6sk37du"],
       "uiConfig": {
         "media": {
           "title": "Capture Planting Photos",
@@ -676,8 +766,18 @@
       },
       "bandFields": [],
       "metricOutputs": [
-        { "key": "treesPlanted", "unit": "trees", "aggregation": "sum", "derivedFrom": ["seedlingsPlanted"] },
-        { "key": "participation", "unit": "people", "aggregation": "sum", "derivedFrom": ["participants"] }
+        {
+          "key": "treesPlanted",
+          "unit": "trees",
+          "aggregation": "sum",
+          "derivedFrom": ["seedlingsPlanted"]
+        },
+        {
+          "key": "participation",
+          "unit": "people",
+          "aggregation": "sum",
+          "derivedFrom": ["participants"]
+        }
       ]
     },
     {
@@ -688,7 +788,7 @@
       "capitals": ["LIVING", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreih5rn2yxvq57546pp7c3w54ih6kdvekgyz6lvkxwc62273s5xjud4"],
       "uiConfig": {
         "media": {
           "title": "Capture Plot Photos",
@@ -737,7 +837,12 @@
       },
       "bandFields": [],
       "metricOutputs": [
-        { "key": "survivalPercent", "unit": "%", "aggregation": "avg", "derivedFrom": ["aliveCount", "checkedCount"] },
+        {
+          "key": "survivalPercent",
+          "unit": "%",
+          "aggregation": "avg",
+          "derivedFrom": ["aliveCount", "checkedCount"]
+        },
         {
           "key": "survivalOverTime",
           "unit": "%",
@@ -754,7 +859,7 @@
       "capitals": ["LIVING", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreiciyeoeb3nhfibmerlobpkghss6lon7yjdpda2w2gsoa52cg6kgtm"],
       "uiConfig": {
         "media": {
           "title": "Capture Maintenance Photo",
@@ -774,7 +879,7 @@
               "type": "band",
               "required": true,
               "options": [],
-              "bands": ["< 50 m\u00b2", "50-200 m\u00b2", "200-1000 m\u00b2", "1000-5000 m\u00b2", "> 5000 m\u00b2"]
+              "bands": ["< 50 m²", "50-200 m²", "200-1000 m²", "1000-5000 m²", "> 5000 m²"]
             },
             {
               "key": "activityTags",
@@ -822,12 +927,22 @@
       "bandFields": [
         {
           "key": "areaMaintainedBand",
-          "bands": ["< 50 m\u00b2", "50-200 m\u00b2", "200-1000 m\u00b2", "1000-5000 m\u00b2", "> 5000 m\u00b2"]
+          "bands": ["< 50 m²", "50-200 m²", "200-1000 m²", "1000-5000 m²", "> 5000 m²"]
         }
       ],
       "metricOutputs": [
-        { "key": "maintenanceFrequency", "unit": "events", "aggregation": "count", "derivedFrom": [] },
-        { "key": "areaMaintained", "unit": "m\u00b2", "aggregation": "latest", "derivedFrom": ["areaMaintainedBand"] }
+        {
+          "key": "maintenanceFrequency",
+          "unit": "events",
+          "aggregation": "count",
+          "derivedFrom": []
+        },
+        {
+          "key": "areaMaintained",
+          "unit": "m²",
+          "aggregation": "latest",
+          "derivedFrom": ["areaMaintainedBand"]
+        }
       ]
     },
     {
@@ -838,7 +953,7 @@
       "capitals": ["INTELLECTUAL", "EXPERIENTIAL", "SOCIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreihzgah2ibnfiokj4jdtsttymnkpovuefbkbqecmxwlb2adqrfb66y"],
       "uiConfig": {
         "media": {
           "title": "Optional Photo",
@@ -899,10 +1014,25 @@
         }
       },
       "tagSets": {},
-      "bandFields": [{ "key": "insightCount", "bands": ["1", "2", "3"] }],
+      "bandFields": [
+        {
+          "key": "insightCount",
+          "bands": ["1", "2", "3"]
+        }
+      ],
       "metricOutputs": [
-        { "key": "learnLogsCount", "unit": "logs", "aggregation": "count", "derivedFrom": [] },
-        { "key": "themesFrequency", "unit": "themes", "aggregation": "count", "derivedFrom": ["lessonTags"] }
+        {
+          "key": "learnLogsCount",
+          "unit": "logs",
+          "aggregation": "count",
+          "derivedFrom": []
+        },
+        {
+          "key": "themesFrequency",
+          "unit": "themes",
+          "aggregation": "count",
+          "derivedFrom": ["lessonTags"]
+        }
       ]
     },
     {
@@ -913,7 +1043,7 @@
       "capitals": ["LIVING", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreig7gikjwvayfbwaty6w37d72rql2mnugaoxvlpotcn2rat3hquco4"],
       "uiConfig": {
         "media": {
           "title": "Capture Harvest Photos",
@@ -970,8 +1100,18 @@
       },
       "bandFields": [],
       "metricOutputs": [
-        { "key": "yieldKg", "unit": "kg", "aggregation": "sum", "derivedFrom": ["yieldKg"] },
-        { "key": "harvestEvents", "unit": "events", "aggregation": "count", "derivedFrom": [] }
+        {
+          "key": "yieldKg",
+          "unit": "kg",
+          "aggregation": "sum",
+          "derivedFrom": ["yieldKg"]
+        },
+        {
+          "key": "harvestEvents",
+          "unit": "events",
+          "aggregation": "count",
+          "derivedFrom": []
+        }
       ]
     },
     {
@@ -982,7 +1122,7 @@
       "capitals": ["INTELLECTUAL", "SOCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreiffqg37uvsl2rvykuap6zdq4f2ahj33lhubg2nquay7tcd66yrqda"],
       "uiConfig": {
         "media": {
           "title": "Attach Flyer or Poster",
@@ -1042,8 +1182,18 @@
       },
       "bandFields": [],
       "metricOutputs": [
-        { "key": "sessionsPlanned", "unit": "sessions", "aggregation": "count", "derivedFrom": [] },
-        { "key": "capacity", "unit": "seats", "aggregation": "sum", "derivedFrom": ["capacity"] }
+        {
+          "key": "sessionsPlanned",
+          "unit": "sessions",
+          "aggregation": "count",
+          "derivedFrom": []
+        },
+        {
+          "key": "capacity",
+          "unit": "seats",
+          "aggregation": "sum",
+          "derivedFrom": ["capacity"]
+        }
       ]
     },
     {
@@ -1054,7 +1204,7 @@
       "capitals": ["INTELLECTUAL", "SOCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreihg7c7j5d3y6j4gvefpybw5arvioyqupsmo2362yw7jlhicivwl7y"],
       "uiConfig": {
         "media": {
           "title": "Capture Workshop Photo",
@@ -1121,8 +1271,18 @@
       },
       "bandFields": [],
       "metricOutputs": [
-        { "key": "sessionsDelivered", "unit": "sessions", "aggregation": "count", "derivedFrom": [] },
-        { "key": "facilitatorCount", "unit": "facilitators", "aggregation": "sum", "derivedFrom": ["facilitators"] }
+        {
+          "key": "sessionsDelivered",
+          "unit": "sessions",
+          "aggregation": "count",
+          "derivedFrom": []
+        },
+        {
+          "key": "facilitatorCount",
+          "unit": "facilitators",
+          "aggregation": "sum",
+          "derivedFrom": ["facilitators"]
+        }
       ]
     },
     {
@@ -1133,7 +1293,7 @@
       "capitals": ["SOCIAL", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreiakynvdzxvyla3fc6t2mi6sp5rxlbdljwbnk2ne4eowwvrsmudt54"],
       "uiConfig": {
         "media": {
           "title": "Capture Attendance Proof",
@@ -1181,10 +1341,25 @@
       "tagSets": {
         "privacyMode": ["Full names", "First name only", "Hashed IDs", "Anonymous count"]
       },
-      "bandFields": [{ "key": "uniqueCountBand", "bands": ["1-5", "6-15", "16-30", "31-50", "51-100", "100+"] }],
+      "bandFields": [
+        {
+          "key": "uniqueCountBand",
+          "bands": ["1-5", "6-15", "16-30", "31-50", "51-100", "100+"]
+        }
+      ],
       "metricOutputs": [
-        { "key": "participantsTrained", "unit": "people", "aggregation": "sum", "derivedFrom": ["attendees"] },
-        { "key": "attendanceRate", "unit": "%", "aggregation": "avg", "derivedFrom": ["attendees"] }
+        {
+          "key": "participantsTrained",
+          "unit": "people",
+          "aggregation": "sum",
+          "derivedFrom": ["attendees"]
+        },
+        {
+          "key": "attendanceRate",
+          "unit": "%",
+          "aggregation": "avg",
+          "derivedFrom": ["attendees"]
+        }
       ]
     },
     {
@@ -1195,7 +1370,7 @@
       "capitals": ["INTELLECTUAL", "EXPERIENTIAL", "SOCIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreihxxewthuyxhruxkz4vfjanzonfi5lpoenq4rnj4bib2ddf3ztv7e"],
       "uiConfig": {
         "media": {
           "title": "Capture Proof",
@@ -1259,10 +1434,25 @@
       "tagSets": {
         "difficultyTag": ["Beginner-friendly", "Intermediate", "Advanced", "Expert"]
       },
-      "bandFields": [{ "key": "proofCountBand", "bands": ["1", "2-3", "4-5", "6+"] }],
+      "bandFields": [
+        {
+          "key": "proofCountBand",
+          "bands": ["1", "2-3", "4-5", "6+"]
+        }
+      ],
       "metricOutputs": [
-        { "key": "followUpsCount", "unit": "actions", "aggregation": "count", "derivedFrom": [] },
-        { "key": "conversionRate", "unit": "%", "aggregation": "rate", "derivedFrom": [] }
+        {
+          "key": "followUpsCount",
+          "unit": "actions",
+          "aggregation": "count",
+          "derivedFrom": []
+        },
+        {
+          "key": "conversionRate",
+          "unit": "%",
+          "aggregation": "rate",
+          "derivedFrom": []
+        }
       ]
     },
     {
@@ -1273,7 +1463,7 @@
       "capitals": ["INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreidxyundykvie4b7eiowpm7h6ruwh6v7atni2wg4jkm3fo5wm25bt4"],
       "uiConfig": {
         "media": {
           "title": "Capture Assessment Proof",
@@ -1330,10 +1520,25 @@
           "Other"
         ]
       },
-      "bandFields": [{ "key": "scoreBand", "bands": ["0-25%", "26-50%", "51-75%", "76-90%", "91-100%"] }],
+      "bandFields": [
+        {
+          "key": "scoreBand",
+          "bands": ["0-25%", "26-50%", "51-75%", "76-90%", "91-100%"]
+        }
+      ],
       "metricOutputs": [
-        { "key": "completionRate", "unit": "%", "aggregation": "avg", "derivedFrom": ["result"] },
-        { "key": "scoreDistribution", "unit": "%", "aggregation": "avg", "derivedFrom": ["scoreBand"] }
+        {
+          "key": "completionRate",
+          "unit": "%",
+          "aggregation": "avg",
+          "derivedFrom": ["result"]
+        },
+        {
+          "key": "scoreDistribution",
+          "unit": "%",
+          "aggregation": "avg",
+          "derivedFrom": ["scoreBand"]
+        }
       ]
     },
     {
@@ -1344,7 +1549,7 @@
       "capitals": ["MATERIAL", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreib7rhpgm4w72c2lh5lyhlnsgj2obgcppz54a5ymddd43j5va3peua"],
       "uiConfig": {
         "media": {
           "title": "Capture Before Photos",
@@ -1364,12 +1569,7 @@
               "type": "band",
               "required": true,
               "options": [],
-              "bands": [
-                "Small (< 50 m\u00b2)",
-                "Medium (50-200 m\u00b2)",
-                "Large (200-1000 m\u00b2)",
-                "Very Large (> 1000 m\u00b2)"
-              ]
+              "bands": ["Small (< 50 m²)", "Medium (50-200 m²)", "Large (200-1000 m²)", "Very Large (> 1000 m²)"]
             },
             {
               "key": "wasteLevel",
@@ -1411,17 +1611,22 @@
       "bandFields": [
         {
           "key": "siteSizeBand",
-          "bands": [
-            "Small (< 50 m\u00b2)",
-            "Medium (50-200 m\u00b2)",
-            "Large (200-1000 m\u00b2)",
-            "Very Large (> 1000 m\u00b2)"
-          ]
+          "bands": ["Small (< 50 m²)", "Medium (50-200 m²)", "Large (200-1000 m²)", "Very Large (> 1000 m²)"]
         }
       ],
       "metricOutputs": [
-        { "key": "sitesAssessed", "unit": "sites", "aggregation": "count", "derivedFrom": [] },
-        { "key": "baselineSeverity", "unit": "level", "aggregation": "latest", "derivedFrom": ["wasteLevel"] }
+        {
+          "key": "sitesAssessed",
+          "unit": "sites",
+          "aggregation": "count",
+          "derivedFrom": []
+        },
+        {
+          "key": "baselineSeverity",
+          "unit": "level",
+          "aggregation": "latest",
+          "derivedFrom": ["wasteLevel"]
+        }
       ]
     },
     {
@@ -1432,7 +1637,7 @@
       "capitals": ["MATERIAL", "SOCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreib4uglkyfqq6rscy4oygji5lvffx4ecxbap4mbvvipvamr6pnqvei"],
       "uiConfig": {
         "media": {
           "title": "Capture Before/After Photos",
@@ -1483,9 +1688,24 @@
       },
       "bandFields": [],
       "metricOutputs": [
-        { "key": "wasteRemoved", "unit": "kg", "aggregation": "sum", "derivedFrom": ["amountRemoved"] },
-        { "key": "participation", "unit": "people", "aggregation": "sum", "derivedFrom": ["participants"] },
-        { "key": "effortMinutes", "unit": "min", "aggregation": "sum", "derivedFrom": ["durationMin"] }
+        {
+          "key": "wasteRemoved",
+          "unit": "kg",
+          "aggregation": "sum",
+          "derivedFrom": ["amountRemoved"]
+        },
+        {
+          "key": "participation",
+          "unit": "people",
+          "aggregation": "sum",
+          "derivedFrom": ["participants"]
+        },
+        {
+          "key": "effortMinutes",
+          "unit": "min",
+          "aggregation": "sum",
+          "derivedFrom": ["durationMin"]
+        }
       ]
     },
     {
@@ -1496,7 +1716,7 @@
       "capitals": ["MATERIAL", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreiab6mghuyccchmzst2zemwptdbpqmg3mszhmeirp2czsk4myzbrge"],
       "uiConfig": {
         "media": {
           "title": "Capture Sorted Piles Photo",
@@ -1563,8 +1783,18 @@
       "tagSets": {},
       "bandFields": [],
       "metricOutputs": [
-        { "key": "kgByCategory", "unit": "kg", "aggregation": "sum", "derivedFrom": ["categoryBreakdown"] },
-        { "key": "diversionPotential", "unit": "%", "aggregation": "avg", "derivedFrom": ["categoryBreakdown"] }
+        {
+          "key": "kgByCategory",
+          "unit": "kg",
+          "aggregation": "sum",
+          "derivedFrom": ["categoryBreakdown"]
+        },
+        {
+          "key": "diversionPotential",
+          "unit": "%",
+          "aggregation": "avg",
+          "derivedFrom": ["categoryBreakdown"]
+        }
       ]
     },
     {
@@ -1575,7 +1805,7 @@
       "capitals": ["MATERIAL", "FINANCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreiasfawqz2f76d5km2vverzmtoa5ee7pyz73urktnq3xe6hpqs3mzu"],
       "uiConfig": {
         "media": {
           "title": "Capture Receipt/Facility Proof",
@@ -1632,10 +1862,25 @@
           "Other"
         ]
       },
-      "bandFields": [{ "key": "tripCountBand", "bands": ["1", "2-3", "4-5", "6+"] }],
+      "bandFields": [
+        {
+          "key": "tripCountBand",
+          "bands": ["1", "2-3", "4-5", "6+"]
+        }
+      ],
       "metricOutputs": [
-        { "key": "verifiedDiversionKg", "unit": "kg", "aggregation": "sum", "derivedFrom": ["amountTransferredKg"] },
-        { "key": "disposalKg", "unit": "kg", "aggregation": "sum", "derivedFrom": ["amountTransferredKg"] }
+        {
+          "key": "verifiedDiversionKg",
+          "unit": "kg",
+          "aggregation": "sum",
+          "derivedFrom": ["amountTransferredKg"]
+        },
+        {
+          "key": "disposalKg",
+          "unit": "kg",
+          "aggregation": "sum",
+          "derivedFrom": ["amountTransferredKg"]
+        }
       ]
     },
     {
@@ -1646,7 +1891,7 @@
       "capitals": ["MATERIAL", "LIVING", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreiconxgmzxvph5dollqu47bbszlhtgplzzc6akgfzczjcxknpyqqmy"],
       "uiConfig": {
         "media": {
           "title": "Capture Batch Photo",
@@ -1705,8 +1950,18 @@
       },
       "bandFields": [],
       "metricOutputs": [
-        { "key": "compostProduced", "unit": "kg", "aggregation": "sum", "derivedFrom": ["outputKg"] },
-        { "key": "upcycleOutput", "unit": "kg", "aggregation": "sum", "derivedFrom": ["outputKg"] }
+        {
+          "key": "compostProduced",
+          "unit": "kg",
+          "aggregation": "sum",
+          "derivedFrom": ["outputKg"]
+        },
+        {
+          "key": "upcycleOutput",
+          "unit": "kg",
+          "aggregation": "sum",
+          "derivedFrom": ["outputKg"]
+        }
       ]
     },
     {
@@ -1717,7 +1972,7 @@
       "capitals": ["MATERIAL", "EXPERIENTIAL", "SOCIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": [],
+      "media": ["ipfs://bafkreie3emlfgjuqfzqpajp4mrybvkc5mgwj7674ivj6zyyp53ab62r6je"],
       "uiConfig": {
         "media": {
           "title": "Capture Site Photo",
@@ -1745,12 +2000,7 @@
               "type": "band",
               "required": true,
               "options": [],
-              "bands": [
-                "Small (< 50 m\u00b2)",
-                "Medium (50-200 m\u00b2)",
-                "Large (200-1000 m\u00b2)",
-                "Very Large (> 1000 m\u00b2)"
-              ]
+              "bands": ["Small (< 50 m²)", "Medium (50-200 m²)", "Large (200-1000 m²)", "Very Large (> 1000 m²)"]
             },
             {
               "key": "conditionTags",
@@ -1787,17 +2037,22 @@
       "bandFields": [
         {
           "key": "siteSizeBand",
-          "bands": [
-            "Small (< 50 m\u00b2)",
-            "Medium (50-200 m\u00b2)",
-            "Large (200-1000 m\u00b2)",
-            "Very Large (> 1000 m\u00b2)"
-          ]
+          "bands": ["Small (< 50 m²)", "Medium (50-200 m²)", "Large (200-1000 m²)", "Very Large (> 1000 m²)"]
         }
       ],
       "metricOutputs": [
-        { "key": "maintenanceFrequency", "unit": "checks", "aggregation": "count", "derivedFrom": [] },
-        { "key": "residualWaste", "unit": "kg", "aggregation": "latest", "derivedFrom": ["amountRemoved"] }
+        {
+          "key": "maintenanceFrequency",
+          "unit": "checks",
+          "aggregation": "count",
+          "derivedFrom": []
+        },
+        {
+          "key": "residualWaste",
+          "unit": "kg",
+          "aggregation": "latest",
+          "derivedFrom": ["amountRemoved"]
+        }
       ]
     }
   ]

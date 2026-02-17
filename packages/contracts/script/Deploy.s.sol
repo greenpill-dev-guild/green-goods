@@ -13,7 +13,11 @@ import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { IGardensModule } from "../src/interfaces/IGardensModule.sol";
+import { GreenGoodsENS } from "../src/registries/ENS.sol";
+import { IENS } from "../src/interfaces/IENS.sol";
+
 import { IOctantFactory } from "../src/interfaces/IOctantFactory.sol";
+import { GreenGoodsENSReceiver } from "../src/registries/ENSReceiver.sol";
 // GardensModule and YieldResolver deployed via inherited DeploymentBase
 import { AaveV3 } from "../src/strategies/AaveV3.sol";
 import { MockYDSStrategy } from "../src/mocks/YDSStrategy.sol";
@@ -102,6 +106,47 @@ contract Deploy is Script, DeploymentBase {
             }
         }
         _generateVerificationCommands();
+    }
+
+    // ============================================
+    // MAINNET ENS DEPLOYMENT
+    // ============================================
+
+    /// @notice Deploy GreenGoodsENSReceiver on Ethereum mainnet
+    /// @dev Requires: ENS Registry, ENS Resolver, CCIP Router configured in networks.json
+    ///      Deployer must own greengoods.eth — setApprovalForAll is called automatically
+    function _deployMainnetENS(address owner, bytes32, address) internal override {
+        NetworkConfig memory config = loadNetworkConfig();
+
+        if (config.ensRegistry == address(0) || config.ccipRouter == address(0)) {
+            console.log("SKIP: ENS or CCIP not configured for mainnet");
+            return;
+        }
+
+        // L2 sender address set post-deploy (cross-chain chicken-and-egg)
+        address l2Sender = _envAddressOrZero("ENS_L2_SENDER");
+
+        // namehash("greengoods.eth")
+        bytes32 baseNode = 0x15ee556e39afd119101712c5ac4f1519d9f2f32780d4e1cf42b27fdfa73db841;
+
+        // Arbitrum chain selector (source chain for CCIP messages)
+        uint64 arbitrumChainSelector = 4_949_039_107_694_359_620;
+
+        GreenGoodsENSReceiver receiver = new GreenGoodsENSReceiver(
+            config.ccipRouter, arbitrumChainSelector, l2Sender, config.ensRegistry, config.ensResolver, baseNode, owner
+        );
+
+        // Deployer owns greengoods.eth — approve receiver as ENS operator
+        IENS(config.ensRegistry).setApprovalForAll(address(receiver), true);
+
+        console.log("GreenGoodsENSReceiver deployed:", address(receiver));
+        console.log("  ENS Registry:", config.ensRegistry);
+        console.log("  ENS operator approval: granted");
+        console.log("  CCIP Router:", config.ccipRouter);
+        console.log("  L2 Sender:", l2Sender);
+        if (l2Sender == address(0)) {
+            console.log("  WARNING: L2 sender not set. Call setL2Sender() after deploying GreenGoodsENS on Arbitrum.");
+        }
     }
 
     // ============================================
@@ -220,6 +265,17 @@ contract Deploy is Script, DeploymentBase {
         return parsed == address(0) ? fallbackValue : parsed;
     }
 
+    /// @notice Estimate CCIP fee for ENS garden registration (0 if ENS not configured)
+    function _estimateENSFee(string memory slug) internal view returns (uint256) {
+        if (bytes(slug).length == 0) return 0;
+        if (address(greenGoodsENS) == address(0)) return 0;
+        try greenGoodsENS.getRegistrationFee(slug, address(0), GreenGoodsENS.NameType.Garden) returns (uint256 fee) {
+            return fee;
+        } catch {
+            return 0;
+        }
+    }
+
     /// @notice Deploy seed data (gardens from config + core actions)
     function _deploySeedData(NetworkConfig memory config) internal {
         // 1. Mint gardens from config
@@ -244,7 +300,8 @@ contract Deploy is Script, DeploymentBase {
                 GardenToken.GardenConfig memory gardenConfig =
                     _parseGardenConfigFromJson(gardensJson, basePath, communityToken, nameBytes);
 
-                address gardenAddress = gardenToken.mintGarden(gardenConfig);
+                uint256 ensFee = _estimateENSFee(gardenConfig.slug);
+                address gardenAddress = gardenToken.mintGarden{ value: ensFee }(gardenConfig);
                 gardenAddresses.push(gardenAddress);
                 gardenTokenIds.push(i + 1);
             } catch {
@@ -268,6 +325,11 @@ contract Deploy is Script, DeploymentBase {
         string memory location = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".location")), (string));
         string memory bannerImage = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".bannerImage")), (string));
 
+        string memory slug = "";
+        try vm.parseJson(gardensJson, string.concat(basePath, ".slug")) returns (bytes memory slugBytes) {
+            slug = abi.decode(slugBytes, (string));
+        } catch { }
+
         string memory metadata = "";
         try vm.parseJson(gardensJson, string.concat(basePath, ".metadata")) returns (bytes memory metadataBytes) {
             metadata = abi.decode(metadataBytes, (string));
@@ -281,6 +343,7 @@ contract Deploy is Script, DeploymentBase {
         return GardenToken.GardenConfig({
             communityToken: communityToken,
             name: name,
+            slug: slug,
             description: description,
             location: location,
             bannerImage: bannerImage,
@@ -568,6 +631,13 @@ contract Deploy is Script, DeploymentBase {
         console.log("WorkResolver:", address(workResolver));
         console.log("WorkApprovalResolver:", address(workApprovalResolver));
         console.log("AssessmentResolver:", address(assessmentResolver));
+        if (address(greenGoodsENS) != address(0)) {
+            console.log("GreenGoodsENS:", address(greenGoodsENS));
+            console.log("  L1 Receiver:", greenGoodsENS.l1Receiver());
+            if (greenGoodsENS.l1Receiver() == address(0)) {
+                console.log("  WARNING: L1 receiver not set. Set ENS_L1_RECEIVER or call setL1Receiver()");
+            }
+        }
         if (gardenAddresses.length > 0) {
             console.log("Gardens minted:", gardenAddresses.length);
         }
@@ -605,16 +675,21 @@ contract Deploy is Script, DeploymentBase {
         result.octantModule = address(octantModule);
         result.octantFactory = _getOctantFactoryAddress();
         result.gardensModule = address(gardensModule);
+        result.unifiedPowerRegistry = address(unifiedPowerRegistry);
         result.yieldSplitter = address(yieldSplitter);
         result.cookieJarModule = address(cookieJarModule);
-        result.gardenerAccountLogic = gardenerAccountLogic;
-        result.gardenerRegistry = address(gardenerRegistry);
+        result.hypercertsModule = address(hypercertsModule);
+        result.marketplaceAdapter = address(marketplaceAdapter);
+        result.greenGoodsENS = address(greenGoodsENS);
+        result.gardenerAccountLogic = address(0); // DEPRECATED: field kept for JSON compat
+        result.gardenerRegistry = address(0); // DEPRECATED: replaced by GreenGoodsENS (CCIP)
+        result.guardian = guardianAddress;
+        result.accountProxy = accountProxyAddress;
         result.assessmentSchemaUID = assessmentSchemaUID;
         result.workSchemaUID = workSchemaUID;
         result.workApprovalSchemaUID = workApprovalSchemaUID;
         result.rootGardenAddress = gardenAddresses.length > 0 ? gardenAddresses[0] : address(0);
         result.rootGardenTokenId = gardenTokenIds.length > 0 ? gardenTokenIds[0] : 0;
-        // guardian and accountProxy are computed via CREATE2, left as address(0)
     }
 
     /// @notice Resolve configured Octant factory from module (if deployed)

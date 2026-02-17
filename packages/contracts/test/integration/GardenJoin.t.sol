@@ -147,6 +147,7 @@ contract GardenJoinIntegrationTest is Test {
         IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
             communityToken: address(0),
             name: "Test Garden",
+            slug: "",
             description: "A test garden",
             location: "Location",
             bannerImage: "",

@@ -128,6 +128,7 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Garden Alpha",
+            slug: "",
             description: "Desc",
             location: "Location",
             bannerImage: "Banner",
@@ -211,6 +212,7 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
         configs[1] = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Garden Beta",
+            slug: "",
             description: "Desc2",
             location: "Location2",
             bannerImage: "Banner2",
@@ -276,6 +278,7 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
         return GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Garden Alpha",
+            slug: "",
             description: "Desc",
             location: "Location",
             bannerImage: "Banner",

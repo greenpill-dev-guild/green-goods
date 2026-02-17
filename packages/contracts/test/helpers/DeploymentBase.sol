@@ -12,8 +12,6 @@ import { Deployment } from "../../src/registries/Deployment.sol";
 import { AccountGuardian } from "@tokenbound/AccountGuardian.sol";
 import { AccountProxy } from "@tokenbound/AccountProxy.sol";
 import { GardenAccount } from "../../src/accounts/Garden.sol";
-// NOTE: Gardener.sol removed as part of interface-based split architecture
-import { GardenerRegistry } from "../../src/registries/Gardener.sol";
 import { GardenToken } from "../../src/tokens/Garden.sol";
 import { ActionRegistry } from "../../src/registries/Action.sol";
 import { WorkResolver } from "../../src/resolvers/Work.sol";
@@ -24,9 +22,14 @@ import { HatsModule } from "../../src/modules/Hats.sol";
 import { KarmaGAPModule } from "../../src/modules/Karma.sol";
 import { OctantModule } from "../../src/modules/Octant.sol";
 import { GardensModule } from "../../src/modules/Gardens.sol";
+import { UnifiedPowerRegistry } from "../../src/registries/Power.sol";
 import { CookieJarModule } from "../../src/modules/CookieJar.sol";
 import { MockCookieJarFactory } from "./MockCookieJarFactory.sol";
 import { YieldResolver } from "../../src/resolvers/Yield.sol";
+import { HypercertsModule } from "../../src/modules/Hypercerts.sol";
+import { HypercertMarketplaceAdapter } from "../../src/markets/HypercertMarketplaceAdapter.sol";
+import { GreenGoodsENS } from "../../src/registries/ENS.sol";
+import { GoodsToken } from "../../src/tokens/Goods.sol";
 import { HatsLib } from "../../src/lib/Hats.sol";
 
 /// @notice Schema registry interface
@@ -69,7 +72,6 @@ abstract contract DeploymentBase is Test, DeployHelper {
     error SchemaNameAttestationFailed();
     error SchemaDescriptionAttestationFailed();
     error UnsupportedChain();
-    error GardenerRegistryDeploymentAddressMismatch();
 
     // ===== SCHEMA CONSTANTS =====
     bytes32 public constant SCHEMA_NAME_SCHEMA = 0x44d562ac1d7cd77e232978687fea027ace48f719cf1d58c7888e509663bb87fc;
@@ -87,10 +89,16 @@ abstract contract DeploymentBase is Test, DeployHelper {
     KarmaGAPModule public karmaGAPModule;
     OctantModule public octantModule;
     GardensModule public gardensModule;
+    UnifiedPowerRegistry public unifiedPowerRegistry;
     CookieJarModule public cookieJarModule;
     YieldResolver public yieldSplitter;
-    address public gardenerAccountLogic; // Gardener implementation for user smart accounts (Kernel v3)
-    GardenerRegistry public gardenerRegistry; // Gardener Registry (mainnet/sepolia only, null on L2s)
+    HypercertsModule public hypercertsModule;
+    HypercertMarketplaceAdapter public marketplaceAdapter;
+    GreenGoodsENS public greenGoodsENS;
+    GoodsToken public goodsTokenContract;
+    address public guardianAddress;
+    address public accountProxyAddress;
+    // NOTE: gardenerAccountLogic removed — field kept in DeploymentResult for JSON compat
 
     // Schema UIDs
     bytes32 public workSchemaUID;
@@ -131,13 +139,10 @@ abstract contract DeploymentBase is Test, DeployHelper {
     /// @notice Log CREATE2 prediction details for clarity
     function _logCreate2Prediction(string memory label, bytes32 salt, address factory, address predicted) internal view { }
 
-    /// @notice Deploy mainnet ENS infrastructure only
-    function _deployMainnetENS(address owner, bytes32 salt, address factory) internal {
-        // 1. Deploy GardenerRegistry (mainnet only)
-        _deployGardenerRegistry(owner, salt, factory);
-
-        // NOTE: Gardener.sol removed as part of interface-based split architecture
-        // gardenerAccountLogic is no longer deployed
+    /// @notice Deploy mainnet ENS infrastructure (GreenGoodsENSReceiver)
+    /// @dev Override in Deploy.s.sol when deploying on mainnet
+    function _deployMainnetENS(address, bytes32, address) internal virtual {
+        // No-op by default: GreenGoodsENSReceiver deployed via Deploy.s.sol override
     }
 
     /// @notice Deploy full L2 protocol
@@ -183,10 +188,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         (address entryPoint, address multicallForwarder,) = _getNetworkAddresses();
 
         // 1. Deploy Guardian with CREATE2
-        address guardian = deployGuardian(owner, salt, factory);
-
-        // NOTE: Gardener.sol removed as part of interface-based split architecture
-        // gardenerAccountLogic is no longer deployed
+        guardianAddress = deployGuardian(owner, salt, factory);
 
         // 2. Deploy ActionRegistry with CREATE2 + proxy (owner will own it)
         actionRegistry = ActionRegistry(deployActionRegistry(owner, salt, factory));
@@ -207,7 +209,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
                     entryPoint,
                     multicallForwarder,
                     tokenboundRegistry,
-                    guardian,
+                    guardianAddress,
                     address(workApprovalResolver),
                     address(assessmentResolver),
                     salt,
@@ -217,7 +219,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         );
 
         // 6. Deploy AccountProxy with CREATE2
-        deployAccountProxy(guardian, address(gardenAccountImpl), salt, factory);
+        accountProxyAddress = deployAccountProxy(guardianAddress, address(gardenAccountImpl), salt, factory);
 
         // 7. Deploy GardenToken with CREATE2 + proxy (owner will own it)
         gardenToken =
@@ -233,12 +235,23 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // 9. Deploy OctantModule (factory configured post-deployment if available)
         octantModule = OctantModule(_deployOctantModule(owner, address(0), salt, factory));
 
-        // 10. Deploy GardensModule (registryFactory/powerRegistryFactory are address(0) for testnet)
+        // 10a. Deploy UnifiedPowerRegistry with UUPS proxy
+        unifiedPowerRegistry = UnifiedPowerRegistry(
+            _deployUnifiedPowerRegistry(
+                owner,
+                HatsLib.getHatsProtocol(),
+                address(0), // gardensModule — wired after GardensModule deployment
+                salt,
+                factory
+            )
+        );
+
+        // 10b. Deploy GardensModule (registryFactory is address(0) for testnet, powerRegistry wired after)
         gardensModule = GardensModule(
             _deployGardensModule(
                 owner,
                 address(0), // registryFactory — Gardens V2 not deployed on all chains yet
-                address(0), // powerRegistryFactory — Gardens V2 not deployed on all chains yet
+                address(unifiedPowerRegistry), // unified power registry
                 address(0), // goodsToken — configured post-deployment when available
                 HatsLib.getHatsProtocol(),
                 address(hatsModule),
@@ -265,7 +278,32 @@ abstract contract DeploymentBase is Test, DeployHelper {
             )
         );
 
-        // 13. Wire modules
+        // 13. Deploy HypercertMarketplaceAdapter (after YieldResolver)
+        marketplaceAdapter =
+            HypercertMarketplaceAdapter(_deployMarketplaceAdapter(owner, address(0), address(0), salt, factory));
+
+        // 14. Deploy HypercertsModule (after adapter + GardensModule)
+        hypercertsModule = HypercertsModule(
+            _deployHypercertsModule(
+                owner,
+                address(0), // hypercertMinter — configured post-deployment
+                address(marketplaceAdapter),
+                address(gardensModule),
+                address(hatsModule),
+                address(gardenToken),
+                salt,
+                factory
+            )
+        );
+
+        // 15. Deploy GreenGoodsENS (L2 CCIP sender) — graceful skip if CCIP not configured
+        _deployAndWireENS(owner);
+
+        // 15b. Deploy GoodsToken (standalone ERC-20 for community staking)
+        // Owner starts as deployer, ownership transferred to GardensModule after wiring
+        goodsTokenContract = new GoodsToken("Green Goods", "GOODS", owner, 0, 10_000_000e18);
+
+        // 16. Wire modules
         hatsModule.setGardenToken(address(gardenToken));
         hatsModule.setKarmaGAPModule(address(karmaGAPModule));
         gardenToken.setHatsModule(address(hatsModule));
@@ -277,6 +315,10 @@ abstract contract DeploymentBase is Test, DeployHelper {
         actionRegistry.setHatsModule(address(hatsModule));
         octantModule.setGardenToken(address(gardenToken));
         gardensModule.setGardenToken(address(gardenToken));
+        // Wire GOODS token: set on GardensModule, then transfer ownership so it can mint
+        gardensModule.setGoodsToken(address(goodsTokenContract));
+        goodsTokenContract.transferOwnership(address(gardensModule));
+        unifiedPowerRegistry.setGardensModule(address(gardensModule));
         hatsModule.setGardensModule(address(gardensModule));
         karmaGAPModule.setHatsModule(address(hatsModule));
         workApprovalResolver.setKarmaGAPModule(address(karmaGAPModule));
@@ -289,6 +331,15 @@ abstract contract DeploymentBase is Test, DeployHelper {
         }
         // Wire OctantModule → YieldResolver (for share registration during harvest)
         octantModule.setYieldResolver(address(yieldSplitter));
+        // HypercertMarketplaceAdapter wiring
+        if (address(marketplaceAdapter) != address(0)) {
+            yieldSplitter.setHypercertMarketplace(address(marketplaceAdapter));
+        }
+        // ENS module wiring (if deployed)
+        if (address(greenGoodsENS) != address(0)) {
+            gardenToken.setENSModule(address(greenGoodsENS));
+            greenGoodsENS.setAuthorizedCaller(address(gardenToken), true);
+        }
         // NOTE: Per-garden donation address is set by operators post-deployment:
         //   octantModule.setDonationAddress(garden, address(yieldSplitter));
         // The YieldResolver's octantModule address is set at initialization (step 11 above).
@@ -524,11 +575,41 @@ abstract contract DeploymentBase is Test, DeployHelper {
         return predicted;
     }
 
+    /// @notice Deploy UnifiedPowerRegistry with CREATE2 + proxy
+    function _deployUnifiedPowerRegistry(
+        address owner,
+        address _hatsProtocol,
+        address _gardensModule,
+        bytes32 salt,
+        address factory
+    )
+        internal
+        returns (address)
+    {
+        UnifiedPowerRegistry registryImpl = new UnifiedPowerRegistry();
+        bytes memory initData =
+            abi.encodeWithSelector(UnifiedPowerRegistry.initialize.selector, owner, _hatsProtocol, _gardensModule);
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(registryImpl), initData));
+        bytes32 registrySalt = keccak256(abi.encodePacked(salt, "UnifiedPowerRegistryProxy"));
+        address predicted = Create2.computeAddress(registrySalt, keccak256(proxyBytecode), factory);
+        _logCreate2Prediction("UnifiedPowerRegistry proxy", registrySalt, factory, predicted);
+
+        if (!_isDeployed(predicted)) {
+            address deployed = _deployCreate2(proxyBytecode, registrySalt, factory);
+            if (deployed != predicted) {
+                revert DeploymentAddressMismatch();
+            }
+        }
+
+        return predicted;
+    }
+
     /// @notice Deploy GardensModule with CREATE2 + proxy
     function _deployGardensModule(
         address owner,
         address _registryFactory,
-        address _powerRegistryFactory,
+        address _powerRegistry,
         address _goodsToken,
         address _hatsProtocol,
         address _hatsModule,
@@ -543,7 +624,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
             GardensModule.initialize.selector,
             owner,
             _registryFactory,
-            _powerRegistryFactory,
+            _powerRegistry,
             _goodsToken,
             _hatsProtocol,
             _hatsModule
@@ -630,6 +711,76 @@ abstract contract DeploymentBase is Test, DeployHelper {
 
         if (!_isDeployed(predicted)) {
             address deployed = _deployCreate2(proxyBytecode, cookieJarSalt, factory);
+            if (deployed != predicted) {
+                revert DeploymentAddressMismatch();
+            }
+        }
+
+        return predicted;
+    }
+
+    /// @notice Deploy HypercertMarketplaceAdapter with CREATE2 + proxy
+    function _deployMarketplaceAdapter(
+        address owner,
+        address _exchange,
+        address _hypercertMinter,
+        bytes32 salt,
+        address factory
+    )
+        internal
+        returns (address)
+    {
+        HypercertMarketplaceAdapter adapterImpl = new HypercertMarketplaceAdapter();
+        bytes memory initData =
+            abi.encodeWithSelector(HypercertMarketplaceAdapter.initialize.selector, owner, _exchange, _hypercertMinter);
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(adapterImpl), initData));
+        bytes32 adapterSalt = keccak256(abi.encodePacked(salt, "MarketplaceAdapterProxy"));
+        address predicted = Create2.computeAddress(adapterSalt, keccak256(proxyBytecode), factory);
+        _logCreate2Prediction("HypercertMarketplaceAdapter proxy", adapterSalt, factory, predicted);
+
+        if (!_isDeployed(predicted)) {
+            address deployed = _deployCreate2(proxyBytecode, adapterSalt, factory);
+            if (deployed != predicted) {
+                revert DeploymentAddressMismatch();
+            }
+        }
+
+        return predicted;
+    }
+
+    /// @notice Deploy HypercertsModule with CREATE2 + proxy
+    function _deployHypercertsModule(
+        address owner,
+        address _hypercertMinter,
+        address _marketplaceAdapter,
+        address _gardensModule,
+        address _hatsModule,
+        address _gardenToken,
+        bytes32 salt,
+        address factory
+    )
+        internal
+        returns (address)
+    {
+        HypercertsModule hypercertsImpl = new HypercertsModule();
+        bytes memory initData = abi.encodeWithSelector(
+            HypercertsModule.initialize.selector,
+            owner,
+            _hypercertMinter,
+            _marketplaceAdapter,
+            _gardensModule,
+            _hatsModule,
+            _gardenToken
+        );
+        bytes memory proxyBytecode =
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(hypercertsImpl), initData));
+        bytes32 hypercertsSalt = keccak256(abi.encodePacked(salt, "HypercertsModuleProxy"));
+        address predicted = Create2.computeAddress(hypercertsSalt, keccak256(proxyBytecode), factory);
+        _logCreate2Prediction("HypercertsModule proxy", hypercertsSalt, factory, predicted);
+
+        if (!_isDeployed(predicted)) {
+            address deployed = _deployCreate2(proxyBytecode, hypercertsSalt, factory);
             if (deployed != predicted) {
                 revert DeploymentAddressMismatch();
             }
@@ -753,49 +904,6 @@ abstract contract DeploymentBase is Test, DeployHelper {
         return predicted;
     }
 
-    /// @notice Deploy GardenerRegistry with CREATE2 (mainnet only)
-    /// @param owner The initial owner
-    /// @param salt The CREATE2 salt
-    /// @param factory The CREATE2 factory address
-    /// @return The GardenerRegistry address (address(0) on L2 chains and testnets)
-    function _deployGardenerRegistry(address owner, bytes32 salt, address factory) internal returns (address) {
-        // Only deploy on Ethereum mainnet
-        uint256 chainId = block.chainid;
-        if (chainId != 1) {
-            return address(0);
-        }
-
-        // Load ENS configuration
-        NetworkConfig memory config = loadNetworkConfig();
-        if (config.ensRegistry == address(0)) {
-            return address(0);
-        }
-
-        // Compute greengoods.eth base node
-        // namehash("eth") = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae
-        bytes32 ethNode = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
-        bytes32 baseNode = keccak256(abi.encodePacked(ethNode, keccak256(bytes("greengoods"))));
-
-        // Deploy GardenerRegistry directly (non-upgradeable to avoid stack-too-deep)
-        bytes32 gardenerRegistrySalt = keccak256(abi.encodePacked(salt, "GardenerRegistry"));
-        bytes memory bytecode = abi.encodePacked(
-            type(GardenerRegistry).creationCode, abi.encode(config.ensRegistry, config.ensResolver, baseNode, owner)
-        );
-
-        address predicted = Create2.computeAddress(gardenerRegistrySalt, keccak256(bytecode), factory);
-        _logCreate2Prediction("GardenerRegistry", gardenerRegistrySalt, factory, predicted);
-
-        if (!_isDeployed(predicted)) {
-            address deployed = _deployCreate2(bytecode, gardenerRegistrySalt, factory);
-            if (deployed != predicted) {
-                revert GardenerRegistryDeploymentAddressMismatch();
-            }
-        }
-
-        gardenerRegistry = GardenerRegistry(predicted);
-        return predicted;
-    }
-
     /// @notice Register EAS schemas with name/description attestations
     function _registerSchemas(address eas, address easSchemaRegistry) internal virtual {
         string memory schemaJson = _loadSchemaConfig();
@@ -873,6 +981,78 @@ abstract contract DeploymentBase is Test, DeployHelper {
         entryPoint = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
         multicallForwarder = 0xcA11bde05977b3631167028862bE2a173976CA11;
         tokenboundRegistry = 0x000000006551c19487814612e58FE06813775758;
+    }
+
+    /// @notice Deploy GreenGoodsENS L2 sender and wire to GardenToken
+    /// @dev Gracefully skips if CCIP is not configured for this chain (ccipRouter == address(0))
+    function _deployAndWireENS(address owner) internal virtual {
+        (address ccipRouter, uint64 ethereumChainSelector) = _getCCIPForChain(block.chainid);
+
+        // Skip if CCIP not configured (localhost, chains without ENS support)
+        if (ccipRouter == address(0)) return;
+
+        // Get protocolHatId for membership gating (0 if chain doesn't support Hats)
+        uint256 protocolHatId = 0;
+        if (HatsLib.isSupported()) {
+            protocolHatId = HatsLib.getProtocolGardenersHatId();
+        }
+
+        // L1 receiver from env (cross-chain chicken-and-egg: set when deploying after L1)
+        address l1Receiver = _getENSL1Receiver();
+
+        greenGoodsENS = new GreenGoodsENS(
+            ccipRouter, ethereumChainSelector, l1Receiver, HatsLib.getHatsProtocol(), protocolHatId, owner
+        );
+
+        // Fund for sponsored claims (passkey users). Default 0.01 ETH, overridable via env.
+        uint256 sponsorFund = _getENSSponsorFund();
+        if (sponsorFund > 0 && address(this).balance >= sponsorFund) {
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool sent,) = address(greenGoodsENS).call{ value: sponsorFund }("");
+            if (!sent) {
+                // Non-blocking — log warning but don't fail deployment
+            }
+        }
+    }
+
+    /// @notice Get ENS sponsor fund amount from env (default 0.01 ETH)
+    function _getENSSponsorFund() internal view virtual returns (uint256) {
+        try vm.envUint("ENS_SPONSOR_FUND") returns (uint256 fund) {
+            return fund;
+        } catch {
+            return 0.01 ether;
+        }
+    }
+
+    /// @notice Get L1 ENS receiver address from env (default address(0) = wire later)
+    function _getENSL1Receiver() internal view virtual returns (address) {
+        try vm.envAddress("ENS_L1_RECEIVER") returns (address parsed) {
+            return parsed;
+        } catch {
+            return address(0);
+        }
+    }
+
+    /// @notice Get CCIP router and Ethereum chain selector for a chain
+    /// @dev Returns (address(0), 0) for chains without CCIP support (graceful skip)
+    function _getCCIPForChain(uint256 chainId)
+        internal
+        pure
+        virtual
+        returns (address ccipRouter, uint64 ethereumChainSelector)
+    {
+        // Ethereum mainnet chain selector (destination for all L2 → L1 ENS registrations)
+        uint64 ethMainnetSelector = 5_009_297_550_715_157_269;
+
+        if (chainId == 42_161) {
+            // Arbitrum One
+            return (0x141fa059441E0ca23ce184B6A78bafD2A517DdE8, ethMainnetSelector);
+        } else if (chainId == 11_155_111) {
+            // Sepolia (testnet → testnet, selector points to Sepolia itself for testing)
+            return (0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59, 16_015_286_601_757_825_753);
+        }
+        // Celo, localhost, unknown chains: no CCIP support
+        return (address(0), 0);
     }
 
     /// @notice Get EAS addresses for a chain

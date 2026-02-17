@@ -20,4 +20,17 @@ interface IHypercertMarketplace {
     )
         external
         returns (uint256 fractionId);
+
+    /// @notice Preview how many units would be purchased for a given amount
+    /// @param hypercertId The hypercert token ID
+    /// @param amount The payment amount
+    /// @param asset The payment asset
+    /// @return units The number of units that would be purchased
+    function previewPurchase(uint256 hypercertId, uint256 amount, address asset) external view returns (uint256 units);
+
+    /// @notice Get the minimum price per unit for a hypercert+asset pair
+    /// @param hypercertId The hypercert token ID
+    /// @param asset The payment asset
+    /// @return pricePerUnit The price per unit (0 if no active order)
+    function getMinPrice(uint256 hypercertId, address asset) external view returns (uint256 pricePerUnit);
 }

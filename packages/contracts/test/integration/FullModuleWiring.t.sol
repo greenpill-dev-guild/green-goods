@@ -14,7 +14,7 @@ import { IGardenAccount } from "../../src/interfaces/IGardenAccount.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { MockHatsModule } from "../helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "../helpers/ERC6551Helper.sol";
-import { MockRegistryFactory, MockRegistryCommunity, MockNFTPowerRegistryFactory } from "../../src/mocks/GardensV2.sol";
+import { MockRegistryFactory, MockRegistryCommunity, MockUnifiedPowerRegistry } from "../../src/mocks/GardensV2.sol";
 
 /// @title MockGOODSTokenForWiring
 /// @notice ERC20 with open mint for testing
@@ -73,7 +73,7 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
     MockCookieJarModuleForWiring public cookieJarModule;
     MockGOODSTokenForWiring public goodsToken;
     MockRegistryFactory public registryFactory;
-    MockNFTPowerRegistryFactory public powerRegistryFactory;
+    MockUnifiedPowerRegistry public mockPowerRegistry;
     ERC20 public communityToken;
 
     address public multisig = address(0x123);
@@ -101,14 +101,14 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
         // Deploy real GardensModule
         goodsToken = new MockGOODSTokenForWiring();
         registryFactory = new MockRegistryFactory();
-        powerRegistryFactory = new MockNFTPowerRegistryFactory();
+        mockPowerRegistry = new MockUnifiedPowerRegistry();
 
         GardensModule gardensImpl = new GardensModule();
         bytes memory gardensInitData = abi.encodeWithSelector(
             GardensModule.initialize.selector,
             multisig,
             address(registryFactory),
-            address(powerRegistryFactory),
+            address(mockPowerRegistry),
             address(goodsToken),
             hatsProtocol,
             address(hatsModule)
@@ -145,6 +145,7 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
         return GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Wiring Test Garden",
+            slug: "",
             description: "Testing full module wiring",
             location: "Integration Land",
             bannerImage: "banner.png",
@@ -265,6 +266,7 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
         configs[0] = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Garden Alpha",
+            slug: "",
             description: "First garden",
             location: "Location A",
             bannerImage: "alpha.png",
@@ -277,6 +279,7 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
         configs[1] = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Garden Beta",
+            slug: "",
             description: "Second garden",
             location: "Location B",
             bannerImage: "beta.png",
@@ -289,6 +292,7 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
         configs[2] = GardenToken.GardenConfig({
             communityToken: address(communityToken),
             name: "Garden Gamma",
+            slug: "",
             description: "Third garden",
             location: "Location C",
             bannerImage: "gamma.png",
