@@ -295,7 +295,6 @@ export default function CreateAssessment() {
           )}
           {stepConfigs[currentStep]?.id === "domain" && (
             <DomainActionStep
-              register={register}
               errors={errors}
               control={control}
               isSubmitting={isSubmitting}
