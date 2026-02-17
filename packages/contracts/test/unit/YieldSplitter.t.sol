@@ -933,6 +933,50 @@ contract YieldResolverTest is Test {
         );
     }
 
+    /// @notice Verify splitYield redeems only currently-withdrawable shares when vault liquidity is capped
+    function test_splitYield_respectsMaxWithdraw_partialRedemption() public {
+        uint256 shares = 100e18;
+        uint256 maxWithdrawAssets = 40e18;
+
+        weth.mint(address(vault), shares);
+        vault.mintShares(address(yieldSplitter), shares);
+
+        vm.prank(octantModule);
+        yieldSplitter.registerShares(garden, address(vault), shares);
+
+        vault.setMaxWithdrawOverride(maxWithdrawAssets);
+
+        vm.prank(owner);
+        yieldSplitter.setMinYieldThreshold(0);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        assertEq(
+            yieldSplitter.gardenShares(garden, address(vault)),
+            shares - maxWithdrawAssets,
+            "Unredeemable shares should remain registered"
+        );
+        assertEq(
+            yieldSplitter.totalRegisteredShares(address(vault)),
+            shares - maxWithdrawAssets,
+            "Aggregate registered shares should decrement by redeemed amount"
+        );
+
+        uint256 expectedCookieJar = (maxWithdrawAssets * 4865) / 10_000;
+        uint256 expectedFractions = (maxWithdrawAssets * 4865) / 10_000;
+        uint256 expectedJuicebox = maxWithdrawAssets - expectedCookieJar - expectedFractions;
+
+        assertEq(weth.balanceOf(address(cookieJar)), expectedCookieJar, "Cookie Jar should only receive split of redeemed assets");
+        assertEq(
+            yieldSplitter.getEscrowedFractions(garden, address(weth)),
+            expectedFractions,
+            "Fractions escrow should only receive split of redeemed assets"
+        );
+
+        (,, uint256 payAmount,) = jbTerminal.payCalls(0);
+        assertEq(payAmount, expectedJuicebox, "Juicebox should receive remainder of redeemed assets");
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Cross-Garden Share Validation (Aggregate Tracking)
     // ═══════════════════════════════════════════════════════════════════════════

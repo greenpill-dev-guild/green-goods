@@ -215,6 +215,11 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
     /// @notice Split yield from a garden's vault for a given asset
     /// @dev Permissionless — anyone can trigger. Redeems vault shares, applies three-way split.
+    ///      Timing risk is intentional: callers can trigger immediately after harvest and before
+    ///      additional yield accrues. This cannot redirect funds (fixed split ratios + fixed
+    ///      destinations), but can make distributions occur earlier than garden operators prefer.
+    ///      Mitigations: minYieldThreshold batching, operator-controlled split config, and owner
+    ///      emergency override of split config/destinations.
     /// @param garden The garden address
     /// @param asset The underlying asset (WETH/DAI)
     /// @param vault The ERC-4626 vault holding shares for this garden+asset
@@ -257,14 +262,24 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
         uint256 redeemed = 0;
         if (shares > 0) {
+            uint256 redeemableShares = shares;
+            uint256 maxWithdrawAssets = IOctantVault(vault).maxWithdraw(address(this));
+
+            // Some ERC-4626 implementations cap withdrawals during strategy illiquidity.
+            // Redeem only the currently withdrawable portion to avoid full-call reverts.
+            uint256 sharesFromMaxWithdraw = IOctantVault(vault).convertToShares(maxWithdrawAssets);
+            if (sharesFromMaxWithdraw < redeemableShares) {
+                redeemableShares = sharesFromMaxWithdraw;
+            }
+
             // maxLoss=1 (1 bps) allows up to 0.01% rounding loss during redemption.
             // ERC-4626 vaults may return slightly fewer assets than expected due to
             // integer division in share→asset conversion. The vault reverts if loss
             // exceeds this threshold, preventing material share drain.
-            redeemed = IOctantVault(vault).redeem(shares, address(this), address(this), 1, new address[](0));
+            redeemed = IOctantVault(vault).redeem(redeemableShares, address(this), address(this), 1, new address[](0));
             if (redeemed > 0) {
-                gardenShares[garden][vault] = 0;
-                totalRegisteredShares[vault] -= shares;
+                gardenShares[garden][vault] = shares - redeemableShares;
+                totalRegisteredShares[vault] -= redeemableShares;
             }
         }
         return redeemed + pendingYield[garden][asset];
