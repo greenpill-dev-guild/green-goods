@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
 import { KarmaGAPModule } from "../../src/modules/Karma.sol";
 import { IKarmaGAPModule } from "../../src/interfaces/IKarmaGAPModule.sol";
@@ -28,6 +29,12 @@ contract KarmaModuleTest is Test {
 
     /// @dev KarmaLib.getGapContract() returns this for chainId 11155111 (Sepolia)
     address internal constant GAP_ADDRESS = 0x9E5560f5b084c227Dc40672f48F59DA617eeFA28;
+    bytes32 internal constant GAP_PROJECT_SCHEMA_SEPOLIA =
+        0xec77990a252b54b17673955c774b9712766de5eecb22ca5aa2c440e0e93257fb;
+    bytes32 internal constant GAP_DETAILS_SCHEMA_SEPOLIA =
+        0x2c270e35bfcdc4d611f0e9d3d2ab6924ec6c673505abc22a1dd07e19b67211af;
+    bytes32 internal constant GAP_MEMBEROF_SCHEMA_SEPOLIA =
+        0xdd87b3500457931252424f4439365534ba72a367503a8805ff3482353fb90301;
 
     // Events from IKarmaGAPModule
     event GAPProjectCreated(bytes32 indexed projectUID, address indexed garden, string projectName);
@@ -302,6 +309,68 @@ contract KarmaModuleTest is Test {
         vm.prank(GARDEN_TOKEN);
         bytes32 uid = module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
         assertEq(uid, bytes32(0), "Should return zero UID when GAP fails");
+    }
+
+    function test_createProject_memberOfFailure_doesNotPersistProject() public {
+        _setupSupportedChain();
+
+        bytes32 expectedProjectUID =
+            keccak256(abi.encodePacked(block.timestamp, address(module), uint256(1), GAP_PROJECT_SCHEMA_SEPOLIA));
+
+        AttestationRequest memory memberRequest = AttestationRequest({
+            schema: GAP_MEMBEROF_SCHEMA_SEPOLIA,
+            data: AttestationRequestData({
+                recipient: OPERATOR,
+                expirationTime: 0,
+                revocable: true,
+                refUID: expectedProjectUID,
+                data: abi.encode(true),
+                value: 0
+            })
+        });
+
+        vm.mockCallRevert(GAP_ADDRESS, abi.encodeWithSelector(MockGAP.attest.selector, memberRequest), "member failed");
+
+        vm.expectEmit(true, false, false, true);
+        emit GAPOperationFailed(GARDEN, "createProject", "MemberOf attestation failed");
+
+        vm.prank(GARDEN_TOKEN);
+        bytes32 uid = module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
+
+        assertEq(uid, bytes32(0), "Should return zero when MemberOf attestation fails");
+        assertEq(module.gardenProjects(GARDEN), bytes32(0), "Mapping must stay unset on partial failure");
+    }
+
+    function test_createProject_detailsFailure_doesNotPersistProject() public {
+        _setupSupportedChain();
+
+        bytes32 expectedProjectUID =
+            keccak256(abi.encodePacked(block.timestamp, address(module), uint256(1), GAP_PROJECT_SCHEMA_SEPOLIA));
+        string memory detailsJson =
+            '{"title":"Garden","description":"Desc","locationOfImpact":"Loc","imageURL":"ipfs://Banner","slug":"garden","type":"project-details"}';
+
+        AttestationRequest memory detailsRequest = AttestationRequest({
+            schema: GAP_DETAILS_SCHEMA_SEPOLIA,
+            data: AttestationRequestData({
+                recipient: GARDEN,
+                expirationTime: 0,
+                revocable: true,
+                refUID: expectedProjectUID,
+                data: abi.encode(detailsJson),
+                value: 0
+            })
+        });
+
+        vm.mockCallRevert(GAP_ADDRESS, abi.encodeWithSelector(MockGAP.attest.selector, detailsRequest), "details failed");
+
+        vm.expectEmit(true, false, false, true);
+        emit GAPOperationFailed(GARDEN, "createProject", "Details attestation failed");
+
+        vm.prank(GARDEN_TOKEN);
+        bytes32 uid = module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
+
+        assertEq(uid, bytes32(0), "Should return zero when Details attestation fails");
+        assertEq(module.gardenProjects(GARDEN), bytes32(0), "Mapping must stay unset on partial failure");
     }
 
     function test_addProjectAdmin_callsGAP_onSupportedChain() public {
