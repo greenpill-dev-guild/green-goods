@@ -90,21 +90,17 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # With
 ### Pre-Deployment Checklist
 
 ```bash
-# 1. Tests passing
-cd packages/contracts && bun run test
+# 1. Full production readiness (build → lint → tests → E2E → dry runs on all chains)
+bun run verify:contracts
 
-# 2. Full build succeeds
-cd packages/contracts && bun run build:full
-
-# 3. Dry run successful
-bun script/deploy.ts core --network sepolia
-
-# 4. Check deployer balance
+# 2. Check deployer balance
 cast balance $(cast wallet address --account deployer) --rpc-url $RPC
 
-# 5. Verify RPC accessibility
+# 3. Verify RPC accessibility
 cast block-number --rpc-url $RPC
 ```
+
+> `verify:contracts` runs `scripts/verify-production.sh` which handles build, lint, unit tests, E2E workflow, and dry runs for Sepolia, Arbitrum, and Celo in one command. Use `bun run verify:contracts:fast` to skip E2E and dry runs for quick iteration.
 
 ### Network Configuration
 
@@ -306,10 +302,9 @@ curl -s "${GRAPHQL_ENDPOINT}/health" || echo "Indexer not reachable"
 
 ### Pre-Mainnet Checklist
 
-- [ ] All contract tests pass (100% coverage required for mainnet)
+- [ ] Production readiness verified: `bun run verify:contracts` (all phases green)
 - [ ] Gas benchmarks within targets
 - [ ] Upgrade safety tests pass (storage layout preserved)
-- [ ] Dry run on mainnet succeeds
 - [ ] Deployer wallet funded on mainnet
 - [ ] Indexer config ready for mainnet addresses
 - [ ] Frontend env vars set for mainnet chain ID

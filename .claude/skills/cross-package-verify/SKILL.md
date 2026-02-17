@@ -37,14 +37,16 @@ Every verification MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuit
 ### Domain 1: Contracts
 
 ```bash
-# Build contracts (full via_ir for verification)
-cd packages/contracts && bun run build:full
+# Full production readiness (build → lint → tests → E2E → dry runs on all chains)
+bun run verify:contracts
 
-# Run full test suite
-cd packages/contracts && bun run test
+# Or fast iteration (skip E2E and dry runs)
+bun run verify:contracts:fast
 
-# Check for compilation warnings
-cd packages/contracts && bun run build:full 2>&1 | grep -i warning
+# Individual steps if needed:
+cd packages/contracts && bun run build:full     # Full via_ir compilation
+cd packages/contracts && bun run test           # Unit tests
+cd packages/contracts && bun run test:e2e:workflow  # E2E workflow
 
 # Verify storage layout for upgrade safety (if UUPS contracts changed)
 cd packages/contracts && forge inspect GardenToken storage-layout

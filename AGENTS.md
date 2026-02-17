@@ -169,7 +169,8 @@ bun dev      # Starts all services
    - Prefer existing helper utilities over duplicating logic
    - Document non-obvious flows with concise comments
 3. **Before handing off**
-   - Run `bun format && bun lint && bun test` or the package-specific equivalent
+   - Run `bun format && bun lint && bun run test` or the package-specific equivalent
+   - For contract changes, run `bun run verify:contracts` (build → lint → tests → E2E → dry runs on all chains)
    - Update documentation alongside behavior changes (see [docs.greengoods.app](https://docs.greengoods.app) and package READMEs)
    - Surface remaining risks, manual steps, or test gaps in the final message
 

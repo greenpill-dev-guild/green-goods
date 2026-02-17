@@ -35,6 +35,10 @@ bun build
 
 # Full validation before committing
 bun format && bun lint && bun run test && bun build
+
+# Contract production readiness (build → lint → tests → E2E → dry runs on all chains)
+bun run verify:contracts              # Full verification
+bun run verify:contracts:fast         # Skip E2E + dry runs for quick iteration
 ```
 
 > **CRITICAL: `bun test` vs `bun run test`** — These are **different commands**. `bun test` invokes bun's built-in test runner (ignores vitest config, no jsdom). `bun run test` executes the package.json `"test"` script (vitest with proper environment). **Always use `bun run test`** for packages that use vitest (shared, client, admin). The contracts package uses `forge test` under the hood, so either form works there.
@@ -454,7 +458,17 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # Depl
 
 ### Validation Before Deployment
 
-Validate using tests, not manual on-chain checks:
+Use the unified verification script for full production readiness:
+
+```bash
+# Full verification: build → lint → unit tests → E2E → dry runs (Sepolia, Arbitrum, Celo)
+bun run verify:contracts
+
+# Fast iteration (skip E2E + dry runs)
+bun run verify:contracts:fast
+```
+
+Or run individual steps manually:
 
 ```bash
 # 1. Unit + integration tests (excludes E2E)
@@ -477,10 +491,7 @@ bun script/deploy.ts core --network sepolia
 
 ### Pre-Deployment Checklist
 
-- [ ] Tests passing: `cd packages/contracts && bun run test`
-- [ ] E2E passing: `cd packages/contracts && bun run test:e2e:workflow`
-- [ ] Build succeeds: `cd packages/contracts && bun build:full`
-- [ ] Dry run successful
+- [ ] Production readiness verified: `bun run verify:contracts` (build + lint + tests + E2E + dry runs)
 - [ ] Deployer funded on target chain
 - [ ] RPC accessible
 - [ ] `.env` has correct `VITE_CHAIN_ID` for target chain

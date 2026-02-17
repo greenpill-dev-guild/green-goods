@@ -71,7 +71,9 @@
     "sourcemaps": "node scripts/upload-sourcemaps.js",
     "sourcemaps:dry-run": "node scripts/upload-sourcemaps.js --dry-run",
     "verify:contracts": "./scripts/verify-production.sh",
-    "verify:contracts:fast": "./scripts/verify-production.sh --skip-e2e --skip-dry-run"
+    "verify:contracts:fast": "./scripts/verify-production.sh --skip-e2e --skip-dry-run",
+    "upload:action-images": "bun scripts/upload-action-images.ts",
+    "upload:action-images:dry-run": "bun scripts/upload-action-images.ts --dry-run"
   },
   "overrides": {
     "multiformats": "^13.4.2",
@@ -122,6 +124,7 @@
     "msw": "^2.11.1",
     "oxlint": "1.36.0",
     "pm2": "6.0.14",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.1.11",
     "tailwindcss-animate": "^1.0.7",
     "tsc-alias": "^1.8.16",

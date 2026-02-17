@@ -253,6 +253,7 @@ function _authorizeUpgrade(address) internal override {}
 
 ### Mainnet Gate Checklist
 
+- [ ] **Production readiness**: `bun run verify:contracts` passes (build → lint → tests → E2E → dry runs on all chains)
 - [ ] **Static analysis**: Slither + Aderyn clean (no HIGH/CRITICAL)
 - [ ] **Access control**: Every external function has hat check
 - [ ] **Reentrancy**: All external calls after state changes

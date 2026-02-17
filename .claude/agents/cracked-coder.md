@@ -152,6 +152,10 @@ bun run test
 bun lint
 bun build
 
+# For contract changes: full production readiness
+bun run verify:contracts       # build → lint → tests → E2E → dry runs on all chains
+bun run verify:contracts:fast  # Quick: skip E2E and dry runs
+
 # Package-specific (if applicable)
 cd packages/shared && bunx tsc --noEmit
 ```

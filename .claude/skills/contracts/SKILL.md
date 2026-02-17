@@ -205,6 +205,10 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 ### Pre-Flight Checklist
 
 ```bash
+# Full production readiness (build → lint → tests → E2E → dry runs on all chains)
+bun run verify:contracts
+
+# Or run steps individually:
 bun run test        # Tests passing
 bun run build:full  # Full build
 bun script/deploy.ts core --network sepolia  # Dry run

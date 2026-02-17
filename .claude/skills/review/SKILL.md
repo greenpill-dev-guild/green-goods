@@ -141,7 +141,12 @@ Every review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
 
 ### Pass 5: Verification Strategy
 ```bash
-bun format && bun lint && bun test && bun build
+# Full workspace verification
+bun format && bun lint && bun run test && bun build
+
+# For contract-touching PRs, also run production readiness
+bun run verify:contracts       # Full: build → lint → tests → E2E → dry runs
+bun run verify:contracts:fast  # Quick: skip E2E and dry runs
 ```
 
 **What to verify:**
