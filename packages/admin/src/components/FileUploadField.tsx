@@ -1,6 +1,6 @@
-import { cn, imageCompressor, logger } from "@green-goods/shared";
+import { cn, extractErrorMessage, imageCompressor, logger, toastService } from "@green-goods/shared";
 import { RiCloseLine, RiLoader4Line, RiUploadCloudLine } from "@remixicon/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const PREVIEWABLE_IMAGE_TYPES = new Set([
   "image/avif",
@@ -84,6 +84,17 @@ export function FileUploadField({
       }
     } catch (error) {
       logger.error("File processing failed", { error });
+      const errorText = extractErrorMessage(error);
+      const shortError =
+        errorText.length > 120 ? `${errorText.slice(0, 117).trimEnd()}...` : errorText;
+      toastService.error({
+        title: "File processing failed",
+        message: `Please try again. ${shortError}`,
+        context: "file upload",
+        error,
+      });
+      setIsProcessing(false);
+      setProgress(0);
     } finally {
       setIsProcessing(false);
       setProgress(0);
@@ -120,26 +131,41 @@ export function FileUploadField({
       })
       .join("");
 
-  // Memoize blob URLs so they're only created when files change, not every render.
-  // Revoke old URLs on cleanup to prevent memory leaks.
-  const previewUrls = useMemo(() => {
-    if (!showPreview) return new Map<File, string>();
-    const urls = new Map<File, string>();
-    for (const file of currentFiles) {
-      if (PREVIEWABLE_IMAGE_TYPES.has(file.type)) {
-        urls.set(file, URL.createObjectURL(file));
-      }
-    }
-    return urls;
-  }, [currentFiles, showPreview]);
+  // Create blob URLs in an effect instead of during render
+  // Store them in state and clean up when files change
+  // Use string keys instead of File object identity to handle cases where
+  // parent provides new File instances with same metadata
+  const [previewUrls, setPreviewUrls] = useState<Map<string, string>>(new Map());
+
+  // Create stable key from file metadata
+  const fileKey = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
+  const filesKey = currentFiles.map(fileKey).join("|");
 
   useEffect(() => {
-    return () => {
+    if (!showPreview) {
       for (const url of previewUrls.values()) {
         URL.revokeObjectURL(url);
       }
+      setPreviewUrls(new Map());
+      return;
+    }
+
+    const urls = new Map<string, string>();
+    for (const file of currentFiles) {
+      if (PREVIEWABLE_IMAGE_TYPES.has(file.type)) {
+        urls.set(fileKey(file), URL.createObjectURL(file));
+      }
+    }
+    setPreviewUrls(urls);
+
+    // Cleanup function to revoke URLs when files change
+    return () => {
+      const urlsToRevoke = new Set([...previewUrls.values(), ...urls.values()]);
+      for (const url of urlsToRevoke) {
+        URL.revokeObjectURL(url);
+      }
     };
-  }, [previewUrls]);
+  }, [filesKey, showPreview]);
 
   return (
     <div className="space-y-2">
@@ -182,7 +208,7 @@ export function FileUploadField({
         <div className="mt-3 space-y-2">
           {currentFiles.map((file, index) => {
             const safeFileName = sanitizeFileName(file.name);
-            const previewUrl = previewUrls.get(file) ?? null;
+            const previewUrl = previewUrls.get(fileKey(file)) ?? null;
             const safePreviewUrl = previewUrl?.startsWith("blob:") ? previewUrl : null;
             return (
               <div

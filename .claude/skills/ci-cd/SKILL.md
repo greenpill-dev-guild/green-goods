@@ -85,7 +85,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.5.0" # Pin for reproducible CI; only use `latest` when intentionally tracking upstream changes
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -179,7 +179,7 @@ jobs:
 
 ### Branch Protection
 
-```
+```text
 Settings → Branches → Branch protection rules:
 - Require status checks to pass before merging
 - Require branches to be up to date before merging
@@ -190,7 +190,7 @@ Settings → Branches → Branch protection rules:
 
 ### Naming Convention
 
-```
+```text
 VITE_*              — Build-time env vars (exposed to client)
 PRIVATE_*           — Server-side only secrets
 DEPLOY_*            — Deployment credentials
@@ -256,7 +256,7 @@ bun install --frozen-lockfile
 
 ## Decision Tree
 
-```
+```text
 What CI/CD work?
 │
 ├── New workflow? ───────────────► Part 1: Pipeline Architecture

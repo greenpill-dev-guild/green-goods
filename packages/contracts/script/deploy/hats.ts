@@ -50,12 +50,11 @@ export class HatsTreeDeployer {
         args.push("--sender", senderAddress);
       }
 
-      console.log(`🔐 Using Foundry keystore: ${keystoreName}`);
+      console.log("🔐 Using Foundry keystore (account configured via FOUNDRY_KEYSTORE_ACCOUNT)");
       console.log("💡 Password will be prompted interactively");
     }
 
-    console.log("\nExecuting Hats tree setup command:");
-    console.log("forge", args.join(" "));
+    console.log("\nExecuting Hats tree setup command (see forge output for full details)...");
 
     try {
       execSync(`forge ${args.join(" ")}`, {

@@ -6,12 +6,13 @@ import {
   DEFAULT_CHAIN_ID,
   DEFAULT_RETRY_COUNT,
   filterByTimeRange,
-  GARDEN_ACCOUNT_ROLE_ABI,
+  GardenAccountABI,
   getGardens,
   getWorkApprovals as fetchWorkApprovals,
   getWorks,
   hapticLight,
   isUserAddress as sharedIsUserAddress,
+  jobQueue,
   jobQueueEventBus,
   logger,
   queryKeys,
@@ -29,7 +30,6 @@ import {
   type Work,
   type WorkJobPayload,
 } from "@green-goods/shared";
-import { jobQueue } from "@green-goods/shared/modules/job-queue";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine, RiTimeLine } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
@@ -129,7 +129,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       const results = await publicClient.multicall({
         contracts: gardens.map((garden) => ({
           address: garden.id as Address,
-          abi: GARDEN_ACCOUNT_ROLE_ABI,
+          abi: GardenAccountABI,
           functionName: "isEvaluator" as const,
           args: [activeAddress as Address],
         })),
@@ -140,7 +140,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         .filter((_, index) => results[index].status === "success" && Boolean(results[index].result))
         .map((garden) => garden.id);
     },
-    enabled: !!activeAddress && gardens.length > 0,
+    enabled: !!activeAddress && (gardens?.length ?? 0) > 0,
     staleTime: STALE_TIME_MEDIUM,
   });
 

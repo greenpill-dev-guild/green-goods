@@ -26,7 +26,7 @@ When invoked:
 
 ### Project Structure
 
-```
+```text
 packages/contracts/
 ├── src/               # Solidity source
 │   ├── GardenToken.sol       # ERC721 for gardens
@@ -259,14 +259,14 @@ function testFuzz_mintGarden(address to, string calldata uri) public {
 // ✅ ALWAYS: Checks-Effects-Interactions pattern
 function withdraw(uint256 amount) external {
     // 1. Checks
-    require(balances[msg.sender] >= amount, InsufficientBalance());
+    if (balances[msg.sender] < amount) revert InsufficientBalance();
 
     // 2. Effects (update state BEFORE external call)
     balances[msg.sender] -= amount;
 
     // 3. Interactions (external call last)
     (bool success, ) = msg.sender.call{value: amount}("");
-    require(success, TransferFailed());
+    if (!success) revert TransferFailed();
 }
 
 // ✅ ALSO: Use ReentrancyGuard for complex flows

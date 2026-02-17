@@ -81,7 +81,13 @@ function useAddressInput(
 
     const result = addMember(addressToAdd);
     if (!result.success) {
-      setError(result.error ?? "Invalid address");
+      setError(
+        result.error ??
+          formatMessage({
+            id: "app.admin.roles.error.invalidAddress",
+            defaultMessage: "Invalid address",
+          })
+      );
       return;
     }
     setInput("");

@@ -332,7 +332,7 @@ Green Goods runs **React 19**. Use these new APIs:
 #### `use()` for Context and Promises
 
 ```typescript
-import { use } from "react";
+import { Suspense, use, useMemo } from "react";
 
 // Replace useContext
 const value = use(MyContext);
@@ -343,10 +343,16 @@ function GardenDetails({ gardenPromise }: { gardenPromise: Promise<Garden> }) {
   return <h1>{garden.name}</h1>;
 }
 
-// Wrap in Suspense at the parent level
-<Suspense fallback={<Skeleton />}>
-  <GardenDetails gardenPromise={fetchGarden(id)} />
-</Suspense>
+// Create the promise once per id, outside JSX
+function GardenDetailsContainer({ id }: { id: string }) {
+  const gardenPromise = useMemo(() => fetchGarden(id), [id]);
+
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <GardenDetails gardenPromise={gardenPromise} />
+    </Suspense>
+  );
+}
 ```
 
 #### `useActionState()` for Form Actions

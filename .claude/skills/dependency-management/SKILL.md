@@ -13,6 +13,10 @@ dependencies: []
 
 Bun monorepo dependency guide: workspace protocol, lockfile handling, update workflows, and security auditing.
 
+> **Documentation sync required:** If dependency behavior or commands change here, update the linked references in Getting Started, Contributing, and package READMEs in the same PR.
+>
+> Referenced from: Getting Started, Contributing, Package READMEs.
+
 ---
 
 ## Activation
@@ -159,8 +163,10 @@ A phantom dependency is a package your code imports but doesn't declare in `pack
 
 ```bash
 # Check for imports not in package.json
-# Look for import statements that reference packages not in dependencies
-grep -rn "from ['\"]" packages/shared/src/ | grep -v "@green-goods" | grep -v "^\." | sort -u
+# Match non-relative imports from real import/export statements (skip comments and local paths)
+rg -nP "^(?:import|export)\\s.+from\\s+['\"](?!\\.?/)(?!@green-goods/)[^'\"]+['\"]" \
+  packages/shared/src \
+  --glob '!**/node_modules/**'
 ```
 
 ### Fixing
@@ -180,7 +186,7 @@ bun add missing-package
 bun audit
 
 # Or use npm audit (more comprehensive database)
-npx audit
+npm audit
 ```
 
 ### Patch Strategies
@@ -239,7 +245,7 @@ npx audit
 
 ## Decision Tree
 
-```
+```text
 What dependency work?
 │
 ├── Adding a dependency? ────────► Part 1: Workspace Protocol

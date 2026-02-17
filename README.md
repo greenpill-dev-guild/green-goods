@@ -26,6 +26,7 @@ bun dev      # Starts all services via PM2
 - [Architecture](https://docs.greengoods.app/developer/architecture) — System design and diagrams
 - [API Reference](https://docs.greengoods.app/developer/api-reference) — GraphQL and contract APIs
 - [Contributing](https://docs.greengoods.app/developer/contributing) — Guidelines for contributors
+- [Dependency Management](.claude/skills/dependency-management/SKILL.md) — Workspace dependencies, lockfile, and audit/update workflow
 
 ## Contributing
 

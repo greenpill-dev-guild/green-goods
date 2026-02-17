@@ -946,7 +946,7 @@ export default function GardenDetail() {
         isOpen={addMemberModalOpen}
         onClose={() => setAddMemberModalOpen(false)}
         memberType={memberType}
-        onAdd={async (address: string) => {
+        onAdd={async (address: Address) => {
           const result = await roleActions[memberType].add(address);
 
           if (result.success) {

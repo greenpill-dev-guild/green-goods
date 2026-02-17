@@ -38,7 +38,7 @@ Cross-package migration orchestrator for coordinating breaking changes across th
 **Every migration MUST use TodoWrite with granular per-package tracking.**
 
 ### Before Starting
-```
+```text
 1. Todo: "Assess blast radius — identify all affected packages and files" → in_progress
 2. Todo: "Create migration plan with dependency order" → pending
 3. Todo: "Migrate package: contracts" → pending
@@ -72,8 +72,8 @@ Use when:
 Before ANY code changes:
 
 1. **Identify the change origin** — What changed? (contract, dependency, API)
-2. **Map affected packages** — Which packages import/use the changed thing?
-3. **Classify impact per package**:
+1. **Map affected packages** — Which packages import/use the changed thing?
+1. **Classify impact per package**:
 
 | Impact | Definition | Example |
 |--------|-----------|---------|
@@ -81,7 +81,7 @@ Before ANY code changes:
 | **Behavioral** | Compiles but behaves differently | Event format change, new field |
 | **Compatible** | No changes needed | Additive-only change |
 
-4. **Generate blast radius report**:
+1. **Generate blast radius report**:
 
 ```bash
 # Find all files importing the changed module
@@ -98,7 +98,7 @@ grep -rn "ChangedModule\|changedFunction" packages/ --include="*.test.*"
 
 Create plan following the **mandatory dependency order**:
 
-```
+```text
 1. contracts  → ABI changes, storage layout, new events
 2. indexer    → Schema updates, handler changes, re-index decision
 3. shared     → Type updates, hook changes, new exports
@@ -113,7 +113,7 @@ Create plan following the **mandatory dependency order**:
 
 For each package in dependency order:
 
-```
+```text
 1. Create package-specific todo
 2. Make changes
 3. Run package build: `bun --filter [package] build`
@@ -171,7 +171,7 @@ Create migration notes at `.plans/migrations/[date]-[name].md`:
 
 ### Contract ABI Change
 
-```
+```text
 contracts: Update Solidity, rebuild ABIs
     ↓
 indexer: Update schema.graphql + EventHandlers.ts, rebuild
@@ -183,7 +183,7 @@ client/admin: Update components using changed types
 
 ### UUPS Proxy Upgrade
 
-```
+```text
 contracts: New implementation, storage layout check
     ↓
 (deploy upgrade transaction)
@@ -195,7 +195,7 @@ shared: Update types if interface changed
 
 ### Dependency Version Bump
 
-```
+```text
 shared: Update dependency, fix breaking API changes
     ↓
 client/admin: Verify no breaking changes in consumers
@@ -205,7 +205,7 @@ client/admin: Verify no breaking changes in consumers
 
 ### IndexedDB Schema Change
 
-```
+```text
 shared: Update IndexedDB version, add migration handler
     ↓
 client: Test migration from old schema → new schema
@@ -232,12 +232,12 @@ bun build && bun lint && bun test
 These 7 rules are critical during migrations:
 
 1. **Dependency Order**: Always migrate in order: contracts → indexer → shared → client/admin. Each package MUST build before moving to the next.
-2. **Hook Boundary**: After migration, verify all hooks remain in `packages/shared/src/hooks/`. Never move hooks into client/admin during refactoring.
-3. **Single .env**: Never create package-level `.env` files during migration. All env vars stay in root `.env`.
-4. **Contract Addresses**: When contract addresses change, update `packages/contracts/deployments/{chainId}-latest.json`. Never introduce hardcoded addresses.
-5. **Barrel Imports**: After renaming or moving exports, ensure all consumers use `import { x } from "@green-goods/shared"`, not deep paths.
-6. **Type System**: Domain types (`Garden`, `Work`, `Action`, etc.) stay in `@green-goods/shared`. Use `Address` type, not `string`, for Ethereum addresses.
-7. **Build Order**: Validate each package builds in dependency order. Run `bun --filter [package] build` after each package migration.
+1. **Hook Boundary**: After migration, verify all hooks remain in `packages/shared/src/hooks/`. Never move hooks into client/admin during refactoring.
+1. **Single .env**: Never create package-level `.env` files during migration. All env vars stay in root `.env`.
+1. **Contract Addresses**: When contract addresses change, update `packages/contracts/deployments/{chainId}-latest.json`. Never introduce hardcoded addresses.
+1. **Barrel Imports**: After renaming or moving exports, ensure all consumers use `import { x } from "@green-goods/shared"`, not deep paths.
+1. **Type System**: Domain types (`Garden`, `Work`, `Action`, etc.) stay in `@green-goods/shared`. Use `Address` type, not `string`, for Ethereum addresses.
+1. **Build Order**: Validate each package builds in dependency order. Run `bun --filter [package] build` after each package migration.
 
 ## Anti-Patterns
 

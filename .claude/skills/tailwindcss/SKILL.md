@@ -17,6 +17,12 @@ TailwindCSS v4 configuration guide: theme system, design tokens, dark mode, cust
 
 ## Activation
 
+### Requirements & Architecture
+
+TailwindCSS v4 requires modern browsers (Chrome 111+, Safari 16.4+, Firefox 128+) because it relies on modern CSS features like `@property`, cascade layers, native nesting, and `color-mix()`.
+
+Tailwind's default palette is rebuilt in OKLCH/P3 color space for more perceptually consistent colors across the system.
+
 When invoked:
 - Check existing theme in `packages/shared/src/styles/theme.css` before making changes.
 - TailwindCSS v4 uses CSS-first configuration — no `tailwind.config.js` needed.
@@ -68,6 +74,19 @@ Each app has a single CSS entry point that imports TailwindCSS and the shared th
 @import "./styles/utilities.css";
 @import "./styles/animation.css";
 ```
+
+## Part 1.5: Critical Breaking Changes from v3
+
+- Important modifier now uses suffix form: `text-3xl!` (replace `!text-3xl`).
+- Opacity utilities are removed: `bg-blue-500/20` (replace `bg-opacity-*` patterns).
+- CSS variable utility syntax uses parentheses: `bg-(--brand-color)` (replace `bg-[--brand-color]`).
+- Utility rename: `grow-*` (replace `flex-grow-*`).
+- Utility rename: `shrink-*` (replace `flex-shrink-*`).
+- Utility rename: `text-ellipsis` (replace `overflow-ellipsis`).
+- Utility rename: `box-decoration-slice` (replace `decoration-slice`).
+- Utility rename: `box-decoration-clone` (replace `decoration-clone`).
+- `outline-none` now only removes outline style: use `outline-hidden` for prior behavior.
+- Default ring width changed 3px → 1px: use `ring-3` to preserve previous thickness.
 
 ## Part 2: Theme Architecture
 
@@ -132,8 +151,12 @@ Green Goods uses `[data-theme]` attribute (not `prefers-color-scheme`) for expli
 
 Usage in components:
 ```tsx
-<div className="bg-background text-foreground dark:bg-background dark:text-foreground">
+<div className="bg-background text-foreground">
   {/* Automatically adapts to theme */}
+</div>
+
+<div className="border border-stroke-sub dark:border-white">
+  {/* Explicit non-semantic dark override */}
 </div>
 ```
 
@@ -228,7 +251,7 @@ Green Goods is mobile-first. Use standard Tailwind breakpoints:
 
 ## Part 5: CSS File Organization
 
-```
+```text
 packages/shared/src/styles/
 └── theme.css              # Shared theme: @property + @theme + dark mode
 

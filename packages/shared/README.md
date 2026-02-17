@@ -2,6 +2,8 @@
 
 Shared utilities, hooks, providers, modules, and types for the Green Goods monorepo.
 
+> **Dependency Management**: follow the [dependency-management skill](../../.claude/skills/dependency-management/SKILL.md) when changing package dependencies, lockfiles, or audit policies.
+
 ## Installation
 
 This package is used internally by client and admin packages:

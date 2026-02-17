@@ -53,8 +53,6 @@ export function useCreateGardenWorkflow() {
   );
 
   // Get store actions for step navigation
-  const storeNextStep = useCreateGardenStore((s) => s.nextStep);
-  const storePrevStep = useCreateGardenStore((s) => s.previousStep);
   const storeGoToReview = useCreateGardenStore((s) => s.goToReview);
   const storeGoToFirstIncomplete = useCreateGardenStore((s) => s.goToFirstIncompleteStep);
   const storeReset = useCreateGardenStore((s) => s.reset);
@@ -211,20 +209,13 @@ export function useCreateGardenWorkflow() {
 
   const goNext = useCallback(() => {
     const formStatus = getFormStatus();
-    if (formStatus.canProceed) {
-      // Only advance store if machine will accept the event
-      storeNextStep();
-    }
     send({ type: "NEXT", formStatus });
-  }, [send, storeNextStep]);
+  }, [send]);
 
   const goBack = useCallback(() => {
     const formStatus = getFormStatus();
-    if (formStatus.currentStep > 0) {
-      storePrevStep();
-    }
     send({ type: "BACK", formStatus });
-  }, [send, storePrevStep]);
+  }, [send]);
 
   const goToReview = useCallback(() => {
     const formStatus = getFormStatus();

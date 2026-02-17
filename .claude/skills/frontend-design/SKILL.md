@@ -248,7 +248,7 @@ function AdaptiveRow({ children }: { children: React.ReactNode }) {
 
 ## Decision Tree
 
-```
+```text
 What kind of UI work?
 │
 ├─► New component? ──────────► Check existing patterns first

@@ -222,11 +222,11 @@ contracts → migration (if breaking) → indexer (if events changed) → shared
 ```
 
 **Offline Feature:**
-```
+```text
 /plan → data-layer (job queue + schema) → xstate (workflow) → web3 (tx patterns) → testing (mock IndexedDB)
 ```
 
-**Full Stack Feature:**
+**Full-Stack Feature:**
 ```
 /plan → contracts → indexer → testing → react → web3 → tanstack-query → data-layer
 ```

@@ -439,7 +439,7 @@ const handleSelect = useCallback(
 
 ## Decision Tree
 
-```
+```text
 What data fetching pattern?
 │
 ├─► Simple data fetch? ────────► useQuery + queryKeys helper

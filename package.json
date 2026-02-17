@@ -153,12 +153,12 @@
     "esbuild",
     "sharp"
   ],
-  "description": "[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v0.4.0) [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)",
+  "description": "A progressive web application for the Green Goods protocol.",
   "main": "index.js",
   "directories": {
     "doc": "docs",
     "test": "tests"
   },
   "author": "",
-  "license": "ISC"
+  "license": "MIT"
 }

@@ -2,7 +2,7 @@
  * RequireOperatorOrDeployer Route Guard Tests
  *
  * Tests for the operator-or-deployer route guard.
- * Verifies that only "deployer" and "operator" roles can access protected content.
+ * Only "deployer" and "operator" roles are granted access.
  */
 
 import { render, screen } from "@testing-library/react";
@@ -117,7 +117,7 @@ describe("routes/RequireOperatorOrDeployer", () => {
   });
 
   describe("user access", () => {
-    it("blocks user role and shows unauthorized message", () => {
+    it("denies access to protected content for user role", () => {
       mockUseRole.mockReturnValue({
         role: "user",
         loading: false,
