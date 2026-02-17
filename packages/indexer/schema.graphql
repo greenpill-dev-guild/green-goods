@@ -403,6 +403,63 @@ type ENSRegistration {
 }
 
 # =============================================================================
+# Hypercert Marketplace Entities
+# =============================================================================
+
+type MarketplaceOrder {
+  id: ID!                    # chainId-orderId
+  chainId: Int!
+  orderId: BigInt!
+  hypercertId: BigInt!
+  seller: String!            # Address
+  currency: String!          # Address
+  pricePerUnit: BigInt!
+  endTime: BigInt!
+  active: Boolean!
+  totalUnitsSold: BigInt!
+  totalPaymentsReceived: BigInt!
+  createdAt: Int!
+  deactivatedAt: Int
+  deactivatedBy: String      # Address (null if still active)
+  txHash: String!
+}
+
+type MarketplacePurchase {
+  id: ID!                    # chainId-txHash-logIndex
+  chainId: Int!
+  orderId: BigInt!
+  hypercertId: BigInt!
+  recipient: String!         # Address
+  units: BigInt!
+  payment: BigInt!
+  txHash: String!
+  timestamp: Int!
+}
+
+# =============================================================================
+# Unified Power Registry Entities
+# =============================================================================
+
+type PowerRegistryConfig {
+  id: ID!                    # chainId-txHash-logIndex
+  chainId: Int!
+  key: String!               # Config key (e.g., "gardensModule", "hatsProtocol")
+  oldValue: String!          # Address
+  newValue: String!          # Address
+  txHash: String!
+  timestamp: Int!
+}
+
+type PowerRegistryDeregistration {
+  id: ID!                    # chainId-txHash-logIndex
+  chainId: Int!
+  garden: String!            # Address
+  poolsCleared: BigInt!
+  txHash: String!
+  timestamp: Int!
+}
+
+# =============================================================================
 # EAS Attestation Data (NOT indexed here)
 # =============================================================================
 # WorkApproval and GardenAssessment attestations are queried directly from the

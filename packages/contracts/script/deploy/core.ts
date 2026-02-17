@@ -6,7 +6,7 @@ import { AnvilManager } from "./anvil";
 import { EnvioIntegration } from "../utils/envio-integration";
 import { DocsUpdater } from "../utils/docs-updater";
 import { type ParsedOptions, redactSensitiveArgs } from "../utils/cli-parser";
-import { assertSepoliaGate, writeSepoliaCheckpoint } from "../utils/release-gate";
+import { assertSepoliaGate } from "../utils/release-gate";
 
 /**
  * CoreDeployer - Handles core contract deployment
@@ -46,7 +46,6 @@ export class CoreDeployer {
     assertSepoliaGate({
       network: options.network,
       broadcast: options.broadcast,
-      operation: "deploy",
       overrideSepoliaGate: options.overrideSepoliaGate,
     });
 
@@ -110,17 +109,6 @@ export class CoreDeployer {
       });
 
       console.log("\n✅ Core contracts deployed successfully!");
-
-      if (options.broadcast && options.network === "sepolia") {
-        const chainId = this.networkManager.getChainIdString(options.network);
-        const checkpoint = writeSepoliaCheckpoint({
-          chainId,
-          operation: "deploy",
-        });
-        console.log(
-          `✅ Wrote Sepolia checkpoint (${checkpoint.timestamp}, commit ${checkpoint.commitHash.slice(0, 12)})`,
-        );
-      }
 
       // Auto-update Envio configuration after successful broadcast deployment
       if (options.broadcast && !options.skipEnvio) {

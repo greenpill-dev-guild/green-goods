@@ -1,21 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import { IHypercertMinter } from "../interfaces/IHypercertExchange.sol";
-import { OrderStructs } from "../interfaces/IHypercertExchange.sol";
-import { IGardensModule } from "../interfaces/IGardensModule.sol";
-import { IHatsModule } from "../interfaces/IHatsModule.sol";
+import {IHypercertMinter} from "../interfaces/IHypercertExchange.sol";
+import {OrderStructs} from "../interfaces/IHypercertExchange.sol";
+import {IGardensModule} from "../interfaces/IGardensModule.sol";
+import {IHatsModule} from "../interfaces/IHatsModule.sol";
 
 /// @notice Minimal interface for HypercertMarketplaceAdapter (avoids circular import)
 interface IMarketplaceAdapter {
-    function registerOrder(
-        OrderStructs.Maker calldata makerAsk,
-        bytes calldata signature,
-        uint256 hypercertId
-    )
+    function registerOrder(OrderStructs.Maker calldata makerAsk, bytes calldata signature, uint256 hypercertId)
         external
         returns (uint256 orderId);
 
@@ -23,9 +20,7 @@ interface IMarketplaceAdapter {
         OrderStructs.Maker[] calldata makerAsks,
         bytes[] calldata signatures,
         uint256[] calldata hypercertIds
-    )
-        external
-        returns (uint256[] memory orderIds);
+    ) external returns (uint256[] memory orderIds);
 
     function deactivateOrder(uint256 orderId) external;
 }
@@ -34,7 +29,7 @@ interface IMarketplaceAdapter {
 /// @notice Orchestrates hypercert minting, garden tracking, and marketplace listing for yield
 /// @dev UUPS upgradeable module that bridges hypercert minting with signal pool registration
 ///      and marketplace listing. Access controlled via Hats Protocol roles.
-contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
+contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
     // ═══════════════════════════════════════════════════════════════════════════
     // Events
     // ═══════════════════════════════════════════════════════════════════════════
@@ -51,6 +46,7 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
     error NotActive();
     error InvalidHypercert(uint256 hypercertId);
     error ArrayLengthMismatch();
+    error ZeroAddress(string paramName);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
@@ -66,7 +62,7 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
     mapping(address garden => uint256[] hypercertIds) internal _gardenHypercerts;
     mapping(uint256 hypercertId => address garden) public hypercertGarden;
 
-    uint256[42] private __gap;
+    uint256[41] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -84,13 +80,11 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
         address _gardensModule,
         address _hatsModule,
         address _gardenToken
-    )
-        external
-        initializer
-    {
+    ) external initializer {
         if (_owner == address(0)) revert Unauthorized(address(0));
 
         __Ownable_init();
+        __ReentrancyGuard_init();
         _transferOwnership(_owner);
 
         hypercertMinter = _hypercertMinter;
@@ -110,13 +104,9 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
     /// @param merkleRoot Merkle root for the allowlist (0 for open)
     /// @param metadataUri IPFS URI for hypercert metadata
     /// @return hypercertId The newly minted hypercert ID
-    function mintAndRegister(
-        address garden,
-        uint256 totalUnits,
-        bytes32 merkleRoot,
-        string calldata metadataUri
-    )
+    function mintAndRegister(address garden, uint256 totalUnits, bytes32 merkleRoot, string calldata metadataUri)
         external
+        nonReentrant
         returns (uint256 hypercertId)
     {
         _requireOperator(garden);
@@ -133,7 +123,7 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
                 if (pools.length > 0) {
                     pool = pools[0];
                 }
-            } catch { }
+            } catch {}
         }
 
         // Track the hypercert for this garden
@@ -154,10 +144,7 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
         uint256 hypercertId,
         OrderStructs.Maker calldata makerAsk,
         bytes calldata signature
-    )
-        external
-        returns (uint256 orderId)
-    {
+    ) external nonReentrant returns (uint256 orderId) {
         _requireOperator(garden);
         if (paused) revert NotActive();
         if (hypercertGarden[hypercertId] != garden) revert InvalidHypercert(hypercertId);
@@ -178,10 +165,7 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
         uint256[] calldata hypercertIds,
         OrderStructs.Maker[] calldata makerAsks,
         bytes[] calldata signatures
-    )
-        external
-        returns (uint256[] memory orderIds)
-    {
+    ) external nonReentrant returns (uint256[] memory orderIds) {
         _requireOperator(garden);
         if (paused) revert NotActive();
         if (hypercertIds.length != makerAsks.length || makerAsks.length != signatures.length) {
@@ -199,7 +183,7 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Delist a hypercert from the marketplace
     /// @param garden The garden account address
     /// @param orderId The order to deactivate
-    function delistFromYield(address garden, uint256 orderId) external {
+    function delistFromYield(address garden, uint256 orderId) external nonReentrant {
         _requireOperator(garden);
 
         marketplaceAdapter.deactivateOrder(orderId);
@@ -221,10 +205,12 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function setHypercertMinter(address _hypercertMinter) external onlyOwner {
+        if (_hypercertMinter == address(0)) revert ZeroAddress("hypercertMinter");
         hypercertMinter = _hypercertMinter;
     }
 
     function setMarketplaceAdapter(address _marketplaceAdapter) external onlyOwner {
+        if (_marketplaceAdapter == address(0)) revert ZeroAddress("marketplaceAdapter");
         marketplaceAdapter = IMarketplaceAdapter(_marketplaceAdapter);
     }
 
@@ -233,10 +219,12 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
     }
 
     function setHatsModule(address _hatsModule) external onlyOwner {
+        if (_hatsModule == address(0)) revert ZeroAddress("hatsModule");
         hatsModule = IHatsModule(_hatsModule);
     }
 
     function setGardenToken(address _gardenToken) external onlyOwner {
+        if (_gardenToken == address(0)) revert ZeroAddress("gardenToken");
         gardenToken = _gardenToken;
     }
 
@@ -261,5 +249,5 @@ contract HypercertsModule is OwnableUpgradeable, UUPSUpgradeable {
     // ═══════════════════════════════════════════════════════════════════════════
 
     // solhint-disable-next-line no-empty-blocks
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }

@@ -37,7 +37,6 @@ export class OctantFactoryDeployer {
     assertSepoliaGate({
       network: options.network,
       broadcast: options.broadcast,
-      operation: "octant-factory",
       overrideSepoliaGate: options.overrideSepoliaGate,
     });
 

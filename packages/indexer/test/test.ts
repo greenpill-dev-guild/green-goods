@@ -1,7 +1,7 @@
-// @ts-nocheck
 import assert from "assert";
 import { createRequire } from "module";
 
+// @ts-expect-error: import.meta.url is valid at runtime (tsx loader) but tsconfig targets CommonJS
 const require = createRequire(import.meta.url);
 const generated = require("../generated");
 const { TestHelpers } = generated;

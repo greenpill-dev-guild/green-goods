@@ -5,6 +5,7 @@ import {
   GreenGoodsENS,
   HatsModule,
   GardenToken,
+  HypercertMarketplaceAdapter,
   OctantModule,
   OctantVault,
   CookieJarModule,
@@ -12,6 +13,7 @@ import {
   HypercertMinter,
   HypercertStatus,
   PoolType,
+  UnifiedPowerRegistry,
   VaultEventType,
   WeightScheme,
   YieldSplitter,
@@ -2256,6 +2258,288 @@ CookieJarModule.JarCreated.handler(
       jarAddress,
       chainId: event.chainId,
       blockNumber: event.block.number,
+    });
+  }
+);
+
+// ============================================================================
+// HYPERCERT MARKETPLACE ADAPTER EVENT HANDLERS
+// ============================================================================
+
+// Local event arg types (until codegen runs)
+type HypercertMarketplaceAdapter_OrderRegistered_eventArgs = {
+  readonly orderId: bigint;
+  readonly hypercertId: bigint;
+  readonly seller: string;
+  readonly currency: string;
+  readonly pricePerUnit: bigint;
+  readonly endTime: bigint;
+};
+
+type HypercertMarketplaceAdapter_OrderDeactivated_eventArgs = {
+  readonly orderId: bigint;
+  readonly deactivatedBy: string;
+};
+
+type HypercertMarketplaceAdapter_FractionPurchased_eventArgs = {
+  readonly orderId: bigint;
+  readonly hypercertId: bigint;
+  readonly recipient: string;
+  readonly units: bigint;
+  readonly payment: bigint;
+};
+
+// Local entity types
+type MarketplaceOrderEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly orderId: bigint;
+  readonly hypercertId: bigint;
+  readonly seller: string;
+  readonly currency: string;
+  readonly pricePerUnit: bigint;
+  readonly endTime: bigint;
+  readonly active: boolean;
+  readonly totalUnitsSold: bigint;
+  readonly totalPaymentsReceived: bigint;
+  readonly createdAt: number;
+  readonly deactivatedAt: number | undefined;
+  readonly deactivatedBy: string | undefined;
+  readonly txHash: string;
+};
+
+type MarketplacePurchaseEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly orderId: bigint;
+  readonly hypercertId: bigint;
+  readonly recipient: string;
+  readonly units: bigint;
+  readonly payment: bigint;
+  readonly txHash: string;
+  readonly timestamp: number;
+};
+
+function getMarketplaceOrderId(chainId: number, orderId: bigint): string {
+  return `${chainId}-${orderId.toString()}`;
+}
+
+function getMarketplacePurchaseId(chainId: number, txHash: string, logIndex: bigint | number): string {
+  return `${chainId}-${txHash}-${logIndex.toString()}`;
+}
+
+HypercertMarketplaceAdapter.OrderRegistered.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<HypercertMarketplaceAdapter_OrderRegistered_eventArgs, void>) => {
+    const orderId = event.params.orderId;
+    const seller = normalizeAddress(event.params.seller);
+    const currency = normalizeAddress(event.params.currency);
+    const txHash = getTxHash(event.transaction);
+    const entityId = getMarketplaceOrderId(event.chainId, orderId);
+
+    const orderEntity: MarketplaceOrderEntity = {
+      id: entityId,
+      chainId: event.chainId,
+      orderId,
+      hypercertId: event.params.hypercertId,
+      seller,
+      currency,
+      pricePerUnit: event.params.pricePerUnit,
+      endTime: event.params.endTime,
+      active: true,
+      totalUnitsSold: 0n,
+      totalPaymentsReceived: 0n,
+      createdAt: event.block.timestamp,
+      deactivatedAt: undefined,
+      deactivatedBy: undefined,
+      txHash,
+    };
+
+    context.MarketplaceOrder.set(orderEntity);
+
+    context.log.info("Marketplace order registered", {
+      orderId: orderId.toString(),
+      hypercertId: event.params.hypercertId.toString(),
+      seller,
+      pricePerUnit: event.params.pricePerUnit.toString(),
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
+    });
+  }
+);
+
+HypercertMarketplaceAdapter.OrderDeactivated.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<HypercertMarketplaceAdapter_OrderDeactivated_eventArgs, void>) => {
+    const orderId = event.params.orderId;
+    const deactivatedBy = normalizeAddress(event.params.deactivatedBy);
+    const txHash = getTxHash(event.transaction);
+    const entityId = getMarketplaceOrderId(event.chainId, orderId);
+
+    const existingOrder = await context.MarketplaceOrder.get(entityId);
+    if (existingOrder) {
+      context.MarketplaceOrder.set({
+        ...existingOrder,
+        active: false,
+        deactivatedAt: event.block.timestamp,
+        deactivatedBy,
+      });
+    }
+
+    context.log.info("Marketplace order deactivated", {
+      orderId: orderId.toString(),
+      deactivatedBy,
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
+    });
+  }
+);
+
+HypercertMarketplaceAdapter.FractionPurchased.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<HypercertMarketplaceAdapter_FractionPurchased_eventArgs, void>) => {
+    const orderId = event.params.orderId;
+    const recipient = normalizeAddress(event.params.recipient);
+    const txHash = getTxHash(event.transaction);
+
+    // Create purchase record
+    const purchaseEntity: MarketplacePurchaseEntity = {
+      id: getMarketplacePurchaseId(event.chainId, txHash, event.logIndex),
+      chainId: event.chainId,
+      orderId,
+      hypercertId: event.params.hypercertId,
+      recipient,
+      units: event.params.units,
+      payment: event.params.payment,
+      txHash,
+      timestamp: event.block.timestamp,
+    };
+
+    context.MarketplacePurchase.set(purchaseEntity);
+
+    // Update running totals on the order
+    const orderEntityId = getMarketplaceOrderId(event.chainId, orderId);
+    const existingOrder = await context.MarketplaceOrder.get(orderEntityId);
+    if (existingOrder) {
+      context.MarketplaceOrder.set({
+        ...existingOrder,
+        totalUnitsSold: existingOrder.totalUnitsSold + event.params.units,
+        totalPaymentsReceived: existingOrder.totalPaymentsReceived + event.params.payment,
+      });
+    }
+
+    context.log.info("Hypercert fraction purchased", {
+      orderId: orderId.toString(),
+      hypercertId: event.params.hypercertId.toString(),
+      recipient,
+      units: event.params.units.toString(),
+      payment: event.params.payment.toString(),
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
+    });
+  }
+);
+
+// ============================================================================
+// UNIFIED POWER REGISTRY EVENT HANDLERS
+// ============================================================================
+
+// Local event arg types (until codegen runs)
+type UnifiedPowerRegistry_ConfigUpdated_eventArgs = {
+  readonly key: string;
+  readonly oldValue: string;
+  readonly newValue: string;
+};
+
+type UnifiedPowerRegistry_GardenDeregistered_eventArgs = {
+  readonly garden: string;
+  readonly poolsCleared: bigint;
+};
+
+// Local entity types
+type PowerRegistryConfigEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly key: string;
+  readonly oldValue: string;
+  readonly newValue: string;
+  readonly txHash: string;
+  readonly timestamp: number;
+};
+
+type PowerRegistryDeregistrationEntity = {
+  readonly id: string;
+  readonly chainId: number;
+  readonly garden: string;
+  readonly poolsCleared: bigint;
+  readonly txHash: string;
+  readonly timestamp: number;
+};
+
+UnifiedPowerRegistry.ConfigUpdated.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<UnifiedPowerRegistry_ConfigUpdated_eventArgs, void>) => {
+    const txHash = getTxHash(event.transaction);
+
+    const configEntity: PowerRegistryConfigEntity = {
+      id: getVaultEventId(event.chainId, txHash, event.logIndex),
+      chainId: event.chainId,
+      key: event.params.key,
+      oldValue: normalizeAddress(event.params.oldValue),
+      newValue: normalizeAddress(event.params.newValue),
+      txHash,
+      timestamp: event.block.timestamp,
+    };
+
+    context.PowerRegistryConfig.set(configEntity);
+
+    context.log.info("Power registry config updated", {
+      key: event.params.key,
+      oldValue: event.params.oldValue,
+      newValue: event.params.newValue,
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
+    });
+  }
+);
+
+UnifiedPowerRegistry.GardenDeregistered.handler(
+  async ({
+    event,
+    context,
+  }: HandlerTypes_handlerArgs<UnifiedPowerRegistry_GardenDeregistered_eventArgs, void>) => {
+    const garden = normalizeAddress(event.params.garden);
+    const txHash = getTxHash(event.transaction);
+
+    const deregEntity: PowerRegistryDeregistrationEntity = {
+      id: getVaultEventId(event.chainId, txHash, event.logIndex),
+      chainId: event.chainId,
+      garden,
+      poolsCleared: event.params.poolsCleared,
+      txHash,
+      timestamp: event.block.timestamp,
+    };
+
+    context.PowerRegistryDeregistration.set(deregEntity);
+
+    context.log.info("Garden deregistered from power registry", {
+      garden,
+      poolsCleared: event.params.poolsCleared.toString(),
+      chainId: event.chainId,
+      blockNumber: event.block.number,
+      correlationId: txHash,
     });
   }
 );

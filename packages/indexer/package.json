@@ -6,7 +6,6 @@
     "build": "tsc --build",
     "watch": "tsc --watch",
     "mocha": "node --import tsx ./node_modules/mocha/bin/mocha.js \"test/**/*.ts\"",
-
     "setup-generated": "cd generated && pnpm install && pnpm run build",
     "codegen": "envio codegen",
     "dev": "./scripts/dev.sh",
@@ -17,16 +16,15 @@
     "dev:manual": "envio dev",
     "start": "envio start",
     "stop": "pkill -f 'envio dev' || true && lsof -ti:9898 -ti:8080 2>/dev/null | xargs kill -9 2>/dev/null || true",
-
     "doctor": "./scripts/doctor.sh",
     "doctor:fix": "./scripts/doctor.sh --fix",
     "db:up": "cd generated && docker compose up -d",
     "db:down": "cd generated && docker compose down",
     "db:logs": "cd generated && docker compose logs -f",
-
     "test:setup": "bun run codegen && bun run setup-generated",
     "pretest": "[ -d generated/src ] || bun run test:setup",
     "test": "bun run mocha",
+    "test:coverage": "c8 bun run mocha",
     "test:full": "bun run test:setup && bun run mocha",
     "lint": "oxlint src test",
     "reset": "./scripts/reset.sh"
@@ -35,6 +33,7 @@
     "@types/chai": "^5.0.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.2.1",
+    "c8": "^10.1.3",
     "chai": "^5.0.0",
     "mocha": "^11.0.0",
     "ts-mocha": "^11.0.0",

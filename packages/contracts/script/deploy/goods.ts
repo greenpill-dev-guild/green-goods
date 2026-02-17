@@ -61,7 +61,6 @@ export class GoodsDeployer {
     assertSepoliaGate({
       network: options.network,
       broadcast: options.broadcast,
-      operation: "goods",
       overrideSepoliaGate: options.overrideSepoliaGate,
     });
 
