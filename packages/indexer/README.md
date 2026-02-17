@@ -76,6 +76,14 @@ bun run dev:docker:down
 
 ---
 
+### ENS Profile Fields on Gardener
+
+`Gardener.ensAvatar`, `ensDescription`, `ensTwitter`, `ensGithub`, and `ensEmail` are schema fields for client consumption, but they are **not** populated by indexer handlers.
+
+These values are resolved client-side from ENS text records (mainnet resolver reads), while the indexer tracks protocol events and ENS registration lifecycle events.
+
+---
+
 ### Commands Reference
 
 ```bash
