@@ -241,6 +241,8 @@ export {
   useHasRole,
   // Hypercert hooks (grouped together, prefixed with useHypercert*)
   useHypercertAttestations,
+  useHypercertAllowlist,
+  useHypercertContributorWeights,
   useHypercertDraft,
   useHypercerts,
   type OptimisticHypercertData,
