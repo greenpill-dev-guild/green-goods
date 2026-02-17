@@ -35,6 +35,29 @@ contract RevertingENSModule is IGreenGoodsENS {
     }
 }
 
+
+/// @title AcceptingENSModule
+/// @notice Mock ENS module that accepts registration and records the forwarded ETH
+contract AcceptingENSModule is IGreenGoodsENS {
+    uint256 public totalValueReceived;
+
+    function registerGarden(string calldata, address) external payable override {
+        totalValueReceived += msg.value;
+    }
+
+    function claimName(string calldata) external payable override { }
+    function claimNameSponsored(string calldata) external override { }
+    function releaseName() external payable override { }
+
+    function available(string calldata) external pure override returns (bool) {
+        return true;
+    }
+
+    function getRegistrationFee(string calldata, address, NameType) external pure override returns (uint256) {
+        return 0;
+    }
+}
+
 contract GardenTokenTest is Test, ERC6551Helper {
     GardenToken private gardenToken;
     address private multisig = address(0x123);
@@ -56,6 +79,8 @@ contract GardenTokenTest is Test, ERC6551Helper {
     event HatsModuleUpdated(address indexed oldModule, address indexed newModule);
     event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
     event OctantModuleUpdated(address indexed oldModule, address indexed newModule);
+    event ENSRegistrationRefundQueued(address indexed minter, uint256 amount);
+    event ENSRegistrationRefundClaimed(address indexed minter, uint256 amount);
     event GardenMinted(
         uint256 indexed tokenId,
         address indexed account,
@@ -618,4 +643,63 @@ contract GardenTokenTest is Test, ERC6551Helper {
         // Verify ENS module is wired (confirms the code path was exercised)
         assertEq(address(gardenToken.ensModule()), address(revertingENS), "ENS module should be set");
     }
+
+    function test_mintGarden_ensFailureQueuesRefundAndClaimSucceeds() public {
+        _setHatsModule();
+
+        RevertingENSModule revertingENS = new RevertingENSModule();
+        vm.prank(multisig);
+        gardenToken.setENSModule(address(revertingENS));
+
+        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        config.slug = "refund-garden";
+
+        uint256 refundAmount = 0.05 ether;
+        vm.deal(multisig, 1 ether);
+
+        vm.prank(multisig);
+        vm.expectEmit(true, false, false, true);
+        emit ENSRegistrationRefundQueued(multisig, refundAmount);
+        gardenToken.mintGarden{ value: refundAmount }(config);
+
+        assertEq(gardenToken.failedENSRefunds(multisig), refundAmount, "refund should be queued");
+        assertEq(gardenToken.totalPendingENSRefunds(), refundAmount, "pending total should increase");
+
+        uint256 before = multisig.balance;
+        vm.prank(multisig);
+        vm.expectEmit(true, false, false, true);
+        emit ENSRegistrationRefundClaimed(multisig, refundAmount);
+        gardenToken.claimENSRefund();
+
+        assertEq(multisig.balance, before + refundAmount, "refund should be paid out");
+        assertEq(gardenToken.failedENSRefunds(multisig), 0, "refund credit should clear");
+        assertEq(gardenToken.totalPendingENSRefunds(), 0, "pending total should clear");
+    }
+
+    function test_mintGarden_ensSuccessDoesNotQueueRefund() public {
+        _setHatsModule();
+
+        AcceptingENSModule ens = new AcceptingENSModule();
+        vm.prank(multisig);
+        gardenToken.setENSModule(address(ens));
+
+        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        config.slug = "success-garden";
+
+        uint256 forwardedValue = 0.03 ether;
+        vm.deal(multisig, 1 ether);
+
+        vm.prank(multisig);
+        gardenToken.mintGarden{ value: forwardedValue }(config);
+
+        assertEq(ens.totalValueReceived(), forwardedValue, "value should be forwarded to ENS module");
+        assertEq(gardenToken.failedENSRefunds(multisig), 0, "no refund should be queued");
+    }
+
+    function test_claimENSRefund_revertsWithoutBalance() public {
+        vm.prank(multisig);
+        vm.expectRevert(GardenToken.NoENSRefundAvailable.selector);
+        gardenToken.claimENSRefund();
+    }
+
 }

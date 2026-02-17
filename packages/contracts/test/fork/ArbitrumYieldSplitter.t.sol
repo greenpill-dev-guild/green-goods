@@ -102,8 +102,17 @@ contract ArbitrumYieldResolverForkTest is Test {
     /// @notice Real WETH on Arbitrum
     address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
-    /// @notice Juicebox Multi-Terminal on Arbitrum
+    /// @notice Juicebox Controller on Arbitrum (mainnet)
+    /// @dev Source: https://docs.juicebox.money/dev/v5/addresses
+    address internal constant JB_CONTROLLER = 0x84E1D0102A722b3f3c00EC4E2b7ca2B97edF4eB2;
+
+    /// @notice Juicebox Multi-Terminal on Arbitrum (mainnet)
+    /// @dev Source: https://docs.juicebox.money/dev/v5/addresses
     address internal constant JB_MULTI_TERMINAL = 0x82129d4109625F94582bDdF6101a8Cd1a27919f5;
+
+    /// @notice Juicebox terminal used for project launches in fork tests
+    /// @dev Some forks expose a dedicated terminal that routes via the multi-terminal.
+    address internal constant JB_TERMINAL = 0x14785612bd5C27D8CbAd1d9A9E33BEBfF5F4C3b6;
 
     YieldResolver public yieldSplitter;
     MockVaultForFork public vault;
@@ -369,21 +378,25 @@ contract ArbitrumYieldResolverForkTest is Test {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Test: JB Multi-Terminal exists on Arbitrum
+    // Test: JB addresses exist on Arbitrum
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function test_forkDeploy_jbMultiTerminalIsDeployed() public {
+    function test_forkDeploy_jbAddressesAreDeployed() public {
         if (!_tryFork()) {
             emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
-        if (JB_MULTI_TERMINAL.code.length == 0) {
-            emit log("WARNING: JBMultiTerminal not deployed at expected address on Arbitrum");
-            emit log("  Expected: 0x82129d4109625F94582bDdF6101a8Cd1a27919f5");
-            emit log("  Action required: verify correct JB Multi-Terminal address for Arbitrum");
+        if (JB_CONTROLLER.code.length == 0 || JB_MULTI_TERMINAL.code.length == 0 || JB_TERMINAL.code.length == 0) {
+            emit log("WARNING: Juicebox contracts not deployed at expected Arbitrum addresses");
+            emit log("  Expected controller: 0x84E1D0102A722b3f3c00EC4E2b7ca2B97edF4eB2");
+            emit log("  Expected multi-terminal: 0x82129d4109625F94582bDdF6101a8Cd1a27919f5");
+            emit log("  Expected terminal: 0x14785612bd5C27D8CbAd1d9A9E33BEBfF5F4C3b6");
+            emit log("  Action required: verify current Juicebox v5 Arbitrum addresses");
         } else {
+            assertGt(JB_CONTROLLER.code.length, 0, "JBController should be deployed on Arbitrum");
             assertGt(JB_MULTI_TERMINAL.code.length, 0, "JBMultiTerminal should be deployed on Arbitrum");
+            assertGt(JB_TERMINAL.code.length, 0, "JBTerminal should be deployed on Arbitrum");
         }
     }
 
@@ -527,9 +540,7 @@ contract ArbitrumYieldResolverForkTest is Test {
             return;
         }
 
-        // Arbitrum Juicebox v5 addresses (from script/DeployJuicebox.s.sol)
-        address JB_CONTROLLER = 0x84E1D0102A722b3f3c00EC4E2b7ca2B97edF4eB2;
-        address JB_TERMINAL = 0x14785612bd5C27D8CbAd1d9A9E33BEBfF5F4C3b6;
+        // Arbitrum Juicebox v5 addresses (shared constants above)
 
         // Skip if JB contracts not deployed on this fork block
         if (JB_CONTROLLER.code.length == 0 || JB_TERMINAL.code.length == 0) {
@@ -577,7 +588,7 @@ contract ArbitrumYieldResolverForkTest is Test {
     }
 
     /// @notice Helper: Launch a JB project on Arbitrum fork that accepts WETH
-    /// @dev Mirrors the production DeployJuicebox.s.sol but for WETH instead of native ETH
+    /// @dev Mirrors the production DeployGoodsProject.s.sol launch flow but for WETH instead of native ETH
     function _launchTestJBProject(address controller, address terminal) internal returns (uint256 projectId) {
         // Ruleset metadata — pausePay must be false for pay() to work
         JBRulesetMetadata memory metadata = JBRulesetMetadata({
@@ -637,9 +648,6 @@ contract ArbitrumYieldResolverForkTest is Test {
             emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
-
-        address JB_CONTROLLER = 0x84E1D0102A722b3f3c00EC4E2b7ca2B97edF4eB2;
-        address JB_TERMINAL = 0x14785612bd5C27D8CbAd1d9A9E33BEBfF5F4C3b6;
 
         if (JB_CONTROLLER.code.length == 0 || JB_TERMINAL.code.length == 0) {
             emit log("SKIPPED: Juicebox v5 contracts not deployed at expected addresses");

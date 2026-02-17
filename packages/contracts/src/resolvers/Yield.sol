@@ -96,8 +96,16 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     // ═══════════════════════════════════════════════════════════════════════════
 
     uint256 public constant BPS_DENOMINATOR = 10_000;
+    /// @notice Default split allocates 48.65% to gardener operations (Cookie Jar)
+    /// @dev 4865 bps = 48.65%. Kept symmetric with fractions to balance near-term ops and long-term impact.
     uint256 public constant DEFAULT_COOKIE_JAR_BPS = 4865;
+
+    /// @notice Default split allocates 48.65% to conviction-routed hypercert fractions
+    /// @dev 4865 bps = 48.65%. If fractions routing is unavailable this portion is escrowed for later withdrawal.
     uint256 public constant DEFAULT_FRACTIONS_BPS = 4865;
+
+    /// @notice Default split allocates 2.7% to Juicebox GOODS backing
+    /// @dev 270 bps = 2.7%. Using the remainder keeps rounding deterministic (sum always equals 10_000 bps).
     uint256 public constant DEFAULT_JUICEBOX_BPS = 270;
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -215,6 +223,11 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
     /// @notice Split yield from a garden's vault for a given asset
     /// @dev Permissionless — anyone can trigger. Redeems vault shares, applies three-way split.
+    ///      Timing risk is intentional: callers can trigger immediately after harvest and before
+    ///      additional yield accrues. This cannot redirect funds (fixed split ratios + fixed
+    ///      destinations), but can make distributions occur earlier than garden operators prefer.
+    ///      Mitigations: minYieldThreshold batching, operator-controlled split config, and owner
+    ///      emergency override of split config/destinations.
     /// @param garden The garden address
     /// @param asset The underlying asset (WETH/DAI)
     /// @param vault The ERC-4626 vault holding shares for this garden+asset
@@ -257,14 +270,24 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
         uint256 redeemed = 0;
         if (shares > 0) {
+            uint256 redeemableShares = shares;
+            uint256 maxWithdrawAssets = IOctantVault(vault).maxWithdraw(address(this));
+
+            // Some ERC-4626 implementations cap withdrawals during strategy illiquidity.
+            // Redeem only the currently withdrawable portion to avoid full-call reverts.
+            uint256 sharesFromMaxWithdraw = IOctantVault(vault).convertToShares(maxWithdrawAssets);
+            if (sharesFromMaxWithdraw < redeemableShares) {
+                redeemableShares = sharesFromMaxWithdraw;
+            }
+
             // maxLoss=1 (1 bps) allows up to 0.01% rounding loss during redemption.
             // ERC-4626 vaults may return slightly fewer assets than expected due to
             // integer division in share→asset conversion. The vault reverts if loss
             // exceeds this threshold, preventing material share drain.
-            redeemed = IOctantVault(vault).redeem(shares, address(this), address(this), 1, new address[](0));
+            redeemed = IOctantVault(vault).redeem(redeemableShares, address(this), address(this), 1, new address[](0));
             if (redeemed > 0) {
-                gardenShares[garden][vault] = 0;
-                totalRegisteredShares[vault] -= shares;
+                gardenShares[garden][vault] = shares - redeemableShares;
+                totalRegisteredShares[vault] -= redeemableShares;
             }
         }
         return redeemed + pendingYield[garden][asset];
@@ -302,6 +325,9 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     ///      HatsModule state. This is an intentional emergency escalation path — if a
     ///      garden's operator misconfigures the split (e.g., 100% to Cookie Jar), the
     ///      protocol owner can correct it without requiring garden-level cooperation.
+    ///
+    ///      Configurability: callers can set any valid basis-point tuple that sums to 10_000,
+    ///      including disabling a destination entirely (e.g., 5000/5000/0 or 0/0/10000).
     /// @param garden The garden address
     /// @param cookieJarBps Cookie Jar portion in basis points
     /// @param fractionsBps Fractions portion in basis points

@@ -236,7 +236,7 @@ Use MCP servers and CLI tools for deployment:
 
 | Target | Method | Commands |
 |--------|--------|----------|
-| Contracts | foundry MCP | `forge build`, `forge test`, `bun deploy:testnet` |
+| Contracts | foundry MCP | `bun build`, `bun run test`, `bun deploy:testnet` |
 | Apps | Vercel CLI | `vercel` (manual CLI, not MCP) |
 | Indexer | railway MCP | Deploy via Railway |
 

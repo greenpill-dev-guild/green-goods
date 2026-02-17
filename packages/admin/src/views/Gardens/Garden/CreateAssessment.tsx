@@ -51,7 +51,8 @@ export default function CreateAssessment() {
   const { formatMessage } = useIntl();
   const { address, isConnected } = useAccount();
   const { connectors } = useConnect();
-  const { lastAttestationId, setLastAttestationId } = useAdminStore();
+  const lastAttestationId = useAdminStore((s) => s.lastAttestationId);
+  const setLastAttestationId = useAdminStore((s) => s.setLastAttestationId);
   const [currentStep, setCurrentStep] = useState(0);
 
   const { data: gardenDomainMask } = useGardenDomains(gardenId);

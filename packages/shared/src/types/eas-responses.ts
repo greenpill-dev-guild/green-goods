@@ -11,14 +11,16 @@
  * ```
  */
 
+import type { Address } from "./domain";
+
 // ============================================
 // Raw Attestation Types
 // ============================================
 
 export interface EASAttestationRaw {
   id: string;
-  attester: string;
-  recipient: string;
+  attester: Address;
+  recipient: Address;
   timeCreated: number | string;
   decodedDataJson: string;
   revoked?: boolean;
@@ -43,8 +45,8 @@ export interface EASDecodedField {
 
 export interface EASGardenAssessment {
   id: string;
-  authorAddress: string;
-  gardenAddress: string;
+  authorAddress: Address;
+  gardenAddress: Address;
   title: string;
   description: string;
   /** IPFS CID referencing the full assessment config JSON (assessment_v2) */
@@ -59,8 +61,8 @@ export interface EASGardenAssessment {
 
 export interface EASWork {
   id: string;
-  gardenerAddress: string;
-  gardenAddress: string;
+  gardenerAddress: Address;
+  gardenAddress: Address;
   actionUID: number;
   title: string;
   feedback: string;
@@ -71,8 +73,8 @@ export interface EASWork {
 
 export interface EASWorkApproval {
   id: string;
-  operatorAddress: string;
-  gardenerAddress: string;
+  operatorAddress: Address;
+  gardenerAddress: Address;
   actionUID: number;
   workUID: string;
   approved: boolean;

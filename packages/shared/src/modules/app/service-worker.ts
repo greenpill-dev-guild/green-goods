@@ -11,6 +11,7 @@ class ServiceWorkerManager {
   private isSupported = false;
   private hasController = false;
   private hasReloadedForUpdate = false;
+  private readonly boundMessageHandler = this.handleMessage.bind(this);
 
   constructor() {
     const hasNavigator = typeof navigator !== "undefined";
@@ -43,7 +44,9 @@ class ServiceWorkerManager {
       });
 
       // Set up message handler for background sync notifications
-      navigator.serviceWorker.addEventListener("message", this.handleMessage.bind(this));
+      navigator.serviceWorker.removeEventListener("message", this.boundMessageHandler);
+      navigator.serviceWorker.removeEventListener("controllerchange", this.handleControllerChange);
+      navigator.serviceWorker.addEventListener("message", this.boundMessageHandler);
       navigator.serviceWorker.addEventListener("controllerchange", this.handleControllerChange);
 
       // Wait for service worker to be ready

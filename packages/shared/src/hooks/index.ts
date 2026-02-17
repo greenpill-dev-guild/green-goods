@@ -12,6 +12,7 @@ export type {
 } from "./utils/useCopyToClipboard";
 export { useCopyToClipboard } from "./utils/useCopyToClipboard";
 export { useDebouncedValue } from "./utils/useDebouncedValue";
+export { useAddressInput } from "./utils/useAddressInput";
 
 // ============================================================================
 // ACTION
@@ -227,6 +228,8 @@ export type {
 // Re-export with consistent naming (useHypercertAttestations instead of useAttestations)
 export { useAttestations as useHypercertAttestations } from "./hypercerts/useAttestations";
 export { useCreateHypercertWorkflow } from "./hypercerts/useCreateHypercertWorkflow";
+export { useHypercertAllowlist } from "./hypercerts/useHypercertAllowlist";
+export { useHypercertContributorWeights } from "./hypercerts/useHypercertContributorWeights";
 export type { UseHypercertDraftResult } from "./hypercerts/useHypercertDraft";
 export { useHypercertDraft } from "./hypercerts/useHypercertDraft";
 export type {

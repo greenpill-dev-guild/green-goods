@@ -200,6 +200,7 @@ contract MockOctantVaultForYield {
     /// @notice Exchange rate: assets = shares * rateNumerator / rateDenominator
     uint256 public rateNumerator = 1;
     uint256 public rateDenominator = 1;
+    uint256 public maxWithdrawOverride = type(uint256).max;
 
     constructor(address _asset) {
         UNDERLYING = ERC20(_asset);
@@ -212,6 +213,11 @@ contract MockOctantVaultForYield {
         rateDenominator = _denominator;
     }
 
+    /// @notice Set maxWithdraw override (in assets) to simulate vault liquidity limits
+    function setMaxWithdrawOverride(uint256 _maxWithdrawOverride) external {
+        maxWithdrawOverride = _maxWithdrawOverride;
+    }
+
     function asset() external view returns (address) {
         return address(UNDERLYING);
     }
@@ -222,6 +228,22 @@ contract MockOctantVaultForYield {
 
     function totalSupply() external view returns (uint256) {
         return _totalSupply;
+    }
+
+    function convertToAssets(uint256 shares) external view returns (uint256 assets) {
+        return (shares * rateNumerator) / rateDenominator;
+    }
+
+    function convertToShares(uint256 assets) external view returns (uint256 shares) {
+        return (assets * rateDenominator) / rateNumerator;
+    }
+
+    function maxWithdraw(address account) external view returns (uint256 assets) {
+        uint256 accountAssets = (_balances[account] * rateNumerator) / rateDenominator;
+        if (maxWithdrawOverride < accountAssets) {
+            return maxWithdrawOverride;
+        }
+        return accountAssets;
     }
 
     /// @notice Mint shares to an account (test helper)

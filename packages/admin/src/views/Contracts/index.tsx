@@ -3,7 +3,7 @@ import { RiRefreshLine, RiSettings3Line, RiUploadLine } from "@remixicon/react";
 import { useState } from "react";
 
 export default function Contracts() {
-  const { selectedChainId } = useAdminStore();
+  const selectedChainId = useAdminStore((s) => s.selectedChainId);
   const [activeTab, setActiveTab] = useState<"deployed" | "deploy" | "upgrade">("deployed");
 
   const contracts = getNetworkContracts(selectedChainId);

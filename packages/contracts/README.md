@@ -104,14 +104,14 @@ Test against real network state without spending gas:
 
 ```bash
 # Run E2E tests against forked networks
-bun test:e2e:celo       # Fork and test Celo mainnet
-bun test:e2e:arbitrum   # Fork and test Arbitrum mainnet
+bun run test:e2e:celo       # Fork and test Celo mainnet
+bun run test:e2e:arbitrum   # Fork and test Arbitrum mainnet
 
 # Or manually fork with Anvil
 anvil --fork-url $CELO_RPC_URL
 
 # Then run tests on fork
-forge test --fork-url http://localhost:8545 -vv
+bun run test:e2e:celo    # or bun run test:e2e:arbitrum / :sepolia
 ```
 
 **Use when:** Testing upgrades, validating against real state, debugging production issues
@@ -170,9 +170,9 @@ bun upgrade:celo        # Upgrade Celo mainnet
 bun upgrade:arbitrum    # Upgrade Arbitrum mainnet
 
 # 🧪 TESTING
-bun test                # Run all tests
-bun test:e2e:celo       # Fork and test Celo mainnet
-bun test:e2e:arbitrum   # Fork and test Arbitrum mainnet
+bun run test                # Run all tests
+bun run test:e2e:celo       # Fork and test Celo mainnet
+bun run test:e2e:arbitrum   # Fork and test Arbitrum mainnet
 
 # 🔧 DEVELOPMENT
 bun build               # Compile contracts
@@ -205,10 +205,39 @@ bun script/deploy.ts core --network sepolia --broadcast --force
 ---
 
 **📖 For detailed documentation, see:**
-- Full Deployment Guide: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
-- Upgrade Guide: [docs/UPGRADES.md](./docs/UPGRADES.md)
-- Environment Setup: [docs/ENVIRONMENT_SETUP.md](./docs/ENVIRONMENT_SETUP.md)
-- Troubleshooting: [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
+- Full Deployment Guide: [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook)
+- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook)
+- Environment Setup: [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer)
+- Troubleshooting: [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer)
+
+
+## HatsModule Operational Notes
+
+### Phantom hat wearers after revocation
+
+Hats Protocol does not provide a burn function for ordinary wearer hats. Revocation is implemented by transferring the hat to another address, which means revocations can accumulate historical "phantom" wearers.
+
+In `HatsModule`, revocation transfers to a unique nonce-derived burn address instead of a fixed sink (for example `0xdead`). This avoids `AlreadyWearingHat` reverts when the same hat type is revoked multiple times.
+
+**Behavioral implications:**
+- Revoked users no longer wear the role hat (`isWearerOfHat(user, hatId) == false`)
+- Total historical wearers can still grow over time
+- Indexers and analytics should treat revocation events as canonical membership state transitions
+
+**Cleanup strategy:**
+- Use `RoleRevoked` as the source of truth for active membership snapshots
+- Rebuild role membership by replaying `RoleGranted` and `RoleRevoked` events in order
+- Ignore holder counts that include burn recipients when presenting active member metrics
+
+### Conviction power sync gas stipend
+
+`HatsModule` calls conviction strategies with a defensive gas stipend (`SYNC_POWER_GAS_STIPEND = 100_000`). This isolates role changes from downstream strategy complexity by making sync best-effort.
+
+If a strategy requires more gas, role revocation still succeeds and the module emits `ConvictionSyncFailed`. Operators should monitor these failures and either optimize strategy gas usage or increase stipend in a future upgrade if sustained failures occur.
+
+### Duplicate strategy validation complexity
+
+`setConvictionStrategies` currently validates duplicates with an O(n²) nested loop. This is acceptable because `MAX_CONVICTION_STRATEGIES` is hard-capped at 10, keeping worst-case comparisons bounded (45 checks).
 
 ## Deployment System
 
@@ -291,21 +320,21 @@ Green Goods integrates with the **Karma Grantee Accountability Protocol (GAP)** 
 - Identity-first security - all resolvers verify roles before any logic
 
 **Documentation:**
-- User Guide: [docs/KARMA_GAP.md](../../docs/KARMA_GAP.md)
-- Implementation: [docs/KARMA_GAP_IMPLEMENTATION.md](../../docs/KARMA_GAP_IMPLEMENTATION.md)
-- Upgrade Guide: [docs/UPGRADES.md](../../docs/UPGRADES.md)
+- User Guide: [Karma GAP Integration](https://docs.greengoods.app/developer/karma-gap)
+- Implementation: [Karma GAP Integration](https://docs.greengoods.app/developer/karma-gap)
+- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook)
 - KarmaLib Source: `src/lib/Karma.sol`
 - Interfaces: `src/interfaces/IKarmaGap.sol`
 
 **Testing:**
 ```bash
 # Run E2E tests (includes GAP integration)
-bun test:e2e
+bun run test:e2e
 
 # Test specific networks
-bun test:e2e:arbitrum   # Fork Arbitrum
-bun test:e2e:celo       # Fork Celo
-bun test:e2e:testnet    # Fork Sepolia
+bun run test:e2e:arbitrum   # Fork Arbitrum
+bun run test:e2e:celo       # Fork Celo
+bun run test:e2e:testnet    # Fork Sepolia
 ```
 
 ### Schema Evolution
@@ -326,7 +355,7 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 bun script/deploy.ts core --network sepolia --broadcast --force
 ```
 
-See `docs/UPGRADES.md` for detailed schema versioning strategy and `docs/DEPLOYMENT.md` for schema deployment troubleshooting.
+See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) for schema versioning strategy and deployment troubleshooting.
 
 ## Configuration
 
@@ -451,7 +480,7 @@ forge script script/Upgrade.s.sol:Upgrade \
   --network arbitrum --broadcast
 ```
 
-See `docs/UPGRADES.md` for complete upgrade guide.
+See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) for the complete upgrade guide.
 
 ### When to Deploy vs Upgrade
 
@@ -467,7 +496,7 @@ See `docs/UPGRADES.md` for complete upgrade guide.
 
 ### Documentation
 
-See [UPGRADES.md](docs/UPGRADES.md) for complete upgrade guide including:
+See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) for the complete upgrade guide including:
 - Deploy vs Upgrade decision matrix
 - Storage gap usage
 - Multisig upgrade process
@@ -507,7 +536,7 @@ bun install
 bun build
 
 # Run comprehensive test suite
-bun test
+bun run test
 
 # Format Solidity code
 bun format
@@ -525,16 +554,16 @@ bun dev
 bun compile
 
 # Run tests with gas reporting
-bun test
+bun run test
 
 # Run specific test contract
-forge test --match-contract YourTestContract -vv
+bun run test:match test/unit/YourTestContract.t.sol
 
 # Run specific test function
-forge test --match-test testYourFunction -vvv
+bun run test:match test/unit/YourTestContract.t.sol
 
 # Watch mode for continuous testing
-forge test --watch
+bun run test --watch
 ```
 
 **Local Development:**
@@ -614,17 +643,17 @@ Networks are configured in `deployments/networks.json`. The system automatically
 **Advanced Testing:**
 ```bash
 # Fork testing against live networks
-bun test:e2e:celo       # Automated fork test
+bun run test:e2e:celo       # Automated fork test
 # Or manually: anvil --fork-url $CELO_RPC_URL
 
 # Gas profiling
-forge test --gas-report
+bun run test:gas
 
 # Coverage analysis
 forge coverage
 
 # Invariant testing
-forge test --match-contract InvariantTest
+bun run test:match test/invariant/InvariantTest.t.sol
 ```
 
 **Test Best Practices:**
@@ -660,7 +689,7 @@ bun lint
 - **`.solhint.json`**: Solidity linting rules
 - **`biome.json`**: JavaScript/TypeScript formatting (for scripts)
 
-### Deployment System
+## Deployment System
 
 **Deployment CLI:**
 ```bash
@@ -676,7 +705,21 @@ bun deploy:dry:testnet
 # Advanced options via deploy.ts
 bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 bun script/deploy.ts core --network sepolia --broadcast --force
+
+# Deploy Juicebox GOODS project (deployer-managed pipeline)
+bun script/deploy.ts goods --network arbitrum --broadcast
+# Alias: bun script/deploy.ts juicebox --network arbitrum --broadcast
 ```
+
+### Yield Split Defaults (YieldResolver)
+
+The default split ratio is **48.65% / 48.65% / 2.7%**:
+
+- `4865` bps → Cookie Jar (garden operations)
+- `4865` bps → Hypercert fractions (impact allocation; escrowed if routing is unavailable)
+- `270` bps → Juicebox (GOODS treasury backing)
+
+Rationale: keep operational + impact allocations balanced, while retaining a smaller treasury-growth leg. This is configurable per garden via `setSplitRatio(garden, cookieJarBps, fractionsBps, juiceboxBps)` as long as the basis points sum to `10_000`.
 
 **Adding New Networks:**
 1. Update `deployments/networks.json` with network configuration
@@ -711,7 +754,7 @@ bun envio:cleanup
 - Use events instead of storage for non-critical data
 - Consider CREATE2 for deterministic addresses
 - Batch operations when possible
-- Use `forge test --gas-report` to profile gas usage
+- Use `bun run test:gas` to profile gas usage
 
 ### Troubleshooting
 
@@ -744,10 +787,10 @@ cast balance $DEPLOYER_ADDRESS --rpc-url $CELO_RPC_URL
 **Test Failures:**
 ```bash
 # Run with maximum verbosity
-forge test -vvvv
+bun run test
 
 # Debug specific test
-forge test --match-test testYourFunction --debug
+bun run test:match test/unit/YourTestContract.t.sol
 
 # Check coverage
 forge coverage --report lcov
@@ -759,7 +802,7 @@ forge coverage --report lcov
 forge create src/YourContract.sol:YourContract --estimate
 
 # Profile gas usage
-forge test --gas-report
+bun run test:gas
 
 # Check gas limit
 cast block latest --field gasLimit --rpc-url $CELO_RPC_URL
@@ -810,3 +853,39 @@ echo $CELO_RPC_URL
 - 📝 [Schema Definitions](./config/schemas.json) — EAS schema configuration
 - 🌐 [Network Configuration](./deployments/networks.json) — Multi-chain settings
 - 🏗️ [Action Definitions](./config/actions.json) — Core garden actions
+
+
+## ENS Cross-Chain (CCIP) Flow
+
+`GreenGoodsENS` runs on L2 (Arbitrum One or Sepolia testnet) and sends registration/release intents to L1 via Chainlink CCIP. `GreenGoodsENSReceiver` runs on Ethereum mainnet and executes ENS writes for `*.greengoods.eth`.
+
+### End-to-End Message Path (Arbitrum → Mainnet)
+
+1. A garden mint (`GardenToken.mintGarden`) or member name claim (`GreenGoodsENS.claimName`) triggers L2 registration logic.
+2. `GreenGoodsENS` validates slug + local collision/cooldown constraints and builds a CCIP `EVM2AnyMessage` payload.
+3. `GreenGoodsENS` estimates fee with `IRouterClient.getFee(...)` and sends message through `IRouterClient.ccipSend(...)` to the L1 chain selector.
+4. Chainlink CCIP DON relays the message to Ethereum mainnet's CCIP router.
+5. Mainnet router calls `GreenGoodsENSReceiver.ccipReceive(...)`.
+6. `GreenGoodsENSReceiver` validates source chain + sender, decodes operation (`register` / `release`), and writes ENS via registry + resolver for `greengoods.eth` subdomains.
+7. L2 keeps a protective cache (`slugOwner`, `ownerToSlug`) to prevent duplicate claims before L1 finalization.
+
+### Deployment Targets
+
+Use the deployment wrapper (`script/deploy.ts`) rather than raw forge commands.
+
+```bash
+# 1) Deploy L2 sender on Sepolia (CCIP test path)
+bun script/deploy.ts core --network sepolia --broadcast
+
+# 2) Deploy L2 sender on Arbitrum One (production L2 sender)
+bun script/deploy.ts core --network arbitrum --broadcast
+
+# 3) Deploy L1 receiver on Ethereum mainnet
+bun script/deploy.ts core --network mainnet --broadcast
+```
+
+After both sides are deployed:
+
+- Set `ENS_L1_RECEIVER` before L2 deploys (or call `setL1Receiver` on `GreenGoodsENS`).
+- Set `ENS_L2_SENDER` before L1 deploys (or call `setL2Sender` on `GreenGoodsENSReceiver`).
+- Verify receiver has ENS operator approval on `greengoods.eth`.

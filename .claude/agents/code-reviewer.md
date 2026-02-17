@@ -179,7 +179,7 @@ Create task summary with:
 
 ### Suggested Checks
 ```bash
-bun test
+bun run test
 bun lint
 bun build
 ```
@@ -282,18 +282,24 @@ All user-facing strings must use translation keys.
 
 ### Architectural Rules Quick Check
 
-Check every PR for these 8 rules (from `architectural-rules.md`):
+Check every PR for these 14 rules (from `architectural-rules.md`):
 
 | # | Rule | What to Look For |
 |---|------|-----------------|
 | 1 | **Timer Cleanup** | Raw `setTimeout`/`setInterval` in hooks → should use `useTimeout()` or `useDelayedInvalidation()` |
 | 2 | **Event Listeners** | `addEventListener` without cleanup → should use `useEventListener()` or `{ once: true }` |
 | 3 | **Async Mount Guards** | Async in `useEffect` without `isMounted` → should use `useAsyncEffect()` |
+| 4 | **No Empty Catches** | Empty `catch {}` blocks → should log and handle errors |
+| 5 | **Address Types** | Ethereum addresses typed as `string` → should use `Address` type |
 | 6 | **Zustand Selectors** | `(state) => state` → should select specific fields |
 | 7 | **Query Key Stability** | Object literals in query keys → should serialize or `useMemo` |
+| 8 | **Hook Boundary** | Hooks outside `packages/shared/src/hooks/` → move to shared |
+| 9 | **Contract Addresses** | Hardcoded `0x...` addresses → use deployment artifacts |
 | 10 | **Provider Values** | Inline object in `<Context.Provider value={{...}}>` → should wrap in `useMemo` |
+| 11 | **Barrel Imports** | Deep imports from `@green-goods/shared/...` → use package barrel |
 | 12 | **Console.log** | `console.log/warn/error` in production code → should use `logger` service |
 | 13 | **Provider Order** | Provider nesting differs from hierarchy → must follow Wagmi→Query→AppKit→Auth→App→JobQueue→Work |
+| 14 | **Bun Scripts** | Raw `forge build`/`forge test` usage in contracts → use `bun build`/`bun run test` |
 
 ### Package Structure
 
