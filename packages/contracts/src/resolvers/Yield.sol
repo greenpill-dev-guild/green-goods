@@ -96,8 +96,16 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     // ═══════════════════════════════════════════════════════════════════════════
 
     uint256 public constant BPS_DENOMINATOR = 10_000;
+    /// @notice Default split allocates 48.65% to gardener operations (Cookie Jar)
+    /// @dev 4865 bps = 48.65%. Kept symmetric with fractions to balance near-term ops and long-term impact.
     uint256 public constant DEFAULT_COOKIE_JAR_BPS = 4865;
+
+    /// @notice Default split allocates 48.65% to conviction-routed hypercert fractions
+    /// @dev 4865 bps = 48.65%. If fractions routing is unavailable this portion is escrowed for later withdrawal.
     uint256 public constant DEFAULT_FRACTIONS_BPS = 4865;
+
+    /// @notice Default split allocates 2.7% to Juicebox GOODS backing
+    /// @dev 270 bps = 2.7%. Using the remainder keeps rounding deterministic (sum always equals 10_000 bps).
     uint256 public constant DEFAULT_JUICEBOX_BPS = 270;
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -317,6 +325,9 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     ///      HatsModule state. This is an intentional emergency escalation path — if a
     ///      garden's operator misconfigures the split (e.g., 100% to Cookie Jar), the
     ///      protocol owner can correct it without requiring garden-level cooperation.
+    ///
+    ///      Configurability: callers can set any valid basis-point tuple that sums to 10_000,
+    ///      including disabling a destination entirely (e.g., 5000/5000/0 or 0/0/10000).
     /// @param garden The garden address
     /// @param cookieJarBps Cookie Jar portion in basis points
     /// @param fractionsBps Fractions portion in basis points
