@@ -13,6 +13,7 @@ error InvalidSlug();
 error ZeroAddress();
 error InvalidAction();
 error OwnerAlreadyHasName(); // Kept for ABI compat — no longer reverted in _ccipReceive path
+error OnlySelf();
 
 /// @title GreenGoodsENSReceiver (L1 Receiver)
 /// @notice Receives CCIP messages from Arbitrum and registers ENS subdomains
@@ -135,7 +136,7 @@ contract GreenGoodsENSReceiver is CCIPReceiver, Ownable {
     /// @notice External wrapper for _setENSRecords (required for try/catch on internal calls)
     /// @dev Only callable by this contract itself
     function _setENSRecordsExternal(string calldata slug, address _owner) external {
-        require(msg.sender == address(this), "Only self");
+        if (msg.sender != address(this)) revert OnlySelf();
         _setENSRecords(slug, _owner);
     }
 
@@ -163,7 +164,7 @@ contract GreenGoodsENSReceiver is CCIPReceiver, Ownable {
     /// @notice External wrapper for _clearENSRecords (required for try/catch on internal calls)
     /// @dev Only callable by this contract itself
     function _clearENSRecordsExternal(string calldata slug) external {
-        require(msg.sender == address(this), "Only self");
+        if (msg.sender != address(this)) revert OnlySelf();
         _clearENSRecords(slug);
     }
 

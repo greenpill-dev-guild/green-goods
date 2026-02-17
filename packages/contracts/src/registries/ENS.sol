@@ -17,6 +17,10 @@ error NameInCooldown();
 error ZeroAddress();
 error NotOwner();
 error NoRefundAvailable();
+error RefundTransferFailed();
+error NoWithdrawableBalance();
+error WithdrawTransferFailed();
+error OnlySelf();
 
 interface IHats {
     function isWearerOfHat(address account, uint256 hatId) external view returns (bool);
@@ -297,7 +301,7 @@ contract GreenGoodsENS is Ownable {
         failedRefunds[msg.sender] = 0;
         totalPendingRefunds -= amount;
         (bool ok,) = msg.sender.call{ value: amount }("");
-        require(ok, "Refund transfer failed");
+        if (!ok) revert RefundTransferFailed();
         emit RefundClaimed(msg.sender, amount);
     }
 
@@ -329,10 +333,10 @@ contract GreenGoodsENS is Ownable {
     /// @dev Reserves totalPendingRefunds for failed refund claims.
     function withdrawETH(address to) external onlyOwner {
         uint256 bal = address(this).balance;
-        require(bal > totalPendingRefunds, "No withdrawable balance");
+        if (bal <= totalPendingRefunds) revert NoWithdrawableBalance();
         uint256 withdrawable = bal - totalPendingRefunds;
         (bool ok,) = to.call{ value: withdrawable }("");
-        require(ok);
+        if (!ok) revert WithdrawTransferFailed();
     }
 
     /// @notice Allow contract to receive ETH (for CCIP fee funding)

@@ -13,7 +13,12 @@ import { useWalletClient } from "wagmi";
 
 import { DEFAULT_CHAIN_ID, createPublicClientForChain } from "../../config";
 import { logger } from "../../modules/app/logger";
-import { type MakerAskOrder, buildMakerAsk, signMakerAsk, validateOrder } from "../../modules/marketplace";
+import {
+  type MakerAskOrder,
+  buildMakerAsk,
+  signMakerAsk,
+  validateOrder,
+} from "../../modules/marketplace";
 import { HYPERCERTS_MODULE_ABI } from "./hypercert-abis";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import type { CreateListingParams } from "../../types/hypercerts";

@@ -169,6 +169,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     /// @dev Called by GardenToken during mint. All external calls wrapped in try/catch.
     ///      Community is created FIRST (independent), then power registry, then pools.
     ///      If pool creation fails, garden still initializes — operators can call createGardenPools() later.
+    // solhint-disable-next-line code-complexity
     function onGardenMinted(
         address garden,
         WeightScheme scheme

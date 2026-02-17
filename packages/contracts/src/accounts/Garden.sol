@@ -393,7 +393,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     ///      alone is insufficient in TBA context because the NFT owner can call execute(target=this)
     ///      which makes msg.sender == address(this). The flag is only set by _autoRegisterInCommunity.
     function executeAutoStake(address goodsToken_, address community, uint256 stakeAmount, address member) external {
-        require(msg.sender == address(this) && _autoStaking, "Only internal auto-stake");
+        if (msg.sender != address(this) || !_autoStaking) revert NotGardenOwner();
         IERC20(goodsToken_).approve(community, stakeAmount);
         IRegistryCommunity(community).stakeAndRegisterMember(member);
     }

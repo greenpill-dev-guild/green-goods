@@ -11,6 +11,7 @@ library StringUtils {
     ///      Backslashes are escaped FIRST to prevent double-escaping.
     /// @param str The string to escape
     /// @return The escaped string safe for embedding in JSON values
+    // solhint-disable-next-line code-complexity
     function escapeJSON(string memory str) internal pure returns (string memory) {
         bytes memory b = bytes(str);
         uint256 extraBytes = 0;

@@ -986,10 +986,12 @@ contract GardenAccountTest is Test, ERC6551Helper {
         gardenAccount.joinGarden();
 
         // Gardener role granted despite stake failure (catch block at line 384-386)
-        assertTrue(hatsModule.isGardenerOf(gardenAddress, stranger), "Gardener role should be granted despite auto-stake failure");
+        assertTrue(
+            hatsModule.isGardenerOf(gardenAddress, stranger), "Gardener role should be granted despite auto-stake failure"
+        );
 
-        // Community did NOT register the member (it reverted)
-        assertTrue(revertingCommunity.stakeAttempted(), "stakeAndRegisterMember should have been called");
+        // GOODS balance unchanged — the approve + stake was rolled back by the revert
+        assertEq(goodsToken_.balanceOf(gardenAddress), 100e18, "GOODS balance should be unchanged (stake reverted)");
     }
 
     function test_setMaxGardeners() public {

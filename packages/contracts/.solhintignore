@@ -7,3 +7,6 @@ out
 
 # mock contracts (mimic external interfaces, don't enforce gas rules)
 src/mocks/
+
+# vendor contracts (third-party, don't enforce our rules)
+src/vendor/
