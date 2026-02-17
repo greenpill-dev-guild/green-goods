@@ -45,6 +45,7 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
     event AssetDeactivationCancelled(address indexed asset);
     event YieldResolverUpdated(address indexed oldResolver, address indexed newResolver);
     event SharesRegistered(address indexed garden, address indexed vault, uint256 shares);
+    event SharesRegistrationFailed(address indexed garden, address indexed vault, address indexed resolver, uint256 shares);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Errors
@@ -79,7 +80,7 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
     mapping(address garden => mapping(address asset => address vault)) public gardenAssetVaults;
     mapping(address asset => address strategy) public supportedAssets;
     address[] public supportedAssetList;
-    uint256 public supportedAssetCount;
+    uint256 private _supportedAssetCount;
 
     address public gardenToken;
 
@@ -245,7 +246,9 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
                 uint256 newShares = sharesAfter - sharesBefore;
                 try IYieldResolver(resolver).registerShares(garden, vault, newShares) {
                     emit SharesRegistered(garden, vault, newShares);
-                } catch { }
+                } catch {
+                    emit SharesRegistrationFailed(garden, vault, resolver, newShares);
+                }
             }
         }
 
@@ -429,13 +432,6 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
             // Step 2: Execute deactivation
             delete pendingDeactivations[asset];
 
-            address currentStrategy = supportedAssets[asset];
-            if (currentStrategy != address(0)) {
-                unchecked {
-                    supportedAssetCount -= 1;
-                }
-            }
-
             supportedAssets[asset] = address(0);
             emit AssetDeactivationExecuted(asset);
             emit SupportedAssetUpdated(asset, address(0));
@@ -445,13 +441,6 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
         // Activation/update path: immediate, clear any pending deactivation
         if (pendingDeactivations[asset] != 0) {
             delete pendingDeactivations[asset];
-        }
-
-        address previousStrategy = supportedAssets[asset];
-        if (previousStrategy == address(0) && strategy != address(0)) {
-            unchecked {
-                supportedAssetCount += 1;
-            }
         }
 
         supportedAssets[asset] = strategy;
@@ -475,6 +464,17 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
 
     function getSupportedAssets() external view returns (address[] memory) {
         return supportedAssetList;
+    }
+
+    /// @notice Returns the number of active assets with non-zero strategies
+    /// @dev Derived from storage list to avoid counter desync across upgrades or manual state changes
+    function supportedAssetCount() external view returns (uint256 count) {
+        uint256 assetCount = supportedAssetList.length;
+        for (uint256 i = 0; i < assetCount; i++) {
+            if (supportedAssets[supportedAssetList[i]] != address(0)) {
+                count += 1;
+            }
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
