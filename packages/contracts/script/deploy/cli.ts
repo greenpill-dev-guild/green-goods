@@ -60,6 +60,7 @@ Usage: bun deploy.ts <command> [options]
 Commands:
   core                     Deploy core contracts
   goods                    Deploy GOODS Juicebox project (requires env vars)
+  juicebox                 Alias for `goods` deployment
   octant-factory           Deploy Octant vault factory (auto-updates deployment JSON)
   garden <config.json>     Deploy garden from config file
   actions <config.json>    Deploy actions from config file
@@ -178,6 +179,7 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
           break;
 
         case "goods":
+        case "juicebox":
           await this.goodsDeployer.deployGoods(options);
           break;
 

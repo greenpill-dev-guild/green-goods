@@ -676,7 +676,21 @@ bun deploy:dry:testnet
 # Advanced options via deploy.ts
 bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 bun script/deploy.ts core --network sepolia --broadcast --force
+
+# Deploy Juicebox GOODS project (deployer-managed pipeline)
+bun script/deploy.ts goods --network arbitrum --broadcast
+# Alias: bun script/deploy.ts juicebox --network arbitrum --broadcast
 ```
+
+### Yield Split Defaults (YieldResolver)
+
+The default split ratio is **48.65% / 48.65% / 2.7%**:
+
+- `4865` bps → Cookie Jar (garden operations)
+- `4865` bps → Hypercert fractions (impact allocation; escrowed if routing is unavailable)
+- `270` bps → Juicebox (GOODS treasury backing)
+
+Rationale: keep operational + impact allocations balanced, while retaining a smaller treasury-growth leg. This is configurable per garden via `setSplitRatio(garden, cookieJarBps, fractionsBps, juiceboxBps)` as long as the basis points sum to `10_000`.
 
 **Adding New Networks:**
 1. Update `deployments/networks.json` with network configuration
