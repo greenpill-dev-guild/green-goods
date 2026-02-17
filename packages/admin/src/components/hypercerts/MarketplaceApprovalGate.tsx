@@ -12,7 +12,7 @@ interface MarketplaceApprovalGateProps {
  * Renders children when fully approved.
  */
 export function MarketplaceApprovalGate({ children }: MarketplaceApprovalGateProps) {
-  const { formatMessage } = useIntl();
+  const _intl = useIntl();
   const { approvals, isFullyApproved, isLoading, grantApprovals, isGranting, error } =
     useMarketplaceApprovals();
 

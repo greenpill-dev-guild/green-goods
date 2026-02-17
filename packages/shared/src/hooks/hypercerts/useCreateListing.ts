@@ -9,7 +9,7 @@
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useCallback } from "react";
-import { type Address, type Hex, encodeFunctionData } from "viem";
+import { type Address, encodeFunctionData } from "viem";
 import { useWalletClient } from "wagmi";
 
 import { DEFAULT_CHAIN_ID, createPublicClientForChain } from "../../config";

@@ -10,8 +10,7 @@
  * @module modules/data/marketplace
  */
 
-import type { Address } from "viem";
-import { parseAbiItem } from "viem";
+import { type Address, parseAbiItem } from "viem";
 import type { RegisteredOrderView, FractionTrade } from "../../types/hypercerts";
 import { logger } from "../app/logger";
 import { createPublicClientForChain } from "../../config/pimlico";

@@ -18,8 +18,7 @@ import {
 import { useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { useIntl } from "react-intl";
-import type { Address } from "viem";
-import { formatEther } from "viem";
+import { type Address, formatEther } from "viem";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { MarketplaceApprovalGate } from "@/components/hypercerts/MarketplaceApprovalGate";
 import { CreateListingDialog } from "@/components/hypercerts/CreateListingDialog";

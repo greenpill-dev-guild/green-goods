@@ -14,8 +14,7 @@
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Address } from "viem";
-import { createPublicClient, http, keccak256, toBytes, zeroAddress } from "viem";
+import { type Address, createPublicClient, http, keccak256, toBytes, zeroAddress } from "viem";
 import { mainnet, sepolia } from "viem/chains";
 
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";

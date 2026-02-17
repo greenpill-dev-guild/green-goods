@@ -11,8 +11,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import type { Address } from "viem";
-import { zeroAddress } from "viem";
+import { type Address, zeroAddress } from "viem";
 
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { logger } from "../../modules/app/logger";

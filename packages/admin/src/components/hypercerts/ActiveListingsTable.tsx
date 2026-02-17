@@ -2,8 +2,6 @@ import {
   useHypercertListings,
   useCancelListing,
   type RegisteredOrderView,
-  DEFAULT_CHAIN_ID,
-  getNetworkConfig,
 } from "@green-goods/shared";
 import {
   RiLoader4Line,
@@ -13,8 +11,7 @@ import {
   RiAlertLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import type { Address } from "viem";
-import { formatEther } from "viem";
+import { type Address, formatEther } from "viem";
 
 interface ActiveListingsTableProps {
   gardenAddress: Address;
@@ -42,7 +39,7 @@ function formatTimeRemaining(endTime: number): string {
  * Supports cancellation of active listings.
  */
 export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveListingsTableProps) {
-  const { formatMessage } = useIntl();
+  const _intl = useIntl();
   const { listings, isLoading, error } = useHypercertListings(gardenAddress);
   const { cancelListing, isCancelling } = useCancelListing(gardenAddress);
 

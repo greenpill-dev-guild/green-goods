@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
-import { ModalDrawer } from "@/components/Dialogs/ModalDrawer";
-import type { ModalDrawerTab } from "@/components/Dialogs/ModalDrawer";
+import { type ModalDrawerTab, ModalDrawer } from "@/components/Dialogs/ModalDrawer";
 import { CookieJarTab } from "./CookieJarTab";
 import { ComingSoonStub } from "./ComingSoonStub";
 

@@ -27,8 +27,7 @@ import { useBalance } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import type { ModalDrawerTab } from "./ModalDrawer";
-import { ModalDrawer } from "./ModalDrawer";
+import { type ModalDrawerTab, ModalDrawer } from "./ModalDrawer";
 
 interface TreasuryDrawerProps {
   isOpen: boolean;
