@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Test } from "forge-std/Test.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { ERC1155 } from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Test} from "forge-std/Test.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { CookieJarModule } from "../../../src/modules/CookieJar.sol";
-import { YieldResolver } from "../../../src/resolvers/Yield.sol";
-import { ICookieJarFactory } from "../../../src/interfaces/ICookieJarFactory.sol";
-import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
-import { MockERC20 } from "../../../src/mocks/ERC20.sol";
+import {CookieJarModule} from "../../../src/modules/CookieJar.sol";
+import {YieldResolver} from "../../../src/resolvers/Yield.sol";
+import {ICookieJarFactory} from "../../../src/interfaces/ICookieJarFactory.sol";
+import {IHatsModule} from "../../../src/interfaces/IHatsModule.sol";
+import {MockERC20} from "../../../src/mocks/ERC20.sol";
 
 contract TestHatsProtocol is ERC1155 {
-    constructor() ERC1155("") { }
+    constructor() ERC1155("") {}
 
     function mint(address to, uint256 id, uint256 amount) external {
         _mint(to, id, amount, "");
@@ -59,18 +59,40 @@ contract TestHatsModule is IHatsModule {
     function createGardenHatTree(address, string calldata, address) external pure returns (uint256) {
         return 0;
     }
-    function grantRole(address, address, GardenRole) external { }
-    function revokeRole(address, address, GardenRole) external { }
-    function grantRoles(address, address[] calldata, GardenRole[] calldata) external { }
-    function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
-    function setConvictionStrategies(address, address[] calldata) external { }
-    function getConvictionStrategies(address) external pure returns (address[] memory) { return new address[](0); }
-    function isGardenerOf(address, address) external pure returns (bool) { return false; }
-    function isEvaluatorOf(address, address) external pure returns (bool) { return false; }
-    function isOperatorOf(address, address) external pure returns (bool) { return false; }
-    function isOwnerOf(address, address) external pure returns (bool) { return false; }
-    function isFunderOf(address, address) external pure returns (bool) { return false; }
-    function isCommunityOf(address, address) external pure returns (bool) { return false; }
+
+    function grantRole(address, address, GardenRole) external {}
+    function revokeRole(address, address, GardenRole) external {}
+    function grantRoles(address, address[] calldata, GardenRole[] calldata) external {}
+    function revokeRoles(address, address[] calldata, GardenRole[] calldata) external {}
+    function setConvictionStrategies(address, address[] calldata) external {}
+
+    function getConvictionStrategies(address) external pure returns (address[] memory) {
+        return new address[](0);
+    }
+
+    function isGardenerOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
+    function isEvaluatorOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
+    function isOperatorOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
+    function isOwnerOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
+    function isFunderOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
+    function isCommunityOf(address, address) external pure returns (bool) {
+        return false;
+    }
 }
 
 contract TestCookieJar {
@@ -93,15 +115,12 @@ contract TestCookieJar {
 }
 
 contract RealCookieJarFactoryForFork is ICookieJarFactory {
-    function createCookieJar(
-        JarConfig calldata,
-        AccessConfig calldata accessConfig,
-        MultiTokenConfig calldata
-    )
+    function createCookieJar(JarConfig calldata, AccessConfig calldata accessConfig, MultiTokenConfig calldata)
         external
         returns (address jarAddress)
     {
-        jarAddress = address(new TestCookieJar(accessConfig.nftRequirement.nftContract, accessConfig.nftRequirement.tokenId));
+        jarAddress =
+            address(new TestCookieJar(accessConfig.nftRequirement.nftContract, accessConfig.nftRequirement.tokenId));
     }
 }
 
@@ -155,7 +174,7 @@ abstract contract CookieJarForkTestBase is Test {
         hatsProtocol = new TestHatsProtocol();
         hatsModule = new TestHatsModule();
         factory = new RealCookieJarFactoryForFork();
-        token = new MockERC20("Mock USDC", "mUSDC", 6);
+        token = new MockERC20();
         vault = new MockVaultForCookieJarFork(address(token));
 
         hatsModule.setGardenHats(garden, GARDENER_HAT_ID);
@@ -176,13 +195,8 @@ abstract contract CookieJarForkTestBase is Test {
         cookieJarModule = CookieJarModule(address(new ERC1967Proxy(address(cookieJarImpl), cookieJarInit)));
 
         YieldResolver yieldImpl = new YieldResolver();
-        bytes memory yieldInit = abi.encodeWithSelector(
-            YieldResolver.initialize.selector,
-            owner,
-            octantModule,
-            address(hatsModule),
-            1
-        );
+        bytes memory yieldInit =
+            abi.encodeWithSelector(YieldResolver.initialize.selector, owner, octantModule, address(hatsModule), 1);
         yieldSplitter = YieldResolver(address(new ERC1967Proxy(address(yieldImpl), yieldInit)));
 
         vm.startPrank(owner);

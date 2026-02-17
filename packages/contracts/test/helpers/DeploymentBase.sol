@@ -29,6 +29,9 @@ import { YieldResolver } from "../../src/resolvers/Yield.sol";
 import { HypercertsModule } from "../../src/modules/Hypercerts.sol";
 import { HypercertMarketplaceAdapter } from "../../src/markets/HypercertMarketplaceAdapter.sol";
 import { GreenGoodsENS } from "../../src/registries/ENS.sol";
+import { GreenGoodsENSReceiver } from "../../src/registries/ENSReceiver.sol";
+import { LocalCCIPRouter } from "../../src/mocks/CCIPRouter.sol";
+import { IENS } from "../../src/interfaces/IENS.sol";
 import { GoodsToken } from "../../src/tokens/Goods.sol";
 import { HatsLib } from "../../src/lib/Hats.sol";
 
@@ -95,6 +98,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     HypercertsModule public hypercertsModule;
     HypercertMarketplaceAdapter public marketplaceAdapter;
     GreenGoodsENS public greenGoodsENS;
+    GreenGoodsENSReceiver public ensReceiver;
     GoodsToken public goodsTokenContract;
     address public guardianAddress;
     address public accountProxyAddress;
@@ -984,8 +988,16 @@ abstract contract DeploymentBase is Test, DeployHelper {
     }
 
     /// @notice Deploy GreenGoodsENS L2 sender and wire to GardenToken
-    /// @dev Gracefully skips if CCIP is not configured for this chain (ccipRouter == address(0))
+    /// @dev Sepolia: deploys both sender + receiver on same chain with LocalCCIPRouter.
+    ///      L2 chains (Arbitrum): deploys sender only, receiver deployed separately on L1.
+    ///      Gracefully skips if CCIP is not configured for this chain (ccipRouter == address(0)).
     function _deployAndWireENS(address owner) internal virtual {
+        // Sepolia: deploy both sender + receiver on same chain with local CCIP router
+        if (block.chainid == 11_155_111) {
+            _deploySepoliaENS(owner);
+            return;
+        }
+
         (address ccipRouter, uint64 ethereumChainSelector) = _getCCIPForChain(block.chainid);
 
         // Skip if CCIP not configured (localhost, chains without ENS support)
@@ -1005,14 +1017,56 @@ abstract contract DeploymentBase is Test, DeployHelper {
         );
 
         // Fund for sponsored claims (passkey users). Default 0.01 ETH, overridable via env.
-        uint256 sponsorFund = _getENSSponsorFund();
-        if (sponsorFund > 0 && address(this).balance >= sponsorFund) {
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool sent,) = address(greenGoodsENS).call{ value: sponsorFund }("");
-            if (!sent) {
-                // Non-blocking — log warning but don't fail deployment
-            }
+        _fundENSSponsor();
+    }
+
+    /// @notice Deploy full ENS stack on Sepolia (sender + receiver + local CCIP router)
+    /// @dev Sepolia has real ENS registry support, but CCIP doesn't support same-chain lanes.
+    ///      LocalCCIPRouter synchronously relays messages from sender → receiver within one tx.
+    ///      Prerequisite: deployer must own greengoods.eth (or ENS_BASE_NODE) on Sepolia ENS.
+    function _deploySepoliaENS(address owner) internal {
+        uint64 chainSelector = 16_015_286_601_757_825_753; // Sepolia CCIP chain selector
+
+        // 1. Deploy local CCIP router (same-chain synchronous relay)
+        LocalCCIPRouter localRouter = new LocalCCIPRouter(chainSelector);
+
+        // 2. Deploy ENS receiver with real Sepolia ENS registry
+        (address ensRegistry, address ensResolver) = _getENSRegistryForChain(11_155_111);
+        bytes32 baseNode = _getENSBaseNode();
+
+        ensReceiver = new GreenGoodsENSReceiver(
+            address(localRouter),
+            chainSelector, // Expected source chain selector (same chain on Sepolia)
+            address(0), // l2Sender — set after deploying sender below
+            ensRegistry,
+            ensResolver,
+            baseNode,
+            owner
+        );
+
+        // Approve receiver as ENS operator (deployer must own the base ENS name on Sepolia)
+        IENS(ensRegistry).setApprovalForAll(address(ensReceiver), true);
+
+        // 3. Deploy ENS sender
+        uint256 protocolHatId = 0;
+        if (HatsLib.isSupported()) {
+            protocolHatId = HatsLib.getProtocolGardenersHatId();
         }
+
+        greenGoodsENS = new GreenGoodsENS(
+            address(localRouter),
+            chainSelector,
+            address(ensReceiver), // L1 receiver is on same chain
+            HatsLib.getHatsProtocol(),
+            protocolHatId,
+            owner
+        );
+
+        // 4. Wire receiver ← sender (completes the bidirectional link)
+        ensReceiver.setL2Sender(address(greenGoodsENS));
+
+        // 5. Fund for sponsored claims
+        _fundENSSponsor();
     }
 
     /// @notice Get ENS sponsor fund amount from env (default 0.01 ETH)
@@ -1024,12 +1078,56 @@ abstract contract DeploymentBase is Test, DeployHelper {
         }
     }
 
+    /// @notice Fund GreenGoodsENS for sponsored claims (passkey users)
+    /// @dev Default 0.01 ETH, overridable via ENS_SPONSOR_FUND env var
+    function _fundENSSponsor() internal {
+        uint256 sponsorFund = _getENSSponsorFund();
+        if (sponsorFund > 0 && address(this).balance >= sponsorFund) {
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool sent,) = address(greenGoodsENS).call{ value: sponsorFund }("");
+            if (!sent) {
+                // Non-blocking — log warning but don't fail deployment
+            }
+        }
+    }
+
     /// @notice Get L1 ENS receiver address from env (default address(0) = wire later)
     function _getENSL1Receiver() internal view virtual returns (address) {
         try vm.envAddress("ENS_L1_RECEIVER") returns (address parsed) {
             return parsed;
         } catch {
             return address(0);
+        }
+    }
+
+    /// @notice Get ENS registry and resolver addresses for a chain
+    /// @dev Must stay in sync with deployments/networks.json ENS config.
+    ///      ENS registry is the same on mainnet and Sepolia. Resolver differs.
+    function _getENSRegistryForChain(uint256 chainId)
+        internal
+        pure
+        virtual
+        returns (address registry, address resolver)
+    {
+        address ensRegistry = 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e;
+
+        if (chainId == 1) {
+            return (ensRegistry, 0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63);
+        } else if (chainId == 11_155_111) {
+            return (ensRegistry, 0x8FADE66B79cC9f707aB26799354482EB93a5B7dD);
+        }
+        // No ENS support on this chain
+        return (address(0), address(0));
+    }
+
+    /// @notice Get ENS base node (namehash of the parent domain, e.g. greengoods.eth)
+    /// @dev Override via ENS_BASE_NODE env var to test with a different domain
+    function _getENSBaseNode() internal view virtual returns (bytes32) {
+        try vm.envBytes32("ENS_BASE_NODE") returns (bytes32 node) {
+            return node;
+        } catch {
+            // namehash("greengoods.eth")
+            return 0x15ee556e39afd119101712c5ac4f1519d9f2f32780d4e1cf42b27fdfa73db841;
         }
     }
 
@@ -1048,7 +1146,8 @@ abstract contract DeploymentBase is Test, DeployHelper {
             // Arbitrum One
             return (0x141fa059441E0ca23ce184B6A78bafD2A517DdE8, ethMainnetSelector);
         } else if (chainId == 11_155_111) {
-            // Sepolia (testnet → testnet, selector points to Sepolia itself for testing)
+            // Sepolia: real CCIP router (used by fork tests for fee estimation).
+            // Deployment uses LocalCCIPRouter instead — see _deploySepoliaENS().
             return (0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59, 16_015_286_601_757_825_753);
         }
         // Celo, localhost, unknown chains: no CCIP support

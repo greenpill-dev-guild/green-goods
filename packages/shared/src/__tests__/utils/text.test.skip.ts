@@ -1,3 +1,5 @@
+// SKIP: #312 — formatAddress function signature changed; tests need updating for new options API
+// Owner: shared / Expiry: 2026-03-17
 import { describe, expect, it } from "vitest";
 import { formatAddress } from "../../utils";
 

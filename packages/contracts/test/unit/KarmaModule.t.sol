@@ -314,22 +314,8 @@ contract KarmaModuleTest is Test {
     function test_createProject_memberOfFailure_doesNotPersistProject() public {
         _setupSupportedChain();
 
-        bytes32 expectedProjectUID =
-            keccak256(abi.encodePacked(block.timestamp, address(module), uint256(1), GAP_PROJECT_SCHEMA_SEPOLIA));
-
-        AttestationRequest memory memberRequest = AttestationRequest({
-            schema: GAP_MEMBEROF_SCHEMA_SEPOLIA,
-            data: AttestationRequestData({
-                recipient: OPERATOR,
-                expirationTime: 0,
-                revocable: true,
-                refUID: expectedProjectUID,
-                data: abi.encode(true),
-                value: 0
-            })
-        });
-
-        vm.mockCallRevert(GAP_ADDRESS, abi.encodeWithSelector(MockGAP.attest.selector, memberRequest), "member failed");
+        // Allow first attest call (project) to succeed, then revert on second (memberOf)
+        mockGAP.setRevertAfterCalls(1);
 
         vm.expectEmit(true, false, false, true);
         emit GAPOperationFailed(GARDEN, "createProject", "MemberOf attestation failed");
@@ -344,24 +330,8 @@ contract KarmaModuleTest is Test {
     function test_createProject_detailsFailure_doesNotPersistProject() public {
         _setupSupportedChain();
 
-        bytes32 expectedProjectUID =
-            keccak256(abi.encodePacked(block.timestamp, address(module), uint256(1), GAP_PROJECT_SCHEMA_SEPOLIA));
-        string memory detailsJson =
-            '{"title":"Garden","description":"Desc","locationOfImpact":"Loc","imageURL":"ipfs://Banner","slug":"garden","type":"project-details"}';
-
-        AttestationRequest memory detailsRequest = AttestationRequest({
-            schema: GAP_DETAILS_SCHEMA_SEPOLIA,
-            data: AttestationRequestData({
-                recipient: GARDEN,
-                expirationTime: 0,
-                revocable: true,
-                refUID: expectedProjectUID,
-                data: abi.encode(detailsJson),
-                value: 0
-            })
-        });
-
-        vm.mockCallRevert(GAP_ADDRESS, abi.encodeWithSelector(MockGAP.attest.selector, detailsRequest), "details failed");
+        // Allow first 2 attest calls (project + memberOf) to succeed, then revert on third (details)
+        mockGAP.setRevertAfterCalls(2);
 
         vm.expectEmit(true, false, false, true);
         emit GAPOperationFailed(GARDEN, "createProject", "Details attestation failed");

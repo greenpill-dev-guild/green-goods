@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mockLoginWithPasskey = vi.fn();
 const mockCreateAccount = vi.fn();
 const mockLoginWithWallet = vi.fn();
+let mockHasStoredCredential = false;
 
 vi.mock("@green-goods/shared", () => ({
   toastService: {
@@ -47,11 +48,12 @@ vi.mock("@green-goods/shared", () => ({
     isAuthenticated: false,
     isReady: true,
     smartAccountAddress: null,
-    hasStoredCredential: false,
+    hasStoredCredential: mockHasStoredCredential,
     error: null,
   }),
   debugError: vi.fn(),
   trackAuthError: vi.fn(),
+  APP_NAME: "Green Goods",
 }));
 
 // Mock Splash component to simplify testing
@@ -162,16 +164,26 @@ describe("Login View", () => {
 describe("Login View - Existing User", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockHasStoredCredential = true;
   });
 
   afterEach(() => {
+    mockHasStoredCredential = false;
     cleanup();
   });
 
-  it("shows auto-login button when user has stored credentials", async () => {
-    // Re-mocking barrel exports with vi.doMock is complex in vitest
-    // since module-level vi.mock is hoisted. Trust the component logic
-    // works based on the unit tests for stored credential detection.
-    expect(true).toBe(true);
+  it("shows Login with Passkey button when user has stored credentials", () => {
+    renderWithRouter();
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Login with Passkey");
+  });
+
+  it("calls loginWithPasskey when primary button clicked for existing user", async () => {
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(mockLoginWithPasskey).toHaveBeenCalled();
   });
 });

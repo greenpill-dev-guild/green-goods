@@ -1032,6 +1032,137 @@ contract YieldResolverTest is Test {
         vm.expectRevert(abi.encodeWithSelector(YieldResolver.NoVaultShares.selector, gardenB, address(vault)));
         yieldSplitter.registerShares(gardenB, address(vault), 50);
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // withdrawEscrowedFractions — Admin Recovery Path (Yield.sol:452-461)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Helper: Create escrow state by splitting 100% to fractions with no conviction pool
+    /// @dev Sets ratio to 100% fractions, threshold to 0, funds vault, and splits.
+    ///      With no conviction pool configured, the entire amount is escrowed.
+    function _createEscrowState(uint256 amount) internal {
+        vm.startPrank(owner);
+        yieldSplitter.setSplitRatio(garden, 0, 10_000, 0); // 100% to fractions
+        yieldSplitter.setMinYieldThreshold(0);
+        vm.stopPrank();
+
+        _fundVaultAndMintShares(amount);
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Sanity: confirm funds are escrowed
+        assertEq(
+            yieldSplitter.getEscrowedFractions(garden, address(weth)),
+            amount,
+            "_createEscrowState: escrow should hold the full amount"
+        );
+    }
+
+    /// @notice Happy path: escrow via splitYield, owner withdraws full amount to treasury
+    function test_withdrawEscrowedFractions_afterEscrow_recoversCorrectly() public {
+        uint256 escrowAmount = 10_000;
+        _createEscrowState(escrowAmount);
+
+        uint256 treasuryBefore = weth.balanceOf(treasury);
+
+        // Expect the EscrowedFractionsWithdrawn event
+        vm.expectEmit(true, true, true, true);
+        emit YieldResolver.EscrowedFractionsWithdrawn(garden, address(weth), escrowAmount, treasury);
+
+        vm.prank(owner);
+        yieldSplitter.withdrawEscrowedFractions(garden, address(weth), escrowAmount, treasury);
+
+        // Treasury received the WETH
+        assertEq(
+            weth.balanceOf(treasury),
+            treasuryBefore + escrowAmount,
+            "Treasury should receive the full escrowed amount"
+        );
+
+        // Escrow mapping is zeroed out
+        assertEq(
+            yieldSplitter.getEscrowedFractions(garden, address(weth)),
+            0,
+            "Escrowed fractions should be 0 after full withdrawal"
+        );
+    }
+
+    /// @notice Partial withdrawal: escrow 10000, withdraw 4000, verify 6000 remaining
+    function test_withdrawEscrowedFractions_partialWithdrawal() public {
+        uint256 escrowAmount = 10_000;
+        uint256 withdrawAmount = 4000;
+        _createEscrowState(escrowAmount);
+
+        uint256 treasuryBefore = weth.balanceOf(treasury);
+
+        vm.expectEmit(true, true, true, true);
+        emit YieldResolver.EscrowedFractionsWithdrawn(garden, address(weth), withdrawAmount, treasury);
+
+        vm.prank(owner);
+        yieldSplitter.withdrawEscrowedFractions(garden, address(weth), withdrawAmount, treasury);
+
+        // Treasury receives only the withdrawn portion
+        assertEq(
+            weth.balanceOf(treasury),
+            treasuryBefore + withdrawAmount,
+            "Treasury should receive only the withdrawn amount"
+        );
+
+        // Remaining escrow is decremented correctly
+        assertEq(
+            yieldSplitter.getEscrowedFractions(garden, address(weth)),
+            escrowAmount - withdrawAmount,
+            "Escrowed fractions should show 6000 remaining"
+        );
+    }
+
+    /// @notice Non-owner cannot call withdrawEscrowedFractions
+    function test_withdrawEscrowedFractions_nonOwner_reverts() public {
+        uint256 escrowAmount = 10_000;
+        _createEscrowState(escrowAmount);
+
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        yieldSplitter.withdrawEscrowedFractions(garden, address(weth), escrowAmount, treasury);
+    }
+
+    /// @notice Revert when no escrow exists for the garden/asset pair
+    function test_withdrawEscrowedFractions_zeroEscrow_reverts() public {
+        // No escrow state created — escrowedFractions[garden][weth] == 0
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(YieldResolver.NoEscrowedFractions.selector, garden, address(weth)));
+        yieldSplitter.withdrawEscrowedFractions(garden, address(weth), 1000, treasury);
+    }
+
+    /// @notice Revert when withdrawal amount exceeds escrowed balance
+    function test_withdrawEscrowedFractions_exceedsBalance_reverts() public {
+        uint256 escrowAmount = 5000;
+        _createEscrowState(escrowAmount);
+
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(YieldResolver.NoEscrowedFractions.selector, garden, address(weth)));
+        yieldSplitter.withdrawEscrowedFractions(garden, address(weth), escrowAmount + 1, treasury);
+    }
+
+    /// @notice Revert on zero garden address
+    function test_withdrawEscrowedFractions_zeroGarden_reverts() public {
+        vm.prank(owner);
+        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        yieldSplitter.withdrawEscrowedFractions(address(0), address(weth), 1000, treasury);
+    }
+
+    /// @notice Revert on zero asset address
+    function test_withdrawEscrowedFractions_zeroAsset_reverts() public {
+        vm.prank(owner);
+        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        yieldSplitter.withdrawEscrowedFractions(garden, address(0), 1000, treasury);
+    }
+
+    /// @notice Revert on zero recipient address
+    function test_withdrawEscrowedFractions_zeroTo_reverts() public {
+        vm.prank(owner);
+        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        yieldSplitter.withdrawEscrowedFractions(garden, address(weth), 1000, address(0));
+    }
 }
 
 /// @title YieldResolverHarness

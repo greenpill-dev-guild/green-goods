@@ -3,11 +3,6 @@
  *
  * Tests for ActionCard, GardenCard, and WorkCard components.
  * Focuses on rendering, props handling, and user interactions.
- *
- * SKIPPED: Tests have module resolution issues with @/ path aliases in mocks.
- * The vi.mock("../../components/Display") path doesn't properly resolve when
- * the tested components use @/components/Display imports.
- * TODO: Fix vitest alias configuration or update mock paths to resolve this.
  */
 
 import { render, screen } from "@testing-library/react";
@@ -16,14 +11,12 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 
-// Mock hooks
-vi.mock("@green-goods/shared/hooks", () => ({
-  useEnsName: vi.fn(() => ({ data: null })),
-}));
-
-vi.mock("@green-goods/shared/utils", () => ({
+// Mock @green-goods/shared barrel — the components import cn, formatAddress,
+// useEnsName, buildGardenMemberSets, getStatusColors, logger, etc. from here.
+vi.mock("@green-goods/shared", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
-  formatAddress: (addr: string, opts?: any) => (opts?.ensName ? opts.ensName : addr?.slice(0, 6)),
+  formatAddress: (addr: string, opts?: any) =>
+    opts?.ensName ? opts.ensName : addr?.slice(0, 6),
   formatFileSize: (size: number) => `${Math.round(size / 1024)}KB`,
   formatRelativeTime: () => "2 hours ago",
   truncateAddress: (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`,
@@ -31,21 +24,59 @@ vi.mock("@green-goods/shared/utils", () => ({
     memberIds: new Set([...gardeners, ...operators]),
     operatorIds: new Set(operators),
   }),
-}));
-
-vi.mock("@green-goods/shared/components", () => ({
+  useEnsName: vi.fn(() => ({ data: null })),
   getStatusColors: (status: string) => ({
     combined: `status-${status}`,
   }),
-  StatusBadge: ({ status, size }: { status: string; size?: string }) =>
+  StatusBadge: ({ status }: { status: string }) =>
     createElement("span", { "data-testid": "status-badge", "data-status": status }, status),
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
 }));
 
-// Mock ImageWithFallback to avoid loading issues
+// Mock @/components/Display — resolves via the @ alias to src/components/Display.
+// ActionCard uses relative ../../Display, GardenCard and WorkCard use @/components/Display.
+vi.mock("@/components/Display", () => ({
+  ImageWithFallback: ({ src, alt, className, ...props }: any) =>
+    createElement("img", { src, alt, className, ...props }),
+}));
+
+// Also mock the relative path that ActionCard uses
 vi.mock("../../components/Display", () => ({
   ImageWithFallback: ({ src, alt, className, ...props }: any) =>
     createElement("img", { src, alt, className, ...props }),
 }));
+
+// Mock @/components/Communication — GardenCard imports Badge from here
+vi.mock("@/components/Communication", () => ({
+  Badge: ({ children, leadingIcon, ...props }: any) =>
+    createElement("span", { "data-testid": "badge", ...props }, leadingIcon, children),
+}));
+
+// Mock tailwind-variants — Card components use tv() for styling
+vi.mock("tailwind-variants", () => ({
+  tv: (config: any) => {
+    return (props: any) => config?.base || "";
+  },
+}));
+
+// Mock @remixicon/react — Card components import various icons
+vi.mock("@remixicon/react", () => {
+  const Icon = (props: any) => createElement("span", { "data-testid": "icon", ...props });
+  return {
+    RiCamera3Line: Icon,
+    RiMapPinFill: Icon,
+    RiMapPinUserFill: Icon,
+    RiGroupFill: Icon,
+    RiImageLine: Icon,
+    RiFileTextLine: Icon,
+    RiRefreshLine: Icon,
+  };
+});
 
 // Mock react-intl
 vi.mock("react-intl", async () => {

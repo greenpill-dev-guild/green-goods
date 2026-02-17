@@ -1,21 +1,32 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen } from "@testing-library/react";
 import React from "react";
+import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Gardens from "@/views/Gardens";
 
-// Mock the shared hooks
+// Mock the shared barrel — Gardens imports from @green-goods/shared directly
 const mockUseGardens = vi.fn();
 const mockUseGardenPermissions = vi.fn();
-vi.mock("@green-goods/shared/hooks", () => ({
+vi.mock("@green-goods/shared", () => ({
   useGardens: () => mockUseGardens(),
   useGardenPermissions: () => mockUseGardenPermissions(),
+  resolveIPFSUrl: (url: string) => url,
+  cn: (...args: any[]) => args.filter(Boolean).join(" "),
 }));
 
-// Mock the shared modules
-vi.mock("@green-goods/shared/modules", () => ({
-  resolveIPFSUrl: (url: string) => url,
-}));
+// Mock @remixicon/react icons used by Gardens and PageHeader
+vi.mock("@remixicon/react", () => {
+  const Icon = (props: any) => React.createElement("span", props);
+  return {
+    RiAddLine: Icon,
+    RiEyeLine: Icon,
+    RiPlantLine: Icon,
+    RiShieldCheckLine: Icon,
+    RiUserLine: Icon,
+    RiVipCrownLine: Icon,
+    RiArrowLeftLine: Icon,
+  };
+});
 
 // Mock react-router-dom Link
 vi.mock("react-router-dom", async () => {
@@ -27,13 +38,24 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+function renderWithIntl(ui: React.ReactElement) {
+  return render(React.createElement(IntlProvider, { locale: "en", messages: {} }, ui));
+}
+
+function buildPermissions(overrides: Record<string, any> = {}) {
+  return {
+    canManageGarden: () => false,
+    isOwnerOfGarden: () => false,
+    isOperatorOfGarden: () => false,
+    isEvaluatorOfGarden: () => false,
+    ...overrides,
+  };
+}
+
 describe("Gardens View", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default mock for garden permissions
-    mockUseGardenPermissions.mockReturnValue({
-      canManageGarden: () => false,
-    });
+    mockUseGardenPermissions.mockReturnValue(buildPermissions());
   });
 
   it("should display loading state while fetching gardens", () => {
@@ -43,7 +65,7 @@ describe("Gardens View", () => {
       error: null,
     });
 
-    render(<Gardens />);
+    renderWithIntl(<Gardens />);
 
     // The component shows skeleton cards during loading, not a specific spinner
     expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
@@ -57,7 +79,7 @@ describe("Gardens View", () => {
       error: new Error("Network error"),
     });
 
-    render(<Gardens />);
+    renderWithIntl(<Gardens />);
 
     expect(screen.getByText(/Network error/)).toBeInTheDocument();
     expect(screen.queryByText("Test Garden")).not.toBeInTheDocument();
@@ -87,7 +109,7 @@ describe("Gardens View", () => {
       error: null,
     });
 
-    render(<Gardens />);
+    renderWithIntl(<Gardens />);
 
     expect(screen.getByText("Admin Garden 1")).toBeInTheDocument();
     expect(screen.getByText("Admin Garden 2")).toBeInTheDocument();
@@ -96,10 +118,14 @@ describe("Gardens View", () => {
   });
 
   it("should display gardens with operator badge for managed gardens", () => {
-    mockUseGardenPermissions.mockReturnValue({
-      canManageGarden: (garden: { id: string }) =>
-        garden.id === "0x2345678901234567890123456789012345678901",
-    });
+    mockUseGardenPermissions.mockReturnValue(
+      buildPermissions({
+        canManageGarden: (garden: { id: string }) =>
+          garden.id === "0x2345678901234567890123456789012345678901",
+        isOperatorOfGarden: (garden: { id: string }) =>
+          garden.id === "0x2345678901234567890123456789012345678901",
+      })
+    );
     mockUseGardens.mockReturnValue({
       data: [
         {
@@ -123,7 +149,7 @@ describe("Gardens View", () => {
       error: null,
     });
 
-    render(<Gardens />);
+    renderWithIntl(<Gardens />);
 
     // Both gardens should be visible (Gardens view shows all gardens, permissions show badge)
     expect(screen.getByText("Admin Garden")).toBeInTheDocument();
@@ -137,7 +163,7 @@ describe("Gardens View", () => {
       error: null,
     });
 
-    render(<Gardens />);
+    renderWithIntl(<Gardens />);
 
     expect(screen.getByText("Create Garden")).toBeInTheDocument();
   });
@@ -149,7 +175,7 @@ describe("Gardens View", () => {
       error: null,
     });
 
-    render(<Gardens />);
+    renderWithIntl(<Gardens />);
 
     const createButton = screen.getByText("Create Garden");
     expect(createButton.closest("a")).toHaveAttribute("href", "/gardens/create");
@@ -162,7 +188,7 @@ describe("Gardens View", () => {
       error: null,
     });
 
-    render(<Gardens />);
+    renderWithIntl(<Gardens />);
 
     expect(screen.getByText("No gardens yet")).toBeInTheDocument();
   });

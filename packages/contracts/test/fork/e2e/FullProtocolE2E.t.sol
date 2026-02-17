@@ -1,18 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { ForkTestBase } from "../helpers/ForkTestBase.sol";
+import { ForkTestBase, IEASBase } from "../helpers/ForkTestBase.sol";
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 import { WorkSchema, WorkApprovalSchema, AssessmentSchema } from "../../../src/Schemas.sol";
 import { GardenToken } from "../../../src/tokens/Garden.sol";
 import { GardenAccount } from "../../../src/accounts/Garden.sol";
 import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
 import { IGardensModule } from "../../../src/interfaces/IGardensModule.sol";
-
-/// @notice Minimal EAS interface for fork tests (avoids IEAS naming conflict with DeploymentBase)
-interface IEASFork {
-    function attest(AttestationRequest calldata request) external payable returns (bytes32);
-}
 
 /// @title FullProtocolE2EForkTest
 /// @notice Fork tests covering the complete protocol lifecycle against real EAS infrastructure.
@@ -82,7 +77,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         });
 
         vm.prank(forkGardener);
-        bytes32 workAttestUID = IEASFork(eas).attest(workRequest);
+        bytes32 workAttestUID = IEASBase(eas).attest(workRequest);
         assertTrue(workAttestUID != bytes32(0), "work attestation UID should be non-zero");
 
         // 7. Approve work via EAS attest (as operator)
@@ -109,7 +104,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         });
 
         vm.prank(forkOperator);
-        bytes32 approvalAttestUID = IEASFork(eas).attest(approvalRequest);
+        bytes32 approvalAttestUID = IEASBase(eas).attest(approvalRequest);
         assertTrue(approvalAttestUID != bytes32(0), "work approval attestation UID should be non-zero");
 
         // 8. Create assessment via EAS attest (as evaluator)
@@ -136,7 +131,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         });
 
         vm.prank(forkEvaluator);
-        bytes32 assessmentAttestUID = IEASFork(eas).attest(assessmentRequest);
+        bytes32 assessmentAttestUID = IEASBase(eas).attest(assessmentRequest);
         assertTrue(assessmentAttestUID != bytes32(0), "assessment attestation UID should be non-zero");
     }
 
@@ -383,5 +378,129 @@ contract FullProtocolE2EForkTest is ForkTestBase {
 
         // Verify: non-member is now a gardener
         assertTrue(gardenAcct.isGardener(forkNonMember), "non-member should be gardener after joining");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test 6: Unauthorized Work Submission (Error Path)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Non-member work attestation reverts on real Sepolia EAS
+    function test_fork_e2e_unauthorizedWorkSubmission() public {
+        if (!_tryChainFork("sepolia")) {
+            emit log("SKIPPED: No Sepolia RPC URL configured");
+            return;
+        }
+
+        _deployFullStackOnFork();
+
+        (address garden, uint256 actionUID) = _setupGardenWithRolesAndAction("Auth Test Garden");
+
+        // forkNonMember has no role — work submission should revert through the resolver
+        WorkSchema memory work = WorkSchema({
+            actionUID: actionUID,
+            title: "Unauthorized Work",
+            feedback: "",
+            metadata: "",
+            media: new string[](0)
+        });
+
+        (address eas,) = _getEASForChain(block.chainid);
+
+        AttestationRequest memory request = AttestationRequest({
+            schema: workSchemaUID,
+            data: AttestationRequestData({
+                recipient: garden,
+                expirationTime: 0,
+                revocable: true,
+                refUID: bytes32(0),
+                data: abi.encode(work),
+                value: 0
+            })
+        });
+
+        vm.prank(forkNonMember);
+        vm.expectRevert();
+        IEASBase(eas).attest(request);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test 7: Cross-Garden Role Isolation (Error Path)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Operator of garden A cannot approve work on garden B
+    function test_fork_e2e_crossGardenRoleIsolation() public {
+        if (!_tryChainFork("sepolia")) {
+            emit log("SKIPPED: No Sepolia RPC URL configured");
+            return;
+        }
+
+        _deployFullStackOnFork();
+
+        // Garden A: forkOperator is operator
+        (, uint256 actionUID_A) = _setupGardenWithRolesAndAction("Garden A");
+
+        // Garden B: separate garden, forkOperator has NO role here
+        address gardenB = _mintTestGarden("Garden B", 0x0F);
+        address gardenB_operator = makeAddr("gardenB_operator");
+        address gardenB_gardener = makeAddr("gardenB_gardener");
+        _grantGardenRole(gardenB, gardenB_operator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(gardenB, gardenB_gardener, IHatsModule.GardenRole.Gardener);
+
+        // Submit work on garden B as its gardener
+        bytes32 workAttUID = _submitWorkAttestation(gardenB_gardener, gardenB, actionUID_A);
+        assertTrue(workAttUID != bytes32(0), "work on garden B should succeed");
+
+        // forkOperator (garden A operator) tries to approve work on garden B — should revert
+        WorkApprovalSchema memory approval = WorkApprovalSchema({
+            actionUID: actionUID_A,
+            workUID: workAttUID,
+            approved: true,
+            feedback: "Cross-garden approval attempt",
+            confidence: 2,
+            verificationMethod: 1,
+            reviewNotesCID: ""
+        });
+
+        (address eas,) = _getEASForChain(block.chainid);
+
+        AttestationRequest memory request = AttestationRequest({
+            schema: workApprovalSchemaUID,
+            data: AttestationRequestData({
+                recipient: gardenB,
+                expirationTime: 0,
+                revocable: true,
+                refUID: workAttUID,
+                data: abi.encode(approval),
+                value: 0
+            })
+        });
+
+        vm.prank(forkOperator); // garden A operator, NOT garden B operator
+        vm.expectRevert();
+        IEASBase(eas).attest(request);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test 8: Double Role Grant Reverts (Error Path)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Granting the same role twice to the same user reverts
+    function test_fork_e2e_doubleRoleGrantReverts() public {
+        if (!_tryChainFork("sepolia")) {
+            emit log("SKIPPED: No Sepolia RPC URL configured");
+            return;
+        }
+
+        _deployFullStackOnFork();
+
+        address garden = _mintTestGarden("Double Grant Garden", 0x0F);
+
+        // First grant should succeed
+        _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
+        assertTrue(hatsModule.isGardenerOf(garden, forkGardener), "first grant should succeed");
+
+        // Second identical grant should revert (Hats Protocol rejects double-mint)
+        vm.expectRevert();
+        _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
     }
 }

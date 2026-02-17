@@ -1,11 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+const { mockCapture, mockIdentify, mockReset } = vi.hoisted(() => ({
+  mockCapture: vi.fn(),
+  mockIdentify: vi.fn(),
+  mockReset: vi.fn(),
+}));
+
 vi.mock("posthog-js", () => ({
   posthog: {
     init: vi.fn(),
-    capture: vi.fn(),
-    identify: vi.fn(),
-    reset: vi.fn(),
+    capture: mockCapture,
+    identify: mockIdentify,
+    reset: mockReset,
     get_distinct_id: vi.fn(() => "mock-ph-id"),
     // Mock config to simulate initialized state
     config: {
@@ -27,31 +33,34 @@ import {
 
 describe("modules/posthog", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   describe("track", () => {
-    it("tracks events (no dev logs by default)", () => {
+    it("does not log to console outside debug mode", () => {
       track("test_event", { foo: "bar" });
       expect(console.log).not.toHaveBeenCalled();
     });
 
-    it("enriches events with context", () => {
+    it("skips posthog.capture in dev mode", () => {
       track("test_event", { custom: "data" });
-      // In dev mode, track() returns early, so we just verify no errors
-      expect(true).toBe(true);
+      expect(mockCapture).not.toHaveBeenCalled();
+    });
+
+    it("does not throw when called with no properties", () => {
+      expect(() => track("bare_event")).not.toThrow();
     });
   });
 
   describe("identify", () => {
-    it("identify works without error", () => {
+    it("skips posthog.identify in dev mode", () => {
       identify("user-1");
-      // In dev mode, this is a no-op
-      expect(true).toBe(true);
+      expect(mockIdentify).not.toHaveBeenCalled();
     });
 
-    it("identifyWithProperties works without error", () => {
+    it("skips posthog.identify with properties in dev mode", () => {
       identifyWithProperties("user-1", {
         auth_mode: "passkey",
         app: "client",
@@ -59,55 +68,53 @@ describe("modules/posthog", () => {
         is_pwa: true,
         locale: "en",
       });
-      expect(true).toBe(true);
+      expect(mockIdentify).not.toHaveBeenCalled();
     });
   });
 
   describe("reset", () => {
-    it("reset works without error", () => {
+    it("skips posthog.reset in dev mode", () => {
       reset();
-      expect(true).toBe(true);
+      expect(mockReset).not.toHaveBeenCalled();
     });
   });
 
   describe("getDistinctId", () => {
-    it("returns a string", () => {
+    it("returns dev-user-id in dev mode", () => {
       const id = getDistinctId();
-      expect(typeof id).toBe("string");
+      expect(id).toBe("dev-user-id");
     });
   });
 
   describe("trackOfflineEvent", () => {
-    it("prefixes event with offline_", () => {
+    it("delegates to track with offline_ prefix without calling posthog", () => {
       trackOfflineEvent("connection_lost", { reason: "network" });
-      // In dev mode, this is a no-op but should not throw
-      expect(true).toBe(true);
+      expect(mockCapture).not.toHaveBeenCalled();
     });
   });
 
   describe("trackSyncPerformance", () => {
-    it("calculates duration from start time", () => {
-      const startTime = Date.now() - 100; // 100ms ago
+    it("delegates to track with sync_ prefix without calling posthog", () => {
+      const startTime = Date.now() - 100;
       trackSyncPerformance("work_upload", startTime, true, { itemCount: 5 });
-      // In dev mode, this is a no-op but should not throw
-      expect(true).toBe(true);
+      expect(mockCapture).not.toHaveBeenCalled();
     });
   });
 
   describe("trackAppLifecycle", () => {
-    it("tracks app_start event", () => {
+    it("delegates app_start to track without calling posthog", () => {
       trackAppLifecycle("app_start");
-      expect(true).toBe(true);
+      expect(mockCapture).not.toHaveBeenCalled();
     });
 
-    it("tracks app_resume event", () => {
+    it("delegates app_resume to track without calling posthog", () => {
       trackAppLifecycle("app_resume");
-      expect(true).toBe(true);
+      expect(mockCapture).not.toHaveBeenCalled();
     });
 
-    it("tracks app_background event", () => {
+    it("delegates app_background to track without calling posthog", () => {
       trackAppLifecycle("app_background");
-      expect(true).toBe(true);
+      expect(mockCapture).not.toHaveBeenCalled();
     });
   });
 });

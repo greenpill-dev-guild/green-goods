@@ -1,22 +1,33 @@
-import { toastService } from "@green-goods/shared";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import React from "react";
+import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import enMessages from "../../../../shared/src/i18n/en.json";
 import Gardens from "@/views/Gardens";
 
-// Mock the shared hooks
+// Mock the shared barrel — Gardens imports from @green-goods/shared directly
 const mockUseGardens = vi.fn();
 const mockUseGardenPermissions = vi.fn();
-vi.mock("@green-goods/shared/hooks", () => ({
+vi.mock("@green-goods/shared", () => ({
   useGardens: () => mockUseGardens(),
   useGardenPermissions: () => mockUseGardenPermissions(),
+  resolveIPFSUrl: (url: string) => url,
+  cn: (...args: any[]) => args.filter(Boolean).join(" "),
 }));
 
-// Mock the shared modules
-vi.mock("@green-goods/shared/modules", () => ({
-  resolveIPFSUrl: (url: string) => url,
-}));
+// Mock @remixicon/react icons used by Gardens and PageHeader
+vi.mock("@remixicon/react", () => {
+  const Icon = (props: any) => React.createElement("span", props);
+  return {
+    RiAddLine: Icon,
+    RiEyeLine: Icon,
+    RiPlantLine: Icon,
+    RiShieldCheckLine: Icon,
+    RiUserLine: Icon,
+    RiVipCrownLine: Icon,
+    RiArrowLeftLine: Icon,
+  };
+});
 
 // Mock react-router-dom
 vi.mock("react-router-dom", async () => {
@@ -28,15 +39,24 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-describe("Unauthorized Actions", () => {
-  const toastErrorSpy = vi.spyOn(toastService, "error").mockImplementation(vi.fn());
+function renderWithIntl(ui: React.ReactElement) {
+  return render(React.createElement(IntlProvider, { locale: "en", messages: enMessages }, ui));
+}
 
+function buildPermissions(overrides: Record<string, any> = {}) {
+  return {
+    canManageGarden: () => false,
+    isOwnerOfGarden: () => false,
+    isOperatorOfGarden: () => false,
+    isEvaluatorOfGarden: () => false,
+    ...overrides,
+  };
+}
+
+describe("Unauthorized Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseGardenPermissions.mockReturnValue({
-      canManageGarden: () => false,
-    });
-    toastErrorSpy.mockClear();
+    mockUseGardenPermissions.mockReturnValue(buildPermissions());
   });
 
   it("should show create garden link for all authenticated users", () => {
@@ -46,7 +66,7 @@ describe("Unauthorized Actions", () => {
       error: null,
     });
 
-    render(<Gardens />);
+    renderWithIntl(<Gardens />);
 
     // Create garden button should always be visible (authorization handled at route level)
     const createButton = screen.getByText("Create Garden");
@@ -61,7 +81,7 @@ describe("Unauthorized Actions", () => {
       error: new Error("Network request failed"),
     });
 
-    render(<Gardens />);
+    renderWithIntl(<Gardens />);
 
     expect(screen.getByText(/Network request failed/)).toBeInTheDocument();
   });
@@ -73,15 +93,13 @@ describe("Unauthorized Actions", () => {
       error: new Error("Failed to fetch"),
     });
 
-    render(<Gardens />);
+    renderWithIntl(<Gardens />);
 
     expect(screen.getByText("Indexer Connection Issue")).toBeInTheDocument();
   });
 
   it("should show appropriate guidance when user has no operator gardens", () => {
-    mockUseGardenPermissions.mockReturnValue({
-      canManageGarden: () => false,
-    });
+    mockUseGardenPermissions.mockReturnValue(buildPermissions());
     mockUseGardens.mockReturnValue({
       data: [
         {
@@ -97,7 +115,7 @@ describe("Unauthorized Actions", () => {
       error: null,
     });
 
-    render(<Gardens />);
+    renderWithIntl(<Gardens />);
 
     // User should see the garden but not have operator badge
     expect(screen.getByText("Test Garden")).toBeInTheDocument();
@@ -105,9 +123,12 @@ describe("Unauthorized Actions", () => {
   });
 
   it("should show operator badge when user can manage garden", () => {
-    mockUseGardenPermissions.mockReturnValue({
-      canManageGarden: () => true,
-    });
+    mockUseGardenPermissions.mockReturnValue(
+      buildPermissions({
+        canManageGarden: () => true,
+        isOperatorOfGarden: () => true,
+      })
+    );
     mockUseGardens.mockReturnValue({
       data: [
         {
@@ -123,7 +144,7 @@ describe("Unauthorized Actions", () => {
       error: null,
     });
 
-    render(<Gardens />);
+    renderWithIntl(<Gardens />);
 
     expect(screen.getByText("My Garden")).toBeInTheDocument();
     expect(screen.getAllByText("Operator").length).toBeGreaterThan(0);
