@@ -15,7 +15,8 @@ import {
   type Platform,
 } from "@green-goods/shared";
 
-import { type LoadingState, Splash } from "@/components/Layout";
+import { Splash, type LoadingState } from "@/components/Layout";
+import { LoadingSplash } from "@/views/Login/components/LoadingSplash";
 
 /** Get the browser guidance label based on scenario and platform */
 function getBrowserGuidanceLabel(
@@ -258,9 +259,9 @@ export function Login() {
 
   // Render logic
   if (isNestedRoute) return <Outlet />;
-  if (!isReady) return <Splash loadingState="welcome" />;
+  if (!isReady) return <LoadingSplash loadingState="welcome" />;
   if (isAuthenticated) return <Navigate to={redirectTo} replace />;
-  if (loadingState) return <Splash loadingState={loadingState} message={loadingMessage} />;
+  if (loadingState) return <LoadingSplash loadingState={loadingState} message={loadingMessage} />;
 
   // Determine primary action based on whether user has existing credential
   const primaryAction = hasExistingAccount ? handlePasskeyLogin : handleCreateAccount;
