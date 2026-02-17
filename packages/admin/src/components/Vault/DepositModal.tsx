@@ -4,6 +4,7 @@ import {
   AssetSelector,
   formatTokenAmount,
   getVaultAssetDecimals,
+  getVaultAssetSymbol,
   validateDecimalInput,
   useUser,
   useDebouncedValue,
@@ -12,10 +13,23 @@ import {
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiLoader4Line } from "@remixicon/react";
-import { useBalance } from "wagmi";
+import { useBalance, useEstimateGas } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { formatUnits, parseUnits } from "viem";
+import { encodeFunctionData, formatUnits, parseUnits } from "viem";
+
+const VAULT_DEPOSIT_ABI = [
+  {
+    type: "function",
+    name: "deposit",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "assets", type: "uint256" },
+      { name: "receiver", type: "address" },
+    ],
+    outputs: [{ name: "shares", type: "uint256" }],
+  },
+] as const;
 
 interface DepositModalProps {
   isOpen: boolean;
@@ -51,6 +65,11 @@ export function DepositModal({
     [selectedAsset, vaults]
   );
 
+  const assetSymbol = useMemo(
+    () => (selectedVault ? getVaultAssetSymbol(selectedVault.asset, selectedVault.chainId) : ""),
+    [selectedVault]
+  );
+
   const { data: balance } = useBalance({
     address: primaryAddress as Address | undefined,
     token: selectedVault?.asset as Address | undefined,
@@ -70,6 +89,19 @@ export function DepositModal({
     }
   }, [amount, decimals, inputError]);
 
+  const minAmountError = useMemo(() => {
+    if (!amount.trim() || inputError) return null;
+    return amountBigInt <= 0n ? "app.treasury.amountMustBeGreaterThanZero" : null;
+  }, [amount, amountBigInt, inputError]);
+
+  const insufficientBalanceError = useMemo(() => {
+    if (!amount.trim() || inputError || !balance) return null;
+    return amountBigInt > balance.value ? "app.treasury.insufficientBalance" : null;
+  }, [amount, amountBigInt, balance, inputError]);
+
+  const amountError = inputError ?? minAmountError ?? insufficientBalanceError;
+  const hasBlockingError = Boolean(amountError);
+
   const debouncedAmount = useDebouncedValue(amountBigInt, 300);
 
   const { preview } = useVaultPreview({
@@ -79,8 +111,26 @@ export function DepositModal({
     enabled: isOpen && Boolean(selectedVault && debouncedAmount > 0n),
   });
 
+  const depositData = useMemo(() => {
+    if (!selectedVault || !primaryAddress || amountBigInt <= 0n || hasBlockingError) {
+      return undefined;
+    }
+
+    return encodeFunctionData({
+      abi: VAULT_DEPOSIT_ABI,
+      functionName: "deposit",
+      args: [amountBigInt, primaryAddress as Address],
+    });
+  }, [amountBigInt, hasBlockingError, primaryAddress, selectedVault]);
+
+  const { data: estimatedGas } = useEstimateGas({
+    to: selectedVault?.vaultAddress as Address | undefined,
+    data: depositData,
+    query: { enabled: isOpen && Boolean(selectedVault && depositData) },
+  });
+
   const onSubmit = () => {
-    if (!selectedVault || !primaryAddress || amountBigInt <= 0n) return;
+    if (!selectedVault || !primaryAddress || amountBigInt <= 0n || hasBlockingError) return;
 
     depositMutation.mutate(
       {
@@ -134,9 +184,9 @@ export function DepositModal({
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
                   placeholder="0.0"
-                  aria-invalid={Boolean(inputError)}
+                  aria-invalid={Boolean(amountError)}
                   className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
-                    inputError
+                    amountError
                       ? "border-error-base focus:border-error-base"
                       : "border-stroke-sub bg-bg-white focus:border-primary-base"
                   }`}
@@ -152,13 +202,13 @@ export function DepositModal({
                   {formatMessage({ id: "app.treasury.max" })}
                 </button>
               </div>
-              {inputError && (
+              {amountError && (
                 <p className="text-xs text-error-dark" role="alert">
-                  {formatMessage({ id: inputError })}
+                  {formatMessage({ id: amountError })}
                 </p>
               )}
               <p className="text-xs text-text-soft">
-                {formatMessage({ id: "app.treasury.walletBalance" })}:{" "}
+                {formatMessage({ id: "app.treasury.walletBalance" })}: {" "}
                 {balance
                   ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
                   : "--"}
@@ -167,11 +217,23 @@ export function DepositModal({
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>
-                {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
+                {formatMessage({ id: "app.treasury.estimatedShares" })}: {" "}
                 <span className="font-medium text-text-strong">
-                  {preview ? formatTokenAmount(preview.previewShares, 18) : "--"}
+                  {preview ? `${formatTokenAmount(preview.previewShares, 18)} shares` : "--"}
                 </span>
               </p>
+              <p>
+                {formatMessage({ id: "app.treasury.estimatedGas" })}: {" "}
+                <span className="font-medium text-text-strong">
+                  {estimatedGas ? `${formatTokenAmount(estimatedGas)} ETH` : "--"}
+                </span>
+              </p>
+              {assetSymbol && (
+                <p>
+                  {formatMessage({ id: "app.treasury.amountDenomination" })}: {" "}
+                  <span className="font-medium text-text-strong">{assetSymbol}</span>
+                </p>
+              )}
             </div>
 
             <button
@@ -181,7 +243,7 @@ export function DepositModal({
                 !selectedVault ||
                 !primaryAddress ||
                 amountBigInt <= 0n ||
-                amountBigInt > (balance?.value ?? 0n) ||
+                hasBlockingError ||
                 depositMutation.isPending
               }
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
