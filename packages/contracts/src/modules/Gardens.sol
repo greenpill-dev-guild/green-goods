@@ -8,6 +8,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { IGardensModule } from "../interfaces/IGardensModule.sol";
+import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import {
     IRegistryFactory,
@@ -191,7 +192,6 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
 
         // Store weight scheme immediately (even if later steps fail)
         gardenWeightSchemes[garden] = scheme;
-        gardenInitialized[garden] = true;
 
         // Step 1: Create community (independent, no deps on registry/pools)
         community = _createCommunity(garden);
@@ -199,27 +199,28 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
             gardenCommunities[garden] = community;
         }
 
-        // Step 2: Register power sources in unified registry (needs hats, NOT community)
-        _registerGardenPower(garden, scheme);
-
-        // Step 3: Seed GOODS treasury for member staking
-        if (address(goodsToken) != address(0) && community != address(0)) {
-            uint256 treasuryAmount = stakeAmountPerMember * INITIAL_MEMBER_SLOTS;
-            // solhint-disable-next-line no-empty-blocks
-            try IGoodsToken(address(goodsToken)).mint(garden, treasuryAmount) {
-                emit GardenTreasurySeeded(garden, treasuryAmount);
-            } catch {
-                // Non-blocking — garden works without GOODS treasury
-            }
-        }
-
-        // Step 4: Attempt pool creation (separate try/catch from community creation)
-        // Uses self-call pattern to enable try/catch on internal logic.
-        // If this fails, garden still initializes — operators can call createGardenPools() later.
         if (community != address(0)) {
+            gardenInitialized[garden] = true;
+
+            // Step 2: Register power sources in unified registry
+            _registerGardenPower(garden, scheme);
+
+            // Step 3: Seed GOODS treasury for member staking
+            if (address(goodsToken) != address(0)) {
+                uint256 treasuryAmount = stakeAmountPerMember * INITIAL_MEMBER_SLOTS;
+                // solhint-disable-next-line no-empty-blocks
+                try IGoodsToken(address(goodsToken)).mint(garden, treasuryAmount) {
+                    emit GardenTreasurySeeded(garden, treasuryAmount);
+                } catch {
+                    // Non-blocking — garden works without GOODS treasury
+                }
+            }
+
+            // Step 4: Attempt pool creation (separate try/catch from community creation)
+            // Uses self-call pattern to enable try/catch on internal logic.
+            // If this fails, garden still initializes — operators can call createGardenPools() later.
             // solhint-disable-next-line no-empty-blocks
-            try this.attemptPoolCreation(garden, community, address(powerRegistry)) returns (address[] memory createdPools)
-            {
+            try this.attemptPoolCreation(garden, community, address(powerRegistry)) returns (address[] memory createdPools) {
                 pools = createdPools;
                 // Inner try/catch in _createPool may catch reverts gracefully (returning empty array)
                 if (pools.length == 0) {
@@ -230,6 +231,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
                 emit GardenPartiallyInitialized(garden, true, false);
             }
         } else {
+            gardenInitialized[garden] = false;
             pools = new address[](0);
             emit GardenPartiallyInitialized(garden, false, false);
         }
@@ -546,7 +548,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
             _feeReceiver: address(0),
             _metadata: Metadata({ protocol: 1, pointer: "" }),
             _councilSafe: payable(garden), // Garden account (TBA) acts as council Safe
-            _communityName: "Green Goods Community",
+            _communityName: _communityNameForGarden(garden),
             _isKickEnabled: false,
             covenantIpfsHash: ""
         });
@@ -560,6 +562,18 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         } catch {
             emit CommunityCreationFailed(garden, "Community creation failed");
         }
+    }
+
+
+    function _communityNameForGarden(address garden) internal view returns (string memory) {
+        string memory gardenName = "Garden";
+        // solhint-disable-next-line no-empty-blocks
+        try IGardenAccount(garden).name() returns (string memory name) {
+            if (bytes(name).length > 0) {
+                gardenName = name;
+            }
+        } catch { }
+        return string.concat(gardenName, " Community");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

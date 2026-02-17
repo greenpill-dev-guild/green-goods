@@ -102,6 +102,14 @@ contract UnifiedPowerRegistry is IVotingPowerRegistry, OwnableUpgradeable, UUPSU
                 revert HatsProtocolRequired();
             }
             gardenSources[garden].push(sources[i]);
+            emit PowerSourceRegistered(
+                garden,
+                sources[i].token,
+                uint8(sources[i].nftType),
+                sources[i].weight,
+                sources[i].tokenId,
+                sources[i].hatId
+            );
         }
     }
 
@@ -132,6 +140,7 @@ contract UnifiedPowerRegistry is IVotingPowerRegistry, OwnableUpgradeable, UUPSU
         // Clear garden sources
         delete gardenSources[garden];
 
+        emit PowerSourceDeregistered(garden);
         emit GardenDeregistered(garden, poolsCleared);
     }
 
@@ -185,6 +194,16 @@ contract UnifiedPowerRegistry is IVotingPowerRegistry, OwnableUpgradeable, UUPSU
         return this.getMemberPowerInStrategy(_member, msg.sender) > 0;
     }
 
+
+    /// @notice Emit conviction allocation updates for indexed pools
+    /// @dev Callable by GardensModule as an integration hook from signal pool allocators.
+    function emitConvictionAllocated(address member, address pool, uint256 proposalId, uint256 amount)
+        external
+        onlyGardensModule
+    {
+        emit ConvictionAllocated(member, pool, proposalId, amount);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // View Helpers
     // ═══════════════════════════════════════════════════════════════════════════
@@ -214,6 +233,16 @@ contract UnifiedPowerRegistry is IVotingPowerRegistry, OwnableUpgradeable, UUPSU
     // ═══════════════════════════════════════════════════════════════════════════
 
     event ConfigUpdated(string indexed key, address indexed oldValue, address indexed newValue);
+    event PowerSourceRegistered(
+        address indexed garden,
+        address indexed token,
+        uint8 nftType,
+        uint256 weight,
+        uint256 tokenId,
+        uint256 hatId
+    );
+    event PowerSourceDeregistered(address indexed garden);
+    event ConvictionAllocated(address indexed member, address indexed pool, uint256 indexed proposalId, uint256 amount);
     event GardenDeregistered(address indexed garden, uint256 poolsCleared);
 
     // ═══════════════════════════════════════════════════════════════════════════

@@ -55,6 +55,12 @@ contracts:
       - event: GardenPowerRegistered(address indexed garden, uint8 weightScheme, uint256 sourceCount)
       - event: GoodsAirdropped(address indexed garden, uint256 totalAmount)
       - event: GardenTreasurySeeded(address indexed garden, uint256 amount)
+  - name: UnifiedPowerRegistry
+    handler: src/EventHandlers.ts
+    events:
+      - event: PowerSourceRegistered(address indexed garden, address indexed token, uint8 nftType, uint256 weight, uint256 tokenId, uint256 hatId)
+      - event: PowerSourceDeregistered(address indexed garden)
+      - event: ConvictionAllocated(address indexed member, address indexed pool, uint256 indexed proposalId, uint256 amount)
   - name: YieldSplitter
     handler: src/EventHandlers.ts
     events:
@@ -98,6 +104,8 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: GardensModule
         address: "0x0000000000000000000000000000000000000000"
+      - name: UnifiedPowerRegistry
+        address: "0x0000000000000000000000000000000000000000"
       - name: YieldSplitter
         address: "0x0000000000000000000000000000000000000000"
       - name: CookieJarModule
@@ -123,6 +131,8 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: GardensModule
         address: "0x0000000000000000000000000000000000000000"
+      - name: UnifiedPowerRegistry
+        address: "0x0000000000000000000000000000000000000000"
       - name: YieldSplitter
         address: "0x0000000000000000000000000000000000000000"
       - name: CookieJarModule
@@ -147,6 +157,8 @@ networks:
       - name: OctantVault
         address: "0x0000000000000000000000000000000000000000"
       - name: GardensModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: UnifiedPowerRegistry
         address: "0x0000000000000000000000000000000000000000"
       - name: YieldSplitter
         address: "0x0000000000000000000000000000000000000000"

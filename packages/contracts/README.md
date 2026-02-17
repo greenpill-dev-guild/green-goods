@@ -810,3 +810,26 @@ echo $CELO_RPC_URL
 - 📝 [Schema Definitions](./config/schemas.json) — EAS schema configuration
 - 🌐 [Network Configuration](./deployments/networks.json) — Multi-chain settings
 - 🏗️ [Action Definitions](./config/actions.json) — Core garden actions
+
+## GardensModule Partial Initialization Recovery
+
+`GardensModule.onGardenMinted()` now marks a garden as initialized only after community creation succeeds. If community creation or signal-pool creation fails, operators can recover without re-minting the garden.
+
+### Recovery Flow
+
+1. **Diagnose state**
+   - `isGardenInitialized(garden)`
+   - `getGardenCommunity(garden)`
+   - `getGardenSignalPools(garden)`
+2. **Community missing** (`getGardenCommunity(garden) == address(0)`)
+   - Owner calls `retryCreateCommunity(garden)`.
+3. **Community exists but pools missing** (`getGardenSignalPools(garden).length == 0`)
+   - Owner calls `retryCreatePools(garden)`.
+4. **State desynced or unrecoverable**
+   - Owner calls `resetGardenInitialization(garden)` to clear local module state and deregister power sources.
+   - Re-run initialization via `onGardenMinted()` from `GardenToken` mint flow.
+
+### Notes
+
+- `resetGardenInitialization()` is owner-only and intentionally removes garden community/pool pointers before re-initialization.
+- Power-registry cleanup is attempted with try/catch so local reset still succeeds even if external deregistration fails.

@@ -823,8 +823,8 @@ contract GardensModuleTest is Test {
         assertEq(community, address(0), "Community should be zero when factory absent");
         // No pools
         assertEq(pools.length, 0, "No pools without community");
-        // Garden should still be initialized
-        assertTrue(module2.isGardenInitialized(garden1), "Garden should still be initialized");
+        // Garden remains uninitialized when community creation fails
+        assertFalse(module2.isGardenInitialized(garden1), "Garden should remain uninitialized without a community");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
