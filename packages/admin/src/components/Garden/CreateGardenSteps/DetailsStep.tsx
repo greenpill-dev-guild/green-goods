@@ -18,6 +18,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { isAddress } from "viem";
 import { FileUploadField } from "../../FileUploadField";
 
+type DetailField = "name" | "slug" | "description" | "location" | "communityToken";
+
 interface DetailsStepProps {
   showValidation: boolean;
 }
@@ -28,6 +30,13 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [bannerUploadProgress, setBannerUploadProgress] = useState(0);
+  const [touchedFields, setTouchedFields] = useState<Record<DetailField, boolean>>({
+    name: false,
+    slug: false,
+    description: false,
+    location: false,
+    communityToken: false,
+  });
 
   // ENS resolution for community token
   const trimmedCommunityToken = form.communityToken.trim();
@@ -153,7 +162,11 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
     setField("bannerImage", "");
   };
 
-  const showDetailsErrors = showValidation;
+  const handleFieldBlur = (field: DetailField) => {
+    setTouchedFields((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const showFieldError = (field: DetailField) => showValidation || touchedFields[field];
 
   return (
     <div className="space-y-3">
@@ -164,10 +177,11 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             <input
               value={form.name}
               onChange={(event) => setField("name", event.target.value)}
+              onBlur={() => handleFieldBlur("name")}
               placeholder="eg. Rio rainforest lab"
               className={cn(
                 "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
-                showDetailsErrors &&
+                showFieldError("name") &&
                   detailsErrors.name &&
                   "border-error-base focus:border-error-base focus:ring-error-lighter"
               )}
@@ -175,7 +189,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           </div>
           {/* Always render to reserve space and prevent layout shift */}
           <span className="block min-h-[1.25rem] text-xs text-error-base">
-            {showDetailsErrors && detailsErrors.name ? detailsErrors.name : "\u00A0"}
+            {showFieldError("name") && detailsErrors.name ? detailsErrors.name : "\u00A0"}
           </span>
         </label>
         <label className="space-y-0.5 text-sm">
@@ -184,10 +198,11 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             <input
               value={form.location}
               onChange={(event) => setField("location", event.target.value)}
+              onBlur={() => handleFieldBlur("location")}
               placeholder="City, country or coordinates"
               className={cn(
                 "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
-                showDetailsErrors &&
+                showFieldError("location") &&
                   detailsErrors.location &&
                   "border-error-base focus:border-error-base focus:ring-error-lighter"
               )}
@@ -195,7 +210,9 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           </div>
           {/* Always render to reserve space and prevent layout shift */}
           <span className="block min-h-[1.25rem] text-xs text-error-base">
-            {showDetailsErrors && detailsErrors.location ? detailsErrors.location : "\u00A0"}
+            {showFieldError("location") && detailsErrors.location
+              ? detailsErrors.location
+              : "\u00A0"}
           </span>
         </label>
       </div>
@@ -209,6 +226,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
                 slugManuallyEdited.current = true;
                 setField("slug", event.target.value.toLowerCase());
               }}
+              onBlur={() => handleFieldBlur("slug")}
               placeholder="eg. rio-rainforest-lab"
               inputMode="text"
               autoCapitalize="none"
@@ -216,7 +234,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
               spellCheck={false}
               className={cn(
                 "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 pr-10 text-sm font-mono text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
-                showDetailsErrors &&
+                showFieldError("slug") &&
                   detailsErrors.slug &&
                   "border-error-base focus:border-error-base focus:ring-error-lighter",
                 slugValidation.valid &&
@@ -252,7 +270,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         )}
         {/* Always render to reserve space and prevent layout shift */}
         <span className="block min-h-[1.25rem] text-xs text-error-base">
-          {showDetailsErrors && detailsErrors.slug ? detailsErrors.slug : "\u00A0"}
+          {showFieldError("slug") && detailsErrors.slug ? detailsErrors.slug : "\u00A0"}
         </span>
       </label>
       <label className="space-y-0.5 text-sm">
@@ -261,11 +279,12 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           <textarea
             value={form.description}
             onChange={(event) => setField("description", event.target.value)}
+            onBlur={() => handleFieldBlur("description")}
             placeholder="Share the story, mission and unique traits of the garden."
             rows={3}
             className={cn(
               "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
-              showDetailsErrors &&
+              showFieldError("description") &&
                 detailsErrors.description &&
                 "border-error-base focus:border-error-base focus:ring-error-lighter"
             )}
@@ -273,7 +292,9 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         </div>
         {/* Always render to reserve space and prevent layout shift */}
         <span className="block min-h-[1.25rem] text-xs text-error-base">
-          {showDetailsErrors && detailsErrors.description ? detailsErrors.description : "\u00A0"}
+          {showFieldError("description") && detailsErrors.description
+            ? detailsErrors.description
+            : "\u00A0"}
         </span>
       </label>
       <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-3">
@@ -283,10 +304,11 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             <input
               value={form.communityToken}
               onChange={(event) => setField("communityToken", event.target.value)}
+              onBlur={() => handleFieldBlur("communityToken")}
               placeholder="0x... or token.eth"
               className={cn(
                 "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm font-mono text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
-                showDetailsErrors &&
+                showFieldError("communityToken") &&
                   detailsErrors.communityToken &&
                   "border-error-base focus:border-error-base focus:ring-error-lighter"
               )}
@@ -306,7 +328,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           )}
           {/* Always render to reserve space and prevent layout shift */}
           <span className="block min-h-[1.25rem] text-xs text-error-base">
-            {showDetailsErrors && detailsErrors.communityToken
+            {showFieldError("communityToken") && detailsErrors.communityToken
               ? detailsErrors.communityToken
               : "\u00A0"}
           </span>
