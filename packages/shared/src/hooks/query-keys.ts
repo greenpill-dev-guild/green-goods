@@ -6,6 +6,17 @@
 import type { Address } from "viem";
 import type { AttestationFilters } from "../types/hypercerts";
 
+const serializeAttestationFilters = (filters?: AttestationFilters): string => {
+  if (!filters) return "";
+
+  return JSON.stringify({
+    status: filters.status ? [...filters.status].sort() : undefined,
+    domain: filters.domain ? [...filters.domain].sort() : undefined,
+    dateRange: filters.dateRange ?? undefined,
+    gardenerAddress: filters.gardenerAddress ? filters.gardenerAddress.toLowerCase() : undefined,
+  });
+};
+
 // ============================================
 // Stale Time Constants (in milliseconds)
 // ============================================
@@ -263,7 +274,13 @@ export const queryKeys = {
   hypercerts: {
     all: ["greengoods", "hypercerts"] as const,
     attestations: (gardenId?: string, filters?: AttestationFilters) =>
-      ["greengoods", "hypercerts", "attestations", gardenId, JSON.stringify(filters)] as const,
+      [
+        "greengoods",
+        "hypercerts",
+        "attestations",
+        gardenId,
+        serializeAttestationFilters(filters),
+      ] as const,
     list: (gardenId?: string, status?: string) =>
       ["greengoods", "hypercerts", "list", gardenId, status] as const,
     detail: (hypercertId?: string) => ["greengoods", "hypercerts", "detail", hypercertId] as const,

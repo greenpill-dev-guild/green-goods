@@ -18,7 +18,7 @@ import {
 import { useState } from "react";
 
 export default function Deployment() {
-  const { selectedChainId } = useAdminStore();
+  const selectedChainId = useAdminStore((s) => s.selectedChainId);
   const permissions = useDeploymentRegistry();
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentResult, setDeploymentResult] = useState<string>("");

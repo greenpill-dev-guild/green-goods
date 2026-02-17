@@ -41,7 +41,55 @@ Enable Garden treasuries to deposit into yield-generating vaults with yield rout
 - Priority: High
 - Estimated Effort: 8 weeks
 
+
 ---
+
+### [ENS Integration](/specs/ens)
+
+**Status:** 📋 Planned
+
+Garden and gardener ENS identity management, including registration status and operator flows.
+
+- Feature Spec: GG-FEAT-008
+- Technical Spec: GG-TECH-008
+- Priority: Medium
+
+---
+
+### [Cookie Jar](/specs/cookie-jar)
+
+**Status:** 📋 Planned
+
+Allowance-based micro-disbursement integration for member claims.
+
+- Feature Spec: GG-FEAT-009
+- Technical Spec: GG-TECH-009
+- Priority: High
+
+---
+
+### [Yield Splitting](/specs/yield-splitting)
+
+**Status:** 📋 Planned
+
+Protocol-level yield distribution routing across treasury and integration targets.
+
+- Feature Spec: GG-FEAT-010
+- Technical Spec: GG-TECH-010
+- Priority: High
+
+---
+
+### [Juicebox Routing](/specs/juicebox)
+
+**Status:** 📋 Planned
+
+Route configured yield slices into Juicebox projects with auditable payment records.
+
+- Feature Spec: GG-FEAT-011
+- Technical Spec: GG-TECH-011
+- Priority: Medium
+
 
 ### Gardens Conviction Voting
 

@@ -63,7 +63,9 @@ const Home: React.FC = () => {
   const [isWalletDrawerOpen, setIsWalletDrawerOpen] = useState(false);
 
   // UI state from store
-  const { isGardenFilterOpen, openGardenFilter, closeGardenFilter } = useUIStore();
+  const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
+  const openGardenFilter = useUIStore((s) => s.openGardenFilter);
+  const closeGardenFilter = useUIStore((s) => s.closeGardenFilter);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();

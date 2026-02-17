@@ -2,7 +2,7 @@
 pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
-import { GreenGoodsENS, NoWithdrawableBalance } from "../../src/registries/ENS.sol";
+import { GreenGoodsENS, NoWithdrawableBalance, InvalidCooldown } from "../../src/registries/ENS.sol";
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 
 /// @dev Mock CCIP Router that tracks sent messages
@@ -83,12 +83,15 @@ contract GreenGoodsENSTest is Test {
     event NameReleaseSent(bytes32 indexed messageId, string slug, address indexed previousOwner);
     event AuthorizedCallerUpdated(address indexed caller, bool authorized);
     event RefundFailed(address indexed recipient, uint256 amount);
+    event NameChangeCooldownUpdated(uint256 oldCooldown, uint256 newCooldown);
 
     function setUp() public {
         router = new MockCCIPRouter(MOCK_FEE);
         hats = new MockHats();
 
         ens = new GreenGoodsENS(address(router), ETH_CHAIN_SELECTOR, l1Receiver, address(hats), PROTOCOL_HAT_ID, owner);
+
+        assertEq(ens.nameChangeCooldown(), 30 days, "default cooldown should be 30 days");
 
         // Set gardenToken as authorized caller
         vm.prank(owner);
@@ -345,7 +348,7 @@ contract GreenGoodsENSTest is Test {
         assertEq(ens.available("alice"), false);
 
         // After cooldown, slug is available
-        vm.warp(block.timestamp + 30 days + 1);
+        vm.warp(block.timestamp + ens.nameChangeCooldown() + 1);
         assertEq(ens.available("alice"), true);
     }
 
@@ -363,6 +366,42 @@ contract GreenGoodsENSTest is Test {
         vm.prank(user2);
         vm.expectRevert(abi.encodeWithSignature("NameInCooldown()"));
         ens.claimName{ value: MOCK_FEE }("alice");
+    }
+
+    function test_SetNameChangeCooldown_OnlyOwner() public {
+        vm.prank(user1);
+        vm.expectRevert("Ownable: caller is not the owner");
+        ens.setNameChangeCooldown(7 days);
+    }
+
+    function test_SetNameChangeCooldown_ZeroReverts() public {
+        vm.prank(owner);
+        vm.expectRevert(InvalidCooldown.selector);
+        ens.setNameChangeCooldown(0);
+    }
+
+    function test_SetNameChangeCooldown_UpdatesValueAndEmits() public {
+        vm.prank(owner);
+        vm.expectEmit(false, false, false, true);
+        emit NameChangeCooldownUpdated(30 days, 7 days);
+        ens.setNameChangeCooldown(7 days);
+
+        assertEq(ens.nameChangeCooldown(), 7 days);
+    }
+
+    function test_ReleaseName_UsesUpdatedCooldown() public {
+        vm.prank(owner);
+        ens.setNameChangeCooldown(1 days);
+
+        vm.deal(user1, 2 ether);
+        vm.prank(user1);
+        ens.claimName{ value: MOCK_FEE }("alice");
+
+        vm.prank(user1);
+        ens.releaseName{ value: MOCK_FEE }();
+
+        vm.warp(block.timestamp + 1 days + 1);
+        assertTrue(ens.available("alice"), "name should be available after updated cooldown");
     }
 
     // ═══════════════════════════════════════════════════════

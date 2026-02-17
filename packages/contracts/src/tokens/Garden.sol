@@ -32,6 +32,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     ICookieJarModule public cookieJarModule;
     IGreenGoodsENS public ensModule;
 
+    /// @notice Refund credits for failed ENS registrations, claimable by minter
+    mapping(address minter => uint256 amount) public failedENSRefunds;
+
+    /// @notice Total ETH reserved for pending ENS refund claims
+    uint256 public totalPendingENSRefunds;
+
     /// @notice Transfer restriction mode for garden NFTs
     enum TransferRestriction {
         Unrestricted,
@@ -44,12 +50,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 40 slots (50 total - 10 used: _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule,
-     * octantModule, gardensModule, actionRegistry, cookieJarModule, ensModule, transferRestriction)
-     * Note: _GARDEN_ACCOUNT_IMPLEMENTATION is immutable (not in storage)
+     * Reserves 38 slots (50 total - 12 used: _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule,
+     * octantModule, gardensModule, actionRegistry, cookieJarModule, ensModule, failedENSRefunds,
+     * totalPendingENSRefunds, transferRestriction)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[40] private __gap;
+    uint256[38] private __gap;
 
     /// @notice Emitted when a new Garden is minted.
     /// @param tokenId The unique identifier of the minted Garden token.
@@ -84,6 +90,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Emitted when the ENS module address is updated.
     event ENSModuleUpdated(address indexed oldModule, address indexed newModule);
+
+    /// @notice Emitted when an ENS registration refund is queued for manual claim
+    event ENSRegistrationRefundQueued(address indexed minter, uint256 amount);
+
+    /// @notice Emitted when a minter claims previously queued ENS registration refunds
+    event ENSRegistrationRefundClaimed(address indexed minter, uint256 amount);
 
     /// @notice Configuration for batch garden minting (Gas Optimized)
     struct GardenConfig {
@@ -123,6 +135,10 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     error TransfersLocked();
     /// @notice Error thrown when transfers are restricted to owner only
     error TransfersRestricted();
+    /// @notice Error thrown when ENS refund claim is requested without a balance
+    error NoENSRefundAvailable();
+    /// @notice Error thrown when ENS refund transfer fails
+    error ENSRefundTransferFailed();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     /// @param gardenAccountImplementation The address of the Garden account implementation.
@@ -377,6 +393,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
                 // Success handled by ENS module events
             } catch {
                 // Non-blocking — garden mint MUST NOT revert
+                // Keep user funds recoverable if ENS registration failed.
+                if (msg.value > 0) {
+                    failedENSRefunds[_msgSender()] += msg.value;
+                    totalPendingENSRefunds += msg.value;
+                    emit ENSRegistrationRefundQueued(_msgSender(), msg.value);
+                }
             }
         }
 
@@ -393,6 +415,20 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         });
 
         IGardenAccount(gardenAccount).initialize(params);
+    }
+
+    /// @notice Claim queued refund from failed ENS registration attempts
+    function claimENSRefund() external {
+        uint256 amount = failedENSRefunds[_msgSender()];
+        if (amount == 0) revert NoENSRefundAvailable();
+
+        failedENSRefunds[_msgSender()] = 0;
+        totalPendingENSRefunds -= amount;
+
+        (bool ok,) = _msgSender().call{ value: amount }("");
+        if (!ok) revert ENSRefundTransferFailed();
+
+        emit ENSRegistrationRefundClaimed(_msgSender(), amount);
     }
 
     /// @notice Validates that the provided address is a valid ERC-20 token contract

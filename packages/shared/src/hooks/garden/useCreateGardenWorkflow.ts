@@ -9,6 +9,7 @@
 
 import { useMachine } from "@xstate/react";
 import { waitForTransactionReceipt } from "@wagmi/core";
+import { formatEther } from "viem";
 import { fromPromise } from "xstate";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAccount, useWalletClient } from "wagmi";
@@ -230,6 +231,75 @@ export function useCreateGardenWorkflow() {
     send({ type: "SUBMIT", formStatus });
   }, [send]);
 
+  const estimateCreationCost = useCallback(async () => {
+    const params = useCreateGardenStore.getState().getParams();
+    if (!params) {
+      throw new Error("Garden form is incomplete");
+    }
+
+    const currentAddress = addressRef.current;
+    const currentChainId = chainIdRef.current;
+
+    if (!currentAddress) {
+      throw new Error("Connect a wallet to estimate deployment cost");
+    }
+
+    const contracts = getNetworkContracts(currentChainId);
+    const config = {
+      communityToken: params.communityToken,
+      name: params.name,
+      slug: params.slug ?? "",
+      description: params.description,
+      location: params.location,
+      bannerImage: params.bannerImage,
+      metadata: params.metadata ?? "",
+      openJoining: params.openJoining ?? false,
+    };
+
+    const { publicClient } = createClients(currentChainId);
+
+    let ccipFee = 0n;
+    const ensAddress = contracts.greenGoodsENS as `0x${string}`;
+    if (config.slug && ensAddress && ensAddress !== "0x0000000000000000000000000000000000000000") {
+      try {
+        ccipFee = (await publicClient.readContract({
+          address: ensAddress,
+          abi: GreenGoodsENSABI,
+          functionName: "getRegistrationFee",
+          args: [config.slug, currentAddress, 1],
+        })) as bigint;
+      } catch {
+        ccipFee = 0n;
+      }
+    }
+
+    const gasEstimate = await publicClient.estimateContractGas({
+      address: contracts.gardenToken as `0x${string}`,
+      abi: GardenTokenABI,
+      functionName: "mintGarden",
+      account: currentAddress,
+      args: [config],
+      value: ccipFee,
+    });
+
+    const gasPrice = await publicClient.getGasPrice();
+    const txFee = gasEstimate * gasPrice;
+    const totalEstimatedFee = txFee + ccipFee;
+
+    return {
+      gasEstimate,
+      gasPrice,
+      txFee,
+      ccipFee,
+      totalEstimatedFee,
+      formatted: {
+        txFeeEth: formatEther(txFee),
+        ccipFeeEth: formatEther(ccipFee),
+        totalEth: formatEther(totalEstimatedFee),
+      },
+    };
+  }, []);
+
   const retry = useCallback(() => {
     send({ type: "RETRY" });
   }, [send]);
@@ -252,6 +322,7 @@ export function useCreateGardenWorkflow() {
     goBack,
     goToReview,
     submitCreation,
+    estimateCreationCost,
     retry,
     edit,
     createAnother,

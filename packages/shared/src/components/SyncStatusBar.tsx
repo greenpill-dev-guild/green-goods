@@ -18,7 +18,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ className }) => {
   const { authMode } = useAuth();
   const { isOnline } = useOffline();
   const { data: pendingWorksCount = 0 } = usePendingWorksCount();
-  const { isOfflineBannerVisible } = useUIStore();
+  const isOfflineBannerVisible = useUIStore((s) => s.isOfflineBannerVisible);
   const flushQueue = useQueueFlush();
   const batchWorkSync = useBatchWorkSync();
 

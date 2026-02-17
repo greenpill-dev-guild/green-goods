@@ -4,6 +4,7 @@ import {
   AssetSelector,
   formatTokenAmount,
   getVaultAssetDecimals,
+  getVaultAssetSymbol,
   validateDecimalInput,
   useUser,
   useVaultDeposits,
@@ -74,6 +75,9 @@ export function WithdrawModal({
   }, [sharesInput, inputError]);
 
   const assetDecimals = getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
+  const assetSymbol = selectedVault
+    ? getVaultAssetSymbol(selectedVault.asset, selectedVault.chainId)
+    : "";
 
   const debouncedShares = useDebouncedValue(shares, 300);
 
@@ -83,6 +87,15 @@ export function WithdrawModal({
     userAddress: primaryAddress as Address | undefined,
     enabled: isOpen && Boolean(selectedVault && debouncedShares > 0n),
   });
+
+  const { preview: availablePreview } = useVaultPreview({
+    vaultAddress: selectedVault?.vaultAddress as Address | undefined,
+    shares: maxShares,
+    userAddress: primaryAddress as Address | undefined,
+    enabled: isOpen && Boolean(selectedVault && maxShares > 0n),
+  });
+
+  const availableAssets = availablePreview?.previewAssets ?? 0n;
 
   const onSubmit = () => {
     if (!selectedVault || !primaryAddress || shares <= 0n) return;
@@ -143,9 +156,13 @@ export function WithdrawModal({
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>
-                {formatMessage({ id: "app.treasury.myShares" })}:{" "}
+                {formatMessage({ id: "app.treasury.myShares" })}: {" "}
+                <span className="font-medium text-text-strong">{formatTokenAmount(maxShares, 18)} shares</span>
+              </p>
+              <p>
+                {formatMessage({ id: "app.treasury.availableBalance" })}: {" "}
                 <span className="font-medium text-text-strong">
-                  {formatTokenAmount(maxShares, 18)}
+                  {formatTokenAmount(availableAssets, assetDecimals)} {assetSymbol}
                 </span>
               </p>
             </div>
@@ -185,9 +202,9 @@ export function WithdrawModal({
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>
-                {formatMessage({ id: "app.treasury.estimatedAssets" })}:{" "}
+                {formatMessage({ id: "app.treasury.estimatedAssets" })}: {" "}
                 <span className="font-medium text-text-strong">
-                  {preview ? formatTokenAmount(preview.previewAssets, assetDecimals) : "--"}
+                  {preview ? `${formatTokenAmount(preview.previewAssets, assetDecimals)} ${assetSymbol}` : "--"}
                 </span>
               </p>
             </div>

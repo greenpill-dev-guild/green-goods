@@ -319,12 +319,12 @@ test("work submission flow", () => {
 ### Commands
 
 ```bash
-bun test                    # Run all tests
-bun test --watch            # Watch mode
-bun test garden.test.ts     # Run specific file
-bun test --coverage         # With coverage
-bun test --ui               # UI mode
-bun test -t "should validate"  # Filter by name
+bun run test                # Run all tests
+bun run test --watch        # Watch mode
+bun run test -- garden.test.ts # Run specific file
+bun run test --coverage     # With coverage
+bun run test --ui           # UI mode
+bun run test -t "should validate" # Filter by name
 ```
 
 ### Coverage Requirements
@@ -338,7 +338,7 @@ bun test -t "should validate"  # Filter by name
 
 **Measuring coverage:**
 ```bash
-bun test --coverage              # Run with coverage
+bun run test --coverage          # Run with coverage
 open coverage/index.html         # View HTML report
 ```
 
@@ -365,7 +365,7 @@ Before marking work complete:
 - [ ] Edge cases and errors covered
 
 ### Validation Commands
-- [ ] Run `bun format && bun lint && bun test` — no errors/warnings
+- [ ] Run `bun format && bun lint && bun run test` — no errors/warnings
 - [ ] Package-specific: `cd packages/[pkg] && npx tsc --noEmit`
 
 ### Documentation & Communication
