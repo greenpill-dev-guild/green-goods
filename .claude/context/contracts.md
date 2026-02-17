@@ -7,7 +7,7 @@ Loaded when working in `packages/contracts/`. Extends CLAUDE.md.
 | Command | Purpose |
 |---------|---------|
 | `bun run test` | Run unit tests (skips E2E) |
-| `bun test:gas` | Tests with gas report |
+| `bun run test:gas` | Tests with gas report |
 | `bun build` | Adaptive build (~2s cached, skips test/script when unchanged) |
 | `bun build:fast` | Explicit fast (~2s cached, source contracts only) |
 | `bun build:full` | Full compilation including tests (>180s cold) |
@@ -22,17 +22,21 @@ Loaded when working in `packages/contracts/`. Extends CLAUDE.md.
 
 ```
 packages/contracts/
-├── src/               # Solidity source
-│   ├── GardenToken.sol       # ERC721 for gardens
-│   ├── GardenAccount.sol     # Garden TBA
-│   ├── GreenGoodsResolver.sol  # Central resolver
-│   ├── registries/           # Action, Gardener, Deployment
-│   ├── resolvers/            # Work, WorkApproval, Assessment
-│   └── modules/              # Octant, Unlock, Hats
-├── script/            # Deployment (TypeScript + Solidity)
-├── test/              # Foundry tests
-├── config/            # schemas.json (READ ONLY)
-└── deployments/       # Output artifacts
+├── src/
+│   ├── accounts/          # Garden token-bound account contracts
+│   ├── interfaces/        # Integration + protocol interfaces
+│   ├── lib/               # Shared Solidity libs (Karma, Hats, TBA, JsonBuilder)
+│   ├── markets/           # Marketplace adapters (e.g., Hypercert)
+│   ├── modules/           # Integrations (Hats, Karma, Octant, Gardens, CookieJar, Hypercerts)
+│   ├── registries/        # Deployment, action, ENS, power registries
+│   ├── resolvers/         # Work, approval, assessment, and yield resolvers
+│   ├── strategies/        # Yield and external strategy contracts
+│   ├── tokens/            # Garden + goods token contracts
+│   └── Schemas.sol        # EAS schema constants + helpers
+├── script/                # TypeScript deploy/upgrade orchestration
+├── test/                  # Unit, integration, E2E, fork, fuzz, upgrade tests
+├── config/                # schemas.json (READ ONLY in normal workflow)
+└── deployments/           # chainId-latest artifacts + network config
 ```
 
 ## Critical Patterns

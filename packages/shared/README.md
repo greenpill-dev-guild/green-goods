@@ -57,14 +57,19 @@ src/
 │   ├── app/         # App-level hooks (offline, toast, theme)
 │   ├── assessment/  # Assessment workflows
 │   ├── auth/        # Authentication (useAuth, useUser)
-│   ├── blockchain/  # Chain config, ENS, deployment registry
+│   ├── blockchain/  # Chain config, wagmi clients, deployment registry
+│   ├── conviction/  # Conviction voting and signaling hooks
+│   ├── cookie-jar/  # Cookie Jar allowance and claims
+│   ├── ens/         # ENS registration and domain status
 │   ├── garden/      # Garden operations, permissions, invites
 │   ├── gardener/    # Role, profile hooks
+│   ├── hypercerts/  # Hypercert minting, claiming, marketplace data
 │   ├── roles/       # Role management hooks
 │   ├── translation/ # i18n hooks
-│   ├── ui/          # UI utilities
 │   ├── utils/       # Utility hooks (useEventListener, useTimeout, useAsyncEffect)
-│   └── work/        # Work submission, approval, mutations
+│   ├── vault/       # Vault balances, deposits, and yield metrics
+│   ├── work/        # Work submission, approval, mutations
+│   └── yield/       # Yield splitting + payout views
 ├── modules/         # Core business logic
 │   ├── app/         # Analytics (posthog), service worker
 │   ├── auth/        # Passkey session management
@@ -150,10 +155,10 @@ bun format
 bun lint
 
 # Run tests
-bun test
+bun run test
 
 # Run specific test
-bun test job-queue
+bun run test -- job-queue
 ```
 
 ## Storybook
