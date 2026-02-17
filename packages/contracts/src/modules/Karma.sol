@@ -193,8 +193,6 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             }
         }
 
-        gardenProjects[garden] = projectUID;
-
         // 2. Create MemberOf attestation for operator
         {
             AttestationRequestData memory reqData = AttestationRequestData({
@@ -211,8 +209,8 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             try gap.attest(req) {
                 // Success - continue to details
             } catch {
-                // Non-critical: MemberOf failed but project exists
                 emit GAPOperationFailed(garden, "createProject", "MemberOf attestation failed");
+                return bytes32(0);
             }
         }
 
@@ -232,12 +230,15 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getDetailsSchemaUID(), data: reqData });
 
             try gap.attest(req) {
-                emit GAPProjectCreated(projectUID, garden, name);
+                // Success - finalize below
             } catch {
-                // Non-critical: Details failed but project exists
                 emit GAPOperationFailed(garden, "createProject", "Details attestation failed");
+                return bytes32(0);
             }
         }
+
+        gardenProjects[garden] = projectUID;
+        emit GAPProjectCreated(projectUID, garden, name);
 
         return projectUID;
     }
