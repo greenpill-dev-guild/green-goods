@@ -1,4 +1,4 @@
-import { APP_NAME } from "@green-goods/shared/config";
+import { APP_NAME } from "@green-goods/shared";
 import type React from "react";
 import { Link } from "react-router-dom";
 

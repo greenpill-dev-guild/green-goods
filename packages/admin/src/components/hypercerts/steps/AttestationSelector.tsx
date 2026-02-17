@@ -1,4 +1,5 @@
 import {
+  cn,
   formatDateTime,
   FormInput,
   ACTION_DOMAINS,
@@ -7,7 +8,6 @@ import {
   type GardenAssessment,
   type HypercertAttestation,
 } from "@green-goods/shared";
-import { cn } from "@green-goods/shared/utils";
 import { RiCheckboxCircleLine, RiCheckboxMultipleLine, RiCloseCircleLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -58,7 +58,7 @@ export function AttestationSelector({
 
   const filtered = useMemo(() => {
     // Apply assessment filter first (reportingPeriod + domain)
-    let base = selectedAssessment
+    const base = selectedAssessment
       ? filterAttestationsByAssessment(attestations, selectedAssessment)
       : attestations;
 

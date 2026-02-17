@@ -1,20 +1,22 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import type { Garden as DomainGarden } from "../types/domain";
 
-export interface Garden {
-  id: string;
-  chainId: number;
-  tokenAddress: string;
-  tokenID: bigint;
-  name: string;
-  description: string;
-  location: string;
-  bannerImage: string;
-  createdAt: number;
-  gardeners: string[];
-  operators: string[];
-}
+export type Garden = Pick<
+  DomainGarden,
+  | "id"
+  | "chainId"
+  | "tokenAddress"
+  | "tokenID"
+  | "name"
+  | "description"
+  | "location"
+  | "bannerImage"
+  | "createdAt"
+  | "gardeners"
+  | "operators"
+>;
 
 export type TransactionStatus = "pending" | "confirmed" | "failed";
 

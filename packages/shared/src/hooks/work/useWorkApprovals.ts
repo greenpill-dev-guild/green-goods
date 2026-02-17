@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { WorkApproval, Address } from "../../types/domain";
+import { Confidence, type WorkApproval, type Address } from "../../types/domain";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
@@ -79,6 +79,14 @@ async function getWorkApprovalsByAttester(
           ((decodedData as Array<{ name: string; value?: { value?: unknown } }>).find(
             (d) => d.name === "feedback"
           )?.value?.value as string) || "";
+        const confidence =
+          ((decodedData as Array<{ name: string; value?: { value?: unknown } }>).find(
+            (d) => d.name === "confidence"
+          )?.value?.value as number) ?? Confidence.NONE;
+        const verificationMethod =
+          ((decodedData as Array<{ name: string; value?: { value?: unknown } }>).find(
+            (d) => d.name === "verificationMethod"
+          )?.value?.value as number) ?? 0;
 
         const approval: WorkApproval = {
           id: (attestation as { id: string }).id,
@@ -88,6 +96,8 @@ async function getWorkApprovalsByAttester(
           workUID,
           approved,
           feedback,
+          confidence,
+          verificationMethod,
           createdAt: (attestation as { timeCreated: number }).timeCreated * 1000, // Convert to milliseconds
         };
         return [approval];

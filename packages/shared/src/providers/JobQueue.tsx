@@ -25,14 +25,7 @@ interface JobQueueContextValue {
   getPendingCount: () => Promise<number>;
 }
 
-const JobQueueContext = createContext<JobQueueContextValue>({
-  stats: { total: 0, pending: 0, failed: 0, synced: 0 },
-  isProcessing: false,
-  lastEvent: null,
-  flush: async () => {},
-  hasPendingJobs: async () => false,
-  getPendingCount: async () => 0,
-});
+const JobQueueContext = createContext<JobQueueContextValue | undefined>(undefined);
 
 export const useJobQueue = () => {
   const context = useContext(JobQueueContext);

@@ -18,14 +18,6 @@ enum Domain {
   UNKNOWN
 }
 
-enum CynefinPhase {
-  CLEAR
-  COMPLICATED
-  COMPLEX
-  CHAOTIC
-  UNKNOWN
-}
-
 type Action {
   id: ID!
   chainId: Int!
@@ -236,11 +228,6 @@ type GardenSignalPool {
 # =============================================================================
 # Yield Allocation Entities
 # =============================================================================
-
-enum YieldSplitStatus {
-  SPLIT
-  ACCUMULATED
-}
 
 type YieldAllocation {
   id: ID! # chainId-txHash-logIndex

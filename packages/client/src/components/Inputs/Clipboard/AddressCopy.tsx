@@ -1,12 +1,12 @@
 import {
   cn,
   copyToClipboard,
-  type FormatAddressVariant,
   formatAddress,
-} from "@green-goods/shared/utils";
+  toastService,
+  type FormatAddressVariant,
+} from "@green-goods/shared";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import React, { useEffect, useId, useState } from "react";
-import toast from "react-hot-toast";
 import { useIntl } from "react-intl";
 
 interface AddressCopyProps {
@@ -41,13 +41,16 @@ export function AddressCopy({
     try {
       await copyToClipboard(address);
       setCopied(true);
-      toast.success(
-        intl.formatMessage({ id: "app.toast.addressCopied", defaultMessage: "Address copied" })
-      );
+      toastService.success({
+        title: intl.formatMessage({
+          id: "app.toast.addressCopied",
+          defaultMessage: "Address copied",
+        }),
+      });
     } catch {
-      toast.error(
-        intl.formatMessage({ id: "app.toast.copyFailed", defaultMessage: "Copy failed" })
-      );
+      toastService.error({
+        title: intl.formatMessage({ id: "app.toast.copyFailed", defaultMessage: "Copy failed" }),
+      });
     }
   };
 

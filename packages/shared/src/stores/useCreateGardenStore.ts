@@ -1,4 +1,4 @@
-import { getAddress, isAddress } from "viem";
+import { type Address, getAddress, isAddress } from "viem";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -17,8 +17,8 @@ export interface CreateGardenFormState {
   communityToken: string;
   metadata: string;
   openJoining: boolean;
-  gardeners: string[];
-  operators: string[];
+  gardeners: Address[];
+  operators: Address[];
 }
 
 export interface CreateGardenStep {
@@ -125,22 +125,23 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           return { success: false, error: "Enter a valid wallet address" };
         }
 
+        const validAddress = sanitized as Address;
         const { form } = get();
 
         // Check if already a gardener (case-insensitive via checksummed comparison)
-        if (form.gardeners.includes(sanitized)) {
+        if (form.gardeners.includes(validAddress)) {
           return { success: false, error: "Address already added as gardener" };
         }
 
         // Check if already an operator
-        if (form.operators.includes(sanitized)) {
+        if (form.operators.includes(validAddress)) {
           return { success: false, error: "Address is already an operator" };
         }
 
         set((state) => ({
           form: {
             ...state.form,
-            gardeners: [...state.form.gardeners, sanitized],
+            gardeners: [...state.form.gardeners, validAddress],
           },
         }));
 
@@ -159,22 +160,23 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           return { success: false, error: "Enter a valid wallet address" };
         }
 
+        const validAddress = sanitized as Address;
         const { form } = get();
 
         // Check if already an operator (case-insensitive via checksummed comparison)
-        if (form.operators.includes(sanitized)) {
+        if (form.operators.includes(validAddress)) {
           return { success: false, error: "Address already added as operator" };
         }
 
         // Check if already a gardener
-        if (form.gardeners.includes(sanitized)) {
+        if (form.gardeners.includes(validAddress)) {
           return { success: false, error: "Address is already a gardener" };
         }
 
         set((state) => ({
           form: {
             ...state.form,
-            operators: [...state.form.operators, sanitized],
+            operators: [...state.form.operators, validAddress],
           },
         }));
 

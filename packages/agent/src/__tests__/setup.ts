@@ -16,7 +16,6 @@ const mockLocalStorage = {
   length: 0,
 };
 
-// @ts-expect-error - Mocking browser globals in Node environment
 globalThis.window = {
   localStorage: mockLocalStorage,
   location: {
@@ -29,16 +28,19 @@ globalThis.window = {
     protocol: "http:",
     host: "localhost:3000",
     port: "3000",
+    ancestorOrigins: {} as DOMStringList,
+    assign: vi.fn(),
+    reload: vi.fn(),
+    replace: vi.fn(),
   },
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
   navigator: {
     userAgent: "node-test",
   },
-};
+} as unknown as Window & typeof globalThis;
 
-// @ts-expect-error - Mocking browser globals in Node environment
-globalThis.localStorage = mockLocalStorage;
+globalThis.localStorage = mockLocalStorage as unknown as Storage;
 
 // ============================================================================
 // Injectable Timestamp for Deterministic Tests

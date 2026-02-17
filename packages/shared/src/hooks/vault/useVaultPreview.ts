@@ -34,7 +34,7 @@ export function useVaultPreview(options: UseVaultPreviewOptions = {}) {
   }, [vaultAddress, amount, shares, userAddress]);
 
   const query = useReadContracts({
-    contracts,
+    contracts: contracts as any,
     query: {
       enabled: enabled && Boolean(vaultAddress) && contracts.length > 0,
     },

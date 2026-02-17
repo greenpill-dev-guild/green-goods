@@ -185,7 +185,7 @@ export function useENSRegistrationStatus(slug: string | undefined) {
       if (!data) return false;
 
       // Poll while status is pending or submitted; stop on terminal states
-      const isPollable = data.status === "pending" || data.status === "submitted";
+      const isPollable = data.status === "pending";
       if (!isPollable) return false;
 
       // Adaptive polling: 60s for first 10 min, then 30s, stop after 25 min

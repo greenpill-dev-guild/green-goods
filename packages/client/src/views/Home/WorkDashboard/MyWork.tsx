@@ -1,9 +1,5 @@
-import { logger, type Work } from "@green-goods/shared";
+import { logger, trackSyncError, useOffline, useQueueFlush, type Work } from "@green-goods/shared";
 import React from "react";
-
-import { useOffline } from "@green-goods/shared/hooks";
-import { trackSyncError } from "@green-goods/shared/modules";
-import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
 
 import { MinimalWorkCard } from "@/components/Cards";
 

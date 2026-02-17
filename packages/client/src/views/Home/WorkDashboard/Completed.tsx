@@ -34,7 +34,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
       <div className="mb-4 px-4 pt-4 flex items-center justify-between gap-3">
         <div>
           {isLoading ? null : hasError ? (
-            <p className="text-sm text-red-600">
+            <p className="text-sm text-error-base">
               {intl.formatMessage({
                 id: "app.workDashboard.error.fetchingData",
                 defaultMessage: "Error loading data. Please try again.",

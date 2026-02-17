@@ -1,20 +1,14 @@
-import { cn, copyToClipboard, formatAddress, logger } from "@green-goods/shared";
+import { cn, copyToClipboard, formatAddress, logger, useTimeout } from "@green-goods/shared";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 
 interface AddressDisplayProps {
   address: string;
   className?: string;
   showCopyButton?: boolean;
-  truncateLength?: number;
 }
 
-export function AddressDisplay({
-  address,
-  className,
-  showCopyButton = true,
-  truncateLength: _truncateLength = 6,
-}: AddressDisplayProps) {
+export function AddressDisplay({ address, className, showCopyButton = true }: AddressDisplayProps) {
   const [copied, setCopied] = useState(false);
   const tooltipId = useId();
   // ENS temporarily disabled to fix QueryClient initialization
@@ -24,17 +18,15 @@ export function AddressDisplay({
     variant: ensName ? "default" : "card",
   });
 
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), 2000);
-    return () => clearTimeout(timer);
-  }, [copied]);
+  // Auto-cleanup timer via useTimeout (Rule 1)
+  const { set: scheduleCopyReset } = useTimeout(() => setCopied(false), 2000);
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       await copyToClipboard(address);
       setCopied(true);
+      scheduleCopyReset();
     } catch (err) {
       logger.error("Failed to copy address", { error: err });
     }

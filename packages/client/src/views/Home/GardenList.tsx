@@ -135,6 +135,7 @@ export function GardenList({
     );
   }
 
+  // TODO: Virtualize with @tanstack/react-virtual when gardens.length > 50
   return (
     <>
       {gardens.map((garden) => (

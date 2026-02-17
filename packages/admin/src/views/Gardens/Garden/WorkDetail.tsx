@@ -1,8 +1,14 @@
 import {
+  AudioRecorder,
   Confidence,
+  ConfidenceSelector,
   DEFAULT_CHAIN_ID,
   formatDate,
+  logger,
+  MethodSelector,
   toastService,
+  uploadFileToIPFS,
+  uploadJSONToIPFS,
   useActions,
   useGardenPermissions,
   useGardens,
@@ -13,8 +19,6 @@ import {
   type WorkApprovalDraft,
   type WorkMetadata,
 } from "@green-goods/shared";
-import { AudioRecorder, ConfidenceSelector, MethodSelector } from "@green-goods/shared/components";
-import { logger, uploadFileToIPFS, uploadJSONToIPFS } from "@green-goods/shared/modules";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   RiCheckboxCircleLine,

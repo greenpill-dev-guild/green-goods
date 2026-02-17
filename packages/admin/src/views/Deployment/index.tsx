@@ -1,11 +1,11 @@
-import { getChain } from "@green-goods/shared/config";
-import { useDeploymentRegistry } from "@green-goods/shared/hooks";
 import {
+  getChain,
   trackAdminDeployFailed,
   trackAdminDeployStarted,
   trackAdminDeploySuccess,
-} from "@green-goods/shared/modules";
-import { useAdminStore } from "@green-goods/shared/stores";
+  useAdminStore,
+  useDeploymentRegistry,
+} from "@green-goods/shared";
 import {
   RiCodeBoxLine,
   RiErrorWarningLine,
@@ -39,7 +39,10 @@ export default function Deployment() {
       setDeploymentResult(
         "Deployment started... This would integrate with the contracts deployment script."
       );
-      await new Promise((resolve) => setTimeout(resolve, 3000)); // Mock deployment
+      // TODO: Replace mock with real deployment API call
+      if (import.meta.env.DEV) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
 
       // Track deployment success (mock - would use real tx hash in production)
       trackAdminDeploySuccess({
@@ -224,8 +227,7 @@ export default function Deployment() {
             To deploy contracts manually using the command line:
           </p>
           <code className="text-sm bg-bg-soft px-2 py-1 rounded block">
-            cd packages/contracts && node script/deploy.js core --network {chain.name.toLowerCase()}{" "}
-            --broadcast --verify
+            bun script/deploy.ts core --network {chain.name.toLowerCase()} --broadcast
           </code>
         </div>
       </div>

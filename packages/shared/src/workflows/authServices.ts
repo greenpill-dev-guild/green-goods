@@ -14,7 +14,7 @@
  * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
-import { createSmartAccountClient } from "permissionless";
+import { createSmartAccountClient, type SmartAccountClient } from "permissionless";
 import { toKernelSmartAccount } from "permissionless/accounts";
 import { type Hex, http } from "viem";
 import {
@@ -151,7 +151,7 @@ async function buildSmartAccountFromCredential(
     },
   });
 
-  return { client, address: account.address };
+  return { client, address: account.address as Hex };
 }
 
 // ============================================================================

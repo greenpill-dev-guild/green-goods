@@ -3,17 +3,26 @@
 **Status**: ACTIVE
 **Tracks**: https://github.com/greenpill-dev-guild/green-goods/issues/312
 **Created**: 2026-02-13
-**Last Updated**: 2026-02-15
+**Last Updated**: 2026-02-16
+**Completed**: Gardens Protocol Test Coverage (200 tests), CLAUDE.md `bun test` → `bun run test` fix
 
 > Merged from: 6-teammate adversarial audit (Opus team) + Codex audit ([#312](https://github.com/greenpill-dev-guild/green-goods/issues/312))
 
 ## Implementation Notes
 
-### Gardens Protocol Test Coverage (COMPLETE)
-200 new/existing tests pass across 4 test suites: `GardensModule.t.sol` (82 tests), `GardenAccount.t.sol` (75 tests), `GardenToken.t.sol` (35 tests), `FullModuleWiring.t.sol` (8 integration tests). Known pre-existing failures documented in `HatsModule.t.sol` and `RoleHierarchy.t.sol`.
+### Gardens Protocol Test Coverage (DONE)
+200 tests pass across 4 suites: `GardensModule.t.sol` (82), `GardenAccount.t.sol` (75), `GardenToken.t.sol` (35), `FullModuleWiring.t.sol` (8). Known pre-existing failures documented in `HatsModule.t.sol` and `RoleHierarchy.t.sol`.
 
 ### Fork Test Suite (PENDING)
 Comprehensive E2E fork tests planned: `ForkTestBase.sol` (shared infra), `FullProtocolE2E.t.sol`, `EASAttestationLifecycle.t.sol`, `GardensV2Community.t.sol`. Extends `DeploymentBase` to reuse production deployment logic against real on-chain contracts. See Phase 3 below.
+
+### Dead-Code Cleanup Impact (2026-02-16)
+Several files referenced by or adjacent to this plan were deleted as part of dead-code cleanup on the `feature/ens-integration` branch:
+- `packages/client/src/routes/RequireInstalled.tsx` and its test `__tests__/routes/RequireInstalled.test.tsx` — deleted (no plan item affected; the route was unused dead code)
+- `packages/client/src/components/Boundaries/` (SuspenseBoundary, SuspenseRoute, index) — deleted (unused dead code)
+- `packages/client/src/styles/colors.css` — deleted (unused dead code)
+- `packages/indexer/config.yaml.backup` — deleted (stale backup file)
+These deletions reduce the surface area for Phase 1 and Phase 4 client test items. No plan items are blocked by these removals.
 
 ## Context
 
@@ -136,15 +145,30 @@ The `bun test` command:
 - In `packages/shared/client/admin`: invokes bun's built-in runner (ignores vitest config, no jsdom)
 - Correct form: `bun run test` (runs the `"test"` script in package.json)
 
-**Files to update:**
-- `.claude/skills/testing/SKILL.md` — Commands section (after line 318) uses `bun test`
-- `.claude/commands/*` — scan all command files
-- `.claude/agents/*` — scan all agent files
-- `.claude/context/*` — scan all context files
-- `.claude/hooks.json` — scan reminders
-- `CLAUDE.md` — verify contracts guidance is unambiguous
+**(PARTIALLY DONE — CLAUDE.md has correct "CRITICAL: `bun test` vs `bun run test`" callout since 2026-02-15. Some `.claude/` skills already warn about the distinction: `testing/SKILL.md` line 79, `debug/SKILL.md` line 102, `cross-package-verify/SKILL.md` lines 68+286, `tdd-bugfix/SKILL.md` lines 83+309, `autonomous-review/SKILL.md` line 107, `cracked-coder.md` line 150. However, ~30+ occurrences of bare `bun test` as a recommended command still exist across `.claude/` files — see list below.)**
 
-**Fix:** Global find-and-replace `bun test` → `bun run test` in all `.claude/` files, with exceptions only where `bun test` is explicitly the correct command (currently: nowhere).
+**Files still needing update:**
+- `.claude/skills/testing/SKILL.md` — Commands section (lines 322-327, 341, 368) uses `bun test`
+- `.claude/skills/migration/SKILL.md` — lines 70, 85, 317, 352 use `bun test`
+- `.claude/skills/ci-cd/SKILL.md` — lines 222, 225, 235, 279 use `bun test`
+- `.claude/skills/git-workflow/SKILL.md` — lines 147, 160, 210 use `bun test`
+- `.claude/skills/dependency-management/SKILL.md` — line 105 uses `bun test`
+- `.claude/skills/review/SKILL.md` — line 218 uses `bun test`
+- `.claude/skills/plan/SKILL.md` — lines 109, 274 use `bun test`
+- `.claude/skills/biome/SKILL.md` — line 184 uses `bun test`
+- `.claude/skills/audit/SKILL.md` — line 218 uses `bun test`
+- `.claude/commands/review.md` — line 33 uses `bun test`
+- `.claude/commands/plan.md` — line 56 uses `bun test`
+- `.claude/commands/audit.md` — line 37 uses `bun test`
+- `.claude/commands/debug.md` — line 48 uses `bun test`
+- `.claude/agents/migration.md` — lines 138, 227 use `bun test`
+- `.claude/agents/code-reviewer.md` — line 182 uses `bun test`
+- `.claude/context/shared.md` — line 9 uses `bun test`
+- `.claude/context/indexer.md` — line 16 uses `bun test`
+- `.claude/skills/_archived/vitest/SKILL.md` — lines 262-277, 293 use `bun test` (archived, low priority)
+- `.claude/skills/_archived/test-driven-development/SKILL.md` — lines 92, 142, 215 use `bun test` (archived, low priority)
+
+**Fix:** Global find-and-replace `bun test` → `bun run test` in all `.claude/` files, with exceptions only where `bun test` is explicitly the correct command (currently: only `packages/agent` file-based DB tests per `.claude/context/agent.md` line 273).
 
 ### 2.2 Update testing skill — add patterns, define critical paths
 
@@ -329,7 +353,7 @@ C. **RED verification** — "Run specific test file first (`bun run test -- hook
 | 2 | 1.4-1.5 | Remove no-op assertions | No `expect(true)` or `\|\| true` | Yes |
 | 3 | 1.6-1.10 | Unblock skips + governance policy | Zero unexplained skips | Yes |
 | 4 | 1.11-1.13 | Coverage thresholds + test-utils | Configs verified | Yes |
-| 5 | 2.1 | Fix `bun test` → `bun run test` everywhere | grep returns zero matches | — |
+| 5 | 2.1 | Fix `bun test` → `bun run test` everywhere (PARTIALLY DONE — CLAUDE.md done, ~30 `.claude/` files remain) | grep returns zero matches | — |
 | 6 | 2.2-2.7 | Update 6 agent/skill files | Read + verify content | — |
 | 7 | 3.1-3.3 | CI coverage gates + E2E automation | CI enforces thresholds | Yes |
 | 8 | 4.1-4.3 | P0 shared tests (query-keys, blockchain, work) | `bun run test --coverage` | Yes |
@@ -343,7 +367,7 @@ C. **RED verification** — "Run specific test file first (`bun run test -- hook
 ## Definition of Done
 
 - [ ] All package test suites green in CI (zero failures)
-- [ ] No agent/document command drift (`bun test` → `bun run test` everywhere)
+- [ ] No agent/document command drift (`bun test` → `bun run test` everywhere) — CLAUDE.md done, `.claude/` files ~30 occurrences remain
 - [ ] Coverage thresholds exist for all TS packages and are CI-enforced
 - [ ] No no-op assertions (`expect(true)`, `|| true`) in first-party tests
 - [ ] No unexplained permanent skips (all `.skip` have issue link + owner + expiry)

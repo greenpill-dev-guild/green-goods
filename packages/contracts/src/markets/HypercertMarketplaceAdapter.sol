@@ -104,8 +104,8 @@ contract HypercertMarketplaceAdapter is
     /// @notice Whether the contract is paused
     bool public paused;
 
-    /// @notice Allowed currencies for order registration
-    mapping(address currency => bool allowed) public allowedCurrencies;
+    /// @dev Deprecated: allowedCurrencies was never enforced. Slot preserved for upgrade safety.
+    mapping(address => bool) private __deprecated_allowedCurrencies;
 
     /// @notice Storage gap for future upgrades
     /// @dev 10 storage vars + 40 gap = 50 slots total
@@ -363,10 +363,6 @@ contract HypercertMarketplaceAdapter is
 
     function setMaxBatchSize(uint256 _maxBatchSize) external onlyOwner {
         maxBatchSize = _maxBatchSize;
-    }
-
-    function setAllowedCurrency(address currency, bool allowed) external onlyOwner {
-        allowedCurrencies[currency] = allowed;
     }
 
     /// @notice Get the number of orders registered by a seller

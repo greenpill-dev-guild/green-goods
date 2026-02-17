@@ -1,9 +1,8 @@
-import { useGardenAssessments, useAdminStore, logger } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, logger, useAdminStore, useGardenAssessments } from "@green-goods/shared";
 import { RiAddLine, RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { DEFAULT_CHAIN_ID } from "../../../config";
 
 const EAS_EXPLORER_URL = "https://explorer.easscan.org";
 

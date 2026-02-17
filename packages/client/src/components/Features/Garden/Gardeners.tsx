@@ -1,6 +1,13 @@
-import type { Garden, GardenerCard } from "@green-goods/shared";
-import { useEnsAvatar, useEnsName } from "@green-goods/shared/hooks";
-import { copyToClipboard, formatAddress } from "@green-goods/shared/utils";
+import {
+  copyToClipboard,
+  formatAddress,
+  toastService,
+  useEnsAvatar,
+  useEnsName,
+  type Garden,
+  type GardenerCard,
+} from "@green-goods/shared";
+import * as Dialog from "@radix-ui/react-dialog";
 import {
   RiCalendarEventFill,
   RiCloseLine,
@@ -11,7 +18,6 @@ import {
   RiWallet3Fill,
 } from "@remixicon/react";
 import React, { forwardRef, memo, useMemo, useState } from "react";
-import toast from "react-hot-toast";
 import { useIntl } from "react-intl";
 import { FixedSizeList as List } from "react-window";
 import { Button } from "@/components/Actions";
@@ -126,13 +132,16 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
       if (!val) return;
       try {
         await copyToClipboard(val);
-        toast.success(intl.formatMessage({ id: "app.toast.copied", defaultMessage: "Copied" }));
-      } catch {
-        const failed = intl.formatMessage({
-          id: "app.toast.copyFailed",
-          defaultMessage: "Copy failed",
+        toastService.success({
+          title: intl.formatMessage({ id: "app.toast.copied", defaultMessage: "Copied" }),
         });
-        toast.error(failed);
+      } catch {
+        toastService.error({
+          title: intl.formatMessage({
+            id: "app.toast.copyFailed",
+            defaultMessage: "Copy failed",
+          }),
+        });
       }
     };
 
@@ -172,119 +181,120 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
           </p>
         )}
 
-        {/* Centered popover-style dialog instead of bottom drawer */}
-        {selected && (
-          <div
-            className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/30 backdrop-blur-sm"
-            onClick={() => setSelected(null)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setSelected(null);
-              }
-            }}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div
-              className="bg-bg-white-0 rounded-2xl shadow-2xl w-[min(520px,92vw)] p-5"
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-            >
+        {/* Member detail dialog */}
+        <Dialog.Root
+          open={!!selected}
+          onOpenChange={(open) => {
+            if (!open) setSelected(null);
+          }}
+        >
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-[10002] bg-black/30 backdrop-blur-sm" />
+            <Dialog.Content className="fixed z-[10003] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bg-white-0 rounded-2xl shadow-2xl w-[min(520px,92vw)] p-5 focus:outline-none">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-base font-semibold truncate">{title}</div>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="p-1 rounded-full border border-stroke-soft-200 transition-all duration-200 flex-shrink-0 tap-feedback focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600 active:scale-95"
-                  aria-label="Close modal"
-                  type="button"
-                >
-                  <RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-emerald-700 active:text-emerald-700" />
-                </button>
+                <Dialog.Title className="text-base font-semibold truncate">{title}</Dialog.Title>
+                <Dialog.Close asChild>
+                  <button
+                    className="p-1 rounded-full border border-stroke-soft-200 transition-all duration-200 flex-shrink-0 tap-feedback focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600 active:scale-95"
+                    aria-label="Close modal"
+                    type="button"
+                  >
+                    <RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-emerald-700 active:text-emerald-700" />
+                  </button>
+                </Dialog.Close>
               </div>
-              <div className="flex flex-col gap-8">
-                {selected.account &&
-                  (selectedEnsName ? (
-                    <>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <RiUserLine className="w-4 h-4 text-primary" />
-                          <span className="font-semibold">{selectedEnsName}</span>
+              {selected && (
+                <div className="flex flex-col gap-8">
+                  {selected.account &&
+                    (selectedEnsName ? (
+                      <>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <RiUserLine className="w-4 h-4 text-primary" />
+                            <span className="font-semibold">{selectedEnsName}</span>
+                          </div>
+                          <Button
+                            variant="neutral"
+                            mode="stroke"
+                            size="xxsmall"
+                            label={intl.formatMessage({
+                              id: "app.common.copy",
+                              defaultMessage: "Copy",
+                            })}
+                            leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
+                            onClick={() => copy(selectedEnsName)}
+                          />
                         </div>
-                        <Button
-                          variant="neutral"
-                          mode="stroke"
-                          size="xxsmall"
-                          label={intl.formatMessage({
-                            id: "app.common.copy",
-                            defaultMessage: "Copy",
-                          })}
-                          leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
-                          onClick={() => copy(selectedEnsName)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <RiWallet3Fill className="w-4 h-4 text-primary" />
-                          <span className="text-text-sub-600 font-mono text-xs">
-                            {formatAddress(selected.account)}
-                          </span>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <RiWallet3Fill className="w-4 h-4 text-primary" />
+                            <span className="text-text-sub-600 font-mono text-xs">
+                              {formatAddress(selected.account)}
+                            </span>
+                          </div>
+                          <Button
+                            variant="neutral"
+                            mode="stroke"
+                            size="xxsmall"
+                            label={intl.formatMessage({
+                              id: "app.common.copy",
+                              defaultMessage: "Copy",
+                            })}
+                            leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
+                            onClick={() => copy(selected.account)}
+                          />
                         </div>
-                        <Button
-                          variant="neutral"
-                          mode="stroke"
-                          size="xxsmall"
-                          label={intl.formatMessage({
-                            id: "app.common.copy",
-                            defaultMessage: "Copy",
-                          })}
-                          leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
-                          onClick={() => copy(selected.account)}
-                        />
+                      </>
+                    ) : (
+                      <AddressCopy
+                        address={selected.account}
+                        ensName={selectedEnsName}
+                        icon={<RiWallet3Fill className="h-4 w-4" />}
+                      />
+                    ))}
+                  {selected.email && (
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <RiMailFill className="w-4 h-4 text-primary" />
+                        <span>{selected.email}</span>
                       </div>
-                    </>
-                  ) : (
-                    <AddressCopy
-                      address={selected.account}
-                      ensName={selectedEnsName}
-                      icon={<RiWallet3Fill className="h-4 w-4" />}
-                    />
-                  ))}
-                {selected.email && (
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <RiMailFill className="w-4 h-4 text-primary" />
-                      <span>{selected.email}</span>
+                      <Button
+                        variant="neutral"
+                        mode="stroke"
+                        size="xxsmall"
+                        label={intl.formatMessage({
+                          id: "app.common.copy",
+                          defaultMessage: "Copy",
+                        })}
+                        leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
+                        onClick={() => copy(selected.email)}
+                      />
                     </div>
-                    <Button
-                      variant="neutral"
-                      mode="stroke"
-                      size="xxsmall"
-                      label={intl.formatMessage({ id: "app.common.copy", defaultMessage: "Copy" })}
-                      leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
-                      onClick={() => copy(selected.email)}
-                    />
-                  </div>
-                )}
-                {selected.phone && (
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <RiPhoneLine className="w-4 h-4 text-primary" />
-                      <span>{selected.phone}</span>
+                  )}
+                  {selected.phone && (
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <RiPhoneLine className="w-4 h-4 text-primary" />
+                        <span>{selected.phone}</span>
+                      </div>
+                      <Button
+                        variant="neutral"
+                        mode="stroke"
+                        size="xxsmall"
+                        label={intl.formatMessage({
+                          id: "app.common.copy",
+                          defaultMessage: "Copy",
+                        })}
+                        leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
+                        onClick={() => copy(selected.phone)}
+                      />
                     </div>
-                    <Button
-                      variant="neutral"
-                      mode="stroke"
-                      size="xxsmall"
-                      label={intl.formatMessage({ id: "app.common.copy", defaultMessage: "Copy" })}
-                      leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
-                      onClick={() => copy(selected.phone)}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+                  )}
+                </div>
+              )}
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
       </ul>
     );
   }

@@ -14,7 +14,17 @@ import {
   resetMarketplaceClients,
 } from "../../../modules/marketplace/client";
 
-// Mock the marketplace SDK module
+// Mock ethers so JsonRpcProvider doesn't attempt real network calls in tests.
+// IMPORTANT: Must use `function` (not arrow) because `new JsonRpcProvider()` requires a constructor.
+vi.mock("ethers", () => ({
+  JsonRpcProvider: vi.fn().mockImplementation(function () {
+    return { getNetwork: vi.fn().mockResolvedValue({ chainId: 11155111n }) };
+  }),
+}));
+
+// Mock the marketplace SDK module.
+// IMPORTANT: HypercertExchangeClient uses `new`, so mockImplementation must use
+// `function` (not arrow) to act as a valid constructor.
 vi.mock("@hypercerts-org/marketplace-sdk", () => {
   const mockClient = {
     chainId: 11155111,
@@ -37,7 +47,9 @@ vi.mock("@hypercerts-org/marketplace-sdk", () => {
   };
 
   return {
-    HypercertExchangeClient: vi.fn().mockImplementation(() => mockClient),
+    HypercertExchangeClient: vi.fn().mockImplementation(function () {
+      return mockClient;
+    }),
     ChainId: {
       SEPOLIA: 11155111,
       OPTIMISM: 10,

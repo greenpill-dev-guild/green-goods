@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { Address } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { getVaultEvents } from "../../modules/data/vaults";
 import type { VaultEvent } from "../../types/vaults";
@@ -10,7 +11,7 @@ interface UseVaultEventsOptions {
   enabled?: boolean;
 }
 
-export function useVaultEvents(gardenAddress?: string, options: UseVaultEventsOptions = {}) {
+export function useVaultEvents(gardenAddress?: Address, options: UseVaultEventsOptions = {}) {
   const chainId = options.chainId ?? DEFAULT_CHAIN_ID;
   const limit = options.limit ?? 100;
   const enabled = options.enabled ?? true;

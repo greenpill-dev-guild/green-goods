@@ -70,9 +70,6 @@ contract ArbitrumHypercertsForkTest is Test {
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         adapter = HypercertMarketplaceAdapter(address(proxy));
-
-        // Allow WETH as currency
-        adapter.setAllowedCurrency(WETH, true);
     }
 
     /// @notice Build a test MakerAsk order with configurable parameters

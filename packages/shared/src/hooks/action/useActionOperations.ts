@@ -155,7 +155,7 @@ export function useActionOperations(chainId: number) {
       contractAddress: contracts.actionRegistry as `0x${string}`,
       abi: ActionRegistryABI as Abi,
       walletClient,
-      address,
+      address: address as `0x${string}`,
       executeWithToast,
       scheduleBackgroundRefetch,
     };

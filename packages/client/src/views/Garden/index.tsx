@@ -1,15 +1,18 @@
-import type { Action, Garden } from "@green-goods/shared";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import { logger } from "@green-goods/shared/modules";
 import {
+  DEFAULT_CHAIN_ID,
+  findActionByUID,
+  logger,
   useActionTranslation,
   useDraftAutoSave,
   useDraftResume,
   useGardenTranslation,
-} from "@green-goods/shared/hooks";
-import { useWork, useWorkSelection, WorkTab } from "@green-goods/shared/providers";
-import { useWorkFlowStore } from "@green-goods/shared/stores/useWorkFlowStore";
-import { findActionByUID } from "@green-goods/shared/utils";
+  useWork,
+  useWorkFlowStore,
+  useWorkSelection,
+  WorkTab,
+  type Action,
+  type Garden,
+} from "@green-goods/shared";
 import {
   RiArrowRightSLine,
   RiCameraFill,

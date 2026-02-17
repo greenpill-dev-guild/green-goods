@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
 import { useCallback, useRef } from "react";
+import type { Address } from "viem";
 import { toastService } from "../../components/toast";
 import type {
   CookieJarAdminParams,
@@ -15,7 +16,7 @@ import { useDelayedInvalidation } from "../utils/useTimeout";
 import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 
-export function useCookieJarPause(gardenAddress: string) {
+export function useCookieJarPause(gardenAddress: Address) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
@@ -80,7 +81,7 @@ export function useCookieJarPause(gardenAddress: string) {
   });
 }
 
-export function useCookieJarUnpause(gardenAddress: string) {
+export function useCookieJarUnpause(gardenAddress: Address) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
@@ -145,7 +146,7 @@ export function useCookieJarUnpause(gardenAddress: string) {
   });
 }
 
-export function useCookieJarUpdateMaxWithdrawal(gardenAddress: string) {
+export function useCookieJarUpdateMaxWithdrawal(gardenAddress: Address) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
@@ -210,7 +211,7 @@ export function useCookieJarUpdateMaxWithdrawal(gardenAddress: string) {
   });
 }
 
-export function useCookieJarUpdateInterval(gardenAddress: string) {
+export function useCookieJarUpdateInterval(gardenAddress: Address) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
@@ -275,7 +276,7 @@ export function useCookieJarUpdateInterval(gardenAddress: string) {
   });
 }
 
-export function useCookieJarEmergencyWithdraw(gardenAddress: string) {
+export function useCookieJarEmergencyWithdraw(gardenAddress: Address) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();

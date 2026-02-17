@@ -1,6 +1,6 @@
 # Hypercert Marketplace UI Integration
 
-> **Depends on**: [hypercert-marketplace-adapter.md](./hypercert-marketplace-adapter.md) (contracts — complete)
+> **Depends on**: Hypercert marketplace adapter contracts (DONE — plan deleted, see `HypercertMarketplaceAdapter.sol`)
 >
 > **Scope**: Shared hooks + types + data layer + Admin UI for marketplace listing/management
 >

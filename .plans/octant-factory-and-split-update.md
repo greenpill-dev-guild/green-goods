@@ -17,7 +17,7 @@ The Octant vault integration in Green Goods is **architecturally complete** but 
 
 ### Create: `packages/contracts/script/DeployOctantFactory.s.sol`
 
-Lives alongside `DeployJuicebox.s.sol` — a standalone Foundry script that:
+A standalone Foundry script that:
 
 1. Deploys a minimal `MultistrategyVault` ERC-4626 implementation (EIP-1167 clone source)
 2. Deploys `MultistrategyVaultFactory` matching the `IOctantFactory` interface at `src/interfaces/IOctantFactory.sol`

@@ -95,7 +95,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
     if (!isEnabled) return;
 
     let isMounted = true;
-    let cleanupFns: (() => void)[] = [];
+    const cleanupFns: (() => void)[] = [];
 
     const setup = async () => {
       try {

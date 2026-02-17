@@ -1,6 +1,7 @@
 import { toastService, useCreateGardenStore, useCreateGardenWorkflow } from "@green-goods/shared";
 import { RiErrorWarningLine } from "@remixicon/react";
 import { useEffect, useState } from "react";
+import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { FormWizard } from "@/components/Form/FormWizard";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
@@ -8,6 +9,7 @@ import { ReviewStep } from "@/components/Garden/CreateGardenSteps/ReviewStep";
 import { TeamStep } from "@/components/Garden/CreateGardenSteps/TeamStep";
 
 export default function CreateGarden() {
+  const intl = useIntl();
   const navigate = useNavigate();
   const steps = useCreateGardenStore((state) => state.steps);
   const currentStep = useCreateGardenStore((state) => state.currentStep);
@@ -33,8 +35,14 @@ export default function CreateGarden() {
   useEffect(() => {
     if (isSuccess) {
       toastService.success({
-        title: "Garden created",
-        message: "Your garden has been deployed successfully",
+        title: intl.formatMessage({
+          id: "admin.garden.created.title",
+          defaultMessage: "Garden created",
+        }),
+        message: intl.formatMessage({
+          id: "admin.garden.created.message",
+          defaultMessage: "Your garden has been deployed successfully",
+        }),
         context: "garden creation",
         suppressLogging: true,
       });
@@ -85,15 +93,27 @@ export default function CreateGarden() {
           <div className="flex items-start gap-3 rounded-lg border border-error-light bg-error-lighter p-4 text-sm text-error-dark shadow-lg">
             <RiErrorWarningLine className="mt-0.5 h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="font-medium text-error-dark">We couldn&apos;t deploy the garden</p>
+              <p className="font-medium text-error-dark">
+                {intl.formatMessage({
+                  id: "admin.garden.deploy.error.title",
+                  defaultMessage: "We couldn't deploy the garden",
+                })}
+              </p>
               <p className="mt-1 text-error-dark/80">
-                {state.context.error ?? "Please review the details and try again."}
+                {state.context.error ??
+                  intl.formatMessage({
+                    id: "admin.garden.deploy.error.fallback",
+                    defaultMessage: "Please review the details and try again.",
+                  })}
               </p>
               <button
                 onClick={retry}
                 className="mt-3 rounded-md border border-error-light px-3 py-1.5 text-xs font-medium text-error-dark transition hover:bg-error-lighter"
               >
-                Retry deployment
+                {intl.formatMessage({
+                  id: "admin.garden.deploy.retry",
+                  defaultMessage: "Retry deployment",
+                })}
               </button>
             </div>
           </div>
@@ -108,8 +128,14 @@ export default function CreateGarden() {
         onCancel={handleCancel}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
-        nextLabel="Continue"
-        submitLabel="Deploy garden"
+        nextLabel={intl.formatMessage({
+          id: "admin.garden.form.continue",
+          defaultMessage: "Continue",
+        })}
+        submitLabel={intl.formatMessage({
+          id: "admin.garden.form.deploy",
+          defaultMessage: "Deploy garden",
+        })}
       >
         {isDetailsStep && <DetailsStep showValidation={showValidation} />}
         {isTeamStep && <TeamStep showValidation={showValidation} />}

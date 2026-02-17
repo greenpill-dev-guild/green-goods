@@ -41,7 +41,7 @@ vi.mock("@/components/Actions", async () => {
   };
 });
 
-import { Work } from "@green-goods/shared/types";
+import type { Work } from "@green-goods/shared";
 import { TopNav } from "../../components/Navigation/TopNav";
 
 const renderWithIntl = (element: React.ReactElement) =>

@@ -2,9 +2,13 @@ import { RiGroupFill, RiMapPinFill, RiMapPinUserFill } from "@remixicon/react";
 import * as React from "react";
 import { useIntl } from "react-intl";
 import { tv, type VariantProps } from "tailwind-variants";
-import { useEnsName } from "@green-goods/shared/hooks";
-import { buildGardenMemberSets, cn, formatAddress } from "@green-goods/shared/utils";
-import type { Garden } from "@green-goods/shared/types";
+import {
+  buildGardenMemberSets,
+  cn,
+  formatAddress,
+  useEnsName,
+  type Garden,
+} from "@green-goods/shared";
 import { ImageWithFallback } from "@/components/Display";
 import { Badge } from "@/components/Communication";
 import { Card, type CardRootProps } from "../Base/Card";

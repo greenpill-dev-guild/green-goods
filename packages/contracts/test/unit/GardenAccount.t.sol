@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { GardenToken } from "../../src/tokens/Garden.sol";
-import { GardenAccount } from "../../src/accounts/Garden.sol";
+import { GardenAccount, NotGardenOwner } from "../../src/accounts/Garden.sol";
 import {
     NotGardenOwner, NotGardenOperator, InvalidInvite, AlreadyGardener, GardenFull
 } from "../../src/accounts/Garden.sol";
@@ -792,25 +792,25 @@ contract GardenAccountTest is Test, ERC6551Helper {
 
     function test_executeAutoStake_revertsWhenCalledByOwner() public {
         vm.prank(multisig);
-        vm.expectRevert("Only internal auto-stake");
+        vm.expectRevert(NotGardenOwner.selector);
         gardenAccount.executeAutoStake(address(communityToken), address(0x123), 1e18, stranger);
     }
 
     function test_executeAutoStake_revertsWhenCalledByOperator() public {
         vm.prank(operator);
-        vm.expectRevert("Only internal auto-stake");
+        vm.expectRevert(NotGardenOwner.selector);
         gardenAccount.executeAutoStake(address(communityToken), address(0x123), 1e18, stranger);
     }
 
     function test_executeAutoStake_revertsWhenCalledByStranger() public {
         vm.prank(stranger);
-        vm.expectRevert("Only internal auto-stake");
+        vm.expectRevert(NotGardenOwner.selector);
         gardenAccount.executeAutoStake(address(communityToken), address(0x123), 1e18, stranger);
     }
 
     function test_executeAutoStake_revertsWhenCalledByGardener() public {
         vm.prank(gardener);
-        vm.expectRevert("Only internal auto-stake");
+        vm.expectRevert(NotGardenOwner.selector);
         gardenAccount.executeAutoStake(address(communityToken), address(0x123), 1e18, stranger);
     }
 

@@ -18,9 +18,11 @@ import {
   RiWifiOffLine,
 } from "@remixicon/react";
 import { useState } from "react";
+import { useIntl } from "react-intl";
 import { useAccount } from "wagmi";
 
 export default function Dashboard() {
+  const intl = useIntl();
   const { role, operatorGardens } = useRole();
   const { data: gardens = [], isLoading, error } = useGardens();
   const totalGardens = gardens.length;
@@ -93,7 +95,12 @@ export default function Dashboard() {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-warning-dark">Indexer Connection Issue</h3>
+              <h3 className="text-sm font-medium text-warning-dark">
+                {intl.formatMessage({
+                  id: "admin.dashboard.indexer.error",
+                  defaultMessage: "Indexer Connection Issue",
+                })}
+              </h3>
               <div className="mt-2 text-sm text-warning-dark">
                 <p>
                   Unable to connect to the indexer:{" "}
@@ -113,7 +120,11 @@ export default function Dashboard() {
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-text-strong">
               Welcome back,{" "}
-              {role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User"}
+              {intl.formatMessage({
+                id: `admin.dashboard.role.${role}`,
+                defaultMessage:
+                  role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User",
+              })}
             </h1>
             <p className="text-text-sub mt-1">
               {role === "deployer"
@@ -125,22 +136,47 @@ export default function Dashboard() {
           </div>
 
           <div className="bg-bg-white rounded-lg shadow-sm transition-shadow duration-200 hover:shadow-md border border-stroke-soft p-6">
-            <h2 className="text-lg font-medium text-text-strong mb-4">Quick Actions</h2>
+            <h2 className="text-lg font-medium text-text-strong mb-4">
+              {intl.formatMessage({
+                id: "admin.dashboard.quickActions",
+                defaultMessage: "Quick Actions",
+              })}
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <a
                 href="/gardens"
                 className="block p-4 border border-stroke-soft rounded-lg hover:bg-bg-weak transition-all duration-200"
               >
-                <h3 className="font-medium text-text-strong">View Gardens</h3>
-                <p className="text-sm text-text-sub mt-1">Browse and manage gardens</p>
+                <h3 className="font-medium text-text-strong">
+                  {intl.formatMessage({
+                    id: "admin.dashboard.actions.viewGardens",
+                    defaultMessage: "View Gardens",
+                  })}
+                </h3>
+                <p className="text-sm text-text-sub mt-1">
+                  {intl.formatMessage({
+                    id: "admin.dashboard.actions.viewGardens.desc",
+                    defaultMessage: "Browse and manage gardens",
+                  })}
+                </p>
               </a>
               {role === "deployer" && (
                 <a
                   href="/contracts"
                   className="block p-4 border border-stroke-soft rounded-lg hover:bg-bg-weak transition-all duration-200"
                 >
-                  <h3 className="font-medium text-text-strong">Contract Management</h3>
-                  <p className="text-sm text-text-sub mt-1">Deploy and manage contracts</p>
+                  <h3 className="font-medium text-text-strong">
+                    {intl.formatMessage({
+                      id: "admin.dashboard.actions.contracts",
+                      defaultMessage: "Contract Management",
+                    })}
+                  </h3>
+                  <p className="text-sm text-text-sub mt-1">
+                    {intl.formatMessage({
+                      id: "admin.dashboard.actions.contracts.desc",
+                      defaultMessage: "Deploy and manage contracts",
+                    })}
+                  </p>
                 </a>
               )}
             </div>
@@ -155,7 +191,11 @@ export default function Dashboard() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-strong">
           Welcome back,{" "}
-          {role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User"}
+          {intl.formatMessage({
+            id: `admin.dashboard.role.${role}`,
+            defaultMessage:
+              role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User",
+          })}
         </h1>
         <p className="text-text-sub mt-1">
           {role === "deployer"
@@ -175,7 +215,13 @@ export default function Dashboard() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-text-soft">
-                {role === "operator" ? "Your Gardens" : "Total Gardens"}
+                {intl.formatMessage({
+                  id:
+                    role === "operator"
+                      ? "admin.dashboard.stats.yourGardens"
+                      : "admin.dashboard.stats.totalGardens",
+                  defaultMessage: role === "operator" ? "Your Gardens" : "Total Gardens",
+                })}
               </p>
               <p className="text-2xl font-bold text-text-strong">
                 {role === "operator" ? userOperatorGardens : totalGardens}
@@ -192,7 +238,12 @@ export default function Dashboard() {
                   <RiUserLine className="h-6 w-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-text-soft">Total Operators</p>
+                  <p className="text-sm font-medium text-text-soft">
+                    {intl.formatMessage({
+                      id: "admin.dashboard.stats.totalOperators",
+                      defaultMessage: "Total Operators",
+                    })}
+                  </p>
                   <p className="text-2xl font-bold text-text-strong">{totalOperators}</p>
                 </div>
               </div>
@@ -204,7 +255,12 @@ export default function Dashboard() {
                   <RiUserLine className="h-6 w-6 text-purple-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-text-soft">Total Gardeners</p>
+                  <p className="text-sm font-medium text-text-soft">
+                    {intl.formatMessage({
+                      id: "admin.dashboard.stats.totalGardeners",
+                      defaultMessage: "Total Gardeners",
+                    })}
+                  </p>
                   <p className="text-2xl font-bold text-text-strong">{totalGardeners}</p>
                 </div>
               </div>
@@ -295,7 +351,12 @@ export default function Dashboard() {
       {/* Recent Activity */}
       <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft">
         <div className="p-6 border-b border-stroke-soft">
-          <h2 className="text-lg font-medium text-text-strong">Recent Gardens</h2>
+          <h2 className="text-lg font-medium text-text-strong">
+            {intl.formatMessage({
+              id: "admin.dashboard.recentGardens",
+              defaultMessage: "Recent Gardens",
+            })}
+          </h2>
         </div>
         <div className="p-6">
           {role === "operator"
@@ -331,7 +392,12 @@ export default function Dashboard() {
                 </div>
               ))}
           {(role === "operator" ? operatorGardens : gardens).length === 0 && (
-            <p className="text-text-soft text-center py-8">No gardens found</p>
+            <p className="text-text-soft text-center py-8">
+              {intl.formatMessage({
+                id: "admin.dashboard.noGardens",
+                defaultMessage: "No gardens found",
+              })}
+            </p>
           )}
         </div>
       </div>

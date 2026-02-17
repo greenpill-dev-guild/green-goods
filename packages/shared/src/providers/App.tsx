@@ -1,5 +1,5 @@
 import { PostHogProvider } from "posthog-js/react";
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { IntlProvider } from "react-intl";
 
 import enMessages from "../i18n/en.json";
@@ -174,23 +174,39 @@ export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
     };
   }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck, installState]);
 
-  // React 19: Compiler handles memoization of context value
+  const isMobile = isMobilePlatform();
+  const isInstalled = installState === "installed";
+
+  const contextValue = useMemo(
+    () => ({
+      isMobile,
+      isInstalled,
+      isStandalone,
+      wasInstalled,
+      platform,
+      locale,
+      availableLocales: supportedLanguages,
+      deferredPrompt,
+      promptInstall,
+      handleInstallCheck,
+      switchLanguage,
+    }),
+    [
+      isMobile,
+      isInstalled,
+      isStandalone,
+      wasInstalled,
+      platform,
+      locale,
+      deferredPrompt,
+      promptInstall,
+      handleInstallCheck,
+      switchLanguage,
+    ]
+  );
+
   const appContent = (
-    <AppContext.Provider
-      value={{
-        isMobile: isMobilePlatform(),
-        isInstalled: installState === "installed",
-        isStandalone,
-        wasInstalled,
-        platform,
-        locale,
-        availableLocales: supportedLanguages,
-        deferredPrompt,
-        promptInstall,
-        handleInstallCheck,
-        switchLanguage,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       <IntlProvider locale={locale} messages={messages[locale]}>
         {children}
       </IntlProvider>

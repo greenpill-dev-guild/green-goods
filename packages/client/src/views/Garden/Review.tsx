@@ -1,6 +1,10 @@
-import { type Action, AudioPlayer, type Garden } from "@green-goods/shared";
-import { mediaResourceManager } from "@green-goods/shared/modules";
-import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
+import {
+  AudioPlayer,
+  formatTimeSpent,
+  mediaResourceManager,
+  type Action,
+  type Garden,
+} from "@green-goods/shared";
 import { RiFileFill, RiPencilFill, RiTimeFill } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";

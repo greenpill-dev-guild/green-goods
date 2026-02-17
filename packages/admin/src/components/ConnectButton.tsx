@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared/utils";
+import { cn } from "@green-goods/shared";
 import { useAppKit } from "@reown/appkit/react";
 import { useAccount } from "wagmi";
 

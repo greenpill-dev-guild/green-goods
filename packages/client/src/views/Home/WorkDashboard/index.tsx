@@ -1,41 +1,35 @@
 import {
-  hapticLight,
-  logger,
-  toastService,
-  type Job,
-  type Work,
-  type WorkJobPayload,
-} from "@green-goods/shared";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import { createPublicClientForChain } from "@green-goods/shared/config";
-import {
-  queryKeys,
+  cn,
+  compareAddresses,
+  convertJobsToWorks,
+  createPublicClientForChain,
+  DEFAULT_CHAIN_ID,
   DEFAULT_RETRY_COUNT,
+  filterByTimeRange,
+  GARDEN_ACCOUNT_ROLE_ABI,
+  getGardens,
+  getWorkApprovals as fetchWorkApprovals,
+  getWorks,
+  hapticLight,
+  isUserAddress as sharedIsUserAddress,
+  jobQueueEventBus,
+  logger,
+  queryKeys,
   STALE_TIME_FAST,
   STALE_TIME_MEDIUM,
   STALE_TIME_SLOW,
+  toastService,
   useDrafts,
   useMyOnlineWorks,
   useTimeout,
   useUser,
   useWorkApprovals,
-} from "@green-goods/shared/hooks";
-import {
-  getWorkApprovals as fetchWorkApprovals,
-  getGardens,
-  getWorks,
-  jobQueueEventBus,
-} from "@green-goods/shared/modules";
-import { jobQueue } from "@green-goods/shared/modules/job-queue";
-import {
-  cn,
-  compareAddresses,
-  convertJobsToWorks,
-  filterByTimeRange,
-  isUserAddress as sharedIsUserAddress,
+  type Job,
   type TimeFilter,
-} from "@green-goods/shared/utils";
-import { GARDEN_ACCOUNT_ROLE_ABI } from "@green-goods/shared/utils/blockchain/abis";
+  type Work,
+  type WorkJobPayload,
+} from "@green-goods/shared";
+import { jobQueue } from "@green-goods/shared/modules/job-queue";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine, RiTimeLine } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";

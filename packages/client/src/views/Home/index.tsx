@@ -1,6 +1,7 @@
-import { toastService } from "@green-goods/shared";
 import {
+  cn,
   queryKeys,
+  toastService,
   useAuth,
   useBrowserNavigation,
   useFilteredGardens,
@@ -9,9 +10,8 @@ import {
   useNavigateToTop,
   useOffline,
   usePrimaryAddress,
-} from "@green-goods/shared/hooks";
-import { useUIStore } from "@green-goods/shared/stores";
-import { cn } from "@green-goods/shared/utils";
+  useUIStore,
+} from "@green-goods/shared";
 import { RiFilterLine } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";

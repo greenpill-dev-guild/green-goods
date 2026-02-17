@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
 import { useCallback, useRef } from "react";
+import type { Address } from "viem";
 import { toastService } from "../../components/toast";
 import type { CookieJarWithdrawParams } from "../../types/cookie-jar";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -11,7 +12,7 @@ import { useDelayedInvalidation } from "../utils/useTimeout";
 import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 
-export function useCookieJarWithdraw(gardenAddress: string) {
+export function useCookieJarWithdraw(gardenAddress: Address) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();

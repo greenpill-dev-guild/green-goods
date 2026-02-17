@@ -11,43 +11,7 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock shared config
-vi.mock("@green-goods/shared/config/blockchain", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared/config/blockchain")>();
-  return {
-    ...actual,
-    DEFAULT_CHAIN_ID: 11155111,
-  };
-});
-
-// Mock shared modules (logger)
-vi.mock("@green-goods/shared/modules", () => ({
-  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
-}));
-
-// Mock shared hooks
-vi.mock("@green-goods/shared/hooks", () => ({
-  useActionTranslation: () => ({ translatedAction: null }),
-  useDraftAutoSave: () => ({ saveOnExit: vi.fn().mockResolvedValue(undefined) }),
-  useDraftResume: () => ({
-    showDraftDialog: false,
-    handleContinueDraft: vi.fn(),
-    handleStartFresh: vi.fn().mockResolvedValue(undefined),
-    clearActiveDraft: vi.fn().mockResolvedValue(undefined),
-  }),
-  useDrafts: () => ({
-    activeDraftId: null,
-    _setActiveDraftId: vi.fn(),
-    createDraft: vi.fn().mockResolvedValue("draft-1"),
-    updateDraft: vi.fn().mockResolvedValue(undefined),
-    setImages: vi.fn().mockResolvedValue(undefined),
-    clearActiveDraft: vi.fn().mockResolvedValue(undefined),
-    resumeDraft: vi.fn().mockResolvedValue(undefined),
-  }),
-  useGardenTranslation: () => ({ translatedGarden: null }),
-}));
-
-// Mock shared providers
+// Mock form state (referenced in the barrel mock below)
 const mockForm = {
   state: { isSubmitting: false, isValid: true },
   images: [],
@@ -68,10 +32,32 @@ const mockForm = {
   reset: vi.fn(),
 };
 
-vi.mock("@green-goods/shared/providers", () => ({
+const mockWorkFlowState = {
+  submissionCompleted: false,
+  audioNotes: [] as File[],
+  setAudioNotes: vi.fn(),
+  reset: vi.fn(),
+};
+
+// The component imports everything from @green-goods/shared barrel.
+// Must mock the barrel directly — deep-path mocks don't intercept barrel imports.
+vi.mock("@green-goods/shared", () => ({
+  // config
+  DEFAULT_CHAIN_ID: 11155111,
+  // hooks
+  useActionTranslation: () => ({ translatedAction: null }),
+  useDraftAutoSave: () => ({ saveOnExit: vi.fn().mockResolvedValue(undefined) }),
+  useDraftResume: () => ({
+    showDraftDialog: false,
+    handleContinueDraft: vi.fn(),
+    handleStartFresh: vi.fn().mockResolvedValue(undefined),
+    clearActiveDraft: vi.fn().mockResolvedValue(undefined),
+  }),
+  useGardenTranslation: () => ({ translatedGarden: null }),
+  // providers
   useWork: () => ({
     form: mockForm,
-    activeTab: "intro",
+    activeTab: "Intro",
     setActiveTab: vi.fn(),
     actions: [
       {
@@ -106,29 +92,17 @@ vi.mock("@green-goods/shared/providers", () => ({
     setSelectedDomain: vi.fn(),
   }),
   WorkTab: {
-    Intro: "intro",
-    Media: "media",
-    Details: "details",
-    Review: "review",
+    Intro: "Intro",
+    Media: "Media",
+    Details: "Details",
+    Review: "Review",
   },
-}));
-
-// Mock stores
-const mockWorkFlowState = {
-  submissionCompleted: false,
-  audioNotes: [] as File[],
-  setAudioNotes: vi.fn(),
-  reset: vi.fn(),
-};
-vi.mock("@green-goods/shared/stores/useWorkFlowStore", () => ({
+  // stores
   useWorkFlowStore: Object.assign(
     (selector: (state: typeof mockWorkFlowState) => unknown) => selector(mockWorkFlowState),
     { getState: () => mockWorkFlowState }
   ),
-}));
-
-// Mock utils
-vi.mock("@green-goods/shared/utils", () => ({
+  // utils
   findActionByUID: () => ({
     id: "action-1",
     title: "Test Action",
@@ -136,6 +110,8 @@ vi.mock("@green-goods/shared/utils", () => ({
     inputs: [],
     mediaInfo: { required: false, maxImageCount: 5 },
   }),
+  // modules
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
 // Mock child components to simplify

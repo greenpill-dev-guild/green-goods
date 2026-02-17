@@ -137,6 +137,7 @@ export {
   HatsABI,
   getNetworkContracts,
 } from "./blockchain/contracts";
+export { GARDEN_ACCOUNT_ROLE_ABI } from "./blockchain/abis";
 export type { ResolveEnsAddressOptions, ResolveEnsOptions } from "./blockchain/ens";
 export { resolveEnsAddress, resolveEnsName, suggestSlug, validateSlug } from "./blockchain/ens";
 export type { SlugValidationResult } from "./blockchain/ens";
@@ -218,9 +219,11 @@ export {
   isRecoverableBlockchainError,
 } from "./errors/blockchain-errors";
 export {
+  formatTimeSpent,
   normalizeFeedback,
   normalizePlantCount,
   normalizePlantSelection,
+  normalizeTimeSpentMinutes,
 } from "./form/normalizers";
 // ============================================================================
 // QUERY INVALIDATION

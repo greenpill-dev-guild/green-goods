@@ -3,6 +3,7 @@
  * Standardizes and simplifies React Query cache keys
  */
 
+import type { Address } from "viem";
 import type { AttestationFilters } from "../types/hypercerts";
 
 // ============================================
@@ -79,7 +80,7 @@ export const queryKeys = {
   // Operator works related keys
   operatorWorks: {
     all: ["greengoods", "operatorWorks"] as const,
-    byAddress: (address: string | undefined, gardenIds: string[]) =>
+    byAddress: (address: Address | undefined, gardenIds: string[]) =>
       ["greengoods", "operatorWorks", address, JSON.stringify([...gardenIds].sort())] as const,
   },
 
@@ -208,38 +209,38 @@ export const queryKeys = {
   // Gardener related keys
   gardeners: {
     all: ["greengoods", "gardeners"] as const,
-    byAddress: (address: string) => ["greengoods", "gardeners", "byAddress", address] as const,
+    byAddress: (address: Address) => ["greengoods", "gardeners", "byAddress", address] as const,
   },
 
   // Gardener profile related keys (on-chain profile data)
   gardenerProfile: {
     all: ["greengoods", "gardener-profile"] as const,
-    byAddress: (address: string, chainId: number) =>
+    byAddress: (address: Address, chainId: number) =>
       ["greengoods", "gardener-profile", address, chainId] as const,
   },
 
   // ENS related keys
   ens: {
     all: ["greengoods", "ens"] as const,
-    name: (address: string) => ["greengoods", "ens", "name", address] as const,
+    name: (address: Address | string) => ["greengoods", "ens", "name", address] as const,
     address: (name: string) => ["greengoods", "ens", "address", name] as const,
-    avatar: (address: string) => ["greengoods", "ens", "avatar", address] as const,
+    avatar: (address: Address | string) => ["greengoods", "ens", "avatar", address] as const,
     registrationStatus: (slug: string) => ["greengoods", "ens", "registration", slug] as const,
     availability: (slug: string) => ["greengoods", "ens", "availability", slug] as const,
-    protocolMembership: (address: string) =>
+    protocolMembership: (address: Address | string) =>
       ["greengoods", "ens", "protocolMembership", address] as const,
   },
 
   // Role related keys (operator/deployer detection)
   role: {
     all: ["greengoods", "role"] as const,
-    operatorGardens: (address?: string) =>
+    operatorGardens: (address?: Address) =>
       ["greengoods", "role", "operatorGardens", address] as const,
-    gardenRoles: (gardenId?: string, address?: string) =>
+    gardenRoles: (gardenId?: string, address?: Address) =>
       ["greengoods", "role", "gardenRoles", gardenId, address] as const,
-    hasRole: (gardenId?: string, address?: string, role?: string) =>
+    hasRole: (gardenId?: string, address?: Address, role?: string) =>
       ["greengoods", "role", "hasRole", gardenId, address, role] as const,
-    evaluatorGardens: (address?: string, gardenIds: string[] = []) =>
+    evaluatorGardens: (address?: Address, gardenIds: string[] = []) =>
       [
         "greengoods",
         "role",
@@ -262,7 +263,7 @@ export const queryKeys = {
   hypercerts: {
     all: ["greengoods", "hypercerts"] as const,
     attestations: (gardenId?: string, filters?: AttestationFilters) =>
-      ["greengoods", "hypercerts", "attestations", gardenId, filters] as const,
+      ["greengoods", "hypercerts", "attestations", gardenId, JSON.stringify(filters)] as const,
     list: (gardenId?: string, status?: string) =>
       ["greengoods", "hypercerts", "list", gardenId, status] as const,
     detail: (hypercertId?: string) => ["greengoods", "hypercerts", "detail", hypercertId] as const,

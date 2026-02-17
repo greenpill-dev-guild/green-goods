@@ -9,7 +9,7 @@
  * @module providers/work
  */
 
-import React, { useCallback, useContext } from "react";
+import React, { useCallback, useContext, useMemo } from "react";
 import type { Action, Domain, Garden, WorkDraft } from "../types/domain";
 import type { Control, FormState, UseFormRegister } from "react-hook-form";
 import { useShallow } from "zustand/react/shallow";
@@ -171,7 +171,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const userAddress = normalizeAddress(primaryAddress);
 
   // Filter gardens to only show ones user is a member of
-  // React 19: Compiler handles memoization
+  // Filter to user's gardens
   const userGardens =
     userAddress && gardensData
       ? gardensData.filter((garden: Garden) => {
@@ -220,7 +220,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   // Compute minimum required images from selected action
-  // React 19: Compiler handles memoization
   const getMinRequiredImages = () => {
     if (typeof actionUID !== "number" || !actionsData.length) return 1;
     const selectedAction = actionsData.find(
@@ -283,49 +282,102 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
   const uploadWork = workForm.handleSubmit(handleUploadWork);
 
+  const isLoading = actionsLoading || gardensLoading;
+
   // Selection context value (low-frequency updates)
-  // React 19: Compiler handles memoization
-  const selectionValue: WorkSelectionValue = {
-    gardens: userGardens,
-    actions: actionsData,
-    isLoading: actionsLoading || gardensLoading,
-    activeTab,
-    setActiveTab,
-    gardenAddress,
-    setGardenAddress,
-    actionUID,
-    setActionUID,
-    selectedDomain,
-    setSelectedDomain,
-  };
+  const selectionValue: WorkSelectionValue = useMemo(
+    () => ({
+      gardens: userGardens,
+      actions: actionsData,
+      isLoading,
+      activeTab,
+      setActiveTab,
+      gardenAddress,
+      setGardenAddress,
+      actionUID,
+      setActionUID,
+      selectedDomain,
+      setSelectedDomain,
+    }),
+    [
+      userGardens,
+      actionsData,
+      isLoading,
+      activeTab,
+      setActiveTab,
+      gardenAddress,
+      setGardenAddress,
+      actionUID,
+      setActionUID,
+      selectedDomain,
+      setSelectedDomain,
+    ]
+  );
 
   // Form context value (high-frequency updates)
-  // React 19: Compiler handles memoization
-  const formValue: WorkFormValue = {
-    state: workForm.formState,
-    control: workForm.control,
-    register: workForm.register,
-    images,
-    setImages,
-    feedback: workForm.feedback,
-    timeSpentMinutes: workForm.timeSpentMinutes,
-    values: workForm.values,
-    reset: workForm.reset,
-    uploadWork,
-    workMutation,
-  };
-
-  // Legacy combined value for backward compatibility
-  // React 19: Compiler handles memoization
-  const legacyValue: WorkDataProps = {
-    gardens: userGardens,
-    actions: actionsData,
-    isLoading: actionsLoading || gardensLoading,
-    workMutation,
-    form: {
+  const formValue: WorkFormValue = useMemo(
+    () => ({
       state: workForm.formState,
       control: workForm.control,
       register: workForm.register,
+      images,
+      setImages,
+      feedback: workForm.feedback as string,
+      timeSpentMinutes: workForm.timeSpentMinutes,
+      values: workForm.values,
+      reset: workForm.reset,
+      uploadWork,
+      workMutation,
+    }),
+    [
+      workForm.formState,
+      workForm.control,
+      workForm.register,
+      images,
+      setImages,
+      workForm.feedback,
+      workForm.timeSpentMinutes,
+      workForm.values,
+      workForm.reset,
+      uploadWork,
+      workMutation,
+    ]
+  );
+
+  // Legacy combined value for backward compatibility
+  const legacyValue: WorkDataProps = useMemo(
+    () => ({
+      gardens: userGardens,
+      actions: actionsData,
+      isLoading,
+      workMutation,
+      form: {
+        state: workForm.formState,
+        control: workForm.control,
+        register: workForm.register,
+        actionUID,
+        images,
+        setImages,
+        setActionUID,
+        uploadWork,
+        gardenAddress,
+        setGardenAddress,
+        feedback: workForm.feedback as string,
+        timeSpentMinutes: workForm.timeSpentMinutes,
+        values: workForm.values,
+        reset: workForm.reset,
+      },
+      activeTab,
+      setActiveTab,
+    }),
+    [
+      userGardens,
+      actionsData,
+      isLoading,
+      workMutation,
+      workForm.formState,
+      workForm.control,
+      workForm.register,
       actionUID,
       images,
       setImages,
@@ -333,14 +385,14 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       uploadWork,
       gardenAddress,
       setGardenAddress,
-      feedback: workForm.feedback,
-      timeSpentMinutes: workForm.timeSpentMinutes,
-      values: workForm.values,
-      reset: workForm.reset,
-    },
-    activeTab,
-    setActiveTab,
-  };
+      workForm.feedback,
+      workForm.timeSpentMinutes,
+      workForm.values,
+      workForm.reset,
+      activeTab,
+      setActiveTab,
+    ]
+  );
 
   return (
     <WorkSelectionContext.Provider value={selectionValue}>

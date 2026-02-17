@@ -1,6 +1,12 @@
-import { DEFAULT_CHAIN_ID, initTheme, queryClient } from "@green-goods/shared";
-import { AppKitProvider, AuthProvider } from "@green-goods/shared/providers";
-import { AppProvider } from "@green-goods/shared/providers/App";
+import {
+  AppKitProvider,
+  AppProvider,
+  AuthProvider,
+  DEFAULT_CHAIN_ID,
+  ErrorBoundary,
+  initTheme,
+  queryClient,
+} from "@green-goods/shared";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -22,23 +28,25 @@ const cleanupTheme = initTheme();
 
 export const Root = () => (
   <QueryClientProvider client={queryClient}>
-    <AppKitProvider
-      projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
-      metadata={{
-        name: "Green Goods Admin",
-        description: "Garden management dashboard for Green Goods protocol",
-        url: "https://admin.greengoods.app",
-        icons: ["https://greengoods.app/icon.png"],
-      }}
-      defaultChainId={DEFAULT_CHAIN_ID}
-    >
-      {/* Single AuthProvider handles both passkey and wallet auth */}
-      <AuthProvider>
-        <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_ADMIN_KEY}>
-          <App />
-        </AppProvider>
-      </AuthProvider>
-    </AppKitProvider>
+    <ErrorBoundary context="AdminApp">
+      <AppKitProvider
+        projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
+        metadata={{
+          name: "Green Goods Admin",
+          description: "Garden management dashboard for Green Goods protocol",
+          url: "https://admin.greengoods.app",
+          icons: ["https://greengoods.app/icon.png"],
+        }}
+        defaultChainId={DEFAULT_CHAIN_ID}
+      >
+        {/* Single AuthProvider handles both passkey and wallet auth */}
+        <AuthProvider>
+          <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_ADMIN_KEY}>
+            <App />
+          </AppProvider>
+        </AuthProvider>
+      </AppKitProvider>
+    </ErrorBoundary>
   </QueryClientProvider>
 );
 

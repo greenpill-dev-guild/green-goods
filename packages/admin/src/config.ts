@@ -3,7 +3,7 @@
  *
  * Re-exports shared configurations and defines admin-specific constants.
  */
-import { initializeIpfsFromEnv } from "@green-goods/shared/modules";
+import { initializeIpfsFromEnv } from "@green-goods/shared";
 
 // Initialize Storacha IPFS from environment
 void initializeIpfsFromEnv(import.meta.env);
@@ -19,8 +19,7 @@ export {
   getChainName,
   isChainSupported,
   SUPPORTED_CHAINS,
-  type SupportedChainId,
-} from "@green-goods/shared/config";
+} from "@green-goods/shared";
 
 // Admin-specific config
 export const ADMIN_NAME = "Green Goods Admin";

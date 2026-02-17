@@ -1,3 +1,4 @@
+import type { Address } from "viem";
 import { useReadContract } from "wagmi";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -11,7 +12,7 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
  * @param gardenAddress - Garden contract address to look up
  * @returns wagmi useReadContract result with data as number | undefined
  */
-export function useGardenDomains(gardenAddress: string | undefined) {
+export function useGardenDomains(gardenAddress: Address | undefined) {
   const chainId = useCurrentChain();
   const contracts = getNetworkContracts(chainId);
 

@@ -16,10 +16,10 @@ bun dev
 bun dev:stop
 
 # Stream logs for a specific service
-bun exec pm2 logs client
-bun exec pm2 logs admin
-bun exec pm2 logs indexer
-bun exec pm2 logs storybook
+bunx pm2 logs client
+bunx pm2 logs admin
+bunx pm2 logs indexer
+bunx pm2 logs storybook
 ```
 
 ### Code Quality

@@ -5,8 +5,7 @@ import { DeviceFrameset } from "react-device-frameset";
 
 import "react-device-frameset/styles/marvel-devices.min.css";
 
-import { useInstallGuidance, copyToClipboard } from "@green-goods/shared";
-import { useApp } from "@green-goods/shared/providers/App";
+import { copyToClipboard, useApp, useInstallGuidance } from "@green-goods/shared";
 import {
   RiAddBoxLine,
   RiAlertLine,

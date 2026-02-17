@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared/utils";
+import { cn } from "@green-goods/shared";
 import { RiCheckboxCircleLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

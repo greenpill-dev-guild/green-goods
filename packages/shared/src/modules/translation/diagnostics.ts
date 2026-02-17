@@ -6,36 +6,37 @@
  * runTranslationDiagnostics();
  */
 
+import { logger } from "../app/logger";
 import { browserTranslator } from "./browser-translator";
 import { translationCache } from "./db";
 
 export async function runTranslationDiagnostics() {
-  console.group("🌐 Translation System Diagnostics");
-
-  // 1. Check browser API support
-  console.log("1️⃣ Browser API Support:");
-  console.log("   - isSupported:", browserTranslator.isSupported);
-
   const hasLegacy = "translation" in self;
   const hasAI = "ai" in self && "translator" in (self as any).ai;
 
-  console.log("   - Has 'translation' (Legacy):", hasLegacy);
-  console.log("   - Has 'ai.translator' (New):", hasAI);
+  // 1. Check browser API support
+  logger.info("[Translation Diagnostics] Browser API Support", {
+    isSupported: browserTranslator.isSupported,
+    hasLegacyAPI: hasLegacy,
+    hasAIAPI: hasAI,
+  });
 
   // Check Legacy API
   if (hasLegacy) {
     const api = (self as any).translation;
-    console.log("   - Legacy API object:", api);
-
     if (api && api.canTranslate) {
       try {
         const canTranslateEs = await api.canTranslate({
           sourceLanguage: "en",
           targetLanguage: "es",
         });
-        console.log("   - [Legacy] Can translate to Spanish:", canTranslateEs);
+        logger.info("[Translation Diagnostics] Legacy API", {
+          canTranslateToSpanish: canTranslateEs,
+        });
       } catch (err) {
-        console.error("   - [Legacy] Error checking canTranslate:", err);
+        logger.error("[Translation Diagnostics] Legacy API canTranslate check failed", {
+          error: err,
+        });
       }
     }
   }
@@ -43,46 +44,45 @@ export async function runTranslationDiagnostics() {
   // Check New AI API
   if (hasAI) {
     const api = (self as any).ai.translator;
-    console.log("   - AI API object:", api);
-
     if (api && api.capabilities) {
       try {
         const caps = await api.capabilities();
-        console.log("   - [AI] Capabilities available:", caps.available);
-        console.log("   - [AI] Can translate to Spanish:", caps.languagePairAvailable("en", "es"));
+        logger.info("[Translation Diagnostics] AI API", {
+          available: caps.available,
+          canTranslateToSpanish: caps.languagePairAvailable("en", "es"),
+        });
       } catch (err) {
-        console.error("   - [AI] Error checking capabilities:", err);
+        logger.error("[Translation Diagnostics] AI API capabilities check failed", { error: err });
       }
     }
   }
 
   // 2. Test a simple translation
-  console.log("\n2️⃣ Testing Simple Translation:");
   try {
     const result = await browserTranslator.translate("Hello world", "es");
-    console.log("   - Input: 'Hello world'");
-    console.log("   - Output (Spanish):", result);
-    console.log("   - Success:", result !== null);
+    logger.info("[Translation Diagnostics] Simple translation test", {
+      input: "Hello world",
+      output: result,
+      success: result !== null,
+    });
   } catch (err) {
-    console.error("   - Translation failed:", err);
+    logger.error("[Translation Diagnostics] Translation test failed", { error: err });
   }
 
   // 3. Check cache
-  console.log("\n3️⃣ Translation Cache:");
   try {
     const stats = await translationCache.getStats();
-    console.log("   - Total cached:", stats.total);
-    console.log("   - By language:", stats.byLanguage);
+    logger.info("[Translation Diagnostics] Cache stats", {
+      total: stats.total,
+      byLanguage: stats.byLanguage,
+    });
   } catch (err) {
-    console.error("   - Cache stats failed:", err);
+    logger.error("[Translation Diagnostics] Cache stats failed", { error: err });
   }
 
   // 4. Check current locale
-  console.log("\n4️⃣ Current Locale:");
   const storedLocale = localStorage.getItem("gg-language");
-  console.log("   - Stored locale:", storedLocale);
-
-  console.groupEnd();
+  logger.info("[Translation Diagnostics] Current locale", { storedLocale });
 
   // Return diagnostic info
   return {
@@ -97,5 +97,5 @@ export async function runTranslationDiagnostics() {
  */
 if (typeof window !== "undefined") {
   (window as any).checkTranslation = runTranslationDiagnostics;
-  console.log("💡 Run checkTranslation() in console to diagnose translation system");
+  logger.info("[Translation] Run checkTranslation() in console to diagnose translation system");
 }

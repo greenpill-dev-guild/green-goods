@@ -1,4 +1,4 @@
-import { useApp } from "@green-goods/shared/providers";
+import { useApp } from "@green-goods/shared";
 import { Navigate, useLocation } from "react-router-dom";
 import Landing from "@/views/Landing";
 

@@ -1,5 +1,4 @@
-import { AudioPlayer } from "@green-goods/shared/components";
-import { resolveIPFSUrl } from "@green-goods/shared";
+import { AudioPlayer, resolveIPFSUrl } from "@green-goods/shared";
 import { RiCloseLine, RiImageLine, RiZoomInLine } from "@remixicon/react";
 import { useCallback, useState } from "react";
 

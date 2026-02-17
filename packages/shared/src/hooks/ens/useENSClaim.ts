@@ -69,6 +69,7 @@ export function useENSClaim() {
         });
         txHash = await smartAccountClient.sendTransaction({
           account: smartAccountClient.account!,
+          chain: null,
           to: ensAddress,
           data,
         });
@@ -103,7 +104,7 @@ export function useENSClaim() {
             topics: log.topics,
           });
           if (decoded.eventName === "NameRegistrationSent") {
-            ccipMessageId = (decoded.args as { messageId: Hex }).messageId;
+            ccipMessageId = (decoded.args as unknown as { messageId: Hex }).messageId;
             break;
           }
         } catch {

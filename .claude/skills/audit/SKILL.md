@@ -76,18 +76,25 @@ For each file check:
 
 ## Part 3: Dead Code Detection
 
-### Automated Tooling
+### Automated Tooling (REQUIRED — always run before manual review)
 
-Run automated tools before manual review for faster coverage:
+> **IMPORTANT**: Always use `knip` for dead code detection.
+> It understands TypeScript's module resolution and monorepo workspace relationships.
+> **NEVER rely on grep-based scanning** for unused export detection — it has ~80% false-positive
+> rate in this monorepo due to barrel exports, re-exports, and aliased imports.
 
 ```bash
-# knip — Find unused files, exports, dependencies, and types
-# Install: bun add -D knip
-bunx knip                          # Full analysis
+# knip — PREFERRED: monorepo-aware unused files, exports, deps, types
+# Installed at root as devDependency. Understands workspace cross-package imports.
+bunx knip                          # Full analysis (files, exports, deps, types)
 bunx knip --reporter compact       # Condensed output
 bunx knip --include files          # Only unused files
 bunx knip --include exports        # Only unused exports
 bunx knip --include dependencies   # Only unused deps
+
+# IMPORTANT: knip will flag files in packages/contracts/lib/ (Foundry deps).
+# Filter these out — they are git submodules managed by Foundry, not dead code:
+bunx knip --reporter compact 2>&1 | grep -v 'packages/contracts/lib/'
 
 # madge — Detect circular dependencies
 # Install: bun add -D madge
@@ -100,14 +107,15 @@ bunx madge --image graph.svg packages/shared/src/  # Visual dep graph
 # Green Goods budgets: main <150KB, per-route <50KB, total <400KB gzipped
 ```
 
-| Tool | Purpose | Install |
-|------|---------|---------|
-| **knip** | Unused files, exports, deps, types | `bun add -D knip` |
+| Tool | Purpose | Status |
+|------|---------|--------|
+| **knip** | Unused files, exports, deps, types (monorepo-aware) | **Installed** — primary tool for dead code audits |
 | **madge** | Circular dependency detection | `bun add -D madge` |
 | **bundlesize** | Bundle budget enforcement | `bun add -D bundlesize` |
-| **ts-prune** | Unused TypeScript exports | `bun add -D ts-prune` |
 
-### Manual Detection
+### Manual Detection (fallback only — prefer knip)
+
+Only use grep-based detection when automated tools cannot run (e.g., non-TypeScript files, Solidity contracts):
 
 1. **Identify exports**: `grep -n "export " [file]`
 2. **Search for usage**: `grep -rn "[export-name]" packages/`
@@ -180,7 +188,7 @@ Skills, hooks, and architectural rules reference specific hooks, utilities, type
 ```bash
 # Check that hooks referenced in skills actually exist
 for hook in useTimeout useDelayedInvalidation useEventListener useWindowEvent \
-  useDocumentEvent useAsyncEffect useAsyncSetup useOnlineStatus \
+  useDocumentEvent useAsyncEffect useAsyncSetup useOffline \
   useServiceWorkerUpdate useDraftAutoSave useDraftResume useJobQueue; do
   count=$(grep -rn "export.*$hook" packages/shared/src/ | wc -l)
   if [ "$count" -eq 0 ]; then

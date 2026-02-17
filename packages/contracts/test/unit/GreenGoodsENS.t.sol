@@ -2,7 +2,7 @@
 pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
-import { GreenGoodsENS } from "../../src/registries/ENS.sol";
+import { GreenGoodsENS, NoWithdrawableBalance } from "../../src/registries/ENS.sol";
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 
 /// @dev Mock CCIP Router that tracks sent messages
@@ -455,7 +455,7 @@ contract GreenGoodsENSTest is Test {
     function test_WithdrawETH_RevertNothingToWithdraw() public {
         // Contract has zero balance and zero pending refunds
         vm.prank(owner);
-        vm.expectRevert("No withdrawable balance");
+        vm.expectRevert(NoWithdrawableBalance.selector);
         ens.withdrawETH(address(0x777));
     }
 

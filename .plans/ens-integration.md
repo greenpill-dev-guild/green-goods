@@ -1,11 +1,13 @@
 # ENS Integration Plan: `*.greengoods.eth` Unified Namespace
 
-> **Status**: Draft v4b — Chainlink CCIP + Hats Protocol Verification
+> **Status**: Active — Contracts DONE, Frontend + Indexer TODO
 > **Branch**: `feature/ens-integration`
 > **Depends on**: `feature/action-domains` (current)
-> **Estimated scope**: ~25 files changed, ~1000 LOC new, ~300 LOC deleted
+> **Created**: 2026-02-10 | **Trimmed**: 2026-02-16
 
 ---
+
+> **Sections 1-7 (Architecture, Namespace, Security, Contracts, CCIP, UX, Deployment)** — implemented and committed. Kept below as reference for remaining frontend/indexer work.
 
 ## 1. Architecture Overview
 
@@ -155,569 +157,28 @@ Garden ENS registrations don't need the hat check — they use **authorized call
 
 ### 4.1 New: `src/registries/ENS.sol` — L2 (Arbitrum) — CCIP Sender
 
-The L2 contract validates inputs, caches registrations for collision prevention, and sends CCIP messages to L1.
+L2 contract deployed on Arbitrum that manages `*.greengoods.eth` registrations. Validates slug format, maintains an L2 registration cache to prevent collisions before CCIP delivery, and sends cross-chain messages to the L1 receiver via Chainlink CCIP. Gardener eligibility is verified via Hats Protocol (`protocolGardenersHatId`). Supports both user-funded (`claimName`) and contract-sponsored (`claimNameSponsored`) registration for passkey users. Garden registrations are restricted to authorized callers (GardenToken).
 
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.25;
-
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { IRouterClient } from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
-import { Client } from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
-
-error NameTaken();
-error InvalidSlug();
-error NotProtocolMember();
-error NotAuthorizedCaller();
-error AlreadyHasName();
-error CannotChangeGardenName();
-error NoNameToRelease();
-error InsufficientFee();
-error NameInCooldown();
-
-interface IHats {
-    function isWearerOfHat(address account, uint256 hatId) external view returns (bool);
-}
-
-/// @title GreenGoodsENS (L2 Sender)
-/// @notice Manages *.greengoods.eth registrations on Arbitrum, relays to L1 via CCIP
-/// @dev Deployed on Arbitrum. Sends cross-chain messages to GreenGoodsENSReceiver on Ethereum.
-///      Gardener eligibility verified via Hats Protocol (protocolGardenersHatId).
-contract GreenGoodsENS is Ownable {
-    IRouterClient public immutable CCIP_ROUTER;
-    uint64 public immutable ETHEREUM_CHAIN_SELECTOR;
-    IHats public immutable HATS;           // Hats Protocol contract
-    uint256 public protocolHatId;          // protocolGardenersHatId from HatsModule
-    address public l1Receiver;             // GreenGoodsENSReceiver on Ethereum
-
-    enum NameType { Gardener, Garden }
-
-    // ─────── L2 Registration Cache ───────
-    // Prevents collisions before CCIP delivery. L1 is source of truth.
-    mapping(bytes32 slugHash => address owner) public slugOwner;
-    mapping(address owner => string slug) public ownerToSlug;
-    mapping(string slug => uint256 releasedAt) public slugReleasedAt;
-
-    uint256 public constant MIN_SLUG_LENGTH = 3;
-    uint256 public constant MAX_SLUG_LENGTH = 50;
-    uint256 public constant NAME_CHANGE_COOLDOWN = 30 days;
-
-    /// @notice Authorized callers (GardenToken contract, owner)
-    mapping(address => bool) public authorizedCallers;
-
-    // ─────── Events ───────
-    event NameRegistrationSent(
-        bytes32 indexed messageId,
-        string slug,
-        address indexed owner,
-        NameType nameType,
-        uint256 ccipFee
-    );
-    event NameReleaseSent(bytes32 indexed messageId, string slug, address indexed previousOwner);
-    event L1ReceiverUpdated(address indexed oldReceiver, address indexed newReceiver);
-    event AuthorizedCallerUpdated(address indexed caller, bool authorized);
-    event ProtocolHatIdUpdated(uint256 oldHatId, uint256 newHatId);
-
-    constructor(
-        address _ccipRouter,
-        uint64 _ethereumChainSelector,
-        address _l1Receiver,
-        address _hats,
-        uint256 _protocolHatId,
-        address _owner
-    ) {
-        CCIP_ROUTER = IRouterClient(_ccipRouter);
-        ETHEREUM_CHAIN_SELECTOR = _ethereumChainSelector;
-        l1Receiver = _l1Receiver;
-        HATS = IHats(_hats);
-        protocolHatId = _protocolHatId;
-        _transferOwnership(_owner);
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // Registration (L2 → sends CCIP to L1)
-    // ═══════════════════════════════════════════════════════
-
-    /// @notice Register a garden name. Called by GardenToken during mintGarden().
-    /// @param slug The subdomain (e.g., "miyawaki-park")
-    /// @param gardenAccount The garden TBA address
-    /// @dev msg.value must cover CCIP fee. Called by authorized caller (GardenToken).
-    function registerGarden(string calldata slug, address gardenAccount) external payable {
-        if (!authorizedCallers[msg.sender] && msg.sender != owner()) {
-            revert NotAuthorizedCaller();
-        }
-        _validateSlug(slug);
-        _cacheRegistration(slug, gardenAccount);
-        _sendRegistrationMessage(slug, gardenAccount, NameType.Garden);
-    }
-
-    /// @notice Claim a personal *.greengoods.eth name (user-funded). Any protocol member.
-    /// @param slug The subdomain (e.g., "alice")
-    /// @dev msg.value must cover CCIP fee. Caller must wear the protocol hat.
-    ///      Works for ALL roles: gardener, operator, owner, evaluator, funder, community.
-    function claimName(string calldata slug) external payable {
-        if (!HATS.isWearerOfHat(msg.sender, protocolHatId)) revert NotProtocolMember();
-        _validateSlug(slug);
-        _cacheRegistration(slug, msg.sender);
-        _sendRegistrationMessage(slug, msg.sender, NameType.Gardener);
-    }
-
-    /// @notice Claim a personal *.greengoods.eth name (contract-funded). Any protocol member.
-    /// @dev CCIP fee paid from contract's ETH balance. Recommended for passkey users
-    ///      who don't hold ETH. Contract must be pre-funded by owner.
-    function claimNameSponsored(string calldata slug) external {
-        if (!HATS.isWearerOfHat(msg.sender, protocolHatId)) revert NotProtocolMember();
-        _validateSlug(slug);
-        _cacheRegistration(slug, msg.sender);
-        _sendSponsoredRegistrationMessage(slug, msg.sender, NameType.Gardener);
-    }
-
-    /// @notice Release current name (gardeners only, 30-day cooldown)
-    function releaseName() external payable {
-        string memory currentSlug = ownerToSlug[msg.sender];
-        if (bytes(currentSlug).length == 0) revert NoNameToRelease();
-
-        bytes32 slugHash = keccak256(bytes(currentSlug));
-        // Cannot release garden names — they are immutable
-        // (Garden accounts won't call this; only user accounts can)
-
-        slugReleasedAt[currentSlug] = block.timestamp;
-        delete slugOwner[slugHash];
-        delete ownerToSlug[msg.sender];
-
-        // Send release message to L1
-        _sendReleaseMessage(currentSlug, msg.sender);
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // Views
-    // ═══════════════════════════════════════════════════════
-
-    /// @notice Check if slug is available on L2 cache
-    /// @dev For authoritative check, query L1 receiver directly
-    function available(string calldata slug) external view returns (bool) {
-        bytes32 slugHash = keccak256(bytes(slug));
-        if (slugOwner[slugHash] != address(0)) return false;
-        uint256 releasedAt = slugReleasedAt[slug];
-        if (releasedAt > 0 && block.timestamp < releasedAt + NAME_CHANGE_COOLDOWN) return false;
-        return true;
-    }
-
-    /// @notice Get the CCIP fee for a registration message
-    function getRegistrationFee(string calldata slug, address owner, NameType nameType)
-        external
-        view
-        returns (uint256)
-    {
-        bytes memory data = abi.encode(uint8(0), slug, owner, nameType); // 0 = register
-        Client.EVM2AnyMessage memory message = _buildMessage(data);
-        return CCIP_ROUTER.getFee(ETHEREUM_CHAIN_SELECTOR, message);
-    }
-
-    /// @notice Get the CCIP fee for a release message
-    function getReleaseFee(string calldata slug) external view returns (uint256) {
-        bytes memory data = abi.encode(uint8(1), slug, address(0), NameType.Gardener); // 1 = release
-        Client.EVM2AnyMessage memory message = _buildMessage(data);
-        return CCIP_ROUTER.getFee(ETHEREUM_CHAIN_SELECTOR, message);
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // Internal — CCIP Messaging
-    // ═══════════════════════════════════════════════════════
-
-    function _sendRegistrationMessage(string calldata slug, address owner, NameType nameType) internal {
-        // action = 0 (register)
-        bytes memory data = abi.encode(uint8(0), slug, owner, nameType);
-        Client.EVM2AnyMessage memory message = _buildMessage(data);
-
-        uint256 fee = CCIP_ROUTER.getFee(ETHEREUM_CHAIN_SELECTOR, message);
-        if (msg.value < fee) revert InsufficientFee();
-
-        bytes32 messageId = CCIP_ROUTER.ccipSend{value: fee}(ETHEREUM_CHAIN_SELECTOR, message);
-
-        // Refund excess
-        if (msg.value > fee) {
-            (bool ok,) = msg.sender.call{value: msg.value - fee}("");
-            ok; // Best effort refund
-        }
-
-        emit NameRegistrationSent(messageId, slug, owner, nameType, fee);
-    }
-
-    /// @dev Same as _sendRegistrationMessage but pays CCIP fee from contract balance
-    function _sendSponsoredRegistrationMessage(string calldata slug, address owner, NameType nameType) internal {
-        bytes memory data = abi.encode(uint8(0), slug, owner, nameType);
-        Client.EVM2AnyMessage memory message = _buildMessage(data);
-
-        uint256 fee = CCIP_ROUTER.getFee(ETHEREUM_CHAIN_SELECTOR, message);
-        if (address(this).balance < fee) revert InsufficientFee();
-
-        bytes32 messageId = CCIP_ROUTER.ccipSend{value: fee}(ETHEREUM_CHAIN_SELECTOR, message);
-        emit NameRegistrationSent(messageId, slug, owner, nameType, fee);
-    }
-
-    function _sendReleaseMessage(string memory slug, address previousOwner) internal {
-        bytes memory data = abi.encode(uint8(1), slug, previousOwner, NameType.Gardener);
-        Client.EVM2AnyMessage memory message = _buildMessage(data);
-
-        uint256 fee = CCIP_ROUTER.getFee(ETHEREUM_CHAIN_SELECTOR, message);
-        if (msg.value < fee) revert InsufficientFee();
-
-        bytes32 messageId = CCIP_ROUTER.ccipSend{value: fee}(ETHEREUM_CHAIN_SELECTOR, message);
-
-        if (msg.value > fee) {
-            (bool ok,) = msg.sender.call{value: msg.value - fee}("");
-            ok;
-        }
-
-        emit NameReleaseSent(messageId, slug, previousOwner);
-    }
-
-    function _buildMessage(bytes memory data) internal view returns (Client.EVM2AnyMessage memory) {
-        return Client.EVM2AnyMessage({
-            receiver: abi.encode(l1Receiver),
-            data: data,
-            tokenAmounts: new Client.EVMTokenAmount[](0), // No token transfer
-            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 300_000})),
-            feeToken: address(0) // Pay in native ETH
-        });
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // Internal — Validation & Cache
-    // ═══════════════════════════════════════════════════════
-
-    function _cacheRegistration(string calldata slug, address owner) internal {
-        bytes32 slugHash = keccak256(bytes(slug));
-        if (slugOwner[slugHash] != address(0)) revert NameTaken();
-
-        uint256 releasedAt = slugReleasedAt[slug];
-        if (releasedAt > 0 && block.timestamp < releasedAt + NAME_CHANGE_COOLDOWN) {
-            revert NameInCooldown();
-        }
-
-        if (bytes(ownerToSlug[owner]).length > 0) revert AlreadyHasName();
-
-        slugOwner[slugHash] = owner;
-        ownerToSlug[owner] = slug;
-
-        if (releasedAt > 0) delete slugReleasedAt[slug];
-    }
-
-    function _validateSlug(string calldata slug) internal pure {
-        bytes memory b = bytes(slug);
-        uint256 len = b.length;
-        if (len < MIN_SLUG_LENGTH || len > MAX_SLUG_LENGTH) revert InvalidSlug();
-        if (b[0] == 0x2D || b[len - 1] == 0x2D) revert InvalidSlug(); // no leading/trailing hyphens
-
-        for (uint256 i = 0; i < len;) {
-            bytes1 c = b[i];
-            bool valid = (c >= 0x61 && c <= 0x7A)  // a-z
-                || (c >= 0x30 && c <= 0x39)          // 0-9
-                || c == 0x2D;                         // hyphen
-            if (!valid) revert InvalidSlug();
-            if (c == 0x2D && i + 1 < len && b[i + 1] == 0x2D) revert InvalidSlug(); // no consecutive hyphens
-            unchecked { ++i; }
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // Admin
-    // ═══════════════════════════════════════════════════════
-
-    function setL1Receiver(address _l1Receiver) external onlyOwner {
-        address old = l1Receiver;
-        l1Receiver = _l1Receiver;
-        emit L1ReceiverUpdated(old, _l1Receiver);
-    }
-
-    function setAuthorizedCaller(address caller, bool authorized) external onlyOwner {
-        authorizedCallers[caller] = authorized;
-        emit AuthorizedCallerUpdated(caller, authorized);
-    }
-
-    /// @notice Update the protocol hat ID (e.g., after Hats tree restructuring)
-    function setProtocolHatId(uint256 _protocolHatId) external onlyOwner {
-        uint256 old = protocolHatId;
-        protocolHatId = _protocolHatId;
-        emit ProtocolHatIdUpdated(old, _protocolHatId);
-    }
-
-    /// @notice Withdraw stuck ETH (excess CCIP fees, etc.)
-    function withdrawETH(address to) external onlyOwner {
-        (bool ok,) = to.call{value: address(this).balance}("");
-        require(ok);
-    }
-
-    /// @notice Allow contract to receive ETH (for CCIP fee funding)
-    receive() external payable {}
-}
-```
+> **Source**: `packages/contracts/src/registries/ENS.sol`
 
 ### 4.2 New: `src/registries/ENSReceiver.sol` — L1 (Ethereum) — CCIP Receiver
 
-The L1 contract receives CCIP messages and registers ENS subdomains.
+L1 contract deployed on Ethereum mainnet that receives CCIP messages from the Arbitrum sender and registers ENS subdomains under `greengoods.eth`. This contract owns `greengoods.eth` in ENS and is the source of truth for all registrations. Verifies source chain and sender address before processing. Registration is idempotent (silently skips duplicates for CCIP race conditions). Includes admin functions for force-releasing squatted names and direct registration for migration/recovery.
 
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.25;
-
-import { CCIPReceiver } from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
-import { Client } from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { IENS, IENSResolver } from "../interfaces/IENS.sol";
-
-error UnauthorizedSender();
-error UnauthorizedSourceChain();
-error NameTaken();
-error InvalidSlug();
-
-/// @title GreenGoodsENSReceiver (L1 Receiver)
-/// @notice Receives CCIP messages from Arbitrum and registers ENS subdomains
-/// @dev Deployed on Ethereum mainnet. Owns greengoods.eth in ENS.
-contract GreenGoodsENSReceiver is CCIPReceiver, Ownable {
-    address public immutable ENS_REGISTRY;
-    address public immutable ENS_RESOLVER;
-    bytes32 public immutable BASE_NODE; // namehash("greengoods.eth")
-
-    uint64 public immutable ARBITRUM_CHAIN_SELECTOR;
-    address public l2Sender; // GreenGoodsENS on Arbitrum
-
-    enum NameType { Gardener, Garden }
-
-    struct Registration {
-        address owner;
-        NameType nameType;
-        uint256 registeredAt;
-    }
-
-    // ─────── Storage (L1 source of truth) ───────
-    mapping(bytes32 slugHash => Registration) public registrations;
-    mapping(address owner => string slug) public ownerToSlug;
-
-    // ─────── Events ───────
-    event NameRegistered(string slug, address indexed owner, NameType nameType, bytes32 indexed messageId);
-    event NameReleased(string slug, address indexed previousOwner, bytes32 indexed messageId);
-    event L2SenderUpdated(address indexed oldSender, address indexed newSender);
-
-    constructor(
-        address _ccipRouter,
-        uint64 _arbitrumChainSelector,
-        address _l2Sender,
-        address _ensRegistry,
-        address _ensResolver,
-        bytes32 _baseNode,
-        address _owner
-    ) CCIPReceiver(_ccipRouter) {
-        ARBITRUM_CHAIN_SELECTOR = _arbitrumChainSelector;
-        l2Sender = _l2Sender;
-        ENS_REGISTRY = _ensRegistry;
-        ENS_RESOLVER = _ensResolver;
-        BASE_NODE = _baseNode;
-        _transferOwnership(_owner);
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // CCIP Receiver
-    // ═══════════════════════════════════════════════════════
-
-    function _ccipReceive(Client.Any2EVMMessage memory message) internal override {
-        // Verify source chain
-        if (message.sourceChainSelector != ARBITRUM_CHAIN_SELECTOR) {
-            revert UnauthorizedSourceChain();
-        }
-
-        // Verify sender
-        address sender = abi.decode(message.sender, (address));
-        if (sender != l2Sender) revert UnauthorizedSender();
-
-        // Decode message
-        (uint8 action, string memory slug, address owner, NameType nameType) =
-            abi.decode(message.data, (uint8, string, address, NameType));
-
-        if (action == 0) {
-            // Register
-            _register(slug, owner, nameType, message.messageId);
-        } else if (action == 1) {
-            // Release
-            _release(slug, owner, message.messageId);
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // Internal — ENS Registration
-    // ═══════════════════════════════════════════════════════
-
-    function _register(string memory slug, address owner, NameType nameType, bytes32 messageId) internal {
-        bytes32 slugHash = keccak256(bytes(slug));
-
-        // If already taken on L1 (race condition), skip silently
-        // The L2 cache should prevent this, but CCIP ordering isn't guaranteed
-        if (registrations[slugHash].owner != address(0)) return;
-
-        registrations[slugHash] = Registration({
-            owner: owner,
-            nameType: nameType,
-            registeredAt: block.timestamp
-        });
-        ownerToSlug[owner] = slug;
-
-        // Register on ENS
-        _setENSRecords(slug, owner);
-
-        emit NameRegistered(slug, owner, nameType, messageId);
-    }
-
-    function _release(string memory slug, address previousOwner, bytes32 messageId) internal {
-        bytes32 slugHash = keccak256(bytes(slug));
-        Registration memory reg = registrations[slugHash];
-
-        // Verify the release is from the correct owner
-        if (reg.owner != previousOwner) return;
-
-        delete registrations[slugHash];
-        delete ownerToSlug[previousOwner];
-
-        // Clear ENS records
-        bytes32 label = keccak256(bytes(slug));
-        bytes32 node = keccak256(abi.encodePacked(BASE_NODE, label));
-        IENSResolver(ENS_RESOLVER).setAddr(node, address(0));
-
-        emit NameReleased(slug, previousOwner, messageId);
-    }
-
-    function _setENSRecords(string memory slug, address owner) internal {
-        bytes32 label = keccak256(bytes(slug));
-        bytes32 node = keccak256(abi.encodePacked(BASE_NODE, label));
-
-        IENS(ENS_REGISTRY).setSubnodeOwner(BASE_NODE, label, address(this));
-        IENS(ENS_REGISTRY).setResolver(node, ENS_RESOLVER);
-        IENSResolver(ENS_RESOLVER).setAddr(node, owner);
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // Views (L1 source of truth)
-    // ═══════════════════════════════════════════════════════
-
-    /// @notice Check if slug is available (L1 authoritative)
-    function available(string calldata slug) external view returns (bool) {
-        return registrations[keccak256(bytes(slug))].owner == address(0);
-    }
-
-    /// @notice Resolve slug to owner address
-    function resolve(string calldata slug) external view returns (address) {
-        return registrations[keccak256(bytes(slug))].owner;
-    }
-
-    /// @notice Get full registration data
-    function getRegistration(string calldata slug) external view returns (Registration memory) {
-        return registrations[keccak256(bytes(slug))];
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // Admin
-    // ═══════════════════════════════════════════════════════
-
-    function setL2Sender(address _l2Sender) external onlyOwner {
-        address old = l2Sender;
-        l2Sender = _l2Sender;
-        emit L2SenderUpdated(old, _l2Sender);
-    }
-
-    /// @notice Admin force-release a squatted name (direct L1, no CCIP)
-    function adminReleaseName(string calldata slug) external onlyOwner {
-        bytes32 slugHash = keccak256(bytes(slug));
-        Registration memory reg = registrations[slugHash];
-        if (reg.owner == address(0)) return;
-
-        delete registrations[slugHash];
-        delete ownerToSlug[reg.owner];
-
-        bytes32 label = keccak256(bytes(slug));
-        bytes32 node = keccak256(abi.encodePacked(BASE_NODE, label));
-        IENSResolver(ENS_RESOLVER).setAddr(node, address(0));
-
-        emit NameReleased(slug, reg.owner, bytes32(0));
-    }
-
-    /// @notice Admin can directly register (bypass CCIP, for migration/recovery)
-    function adminRegister(string calldata slug, address owner, NameType nameType) external onlyOwner {
-        bytes32 slugHash = keccak256(bytes(slug));
-        if (registrations[slugHash].owner != address(0)) revert NameTaken();
-
-        registrations[slugHash] = Registration({
-            owner: owner,
-            nameType: nameType,
-            registeredAt: block.timestamp
-        });
-        ownerToSlug[owner] = slug;
-        _setENSRecords(slug, owner);
-
-        emit NameRegistered(slug, owner, nameType, bytes32(0));
-    }
-}
-```
+> **Source**: `packages/contracts/src/registries/ENSReceiver.sol`
 
 ### 4.3 Modified: `src/tokens/Garden.sol` (L2 — Arbitrum)
 
-The mint flow on L2 now calls the ENS module to send a CCIP message. **No `registerProtocolAccount()`** — protocol membership is handled entirely by Hats Protocol (see 4.6).
+The mint flow on L2 now calls the ENS module to send a CCIP message. **No `registerProtocolAccount()`** -- protocol membership is handled entirely by Hats Protocol (see 4.6).
 
-```diff
-+ import { IGreenGoodsENS } from "../interfaces/IGreenGoodsENS.sol";
+Changes:
+- Added `IGreenGoodsENS ensModule` storage field + `setENSModule()` setter + `ENSModuleUpdated` event
+- Added `string slug` to `GardenConfig` struct (ENS subdomain slug)
+- `mintGarden()` / `batchMintGardens()` changed to `payable` to accept ETH for the CCIP fee
+- In `_initializeGardenModules()`, added ENS registration call with graceful degradation (`try/catch`) -- garden mint never reverts if ENS fails
+- Reduced `__gap` from `[41]` to `[40]` to account for the new storage slot
 
-  contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
-      // ... existing storage ...
-      ICookieJarModule public cookieJarModule;
-+     IGreenGoodsENS public ensModule;
-
-      // Events
-+     event ENSModuleUpdated(address indexed oldModule, address indexed newModule);
-
-      struct GardenConfig {
-          address communityToken;
-          string name;
-+         string slug;           // ENS subdomain slug
-          string description;
-          string location;
-          string bannerImage;
-          string metadata;
-          bool openJoining;
-          IGardensModule.WeightScheme weightScheme;
-          uint8 domainMask;
-      }
-
-      // ... existing code ...
-
-+     function setENSModule(address _ensModule) external onlyOwner {
-+         address oldModule = address(ensModule);
-+         ensModule = IGreenGoodsENS(_ensModule);
-+         emit ENSModuleUpdated(oldModule, _ensModule);
-+     }
-  }
-```
-
-In `_initializeGardenModules()`, add ENS registration (same graceful degradation pattern):
-
-```solidity
-// ENS: register garden subdomain via CCIP (graceful degradation)
-if (address(ensModule) != address(0) && bytes(config.slug).length > 0) {
-    // solhint-disable-next-line no-empty-blocks
-    try ensModule.registerGarden{value: msg.value}(config.slug, gardenAccount) {
-        // Success handled by ENS module events
-    } catch {
-        // Non-blocking — garden mint MUST NOT revert
-    }
-}
-```
-
-The `mintGarden()` function becomes `payable` to accept ETH for the CCIP fee:
-
-```diff
-- function mintGarden(GardenConfig calldata config) external onlyAuthorizedMinter returns (address) {
-+ function mintGarden(GardenConfig calldata config) external payable onlyAuthorizedMinter returns (address) {
-```
-
-**Storage gap**: Reduce `__gap` from `[41]` to `[40]` (adding `ensModule`).
+> **Source**: `packages/contracts/src/tokens/Garden.sol`
 
 ### 4.4 Modified: `src/interfaces/IGardenAccount.sol`
 
@@ -736,26 +197,13 @@ The `mintGarden()` function becomes `payable` to accept ETH for the CCIP fee:
 
 ### 4.5 Modified: `src/accounts/Garden.sol`
 
-```diff
-+ /// @notice The ENS subdomain slug (e.g., "miyawaki-park")
-+ string public slug;
-```
+Changes:
+- Added `string public slug` storage field for the ENS subdomain (e.g., "miyawaki-park")
+- `initialize()` now reads `params.slug` and stores it
+- Reduced `__gap` from `[34]` to `[33]` to account for the new storage slot
+- **No changes to `joinGarden()`** -- protocol hat minting is handled by `HatsModule._grantRole()` (see 4.6), which is already called during `joinGarden()`
 
-In `initialize()`:
-
-```diff
-  function initialize(IGardenAccount.InitParams calldata params) external initializer {
-      communityToken = params.communityToken;
-      name = params.name;
-+     slug = params.slug;
-      description = params.description;
-      // ...
-  }
-```
-
-**Storage gap**: Reduce `__gap` from `[34]` to `[33]`.
-
-**No changes to `joinGarden()`** — protocol hat minting is handled by `HatsModule._grantRole()` (see 4.6), which is already called during `joinGarden()`. No additional code needed in GardenAccount.
+> **Source**: `packages/contracts/src/accounts/Garden.sol`
 
 ### 4.6 New: `src/interfaces/IGreenGoodsENS.sol`
 
@@ -780,31 +228,14 @@ interface IGreenGoodsENS {
 
 ### 4.7 Modified: `src/modules/Hats.sol` — Protocol Hat Auto-Mint
 
-The single key change: when ANY role is granted in ANY garden, `_grantRole()` also mints the `protocolGardenersHatId`. This makes every protocol member eligible for ENS name claims without any extra function calls.
+Changes:
+- In `_grantRole()`, after minting the per-garden role hat, auto-mint the `protocolGardenersHatId` (best-effort with `try/catch`)
+- Checks `isWearerOfHat()` first to skip if the account already wears the protocol hat (idempotent across multiple garden memberships)
+- Guarded by `protocolGardenersHatId != 0` so it is a no-op if the protocol hat is not configured
 
-```diff
-  function _grantRole(address garden, address account, GardenRole role) internal {
-      GardenHats storage hats_ = gardenHats[garden];
-      // ... existing role hat selection logic ...
+**Why this location**: `_grantRole()` is the single funnel for ALL role assignments -- called by `createGardenHatTree()` (owner role during mint), `grantRole()` (operator/evaluator), and indirectly by `joinGarden()` (gardener role). One change, all pathways covered.
 
-      hats.mintHat(hatId, account);
-+
-+     // Auto-mint protocol-wide gardener hat (enables ENS name claims)
-+     // Best-effort: skip silently if already wearing or hat doesn't exist
-+     if (protocolGardenersHatId != 0) {
-+         // isWearerOfHat returns false if account doesn't wear it
-+         if (!hats.isWearerOfHat(account, protocolGardenersHatId)) {
-+             try hats.mintHat(protocolGardenersHatId, account) {} catch {}
-+         }
-+     }
-
-      emit RoleGranted(garden, account, role);
-  }
-```
-
-**Why this location**: `_grantRole()` is the single funnel for ALL role assignments — called by `createGardenHatTree()` (owner role during mint), `grantRole()` (operator/evaluator), and indirectly by `joinGarden()` (gardener role). One change, all pathways covered.
-
-**Idempotency**: If the account already wears the protocol hat (e.g., they're already a member of another garden), `hats.isWearerOfHat()` returns `true` and the mint is skipped. If the hat doesn't exist yet, the `try/catch` handles it gracefully.
+> **Source**: `packages/contracts/src/modules/Hats.sol`
 
 ### 4.8 Deleted Files
 
@@ -1480,40 +911,9 @@ bun add @chainlink/contracts-ccip
 
 ## 11. Implementation Order
 
-### Phase 1: Contracts (P0)
-1. Add `@chainlink/contracts-ccip` dependency + Foundry remappings
-2. Write `IGreenGoodsENS.sol` interface
-3. Write `src/registries/ENS.sol` (L2 CCIP Sender):
-   - Hats Protocol integration (`IHats.isWearerOfHat` for gardener access control)
-   - Slug validation
-   - L2 registration cache
-   - CCIP message construction + sending
-   - Fee estimation
-4. Write `src/registries/ENSReceiver.sol` (L1 CCIP Receiver):
-   - Source chain + sender verification
-   - ENS registration (`setSubnodeOwner` + `setAddr`)
-   - Idempotent handling (skip if already registered)
-   - Admin functions (force-release, direct register)
-5. Add `slug` to `GardenConfig`, `InitParams`, `GardenAccount`
-6. Add `ensModule` to `GardenToken` + `setENSModule()`
-7. Add ENS call in `_initializeGardenModules()` with graceful degradation
-8. **Add protocol hat auto-mint in `HatsModule._grantRole()`** (single line — mints `protocolGardenersHatId`)
-9. Make `mintGarden()` / `batchMintGardens()` payable
-10. Write unit tests (~30 tests):
-    - Slug validation edge cases
-    - Hats Protocol membership gating (wear hat → can register, no hat → revert)
-    - L2 cache operations
-    - CCIP message encoding
-    - L1 receiver: registration, release, admin functions
-    - Source chain/sender verification
-    - Fee estimation
-    - Race condition handling (duplicate messages)
-    - Protocol hat auto-mint: grantRole → protocol hat minted, already wearing → skipped
-    - End-to-end: mint garden → owner has protocol hat → can claim name
-11. Write `script/deploy-ens.ts` for L1 + L2 deployment
-12. Delete old `Gardener.sol`, `IGardenerRegistry.sol`
+> Phase 1 (Contracts) COMPLETED — see commits `d3e1bc8f`, `e98a2cfb`. All contracts, interfaces, unit tests, deployment script, and old file deletions done.
 
-### Phase 2: Frontend (P1)
+### Remaining: Phase 2 — Frontend (P1)
 1. **Remove** `claiming_ens` state and `CLAIM_ENS` event from auth machine
 2. Add `useENSClaim()` mutation hook (decoupled from auth machine, supports passkey + wallet)
 3. Add `useProtocolMemberStatus()` hook for checking protocol hat (Hats Protocol)
@@ -1529,12 +929,12 @@ bun add @chainlink/contracts-ccip
 13. Add offline gate: disable ENS claim form when offline (use existing `useOffline()`)
 14. Add service worker push notification on registration completion
 
-### Phase 3: Indexer (P1)
+### Remaining: Phase 3 — Indexer (P1)
 1. Add `slug` and `ensStatus` fields to Garden entity
 2. Add `ENSRegistration` entity
 3. Index `NameRegistrationSent` events from L2 GreenGoodsENS
 
-### Phase 4: Future Celo Support (P2)
+### Remaining: Phase 4 — Future Celo Support (P2)
 1. Deploy separate GreenGoodsENS (L2 Sender) on Celo
 2. Wire to same L1 Receiver — set Celo sender as authorized
 3. CCIP supports Celo (chain selector TBD)

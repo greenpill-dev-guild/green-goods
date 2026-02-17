@@ -416,15 +416,17 @@ FIX: Follow exact order below
 
 **Client** (`packages/client/src/main.tsx` + `App.tsx`):
 ```tsx
-<AppKitProvider>           {/* internally wraps WagmiProvider */}
-  <AuthProvider>
-    <AppProvider>
-      <PersistQueryClientProvider>  {/* in App.tsx */}
-        <RouterProvider />
-      </PersistQueryClientProvider>
-    </AppProvider>
-  </AuthProvider>
-</AppKitProvider>
+<HelmetProvider>
+  <AppErrorBoundary>
+    <AppKitProvider>           {/* internally wraps WagmiProvider */}
+      <AuthProvider>
+        <AppProvider>
+          <App />  {/* App.tsx wraps PersistQueryClientProvider */}
+        </AppProvider>
+      </AuthProvider>
+    </AppKitProvider>
+  </AppErrorBoundary>
+</HelmetProvider>
 ```
 
 **Key constraints:**

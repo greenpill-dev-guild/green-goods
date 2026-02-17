@@ -12,6 +12,7 @@ export { createAssessmentMachine } from "./createAssessment";
 export type {
   CreateGardenContext,
   CreateGardenEvent,
+  CreateGardenFormStatus,
 } from "./createGarden";
 export { createGardenMachine } from "./createGarden";
 

@@ -586,10 +586,10 @@ IndexedDB is **device-local** — data doesn't sync between devices:
 ### Connectivity Detection
 
 ```typescript
-import { useOnlineStatus } from "@green-goods/shared";
+import { useOffline } from "@green-goods/shared";
 
 function OfflineBanner() {
-  const { isOnline, wasOffline } = useOnlineStatus();
+  const { isOnline } = useOffline();
 
   if (!isOnline) {
     return (

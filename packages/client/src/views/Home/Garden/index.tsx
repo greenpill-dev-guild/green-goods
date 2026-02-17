@@ -15,6 +15,7 @@ import {
   useUser,
   useVaultDeposits,
   useWorks,
+  toastService,
 } from "@green-goods/shared";
 import {
   RiCalendarEventFill,
@@ -28,7 +29,6 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { type Address, isAddress } from "viem";
-import toast from "react-hot-toast";
 import { Button } from "@/components/Actions";
 import { ConvictionDrawer, TreasuryDrawer } from "@/components/Dialogs";
 import { GardenErrorBoundary } from "@/components/Errors";
@@ -174,27 +174,27 @@ export const Garden: React.FC<GardenProps> = () => {
     try {
       const result = await joinGarden(garden.id);
       if (result === "already-member") {
-        toast.success(
-          intl.formatMessage({
+        toastService.success({
+          title: intl.formatMessage({
             id: "app.garden.alreadyMember",
             defaultMessage: "You're already a member of this garden",
-          })
-        );
+          }),
+        });
       } else {
-        toast.success(
-          intl.formatMessage({
+        toastService.success({
+          title: intl.formatMessage({
             id: "app.garden.joinSuccess",
             defaultMessage: "Successfully joined the garden!",
-          })
-        );
+          }),
+        });
       }
     } catch {
-      toast.error(
-        intl.formatMessage({
+      toastService.error({
+        title: intl.formatMessage({
           id: "app.garden.joinError",
           defaultMessage: "Failed to join garden. Please try again.",
-        })
-      );
+        }),
+      });
     }
   }, [garden.id, joinGarden, intl]);
 

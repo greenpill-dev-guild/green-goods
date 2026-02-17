@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { type Hex, keccak256, toHex } from "viem";
+import { type Address, type Hex, keccak256, toHex } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { logger } from "../../modules/app/logger";
@@ -18,7 +18,7 @@ export interface GardenInvite {
   chainId: number;
 }
 
-export function useGardenInvites(gardenAddress: string) {
+export function useGardenInvites(gardenAddress: Address) {
   const [isLoading, setIsLoading] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
   const { executeWithToast } = useToastAction();

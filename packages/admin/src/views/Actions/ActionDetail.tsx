@@ -1,5 +1,4 @@
-import { DEFAULT_CHAIN_ID, formatDateTime } from "@green-goods/shared";
-import { useActions } from "@green-goods/shared/hooks";
+import { DEFAULT_CHAIN_ID, formatDateTime, useActions } from "@green-goods/shared";
 import { RiEditLine } from "@remixicon/react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";

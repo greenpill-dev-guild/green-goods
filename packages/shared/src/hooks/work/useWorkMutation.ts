@@ -9,6 +9,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { SmartAccountClient } from "permissionless";
+import type { Address } from "viem";
 import type { Action, Work, WorkDraft } from "../../types/domain";
 import {
   showWalletProgress,
@@ -39,11 +40,11 @@ import { useTimeout } from "../utils/useTimeout";
 interface UseWorkMutationOptions {
   authMode: "wallet" | "passkey" | null;
   smartAccountClient: SmartAccountClient | null;
-  gardenAddress: string | null;
+  gardenAddress: Address | null;
   actionUID: number | null;
   actions: Action[];
   /** User address (smart account or wallet) for scoping jobs */
-  userAddress: string | null;
+  userAddress: Address | null;
 }
 
 /**

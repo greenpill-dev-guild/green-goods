@@ -1,6 +1,11 @@
-import { type Action, AudioPlayer, AudioRecorder } from "@green-goods/shared";
-import { mediaResourceManager, track } from "@green-goods/shared/modules";
-import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
+import {
+  AudioPlayer,
+  AudioRecorder,
+  imageCompressor,
+  mediaResourceManager,
+  track,
+  type Action,
+} from "@green-goods/shared";
 import { RiCloseLine, RiImageFill, RiLoader4Line, RiMicLine, RiZoomInLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -171,7 +176,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       const toCompress = fileArray.filter((f) => imageCompressor.shouldCompress(f, 1024));
       const noCompress = fileArray.filter((f) => !imageCompressor.shouldCompress(f, 1024));
 
-      let finalFiles = [...noCompress];
+      const finalFiles = [...noCompress];
 
       if (toCompress.length > 0) {
         const results = await imageCompressor.compressImages(

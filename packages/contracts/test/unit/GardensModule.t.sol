@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
+import { Vm } from "forge-std/Vm.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
@@ -9,7 +10,7 @@ import { GardensModule } from "../../src/modules/Gardens.sol";
 import { GoodsToken } from "../../src/tokens/Goods.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
-import { IRegistryCommunity, PointSystem, NFTPowerSource } from "../../src/interfaces/IGardensV2.sol";
+import { IRegistryCommunity, IUnifiedPowerRegistry, PointSystem, NFTPowerSource } from "../../src/interfaces/IGardensV2.sol";
 import { MockRegistryFactory, MockRegistryCommunity, MockUnifiedPowerRegistry } from "../../src/mocks/GardensV2.sol";
 
 /// @title MockGOODSToken
@@ -135,6 +136,63 @@ contract MockHatsModuleForGardens is IHatsModule {
             config.adminHatId,
             config.configured
         );
+    }
+}
+
+/// @title RevertingPowerRegistryForReset
+/// @notice Power registry that reverts on deregisterGarden (for reset fault-injection)
+/// @dev Tests the try-catch at Gardens.sol:418-422
+contract RevertingPowerRegistryForReset is IUnifiedPowerRegistry {
+    function deregisterGarden(address, address[] calldata) external pure override {
+        revert("RevertingPowerRegistry: deregisterGarden failed");
+    }
+
+    // Stubs — not exercised by the reset path
+    function registerGarden(address, NFTPowerSource[] calldata) external override { }
+    function registerPool(address, address) external override { }
+
+    function getGardenSources(address) external pure override returns (NFTPowerSource[] memory) {
+        return new NFTPowerSource[](0);
+    }
+
+    function getGardenSourceCount(address) external pure override returns (uint256) {
+        return 0;
+    }
+
+    function getPoolGarden(address) external pure override returns (address) {
+        return address(0);
+    }
+
+    function isGardenRegistered(address) external pure override returns (bool) {
+        return false;
+    }
+}
+
+/// @title RegisterPoolRevertPowerRegistry
+/// @notice Power registry that always reverts on registerPool
+/// @dev Tests the try-catch loop at Gardens.sol:676-680
+contract RegisterPoolRevertPowerRegistry is IUnifiedPowerRegistry {
+    function registerPool(address, address) external pure override {
+        revert("RegisterPoolRevertPowerRegistry: registerPool failed");
+    }
+
+    function registerGarden(address, NFTPowerSource[] calldata) external override { }
+    function deregisterGarden(address, address[] calldata) external override { }
+
+    function getGardenSources(address) external pure override returns (NFTPowerSource[] memory) {
+        return new NFTPowerSource[](0);
+    }
+
+    function getGardenSourceCount(address) external pure override returns (uint256) {
+        return 0;
+    }
+
+    function getPoolGarden(address) external pure override returns (address) {
+        return address(0);
+    }
+
+    function isGardenRegistered(address) external pure override returns (bool) {
+        return false;
     }
 }
 
@@ -1544,5 +1602,105 @@ contract GardensModuleTest is Test {
         // But treasury is NOT seeded
         assertEq(realGoods.balanceOf(garden1), 0, "No GOODS minted without ownership");
         assertTrue(module2.isGardenInitialized(garden1), "Garden still initialized despite mint failure");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Fault Injection — Power Registry Failures
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Tests the try-catch at Gardens.sol:418-422 — deregisterGarden reverts
+    ///         but resetGardenInitialization still completes and clears local state
+    function test_resetGardenInitialization_powerRegistryFails_handlesGracefully() public {
+        // Deploy a GardensModule with a reverting power registry
+        RevertingPowerRegistryForReset revertingRegistry = new RevertingPowerRegistryForReset();
+        GardensModule impl = new GardensModule();
+        bytes memory initData = abi.encodeWithSelector(
+            GardensModule.initialize.selector,
+            owner,
+            address(registryFactory),
+            address(revertingRegistry),
+            address(goodsToken),
+            hatsProtocol,
+            address(hatsModule)
+        );
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        GardensModule moduleWithRevertingRegistry = GardensModule(address(proxy));
+
+        vm.prank(owner);
+        moduleWithRevertingRegistry.setGardenToken(gardenToken);
+
+        // Initialize the garden (onGardenMinted will attempt pool registration,
+        // which may fail on the reverting registry but that's a separate path)
+        vm.prank(gardenToken);
+        moduleWithRevertingRegistry.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        assertTrue(moduleWithRevertingRegistry.isGardenInitialized(garden1), "Garden should be initialized");
+
+        // Reset should complete despite deregisterGarden reverting
+        vm.expectEmit(true, false, false, false);
+        emit IGardensModule.GardenInitializationReset(garden1);
+
+        vm.prank(owner);
+        moduleWithRevertingRegistry.resetGardenInitialization(garden1);
+
+        // Local state should be cleared even though registry deregistration failed
+        assertFalse(moduleWithRevertingRegistry.isGardenInitialized(garden1), "Should no longer be initialized");
+        assertEq(moduleWithRevertingRegistry.getGardenCommunity(garden1), address(0), "Community should be cleared");
+        assertEq(moduleWithRevertingRegistry.getGardenSignalPools(garden1).length, 0, "Pools should be cleared");
+    }
+
+    /// @notice Tests the try-catch loop at Gardens.sol:676-680 — registerPool reverts
+    ///         for each pool, emitting PoolRegistrationFailed per pool, but garden
+    ///         initialization still completes and pools are stored in local state
+    function test_registerPoolsInPowerRegistry_poolRegistrationFails_emitsEvents() public {
+        // Deploy a GardensModule with a power registry that always reverts on registerPool.
+        // This tests that each per-pool try-catch at line 676 independently catches and
+        // emits PoolRegistrationFailed, and that garden initialization is not blocked.
+        // NOTE: We can't selectively fail one pool because EVM state rollback resets
+        // counter-based approaches inside reverted calls.
+        RegisterPoolRevertPowerRegistry revertPoolRegistry = new RegisterPoolRevertPowerRegistry();
+        GardensModule impl = new GardensModule();
+        bytes memory initData = abi.encodeWithSelector(
+            GardensModule.initialize.selector,
+            owner,
+            address(registryFactory),
+            address(revertPoolRegistry),
+            address(goodsToken),
+            hatsProtocol,
+            address(hatsModule)
+        );
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        GardensModule moduleWithRevertPool = GardensModule(address(proxy));
+
+        vm.prank(owner);
+        moduleWithRevertPool.setGardenToken(gardenToken);
+
+        // Record logs to capture PoolRegistrationFailed events
+        vm.recordLogs();
+
+        vm.prank(gardenToken);
+        (, address[] memory pools) = moduleWithRevertPool.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+
+        assertTrue(pools.length >= 2, "Should create 2 signal pools");
+
+        // Count PoolRegistrationFailed events — should have one per pool
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        uint256 failEventCount = 0;
+        bytes32 poolRegFailedSig = keccak256("PoolRegistrationFailed(address,address,string)");
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].topics.length > 0 && logs[i].topics[0] == poolRegFailedSig) {
+                failEventCount++;
+            }
+        }
+        assertEq(failEventCount, pools.length, "PoolRegistrationFailed should be emitted once per pool");
+
+        // Pools should still be stored in local state (gardenSignalPools)
+        address[] memory storedPools = moduleWithRevertPool.getGardenSignalPools(garden1);
+        assertEq(storedPools.length, pools.length, "Pools should be stored despite registration failure");
+
+        // Garden should still be fully initialized
+        assertTrue(
+            moduleWithRevertPool.isGardenInitialized(garden1),
+            "Garden should be initialized despite pool registration failure"
+        );
     }
 }

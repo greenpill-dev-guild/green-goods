@@ -20,7 +20,7 @@ import { STALE_TIME_MEDIUM } from "../query-keys";
  */
 export function useUserCookieJars() {
   const chainId = useCurrentChain();
-  const { role } = useRole();
+  const { operatorGardens: roleOperatorGardens } = useRole();
   const { data: gardens } = useGardens();
 
   const contracts = getNetworkContracts(chainId);
@@ -29,10 +29,10 @@ export function useUserCookieJars() {
 
   // Filter to operator gardens only
   const operatorGardens = useMemo(() => {
-    if (!gardens || !role?.operatorGardens) return [];
-    const opSet = new Set(role.operatorGardens.map((g) => g.toLowerCase()));
+    if (!gardens || !roleOperatorGardens?.length) return [];
+    const opSet = new Set(roleOperatorGardens.map((g) => g.id.toLowerCase()));
     return gardens.filter((g) => opSet.has(g.tokenAddress.toLowerCase()));
-  }, [gardens, role?.operatorGardens]);
+  }, [gardens, roleOperatorGardens]);
 
   // Step 1: Batch-read jar addresses for each operator garden
   const jarAddressContracts = useMemo(

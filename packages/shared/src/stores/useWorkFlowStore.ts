@@ -1,9 +1,10 @@
+import type { Address } from "viem";
 import { create } from "zustand";
 import type { Domain } from "../types/domain";
 import { WorkTab } from "./workFlowTypes";
 
 export type WorkDraftState = {
-  gardenAddress: string | null;
+  gardenAddress: Address | null;
   actionUID: number | null;
   feedback: string;
   /** Generic domain-specific details (replaces plantSelection/plantCount) */
@@ -27,7 +28,7 @@ export type WorkFlowState = WorkDraftState & {
   setActiveTab: (tab: WorkTab) => void;
   setSubmissionCompleted: (completed: boolean) => void;
 
-  setGardenAddress: (id: string | null) => void;
+  setGardenAddress: (id: Address | null) => void;
   setActionUID: (uid: number | null) => void;
   setFeedback: (text: string) => void;
   setDetails: (details: Record<string, unknown>) => void;

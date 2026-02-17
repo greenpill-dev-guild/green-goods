@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { cn } from "@green-goods/shared/utils";
+import { cn } from "@green-goods/shared";
 import { RiCloseLine, RiDraftLine, RiDeleteBinLine, RiArrowRightLine } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";

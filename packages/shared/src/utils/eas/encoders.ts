@@ -295,7 +295,8 @@ export async function encodeWorkData(
           ...(data.tags && data.tags.length > 0 ? { tags: data.tags } : {}),
           ...(audioNoteCids.length > 0 ? { audioNoteCids } : {}),
           clientWorkId:
-            ((data as Record<string, unknown>).clientWorkId as string) || crypto.randomUUID(),
+            ((data as unknown as Record<string, unknown>).clientWorkId as string) ||
+            crypto.randomUUID(),
           submittedAt: new Date().toISOString(),
         }
       : {
@@ -306,7 +307,7 @@ export async function encodeWorkData(
           ...(audioNoteCids.length > 0 ? { audioNoteCids } : {}),
         };
 
-    const metadata = await uploadJSONToIPFS(metadataPayload, {
+    const metadata = await uploadJSONToIPFS(metadataPayload as Record<string, unknown>, {
       source: "encodeWorkData",
       gardenAddress: options.gardenAddress,
       authMode: options.authMode,
@@ -493,7 +494,7 @@ export async function encodeAssessmentData(
   };
 
   // Upload config JSON to IPFS
-  const configResult = await uploadJSONToIPFS(configPayload, {
+  const configResult = await uploadJSONToIPFS(configPayload as unknown as Record<string, unknown>, {
     source: options.source ?? "encodeAssessmentData",
     authMode: options.authMode,
     metadataType: "assessment_config_v2",

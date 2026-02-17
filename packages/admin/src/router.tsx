@@ -1,4 +1,4 @@
-import { HydrationFallback } from "@green-goods/shared/components";
+import { HydrationFallback } from "@green-goods/shared";
 import { createBrowserRouter, createHashRouter, Navigate, redirect } from "react-router-dom";
 
 // Use hash router for IPFS builds to ensure proper SPA routing on IPFS gateways

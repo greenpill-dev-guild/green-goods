@@ -1,7 +1,7 @@
 import React, { Component, type ReactNode } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { RiLeafFill, RiRefreshLine, RiArrowGoBackLine } from "@remixicon/react";
-import { trackErrorBoundary } from "@green-goods/shared/modules";
+import { logger, trackErrorBoundary } from "@green-goods/shared";
 import { Button } from "../Actions";
 
 interface ErrorBoundaryState {
@@ -36,7 +36,7 @@ class GardenErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBounda
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("Garden Error Boundary caught an error:", error, errorInfo);
+    logger.error("Garden Error Boundary caught an error", { error, errorInfo });
 
     // Track error in PostHog for debugging
     trackErrorBoundary(error, {

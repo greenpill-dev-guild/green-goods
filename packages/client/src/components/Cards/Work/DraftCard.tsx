@@ -1,5 +1,4 @@
-import type { DraftWithImages } from "@green-goods/shared/hooks";
-import { cn, formatRelativeTime } from "@green-goods/shared/utils";
+import { cn, formatRelativeTime, type DraftWithImages } from "@green-goods/shared";
 import { RiDeleteBinLine, RiDraftLine, RiImageLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";

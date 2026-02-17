@@ -1673,7 +1673,7 @@ HypercertMinter.TransferSingle.handler(
     const timestamp = event.block.timestamp;
 
     // Check if hypercert already exists (may be created by ClaimStored event first)
-    let existingHypercert = await context.Hypercert.get(hypercertId);
+    const existingHypercert = await context.Hypercert.get(hypercertId);
 
     if (existingHypercert) {
       // Idempotency: skip if this is the same transaction replaying
@@ -1774,7 +1774,7 @@ HypercertMinter.ClaimStored.handler(
     const hypercertId = `${event.chainId}-${tokenId.toString()}`;
     const timestamp = event.block.timestamp;
 
-    let existingHypercert = await context.Hypercert.get(hypercertId);
+    const existingHypercert = await context.Hypercert.get(hypercertId);
 
     const baseHypercert =
       existingHypercert ?? createDefaultHypercert(hypercertId, event.chainId, tokenId, timestamp);

@@ -39,28 +39,13 @@ export async function submitWorkToQueue(
 
   const actionTitle = getActionTitle(actions, actionUID);
 
-  // Use existing clientWorkId if provided, otherwise generate new one
-  const incomingId =
-    draft.metadata && typeof draft.metadata === "object"
-      ? ((draft.metadata as Record<string, unknown>).clientWorkId as string | undefined)
-      : undefined;
-  const clientWorkId = incomingId && incomingId.length > 0 ? incomingId : uuidv4();
-
-  // Add to metadata for deduplication
-  const enrichedDraft = {
-    ...draft,
-    metadata: {
-      ...(draft.metadata || {}),
-      clientWorkId,
-      submittedAt: Date.now(),
-    },
-  };
+  const clientWorkId = uuidv4();
 
   // Add job to queue - this handles both offline and online scenarios
   const jobId = await jobQueue.addJob(
     "work",
     {
-      ...enrichedDraft,
+      ...draft,
       title: `${actionTitle} - ${new Date().toISOString()}`,
       actionUID,
       gardenAddress,

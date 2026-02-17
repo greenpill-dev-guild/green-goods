@@ -8,7 +8,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { isAddress } from "viem";
+import { type Address, isAddress } from "viem";
 import { resolveEnsAvatar } from "../../utils/blockchain/ens";
 import { cacheAvatar, getCachedAvatar } from "../../utils/storage/avatar-cache";
 import { queryKeys, STALE_TIME_RARE } from "../query-keys";
@@ -33,7 +33,7 @@ import type { UseEnsQueryOptions, UseEnsQueryResult } from "./useEnsQuery";
  * ```
  */
 export function useEnsAvatar(
-  address?: string | null,
+  address?: Address | null,
   options: UseEnsQueryOptions = {}
 ): UseEnsQueryResult<string> {
   const normalized = address?.toLowerCase() ?? null;

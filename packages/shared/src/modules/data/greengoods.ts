@@ -104,8 +104,8 @@ export async function getActions(): Promise<Action[]> {
           return {
             id, // composite id stays for uniqueness but downstream selection matches numeric UID
             title,
-            slug: slug || "",
-            domain: parseDomain(domain),
+            slug: typeof slug === "string" ? slug : "",
+            domain: parseDomain(domain as string | undefined),
             startTime: startTime ? Number(startTime) * 1000 : Date.now(),
             endTime: endTime ? Number(endTime) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now
             capitals: Array.isArray(capitals) ? capitals.map((c: unknown) => c as Capital) : [],
@@ -181,7 +181,7 @@ export async function getGardens(): Promise<Garden[]> {
 
     // Build a lookup from garden address -> domainMask
     const domainMap = new Map<string, number>(
-      (data.GardenDomains ?? []).map((d: { garden: string; domainMask: number }) => [
+      ((data.GardenDomains ?? []) as Array<{ garden: string; domainMask: number }>).map((d) => [
         d.garden,
         d.domainMask,
       ])

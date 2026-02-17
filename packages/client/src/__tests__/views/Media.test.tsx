@@ -26,7 +26,7 @@ beforeAll(() => {
   });
 });
 
-// Mock shared barrel imports (AudioPlayer, AudioRecorder)
+// Mock shared barrel imports — component imports everything from @green-goods/shared
 vi.mock("@green-goods/shared", () => ({
   AudioPlayer: ({ file, onDelete }: any) => <div data-testid="audio-player">{file?.name}</div>,
   AudioRecorder: ({ onRecordingComplete }: any) => (
@@ -37,22 +37,14 @@ vi.mock("@green-goods/shared", () => ({
       Record
     </button>
   ),
-}));
-
-// Mock the shared modules
-vi.mock("@green-goods/shared/modules", () => ({
   track: vi.fn(),
   mediaResourceManager: {
     getOrCreateUrl: vi.fn((file: File) => `blob:mock-url-${file.name}`),
     cleanupUrls: vi.fn(),
   },
-}));
-
-// Mock image compressor
-vi.mock("@green-goods/shared/utils/work/image-compression", () => ({
   imageCompressor: {
     shouldCompress: () => false,
-    compressImages: vi.fn().mockImplementation((files) => Promise.resolve(files)),
+    compressImages: vi.fn().mockImplementation((files: File[]) => Promise.resolve(files)),
     getCompressionStats: vi.fn().mockReturnValue({}),
   },
 }));

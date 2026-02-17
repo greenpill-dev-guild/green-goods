@@ -1,40 +1,36 @@
 import {
+  cn,
   Confidence,
   ConfidenceSelector,
-  VerificationMethod,
-  toastService,
-  type Address,
-  type WorkApprovalDraft,
-  type WorkMetadata,
-} from "@green-goods/shared";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import {
+  debugWarn,
+  DEFAULT_CHAIN_ID,
+  downloadWorkData,
+  downloadWorkMedia,
+  getFileByHash,
+  isAddressInList,
+  isUserAddress as sharedIsUserAddress,
+  isValidAttestationId,
+  jobQueue,
+  openEASExplorer,
   queryKeys,
+  shareWork,
+  toastService,
   useActions,
   useAsyncEffect,
   useGardens,
   useHasRole,
+  useJobQueueEvents,
   useNavigateToTop,
   useTimeout,
   useUser,
   useWorkApproval,
   useWorks,
-} from "@green-goods/shared/hooks";
-import { getFileByHash, useJobQueueEvents } from "@green-goods/shared/modules";
-import { jobQueue } from "@green-goods/shared/modules/job-queue";
-import {
-  cn,
-  isAddressInList,
-  isUserAddress as sharedIsUserAddress,
-} from "@green-goods/shared/utils";
-import { debugWarn } from "@green-goods/shared/utils/debug";
-import { isValidAttestationId, openEASExplorer } from "@green-goods/shared/utils/eas/explorers";
-import {
-  downloadWorkData,
-  downloadWorkMedia,
-  shareWork,
+  VerificationMethod,
+  type Address,
+  type WorkApprovalDraft,
   type WorkData,
-} from "@green-goods/shared/utils/work/workActions";
+  type WorkMetadata,
+} from "@green-goods/shared";
 import {
   RiCheckLine,
   RiCloseLine,

@@ -1,10 +1,15 @@
-import { hapticLight, logger, type Work } from "@green-goods/shared";
+import {
+  hapticLight,
+  logger,
+  trackSyncError,
+  useBatchWorkSync,
+  useOffline,
+  useQueueFlush,
+  useUser,
+  type Work,
+} from "@green-goods/shared";
 import React, { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-
-import { useBatchWorkSync, useOffline, useUser } from "@green-goods/shared/hooks";
-import { trackSyncError } from "@green-goods/shared/modules";
-import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
 
 import { MinimalWorkCard } from "@/components/Cards";
 import { BeatLoader } from "@/components/Communication";

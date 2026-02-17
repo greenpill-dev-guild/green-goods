@@ -159,7 +159,7 @@ export async function submitWorkDirectly(
         actionTitle,
         chainId,
         images,
-        accountAddress: walletClient.account.address,
+        accountAddress: walletClient.account.address as `0x${string}`,
       });
     } catch (err: unknown) {
       debugError("[WalletSubmission] Simulation failed", err);
@@ -225,10 +225,7 @@ export async function submitWorkDirectly(
       actionUID,
       title: workTitle,
       feedback: draft.feedback || "",
-      metadata: JSON.stringify({
-        plantSelection: draft.plantSelection,
-        plantCount: draft.plantCount,
-      }),
+      metadata: "{}",
       media: [], // Media URLs will be populated by indexer
       createdAt: Math.floor(Date.now() / 1000),
     };
@@ -388,6 +385,9 @@ export async function submitApprovalDirectly(
       workUID: draft.workUID,
       approved: draft.approved,
       feedback: draft.feedback || "",
+      confidence: 0,
+      verificationMethod: 0,
+      reviewNotesCID: "",
       createdAt: Math.floor(Date.now() / 1000),
     };
 
@@ -561,6 +561,9 @@ export async function submitBatchApprovalsDirectly(
       workUID: draft.workUID,
       approved: draft.approved,
       feedback: draft.feedback || "",
+      confidence: 0,
+      verificationMethod: 0,
+      reviewNotesCID: "",
       createdAt: Math.floor(Date.now() / 1000),
     }));
 

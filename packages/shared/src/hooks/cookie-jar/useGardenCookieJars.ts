@@ -39,9 +39,6 @@ export function useGardenCookieJars(
     functionName: "getGardenJars",
     args: normalizedGarden ? [normalizedGarden] : undefined,
     query: {
-      queryKey: normalizedGarden
-        ? queryKeys.cookieJar.byGarden(normalizedGarden, chainId)
-        : queryKeys.cookieJar.all,
       enabled: enabled && moduleConfigured && !!normalizedGarden,
       staleTime: STALE_TIME_MEDIUM,
     },

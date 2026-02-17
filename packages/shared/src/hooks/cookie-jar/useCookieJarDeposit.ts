@@ -14,7 +14,7 @@ import { COOKIE_JAR_ABI, ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis
 import { wagmiConfig } from "../../config/appkit";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 
-export function useCookieJarDeposit(gardenAddress: string) {
+export function useCookieJarDeposit(gardenAddress: Address) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();

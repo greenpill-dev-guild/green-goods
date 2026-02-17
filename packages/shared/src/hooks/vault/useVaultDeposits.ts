@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { Address } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { getVaultDeposits } from "../../modules/data/vaults";
 import type { VaultDeposit } from "../../types/vaults";
@@ -6,11 +7,11 @@ import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 
 interface UseVaultDepositsOptions {
   chainId?: number;
-  userAddress?: string;
+  userAddress?: Address;
   enabled?: boolean;
 }
 
-export function useVaultDeposits(gardenAddress?: string, options: UseVaultDepositsOptions = {}) {
+export function useVaultDeposits(gardenAddress?: Address, options: UseVaultDepositsOptions = {}) {
   const chainId = options.chainId ?? DEFAULT_CHAIN_ID;
   const enabled = options.enabled ?? true;
   const normalizedGarden = gardenAddress?.toLowerCase();

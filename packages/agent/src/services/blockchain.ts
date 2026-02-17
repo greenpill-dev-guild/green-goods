@@ -110,10 +110,13 @@ class Blockchain {
       {
         actionUID: params.actionUID,
         title: params.workData.title,
-        plantSelection: params.workData.plantSelection,
-        plantCount: params.workData.plantCount,
+        timeSpentMinutes: params.workData.timeSpentMinutes ?? 0,
         feedback: params.workData.feedback,
         media: [],
+        details: {
+          plantSelection: params.workData.plantSelection,
+          plantCount: params.workData.plantCount,
+        },
       },
       params.gardenAddress,
       params.actionUID,
@@ -141,6 +144,9 @@ class Blockchain {
         workUID: params.workUID,
         approved: params.approved,
         feedback: params.feedback,
+        // Bot approvals: LOW confidence via automated review
+        confidence: params.approved ? 1 : 0, // LOW for approvals, NONE for rejections
+        verificationMethod: 1, // Bitmask: 0x01 = bot-verified
       },
       params.gardenerAddress,
       this.chainId

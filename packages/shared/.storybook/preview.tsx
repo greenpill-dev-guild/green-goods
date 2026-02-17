@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import type { ComponentType } from "react";
 import "./storybook.css";
 import type { Preview } from "@storybook/react";
-import { useGlobals } from "@storybook/preview-api";
+import { useGlobals } from "storybook/preview-api";
 
 // Theme toggle decorator - syncs with Storybook toolbar
 const ThemeDecorator = (Story: ComponentType) => {

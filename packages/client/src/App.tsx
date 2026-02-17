@@ -1,5 +1,4 @@
-import { queryClient } from "@green-goods/shared/config/react-query";
-import { debugWarn } from "@green-goods/shared/utils/debug";
+import { queryClient, debugWarn } from "@green-goods/shared";
 import {
   type PersistedClient,
   type Persister,

@@ -186,7 +186,7 @@ export type OptimisticUpdateCallback = (update: {
  * @returns An async function that executes the operation with simulation
  */
 export function createGardenOperation(
-  gardenId: string,
+  gardenId: Address,
   config: GardenOperationConfig,
   walletClient: WalletClient,
   address: `0x${string}`,
@@ -212,7 +212,7 @@ export function createGardenOperation(
 
     try {
       const chainId = walletClient.chain?.id;
-      const hatsModuleAddress = await fetchHatsModuleAddress(gardenId as Address, chainId);
+      const hatsModuleAddress = await fetchHatsModuleAddress(gardenId, chainId);
       if (!hatsModuleAddress) {
         setIsLoading(false);
         return {

@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared/utils";
+import { cn } from "@green-goods/shared";
 import React from "react";
 
 export interface StandardTab {

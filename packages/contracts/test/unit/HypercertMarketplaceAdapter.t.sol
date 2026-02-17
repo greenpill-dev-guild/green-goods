@@ -350,12 +350,6 @@ contract HypercertMarketplaceAdapterTest is Test {
         adapter.setMaxBatchSize(20);
         assertEq(adapter.maxBatchSize(), 20, "Max batch size should be updated");
     }
-
-    function test_setAllowedCurrency_onlyOwner() public {
-        vm.prank(owner);
-        adapter.setAllowedCurrency(address(weth), true);
-        assertTrue(adapter.allowedCurrencies(address(weth)), "Currency should be allowed");
-    }
 }
 
 /// @title HypercertMarketplaceAdapterPurchaseTest

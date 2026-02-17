@@ -30,6 +30,7 @@
     "deploy:dry:sepolia": "bun script/deploy.ts core --network sepolia --dry-run --pure-simulation",
     "deploy:dry:arbitrum": "bun script/deploy.ts core --network arbitrum --dry-run --pure-simulation",
     "deploy:dry:celo": "bun script/deploy.ts core --network celo --dry-run --pure-simulation",
+    "deploy:testnet": "bun deploy:sepolia",
     "deploy:sepolia": "bun script/deploy.ts core --network sepolia --broadcast",
     "deploy:arbitrum": "bun script/deploy.ts core --network arbitrum --broadcast",
     "deploy:celo": "bun script/deploy.ts core --network celo --broadcast --update-schemas",
@@ -62,7 +63,7 @@
     "@openzeppelin/contracts-upgradeable": "4.9.6",
     "@storacha/client": "^1.8.23",
     "dotenv": "^16.4.5",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.1"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
