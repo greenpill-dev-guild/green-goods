@@ -134,12 +134,18 @@ export function clearAllAuth(): void {
 // DEBUG UTILITIES
 // ============================================================================
 
+function isPasskeyDebugEnabled(): boolean {
+  return import.meta.env.DEV || import.meta.env.VITE_DEBUG_MODE === "true";
+}
+
 /**
  * Debug function to check passkey configuration.
  * Call this from browser console to diagnose Android passkey issues:
  *   window.__debugPasskey() (in dev mode)
  */
 export function debugPasskeyConfig(): void {
+  if (!isPasskeyDebugEnabled()) return;
+
   const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;
   const storedRpId = localStorage.getItem(RP_ID_STORAGE_KEY);
   const storedUsername = localStorage.getItem(USERNAME_STORAGE_KEY);
