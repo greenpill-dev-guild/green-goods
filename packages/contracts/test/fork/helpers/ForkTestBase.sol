@@ -342,7 +342,7 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
             data: AttestationRequestData({
                 recipient: gardenAccount,
                 expirationTime: 0,
-                revocable: true,
+                revocable: false,
                 refUID: bytes32(0),
                 data: abi.encode(work),
                 value: 0
@@ -385,7 +385,7 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
             data: AttestationRequestData({
                 recipient: gardenAccount,
                 expirationTime: 0,
-                revocable: true,
+                revocable: false,
                 refUID: workAttUID,
                 data: abi.encode(approval),
                 value: 0

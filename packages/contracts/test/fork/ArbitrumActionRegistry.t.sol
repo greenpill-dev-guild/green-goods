@@ -236,7 +236,7 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
             data: AttestationRequestData({
                 recipient: garden,
                 expirationTime: 0,
-                revocable: true,
+                revocable: false,
                 refUID: bytes32(0),
                 data: abi.encode(work),
                 value: 0

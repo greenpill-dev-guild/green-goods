@@ -107,7 +107,7 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
             data: AttestationRequestData({
                 recipient: gardenAccount,
                 expirationTime: 0,
-                revocable: true,
+                revocable: false,
                 refUID: bytes32(0),
                 data: abi.encode(work),
                 value: 0
@@ -172,7 +172,7 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
             data: AttestationRequestData({
                 recipient: gardenAccount,
                 expirationTime: 0,
-                revocable: true,
+                revocable: false,
                 refUID: workAttUID,
                 data: abi.encode(approval),
                 value: 0
@@ -345,7 +345,7 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
             data: AttestationRequestData({
                 recipient: gardenB, // targeting garden B, not garden A
                 expirationTime: 0,
-                revocable: true,
+                revocable: false,
                 refUID: bytes32(0),
                 data: abi.encode(work),
                 value: 0

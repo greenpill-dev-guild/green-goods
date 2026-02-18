@@ -14,7 +14,7 @@ evm_version = "shanghai"
 fuzz = { runs = 1_000 }
 gas_reports = []         # Disabled for speed
 optimizer = true
-optimizer_runs = 0       # Dev mode: skip optimization for fastest compile
+optimizer_runs = 200     # Needed for MultistrategyVault stack allocation in Yul optimizer
 verbosity = 1
 libs = ['lib', 'node_modules', '../../node_modules']
 out = 'out'
