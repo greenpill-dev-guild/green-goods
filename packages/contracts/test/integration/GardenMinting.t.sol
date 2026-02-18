@@ -118,15 +118,15 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
         karmaModule = new MockKarmaGAPModule();
         communityToken = new MockERC20();
 
-        vm.prank(multisig);
+        vm.startPrank(multisig);
         gardenToken.setHatsModule(address(hatsModule));
-        vm.prank(multisig);
         gardenToken.setKarmaGAPModule(address(karmaModule));
+        gardenToken.setCommunityToken(address(communityToken));
+        vm.stopPrank();
     }
 
     function test_mintGarden_callsHatsAndGAP() public {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Garden Alpha",
             slug: "",
             description: "Desc",
@@ -210,7 +210,6 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](2);
         configs[0] = _defaultConfig();
         configs[1] = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Garden Beta",
             slug: "",
             description: "Desc2",
@@ -276,7 +275,6 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
 
     function _defaultConfig() internal view returns (GardenToken.GardenConfig memory) {
         return GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Garden Alpha",
             slug: "",
             description: "Desc",

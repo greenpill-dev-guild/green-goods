@@ -1,10 +1,11 @@
 import {
+  type Address,
   clearFormDraft,
+  ErrorBoundary,
   type CreateAssessmentForm as WorkflowAssessmentForm,
   loadFormDraft,
   saveFormDraft,
   toastService,
-  useAdminStore,
   useCreateAssessmentWorkflow,
   useGardenDomains,
 } from "@green-goods/shared";
@@ -12,6 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { RiErrorWarningLine } from "@remixicon/react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { DomainActionStep } from "@/components/Assessment/CreateAssessmentSteps/DomainActionStep";
@@ -45,11 +47,10 @@ const stepConfigs: Step[] = [
 ];
 
 export default function CreateAssessment() {
+  const { formatMessage } = useIntl();
   const { id: gardenId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { address } = useAccount();
-  const lastAttestationId = useAdminStore((s) => s.lastAttestationId);
-  const setLastAttestationId = useAdminStore((s) => s.setLastAttestationId);
   const [currentStep, setCurrentStep] = useState(0);
 
   const { data: gardenDomainMask } = useGardenDomains(gardenId);
@@ -104,8 +105,14 @@ export default function CreateAssessment() {
   useEffect(() => {
     if (isSuccess) {
       toastService.success({
-        title: "Assessment submitted",
-        message: "Your assessment has been recorded on-chain",
+        title: formatMessage({
+          id: "app.assessment.submitted",
+          defaultMessage: "Assessment submitted",
+        }),
+        message: formatMessage({
+          id: "app.assessment.submittedMessage",
+          defaultMessage: "Your assessment has been recorded on-chain",
+        }),
         context: "assessment submission",
         suppressLogging: true,
       });
@@ -115,12 +122,6 @@ export default function CreateAssessment() {
   }, [isSuccess, navigate, gardenId, DRAFT_KEY]);
 
   useEffect(() => {
-    if (lastAttestationId) {
-      setLastAttestationId(null);
-    }
-  }, [lastAttestationId, setLastAttestationId]);
-
-  useEffect(() => {
     resetWorkflow();
   }, [resetWorkflow]);
 
@@ -128,8 +129,14 @@ export default function CreateAssessment() {
     try {
       if (!address) {
         toastService.error({
-          title: "Wallet required",
-          message: "Please connect your wallet before submitting an assessment.",
+          title: formatMessage({
+            id: "app.assessment.walletRequired",
+            defaultMessage: "Wallet required",
+          }),
+          message: formatMessage({
+            id: "app.assessment.walletRequiredMessage",
+            defaultMessage: "Please connect your wallet before submitting an assessment.",
+          }),
           context: "assessment submission",
           suppressLogging: true,
         });
@@ -138,19 +145,16 @@ export default function CreateAssessment() {
 
       if (!gardenId) {
         toastService.error({
-          title: "Select a garden",
-          message: "Choose a garden to link this assessment.",
+          title: formatMessage({
+            id: "app.assessment.selectGarden",
+            defaultMessage: "Select a garden",
+          }),
+          message: formatMessage({
+            id: "app.assessment.selectGardenMessage",
+            defaultMessage: "Choose a garden to link this assessment.",
+          }),
           context: "assessment submission",
           suppressLogging: true,
-        });
-        return;
-      }
-
-      if (typeof window === "undefined" || typeof window.ethereum === "undefined") {
-        toastService.error({
-          title: "Wallet provider missing",
-          message: "Open MetaMask or another Web3 wallet, then try again.",
-          context: "assessment submission",
         });
         return;
       }
@@ -159,7 +163,8 @@ export default function CreateAssessment() {
       // The workflow hook still expects the old CreateAssessmentForm shape,
       // so we map the new fields to the existing interface.
       // This mapping will be updated when the workflow hook is upgraded.
-      const payload: WorkflowAssessmentForm & { gardenId: string } = {
+      // Cast gardenId from route param (string) to Address at the boundary
+      const payload: WorkflowAssessmentForm = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         // Map new fields to legacy interface until workflow is upgraded
@@ -180,16 +185,21 @@ export default function CreateAssessment() {
         endDate: Math.floor(new Date(formData.reportingPeriodEnd).getTime() / 1000),
         location: formData.location.trim(),
         tags: formData.sdgTargets.map((id) => `sdg-${id}`),
-        gardenId,
+        gardenId: gardenId as Address,
       };
 
       startCreation(payload);
-      const uid = await submitCreation();
-      setLastAttestationId(uid);
+      submitCreation();
     } catch (error) {
       toastService.error({
-        title: "Submission failed",
-        message: "Something went wrong. Please try again.",
+        title: formatMessage({
+          id: "app.assessment.submissionFailed",
+          defaultMessage: "Submission failed",
+        }),
+        message: formatMessage({
+          id: "app.assessment.submissionFailedMessage",
+          defaultMessage: "Something went wrong. Please try again.",
+        }),
         context: "assessment submission",
         error,
       });
@@ -220,8 +230,14 @@ export default function CreateAssessment() {
 
   const handleFormSubmit = handleSubmit(onValid, () => {
     toastService.error({
-      title: "Incomplete form",
-      message: "Check the highlighted fields and try again.",
+      title: formatMessage({
+        id: "app.assessment.incompleteForm",
+        defaultMessage: "Incomplete form",
+      }),
+      message: formatMessage({
+        id: "app.assessment.incompleteFormMessage",
+        defaultMessage: "Check the highlighted fields and try again.",
+      }),
       context: "assessment submission",
       suppressLogging: true,
     });
@@ -242,15 +258,24 @@ export default function CreateAssessment() {
   const nextDisabled = !isCurrentStepValid();
 
   return (
-    <>
+    <ErrorBoundary context="CreateAssessment.Wizard">
       {hasError && (
         <div className="fixed inset-x-0 top-[120px] z-20 mx-auto max-w-4xl px-4 sm:px-6">
           <div className="flex items-start gap-3 rounded-lg border border-error-light bg-error-lighter p-4 text-sm text-error-dark shadow-lg">
             <RiErrorWarningLine className="mt-0.5 h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="font-medium text-error-dark">We could not submit the assessment</p>
+              <p className="font-medium text-error-dark">
+                {formatMessage({
+                  id: "app.assessment.couldNotSubmit",
+                  defaultMessage: "We could not submit the assessment",
+                })}
+              </p>
               <p className="mt-1 text-error-dark/80">
-                {state.context.error ?? "Please review the details and try again."}
+                {state.context.error ??
+                  formatMessage({
+                    id: "app.assessment.reviewAndRetry",
+                    defaultMessage: "Please review the details and try again.",
+                  })}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
@@ -258,13 +283,19 @@ export default function CreateAssessment() {
                   disabled={!canRetry || isSubmitting}
                   className="rounded-md border border-error-light px-3 py-1.5 text-xs font-medium text-error-dark transition hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Retry submission
+                  {formatMessage({
+                    id: "app.assessment.retrySubmission",
+                    defaultMessage: "Retry submission",
+                  })}
                 </button>
                 <button
                   onClick={() => resetWorkflow()}
                   className="rounded-md border border-stroke-soft px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
                 >
-                  Edit details
+                  {formatMessage({
+                    id: "app.assessment.editDetails",
+                    defaultMessage: "Edit details",
+                  })}
                 </button>
               </div>
             </div>
@@ -282,8 +313,11 @@ export default function CreateAssessment() {
           onSubmit={handleFormSubmit}
           isSubmitting={isSubmitting}
           nextDisabled={nextDisabled}
-          nextLabel="Continue"
-          submitLabel="Submit assessment"
+          nextLabel={formatMessage({ id: "app.assessment.continue", defaultMessage: "Continue" })}
+          submitLabel={formatMessage({
+            id: "app.assessment.submitAssessment",
+            defaultMessage: "Submit assessment",
+          })}
         >
           {stepConfigs[currentStep]?.id === "strategy" && (
             <StrategyKernelStep
@@ -311,6 +345,6 @@ export default function CreateAssessment() {
           )}
         </FormWizard>
       </form>
-    </>
+    </ErrorBoundary>
   );
 }

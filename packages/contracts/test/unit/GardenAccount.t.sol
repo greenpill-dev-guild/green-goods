@@ -197,10 +197,10 @@ contract GardenAccountTest is Test, ERC6551Helper {
         vm.startPrank(multisig);
         gardenToken.setHatsModule(address(hatsModule));
         gardenToken.setKarmaGAPModule(address(karmaModule));
+        gardenToken.setCommunityToken(address(communityToken));
 
         // Mint a garden to get a real, initialized GardenAccount TBA
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Test Garden",
             slug: "",
             description: "A test garden",

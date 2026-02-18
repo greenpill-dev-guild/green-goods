@@ -10,7 +10,8 @@ import { AssessmentSchema } from "../Schemas.sol";
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 
-error NotGardenOperator();
+/// @notice Thrown when attester is neither an evaluator nor an operator of the garden
+error NotAuthorizedAttester();
 error TitleRequired();
 error ConfigCIDRequired();
 error InvalidDomain(uint8 domain);
@@ -32,6 +33,9 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
 
     /// @notice Emitted when the KarmaGAPModule is intentionally disabled
     event KarmaGAPModuleDisabled(address indexed oldModule);
+
+    /// @notice Emitted when the expected schema UID is updated
+    event SchemaUIDUpdated(bytes32 indexed schemaUID);
 
     /**
      * @dev Storage gap for future upgrades
@@ -65,9 +69,12 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     }
 
     /// @notice Sets the expected schema UID for assessment attestations
+    /// @dev When schemaUID is bytes32(0), schema validation is bypassed. This is intentional
+    ///      during the deployment window before EAS schemas are registered.
     /// @param _schemaUID The schema UID to validate against
     function setSchemaUID(bytes32 _schemaUID) external onlyOwner {
         schemaUID = _schemaUID;
+        emit SchemaUIDUpdated(_schemaUID);
     }
 
     /// @notice Indicates whether the resolver is payable.
@@ -102,7 +109,7 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         bool isEvaluator = accessControl.isEvaluator(attestation.attester);
         bool isOperator = accessControl.isOperator(attestation.attester);
         if (!isEvaluator && !isOperator) {
-            revert NotGardenOperator();
+            revert NotAuthorizedAttester();
         }
 
         // REQUIRED FIELDS: Validate essential data

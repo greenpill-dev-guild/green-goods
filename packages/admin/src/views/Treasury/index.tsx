@@ -6,7 +6,7 @@ import {
   useGardenVaults,
   useGardens,
 } from "@green-goods/shared";
-import { RiArrowRightLine } from "@remixicon/react";
+import { RiArrowRightLine, RiSafe2Line } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -97,9 +97,15 @@ export default function TreasuryOverview() {
         )}
 
         {!isLoading && grouped.length === 0 && (
-          <p className="rounded-md border border-stroke-soft bg-bg-white px-4 py-3 text-sm text-text-soft">
-            {formatMessage({ id: "app.treasury.noVault" })}
-          </p>
+          <div className="rounded-lg border border-stroke-soft bg-bg-white py-16 text-center">
+            <RiSafe2Line className="mx-auto h-12 w-12 text-text-disabled" />
+            <h3 className="mt-2 text-sm font-medium text-text-strong">
+              {formatMessage({ id: "app.treasury.noVault" })}
+            </h3>
+            <p className="mt-1 text-sm text-text-soft">
+              {formatMessage({ id: "app.treasury.noVaultDescription" })}
+            </p>
+          </div>
         )}
 
         {!isLoading && grouped.length > 0 && (

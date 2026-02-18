@@ -94,7 +94,8 @@ export interface ValidationResult {
 export function buildMakerAsk(
   params: CreateListingParams,
   signer: Address,
-  chainId: number
+  chainId: number,
+  nonces?: { globalNonce?: bigint; subsetNonce?: bigint; orderNonce?: bigint }
 ): MakerAskOrder {
   const addresses = getMarketplaceAddresses(chainId);
   if (!addresses) {
@@ -113,9 +114,9 @@ export function buildMakerAsk(
 
   return {
     quoteType: 1, // Ask
-    globalNonce: 0n,
-    subsetNonce: 0n,
-    orderNonce: 0n,
+    globalNonce: nonces?.globalNonce ?? 0n,
+    subsetNonce: nonces?.subsetNonce ?? 0n,
+    orderNonce: nonces?.orderNonce ?? 0n,
     strategyId: 1n, // hypercertFractionOffer
     collectionType: 2, // Hypercert
     collection: addresses.MINTER as Address,

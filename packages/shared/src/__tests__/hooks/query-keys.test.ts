@@ -421,13 +421,7 @@ describe("queryKeys", () => {
     });
 
     it("generates preview key with bigint stringification", () => {
-      const result = queryKeys.vaults.preview(
-        TEST_VAULT,
-        1000n,
-        500n,
-        TEST_USER,
-        TEST_CHAIN_ID
-      );
+      const result = queryKeys.vaults.preview(TEST_VAULT, 1000n, 500n, TEST_USER, TEST_CHAIN_ID);
       expect(result).toEqual([
         "greengoods",
         "vaults",
@@ -883,30 +877,33 @@ describe("queryKeys", () => {
     });
 
     it("serializes attestation filters deterministically", () => {
-      // The serializeAttestationFilters function sorts arrays and lowercases addresses
+      // serializeAttestationFilters normalizes dates and lowercases addresses
       const filters = {
-        status: ["approved", "pending"],
-        domain: ["agro", "edu"],
-        gardenerAddress: "0xABCDef1234567890ABCDef1234567890ABCDef12",
+        startDate: new Date("2025-01-01T00:00:00Z"),
+        endDate: new Date("2025-12-31T23:59:59Z"),
+        domain: "agro",
+        gardenerAddress: "0xABCDef1234567890ABCDef1234567890ABCDef12" as `0x${string}`,
       };
 
-      const result = queryKeys.hypercerts.attestations(TEST_GARDEN, filters as any);
+      const result = queryKeys.hypercerts.attestations(TEST_GARDEN, filters);
       const serialized = result[4] as string;
       const parsed = JSON.parse(serialized);
 
-      // Arrays should be sorted
-      expect(parsed.status).toEqual(["approved", "pending"]);
-      expect(parsed.domain).toEqual(["agro", "edu"]);
+      // Dates should be ISO strings
+      expect(parsed.startDate).toBe("2025-01-01T00:00:00.000Z");
+      expect(parsed.endDate).toBe("2025-12-31T23:59:59.000Z");
+      expect(parsed.domain).toBe("agro");
       // Address should be lowercased
       expect(parsed.gardenerAddress).toBe("0xabcdef1234567890abcdef1234567890abcdef12");
     });
 
-    it("produces stable serialization regardless of array order in filters", () => {
-      const filters1 = { status: ["pending", "approved"], domain: ["edu", "agro"] };
-      const filters2 = { status: ["approved", "pending"], domain: ["agro", "edu"] };
+    it("produces stable serialization for Date vs timestamp filters", () => {
+      const date = new Date("2025-06-15T00:00:00Z");
+      const filters1 = { startDate: date, domain: "edu" };
+      const filters2 = { startDate: date, domain: "edu" };
 
-      const key1 = queryKeys.hypercerts.attestations(TEST_GARDEN, filters1 as any);
-      const key2 = queryKeys.hypercerts.attestations(TEST_GARDEN, filters2 as any);
+      const key1 = queryKeys.hypercerts.attestations(TEST_GARDEN, filters1);
+      const key2 = queryKeys.hypercerts.attestations(TEST_GARDEN, filters2);
 
       expect(key1).toEqual(key2);
     });
@@ -976,17 +973,9 @@ describe("queryKeys", () => {
     });
 
     it("generates preview key", () => {
-      expect(
-        queryKeys.marketplace.preview(TEST_HYPERCERT_ID, "100", "ETH", TEST_CHAIN_ID)
-      ).toEqual([
-        "greengoods",
-        "marketplace",
-        "preview",
-        TEST_HYPERCERT_ID,
-        "100",
-        "ETH",
-        TEST_CHAIN_ID,
-      ]);
+      expect(queryKeys.marketplace.preview(TEST_HYPERCERT_ID, "100", "ETH", TEST_CHAIN_ID)).toEqual(
+        ["greengoods", "marketplace", "preview", TEST_HYPERCERT_ID, "100", "ETH", TEST_CHAIN_ID]
+      );
     });
 
     it("generates tradeHistory key", () => {
@@ -1251,10 +1240,7 @@ describe("queryInvalidation", () => {
 
   describe("invalidateGardenerProfile", () => {
     it("returns specific profile key when address and chainId are provided", () => {
-      const result = queryInvalidation.invalidateGardenerProfile(
-        TEST_USER,
-        TEST_CHAIN_ID
-      );
+      const result = queryInvalidation.invalidateGardenerProfile(TEST_USER, TEST_CHAIN_ID);
       expect(result).toHaveLength(1);
       expect(result).toContainEqual(
         queryKeys.gardenerProfile.byAddress(TEST_USER as Address, TEST_CHAIN_ID)
@@ -1330,9 +1316,7 @@ describe("queryInvalidation", () => {
     it("returns byGardenBase when gardenAddress and chainId are provided", () => {
       const result = queryInvalidation.invalidateAssessments(TEST_GARDEN, TEST_CHAIN_ID);
       expect(result).toHaveLength(1);
-      expect(result).toContainEqual(
-        queryKeys.assessments.byGardenBase(TEST_GARDEN, TEST_CHAIN_ID)
-      );
+      expect(result).toContainEqual(queryKeys.assessments.byGardenBase(TEST_GARDEN, TEST_CHAIN_ID));
     });
 
     it("returns assessments.all when params are missing", () => {
@@ -1367,9 +1351,7 @@ describe("queryInvalidation", () => {
     it("returns allocationsBase and splitConfig keys", () => {
       const result = queryInvalidation.invalidateYield(TEST_GARDEN, TEST_CHAIN_ID);
       expect(result).toHaveLength(2);
-      expect(result).toContainEqual(
-        queryKeys.yield.allocationsBase(TEST_GARDEN, TEST_CHAIN_ID)
-      );
+      expect(result).toContainEqual(queryKeys.yield.allocationsBase(TEST_GARDEN, TEST_CHAIN_ID));
       expect(result).toContainEqual(queryKeys.yield.splitConfig(TEST_GARDEN, TEST_CHAIN_ID));
     });
   });
@@ -1386,15 +1368,9 @@ describe("queryInvalidation", () => {
 
   describe("onYieldAllocated", () => {
     it("returns allocationsBase, byAsset, pendingYield, and yield.all keys", () => {
-      const result = queryInvalidation.onYieldAllocated(
-        TEST_GARDEN,
-        TEST_ASSET,
-        TEST_CHAIN_ID
-      );
+      const result = queryInvalidation.onYieldAllocated(TEST_GARDEN, TEST_ASSET, TEST_CHAIN_ID);
       expect(result).toHaveLength(4);
-      expect(result).toContainEqual(
-        queryKeys.yield.allocationsBase(TEST_GARDEN, TEST_CHAIN_ID)
-      );
+      expect(result).toContainEqual(queryKeys.yield.allocationsBase(TEST_GARDEN, TEST_CHAIN_ID));
       expect(result).toContainEqual(queryKeys.yield.byAsset(TEST_ASSET, TEST_CHAIN_ID));
       expect(result).toContainEqual(
         queryKeys.yield.pendingYield(TEST_GARDEN, TEST_ASSET, TEST_CHAIN_ID)
@@ -1417,24 +1393,15 @@ describe("queryInvalidation", () => {
 
   describe("onConvictionStrategiesUpdated", () => {
     it("returns strategies key", () => {
-      const result = queryInvalidation.onConvictionStrategiesUpdated(
-        TEST_GARDEN,
-        TEST_CHAIN_ID
-      );
+      const result = queryInvalidation.onConvictionStrategiesUpdated(TEST_GARDEN, TEST_CHAIN_ID);
       expect(result).toHaveLength(1);
-      expect(result).toContainEqual(
-        queryKeys.conviction.strategies(TEST_GARDEN, TEST_CHAIN_ID)
-      );
+      expect(result).toContainEqual(queryKeys.conviction.strategies(TEST_GARDEN, TEST_CHAIN_ID));
     });
   });
 
   describe("onSupportAllocated", () => {
     it("returns convictionWeights and memberPower keys", () => {
-      const result = queryInvalidation.onSupportAllocated(
-        TEST_POOL,
-        TEST_VOTER,
-        TEST_CHAIN_ID
-      );
+      const result = queryInvalidation.onSupportAllocated(TEST_POOL, TEST_VOTER, TEST_CHAIN_ID);
       expect(result).toHaveLength(2);
       expect(result).toContainEqual(
         queryKeys.conviction.convictionWeights(TEST_POOL, TEST_CHAIN_ID)
@@ -1461,10 +1428,7 @@ describe("queryInvalidation", () => {
 
   describe("onHypercertRegistrationChanged", () => {
     it("returns registeredHypercerts and convictionWeights keys", () => {
-      const result = queryInvalidation.onHypercertRegistrationChanged(
-        TEST_POOL,
-        TEST_CHAIN_ID
-      );
+      const result = queryInvalidation.onHypercertRegistrationChanged(TEST_POOL, TEST_CHAIN_ID);
       expect(result).toHaveLength(2);
       expect(result).toContainEqual(
         queryKeys.conviction.registeredHypercerts(TEST_POOL, TEST_CHAIN_ID)
@@ -1499,11 +1463,7 @@ describe("queryInvalidation", () => {
 
   describe("onVaultWithdraw", () => {
     it("delegates to onVaultDeposit (same invalidation pattern)", () => {
-      const depositResult = queryInvalidation.onVaultDeposit(
-        TEST_GARDEN,
-        TEST_USER,
-        TEST_CHAIN_ID
-      );
+      const depositResult = queryInvalidation.onVaultDeposit(TEST_GARDEN, TEST_USER, TEST_CHAIN_ID);
       const withdrawResult = queryInvalidation.onVaultWithdraw(
         TEST_GARDEN,
         TEST_USER,
@@ -1555,11 +1515,7 @@ describe("queryInvalidation", () => {
 
   describe("onCookieJarDeposit", () => {
     it("returns byGarden and jarDetail keys", () => {
-      const result = queryInvalidation.onCookieJarDeposit(
-        TEST_GARDEN,
-        TEST_JAR,
-        TEST_CHAIN_ID
-      );
+      const result = queryInvalidation.onCookieJarDeposit(TEST_GARDEN, TEST_JAR, TEST_CHAIN_ID);
       expect(result).toHaveLength(2);
       expect(result).toContainEqual(queryKeys.cookieJar.byGarden(TEST_GARDEN, TEST_CHAIN_ID));
       expect(result).toContainEqual(queryKeys.cookieJar.jarDetail(TEST_JAR, TEST_CHAIN_ID));
@@ -1568,11 +1524,7 @@ describe("queryInvalidation", () => {
 
   describe("onCookieJarAdminAction", () => {
     it("returns byGarden and jarDetail keys", () => {
-      const result = queryInvalidation.onCookieJarAdminAction(
-        TEST_GARDEN,
-        TEST_JAR,
-        TEST_CHAIN_ID
-      );
+      const result = queryInvalidation.onCookieJarAdminAction(TEST_GARDEN, TEST_JAR, TEST_CHAIN_ID);
       expect(result).toHaveLength(2);
       expect(result).toContainEqual(queryKeys.cookieJar.byGarden(TEST_GARDEN, TEST_CHAIN_ID));
       expect(result).toContainEqual(queryKeys.cookieJar.jarDetail(TEST_JAR, TEST_CHAIN_ID));

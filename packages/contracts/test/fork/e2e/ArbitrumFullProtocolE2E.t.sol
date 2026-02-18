@@ -79,7 +79,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
 
         // Mint garden with specific metadata
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Arbitrum Module Wiring Garden",
             slug: "",
             description: "Tests all modules on Arbitrum",
@@ -149,7 +148,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
         // Test 5: No HatsModule → mint MUST revert (critical dependency)
         gardenToken.setHatsModule(address(0));
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Should Fail Arb",
             slug: "",
             description: "Missing HatsModule",
@@ -183,7 +181,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](3);
 
         configs[0] = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Arb Batch Alpha",
             slug: "",
             description: "First Arbitrum batch garden",
@@ -196,7 +193,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
         });
 
         configs[1] = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Arb Batch Beta",
             slug: "",
             description: "Second Arbitrum batch garden",
@@ -209,7 +205,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
         });
 
         configs[2] = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Arb Batch Gamma",
             slug: "",
             description: "Third Arbitrum batch garden",
@@ -266,7 +261,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
         _deployFullStackOnFork();
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Arb Open Garden",
             slug: "",
             description: "Anyone can join on Arbitrum",

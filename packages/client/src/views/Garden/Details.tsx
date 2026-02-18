@@ -248,8 +248,24 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                   );
                 })}
               </div>
-              {/* Hidden input for form registration */}
-              <input type="hidden" {...register(fieldKey)} value={JSON.stringify(selected)} />
+              {/* Hidden input for form registration -- setValueAs parses the JSON string back to an array */}
+              <input
+                type="hidden"
+                {...register(fieldKey, {
+                  setValueAs: (v: unknown) => {
+                    if (Array.isArray(v)) return v;
+                    if (typeof v === "string") {
+                      try {
+                        return JSON.parse(v);
+                      } catch {
+                        return [];
+                      }
+                    }
+                    return [];
+                  },
+                })}
+                value={JSON.stringify(selected)}
+              />
             </div>
           );
         }

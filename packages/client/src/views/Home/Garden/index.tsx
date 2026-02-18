@@ -16,19 +16,21 @@ import {
   useVaultDeposits,
   useWorks,
   toastService,
+  type Address,
 } from "@green-goods/shared";
 import {
   RiCalendarEventFill,
   RiFileChartFill,
   RiGroupFill,
   RiHammerFill,
+  RiLoader4Line,
   RiMapPin2Fill,
   RiUserAddLine,
 } from "@remixicon/react";
 import React, { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
-import { type Address, isAddress } from "viem";
+import { isAddress } from "viem";
 import { Button } from "@/components/Actions";
 import { ConvictionDrawer, TreasuryDrawer } from "@/components/Dialogs";
 import { GardenErrorBoundary } from "@/components/Errors";
@@ -76,7 +78,11 @@ export const Garden: React.FC<GardenProps> = () => {
   const { id: gardenIdParam } = useParams<{ id: string }>();
   const { pathname } = useLocation();
   const chainId = DEFAULT_CHAIN_ID;
-  const { data: allGardens = [], isFetching: gardensLoading } = useGardens(chainId);
+  const {
+    data: allGardens = [],
+    isLoading: gardensInitialLoading,
+    isFetching: gardensLoading,
+  } = useGardens(chainId);
   const garden = allGardens.find((g) => g.id === gardenIdParam);
   const gardenStatus: "error" | "success" | "pending" = garden ? "success" : "pending";
   const { data: allGardeners = [] } = useGardeners();
@@ -143,7 +149,34 @@ export const Garden: React.FC<GardenProps> = () => {
   });
   const hasGovernance = convictionStrategies.length > 0;
 
-  if (!garden) return null;
+  if (!garden) {
+    if (gardensInitialLoading) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
+          <TopNav onBackClick={() => navigate("/home")} />
+          <RiLoader4Line className="w-8 h-8 text-text-soft-400 animate-spin" />
+          <p className="text-sm text-text-sub-600 text-center">
+            {intl.formatMessage({
+              id: "app.garden.loading",
+              defaultMessage: "Loading garden...",
+            })}
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
+        <TopNav onBackClick={() => navigate("/home")} />
+        <RiMapPin2Fill className="w-10 h-10 text-text-soft-400" />
+        <p className="text-sm text-text-sub-600 text-center">
+          {intl.formatMessage({
+            id: "app.garden.notFound",
+            defaultMessage: "Garden not found",
+          })}
+        </p>
+      </div>
+    );
+  }
 
   const { name, bannerImage, location, createdAt, assessments, description } = garden;
 

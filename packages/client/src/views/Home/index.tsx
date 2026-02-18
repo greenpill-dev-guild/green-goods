@@ -10,6 +10,7 @@ import {
   useNavigateToTop,
   useOffline,
   usePrimaryAddress,
+  useTimeout,
   useUIStore,
 } from "@green-goods/shared";
 import { RiFilterLine } from "@remixicon/react";
@@ -73,6 +74,7 @@ const Home: React.FC = () => {
   // Auth state for welcome message
   const { isAuthenticated } = useAuth();
   const hasShownWelcomeRef = useRef(false);
+  const { set: scheduleWelcome } = useTimeout();
 
   // Ref for scrolling to article on card click
   const articleRef = useRef<HTMLElement>(null);
@@ -111,7 +113,7 @@ const Home: React.FC = () => {
     hasShownWelcomeRef.current = true;
 
     // Small delay to let page render first
-    const timer = setTimeout(() => {
+    scheduleWelcome(() => {
       toastService.info({
         title: "Welcome to Green Goods! 🌱",
         message: "Visit your Profile to discover and join gardens.",
@@ -124,9 +126,7 @@ const Home: React.FC = () => {
         suppressLogging: true,
       });
     }, 800);
-
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, location.pathname, navigate]);
+  }, [isAuthenticated, location.pathname, navigate, scheduleWelcome]);
 
   // Handlers
   const handleRetry = () => {

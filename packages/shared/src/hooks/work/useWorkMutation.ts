@@ -9,8 +9,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { SmartAccountClient } from "permissionless";
-import type { Address } from "viem";
-import type { Action, Work, WorkDraft } from "../../types/domain";
+import type { Action, Address, Work, WorkDraft } from "../../types/domain";
 import {
   showWalletProgress,
   toastService,
@@ -70,7 +69,13 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
   return useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
-      // Validate user address is available for queue operations
+      // Validate required context before submission
+      if (!gardenAddress) {
+        throw new Error("Garden must be selected before submitting work");
+      }
+      if (typeof actionUID !== "number") {
+        throw new Error("Action must be selected before submitting work");
+      }
       if (!userAddress) {
         throw new Error("User address is required for work submission");
       }
@@ -109,8 +114,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           }
           const { txHash: offlineTxHash } = await submitWorkToQueue(
             { ...draft } as WorkDraft,
-            gardenAddress!,
-            actionUID!,
+            gardenAddress,
+            actionUID,
             actions,
             chainId,
             images,
@@ -129,8 +134,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         }
         return await submitWorkDirectly(
           draft,
-          gardenAddress!,
-          actionUID!,
+          gardenAddress,
+          actionUID,
           actionTitle,
           chainId,
           images,
@@ -159,9 +164,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       if (navigator.onLine) {
         await simulateWorkSubmission({
           draft,
-          gardenAddress: gardenAddress!,
-          actionUID: actionUID!,
-          actionTitle: actionTitle || `Action ${actionUID!}`,
+          gardenAddress,
+          actionUID,
+          actionTitle: actionTitle || `Action ${actionUID}`,
           chainId,
           images,
           accountAddress: userAddress as `0x${string}`,
@@ -174,8 +179,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         clientWorkId,
       } = await submitWorkToQueue(
         { ...draft } as WorkDraft,
-        gardenAddress!,
-        actionUID!,
+        gardenAddress,
+        actionUID,
         actions,
         chainId,
         images,

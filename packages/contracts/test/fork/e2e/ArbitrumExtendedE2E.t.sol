@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { ForkTestBase, IEASBase } from "../helpers/ForkTestBase.sol";
-import { GardenToken } from "../../../src/tokens/Garden.sol";
+import { ForkTestBase } from "../helpers/ForkTestBase.sol";
 import { GardenAccount } from "../../../src/accounts/Garden.sol";
 import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
 import { IGardensModule } from "../../../src/interfaces/IGardensModule.sol";
 import { IHats } from "../../../src/interfaces/IHats.sol";
-import { NFTPowerSource, NFTType } from "../../../src/interfaces/IGardensV2.sol";
+import { NFTPowerSource } from "../../../src/interfaces/IGardensV2.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { OrderStructs } from "../../../src/interfaces/IHypercertExchange.sol";
+import { YieldResolver } from "../../../src/resolvers/Yield.sol";
 import { IRouterClient } from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
 import { GreenGoodsENS } from "../../../src/registries/ENS.sol";
 import { AaveV3 } from "../../../src/strategies/AaveV3.sol";
@@ -32,12 +31,10 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
     address internal constant AAVE_V3_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
     address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     address internal constant AWETH = 0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8;
-    address internal constant JB_TERMINAL = 0x14785612bd5C27D8CbAd1d9A9E33BEBfF5F4C3b6;
     address internal constant HYPERCERT_EXCHANGE = 0xcE8fa09562f07c23B9C21b5d0A29a293F8a8BC83;
     address internal constant HYPERCERT_MINTER = 0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07;
     address internal constant KARMA_GAP = 0x6dC1D6b864e8BEf815806f9e4677123496e12026;
     address internal constant CCIP_ROUTER = 0x141fa059441E0ca23ce184B6A78bafD2A517DdE8;
-    uint64 internal constant ETH_CHAIN_SELECTOR = 5_009_297_550_715_157_269;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Yield Pipeline Helpers
@@ -46,10 +43,7 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
     /// @notice Set up a real Aave-backed Octant vault for a garden
     /// @dev Deploys MultistrategyVaultFactory + AaveV3 strategy, configures OctantModule
     /// @return vault The vault address for WETH deposits
-    function _setupOctantVaultWithAave(address garden)
-        internal
-        returns (address vault)
-    {
+    function _setupOctantVaultWithAave(address garden) internal returns (address vault) {
         // Deploy vault factory + strategy
         MultistrategyVault vaultImpl = new MultistrategyVault();
         MultistrategyVaultFactory vaultFactory =
@@ -70,13 +64,12 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Test 1: Full Yield Pipeline
+    // Test 1: Yield Resolver Wiring And Split Configuration
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Deploy stack → mint garden → deposit WETH into Octant vault → time warp 30d →
-    ///         harvest → registerShares → splitYield → verify CookieJar receives 48.65% +
-    ///         Juicebox attempted + fractions escrowed
-    function testForkArbitrum_e2e_fullYieldPipeline() public {
+    /// @notice Deploy stack → mint garden → deposit WETH into Octant vault → harvest →
+    ///         verify YieldResolver vault wiring and default split configuration.
+    function testForkArbitrum_e2e_yieldResolverWiringAndSplitConfig() public {
         if (!_tryChainFork("arbitrum")) {
             emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
@@ -97,37 +90,30 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
         uint256 shares = IOctantVault(vault).deposit(depositAmount, address(this));
         assertGt(shares, 0, "deposit should mint shares");
 
-        // 4. Time warp 30 days to accumulate yield
+        // 4. Time warp 30 days and harvest
         vm.warp(block.timestamp + 30 days);
         vm.roll(block.number + 216_000); // ~30 days of blocks at ~12s
 
-        // 5. Harvest (triggers process_report + share registration)
+        // Harvest calls through the full Octant pipeline with real contracts.
         octantModule.harvest(garden, WETH);
 
-        // 6. Verify YieldResolver state
-        // The vault was created and registered. After harvest, shares may or may not
-        // have been minted to yieldSplitter depending on Aave yield accrual.
-        // At minimum, the vault → garden mapping should exist in the YieldResolver.
+        // 5. Verify vault wiring in YieldResolver.
         address registeredVault = yieldSplitter.gardenVaults(garden, WETH);
         assertEq(registeredVault, vault, "vault should be registered in YieldResolver");
 
-        // 7. Verify default split config (48.65% / 48.65% / 2.7%)
-        (uint256 cookieJarBps, uint256 fractionsBps, uint256 juiceboxBps) = yieldSplitter.gardenSplitConfig(garden);
-        // Default config returns all zeros; getSplitConfig returns defaults
-        if (cookieJarBps + fractionsBps + juiceboxBps == 0) {
-            // Using defaults
-            assertEq(yieldSplitter.DEFAULT_COOKIE_JAR_BPS(), 4865, "default cookie jar bps");
-            assertEq(yieldSplitter.DEFAULT_FRACTIONS_BPS(), 4865, "default fractions bps");
-            assertEq(yieldSplitter.DEFAULT_JUICEBOX_BPS(), 270, "default juicebox bps");
-        }
+        // 6. Verify resolved split config (returns defaults when per-garden config is unset).
+        YieldResolver.SplitConfig memory splitConfig = yieldSplitter.getSplitConfig(garden);
+        assertEq(splitConfig.cookieJarBps, yieldSplitter.DEFAULT_COOKIE_JAR_BPS(), "cookie jar bps");
+        assertEq(splitConfig.fractionsBps, yieldSplitter.DEFAULT_FRACTIONS_BPS(), "fractions bps");
+        assertEq(splitConfig.juiceboxBps, yieldSplitter.DEFAULT_JUICEBOX_BPS(), "juicebox bps");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Test 2: Hypercert Mint and Marketplace Listing
+    // Test 2: Hypercert Mint And Tracking
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Deploy stack → mint garden → submit+approve work → mint hypercert via
-    ///         HypercertsModule → register order on real HypercertExchange → verify order stored
+    ///         HypercertsModule → verify garden hypercert tracking on fork.
     function testForkArbitrum_e2e_hypercertMintAndMarketplaceListing() public {
         if (!_tryChainFork("arbitrum")) {
             emit log("SKIPPED: No Arbitrum RPC URL configured");
@@ -149,29 +135,20 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
         // 3. Wire HypercertsModule to real minter
         hypercertsModule.setHypercertMinter(HYPERCERT_MINTER);
 
-        // 4. Mint hypercert via HypercertsModule (as operator — module owner bypass)
-        // The real HypercertMinter on Arbitrum may require specific allowlist setup,
-        // so we use the module owner path for test reliability.
-        uint256 hypercertId;
-        try hypercertsModule.mintAndRegister(
+        // 4. Mint hypercert via HypercertsModule and require success.
+        uint256 hypercertId = hypercertsModule.mintAndRegister(
             garden,
             1000, // totalUnits
             bytes32(0), // open merkle root
             "ipfs://QmTestHypercert"
-        ) returns (uint256 id) {
-            hypercertId = id;
-            assertTrue(hypercertId > 0, "hypercert ID should be non-zero");
+        );
+        assertTrue(hypercertId > 0, "hypercert ID should be non-zero");
 
-            // 5. Verify tracking
-            uint256[] memory gardenHypercerts = hypercertsModule.getGardenHypercerts(garden);
-            assertEq(gardenHypercerts.length, 1, "garden should have 1 hypercert");
-            assertEq(gardenHypercerts[0], hypercertId, "hypercert ID should match");
-            assertEq(hypercertsModule.hypercertGarden(hypercertId), garden, "garden mapping should match");
-        } catch {
-            // Real minter may require allowlist — verify module wiring is correct instead
-            assertEq(hypercertsModule.hypercertMinter(), HYPERCERT_MINTER, "minter should be wired");
-            assertGt(HYPERCERT_MINTER.code.length, 0, "real HypercertMinter should be deployed");
-        }
+        // 5. Verify tracking
+        uint256[] memory gardenHypercerts = hypercertsModule.getGardenHypercerts(garden);
+        assertEq(gardenHypercerts.length, 1, "garden should have 1 hypercert");
+        assertEq(gardenHypercerts[0], hypercertId, "hypercert ID should match");
+        assertEq(hypercertsModule.hypercertGarden(hypercertId), garden, "garden mapping should match");
 
         // 6. Verify marketplace adapter is wired
         assertGt(HYPERCERT_EXCHANGE.code.length, 0, "real HypercertExchange should be deployed");
@@ -200,11 +177,7 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
         assertEq(address(greenGoodsENS.CCIP_ROUTER()), CCIP_ROUTER, "ENS should use real CCIP Router");
 
         // 3. Test fee estimation against real CCIP Router
-        uint256 fee = greenGoodsENS.getRegistrationFee(
-            "test-garden-slug",
-            address(0x1234),
-            GreenGoodsENS.NameType.Gardener
-        );
+        uint256 fee = greenGoodsENS.getRegistrationFee("test-garden-slug", address(0x1234), GreenGoodsENS.NameType.Gardener);
         // Fee may be zero if mock or non-zero if real router responds
         // Real CCIP Router on Arbitrum should return non-zero fees
         // (but the test contract may not be allowlisted for actual sends)
@@ -246,8 +219,11 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
         assertTrue(gardensModule.isGardenInitialized(garden), "garden should be initialized");
 
         // 4. Check weight scheme was stored
-        IGardensModule.WeightScheme scheme = gardensModule.getGardenWeightScheme(garden);
-        // _mintTestGarden passes WeightScheme.Linear (default in config)
+        assertEq(
+            uint256(gardensModule.getGardenWeightScheme(garden)),
+            uint256(IGardensModule.WeightScheme.Linear),
+            "weight scheme should be linear"
+        );
 
         // 5. Grant roles
         _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
@@ -289,10 +265,9 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
 
         // 3. Verify CookieJar was created for the garden
         address[] memory jars = cookieJarModule.getGardenJars(garden);
-        // Jars may or may not be created depending on MockCookieJarFactory behavior
-        // The MockCookieJarFactory used in tests deploys mock jars
-
+        assertGt(jars.length, 0, "at least one cookie jar should be created");
         address wethJar = cookieJarModule.getGardenJar(garden, WETH);
+        assertTrue(wethJar != address(0), "weth cookie jar should be created");
 
         // 4. Grant gardener role
         _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
@@ -301,15 +276,8 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
         // 5. Verify non-member does NOT have gardener role
         assertFalse(hatsModule.isGardenerOf(garden, forkNonMember), "non-member should not have role");
 
-        // 6. If jar was created, verify it's linked correctly
-        if (wethJar != address(0)) {
-            // Jar should be registered for this garden+asset pair
-            assertEq(
-                cookieJarModule.getGardenJar(garden, WETH),
-                wethJar,
-                "jar should be consistently returned"
-            );
-        }
+        // 6. Jar should be registered for this garden+asset pair
+        assertEq(cookieJarModule.getGardenJar(garden, WETH), wethJar, "jar should be consistently returned");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -333,11 +301,7 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
         // Mint garden with all domains enabled
         (address garden, uint256 actionUID) = _setupGardenWithRolesAndAction("Crown Jewel Garden");
         GardenAccount gardenAcct = GardenAccount(payable(garden));
-        assertEq(
-            keccak256(bytes(gardenAcct.name())),
-            keccak256(bytes("Crown Jewel Garden")),
-            "garden name mismatch"
-        );
+        assertEq(keccak256(bytes(gardenAcct.name())), keccak256(bytes("Crown Jewel Garden")), "garden name mismatch");
 
         // Verify all roles
         assertTrue(hatsModule.isOperatorOf(garden, forkOperator), "operator role");
@@ -407,10 +371,7 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
         assertGt(HYPERCERT_MINTER.code.length, 0, "HypercertMinter deployed");
 
         // Verify module adapter is wired
-        assertTrue(
-            address(hypercertsModule.marketplaceAdapter()) != address(0),
-            "marketplace adapter should be wired"
-        );
+        assertTrue(address(hypercertsModule.marketplaceAdapter()) != address(0), "marketplace adapter should be wired");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -436,11 +397,7 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
 
         // 3. Test fee estimation against real CCIP Router
         // getRegistrationFee calls the real router's getFee()
-        uint256 regFee = greenGoodsENS.getRegistrationFee(
-            "alice-gardener",
-            forkGardener,
-            GreenGoodsENS.NameType.Gardener
-        );
+        uint256 regFee = greenGoodsENS.getRegistrationFee("alice-gardener", forkGardener, GreenGoodsENS.NameType.Gardener);
         // Real CCIP Router should return non-zero fee for cross-chain message
         assertGt(regFee, 0, "CCIP registration fee should be non-zero");
 
@@ -449,14 +406,12 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
 
         // 5. Mock ccipSend (test contract not allowlisted on real CCIP Router for sends)
         vm.mockCall(
-            CCIP_ROUTER,
-            abi.encodeWithSelector(IRouterClient.ccipSend.selector),
-            abi.encode(bytes32("mock-message-id"))
+            CCIP_ROUTER, abi.encodeWithSelector(IRouterClient.ccipSend.selector), abi.encode(bytes32("mock-message-id"))
         );
 
         // 6. Set the protocol hat ID so forkGardener is recognized as member
         // The gardener's hat is a child of the protocol gardeners hat created in _setupHatsTreeOnFork
-        (,,,uint256 gardenerHatId,,,,) = hatsModule.getGardenHatIds(garden);
+        (,,, uint256 gardenerHatId,,,,) = hatsModule.getGardenHatIds(garden);
         greenGoodsENS.setProtocolHatId(gardenerHatId);
 
         // 7. Gardener claims name (user-funded with msg.value)
@@ -514,8 +469,8 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
                 address(0),
                 9_999_799, // DEFAULT_DECAY
                 2_000_000, // DEFAULT_MAX_RATIO
-                10_000,    // DEFAULT_WEIGHT
-                2_500_000  // DEFAULT_MIN_THRESHOLD_POINTS
+                10_000, // DEFAULT_WEIGHT
+                2_500_000 // DEFAULT_MIN_THRESHOLD_POINTS
             );
 
             // 8. Register pool → garden mapping
@@ -539,28 +494,16 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
             IHats hats = IHats(HATS_PROTOCOL);
 
             // Operator should wear the operator hat
-            (,uint256 operatorHatId,,,,,,) = hatsModule.getGardenHatIds(garden);
-            assertTrue(
-                hats.isWearerOfHat(forkOperator, operatorHatId),
-                "operator should wear operator hat"
-            );
+            (, uint256 operatorHatId,,,,,,) = hatsModule.getGardenHatIds(garden);
+            assertTrue(hats.isWearerOfHat(forkOperator, operatorHatId), "operator should wear operator hat");
 
             // Gardener should wear the gardener hat
-            (,,,uint256 gardenerHatId,,,,) = hatsModule.getGardenHatIds(garden);
-            assertTrue(
-                hats.isWearerOfHat(forkGardener, gardenerHatId),
-                "gardener should wear gardener hat"
-            );
+            (,,, uint256 gardenerHatId,,,,) = hatsModule.getGardenHatIds(garden);
+            assertTrue(hats.isWearerOfHat(forkGardener, gardenerHatId), "gardener should wear gardener hat");
 
             // Non-member should NOT wear any garden hat
-            assertFalse(
-                hats.isWearerOfHat(forkNonMember, operatorHatId),
-                "non-member should not wear operator hat"
-            );
-            assertFalse(
-                hats.isWearerOfHat(forkNonMember, gardenerHatId),
-                "non-member should not wear gardener hat"
-            );
+            assertFalse(hats.isWearerOfHat(forkNonMember, operatorHatId), "non-member should not wear operator hat");
+            assertFalse(hats.isWearerOfHat(forkNonMember, gardenerHatId), "non-member should not wear gardener hat");
         } else {
             // Power registry registration may fail gracefully on fork
             // (e.g., if real RegistryFactory is not compatible with our deployment).

@@ -1,4 +1,5 @@
 import {
+  type Address,
   DEFAULT_CHAIN_ID,
   formatDate,
   getNetworkConfig,
@@ -18,7 +19,7 @@ import {
 import { useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { useIntl } from "react-intl";
-import { type Address, formatEther } from "viem";
+import { formatEther } from "viem";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { MarketplaceApprovalGate } from "@/components/hypercerts/MarketplaceApprovalGate";
 import { CreateListingDialog } from "@/components/hypercerts/CreateListingDialog";
@@ -151,7 +152,10 @@ export default function HypercertDetail() {
         )}
 
         {!isLoading && !hypercert && (
-          <div className="rounded-lg border border-error-light bg-error-lighter p-6 text-sm text-error-dark">
+          <div
+            className="rounded-lg border border-error-light bg-error-lighter p-6 text-sm text-error-dark"
+            role="alert"
+          >
             {formatMessage({ id: "app.hypercerts.detail.missing" })}
           </div>
         )}
@@ -358,6 +362,7 @@ function MarketplaceSection({
   listingDialogOpen: boolean;
   setListingDialogOpen: (open: boolean) => void;
 }) {
+  const { formatMessage } = useIntl();
   const { listings } = useHypercertListings(gardenAddress);
 
   // Find active listing for this hypercert
@@ -372,7 +377,7 @@ function MarketplaceSection({
         <div className="flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-text-strong">
             <RiExchangeDollarLine className="h-4 w-4 text-primary-base" />
-            Marketplace
+            {formatMessage({ id: "app.hypercerts.marketplace.title" })}
           </h3>
           {!activeListing && (
             <button
@@ -381,7 +386,7 @@ function MarketplaceSection({
               className="flex items-center gap-1.5 rounded-md bg-primary-base px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary-darker"
             >
               <RiExchangeDollarLine className="h-3.5 w-3.5" />
-              List for Yield
+              {formatMessage({ id: "app.hypercerts.marketplace.listForYield" })}
             </button>
           )}
         </div>
@@ -402,32 +407,39 @@ function MarketplaceSection({
                       isExpired ? "bg-warning-base" : "bg-success-base"
                     }`}
                   />
-                  {isExpired ? "Expired" : "Listed for Yield"}
+                  {isExpired
+                    ? formatMessage({ id: "app.hypercerts.marketplace.expired" })
+                    : formatMessage({ id: "app.hypercerts.marketplace.listedForYield" })}
                 </span>
               </div>
               <div className="grid gap-2 text-xs text-text-sub sm:grid-cols-3">
                 <div>
-                  <span className="font-medium text-text-strong">Price:</span>{" "}
+                  <span className="font-medium text-text-strong">
+                    {formatMessage({ id: "app.hypercerts.marketplace.price" })}:
+                  </span>{" "}
                   {formatEther(activeListing.pricePerUnit)} ETH/unit
                 </div>
                 <div>
-                  <span className="font-medium text-text-strong">Expires:</span>{" "}
-                  {new Date(activeListing.endTime * 1000).toLocaleDateString("en-US", {
+                  <span className="font-medium text-text-strong">
+                    {formatMessage({ id: "app.hypercerts.marketplace.expires" })}:
+                  </span>{" "}
+                  {new Date(activeListing.endTime * 1000).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
                   })}
                 </div>
                 <div>
-                  <span className="font-medium text-text-strong">Order ID:</span> #
-                  {activeListing.orderId}
+                  <span className="font-medium text-text-strong">
+                    {formatMessage({ id: "app.hypercerts.marketplace.orderId" })}:
+                  </span>{" "}
+                  #{activeListing.orderId}
                 </div>
               </div>
             </div>
           ) : (
             <p className="mt-3 text-sm text-text-soft">
-              This hypercert is not listed on the marketplace. List it for yield to allow supporters
-              to purchase fractions.
+              {formatMessage({ id: "app.hypercerts.marketplace.notListed" })}
             </p>
           )}
         </MarketplaceApprovalGate>
@@ -436,7 +448,9 @@ function MarketplaceSection({
       {/* Trade History */}
       {hypercertId > 0n && (
         <section className="rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-text-strong">Trade History</h3>
+          <h3 className="mb-4 text-sm font-semibold text-text-strong">
+            {formatMessage({ id: "app.hypercerts.marketplace.tradeHistory" })}
+          </h3>
           <TradeHistoryTable hypercertId={hypercertId} chainId={chainId} />
         </section>
       )}

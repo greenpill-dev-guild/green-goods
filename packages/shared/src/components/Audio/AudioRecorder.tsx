@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTimeout } from "../../hooks/utils/useTimeout";
 import { cn } from "../../utils/styles/cn";
 
 type RecorderState = "idle" | "requesting-permission" | "recording" | "preview" | "confirmed";
@@ -44,8 +45,10 @@ export function AudioRecorder({
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const recordedFileRef = useRef<File | null>(null);
+  const { set: scheduleTimeout } = useTimeout();
 
   // Cleanup on unmount
   useEffect(() => {
@@ -53,6 +56,11 @@ export function AudioRecorder({
       if (timerRef.current) clearInterval(timerRef.current);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+      audioContextRef.current?.close();
+      audioContextRef.current = null;
       stopStream();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,7 +83,10 @@ export function AudioRecorder({
 
   const startAmplitudeMonitor = useCallback((stream: MediaStream) => {
     try {
+      // Close any prior AudioContext before creating a new one
+      audioContextRef.current?.close();
       const audioCtx = new AudioContext();
+      audioContextRef.current = audioCtx;
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
@@ -182,8 +193,8 @@ export function AudioRecorder({
     if (recordedFileRef.current) {
       onRecordingComplete(recordedFileRef.current);
       setState("confirmed");
-      // Reset after a brief moment
-      setTimeout(() => {
+      // Reset after a brief moment (auto-cleaned on unmount by useTimeout)
+      scheduleTimeout(() => {
         if (previewUrl) URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
         recordedFileRef.current = null;
@@ -191,7 +202,7 @@ export function AudioRecorder({
         setElapsed(0);
       }, 500);
     }
-  }, [onRecordingComplete, previewUrl]);
+  }, [onRecordingComplete, previewUrl, scheduleTimeout]);
 
   const remaining = maxDuration - elapsed;
 

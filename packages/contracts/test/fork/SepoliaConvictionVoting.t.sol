@@ -259,4 +259,264 @@ contract SepoliaConvictionVotingForkTest is Test {
         vm.prank(address(strategy));
         assertFalse(powerRegistry.isMember(operator), "operator should not be member after hat revoke");
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test 4: Full Conviction Voting Flow
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Full conviction flow: register → allocate → time warp → calculate conviction
+    function test_fork_conviction_fullConvictionFlow() public {
+        if (!_tryFork()) {
+            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
+            return;
+        }
+
+        _deployStack();
+        _deployStrategy();
+
+        // 1. Register a hypercert
+        uint256 hypercertId = 42;
+        strategy.registerHypercert(hypercertId);
+
+        // 2. Operator allocates support (has power = 3)
+        MockCVStrategy.Signal[] memory signals = new MockCVStrategy.Signal[](1);
+        signals[0] = MockCVStrategy.Signal({ hypercertId: hypercertId, deltaSupport: 100 });
+
+        vm.prank(operator);
+        strategy.allocateSupport(signals);
+
+        // Verify allocation state
+        uint256 allocation = strategy.voterAllocations(operator, hypercertId);
+        assertEq(allocation, 100, "operator should have 100 allocated");
+
+        (uint256 stakedAmount,,, bool active) = strategy.entries(hypercertId);
+        assertEq(stakedAmount, 100, "hypercert should have 100 total staked");
+        assertTrue(active, "hypercert should be active");
+
+        // 3. Advance time (blocks) to accumulate conviction
+        uint256 convictionBefore = strategy.calculateConviction(hypercertId);
+        assertEq(convictionBefore, 0, "conviction should be 0 before time passes");
+
+        vm.roll(block.number + 1000);
+
+        // 4. Verify conviction grew
+        uint256 convictionAfter = strategy.calculateConviction(hypercertId);
+        assertGt(convictionAfter, 0, "conviction should be non-zero after block advancement");
+
+        // Expected: stakedAmount(100) * elapsed(1000) * weight(10000) / D(10000000)
+        //         = 100 * 1000 * 10000 / 10000000 = 100
+        uint256 expected = (100 * 1000 * DEFAULT_WEIGHT) / 10_000_000;
+        assertEq(convictionAfter, expected, "conviction should match formula");
+
+        emit log_named_uint("conviction after 1000 blocks", convictionAfter);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test 5: Multiple Voters With Different Hats-Derived Powers
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice 3 voters with different hat-based powers allocate support, weighted conviction
+    function test_fork_conviction_multipleVoters() public {
+        if (!_tryFork()) {
+            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
+            return;
+        }
+
+        _deployStack();
+        _deployStrategy();
+
+        uint256 hypercertId = 7;
+        strategy.registerHypercert(hypercertId);
+
+        // Operator allocates 50
+        MockCVStrategy.Signal[] memory opSignals = new MockCVStrategy.Signal[](1);
+        opSignals[0] = MockCVStrategy.Signal({ hypercertId: hypercertId, deltaSupport: 50 });
+        vm.prank(operator);
+        strategy.allocateSupport(opSignals);
+
+        // Gardener allocates 30
+        MockCVStrategy.Signal[] memory gardenerSignals = new MockCVStrategy.Signal[](1);
+        gardenerSignals[0] = MockCVStrategy.Signal({ hypercertId: hypercertId, deltaSupport: 30 });
+        vm.prank(gardener);
+        strategy.allocateSupport(gardenerSignals);
+
+        // Community member allocates 20
+        MockCVStrategy.Signal[] memory communitySignals = new MockCVStrategy.Signal[](1);
+        communitySignals[0] = MockCVStrategy.Signal({ hypercertId: hypercertId, deltaSupport: 20 });
+        vm.prank(communityMember);
+        strategy.allocateSupport(communitySignals);
+
+        // Total staked = 50 + 30 + 20 = 100
+        (uint256 totalStaked,,,) = strategy.entries(hypercertId);
+        assertEq(totalStaked, 100, "total staked should be 100");
+
+        // Verify individual allocations
+        assertEq(strategy.voterAllocations(operator, hypercertId), 50, "operator allocation");
+        assertEq(strategy.voterAllocations(gardener, hypercertId), 30, "gardener allocation");
+        assertEq(strategy.voterAllocations(communityMember, hypercertId), 20, "community member allocation");
+
+        // Advance blocks and verify conviction
+        vm.roll(block.number + 500);
+        uint256 conviction = strategy.calculateConviction(hypercertId);
+        uint256 expected = (100 * 500 * DEFAULT_WEIGHT) / 10_000_000;
+        assertEq(conviction, expected, "conviction should reflect total staked amount");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test 6: Deregister Garden Clears State
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Deregister garden clears all state — power returns to zero
+    function test_fork_conviction_deregisterClearsState() public {
+        if (!_tryFork()) {
+            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
+            return;
+        }
+
+        _deployStack();
+        _deployStrategy();
+
+        // Verify registered
+        assertTrue(powerRegistry.isGardenRegistered(garden), "garden should be registered");
+        assertEq(powerRegistry.getPoolGarden(address(strategy)), garden, "pool should map to garden");
+
+        // Deregister
+        address[] memory pools = new address[](1);
+        pools[0] = address(strategy);
+        vm.prank(gardensModule);
+        powerRegistry.deregisterGarden(garden, pools);
+
+        // Verify cleared
+        assertFalse(powerRegistry.isGardenRegistered(garden), "garden should not be registered after deregister");
+        assertEq(powerRegistry.getPoolGarden(address(strategy)), address(0), "pool mapping should be cleared");
+        assertEq(powerRegistry.getGardenSourceCount(garden), 0, "sources should be cleared");
+
+        // Power should return 0 for all members
+        uint256 power = powerRegistry.getMemberPowerInStrategy(operator, address(strategy));
+        assertEq(power, 0, "operator power should be 0 after deregister");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test 7: Deallocate Reduces Conviction
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Partial deallocation reduces staked amount and future conviction growth
+    function test_fork_conviction_deallocateReducesConviction() public {
+        if (!_tryFork()) {
+            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
+            return;
+        }
+
+        _deployStack();
+        _deployStrategy();
+
+        uint256 hypercertId = 55;
+        strategy.registerHypercert(hypercertId);
+
+        // Allocate 100
+        MockCVStrategy.Signal[] memory allocSignals = new MockCVStrategy.Signal[](1);
+        allocSignals[0] = MockCVStrategy.Signal({ hypercertId: hypercertId, deltaSupport: 100 });
+        vm.prank(operator);
+        strategy.allocateSupport(allocSignals);
+
+        // Advance blocks to accumulate conviction
+        vm.roll(block.number + 100);
+
+        uint256 convictionWithFull = strategy.calculateConviction(hypercertId);
+        assertGt(convictionWithFull, 0, "should have conviction after blocks");
+
+        // Deallocate 50 (negative delta)
+        MockCVStrategy.Signal[] memory deallocSignals = new MockCVStrategy.Signal[](1);
+        deallocSignals[0] = MockCVStrategy.Signal({ hypercertId: hypercertId, deltaSupport: -50 });
+        vm.prank(operator);
+        strategy.allocateSupport(deallocSignals);
+
+        // Verify allocation reduced
+        assertEq(strategy.voterAllocations(operator, hypercertId), 50, "allocation should be 50 after deallocation");
+        (uint256 stakedAfter,,,) = strategy.entries(hypercertId);
+        assertEq(stakedAfter, 50, "total staked should be 50");
+
+        // Advance same number of blocks — conviction growth should be slower
+        vm.roll(block.number + 100);
+
+        uint256 convictionFinal = strategy.calculateConviction(hypercertId);
+        // The snapshotted conviction (from when we had 100 staked for 100 blocks) is preserved
+        // Plus new growth from 50 staked for 100 blocks
+        // Total conviction should still grow: snapshot from first period + new growth from reduced stake
+        assertGt(convictionFinal, convictionWithFull, "total conviction should still grow even with reduced stake");
+
+        emit log_named_uint("conviction with full stake + 100 blocks", convictionWithFull);
+        emit log_named_uint("conviction final (after deallocation + 100 more blocks)", convictionFinal);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test 8: Non-Eligible Voter Cannot Allocate
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Non-member should be rejected when trying to allocate support
+    function test_fork_conviction_nonEligibleVoterReverts() public {
+        if (!_tryFork()) {
+            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
+            return;
+        }
+
+        _deployStack();
+        _deployStrategy();
+
+        uint256 hypercertId = 99;
+        strategy.registerHypercert(hypercertId);
+
+        MockCVStrategy.Signal[] memory signals = new MockCVStrategy.Signal[](1);
+        signals[0] = MockCVStrategy.Signal({ hypercertId: hypercertId, deltaSupport: 50 });
+
+        // Non-member should be rejected
+        vm.prank(nonMember);
+        vm.expectRevert(abi.encodeWithSelector(MockCVStrategy.NotEligibleVoter.selector, nonMember));
+        strategy.allocateSupport(signals);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test 9: Conviction Weights Across Multiple Hypercerts
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Different allocations across hypercerts produce proportional conviction weights
+    function test_fork_conviction_convictionWeightsAcrossHypercerts() public {
+        if (!_tryFork()) {
+            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
+            return;
+        }
+
+        _deployStack();
+        _deployStrategy();
+
+        // Register two hypercerts
+        uint256 hc1 = 1;
+        uint256 hc2 = 2;
+        strategy.registerHypercert(hc1);
+        strategy.registerHypercert(hc2);
+
+        // Operator allocates differently to each
+        MockCVStrategy.Signal[] memory signals = new MockCVStrategy.Signal[](2);
+        signals[0] = MockCVStrategy.Signal({ hypercertId: hc1, deltaSupport: 100 });
+        signals[1] = MockCVStrategy.Signal({ hypercertId: hc2, deltaSupport: 50 });
+        vm.prank(operator);
+        strategy.allocateSupport(signals);
+
+        // Advance blocks
+        vm.roll(block.number + 200);
+
+        // Get conviction weights
+        (uint256[] memory ids, uint256[] memory weights) = strategy.getConvictionWeights();
+        assertEq(ids.length, 2, "should have 2 hypercerts");
+        assertEq(ids[0], hc1, "first hypercert id");
+        assertEq(ids[1], hc2, "second hypercert id");
+
+        // hc1: (100 * 200 * 10000) / 10000000 = 20
+        // hc2: (50 * 200 * 10000) / 10000000 = 10
+        assertEq(weights[0], 20, "hc1 conviction should be 20");
+        assertEq(weights[1], 10, "hc2 conviction should be 10");
+
+        // Higher allocation leads to higher conviction
+        assertGt(weights[0], weights[1], "hc1 should have more conviction than hc2");
+    }
 }

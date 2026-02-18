@@ -1,8 +1,10 @@
 import { SUPPORTED_CHAINS, useAdminStore, getNetworkContracts } from "@green-goods/shared";
 import { RiRefreshLine, RiSettings3Line, RiUploadLine } from "@remixicon/react";
 import { useState } from "react";
+import { useIntl } from "react-intl";
 
 export default function Contracts() {
+  const { formatMessage } = useIntl();
   const selectedChainId = useAdminStore((s) => s.selectedChainId);
   const [activeTab, setActiveTab] = useState<"deployed" | "deploy" | "upgrade">("deployed");
 
@@ -30,23 +32,37 @@ export default function Contracts() {
 
   const getStatusText = (address: string) => {
     if (address === "0x0000000000000000000000000000000000000000") {
-      return "Not Deployed";
+      return formatMessage({ id: "app.contracts.status.notDeployed" });
     }
-    return "Deployed";
+    return formatMessage({ id: "app.contracts.status.deployed" });
   };
 
   const tabs = [
-    { id: "deployed", name: "Deployed Contracts", icon: RiSettings3Line },
-    { id: "deploy", name: "Deploy New", icon: RiUploadLine },
-    { id: "upgrade", name: "Upgrade", icon: RiRefreshLine },
+    {
+      id: "deployed",
+      name: formatMessage({ id: "app.contracts.tabs.deployed" }),
+      icon: RiSettings3Line,
+    },
+    {
+      id: "deploy",
+      name: formatMessage({ id: "app.contracts.tabs.deployNew" }),
+      icon: RiUploadLine,
+    },
+    {
+      id: "upgrade",
+      name: formatMessage({ id: "app.contracts.tabs.upgrade" }),
+      icon: RiRefreshLine,
+    },
   ];
 
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-text-strong">Contract Management</h1>
+        <h1 className="text-2xl font-bold text-text-strong">
+          {formatMessage({ id: "app.contracts.title" })}
+        </h1>
         <p className="text-text-sub mt-1">
-          Deploy and manage smart contracts on {currentChain?.name}
+          {formatMessage({ id: "app.contracts.description" }, { chain: currentChain?.name })}
         </p>
       </div>
 
@@ -56,6 +72,7 @@ export default function Contracts() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id as "deployed" | "deploy" | "upgrade")}
               className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
@@ -74,26 +91,43 @@ export default function Contracts() {
       {activeTab === "deployed" && (
         <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft">
           <div className="p-6 border-b border-stroke-soft">
-            <h2 className="text-lg font-medium text-text-strong">Deployed Contracts</h2>
+            <h2 className="text-lg font-medium text-text-strong">
+              {formatMessage({ id: "app.contracts.tabs.deployed" })}
+            </h2>
             <p className="text-sm text-text-sub mt-1">
-              Current contract deployments on {currentChain?.name}
+              {formatMessage(
+                { id: "app.contracts.deployed.description" },
+                { chain: currentChain?.name }
+              )}
             </p>
           </div>
-          <div className="overflow-hidden">
+          <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-stroke-soft">
               <thead className="bg-bg-weak">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-soft uppercase tracking-wider">
-                    Contract
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-text-soft uppercase tracking-wider"
+                  >
+                    {formatMessage({ id: "app.contracts.table.contract" })}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-soft uppercase tracking-wider">
-                    Type
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-text-soft uppercase tracking-wider"
+                  >
+                    {formatMessage({ id: "app.contracts.table.type" })}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-soft uppercase tracking-wider">
-                    Address
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-text-soft uppercase tracking-wider"
+                  >
+                    {formatMessage({ id: "app.contracts.table.address" })}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-soft uppercase tracking-wider">
-                    Status
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-text-soft uppercase tracking-wider"
+                  >
+                    {formatMessage({ id: "app.contracts.table.status" })}
                   </th>
                 </tr>
               </thead>
@@ -127,17 +161,24 @@ export default function Contracts() {
       {activeTab === "deploy" && (
         <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft">
           <div className="p-6 border-b border-stroke-soft">
-            <h2 className="text-lg font-medium text-text-strong">Deploy New Contract</h2>
+            <h2 className="text-lg font-medium text-text-strong">
+              {formatMessage({ id: "app.contracts.deploy.title" })}
+            </h2>
             <p className="text-sm text-text-sub mt-1">
-              Deploy new contracts to {currentChain?.name}
+              {formatMessage(
+                { id: "app.contracts.deploy.description" },
+                { chain: currentChain?.name }
+              )}
             </p>
           </div>
           <div className="p-6">
             <div className="text-center py-12">
               <RiUploadLine className="mx-auto h-12 w-12 text-text-soft" />
-              <h3 className="mt-2 text-sm font-medium text-text-strong">Contract Deployment</h3>
+              <h3 className="mt-2 text-sm font-medium text-text-strong">
+                {formatMessage({ id: "app.contracts.deploy.title" })}
+              </h3>
               <p className="mt-1 text-sm text-text-soft">
-                Contract deployment functionality coming soon.
+                {formatMessage({ id: "app.contracts.deploy.comingSoon" })}
               </p>
             </div>
           </div>
@@ -147,17 +188,24 @@ export default function Contracts() {
       {activeTab === "upgrade" && (
         <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft">
           <div className="p-6 border-b border-stroke-soft">
-            <h2 className="text-lg font-medium text-text-strong">Upgrade Contracts</h2>
+            <h2 className="text-lg font-medium text-text-strong">
+              {formatMessage({ id: "app.contracts.upgrade.title" })}
+            </h2>
             <p className="text-sm text-text-sub mt-1">
-              Upgrade existing contracts on {currentChain?.name}
+              {formatMessage(
+                { id: "app.contracts.upgrade.description" },
+                { chain: currentChain?.name }
+              )}
             </p>
           </div>
           <div className="p-6">
             <div className="text-center py-12">
               <RiRefreshLine className="mx-auto h-12 w-12 text-text-soft" />
-              <h3 className="mt-2 text-sm font-medium text-text-strong">Contract Upgrades</h3>
+              <h3 className="mt-2 text-sm font-medium text-text-strong">
+                {formatMessage({ id: "app.contracts.upgrade.title" })}
+              </h3>
               <p className="mt-1 text-sm text-text-soft">
-                Contract upgrade functionality coming soon.
+                {formatMessage({ id: "app.contracts.upgrade.comingSoon" })}
               </p>
             </div>
           </div>

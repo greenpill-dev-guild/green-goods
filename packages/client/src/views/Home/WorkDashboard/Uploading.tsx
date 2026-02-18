@@ -5,6 +5,7 @@ import {
   useBatchWorkSync,
   useOffline,
   useQueueFlush,
+  useTimeout,
   useUser,
   type Work,
 } from "@green-goods/shared";
@@ -41,6 +42,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
   const flush = useQueueFlush();
   const batchWorkSync = useBatchWorkSync();
   const [isFlushing, setIsFlushing] = useState(false);
+  const { set: scheduleConfirmClear } = useTimeout();
 
   // Only offline (unsynced) work is actively "uploading".
   const uploadingOfflineWork = uploadingWork.filter((work) => work.id.startsWith("0xoffline_"));
@@ -84,16 +86,13 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
 
     if (newlyConfirmed.size > 0) {
       setConfirmedIds(newlyConfirmed);
-      const timeout = window.setTimeout(() => {
+      scheduleConfirmClear(() => {
         setConfirmedIds(new Set());
       }, 200);
-
-      previousOfflineRef.current = currentOffline;
-      return () => window.clearTimeout(timeout);
     }
 
     previousOfflineRef.current = currentOffline;
-  }, [uploadingWork]);
+  }, [uploadingWork, scheduleConfirmClear]);
 
   const isSyncing = isFlushing || batchWorkSync.isPending;
 

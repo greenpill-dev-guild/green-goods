@@ -1,6 +1,8 @@
-import { isValidAddressFormat, useCreateGardenStore } from "@green-goods/shared";
+import { useCreateGardenStore } from "@green-goods/shared";
+import { useIntl } from "react-intl";
 
 export function ReviewStep() {
+  const { formatMessage } = useIntl();
   const form = useCreateGardenStore((s) => s.form);
   return (
     <div className="space-y-3">
@@ -8,43 +10,43 @@ export function ReviewStep() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-              Garden name
+              {formatMessage({ id: "app.garden.create.gardenName", defaultMessage: "Garden name" })}
             </h4>
             <p className="mt-1 text-sm text-text-strong">{form.name}</p>
           </div>
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-              Location
+              {formatMessage({ id: "app.garden.create.location", defaultMessage: "Location" })}
             </h4>
             <p className="mt-1 text-sm text-text-strong">{form.location}</p>
           </div>
           {form.slug && (
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-                ENS subdomain
+                {formatMessage({
+                  id: "app.garden.create.ensSubdomain",
+                  defaultMessage: "ENS subdomain",
+                })}
               </h4>
               <p className="mt-1 font-mono text-xs text-text-strong">{form.slug}.greengoods.eth</p>
             </div>
           )}
           <div className="md:col-span-2">
             <h4 className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-              Description
+              {formatMessage({
+                id: "app.garden.create.description",
+                defaultMessage: "Description",
+              })}
             </h4>
             <p className="mt-1 text-sm text-text-strong">{form.description}</p>
-          </div>
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-              Community token
-            </h4>
-            <p className="mt-1 font-mono text-xs text-text-strong">{form.communityToken}</p>
-            {!isValidAddressFormat(form.communityToken.trim()) && (
-              <p className="mt-1 text-xs text-red-600">The address doesn&apos;t look valid.</p>
-            )}
           </div>
           {form.bannerImage && (
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-                Banner image
+                {formatMessage({
+                  id: "app.garden.create.bannerImage",
+                  defaultMessage: "Banner image",
+                })}
               </h4>
               <p className="mt-1 break-words text-sm text-text-strong">{form.bannerImage}</p>
             </div>
@@ -53,22 +55,36 @@ export function ReviewStep() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-              Gardeners
+              {formatMessage({ id: "app.garden.create.gardeners", defaultMessage: "Gardeners" })}
             </h4>
-            <ul className="mt-2 space-y-1">
-              {form.gardeners.map((gardener) => (
-                <li key={gardener} className="font-mono text-xs text-text-strong">
-                  {gardener}
-                </li>
-              ))}
-            </ul>
+            {form.gardeners.length === 0 ? (
+              <p className="mt-2 text-xs text-text-soft">
+                {formatMessage({
+                  id: "app.garden.create.noGardenersYet",
+                  defaultMessage: "No gardeners added yet.",
+                })}
+              </p>
+            ) : (
+              <ul className="mt-2 space-y-1">
+                {form.gardeners.map((gardener) => (
+                  <li key={gardener} className="font-mono text-xs text-text-strong">
+                    {gardener}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-              Operators
+              {formatMessage({ id: "app.garden.create.operators", defaultMessage: "Operators" })}
             </h4>
             {form.operators.length === 0 ? (
-              <p className="mt-2 text-xs text-text-soft">No operators assigned yet.</p>
+              <p className="mt-2 text-xs text-text-soft">
+                {formatMessage({
+                  id: "app.garden.create.noOperatorsYet",
+                  defaultMessage: "No operators assigned yet.",
+                })}
+              </p>
             ) : (
               <ul className="mt-2 space-y-1">
                 {form.operators.map((operator) => (

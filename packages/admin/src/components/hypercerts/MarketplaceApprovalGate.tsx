@@ -12,7 +12,7 @@ interface MarketplaceApprovalGateProps {
  * Renders children when fully approved.
  */
 export function MarketplaceApprovalGate({ children }: MarketplaceApprovalGateProps) {
-  const _intl = useIntl();
+  const { formatMessage } = useIntl();
   const { approvals, isFullyApproved, isLoading, grantApprovals, isGranting, error } =
     useMarketplaceApprovals();
 
@@ -20,7 +20,12 @@ export function MarketplaceApprovalGate({ children }: MarketplaceApprovalGatePro
     return (
       <div className="flex items-center justify-center gap-2 rounded-lg border border-stroke-soft bg-bg-white p-8">
         <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
-        <span className="text-sm text-text-soft">Checking marketplace approvals...</span>
+        <span className="text-sm text-text-soft">
+          {formatMessage({
+            id: "app.marketplace.checkingApprovals",
+            defaultMessage: "Checking marketplace approvals...",
+          })}
+        </span>
       </div>
     );
   }
@@ -34,20 +39,41 @@ export function MarketplaceApprovalGate({ children }: MarketplaceApprovalGatePro
       <div className="flex items-start gap-3">
         <RiAlertLine className="mt-0.5 h-5 w-5 shrink-0 text-warning-dark" />
         <div className="flex-1">
-          <h3 className="text-sm font-semibold text-text-strong">Marketplace Setup Required</h3>
+          <h3 className="text-sm font-semibold text-text-strong">
+            {formatMessage({
+              id: "app.marketplace.setupRequired",
+              defaultMessage: "Marketplace Setup Required",
+            })}
+          </h3>
           <p className="mt-1 text-sm text-text-sub">
-            Two one-time approvals are needed before you can list hypercerts for yield:
+            {formatMessage({
+              id: "app.marketplace.setupDescription",
+              defaultMessage:
+                "Two one-time approvals are needed before you can list hypercerts for yield:",
+            })}
           </p>
 
           <div className="mt-4 space-y-2">
             <ApprovalStep
-              label="Grant exchange approval"
-              description="Allows the exchange to use the transfer manager"
+              label={formatMessage({
+                id: "app.marketplace.grantExchange",
+                defaultMessage: "Grant exchange approval",
+              })}
+              description={formatMessage({
+                id: "app.marketplace.grantExchangeDesc",
+                defaultMessage: "Allows the exchange to use the transfer manager",
+              })}
               approved={approvals?.exchangeApproved ?? false}
             />
             <ApprovalStep
-              label="Approve transfer manager"
-              description="Allows the transfer manager to move your hypercert fractions"
+              label={formatMessage({
+                id: "app.marketplace.approveTransfer",
+                defaultMessage: "Approve transfer manager",
+              })}
+              description={formatMessage({
+                id: "app.marketplace.approveTransferDesc",
+                defaultMessage: "Allows the transfer manager to move your hypercert fractions",
+              })}
               approved={approvals?.minterApproved ?? false}
             />
           </div>
@@ -63,12 +89,12 @@ export function MarketplaceApprovalGate({ children }: MarketplaceApprovalGatePro
             {isGranting ? (
               <>
                 <RiLoader4Line className="h-4 w-4 animate-spin" />
-                Approving...
+                {formatMessage({ id: "app.marketplace.approving", defaultMessage: "Approving..." })}
               </>
             ) : (
               <>
                 <RiShieldCheckLine className="h-4 w-4" />
-                Approve All
+                {formatMessage({ id: "app.marketplace.approveAll", defaultMessage: "Approve All" })}
               </>
             )}
           </button>

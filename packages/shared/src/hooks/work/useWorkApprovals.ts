@@ -101,12 +101,23 @@ async function getWorkApprovalsByAttester(
           createdAt: (attestation as { timeCreated: number }).timeCreated * 1000, // Convert to milliseconds
         };
         return [approval];
-      } catch {
+      } catch (error) {
+        logger.warn("Failed to parse attestation data", {
+          source: "useWorkApprovals",
+          attestationId: (attestation as { id?: string }).id,
+          error,
+        });
         return [];
       }
     });
-  } catch {
-    return []; // Always return empty array on any error
+  } catch (error) {
+    logger.warn("Failed to fetch work approvals", {
+      source: "useWorkApprovals",
+      attesterAddress,
+      chainId,
+      error,
+    });
+    return [];
   }
 }
 

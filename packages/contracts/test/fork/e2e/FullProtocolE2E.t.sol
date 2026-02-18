@@ -157,7 +157,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
 
         // Mint garden with specific metadata
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Module Wiring Garden",
             slug: "",
             description: "Tests all modules",
@@ -232,7 +231,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         // Test 5: No HatsModule -- mint MUST revert (critical dependency)
         gardenToken.setHatsModule(address(0));
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Should Fail",
             slug: "",
             description: "Missing HatsModule",
@@ -268,7 +266,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](3);
 
         configs[0] = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Batch Garden Alpha",
             slug: "",
             description: "First batch garden",
@@ -281,7 +278,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
          });
 
         configs[1] = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Batch Garden Beta",
             slug: "",
             description: "Second batch garden",
@@ -294,7 +290,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
          });
 
         configs[2] = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Batch Garden Gamma",
             slug: "",
             description: "Third batch garden",
@@ -354,7 +349,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
 
         // Mint garden with openJoining = true (bypass _mintTestGarden which defaults to false)
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Open Joining Garden",
             slug: "",
             description: "Anyone can join",

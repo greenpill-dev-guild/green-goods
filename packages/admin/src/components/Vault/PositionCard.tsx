@@ -66,9 +66,7 @@ export function PositionCard({
   return (
     <article className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-text-strong sm:text-lg">
-          {assetSymbol}
-        </h3>
+        <h3 className="text-base font-semibold text-text-strong sm:text-lg">{assetSymbol}</h3>
         {vault.paused && (
           <span className="rounded-full bg-error-lighter px-2 py-1 text-xs font-medium text-error-dark">
             {formatMessage({ id: "app.treasury.paused" })}
@@ -125,32 +123,35 @@ export function PositionCard({
       </div>
 
       {canManage && (
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={onHarvest}
-            disabled={!donationConfigured || harvest.isPending}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {harvest.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
-            {formatMessage({ id: "app.treasury.harvest" })}
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirmPauseOpen(true)}
-            disabled={!canEmergencyPause || emergencyPause.isPending}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-error-light bg-error-lighter px-3 py-2 text-sm font-medium text-error-dark transition hover:bg-error-light disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {emergencyPause.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
-            {formatMessage({ id: "app.treasury.emergencyPause" })}
-          </button>
+        <div className="mt-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={onHarvest}
+                disabled={!donationConfigured || harvest.isPending}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {harvest.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
+                {formatMessage({ id: "app.treasury.harvest" })}
+              </button>
+              {!donationConfigured && (
+                <p className="text-xs text-warning-dark">
+                  {formatMessage({ id: "app.treasury.setDonationFirst" })}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setConfirmPauseOpen(true)}
+              disabled={!canEmergencyPause || emergencyPause.isPending}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-error-light bg-error-lighter px-3 py-2 text-sm font-medium text-error-dark transition hover:bg-error-light disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {emergencyPause.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
+              {formatMessage({ id: "app.treasury.emergencyPause" })}
+            </button>
+          </div>
         </div>
-      )}
-
-      {!donationConfigured && (
-        <p className="mt-3 text-xs text-warning-dark">
-          {formatMessage({ id: "app.treasury.setDonationFirst" })}
-        </p>
       )}
 
       {/* Emergency pause confirmation dialog */}

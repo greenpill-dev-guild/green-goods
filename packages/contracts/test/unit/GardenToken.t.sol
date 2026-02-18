@@ -35,7 +35,6 @@ contract RevertingENSModule is IGreenGoodsENS {
     }
 }
 
-
 /// @title AcceptingENSModule
 /// @notice Mock ENS module that accepts registration and records the forwarded ETH
 contract AcceptingENSModule is IGreenGoodsENS {
@@ -109,9 +108,13 @@ contract GardenTokenTest is Test, ERC6551Helper {
         gardenToken.setHatsModule(address(mockHatsModule));
     }
 
-    function _defaultConfig(address token) internal pure returns (GardenToken.GardenConfig memory) {
+    function _setCommunityToken() internal {
+        vm.prank(multisig);
+        gardenToken.setCommunityToken(address(mockToken));
+    }
+
+    function _defaultConfig() internal pure returns (GardenToken.GardenConfig memory) {
         return GardenToken.GardenConfig({
-            communityToken: token,
             name: "Test Garden",
             slug: "",
             description: "Description",
@@ -128,37 +131,48 @@ contract GardenTokenTest is Test, ERC6551Helper {
         assertEq(gardenToken.owner(), multisig, "Owner should be the multisig address");
     }
 
-    function testMintGarden_RevertsWithZeroAddressToken() public {
+    function testSetCommunityToken_RevertsWithZeroAddress() public {
         vm.prank(multisig);
         vm.expectRevert(GardenToken.InvalidCommunityToken.selector);
-        gardenToken.mintGarden(_defaultConfig(address(0)));
+        gardenToken.setCommunityToken(address(0));
     }
 
-    function testMintGarden_RevertsWithEOA() public {
+    function testSetCommunityToken_RevertsWithEOA() public {
         address eoa = address(0x999);
 
         vm.prank(multisig);
         vm.expectRevert(GardenToken.CommunityTokenNotContract.selector);
-        gardenToken.mintGarden(_defaultConfig(eoa));
+        gardenToken.setCommunityToken(eoa);
     }
 
-    function testMintGarden_RevertsWithNonERC20Contract() public {
+    function testSetCommunityToken_RevertsWithNonERC20Contract() public {
         vm.prank(multisig);
         vm.expectRevert(GardenToken.InvalidERC20Token.selector);
-        gardenToken.mintGarden(_defaultConfig(address(mockNonERC20)));
+        gardenToken.setCommunityToken(address(mockNonERC20));
+    }
+
+    function testMintGarden_RevertsWhenCommunityTokenNotConfigured() public {
+        _setHatsModule();
+
+        vm.prank(multisig);
+        vm.expectRevert(GardenToken.CommunityTokenNotConfigured.selector);
+        gardenToken.mintGarden(_defaultConfig());
     }
 
     function testMintGarden_RevertsWhenHatsModuleNotSet() public {
+        _setCommunityToken();
+
         vm.prank(multisig);
         vm.expectRevert(GardenToken.HatsModuleNotSet.selector);
-        gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+        gardenToken.mintGarden(_defaultConfig());
     }
 
     function testMintGarden_SucceedsWithValidERC20AndHatsModuleSet() public {
         _setHatsModule();
+        _setCommunityToken();
 
         vm.prank(multisig);
-        address gardenAccount = gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+        address gardenAccount = gardenToken.mintGarden(_defaultConfig());
 
         assertTrue(gardenAccount != address(0), "Garden account should be created");
         assertEq(gardenToken.ownerOf(0), multisig, "Token should be minted to multisig");
@@ -169,7 +183,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
         vm.prank(notAuthorized);
         vm.expectRevert(GardenToken.DeploymentNotConfigured.selector);
-        gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+        gardenToken.mintGarden(_defaultConfig());
     }
 
     function testBatchMintGardensRevertsWithEmptyArray() public {
@@ -188,19 +202,23 @@ contract GardenTokenTest is Test, ERC6551Helper {
         gardenToken.batchMintGardens(configs);
     }
 
-    function testBatchMintGardens_RevertsWithInvalidToken() public {
+    function testBatchMintGardens_RevertsWhenCommunityTokenNotConfigured() public {
+        _setHatsModule();
+
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](2);
-        configs[0] = _defaultConfig(address(mockToken));
-        configs[1] = _defaultConfig(address(0));
+        configs[0] = _defaultConfig();
+        configs[1] = _defaultConfig();
 
         vm.prank(multisig);
-        vm.expectRevert(GardenToken.InvalidCommunityToken.selector);
+        vm.expectRevert(GardenToken.CommunityTokenNotConfigured.selector);
         gardenToken.batchMintGardens(configs);
     }
 
     function testBatchMintGardens_RevertsWhenHatsModuleNotSet() public {
+        _setCommunityToken();
+
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](1);
-        configs[0] = _defaultConfig(address(mockToken));
+        configs[0] = _defaultConfig();
 
         vm.prank(multisig);
         vm.expectRevert(GardenToken.HatsModuleNotSet.selector);
@@ -209,11 +227,11 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function testBatchMintGardens_SucceedsWithValidTokensAndHatsModuleSet() public {
         _setHatsModule();
+        _setCommunityToken();
 
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](2);
-        configs[0] = _defaultConfig(address(mockToken));
+        configs[0] = _defaultConfig();
         configs[1] = GardenToken.GardenConfig({
-            communityToken: address(mockToken),
             name: "Garden 2",
             slug: "",
             description: "Description 2",
@@ -269,13 +287,14 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function test_mintGarden_emitsGardenMintedEvent() public {
         _setHatsModule();
+        _setCommunityToken();
 
         // We can't predict the exact garden account address, so check topic matching only
         vm.expectEmit(true, false, false, false);
         emit GardenMinted(0, address(0), "Test Garden", "Description", "Location", "Banner", false);
 
         vm.prank(multisig);
-        gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+        gardenToken.mintGarden(_defaultConfig());
     }
 
     // =========================================================================
@@ -334,6 +353,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function test_mintGarden_setsDomainMaskOnActionRegistry() public {
         _setHatsModule();
+        _setCommunityToken();
 
         // Deploy and wire ActionRegistry
         ActionRegistry ar = ActionRegistry(
@@ -350,7 +370,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
         vm.stopPrank();
 
         // Mint garden with domainMask = 0x05 (Solar + Edu)
-        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        GardenToken.GardenConfig memory config = _defaultConfig();
         config.domainMask = 0x05;
 
         vm.prank(multisig);
@@ -362,6 +382,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function test_mintGarden_zeroDomainMask_skipsActionRegistry() public {
         _setHatsModule();
+        _setCommunityToken();
 
         ActionRegistry ar = ActionRegistry(
             address(
@@ -376,7 +397,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
         gardenToken.setActionRegistry(address(ar));
         vm.stopPrank();
 
-        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        GardenToken.GardenConfig memory config = _defaultConfig();
         config.domainMask = 0; // zero = skip
 
         vm.prank(multisig);
@@ -387,6 +408,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function test_mintGarden_allDomains_0x0F() public {
         _setHatsModule();
+        _setCommunityToken();
 
         ActionRegistry ar = ActionRegistry(
             address(
@@ -401,7 +423,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
         gardenToken.setActionRegistry(address(ar));
         vm.stopPrank();
 
-        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        GardenToken.GardenConfig memory config = _defaultConfig();
         config.domainMask = 0x0F; // all 4 domains
 
         vm.prank(multisig);
@@ -412,8 +434,9 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function test_mintGarden_withoutActionRegistry_stillSucceeds() public {
         _setHatsModule();
+        _setCommunityToken();
 
-        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        GardenToken.GardenConfig memory config = _defaultConfig();
         config.domainMask = 0x0F; // all domains, but no ActionRegistry wired
 
         vm.prank(multisig);
@@ -456,6 +479,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
     event GardensModuleUpdated(address indexed oldModule, address indexed newModule);
     event ActionRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
     event CookieJarModuleUpdated(address indexed oldModule, address indexed newModule);
+    event CommunityTokenUpdated(address indexed oldToken, address indexed newToken);
 
     function test_setGardensModule_emitsEvent() public {
         address newModule = address(0xBEEF);
@@ -490,13 +514,14 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function test_batchMintGardens_producesUniqueGardenAddresses() public {
         _setHatsModule();
+        _setCommunityToken();
 
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](3);
-        configs[0] = _defaultConfig(address(mockToken));
+        configs[0] = _defaultConfig();
         configs[0].name = "Garden 0";
-        configs[1] = _defaultConfig(address(mockToken));
+        configs[1] = _defaultConfig();
         configs[1].name = "Garden 1";
-        configs[2] = _defaultConfig(address(mockToken));
+        configs[2] = _defaultConfig();
         configs[2].name = "Garden 2";
 
         vm.prank(multisig);
@@ -514,9 +539,10 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function test_transferRestriction_locked() public {
         _setHatsModule();
+        _setCommunityToken();
 
         vm.prank(multisig);
-        address gardenAccount = gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+        address gardenAccount = gardenToken.mintGarden(_defaultConfig());
         assertTrue(gardenAccount != address(0), "Garden should be minted");
 
         // Set transfer restriction to Locked
@@ -531,9 +557,10 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function test_transferRestriction_ownerOnly() public {
         _setHatsModule();
+        _setCommunityToken();
 
         vm.prank(multisig);
-        address gardenAccount = gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+        address gardenAccount = gardenToken.mintGarden(_defaultConfig());
         assertTrue(gardenAccount != address(0), "Garden should be minted");
 
         // Set restriction to OwnerOnly
@@ -547,7 +574,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
         // Mint another token for non-owner transfer test
         vm.prank(multisig);
-        gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+        gardenToken.mintGarden(_defaultConfig());
 
         // Approve a non-owner to transfer
         vm.prank(multisig);
@@ -561,9 +588,10 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function test_transferRestriction_unrestricted() public {
         _setHatsModule();
+        _setCommunityToken();
 
         vm.prank(multisig);
-        gardenToken.mintGarden(_defaultConfig(address(mockToken)));
+        gardenToken.mintGarden(_defaultConfig());
 
         // Default is Unrestricted — transfer should work
         vm.prank(multisig);
@@ -579,6 +607,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function test_batchMintGardens_withDomainMasks() public {
         _setHatsModule();
+        _setCommunityToken();
 
         ActionRegistry ar = ActionRegistry(
             address(
@@ -594,11 +623,11 @@ contract GardenTokenTest is Test, ERC6551Helper {
         vm.stopPrank();
 
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](3);
-        configs[0] = _defaultConfig(address(mockToken));
+        configs[0] = _defaultConfig();
         configs[0].domainMask = 0x01; // Solar
-        configs[1] = _defaultConfig(address(mockToken));
+        configs[1] = _defaultConfig();
         configs[1].domainMask = 0x06; // Agro + Edu
-        configs[2] = _defaultConfig(address(mockToken));
+        configs[2] = _defaultConfig();
         configs[2].domainMask = 0x0F; // All
 
         vm.prank(multisig);
@@ -619,6 +648,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
     ///      and garden minting completes normally. This proves ENS is non-blocking.
     function test_mintGarden_ensModuleFails_gardenStillMinted() public {
         _setHatsModule();
+        _setCommunityToken();
 
         // Wire a reverting ENS module
         RevertingENSModule revertingENS = new RevertingENSModule();
@@ -626,7 +656,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
         gardenToken.setENSModule(address(revertingENS));
 
         // Mint with a slug (triggers ENS registration path at line 374)
-        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        GardenToken.GardenConfig memory config = _defaultConfig();
         config.slug = "test-garden"; // Non-empty slug triggers ENS path
 
         vm.prank(multisig);
@@ -646,12 +676,13 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function test_mintGarden_ensFailureQueuesRefundAndClaimSucceeds() public {
         _setHatsModule();
+        _setCommunityToken();
 
         RevertingENSModule revertingENS = new RevertingENSModule();
         vm.prank(multisig);
         gardenToken.setENSModule(address(revertingENS));
 
-        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        GardenToken.GardenConfig memory config = _defaultConfig();
         config.slug = "refund-garden";
 
         uint256 refundAmount = 0.05 ether;
@@ -678,12 +709,13 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function test_mintGarden_ensSuccessDoesNotQueueRefund() public {
         _setHatsModule();
+        _setCommunityToken();
 
         AcceptingENSModule ens = new AcceptingENSModule();
         vm.prank(multisig);
         gardenToken.setENSModule(address(ens));
 
-        GardenToken.GardenConfig memory config = _defaultConfig(address(mockToken));
+        GardenToken.GardenConfig memory config = _defaultConfig();
         config.slug = "success-garden";
 
         uint256 forwardedValue = 0.03 ether;
@@ -702,4 +734,21 @@ contract GardenTokenTest is Test, ERC6551Helper {
         gardenToken.claimENSRefund();
     }
 
+    // =========================================================================
+    // setCommunityToken Access Control & Events
+    // =========================================================================
+
+    function test_setCommunityToken_onlyOwner() public {
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        gardenToken.setCommunityToken(address(mockToken));
+    }
+
+    function test_setCommunityToken_emitsEvent() public {
+        vm.expectEmit(true, true, false, false);
+        emit CommunityTokenUpdated(address(0), address(mockToken));
+
+        vm.prank(multisig);
+        gardenToken.setCommunityToken(address(mockToken));
+    }
 }

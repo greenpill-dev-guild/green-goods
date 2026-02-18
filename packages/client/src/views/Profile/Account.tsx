@@ -28,6 +28,8 @@ import {
   useSlugForm,
   useTheme,
   useTimeout,
+  logger,
+  type Address,
   type Garden,
   type Locale,
 } from "@green-goods/shared";
@@ -54,7 +56,6 @@ import {
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { type Address } from "viem";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
@@ -402,7 +403,7 @@ export const ProfileAccount: React.FC = () => {
         if (import.meta.env.DEV) console.debug("[AppRefresh] IndexedDB clear failed:", e);
       }
     } catch (err) {
-      console.debug("[AppRefresh] Best-effort cache clear failed:", err);
+      logger.debug("[AppRefresh] Best-effort cache clear failed:", { error: err });
     } finally {
       window.location.reload();
     }

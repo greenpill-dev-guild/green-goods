@@ -446,6 +446,22 @@ contract WorkResolverTest is Test {
     }
 
     // =========================================================================
+    // Schema UID Event Tests
+    // =========================================================================
+
+    event SchemaUIDUpdated(bytes32 indexed schemaUID);
+
+    function testSetSchemaUID_emitsEvent() public {
+        bytes32 newSchemaUID = bytes32(uint256(300));
+
+        vm.expectEmit(true, false, false, false);
+        emit SchemaUIDUpdated(newSchemaUID);
+
+        vm.prank(multisig);
+        workResolver.setSchemaUID(newSchemaUID);
+    }
+
+    // =========================================================================
     // Schema UID Validation Tests
     // =========================================================================
 

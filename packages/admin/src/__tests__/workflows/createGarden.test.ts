@@ -1,5 +1,9 @@
-import { resetCreateGardenStore, useCreateGardenStore } from "@green-goods/shared/stores";
-import { createGardenMachine, type CreateGardenFormStatus } from "@green-goods/shared/workflows";
+import {
+  resetCreateGardenStore,
+  useCreateGardenStore,
+  createGardenMachine,
+  type CreateGardenFormStatus,
+} from "@green-goods/shared";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createActor, fromPromise, waitFor } from "xstate";
 
@@ -21,9 +25,9 @@ function createFormStatus(overrides: Partial<CreateGardenFormStatus> = {}): Crea
 function populateGardenDetails() {
   const store = useCreateGardenStore.getState();
   store.setField("name", "Test Garden");
+  store.setField("slug", "test-garden");
   store.setField("description", "A lively test garden");
   store.setField("location", "Testville");
-  store.setField("communityToken", "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 }
 
 function populateGardenTeam() {

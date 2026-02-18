@@ -77,8 +77,10 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         gardenToken = GardenToken(address(gardenProxy));
         gardenTokenProxy = address(gardenProxy);
         mockHatsModule = new MockHatsModule();
-        vm.prank(multisig);
+        vm.startPrank(multisig);
         gardenToken.setHatsModule(address(mockHatsModule));
+        gardenToken.setCommunityToken(address(communityToken));
+        vm.stopPrank();
 
         // Deploy WorkResolver with proxy
         WorkResolver workResolverImpl = new WorkResolver(address(mockEAS), address(actionRegistry));
@@ -232,7 +234,6 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
         // Create active state: mint garden
         vm.prank(multisig);
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Active Garden",
             slug: "",
             description: "Garden with active state",

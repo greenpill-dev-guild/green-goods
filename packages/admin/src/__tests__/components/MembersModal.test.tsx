@@ -187,9 +187,7 @@ describe("components/Garden/MembersModal", () => {
     });
 
     it("applies success color scheme when specified", () => {
-      render(
-        createElement(MembersModal, { ...defaultProps, colorScheme: "success" })
-      );
+      render(createElement(MembersModal, { ...defaultProps, colorScheme: "success" }));
 
       const successElements = document.querySelectorAll(".bg-success-lighter");
       expect(successElements.length).toBeGreaterThan(0);

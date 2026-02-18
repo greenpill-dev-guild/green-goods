@@ -1,175 +1,258 @@
 import { EAS, SchemaEncoder, type Transaction } from "@ethereum-attestation-service/eas-sdk";
 import { useMachine } from "@xstate/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ethers, type Eip1193Provider } from "ethers";
-import { useAccount } from "wagmi";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { fromPromise } from "xstate";
+import { useAccount, useWalletClient } from "wagmi";
 import { getEASConfig } from "../../config/blockchain";
 import { logger } from "../../modules/app/logger";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
-import { createAssessmentMachine } from "../../workflows/createAssessment";
+import {
+  createAssessmentMachine,
+  type AssessmentWorkflowParams,
+} from "../../workflows/createAssessment";
+import type { Address } from "../../types/domain";
+import { queryInvalidation } from "../query-keys";
+import { useAssessmentDraft } from "./useAssessmentDraft";
 
-// Define CreateAssessmentForm inline
-export interface CreateAssessmentForm {
-  gardenId: string;
-  title: string;
-  description: string;
-  assessmentType: string;
-  capitals: string[];
-  metrics: Record<string, unknown>;
-  evidenceMedia: File[];
-  reportDocuments: string[];
-  impactAttestations: string[];
-  startDate: number;
-  endDate: number;
-  location: string;
-  tags: string[];
+export type { AssessmentWorkflowParams } from "../../types/domain";
+export type { CreateAssessmentForm } from "../../types/domain";
+export type { AssessmentDraftRecord } from "./useAssessmentDraft";
+
+/**
+ * Maps assessment type strings to domain enum values matching
+ * the contract's AssessmentSchema.domain (uint8).
+ * 0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE
+ */
+const DOMAIN_MAP: Record<string, number> = {
+  solar: 0,
+  agro: 1,
+  edu: 2,
+  waste: 3,
+};
+
+function assessmentTypeToDomain(assessmentType: string): number {
+  const lower = assessmentType.toLowerCase();
+  // Support both "solar" and "domain-0" formats
+  if (lower.startsWith("domain-")) {
+    const num = Number.parseInt(lower.replace("domain-", ""), 10);
+    return num >= 0 && num <= 3 ? num : 0;
+  }
+  return DOMAIN_MAP[lower] ?? 0;
 }
 
-export function useCreateAssessmentWorkflow() {
-  const [state, send] = useMachine(createAssessmentMachine);
-  const { address, connector } = useAccount();
+export interface UseCreateAssessmentWorkflowOptions {
+  /** Garden address for draft persistence. When provided, enables IndexedDB draft auto-save. */
+  gardenId?: string;
+}
+
+export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflowOptions = {}) {
+  const { gardenId: draftGardenId } = options;
+  const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
 
-  const startCreation = (params: CreateAssessmentForm & { gardenId: string }) => {
-    send({ type: "START", params });
-  };
+  // Draft persistence
+  const draft = useAssessmentDraft(draftGardenId, address, {
+    enabled: !!draftGardenId && !!address,
+  });
 
-  const submitCreation = async (): Promise<string> => {
-    if (!address) {
-      throw new Error("Wallet not connected");
-    }
+  // Store mutable dependencies in refs so the machine actor can read
+  // current values without recreating the machine on every change
+  const addressRef = useRef(address);
+  const walletClientRef = useRef(walletClient);
+  const chainIdRef = useRef(selectedChainId);
 
-    if (!state.context.assessmentParams) {
-      throw new Error("Assessment parameters not initialized");
-    }
+  useEffect(() => {
+    addressRef.current = address;
+  }, [address]);
+  useEffect(() => {
+    walletClientRef.current = walletClient;
+  }, [walletClient]);
+  useEffect(() => {
+    chainIdRef.current = selectedChainId;
+  }, [selectedChainId]);
 
-    if (!state.context.assessmentParams.gardenId) {
-      throw new Error("Garden ID is required");
-    }
+  const machine = useMemo(
+    () =>
+      createAssessmentMachine.provide({
+        actors: {
+          submitAssessment: fromPromise<string, AssessmentWorkflowParams & { gardenId: Address }>(
+            async ({ input: params }) => {
+              const currentAddress = addressRef.current;
+              const currentWalletClient = walletClientRef.current;
+              const currentChainId = chainIdRef.current;
 
-    if (typeof window.ethereum === "undefined") {
-      const errorMsg = "Web3 provider not found. Please install MetaMask or another web3 wallet.";
-      send({ type: "FAILURE", error: errorMsg });
-      throw new Error(errorMsg);
-    }
+              if (!currentAddress) {
+                throw new Error("Wallet not connected");
+              }
 
-    send({ type: "SUBMIT" });
+              if (!currentWalletClient) {
+                throw new Error("No wallet client available");
+              }
 
-    try {
-      const contracts = getNetworkContracts(selectedChainId);
-      const easConfig = getEASConfig(selectedChainId);
-      if (
-        !contracts?.eas ||
-        !easConfig.ASSESSMENT.uid ||
-        isZeroBytes32(easConfig.ASSESSMENT.uid) ||
-        !easConfig.ASSESSMENT.schema
-      ) {
-        throw new Error(`EAS configuration missing for chain ${selectedChainId}`);
-      }
+              const contracts = getNetworkContracts(currentChainId);
+              const easConfig = getEASConfig(currentChainId);
+              if (
+                !contracts?.eas ||
+                !easConfig.ASSESSMENT.uid ||
+                isZeroBytes32(easConfig.ASSESSMENT.uid) ||
+                !easConfig.ASSESSMENT.schema
+              ) {
+                throw new Error(`EAS configuration missing for chain ${currentChainId}`);
+              }
 
-      const params = state.context.assessmentParams;
-      const eas = new EAS(contracts.eas);
-      // Connect EAS SDK with the wallet's provider
-      if (!connector) {
-        throw new Error("No wallet connector found");
-      }
-      const provider = await connector.getProvider();
+              // EAS SDK requires an ethers Signer — bridge from viem wallet client
+              const eas = new EAS(contracts.eas);
+              const { account, transport } = currentWalletClient;
+              const ethersProvider = new ethers.BrowserProvider(transport as Eip1193Provider);
+              const signer = await ethersProvider.getSigner(account.address);
+              eas.connect(signer);
 
-      // Create ethers provider from raw provider (EIP-1193 compatible)
-      const ethersProvider = new ethers.BrowserProvider(provider as Eip1193Provider);
-      const signer = await ethersProvider.getSigner();
-      eas.connect(signer);
+              const schemaEncoder = new SchemaEncoder(easConfig.ASSESSMENT.schema);
 
-      const schemaEncoder = new SchemaEncoder(easConfig.ASSESSMENT.schema);
+              // Upload evidence media to IPFS (partial success allowed)
+              let evidenceMediaCids: string[] = [];
+              if (params.evidenceMedia?.length) {
+                const results = await Promise.allSettled(
+                  params.evidenceMedia.map(async (file: File) => {
+                    const uploaded = await uploadFileToIPFS(file);
+                    return uploaded.cid;
+                  })
+                );
+                const failed = results.filter((r) => r.status === "rejected");
+                if (failed.length > 0) {
+                  logger.warn("Some evidence media uploads failed", {
+                    source: "useCreateAssessmentWorkflow",
+                    failedCount: failed.length,
+                    totalCount: params.evidenceMedia.length,
+                  });
+                }
+                evidenceMediaCids = results
+                  .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+                  .map((r) => r.value);
+              }
 
-      let metricsCid = "";
-      try {
-        const metricsPayload =
-          typeof params.metrics === "string" ? JSON.parse(params.metrics) : params.metrics;
-        const uploadedMetrics = await uploadJSONToIPFS(metricsPayload);
-        metricsCid = uploadedMetrics.cid;
-      } catch (error) {
-        logger.error("Failed to upload assessment metrics JSON", {
-          source: "useCreateAssessmentWorkflow",
-          error,
-        });
-        throw new Error("Invalid metrics JSON. Please provide valid JSON content.");
-      }
+              // Upload metrics JSON to IPFS
+              let metricsCid = "";
+              try {
+                const metricsPayload =
+                  typeof params.metrics === "string" ? JSON.parse(params.metrics) : params.metrics;
+                const uploadedMetrics = await uploadJSONToIPFS(metricsPayload);
+                metricsCid = uploadedMetrics.cid;
+              } catch (error) {
+                logger.error("Failed to upload assessment metrics JSON", {
+                  source: "useCreateAssessmentWorkflow",
+                  error,
+                });
+                throw new Error("Invalid metrics JSON. Please provide valid JSON content.");
+              }
 
-      let evidenceMediaCids: string[] = [];
-      if (params.evidenceMedia?.length) {
-        evidenceMediaCids = await Promise.all(
-          params.evidenceMedia.map(async (file: File) => {
-            const uploaded = await uploadFileToIPFS(file);
-            return uploaded.cid;
-          })
-        );
-      }
+              // Pack rich v1 data into a config JSON and upload to IPFS
+              // The contract's v2 AssessmentSchema only stores assessmentConfigCID on-chain
+              const reportDocuments = (params.reportDocuments || []).filter(Boolean);
+              const impactAttestations = (params.impactAttestations || []).map((uid: string) =>
+                uid.trim().toLowerCase()
+              );
 
-      const reportDocuments = (params.reportDocuments || []).filter(Boolean);
+              const assessmentConfig = {
+                assessmentType: params.assessmentType,
+                capitals: params.capitals,
+                metricsCid,
+                evidenceMediaCids,
+                reportDocuments,
+                impactAttestations,
+                tags: params.tags,
+              };
 
-      const impactAttestations = (params.impactAttestations || []).map((uid: string) =>
-        uid.trim().toLowerCase()
-      );
+              const configUpload = await uploadJSONToIPFS(assessmentConfig);
+              const assessmentConfigCID = configUpload.cid;
 
-      const toUnixSeconds = (value?: string | number | null) => {
-        if (!value) return 0;
-        if (typeof value === "number") return Math.floor(value);
-        const timestamp = new Date(value).getTime();
-        if (Number.isNaN(timestamp)) return 0;
-        return Math.floor(timestamp / 1000);
-      };
+              // Map assessmentType to domain enum (0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE)
+              const domain = params.domain ?? assessmentTypeToDomain(params.assessmentType);
 
-      const encodedData = schemaEncoder.encodeData([
-        { name: "title", value: params.title, type: "string" },
-        { name: "description", value: params.description, type: "string" },
-        { name: "assessmentType", value: params.assessmentType, type: "string" },
-        { name: "capitals", value: params.capitals, type: "string[]" },
-        { name: "metricsJSON", value: metricsCid, type: "string" },
-        { name: "evidenceMedia", value: evidenceMediaCids, type: "string[]" },
-        { name: "reportDocuments", value: reportDocuments, type: "string[]" },
-        { name: "impactAttestations", value: impactAttestations, type: "bytes32[]" },
-        { name: "startDate", value: toUnixSeconds(params.startDate), type: "uint256" },
-        { name: "endDate", value: toUnixSeconds(params.endDate), type: "uint256" },
-        { name: "location", value: params.location, type: "string" },
-        { name: "tags", value: params.tags, type: "string[]" },
-      ]);
+              const toUnixSeconds = (value?: string | number | null) => {
+                if (!value) return 0;
+                if (typeof value === "number") return Math.floor(value);
+                const timestamp = new Date(value).getTime();
+                if (Number.isNaN(timestamp)) return 0;
+                return Math.floor(timestamp / 1000);
+              };
 
-      // EAS SDK attest returns Transaction<string> where wait() returns the attestation UID
-      const attestResult: Transaction<string> = await eas.attest({
-        schema: easConfig.ASSESSMENT.uid,
-        data: {
-          // params already has gardenId from CreateAssessmentForm type
-          recipient: params.gardenId,
-          expirationTime: 0n,
-          revocable: true,
-          data: encodedData,
+              // Encode v2 schema matching contract's AssessmentSchema struct:
+              // (string title, string description, string assessmentConfigCID,
+              //  uint8 domain, uint256 startDate, uint256 endDate, string location)
+              const encodedData = schemaEncoder.encodeData([
+                { name: "title", value: params.title, type: "string" },
+                { name: "description", value: params.description, type: "string" },
+                { name: "assessmentConfigCID", value: assessmentConfigCID, type: "string" },
+                { name: "domain", value: domain, type: "uint8" },
+                { name: "startDate", value: toUnixSeconds(params.startDate), type: "uint256" },
+                { name: "endDate", value: toUnixSeconds(params.endDate), type: "uint256" },
+                { name: "location", value: params.location, type: "string" },
+              ]);
+
+              const attestResult: Transaction<string> = await eas.attest({
+                schema: easConfig.ASSESSMENT.uid,
+                data: {
+                  recipient: params.gardenId,
+                  expirationTime: 0n,
+                  revocable: true,
+                  data: encodedData,
+                },
+              });
+
+              const newAttestationUID = await attestResult.wait();
+              return newAttestationUID;
+            }
+          ),
         },
-      });
+      }),
+    [] // Machine created once — actor reads current values from refs
+  );
 
-      // Wait for transaction confirmation and get the attestation UID
-      const newAttestationUID = await attestResult.wait();
+  const [state, send] = useMachine(machine);
 
-      send({ type: "SUCCESS", txHash: newAttestationUID });
+  const startCreation = useCallback(
+    (params: AssessmentWorkflowParams & { gardenId: Address }) => {
+      send({ type: "START", params });
+      // Persist draft to IndexedDB for offline resilience
+      void draft.saveDraft(params);
+    },
+    [send, draft]
+  );
 
-      return newAttestationUID;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error occurred";
-      send({ type: "FAILURE", error: message });
-      throw error;
-    }
-  };
-
-  const retry = () => {
+  const retry = useCallback(() => {
     send({ type: "RETRY" });
-    submitCreation();
-  };
+  }, [send]);
 
-  const reset = () => {
+  const submitCreation = useCallback(() => {
+    send({ type: "SUBMIT" });
+  }, [send]);
+
+  const reset = useCallback(() => {
     send({ type: "RESET" });
-  };
+  }, [send]);
+
+  const queryClient = useQueryClient();
+
+  // Invalidate assessment queries and clear draft when workflow reaches success state
+  const isSuccess = state.matches("success");
+  const gardenId = state.context.assessmentParams?.gardenId;
+  useEffect(() => {
+    if (isSuccess) {
+      void draft.clearDraft();
+      // Invalidate assessment queries so the list updates immediately
+      const keys = queryInvalidation.invalidateAssessments(gardenId, chainIdRef.current);
+      for (const key of keys) {
+        queryClient.invalidateQueries({ queryKey: key });
+      }
+    }
+  }, [isSuccess, draft, gardenId, queryClient]);
 
   return {
     state,
@@ -178,5 +261,6 @@ export function useCreateAssessmentWorkflow() {
     retry,
     reset,
     canRetry: state.matches("error") && state.context.retryCount < 3,
+    draft,
   };
 }

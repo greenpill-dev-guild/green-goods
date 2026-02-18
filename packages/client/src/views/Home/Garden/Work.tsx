@@ -27,6 +27,7 @@ import {
   useWorks,
   VerificationMethod,
   type Address,
+  type ApprovalJobPayload,
   type WorkApprovalDraft,
   type WorkData,
   type WorkMetadata,
@@ -556,7 +557,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
               feedbackMode ? "translate-y-0" : "translate-y-full"
             )}
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Escape") handleCancelFeedback();
+            }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="feedback-drawer-title"
@@ -575,6 +579,17 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                         defaultMessage: "Add Feedback (Required)",
                       })}
                 </h2>
+                <button
+                  type="button"
+                  onClick={handleCancelFeedback}
+                  className="p-1 rounded-md text-text-soft-400 hover:text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary"
+                  aria-label={intl.formatMessage({
+                    id: "app.home.workApproval.closeFeedback",
+                    defaultMessage: "Close feedback",
+                  })}
+                >
+                  <RiCloseLine className="w-5 h-5" />
+                </button>
               </div>
 
               <p id="feedback-drawer-description" className="sr-only">

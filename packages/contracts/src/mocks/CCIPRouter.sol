@@ -33,14 +33,7 @@ contract LocalCCIPRouter {
     /// @dev Constructs a Client.Any2EVMMessage from the sender's EVM2AnyMessage and calls
     ///      the receiver directly. The receiver's onlyRouter modifier passes because
     ///      msg.sender (this contract) was set as the router in the receiver's constructor.
-    function ccipSend(
-        uint64,
-        Client.EVM2AnyMessage calldata message
-    )
-        external
-        payable
-        returns (bytes32 messageId)
-    {
+    function ccipSend(uint64, Client.EVM2AnyMessage calldata message) external payable returns (bytes32 messageId) {
         address receiver = abi.decode(message.receiver, (address));
         messageId = keccak256(abi.encodePacked(block.number, msg.sender, ++_nonce));
 

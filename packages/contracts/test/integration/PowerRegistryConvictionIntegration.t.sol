@@ -78,12 +78,8 @@ contract PowerRegistryConvictionIntegrationTest is Test {
 
         // Deploy UnifiedPowerRegistry via proxy
         UnifiedPowerRegistry impl = new UnifiedPowerRegistry();
-        bytes memory initData = abi.encodeWithSelector(
-            UnifiedPowerRegistry.initialize.selector,
-            OWNER,
-            address(hats),
-            GARDENS_MODULE
-        );
+        bytes memory initData =
+            abi.encodeWithSelector(UnifiedPowerRegistry.initialize.selector, OWNER, address(hats), GARDENS_MODULE);
         registry = UnifiedPowerRegistry(address(new ERC1967Proxy(address(impl), initData)));
     }
 
@@ -95,13 +91,8 @@ contract PowerRegistryConvictionIntegrationTest is Test {
         NFTPowerSource[] memory sources = new NFTPowerSource[](2);
 
         // Source 1: ERC721 NFT with 1x weight (10000 bps)
-        sources[0] = NFTPowerSource({
-            token: address(nft721),
-            nftType: NFTType.ERC721,
-            weight: 10_000,
-            tokenId: 0,
-            hatId: 0
-        });
+        sources[0] =
+            NFTPowerSource({ token: address(nft721), nftType: NFTType.ERC721, weight: 10_000, tokenId: 0, hatId: 0 });
 
         // Source 2: HAT with 2x weight (20000 bps)
         sources[1] = NFTPowerSource({
@@ -198,7 +189,7 @@ contract PowerRegistryConvictionIntegrationTest is Test {
         sourcesB[0] = NFTPowerSource({
             token: address(nft1155),
             nftType: NFTType.ERC1155,
-            weight: 5_000,
+            weight: 5000,
             tokenId: ERC1155_TOKEN_ID,
             hatId: 0
         });
@@ -244,33 +235,18 @@ contract PowerRegistryConvictionIntegrationTest is Test {
 
         // Linear: 1x weight
         NFTPowerSource[] memory linearSources = new NFTPowerSource[](1);
-        linearSources[0] = NFTPowerSource({
-            token: address(nft721),
-            nftType: NFTType.ERC721,
-            weight: 10_000,
-            tokenId: 0,
-            hatId: 0
-        });
+        linearSources[0] =
+            NFTPowerSource({ token: address(nft721), nftType: NFTType.ERC721, weight: 10_000, tokenId: 0, hatId: 0 });
 
         // Exponential: 3x weight
         NFTPowerSource[] memory expoSources = new NFTPowerSource[](1);
-        expoSources[0] = NFTPowerSource({
-            token: address(nft721),
-            nftType: NFTType.ERC721,
-            weight: 30_000,
-            tokenId: 0,
-            hatId: 0
-        });
+        expoSources[0] =
+            NFTPowerSource({ token: address(nft721), nftType: NFTType.ERC721, weight: 30_000, tokenId: 0, hatId: 0 });
 
         // Power: 5x weight
         NFTPowerSource[] memory powerSources = new NFTPowerSource[](1);
-        powerSources[0] = NFTPowerSource({
-            token: address(nft721),
-            nftType: NFTType.ERC721,
-            weight: 50_000,
-            tokenId: 0,
-            hatId: 0
-        });
+        powerSources[0] =
+            NFTPowerSource({ token: address(nft721), nftType: NFTType.ERC721, weight: 50_000, tokenId: 0, hatId: 0 });
 
         vm.startPrank(GARDENS_MODULE);
         registry.registerGarden(gardenLinear, linearSources);

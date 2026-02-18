@@ -8,7 +8,7 @@ import { Attestation } from "@eas/IEAS.sol";
 import { AssessmentSchema } from "../../src/Schemas.sol";
 import {
     AssessmentResolver,
-    NotGardenOperator,
+    NotAuthorizedAttester,
     TitleRequired,
     ConfigCIDRequired,
     InvalidDomain,
@@ -102,7 +102,7 @@ contract AssessmentResolverTest is Test {
         Attestation memory attestation = _buildAssessmentAttestation(stranger, _validAssessment());
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(NotGardenOperator.selector);
+        vm.expectRevert(NotAuthorizedAttester.selector);
         assessmentResolver.attest(attestation);
     }
 
@@ -111,7 +111,7 @@ contract AssessmentResolverTest is Test {
         Attestation memory attestation = _buildAssessmentAttestation(gardener, _validAssessment());
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(NotGardenOperator.selector);
+        vm.expectRevert(NotAuthorizedAttester.selector);
         assessmentResolver.attest(attestation);
     }
 
@@ -192,14 +192,14 @@ contract AssessmentResolverTest is Test {
     // =========================================================================
 
     function testValidationOrderIdentityBeforeFields() public {
-        // Stranger with empty title: should revert with NotGardenOperator (identity check first)
+        // Stranger with empty title: should revert with NotAuthorizedAttester (identity check first)
         AssessmentSchema memory schema = _validAssessment();
         schema.title = "";
 
         Attestation memory attestation = _buildAssessmentAttestation(stranger, schema);
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(NotGardenOperator.selector);
+        vm.expectRevert(NotAuthorizedAttester.selector);
         assessmentResolver.attest(attestation);
     }
 
@@ -220,6 +220,17 @@ contract AssessmentResolverTest is Test {
     // =========================================================================
 
     event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
+    event SchemaUIDUpdated(bytes32 indexed schemaUID);
+
+    function testSetSchemaUID_emitsEvent() public {
+        bytes32 newSchemaUID = bytes32(uint256(300));
+
+        vm.expectEmit(true, false, false, false);
+        emit SchemaUIDUpdated(newSchemaUID);
+
+        vm.prank(multisig);
+        assessmentResolver.setSchemaUID(newSchemaUID);
+    }
 
     function testSetKarmaGAPModule_emitsEvent() public {
         address module = address(0xCAFE);

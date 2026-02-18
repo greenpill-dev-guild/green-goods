@@ -11,17 +11,11 @@ contract MockCCIPRouter {
     uint256 private _nextMessageId = 1;
     uint256 public mockFee = 0.01 ether;
 
-    function getFee(
-        uint64,
-        Client.EVM2AnyMessage memory
-    ) external view returns (uint256) {
+    function getFee(uint64, Client.EVM2AnyMessage memory) external view returns (uint256) {
         return mockFee;
     }
 
-    function ccipSend(
-        uint64,
-        Client.EVM2AnyMessage calldata
-    ) external payable returns (bytes32 messageId) {
+    function ccipSend(uint64, Client.EVM2AnyMessage calldata) external payable returns (bytes32 messageId) {
         messageId = bytes32(_nextMessageId++);
     }
 
@@ -65,21 +59,14 @@ contract ENSIntegrationTest is Test {
     address internal constant MEMBER = address(0xD1);
     address internal constant NON_MEMBER = address(0xD2);
 
-    uint64 internal constant ETH_CHAIN_SELECTOR = 5009297550715157269;
+    uint64 internal constant ETH_CHAIN_SELECTOR = 5_009_297_550_715_157_269;
     uint256 internal constant PROTOCOL_HAT_ID = 99;
 
     function setUp() public {
         ccipRouter = new MockCCIPRouter();
         hats = new MockHatsForENS();
 
-        ens = new GreenGoodsENS(
-            address(ccipRouter),
-            ETH_CHAIN_SELECTOR,
-            L1_RECEIVER,
-            address(hats),
-            PROTOCOL_HAT_ID,
-            OWNER
-        );
+        ens = new GreenGoodsENS(address(ccipRouter), ETH_CHAIN_SELECTOR, L1_RECEIVER, address(hats), PROTOCOL_HAT_ID, OWNER);
 
         // Authorize GardenToken as caller
         vm.prank(OWNER);
@@ -108,9 +95,7 @@ contract ENSIntegrationTest is Test {
         bytes32 slugHash = keccak256(bytes("miyawaki-park"));
         assertEq(ens.slugOwner(slugHash), GARDEN_A, "Slug owner should be garden A");
         assertEq(
-            keccak256(bytes(ens.ownerToSlug(GARDEN_A))),
-            keccak256(bytes("miyawaki-park")),
-            "Garden A should own the slug"
+            keccak256(bytes(ens.ownerToSlug(GARDEN_A))), keccak256(bytes("miyawaki-park")), "Garden A should own the slug"
         );
     }
 
@@ -126,11 +111,7 @@ contract ENSIntegrationTest is Test {
         ens.registerGarden{ value: 0.1 ether }("", GARDEN_A);
 
         // Verify no registration occurred
-        assertEq(
-            bytes(ens.ownerToSlug(GARDEN_A)).length,
-            0,
-            "Garden A should have no slug"
-        );
+        assertEq(bytes(ens.ownerToSlug(GARDEN_A)).length, 0, "Garden A should have no slug");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

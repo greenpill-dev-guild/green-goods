@@ -268,14 +268,18 @@ abstract contract DeploymentBase is Test, DeployHelper {
         yieldSplitter =
             YieldResolver(_deployYieldResolver(owner, address(octantModule), address(hatsModule), 7e18, salt, factory));
 
-        // 12. Deploy MockCookieJarFactory + CookieJarModule (after YieldResolver)
-        MockCookieJarFactory mockJarFactory = new MockCookieJarFactory();
+        // 12. Deploy CookieJarModule (prefer real CookieJarFactory on forked networks)
+        address cookieJarFactory = _getCookieJarFactoryForChain(block.chainid);
+        if (cookieJarFactory == address(0)) {
+            MockCookieJarFactory mockJarFactory = new MockCookieJarFactory();
+            cookieJarFactory = address(mockJarFactory);
+        }
         cookieJarModule = CookieJarModule(
             _deployCookieJarModule(
                 owner,
                 address(hatsModule),
                 address(yieldSplitter),
-                address(mockJarFactory),
+                cookieJarFactory,
                 HatsLib.getHatsProtocol(),
                 salt,
                 factory
@@ -1103,12 +1107,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     /// @notice Get ENS registry and resolver addresses for a chain
     /// @dev Must stay in sync with deployments/networks.json ENS config.
     ///      ENS registry is the same on mainnet and Sepolia. Resolver differs.
-    function _getENSRegistryForChain(uint256 chainId)
-        internal
-        pure
-        virtual
-        returns (address registry, address resolver)
-    {
+    function _getENSRegistryForChain(uint256 chainId) internal pure virtual returns (address registry, address resolver) {
         address ensRegistry = 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e;
 
         if (chainId == 1) {
@@ -1152,6 +1151,23 @@ abstract contract DeploymentBase is Test, DeployHelper {
         }
         // Celo, localhost, unknown chains: no CCIP support
         return (address(0), 0);
+    }
+
+    /// @notice Resolve CookieJarFactory for fork tests
+    /// @dev Priority:
+    ///      1) COOKIE_JAR_FACTORY_ADDRESS env override
+    ///      2) chain defaults sourced from sibling cookie-jar repo broadcasts
+    ///      3) address(0) => caller falls back to MockCookieJarFactory
+    function _getCookieJarFactoryForChain(uint256 chainId) internal view returns (address factory) {
+        try vm.envAddress("COOKIE_JAR_FACTORY_ADDRESS") returns (address envFactory) {
+            if (envFactory != address(0)) return envFactory;
+        } catch { }
+
+        // Deployed addresses from ../cookie-jar/contracts/broadcast/Deploy.s.sol/{chainId}/run-latest.json
+        if (chainId == 42_161) return 0xfe367D31d181D305dcF5AAaa345a70A65c345153; // Arbitrum
+        if (chainId == 11_155_111) return 0x021368bf9958f4D535d39d571Bc45f74d20e4666; // Sepolia
+
+        return address(0);
     }
 
     /// @notice Get EAS addresses for a chain

@@ -8,6 +8,7 @@
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { WorkInput } from "../../types/domain";
@@ -91,7 +92,13 @@ export type WorkFormData = WorkFormDataBase & {
  * @returns Form instance with control, register, watch, etc.
  */
 export function useWorkForm(inputs?: WorkInput[]) {
-  const schema = inputs ? buildWorkFormSchema(inputs) : workFormSchema;
+  // Memoize schema to avoid rebuilding on every render.
+  // JSON.stringify stabilizes the dependency since inputs may be a new array reference each render.
+  const inputsKey = inputs ? JSON.stringify(inputs) : "";
+  const schema = useMemo(
+    () => (inputs ? buildWorkFormSchema(inputs) : workFormSchema),
+    [inputsKey]
+  );
 
   const form = useForm<WorkFormData>({
     defaultValues: {

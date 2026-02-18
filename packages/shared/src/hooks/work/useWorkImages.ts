@@ -33,9 +33,11 @@ export function useWorkImages() {
 
   // Load images from IndexedDB on mount
   useEffect(() => {
+    let isMounted = true;
     const loadImages = async () => {
       try {
         const storedImages = (await idbGet(WORK_IMAGES_KEY)) as File[] | undefined;
+        if (!isMounted) return;
         if (storedImages && Array.isArray(storedImages) && storedImages.length > 0) {
           if (DEBUG_ENABLED) {
             debugLog("[useWorkImages] Restored images from IDB", {
@@ -45,6 +47,7 @@ export function useWorkImages() {
           _setImages(storedImages);
         }
       } catch (error) {
+        if (!isMounted) return;
         logger.error("Failed to load images from IDB", { source: "useWorkImages", error });
         trackStorageError(error, {
           source: "useWorkImages.loadImages",
@@ -55,6 +58,9 @@ export function useWorkImages() {
       }
     };
     loadImages();
+    return () => {
+      isMounted = false;
+    };
   }, [_setImages]);
 
   // Save images to IndexedDB on change

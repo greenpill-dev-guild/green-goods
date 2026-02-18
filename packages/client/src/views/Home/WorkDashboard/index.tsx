@@ -1,17 +1,18 @@
 import {
+  type Address,
   cn,
   compareAddresses,
   convertJobsToWorks,
   createPublicClientForChain,
   DEFAULT_CHAIN_ID,
   DEFAULT_RETRY_COUNT,
+  getWorkApprovals as fetchWorkApprovals,
   filterByTimeRange,
   GardenAccountABI,
   getGardens,
-  getWorkApprovals as fetchWorkApprovals,
   getWorks,
   hapticLight,
-  isUserAddress as sharedIsUserAddress,
+  type Job,
   jobQueue,
   jobQueueEventBus,
   logger,
@@ -19,23 +20,22 @@ import {
   STALE_TIME_FAST,
   STALE_TIME_MEDIUM,
   STALE_TIME_SLOW,
+  isUserAddress as sharedIsUserAddress,
+  type TimeFilter,
   toastService,
   useDrafts,
   useMyOnlineWorks,
   useTimeout,
   useUser,
   useWorkApprovals,
-  type Job,
-  type TimeFilter,
   type Work,
   type WorkJobPayload,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine, RiTimeLine } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import type { Address } from "viem";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
 import { CompletedTab } from "./Completed";
 import { DraftsTab } from "./Drafts";
@@ -58,6 +58,29 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Helper to check if an address matches the current user (wrapping shared util)
   const isUserAddress = (address: string | undefined): boolean =>
     sharedIsUserAddress(address, activeAddress);
+
+  const fetchApprovalsByRecipients = useCallback(async (recipients: string[]) => {
+    if (recipients.length === 0) return [];
+
+    const uniqueRecipients = Array.from(
+      new Map(
+        recipients.filter(Boolean).map((recipient) => [recipient.toLowerCase(), recipient])
+      ).values()
+    );
+
+    const approvalGroups = await Promise.all(
+      uniqueRecipients.map((recipient) => fetchWorkApprovals(recipient))
+    );
+    const approvalById = new Map<string, (typeof approvalGroups)[number][number]>();
+
+    for (const approvals of approvalGroups) {
+      for (const approval of approvals) {
+        approvalById.set(approval.id, approval);
+      }
+    }
+
+    return Array.from(approvalById.values());
+  }, []);
 
   // Use the new hook for work approvals
   const {
@@ -87,12 +110,48 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   );
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("month");
 
+  // Ref for focus trap on the dialog panel
+  const dialogRef = useRef<HTMLDivElement>(null);
+
   // Prevent background scrolling when modal is open
   useEffect(() => {
     document.documentElement.classList.add("modal-open");
     return () => {
       document.documentElement.classList.remove("modal-open");
     };
+  }, []);
+
+  // Focus trap: keep Tab/Shift+Tab cycling within the dialog
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+
+      const focusable = dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input:not([disabled]), select, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    dialog.addEventListener("keydown", handleKeyDown);
+    // Auto-focus the close button on mount for keyboard users
+    const closeBtn = dialog.querySelector<HTMLElement>('[data-testid="modal-drawer-close"]');
+    closeBtn?.focus();
+
+    return () => dialog.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   // Fetch gardens and determine operator gardens
@@ -306,11 +365,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Fetch ALL approvals for operator gardens to filter out work reviewed by ANY operator
   const { data: allOperatorGardenApprovals = [] } = useQuery({
     queryKey: queryKeys.approvals.byOperatorGardens(reviewerGardenIds),
-    queryFn: async () => {
-      // Fetch all work approvals (not scoped to any attester)
-      const approvals = await fetchWorkApprovals(undefined);
-      return approvals;
-    },
+    queryFn: () => fetchApprovalsByRecipients(reviewerGardenIds),
     enabled: reviewerGardenIds.length > 0,
     staleTime: STALE_TIME_MEDIUM,
     retry: DEFAULT_RETRY_COUNT,
@@ -354,15 +409,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [completedApprovals]
   );
 
-  // Fetch all approvals to find those for the user's works
-  // Note: EAS approval attestations have garden (not gardener) as recipient,
-  // so we must fetch all and filter client-side by matching workUID
-  //
-  // TODO: SCALABILITY - This fetches ALL approvals and filters client-side.
-  // As the number of work submissions grows, this will become slow.
-  // Recommended: Create a backend aggregation endpoint that accepts workUIDs
-  // and returns only relevant approvals, or implement pagination when
-  // EAS GraphQL supports it. See getWorkApprovals docstring for details.
+  const myWorkGardenIds = useMemo(
+    () =>
+      Array.from(new Set((myOnlineWorks || []).map((work) => work.gardenAddress).filter(Boolean))),
+    [myOnlineWorks]
+  );
+
+  // Fetch approvals scoped to gardens where the user has submitted work.
+  // This avoids loading the entire approval set and keeps the query bounded.
   const {
     data: allApprovals = [],
     isLoading: isLoadingMyApprovals,
@@ -370,9 +424,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     isError: isErrorMyApprovals,
     refetch: refetchMyApprovals,
   } = useQuery({
-    queryKey: ["approvals", "all", activeAddress],
-    queryFn: () => fetchWorkApprovals(undefined),
-    enabled: !!activeAddress,
+    queryKey: ["approvals", "byMyWorkGardens", activeAddress, [...myWorkGardenIds].sort()],
+    queryFn: () => fetchApprovalsByRecipients(myWorkGardenIds),
+    enabled: !!activeAddress && myWorkGardenIds.length > 0,
     staleTime: STALE_TIME_MEDIUM,
     retry: DEFAULT_RETRY_COUNT,
   });
@@ -746,6 +800,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       tabIndex={-1}
     >
       <div
+        ref={dialogRef}
         className={cn(
           "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col h-modal",
           isClosing ? "modal-slide-exit" : "modal-slide-enter",

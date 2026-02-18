@@ -15,12 +15,15 @@ import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { track } from "../../modules/app/posthog";
+import { trackContractError } from "../../modules/app/error-tracking";
+import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { submitBatchApprovalsDirectly } from "../../modules/work/wallet-submission";
 import { submitBatchApprovalsWithPasskey } from "../../modules/work/passkey-submission";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { useUser } from "../auth/useUser";
-import { queryKeys } from "../query-keys";
+import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
+import { useTimeout } from "../utils/useTimeout";
 
 interface BatchApprovalItem {
   draft: WorkApprovalDraft;
@@ -77,6 +80,7 @@ export function useBatchWorkApproval() {
   const { authMode, smartAccountClient } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
+  const { set: scheduleInvalidation } = useTimeout();
 
   return useMutation({
     mutationFn: async (items: BatchApprovalItem[]): Promise<BatchApprovalResult> => {
@@ -227,6 +231,14 @@ export function useBatchWorkApproval() {
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
 
+      // Schedule a follow-up invalidation for indexer lag (non-blocking)
+      scheduleInvalidation(() => {
+        for (const addr of gardenAddresses) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.works.online(addr, chainId) });
+          queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(addr, chainId) });
+        }
+      }, INDEXER_LAG_FOLLOWUP_MS);
+
       toastService.success({
         id: "batch-approval",
         title: "Batch approved!",
@@ -266,23 +278,44 @@ export function useBatchWorkApproval() {
         }
       }
 
-      const errorMessage = error instanceof Error ? error.message : "Batch approval failed";
+      // Parse error for user-friendly message
+      const { title, message, parsed } = parseAndFormatError(error);
+      const displayMessage = parsed.isKnown ? message : "Batch approval failed. Please try again.";
+      const displayTitle = parsed.isKnown ? title : "Batch approval failed";
+
+      // Structured error tracking
+      trackContractError(error, {
+        source: "useBatchWorkApproval",
+        authMode,
+        userAction: "batch approval",
+        metadata: {
+          count: items?.length ?? 0,
+          parsedErrorName: parsed.name,
+          isKnown: parsed.isKnown,
+        },
+      });
 
       toastService.error({
         id: "batch-approval",
-        title: "Batch approval failed",
-        message: errorMessage,
+        title: displayTitle,
+        message: displayMessage,
         context: "batch approval",
+        description: parsed.isKnown ? parsed.action || undefined : undefined,
+        error,
       });
 
       track("batch_approval_failed", {
         count: items?.length ?? 0,
         auth_mode: authMode,
-        error: errorMessage,
+        error: parsed.message || (error instanceof Error ? error.message : "Unknown error"),
       });
 
       if (DEBUG_ENABLED) {
-        debugLog("[useBatchWorkApproval] Batch approval failed", { error });
+        debugLog("[useBatchWorkApproval] Batch approval failed", {
+          error,
+          parsedError: parsed.name,
+          message: displayMessage,
+        });
       }
     },
   });

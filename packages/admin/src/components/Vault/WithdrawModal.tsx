@@ -74,6 +74,13 @@ export function WithdrawModal({
     }
   }, [sharesInput, inputError]);
 
+  const exceedsBalanceError = useMemo(() => {
+    if (!sharesInput.trim() || inputError) return null;
+    return shares > maxShares ? "app.treasury.exceedsAvailableShares" : null;
+  }, [sharesInput, inputError, shares, maxShares]);
+
+  const sharesError = inputError ?? exceedsBalanceError;
+
   const assetDecimals = getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
   const assetSymbol = selectedVault
     ? getVaultAssetSymbol(selectedVault.asset, selectedVault.chainId)
@@ -98,6 +105,7 @@ export function WithdrawModal({
   const availableAssets = availablePreview?.previewAssets ?? 0n;
 
   const onSubmit = () => {
+    if (selectedVault?.paused) return;
     if (!selectedVault || !primaryAddress || shares <= 0n) return;
 
     withdrawMutation.mutate(
@@ -156,11 +164,13 @@ export function WithdrawModal({
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>
-                {formatMessage({ id: "app.treasury.myShares" })}: {" "}
-                <span className="font-medium text-text-strong">{formatTokenAmount(maxShares, 18)} shares</span>
+                {formatMessage({ id: "app.treasury.myShares" })}:{" "}
+                <span className="font-medium text-text-strong">
+                  {formatTokenAmount(maxShares, 18)} shares
+                </span>
               </p>
               <p>
-                {formatMessage({ id: "app.treasury.availableBalance" })}: {" "}
+                {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
                 <span className="font-medium text-text-strong">
                   {formatTokenAmount(availableAssets, assetDecimals)} {assetSymbol}
                 </span>
@@ -178,9 +188,10 @@ export function WithdrawModal({
                   value={sharesInput}
                   onChange={(event) => setSharesInput(event.target.value)}
                   placeholder="0.0"
-                  aria-invalid={Boolean(inputError)}
+                  aria-invalid={Boolean(sharesError)}
+                  aria-describedby={sharesError ? "withdraw-error" : undefined}
                   className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
-                    inputError
+                    sharesError
                       ? "border-error-base focus:border-error-base"
                       : "border-stroke-sub bg-bg-white focus:border-primary-base"
                   }`}
@@ -193,29 +204,36 @@ export function WithdrawModal({
                   {formatMessage({ id: "app.treasury.max" })}
                 </button>
               </div>
-              {inputError && (
-                <p className="text-xs text-error-dark" role="alert">
-                  {formatMessage({ id: inputError })}
+              {sharesError && (
+                <p id="withdraw-error" className="text-xs text-error-dark" role="alert">
+                  {formatMessage({ id: sharesError })}
                 </p>
               )}
             </div>
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>
-                {formatMessage({ id: "app.treasury.estimatedAssets" })}: {" "}
+                {formatMessage({ id: "app.treasury.estimatedAssets" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {preview ? `${formatTokenAmount(preview.previewAssets, assetDecimals)} ${assetSymbol}` : "--"}
+                  {preview
+                    ? `${formatTokenAmount(preview.previewAssets, assetDecimals)} ${assetSymbol}`
+                    : "--"}
                 </span>
               </p>
             </div>
 
+            {selectedVault?.paused && (
+              <p className="text-xs text-warning-base" role="alert">
+                {formatMessage({ id: "app.treasury.vaultPaused" })}
+              </p>
+            )}
             <button
               type="button"
               onClick={onSubmit}
               disabled={
-                Boolean(inputError) ||
+                Boolean(sharesError) ||
                 shares <= 0n ||
-                shares > maxShares ||
+                selectedVault?.paused ||
                 withdrawMutation.isPending
               }
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"

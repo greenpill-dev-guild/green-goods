@@ -26,9 +26,18 @@ export interface NetworkContracts {
   strategyHypercertFractionOffer: string;
 }
 
-// Garden creation parameters
+/**
+ * Weight scheme for Gardens V2 conviction voting signal pools.
+ * Must match `IGardensModule.WeightScheme` enum in Solidity.
+ */
+export enum WeightScheme {
+  Linear = 0,
+  Exponential = 1,
+  Power = 2,
+}
+
+// Garden creation parameters — must match GardenToken.GardenConfig struct
 export interface CreateGardenParams {
-  communityToken: string;
   name: string;
   slug: string;
   description: string;
@@ -36,6 +45,10 @@ export interface CreateGardenParams {
   bannerImage: string;
   metadata: string;
   openJoining: boolean;
+  /** Conviction voting weight scheme (default: Linear) */
+  weightScheme: WeightScheme;
+  /** Bitmask of ActionRegistry domains enabled for this garden (default: 0xFF = all) */
+  domainMask: number;
 }
 
 // Contract deployment parameters

@@ -966,7 +966,9 @@ contract YieldResolverTest is Test {
         uint256 expectedFractions = (maxWithdrawAssets * 4865) / 10_000;
         uint256 expectedJuicebox = maxWithdrawAssets - expectedCookieJar - expectedFractions;
 
-        assertEq(weth.balanceOf(address(cookieJar)), expectedCookieJar, "Cookie Jar should only receive split of redeemed assets");
+        assertEq(
+            weth.balanceOf(address(cookieJar)), expectedCookieJar, "Cookie Jar should only receive split of redeemed assets"
+        );
         assertEq(
             yieldSplitter.getEscrowedFractions(garden, address(weth)),
             expectedFractions,
@@ -1073,9 +1075,7 @@ contract YieldResolverTest is Test {
 
         // Treasury received the WETH
         assertEq(
-            weth.balanceOf(treasury),
-            treasuryBefore + escrowAmount,
-            "Treasury should receive the full escrowed amount"
+            weth.balanceOf(treasury), treasuryBefore + escrowAmount, "Treasury should receive the full escrowed amount"
         );
 
         // Escrow mapping is zeroed out
@@ -1102,9 +1102,7 @@ contract YieldResolverTest is Test {
 
         // Treasury receives only the withdrawn portion
         assertEq(
-            weth.balanceOf(treasury),
-            treasuryBefore + withdrawAmount,
-            "Treasury should receive only the withdrawn amount"
+            weth.balanceOf(treasury), treasuryBefore + withdrawAmount, "Treasury should receive only the withdrawn amount"
         );
 
         // Remaining escrow is decremented correctly

@@ -129,6 +129,7 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
         // Wire ALL modules together
         vm.startPrank(multisig);
         gardenToken.setHatsModule(address(hatsModule));
+        gardenToken.setCommunityToken(address(communityToken));
         gardenToken.setGardensModule(address(gardensModule));
         gardenToken.setActionRegistry(address(actionRegistry));
         gardenToken.setCookieJarModule(address(cookieJarModule));
@@ -143,7 +144,6 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
 
     function _defaultConfig() internal view returns (GardenToken.GardenConfig memory) {
         return GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Wiring Test Garden",
             slug: "",
             description: "Testing full module wiring",
@@ -264,7 +264,6 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
         GardenToken.GardenConfig[] memory configs = new GardenToken.GardenConfig[](3);
 
         configs[0] = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Garden Alpha",
             slug: "",
             description: "First garden",
@@ -277,7 +276,6 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
          });
 
         configs[1] = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Garden Beta",
             slug: "",
             description: "Second garden",
@@ -290,7 +288,6 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
          });
 
         configs[2] = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Garden Gamma",
             slug: "",
             description: "Third garden",

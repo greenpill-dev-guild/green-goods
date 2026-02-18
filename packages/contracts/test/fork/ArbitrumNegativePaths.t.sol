@@ -179,13 +179,6 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
         // createProject is onlyGardenToken — a non-gardenToken caller should be rejected
         vm.prank(forkNonMember);
         vm.expectRevert();
-        karmaGAPModule.createProject(
-            garden,
-            forkOperator,
-            "Unauthorized Project",
-            "Should fail",
-            "Nowhere",
-            ""
-        );
+        karmaGAPModule.createProject(garden, forkOperator, "Unauthorized Project", "Should fail", "Nowhere", "");
     }
 }

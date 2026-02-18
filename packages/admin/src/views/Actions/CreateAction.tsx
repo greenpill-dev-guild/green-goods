@@ -340,7 +340,18 @@ export default function CreateAction() {
     }
   };
 
-  const handleNext = () => {
+  // Fields to validate per wizard step before advancing
+  const stepFields: Record<number, (keyof CreateActionFormData)[]> = {
+    0: ["title", "startTime", "endTime"],
+    1: ["capitals"],
+  };
+
+  const handleNext = async () => {
+    const fields = stepFields[currentStep];
+    if (fields) {
+      const valid = await form.trigger(fields, { shouldFocus: true });
+      if (!valid) return;
+    }
     setCurrentStep((prev) => Math.min(prev + 1, stepConfigs.length - 1));
   };
 

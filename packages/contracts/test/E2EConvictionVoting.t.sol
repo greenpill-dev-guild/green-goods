@@ -120,6 +120,7 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
         // Wire modules together
         vm.startPrank(multisig);
         gardenToken.setHatsModule(address(hatsModule));
+        gardenToken.setCommunityToken(address(communityToken));
         gardenToken.setGardensModule(address(gardensModule));
         gardenToken.setActionRegistry(address(actionRegistry));
         hatsModule.setGardenToken(address(gardenToken));
@@ -139,7 +140,6 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
     function _mintGardenWithScheme(IGardensModule.WeightScheme scheme) internal returns (address garden) {
         vm.prank(multisig);
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "CV Test Garden",
             slug: "",
             description: "Conviction voting E2E test garden",

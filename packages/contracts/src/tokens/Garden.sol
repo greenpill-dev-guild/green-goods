@@ -31,6 +31,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     ActionRegistry public actionRegistry;
     ICookieJarModule public cookieJarModule;
     IGreenGoodsENS public ensModule;
+    address public communityToken;
 
     /// @notice Refund credits for failed ENS registrations, claimable by minter
     mapping(address minter => uint256 amount) public failedENSRefunds;
@@ -50,12 +51,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 38 slots (50 total - 12 used: _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule,
-     * octantModule, gardensModule, actionRegistry, cookieJarModule, ensModule, failedENSRefunds,
-     * totalPendingENSRefunds, transferRestriction)
+     * Reserves 37 slots (50 total - 13 used: _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule,
+     * octantModule, gardensModule, actionRegistry, cookieJarModule, ensModule, communityToken,
+     * failedENSRefunds, totalPendingENSRefunds, transferRestriction)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[38] private __gap;
+    uint256[37] private __gap;
 
     /// @notice Emitted when a new Garden is minted.
     /// @param tokenId The unique identifier of the minted Garden token.
@@ -91,6 +92,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Emitted when the ENS module address is updated.
     event ENSModuleUpdated(address indexed oldModule, address indexed newModule);
 
+    /// @notice Emitted when the community token address is updated.
+    event CommunityTokenUpdated(address indexed oldToken, address indexed newToken);
+
     /// @notice Emitted when an ENS registration refund is queued for manual claim
     event ENSRegistrationRefundQueued(address indexed minter, uint256 amount);
 
@@ -99,7 +103,6 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Configuration for batch garden minting (Gas Optimized)
     struct GardenConfig {
-        address communityToken;
         string name;
         string slug;
         string description;
@@ -129,6 +132,8 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     error CommunityTokenNotContract();
     /// @notice Error thrown when community token does not implement ERC-20 interface
     error InvalidERC20Token();
+    /// @notice Error thrown when community token has not been configured via setCommunityToken()
+    error CommunityTokenNotConfigured();
     /// @notice Error thrown when hats module is not configured
     error HatsModuleNotSet();
     /// @notice Error thrown when transfers are locked
@@ -213,6 +218,16 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         emit ENSModuleUpdated(oldModule, _ensModule);
     }
 
+    /// @notice Sets the community token address (owner only).
+    /// @dev Validates that the token is a valid ERC-20 contract. All gardens share the same community token.
+    /// @param _communityToken The community token address.
+    function setCommunityToken(address _communityToken) external onlyOwner {
+        _validateCommunityToken(_communityToken);
+        address oldToken = communityToken;
+        communityToken = _communityToken;
+        emit CommunityTokenUpdated(oldToken, _communityToken);
+    }
+
     /// @notice Set the transfer restriction mode (owner only)
     function setTransferRestriction(TransferRestriction _restriction) external onlyOwner {
         transferRestriction = _restriction;
@@ -242,8 +257,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// deep.
     /// @param config Garden configuration struct containing all initialization parameters
     function mintGarden(GardenConfig calldata config) external payable onlyAuthorizedMinter returns (address) {
-        // Validate community token early for better error messages
-        _validateCommunityToken(config.communityToken);
+        if (communityToken == address(0)) revert CommunityTokenNotConfigured();
         if (address(hatsModule) == address(0)) revert HatsModuleNotSet();
 
         uint256 tokenId = _nextTokenId++;
@@ -264,6 +278,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     // _mintGardenInternal removed as it is no longer needed
 
     /// @notice Batch mint multiple gardens (40% gas savings)
+    /// @dev **ENS msg.value limitation**: In batch mode, the entire `msg.value` is forwarded to
+    ///      the first garden with a non-empty slug for ENS registration. Subsequent gardens with
+    ///      slugs will attempt ENS registration with zero value, which may fail. The refund mechanism
+    ///      at `_initializeIntegrationsAndAccount` (lines 411-415) ensures funds are recoverable
+    ///      via `claimENSRefund()` if ENS registration fails. For batch mints with multiple ENS names,
+    ///      callers should mint individually or only set a slug on the first config.
     /// @param configs Array of garden configurations (max 10 for gas limit protection)
     /// @return gardenAccounts Array of created garden account addresses
     function batchMintGardens(GardenConfig[] calldata configs)
@@ -277,14 +297,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             revert InvalidBatchSize();
         }
 
-        // Validate all community tokens and array lengths upfront for fail-fast behavior
-        for (uint256 i = 0; i < configsLength;) {
-            _validateCommunityToken(configs[i].communityToken);
-            unchecked {
-                ++i;
-            }
-        }
-
+        if (communityToken == address(0)) revert CommunityTokenNotConfigured();
         if (address(hatsModule) == address(0)) revert HatsModuleNotSet();
 
         gardenAccounts = new address[](configsLength);
@@ -325,14 +338,19 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @notice Initializes Hats tree, Karma GAP project, and GardenAccount for a newly minted garden
-    /// @dev Shared by mintGarden() and batchMintGardens() to avoid code duplication
+    /// @dev Shared by mintGarden() and batchMintGardens() to avoid code duplication.
+    ///      Split into two private functions to avoid Yul stack-too-deep with via_ir.
     /// @param gardenAccount The TBA garden account address
     /// @param config The garden configuration
     function _initializeGardenModules(address gardenAccount, GardenConfig calldata config) private {
-        // Hats Protocol: create hat tree + initial owner role
-        hatsModule.createGardenHatTree(gardenAccount, config.name, config.communityToken);
+        _initializeRoleAndGovernance(gardenAccount, config);
+        _initializeIntegrationsAndAccount(gardenAccount, config);
+    }
 
-        // Owner (NFT minter)
+    /// @dev Phase 1: Hats tree, KarmaGAP project, Octant vault, Gardens community
+    function _initializeRoleAndGovernance(address gardenAccount, GardenConfig calldata config) private {
+        // Hats Protocol: create hat tree + initial owner role
+        hatsModule.createGardenHatTree(gardenAccount, config.name, communityToken);
         hatsModule.grantRole(gardenAccount, _msgSender(), IHatsModule.GardenRole.Owner);
 
         // Karma GAP: create project (graceful degradation)
@@ -349,8 +367,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         // Octant vault setup (graceful degradation)
         if (address(octantModule) != address(0)) {
             try octantModule.onGardenMinted(gardenAccount, config.name) returns (address[] memory _vaults) {
-                // Success handled by module events
-                _vaults;
+                _vaults; // Success handled by module events
             } catch {
                 // Failure is non-blocking
             }
@@ -365,7 +382,10 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
                 // Failure is non-blocking — garden mint MUST NOT revert
             }
         }
+    }
 
+    /// @dev Phase 2: CookieJar, ActionRegistry domains, ENS, account initialization
+    function _initializeIntegrationsAndAccount(address gardenAccount, GardenConfig calldata config) private {
         // Cookie Jar: create per-asset jars (graceful degradation)
         if (address(cookieJarModule) != address(0)) {
             // solhint-disable-next-line no-empty-blocks
@@ -404,7 +424,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
         // Initialize garden account with metadata
         IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
-            communityToken: config.communityToken,
+            communityToken: communityToken,
             name: config.name,
             slug: config.slug,
             description: config.description,

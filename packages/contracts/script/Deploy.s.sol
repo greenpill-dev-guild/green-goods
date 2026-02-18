@@ -63,6 +63,9 @@ contract Deploy is Script, DeploymentBase {
             // Deployer (msg.sender) is the owner for all contracts
             deployFullStack(config.communityToken, msg.sender);
 
+            // 1b. Set community token on GardenToken (state variable, not per-config)
+            gardenToken.setCommunityToken(config.communityToken);
+
             // 2. Add production-specific governance features (L2 only)
             if (!_isMainnetChain(block.chainid)) {
                 _configureOctant();
@@ -280,7 +283,7 @@ contract Deploy is Script, DeploymentBase {
     function _deploySeedData(NetworkConfig memory config) internal {
         // 1. Mint gardens from config
         string memory gardensJson = _loadGardensConfig();
-        _deployGardensFromConfig(gardensJson, config.communityToken);
+        _deployGardensFromConfig(gardensJson);
 
         // 2. Deploy core actions
         string memory actionsJson = _loadActionsConfig();
@@ -290,15 +293,14 @@ contract Deploy is Script, DeploymentBase {
     }
 
     /// @notice Deploy gardens from config/gardens.json
-    function _deployGardensFromConfig(string memory gardensJson, address communityToken) internal {
+    function _deployGardensFromConfig(string memory gardensJson) internal {
         for (uint256 i = 0; i < 50; i++) {
             string memory basePath = string.concat(".gardens[", vm.toString(i), "]");
 
             try vm.parseJson(gardensJson, string.concat(basePath, ".name")) returns (bytes memory nameBytes) {
                 if (nameBytes.length == 0) break;
 
-                GardenToken.GardenConfig memory gardenConfig =
-                    _parseGardenConfigFromJson(gardensJson, basePath, communityToken, nameBytes);
+                GardenToken.GardenConfig memory gardenConfig = _parseGardenConfigFromJson(gardensJson, basePath, nameBytes);
 
                 uint256 ensFee = _estimateENSFee(gardenConfig.slug);
                 address gardenAddress = gardenToken.mintGarden{ value: ensFee }(gardenConfig);
@@ -314,7 +316,6 @@ contract Deploy is Script, DeploymentBase {
     function _parseGardenConfigFromJson(
         string memory gardensJson,
         string memory basePath,
-        address communityToken,
         bytes memory nameBytes
     )
         internal
@@ -341,7 +342,6 @@ contract Deploy is Script, DeploymentBase {
         } catch { }
 
         return GardenToken.GardenConfig({
-            communityToken: communityToken,
             name: name,
             slug: slug,
             description: description,

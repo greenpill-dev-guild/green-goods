@@ -1,6 +1,7 @@
 import {
   AudioRecorder,
   Confidence,
+  ErrorBoundary,
   ConfidenceSelector,
   DEFAULT_CHAIN_ID,
   formatDate,
@@ -260,8 +261,8 @@ export default function WorkDetail() {
     return (
       <div className="pb-6">
         <PageHeader
-          title="Loading..."
-          description="Loading work submission details"
+          title={formatMessage({ id: "app.work.detail.loading" })}
+          description={formatMessage({ id: "app.work.detail.loadingDescription" })}
           {...baseHeaderProps}
         />
         <div className="mt-6 px-4 sm:px-6">
@@ -283,14 +284,14 @@ export default function WorkDetail() {
     return (
       <div className="pb-6">
         <PageHeader
-          title="Work Submission"
-          description="Unable to load work submission"
+          title={formatMessage({ id: "app.work.detail.title" })}
+          description={formatMessage({ id: "app.work.detail.notFoundDescription" })}
           {...baseHeaderProps}
         />
         <div className="mt-6 px-4 sm:px-6">
           <div className="rounded-md border border-error-light bg-error-lighter p-4" role="alert">
             <p className="text-sm text-error-dark">
-              Work submission not found. It may have been removed or the ID is invalid.
+              {formatMessage({ id: "app.work.detail.notFound" })}
             </p>
           </div>
         </div>
@@ -304,17 +305,21 @@ export default function WorkDetail() {
 
   const statusConfig = {
     pending: {
-      label: "Pending Review",
+      label: formatMessage({ id: "app.work.status.pending" }),
       color: "bg-warning-lighter text-warning-dark",
       icon: RiTimeLine,
     },
     approved: {
-      label: "Approved",
+      label: formatMessage({ id: "app.work.status.approved" }),
       color: "bg-success-lighter text-success-dark",
       icon: RiCheckboxCircleLine,
     },
-    rejected: { label: "Rejected", color: "bg-error-lighter text-error-dark", icon: RiCloseLine },
-  } as const;
+    rejected: {
+      label: formatMessage({ id: "app.work.status.rejected" }),
+      color: "bg-error-lighter text-error-dark",
+      icon: RiCloseLine,
+    },
+  };
 
   const status = statusConfig[work.status];
   const StatusIcon = status.icon;
@@ -322,7 +327,7 @@ export default function WorkDetail() {
   return (
     <div className="pb-6">
       <PageHeader
-        title="Review Work Submission"
+        title={formatMessage({ id: "app.work.detail.reviewTitle" })}
         description={action?.title ?? work.title}
         metadata={
           <span
@@ -350,13 +355,15 @@ export default function WorkDetail() {
 
             {/* Submission Details */}
             <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
-              <h3 className="text-sm font-semibold text-text-strong">Submission Details</h3>
+              <h3 className="text-sm font-semibold text-text-strong">
+                {formatMessage({ id: "app.work.detail.submissionDetails" })}
+              </h3>
 
               <div className="mt-4 space-y-3">
                 {/* Action */}
                 <DetailRow
                   icon={<RiFileList3Line className="h-4 w-4" />}
-                  label="Action"
+                  label={formatMessage({ id: "app.work.detail.action" })}
                   value={
                     <span>
                       {action?.title ?? `Action #${work.actionUID}`}
@@ -370,21 +377,21 @@ export default function WorkDetail() {
                 {/* Garden */}
                 <DetailRow
                   icon={<RiFileList3Line className="h-4 w-4" />}
-                  label="Garden"
+                  label={formatMessage({ id: "app.work.detail.garden" })}
                   value={garden.name}
                 />
 
                 {/* Gardener */}
                 <DetailRow
                   icon={<RiUserLine className="h-4 w-4" />}
-                  label="Gardener"
+                  label={formatMessage({ id: "app.work.detail.gardener" })}
                   value={<AddressDisplay address={work.gardenerAddress} />}
                 />
 
                 {/* Submitted at */}
                 <DetailRow
                   icon={<RiTimeLine className="h-4 w-4" />}
-                  label="Submitted"
+                  label={formatMessage({ id: "app.work.detail.submitted" })}
                   value={formatDate(work.createdAt)}
                 />
 
@@ -394,7 +401,9 @@ export default function WorkDetail() {
                 {/* Gardener feedback */}
                 {work.feedback && (
                   <div className="mt-3 rounded-md bg-bg-weak p-3">
-                    <p className="text-xs font-medium text-text-soft">Gardener Notes</p>
+                    <p className="text-xs font-medium text-text-soft">
+                      {formatMessage({ id: "app.work.detail.gardenerNotes" })}
+                    </p>
                     <p className="mt-1 text-sm text-text-sub">{work.feedback}</p>
                   </div>
                 )}
@@ -405,141 +414,164 @@ export default function WorkDetail() {
           {/* ─── Right column: Review Form (sticky on desktop) ─── */}
           <div className="lg:col-span-2">
             <div className="lg:sticky lg:top-24">
-              <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
-                <h3 className="text-base font-semibold text-text-strong">
-                  {isReviewed ? "Review Summary" : "Operator Review"}
-                </h3>
+              <ErrorBoundary context="WorkDetail.ReviewForm">
+                <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+                  <h3 className="text-base font-semibold text-text-strong">
+                    {isReviewed
+                      ? formatMessage({ id: "app.work.detail.reviewSummary" })
+                      : formatMessage({ id: "app.work.detail.operatorReview" })}
+                  </h3>
 
-                {isReviewed ? (
-                  <ReviewSummary work={work} />
-                ) : canReview ? (
-                  <form onSubmit={(e) => e.preventDefault()} className="mt-4 space-y-5">
-                    {/* Confidence Selector */}
-                    <div>
-                      <span
-                        className="mb-1.5 block text-sm font-medium text-text-strong"
-                        id="confidence-label"
-                      >
-                        Confidence Level
-                        <span className="ml-1 text-xs text-text-soft">(required for approval)</span>
-                      </span>
-                      <Controller
-                        name="confidence"
-                        control={control}
-                        render={({ field }) => (
-                          <ConfidenceSelector
-                            value={field.value}
-                            onChange={field.onChange}
-                            required
-                          />
-                        )}
-                      />
-                    </div>
-
-                    {/* Method Selector */}
-                    <div>
-                      <span
-                        className="mb-1.5 block text-sm font-medium text-text-strong"
-                        id="method-label"
-                      >
-                        Verification Methods
-                        <span className="ml-1 text-xs text-text-soft">(select all that apply)</span>
-                      </span>
-                      <Controller
-                        name="verificationMethod"
-                        control={control}
-                        render={({ field }) => (
-                          <MethodSelector value={field.value} onChange={field.onChange} />
-                        )}
-                      />
-                    </div>
-
-                    {/* Feedback textarea */}
-                    <div>
-                      <label
-                        htmlFor="feedback"
-                        className="mb-1.5 block text-sm font-medium text-text-strong"
-                      >
-                        Feedback
-                        <span className="ml-1 text-xs text-text-soft">(optional)</span>
-                      </label>
-                      <Controller
-                        name="feedback"
-                        control={control}
-                        render={({ field }) => (
-                          <textarea
-                            {...field}
-                            id="feedback"
-                            rows={3}
-                            placeholder="Add feedback for the gardener..."
-                            className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-                          />
-                        )}
-                      />
-                    </div>
-
-                    {/* Audio Recorder */}
-                    <div>
-                      <span className="mb-1.5 block text-sm font-medium text-text-strong">
-                        Audio Review Note
-                        <span className="ml-1 text-xs text-text-soft">(optional)</span>
-                      </span>
-                      {reviewAudioFile ? (
-                        <div className="flex items-center gap-2">
-                          <span className="flex-1 truncate text-sm text-text-sub">
-                            {reviewAudioFile.name}
+                  {isReviewed ? (
+                    <ReviewSummary work={work} />
+                  ) : canReview ? (
+                    <form onSubmit={(e) => e.preventDefault()} className="mt-4 space-y-5">
+                      {/* Confidence Selector */}
+                      <div>
+                        <span
+                          className="mb-1.5 block text-sm font-medium text-text-strong"
+                          id="confidence-label"
+                        >
+                          {formatMessage({ id: "app.work.detail.confidenceLevel" })}
+                          <span className="ml-1 text-xs text-text-soft">
+                            ({formatMessage({ id: "app.work.detail.requiredForApproval" })})
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => setReviewAudioFile(null)}
-                            className="text-xs text-error-base hover:text-error-dark"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ) : (
-                        <AudioRecorder onRecordingComplete={(file) => setReviewAudioFile(file)} />
+                        </span>
+                        <Controller
+                          name="confidence"
+                          control={control}
+                          render={({ field }) => (
+                            <ConfidenceSelector
+                              value={field.value}
+                              onChange={field.onChange}
+                              required
+                              aria-labelledby="confidence-label"
+                            />
+                          )}
+                        />
+                      </div>
+
+                      {/* Method Selector */}
+                      <div>
+                        <span
+                          className="mb-1.5 block text-sm font-medium text-text-strong"
+                          id="method-label"
+                        >
+                          {formatMessage({ id: "app.work.detail.verificationMethods" })}
+                          <span className="ml-1 text-xs text-text-soft">
+                            ({formatMessage({ id: "app.work.detail.selectAllThatApply" })})
+                          </span>
+                        </span>
+                        <Controller
+                          name="verificationMethod"
+                          control={control}
+                          render={({ field }) => (
+                            <MethodSelector
+                              value={field.value}
+                              onChange={field.onChange}
+                              aria-labelledby="method-label"
+                            />
+                          )}
+                        />
+                      </div>
+
+                      {/* Feedback textarea */}
+                      <div>
+                        <label
+                          htmlFor="feedback"
+                          className="mb-1.5 block text-sm font-medium text-text-strong"
+                        >
+                          {formatMessage({ id: "app.work.detail.feedback" })}
+                          <span className="ml-1 text-xs text-text-soft">
+                            ({formatMessage({ id: "app.common.optional" })})
+                          </span>
+                        </label>
+                        <Controller
+                          name="feedback"
+                          control={control}
+                          render={({ field }) => (
+                            <textarea
+                              {...field}
+                              id="feedback"
+                              rows={3}
+                              placeholder={formatMessage({
+                                id: "app.work.detail.feedbackPlaceholder",
+                              })}
+                              className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
+                            />
+                          )}
+                        />
+                      </div>
+
+                      {/* Audio Recorder */}
+                      <div>
+                        <span className="mb-1.5 block text-sm font-medium text-text-strong">
+                          {formatMessage({ id: "app.work.detail.audioReviewNote" })}
+                          <span className="ml-1 text-xs text-text-soft">
+                            ({formatMessage({ id: "app.common.optional" })})
+                          </span>
+                        </span>
+                        {reviewAudioFile ? (
+                          <div className="flex items-center gap-2">
+                            <span className="flex-1 truncate text-sm text-text-sub">
+                              {reviewAudioFile.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setReviewAudioFile(null)}
+                              className="text-xs text-error-base hover:text-error-dark"
+                            >
+                              {formatMessage({ id: "app.common.remove" })}
+                            </button>
+                          </div>
+                        ) : (
+                          <AudioRecorder onRecordingComplete={(file) => setReviewAudioFile(file)} />
+                        )}
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => handleApprovalSubmit(true)}
+                          disabled={isSubmitting || hasApprovalValidationHints}
+                          className="flex-1 rounded-lg bg-success-base px-4 py-2.5 text-sm font-medium text-static-white transition hover:bg-success-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-base focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isSubmitting
+                            ? formatMessage({ id: "app.common.submitting" })
+                            : formatMessage({ id: "app.work.detail.approve" })}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApprovalSubmit(false)}
+                          disabled={isSubmitting}
+                          className="flex-1 rounded-lg border border-error-base px-4 py-2.5 text-sm font-medium text-error-base transition hover:bg-error-lighter focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-base focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isSubmitting
+                            ? formatMessage({ id: "app.common.submitting" })
+                            : formatMessage({ id: "app.work.detail.reject" })}
+                        </button>
+                      </div>
+
+                      {/* Validation hints */}
+                      {hasLowConfidenceHint && (
+                        <p className="text-xs text-warning-base">
+                          {formatMessage({ id: "app.work.detail.hint.lowConfidence" })}
+                        </p>
                       )}
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => handleApprovalSubmit(true)}
-                        disabled={isSubmitting || hasApprovalValidationHints}
-                        className="flex-1 rounded-lg bg-success-base px-4 py-2.5 text-sm font-medium text-static-white transition hover:bg-success-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-base focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {isSubmitting ? "Submitting..." : "Approve"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleApprovalSubmit(false)}
-                        disabled={isSubmitting}
-                        className="flex-1 rounded-lg border border-error-base px-4 py-2.5 text-sm font-medium text-error-base transition hover:bg-error-lighter focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-base focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {isSubmitting ? "Submitting..." : "Reject"}
-                      </button>
-                    </div>
-
-                    {/* Validation hints */}
-                    {hasLowConfidenceHint && (
-                      <p className="text-xs text-warning-base">
-                        Select Low confidence or higher to approve.
-                      </p>
-                    )}
-                    {hasMissingVerificationMethodHint && (
-                      <p className="text-xs text-warning-base">
-                        Select at least one verification method to approve.
-                      </p>
-                    )}
-                  </form>
-                ) : (
-                  <p className="mt-4 text-sm text-text-soft">
-                    You do not have permission to review work for this garden.
-                  </p>
-                )}
-              </section>
+                      {hasMissingVerificationMethodHint && (
+                        <p className="text-xs text-warning-base">
+                          {formatMessage({ id: "app.work.detail.hint.missingMethod" })}
+                        </p>
+                      )}
+                    </form>
+                  ) : (
+                    <p className="mt-4 text-sm text-text-soft">
+                      {formatMessage({ id: "app.work.detail.noPermission" })}
+                    </p>
+                  )}
+                </section>
+              </ErrorBoundary>
             </div>
           </div>
         </div>
@@ -573,17 +605,21 @@ function DetailRow({
 }
 
 function ReviewSummary({ work }: { work: Work }) {
+  const { formatMessage } = useIntl();
   return (
     <div className="mt-4 space-y-3">
       <div className="rounded-md bg-bg-weak p-3">
-        <p className="text-xs font-medium text-text-soft">Status</p>
+        <p className="text-xs font-medium text-text-soft">
+          {formatMessage({ id: "app.work.detail.statusLabel" })}
+        </p>
         <p className="mt-0.5 text-sm font-medium text-text-strong">
-          {work.status === "approved" ? "Approved" : "Rejected"}
+          {work.status === "approved"
+            ? formatMessage({ id: "app.work.status.approved" })
+            : formatMessage({ id: "app.work.status.rejected" })}
         </p>
       </div>
       <p className="text-xs text-text-soft">
-        This work has already been reviewed. View the transaction on the attestation explorer for
-        full details.
+        {formatMessage({ id: "app.work.detail.alreadyReviewed" })}
       </p>
     </div>
   );

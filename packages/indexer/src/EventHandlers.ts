@@ -2324,7 +2324,11 @@ function getMarketplaceOrderId(chainId: number, orderId: bigint): string {
   return `${chainId}-${orderId.toString()}`;
 }
 
-function getMarketplacePurchaseId(chainId: number, txHash: string, logIndex: bigint | number): string {
+function getMarketplacePurchaseId(
+  chainId: number,
+  txHash: string,
+  logIndex: bigint | number
+): string {
   return `${chainId}-${txHash}-${logIndex.toString()}`;
 }
 

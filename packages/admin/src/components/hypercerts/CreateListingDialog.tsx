@@ -30,21 +30,16 @@ interface ListingFormValues {
   sellLeftover: boolean;
 }
 
-const DURATION_OPTIONS = [
-  { label: "30 days", value: 30 },
-  { label: "60 days", value: 60 },
-  { label: "90 days", value: 90 },
-  { label: "180 days", value: 180 },
-];
+const DURATION_VALUES = [30, 60, 90, 180] as const;
 
-const STEP_LABELS: Record<ListingStep, string> = {
-  idle: "",
-  building: "Building order...",
-  signing: "Waiting for signature...",
-  registering: "Registering on-chain...",
-  confirming: "Confirming transaction...",
-  done: "Listing created!",
-  error: "Failed to create listing",
+const STEP_LABEL_KEYS: Record<ListingStep, { id: string; defaultMessage: string } | null> = {
+  idle: null,
+  building: { id: "app.listing.stepBuilding", defaultMessage: "Building order..." },
+  signing: { id: "app.listing.stepSigning", defaultMessage: "Waiting for signature..." },
+  registering: { id: "app.listing.stepRegistering", defaultMessage: "Registering on-chain..." },
+  confirming: { id: "app.listing.stepConfirming", defaultMessage: "Confirming transaction..." },
+  done: { id: "app.listing.stepDone", defaultMessage: "Listing created!" },
+  error: { id: "app.listing.stepError", defaultMessage: "Failed to create listing" },
 };
 
 /**
@@ -125,7 +120,7 @@ export function CreateListingDialog({
           <div className="flex items-center justify-between border-b border-stroke-soft p-4">
             <Dialog.Title className="flex items-center gap-2 text-lg font-semibold text-text-strong">
               <RiExchangeDollarLine className="h-5 w-5 text-primary-base" />
-              List for Yield
+              {formatMessage({ id: "app.listing.title", defaultMessage: "List for Yield" })}
             </Dialog.Title>
             {!isCreating && (
               <Dialog.Close asChild>
@@ -146,11 +141,19 @@ export function CreateListingDialog({
                 {/* Price per unit */}
                 <div>
                   <label className="block text-sm font-medium text-text-strong mb-1">
-                    Price per Unit (ETH)
+                    {formatMessage({
+                      id: "app.listing.pricePerUnit",
+                      defaultMessage: "Price per Unit (ETH)",
+                    })}
                   </label>
                   <input
                     type="text"
-                    {...register("pricePerUnit", { required: "Price is required" })}
+                    {...register("pricePerUnit", {
+                      required: formatMessage({
+                        id: "app.listing.priceRequired",
+                        defaultMessage: "Price is required",
+                      }),
+                    })}
                     className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
                     placeholder="0.00001"
                   />
@@ -165,7 +168,7 @@ export function CreateListingDialog({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-text-strong mb-1">
-                      Min Units
+                      {formatMessage({ id: "app.listing.minUnits", defaultMessage: "Min Units" })}
                     </label>
                     <input
                       type="text"
@@ -176,7 +179,7 @@ export function CreateListingDialog({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-text-strong mb-1">
-                      Max Units
+                      {formatMessage({ id: "app.listing.maxUnits", defaultMessage: "Max Units" })}
                     </label>
                     <input
                       type="text"
@@ -190,15 +193,18 @@ export function CreateListingDialog({
                 {/* Duration */}
                 <div>
                   <label className="block text-sm font-medium text-text-strong mb-1">
-                    Duration
+                    {formatMessage({ id: "app.listing.duration", defaultMessage: "Duration" })}
                   </label>
                   <select
                     {...register("durationDays", { valueAsNumber: true })}
                     className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
                   >
-                    {DURATION_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
+                    {DURATION_VALUES.map((days) => (
+                      <option key={days} value={days}>
+                        {formatMessage(
+                          { id: "app.listing.durationDays", defaultMessage: "{days} days" },
+                          { days }
+                        )}
                       </option>
                     ))}
                   </select>
@@ -211,7 +217,12 @@ export function CreateListingDialog({
                     {...register("sellLeftover")}
                     className="h-4 w-4 rounded border-stroke-soft text-primary-base focus:ring-primary-base"
                   />
-                  <span className="text-sm text-text-sub">Sell leftover fraction</span>
+                  <span className="text-sm text-text-sub">
+                    {formatMessage({
+                      id: "app.listing.sellLeftover",
+                      defaultMessage: "Sell leftover fraction",
+                    })}
+                  </span>
                 </label>
 
                 {/* Actions */}
@@ -221,14 +232,17 @@ export function CreateListingDialog({
                       type="button"
                       className="rounded-md px-4 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft"
                     >
-                      Cancel
+                      {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
                     </button>
                   </Dialog.Close>
                   <button
                     type="submit"
                     className="flex items-center gap-1.5 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker"
                   >
-                    Sign &amp; List
+                    {formatMessage({
+                      id: "app.listing.signAndList",
+                      defaultMessage: "Sign & List",
+                    })}
                   </button>
                 </div>
               </form>
@@ -246,7 +260,10 @@ export function CreateListingDialog({
                 {step === "done" && (
                   <div className="rounded-md bg-success-lighter p-3 text-center">
                     <p className="text-sm font-medium text-success-dark">
-                      Listing created successfully!
+                      {formatMessage({
+                        id: "app.listing.createdSuccessfully",
+                        defaultMessage: "Listing created successfully!",
+                      })}
                     </p>
                   </div>
                 )}
@@ -258,7 +275,9 @@ export function CreateListingDialog({
                       onClick={handleClose}
                       className="rounded-md px-4 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft"
                     >
-                      {step === "done" ? "Done" : "Close"}
+                      {step === "done"
+                        ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
+                        : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
                     </button>
                   )}
                   {step === "error" && (
@@ -270,7 +289,7 @@ export function CreateListingDialog({
                       }}
                       className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker"
                     >
-                      Try Again
+                      {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
                     </button>
                   )}
                 </div>
@@ -286,12 +305,15 @@ export function CreateListingDialog({
 const PROGRESS_STEPS: ListingStep[] = ["building", "signing", "registering", "confirming"];
 
 function ListingProgress({ step }: { step: ListingStep }) {
+  const { formatMessage } = useIntl();
   return (
     <div className="space-y-3">
       {PROGRESS_STEPS.map((s) => {
         const isActive = s === step;
         const isDone = PROGRESS_STEPS.indexOf(s) < PROGRESS_STEPS.indexOf(step) || step === "done";
-        const isPending = !isActive && !isDone;
+
+        const labelKey = STEP_LABEL_KEYS[s];
+        const label = labelKey ? formatMessage(labelKey) : "";
 
         return (
           <div key={s} className="flex items-center gap-3">
@@ -315,7 +337,7 @@ function ListingProgress({ step }: { step: ListingStep }) {
                     : "text-text-disabled"
               }`}
             >
-              {STEP_LABELS[s]}
+              {label}
             </span>
           </div>
         );

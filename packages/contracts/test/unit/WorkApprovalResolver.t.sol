@@ -13,7 +13,8 @@ import {
     InvalidConfidence,
     InvalidVerificationMethod,
     ActionMismatch,
-    InvalidSchema
+    InvalidSchema,
+    ActionExpired
 } from "../../src/resolvers/WorkApproval.sol";
 import { NotInActionRegistry } from "../../src/resolvers/Work.sol";
 import { ActionRegistry, Capital, Domain } from "../../src/registries/Action.sol";
@@ -214,6 +215,63 @@ contract WorkApprovalResolverTest is Test {
     }
 
     // =========================================================================
+    // onAttest: Action Timing Validation (M-C1 fix)
+    // =========================================================================
+
+    function testOnAttestRevertsForExpiredAction() public {
+        // Register an action that will expire
+        Capital[] memory capitals = new Capital[](1);
+        capitals[0] = Capital.LIVING;
+
+        vm.prank(multisig);
+        actionRegistry.registerAction(
+            block.timestamp,
+            block.timestamp + 1 hours,
+            "Short Action",
+            "agro.short",
+            "ipfs://short",
+            capitals,
+            new string[](0),
+            Domain.AGRO
+        );
+        uint256 expiredActionId = 1;
+
+        // Pre-populate work attestation referencing this action
+        bytes32 expiredWorkUID = bytes32(uint256(99));
+        WorkSchema memory workSchema = WorkSchema({
+            actionUID: expiredActionId,
+            title: "Short Work",
+            feedback: "",
+            metadata: "",
+            media: new string[](1)
+        });
+        workSchema.media[0] = "ipfs://QmExpiredWork";
+
+        Attestation memory workAttestation = Attestation({
+            uid: expiredWorkUID,
+            schema: bytes32(uint256(100)),
+            time: uint64(block.timestamp),
+            expirationTime: 0,
+            revocationTime: 0,
+            refUID: bytes32(0),
+            recipient: address(mockGarden),
+            attester: gardener,
+            revocable: true,
+            data: abi.encode(workSchema)
+        });
+        mockEAS.setAttestationByUID(expiredWorkUID, workAttestation);
+
+        // Warp past the action's end time
+        vm.warp(block.timestamp + 2 hours);
+
+        Attestation memory attestation = _buildApprovalAttestation(operator, expiredWorkUID, expiredActionId, true);
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(ActionExpired.selector);
+        workApprovalResolver.attest(attestation);
+    }
+
+    // =========================================================================
     // onAttest: Action Cross-Validation
     // =========================================================================
 
@@ -365,6 +423,17 @@ contract WorkApprovalResolverTest is Test {
     // =========================================================================
 
     event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
+    event SchemaUIDUpdated(bytes32 indexed schemaUID);
+
+    function testSetSchemaUID_emitsEvent() public {
+        bytes32 newSchemaUID = bytes32(uint256(300));
+
+        vm.expectEmit(true, false, false, false);
+        emit SchemaUIDUpdated(newSchemaUID);
+
+        vm.prank(multisig);
+        workApprovalResolver.setSchemaUID(newSchemaUID);
+    }
 
     function testSetKarmaGAPModule_emitsEvent() public {
         address module = address(0xCAFE);

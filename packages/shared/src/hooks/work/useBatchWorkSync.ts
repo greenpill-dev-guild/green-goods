@@ -12,6 +12,7 @@ import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import type { WorkDraft } from "../../types/domain";
 import { logger } from "../../modules/app/logger";
+import { trackContractError } from "../../modules/app/error-tracking";
 import { queueToasts } from "../../components/toast";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
@@ -187,7 +188,20 @@ export function useBatchWorkSync() {
         });
       }
     },
-    onError: () => {
+    onError: (error) => {
+      logger.error("Batch work sync failed", {
+        source: "useBatchWorkSync",
+        error,
+        authMode,
+        primaryAddress,
+      });
+
+      trackContractError(error, {
+        source: "useBatchWorkSync",
+        userAction: "batch work sync",
+        metadata: { authMode },
+      });
+
       queueToasts.syncError();
     },
   });

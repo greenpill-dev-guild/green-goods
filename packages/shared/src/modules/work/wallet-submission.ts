@@ -12,6 +12,7 @@
  * @module modules/work/wallet-submission
  */
 
+import type { Address } from "viem";
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import { wagmiConfig } from "../../config/appkit";
@@ -122,7 +123,7 @@ async function waitForReceiptWithTimeout(
  */
 export async function submitWorkDirectly(
   draft: WorkDraft,
-  gardenAddress: string,
+  gardenAddress: Address,
   actionUID: number,
   actionTitle: string,
   chainId: number,
@@ -316,8 +317,8 @@ export async function submitWorkDirectly(
  */
 export async function submitApprovalDirectly(
   draft: WorkApprovalDraft,
-  gardenAddress: string,
-  gardenerAddress: string,
+  gardenAddress: Address,
+  gardenerAddress: Address,
   chainId: number,
   options: WalletSubmissionOptions = {}
 ): Promise<`0x${string}`> {
@@ -477,8 +478,8 @@ export interface BatchApprovalOptions {
 export async function submitBatchApprovalsDirectly(
   approvals: Array<{
     draft: WorkApprovalDraft;
-    gardenAddress: string;
-    gardenerAddress: string;
+    gardenAddress: Address;
+    gardenerAddress: Address;
   }>,
   chainId: number,
   options: BatchApprovalOptions = {}

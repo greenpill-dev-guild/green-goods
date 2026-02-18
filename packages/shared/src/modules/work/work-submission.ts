@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import type { Action, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
+import type { Action, Address, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { serviceWorkerManager } from "../app/service-worker";
 import { createOfflineTxHash, jobQueue } from "../job-queue";
@@ -18,12 +18,12 @@ import { createOfflineTxHash, jobQueue } from "../job-queue";
  */
 export async function submitWorkToQueue(
   draft: WorkDraft,
-  gardenAddress: string,
+  gardenAddress: Address,
   actionUID: number,
   actions: Action[],
   chainId: number,
   images: File[],
-  userAddress: string
+  userAddress: Address
 ): Promise<{ txHash: `0x${string}`; jobId: string; clientWorkId: string }> {
   if (!gardenAddress) {
     throw new Error("Garden address is required");
@@ -76,7 +76,7 @@ export async function submitApprovalToQueue(
   draft: WorkApprovalDraft,
   work: Work | undefined,
   chainId: number,
-  userAddress: string
+  userAddress: Address
 ): Promise<{ txHash: `0x${string}`; jobId: string }> {
   if (!draft.workUID) {
     throw new Error("Work UID is required");
@@ -131,7 +131,7 @@ export interface ValidateWorkContextOptions {
  * @returns Array of error messages (empty if valid)
  */
 export function validateWorkSubmissionContext(
-  gardenAddress: string | null,
+  gardenAddress: Address | null,
   actionUID: number | null,
   images: File[],
   options: ValidateWorkContextOptions = {}
@@ -172,7 +172,7 @@ export function validateWorkSubmissionContext(
  */
 export function validateWorkDraft(
   _draft: WorkDraft,
-  gardenAddress: string | null,
+  gardenAddress: Address | null,
   actionUID: number | null,
   images: File[],
   options: ValidateWorkContextOptions = {}

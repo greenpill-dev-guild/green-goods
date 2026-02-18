@@ -96,6 +96,23 @@ export function useVaultDeposit() {
         });
       }
 
+      // Slippage protection: verify expected shares before deposit
+      const previewShares = await readContract(wagmiConfig, {
+        address: params.vaultAddress,
+        abi: OCTANT_VAULT_ABI,
+        functionName: "previewDeposit",
+        args: [params.amount],
+      });
+      const expectedShares = typeof previewShares === "bigint" ? previewShares : 0n;
+
+      // Default slippage tolerance: 1% (99% of preview)
+      const minShares = params.minSharesOut ?? (expectedShares * 99n) / 100n;
+      if (expectedShares < minShares) {
+        throw new Error(
+          "Deposit would receive fewer shares than expected due to price movement. Please try again."
+        );
+      }
+
       // Update toast to reflect deposit phase (after approval)
       if (activeToastId.current) {
         toastService.loading({

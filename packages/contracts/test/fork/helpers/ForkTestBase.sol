@@ -154,6 +154,9 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
         // - Module wiring
         deployFullStack(address(communityToken), address(this));
 
+        // 4b. Set community token on GardenToken (now a state variable, not per-config)
+        gardenToken.setCommunityToken(address(communityToken));
+
         // 5. Set up a fresh Hats tree for the test environment
         // The on-chain Hats tree has admins we don't control. Creating our own
         // tree lets the HatsModule create garden sub-trees during mintGarden().
@@ -240,7 +243,6 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
     /// @return gardenAccount The address of the created garden TBA
     function _mintTestGarden(string memory name, uint8 domainMask) internal returns (address gardenAccount) {
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: name,
             slug: "",
             description: "Fork test garden",

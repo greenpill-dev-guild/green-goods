@@ -83,7 +83,7 @@ export default function Dashboard() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-warning-lighter border border-warning-light rounded-md p-4">
+        <div className="bg-warning-lighter border border-warning-light rounded-md p-4" role="alert">
           <div className="flex items-start">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-warning-base" viewBox="0 0 20 20" fill="currentColor">

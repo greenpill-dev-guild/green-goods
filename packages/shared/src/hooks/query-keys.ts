@@ -3,17 +3,25 @@
  * Standardizes and simplifies React Query cache keys
  */
 
-import type { Address } from "viem";
+import type { Address } from "../types/domain";
 import type { AttestationFilters } from "../types/hypercerts";
 
 const serializeAttestationFilters = (filters?: AttestationFilters): string => {
   if (!filters) return "";
 
+  const normalizeDate = (value?: Date | number | null) => {
+    if (value === null || value === undefined) return undefined;
+    return value instanceof Date ? value.toISOString() : value;
+  };
+
   return JSON.stringify({
-    status: filters.status ? [...filters.status].sort() : undefined,
-    domain: filters.domain ? [...filters.domain].sort() : undefined,
-    dateRange: filters.dateRange ?? undefined,
+    startDate: normalizeDate(filters.startDate),
+    endDate: normalizeDate(filters.endDate),
+    domain: filters.domain ?? undefined,
+    workScope: filters.workScope ?? undefined,
+    actionType: filters.actionType ?? undefined,
     gardenerAddress: filters.gardenerAddress ? filters.gardenerAddress.toLowerCase() : undefined,
+    searchQuery: filters.searchQuery?.trim() || undefined,
   });
 };
 

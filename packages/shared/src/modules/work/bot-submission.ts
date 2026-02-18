@@ -1,5 +1,5 @@
 import { type PublicClient, type WalletClient } from "viem";
-import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
+import type { Address, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getEASConfig } from "../../config/blockchain";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";
@@ -11,36 +11,44 @@ export async function submitWorkBot(
   client: WalletClient,
   publicClient: PublicClient,
   draft: WorkDraft,
-  gardenAddress: string,
+  gardenAddress: Address,
   actionUID: number,
   actionTitle: string,
   chainId: number,
-  images: File[] | Blob[] | Buffer[] // Bot might pass Buffers
+  images: File[] | Blob[] | Buffer[]
 ): Promise<`0x${string}`> {
-  // 1. Encode work data (uploads to IPFS internally)
-  // Note: encodeWorkData needs to handle the image types correctly.
-  // If encodeWorkData expects browser Files, we might need to adjust it or mock it.
-  // For now assuming encodeWorkData can handle what we pass or we'll fix it.
+  // encodeWorkData normalizes Blob -> File internally (encoders.ts).
+  // Convert Buffer -> Blob here so encodeWorkData receives a type it can handle.
+  const mediaFiles = images.map((img, index) => {
+    if (typeof Buffer !== "undefined" && img instanceof Buffer) {
+      return new Blob([new Uint8Array(img)], { type: "application/octet-stream" });
+    }
+    return img;
+  }) as File[];
 
   const attestationData = await encodeWorkData(
     {
       ...draft,
       title: `${actionTitle} - ${new Date().toISOString()}`,
       actionUID,
-      media: images as any, // Cast for now, will verify encodeWorkData
+      media: mediaFiles,
     },
     chainId
   );
 
-  // 2. Prepare EAS attestation transaction
   const easConfig = getEASConfig(chainId);
   const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);
 
   // 3. Send transaction
+  if (!client.account) {
+    throw new Error(
+      "Bot wallet client has no account configured. Provide a wallet client with an account."
+    );
+  }
   const hash = await client.sendTransaction({
     ...txParams,
     chain: client.chain,
-    account: client.account!,
+    account: client.account,
   });
 
   return hash;
@@ -52,7 +60,7 @@ export async function submitWorkBot(
 export async function submitApprovalBot(
   client: WalletClient,
   draft: WorkApprovalDraft,
-  gardenerAddress: string,
+  gardenerAddress: Address,
   chainId: number
 ): Promise<`0x${string}`> {
   const attestationData = encodeWorkApprovalData(draft, chainId);
@@ -64,10 +72,15 @@ export async function submitApprovalBot(
     attestationData
   );
 
+  if (!client.account) {
+    throw new Error(
+      "Bot wallet client has no account configured. Provide a wallet client with an account."
+    );
+  }
   const hash = await client.sendTransaction({
     ...txParams,
     chain: client.chain,
-    account: client.account!,
+    account: client.account,
   });
 
   return hash;

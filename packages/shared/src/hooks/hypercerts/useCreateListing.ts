@@ -14,7 +14,15 @@ import { useWalletClient } from "wagmi";
 
 import { DEFAULT_CHAIN_ID, createPublicClientForChain } from "../../config";
 import { logger } from "../../modules/app/logger";
-import { buildMakerAsk, signMakerAsk, validateOrder } from "../../modules/marketplace";
+import { trackContractError } from "../../modules/app/error-tracking";
+import { parseAndFormatError } from "../../utils/errors/contract-errors";
+import { toastService } from "../../components/Toast/toast.service";
+import {
+  buildMakerAsk,
+  getOrderNonces,
+  signMakerAsk,
+  validateOrder,
+} from "../../modules/marketplace";
 import { HYPERCERTS_MODULE_ABI } from "./hypercert-abis";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import type { CreateListingParams } from "../../types/hypercerts";
@@ -58,7 +66,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
         throw new Error("HypercertsModule not deployed on this chain");
       }
 
-      // Step 1: Build the maker ask order
+      // Step 1: Build the maker ask order (with on-chain nonces)
       setStep("building");
       logger.info("[useCreateListing] Building maker ask", {
         gardenAddress,
@@ -66,7 +74,9 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
         chainId,
       });
 
-      const makerAsk = buildMakerAsk(params, signer, chainId);
+      const publicClient = createPublicClientForChain(chainId);
+      const nonces = await getOrderNonces(signer, chainId, publicClient);
+      const makerAsk = buildMakerAsk(params, signer, chainId, nonces);
 
       // Validate order before signing
       const validation = validateOrder(makerAsk, chainId);
@@ -125,7 +135,6 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
         });
         await smartAccountClient.getUserOperationReceipt({ hash });
       } else if (walletClient) {
-        const publicClient = createPublicClientForChain(chainId);
         const txHash = await walletClient.sendTransaction({
           to: moduleAddress,
           data: callData,
@@ -155,11 +164,27 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
     },
     onError: (error) => {
       setStep("error");
+
+      const { title, message, parsed } = parseAndFormatError(error);
+      const displayMessage = parsed.isKnown
+        ? message
+        : "Failed to create listing. Please try again.";
+      const displayTitle = parsed.isKnown ? title : "Listing failed";
+
       logger.error("[useCreateListing] Failed to create listing", {
         gardenAddress,
         chainId,
         error: error instanceof Error ? error.message : String(error),
+        parsedError: parsed.name,
       });
+
+      trackContractError(error, {
+        source: "useCreateListing",
+        gardenAddress,
+        metadata: { chainId },
+      });
+
+      toastService.error({ title: displayTitle, message: displayMessage });
     },
   });
 

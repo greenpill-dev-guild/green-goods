@@ -116,6 +116,8 @@ export type {
   Address,
   AssessmentAttachment,
   AssessmentDraft,
+  AssessmentWorkflowParams,
+  CreateAssessmentForm, // @deprecated - use AssessmentWorkflowParams
   ENSRegistrationData,
   Garden,
   GardenAssessment,

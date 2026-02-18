@@ -451,6 +451,10 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               </button>
               <button
                 type="button"
+                aria-label={intl.formatMessage(
+                  { id: "app.garden.upload.removeImage", defaultMessage: "Remove image {index}" },
+                  { index: index + 1 }
+                )}
                 className="flex items-center justify-center w-8 h-8 p-1 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
                 onClick={(e) => {
                   e.stopPropagation();

@@ -11,11 +11,7 @@ import * as path from "node:path";
 
 const SEPOLIA_CHAIN_ID = "11155111";
 
-const REQUIRED_CORE_CONTRACTS = [
-  "gardenToken",
-  "actionRegistry",
-  "workResolver",
-] as const;
+const REQUIRED_CORE_CONTRACTS = ["gardenToken", "actionRegistry", "workResolver"] as const;
 
 function contractsDir(): string {
   return path.join(__dirname, "../..");

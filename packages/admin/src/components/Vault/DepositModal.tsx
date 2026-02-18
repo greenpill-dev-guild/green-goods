@@ -130,6 +130,7 @@ export function DepositModal({
   });
 
   const onSubmit = () => {
+    if (selectedVault?.paused) return;
     if (!selectedVault || !primaryAddress || amountBigInt <= 0n || hasBlockingError) return;
 
     depositMutation.mutate(
@@ -185,6 +186,7 @@ export function DepositModal({
                   onChange={(event) => setAmount(event.target.value)}
                   placeholder="0.0"
                   aria-invalid={Boolean(amountError)}
+                  aria-describedby={amountError ? "deposit-error" : undefined}
                   className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
                     amountError
                       ? "border-error-base focus:border-error-base"
@@ -203,12 +205,12 @@ export function DepositModal({
                 </button>
               </div>
               {amountError && (
-                <p className="text-xs text-error-dark" role="alert">
+                <p id="deposit-error" className="text-xs text-error-dark" role="alert">
                   {formatMessage({ id: amountError })}
                 </p>
               )}
               <p className="text-xs text-text-soft">
-                {formatMessage({ id: "app.treasury.walletBalance" })}: {" "}
+                {formatMessage({ id: "app.treasury.walletBalance" })}:{" "}
                 {balance
                   ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
                   : "--"}
@@ -217,25 +219,30 @@ export function DepositModal({
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>
-                {formatMessage({ id: "app.treasury.estimatedShares" })}: {" "}
+                {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
                 <span className="font-medium text-text-strong">
                   {preview ? `${formatTokenAmount(preview.previewShares, 18)} shares` : "--"}
                 </span>
               </p>
               <p>
-                {formatMessage({ id: "app.treasury.estimatedGas" })}: {" "}
+                {formatMessage({ id: "app.treasury.estimatedGas" })}:{" "}
                 <span className="font-medium text-text-strong">
                   {estimatedGas ? `${formatTokenAmount(estimatedGas)} ETH` : "--"}
                 </span>
               </p>
               {assetSymbol && (
                 <p>
-                  {formatMessage({ id: "app.treasury.amountDenomination" })}: {" "}
+                  {formatMessage({ id: "app.treasury.amountDenomination" })}:{" "}
                   <span className="font-medium text-text-strong">{assetSymbol}</span>
                 </p>
               )}
             </div>
 
+            {selectedVault?.paused && (
+              <p className="text-xs text-warning-base" role="alert">
+                {formatMessage({ id: "app.treasury.vaultPaused" })}
+              </p>
+            )}
             <button
               type="button"
               onClick={onSubmit}
@@ -244,6 +251,7 @@ export function DepositModal({
                 !primaryAddress ||
                 amountBigInt <= 0n ||
                 hasBlockingError ||
+                selectedVault?.paused ||
                 depositMutation.isPending
               }
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"

@@ -93,8 +93,9 @@ contract GasBenchmarks is Test, ERC6551Helper {
         bytes memory gardenInitData = abi.encodeWithSelector(GardenToken.initialize.selector, owner, address(0));
         gardenToken = GardenToken(address(new ERC1967Proxy(address(gardenTokenImpl), gardenInitData)));
 
-        // Wire HatsModule into GardenToken (separate from initialize)
+        // Wire HatsModule and community token into GardenToken
         gardenToken.setHatsModule(address(adapter));
+        gardenToken.setCommunityToken(address(mockToken));
 
         // Wire up: HatsModule needs gardenToken authorized
         adapter.setGardenToken(address(gardenToken));
@@ -115,7 +116,6 @@ contract GasBenchmarks is Test, ERC6551Helper {
         operators[0] = address(0x5001);
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(mockToken),
             name: "Gas Test Garden",
             slug: "",
             description: "A garden for gas benchmarking",
@@ -146,7 +146,6 @@ contract GasBenchmarks is Test, ERC6551Helper {
         operators[0] = address(0x5001);
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(mockToken),
             name: "Garden With Gardeners",
             slug: "",
             description: "5 initial gardeners",
@@ -177,7 +176,6 @@ contract GasBenchmarks is Test, ERC6551Helper {
             operators[0] = address(uint160(0x5001 + i));
 
             configs[i] = GardenToken.GardenConfig({
-                communityToken: address(mockToken),
                 name: string(abi.encodePacked("Batch Garden ", _uint2str(i))),
                 slug: "",
                 description: "Batch description",
@@ -427,7 +425,6 @@ contract GasBenchmarks is Test, ERC6551Helper {
         operators[0] = address(0x5001);
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(mockToken),
             name: "Benchmark Garden",
             slug: "",
             description: "Gas benchmark garden",

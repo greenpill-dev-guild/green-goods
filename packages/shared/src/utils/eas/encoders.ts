@@ -266,7 +266,8 @@ export async function encodeWorkData(
       .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
       .map((r) => r.value);
 
-    // If any audio uploads failed, log but don't block submission
+    // Audio notes are explicit evidence; fail fast if any upload fails so users
+    // can retry instead of silently submitting incomplete evidence.
     const audioFailures = audioResults.filter((r) => r.status === "rejected");
     if (audioFailures.length > 0) {
       trackUploadError(new Error(`${audioFailures.length} audio file(s) failed to upload`), {
@@ -278,6 +279,9 @@ export async function encodeWorkData(
         severity: "warning",
         recoverable: true,
       });
+      throw new Error(
+        `Failed to upload ${audioFailures.length} audio note${audioFailures.length === 1 ? "" : "s"}. Please retry.`
+      );
     }
   }
 

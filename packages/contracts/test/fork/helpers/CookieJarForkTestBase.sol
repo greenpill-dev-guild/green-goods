@@ -1,23 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Test } from "forge-std/Test.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { ERC1155 } from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
-import {CookieJarModule} from "../../../src/modules/CookieJar.sol";
-import {YieldResolver} from "../../../src/resolvers/Yield.sol";
-import {ICookieJarFactory} from "../../../src/interfaces/ICookieJarFactory.sol";
-import {IHatsModule} from "../../../src/interfaces/IHatsModule.sol";
-import {MockERC20} from "../../../src/mocks/ERC20.sol";
+import { CookieJarModule } from "../../../src/modules/CookieJar.sol";
+import { YieldResolver } from "../../../src/resolvers/Yield.sol";
+import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
+import { MockERC20 } from "../../../src/mocks/ERC20.sol";
 
 contract TestHatsProtocol is ERC1155 {
-    constructor() ERC1155("") {}
+    constructor() ERC1155("") { }
 
     function mint(address to, uint256 id, uint256 amount) external {
         _mint(to, id, amount, "");
     }
+}
+
+interface ICookieJarLike {
+    function deposit(uint256 amount) external payable;
+    function withdraw(uint256 amount, string calldata purpose) external;
 }
 
 contract TestHatsModule is IHatsModule {
@@ -60,11 +63,11 @@ contract TestHatsModule is IHatsModule {
         return 0;
     }
 
-    function grantRole(address, address, GardenRole) external {}
-    function revokeRole(address, address, GardenRole) external {}
-    function grantRoles(address, address[] calldata, GardenRole[] calldata) external {}
-    function revokeRoles(address, address[] calldata, GardenRole[] calldata) external {}
-    function setConvictionStrategies(address, address[] calldata) external {}
+    function grantRole(address, address, GardenRole) external { }
+    function revokeRole(address, address, GardenRole) external { }
+    function grantRoles(address, address[] calldata, GardenRole[] calldata) external { }
+    function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
+    function setConvictionStrategies(address, address[] calldata) external { }
 
     function getConvictionStrategies(address) external pure returns (address[] memory) {
         return new address[](0);
@@ -95,35 +98,6 @@ contract TestHatsModule is IHatsModule {
     }
 }
 
-contract TestCookieJar {
-    error MissingHat(uint256 hatId, address wearer);
-
-    address public immutable hatsProtocol;
-    uint256 public immutable requiredHatId;
-
-    constructor(address _hatsProtocol, uint256 _requiredHatId) {
-        hatsProtocol = _hatsProtocol;
-        requiredHatId = _requiredHatId;
-    }
-
-    function withdraw(address token, uint256 amount, address to) external {
-        if (ERC1155(hatsProtocol).balanceOf(msg.sender, requiredHatId) == 0) {
-            revert MissingHat(requiredHatId, msg.sender);
-        }
-        IERC20(token).transfer(to, amount);
-    }
-}
-
-contract RealCookieJarFactoryForFork is ICookieJarFactory {
-    function createCookieJar(JarConfig calldata, AccessConfig calldata accessConfig, MultiTokenConfig calldata)
-        external
-        returns (address jarAddress)
-    {
-        jarAddress =
-            address(new TestCookieJar(accessConfig.nftRequirement.nftContract, accessConfig.nftRequirement.tokenId));
-    }
-}
-
 contract MockVaultForCookieJarFork {
     MockERC20 public immutable asset;
     mapping(address => uint256) public shares;
@@ -136,7 +110,13 @@ contract MockVaultForCookieJarFork {
         shares[to] += amount;
     }
 
-    function redeem(uint256 sharesAmount, address receiver, address, uint256, address[] calldata)
+    function redeem(
+        uint256 sharesAmount,
+        address receiver,
+        address,
+        uint256,
+        address[] calldata
+    )
         external
         returns (uint256 assets)
     {
@@ -158,7 +138,7 @@ abstract contract CookieJarForkTestBase is Test {
 
     TestHatsProtocol internal hatsProtocol;
     TestHatsModule internal hatsModule;
-    RealCookieJarFactoryForFork internal factory;
+    address internal factory;
     CookieJarModule internal cookieJarModule;
     YieldResolver internal yieldSplitter;
     MockERC20 internal token;
@@ -171,9 +151,11 @@ abstract contract CookieJarForkTestBase is Test {
         if (bytes(rpcUrl).length == 0) return;
         vm.createSelectFork(rpcUrl);
 
+        factory = _getCookieJarFactory(block.chainid);
+        if (factory == address(0)) return;
+
         hatsProtocol = new TestHatsProtocol();
         hatsModule = new TestHatsModule();
-        factory = new RealCookieJarFactoryForFork();
         token = new MockERC20();
         vault = new MockVaultForCookieJarFork(address(token));
 
@@ -188,7 +170,7 @@ abstract contract CookieJarForkTestBase is Test {
             owner,
             address(hatsModule),
             address(0),
-            address(factory),
+            factory,
             address(hatsProtocol),
             assets
         );
@@ -215,26 +197,27 @@ abstract contract CookieJarForkTestBase is Test {
         address jar = cookieJarModule.getGardenJar(garden, address(token));
         assertTrue(jar != address(0), "jar should be created");
 
-        token.mint(address(this), 100e6);
-        token.transfer(jar, 100e6);
+        token.mint(address(this), 100 ether);
+        token.approve(jar, 100 ether);
+        ICookieJarLike(jar).deposit(100 ether);
 
         vm.prank(gardener);
         vm.expectRevert();
-        TestCookieJar(jar).withdraw(address(token), 10e6, gardener);
+        ICookieJarLike(jar).withdraw(10 ether, "gated-withdrawal");
 
         hatsProtocol.mint(gardener, GARDENER_HAT_ID, 1);
 
         uint256 beforeBal = token.balanceOf(gardener);
         vm.prank(gardener);
-        TestCookieJar(jar).withdraw(address(token), 10e6, gardener);
-        assertEq(token.balanceOf(gardener) - beforeBal, 10e6, "hats wearer should withdraw");
+        ICookieJarLike(jar).withdraw(10 ether, "gated-withdrawal");
+        assertEq(token.balanceOf(gardener) - beforeBal, 10 ether, "hats wearer should withdraw");
     }
 
     function test_fork_routes_4865bps_to_cookie_jar_via_yield_splitter() public {
         if (address(yieldSplitter) == address(0)) return;
 
         address jar = cookieJarModule.getGardenJar(garden, address(token));
-        uint256 yieldAmount = 1_000e6;
+        uint256 yieldAmount = 1000 ether;
 
         token.mint(address(vault), yieldAmount);
         vault.mintShares(address(yieldSplitter), yieldAmount);
@@ -256,5 +239,19 @@ abstract contract CookieJarForkTestBase is Test {
         } catch {
             return "";
         }
+    }
+
+    function _getCookieJarFactory(uint256 chainId) internal view returns (address) {
+        // Optional explicit override (useful for local debugging)
+        try vm.envAddress("COOKIE_JAR_FACTORY_ADDRESS") returns (address factoryAddress) {
+            if (factoryAddress != address(0)) return factoryAddress;
+        } catch { }
+
+        // Deployed addresses sourced from sibling cookie-jar repo:
+        // contracts/broadcast/Deploy.s.sol/{chainId}/run-latest.json
+        if (chainId == 42_161) return 0xfe367D31d181D305dcF5AAaa345a70A65c345153; // Arbitrum
+        if (chainId == 11_155_111) return 0x021368bf9958f4D535d39d571Bc45f74d20e4666; // Sepolia
+
+        return address(0);
     }
 }

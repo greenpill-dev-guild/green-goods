@@ -62,6 +62,17 @@ export { useInstallGuidance } from "./app/useInstallGuidance";
 // ASSESSMENT
 // ============================================================================
 export type { CreateAssessmentForm } from "./assessment/useCreateAssessmentWorkflow";
+export type {
+  AssessmentDraftRecord,
+  UseAssessmentDraftResult,
+} from "./assessment/useAssessmentDraft";
+export { useAssessmentDraft } from "./assessment/useAssessmentDraft";
+export type { AssessmentFormData, UseAssessmentFormReturn } from "./assessment/useAssessmentForm";
+export {
+  assessmentFormSchema,
+  useAssessmentForm,
+  createDefaultAssessmentFormData,
+} from "./assessment/useAssessmentForm";
 export { useCreateAssessmentWorkflow } from "./assessment/useCreateAssessmentWorkflow";
 export { useGardenAssessments } from "./assessment/useGardenAssessments";
 
@@ -163,6 +174,19 @@ export type {
 } from "./garden/createGardenOperation";
 export { createGardenOperation, GARDEN_OPERATIONS } from "./garden/createGardenOperation";
 export { checkMembership, useAutoJoinRootGarden } from "./garden/useAutoJoinRootGarden";
+export type {
+  CreateGardenFormData,
+  GardenStepId,
+  UseCreateGardenFormReturn,
+} from "./garden/useCreateGardenForm";
+export {
+  createGardenSchema,
+  gardenStepFields,
+  useCreateGardenForm,
+  createDefaultGardenForm,
+} from "./garden/useCreateGardenForm";
+export type { GardenDraft, UseGardenDraftResult } from "./garden/useGardenDraft";
+export { useGardenDraft } from "./garden/useGardenDraft";
 export { useCreateGardenWorkflow } from "./garden/useCreateGardenWorkflow";
 export type { GardenInvite } from "./garden/useGardenInvites";
 export { useGardenInvites } from "./garden/useGardenInvites";

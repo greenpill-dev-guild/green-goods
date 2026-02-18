@@ -2,7 +2,7 @@ import { type Address, getAddress, isAddress } from "viem";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import type { CreateGardenParams } from "../types/contracts";
+import { type CreateGardenParams, WeightScheme } from "../types/contracts";
 import { validateSlug } from "../utils/blockchain/ens";
 
 // Storage key for garden creation flow persistence
@@ -14,7 +14,6 @@ export interface CreateGardenFormState {
   description: string;
   location: string;
   bannerImage: string;
-  communityToken: string;
   metadata: string;
   openJoining: boolean;
   gardeners: Address[];
@@ -78,7 +77,6 @@ export function createEmptyGardenForm(): CreateGardenFormState {
     description: "",
     location: "",
     bannerImage: "",
-    communityToken: "",
     metadata: "",
     openJoining: false,
     gardeners: [],
@@ -224,8 +222,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
               form.name.trim().length > 0 &&
               validateSlug(form.slug.trim()).valid &&
               form.description.trim().length > 0 &&
-              form.location.trim().length > 0 &&
-              isValidAddress(form.communityToken.trim())
+              form.location.trim().length > 0
             );
           case "team":
             return form.gardeners.length > 0 && form.operators.length > 0;
@@ -255,7 +252,6 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         }
 
         return {
-          communityToken: form.communityToken.trim(),
           name: form.name.trim(),
           slug: form.slug.trim(),
           description: form.description.trim(),
@@ -263,6 +259,8 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           bannerImage: form.bannerImage.trim(),
           metadata: form.metadata.trim(),
           openJoining: form.openJoining,
+          weightScheme: WeightScheme.Linear,
+          domainMask: 0xff,
         } satisfies CreateGardenParams;
       },
     }),

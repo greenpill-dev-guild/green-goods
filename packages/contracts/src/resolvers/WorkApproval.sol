@@ -20,6 +20,8 @@ error InvalidVerificationMethod();
 error ActionMismatch();
 /// @notice Thrown when attestation uses wrong schema UID
 error InvalidSchema();
+/// @notice Thrown when the action has expired (endTime < block.timestamp)
+error ActionExpired();
 
 /// @title WorkApprovalResolver
 /// @notice A schema resolver for the Actions event schema
@@ -38,6 +40,9 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
 
     /// @notice Emitted when the KarmaGAPModule is intentionally disabled
     event KarmaGAPModuleDisabled(address indexed oldModule);
+
+    /// @notice Emitted when the expected schema UID is updated
+    event SchemaUIDUpdated(bytes32 indexed schemaUID);
 
     /**
      * @dev Storage gap for future upgrades
@@ -73,9 +78,12 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     }
 
     /// @notice Sets the expected schema UID for work approval attestations
+    /// @dev When schemaUID is bytes32(0), schema validation is bypassed. This is intentional
+    ///      during the deployment window before EAS schemas are registered.
     /// @param _schemaUID The schema UID to validate against
     function setSchemaUID(bytes32 _schemaUID) external onlyOwner {
         schemaUID = _schemaUID;
+        emit SchemaUIDUpdated(_schemaUID);
     }
 
     /// @notice Indicates whether the resolver is payable.
@@ -126,9 +134,15 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
             revert NotGardenOperator();
         }
 
-        // ACTION VALIDATION: Verify action exists
-        if (ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID).startTime == 0) {
+        // ACTION VALIDATION: Verify action exists and is still active
+        ActionRegistry.Action memory action = ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID);
+        if (action.startTime == 0) {
             revert NotInActionRegistry();
+        }
+
+        // TIMING VALIDATION: Verify action has not expired (matches WorkResolver pattern)
+        if (action.endTime < block.timestamp) {
+            revert ActionExpired();
         }
 
         // CONFIDENCE VALIDATION: Must be within valid range (0-3)

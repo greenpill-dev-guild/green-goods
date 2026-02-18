@@ -13,6 +13,7 @@
 export {
   getMarketplaceClient,
   getMarketplaceAddresses,
+  getOrderNonces,
   isMarketplaceSupported,
   resetMarketplaceClients,
 } from "./client";

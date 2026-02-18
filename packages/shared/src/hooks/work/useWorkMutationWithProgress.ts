@@ -8,7 +8,7 @@
  */
 
 import type { SmartAccountClient } from "permissionless";
-import type { Action, WorkDraft } from "../../types/domain";
+import type { Action, Address, WorkDraft } from "../../types/domain";
 import { useCallback, useMemo } from "react";
 import { useWorkMutation } from "./useWorkMutation";
 import { useSubmissionProgress, type SubmissionStage } from "./useSubmissionProgress";
@@ -16,10 +16,10 @@ import { useSubmissionProgress, type SubmissionStage } from "./useSubmissionProg
 interface UseWorkMutationWithProgressOptions {
   authMode: "wallet" | "passkey" | null;
   smartAccountClient: SmartAccountClient | null;
-  gardenAddress: string | null;
+  gardenAddress: Address | null;
   actionUID: number | null;
   actions: Action[];
-  userAddress: string | null;
+  userAddress: Address | null;
 }
 
 /**

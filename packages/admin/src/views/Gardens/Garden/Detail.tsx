@@ -3,6 +3,7 @@ import {
   ConfirmDialog,
   DEFAULT_CHAIN_ID,
   DEFAULT_SPLIT_CONFIG,
+  ErrorBoundary,
   MIN_YIELD_THRESHOLD_USD,
   formatDate,
   formatTokenAmount,
@@ -103,9 +104,9 @@ export default function GardenDetail() {
     data: assessmentList = [],
     isLoading: fetchingAssessments,
     error: assessmentsError,
-  } = useGardenAssessments(id, 5);
+  } = useGardenAssessments(id);
 
-  const assessments = assessmentList;
+  const assessments = assessmentList.slice(0, 5);
 
   const gardenId = id ?? "";
 
@@ -440,441 +441,449 @@ export default function GardenDetail() {
 
         {/* Work: Primary Content */}
         <section className="grid-area-work">
-          {gardenVaults.length > 0 && (
-            <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-base font-semibold text-text-strong sm:text-lg">
-                    {formatMessage({ id: "app.treasury.title" })}
-                  </h3>
-                  <p className="mt-1 text-sm text-text-sub">
-                    {formatMessage(
-                      { id: "app.treasury.gardenTreasuryDescription" },
-                      { gardenName: garden.name }
-                    )}
-                  </p>
-                </div>
-                <Link
-                  to={`/gardens/${id}/vault`}
-                  className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-                >
-                  {formatMessage({ id: "app.treasury.manageVault" })}
-                </Link>
-              </div>
-              {donationAddressUnset && (
-                <p className="mt-3 rounded-md border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark">
-                  {formatMessage({ id: "app.treasury.setDonationFirst" })}
-                </p>
-              )}
-              {vaultsLoading && (
-                <p className="mt-3 text-sm text-text-soft">
-                  {formatMessage({ id: "app.treasury.loadingVaults" })}
-                </p>
-              )}
-            </div>
-          )}
-          {canManage && (
-            <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-base font-semibold text-text-strong sm:text-lg">
-                    {formatMessage({ id: "app.conviction.title" })}
-                  </h3>
-                  <p className="mt-1 text-sm text-text-sub">
-                    {formatMessage(
-                      { id: "app.conviction.strategyCount" },
-                      { count: convictionStrategies.length }
-                    )}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Link
-                    to={`/gardens/${id}/signal-pool/hypercert`}
-                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-                  >
-                    {formatMessage({ id: "app.signal.viewHypercertPool" })}
-                  </Link>
-                  <Link
-                    to={`/gardens/${id}/signal-pool/action`}
-                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-                  >
-                    {formatMessage({ id: "app.signal.viewActionPool" })}
-                  </Link>
-                  <Link
-                    to={`/gardens/${id}/strategies`}
-                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-                  >
-                    {formatMessage({ id: "app.conviction.manageStrategies" })}
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Cookie Jar Section */}
-          {cookieJarCount > 0 && (
-            <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-lighter">
-                    <RiCupLine className="h-5 w-5 text-warning-dark" />
-                  </div>
+          <ErrorBoundary context="GardenDetail.YieldCommunity">
+            {gardenVaults.length > 0 && (
+              <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-semibold text-text-strong sm:text-lg">
-                      {formatMessage({ id: "app.cookieJar.title" })}
+                      {formatMessage({ id: "app.treasury.title" })}
                     </h3>
-                    <p className="mt-0.5 text-sm text-text-sub">
-                      {cookieJarCount} {formatMessage({ id: "app.cookieJar.active" })}
+                    <p className="mt-1 text-sm text-text-sub">
+                      {formatMessage(
+                        { id: "app.treasury.gardenTreasuryDescription" },
+                        { gardenName: garden.name }
+                      )}
                     </p>
                   </div>
-                </div>
-                <Link
-                  to={`/gardens/${id}/cookie-jars`}
-                  className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-                >
-                  {formatMessage({ id: "app.actions.view" })}
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* Community Status Section */}
-          <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-feature-lighter">
-                  <RiGroupLine className="h-5 w-5 text-feature-dark" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-text-strong sm:text-lg">
-                    {formatMessage({ id: "app.community.title" })}
-                  </h3>
-                  <p className="mt-0.5 flex items-center gap-1.5 text-sm text-text-sub">
-                    <span
-                      className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? "bg-emerald-500" : "bg-text-soft"}`}
-                      aria-hidden="true"
-                    />
-                    {community
-                      ? formatMessage({ id: "app.community.statusConnected" })
-                      : formatMessage({ id: "app.community.statusNotConnected" })}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Weight scheme display */}
-            <div className="mt-4 rounded-md bg-bg-weak p-3">
-              <p className="text-xs font-medium text-text-soft">
-                {formatMessage({ id: "app.community.weightScheme" })}
-              </p>
-              {communityLoading ? (
-                <p className="mt-1 text-sm text-text-sub">
-                  {formatMessage({ id: "app.community.loading" })}
-                </p>
-              ) : community ? (
-                <div className="mt-1">
-                  <p className="text-sm font-medium text-text-strong">
-                    {formatMessage({
-                      id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}`,
-                    })}
-                  </p>
-                  <p className="mt-0.5 text-xs text-text-sub">
-                    {formatMessage({
-                      id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}.description`,
-                    })}
-                  </p>
-                  <div className="mt-2 flex gap-3 text-xs text-text-sub">
-                    <span>
-                      {formatMessage({ id: "app.roles.community" })}:{" "}
-                      {WEIGHT_SCHEME_VALUES[community.weightScheme].community / 10_000}x
-                    </span>
-                    <span>
-                      {formatMessage({ id: "app.roles.gardener" })}:{" "}
-                      {WEIGHT_SCHEME_VALUES[community.weightScheme].gardener / 10_000}x
-                    </span>
-                    <span>
-                      {formatMessage({ id: "app.roles.operator" })}:{" "}
-                      {WEIGHT_SCHEME_VALUES[community.weightScheme].operator / 10_000}x
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <p className="mt-1 text-sm text-text-sub">
-                  {formatMessage({ id: "app.community.noCommunity" })}
-                </p>
-              )}
-            </div>
-
-            {/* Signal pools summary */}
-            {pools.length > 0 ? (
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="rounded-md bg-bg-weak p-3">
-                  <p className="text-xs font-medium text-text-soft">
-                    {formatMessage({ id: "app.community.poolType.hypercert" })}
-                  </p>
-                  <p className="mt-1 text-sm text-text-sub">
-                    {hypercertPool ? (
-                      <AddressDisplay address={hypercertPool.poolAddress} className="text-sm" />
-                    ) : (
-                      <>&mdash;</>
-                    )}
-                  </p>
-                </div>
-                <div className="rounded-md bg-bg-weak p-3">
-                  <p className="text-xs font-medium text-text-soft">
-                    {formatMessage({ id: "app.community.poolType.action" })}
-                  </p>
-                  <p className="mt-1 text-sm text-text-sub">
-                    {actionPool ? (
-                      <AddressDisplay address={actionPool.poolAddress} className="text-sm" />
-                    ) : (
-                      <>&mdash;</>
-                    )}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-3 rounded-md border border-warning-light bg-warning-lighter p-3">
-                <p className="text-sm text-warning-dark">
-                  {formatMessage({ id: "app.community.noPoolsYet" })}
-                </p>
-                {canManage && community && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await createPools();
-                        toastService.success({
-                          title: formatMessage({ id: "app.community.poolsCreated" }),
-                        });
-                        scheduleBackgroundRefetch();
-                      } catch {
-                        toastService.error({
-                          title: formatMessage({ id: "app.community.poolsCreateFailed" }),
-                        });
-                      }
-                    }}
-                    disabled={isCreatingPools}
-                    className="mt-2 inline-flex items-center gap-2 rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker active:scale-95 disabled:opacity-50"
+                  <Link
+                    to={`/gardens/${id}/vault`}
+                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
                   >
-                    <RiAddLine className="h-4 w-4" />
-                    {isCreatingPools
-                      ? formatMessage({ id: "app.community.creatingPools" })
-                      : formatMessage({ id: "app.community.createPools" })}
-                  </button>
+                    {formatMessage({ id: "app.treasury.manageVault" })}
+                  </Link>
+                </div>
+                {donationAddressUnset && (
+                  <p className="mt-3 rounded-md border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark">
+                    {formatMessage({ id: "app.treasury.setDonationFirst" })}
+                  </p>
+                )}
+                {vaultsLoading && (
+                  <p className="mt-3 text-sm text-text-soft">
+                    {formatMessage({ id: "app.treasury.loadingVaults" })}
+                  </p>
                 )}
               </div>
             )}
-          </div>
-
-          {/* Yield Allocation Section */}
-          <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-lighter">
-                  <RiPieChart2Line className="h-5 w-5 text-primary-dark" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-text-strong sm:text-lg">
-                    {formatMessage({ id: "app.yield.title" })}
-                  </h3>
-                  <p className="mt-0.5 text-sm text-text-sub">
-                    {formatMessage({ id: "app.yield.splitConfig" })}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Three-way split ratio display */}
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              <div className="rounded-md bg-bg-weak p-3 text-center">
-                <p className="text-xs font-medium text-text-soft">
-                  {formatMessage({ id: "app.yield.cookieJar" })}
-                </p>
-                <p className="mt-1 text-lg font-semibold text-text-strong">{cookieJarPct}%</p>
-                <p className="mt-0.5 text-xs text-text-sub">
-                  {formatMessage({ id: "app.yield.cookieJarDescription" })}
-                </p>
-              </div>
-              <div className="rounded-md bg-bg-weak p-3 text-center">
-                <p className="text-xs font-medium text-text-soft">
-                  {formatMessage({ id: "app.yield.fractions" })}
-                </p>
-                <p className="mt-1 text-lg font-semibold text-text-strong">{fractionsPct}%</p>
-                <p className="mt-0.5 text-xs text-text-sub">
-                  {formatMessage({ id: "app.yield.fractionsDescription" })}
-                </p>
-              </div>
-              <div className="rounded-md bg-bg-weak p-3 text-center">
-                <p className="text-xs font-medium text-text-soft">
-                  {formatMessage({ id: "app.yield.juicebox" })}
-                </p>
-                <p className="mt-1 text-lg font-semibold text-text-strong">{juiceboxPct}%</p>
-                <p className="mt-0.5 text-xs text-text-sub">
-                  {formatMessage({ id: "app.yield.juiceboxDescription" })}
-                </p>
-              </div>
-            </div>
-
-            {/* Pending yield indicator */}
-            <div className="mt-3 rounded-md border border-information-light bg-information-lighter px-3 py-2">
-              <p className="text-xs text-information-dark">
-                {formatMessage(
-                  { id: "app.yield.threshold" },
-                  { amount: `$${MIN_YIELD_THRESHOLD_USD}` }
-                )}
-              </p>
-            </div>
-
-            {/* Allocation history */}
-            <div className="mt-4 border-t border-stroke-soft pt-4">
-              <h4 className="text-sm font-medium text-text-strong">
-                {formatMessage({ id: "app.yield.history" })}
-              </h4>
-              {allocationsLoading ? (
-                <div className="mt-2 space-y-2">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="animate-pulse rounded-md bg-bg-weak p-3">
-                      <div className="h-4 w-24 rounded bg-stroke-soft" />
-                      <div className="mt-1 h-3 w-16 rounded bg-stroke-soft" />
-                    </div>
-                  ))}
-                </div>
-              ) : allocations.length === 0 ? (
-                <p className="mt-2 text-center text-sm text-text-soft">
-                  {formatMessage({ id: "app.yield.noAllocations" })}
-                </p>
-              ) : (
-                <div className="mt-2 space-y-2">
-                  {allocations.map((allocation) => (
-                    <div
-                      key={allocation.txHash}
-                      className="flex items-center justify-between rounded-md bg-bg-weak p-3"
+            {canManage && (
+              <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+                      {formatMessage({ id: "app.conviction.title" })}
+                    </h3>
+                    <p className="mt-1 text-sm text-text-sub">
+                      {formatMessage(
+                        { id: "app.conviction.strategyCount" },
+                        { count: convictionStrategies.length }
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      to={`/gardens/${id}/signal-pool/hypercert`}
+                      className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
                     >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-text-strong">
-                          {formatTokenAmount(
-                            allocation.cookieJarAmount +
-                              allocation.fractionsAmount +
-                              allocation.juiceboxAmount
-                          )}
-                        </p>
-                        <p className="text-xs text-text-sub">{formatDate(allocation.timestamp)}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2 text-xs text-text-sub">
-                        <span>
-                          {formatMessage({ id: "app.yield.cookieJar" })}:{" "}
-                          {formatTokenAmount(allocation.cookieJarAmount)}
-                        </span>
-                        <span>
-                          {formatMessage({ id: "app.yield.fractions" })}:{" "}
-                          {formatTokenAmount(allocation.fractionsAmount)}
-                        </span>
-                        <span>
-                          {formatMessage({ id: "app.yield.juicebox" })}:{" "}
-                          {formatTokenAmount(allocation.juiceboxAmount)}
-                        </span>
-                      </div>
+                      {formatMessage({ id: "app.signal.viewHypercertPool" })}
+                    </Link>
+                    <Link
+                      to={`/gardens/${id}/signal-pool/action`}
+                      className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
+                    >
+                      {formatMessage({ id: "app.signal.viewActionPool" })}
+                    </Link>
+                    <Link
+                      to={`/gardens/${id}/strategies`}
+                      className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
+                    >
+                      {formatMessage({ id: "app.conviction.manageStrategies" })}
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Cookie Jar Section */}
+            {cookieJarCount > 0 && (
+              <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-lighter">
+                      <RiCupLine className="h-5 w-5 text-warning-dark" />
                     </div>
-                  ))}
+                    <div>
+                      <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+                        {formatMessage({ id: "app.cookieJar.title" })}
+                      </h3>
+                      <p className="mt-0.5 text-sm text-text-sub">
+                        {cookieJarCount} {formatMessage({ id: "app.cookieJar.active" })}
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to={`/gardens/${id}/cookie-jars`}
+                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
+                  >
+                    {formatMessage({ id: "app.actions.view" })}
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Community Status Section */}
+            <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-feature-lighter">
+                    <RiGroupLine className="h-5 w-5 text-feature-dark" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+                      {formatMessage({ id: "app.community.title" })}
+                    </h3>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-sm text-text-sub">
+                      <span
+                        className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? "bg-emerald-500" : "bg-text-soft"}`}
+                        aria-hidden="true"
+                      />
+                      {community
+                        ? formatMessage({ id: "app.community.statusConnected" })
+                        : formatMessage({ id: "app.community.statusNotConnected" })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Weight scheme display */}
+              <div className="mt-4 rounded-md bg-bg-weak p-3">
+                <p className="text-xs font-medium text-text-soft">
+                  {formatMessage({ id: "app.community.weightScheme" })}
+                </p>
+                {communityLoading ? (
+                  <p className="mt-1 text-sm text-text-sub">
+                    {formatMessage({ id: "app.community.loading" })}
+                  </p>
+                ) : community ? (
+                  <div className="mt-1">
+                    <p className="text-sm font-medium text-text-strong">
+                      {formatMessage({
+                        id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}`,
+                      })}
+                    </p>
+                    <p className="mt-0.5 text-xs text-text-sub">
+                      {formatMessage({
+                        id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}.description`,
+                      })}
+                    </p>
+                    <div className="mt-2 flex gap-3 text-xs text-text-sub">
+                      <span>
+                        {formatMessage({ id: "app.roles.community" })}:{" "}
+                        {WEIGHT_SCHEME_VALUES[community.weightScheme].community / 10_000}x
+                      </span>
+                      <span>
+                        {formatMessage({ id: "app.roles.gardener" })}:{" "}
+                        {WEIGHT_SCHEME_VALUES[community.weightScheme].gardener / 10_000}x
+                      </span>
+                      <span>
+                        {formatMessage({ id: "app.roles.operator" })}:{" "}
+                        {WEIGHT_SCHEME_VALUES[community.weightScheme].operator / 10_000}x
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm text-text-sub">
+                    {formatMessage({ id: "app.community.noCommunity" })}
+                  </p>
+                )}
+              </div>
+
+              {/* Signal pools summary */}
+              {pools.length > 0 ? (
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div className="rounded-md bg-bg-weak p-3">
+                    <p className="text-xs font-medium text-text-soft">
+                      {formatMessage({ id: "app.community.poolType.hypercert" })}
+                    </p>
+                    <p className="mt-1 text-sm text-text-sub">
+                      {hypercertPool ? (
+                        <AddressDisplay address={hypercertPool.poolAddress} className="text-sm" />
+                      ) : (
+                        <>&mdash;</>
+                      )}
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-bg-weak p-3">
+                    <p className="text-xs font-medium text-text-soft">
+                      {formatMessage({ id: "app.community.poolType.action" })}
+                    </p>
+                    <p className="mt-1 text-sm text-text-sub">
+                      {actionPool ? (
+                        <AddressDisplay address={actionPool.poolAddress} className="text-sm" />
+                      ) : (
+                        <>&mdash;</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3 rounded-md border border-warning-light bg-warning-lighter p-3">
+                  <p className="text-sm text-warning-dark">
+                    {formatMessage({ id: "app.community.noPoolsYet" })}
+                  </p>
+                  {canManage && community && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await createPools();
+                          toastService.success({
+                            title: formatMessage({ id: "app.community.poolsCreated" }),
+                          });
+                          scheduleBackgroundRefetch();
+                        } catch {
+                          toastService.error({
+                            title: formatMessage({ id: "app.community.poolsCreateFailed" }),
+                          });
+                        }
+                      }}
+                      disabled={isCreatingPools}
+                      className="mt-2 inline-flex items-center gap-2 rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker active:scale-95 disabled:opacity-50"
+                    >
+                      <RiAddLine className="h-4 w-4" />
+                      {isCreatingPools
+                        ? formatMessage({ id: "app.community.creatingPools" })
+                        : formatMessage({ id: "app.community.createPools" })}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
-          </div>
 
+            {/* Yield Allocation Section */}
+            <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-lighter">
+                    <RiPieChart2Line className="h-5 w-5 text-primary-dark" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+                      {formatMessage({ id: "app.yield.title" })}
+                    </h3>
+                    <p className="mt-0.5 text-sm text-text-sub">
+                      {formatMessage({ id: "app.yield.splitConfig" })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Three-way split ratio display */}
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="rounded-md bg-bg-weak p-3 text-center">
+                  <p className="text-xs font-medium text-text-soft">
+                    {formatMessage({ id: "app.yield.cookieJar" })}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-text-strong">{cookieJarPct}%</p>
+                  <p className="mt-0.5 text-xs text-text-sub">
+                    {formatMessage({ id: "app.yield.cookieJarDescription" })}
+                  </p>
+                </div>
+                <div className="rounded-md bg-bg-weak p-3 text-center">
+                  <p className="text-xs font-medium text-text-soft">
+                    {formatMessage({ id: "app.yield.fractions" })}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-text-strong">{fractionsPct}%</p>
+                  <p className="mt-0.5 text-xs text-text-sub">
+                    {formatMessage({ id: "app.yield.fractionsDescription" })}
+                  </p>
+                </div>
+                <div className="rounded-md bg-bg-weak p-3 text-center">
+                  <p className="text-xs font-medium text-text-soft">
+                    {formatMessage({ id: "app.yield.juicebox" })}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-text-strong">{juiceboxPct}%</p>
+                  <p className="mt-0.5 text-xs text-text-sub">
+                    {formatMessage({ id: "app.yield.juiceboxDescription" })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Pending yield indicator */}
+              <div className="mt-3 rounded-md border border-information-light bg-information-lighter px-3 py-2">
+                <p className="text-xs text-information-dark">
+                  {formatMessage(
+                    { id: "app.yield.threshold" },
+                    { amount: `$${MIN_YIELD_THRESHOLD_USD}` }
+                  )}
+                </p>
+              </div>
+
+              {/* Allocation history */}
+              <div className="mt-4 border-t border-stroke-soft pt-4">
+                <h4 className="text-sm font-medium text-text-strong">
+                  {formatMessage({ id: "app.yield.history" })}
+                </h4>
+                {allocationsLoading ? (
+                  <div className="mt-2 space-y-2">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="animate-pulse rounded-md bg-bg-weak p-3">
+                        <div className="h-4 w-24 rounded bg-stroke-soft" />
+                        <div className="mt-1 h-3 w-16 rounded bg-stroke-soft" />
+                      </div>
+                    ))}
+                  </div>
+                ) : allocations.length === 0 ? (
+                  <p className="mt-2 text-center text-sm text-text-soft">
+                    {formatMessage({ id: "app.yield.noAllocations" })}
+                  </p>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    {allocations.map((allocation) => (
+                      <div
+                        key={allocation.txHash}
+                        className="flex items-center justify-between rounded-md bg-bg-weak p-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-text-strong">
+                            {formatTokenAmount(
+                              allocation.cookieJarAmount +
+                                allocation.fractionsAmount +
+                                allocation.juiceboxAmount
+                            )}
+                          </p>
+                          <p className="text-xs text-text-sub">
+                            {formatDate(allocation.timestamp)}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs text-text-sub">
+                          <span>
+                            {formatMessage({ id: "app.yield.cookieJar" })}:{" "}
+                            {formatTokenAmount(allocation.cookieJarAmount)}
+                          </span>
+                          <span>
+                            {formatMessage({ id: "app.yield.fractions" })}:{" "}
+                            {formatTokenAmount(allocation.fractionsAmount)}
+                          </span>
+                          <span>
+                            {formatMessage({ id: "app.yield.juicebox" })}:{" "}
+                            {formatTokenAmount(allocation.juiceboxAmount)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </ErrorBoundary>
           <WorkSubmissionsView gardenId={garden.id} canManage={canReview} />
         </section>
 
         {/* Roles: Sidebar */}
         <section className="grid-area-roles">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {GARDEN_ROLE_ORDER.map((role) => {
-              const members = roleMembers[role];
-              const roleLabel = getRoleLabel(role);
-              const colors = getRoleColorClasses(role);
-              const Icon = roleIcons[role];
+          <ErrorBoundary context="GardenDetail.Roles">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {GARDEN_ROLE_ORDER.map((role) => {
+                const members = roleMembers[role];
+                const roleLabel = getRoleLabel(role);
+                const colors = getRoleColorClasses(role);
+                const Icon = roleIcons[role];
 
-              return (
-                <aside
-                  key={role}
-                  className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm"
-                >
-                  <div className="flex items-center justify-between gap-2 border-b border-stroke-soft p-4 sm:p-6">
-                    <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
-                      {roleLabel.plural}
-                    </h3>
-                    {canManageRoles && (
-                      <button
-                        onClick={() => openAddMemberModal(role)}
-                        className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
-                        aria-label={formatMessage(
-                          { id: "app.admin.roles.add" },
-                          { role: roleLabel.singular }
-                        )}
-                        type="button"
-                      >
-                        <RiUserAddLine className="mr-1 h-4 w-4" />
-                        {formatMessage({ id: "app.garden.admin.add" })}
-                      </button>
-                    )}
-                  </div>
-                  <div className="p-4 sm:p-6">
-                    {members.length === 0 ? (
-                      <p className="py-4 text-center text-sm text-text-soft">
-                        {formatMessage({ id: "app.admin.roles.empty" }, { role: roleLabel.plural })}
-                      </p>
-                    ) : (
-                      <>
-                        <div className="space-y-2 sm:space-y-3">
-                          {members.slice(0, 3).map((member: string, index: number) => (
-                            <div
-                              key={`${member}-${index}`}
-                              className="flex items-center justify-between gap-2 rounded-md bg-bg-weak p-2.5 sm:p-3"
-                            >
-                              <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-                                <div
-                                  className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${colors.iconBg} sm:h-9 sm:w-9`}
-                                >
-                                  <Icon className={`h-4 w-4 ${colors.iconText}`} />
+                return (
+                  <aside
+                    key={role}
+                    className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm"
+                  >
+                    <div className="flex items-center justify-between gap-2 border-b border-stroke-soft p-4 sm:p-6">
+                      <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
+                        {roleLabel.plural}
+                      </h3>
+                      {canManageRoles && (
+                        <button
+                          onClick={() => openAddMemberModal(role)}
+                          className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
+                          aria-label={formatMessage(
+                            { id: "app.admin.roles.add" },
+                            { role: roleLabel.singular }
+                          )}
+                          type="button"
+                        >
+                          <RiUserAddLine className="mr-1 h-4 w-4" />
+                          {formatMessage({ id: "app.garden.admin.add" })}
+                        </button>
+                      )}
+                    </div>
+                    <div className="p-4 sm:p-6">
+                      {members.length === 0 ? (
+                        <p className="py-4 text-center text-sm text-text-soft">
+                          {formatMessage(
+                            { id: "app.admin.roles.empty" },
+                            { role: roleLabel.plural }
+                          )}
+                        </p>
+                      ) : (
+                        <>
+                          <div className="space-y-2 sm:space-y-3">
+                            {members.slice(0, 3).map((member: string, index: number) => (
+                              <div
+                                key={`${member}-${index}`}
+                                className="flex items-center justify-between gap-2 rounded-md bg-bg-weak p-2.5 sm:p-3"
+                              >
+                                <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+                                  <div
+                                    className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${colors.iconBg} sm:h-9 sm:w-9`}
+                                  >
+                                    <Icon className={`h-4 w-4 ${colors.iconText}`} />
+                                  </div>
+                                  <AddressDisplay address={member} className="min-w-0 flex-1" />
                                 </div>
-                                <AddressDisplay address={member} className="min-w-0 flex-1" />
+                                {canManageRoles && (
+                                  <button
+                                    onClick={() => setMemberToRemove({ address: member, role })}
+                                    disabled={isLoading}
+                                    className="flex h-9 w-9 min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20 sm:min-h-0 sm:min-w-0"
+                                    aria-label={formatMessage(
+                                      { id: "app.admin.roles.remove" },
+                                      { role: roleLabel.singular }
+                                    )}
+                                    type="button"
+                                  >
+                                    <RiDeleteBinLine className="h-4 w-4" />
+                                  </button>
+                                )}
                               </div>
-                              {canManageRoles && (
-                                <button
-                                  onClick={() => setMemberToRemove({ address: member, role })}
-                                  disabled={isLoading}
-                                  className="flex h-9 w-9 min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20 sm:min-h-0 sm:min-w-0"
-                                  aria-label={formatMessage(
-                                    { id: "app.admin.roles.remove" },
-                                    { role: roleLabel.singular }
-                                  )}
-                                  type="button"
-                                >
-                                  <RiDeleteBinLine className="h-4 w-4" />
-                                </button>
+                            ))}
+                          </div>
+                          {members.length > 3 && (
+                            <button
+                              type="button"
+                              onClick={() => openMembersModal(role)}
+                              className="mt-3 w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
+                            >
+                              {formatMessage(
+                                { id: "app.garden.admin.viewAllCount" },
+                                { count: members.length }
                               )}
-                            </div>
-                          ))}
-                        </div>
-                        {members.length > 3 && (
-                          <button
-                            type="button"
-                            onClick={() => openMembersModal(role)}
-                            className="mt-3 w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
-                          >
-                            {formatMessage(
-                              { id: "app.garden.admin.viewAllCount" },
-                              { count: members.length }
-                            )}
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </aside>
-              );
-            })}
-          </div>
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </aside>
+                );
+              })}
+            </div>
+          </ErrorBoundary>
         </section>
 
         {/* Assessments: Sidebar */}

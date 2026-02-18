@@ -482,6 +482,31 @@ export interface ENSRegistrationData {
 }
 
 // ============================================
+// Assessment Workflow Types
+// ============================================
+
+/** Parameters for the assessment creation XState workflow */
+export interface AssessmentWorkflowParams {
+  gardenId: Address;
+  title: string;
+  description: string;
+  assessmentType: string;
+  capitals: string[];
+  metrics: string | Record<string, unknown>;
+  evidenceMedia: File[];
+  reportDocuments: string[];
+  impactAttestations: string[];
+  startDate: string | number | null;
+  endDate: string | number | null;
+  location: string;
+  tags: string[];
+  domain?: number;
+}
+
+/** @deprecated Use AssessmentWorkflowParams instead */
+export type CreateAssessmentForm = AssessmentWorkflowParams;
+
+// ============================================
 // UI Helper Types
 // ============================================
 

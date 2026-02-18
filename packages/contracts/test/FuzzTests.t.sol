@@ -52,8 +52,10 @@ contract FuzzTests is Test, ERC6551Helper {
         ERC1967Proxy gardenProxy = new ERC1967Proxy(address(gardenTokenImpl), gardenInitData);
         gardenToken = GardenToken(address(gardenProxy));
         mockHatsModule = new MockHatsModule();
-        vm.prank(multisig);
+        vm.startPrank(multisig);
         gardenToken.setHatsModule(address(mockHatsModule));
+        gardenToken.setCommunityToken(address(mockToken));
+        vm.stopPrank();
     }
 
     /// @notice Fuzz test action registration with random timestamps
@@ -98,7 +100,6 @@ contract FuzzTests is Test, ERC6551Helper {
 
         vm.prank(multisig);
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(mockToken),
             name: name,
             slug: "",
             description: description,
@@ -126,7 +127,6 @@ contract FuzzTests is Test, ERC6551Helper {
 
         for (uint256 i = 0; i < batchSize; i++) {
             configs[i] = GardenToken.GardenConfig({
-                communityToken: address(mockToken),
                 name: string(abi.encodePacked("Garden", uint2str(i))),
                 slug: "",
                 description: "Description",
@@ -149,7 +149,6 @@ contract FuzzTests is Test, ERC6551Helper {
     function testFuzz_OpenJoiningInitialization(bool openJoiningValue) public {
         vm.prank(multisig);
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(mockToken),
             name: "Test",
             slug: "",
             description: "Description",
@@ -245,7 +244,6 @@ contract FuzzTests is Test, ERC6551Helper {
         vm.assume(caller != address(0));
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(mockToken),
             name: "Unauthorized Garden",
             slug: "",
             description: "Desc",

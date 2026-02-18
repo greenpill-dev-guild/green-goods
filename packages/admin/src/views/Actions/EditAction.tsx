@@ -15,6 +15,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useIntl } from "react-intl";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
@@ -31,7 +32,8 @@ type EditActionFormData = z.infer<typeof editActionSchema>;
 export default function EditAction() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: actions = [] } = useActions(DEFAULT_CHAIN_ID);
+  const { formatMessage } = useIntl();
+  const { data: actions = [], isLoading: actionsLoading } = useActions(DEFAULT_CHAIN_ID);
   const action = actions.find((a) => a.id === id);
   const {
     updateActionTitle,
@@ -79,8 +81,8 @@ export default function EditAction() {
         if (isMounted()) {
           logger.error("Failed to load instructions", { error });
           toastService.error({
-            title: "Failed to load instructions",
-            description: "Using default template instead",
+            title: formatMessage({ id: "app.actions.edit.loadInstructionsFailed" }),
+            description: formatMessage({ id: "app.actions.edit.usingDefault" }),
           });
         }
       } finally {
@@ -92,12 +94,20 @@ export default function EditAction() {
     [action?.id, action?.instructions]
   );
 
+  if (actionsLoading) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-text-sub">{formatMessage({ id: "app.actions.loading" })}</p>
+      </div>
+    );
+  }
+
   if (!action) {
     return (
       <div className="text-center py-12">
-        <p className="text-text-sub">Action not found</p>
+        <p className="text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
         <Link to="/actions" className="text-green-600 hover:underline mt-2 inline-block">
-          Back to Actions
+          {formatMessage({ id: "app.actions.backToActions" })}
         </Link>
       </div>
     );
@@ -120,7 +130,9 @@ export default function EditAction() {
       }
 
       if (isEditingInstructions) {
-        toastService.loading({ title: "Uploading new instructions to IPFS..." });
+        toastService.loading({
+          title: formatMessage({ id: "app.actions.edit.uploadingInstructions" }),
+        });
         const instructionsBlob = new Blob([JSON.stringify(instructionConfig, null, 2)], {
           type: "application/json",
         });
@@ -134,29 +146,34 @@ export default function EditAction() {
         await updateActionInstructions(actionUID, instructionsCID);
       }
 
-      toastService.success({ title: "Action updated successfully" });
+      toastService.success({ title: formatMessage({ id: "app.actions.edit.success" }) });
       navigate(`/actions/${id}`);
     } catch (error) {
       logger.error("Failed to update action", { error });
-      toastService.error({ title: "Failed to update action" });
+      toastService.error({ title: formatMessage({ id: "app.actions.edit.failed" }) });
     }
   };
 
   return (
     <div>
-      <PageHeader title={`Edit: ${action.title}`} description="Update action details" />
+      <PageHeader
+        title={formatMessage({ id: "app.actions.edit.title" }, { name: action.title })}
+        description={formatMessage({ id: "app.actions.edit.description" })}
+      />
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 max-w-4xl space-y-6">
         {/* Basic Fields */}
         <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
-          <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+          <h3 className="text-lg font-semibold mb-4">
+            {formatMessage({ id: "app.actions.edit.basicInfo" })}
+          </h3>
           <div className="space-y-4">
             <div>
               <label
                 htmlFor="action-title"
                 className="block text-sm font-medium text-text-strong mb-2"
               >
-                Title
+                {formatMessage({ id: "app.assessment.table.title" })}
               </label>
               <input
                 id="action-title"
@@ -177,7 +194,7 @@ export default function EditAction() {
                   htmlFor="action-start-time"
                   className="block text-sm font-medium text-text-strong mb-2"
                 >
-                  Start Time
+                  {formatMessage({ id: "app.actions.detail.startTime" })}
                 </label>
                 <input
                   id="action-start-time"
@@ -195,7 +212,7 @@ export default function EditAction() {
                   htmlFor="action-end-time"
                   className="block text-sm font-medium text-text-strong mb-2"
                 >
-                  End Time
+                  {formatMessage({ id: "app.actions.detail.endTime" })}
                 </label>
                 <input
                   id="action-end-time"
@@ -212,26 +229,31 @@ export default function EditAction() {
         {/* Instructions Configuration */}
         <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Instructions Configuration</h3>
+            <h3 className="text-lg font-semibold">
+              {formatMessage({ id: "app.actions.edit.instructionsConfig" })}
+            </h3>
             {!isLoadingInstructions && (
               <button
                 type="button"
                 onClick={() => setIsEditingInstructions(!isEditingInstructions)}
                 className="text-sm text-green-600 hover:text-green-700"
               >
-                {isEditingInstructions ? "Cancel editing" : "Edit instructions"}
+                {isEditingInstructions
+                  ? formatMessage({ id: "app.actions.edit.cancelEditing" })
+                  : formatMessage({ id: "app.actions.edit.editInstructions" })}
               </button>
             )}
           </div>
 
           {isLoadingInstructions ? (
-            <p className="text-text-sub text-sm">Loading instructions...</p>
+            <p className="text-text-sub text-sm">
+              {formatMessage({ id: "app.actions.edit.loadingInstructions" })}
+            </p>
           ) : isEditingInstructions ? (
             <InstructionsBuilder value={instructionConfig} onChange={setInstructionConfig} />
           ) : (
             <p className="text-text-sub text-sm">
-              Click &quot;Edit instructions&quot; to modify the work submission form configuration.
-              This will create a new version of the instructions.
+              {formatMessage({ id: "app.actions.edit.instructionsHint" })}
             </p>
           )}
         </div>
@@ -243,14 +265,16 @@ export default function EditAction() {
             disabled={isLoading}
             className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
           >
-            {isLoading ? "Saving..." : "Save Changes"}
+            {isLoading
+              ? formatMessage({ id: "app.actions.edit.saving" })
+              : formatMessage({ id: "app.actions.edit.saveChanges" })}
           </button>
           <button
             type="button"
             onClick={() => navigate(`/actions/${id}`)}
             className="rounded-md border border-stroke-soft px-4 py-2 text-sm font-medium text-text-strong hover:bg-bg-soft"
           >
-            Cancel
+            {formatMessage({ id: "app.common.cancel" })}
           </button>
         </div>
       </form>

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Address } from "viem";
+import type { Address } from "../../types/domain";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { getVaultEvents } from "../../modules/data/vaults";
 import type { VaultEvent } from "../../types/vaults";

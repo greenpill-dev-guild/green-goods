@@ -110,6 +110,9 @@ vi.mock("@green-goods/shared", () => ({
     inputs: [],
     mediaInfo: { required: false, maxImageCount: 5 },
   }),
+  // offline + timers
+  useOffline: () => ({ isOnline: true, pendingCount: 0, syncStatus: "idle" }),
+  useTimeout: () => ({ set: vi.fn(), clear: vi.fn(), isPending: false }),
   // modules
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));

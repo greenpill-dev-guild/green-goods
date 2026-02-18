@@ -5,10 +5,10 @@
  * 2. hypercertMinter.setApprovalForAll(transferManager, true)
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Address } from "viem";
+import type { Address } from "../../types/domain";
 import { useWalletClient } from "wagmi";
 
-import { DEFAULT_CHAIN_ID } from "../../config";
+import { DEFAULT_CHAIN_ID, createPublicClientForChain } from "../../config";
 import { logger } from "../../modules/app/logger";
 import {
   checkMarketplaceApprovals,
@@ -37,10 +37,11 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
   const operator = (smartAccountAddress || eoaAddress) as Address | undefined;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: queryKeys.marketplace.approvals(operator!, chainId),
+    queryKey: queryKeys.marketplace.approvals(operator ?? ("" as Address), chainId),
     queryFn: () => {
+      if (!operator) throw new Error("Operator address required");
       logger.debug("[useMarketplaceApprovals] Checking approvals", { operator, chainId });
-      return checkMarketplaceApprovals(operator!, chainId);
+      return checkMarketplaceApprovals(operator, chainId);
     },
     enabled: Boolean(operator),
   });
@@ -53,6 +54,8 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
 
       const txs = await buildApprovalTransactions(operator, chainId);
 
+      const publicClient = createPublicClientForChain(chainId);
+
       // Execute approval transactions sequentially
       if (txs.grantExchange) {
         logger.info("[useMarketplaceApprovals] Granting exchange approval", { operator, chainId });
@@ -63,11 +66,12 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
           });
           await smartAccountClient.getUserOperationReceipt({ hash });
         } else if (walletClient) {
-          await walletClient.sendTransaction({
+          const hash = await walletClient.sendTransaction({
             to: txs.grantExchange.to,
             data: txs.grantExchange.data,
             account: operator,
           });
+          await publicClient.waitForTransactionReceipt({ hash });
         }
       }
 
@@ -80,11 +84,12 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
           });
           await smartAccountClient.getUserOperationReceipt({ hash });
         } else if (walletClient) {
-          await walletClient.sendTransaction({
+          const hash = await walletClient.sendTransaction({
             to: txs.approveMinter.to,
             data: txs.approveMinter.data,
             account: operator,
           });
+          await publicClient.waitForTransactionReceipt({ hash });
         }
       }
     },

@@ -62,14 +62,16 @@ export function useDraftResume(options: UseDraftResumeOptions) {
   const hasCheckedDraft = useRef(false);
   const hasResumedDraft = useRef(false);
 
+  // Extract draftId as a primitive to avoid re-running the effect
+  // when the searchParams object reference changes but draftId hasn't
+  const draftIdFromUrl = searchParams.get("draftId");
+
   /**
    * Resume draft from URL parameter
    * Uses AbortController for proper cancellation on unmount
    */
   useEffect(() => {
     if (hasResumedDraft.current) return;
-
-    const draftIdFromUrl = searchParams.get("draftId");
     if (!draftIdFromUrl) return;
 
     const controller = new AbortController();
@@ -80,8 +82,6 @@ export function useDraftResume(options: UseDraftResumeOptions) {
         // Check if aborted before updating state
         if (controller.signal.aborted) return;
 
-        // Use searchParams copy instead of window.location.search
-        // This preserves any params added after the effect started
         const currentParams = new URLSearchParams(searchParams.toString());
         currentParams.delete("draftId");
         setSearchParams(currentParams, { replace: true });
@@ -100,7 +100,6 @@ export function useDraftResume(options: UseDraftResumeOptions) {
           metadata: { draft_id: draftIdFromUrl, operation: "resume_draft" },
         });
 
-        // Use searchParams copy instead of window.location.search
         const currentParams = new URLSearchParams(searchParams.toString());
         currentParams.delete("draftId");
         setSearchParams(currentParams, { replace: true });
@@ -109,7 +108,7 @@ export function useDraftResume(options: UseDraftResumeOptions) {
     return () => {
       controller.abort();
     };
-  }, [searchParams, setSearchParams, resumeDraft]);
+  }, [draftIdFromUrl, setSearchParams, resumeDraft]);
 
   /**
    * Check for meaningful draft progress to show dialog
@@ -119,7 +118,6 @@ export function useDraftResume(options: UseDraftResumeOptions) {
     hasCheckedDraft.current = true;
 
     // Don't show dialog if resuming a draft from URL
-    const draftIdFromUrl = searchParams.get("draftId");
     if (draftIdFromUrl) return;
 
     // Images are the strongest indicator of draft progress
@@ -138,7 +136,7 @@ export function useDraftResume(options: UseDraftResumeOptions) {
     if (hasMeaningfulDraft && isOnIntroTab) {
       setShowDraftDialog(true);
     }
-  }, [formState, isOnIntroTab, searchParams]);
+  }, [formState, isOnIntroTab, draftIdFromUrl]);
 
   /**
    * Continue with the existing draft

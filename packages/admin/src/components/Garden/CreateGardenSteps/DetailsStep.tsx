@@ -1,30 +1,28 @@
 import {
   cn,
-  formatAddress,
   imageCompressor,
-  isValidAddressFormat,
   logger,
   resolveIPFSUrl,
   suggestSlug,
   toastService,
   uploadFileToIPFS,
   useCreateGardenStore,
-  useEnsAddress,
   useSlugAvailability,
   validateSlug,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isAddress } from "viem";
+import { useIntl } from "react-intl";
 import { FileUploadField } from "../../FileUploadField";
 
-type DetailField = "name" | "slug" | "description" | "location" | "communityToken";
+type DetailField = "name" | "slug" | "description" | "location";
 
 interface DetailsStepProps {
   showValidation: boolean;
 }
 
 export function DetailsStep({ showValidation }: DetailsStepProps) {
+  const { formatMessage } = useIntl();
   const form = useCreateGardenStore((s) => s.form);
   const setField = useCreateGardenStore((s) => s.setField);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -35,28 +33,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
     slug: false,
     description: false,
     location: false,
-    communityToken: false,
   });
-
-  // ENS resolution for community token
-  const trimmedCommunityToken = form.communityToken.trim();
-  const isCommunityTokenHexAddress = useMemo(
-    () => (trimmedCommunityToken ? isAddress(trimmedCommunityToken) : false),
-    [trimmedCommunityToken]
-  );
-  const shouldResolveCommunityTokenEns =
-    trimmedCommunityToken.length > 2 && !isCommunityTokenHexAddress;
-  const { data: resolvedCommunityTokenAddress, isFetching: resolvingCommunityTokenEns } =
-    useEnsAddress(shouldResolveCommunityTokenEns ? trimmedCommunityToken : null, {
-      enabled: shouldResolveCommunityTokenEns,
-    });
-
-  // Auto-update form field when ENS resolves
-  useEffect(() => {
-    if (resolvedCommunityTokenAddress && shouldResolveCommunityTokenEns) {
-      setField("communityToken", resolvedCommunityTokenAddress);
-    }
-  }, [resolvedCommunityTokenAddress, shouldResolveCommunityTokenEns, setField]);
 
   // Auto-suggest slug from garden name (only if slug hasn't been manually edited)
   const slugManuallyEdited = useRef(false);
@@ -74,34 +51,38 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
 
   const detailsErrors = useMemo(
     () => ({
-      name: form.name.trim().length > 0 ? null : "Garden name is required",
+      name:
+        form.name.trim().length > 0
+          ? null
+          : formatMessage({
+              id: "app.garden.create.nameRequired",
+              defaultMessage: "Garden name is required",
+            }),
       slug:
         trimmedSlug.length === 0
-          ? "ENS slug is required"
+          ? formatMessage({
+              id: "app.garden.create.slugRequired",
+              defaultMessage: "ENS slug is required",
+            })
           : slugValidation.valid
             ? null
             : slugValidation.error,
-      description: form.description.trim().length > 0 ? null : "Description is required",
-      location: form.location.trim().length > 0 ? null : "Location is required",
-      communityToken:
-        isValidAddressFormat(form.communityToken.trim()) || resolvedCommunityTokenAddress
+      description:
+        form.description.trim().length > 0
           ? null
-          : form.communityToken.trim().length === 0
-            ? "Community token address is required"
-            : resolvingCommunityTokenEns
-              ? null // Don't show error while resolving
-              : "Enter a valid wallet address or ENS name",
+          : formatMessage({
+              id: "app.garden.create.descriptionRequired",
+              defaultMessage: "Description is required",
+            }),
+      location:
+        form.location.trim().length > 0
+          ? null
+          : formatMessage({
+              id: "app.garden.create.locationRequired",
+              defaultMessage: "Location is required",
+            }),
     }),
-    [
-      form.name,
-      trimmedSlug,
-      slugValidation,
-      form.description,
-      form.location,
-      form.communityToken,
-      resolvedCommunityTokenAddress,
-      resolvingCommunityTokenEns,
-    ]
+    [form.name, trimmedSlug, slugValidation, form.description, form.location, formatMessage]
   );
 
   const handleBannerUpload = async (files: File[]) => {
@@ -138,16 +119,28 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
       setBannerUploadProgress(100);
 
       toastService.success({
-        title: "Banner uploaded",
-        message: "Image uploaded successfully to IPFS",
+        title: formatMessage({
+          id: "app.garden.create.bannerUploaded",
+          defaultMessage: "Banner uploaded",
+        }),
+        message: formatMessage({
+          id: "app.garden.create.bannerUploadedMessage",
+          defaultMessage: "Image uploaded successfully to IPFS",
+        }),
         context: "banner upload",
         suppressLogging: true,
       });
     } catch (error) {
       logger.error("Banner upload failed", { error });
       toastService.error({
-        title: "Upload failed",
-        message: "Could not upload banner image. Please try again.",
+        title: formatMessage({
+          id: "app.garden.create.uploadFailed",
+          defaultMessage: "Upload failed",
+        }),
+        message: formatMessage({
+          id: "app.garden.create.uploadFailedMessage",
+          defaultMessage: "Could not upload banner image. Please try again.",
+        }),
         context: "banner upload",
         error,
       });
@@ -172,7 +165,12 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-3">
         <label className="space-y-0.5 text-sm">
-          <span className="font-medium text-text-sub">Garden name *</span>
+          <span className="font-medium text-text-sub">
+            {formatMessage({
+              id: "app.garden.create.gardenNameLabel",
+              defaultMessage: "Garden name *",
+            })}
+          </span>
           <div className="rounded-lg bg-bg-weak p-2">
             <input
               value={form.name}
@@ -193,7 +191,9 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           </span>
         </label>
         <label className="space-y-0.5 text-sm">
-          <span className="font-medium text-text-sub">Location *</span>
+          <span className="font-medium text-text-sub">
+            {formatMessage({ id: "app.garden.create.locationLabel", defaultMessage: "Location *" })}
+          </span>
           <div className="rounded-lg bg-bg-weak p-2">
             <input
               value={form.location}
@@ -217,7 +217,12 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         </label>
       </div>
       <label className="space-y-0.5 text-sm">
-        <span className="font-medium text-text-sub">ENS subdomain *</span>
+        <span className="font-medium text-text-sub">
+          {formatMessage({
+            id: "app.garden.create.ensSubdomainLabel",
+            defaultMessage: "ENS subdomain *",
+          })}
+        </span>
         <div className="rounded-lg bg-bg-weak p-2">
           <div className="relative">
             <input
@@ -263,10 +268,18 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         <span className="text-xs text-text-soft">
           {trimmedSlug
             ? `${trimmedSlug}.greengoods.eth`
-            : "This will be your garden's ENS name on greengoods.eth"}
+            : formatMessage({
+                id: "app.garden.create.ensHint",
+                defaultMessage: "This will be your garden's ENS name on greengoods.eth",
+              })}
         </span>
         {slugValidation.valid && isSlugAvailable === false && !isCheckingSlug && (
-          <span className="block text-xs text-error-base">This name is already taken</span>
+          <span className="block text-xs text-error-base">
+            {formatMessage({
+              id: "app.garden.create.slugTaken",
+              defaultMessage: "This name is already taken",
+            })}
+          </span>
         )}
         {/* Always render to reserve space and prevent layout shift */}
         <span className="block min-h-[1.25rem] text-xs text-error-base">
@@ -274,7 +287,12 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         </span>
       </label>
       <label className="space-y-0.5 text-sm">
-        <span className="font-medium text-text-sub">Description *</span>
+        <span className="font-medium text-text-sub">
+          {formatMessage({
+            id: "app.garden.create.descriptionLabel",
+            defaultMessage: "Description *",
+          })}
+        </span>
         <div className="rounded-lg bg-bg-weak p-2">
           <textarea
             value={form.description}
@@ -297,68 +315,42 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             : "\u00A0"}
         </span>
       </label>
-      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-3">
-        <label className="space-y-0.5 text-sm">
-          <span className="font-medium text-text-sub">Community token address *</span>
-          <div className="rounded-lg bg-bg-weak p-2">
-            <input
-              value={form.communityToken}
-              onChange={(event) => setField("communityToken", event.target.value)}
-              onBlur={() => handleFieldBlur("communityToken")}
-              placeholder="0x... or token.eth"
-              className={cn(
-                "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm font-mono text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
-                showFieldError("communityToken") &&
-                  detailsErrors.communityToken &&
-                  "border-error-base focus:border-error-base focus:ring-error-lighter"
+      <div className="space-y-0.5 text-sm">
+        <FileUploadField
+          label={formatMessage({
+            id: "app.garden.create.bannerImageLabel",
+            defaultMessage: "Banner image",
+          })}
+          helpText={formatMessage({
+            id: "app.garden.create.bannerImageHelp",
+            defaultMessage: "Upload a hero image showcasing the garden (optional)",
+          })}
+          accept="image/*"
+          multiple={false}
+          compress={true}
+          showPreview={true}
+          disabled={isUploadingBanner}
+          onFilesChange={handleBannerUpload}
+          currentFiles={bannerFile ? [bannerFile] : []}
+          onRemoveFile={handleRemoveBanner}
+        />
+        {isUploadingBanner && (
+          <div className="flex items-center gap-2 text-xs text-text-sub">
+            <RiLoader4Line className="h-4 w-4 animate-spin" />
+            <span>
+              {formatMessage(
+                { id: "app.garden.create.uploading", defaultMessage: "Uploading... {progress}%" },
+                { progress: Math.round(bannerUploadProgress) }
               )}
-            />
-          </div>
-          <span className="text-xs text-text-soft">
-            Must match the ERC-20 token powering the community.
-          </span>
-          {shouldResolveCommunityTokenEns && (
-            <span className="text-xs text-text-soft">
-              {resolvingCommunityTokenEns
-                ? "Resolving ENS name..."
-                : resolvedCommunityTokenAddress
-                  ? `Resolves to ${formatAddress(resolvedCommunityTokenAddress)}`
-                  : "Enter a valid ENS name or 0x address."}
             </span>
-          )}
-          {/* Always render to reserve space and prevent layout shift */}
-          <span className="block min-h-[1.25rem] text-xs text-error-base">
-            {showFieldError("communityToken") && detailsErrors.communityToken
-              ? detailsErrors.communityToken
-              : "\u00A0"}
-          </span>
-        </label>
-        <div className="space-y-0.5 text-sm">
-          <FileUploadField
-            label="Banner image"
-            helpText="Upload a hero image showcasing the garden (optional)"
-            accept="image/*"
-            multiple={false}
-            compress={true}
-            showPreview={true}
-            disabled={isUploadingBanner}
-            onFilesChange={handleBannerUpload}
-            currentFiles={bannerFile ? [bannerFile] : []}
-            onRemoveFile={handleRemoveBanner}
-          />
-          {isUploadingBanner && (
-            <div className="flex items-center gap-2 text-xs text-text-sub">
-              <RiLoader4Line className="h-4 w-4 animate-spin" />
-              <span>Uploading... {Math.round(bannerUploadProgress)}%</span>
-            </div>
-          )}
-          {form.bannerImage && !bannerFile && (
-            <div className="mt-2">
-              <p className="text-xs text-text-soft">Current URL:</p>
-              <p className="mt-1 break-all text-xs font-mono text-text-sub">{form.bannerImage}</p>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+        {form.bannerImage && !bannerFile && (
+          <div className="mt-2">
+            <p className="text-xs text-text-soft">Current URL:</p>
+            <p className="mt-1 break-all text-xs font-mono text-text-sub">{form.bannerImage}</p>
+          </div>
+        )}
       </div>
     </div>
   );

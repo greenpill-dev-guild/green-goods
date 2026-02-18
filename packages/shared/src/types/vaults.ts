@@ -49,6 +49,8 @@ export interface DepositParams {
   vaultAddress: Address;
   amount: bigint;
   receiver?: Address;
+  /** Minimum shares to accept. Defaults to 99% of previewDeposit (1% slippage). */
+  minSharesOut?: bigint;
 }
 
 export interface WithdrawParams {

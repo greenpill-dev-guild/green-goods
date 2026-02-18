@@ -84,8 +84,10 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         bytes memory hatsInitData = abi.encodeWithSelector(HatsModule.initialize.selector, multisig, address(mockHats));
         hatsModule = HatsModule(address(new ERC1967Proxy(address(hatsImpl), hatsInitData)));
 
-        vm.prank(multisig);
+        vm.startPrank(multisig);
         gardenToken.setHatsModule(address(hatsModule));
+        gardenToken.setCommunityToken(address(communityToken));
+        vm.stopPrank();
 
         vm.prank(multisig);
         hatsModule.setGardenToken(address(gardenToken));
@@ -108,7 +110,6 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
     function _mintGarden(bool openJoining) internal returns (address garden) {
         vm.prank(multisig);
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "E2E Test Garden",
             slug: "",
             description: "A complete workflow test garden",
@@ -313,7 +314,7 @@ contract E2EWorkflowTest is Test, ERC6551Helper {
         assertTrue(result, "Assessment attestation should succeed for operator");
     }
 
-    /// @notice Non-member cannot create assessment (reverts with NotGardenOperator)
+    /// @notice Non-member cannot create assessment (reverts with NotAuthorizedAttester)
     function test_assessmentAttestation_nonMember_reverts() public {
         address garden = _mintGarden(false);
         _grantRoles(garden);

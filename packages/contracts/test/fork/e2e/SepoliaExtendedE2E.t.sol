@@ -34,9 +34,7 @@ contract SepoliaExtendedE2EForkTest is ForkTestBase {
         // Mock CCIP send to avoid actual cross-chain message (real router validates)
         address ccipRouter = address(greenGoodsENS.CCIP_ROUTER());
         vm.mockCall(
-            ccipRouter,
-            abi.encodeWithSelector(IRouterClient.ccipSend.selector),
-            abi.encode(bytes32("mock-message-id"))
+            ccipRouter, abi.encodeWithSelector(IRouterClient.ccipSend.selector), abi.encode(bytes32("mock-message-id"))
         );
 
         // Mint garden with a valid slug
@@ -45,7 +43,6 @@ contract SepoliaExtendedE2EForkTest is ForkTestBase {
         assertGt(fee, 0, "CCIP fee should be non-zero from real router");
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "ENS Slug Garden",
             slug: slug,
             description: "Garden with ENS slug",
@@ -86,9 +83,7 @@ contract SepoliaExtendedE2EForkTest is ForkTestBase {
         // Mock CCIP send
         address ccipRouter = address(greenGoodsENS.CCIP_ROUTER());
         vm.mockCall(
-            ccipRouter,
-            abi.encodeWithSelector(IRouterClient.ccipSend.selector),
-            abi.encode(bytes32("mock-claim-id"))
+            ccipRouter, abi.encodeWithSelector(IRouterClient.ccipSend.selector), abi.encode(bytes32("mock-claim-id"))
         );
 
         // Get fee for member name claim

@@ -132,7 +132,6 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
 
         // Garden 2: Exponential
         GardenToken.GardenConfig memory config2 = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Exponential Garden",
             slug: "",
             description: "Uses exponential weighting",
@@ -155,7 +154,6 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
 
         // Garden 3: Power
         GardenToken.GardenConfig memory config3 = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Power Garden",
             slug: "",
             description: "Uses power weighting",
@@ -354,5 +352,210 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
         }
 
         emit log("All 3 members staked successfully");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Phase 4: Arbitrum Fork Tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Direct pool creation on Arbitrum with PointSystem.Unlimited
+    function test_fork_arbitrum_poolCreationUnlimited() public {
+        if (!_setupWithRealGardensV2("arbitrum")) {
+            emit log("SKIPPED: No Arbitrum RPC URL configured");
+            return;
+        }
+
+        address garden = _mintTestGarden("Arb Pool Garden", 0x0F);
+        address community = gardensModule.getGardenCommunity(garden);
+        if (community == address(0)) {
+            emit log("SKIPPED: Community not created (factory may have changed)");
+            return;
+        }
+
+        // Build pool params with Unlimited point system (no registry needed)
+        CVStrategyInitializeParamsV0_3 memory strategyParams = CVStrategyInitializeParamsV0_3({
+            cvParams: CVParams({
+                maxRatio: GardensModule(address(gardensModule)).DEFAULT_MAX_RATIO(),
+                weight: GardensModule(address(gardensModule)).DEFAULT_WEIGHT(),
+                decay: GardensModule(address(gardensModule)).DEFAULT_DECAY(),
+                minThresholdPoints: GardensModule(address(gardensModule)).DEFAULT_MIN_THRESHOLD_POINTS()
+            }),
+            proposalType: ProposalType.Signaling,
+            pointSystem: PointSystem.Unlimited,
+            pointConfig: PointSystemConfig({ maxAmount: 0 }),
+            arbitrableConfig: ArbitrableConfig({
+                arbitrator: address(0),
+                tribunalSafe: address(0),
+                submitterCollateralAmount: 0,
+                challengerCollateralAmount: 0,
+                defaultRuling: 0,
+                defaultRulingTimeout: 0
+            }),
+            registryCommunity: community,
+            votingPowerRegistry: address(0),
+            sybilScorer: address(0),
+            sybilScorerThreshold: 0,
+            initialAllowlist: new address[](0),
+            superfluidToken: address(0),
+            streamingRatePerSecond: 0
+        });
+
+        Metadata memory poolMetadata = Metadata({ protocol: 1, pointer: "Arb Unlimited Pool" });
+
+        // Prank as the garden TBA (council Safe) to create pool directly on the community
+        vm.prank(garden);
+        (uint256 poolId, address strategy) =
+            IRegistryCommunity(community).createPool(address(0), strategyParams, poolMetadata);
+
+        assertTrue(strategy != address(0), "strategy should be deployed");
+        emit log_named_uint("poolId", poolId);
+        emit log_named_address("strategy", strategy);
+    }
+
+    /// @notice Single member staking on Arbitrum
+    function test_fork_arbitrum_memberStaking() public {
+        if (!_setupWithRealGardensV2("arbitrum")) {
+            emit log("SKIPPED: No Arbitrum RPC URL configured");
+            return;
+        }
+
+        address garden = _mintTestGarden("Arb Staking Garden", 0x0F);
+        address community = gardensModule.getGardenCommunity(garden);
+        if (community == address(0)) {
+            emit log("SKIPPED: Community not created (factory may have changed)");
+            return;
+        }
+
+        uint256 stakeAmount = gardensModule.stakeAmountPerMember();
+
+        // Fund forkGardener with GOODS tokens for staking
+        goodsToken.mint(forkGardener, stakeAmount);
+        assertEq(goodsToken.balanceOf(forkGardener), stakeAmount, "gardener should have GOODS");
+
+        // Approve community to spend GOODS
+        vm.prank(forkGardener);
+        IERC20(address(goodsToken)).approve(community, stakeAmount);
+
+        // Stake and register member
+        vm.prank(forkGardener);
+        IRegistryCommunity(community).stakeAndRegisterMember(forkGardener);
+
+        emit log("Member staked successfully on Arbitrum");
+        emit log_named_address("member", forkGardener);
+        emit log_named_uint("stakeAmount", stakeAmount);
+    }
+
+    /// @notice Multi-member staking with different roles on Arbitrum
+    function test_fork_arbitrum_multiMemberStaking() public {
+        if (!_setupWithRealGardensV2("arbitrum")) {
+            emit log("SKIPPED: No Arbitrum RPC URL configured");
+            return;
+        }
+
+        address garden = _mintTestGarden("Arb Multi-Stake Garden", 0x0F);
+        address community = gardensModule.getGardenCommunity(garden);
+        if (community == address(0)) {
+            emit log("SKIPPED: Community not created (factory may have changed)");
+            return;
+        }
+
+        uint256 stakeAmount = gardensModule.stakeAmountPerMember();
+
+        // Grant roles to test actors
+        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
+        _grantGardenRole(garden, forkEvaluator, IHatsModule.GardenRole.Evaluator);
+
+        // Stake each member
+        address[3] memory members = [forkOperator, forkGardener, forkEvaluator];
+        string[3] memory labels = ["operator", "gardener", "evaluator"];
+
+        for (uint256 i = 0; i < members.length; i++) {
+            goodsToken.mint(members[i], stakeAmount);
+            assertEq(goodsToken.balanceOf(members[i]), stakeAmount, "member should have GOODS");
+
+            vm.prank(members[i]);
+            IERC20(address(goodsToken)).approve(community, stakeAmount);
+
+            vm.prank(members[i]);
+            IRegistryCommunity(community).stakeAndRegisterMember(members[i]);
+
+            emit log_named_string("staked member role", labels[i]);
+            emit log_named_address("staked member address", members[i]);
+        }
+
+        emit log("All 3 members staked successfully on Arbitrum");
+    }
+
+    /// @notice Tests multiple gardens with different weight schemes on Arbitrum
+    function test_fork_arbitrum_weightSchemePerGarden() public {
+        if (!_setupWithRealGardensV2("arbitrum")) {
+            emit log("SKIPPED: No Arbitrum RPC URL configured");
+            return;
+        }
+
+        // Garden 1: Linear (default via _mintTestGarden)
+        address garden1 = _mintTestGarden("Arb Linear Garden", 0x01);
+        assertTrue(gardensModule.isGardenInitialized(garden1), "garden1 should be initialized");
+        assertEq(
+            uint256(gardensModule.getGardenWeightScheme(garden1)),
+            uint256(IGardensModule.WeightScheme.Linear),
+            "garden1 should have Linear scheme"
+        );
+        address community1 = gardensModule.getGardenCommunity(garden1);
+        assertTrue(community1 != address(0), "garden1 community should exist");
+
+        // Garden 2: Exponential
+        GardenToken.GardenConfig memory config2 = GardenToken.GardenConfig({
+            name: "Arb Exponential Garden",
+            slug: "",
+            description: "Uses exponential weighting",
+            location: "Test Location",
+            bannerImage: "ipfs://QmTest",
+            metadata: "",
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Exponential,
+            domainMask: 0x02
+        });
+        address garden2 = gardenToken.mintGarden(config2);
+        assertTrue(gardensModule.isGardenInitialized(garden2), "garden2 should be initialized");
+        assertEq(
+            uint256(gardensModule.getGardenWeightScheme(garden2)),
+            uint256(IGardensModule.WeightScheme.Exponential),
+            "garden2 should have Exponential scheme"
+        );
+        address community2 = gardensModule.getGardenCommunity(garden2);
+        assertTrue(community2 != address(0), "garden2 community should exist");
+
+        // Garden 3: Power
+        GardenToken.GardenConfig memory config3 = GardenToken.GardenConfig({
+            name: "Arb Power Garden",
+            slug: "",
+            description: "Uses power weighting",
+            location: "Test Location",
+            bannerImage: "ipfs://QmTest",
+            metadata: "",
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Power,
+            domainMask: 0x04
+        });
+        address garden3 = gardenToken.mintGarden(config3);
+        assertTrue(gardensModule.isGardenInitialized(garden3), "garden3 should be initialized");
+        assertEq(
+            uint256(gardensModule.getGardenWeightScheme(garden3)),
+            uint256(IGardensModule.WeightScheme.Power),
+            "garden3 should have Power scheme"
+        );
+        address community3 = gardensModule.getGardenCommunity(garden3);
+        assertTrue(community3 != address(0), "garden3 community should exist");
+
+        // All communities should be different addresses
+        assertTrue(community1 != community2, "community1 and community2 should differ");
+        assertTrue(community2 != community3, "community2 and community3 should differ");
+        assertTrue(community1 != community3, "community1 and community3 should differ");
+
+        emit log_named_address("Arb Linear community", community1);
+        emit log_named_address("Arb Exponential community", community2);
+        emit log_named_address("Arb Power community", community3);
     }
 }

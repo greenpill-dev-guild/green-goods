@@ -135,7 +135,7 @@ export function clearAllAuth(): void {
 // ============================================================================
 
 function isPasskeyDebugEnabled(): boolean {
-  return import.meta.env.DEV || import.meta.env.VITE_DEBUG_MODE === "true";
+  return Boolean(import.meta.env.DEV) || import.meta.env.VITE_DEBUG_MODE === "true";
 }
 
 /**

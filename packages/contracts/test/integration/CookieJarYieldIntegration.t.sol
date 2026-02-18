@@ -6,11 +6,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import { YieldResolver } from "../../src/resolvers/Yield.sol";
-import {
-    MockCookieJar,
-    MockJBMultiTerminalForYield,
-    MockOctantVaultForYield
-} from "../../src/mocks/YieldDeps.sol";
+import { MockCookieJar, MockJBMultiTerminalForYield, MockOctantVaultForYield } from "../../src/mocks/YieldDeps.sol";
 import { MockHatsModule } from "../helpers/MockHatsModule.sol";
 
 /// @title MockWETH — ERC20 for integration tests
@@ -92,11 +88,7 @@ contract CookieJarYieldIntegrationTest is Test {
         // Deploy YieldResolver via proxy
         YieldResolver impl = new YieldResolver();
         bytes memory initData = abi.encodeWithSelector(
-            YieldResolver.initialize.selector,
-            OWNER,
-            OCTANT_MODULE,
-            address(hatsModule),
-            MIN_THRESHOLD
+            YieldResolver.initialize.selector, OWNER, OCTANT_MODULE, address(hatsModule), MIN_THRESHOLD
         );
         yieldResolver = YieldResolver(address(new ERC1967Proxy(address(impl), initData)));
 
@@ -146,11 +138,7 @@ contract CookieJarYieldIntegrationTest is Test {
         uint256 expectedCookieJar = (yieldAmount * 4865) / 10_000;
 
         // Verify WETH jar received the CookieJar portion
-        assertEq(
-            weth.balanceOf(address(wethJar)),
-            expectedCookieJar,
-            "WETH jar should receive ~48.65% of yield"
-        );
+        assertEq(weth.balanceOf(address(wethJar)), expectedCookieJar, "WETH jar should receive ~48.65% of yield");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -168,11 +156,7 @@ contract CookieJarYieldIntegrationTest is Test {
 
         // Verify three-way split distribution
         assertEq(weth.balanceOf(address(wethJar)), expectedCookieJar, "CookieJar amount");
-        assertEq(
-            yieldResolver.getEscrowedFractions(GARDEN, address(weth)),
-            expectedFractions,
-            "Escrowed fractions amount"
-        );
+        assertEq(yieldResolver.getEscrowedFractions(GARDEN, address(weth)), expectedFractions, "Escrowed fractions amount");
         assertEq(jbTerminal.getPayCallCount(), 1, "JB should receive 1 payment");
         (,, uint256 jbAmount,) = jbTerminal.payCalls(0);
         assertEq(jbAmount, expectedJuicebox, "JB amount");
@@ -262,9 +246,7 @@ contract CookieJarYieldIntegrationTest is Test {
 
         // Cookie Jar should have accumulated across all cycles
         assertEq(
-            weth.balanceOf(address(wethJar)),
-            expectedPerCycle * cycles,
-            "Cookie Jar should accumulate across 3 splits"
+            weth.balanceOf(address(wethJar)), expectedPerCycle * cycles, "Cookie Jar should accumulate across 3 splits"
         );
 
         // Escrowed fractions should also accumulate

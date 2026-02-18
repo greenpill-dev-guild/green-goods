@@ -25,7 +25,10 @@ contract MockMarketplaceAdapter {
         OrderStructs.Maker calldata,
         bytes calldata,
         uint256 hypercertId
-    ) external returns (uint256 orderId) {
+    )
+        external
+        returns (uint256 orderId)
+    {
         orderId = _nextOrderId++;
         registerCalls.push(RegisterCall({ hypercertId: hypercertId, orderId: orderId }));
     }
@@ -34,7 +37,10 @@ contract MockMarketplaceAdapter {
         OrderStructs.Maker[] calldata,
         bytes[] calldata,
         uint256[] calldata hypercertIds
-    ) external returns (uint256[] memory orderIds) {
+    )
+        external
+        returns (uint256[] memory orderIds)
+    {
         orderIds = new uint256[](hypercertIds.length);
         for (uint256 i = 0; i < hypercertIds.length; i++) {
             uint256 orderId = _nextOrderId++;

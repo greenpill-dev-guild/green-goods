@@ -15,8 +15,7 @@ import { describe, expect, it, vi } from "vitest";
 // useEnsName, buildGardenMemberSets, getStatusColors, logger, etc. from here.
 vi.mock("@green-goods/shared", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
-  formatAddress: (addr: string, opts?: any) =>
-    opts?.ensName ? opts.ensName : addr?.slice(0, 6),
+  formatAddress: (addr: string, opts?: any) => (opts?.ensName ? opts.ensName : addr?.slice(0, 6)),
   formatFileSize: (size: number) => `${Math.round(size / 1024)}KB`,
   formatRelativeTime: () => "2 hours ago",
   truncateAddress: (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`,

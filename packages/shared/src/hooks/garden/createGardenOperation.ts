@@ -6,7 +6,8 @@
  * and optimistic update support.
  */
 
-import type { Abi, Address, WalletClient } from "viem";
+import type { Abi, WalletClient } from "viem";
+import type { Address } from "../../types/domain";
 import { toastService } from "../../components/toast";
 import {
   trackAdminMemberAddFailed,
@@ -20,6 +21,7 @@ import { HATS_MODULE_ABI } from "../../utils/blockchain/abis";
 import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
+import { parseContractError } from "../../utils/errors/contract-errors";
 import type { ToastActionOptions } from "../app/useToastAction";
 
 /** Helper to track operation started - reduces duplicate conditionals */
@@ -193,8 +195,8 @@ export function createGardenOperation(
   executeWithToast: ExecuteWithToast,
   setIsLoading: (loading: boolean) => void,
   onOptimisticUpdate?: OptimisticUpdateCallback
-): (targetAddress: string) => Promise<GardenOperationResult> {
-  return async (targetAddress: string): Promise<GardenOperationResult> => {
+): (targetAddress: Address) => Promise<GardenOperationResult> {
+  return async (targetAddress: Address): Promise<GardenOperationResult> => {
     if (!walletClient || !address) {
       return {
         success: false,
@@ -304,7 +306,6 @@ export function createGardenOperation(
       };
     } catch (error) {
       // Parse and return the error - optimistic update will be rolled back by caller
-      const { parseContractError } = await import("../../utils/errors/contract-errors");
       const parsed = parseContractError(error);
 
       // Track operation failure

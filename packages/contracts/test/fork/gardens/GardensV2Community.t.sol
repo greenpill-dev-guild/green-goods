@@ -137,7 +137,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
 
         // Garden 2: Exponential
         GardenToken.GardenConfig memory config2 = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Exponential Garden",
             slug: "",
             description: "Uses exponential weighting",
@@ -152,7 +151,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
 
         // Garden 3: Power
         GardenToken.GardenConfig memory config3 = GardenToken.GardenConfig({
-            communityToken: address(communityToken),
             name: "Power Garden",
             slug: "",
             description: "Uses power weighting",
@@ -215,6 +213,90 @@ contract GardensV2CommunityForkTest is ForkTestBase {
         gardensModule.setPowerRegistry(address(0xF2));
 
         // goodsToken was set to address(0) during deploy -- need to set it
+        if (address(gardensModule.goodsToken()) == address(0)) {
+            gardensModule.setGoodsToken(address(communityToken));
+        }
+
+        // Now check again
+        (bool wired2, string memory missing2) = gardensModule.isWiringComplete();
+        assertTrue(wired2, "wiring should be complete after setting all dependencies");
+        assertEq(bytes(missing2).length, 0, "missing message should be empty when fully wired");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Arbitrum Fork Tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Community creation on Arbitrum with real RegistryFactory
+    function test_fork_arbitrum_communityWithRealFactory() public {
+        if (!_tryChainFork("arbitrum")) {
+            emit log("SKIPPED: No Arbitrum RPC URL configured");
+            return;
+        }
+
+        _deployFullStackOnFork();
+
+        // Check if registryFactory is set on the deployed gardensModule
+        address factoryAddr = address(gardensModule.registryFactory());
+        if (factoryAddr == address(0)) {
+            emit log("SKIPPED: No RegistryFactory deployed on this chain");
+            return;
+        }
+
+        // If we have a real factory, mint a garden and verify community creation
+        address garden = _mintTestGarden("Arb Factory Garden", 0x0F);
+
+        // Community should have been created during mint (via onGardenMinted)
+        address community = gardensModule.getGardenCommunity(garden);
+        assertTrue(community != address(0), "community should be created with real factory");
+        assertTrue(gardensModule.isGardenInitialized(garden), "garden should be initialized");
+    }
+
+    /// @notice Retry community creation on Arbitrum after factory update
+    function test_fork_arbitrum_retryAfterFactoryUpdate() public {
+        if (!_tryChainFork("arbitrum")) {
+            emit log("SKIPPED: No Arbitrum RPC URL configured");
+            return;
+        }
+
+        _deployFullStackOnFork();
+
+        // Mint a garden — community should be zero due to missing factory in default deployment
+        address garden = _mintTestGarden("Arb Retry Garden", 0x0F);
+        assertTrue(gardensModule.isGardenInitialized(garden), "garden should be initialized");
+        assertEq(gardensModule.getGardenCommunity(garden), address(0), "community should be zero without factory");
+
+        // Set a mock factory and retry
+        address mockFactory = address(0xFACE);
+        gardensModule.setRegistryFactory(mockFactory);
+        assertEq(address(gardensModule.registryFactory()), mockFactory, "factory should be updated");
+
+        // retryCreateCommunity should not revert (graceful try/catch in _createCommunity)
+        address retryResult = gardensModule.retryCreateCommunity(garden);
+
+        // Result will be address(0) since mockFactory isn't a real contract with createRegistry
+        assertEq(retryResult, address(0), "retry with mock factory should gracefully return zero");
+    }
+
+    /// @notice Tests isWiringComplete diagnostics on Arbitrum fork
+    function test_fork_arbitrum_isWiringCompleteDiagnostics() public {
+        if (!_tryChainFork("arbitrum")) {
+            emit log("SKIPPED: No Arbitrum RPC URL configured");
+            return;
+        }
+
+        _deployFullStackOnFork();
+
+        // Default deployment has factories = address(0), so wiring should be incomplete
+        (bool wired, string memory missing) = gardensModule.isWiringComplete();
+
+        assertFalse(wired, "wiring should be incomplete with zero factories");
+        assertTrue(bytes(missing).length > 0, "missing message should be non-empty");
+
+        // Set all missing dependencies to make wiring complete
+        gardensModule.setRegistryFactory(address(0xF1));
+        gardensModule.setPowerRegistry(address(0xF2));
+
         if (address(gardensModule.goodsToken()) == address(0)) {
             gardensModule.setGoodsToken(address(communityToken));
         }

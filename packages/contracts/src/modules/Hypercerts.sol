@@ -1,18 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import {IHypercertMinter} from "../interfaces/IHypercertExchange.sol";
-import {OrderStructs} from "../interfaces/IHypercertExchange.sol";
-import {IGardensModule} from "../interfaces/IGardensModule.sol";
-import {IHatsModule} from "../interfaces/IHatsModule.sol";
+import { IHypercertMinter } from "../interfaces/IHypercertExchange.sol";
+import { OrderStructs } from "../interfaces/IHypercertExchange.sol";
+import { IGardensModule } from "../interfaces/IGardensModule.sol";
+import { IHatsModule } from "../interfaces/IHatsModule.sol";
 
 /// @notice Minimal interface for HypercertMarketplaceAdapter (avoids circular import)
 interface IMarketplaceAdapter {
-    function registerOrder(OrderStructs.Maker calldata makerAsk, bytes calldata signature, uint256 hypercertId)
+    function registerOrder(
+        OrderStructs.Maker calldata makerAsk,
+        bytes calldata signature,
+        uint256 hypercertId
+    )
         external
         returns (uint256 orderId);
 
@@ -20,7 +24,9 @@ interface IMarketplaceAdapter {
         OrderStructs.Maker[] calldata makerAsks,
         bytes[] calldata signatures,
         uint256[] calldata hypercertIds
-    ) external returns (uint256[] memory orderIds);
+    )
+        external
+        returns (uint256[] memory orderIds);
 
     function deactivateOrder(uint256 orderId) external;
 }
@@ -80,7 +86,10 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
         address _gardensModule,
         address _hatsModule,
         address _gardenToken
-    ) external initializer {
+    )
+        external
+        initializer
+    {
         if (_owner == address(0)) revert Unauthorized(address(0));
 
         __Ownable_init();
@@ -104,7 +113,12 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
     /// @param merkleRoot Merkle root for the allowlist (0 for open)
     /// @param metadataUri IPFS URI for hypercert metadata
     /// @return hypercertId The newly minted hypercert ID
-    function mintAndRegister(address garden, uint256 totalUnits, bytes32 merkleRoot, string calldata metadataUri)
+    function mintAndRegister(
+        address garden,
+        uint256 totalUnits,
+        bytes32 merkleRoot,
+        string calldata metadataUri
+    )
         external
         nonReentrant
         returns (uint256 hypercertId)
@@ -123,7 +137,7 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
                 if (pools.length > 0) {
                     pool = pools[0];
                 }
-            } catch {}
+            } catch { }
         }
 
         // Track the hypercert for this garden
@@ -144,7 +158,11 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
         uint256 hypercertId,
         OrderStructs.Maker calldata makerAsk,
         bytes calldata signature
-    ) external nonReentrant returns (uint256 orderId) {
+    )
+        external
+        nonReentrant
+        returns (uint256 orderId)
+    {
         _requireOperator(garden);
         if (paused) revert NotActive();
         if (hypercertGarden[hypercertId] != garden) revert InvalidHypercert(hypercertId);
@@ -165,7 +183,11 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
         uint256[] calldata hypercertIds,
         OrderStructs.Maker[] calldata makerAsks,
         bytes[] calldata signatures
-    ) external nonReentrant returns (uint256[] memory orderIds) {
+    )
+        external
+        nonReentrant
+        returns (uint256[] memory orderIds)
+    {
         _requireOperator(garden);
         if (paused) revert NotActive();
         if (hypercertIds.length != makerAsks.length || makerAsks.length != signatures.length) {
@@ -249,5 +271,5 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
     // ═══════════════════════════════════════════════════════════════════════════
 
     // solhint-disable-next-line no-empty-blocks
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
 }

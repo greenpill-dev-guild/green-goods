@@ -1,5 +1,5 @@
-import { resolveEnsAddress } from "@/utils";
-import { useCallback, useMemo, useState } from "react";
+import { resolveEnsAddress } from "../../utils/blockchain/ens";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isAddress } from "viem";
 
 import { useEnsAddress } from "../blockchain/useEnsAddress";
@@ -11,6 +11,14 @@ type AddAddress = (address: string) => { success: boolean; error?: string };
 export function useAddressInput(addMember: AddAddress, formatMessage: FormatMessage) {
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const trimmedInput = input.trim();
   const isHexAddress = useMemo(
@@ -41,6 +49,7 @@ export function useAddressInput(addMember: AddAddress, formatMessage: FormatMess
     if (!isAddress(addressToAdd)) {
       try {
         const lookup = resolvedAddress ?? (await resolveEnsAddress(addressToAdd));
+        if (!isMountedRef.current) return;
         if (!lookup || !isAddress(lookup)) {
           setError(
             formatMessage({
@@ -52,6 +61,7 @@ export function useAddressInput(addMember: AddAddress, formatMessage: FormatMess
         }
         addressToAdd = lookup;
       } catch {
+        if (!isMountedRef.current) return;
         setError(
           formatMessage({
             id: "app.admin.garden.create.ensResolveFailed",
@@ -62,6 +72,7 @@ export function useAddressInput(addMember: AddAddress, formatMessage: FormatMess
       }
     }
 
+    if (!isMountedRef.current) return;
     const result = addMember(addressToAdd);
     if (!result.success) {
       setError(

@@ -1,5 +1,6 @@
 import { logger, trackSyncError, useOffline, useQueueFlush, type Work } from "@green-goods/shared";
 import React from "react";
+import { useIntl } from "react-intl";
 
 import { MinimalWorkCard } from "@/components/Cards";
 
@@ -10,6 +11,7 @@ interface MyWorkTabProps {
 }
 
 export const MyWorkTab: React.FC<MyWorkTabProps> = ({ works, isLoading, onWorkClick }) => {
+  const intl = useIntl();
   const { isOnline } = useOffline();
   const flush = useQueueFlush();
 
@@ -41,14 +43,20 @@ export const MyWorkTab: React.FC<MyWorkTabProps> = ({ works, isLoading, onWorkCl
         <div className="px-4 pt-4 pb-2 border-b border-stroke-soft-200">
           <div className="flex items-center justify-between">
             <p className="text-sm text-text-sub-600">
-              {offlineWorks.length} work{offlineWorks.length !== 1 ? "s" : ""} pending upload
+              {intl.formatMessage(
+                {
+                  id: "app.work.pendingUploadCount",
+                  defaultMessage: "{count, plural, one {# work} other {# works}} pending upload",
+                },
+                { count: offlineWorks.length }
+              )}
             </p>
             {isOnline && (
               <button
                 onClick={handleFlushAll}
                 className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 hover:bg-bg-weak-50 transition-colors"
               >
-                Upload All
+                {intl.formatMessage({ id: "app.work.uploadAll", defaultMessage: "Upload All" })}
               </button>
             )}
           </div>
@@ -68,8 +76,15 @@ export const MyWorkTab: React.FC<MyWorkTabProps> = ({ works, isLoading, onWorkCl
         ) : works.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-3">🌱</div>
-            <p className="font-medium text-text-strong-950">No work yet</p>
-            <p className="text-sm text-text-sub-600">Submit your first work to get started</p>
+            <p className="font-medium text-text-strong-950">
+              {intl.formatMessage({ id: "app.work.noWorkYet", defaultMessage: "No work yet" })}
+            </p>
+            <p className="text-sm text-text-sub-600">
+              {intl.formatMessage({
+                id: "app.work.submitFirst",
+                defaultMessage: "Submit your first work to get started",
+              })}
+            </p>
           </div>
         ) : (
           <div className="space-y-3 mt-4">
@@ -86,19 +101,28 @@ export const MyWorkTab: React.FC<MyWorkTabProps> = ({ works, isLoading, onWorkCl
                         ? [
                             <span key="pending" className="badge-pill-amber">
                               <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                              Pending Upload
+                              {intl.formatMessage({
+                                id: "app.work.pendingUpload",
+                                defaultMessage: "Pending Upload",
+                              })}
                             </span>,
                           ]
                         : work.status === "approved"
                           ? [
                               <span key="approved" className="badge-pill-green">
-                                Approved
+                                {intl.formatMessage({
+                                  id: "app.work.approved",
+                                  defaultMessage: "Approved",
+                                })}
                               </span>,
                             ]
                           : work.status === "rejected"
                             ? [
                                 <span key="rejected" className="badge-pill-red">
-                                  Rejected
+                                  {intl.formatMessage({
+                                    id: "app.work.rejected",
+                                    defaultMessage: "Rejected",
+                                  })}
                                 </span>,
                               ]
                             : []

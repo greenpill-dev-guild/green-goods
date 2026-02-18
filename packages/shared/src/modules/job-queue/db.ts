@@ -6,8 +6,11 @@ import {
   buildFileMetadata,
 } from "../../utils/storage/file-serialization";
 import { trackStorageError, addBreadcrumb } from "../app/error-tracking";
+import { createLogger } from "../app/logger";
 import { mediaResourceManager } from "./media-resource-manager";
 import type { Job, JobQueueDBImage, CachedWork, SerializedFileData } from "../../types/job-queue";
+
+const log = createLogger({ source: "job-queue/db" });
 
 const DB_NAME = "green-goods-job-queue";
 const DB_VERSION = 5; // Incremented for userAddress field
@@ -122,8 +125,8 @@ class JobQueueDatabase {
       }
 
       await tx.done;
-    } catch {
-      // Silently handle cleanup errors
+    } catch (error) {
+      log.error("Failed to cleanup stale URLs", { error });
     }
   }
 
