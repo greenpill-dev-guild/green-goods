@@ -52,6 +52,11 @@ vi.mock("@green-goods/shared", () => ({
   useNavigateToTop: () => vi.fn(),
   useOffline: () => ({ isOnline: true }),
   usePrimaryAddress: () => "0x1234567890abcdef1234567890abcdef12345678",
+  useTimeout: () => ({
+    set: vi.fn(),
+    clear: vi.fn(),
+    isPending: vi.fn(() => false),
+  }),
   useUIStore: (selector: (s: any) => any) => {
     const state = {
       isGardenFilterOpen: false,

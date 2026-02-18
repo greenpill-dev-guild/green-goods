@@ -218,6 +218,7 @@ test.describe("Performance Tests", () => {
     test("service worker caches assets correctly", async ({ page }) => {
       // Service worker registration may not work in test environment
       // Skip if not running in a production-like environment
+      // SKIP: #338 owner:afo expiry:2026-08-17 — needs HTTPS + SW registration
       test.skip(
         process.env.CI === "true",
         "Service worker tests skipped in CI: requires HTTPS and proper SW registration. " +

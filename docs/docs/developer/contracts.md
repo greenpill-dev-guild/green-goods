@@ -112,6 +112,6 @@ bun --filter contracts lint
 
 - [Contracts Handbook](./contracts-handbook)
 - [Karma GAP Integration](./karma-gap)
-- [Architecture diagrams](./architecture/diagrams)
+- [Architecture diagrams](./diagrams)
 - `packages/contracts/README.md`
 - `.claude/context/contracts.md`

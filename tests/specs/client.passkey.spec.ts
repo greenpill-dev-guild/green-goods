@@ -106,6 +106,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
         if (hasAppError) {
           console.log("App error detected - checking state...");
           await page.screenshot({ path: "test-results/passkey-app-error.png" });
+          // SKIP: #338 owner:afo expiry:2026-08-17 — runtime env detection
           test.skip(true, "App has error - likely missing environment");
           return;
         }

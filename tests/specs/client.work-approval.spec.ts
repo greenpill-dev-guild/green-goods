@@ -19,6 +19,7 @@ import { ClientTestHelper, TEST_URLS, hasGardens } from "../helpers/test-utils";
 const CLIENT_URL = TEST_URLS.client;
 
 // Skip entire file - these tests require operator auth and pending work data
+// SKIP: #338 owner:afo expiry:2026-08-17 — needs operator auth + pending work data
 test.describe("Work Approval Flows (Operator)", () => {
   test.skip(
     () => true,
@@ -352,6 +353,7 @@ test.describe("Work Approval Flows (Operator)", () => {
 
       // This test requires simulating a blockchain transaction failure
       // which is difficult in E2E without mocking - mark as skipped
+      // SKIP: #338 owner:afo expiry:2026-08-17 — needs blockchain mock for tx failure
       test.skip(true, "Transaction failure requires blockchain mock - manual testing recommended");
     });
 
@@ -360,6 +362,7 @@ test.describe("Work Approval Flows (Operator)", () => {
       await page.waitForLoadState("domcontentloaded");
 
       // This test requires a prior failure state
+      // SKIP: #338 owner:afo expiry:2026-08-17 — needs prior failure state
       test.skip(true, "Retry flow requires prior failure state - manual testing recommended");
     });
   });

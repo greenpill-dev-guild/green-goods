@@ -63,7 +63,7 @@ export class OctantFactoryDeployer {
         args.push("--sender", senderAddress);
       }
 
-      console.log(`\nUsing Foundry keystore: ${keystoreName}`);
+      console.log(`\nUsing Foundry keystore: ${keystoreName === "green-goods-deployer" ? keystoreName : "[custom]"}`);
       console.log("Password will be prompted interactively");
     }
 

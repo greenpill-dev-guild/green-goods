@@ -10,5 +10,5 @@ sidebar_position: 1
 Rules and payout routing for protocol yield distribution.
 
 ## Documents
-- [Feature Spec](./feature-spec)
-- [Technical Spec](./technical-spec)
+- [Feature Spec](./feature-spec.md)
+- [Technical Spec](./technical-spec.md)

@@ -10,5 +10,5 @@ sidebar_position: 1
 Allowance-based micro-disbursement integration for garden operators and contributors.
 
 ## Documents
-- [Feature Spec](./feature-spec)
-- [Technical Spec](./technical-spec)
+- [Feature Spec](./feature-spec.md)
+- [Technical Spec](./technical-spec.md)

@@ -46,7 +46,8 @@ export function isZeroAddressValue(address?: string | null): boolean {
  */
 export function isZeroBytes32(value: string | undefined | null): boolean {
   if (!value) return true;
-  return /^0x0+$/i.test(value);
+  if (value.length < 3 || !value.startsWith("0x")) return false;
+  return /^0+$/.test(value.slice(2));
 }
 
 export function getVaultAssetSymbol(

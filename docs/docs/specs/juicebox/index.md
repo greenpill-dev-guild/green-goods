@@ -10,5 +10,5 @@ sidebar_position: 1
 Integration spec for routing yield into Juicebox project payments.
 
 ## Documents
-- [Feature Spec](./feature-spec)
-- [Technical Spec](./technical-spec)
+- [Feature Spec](./feature-spec.md)
+- [Technical Spec](./technical-spec.md)

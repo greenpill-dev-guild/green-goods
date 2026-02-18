@@ -52,7 +52,9 @@ export class GoodsDeployer {
     if (options.dryRun) {
       console.log("\nDRY RUN - GOODS project configuration:");
       for (const v of requiredEnvVars) {
-        console.log(`  ${v}: ${process.env[v]}`);
+        const val = process.env[v] ?? "";
+        const masked = val.length > 8 ? `${val.slice(0, 6)}...${val.slice(-4)}` : "[set]";
+        console.log(`  ${v}: ${masked}`);
       }
       console.log("\nConfiguration is valid!");
       return;

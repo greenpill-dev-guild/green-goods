@@ -20,6 +20,7 @@ const CLIENT_URL = TEST_URLS.client;
 
 // Skip entire file - these tests require real auth and blockchain infrastructure
 test.describe("Work Submission Flows", () => {
+  // SKIP: #338 owner:afo expiry:2026-08-17 — needs real auth + gardens data
   test.skip(
     () => true,
     "Work submission e2e tests skipped: require real auth and gardens data. " +
@@ -44,6 +45,7 @@ test.describe("Work Submission Flows", () => {
 
       // Check if gardens are available
       const gardensAvailable = await hasGardens(page);
+      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Click first garden card
@@ -78,6 +80,7 @@ test.describe("Work Submission Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
+      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Navigate to work submission
@@ -126,6 +129,7 @@ test.describe("Work Submission Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
+      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Navigate to work submission
@@ -165,6 +169,7 @@ test.describe("Work Submission Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
+      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Navigate to work submission
@@ -219,6 +224,7 @@ test.describe("Work Submission Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
+      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Queue work offline
@@ -333,6 +339,7 @@ test.describe("Work Submission Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
+      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Navigate to work submission
@@ -382,6 +389,7 @@ test.describe("Work Submission Flows", () => {
 
       const gardensAvailable = await hasGardens(page);
       if (!gardensAvailable) {
+        // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
         test.skip(true, "No gardens available for testing");
         return;
       }

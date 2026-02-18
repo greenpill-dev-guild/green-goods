@@ -81,6 +81,7 @@ test.describe("Client Navigation", () => {
   test.describe("Deep Linking", () => {
     test("preserves intended destination after login", async () => {
       // This test requires completing a real login flow which we can't do with wallet injection
+      // SKIP: #338 owner:afo expiry:2026-08-17 — needs real login flow
       test.skip(
         true,
         "Deep linking test skipped: requires completing real login flow. " +
