@@ -89,9 +89,7 @@ export class GoodsDeployer {
         args.push("--sender", senderAddress);
       }
 
-      console.log(
-        `Using Foundry keystore: ${keystoreName === "green-goods-deployer" ? keystoreName : "[custom]"}`
-      );
+      console.log(`Using Foundry keystore: ${keystoreName === "green-goods-deployer" ? keystoreName : "[custom]"}`);
       console.log("Password will be prompted interactively");
     }
 
