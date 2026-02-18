@@ -1,4 +1,4 @@
-import { imageCompressor, toastService } from "@green-goods/shared";
+import { imageCompressor, toastService, logger } from "@green-goods/shared";
 import { resolveIPFSUrl, uploadFileToIPFS } from "@green-goods/shared/modules";
 import { RiLoader4Line, RiUploadCloudLine } from "@remixicon/react";
 import { useMemo, useRef, useState } from "react";
@@ -91,7 +91,7 @@ export function EvidenceStep({
             finalFiles.push(file);
           }
         } catch (error) {
-          console.error(`Failed to compress ${file.name}:`, error);
+          logger.error(`Failed to compress ${file.name}:`, { error });
           failedFiles.push(file.name);
           // Keep the original file if compression fails
           finalFiles.push(file);
@@ -142,7 +142,7 @@ export function EvidenceStep({
         const url = resolveIPFSUrl(result.cid);
         results.push({ file, url });
       } catch (error) {
-        console.error(`Failed to upload ${file.name}:`, error);
+        logger.error(`Failed to upload ${file.name}:`, { error });
         results.push({ file, error: error as Error });
       }
     }
@@ -217,7 +217,7 @@ export function EvidenceStep({
         const url = resolveIPFSUrl(result.cid);
         results.push({ file, url });
       } catch (error) {
-        console.error(`Failed to upload ${file.name}:`, error);
+        logger.error(`Failed to upload ${file.name}:`, { error });
         results.push({ file, error: error as Error });
       }
     }

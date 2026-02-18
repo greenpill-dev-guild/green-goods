@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { DEFAULT_CHAIN_ID } from "../../../config";
+import { logger } from "@green-goods/shared";
 
 const EAS_EXPLORER_URL = "https://explorer.easscan.org";
 
@@ -199,7 +200,7 @@ function parseAssessment(decodedDataJson: string | null) {
       endDate: toNumber(readValue("endDate")),
     };
   } catch (error) {
-    console.error("Failed to parse assessment attestation", error);
+    logger.error("Failed to parse assessment attestation", { error });
     return null;
   }
 }
