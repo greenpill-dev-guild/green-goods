@@ -74,7 +74,13 @@ function validateVideoDuration(file: File): Promise<{ valid: boolean; duration: 
       resolve({ valid: false, duration: 0 });
     };
 
-    video.src = URL.createObjectURL(file);
+    const blobUrl = URL.createObjectURL(file);
+    if (!blobUrl.startsWith("blob:")) {
+      cleanup();
+      resolve({ valid: false, duration: 0 });
+      return;
+    }
+    video.src = blobUrl;
   });
 }
 
