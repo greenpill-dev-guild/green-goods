@@ -110,6 +110,7 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     ///
     /// @param attestation The attestation data structure
     /// @return bool True if attestation is valid
+    // solhint-disable-next-line code-complexity
     function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal override returns (bool) {
         if (schemaUID != bytes32(0) && attestation.schema != schemaUID) revert InvalidSchema();
 
