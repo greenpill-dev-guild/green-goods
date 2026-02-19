@@ -19,6 +19,52 @@ interface IEASBase {
     function attest(AttestationRequest calldata request) external payable returns (bytes32);
 }
 
+/// @notice Fork-test Hats eligibility/toggle module with explicit allowlisting.
+/// @dev Avoids relying on Hats Protocol fallback behavior for no-code module addresses.
+contract ForkTestEligibilityToggle {
+    error NotOwner();
+
+    struct WearerStatus {
+        bool eligible;
+        bool standing;
+        bool configured;
+    }
+
+    address internal immutable owner;
+    mapping(uint256 hatId => bool) internal hatConfigured;
+    mapping(uint256 hatId => bool) internal hatActive;
+    mapping(uint256 hatId => mapping(address wearer => WearerStatus status)) internal wearerStatus;
+
+    constructor(address owner_) {
+        owner = owner_;
+    }
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert NotOwner();
+        _;
+    }
+
+    function setHatActive(uint256 hatId, bool active) external onlyOwner {
+        hatConfigured[hatId] = true;
+        hatActive[hatId] = active;
+    }
+
+    function setWearerStatus(uint256 hatId, address wearer, bool eligible, bool standing) external onlyOwner {
+        wearerStatus[hatId][wearer] = WearerStatus({ eligible: eligible, standing: standing, configured: true });
+    }
+
+    function getHatStatus(uint256 hatId) external view returns (bool) {
+        if (!hatConfigured[hatId]) return true;
+        return hatActive[hatId];
+    }
+
+    function getWearerStatus(uint256 hatId, address wearer) external view returns (bool eligible, bool standing) {
+        WearerStatus memory status = wearerStatus[hatId][wearer];
+        if (!status.configured) return (false, false);
+        return (status.eligible, status.standing);
+    }
+}
+
 /// @title ForkTestBase
 /// @notice Shared base contract for fork tests. Provides multi-chain fork setup,
 /// full-stack deployment against real EAS, and garden lifecycle helpers.
@@ -60,6 +106,9 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
 
     /// @notice Mock ERC20 used as GOODS token for Gardens V2 community staking
     MockERC20 internal goodsToken;
+
+    /// @notice Hats eligibility/toggle module used for fork test hat trees
+    ForkTestEligibilityToggle internal hatsEligibilityToggle;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Fork State
@@ -177,10 +226,9 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
     function _setupHatsTreeOnFork() internal {
         IHats hats = IHats(HATS_PROTOCOL);
 
-        // Use a non-zero placeholder for eligibility/toggle modules.
-        // The real Hats Protocol rejects address(0). When these addresses have no code,
-        // the protocol falls back to defaults: hat is active, all wearers are eligible.
-        address permissive = address(0xdead);
+        // Use a real module contract so we exercise explicit eligibility/toggle code paths.
+        hatsEligibilityToggle = new ForkTestEligibilityToggle(address(this));
+        address module = address(hatsEligibilityToggle);
 
         // 1. Create a new top hat tree owned by this test contract
         uint256 topHat = hats.mintTopHat(address(this), "Fork Test Tree", "");
@@ -190,18 +238,24 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
             topHat,
             "Fork Test Community",
             100, // maxSupply
-            permissive, // eligibility
-            permissive, // toggle
+            module, // eligibility
+            module, // toggle
             true, // mutable
             ""
         );
 
         // 3. Create Gardens hat (level 2) under Community hat
         // This is the parent for per-garden admin hats created by HatsModule
-        uint256 gardensHat = hats.createHat(communityHat, "Fork Test Gardens", 100, permissive, permissive, true, "");
+        uint256 gardensHat = hats.createHat(communityHat, "Fork Test Gardens", 100, module, module, true, "");
 
         // 4. Create Gardeners hat (level 2) under Community hat
-        uint256 gardenersHat = hats.createHat(communityHat, "Fork Test Gardeners", 100, permissive, permissive, true, "");
+        uint256 gardenersHat = hats.createHat(communityHat, "Fork Test Gardeners", 100, module, module, true, "");
+
+        // Configure active hats + explicit wearer eligibility before minting.
+        hatsEligibilityToggle.setHatActive(communityHat, true);
+        hatsEligibilityToggle.setHatActive(gardensHat, true);
+        hatsEligibilityToggle.setHatActive(gardenersHat, true);
+        hatsEligibilityToggle.setWearerStatus(communityHat, address(hatsModule), true, true);
 
         // 5. Mint Community hat to HatsModule — makes it admin of Gardens hat
         // isAdminOfHat(hatsModule, gardensHat) checks: does hatsModule wear communityHat?
@@ -331,7 +385,7 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
             actionUID: actionUID,
             title: "Fork Test Work",
             feedback: "Completed task",
-            metadata: "",
+            metadata: "ipfs://QmForkTestWorkMeta",
             media: media
         });
 

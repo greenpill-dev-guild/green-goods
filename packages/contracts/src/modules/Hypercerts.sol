@@ -29,6 +29,8 @@ interface IMarketplaceAdapter {
         returns (uint256[] memory orderIds);
 
     function deactivateOrder(uint256 orderId) external;
+
+    function getOrderInfo(uint256 orderId) external view returns (uint256 hypercertId, address seller, bool active);
 }
 
 /// @title HypercertsModule
@@ -129,13 +131,15 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
         // Mint the hypercert via the minter contract
         hypercertId = IHypercertMinter(hypercertMinter).createAllowlist(garden, totalUnits, merkleRoot, metadataUri, 0);
 
-        // Look up signal pool for this garden (graceful — pool may not exist)
+        // Look up hypercert signal pool for this garden (graceful — pool may not exist)
         address pool;
         if (address(gardensModule) != address(0)) {
             // solhint-disable-next-line no-empty-blocks
             try gardensModule.getGardenSignalPools(garden) returns (address[] memory pools) {
-                if (pools.length > 0) {
-                    pool = pools[0];
+                // Canonical ordering is [action, hypercert]. On chains where only the
+                // action pool is live, length can be 1 and hypercert registration is skipped.
+                if (pools.length > 1) {
+                    pool = pools[1];
                 }
             } catch { }
         }
@@ -207,6 +211,8 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
     /// @param orderId The order to deactivate
     function delistFromYield(address garden, uint256 orderId) external nonReentrant {
         _requireOperator(garden);
+        (uint256 hypercertId,,) = marketplaceAdapter.getOrderInfo(orderId);
+        if (hypercertGarden[hypercertId] != garden) revert InvalidHypercert(hypercertId);
 
         marketplaceAdapter.deactivateOrder(orderId);
 

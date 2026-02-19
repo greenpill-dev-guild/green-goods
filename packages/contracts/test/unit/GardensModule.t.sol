@@ -343,8 +343,8 @@ contract GardensModuleTest is Test {
         // Pools are stored
         address[] memory storedPools = gardensModule.getGardenSignalPools(garden1);
         assertEq(storedPools.length, 2, "Both pools should be stored after mint");
-        assertEq(storedPools[0], pools[0], "Hypercert pool should match");
-        assertEq(storedPools[1], pools[1], "Action pool should match");
+        assertEq(storedPools[0], pools[0], "Action pool should match");
+        assertEq(storedPools[1], pools[1], "Hypercert pool should match");
     }
 
     function test_onGardenMinted_exponentialScheme() public {
@@ -496,8 +496,8 @@ contract GardensModuleTest is Test {
         address[] memory pools = gardensModule.createGardenPools(garden1);
 
         assertEq(pools.length, 2, "Should create 2 pools");
-        assertTrue(pools[0] != address(0), "Hypercert pool should exist");
-        assertTrue(pools[1] != address(0), "Action pool should exist");
+        assertTrue(pools[0] != address(0), "Action pool should exist");
+        assertTrue(pools[1] != address(0), "Hypercert pool should exist");
 
         // Verify stored
         address[] memory storedPools = gardensModule.getGardenSignalPools(garden1);
@@ -623,12 +623,12 @@ contract GardensModuleTest is Test {
         assertEq(registryFactory.getCreatedCount(), 1, "Factory should have created 1 community");
     }
 
-    function test_onGardenMinted_communityUsesGardenAsCouncilSafe() public {
+    function test_onGardenMinted_communityUsesOwnerAsDefaultCouncilSafe() public {
         vm.prank(gardenToken);
         (address community,) = gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
 
         MockRegistryCommunity mockCommunity = MockRegistryCommunity(community);
-        assertEq(mockCommunity.councilSafe(), garden1, "Council Safe should be the garden account");
+        assertEq(mockCommunity.councilSafe(), owner, "Council Safe should default to protocol owner");
     }
 
     function test_onGardenMinted_communityUsesGoodsToken() public {

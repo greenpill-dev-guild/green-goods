@@ -18,5 +18,5 @@
     "noUnusedParameters": true
   },
   "include": ["script/**/*.ts"],
-  "exclude": ["node_modules", "out", "cache", "broadcast"]
+  "exclude": ["node_modules", "out", "out-*", "cache", "cache-*", "broadcast"]
 }

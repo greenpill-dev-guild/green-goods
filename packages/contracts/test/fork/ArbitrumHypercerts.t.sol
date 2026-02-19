@@ -235,28 +235,30 @@ contract ArbitrumHypercertsForkTest is Test {
         uint256 orderId = adapter.registerOrder(makerAsk, signature, hypercertId);
         assertEq(orderId, 1, "first order should have ID 1");
 
-        // Verify stored fields
-        (
-            uint256 storedHypercertId,
-            ,
-            ,
-            uint256 storedPrice,
-            uint256 storedMinUnits,
-            uint256 storedMaxUnits,
-            address storedSeller,
-            address storedCurrency,
-            uint256 storedEndTime,
-            bool active
-        ) = adapter.orders(orderId);
+        // Verify stored fields (scoped to reduce stack depth)
+        {
+            (
+                uint256 storedHypercertId,
+                ,
+                ,
+                uint256 storedPrice,
+                uint256 storedMinUnits,
+                uint256 storedMaxUnits,
+                address storedSeller,
+                address storedCurrency,
+                uint256 storedEndTime,
+                bool active
+            ) = adapter.orders(orderId);
 
-        assertEq(storedHypercertId, hypercertId, "hypercertId mismatch");
-        assertEq(storedPrice, pricePerUnit, "pricePerUnit mismatch");
-        assertEq(storedMinUnits, 1, "minUnitAmount mismatch");
-        assertEq(storedMaxUnits, 1000, "maxUnitAmount mismatch");
-        assertEq(storedSeller, seller, "seller mismatch");
-        assertEq(storedCurrency, WETH, "currency mismatch");
-        assertEq(storedEndTime, endTime, "endTime mismatch");
-        assertTrue(active, "order should be active");
+            assertEq(storedHypercertId, hypercertId, "hypercertId mismatch");
+            assertEq(storedPrice, pricePerUnit, "pricePerUnit mismatch");
+            assertEq(storedMinUnits, 1, "minUnitAmount mismatch");
+            assertEq(storedMaxUnits, 1000, "maxUnitAmount mismatch");
+            assertEq(storedSeller, seller, "seller mismatch");
+            assertEq(storedCurrency, WETH, "currency mismatch");
+            assertEq(storedEndTime, endTime, "endTime mismatch");
+            assertTrue(active, "order should be active");
+        }
 
         // Verify active order mapping
         assertEq(adapter.activeOrders(hypercertId, WETH), orderId, "active order mapping mismatch");
@@ -359,7 +361,7 @@ contract ArbitrumHypercertsForkTest is Test {
 
         // buyFraction should revert with ExchangeExecutionFailed (real exchange rejects dummy signature)
         vm.prank(buyer);
-        vm.expectRevert();
+        vm.expectRevert(HypercertMarketplaceAdapter.ExchangeExecutionFailed.selector);
         adapter.buyFraction(hypercertId, pricePerUnit, WETH, buyer);
     }
 

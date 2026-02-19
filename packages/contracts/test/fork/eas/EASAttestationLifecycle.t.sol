@@ -5,6 +5,9 @@ import { ForkTestBase } from "../helpers/ForkTestBase.sol";
 import { ISchemaRegistry } from "../../helpers/DeploymentBase.sol";
 import { WorkSchema, WorkApprovalSchema, AssessmentSchema } from "../../../src/Schemas.sol";
 import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
+import { NotGardenMember } from "../../../src/resolvers/Work.sol";
+import { NotGardenOperator } from "../../../src/resolvers/WorkApproval.sol";
+import { InvalidDomain } from "../../../src/resolvers/Assessment.sol";
 import { AttestationRequest, AttestationRequestData, RevocationRequest, RevocationRequestData } from "@eas/IEAS.sol";
 
 /// @notice Minimal EAS interface for fork tests (avoids IEAS naming conflict with DeploymentBase)
@@ -62,8 +65,13 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
         string[] memory media = new string[](1);
         media[0] = "ipfs://QmForkTestPhoto";
 
-        WorkSchema memory work =
-            WorkSchema({ actionUID: actionUID, title: "Fork Test Work", feedback: "Completed", metadata: "", media: media });
+        WorkSchema memory work = WorkSchema({
+            actionUID: actionUID,
+            title: "Fork Test Work",
+            feedback: "Completed",
+            metadata: "ipfs://QmForkLifecycleMeta",
+            media: media
+        });
 
         AttestationRequest memory request = AttestationRequest({
             schema: workSchemaUID,
@@ -145,7 +153,13 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
 
         string[] memory media = new string[](0);
         WorkSchema memory work =
-            WorkSchema({ actionUID: actionUID, title: "Unauthorized Work", feedback: "", metadata: "", media: media });
+            WorkSchema({
+                actionUID: actionUID,
+                title: "Unauthorized Work",
+                feedback: "",
+                metadata: "ipfs://QmUnauthorizedWorkMeta",
+                media: media
+            });
 
         AttestationRequest memory request = AttestationRequest({
             schema: workSchemaUID,
@@ -160,7 +174,7 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
         });
 
         vm.prank(forkNonMember);
-        vm.expectRevert();
+        vm.expectRevert(NotGardenMember.selector);
         IEASFork(_eas()).attest(request);
     }
 
@@ -251,7 +265,7 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
         });
 
         vm.prank(forkGardener);
-        vm.expectRevert();
+        vm.expectRevert(NotGardenOperator.selector);
         IEASFork(_eas()).attest(request);
     }
 
@@ -336,7 +350,7 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
         });
 
         vm.prank(forkEvaluator);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(InvalidDomain.selector, uint8(4)));
         IEASFork(_eas()).attest(request);
     }
 
@@ -363,7 +377,7 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
             RevocationRequest({ schema: workSchemaUID, data: RevocationRequestData({ uid: workAttUID, value: 0 }) });
 
         vm.prank(forkGardener);
-        vm.expectRevert();
-        IEASFork(_eas()).revoke(revRequest);
+        (bool revokeOk,) = _eas().call(abi.encodeWithSelector(IEASFork.revoke.selector, revRequest));
+        assertFalse(revokeOk, "revocation should fail for non-revocable work schema");
     }
 }

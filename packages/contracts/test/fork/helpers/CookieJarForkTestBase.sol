@@ -1,104 +1,117 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Test } from "forge-std/Test.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { ERC1155 } from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-
-import { CookieJarModule } from "../../../src/modules/CookieJar.sol";
-import { YieldResolver } from "../../../src/resolvers/Yield.sol";
+import { ForkTestBase } from "./ForkTestBase.sol";
 import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
 import { MockERC20 } from "../../../src/mocks/ERC20.sol";
 
-contract TestHatsProtocol is ERC1155 {
-    constructor() ERC1155("") { }
-
-    function mint(address to, uint256 id, uint256 amount) external {
-        _mint(to, id, amount, "");
-    }
-}
-
+/// @notice Minimal interface for CookieJar deposit/withdraw interactions
 interface ICookieJarLike {
     function deposit(uint256 amount) external payable;
     function withdraw(uint256 amount, string calldata purpose) external;
 }
 
-contract TestHatsModule is IHatsModule {
-    struct GardenHats {
-        uint256 ownerHatId;
-        uint256 operatorHatId;
-        uint256 evaluatorHatId;
-        uint256 gardenerHatId;
-        uint256 funderHatId;
-        uint256 communityHatId;
-        uint256 adminHatId;
-        bool configured;
+/// @title CookieJarForkTestBase
+/// @notice Shared base for fork tests validating CookieJar creation, Hats-gated withdrawal,
+///         and yield routing through the real protocol stack deployed via ForkTestBase.
+/// @dev Extends ForkTestBase — all contracts (CookieJarModule, YieldResolver, HatsModule,
+///      GardenToken) come from _deployFullStackOnFork(). No inline mocks.
+///      Subclasses override _chainName() to specify the fork target.
+abstract contract CookieJarForkTestBase is ForkTestBase {
+    /// @notice The chain name used for fork resolution (e.g., "sepolia", "arbitrum")
+    function _chainName() internal pure virtual returns (string memory);
+
+    /// @notice Mock token used as CookieJar asset
+    MockERC20 internal cookieToken;
+
+    /// @notice Garden account minted for CookieJar tests
+    address internal cookieGarden;
+
+    function setUp() public {
+        if (!_tryChainFork(_chainName())) return;
+        _deployFullStackOnFork();
+
+        // Deploy a mock ERC20 as the cookie jar asset
+        cookieToken = new MockERC20();
+
+        // Add it as a supported asset in the CookieJarModule deployed by full stack
+        cookieJarModule.addSupportedAsset(address(cookieToken));
+
+        // Mint a garden (triggers CookieJarModule.onGardenMinted via GardenToken)
+        cookieGarden = _mintTestGarden("CookieJar Fork Test Garden", 0x0F);
     }
 
-    mapping(address => GardenHats) internal hats;
+    /// @notice Create jar, deposit, verify non-member cannot withdraw, grant gardener role
+    ///         via real HatsModule, verify gardener CAN withdraw.
+    function test_fork_createsJar_deposit_and_hatsGatedWithdrawal() public {
+        if (!forkActive || cookieGarden == address(0)) return;
 
-    function setGardenHats(address garden, uint256 gardenerHatId) external {
-        hats[garden] = GardenHats(1, 2, 3, gardenerHatId, 5, 6, 7, true);
+        // Verify jar was created for the garden + token pair
+        address jar = cookieJarModule.getGardenJar(cookieGarden, address(cookieToken));
+        assertTrue(jar != address(0), "jar should be created");
+
+        // Deposit tokens into the jar
+        cookieToken.mint(address(this), 100 ether);
+        cookieToken.approve(jar, 100 ether);
+        ICookieJarLike(jar).deposit(100 ether);
+
+        // Non-member (forkGardener has no role yet) should be blocked by Hats ERC1155 gate
+        vm.prank(forkGardener);
+        (bool withdrawOk,) =
+            jar.call(abi.encodeWithSelector(ICookieJarLike.withdraw.selector, 10 ether, "gated-withdrawal"));
+        assertFalse(withdrawOk, "non-member withdrawal should revert through the jar's Hats gate");
+
+        // Grant gardener role via REAL HatsModule (mints the gardener hat under the hood)
+        _grantGardenRole(cookieGarden, forkGardener, IHatsModule.GardenRole.Gardener);
+        assertTrue(hatsModule.isGardenerOf(cookieGarden, forkGardener), "gardener should have role");
+
+        // Now the gardener (hat-wearer) should be able to withdraw
+        uint256 beforeBal = cookieToken.balanceOf(forkGardener);
+        vm.prank(forkGardener);
+        ICookieJarLike(jar).withdraw(10 ether, "gated-withdrawal");
+        assertEq(cookieToken.balanceOf(forkGardener) - beforeBal, 10 ether, "hats wearer should withdraw");
     }
 
-    function getGardenHatIds(address garden)
-        external
-        view
-        returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, bool)
-    {
-        GardenHats storage config = hats[garden];
-        return (
-            config.ownerHatId,
-            config.operatorHatId,
-            config.evaluatorHatId,
-            config.gardenerHatId,
-            config.funderHatId,
-            config.communityHatId,
-            config.adminHatId,
-            config.configured
-        );
-    }
+    /// @notice Yield routing: OctantModule registers shares, splitYield allocates 48.65% to CookieJar.
+    /// @dev Uses a MockVault pattern scoped to this test since full Aave setup is not always available.
+    ///      The YieldResolver's vault interaction (redeem) requires an ERC-4626-like contract, so we
+    ///      deploy a minimal mock vault inline. The key assertion is that CookieJarModule's jar receives
+    ///      the correct proportion of the yield after splitYield().
+    function test_fork_routes_4865bps_to_cookie_jar_via_yield_splitter() public {
+        if (!forkActive || cookieGarden == address(0)) return;
 
-    function createGardenHatTree(address, string calldata, address) external pure returns (uint256) {
-        return 0;
-    }
+        address jar = cookieJarModule.getGardenJar(cookieGarden, address(cookieToken));
+        assertTrue(jar != address(0), "jar should exist for yield routing test");
 
-    function grantRole(address, address, GardenRole) external { }
-    function revokeRole(address, address, GardenRole) external { }
-    function grantRoles(address, address[] calldata, GardenRole[] calldata) external { }
-    function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
-    function setConvictionStrategies(address, address[] calldata) external { }
+        // Deploy a minimal mock vault that simulates ERC-4626 redeem
+        MockVaultForYieldTest vault = new MockVaultForYieldTest(address(cookieToken));
 
-    function getConvictionStrategies(address) external pure returns (address[] memory) {
-        return new address[](0);
-    }
+        // Configure YieldResolver for this garden
+        yieldSplitter.setGardenTreasury(cookieGarden, makeAddr("treasury"));
+        yieldSplitter.setGardenVault(cookieGarden, address(cookieToken), address(vault));
 
-    function isGardenerOf(address, address) external pure returns (bool) {
-        return false;
-    }
+        uint256 yieldAmount = 1000 ether;
+        cookieToken.mint(address(vault), yieldAmount);
+        vault.mintShares(address(yieldSplitter), yieldAmount);
 
-    function isEvaluatorOf(address, address) external pure returns (bool) {
-        return false;
-    }
+        // Register shares as the octantModule
+        vm.prank(address(octantModule));
+        yieldSplitter.registerShares(cookieGarden, address(vault), yieldAmount);
 
-    function isOperatorOf(address, address) external pure returns (bool) {
-        return false;
-    }
+        uint256 jarBefore = cookieToken.balanceOf(jar);
+        yieldSplitter.splitYield(cookieGarden, address(cookieToken), address(vault));
 
-    function isOwnerOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isFunderOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isCommunityOf(address, address) external pure returns (bool) {
-        return false;
+        uint256 expectedCookieJar = (yieldAmount * 4865) / 10_000;
+        uint256 jarDelta = cookieToken.balanceOf(jar) - jarBefore;
+        assertEq(jarDelta, expectedCookieJar, "cookie jar should receive 48.65%");
     }
 }
 
-contract MockVaultForCookieJarFork {
+/// @notice Minimal mock vault for yield routing tests.
+/// @dev Only used for the splitYield test where a full Aave/ERC-4626 vault is not available.
+///      Simulates the `redeem(shares, receiver, owner, minAssets, strategies)` signature that
+///      YieldResolver calls. Transfers 1:1 shares-to-assets from its token balance.
+contract MockVaultForYieldTest {
     MockERC20 public immutable asset;
     mapping(address => uint256) public shares;
 
@@ -124,134 +137,5 @@ contract MockVaultForCookieJarFork {
         shares[msg.sender] -= sharesAmount;
         asset.transfer(receiver, sharesAmount);
         return sharesAmount;
-    }
-}
-
-abstract contract CookieJarForkTestBase is Test {
-    address internal owner = makeAddr("owner");
-    address internal octantModule = makeAddr("octant");
-    address internal garden = makeAddr("garden");
-    address internal treasury = makeAddr("treasury");
-    address internal gardener = makeAddr("gardener");
-
-    uint256 internal constant GARDENER_HAT_ID = 4242;
-
-    TestHatsProtocol internal hatsProtocol;
-    TestHatsModule internal hatsModule;
-    address internal factory;
-    CookieJarModule internal cookieJarModule;
-    YieldResolver internal yieldSplitter;
-    MockERC20 internal token;
-    MockVaultForCookieJarFork internal vault;
-
-    function _rpcEnvVar() internal pure virtual returns (string memory);
-
-    function setUp() public {
-        string memory rpcUrl = _getRpc(_rpcEnvVar());
-        if (bytes(rpcUrl).length == 0) return;
-        vm.createSelectFork(rpcUrl);
-
-        factory = _getCookieJarFactory(block.chainid);
-        if (factory == address(0)) return;
-
-        hatsProtocol = new TestHatsProtocol();
-        hatsModule = new TestHatsModule();
-        token = new MockERC20();
-        vault = new MockVaultForCookieJarFork(address(token));
-
-        hatsModule.setGardenHats(garden, GARDENER_HAT_ID);
-
-        address[] memory assets = new address[](1);
-        assets[0] = address(token);
-
-        CookieJarModule cookieJarImpl = new CookieJarModule();
-        bytes memory cookieJarInit = abi.encodeWithSelector(
-            CookieJarModule.initialize.selector,
-            owner,
-            address(hatsModule),
-            address(0),
-            factory,
-            address(hatsProtocol),
-            assets
-        );
-        cookieJarModule = CookieJarModule(address(new ERC1967Proxy(address(cookieJarImpl), cookieJarInit)));
-
-        YieldResolver yieldImpl = new YieldResolver();
-        bytes memory yieldInit =
-            abi.encodeWithSelector(YieldResolver.initialize.selector, owner, octantModule, address(hatsModule), 1);
-        yieldSplitter = YieldResolver(address(new ERC1967Proxy(address(yieldImpl), yieldInit)));
-
-        vm.startPrank(owner);
-        cookieJarModule.setGardenToken(address(this));
-        yieldSplitter.setCookieJarModule(address(cookieJarModule));
-        yieldSplitter.setGardenTreasury(garden, treasury);
-        yieldSplitter.setGardenVault(garden, address(token), address(vault));
-        vm.stopPrank();
-
-        cookieJarModule.onGardenMinted(garden);
-    }
-
-    function test_fork_createsJar_deposit_and_hatsGatedWithdrawal() public {
-        if (address(cookieJarModule) == address(0)) return;
-
-        address jar = cookieJarModule.getGardenJar(garden, address(token));
-        assertTrue(jar != address(0), "jar should be created");
-
-        token.mint(address(this), 100 ether);
-        token.approve(jar, 100 ether);
-        ICookieJarLike(jar).deposit(100 ether);
-
-        vm.prank(gardener);
-        vm.expectRevert();
-        ICookieJarLike(jar).withdraw(10 ether, "gated-withdrawal");
-
-        hatsProtocol.mint(gardener, GARDENER_HAT_ID, 1);
-
-        uint256 beforeBal = token.balanceOf(gardener);
-        vm.prank(gardener);
-        ICookieJarLike(jar).withdraw(10 ether, "gated-withdrawal");
-        assertEq(token.balanceOf(gardener) - beforeBal, 10 ether, "hats wearer should withdraw");
-    }
-
-    function test_fork_routes_4865bps_to_cookie_jar_via_yield_splitter() public {
-        if (address(yieldSplitter) == address(0)) return;
-
-        address jar = cookieJarModule.getGardenJar(garden, address(token));
-        uint256 yieldAmount = 1000 ether;
-
-        token.mint(address(vault), yieldAmount);
-        vault.mintShares(address(yieldSplitter), yieldAmount);
-
-        vm.prank(octantModule);
-        yieldSplitter.registerShares(garden, address(vault), yieldAmount);
-
-        uint256 jarBefore = token.balanceOf(jar);
-        yieldSplitter.splitYield(garden, address(token), address(vault));
-
-        uint256 expectedCookieJar = (yieldAmount * 4865) / 10_000;
-        uint256 jarDelta = token.balanceOf(jar) - jarBefore;
-        assertEq(jarDelta, expectedCookieJar, "cookie jar should receive 48.65%");
-    }
-
-    function _getRpc(string memory envVar) internal view returns (string memory) {
-        try vm.envString(envVar) returns (string memory rpcUrl) {
-            return rpcUrl;
-        } catch {
-            return "";
-        }
-    }
-
-    function _getCookieJarFactory(uint256 chainId) internal view returns (address) {
-        // Optional explicit override (useful for local debugging)
-        try vm.envAddress("COOKIE_JAR_FACTORY_ADDRESS") returns (address factoryAddress) {
-            if (factoryAddress != address(0)) return factoryAddress;
-        } catch { }
-
-        // Deployed addresses sourced from sibling cookie-jar repo:
-        // contracts/broadcast/Deploy.s.sol/{chainId}/run-latest.json
-        if (chainId == 42_161) return 0xfe367D31d181D305dcF5AAaa345a70A65c345153; // Arbitrum
-        if (chainId == 11_155_111) return 0x021368bf9958f4D535d39d571Bc45f74d20e4666; // Sepolia
-
-        return address(0);
     }
 }

@@ -88,6 +88,7 @@ contract HypercertsModuleTest is Test {
     address public gardenTokenAddr = address(0x200);
     address public operator = address(0x300);
     address public stranger = address(0x400);
+    address public actionPool = address(0x501);
     address public signalPool = address(0x500);
 
     function setUp() public {
@@ -114,9 +115,10 @@ contract HypercertsModuleTest is Test {
         // Set up operator role
         hatsModule.setOperator(garden, operator, true);
 
-        // Set up signal pool for the garden
-        address[] memory pools = new address[](1);
-        pools[0] = signalPool;
+        // Set up signal pools for the garden: [action, hypercert]
+        address[] memory pools = new address[](2);
+        pools[0] = actionPool;
+        pools[1] = signalPool;
         gardensModule.setGardenSignalPools(garden, pools);
     }
 
@@ -150,6 +152,14 @@ contract HypercertsModuleTest is Test {
         assertEq(ids.length, 1, "Garden should have 1 hypercert");
         assertEq(ids[0], 1, "Should track the hypercert ID");
         assertEq(hypercertsModule.hypercertGarden(1), garden, "Hypercert should map to garden");
+    }
+
+    function test_mintAndRegister_emitsHypercertPoolAtIndexOne() public {
+        vm.expectEmit(true, true, false, true);
+        emit HypercertsModule.HypercertMintedAndRegistered(garden, 1, signalPool);
+
+        vm.prank(operator);
+        hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://metadata");
     }
 
     function test_mintAndRegister_onlyOperator() public {

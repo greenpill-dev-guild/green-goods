@@ -5,6 +5,9 @@ import { ForkTestBase } from "../helpers/ForkTestBase.sol";
 import { ISchemaRegistry } from "../../helpers/DeploymentBase.sol";
 import { WorkSchema, WorkApprovalSchema, AssessmentSchema } from "../../../src/Schemas.sol";
 import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
+import { NotGardenMember } from "../../../src/resolvers/Work.sol";
+import { NotGardenOperator } from "../../../src/resolvers/WorkApproval.sol";
+import { NotAuthorizedAttester, InvalidDomain } from "../../../src/resolvers/Assessment.sol";
 import { AttestationRequest, AttestationRequestData, RevocationRequest, RevocationRequestData } from "@eas/IEAS.sol";
 
 /// @notice Minimal EAS interface for fork tests (avoids IEAS naming conflict with DeploymentBase)
@@ -98,7 +101,7 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
             actionUID: actionUID,
             title: "Unauthorized Work",
             feedback: "",
-            metadata: "",
+            metadata: "ipfs://QmUnauthorizedWorkMeta",
             media: new string[](0)
         });
 
@@ -115,7 +118,7 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
         });
 
         vm.prank(forkNonMember);
-        vm.expectRevert();
+        vm.expectRevert(NotGardenMember.selector);
         IEASForkArb(_eas()).attest(request);
     }
 
@@ -180,7 +183,7 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
         });
 
         vm.prank(forkGardener);
-        vm.expectRevert();
+        vm.expectRevert(NotGardenOperator.selector);
         IEASForkArb(_eas()).attest(request);
     }
 
@@ -241,7 +244,7 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
         });
 
         vm.prank(forkEvaluator);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(InvalidDomain.selector, uint8(4)));
         IEASForkArb(_eas()).attest(request);
     }
 
@@ -267,15 +270,15 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
             RevocationRequest({ schema: workSchemaUID, data: RevocationRequestData({ uid: workAttUID, value: 0 }) });
 
         vm.prank(forkGardener);
-        vm.expectRevert();
-        IEASForkArb(_eas()).revoke(revRequest);
+        (bool revokeOk,) = _eas().call(abi.encodeWithSelector(IEASForkArb.revoke.selector, revRequest));
+        assertFalse(revokeOk, "revocation should fail for non-revocable work schema");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Test 9: Assessment Reverts for Non-Evaluator (NEW Error Path)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Operator (not evaluator) submitting assessment reverts on Arbitrum
+    /// @notice Non-member submitting assessment reverts on Arbitrum
     function testForkArbitrum_assessment_revertsForNonEvaluator() public {
         if (!_tryChainFork("arbitrum")) {
             emit log("SKIPPED: No Arbitrum RPC URL configured");
@@ -285,10 +288,10 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
 
         (address gardenAccount,) = _setupGardenWithRolesAndAction("Arb NonEval Garden");
 
-        // forkOperator has Operator role but NOT Evaluator role
+        // forkNonMember has no evaluator privileges in this garden
         AssessmentSchema memory assessment = AssessmentSchema({
             title: "Unauthorized Assessment",
-            description: "Operator attempting evaluator action",
+            description: "Non-member attempting evaluator action",
             assessmentConfigCID: "QmTestConfig",
             domain: 1, // AGRO
             startDate: block.timestamp,
@@ -308,8 +311,8 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
             })
         });
 
-        vm.prank(forkOperator); // operator, NOT evaluator
-        vm.expectRevert();
+        vm.prank(forkNonMember);
+        vm.expectRevert(NotAuthorizedAttester.selector);
         IEASForkArb(_eas()).attest(request);
     }
 
@@ -336,7 +339,7 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
             actionUID: actionUID,
             title: "Wrong Garden Work",
             feedback: "",
-            metadata: "",
+            metadata: "ipfs://QmWrongGardenMeta",
             media: new string[](0)
         });
 
@@ -353,7 +356,7 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
         });
 
         vm.prank(forkGardener); // member of garden A, not garden B
-        vm.expectRevert();
+        vm.expectRevert(NotGardenMember.selector);
         IEASForkArb(_eas()).attest(request);
     }
 }

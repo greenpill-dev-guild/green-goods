@@ -43,6 +43,16 @@ export const CHAIN_ID_MAP: Record<string, string> = {
 };
 
 /**
+ * Networks supported by Alchemy URL auto-derivation.
+ * Intentionally excludes Celo, which often uses dedicated RPC infra.
+ */
+const ALCHEMY_NETWORK_PATHS: Record<string, string> = {
+  mainnet: "eth-mainnet",
+  sepolia: "eth-sepolia",
+  arbitrum: "arb-mainnet",
+};
+
+/**
  * NetworkManager - Single source of truth for network configuration
  *
  * Consolidates network configuration handling that was previously
@@ -111,11 +121,37 @@ export class NetworkManager {
       rpcUrl = process.env[envVar] || "";
 
       if (!rpcUrl) {
-        throw new Error(`Environment variable ${envVar} not set for network ${networkName}`);
+        const derivedAlchemyRpc = this._deriveAlchemyRpcUrl(networkName);
+        if (derivedAlchemyRpc) {
+          return derivedAlchemyRpc;
+        }
+
+        throw new Error(
+          `Environment variable ${envVar} not set for network ${networkName}. ` +
+            `Set ${envVar} or provide ALCHEMY_API_KEY/ALCHEMY_KEY for supported networks.`,
+        );
       }
     }
 
     return rpcUrl;
+  }
+
+  /**
+   * Derive provider URL from a shared Alchemy key for supported networks.
+   * Returns null when key/network is unsupported so explicit RPC env vars still work.
+   */
+  private _deriveAlchemyRpcUrl(networkName: string): string | null {
+    const apiKey = process.env.ALCHEMY_API_KEY || process.env.ALCHEMY_KEY;
+    if (!apiKey) {
+      return null;
+    }
+
+    const networkPath = ALCHEMY_NETWORK_PATHS[networkName];
+    if (!networkPath) {
+      return null;
+    }
+
+    return `https://${networkPath}.g.alchemy.com/v2/${apiKey}`;
   }
 
   /**

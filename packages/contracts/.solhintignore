@@ -1,9 +1,11 @@
 # directories
 broadcast
 cache
+cache-*
 coverage
 node_modules
 out
+out-*
 
 # mock contracts (mimic external interfaces, don't enforce gas rules)
 src/mocks/

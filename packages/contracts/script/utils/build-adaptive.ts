@@ -8,9 +8,10 @@
  *   "full"  — compiles everything including tests (~180s cold)
  *   "auto"  — checks git status to decide (default): if test/script files changed → full, else fast
  *
- * NOTE: via_ir=true is always required. Multiple source contracts (Action.sol,
- * Deployment.sol, GardenAccount) trigger stack-too-deep without it.
- * Speed comes from optimizer_runs=0, --skip test/script, and Foundry's cache.
+ * NOTE: default profile uses selective via_ir via foundry.toml
+ * compilation_restrictions (not global via_ir=true).
+ * Speed primarily comes from --skip test/script, sparse_mode, and
+ * profile-separated Foundry caches/artifacts.
  */
 
 import { resolve } from "path";

@@ -4,6 +4,10 @@ pragma solidity ^0.8.25;
 import { ForkTestBase, IEASBase } from "./helpers/ForkTestBase.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { WorkSchema } from "../../src/Schemas.sol";
+import { YieldResolver } from "../../src/resolvers/Yield.sol";
+import { OctantModule } from "../../src/modules/Octant.sol";
+import { HypercertsModule } from "../../src/modules/Hypercerts.sol";
+import { NotProtocolMember } from "../../src/registries/ENS.sol";
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
 /// @title ArbitrumNegativePathsForkTest
@@ -28,7 +32,11 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
         address garden = _mintTestGarden("Arb Zero Shares Garden", 0x0F);
 
         // YieldResolver has no shares for this garden — splitYield should revert
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                YieldResolver.InvalidVault.selector, garden, address(communityToken), address(0), address(0xDEAD)
+            )
+        );
         yieldSplitter.splitYield(garden, address(communityToken), address(0xDEAD));
     }
 
@@ -49,7 +57,7 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
 
         // forkNonMember is neither octantModule nor owner
         vm.prank(forkNonMember);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(YieldResolver.UnauthorizedCaller.selector, forkNonMember));
         yieldSplitter.registerShares(garden, address(0xDEAD), 100 ether);
     }
 
@@ -70,7 +78,7 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
 
         // Non-gardenToken caller cannot trigger onGardenMinted
         vm.prank(forkNonMember);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(OctantModule.UnauthorizedCaller.selector, forkNonMember));
         octantModule.onGardenMinted(address(0xBEEF), "Zero Deposit Test");
     }
 
@@ -91,7 +99,7 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
 
         // forkNonMember is not an operator — harvest reverts
         vm.prank(forkNonMember);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(OctantModule.UnauthorizedCaller.selector, forkNonMember));
         octantModule.harvest(garden, address(communityToken));
     }
 
@@ -112,7 +120,7 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
 
         // forkNonMember is not an operator — mintAndRegister should revert
         vm.prank(forkNonMember);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(HypercertsModule.Unauthorized.selector, forkNonMember));
         hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://QmTest");
     }
 
@@ -137,7 +145,7 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
 
         // Even operator cannot mint when paused
         vm.prank(forkOperator);
-        vm.expectRevert();
+        vm.expectRevert(HypercertsModule.NotActive.selector);
         hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://QmPausedTest");
     }
 
@@ -157,7 +165,7 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
         // claimName requires hat membership AND msg.value for CCIP fee
         // forkNonMember is not a protocol member → NotProtocolMember revert
         vm.prank(forkNonMember);
-        vm.expectRevert();
+        vm.expectRevert(NotProtocolMember.selector);
         greenGoodsENS.claimName{ value: 0 }("test-slug");
     }
 
@@ -178,7 +186,7 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
 
         // createProject is onlyGardenToken — a non-gardenToken caller should be rejected
         vm.prank(forkNonMember);
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("NotGardenToken()")));
         karmaGAPModule.createProject(garden, forkOperator, "Unauthorized Project", "Should fail", "Nowhere", "");
     }
 }

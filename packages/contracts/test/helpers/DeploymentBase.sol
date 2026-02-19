@@ -342,6 +342,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // HypercertMarketplaceAdapter wiring
         if (address(marketplaceAdapter) != address(0)) {
             yieldSplitter.setHypercertMarketplace(address(marketplaceAdapter));
+            marketplaceAdapter.setAuthorizedModule(address(hypercertsModule), true);
         }
         // ENS module wiring (if deployed)
         if (address(greenGoodsENS) != address(0)) {

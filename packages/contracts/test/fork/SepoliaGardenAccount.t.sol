@@ -69,7 +69,7 @@ contract SepoliaGardenAccountForkTest is ForkTestBase {
 
         // forkNonMember does not own the NFT — execute should revert
         vm.prank(forkNonMember);
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("NotAuthorized()")));
         gardenAcct.execute(address(0xDEAD), 0, "", 0);
     }
 

@@ -200,8 +200,8 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
         // Two signal pools deployed
         address[] memory pools = gardensModule.getGardenSignalPools(garden);
         assertEq(pools.length, 2, "Should have 2 signal pools");
-        assertTrue(pools[0] != address(0), "HypercertSignalPool should exist");
-        assertTrue(pools[1] != address(0), "ActionSignalPool should exist");
+        assertTrue(pools[0] != address(0), "ActionSignalPool should exist");
+        assertTrue(pools[1] != address(0), "HypercertSignalPool should exist");
 
         // Pools are real contracts (have code)
         assertGt(pools[0].code.length, 0, "Pool 0 should be a contract");
@@ -226,7 +226,7 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
         assertTrue(gardensModule.isGardenInitialized(garden), "Garden should be initialized");
 
         // MockCVStrategy instances have correct CV parameters
-        MockCVStrategy hypercertPool = MockCVStrategy(pools[0]);
+        MockCVStrategy hypercertPool = MockCVStrategy(pools[1]);
         assertEq(hypercertPool.weight(), gardensModule.DEFAULT_WEIGHT(), "Pool weight should match default");
         assertEq(hypercertPool.decay(), gardensModule.DEFAULT_DECAY(), "Pool decay should match default");
     }
@@ -235,7 +235,7 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
     // Test 2: Hypercert Signal Pool — Register → Allocate → Query Conviction
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Core conviction voting flow on the HypercertSignalPool (pool index 0):
+    /// @notice Core conviction voting flow on the HypercertSignalPool (pool index 1):
     ///         register a hypercert, allocate support from multiple voters,
     ///         advance blocks, and verify conviction accumulates.
     function testHypercertPoolConvictionFlow() public {
@@ -243,7 +243,7 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
         _grantAllRoles(garden);
         _setupVotingPower(garden);
 
-        MockCVStrategy pool = _getPool(garden, 0);
+        MockCVStrategy pool = _getPool(garden, 1);
 
         // Register a hypercert
         uint256 hypercertId = 42;
@@ -300,7 +300,7 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
     // Test 3: Action Signal Pool — Multi-Proposal Voting
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Tests the ActionSignalPool (pool index 1) with two competing proposals.
+    /// @notice Tests the ActionSignalPool (pool index 0) with two competing proposals.
     ///         Operator votes for action1, gardener votes for action2. Verifies that
     ///         conviction weights reflect relative support levels.
     function testActionPoolMultiProposalVoting() public {
@@ -308,7 +308,7 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
         _grantAllRoles(garden);
         _setupVotingPower(garden);
 
-        MockCVStrategy actionPool = _getPool(garden, 1);
+        MockCVStrategy actionPool = _getPool(garden, 0);
 
         // Register two actions as proposals
         uint256 actionId1 = 100;
@@ -432,7 +432,7 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
         address garden = _mintGarden();
         _grantAllRoles(garden);
 
-        MockCVStrategy pool = _getPool(garden, 0);
+        MockCVStrategy pool = _getPool(garden, 1);
         pool.registerHypercert(1);
 
         // Set power for eligible members only
@@ -475,7 +475,7 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
         _grantAllRoles(garden);
         _setupVotingPower(garden);
 
-        MockCVStrategy pool = _getPool(garden, 0);
+        MockCVStrategy pool = _getPool(garden, 1);
 
         // Register two hypercerts
         uint256 hidA = 10;
@@ -640,7 +640,7 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
         // Simulate: the approved work generates a hypercert (ID = workUID as uint)
         uint256 hypercertId = uint256(workUID);
 
-        MockCVStrategy hypercertPool = _getPool(garden, 0);
+        MockCVStrategy hypercertPool = _getPool(garden, 1);
         hypercertPool.registerHypercert(hypercertId);
 
         assertTrue(hypercertPool.isEligibleVoter(operator1), "Operator should be eligible voter");
@@ -680,7 +680,7 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
 
         // === Phase 8: Action Signal Pool Voting ===
         // Register the action in the ActionSignalPool for priority signaling
-        MockCVStrategy actionPool = _getPool(garden, 1);
+        MockCVStrategy actionPool = _getPool(garden, 0);
         uint256 actionProposalId = 0; // Action UID from registry
         actionPool.registerHypercert(actionProposalId);
 

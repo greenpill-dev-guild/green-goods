@@ -426,7 +426,7 @@ contract HatsModule is
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @inheritdoc IHatsModule
-    function grantRole(address garden, address account, GardenRole role) external override {
+    function grantRole(address garden, address account, GardenRole role) external override nonReentrant {
         _requireOwnerOrOperator(garden);
         _grantRole(garden, account, role);
     }
@@ -438,7 +438,7 @@ contract HatsModule is
     }
 
     /// @inheritdoc IHatsModule
-    function grantRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external override {
+    function grantRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external override nonReentrant {
         _requireOwnerOrOperator(garden);
         if (accounts.length != roles.length) revert ArrayLengthMismatch();
 
@@ -647,7 +647,11 @@ contract HatsModule is
         if (!gardenHats[garden].configured) revert GardenNotConfigured(garden);
 
         uint256 hatId = _getHatId(garden, role);
-        hats.mintHat(hatId, account);
+        bool alreadyWearingRole = hats.isWearerOfHat(account, hatId);
+        if (!alreadyWearingRole) {
+            hats.mintHat(hatId, account);
+            emit RoleGranted(garden, account, role);
+        }
 
         // Auto-mint protocol-wide gardener hat (enables ENS name claims)
         // Best-effort: skip silently if already wearing or hat doesn't exist
@@ -656,8 +660,6 @@ contract HatsModule is
                 try hats.mintHat(protocolGardenersHatId, account) { } catch { }
             }
         }
-
-        emit RoleGranted(garden, account, role);
 
         if (role == GardenRole.Operator) {
             _syncProjectAdmin(garden, account, true);
@@ -676,6 +678,10 @@ contract HatsModule is
 
     function _grantSubRole(address garden, address account, GardenRole role, string memory label) internal {
         uint256 hatId = _getHatId(garden, role);
+        if (hats.isWearerOfHat(account, hatId)) {
+            return;
+        }
+
         try hats.mintHat(hatId, account) {
             emit RoleGranted(garden, account, role);
             // Recursively grant sub-roles for Operator (Evaluator + Gardener + GAP sync)

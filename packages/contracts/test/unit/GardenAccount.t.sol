@@ -113,6 +113,8 @@ contract MockGardensModuleForAccount is IGardensModule {
         return new address[](0);
     }
 
+    function seedGardenTreasury(address) external pure { }
+
     function getGardenCommunity(address garden) external view returns (address) {
         return gardenCommunities[garden];
     }

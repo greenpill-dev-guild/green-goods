@@ -38,7 +38,7 @@ interface IGoodsToken {
 /// - Called by GardenToken during mintGarden() via try/catch (failure MUST NOT revert mint)
 /// - Registers per-garden voting power sources in a unified power registry
 /// - Creates one RegistryCommunity per garden using shared GOODS token
-/// - Creates two signal pools: HypercertSignalPool + ActionSignalPool
+/// - Creates two signal pools: ActionSignalPool + HypercertSignalPool
 /// - Registers pools in HatsModule for conviction sync on role revocation
 contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
     using SafeERC20 for IERC20;
@@ -71,6 +71,9 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
 
     /// @notice Initial member slots for treasury seeding (mint enough GOODS for ~100 members)
     uint256 public constant INITIAL_MEMBER_SLOTS = 100;
+    /// @notice Shared metadata pointers used for all Action and Hypercert signaling pools.
+    string internal constant ACTION_SIGNAL_POOL_METADATA = "Green Goods Action Focus Signaling Pool";
+    string internal constant HYPERCERT_SIGNAL_POOL_METADATA = "Green Goods Hypercert Signaling Pool";
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
@@ -116,9 +119,13 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     /// @notice Allo Protocol address (required for createRegistry params)
     address public alloAddress;
 
+    /// @notice Council safe used for all newly created Green Goods communities
+    /// @dev Defaults to owner at initialization; can be set to protocol multisig.
+    address public communityCouncilSafe;
+
     /// @notice Storage gap for future upgrades
-    /// @dev 13 storage vars + 37 gap = 50 slots total
-    uint256[37] private __gap;
+    /// @dev 14 storage vars + 36 gap = 50 slots total
+    uint256[36] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -159,6 +166,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         hatsProtocol = _hatsProtocol;
         hatsModule = IHatsModule(_hatsModule);
         stakeAmountPerMember = 1e18; // Default: 1 GOODS per member
+        communityCouncilSafe = _owner;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -203,15 +211,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         _registerGardenPower(garden, scheme);
 
         // Step 3: Seed GOODS treasury for member staking
-        if (address(goodsToken) != address(0) && community != address(0)) {
-            uint256 treasuryAmount = stakeAmountPerMember * INITIAL_MEMBER_SLOTS;
-            // solhint-disable-next-line no-empty-blocks
-            try IGoodsToken(address(goodsToken)).mint(garden, treasuryAmount) {
-                emit GardenTreasurySeeded(garden, treasuryAmount);
-            } catch {
-                // Non-blocking — garden works without GOODS treasury
-            }
-        }
+        _seedGardenTreasury(garden, community);
 
         // Step 4: Attempt pool creation (separate try/catch from community creation)
         // Uses self-call pattern to enable try/catch on internal logic.
@@ -407,6 +407,13 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         alloAddress = _alloAddress;
     }
 
+    /// @notice Set protocol council safe used for all new community creation
+    function setCommunityCouncilSafe(address _communityCouncilSafe) external onlyOwner {
+        if (_communityCouncilSafe == address(0)) revert ZeroAddress();
+        emit ConfigUpdated("communityCouncilSafe", communityCouncilSafe, _communityCouncilSafe);
+        communityCouncilSafe = _communityCouncilSafe;
+    }
+
     /// @notice Reset garden initialization to allow re-running onGardenMinted
     /// @dev Use when partial failure leaves garden in half-configured state.
     ///      Also cleans up the UnifiedPowerRegistry so re-initialization can register fresh sources.
@@ -437,6 +444,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         community = _createCommunity(garden);
         if (community != address(0)) {
             gardenCommunities[garden] = community;
+            _seedGardenTreasury(garden, community);
         }
     }
 
@@ -444,6 +452,15 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     /// @dev Uses internal _executeCreatePools to avoid msg.sender change from external self-call
     function retryCreatePools(address garden) external onlyOwner returns (address[] memory pools) {
         return _executeCreatePools(garden);
+    }
+
+    /// @notice Seed GOODS treasury for an already-initialized garden.
+    /// @dev Recovery helper used when community creation succeeds after initial mint flow.
+    function seedGardenTreasury(address garden) external onlyOwner {
+        if (!gardenInitialized[garden]) revert GardenNotInitialized(garden);
+        address community = gardenCommunities[garden];
+        if (community == address(0)) revert ZeroAddress();
+        _seedGardenTreasury(garden, community);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -535,6 +552,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     ///      Gardens V2 RegistryFactory signature. _nonce and _registryFactory are set by the factory.
     function _createCommunity(address garden) internal returns (address community) {
         if (address(registryFactory) == address(0)) return address(0);
+        address councilSafe = communityCouncilSafe == address(0) ? garden : communityCouncilSafe;
 
         RegistryCommunityInitializeParamsV2 memory params = RegistryCommunityInitializeParamsV2({
             _allo: alloAddress,
@@ -545,7 +563,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
             _registryFactory: address(0), // Set by factory
             _feeReceiver: address(0),
             _metadata: Metadata({ protocol: 1, pointer: "" }),
-            _councilSafe: payable(garden), // Garden account (TBA) acts as council Safe
+            _councilSafe: payable(councilSafe),
             _communityName: "Green Goods Community",
             _isKickEnabled: false,
             covenantIpfsHash: ""
@@ -562,11 +580,29 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         }
     }
 
+    /// @notice Seed a garden treasury with GOODS to cover initial member staking slots.
+    /// @dev Non-blocking by design; duplicate attempts are ignored once funded.
+    function _seedGardenTreasury(address garden, address community) internal {
+        if (community == address(0)) return;
+        if (address(goodsToken) == address(0)) return;
+
+        uint256 treasuryAmount = stakeAmountPerMember * INITIAL_MEMBER_SLOTS;
+        if (treasuryAmount == 0) return;
+        if (goodsToken.balanceOf(garden) >= treasuryAmount) return;
+
+        // solhint-disable-next-line no-empty-blocks
+        try IGoodsToken(address(goodsToken)).mint(garden, treasuryAmount) {
+            emit GardenTreasurySeeded(garden, treasuryAmount);
+        } catch {
+            // Non-blocking — garden can still initialize and be funded later.
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Internal — Create Signal Pools
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Create HypercertSignalPool and ActionSignalPool
+    /// @notice Create ActionSignalPool and HypercertSignalPool
     function _createSignalPools(
         address garden,
         address community,
@@ -576,6 +612,8 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         returns (address[] memory pools)
     {
         if (community == address(0)) return new address[](0);
+
+        _attemptSignalPoolMembershipJoin(community, garden);
 
         pools = new address[](2);
         uint256 created = 0;
@@ -587,19 +625,20 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
             minThresholdPoints: DEFAULT_MIN_THRESHOLD_POINTS
         });
 
-        // Pool 1: HypercertSignalPool
-        address hypercertPool =
-            _createPool(garden, community, PointSystem.Custom, cvParams, registry, "Hypercert Signal Pool");
-        if (hypercertPool != address(0)) {
-            pools[created++] = hypercertPool;
-            emit SignalPoolCreated(garden, hypercertPool, PoolType.HypercertSignal, community);
-        }
-
-        // Pool 2: ActionSignalPool
-        address actionPool = _createPool(garden, community, PointSystem.Custom, cvParams, registry, "Action Signal Pool");
+        // Pool 1 (index 0): ActionSignalPool
+        address actionPool =
+            _createPool(garden, community, PointSystem.Custom, cvParams, registry, ACTION_SIGNAL_POOL_METADATA);
         if (actionPool != address(0)) {
             pools[created++] = actionPool;
             emit SignalPoolCreated(garden, actionPool, PoolType.ActionSignal, community);
+        }
+
+        // Pool 2 (index 1): HypercertSignalPool
+        address hypercertPool =
+            _createPool(garden, community, PointSystem.Custom, cvParams, registry, HYPERCERT_SIGNAL_POOL_METADATA);
+        if (hypercertPool != address(0)) {
+            pools[created++] = hypercertPool;
+            emit SignalPoolCreated(garden, hypercertPool, PoolType.HypercertSignal, community);
         }
 
         // Trim array to actual count
@@ -612,6 +651,21 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         }
 
         return pools;
+    }
+
+    /// @notice Best-effort member registration before pool creation for compatibility with stricter community setups.
+    /// @dev Supports both known signatures:
+    ///      - stakeAndRegisterMember(address)  (legacy/mock interface)
+    ///      - stakeAndRegisterMember(string)   (newer gardens-v2 CommunityMemberFacet)
+    ///      Failures are intentionally ignored to keep pool creation non-blocking.
+    function _attemptSignalPoolMembershipJoin(address community, address garden) internal {
+        // Legacy/address-based member registration path.
+        // solhint-disable-next-line no-empty-blocks
+        try IRegistryCommunity(community).stakeAndRegisterMember(garden) { } catch { }
+
+        // Newer string-based covenant signature path.
+        (bool ok,) = community.call(abi.encodeWithSelector(bytes4(0x9a1f46e2), ""));
+        ok; // silence compiler warning for ignored result
     }
 
     /// @notice Create a single conviction pool via the 3-arg createPool signature

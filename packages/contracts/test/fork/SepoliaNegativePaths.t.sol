@@ -7,6 +7,9 @@ import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 import { WorkSchema, WorkApprovalSchema, AssessmentSchema } from "../../src/Schemas.sol";
 import { ActionRegistry, Capital, Domain } from "../../src/registries/Action.sol";
+import { NotActiveAction } from "../../src/resolvers/Work.sol";
+import { NotInWorkRegistry } from "../../src/resolvers/WorkApproval.sol";
+import { NotAuthorizedAttester, InvalidDomain } from "../../src/resolvers/Assessment.sol";
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
 /// @title SepoliaNegativePathsForkTest
@@ -41,7 +44,7 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
             actionUID: actionUID,
             title: "Expired Action Work",
             feedback: "Should fail",
-            metadata: "",
+            metadata: "ipfs://QmExpiredActionMeta",
             media: media
         });
 
@@ -60,7 +63,7 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
         });
 
         vm.prank(forkGardener);
-        vm.expectRevert();
+        vm.expectRevert(NotActiveAction.selector);
         IEASBase(eas).attest(request);
     }
 
@@ -107,7 +110,7 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
         });
 
         vm.prank(forkOperator);
-        vm.expectRevert();
+        vm.expectRevert(NotInWorkRegistry.selector);
         IEASBase(eas).attest(request);
     }
 
@@ -152,7 +155,7 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
         });
 
         vm.prank(forkEvaluator);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(InvalidDomain.selector, uint8(4)));
         IEASBase(eas).attest(request);
     }
 
@@ -197,7 +200,7 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
 
         // forkGardener has Gardener role, not Evaluator — assessment should revert
         vm.prank(forkGardener);
-        vm.expectRevert();
+        vm.expectRevert(NotAuthorizedAttester.selector);
         IEASBase(eas).attest(request);
     }
 

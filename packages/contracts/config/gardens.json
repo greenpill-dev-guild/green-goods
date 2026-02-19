@@ -8,6 +8,7 @@
       "bannerImage": "QmS8mL4x9fnNutV63pSfwRhhVgoVpw4gaDCCGaTpv6oMGW",
       "metadata": "",
       "openJoining": true,
+      "domainMask": 15,
       "gardeners": [
         "0x476E2651BF97dE8a26e4A05a9c8e00A6EFa1390c",
         "0x23fBb98BBa894b2de086350bD60ef39860e92e43",

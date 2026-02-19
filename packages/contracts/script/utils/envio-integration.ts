@@ -26,9 +26,10 @@ interface DeploymentData {
   gardenAccountImpl?: string;
   accountProxy?: string;
   hatsModule?: string;
-  cookieJarModule?: string;
-  marketplaceAdapter?: string;
-  unifiedPowerRegistry?: string;
+  octantModule?: string;
+  octantVault?: string;
+  yieldSplitter?: string;
+  hypercertMinter?: string;
   [key: string]: string | undefined;
 }
 
@@ -44,6 +45,19 @@ interface BroadcastData {
   transactions?: BroadcastTransaction[];
   receipts?: BroadcastReceipt[];
 }
+
+const INDEXER_MANAGED_CONTRACT_ORDER = [
+  "ActionRegistry",
+  "GardenToken",
+  "GardenAccount",
+  "HatsModule",
+  "OctantModule",
+  "OctantVault",
+  "YieldSplitter",
+  "HypercertMinter",
+] as const;
+
+const INDEXER_MANAGED_CONTRACTS = new Set<string>(INDEXER_MANAGED_CONTRACT_ORDER);
 
 export class EnvioIntegration {
   private contractsDir: string;
@@ -224,6 +238,7 @@ export class EnvioIntegration {
 
       const contractsByName = new Map<string, EnvioContract>();
       existingContracts.forEach((contract) => {
+        if (!INDEXER_MANAGED_CONTRACTS.has(contract.name)) return;
         contractsByName.set(contract.name, {
           name: contract.name,
           address: String(contract.address),
@@ -240,45 +255,20 @@ export class EnvioIntegration {
       upsertContract("GardenAccount", gardenAccountAddress);
       upsertContract("HatsModule", deployment.hatsModule);
       upsertContract("OctantModule", deployment.octantModule);
-      // OctantVault address is managed by OctantModule — not directly in deployment JSON.
-      // It is set per garden via VaultCreated events, so we skip it here (it stays at its
-      // existing config.yaml value or placeholder zero address).
-      upsertContract("GardensModule", deployment.gardensModule);
+      upsertContract("OctantVault", deployment.octantVault);
+      // OctantVault and HypercertMinter may be absent in deployment JSON for some networks.
+      // In that case, we preserve existing config entries (including placeholders).
       upsertContract("YieldSplitter", deployment.yieldSplitter);
-      upsertContract("CookieJarModule", deployment.cookieJarModule);
-      upsertContract("HypercertMarketplaceAdapter", deployment.marketplaceAdapter);
-      upsertContract("UnifiedPowerRegistry", deployment.unifiedPowerRegistry);
+      upsertContract("HypercertMinter", deployment.hypercertMinter);
       // HypercertMinter has a fixed address per chain, managed in config.yaml.
       // EAS attestation data is queried from EAS GraphQL (easscan.org), not indexed by Envio.
 
       const orderedContracts: EnvioContract[] = [];
-      const seen = new Set<string>();
 
-      existingContracts.forEach((contract) => {
-        const updated = contractsByName.get(contract.name) ?? contract;
-        orderedContracts.push(updated);
-        seen.add(updated.name);
-      });
-
-      const preferredOrder = [
-        "ActionRegistry",
-        "GardenToken",
-        "GardenAccount",
-        "HatsModule",
-        "OctantModule",
-        "OctantVault",
-        "GardensModule",
-        "YieldSplitter",
-        "CookieJarModule",
-        "HypercertMinter",
-        "HypercertMarketplaceAdapter",
-        "UnifiedPowerRegistry",
-      ];
-      preferredOrder.forEach((name) => {
+      INDEXER_MANAGED_CONTRACT_ORDER.forEach((name) => {
         const contract = contractsByName.get(name);
-        if (contract && !seen.has(name)) {
+        if (contract) {
           orderedContracts.push(contract);
-          seen.add(name);
         }
       });
 
@@ -337,20 +327,8 @@ export class EnvioIntegration {
       if (deployment.octantModule && deployment.octantModule !== ZERO_ADDRESS) {
         console.log(`   OctantModule: ${deployment.octantModule}`);
       }
-      if (deployment.gardensModule && deployment.gardensModule !== ZERO_ADDRESS) {
-        console.log(`   GardensModule: ${deployment.gardensModule}`);
-      }
       if (deployment.yieldSplitter && deployment.yieldSplitter !== ZERO_ADDRESS) {
         console.log(`   YieldSplitter: ${deployment.yieldSplitter}`);
-      }
-      if (deployment.cookieJarModule && deployment.cookieJarModule !== ZERO_ADDRESS) {
-        console.log(`   CookieJarModule: ${deployment.cookieJarModule}`);
-      }
-      if (deployment.marketplaceAdapter && deployment.marketplaceAdapter !== ZERO_ADDRESS) {
-        console.log(`   HypercertMarketplaceAdapter: ${deployment.marketplaceAdapter}`);
-      }
-      if (deployment.unifiedPowerRegistry && deployment.unifiedPowerRegistry !== ZERO_ADDRESS) {
-        console.log(`   UnifiedPowerRegistry: ${deployment.unifiedPowerRegistry}`);
       }
       console.log(`   start_block: ${startBlock}`);
 

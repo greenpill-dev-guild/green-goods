@@ -8,6 +8,8 @@ import { GardenToken } from "../../../src/tokens/Garden.sol";
 import { GardenAccount } from "../../../src/accounts/Garden.sol";
 import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
 import { IGardensModule } from "../../../src/interfaces/IGardensModule.sol";
+import { NotGardenMember } from "../../../src/resolvers/Work.sol";
+import { NotGardenOperator } from "../../../src/resolvers/WorkApproval.sol";
 
 /// @title FullProtocolE2EForkTest
 /// @notice Fork tests covering the complete protocol lifecycle against real EAS infrastructure.
@@ -394,7 +396,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
             actionUID: actionUID,
             title: "Unauthorized Work",
             feedback: "",
-            metadata: "",
+            metadata: "ipfs://QmUnauthorizedWorkMeta",
             media: new string[](0)
         });
 
@@ -413,8 +415,9 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         });
 
         vm.prank(forkNonMember);
-        vm.expectRevert();
+        vm.expectRevert(NotGardenMember.selector);
         IEASBase(eas).attest(request);
+        assertFalse(hatsModule.isGardenerOf(garden, forkNonMember), "non-member should remain unauthorized");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -470,7 +473,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         });
 
         vm.prank(forkOperator); // garden A operator, NOT garden B operator
-        vm.expectRevert();
+        vm.expectRevert(NotGardenOperator.selector);
         IEASBase(eas).attest(request);
     }
 
@@ -478,8 +481,8 @@ contract FullProtocolE2EForkTest is ForkTestBase {
     // Test 8: Double Role Grant Reverts (Error Path)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Granting the same role twice to the same user reverts
-    function test_fork_e2e_doubleRoleGrantReverts() public {
+    /// @notice Granting the same role twice is idempotent and keeps membership intact
+    function test_fork_e2e_doubleRoleGrantIsIdempotent() public {
         if (!_tryChainFork("sepolia")) {
             emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
@@ -493,8 +496,8 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
         assertTrue(hatsModule.isGardenerOf(garden, forkGardener), "first grant should succeed");
 
-        // Second identical grant should revert (Hats Protocol rejects double-mint)
-        vm.expectRevert();
+        // Second identical grant should be a no-op under current HatsModule semantics
         _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
+        assertTrue(hatsModule.isGardenerOf(garden, forkGardener), "second grant should keep role intact");
     }
 }

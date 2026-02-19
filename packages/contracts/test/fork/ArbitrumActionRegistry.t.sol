@@ -12,6 +12,7 @@ import {
 } from "../../src/registries/Action.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { WorkSchema } from "../../src/Schemas.sol";
+import { NotActiveAction } from "../../src/resolvers/Work.sol";
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
@@ -182,7 +183,9 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
 
         // forkNonMember is not the owner
         vm.prank(forkNonMember);
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("OwnableUnauthorizedAccount(address)")), forkNonMember)
+        );
         actionRegistry.registerAction(
             block.timestamp,
             block.timestamp + 30 days,
@@ -245,7 +248,7 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
 
         // Gardener tries to submit work for the disabled action
         vm.prank(forkGardener);
-        vm.expectRevert();
+        vm.expectRevert(NotActiveAction.selector);
         IEASBase(eas).attest(request);
     }
 

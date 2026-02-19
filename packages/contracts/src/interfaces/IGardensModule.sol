@@ -23,8 +23,8 @@ interface IGardensModule {
 
     /// @notice Pool types created for each garden
     enum PoolType {
-        HypercertSignal, // Signal pool for curating hypercerts
-        ActionSignal // Signal pool for prioritizing garden actions
+        ActionSignal, // Signal pool for prioritizing garden actions
+        HypercertSignal // Signal pool for curating hypercerts
 
     }
 
@@ -78,7 +78,7 @@ interface IGardensModule {
     /// @param garden The garden account address
     /// @param scheme The weight scheme selected by the operator
     /// @return community The created RegistryCommunity address
-    /// @return pools Array of created signal pool addresses [hypercert, action]
+    /// @return pools Array of created signal pool addresses [action, hypercert]
     function onGardenMinted(
         address garden,
         WeightScheme scheme
@@ -102,6 +102,11 @@ interface IGardensModule {
     /// @param garden The garden account address
     /// @return pools Array of created signal pool addresses
     function createGardenPools(address garden) external returns (address[] memory pools);
+
+    /// @notice Seed a garden treasury with GOODS for community member staking.
+    /// @dev Owner-only recovery hook for gardens initialized before community creation succeeded.
+    /// @param garden The garden account address
+    function seedGardenTreasury(address garden) external;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // View Functions

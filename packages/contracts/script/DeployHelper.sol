@@ -15,8 +15,11 @@ abstract contract DeployHelper is Script {
 
     /// @notice Error thrown when deployment address doesn't match predicted address
     error DeploymentAddressMismatch();
+    error SchemaGenerationFallbackFailed(string schemaName);
 
     using stdJson for string;
+
+    uint256 private constant MAX_SCHEMA_FIELDS = 64;
 
     struct NetworkConfig {
         address eas;
@@ -56,6 +59,7 @@ abstract contract DeployHelper is Script {
         address hypercertsModule;
         address marketplaceAdapter;
         address greenGoodsENS;
+        address ensReceiver;
         address gardenerAccountLogic; // DEPRECATED: kept for JSON backward compatibility
         address gardenerRegistry; // DEPRECATED: replaced by GreenGoodsENS (CCIP), kept for JSON compat
         bytes32 assessmentSchemaUID;
@@ -90,7 +94,14 @@ abstract contract DeployHelper is Script {
         NetworkConfig memory config;
         config.eas = json.readAddress(string.concat(basePath, ".contracts.eas"));
         config.easSchemaRegistry = json.readAddress(string.concat(basePath, ".contracts.easSchemaRegistry"));
-        config.communityToken = json.readAddress(string.concat(basePath, ".contracts.communityToken"));
+        // communityToken is required for L2 protocol deployments but optional on mainnet ENS-only mode
+        // solhint-disable-next-line no-empty-blocks
+        try vm.parseJson(json, string.concat(basePath, ".contracts.communityToken")) returns (bytes memory data) {
+            config.communityToken = abi.decode(data, (address));
+            // solhint-disable-next-line no-empty-blocks
+        } catch {
+            // Optional on mainnet ENS-only deployments; defaults to address(0)
+        }
         config.erc4337EntryPoint = json.readAddress(string.concat(basePath, ".contracts.erc4337EntryPoint"));
         config.multicallForwarder = json.readAddress(string.concat(basePath, ".contracts.multicallForwarder"));
 
@@ -236,6 +247,8 @@ abstract contract DeployHelper is Script {
         console.log("GardensModule:", result.gardensModule);
         console.log("CookieJarModule:", result.cookieJarModule);
         console.log("YieldResolver:", result.yieldSplitter);
+        console.log("GreenGoodsENS:", result.greenGoodsENS);
+        console.log("ENSReceiver:", result.ensReceiver);
 
         string memory obj = "deployment";
         vm.serializeAddress(obj, "deploymentRegistry", result.deploymentRegistry);
@@ -258,6 +271,7 @@ abstract contract DeployHelper is Script {
         vm.serializeAddress(obj, "hypercertsModule", result.hypercertsModule);
         vm.serializeAddress(obj, "marketplaceAdapter", result.marketplaceAdapter);
         vm.serializeAddress(obj, "greenGoodsENS", result.greenGoodsENS);
+        vm.serializeAddress(obj, "ensReceiver", result.ensReceiver);
         vm.serializeAddress(obj, "gardenerAccountLogic", result.gardenerAccountLogic);
         vm.serializeAddress(obj, "gardenerRegistry", result.gardenerRegistry);
 
@@ -367,7 +381,48 @@ abstract contract DeployHelper is Script {
         inputs[2] = "script/utils/generate-schemas.ts";
         inputs[3] = schemaName;
 
-        bytes memory result = vm.ffi(inputs);
-        return string(result);
+        try vm.ffi(inputs) returns (bytes memory result) {
+            if (result.length > 0) {
+                return string(result);
+            }
+        } catch { }
+
+        // Fallback when bun/ffi is unavailable in the runner environment.
+        string memory json = _loadSchemaConfigForFallback();
+        string memory basePath = string.concat(".schemas.", schemaName, ".fields");
+        string memory schema;
+
+        for (uint256 i = 0; i < MAX_SCHEMA_FIELDS; i++) {
+            string memory fieldPath = string.concat(basePath, "[", vm.toString(i), "]");
+            bytes memory fieldData;
+            try vm.parseJson(json, fieldPath) returns (bytes memory parsedField) {
+                fieldData = parsedField;
+            } catch {
+                if (i == 0) revert SchemaGenerationFallbackFailed(schemaName);
+                break;
+            }
+            if (fieldData.length == 0) {
+                if (i == 0) revert SchemaGenerationFallbackFailed(schemaName);
+                break;
+            }
+
+            string memory fieldName = abi.decode(vm.parseJson(json, string.concat(fieldPath, ".name")), (string));
+            string memory fieldType = abi.decode(vm.parseJson(json, string.concat(fieldPath, ".type")), (string));
+            string memory fieldSchema = string.concat(fieldType, " ", fieldName);
+
+            if (bytes(schema).length == 0) {
+                schema = fieldSchema;
+            } else {
+                schema = string.concat(schema, ",", fieldSchema);
+            }
+        }
+
+        if (bytes(schema).length == 0) revert SchemaGenerationFallbackFailed(schemaName);
+        return schema;
+    }
+
+    /// @notice Load schema config for schema-string fallback path.
+    function _loadSchemaConfigForFallback() internal view returns (string memory) {
+        return vm.readFile(string.concat(vm.projectRoot(), "/config/schemas.json"));
     }
 }

@@ -11,6 +11,8 @@ export interface DeploymentData {
   workResolver?: string;
   workApprovalResolver?: string;
   assessmentResolver?: string;
+  greenGoodsENS?: string;
+  ensReceiver?: string;
   hatsModule?: string;
   karmaGAPModule?: string;
   [key: string]: string | undefined;

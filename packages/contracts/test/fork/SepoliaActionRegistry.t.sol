@@ -5,6 +5,7 @@ import { ForkTestBase, IEASBase } from "./helpers/ForkTestBase.sol";
 import { ActionRegistry, Capital, Domain, NotActionOwner, EndTimeBeforeStartTime } from "../../src/registries/Action.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { WorkSchema } from "../../src/Schemas.sol";
+import { NotActiveAction } from "../../src/resolvers/Work.sol";
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
 /// @title SepoliaActionRegistryForkTest
@@ -98,7 +99,7 @@ contract SepoliaActionRegistryForkTest is ForkTestBase {
             actionUID: actionUID,
             title: "Work on Disabled Action",
             feedback: "Should fail on Sepolia",
-            metadata: "",
+            metadata: "ipfs://QmDisabledActionMeta",
             media: media
         });
 
@@ -117,7 +118,7 @@ contract SepoliaActionRegistryForkTest is ForkTestBase {
         });
 
         vm.prank(forkGardener);
-        vm.expectRevert();
+        vm.expectRevert(NotActiveAction.selector);
         IEASBase(eas).attest(request);
     }
 
@@ -138,7 +139,9 @@ contract SepoliaActionRegistryForkTest is ForkTestBase {
         capitals[0] = Capital.SOCIAL;
 
         vm.prank(forkNonMember);
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("OwnableUnauthorizedAccount(address)")), forkNonMember)
+        );
         actionRegistry.registerAction(
             block.timestamp,
             block.timestamp + 30 days,

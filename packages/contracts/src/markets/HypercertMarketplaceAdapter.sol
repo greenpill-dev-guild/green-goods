@@ -71,6 +71,7 @@ contract HypercertMarketplaceAdapter is
     error InsufficientUnits();
     error ExchangeExecutionFailed(bytes reason);
     error Unauthorized();
+    error ZeroAddress();
     error ArrayLengthMismatch();
     error BatchTooLarge();
     error ContractPaused();
@@ -101,6 +102,9 @@ contract HypercertMarketplaceAdapter is
     /// @notice Order IDs per seller
     mapping(address seller => uint256[]) public sellerOrders;
 
+    /// @notice Additional authorized contracts allowed to deactivate orders
+    mapping(address module => bool authorized) public authorizedModules;
+
     /// @notice Whether the contract is paused
     bool public paused;
 
@@ -108,8 +112,8 @@ contract HypercertMarketplaceAdapter is
     mapping(address => bool) private __deprecated_allowedCurrencies;
 
     /// @notice Storage gap for future upgrades
-    /// @dev 10 storage vars + 40 gap = 50 slots total
-    uint256[40] private __gap;
+    /// @dev 11 storage vars + 39 gap = 50 slots total
+    uint256[39] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -243,7 +247,9 @@ contract HypercertMarketplaceAdapter is
     function deactivateOrder(uint256 orderId) external {
         RegisteredOrder storage order = orders[orderId];
         if (!order.active) revert InvalidOrder();
-        if (msg.sender != order.seller && msg.sender != owner()) revert Unauthorized();
+        if (msg.sender != order.seller && msg.sender != owner() && !authorizedModules[msg.sender]) {
+            revert Unauthorized();
+        }
 
         order.active = false;
         // Clear the active order mapping
@@ -252,6 +258,24 @@ contract HypercertMarketplaceAdapter is
         }
 
         emit OrderDeactivated(orderId, msg.sender);
+    }
+
+    /// @notice Mark a contract as authorized to deactivate orders
+    /// @param module The module contract address
+    /// @param authorized True to authorize, false to revoke
+    function setAuthorizedModule(address module, bool authorized) external onlyOwner {
+        if (module == address(0)) revert ZeroAddress();
+        authorizedModules[module] = authorized;
+    }
+
+    /// @notice Return minimal order metadata for external validation
+    /// @param orderId The order ID
+    /// @return hypercertId The order's hypercert ID
+    /// @return seller The order seller
+    /// @return active Whether the order is active
+    function getOrderInfo(uint256 orderId) external view returns (uint256 hypercertId, address seller, bool active) {
+        RegisteredOrder storage order = orders[orderId];
+        return (order.hypercertId, order.seller, order.active);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

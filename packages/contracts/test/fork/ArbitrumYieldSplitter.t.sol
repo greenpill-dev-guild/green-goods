@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Test } from "forge-std/Test.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { ForkTestBase } from "./helpers/ForkTestBase.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import { YieldResolver } from "../../src/resolvers/Yield.sol";
-import { IOctantVault } from "../../src/interfaces/IOctantFactory.sol";
+import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import {
     IJBController,
     IJBMultiTerminal,
-    IJBToken,
-    IJBTokens,
     JBRulesetConfig,
     JBRulesetMetadata,
     JBSplitGroup,
@@ -22,10 +18,14 @@ import {
     IJBRulesetApprovalHook
 } from "../../src/interfaces/IJuicebox.sol";
 
-/// @title MockVaultForFork
-/// @notice Minimal ERC-4626-like vault backed by real WETH on the fork
-/// @dev Holds real WETH, tracks share balances, supports deposit/redeem at 1:1 ratio
-contract MockVaultForFork {
+/// @title MockVaultForYieldTest
+/// @notice Minimal ERC-4626-like mock vault for deterministic BPS math tests.
+/// @dev Used because YieldResolver tests focus on split routing logic, not vault strategies.
+///      Real Aave vault yield accrual makes BPS assertions non-deterministic.
+///      Full Aave vault integration is tested in ArbitrumOctantVault.t.sol and
+///      ArbitrumExtendedE2E.t.sol. This follows the CookieJarForkTestBase pattern
+///      for scoped mock vaults.
+contract MockVaultForYieldTest {
     IERC20 public immutable asset_;
     mapping(address => uint256) public balanceOf;
     uint256 public totalSupply;
@@ -47,7 +47,7 @@ contract MockVaultForFork {
     }
 
     /// @notice Redeem shares for assets 1:1
-    /// @dev Matches IOctantVault.redeem signature (5 params: shares, receiver, owner, maxLoss, strategies)
+    /// @dev Matches IOctantVault.redeem signature (5 params)
     function redeem(
         uint256 shares,
         address receiver,
@@ -72,117 +72,85 @@ contract MockVaultForFork {
     }
 }
 
-/// @title MockHatsModuleForYieldFork
-/// @notice Minimal mock providing isOperatorOf/isOwnerOf for access control
-contract MockHatsModuleForYieldFork {
-    mapping(address garden => mapping(address account => bool isOp)) public operators;
-    mapping(address garden => mapping(address account => bool isOwn)) public owners;
-
-    function setOperator(address garden, address account, bool value) external {
-        operators[garden][account] = value;
-    }
-
-    function setOwner(address garden, address account, bool value) external {
-        owners[garden][account] = value;
-    }
-
-    function isOperatorOf(address garden, address account) external view returns (bool) {
-        return operators[garden][account];
-    }
-
-    function isOwnerOf(address garden, address account) external view returns (bool) {
-        return owners[garden][account];
-    }
-}
-
 /// @title ArbitrumYieldResolverForkTest
-/// @notice Fork tests for YieldResolver against Arbitrum mainnet with real WETH
-/// @dev Gracefully skips when ARBITRUM_RPC_URL is not set
-contract ArbitrumYieldResolverForkTest is Test {
+/// @notice Fork tests for YieldResolver against Arbitrum mainnet with real WETH,
+///         real HatsModule, and real protocol stack via ForkTestBase.
+/// @dev Replaces MockHatsModuleForYieldFork with real Hats Protocol integration.
+///      Keeps MockVaultForYieldTest for deterministic BPS math (see NatSpec above).
+///      Uses setUp pattern for efficient fork reuse across 21 tests.
+contract ArbitrumYieldResolverForkTest is ForkTestBase {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // External Contract Addresses (Arbitrum Mainnet)
+    // ═══════════════════════════════════════════════════════════════════════════
+
     /// @notice Real WETH on Arbitrum
     address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
     /// @notice Juicebox Controller on Arbitrum (mainnet)
-    /// @dev Source: https://docs.juicebox.money/dev/v5/addresses
     address internal constant JB_CONTROLLER = 0x84E1D0102A722b3f3c00EC4E2b7ca2B97edF4eB2;
 
     /// @notice Juicebox Multi-Terminal on Arbitrum (mainnet)
-    /// @dev Source: https://docs.juicebox.money/dev/v5/addresses
     address internal constant JB_MULTI_TERMINAL = 0x82129d4109625F94582bDdF6101a8Cd1a27919f5;
 
     /// @notice Juicebox terminal used for project launches in fork tests
-    /// @dev Some forks expose a dedicated terminal that routes via the multi-terminal.
     address internal constant JB_TERMINAL = 0x14785612bd5C27D8CbAd1d9A9E33BEBfF5F4C3b6;
 
-    YieldResolver public yieldSplitter;
-    MockVaultForFork public vault;
-    MockHatsModuleForYieldFork public mockHatsModule;
-
-    address public owner = address(0xA1);
-    address public octantModule = address(0xA2);
-    address public garden = address(0xB1);
-    address public treasury = address(0xB2);
-    address public cookieJar = address(0xB3);
-    address public operator = address(0xB4);
-
-    uint256 public constant MIN_YIELD_THRESHOLD = 0.01 ether; // Low threshold for testing
-
     // ═══════════════════════════════════════════════════════════════════════════
-    // Fork Helper
+    // Test State
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function _tryFork() internal returns (bool) {
-        string memory rpc;
-        try vm.envString("ARBITRUM_RPC_URL") returns (string memory value) {
-            rpc = value;
-        } catch {
-            try vm.envString("ARBITRUM_RPC") returns (string memory fallback_) {
-                rpc = fallback_;
-            } catch {
-                return false;
-            }
-        }
-        if (bytes(rpc).length == 0) return false;
+    MockVaultForYieldTest internal mockVault;
+    address internal testGarden;
+    address internal testCookieJar;
+    address internal testTreasury;
 
-        uint256 forkId = vm.createFork(rpc);
-        vm.selectFork(forkId);
-        return true;
+    uint256 internal constant MIN_YIELD_THRESHOLD = 0.01 ether;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // setUp — fork once, deploy once, reuse across all tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function setUp() public {
+        if (!_tryChainFork("arbitrum")) return;
+
+        _deployFullStackOnFork();
+
+        // Configure test addresses
+        testCookieJar = makeAddr("yieldTestCookieJar");
+        testTreasury = makeAddr("yieldTestTreasury");
+
+        // Mint a real garden with operator role via real HatsModule
+        testGarden = _mintTestGarden("Yield Test Garden", 0x0F);
+        _grantGardenRole(testGarden, forkOperator, IHatsModule.GardenRole.Operator);
+
+        // Deploy scoped mock vault for deterministic BPS math
+        mockVault = new MockVaultForYieldTest(WETH);
+
+        // Configure yieldSplitter for this garden
+        yieldSplitter.setCookieJar(testGarden, testCookieJar);
+        yieldSplitter.setGardenTreasury(testGarden, testTreasury);
+        yieldSplitter.setGardenVault(testGarden, WETH, address(mockVault));
+        yieldSplitter.setMinYieldThreshold(MIN_YIELD_THRESHOLD);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Deploy helper (call after fork is active)
+    // Helpers
     // ═══════════════════════════════════════════════════════════════════════════
-
-    function _deployYieldResolver() internal {
-        mockHatsModule = new MockHatsModuleForYieldFork();
-        vault = new MockVaultForFork(WETH);
-
-        YieldResolver impl = new YieldResolver();
-        bytes memory initData = abi.encodeWithSelector(
-            YieldResolver.initialize.selector, owner, octantModule, address(mockHatsModule), MIN_YIELD_THRESHOLD
-        );
-        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
-        yieldSplitter = YieldResolver(address(proxy));
-
-        // Configure garden
-        vm.startPrank(owner);
-        yieldSplitter.setCookieJar(garden, cookieJar);
-        yieldSplitter.setGardenTreasury(garden, treasury);
-        yieldSplitter.setGardenVault(garden, WETH, address(vault));
-        vm.stopPrank();
-
-        // Set up operator
-        mockHatsModule.setOperator(garden, operator, true);
-    }
 
     /// @notice Fund vault with real WETH, mint shares to the yield splitter, and register them
-    /// @dev registerShares() updates YieldResolver's per-garden accounting so splitYield() can
-    ///      redeem. Without this call, gardenShares[garden][vault] stays at 0 and splitYield reverts.
     function _fundVaultAndMintShares(uint256 amount) internal {
-        deal(WETH, address(vault), amount);
-        vault.mintShares(address(yieldSplitter), amount);
-        vm.prank(octantModule);
-        yieldSplitter.registerShares(garden, address(vault), amount);
+        deal(WETH, address(mockVault), amount);
+        mockVault.mintShares(address(yieldSplitter), amount);
+        vm.prank(address(octantModule));
+        yieldSplitter.registerShares(testGarden, address(mockVault), amount);
+    }
+
+    /// @notice Fund vault for a specific garden (used in multi-garden isolation test)
+    function _fundVaultForGarden(address garden, uint256 amount) internal {
+        deal(WETH, address(mockVault), IERC20(WETH).balanceOf(address(mockVault)) + amount);
+        mockVault.mintShares(address(yieldSplitter), amount);
+        vm.prank(address(octantModule));
+        yieldSplitter.registerShares(garden, address(mockVault), amount);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -190,19 +158,14 @@ contract ArbitrumYieldResolverForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkDeploy_initializesWithRealWETH() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
+        if (!forkActive) return;
 
         // Verify WETH is deployed
         assertGt(WETH.code.length, 0, "WETH should be deployed on Arbitrum");
 
-        _deployYieldResolver();
-
-        assertEq(yieldSplitter.owner(), owner, "owner should be set");
-        assertEq(yieldSplitter.octantModule(), octantModule, "octant module should be set");
-        assertEq(address(yieldSplitter.hatsModule()), address(mockHatsModule), "hats module should be set");
+        assertEq(yieldSplitter.owner(), address(this), "owner should be set");
+        assertEq(yieldSplitter.octantModule(), address(octantModule), "octant module should be set");
+        assertEq(address(yieldSplitter.hatsModule()), address(hatsModule), "hats module should be real");
         assertEq(yieldSplitter.minYieldThreshold(), MIN_YIELD_THRESHOLD, "threshold should be set");
     }
 
@@ -211,17 +174,12 @@ contract ArbitrumYieldResolverForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkDeploy_vaultHoldsRealWETH() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        _deployYieldResolver();
+        if (!forkActive) return;
 
         uint256 depositAmount = 1 ether;
-        deal(WETH, address(vault), depositAmount);
+        deal(WETH, address(mockVault), depositAmount);
 
-        uint256 vaultBalance = IERC20(WETH).balanceOf(address(vault));
+        uint256 vaultBalance = IERC20(WETH).balanceOf(address(mockVault));
         assertEq(vaultBalance, depositAmount, "vault should hold real WETH");
     }
 
@@ -230,36 +188,24 @@ contract ArbitrumYieldResolverForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkSplitYield_threeWaySplitWithRealWETH() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        _deployYieldResolver();
+        if (!forkActive) return;
 
         uint256 yieldAmount = 1 ether;
         _fundVaultAndMintShares(yieldAmount);
 
-        // Record balances before split
-        uint256 cookieJarBefore = IERC20(WETH).balanceOf(cookieJar);
-        uint256 treasuryBefore = IERC20(WETH).balanceOf(treasury);
+        uint256 cookieJarBefore = IERC20(WETH).balanceOf(testCookieJar);
+        uint256 treasuryBefore = IERC20(WETH).balanceOf(testTreasury);
 
         // Execute split — default ratios: 4865/4865/270 bps
-        yieldSplitter.splitYield(garden, WETH, address(vault));
+        yieldSplitter.splitYield(testGarden, WETH, address(mockVault));
 
         // Cookie Jar should receive ~48.65%
-        uint256 cookieJarAfter = IERC20(WETH).balanceOf(cookieJar);
-        uint256 cookieJarReceived = cookieJarAfter - cookieJarBefore;
+        uint256 cookieJarReceived = IERC20(WETH).balanceOf(testCookieJar) - cookieJarBefore;
         uint256 expectedCookieJar = (yieldAmount * 4865) / 10_000;
         assertEq(cookieJarReceived, expectedCookieJar, "cookie jar should receive ~48.65% of yield");
 
-        // Juicebox terminal is not configured, so JB portion goes to treasury as fallback
-        // Fractions portion recompounds into vault (no marketplace configured)
-        // So treasury receives the Juicebox fallback portion
-        uint256 treasuryAfter = IERC20(WETH).balanceOf(treasury);
-        uint256 treasuryReceived = treasuryAfter - treasuryBefore;
-
-        // Juicebox portion = totalYield - cookieJar - fractions = remainder
+        // Juicebox terminal not configured → JB portion goes to treasury as fallback
+        uint256 treasuryReceived = IERC20(WETH).balanceOf(testTreasury) - treasuryBefore;
         uint256 expectedFractions = (yieldAmount * 4865) / 10_000;
         uint256 expectedJuicebox = yieldAmount - expectedCookieJar - expectedFractions;
         assertEq(treasuryReceived, expectedJuicebox, "treasury should receive JB fallback portion");
@@ -270,44 +216,39 @@ contract ArbitrumYieldResolverForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkSplitYield_thresholdAccumulationWithRealTokens() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        _deployYieldResolver();
+        if (!forkActive) return;
 
         // Fund with amount below threshold
         uint256 subThreshold = MIN_YIELD_THRESHOLD / 2; // 0.005 ETH
         _fundVaultAndMintShares(subThreshold);
 
         // Split should accumulate, not distribute
-        yieldSplitter.splitYield(garden, WETH, address(vault));
+        yieldSplitter.splitYield(testGarden, WETH, address(mockVault));
 
-        uint256 pending = yieldSplitter.getPendingYield(garden, WETH);
+        uint256 pending = yieldSplitter.getPendingYield(testGarden, WETH);
         assertEq(pending, subThreshold, "sub-threshold yield should be accumulated");
 
         // Cookie jar should NOT have received anything
-        uint256 cookieJarBal = IERC20(WETH).balanceOf(cookieJar);
+        uint256 cookieJarBal = IERC20(WETH).balanceOf(testCookieJar);
         assertEq(cookieJarBal, 0, "cookie jar should not receive sub-threshold yield");
 
         // Fund with more to cross threshold
-        uint256 secondAmount = MIN_YIELD_THRESHOLD; // 0.01 ETH — total now 0.015 ETH > 0.01 threshold
-        deal(WETH, address(vault), secondAmount);
-        vault.mintShares(address(yieldSplitter), secondAmount);
-        vm.prank(octantModule);
-        yieldSplitter.registerShares(garden, address(vault), secondAmount);
+        uint256 secondAmount = MIN_YIELD_THRESHOLD; // 0.01 ETH — total now 0.015 ETH > threshold
+        deal(WETH, address(mockVault), secondAmount);
+        mockVault.mintShares(address(yieldSplitter), secondAmount);
+        vm.prank(address(octantModule));
+        yieldSplitter.registerShares(testGarden, address(mockVault), secondAmount);
 
         // Second split should distribute accumulated + new
-        yieldSplitter.splitYield(garden, WETH, address(vault));
+        yieldSplitter.splitYield(testGarden, WETH, address(mockVault));
 
-        uint256 pendingAfter = yieldSplitter.getPendingYield(garden, WETH);
+        uint256 pendingAfter = yieldSplitter.getPendingYield(testGarden, WETH);
         assertEq(pendingAfter, 0, "pending should be cleared after crossing threshold");
 
-        // Cookie jar should now have received its share of total (subThreshold + secondAmount)
+        // Cookie jar should now have received its share of total
         uint256 totalYield = subThreshold + secondAmount;
         uint256 expectedCookieJar = (totalYield * 4865) / 10_000;
-        uint256 cookieJarBalAfter = IERC20(WETH).balanceOf(cookieJar);
+        uint256 cookieJarBalAfter = IERC20(WETH).balanceOf(testCookieJar);
         assertEq(cookieJarBalAfter, expectedCookieJar, "cookie jar should receive accumulated + new yield");
     }
 
@@ -316,45 +257,35 @@ contract ArbitrumYieldResolverForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkSplitYield_customSplitRatioWithRealWETH() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
+        if (!forkActive) return;
 
-        _deployYieldResolver();
-
-        // Set 50/25/25 split
-        vm.prank(owner);
-        yieldSplitter.setSplitRatio(garden, 5000, 2500, 2500);
+        // Set 50/25/25 split (owner = address(this))
+        yieldSplitter.setSplitRatio(testGarden, 5000, 2500, 2500);
 
         uint256 yieldAmount = 2 ether;
         _fundVaultAndMintShares(yieldAmount);
 
-        uint256 cookieJarBefore = IERC20(WETH).balanceOf(cookieJar);
+        uint256 cookieJarBefore = IERC20(WETH).balanceOf(testCookieJar);
 
-        yieldSplitter.splitYield(garden, WETH, address(vault));
+        yieldSplitter.splitYield(testGarden, WETH, address(mockVault));
 
-        uint256 cookieJarReceived = IERC20(WETH).balanceOf(cookieJar) - cookieJarBefore;
+        uint256 cookieJarReceived = IERC20(WETH).balanceOf(testCookieJar) - cookieJarBefore;
         uint256 expectedCookieJar = (yieldAmount * 5000) / 10_000; // 1 ether
         assertEq(cookieJarReceived, expectedCookieJar, "cookie jar should receive 50% with custom split");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Test: Operator can set split ratio
+    // Test: Operator can set split ratio (real Hats access control)
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkSplitYield_operatorCanSetSplitRatio() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
+        if (!forkActive) return;
 
-        _deployYieldResolver();
+        // forkOperator was granted operator role in setUp via real HatsModule
+        vm.prank(forkOperator);
+        yieldSplitter.setSplitRatio(testGarden, 4000, 3000, 3000);
 
-        vm.prank(operator);
-        yieldSplitter.setSplitRatio(garden, 4000, 3000, 3000);
-
-        YieldResolver.SplitConfig memory config = yieldSplitter.getSplitConfig(garden);
+        YieldResolver.SplitConfig memory config = yieldSplitter.getSplitConfig(testGarden);
         assertEq(config.cookieJarBps, 4000, "cookie jar bps should be 4000");
         assertEq(config.fractionsBps, 3000, "fractions bps should be 3000");
         assertEq(config.juiceboxBps, 3000, "juicebox bps should be 3000");
@@ -365,16 +296,10 @@ contract ArbitrumYieldResolverForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkSplitYield_invalidSplitRatioReverts() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
+        if (!forkActive) return;
 
-        _deployYieldResolver();
-
-        vm.prank(owner);
         vm.expectRevert(YieldResolver.InvalidSplitRatio.selector);
-        yieldSplitter.setSplitRatio(garden, 5000, 3000, 3000); // Sums to 11000
+        yieldSplitter.setSplitRatio(testGarden, 5000, 3000, 3000); // Sums to 11000
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -382,17 +307,13 @@ contract ArbitrumYieldResolverForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkDeploy_jbAddressesAreDeployed() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
+        if (!forkActive) return;
 
         if (JB_CONTROLLER.code.length == 0 || JB_MULTI_TERMINAL.code.length == 0 || JB_TERMINAL.code.length == 0) {
             emit log("WARNING: Juicebox contracts not deployed at expected Arbitrum addresses");
             emit log("  Expected controller: 0x84E1D0102A722b3f3c00EC4E2b7ca2B97edF4eB2");
             emit log("  Expected multi-terminal: 0x82129d4109625F94582bDdF6101a8Cd1a27919f5");
             emit log("  Expected terminal: 0x14785612bd5C27D8CbAd1d9A9E33BEBfF5F4C3b6");
-            emit log("  Action required: verify current Juicebox v5 Arbitrum addresses");
         } else {
             assertGt(JB_CONTROLLER.code.length, 0, "JBController should be deployed on Arbitrum");
             assertGt(JB_MULTI_TERMINAL.code.length, 0, "JBMultiTerminal should be deployed on Arbitrum");
@@ -401,42 +322,30 @@ contract ArbitrumYieldResolverForkTest is Test {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Test: JB terminal integration (graceful failure without valid project)
+    // Test: JB terminal graceful degradation
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkSplitYield_jbTerminalGracefulDegradation() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
+        if (!forkActive) return;
 
-        // JB Multi-Terminal must be deployed to test graceful degradation.
-        // Foundry raises a hard error for calls to non-contract addresses
-        // that try/catch cannot intercept, so we must skip if JB is absent.
         if (JB_MULTI_TERMINAL.code.length == 0) {
-            emit log("SKIPPED: JBMultiTerminal not deployed on Arbitrum -- cannot test graceful degradation");
+            emit log("SKIPPED: JBMultiTerminal not deployed on Arbitrum");
             return;
         }
-
-        _deployYieldResolver();
 
         // Configure the real JB terminal with a non-existent project ID
-        vm.startPrank(owner);
         yieldSplitter.setJBMultiTerminal(JB_MULTI_TERMINAL);
-        yieldSplitter.setJuiceboxProjectId(999_999); // Non-existent project
-        vm.stopPrank();
+        yieldSplitter.setJuiceboxProjectId(999_999);
 
         uint256 yieldAmount = 0.1 ether;
         _fundVaultAndMintShares(yieldAmount);
 
-        // Split should NOT revert — JB payment will fail but be caught by try/catch
-        // Juicebox portion should fall back to treasury
-        uint256 treasuryBefore = IERC20(WETH).balanceOf(treasury);
+        // Split should NOT revert — JB payment caught by try/catch
+        uint256 treasuryBefore = IERC20(WETH).balanceOf(testTreasury);
 
-        yieldSplitter.splitYield(garden, WETH, address(vault));
+        yieldSplitter.splitYield(testGarden, WETH, address(mockVault));
 
-        uint256 treasuryAfter = IERC20(WETH).balanceOf(treasury);
-        uint256 treasuryReceived = treasuryAfter - treasuryBefore;
+        uint256 treasuryReceived = IERC20(WETH).balanceOf(testTreasury) - treasuryBefore;
 
         // JB portion should have been sent to treasury as fallback
         uint256 expectedCookieJar = (yieldAmount * 4865) / 10_000;
@@ -450,16 +359,11 @@ contract ArbitrumYieldResolverForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkSplitYield_noSharesReverts() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
+        if (!forkActive) return;
 
-        _deployYieldResolver();
-
-        // No shares minted — should revert
-        vm.expectRevert(abi.encodeWithSelector(YieldResolver.NoVaultShares.selector, garden, WETH));
-        yieldSplitter.splitYield(garden, WETH, address(vault));
+        // No shares registered (setUp doesn't register shares) → should revert
+        vm.expectRevert(abi.encodeWithSelector(YieldResolver.NoVaultShares.selector, testGarden, WETH));
+        yieldSplitter.splitYield(testGarden, WETH, address(mockVault));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -467,22 +371,15 @@ contract ArbitrumYieldResolverForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkDeploy_adminSettersWorkOnFork() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        _deployYieldResolver();
+        if (!forkActive) return;
 
         address newOctant = address(0xEE);
         uint256 newThreshold = 50e18;
         uint256 newMinAllocation = 1e16;
 
-        vm.startPrank(owner);
         yieldSplitter.setOctantModule(newOctant);
         yieldSplitter.setMinYieldThreshold(newThreshold);
         yieldSplitter.setMinAllocationAmount(newMinAllocation);
-        vm.stopPrank();
 
         assertEq(yieldSplitter.octantModule(), newOctant, "octant module should be updated");
         assertEq(yieldSplitter.minYieldThreshold(), newThreshold, "threshold should be updated");
@@ -494,12 +391,7 @@ contract ArbitrumYieldResolverForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkDeploy_defaultSplitConfigReturned() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        _deployYieldResolver();
+        if (!forkActive) return;
 
         address unconfiguredGarden = address(0xFFFF);
         YieldResolver.SplitConfig memory config = yieldSplitter.getSplitConfig(unconfiguredGarden);
@@ -514,12 +406,7 @@ contract ArbitrumYieldResolverForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_forkDeploy_constantsAreCorrect() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        _deployYieldResolver();
+        if (!forkActive) return;
 
         assertEq(yieldSplitter.BPS_DENOMINATOR(), 10_000, "BPS denominator should be 10000");
         assertEq(yieldSplitter.DEFAULT_COOKIE_JAR_BPS(), 4865, "default cookie jar bps should be 4865");
@@ -531,18 +418,9 @@ contract ArbitrumYieldResolverForkTest is Test {
     // Test: Real JBMultiTerminal.pay() success path
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Launches a Juicebox project on Arbitrum fork and verifies real JB pay() succeeds
-    /// @dev Creates a JB project that accepts WETH, then routes 100% yield through JB terminal.
-    ///      Verifies real WETH transfer to the terminal (balance deltas), not mock recordings.
     function test_forkSplitYield_realJBPaySuccess() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
+        if (!forkActive) return;
 
-        // Arbitrum Juicebox v5 addresses (shared constants above)
-
-        // Skip if JB contracts not deployed on this fork block
         if (JB_CONTROLLER.code.length == 0 || JB_TERMINAL.code.length == 0) {
             emit log("SKIPPED: Juicebox v5 contracts not deployed at expected addresses");
             return;
@@ -551,15 +429,11 @@ contract ArbitrumYieldResolverForkTest is Test {
         // 1. Launch a test JB project that accepts WETH payments
         uint256 projectId = _launchTestJBProject(JB_CONTROLLER, JB_TERMINAL);
 
-        // 2. Deploy YieldResolver and configure it with the real JB terminal
-        _deployYieldResolver();
-
-        vm.startPrank(owner);
+        // 2. Configure yieldSplitter with the real JB terminal
         yieldSplitter.setJBMultiTerminal(JB_TERMINAL);
         yieldSplitter.setJuiceboxProjectId(projectId);
         // 100% to Juicebox for clean verification
-        yieldSplitter.setSplitRatio(garden, 0, 0, 10_000);
-        vm.stopPrank();
+        yieldSplitter.setSplitRatio(testGarden, 0, 0, 10_000);
 
         // 3. Fund vault with real WETH
         uint256 yieldAmount = 0.1 ether;
@@ -569,12 +443,10 @@ contract ArbitrumYieldResolverForkTest is Test {
         uint256 terminalWethBefore = IERC20(WETH).balanceOf(JB_TERMINAL);
 
         // 5. Execute split — routes 100% through real JBMultiTerminal.pay()
-        yieldSplitter.splitYield(garden, WETH, address(vault));
+        yieldSplitter.splitYield(testGarden, WETH, address(mockVault));
 
         // 6. Verify real token transfer to JB terminal
-        uint256 terminalWethAfter = IERC20(WETH).balanceOf(JB_TERMINAL);
-        uint256 terminalReceived = terminalWethAfter - terminalWethBefore;
-
+        uint256 terminalReceived = IERC20(WETH).balanceOf(JB_TERMINAL) - terminalWethBefore;
         assertEq(terminalReceived, yieldAmount, "JB terminal should receive real WETH from yield split");
 
         // 7. Resolver should have no remaining balance
@@ -582,15 +454,284 @@ contract ArbitrumYieldResolverForkTest is Test {
             IERC20(WETH).balanceOf(address(yieldSplitter)), 0, "resolver should have 0 WETH after successful JB payment"
         );
 
-        // 8. Treasury should NOT receive anything (JB pay succeeded, no fallback)
-        uint256 treasuryBalance = IERC20(WETH).balanceOf(treasury);
-        assertEq(treasuryBalance, 0, "treasury should receive nothing when JB pay succeeds");
+        // 8. Treasury should NOT receive anything (JB pay succeeded)
+        assertEq(IERC20(WETH).balanceOf(testTreasury), 0, "treasury should receive nothing when JB pay succeeds");
     }
 
-    /// @notice Helper: Launch a JB project on Arbitrum fork that accepts WETH
-    /// @dev Mirrors the production DeployGoodsProject.s.sol launch flow but for WETH instead of native ETH
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test: Real JB pay() with partial split
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_forkSplitYield_realJBPayPartialSplit() public {
+        if (!forkActive) return;
+
+        if (JB_CONTROLLER.code.length == 0 || JB_TERMINAL.code.length == 0) {
+            emit log("SKIPPED: Juicebox v5 contracts not deployed at expected addresses");
+            return;
+        }
+
+        uint256 projectId = _launchTestJBProject(JB_CONTROLLER, JB_TERMINAL);
+
+        yieldSplitter.setJBMultiTerminal(JB_TERMINAL);
+        yieldSplitter.setJuiceboxProjectId(projectId);
+        // 50% cookie jar, 0% fractions, 50% juicebox
+        yieldSplitter.setSplitRatio(testGarden, 5000, 0, 5000);
+
+        uint256 yieldAmount = 1 ether;
+        _fundVaultAndMintShares(yieldAmount);
+
+        uint256 cookieJarBefore = IERC20(WETH).balanceOf(testCookieJar);
+        uint256 terminalBefore = IERC20(WETH).balanceOf(JB_TERMINAL);
+
+        yieldSplitter.splitYield(testGarden, WETH, address(mockVault));
+
+        // Cookie jar: 50% = 0.5 ETH
+        uint256 cookieJarReceived = IERC20(WETH).balanceOf(testCookieJar) - cookieJarBefore;
+        uint256 expectedCookieJar = (yieldAmount * 5000) / 10_000;
+        assertEq(cookieJarReceived, expectedCookieJar, "cookie jar should receive 50%");
+
+        // JB terminal: 50% = 0.5 ETH
+        uint256 terminalReceived = IERC20(WETH).balanceOf(JB_TERMINAL) - terminalBefore;
+        uint256 expectedJuicebox = yieldAmount - expectedCookieJar;
+        assertEq(terminalReceived, expectedJuicebox, "JB terminal should receive 50%");
+
+        // Total out = total in (no wei lost)
+        assertEq(
+            cookieJarReceived + terminalReceived, yieldAmount, "total distributed should equal total yield (zero loss)"
+        );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test: Real JB pay() balance checks (fallback path)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_forkSplitYield_realJBPayBalanceChecks() public {
+        if (!forkActive) return;
+
+        if (JB_MULTI_TERMINAL.code.length == 0) {
+            emit log("SKIPPED: JBMultiTerminal not deployed on Arbitrum");
+            return;
+        }
+
+        // Configure real JB terminal with non-existent project (triggers fallback)
+        yieldSplitter.setJBMultiTerminal(JB_MULTI_TERMINAL);
+        yieldSplitter.setJuiceboxProjectId(999_999);
+
+        uint256 yieldAmount = 0.5 ether;
+        _fundVaultAndMintShares(yieldAmount);
+
+        // Snapshot ALL balances before split
+        uint256 cookieJarBefore = IERC20(WETH).balanceOf(testCookieJar);
+        uint256 treasuryBefore = IERC20(WETH).balanceOf(testTreasury);
+        uint256 resolverBefore = IERC20(WETH).balanceOf(address(yieldSplitter));
+        uint256 jbTerminalBefore = IERC20(WETH).balanceOf(JB_MULTI_TERMINAL);
+
+        yieldSplitter.splitYield(testGarden, WETH, address(mockVault));
+
+        // Snapshot balances after split
+        uint256 cookieJarAfter = IERC20(WETH).balanceOf(testCookieJar);
+        uint256 treasuryAfter = IERC20(WETH).balanceOf(testTreasury);
+        uint256 resolverAfter = IERC20(WETH).balanceOf(address(yieldSplitter));
+        uint256 jbTerminalAfter = IERC20(WETH).balanceOf(JB_MULTI_TERMINAL);
+
+        // Calculate expected portions
+        uint256 expectedCookieJar = (yieldAmount * 4865) / 10_000;
+        uint256 expectedFractions = (yieldAmount * 4865) / 10_000;
+        uint256 expectedJuicebox = yieldAmount - expectedCookieJar - expectedFractions;
+
+        // Cookie Jar receives its portion via real WETH transfer
+        assertEq(cookieJarAfter - cookieJarBefore, expectedCookieJar, "cookie jar WETH balance delta");
+
+        // JB terminal should NOT receive tokens (pay reverts, fallback to treasury)
+        assertEq(jbTerminalAfter, jbTerminalBefore, "JB terminal should not receive WETH (pay failed)");
+
+        // Treasury receives JB fallback portion
+        assertEq(treasuryAfter - treasuryBefore, expectedJuicebox, "treasury should receive JB fallback");
+
+        // Fractions portion is escrowed (no marketplace configured)
+        uint256 escrowed = yieldSplitter.getEscrowedFractions(testGarden, WETH);
+        assertEq(escrowed, expectedFractions, "fractions should be escrowed");
+
+        // YieldResolver retains the escrowed fractions
+        assertEq(resolverAfter - resolverBefore, expectedFractions, "resolver should hold escrowed fractions");
+
+        // Conservation of value: all yield accounted for
+        uint256 totalDistributed = (cookieJarAfter - cookieJarBefore) + (treasuryAfter - treasuryBefore) + escrowed;
+        assertEq(totalDistributed, yieldAmount, "total distributed + escrowed should equal yield amount");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test: Full balance accounting with real WETH (irregular amounts)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_forkSplitYield_fullBalanceAccountingWithRealWETH() public {
+        if (!forkActive) return;
+
+        // Use an irregular amount to test rounding
+        uint256 yieldAmount = 1.337 ether;
+        _fundVaultAndMintShares(yieldAmount);
+
+        uint256 cookieJarBefore = IERC20(WETH).balanceOf(testCookieJar);
+        uint256 treasuryBefore = IERC20(WETH).balanceOf(testTreasury);
+
+        yieldSplitter.splitYield(testGarden, WETH, address(mockVault));
+
+        uint256 cookieJarReceived = IERC20(WETH).balanceOf(testCookieJar) - cookieJarBefore;
+        uint256 treasuryReceived = IERC20(WETH).balanceOf(testTreasury) - treasuryBefore;
+        uint256 resolverBalance = IERC20(WETH).balanceOf(address(yieldSplitter));
+        uint256 escrowed = yieldSplitter.getEscrowedFractions(testGarden, WETH);
+        uint256 vaultAfter = IERC20(WETH).balanceOf(address(mockVault));
+
+        // Vault should have been drained (shares redeemed for WETH)
+        assertEq(vaultAfter, 0, "vault should be drained after redemption");
+
+        // Cookie jar = 48.65% of yield
+        uint256 expectedCookieJar = (yieldAmount * 4865) / 10_000;
+        assertEq(cookieJarReceived, expectedCookieJar, "cookie jar should receive correct portion");
+
+        // Fractions portion escrowed (no marketplace)
+        uint256 expectedFractions = (yieldAmount * 4865) / 10_000;
+        assertEq(escrowed, expectedFractions, "fractions portion should be escrowed");
+
+        // JB portion to treasury fallback (no JB terminal configured)
+        uint256 expectedJuicebox = yieldAmount - expectedCookieJar - expectedFractions;
+        assertEq(treasuryReceived, expectedJuicebox, "treasury should receive JB fallback");
+
+        // Global accounting: every wei from the vault ended up somewhere
+        uint256 totalAccounted = cookieJarReceived + treasuryReceived + escrowed;
+        assertEq(totalAccounted, yieldAmount, "total accounted should match yield (conservation of value)");
+
+        // YieldResolver should not retain any extra WETH beyond escrowed
+        assertEq(resolverBalance, escrowed, "resolver balance should only include escrow");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test: HypercertExchange deployment check
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_forkDeploy_hypercertExchangeIsDeployed() public {
+        if (!forkActive) return;
+
+        // From deployments/42161-latest.json
+        address HYPERCERT_EXCHANGE = 0xcE8fa09562f07c23B9C21b5d0A29a293F8a8BC83;
+
+        if (HYPERCERT_EXCHANGE.code.length == 0) {
+            emit log("INFO: HypercertExchange not deployed at expected address on Arbitrum");
+        } else {
+            assertGt(HYPERCERT_EXCHANGE.code.length, 0, "HypercertExchange should be deployed on Arbitrum");
+            emit log_named_uint("HypercertExchange code size", HYPERCERT_EXCHANGE.code.length);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test: Escrowed fractions withdrawal with real WETH
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_forkSplitYield_escrowedFractionsWithdrawWithRealWETH() public {
+        if (!forkActive) return;
+
+        uint256 yieldAmount = 0.2 ether;
+        _fundVaultAndMintShares(yieldAmount);
+
+        // Split — fractions will be escrowed (no marketplace configured)
+        yieldSplitter.splitYield(testGarden, WETH, address(mockVault));
+
+        uint256 escrowed = yieldSplitter.getEscrowedFractions(testGarden, WETH);
+        assertGt(escrowed, 0, "should have escrowed fractions");
+
+        // Treasury balance before withdrawal
+        uint256 treasuryBefore = IERC20(WETH).balanceOf(testTreasury);
+
+        // Owner withdraws escrowed fractions to treasury
+        yieldSplitter.withdrawEscrowedFractions(testGarden, WETH, escrowed, testTreasury);
+
+        // Verify real WETH moved
+        uint256 treasuryAfter = IERC20(WETH).balanceOf(testTreasury);
+        assertEq(treasuryAfter - treasuryBefore, escrowed, "treasury should receive escrowed WETH");
+
+        // Escrow should be cleared
+        uint256 escrowedAfter = yieldSplitter.getEscrowedFractions(testGarden, WETH);
+        assertEq(escrowedAfter, 0, "escrow should be zero after withdrawal");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test: Rescue stranded WETH tokens
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_forkDeploy_rescueStrandedWETH() public {
+        if (!forkActive) return;
+
+        // Send some real WETH directly to the resolver (simulating stranded tokens)
+        uint256 strandedAmount = 0.05 ether;
+        deal(WETH, address(yieldSplitter), strandedAmount);
+
+        uint256 resolverBefore = IERC20(WETH).balanceOf(address(yieldSplitter));
+        assertEq(resolverBefore, strandedAmount, "resolver should hold stranded WETH");
+
+        address rescueTo = makeAddr("rescueRecipient");
+        uint256 rescueToBefore = IERC20(WETH).balanceOf(rescueTo);
+
+        yieldSplitter.rescueTokens(WETH, rescueTo, strandedAmount);
+
+        uint256 resolverAfter = IERC20(WETH).balanceOf(address(yieldSplitter));
+        uint256 rescueToAfter = IERC20(WETH).balanceOf(rescueTo);
+
+        assertEq(resolverAfter, 0, "resolver should be empty after rescue");
+        assertEq(rescueToAfter - rescueToBefore, strandedAmount, "recipient should receive rescued WETH");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test: Multiple gardens, isolated real WETH balances
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_forkSplitYield_multiGardenIsolationWithRealWETH() public {
+        if (!forkActive) return;
+
+        // Configure a second garden with its own roles and addresses
+        address garden2 = _mintTestGarden("Second Yield Garden", 0x0F);
+        address cookieJar2 = makeAddr("cookieJar2");
+        address treasury2 = makeAddr("treasury2");
+
+        yieldSplitter.setCookieJar(garden2, cookieJar2);
+        yieldSplitter.setGardenTreasury(garden2, treasury2);
+        yieldSplitter.setGardenVault(garden2, WETH, address(mockVault));
+
+        // Fund garden 1 with 1 WETH
+        uint256 amount1 = 1 ether;
+        _fundVaultAndMintShares(amount1);
+
+        // Fund garden 2 with 0.5 WETH
+        uint256 amount2 = 0.5 ether;
+        _fundVaultForGarden(garden2, amount2);
+
+        // Split garden 1
+        uint256 cookieJar1Before = IERC20(WETH).balanceOf(testCookieJar);
+        yieldSplitter.splitYield(testGarden, WETH, address(mockVault));
+        uint256 cookieJar1Received = IERC20(WETH).balanceOf(testCookieJar) - cookieJar1Before;
+
+        // Split garden 2
+        uint256 cookieJar2Before = IERC20(WETH).balanceOf(cookieJar2);
+        yieldSplitter.splitYield(garden2, WETH, address(mockVault));
+        uint256 cookieJar2Received = IERC20(WETH).balanceOf(cookieJar2) - cookieJar2Before;
+
+        // Garden 1 cookie jar: 48.65% of 1 ether
+        uint256 expected1 = (amount1 * 4865) / 10_000;
+        assertEq(cookieJar1Received, expected1, "garden1 cookie jar should receive correct share");
+
+        // Garden 2 cookie jar: 48.65% of 0.5 ether
+        uint256 expected2 = (amount2 * 4865) / 10_000;
+        assertEq(cookieJar2Received, expected2, "garden2 cookie jar should receive correct share");
+
+        // Verify isolation: garden2 only got its own share
+        assertGt(cookieJar1Received, cookieJar2Received, "garden1 should receive more (larger deposit)");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // JB Project Helper
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Launch a JB project on Arbitrum fork that accepts WETH
     function _launchTestJBProject(address controller, address terminal) internal returns (uint256 projectId) {
-        // Ruleset metadata — pausePay must be false for pay() to work
         JBRulesetMetadata memory metadata = JBRulesetMetadata({
             reservedPercent: 0,
             cashOutTaxRate: 0,
@@ -625,7 +766,6 @@ contract ArbitrumYieldResolverForkTest is Test {
             fundAccessLimitGroups: new JBFundAccessLimitGroup[](0)
         });
 
-        // Accept WETH payments (not native ETH)
         JBAccountingContext[] memory accountingContexts = new JBAccountingContext[](1);
         accountingContexts[0] = JBAccountingContext({ token: WETH, decimals: 18, currency: 1 });
 
@@ -636,332 +776,5 @@ contract ArbitrumYieldResolverForkTest is Test {
         projectId = IJBController(controller).launchProjectFor(
             address(this), "ipfs://fork-test", rulesetConfigs, terminalConfigs, "Fork test project"
         );
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Test: Real JB pay() with partial split verifies correct BPS routing
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Partial split: 50% cookie jar / 50% JB. Verifies both real balance changes.
-    function test_forkSplitYield_realJBPayPartialSplit() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        if (JB_CONTROLLER.code.length == 0 || JB_TERMINAL.code.length == 0) {
-            emit log("SKIPPED: Juicebox v5 contracts not deployed at expected addresses");
-            return;
-        }
-
-        uint256 projectId = _launchTestJBProject(JB_CONTROLLER, JB_TERMINAL);
-        _deployYieldResolver();
-
-        vm.startPrank(owner);
-        yieldSplitter.setJBMultiTerminal(JB_TERMINAL);
-        yieldSplitter.setJuiceboxProjectId(projectId);
-        // 50% cookie jar, 0% fractions, 50% juicebox
-        yieldSplitter.setSplitRatio(garden, 5000, 0, 5000);
-        vm.stopPrank();
-
-        uint256 yieldAmount = 1 ether;
-        _fundVaultAndMintShares(yieldAmount);
-
-        uint256 cookieJarBefore = IERC20(WETH).balanceOf(cookieJar);
-        uint256 terminalBefore = IERC20(WETH).balanceOf(JB_TERMINAL);
-
-        yieldSplitter.splitYield(garden, WETH, address(vault));
-
-        // Cookie jar: 50% = 0.5 ETH
-        uint256 cookieJarReceived = IERC20(WETH).balanceOf(cookieJar) - cookieJarBefore;
-        uint256 expectedCookieJar = (yieldAmount * 5000) / 10_000;
-        assertEq(cookieJarReceived, expectedCookieJar, "cookie jar should receive 50%");
-
-        // JB terminal: 50% = 0.5 ETH
-        uint256 terminalReceived = IERC20(WETH).balanceOf(JB_TERMINAL) - terminalBefore;
-        uint256 expectedJuicebox = yieldAmount - expectedCookieJar; // remainder
-        assertEq(terminalReceived, expectedJuicebox, "JB terminal should receive 50%");
-
-        // Total out = total in (no wei lost)
-        assertEq(
-            cookieJarReceived + terminalReceived, yieldAmount, "total distributed should equal total yield (zero loss)"
-        );
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Test: Real JB pay() with balance checks before/after (fallback path)
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Exercises real JBMultiTerminal.pay() with a non-existent project. When pay()
-    ///         reverts, the try/catch in _routeToJuicebox sends the JB portion to treasury as
-    ///         fallback. Verifies actual WETH balance deltas across all destinations.
-    function test_forkSplitYield_realJBPayBalanceChecks() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        if (JB_MULTI_TERMINAL.code.length == 0) {
-            emit log("SKIPPED: JBMultiTerminal not deployed on Arbitrum");
-            return;
-        }
-
-        _deployYieldResolver();
-
-        // Configure real JB terminal with non-existent project (triggers fallback path)
-        vm.startPrank(owner);
-        yieldSplitter.setJBMultiTerminal(JB_MULTI_TERMINAL);
-        yieldSplitter.setJuiceboxProjectId(999_999);
-        vm.stopPrank();
-
-        uint256 yieldAmount = 0.5 ether;
-        _fundVaultAndMintShares(yieldAmount);
-
-        // Snapshot ALL balances before split
-        uint256 cookieJarBefore = IERC20(WETH).balanceOf(cookieJar);
-        uint256 treasuryBefore = IERC20(WETH).balanceOf(treasury);
-        uint256 resolverBefore = IERC20(WETH).balanceOf(address(yieldSplitter));
-        uint256 jbTerminalBefore = IERC20(WETH).balanceOf(JB_MULTI_TERMINAL);
-
-        yieldSplitter.splitYield(garden, WETH, address(vault));
-
-        // Snapshot balances after split
-        uint256 cookieJarAfter = IERC20(WETH).balanceOf(cookieJar);
-        uint256 treasuryAfter = IERC20(WETH).balanceOf(treasury);
-        uint256 resolverAfter = IERC20(WETH).balanceOf(address(yieldSplitter));
-        uint256 jbTerminalAfter = IERC20(WETH).balanceOf(JB_MULTI_TERMINAL);
-
-        // Calculate expected portions
-        uint256 expectedCookieJar = (yieldAmount * 4865) / 10_000;
-        uint256 expectedFractions = (yieldAmount * 4865) / 10_000;
-        uint256 expectedJuicebox = yieldAmount - expectedCookieJar - expectedFractions;
-
-        // Cookie Jar receives its portion via real WETH transfer
-        assertEq(cookieJarAfter - cookieJarBefore, expectedCookieJar, "cookie jar WETH balance delta");
-
-        // JB terminal should NOT receive tokens (pay reverts, fallback to treasury)
-        assertEq(jbTerminalAfter, jbTerminalBefore, "JB terminal should not receive WETH (pay failed)");
-
-        // Treasury receives JB fallback portion
-        assertEq(treasuryAfter - treasuryBefore, expectedJuicebox, "treasury should receive JB fallback");
-
-        // Fractions portion is escrowed (no marketplace configured)
-        uint256 escrowed = yieldSplitter.getEscrowedFractions(garden, WETH);
-        assertEq(escrowed, expectedFractions, "fractions should be escrowed");
-
-        // YieldResolver retains the escrowed fractions in its balance
-        assertEq(resolverAfter - resolverBefore, expectedFractions, "resolver should hold escrowed fractions");
-
-        // Conservation of value: all yield accounted for
-        uint256 totalDistributed = (cookieJarAfter - cookieJarBefore) + (treasuryAfter - treasuryBefore) + escrowed;
-        assertEq(totalDistributed, yieldAmount, "total distributed + escrowed should equal yield amount");
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Test: Full balance accounting with real WETH (irregular amounts)
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Verifies that splitYield moves real WETH tokens and that every wei is
-    ///         accounted for across all three destinations (no token loss or creation).
-    function test_forkSplitYield_fullBalanceAccountingWithRealWETH() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        _deployYieldResolver();
-
-        // Use an irregular amount to test rounding
-        uint256 yieldAmount = 1.337 ether;
-        _fundVaultAndMintShares(yieldAmount);
-
-        // Snapshot all relevant balances
-        uint256 cookieJarBefore = IERC20(WETH).balanceOf(cookieJar);
-        uint256 treasuryBefore = IERC20(WETH).balanceOf(treasury);
-
-        yieldSplitter.splitYield(garden, WETH, address(vault));
-
-        uint256 cookieJarReceived = IERC20(WETH).balanceOf(cookieJar) - cookieJarBefore;
-        uint256 treasuryReceived = IERC20(WETH).balanceOf(treasury) - treasuryBefore;
-        uint256 resolverBalance = IERC20(WETH).balanceOf(address(yieldSplitter));
-        uint256 escrowed = yieldSplitter.getEscrowedFractions(garden, WETH);
-        uint256 vaultAfter = IERC20(WETH).balanceOf(address(vault));
-
-        // Vault should have been drained (shares redeemed for WETH)
-        assertEq(vaultAfter, 0, "vault should be drained after redemption");
-
-        // Cookie jar = 48.65% of yield
-        uint256 expectedCookieJar = (yieldAmount * 4865) / 10_000;
-        assertEq(cookieJarReceived, expectedCookieJar, "cookie jar should receive correct portion");
-
-        // Fractions portion escrowed (no marketplace)
-        uint256 expectedFractions = (yieldAmount * 4865) / 10_000;
-        assertEq(escrowed, expectedFractions, "fractions portion should be escrowed");
-
-        // JB portion to treasury fallback (no JB terminal configured)
-        uint256 expectedJuicebox = yieldAmount - expectedCookieJar - expectedFractions;
-        assertEq(treasuryReceived, expectedJuicebox, "treasury should receive JB fallback");
-
-        // Global accounting: every wei from the vault ended up somewhere
-        uint256 totalAccounted = cookieJarReceived + treasuryReceived + escrowed;
-        assertEq(totalAccounted, yieldAmount, "total accounted should match yield (conservation of value)");
-
-        // YieldResolver should not retain any extra WETH beyond escrowed
-        assertEq(resolverBalance, escrowed, "resolver balance should only include escrow");
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Test: HypercertExchange deployment check on Arbitrum
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Verifies that the HypercertExchange is deployed on Arbitrum at the
-    ///         expected address from the deployment JSON (42161-latest.json).
-    function test_forkDeploy_hypercertExchangeIsDeployed() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        // From deployments/42161-latest.json
-        address HYPERCERT_EXCHANGE = 0xcE8fa09562f07c23B9C21b5d0A29a293F8a8BC83;
-
-        if (HYPERCERT_EXCHANGE.code.length == 0) {
-            emit log("INFO: HypercertExchange not deployed at expected address on Arbitrum");
-            emit log("  Expected: 0xcE8fa09562f07c23B9C21b5d0A29a293F8a8BC83");
-        } else {
-            assertGt(HYPERCERT_EXCHANGE.code.length, 0, "HypercertExchange should be deployed on Arbitrum");
-            emit log_named_uint("HypercertExchange code size", HYPERCERT_EXCHANGE.code.length);
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Test: Escrowed fractions can be withdrawn with real WETH
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Exercises the escrow -> withdraw flow with real WETH balance verification.
-    function test_forkSplitYield_escrowedFractionsWithdrawWithRealWETH() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        _deployYieldResolver();
-
-        uint256 yieldAmount = 0.2 ether;
-        _fundVaultAndMintShares(yieldAmount);
-
-        // Split — fractions will be escrowed (no marketplace configured)
-        yieldSplitter.splitYield(garden, WETH, address(vault));
-
-        uint256 escrowed = yieldSplitter.getEscrowedFractions(garden, WETH);
-        assertGt(escrowed, 0, "should have escrowed fractions");
-
-        // Treasury balance before withdrawal
-        uint256 treasuryBefore = IERC20(WETH).balanceOf(treasury);
-
-        // Owner withdraws escrowed fractions to treasury
-        vm.prank(owner);
-        yieldSplitter.withdrawEscrowedFractions(garden, WETH, escrowed, treasury);
-
-        // Verify real WETH moved
-        uint256 treasuryAfter = IERC20(WETH).balanceOf(treasury);
-        assertEq(treasuryAfter - treasuryBefore, escrowed, "treasury should receive escrowed WETH");
-
-        // Escrow should be cleared
-        uint256 escrowedAfter = yieldSplitter.getEscrowedFractions(garden, WETH);
-        assertEq(escrowedAfter, 0, "escrow should be zero after withdrawal");
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Test: Rescue stranded WETH tokens
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Verifies rescueTokens() with real WETH — balance checks before/after.
-    function test_forkDeploy_rescueStrandedWETH() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        _deployYieldResolver();
-
-        // Send some real WETH directly to the resolver (simulating stranded tokens)
-        uint256 strandedAmount = 0.05 ether;
-        deal(WETH, address(yieldSplitter), strandedAmount);
-
-        uint256 resolverBefore = IERC20(WETH).balanceOf(address(yieldSplitter));
-        assertEq(resolverBefore, strandedAmount, "resolver should hold stranded WETH");
-
-        address rescueTo = makeAddr("rescueRecipient");
-        uint256 rescueToBefore = IERC20(WETH).balanceOf(rescueTo);
-
-        vm.prank(owner);
-        yieldSplitter.rescueTokens(WETH, rescueTo, strandedAmount);
-
-        uint256 resolverAfter = IERC20(WETH).balanceOf(address(yieldSplitter));
-        uint256 rescueToAfter = IERC20(WETH).balanceOf(rescueTo);
-
-        assertEq(resolverAfter, 0, "resolver should be empty after rescue");
-        assertEq(rescueToAfter - rescueToBefore, strandedAmount, "recipient should receive rescued WETH");
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Test: Multiple gardens, isolated real WETH balances
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Verifies that per-garden share accounting prevents cross-garden WETH drainage.
-    function test_forkSplitYield_multiGardenIsolationWithRealWETH() public {
-        if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
-            return;
-        }
-
-        _deployYieldResolver();
-
-        // Configure a second garden
-        address garden2 = address(0xD1);
-        address treasury2 = address(0xD2);
-        address cookieJar2 = address(0xD3);
-
-        vm.startPrank(owner);
-        yieldSplitter.setCookieJar(garden2, cookieJar2);
-        yieldSplitter.setGardenTreasury(garden2, treasury2);
-        yieldSplitter.setGardenVault(garden2, WETH, address(vault));
-        vm.stopPrank();
-
-        // Fund garden 1 with 1 WETH
-        uint256 amount1 = 1 ether;
-        deal(WETH, address(vault), amount1);
-        vault.mintShares(address(yieldSplitter), amount1);
-        vm.prank(octantModule);
-        yieldSplitter.registerShares(garden, address(vault), amount1);
-
-        // Fund garden 2 with 0.5 WETH
-        uint256 amount2 = 0.5 ether;
-        deal(WETH, address(vault), IERC20(WETH).balanceOf(address(vault)) + amount2);
-        vault.mintShares(address(yieldSplitter), amount2);
-        vm.prank(octantModule);
-        yieldSplitter.registerShares(garden2, address(vault), amount2);
-
-        // Split garden 1
-        uint256 cookieJar1Before = IERC20(WETH).balanceOf(cookieJar);
-        yieldSplitter.splitYield(garden, WETH, address(vault));
-        uint256 cookieJar1Received = IERC20(WETH).balanceOf(cookieJar) - cookieJar1Before;
-
-        // Split garden 2
-        uint256 cookieJar2Before = IERC20(WETH).balanceOf(cookieJar2);
-        yieldSplitter.splitYield(garden2, WETH, address(vault));
-        uint256 cookieJar2Received = IERC20(WETH).balanceOf(cookieJar2) - cookieJar2Before;
-
-        // Garden 1 cookie jar: 48.65% of 1 ether
-        uint256 expected1 = (amount1 * 4865) / 10_000;
-        assertEq(cookieJar1Received, expected1, "garden1 cookie jar should receive correct share");
-
-        // Garden 2 cookie jar: 48.65% of 0.5 ether
-        uint256 expected2 = (amount2 * 4865) / 10_000;
-        assertEq(cookieJar2Received, expected2, "garden2 cookie jar should receive correct share");
-
-        // Verify isolation: garden2 only got its own share, not garden1's
-        assertGt(cookieJar1Received, cookieJar2Received, "garden1 should receive more (larger deposit)");
     }
 }

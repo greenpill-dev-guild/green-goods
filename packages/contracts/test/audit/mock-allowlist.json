@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "updated_at": "2026-02-19",
+  "entries": [
+    {
+      "file": "packages/contracts/test/fork/CrossChainENS.t.sol",
+      "pattern": "vm.mockCall",
+      "reason": "CCIP send path cannot be executed against production allowlists in CI forks; mockCall isolates ENS relay correctness.",
+      "owner": "contracts-core",
+      "expires_on": "2026-06-30",
+      "network_scope": ["arbitrum", "mainnet"],
+      "classification": "necessary",
+      "replacement_recommendation": "Replace with dedicated local CCIP harness once test sender allowlisting is available."
+    },
+    {
+      "file": "packages/contracts/test/fork/CrossChainENS.t.sol",
+      "pattern": "vm.store",
+      "reason": "ENS base node ownership cannot be transferred to ephemeral test accounts on public forks; vm.store is required to exercise receiver flow.",
+      "owner": "contracts-core",
+      "expires_on": "2026-06-30",
+      "network_scope": ["mainnet"],
+      "classification": "necessary",
+      "replacement_recommendation": "Replace with delegated test-owned ENS test node when available."
+    },
+    {
+      "file": "packages/contracts/test/fork/EthereumENSReceiver.t.sol",
+      "pattern": "vm.store",
+      "reason": "Mainnet ENS receiver tests require simulated control of greengoods.eth without private-key ownership in CI.",
+      "owner": "contracts-core",
+      "expires_on": "2026-06-30",
+      "network_scope": ["mainnet"],
+      "classification": "necessary",
+      "replacement_recommendation": "Use a dedicated CI ENS node delegation path if introduced."
+    },
+    {
+      "file": "packages/contracts/test/fork/ArbitrumENS.t.sol",
+      "pattern": "vm.mockCall",
+      "reason": "Arbitrum CCIP router send cannot be called from unallowlisted CI sender accounts.",
+      "owner": "contracts-core",
+      "expires_on": "2026-06-30",
+      "network_scope": ["arbitrum"],
+      "classification": "necessary",
+      "replacement_recommendation": "Swap to real ccipSend once CI sender allowlisting or local router simulation is available."
+    },
+    {
+      "file": "packages/contracts/test/fork/SepoliaENS.t.sol",
+      "pattern": "vm.mockCall",
+      "reason": "Sepolia ENS tests require deterministic CCIP send behavior without external allowlist dependencies.",
+      "owner": "contracts-core",
+      "expires_on": "2026-06-30",
+      "network_scope": ["sepolia"],
+      "classification": "necessary",
+      "replacement_recommendation": "Replace with real router calls under a test-allowlisted sender."
+    },
+    {
+      "file": "packages/contracts/test/fork/ArbitrumMultiGardenIsolation.t.sol",
+      "pattern": "vm.mockCall",
+      "reason": "Isolation tests validate protocol-side ENS behavior, not CCIP transport; deterministic router stub is required.",
+      "owner": "contracts-core",
+      "expires_on": "2026-06-30",
+      "network_scope": ["arbitrum"],
+      "classification": "necessary",
+      "replacement_recommendation": "Move to integration with a local CCIP test harness."
+    },
+    {
+      "file": "packages/contracts/test/fork/e2e/ArbitrumExtendedE2E.t.sol",
+      "pattern": "vm.mockCall",
+      "reason": "Extended Arbitrum E2E flow currently cannot execute real router send from ephemeral CI sender.",
+      "owner": "contracts-core",
+      "expires_on": "2026-06-30",
+      "network_scope": ["arbitrum"],
+      "classification": "necessary",
+      "replacement_recommendation": "Promote to real CCIP routing once sender allowlist is available in CI."
+    },
+    {
+      "file": "packages/contracts/test/fork/e2e/SepoliaExtendedE2E.t.sol",
+      "pattern": "vm.mockCall",
+      "reason": "Extended Sepolia E2E flow stubs router send due external allowlist constraints.",
+      "owner": "contracts-core",
+      "expires_on": "2026-06-30",
+      "network_scope": ["sepolia"],
+      "classification": "necessary",
+      "replacement_recommendation": "Promote to real router send after test sender allowlisting."
+    },
+    {
+      "file": "packages/contracts/test/fork/ArbitrumGardenAccount.t.sol",
+      "pattern": "import-src-mocks",
+      "reason": "Deterministic ERC20 scaffolding is used to validate account execution semantics without external token variance.",
+      "owner": "contracts-core",
+      "expires_on": "2026-03-19",
+      "network_scope": ["arbitrum"],
+      "classification": "conditionally-allowed",
+      "sentinel_file": "packages/contracts/test/fork/e2e/ArbitrumFullProtocolE2E.t.sol",
+      "replacement_recommendation": "Pair with sentinel scenario using real fork token interactions."
+    },
+    {
+      "file": "packages/contracts/test/fork/SepoliaGardenAccount.t.sol",
+      "pattern": "import-src-mocks",
+      "reason": "Deterministic ERC20 scaffolding is used to validate account execution semantics without external token variance.",
+      "owner": "contracts-core",
+      "expires_on": "2026-03-19",
+      "network_scope": ["sepolia"],
+      "classification": "conditionally-allowed",
+      "sentinel_file": "packages/contracts/test/fork/e2e/FullProtocolE2E.t.sol",
+      "replacement_recommendation": "Pair with sentinel scenario using real fork token interactions."
+    },
+    {
+      "file": "packages/contracts/test/fork/ArbitrumConvictionVoting.t.sol",
+      "pattern": "import-src-mocks",
+      "reason": "MockCVStrategy provides deterministic conviction behavior while fork-backed module wiring is validated.",
+      "owner": "contracts-core",
+      "expires_on": "2026-03-19",
+      "network_scope": ["arbitrum"],
+      "classification": "conditionally-allowed",
+      "sentinel_file": "packages/contracts/test/fork/e2e/ArbitrumFullProtocolE2E.t.sol",
+      "replacement_recommendation": "Add paired real-strategy sentinel test for nonlinear conviction math."
+    },
+    {
+      "file": "packages/contracts/test/fork/SepoliaConvictionVoting.t.sol",
+      "pattern": "import-src-mocks",
+      "reason": "MockCVStrategy provides deterministic conviction behavior while fork-backed module wiring is validated.",
+      "owner": "contracts-core",
+      "expires_on": "2026-03-19",
+      "network_scope": ["sepolia"],
+      "classification": "conditionally-allowed",
+      "sentinel_file": "packages/contracts/test/fork/e2e/SepoliaExtendedE2E.t.sol",
+      "replacement_recommendation": "Add paired real-strategy sentinel test for nonlinear conviction math."
+    },
+    {
+      "file": "packages/contracts/test/fork/e2e/ArbitrumExtendedE2E.t.sol",
+      "pattern": "import-src-mocks",
+      "reason": "Extended Arbitrum E2E currently uses deterministic conviction strategy scaffolding.",
+      "owner": "contracts-core",
+      "expires_on": "2026-03-19",
+      "network_scope": ["arbitrum"],
+      "classification": "conditionally-allowed",
+      "sentinel_file": "packages/contracts/test/fork/e2e/ArbitrumFullProtocolE2E.t.sol",
+      "replacement_recommendation": "Pair with fork-backed real-strategy E2E sentinel scenario."
+    },
+    {
+      "file": "packages/contracts/test/fork/helpers/ForkTestBase.sol",
+      "pattern": "import-src-mocks",
+      "reason": "Fork harness still requires deterministic token scaffolding for protocol bootstrap.",
+      "owner": "contracts-core",
+      "expires_on": "2026-03-19",
+      "network_scope": ["sepolia", "arbitrum", "celo"],
+      "classification": "conditionally-allowed",
+      "sentinel_file": "packages/contracts/test/fork/e2e/FullProtocolE2E.t.sol",
+      "replacement_recommendation": "Migrate bootstrap path to fork-native token fixtures where feasible."
+    },
+    {
+      "file": "packages/contracts/test/fork/helpers/CookieJarForkTestBase.sol",
+      "pattern": "import-src-mocks",
+      "reason": "CookieJar fork harness uses deterministic token scaffolding for stable withdrawal and split assertions.",
+      "owner": "contracts-core",
+      "expires_on": "2026-03-19",
+      "network_scope": ["sepolia", "arbitrum"],
+      "classification": "conditionally-allowed",
+      "sentinel_file": "packages/contracts/test/fork/ArbitrumCookieJar.t.sol",
+      "replacement_recommendation": "Pair with sentinel scenarios using real ERC4626-vault assets where available."
+    },
+    {
+      "file": "packages/contracts/test/E2EConvictionVoting.t.sol",
+      "pattern": "import-src-mocks",
+      "reason": "Local E2E conviction suite remains deterministic and intentionally mock-heavy pending fork-backed parity coverage.",
+      "owner": "contracts-core",
+      "expires_on": "2026-03-19",
+      "network_scope": ["sepolia", "arbitrum"],
+      "classification": "conditionally-allowed",
+      "sentinel_file": "packages/contracts/test/fork/e2e/ArbitrumFullProtocolE2E.t.sol",
+      "replacement_recommendation": "Pair with real-contract fork-backed conviction E2E sentinel scenario."
+    }
+  ]
+}
