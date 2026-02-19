@@ -163,7 +163,10 @@ describe("hooks/vault/useVaultOperations", () => {
 
   it("skips approve when allowance is already sufficient", async () => {
     // Read sequence: maxDeposit, previewDeposit, allowance
-    mockReadContract.mockResolvedValueOnce(100n).mockResolvedValueOnce(10n).mockResolvedValueOnce(100n);
+    mockReadContract
+      .mockResolvedValueOnce(100n)
+      .mockResolvedValueOnce(10n)
+      .mockResolvedValueOnce(100n);
     mockWriteContractAsync.mockResolvedValue(
       "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     );
@@ -334,7 +337,10 @@ describe("hooks/vault/useVaultOperations", () => {
     };
 
     // Read sequence: maxDeposit, previewDeposit, allowance
-    mockReadContract.mockResolvedValueOnce(100n).mockResolvedValueOnce(10n).mockResolvedValueOnce(100n);
+    mockReadContract
+      .mockResolvedValueOnce(100n)
+      .mockResolvedValueOnce(10n)
+      .mockResolvedValueOnce(100n);
 
     const queryClient = new QueryClient({
       defaultOptions: {

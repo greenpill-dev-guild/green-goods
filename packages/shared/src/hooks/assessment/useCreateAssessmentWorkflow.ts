@@ -233,7 +233,9 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                         try {
                           return JSON.parse(params.metrics);
                         } catch {
-                          throw new Error("Invalid metrics JSON. Please provide valid JSON content.");
+                          throw new Error(
+                            "Invalid metrics JSON. Please provide valid JSON content."
+                          );
                         }
                       })()
                     : params.metrics;
