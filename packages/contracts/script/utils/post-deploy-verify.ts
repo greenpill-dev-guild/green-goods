@@ -223,7 +223,7 @@ function isZeroAddress(value: string | undefined): boolean {
 function castCall(rpcUrl: string, to: string, signature: string, args: string[] = []): string {
   const callArgs = ["call", to, signature, ...args, "--rpc-url", rpcUrl];
   try {
-    return execFileSync("cast", callArgs, { encoding: "utf8" }).trim();
+    return execFileSync("cast", callArgs, { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }).trim();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`cast call failed (${to} ${signature}): ${maskRpcApiKey(message)}`);

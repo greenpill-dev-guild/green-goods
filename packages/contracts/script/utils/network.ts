@@ -167,8 +167,12 @@ export class NetworkManager {
     }
 
     try {
-      const hostname = new URL(rpcUrl).hostname.toLowerCase();
-      return hostname === "publicnode.com" || hostname.endsWith(".publicnode.com");
+      const { hostname } = new URL(rpcUrl);
+      // Extract the registrable domain (last two parts) to match publicnode.com
+      // and all its subdomains (e.g. ethereum-sepolia.publicnode.com)
+      const parts = hostname.toLowerCase().split(".");
+      const domain = parts.length >= 2 ? parts.slice(-2).join(".") : hostname;
+      return domain === "publicnode.com";
     } catch {
       return false;
     }

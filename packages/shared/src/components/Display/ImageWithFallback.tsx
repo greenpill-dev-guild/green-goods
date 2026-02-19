@@ -26,8 +26,11 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   onErrorCallback,
   ...props
 }) => {
-  const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // Sanitize src to prevent javascript: XSS
+  const safeSrc = /^(https?:|data:image\/|\/|blob:)/i.test(src) ? src : "";
+
+  const [hasError, setHasError] = useState(!safeSrc);
+  const [isLoading, setIsLoading] = useState(!!safeSrc);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const handleError = () => {
@@ -67,7 +70,7 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         />
       )}
       <img
-        src={src}
+        src={safeSrc}
         alt={alt}
         loading={loading}
         className={cn(className, isLoading && "opacity-0", isLoaded && "image-reveal")}
