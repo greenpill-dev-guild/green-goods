@@ -1,5 +1,7 @@
 import {
+  gardenStepFields,
   toastService,
+  useCreateGardenForm,
   useCreateGardenStore,
   useCreateGardenWorkflow,
   useOffline,
@@ -19,13 +21,10 @@ export default function CreateGarden() {
   const navigate = useNavigate();
   const steps = useCreateGardenStore((state) => state.steps);
   const currentStep = useCreateGardenStore((state) => state.currentStep);
-  const nextStep = useCreateGardenStore((state) => state.nextStep);
-  const previousStep = useCreateGardenStore((state) => state.previousStep);
-  const canProceed = useCreateGardenStore((state) => state.canProceed);
-  const isReviewReady = useCreateGardenStore((state) => state.isReviewReady);
   const form = useCreateGardenStore((state) => state.form);
   const resetForm = useCreateGardenStore((state) => state.reset);
   const { isOnline } = useOffline();
+  const { trigger, reset: resetValidationForm } = useCreateGardenForm();
 
   const {
     state,
@@ -79,26 +78,30 @@ export default function CreateGarden() {
     setShowValidation(false);
   }, [currentStep]);
 
-  const handleNext = () => {
+  useEffect(() => {
+    resetValidationForm(form);
+  }, [form, resetValidationForm]);
+
+  const handleNext = async () => {
     setShowValidation(true);
-    if (!canProceed()) {
-      return;
+    const currentStepId = steps[currentStep]?.id;
+    if (currentStepId && currentStepId !== "review") {
+      const fields = gardenStepFields[currentStepId];
+      const isStepValid = await trigger([...fields], { shouldFocus: true });
+      if (!isStepValid) return;
     }
     goNext();
-    nextStep();
   };
 
   const handleBack = () => {
     setShowValidation(false);
     goBack();
-    previousStep();
   };
 
   const handleSubmit = async () => {
     setShowValidation(true);
-    if (!isReviewReady()) {
-      return;
-    }
+    const isFormValid = await trigger(undefined, { shouldFocus: true });
+    if (!isFormValid) return;
 
     if (!isOnline) {
       toastService.error({
@@ -331,7 +334,7 @@ export default function CreateGarden() {
               </Dialog.Close>
               <button
                 onClick={handleConfirmDeploy}
-                disabled={isSubmitting || isEstimating}
+                disabled={isSubmitting || isEstimating || Boolean(estimateError)}
                 className="rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {intl.formatMessage({

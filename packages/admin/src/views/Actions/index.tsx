@@ -91,7 +91,7 @@ export default function Actions() {
       </div>
 
       {actions.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-12" role="status">
           <p className="text-text-sub mb-4">{formatMessage({ id: "app.actions.empty" })}</p>
           <Link
             to="/actions/create"

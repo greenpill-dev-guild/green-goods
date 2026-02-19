@@ -7,6 +7,7 @@ import {
   cn,
   formatAddress,
   useEnsName,
+  type Address,
   type Garden,
 } from "@green-goods/shared";
 import { ImageWithFallback } from "@/components/Display";
@@ -49,7 +50,7 @@ export interface GardenCardProps
   selected?: boolean;
 }
 
-const OperatorBadge: React.FC<{ address: string }> = ({ address }) => {
+const OperatorBadge: React.FC<{ address: Address }> = ({ address }) => {
   const { data: ensName } = useEnsName(address);
   return (
     <Badge variant="outline" tint="none" className="border-0 p-0 text-xs font-medium leading-tight">

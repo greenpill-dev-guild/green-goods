@@ -11,7 +11,7 @@ import {
   type WorkApprovalDraft,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { Button } from "@/components/Actions";
@@ -31,6 +31,7 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
   const [feedbackMode, setFeedbackMode] = useState<"approve" | "reject" | null>(null);
   const [inlineFeedback, setInlineFeedback] = useState("");
   const [confidence, setConfidence] = useState<Confidence>(Confidence.NONE);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const { set: scheduleTimeout } = useTimeout();
 
   const handleCancelFeedback = useCallback(() => {
@@ -48,6 +49,42 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
     [feedbackMode, handleCancelFeedback]
   );
   useWindowEvent("keydown", handleEscape);
+
+  useEffect(() => {
+    if (!feedbackMode) return;
+    const drawer = drawerRef.current;
+    if (!drawer) return;
+
+    const getFocusableElements = () =>
+      Array.from(
+        drawer.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((element) => !element.hasAttribute("hidden"));
+
+    const handleTabTrap = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const focusable = getFocusableElements();
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    drawer.addEventListener("keydown", handleTabTrap);
+    return () => {
+      drawer.removeEventListener("keydown", handleTabTrap);
+    };
+  }, [feedbackMode]);
 
   const handleApprovePress = () => {
     hapticLight();
@@ -129,6 +166,7 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
       <div className="fixed left-0 right-0 bottom-0 z-[200]">
         {/* Feedback Drawer - Slides up from behind the footer bar */}
         <div
+          ref={drawerRef}
           className={cn(
             "absolute bottom-full left-0 right-0 bg-bg-white-0 rounded-t-2xl shadow-xl overflow-hidden transition-transform duration-300 ease-out origin-bottom",
             feedbackMode ? "translate-y-0" : "translate-y-full"

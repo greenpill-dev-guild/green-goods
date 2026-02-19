@@ -191,11 +191,20 @@ export default function Dashboard() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-strong">
           Welcome back,{" "}
-          {intl.formatMessage({
-            id: `admin.dashboard.role.${role}`,
-            defaultMessage:
-              role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User",
-          })}
+          {role === "deployer"
+            ? intl.formatMessage({
+                id: "admin.dashboard.role.deployer",
+                defaultMessage: "Deployer",
+              })
+            : role === "operator"
+              ? intl.formatMessage({
+                  id: "admin.dashboard.role.operator",
+                  defaultMessage: "Operator",
+                })
+              : intl.formatMessage({
+                  id: "admin.dashboard.role.user",
+                  defaultMessage: "User",
+                })}
         </h1>
         <p className="text-text-sub mt-1">
           {role === "deployer"
@@ -215,13 +224,15 @@ export default function Dashboard() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-text-soft">
-                {intl.formatMessage({
-                  id:
-                    role === "operator"
-                      ? "admin.dashboard.stats.yourGardens"
-                      : "admin.dashboard.stats.totalGardens",
-                  defaultMessage: role === "operator" ? "Your Gardens" : "Total Gardens",
-                })}
+                {role === "operator"
+                  ? intl.formatMessage({
+                      id: "admin.dashboard.stats.yourGardens",
+                      defaultMessage: "Your Gardens",
+                    })
+                  : intl.formatMessage({
+                      id: "admin.dashboard.stats.totalGardens",
+                      defaultMessage: "Total Gardens",
+                    })}
               </p>
               <p className="text-2xl font-bold text-text-strong">
                 {role === "operator" ? userOperatorGardens : totalGardens}

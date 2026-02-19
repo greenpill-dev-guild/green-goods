@@ -5,7 +5,7 @@ import {
   formatTokenAmount,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  validateDecimalInput,
+  useDepositForm,
   useUser,
   useDebouncedValue,
   useVaultDeposit,
@@ -16,7 +16,7 @@ import { RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useBalance, useEstimateGas } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { encodeFunctionData, formatUnits, parseUnits } from "viem";
+import { encodeFunctionData, formatUnits } from "viem";
 
 const VAULT_DEPOSIT_ABI = [
   {
@@ -52,55 +52,36 @@ export function DepositModal({
   const [selectedAsset, setSelectedAsset] = useState<string>(
     defaultAsset ?? vaults[0]?.asset ?? ""
   );
-  const [amount, setAmount] = useState("");
 
-  useEffect(() => {
-    if (!isOpen) return;
-    setSelectedAsset(defaultAsset ?? vaults[0]?.asset ?? "");
-    setAmount("");
-  }, [defaultAsset, isOpen, vaults]);
-
-  const selectedVault = useMemo(
-    () => vaults.find((vault) => vault.asset.toLowerCase() === selectedAsset.toLowerCase()),
-    [selectedAsset, vaults]
-  );
-
-  const assetSymbol = useMemo(
-    () => (selectedVault ? getVaultAssetSymbol(selectedVault.asset, selectedVault.chainId) : ""),
-    [selectedVault]
-  );
+  const selectedVault = vaults.find((v) => v.asset.toLowerCase() === selectedAsset.toLowerCase());
+  const assetSymbol = selectedVault
+    ? getVaultAssetSymbol(selectedVault.asset, selectedVault.chainId)
+    : "";
 
   const { data: balance } = useBalance({
     address: primaryAddress as Address | undefined,
     token: selectedVault?.asset as Address | undefined,
-    query: { enabled: isOpen && Boolean(primaryAddress && selectedVault) },
+    query: {
+      enabled: isOpen && Boolean(primaryAddress && selectedVault),
+      refetchInterval: isOpen ? 10_000 : false,
+    },
   });
 
   const decimals =
     balance?.decimals ?? getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
-  const inputError = useMemo(() => validateDecimalInput(amount, decimals), [amount, decimals]);
+  const { form, amount, amountBigInt, amountErrorKey, hasBlockingError, resetAmount } =
+    useDepositForm({
+      decimals,
+      balance: balance?.value,
+    });
+  const amountError = amountErrorKey;
+  const amountField = form.register("amount");
 
-  const amountBigInt = useMemo(() => {
-    if (!amount.trim() || inputError) return 0n;
-    try {
-      return parseUnits(amount, decimals);
-    } catch {
-      return 0n;
-    }
-  }, [amount, decimals, inputError]);
-
-  const minAmountError = useMemo(() => {
-    if (!amount.trim() || inputError) return null;
-    return amountBigInt <= 0n ? "app.treasury.amountMustBeGreaterThanZero" : null;
-  }, [amount, amountBigInt, inputError]);
-
-  const insufficientBalanceError = useMemo(() => {
-    if (!amount.trim() || inputError || !balance) return null;
-    return amountBigInt > balance.value ? "app.treasury.insufficientBalance" : null;
-  }, [amount, amountBigInt, balance, inputError]);
-
-  const amountError = inputError ?? minAmountError ?? insufficientBalanceError;
-  const hasBlockingError = Boolean(amountError);
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedAsset(defaultAsset ?? vaults[0]?.asset ?? "");
+    resetAmount();
+  }, [defaultAsset, isOpen, resetAmount, vaults]);
 
   const debouncedAmount = useDebouncedValue(amountBigInt, 300);
 
@@ -182,8 +163,9 @@ export function DepositModal({
                 <input
                   type="text"
                   inputMode="decimal"
+                  {...amountField}
                   value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
+                  onChange={(event) => amountField.onChange(event)}
                   placeholder="0.0"
                   aria-invalid={Boolean(amountError)}
                   aria-describedby={amountError ? "deposit-error" : undefined}
@@ -197,7 +179,10 @@ export function DepositModal({
                   type="button"
                   onClick={() => {
                     if (!balance) return;
-                    setAmount(formatUnits(balance.value, balance.decimals));
+                    form.setValue("amount", formatUnits(balance.value, balance.decimals), {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
                   }}
                   className="rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub hover:bg-bg-weak"
                 >
@@ -227,7 +212,7 @@ export function DepositModal({
               <p>
                 {formatMessage({ id: "app.treasury.estimatedGas" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {estimatedGas ? `${formatTokenAmount(estimatedGas)} ETH` : "--"}
+                  {estimatedGas ? formatTokenAmount(estimatedGas, 0, 0) : "--"}
                 </span>
               </p>
               {assetSymbol && (

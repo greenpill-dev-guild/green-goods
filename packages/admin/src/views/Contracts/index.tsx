@@ -1,4 +1,4 @@
-import { SUPPORTED_CHAINS, useAdminStore, getNetworkContracts } from "@green-goods/shared";
+import { SUPPORTED_CHAINS, useAdminStore, getNetworkContracts, type Address } from "@green-goods/shared";
 import { RiRefreshLine, RiSettings3Line, RiUploadLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -23,14 +23,14 @@ export default function Contracts() {
     { name: "Community Token", address: contracts.communityToken, type: "token" },
   ];
 
-  const getStatusColor = (address: string) => {
+  const getStatusColor = (address: Address) => {
     if (address === "0x0000000000000000000000000000000000000000") {
       return "bg-error-lighter text-error-dark";
     }
     return "bg-success-lighter text-success-dark";
   };
 
-  const getStatusText = (address: string) => {
+  const getStatusText = (address: Address) => {
     if (address === "0x0000000000000000000000000000000000000000") {
       return formatMessage({ id: "app.contracts.status.notDeployed" });
     }

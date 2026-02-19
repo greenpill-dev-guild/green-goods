@@ -55,6 +55,7 @@ export function WithdrawModal({
   const { deposits } = useVaultDeposits(gardenAddress, {
     userAddress: primaryAddress ?? undefined,
     enabled: isOpen && Boolean(primaryAddress),
+    refetchInterval: isOpen ? 10_000 : false,
   });
 
   const selectedDeposit = useMemo(

@@ -1,6 +1,7 @@
 import {
   Domain,
   type Action,
+  type Address,
   type Garden,
   expandDomainMask,
   hasDomain,
@@ -31,10 +32,10 @@ interface WorkIntroProps {
   actions: Action[];
   gardens: Garden[];
   selectedActionUID: number | null;
-  selectedGardenAddress: string | null;
+  selectedGardenAddress: Address | null;
   selectedDomain: Domain | null;
   setActionUID: (value: number | null) => void;
-  setGardenAddress: (value: string | null) => void;
+  setGardenAddress: (value: Address | null) => void;
   setSelectedDomain: (domain: Domain | null) => void;
 }
 

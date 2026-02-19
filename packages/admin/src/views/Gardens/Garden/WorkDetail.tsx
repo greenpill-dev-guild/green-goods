@@ -136,6 +136,7 @@ export default function WorkDetail() {
   // Audio recording state
   const [reviewAudioFile, setReviewAudioFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingAction, setSubmittingAction] = useState<"approve" | "reject" | null>(null);
 
   const approvalMutation = useWorkApproval();
 
@@ -161,6 +162,7 @@ export default function WorkDetail() {
       }
     }
 
+    setSubmittingAction(approved ? "approve" : "reject");
     setIsSubmitting(true);
 
     try {
@@ -197,6 +199,7 @@ export default function WorkDetail() {
             message: formatMessage({ id: "app.toast.approval.errorWallet.message" }),
           });
           setIsSubmitting(false);
+          setSubmittingAction(null);
           return;
         }
       }
@@ -240,6 +243,7 @@ export default function WorkDetail() {
       });
     } finally {
       setIsSubmitting(false);
+      setSubmittingAction(null);
     }
   };
 
@@ -537,8 +541,11 @@ export default function WorkDetail() {
                           disabled={isSubmitting || hasApprovalValidationHints}
                           className="flex-1 rounded-lg bg-success-base px-4 py-2.5 text-sm font-medium text-static-white transition hover:bg-success-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-base focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {isSubmitting
-                            ? formatMessage({ id: "app.common.submitting" })
+                          {isSubmitting && submittingAction === "approve"
+                            ? formatMessage({
+                                id: "app.work.detail.approving",
+                                defaultMessage: "Approving...",
+                              })
                             : formatMessage({ id: "app.work.detail.approve" })}
                         </button>
                         <button
@@ -547,8 +554,11 @@ export default function WorkDetail() {
                           disabled={isSubmitting}
                           className="flex-1 rounded-lg border border-error-base px-4 py-2.5 text-sm font-medium text-error-base transition hover:bg-error-lighter focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-base focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {isSubmitting
-                            ? formatMessage({ id: "app.common.submitting" })
+                          {isSubmitting && submittingAction === "reject"
+                            ? formatMessage({
+                                id: "app.work.detail.rejecting",
+                                defaultMessage: "Rejecting...",
+                              })
                             : formatMessage({ id: "app.work.detail.reject" })}
                         </button>
                       </div>

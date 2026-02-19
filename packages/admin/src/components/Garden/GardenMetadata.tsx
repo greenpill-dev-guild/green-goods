@@ -1,4 +1,4 @@
-import { cn, getNetworkConfig, useCopyToClipboard } from "@green-goods/shared";
+import { cn, getNetworkConfig, useCopyToClipboard, type Address } from "@green-goods/shared";
 import {
   RiCheckLine,
   RiExternalLinkLine,
@@ -8,8 +8,8 @@ import {
 } from "@remixicon/react";
 
 interface GardenMetadataProps {
-  gardenId: string; // Garden smart account address
-  tokenAddress: string;
+  gardenId: Address; // Garden smart account address
+  tokenAddress: Address;
   tokenId: bigint | number;
   chainId: number;
   className?: string;
@@ -28,7 +28,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
   const networkConfig = getNetworkConfig(chainId);
   const blockExplorer = networkConfig.blockExplorer;
 
-  const getExplorerUrl = (address: string, type: "address" | "token" | "nft") => {
+  const getExplorerUrl = (address: Address, type: "address" | "token" | "nft") => {
     if (!blockExplorer) return null;
 
     switch (type) {

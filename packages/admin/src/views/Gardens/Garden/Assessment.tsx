@@ -1,4 +1,10 @@
-import { DEFAULT_CHAIN_ID, logger, useAdminStore, useGardenAssessments } from "@green-goods/shared";
+import {
+  DEFAULT_CHAIN_ID,
+  formatDateRange,
+  logger,
+  useAdminStore,
+  useGardenAssessments,
+} from "@green-goods/shared";
 import { RiAddLine, RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -231,22 +237,4 @@ function parseAssessment(decodedDataJson: string | null) {
     logger.error("Failed to parse assessment attestation", { error });
     return null;
   }
-}
-
-function formatDateRange(start?: number | null, end?: number | null) {
-  if (!start && !end) return "—";
-
-  const format = (value?: number | null) => {
-    if (!value) return undefined;
-    const dateInMs = value > 10_000_000_000 ? value * 1000 : value;
-    return new Date(dateInMs).toLocaleDateString();
-  };
-
-  const startDateLabel = format(start);
-  const endDateLabel = format(end);
-
-  if (startDateLabel && endDateLabel) {
-    return `${startDateLabel} – ${endDateLabel}`;
-  }
-  return startDateLabel ?? endDateLabel ?? "—";
 }

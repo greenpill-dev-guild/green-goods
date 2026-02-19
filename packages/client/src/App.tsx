@@ -95,7 +95,7 @@ function App() {
     if (query.state.fetchStatus !== "idle") return false;
 
     const key = query.queryKey;
-    if (!Array.isArray(key) || key[0] !== "greengoods") return true;
+    if (!Array.isArray(key) || key[0] !== "greengoods") return false;
 
     // Queue keys are high churn; don't persist
     if (key[1] === "queue") return false;

@@ -2,22 +2,14 @@ import {
   type Address,
   ConfirmDialog,
   DEFAULT_CHAIN_ID,
-  DEFAULT_SPLIT_CONFIG,
   ErrorBoundary,
-  MIN_YIELD_THRESHOLD_USD,
-  formatDate,
-  formatTokenAmount,
   GARDEN_ROLE_COLORS,
   GARDEN_ROLE_I18N_KEYS,
-  GARDEN_ROLE_ORDER,
   type GardenOperationResult,
   type GardenRole,
   getNetDeposited,
-  getRoleColorClasses,
   isZeroAddressValue,
-  PoolType,
   queryInvalidation,
-  resolveIPFSUrl,
   toastService,
   useConvictionStrategies,
   useCreateGardenPools,
@@ -33,37 +25,24 @@ import {
   useWorks,
   useYieldAllocations,
   WeightScheme,
-  WEIGHT_SCHEME_VALUES,
 } from "@green-goods/shared";
-import {
-  RiCheckboxCircleLine,
-  RiCupLine,
-  RiDeleteBinLine,
-  RiExternalLinkLine,
-  RiFileList3Line,
-  RiGroupLine,
-  RiMedalLine,
-  RiAddLine,
-  RiPieChart2Line,
-  RiShieldCheckLine,
-  RiUserAddLine,
-  RiUserLine,
-  RiBankLine,
-} from "@remixicon/react";
+import { RiCheckboxCircleLine, RiMedalLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { Link, useParams } from "react-router-dom";
-import { AddressDisplay } from "@/components/AddressDisplay";
+import { useParams } from "react-router-dom";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
+import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
+import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
+import { GardenHeroSection } from "@/components/Garden/GardenHeroSection";
 import { GardenMetadata } from "@/components/Garden/GardenMetadata";
+import { GardenRolesPanel } from "@/components/Garden/GardenRolesPanel";
+import { GardenStatsGrid } from "@/components/Garden/GardenStatsGrid";
+import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
 import { MembersModal } from "@/components/Garden/MembersModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { StatCard } from "@/components/StatCard";
 import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
 import "./GardenDetailLayout.css";
-
-const EAS_EXPLORER_URL = "https://explorer.easscan.org";
 
 export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
@@ -75,7 +54,7 @@ export default function GardenDetail() {
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [membersModalType, setMembersModalType] = useState<GardenRole>("gardener");
   const [memberToRemove, setMemberToRemove] = useState<{
-    address: string;
+    address: Address;
     role: GardenRole;
   } | null>(null);
 
@@ -89,12 +68,9 @@ export default function GardenDetail() {
     setMembersModalOpen(true);
   };
 
-  // Use shared useGardens hook and find the specific garden
   const { data: gardens = [], isLoading: fetching, error } = useGardens();
   const garden = gardens.find((g) => g.id === id);
 
-  // Background refetch to sync with indexer after transaction confirms
-  // Uses useDelayedInvalidation for auto-cleanup on unmount
   const { start: scheduleBackgroundRefetch } = useDelayedInvalidation(() => {
     const keysToInvalidate = queryInvalidation.invalidateGardens(DEFAULT_CHAIN_ID);
     keysToInvalidate.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
@@ -107,7 +83,6 @@ export default function GardenDetail() {
   } = useGardenAssessments(id);
 
   const assessments = assessmentList.slice(0, 5);
-
   const gardenId = id ?? "";
 
   const {
@@ -155,15 +130,7 @@ export default function GardenDetail() {
     { enabled: Boolean(id) }
   );
 
-  const hypercertPool = pools.find((p) => p.poolType === PoolType.Hypercert);
-  const actionPool = pools.find((p) => p.poolType === PoolType.Action);
-
   const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
-
-  const splitConfig = DEFAULT_SPLIT_CONFIG;
-  const cookieJarPct = (splitConfig.cookieJarBps / 100).toFixed(1);
-  const fractionsPct = (splitConfig.fractionsBps / 100).toFixed(1);
-  const juiceboxPct = (splitConfig.juiceboxBps / 100).toFixed(1);
 
   const { vaultNetDeposited, vaultHarvestCount, vaultDepositorCount } = useMemo(() => {
     let netDeposited = 0n;
@@ -180,6 +147,7 @@ export default function GardenDetail() {
       vaultDepositorCount: depositorCount,
     };
   }, [gardenVaults]);
+
   const donationAddressUnset = useMemo(
     () =>
       gardenVaults.length > 0 &&
@@ -187,8 +155,48 @@ export default function GardenDetail() {
     [gardenVaults]
   );
 
-  // Fetch work submissions for this garden using shared hook
   const { works } = useWorks(gardenId);
+
+  const roleMembers: Record<GardenRole, Address[]> = {
+    owner: garden?.owners ?? [],
+    operator: garden?.operators ?? [],
+    evaluator: garden?.evaluators ?? [],
+    gardener: garden?.gardeners ?? [],
+    funder: garden?.funders ?? [],
+    community: garden?.communities ?? [],
+  };
+
+  const roleActions = {
+    owner: { add: addOwner, remove: removeOwner },
+    operator: { add: addOperator, remove: removeOperator },
+    evaluator: { add: addEvaluator, remove: removeEvaluator },
+    gardener: { add: addGardener, remove: removeGardener },
+    funder: { add: addFunder, remove: removeFunder },
+    community: { add: addCommunity, remove: removeCommunity },
+  } satisfies Record<
+    GardenRole,
+    {
+      add: (address: Address) => Promise<GardenOperationResult>;
+      remove: (address: Address) => Promise<GardenOperationResult>;
+    }
+  >;
+
+  const roleIcons = {
+    owner: RiShieldCheckLine,
+    operator: RiUserLine,
+    evaluator: RiCheckboxCircleLine,
+    gardener: RiUserLine,
+    funder: RiMedalLine,
+    community: RiUserLine,
+  } as const;
+
+  const getRoleLabel = (role: GardenRole) => ({
+    singular: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].singular }),
+    plural: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].plural }),
+  });
+
+  const activeRole = membersModalType;
+  const ActiveRoleIcon = roleIcons[activeRole];
 
   const baseHeaderProps = {
     backLink: { to: "/gardens", label: formatMessage({ id: "app.garden.admin.backToGardens" }) },
@@ -232,148 +240,18 @@ export default function GardenDetail() {
     );
   }
 
-  // Build localized role labels from shared i18n keys
-  const getRoleLabel = (role: GardenRole) => ({
-    singular: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].singular }),
-    plural: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].plural }),
-  });
-
-  const roleMembers: Record<GardenRole, string[]> = {
-    owner: garden.owners ?? [],
-    operator: garden.operators ?? [],
-    evaluator: garden.evaluators ?? [],
-    gardener: garden.gardeners ?? [],
-    funder: garden.funders ?? [],
-    community: garden.communities ?? [],
-  };
-
-  const roleActions = {
-    owner: { add: addOwner, remove: removeOwner },
-    operator: { add: addOperator, remove: removeOperator },
-    evaluator: { add: addEvaluator, remove: removeEvaluator },
-    gardener: { add: addGardener, remove: removeGardener },
-    funder: { add: addFunder, remove: removeFunder },
-    community: { add: addCommunity, remove: removeCommunity },
-  } satisfies Record<
-    GardenRole,
-    {
-      add: (address: string) => Promise<GardenOperationResult>;
-      remove: (address: string) => Promise<GardenOperationResult>;
-    }
-  >;
-
-  const roleIcons = {
-    owner: RiShieldCheckLine,
-    operator: RiUserLine,
-    evaluator: RiCheckboxCircleLine,
-    gardener: RiUserLine,
-    funder: RiMedalLine,
-    community: RiUserLine,
-  } as const;
-
-  // Use shared role color classes and order from @green-goods/shared
-  // GARDEN_ROLE_ORDER, GARDEN_ROLE_COLORS, ROLE_COLOR_CLASSES, getRoleColorClasses
-
-  const activeRole = membersModalType;
-  const ActiveRoleIcon = roleIcons[activeRole];
-
   return (
     <div className="garden-detail-container pb-6">
       <PageHeader title={garden.name} {...baseHeaderProps} />
 
       <div className="garden-detail-grid mt-6 px-4 sm:px-6">
-        {/* Hero: Garden Banner & Description */}
-        <section className="grid-area-hero overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-          <div className="relative h-64 sm:h-72">
-            {garden.bannerImage ? (
-              <img
-                src={resolveIPFSUrl(garden.bannerImage)}
-                alt={garden.name}
-                className="h-full w-full object-cover"
-                onError={(event) => {
-                  const placeholder = event.currentTarget.nextElementSibling as HTMLElement | null;
-                  if (placeholder) {
-                    placeholder.style.display = "flex";
-                  }
-                  event.currentTarget.style.display = "none";
-                }}
-                loading="lazy"
-              />
-            ) : null}
-            <div
-              className={`absolute inset-0 items-center justify-center bg-gradient-to-br from-primary-dark via-primary-base to-primary-darker text-primary-foreground ${garden.bannerImage ? "hidden" : "flex"}`}
-              style={{ display: garden.bannerImage ? "none" : "flex" }}
-            >
-              <div className="text-center">
-                <div className="text-4xl font-bold opacity-80">{garden.name.charAt(0)}</div>
-                <div className="mt-2 text-lg opacity-60">{garden.name}</div>
-              </div>
-            </div>
+        <GardenHeroSection
+          garden={garden}
+          gardenId={gardenId}
+          canManage={canManage}
+          canReview={canReview}
+        />
 
-            {/* Garden Name Overlay */}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-static-black/80 via-static-black/50 to-transparent p-4 text-static-white sm:p-6">
-              <h2 className="text-xl font-bold drop-shadow-lg sm:text-2xl">{garden.name}</h2>
-              <p className="mt-1 text-sm opacity-90 sm:text-base">{garden.location}</p>
-            </div>
-
-            {/* Floating Action Buttons */}
-            <div className="absolute top-3 right-3 flex flex-col gap-2 sm:top-4 sm:right-4 sm:flex-row">
-              <Link
-                to={`/gardens/${id}/assessments`}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-bg-white/95 text-text-sub shadow-lg backdrop-blur transition hover:bg-bg-white active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
-                title={formatMessage({ id: "app.garden.admin.viewAssessments" })}
-                aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
-              >
-                <RiFileList3Line className="h-5 w-5" />
-                <span className="hidden text-sm font-medium sm:inline">
-                  {formatMessage({ id: "app.garden.admin.viewAssessments" })}
-                </span>
-              </Link>
-              <Link
-                to={`/gardens/${id}/hypercerts`}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-bg-white/95 text-text-sub shadow-lg backdrop-blur transition hover:bg-bg-white active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
-                title={formatMessage({ id: "app.hypercerts.actions.viewHypercerts" })}
-                aria-label={formatMessage({ id: "app.hypercerts.actions.viewHypercerts" })}
-              >
-                <RiMedalLine className="h-5 w-5" />
-                <span className="hidden text-sm font-medium sm:inline">
-                  {formatMessage({ id: "app.hypercerts.actions.viewHypercerts" })}
-                </span>
-              </Link>
-              {canReview && (
-                <Link
-                  to={`/gardens/${id}/assessments/create`}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-base text-primary-foreground shadow-lg transition hover:bg-primary-darker active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
-                  title={formatMessage({ id: "app.garden.admin.newAssessment" })}
-                  aria-label={formatMessage({ id: "app.garden.admin.newAssessment" })}
-                >
-                  <RiFileList3Line className="h-5 w-5" />
-                  <span className="hidden text-sm font-medium sm:inline">
-                    {formatMessage({ id: "app.garden.admin.newAssessment" })}
-                  </span>
-                </Link>
-              )}
-              {canManage && (
-                <Link
-                  to={`/gardens/${id}/hypercerts/create`}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-base text-primary-foreground shadow-lg transition hover:bg-primary-darker active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
-                  title={formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
-                  aria-label={formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
-                >
-                  <RiAddLine className="h-5 w-5" />
-                  <span className="hidden text-sm font-medium sm:inline">
-                    {formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
-                  </span>
-                </Link>
-              )}
-            </div>
-          </div>
-          <div className="p-4 sm:p-6">
-            <p className="text-sm text-text-sub">{garden.description}</p>
-          </div>
-        </section>
-
-        {/* Metadata: Quick Actions & Links */}
         <section className="grid-area-metadata">
           <GardenMetadata
             gardenId={garden.id}
@@ -383,572 +261,57 @@ export default function GardenDetail() {
           />
         </section>
 
-        {/* Stats: 4 Stat Cards */}
-        <section className="grid-area-stats grid grid-cols-1 gap-3 xs:grid-cols-2 sm:gap-4 md:grid-cols-4">
-          <StatCard
-            icon={<RiUserLine className="h-5 w-5" />}
-            label={formatMessage({ id: "app.roles.gardener.plural" })}
-            value={garden.gardeners.length}
-          />
-          <StatCard
-            icon={<RiShieldCheckLine className="h-5 w-5" />}
-            label={formatMessage({ id: "app.roles.operator.plural" })}
-            value={garden.operators.length}
-          />
-          <StatCard
-            icon={<RiCheckboxCircleLine className="h-5 w-5" />}
-            label={formatMessage({ id: "app.garden.admin.statWork" })}
-            value={works.length}
-          />
-          <StatCard
-            icon={<RiFileList3Line className="h-5 w-5" />}
-            label={formatMessage({ id: "app.garden.admin.statAssessments" })}
-            value={assessments.length}
-          />
-          {gardenVaults.length > 0 && (
-            <>
-              <StatCard
-                icon={<RiBankLine className="h-5 w-5" />}
-                label={formatMessage({ id: "app.treasury.totalValueLocked" })}
-                value={formatTokenAmount(vaultNetDeposited)}
-              />
-              <StatCard
-                icon={<RiBankLine className="h-5 w-5" />}
-                label={formatMessage({ id: "app.treasury.totalHarvests" })}
-                value={vaultHarvestCount}
-              />
-              <StatCard
-                icon={<RiBankLine className="h-5 w-5" />}
-                label={formatMessage({ id: "app.treasury.depositorCount" })}
-                value={vaultDepositorCount}
-              />
-            </>
-          )}
-          <StatCard
-            icon={<RiGroupLine className="h-5 w-5" />}
-            label={formatMessage({ id: "app.community.title" })}
-            value={
-              communityLoading
-                ? "..."
-                : community
-                  ? formatMessage({
-                      id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}`,
-                    })
-                  : formatMessage({ id: "app.community.noCommunity" })
-            }
-          />
-        </section>
+        <GardenStatsGrid
+          gardenerCount={garden.gardeners.length}
+          operatorCount={garden.operators.length}
+          workCount={works.length}
+          assessmentCount={assessments.length}
+          hasVaults={gardenVaults.length > 0}
+          vaultNetDeposited={vaultNetDeposited}
+          vaultHarvestCount={vaultHarvestCount}
+          vaultDepositorCount={vaultDepositorCount}
+          communityLoading={communityLoading}
+          communityLabel={weightSchemeLabel}
+        />
 
-        {/* Work: Primary Content */}
         <section className="grid-area-work">
           <ErrorBoundary context="GardenDetail.YieldCommunity">
-            {gardenVaults.length > 0 && (
-              <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-text-strong sm:text-lg">
-                      {formatMessage({ id: "app.treasury.title" })}
-                    </h3>
-                    <p className="mt-1 text-sm text-text-sub">
-                      {formatMessage(
-                        { id: "app.treasury.gardenTreasuryDescription" },
-                        { gardenName: garden.name }
-                      )}
-                    </p>
-                  </div>
-                  <Link
-                    to={`/gardens/${id}/vault`}
-                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-                  >
-                    {formatMessage({ id: "app.treasury.manageVault" })}
-                  </Link>
-                </div>
-                {donationAddressUnset && (
-                  <p className="mt-3 rounded-md border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark">
-                    {formatMessage({ id: "app.treasury.setDonationFirst" })}
-                  </p>
-                )}
-                {vaultsLoading && (
-                  <p className="mt-3 text-sm text-text-soft">
-                    {formatMessage({ id: "app.treasury.loadingVaults" })}
-                  </p>
-                )}
-              </div>
-            )}
-            {canManage && (
-              <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-text-strong sm:text-lg">
-                      {formatMessage({ id: "app.conviction.title" })}
-                    </h3>
-                    <p className="mt-1 text-sm text-text-sub">
-                      {formatMessage(
-                        { id: "app.conviction.strategyCount" },
-                        { count: convictionStrategies.length }
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      to={`/gardens/${id}/signal-pool/hypercert`}
-                      className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-                    >
-                      {formatMessage({ id: "app.signal.viewHypercertPool" })}
-                    </Link>
-                    <Link
-                      to={`/gardens/${id}/signal-pool/action`}
-                      className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-                    >
-                      {formatMessage({ id: "app.signal.viewActionPool" })}
-                    </Link>
-                    <Link
-                      to={`/gardens/${id}/strategies`}
-                      className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-                    >
-                      {formatMessage({ id: "app.conviction.manageStrategies" })}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Cookie Jar Section */}
-            {cookieJarCount > 0 && (
-              <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-lighter">
-                      <RiCupLine className="h-5 w-5 text-warning-dark" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-semibold text-text-strong sm:text-lg">
-                        {formatMessage({ id: "app.cookieJar.title" })}
-                      </h3>
-                      <p className="mt-0.5 text-sm text-text-sub">
-                        {cookieJarCount} {formatMessage({ id: "app.cookieJar.active" })}
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    to={`/gardens/${id}/cookie-jars`}
-                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-                  >
-                    {formatMessage({ id: "app.actions.view" })}
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {/* Community Status Section */}
-            <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-feature-lighter">
-                    <RiGroupLine className="h-5 w-5 text-feature-dark" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-text-strong sm:text-lg">
-                      {formatMessage({ id: "app.community.title" })}
-                    </h3>
-                    <p className="mt-0.5 flex items-center gap-1.5 text-sm text-text-sub">
-                      <span
-                        className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? "bg-emerald-500" : "bg-text-soft"}`}
-                        aria-hidden="true"
-                      />
-                      {community
-                        ? formatMessage({ id: "app.community.statusConnected" })
-                        : formatMessage({ id: "app.community.statusNotConnected" })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Weight scheme display */}
-              <div className="mt-4 rounded-md bg-bg-weak p-3">
-                <p className="text-xs font-medium text-text-soft">
-                  {formatMessage({ id: "app.community.weightScheme" })}
-                </p>
-                {communityLoading ? (
-                  <p className="mt-1 text-sm text-text-sub">
-                    {formatMessage({ id: "app.community.loading" })}
-                  </p>
-                ) : community ? (
-                  <div className="mt-1">
-                    <p className="text-sm font-medium text-text-strong">
-                      {formatMessage({
-                        id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}`,
-                      })}
-                    </p>
-                    <p className="mt-0.5 text-xs text-text-sub">
-                      {formatMessage({
-                        id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}.description`,
-                      })}
-                    </p>
-                    <div className="mt-2 flex gap-3 text-xs text-text-sub">
-                      <span>
-                        {formatMessage({ id: "app.roles.community" })}:{" "}
-                        {WEIGHT_SCHEME_VALUES[community.weightScheme].community / 10_000}x
-                      </span>
-                      <span>
-                        {formatMessage({ id: "app.roles.gardener" })}:{" "}
-                        {WEIGHT_SCHEME_VALUES[community.weightScheme].gardener / 10_000}x
-                      </span>
-                      <span>
-                        {formatMessage({ id: "app.roles.operator" })}:{" "}
-                        {WEIGHT_SCHEME_VALUES[community.weightScheme].operator / 10_000}x
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="mt-1 text-sm text-text-sub">
-                    {formatMessage({ id: "app.community.noCommunity" })}
-                  </p>
-                )}
-              </div>
-
-              {/* Signal pools summary */}
-              {pools.length > 0 ? (
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <div className="rounded-md bg-bg-weak p-3">
-                    <p className="text-xs font-medium text-text-soft">
-                      {formatMessage({ id: "app.community.poolType.hypercert" })}
-                    </p>
-                    <p className="mt-1 text-sm text-text-sub">
-                      {hypercertPool ? (
-                        <AddressDisplay address={hypercertPool.poolAddress} className="text-sm" />
-                      ) : (
-                        <>&mdash;</>
-                      )}
-                    </p>
-                  </div>
-                  <div className="rounded-md bg-bg-weak p-3">
-                    <p className="text-xs font-medium text-text-soft">
-                      {formatMessage({ id: "app.community.poolType.action" })}
-                    </p>
-                    <p className="mt-1 text-sm text-text-sub">
-                      {actionPool ? (
-                        <AddressDisplay address={actionPool.poolAddress} className="text-sm" />
-                      ) : (
-                        <>&mdash;</>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-3 rounded-md border border-warning-light bg-warning-lighter p-3">
-                  <p className="text-sm text-warning-dark">
-                    {formatMessage({ id: "app.community.noPoolsYet" })}
-                  </p>
-                  {canManage && community && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await createPools();
-                          toastService.success({
-                            title: formatMessage({ id: "app.community.poolsCreated" }),
-                          });
-                          scheduleBackgroundRefetch();
-                        } catch {
-                          toastService.error({
-                            title: formatMessage({ id: "app.community.poolsCreateFailed" }),
-                          });
-                        }
-                      }}
-                      disabled={isCreatingPools}
-                      className="mt-2 inline-flex items-center gap-2 rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker active:scale-95 disabled:opacity-50"
-                    >
-                      <RiAddLine className="h-4 w-4" />
-                      {isCreatingPools
-                        ? formatMessage({ id: "app.community.creatingPools" })
-                        : formatMessage({ id: "app.community.createPools" })}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Yield Allocation Section */}
-            <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-lighter">
-                    <RiPieChart2Line className="h-5 w-5 text-primary-dark" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-text-strong sm:text-lg">
-                      {formatMessage({ id: "app.yield.title" })}
-                    </h3>
-                    <p className="mt-0.5 text-sm text-text-sub">
-                      {formatMessage({ id: "app.yield.splitConfig" })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Three-way split ratio display */}
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                <div className="rounded-md bg-bg-weak p-3 text-center">
-                  <p className="text-xs font-medium text-text-soft">
-                    {formatMessage({ id: "app.yield.cookieJar" })}
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-text-strong">{cookieJarPct}%</p>
-                  <p className="mt-0.5 text-xs text-text-sub">
-                    {formatMessage({ id: "app.yield.cookieJarDescription" })}
-                  </p>
-                </div>
-                <div className="rounded-md bg-bg-weak p-3 text-center">
-                  <p className="text-xs font-medium text-text-soft">
-                    {formatMessage({ id: "app.yield.fractions" })}
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-text-strong">{fractionsPct}%</p>
-                  <p className="mt-0.5 text-xs text-text-sub">
-                    {formatMessage({ id: "app.yield.fractionsDescription" })}
-                  </p>
-                </div>
-                <div className="rounded-md bg-bg-weak p-3 text-center">
-                  <p className="text-xs font-medium text-text-soft">
-                    {formatMessage({ id: "app.yield.juicebox" })}
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-text-strong">{juiceboxPct}%</p>
-                  <p className="mt-0.5 text-xs text-text-sub">
-                    {formatMessage({ id: "app.yield.juiceboxDescription" })}
-                  </p>
-                </div>
-              </div>
-
-              {/* Pending yield indicator */}
-              <div className="mt-3 rounded-md border border-information-light bg-information-lighter px-3 py-2">
-                <p className="text-xs text-information-dark">
-                  {formatMessage(
-                    { id: "app.yield.threshold" },
-                    { amount: `$${MIN_YIELD_THRESHOLD_USD}` }
-                  )}
-                </p>
-              </div>
-
-              {/* Allocation history */}
-              <div className="mt-4 border-t border-stroke-soft pt-4">
-                <h4 className="text-sm font-medium text-text-strong">
-                  {formatMessage({ id: "app.yield.history" })}
-                </h4>
-                {allocationsLoading ? (
-                  <div className="mt-2 space-y-2">
-                    {[1, 2].map((i) => (
-                      <div key={i} className="animate-pulse rounded-md bg-bg-weak p-3">
-                        <div className="h-4 w-24 rounded bg-stroke-soft" />
-                        <div className="mt-1 h-3 w-16 rounded bg-stroke-soft" />
-                      </div>
-                    ))}
-                  </div>
-                ) : allocations.length === 0 ? (
-                  <p className="mt-2 text-center text-sm text-text-soft">
-                    {formatMessage({ id: "app.yield.noAllocations" })}
-                  </p>
-                ) : (
-                  <div className="mt-2 space-y-2">
-                    {allocations.map((allocation) => (
-                      <div
-                        key={allocation.txHash}
-                        className="flex items-center justify-between rounded-md bg-bg-weak p-3"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-text-strong">
-                            {formatTokenAmount(
-                              allocation.cookieJarAmount +
-                                allocation.fractionsAmount +
-                                allocation.juiceboxAmount
-                            )}
-                          </p>
-                          <p className="text-xs text-text-sub">
-                            {formatDate(allocation.timestamp)}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2 text-xs text-text-sub">
-                          <span>
-                            {formatMessage({ id: "app.yield.cookieJar" })}:{" "}
-                            {formatTokenAmount(allocation.cookieJarAmount)}
-                          </span>
-                          <span>
-                            {formatMessage({ id: "app.yield.fractions" })}:{" "}
-                            {formatTokenAmount(allocation.fractionsAmount)}
-                          </span>
-                          <span>
-                            {formatMessage({ id: "app.yield.juicebox" })}:{" "}
-                            {formatTokenAmount(allocation.juiceboxAmount)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            <GardenCommunityCard
+              community={community}
+              communityLoading={communityLoading}
+              pools={pools}
+              gardenId={gardenId}
+              canManage={canManage}
+              cookieJarCount={cookieJarCount}
+              gardenName={garden.name}
+              convictionStrategyCount={convictionStrategies.length}
+              donationAddressUnset={donationAddressUnset}
+              vaultsLoading={vaultsLoading}
+              hasVaults={gardenVaults.length > 0}
+              isCreatingPools={isCreatingPools}
+              onCreatePools={createPools}
+              onScheduleRefetch={scheduleBackgroundRefetch}
+            />
+            <GardenYieldCard allocations={allocations} allocationsLoading={allocationsLoading} />
           </ErrorBoundary>
           <WorkSubmissionsView gardenId={garden.id} canManage={canReview} />
         </section>
 
-        {/* Roles: Sidebar */}
-        <section className="grid-area-roles">
-          <ErrorBoundary context="GardenDetail.Roles">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {GARDEN_ROLE_ORDER.map((role) => {
-                const members = roleMembers[role];
-                const roleLabel = getRoleLabel(role);
-                const colors = getRoleColorClasses(role);
-                const Icon = roleIcons[role];
+        <GardenRolesPanel
+          roleMembers={roleMembers}
+          canManageRoles={canManageRoles}
+          isLoading={isLoading}
+          onOpenAddMember={openAddMemberModal}
+          onOpenMembersModal={openMembersModal}
+          onRemoveMember={(address, role) => setMemberToRemove({ address, role })}
+        />
 
-                return (
-                  <aside
-                    key={role}
-                    className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm"
-                  >
-                    <div className="flex items-center justify-between gap-2 border-b border-stroke-soft p-4 sm:p-6">
-                      <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
-                        {roleLabel.plural}
-                      </h3>
-                      {canManageRoles && (
-                        <button
-                          onClick={() => openAddMemberModal(role)}
-                          className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
-                          aria-label={formatMessage(
-                            { id: "app.admin.roles.add" },
-                            { role: roleLabel.singular }
-                          )}
-                          type="button"
-                        >
-                          <RiUserAddLine className="mr-1 h-4 w-4" />
-                          {formatMessage({ id: "app.garden.admin.add" })}
-                        </button>
-                      )}
-                    </div>
-                    <div className="p-4 sm:p-6">
-                      {members.length === 0 ? (
-                        <p className="py-4 text-center text-sm text-text-soft">
-                          {formatMessage(
-                            { id: "app.admin.roles.empty" },
-                            { role: roleLabel.plural }
-                          )}
-                        </p>
-                      ) : (
-                        <>
-                          <div className="space-y-2 sm:space-y-3">
-                            {members.slice(0, 3).map((member: string, index: number) => (
-                              <div
-                                key={`${member}-${index}`}
-                                className="flex items-center justify-between gap-2 rounded-md bg-bg-weak p-2.5 sm:p-3"
-                              >
-                                <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-                                  <div
-                                    className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${colors.iconBg} sm:h-9 sm:w-9`}
-                                  >
-                                    <Icon className={`h-4 w-4 ${colors.iconText}`} />
-                                  </div>
-                                  <AddressDisplay address={member} className="min-w-0 flex-1" />
-                                </div>
-                                {canManageRoles && (
-                                  <button
-                                    onClick={() => setMemberToRemove({ address: member, role })}
-                                    disabled={isLoading}
-                                    className="flex h-9 w-9 min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20 sm:min-h-0 sm:min-w-0"
-                                    aria-label={formatMessage(
-                                      { id: "app.admin.roles.remove" },
-                                      { role: roleLabel.singular }
-                                    )}
-                                    type="button"
-                                  >
-                                    <RiDeleteBinLine className="h-4 w-4" />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                          {members.length > 3 && (
-                            <button
-                              type="button"
-                              onClick={() => openMembersModal(role)}
-                              className="mt-3 w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
-                            >
-                              {formatMessage(
-                                { id: "app.garden.admin.viewAllCount" },
-                                { count: members.length }
-                              )}
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </aside>
-                );
-              })}
-            </div>
-          </ErrorBoundary>
-        </section>
-
-        {/* Assessments: Sidebar */}
-        <aside className="grid-area-assessments rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-          <div className="flex items-center justify-between gap-2 border-b border-stroke-soft p-4 sm:p-6">
-            <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
-              {formatMessage({ id: "app.garden.admin.recentAssessments" })}
-            </h3>
-            <Link
-              to={`/gardens/${id}/assessments`}
-              className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
-              aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
-            >
-              {formatMessage({ id: "app.garden.admin.viewAll" })}
-            </Link>
-          </div>
-          <div className="p-4 sm:p-6">
-            {fetchingAssessments ? (
-              <p className="py-4 text-center text-sm text-text-soft">
-                {formatMessage({ id: "app.garden.admin.loadingAssessments" })}
-              </p>
-            ) : assessmentsError ? (
-              <p className="py-4 text-center text-sm text-error-base">
-                {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}:{" "}
-                {assessmentsError instanceof Error ? assessmentsError.message : ""}
-              </p>
-            ) : assessments.length === 0 ? (
-              <p className="py-4 text-center text-sm text-text-soft">
-                {formatMessage({ id: "app.garden.admin.noAssessments" })}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {assessments.map((assessment) => (
-                  <div
-                    key={assessment.id}
-                    className="flex items-center justify-between rounded-md bg-bg-weak p-3"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center space-x-3">
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-feature-lighter">
-                        <RiFileList3Line className="h-4 w-4 text-feature-dark" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-text-strong">
-                          {assessment.title ||
-                            assessment.assessmentType ||
-                            formatMessage({ id: "app.garden.admin.assessmentFallback" })}
-                        </p>
-                        <p className="text-xs text-text-soft">{formatDate(assessment.createdAt)}</p>
-                      </div>
-                    </div>
-                    <a
-                      href={`${EAS_EXPLORER_URL}/attestation/view/${assessment.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/40"
-                    >
-                      {formatMessage({ id: "app.actions.view" })}{" "}
-                      <RiExternalLinkLine className="ml-1 h-4 w-4" />
-                    </a>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </aside>
+        <GardenAssessmentsPanel
+          assessments={assessments}
+          isLoading={fetchingAssessments}
+          error={assessmentsError}
+          gardenId={gardenId}
+        />
       </div>
 
       <AddMemberModal
@@ -957,9 +320,7 @@ export default function GardenDetail() {
         memberType={memberType}
         onAdd={async (address: Address) => {
           const result = await roleActions[memberType].add(address);
-
           if (result.success) {
-            // Schedule background refetch to sync with indexer
             scheduleBackgroundRefetch();
           }
         }}
@@ -977,9 +338,7 @@ export default function GardenDetail() {
         canManage={canManageRoles}
         onRemove={async (member: string) => {
           const result = await roleActions[activeRole].remove(member);
-
           if (result.success) {
-            // Schedule background refetch to sync with indexer
             scheduleBackgroundRefetch();
           } else {
             toastService.error({

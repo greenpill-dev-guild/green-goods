@@ -2,6 +2,7 @@ import {
   cn,
   getSDGLabel,
   ImageWithFallback,
+  type Address,
   type AllowlistEntry,
   type GardenAssessment,
   type HypercertMetadata,
@@ -16,7 +17,7 @@ import { DistributionChart } from "../DistributionChart";
 interface HypercertPreviewProps {
   metadata: HypercertMetadata | null;
   gardenName: string;
-  gardenId?: string;
+  gardenId?: Address;
   attestationCount: number;
   totalUnits: bigint;
   allowlist?: AllowlistEntry[];
@@ -52,7 +53,7 @@ function SectionHeader({ labelId, onEdit }: { labelId: string; onEdit?: () => vo
 }
 
 /** Displays truncated Ethereum address with copy button */
-function TruncatedAddress({ address }: { address: string }) {
+function TruncatedAddress({ address }: { address: Address }) {
   const { formatMessage } = useIntl();
   const { copied, copy } = useCopyToClipboard();
 

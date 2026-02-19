@@ -3,6 +3,7 @@ import {
   copyToClipboard,
   formatAddress,
   toastService,
+  type Address,
   type FormatAddressVariant,
 } from "@green-goods/shared";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
@@ -10,7 +11,7 @@ import React, { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
 
 interface AddressCopyProps {
-  address?: string | null;
+  address?: Address | null;
   ensName?: string | null;
   className?: string;
   size?: "default" | "compact";

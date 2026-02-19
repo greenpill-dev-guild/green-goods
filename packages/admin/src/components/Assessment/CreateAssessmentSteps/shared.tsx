@@ -187,31 +187,6 @@ export function ReviewRow({
   );
 }
 
-export function formatDateRange(start?: string | number | null, end?: string | number | null) {
-  if (!start && !end) return "Not provided";
-
-  const formatValue = (value?: string | number | null) => {
-    if (!value) return undefined;
-    if (typeof value === "string" && value.includes("-")) {
-      const date = new Date(value);
-      return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
-    }
-    const numeric = typeof value === "string" ? Number(value) : value;
-    if (!numeric) return undefined;
-    const timestamp = numeric > 10_000_000_000 ? numeric : numeric * 1000;
-    const date = new Date(timestamp);
-    return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
-  };
-
-  const startLabel = formatValue(start);
-  const endLabel = formatValue(end);
-
-  if (startLabel && endLabel) {
-    return `${startLabel} – ${endLabel}`;
-  }
-  return startLabel ?? endLabel ?? "Not provided";
-}
-
 // ============================================
 // Step field mappings for per-step validation
 // ============================================

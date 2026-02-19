@@ -56,7 +56,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const activeAddress = user?.id;
 
   // Helper to check if an address matches the current user (wrapping shared util)
-  const isUserAddress = (address: string | undefined): boolean =>
+  const isUserAddress = (address: Address | undefined): boolean =>
     sharedIsUserAddress(address, activeAddress);
 
   const fetchApprovalsByRecipients = useCallback(async (recipients: string[]) => {
@@ -491,7 +491,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const filteredCompleted = filterByTimeRange(completedWork, timeFilter);
 
   // Navigation handler - handles both Work and WorkApproval shapes
-  const handleWorkClick = (work: Work | { workUID?: string; gardenAddress?: string }) => {
+  const handleWorkClick = (work: Work | { workUID?: string; gardenAddress?: Address }) => {
     try {
       let workId = "id" in work ? work.id : (work as { workUID?: string }).workUID;
       let gardenId = work.gardenAddress;

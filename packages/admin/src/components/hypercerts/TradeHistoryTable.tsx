@@ -2,6 +2,7 @@ import {
   useTradeHistory,
   DEFAULT_CHAIN_ID,
   getNetworkConfig,
+  type Address,
   type FractionTrade,
 } from "@green-goods/shared";
 import { RiLoader4Line, RiExternalLinkLine, RiAlertLine, RiHistoryLine } from "@remixicon/react";
@@ -29,7 +30,7 @@ function formatTimestamp(timestamp: number): string {
   });
 }
 
-function truncateAddress(address: string): string {
+function truncateAddress(address: Address): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 

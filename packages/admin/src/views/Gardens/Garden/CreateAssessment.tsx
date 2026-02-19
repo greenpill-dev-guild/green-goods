@@ -1,6 +1,7 @@
 import {
   type Address,
   clearFormDraft,
+  ConfirmDialog,
   ErrorBoundary,
   type CreateAssessmentForm as WorkflowAssessmentForm,
   loadFormDraft,
@@ -52,8 +53,16 @@ export default function CreateAssessment() {
   const navigate = useNavigate();
   const { address } = useAccount();
   const [currentStep, setCurrentStep] = useState(0);
+  const [showGasConfirm, setShowGasConfirm] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState<WorkflowAssessmentForm | null>(null);
 
   const { data: gardenDomainMask } = useGardenDomains(gardenId);
+  const normalizedGardenDomainMask =
+    typeof gardenDomainMask === "bigint"
+      ? Number(gardenDomainMask)
+      : typeof gardenDomainMask === "number"
+        ? gardenDomainMask
+        : undefined;
 
   const DRAFT_KEY = `assessment-v2-draft-${gardenId}`;
 
@@ -119,7 +128,7 @@ export default function CreateAssessment() {
       clearFormDraft(DRAFT_KEY);
       navigate(`/gardens/${gardenId}/assessments`);
     }
-  }, [isSuccess, navigate, gardenId, DRAFT_KEY]);
+  }, [isSuccess, navigate, gardenId, DRAFT_KEY, formatMessage]);
 
   useEffect(() => {
     resetWorkflow();
@@ -188,8 +197,8 @@ export default function CreateAssessment() {
         gardenId: gardenId as Address,
       };
 
-      startCreation(payload);
-      submitCreation();
+      setPendingPayload(payload);
+      setShowGasConfirm(true);
     } catch (error) {
       toastService.error({
         title: formatMessage({
@@ -243,6 +252,20 @@ export default function CreateAssessment() {
     });
   });
 
+  const handleConfirmAssessment = () => {
+    if (pendingPayload) {
+      startCreation(pendingPayload);
+      submitCreation();
+    }
+    setShowGasConfirm(false);
+    setPendingPayload(null);
+  };
+
+  const handleCancelAssessment = () => {
+    setShowGasConfirm(false);
+    setPendingPayload(null);
+  };
+
   // Check if current step fields have errors
   const isCurrentStepValid = () => {
     const step = stepConfigs[currentStep];
@@ -261,7 +284,10 @@ export default function CreateAssessment() {
     <ErrorBoundary context="CreateAssessment.Wizard">
       {hasError && (
         <div className="fixed inset-x-0 top-[120px] z-20 mx-auto max-w-4xl px-4 sm:px-6">
-          <div className="flex items-start gap-3 rounded-lg border border-error-light bg-error-lighter p-4 text-sm text-error-dark shadow-lg">
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-lg border border-error-light bg-error-lighter p-4 text-sm text-error-dark shadow-lg"
+          >
             <RiErrorWarningLine className="mt-0.5 h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
               <p className="font-medium text-error-dark">
@@ -332,7 +358,7 @@ export default function CreateAssessment() {
               errors={errors}
               control={control}
               isSubmitting={isSubmitting}
-              gardenDomainMask={typeof gardenDomainMask === "number" ? gardenDomainMask : undefined}
+              gardenDomainMask={normalizedGardenDomainMask}
             />
           )}
           {stepConfigs[currentStep]?.id === "sdgHarvest" && (
@@ -345,6 +371,20 @@ export default function CreateAssessment() {
           )}
         </FormWizard>
       </form>
+      <ConfirmDialog
+        isOpen={showGasConfirm}
+        onClose={handleCancelAssessment}
+        onConfirm={handleConfirmAssessment}
+        title={formatMessage({
+          id: "app.assessment.confirmSubmit.title",
+          defaultMessage: "Submit assessment?",
+        })}
+        description={formatMessage({
+          id: "app.assessment.confirmSubmit.description",
+          defaultMessage:
+            "This will create an on-chain attestation which costs gas. This action cannot be undone.",
+        })}
+      />
     </ErrorBoundary>
   );
 }

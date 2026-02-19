@@ -1,9 +1,9 @@
-import { cn, copyToClipboard, formatAddress, logger, useTimeout } from "@green-goods/shared";
+import { cn, copyToClipboard, formatAddress, logger, useTimeout, type Address } from "@green-goods/shared";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import { useId, useState } from "react";
 
 interface AddressDisplayProps {
-  address: string;
+  address: Address;
   className?: string;
   showCopyButton?: boolean;
 }

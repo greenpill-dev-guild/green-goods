@@ -108,8 +108,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
       }
 
       // Upload to IPFS (remaining 50%)
-      const uploadStartProgress = shouldCompress ? 50 : 50;
-      setBannerUploadProgress(uploadStartProgress);
+      setBannerUploadProgress(50);
 
       const uploadResult = await uploadFileToIPFS(file);
       const ipfsUrl = resolveIPFSUrl(uploadResult.cid);

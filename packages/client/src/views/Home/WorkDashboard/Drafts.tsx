@@ -7,6 +7,7 @@ import {
   useActions,
   useDrafts,
   useGardens,
+  type Address,
   type DraftWithImages,
 } from "@green-goods/shared";
 import { RiAlertLine, RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
@@ -42,7 +43,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
   };
 
   // Helper to get garden name
-  const getGardenName = (gardenAddress: string | null): string | undefined => {
+  const getGardenName = (gardenAddress: Address | null): string | undefined => {
     if (!gardenAddress) return undefined;
     const garden = gardens.find((g) => g.id === gardenAddress);
     return garden?.name;

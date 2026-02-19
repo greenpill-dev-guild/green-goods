@@ -60,6 +60,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     "loading"
   );
   const [metadataError, setMetadataError] = useState<string | null>(null);
+  const [metadataRetryKey, setMetadataRetryKey] = useState(0);
   const [feedbackMode, setFeedbackMode] = useState<"approve" | "reject" | null>(null);
   const [inlineFeedback, setInlineFeedback] = useState<string>("");
   const [confidence, setConfidence] = useState<Confidence>(Confidence.NONE);
@@ -385,7 +386,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
   // Load work metadata with proper async cleanup (Rule 3: Async Cleanup)
   useAsyncEffect(
-    async ({ isMounted }) => {
+    async ({ signal, isMounted }) => {
       setMetadataStatus("loading");
       setMetadataError(null);
       setWorkMetadata(null);
@@ -429,7 +430,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
       // Fetch from IPFS gateway
       try {
-        const file = await getFileByHash(trimmed);
+        const file = await getFileByHash(trimmed, { signal, timeoutMs: 30_000 });
         const data = file.data as unknown as WorkMetadata | null | undefined;
         if (!isMounted()) return;
 
@@ -453,7 +454,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         debugWarn(`[GardenWork] Failed to fetch metadata for work ${work.id}: ${message}`);
       }
     },
-    [work]
+    [work?.id, work?.metadata, metadataRetryKey]
   );
 
   const handleBack = () => {
@@ -766,6 +767,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         )
       : null;
 
+  const handleRetryMetadataFetch = () => {
+    setMetadataRetryKey((prev) => prev + 1);
+  };
+
   return (
     <article>
       <TopNav onBackClick={handleBack} overlay />
@@ -806,6 +811,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
               {metadataErrorDetail && (
                 <p className="mt-1 text-xs text-error-base">{metadataErrorDetail}</p>
               )}
+              <button
+                type="button"
+                onClick={handleRetryMetadataFetch}
+                className="mt-2 text-xs font-medium text-error-dark underline underline-offset-2 hover:text-error-base"
+              >
+                {intl.formatMessage({
+                  id: "app.home.work.retryMetadataLoad",
+                  defaultMessage: "Retry loading details",
+                })}
+              </button>
             </div>
           </div>
         )}
