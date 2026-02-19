@@ -35,12 +35,9 @@ additional_compiler_profiles = [
   { name = "via-ir", via_ir = true }
 ]
 
-[profile.default.optimizer_details]
-yul = true
-
-[profile.default.optimizer_details.yul_details]
-stack_allocation = true  # Enables stack slot allocator for memory-safe assembly
-optimizer_steps = "dhfoDgvulfnTUtnIf"  # First segment of default sequence: dead-code elimination + stack reduction, skips expensive inlining/CSE/SSA loops
+# NOTE: No custom optimizer_details — Solidity defaults handle stack depth correctly.
+# Custom yul_details (stack_allocation, optimizer_steps) interfered with via_ir
+# compilation of forge-std/StdStorage.sol.
 
 [[profile.default.compilation_restrictions]]
 paths = "src/accounts/Garden.sol"
@@ -68,6 +65,10 @@ via_ir = true
 
 [[profile.default.compilation_restrictions]]
 paths = "src/mocks/Juicebox.sol"
+via_ir = true
+
+[[profile.default.compilation_restrictions]]
+paths = "lib/tokenbound/lib/forge-std/src/StdStorage.sol"
 via_ir = true
 
 # ═══════════════════════════════════════════════════════════════════════════════
