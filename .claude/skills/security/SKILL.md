@@ -1,12 +1,7 @@
 ---
 name: security
+user-invocable: false
 description: Smart contract security auditing - vulnerability detection, access control review, static analysis tooling, and Hats Protocol patterns. Use for security reviews, pre-deployment audits, and threat modeling.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [contracts]
-dependencies: [contracts]
 ---
 
 # Security Skill
@@ -28,7 +23,7 @@ Smart contract security auditing: vulnerability detection, access control patter
 
 ## Progress Tracking (REQUIRED)
 
-Every security review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
+Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
 
 ---
 
@@ -57,7 +52,7 @@ slither src/ --json report.json        # Machine-readable
 
 ```bash
 # Install
-curl -L https://raw.githubusercontent.com/Cyfrin/aderyn/dev/cyfrinup/install | bash
+brew install cyfrin/tap/aderyn
 cyfrinup
 
 # Run analysis
@@ -253,6 +248,7 @@ function _authorizeUpgrade(address) internal override {}
 
 ### Mainnet Gate Checklist
 
+- [ ] **Production readiness**: `bun run verify:contracts` passes (build → lint → tests → E2E → dry runs on all chains)
 - [ ] **Static analysis**: Slither + Aderyn clean (no HIGH/CRITICAL)
 - [ ] **Access control**: Every external function has hat check
 - [ ] **Reentrancy**: All external calls after state changes
@@ -262,7 +258,7 @@ function _authorizeUpgrade(address) internal override {}
 - [ ] **Error messages**: Custom errors (not `require` strings) for gas efficiency
 - [ ] **Fuzz testing**: Property-based tests for critical paths
 - [ ] **Invariant testing**: System-wide invariants hold
-- [ ] **Testnet verification**: Deployed and tested on Base Sepolia
+- [ ] **Testnet verification**: Deployed and tested on Sepolia
 
 ### Severity Classification
 

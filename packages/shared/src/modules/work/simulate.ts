@@ -1,3 +1,4 @@
+import type { Address } from "viem";
 import { getPublicClient } from "@wagmi/core";
 import type { WorkDraft } from "../../types/domain";
 import { wagmiConfig } from "../../config/appkit";
@@ -10,12 +11,12 @@ import { parseContractError } from "../../utils/errors/contract-errors";
 
 export interface SimulateWorkSubmissionParams {
   draft: WorkDraft;
-  gardenAddress: string;
+  gardenAddress: Address;
   actionUID: number;
   actionTitle: string;
   chainId: number;
   images: File[];
-  accountAddress: `0x${string}`;
+  accountAddress: Address;
 }
 
 interface SimulationCacheEntry {
@@ -23,6 +24,7 @@ interface SimulationCacheEntry {
 }
 
 const SIMULATION_CACHE_TTL_MS = 60_000;
+const MAX_SIMULATION_CACHE_SIZE = 50;
 const simulationCache = new Map<string, SimulationCacheEntry>();
 
 function getSimulationCacheKey(
@@ -46,6 +48,11 @@ function hasValidCachedSimulation(cacheKey: string): boolean {
 }
 
 function cacheSuccessfulSimulation(cacheKey: string): void {
+  // Evict oldest entry if at capacity (Map preserves insertion order)
+  if (simulationCache.size >= MAX_SIMULATION_CACHE_SIZE) {
+    const oldestKey = simulationCache.keys().next().value;
+    if (oldestKey) simulationCache.delete(oldestKey);
+  }
   simulationCache.set(cacheKey, { timestamp: Date.now() });
 }
 

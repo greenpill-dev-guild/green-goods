@@ -1,11 +1,13 @@
 import {
+  cn,
   formatDateTime,
   FormInput,
   ACTION_DOMAINS,
+  filterAttestationsByAssessment,
   type ActionDomain,
+  type GardenAssessment,
   type HypercertAttestation,
 } from "@green-goods/shared";
-import { cn } from "@green-goods/shared/utils";
 import { RiCheckboxCircleLine, RiCheckboxMultipleLine, RiCloseCircleLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -19,6 +21,12 @@ interface AttestationSelectorProps {
   isLoading?: boolean;
   hasError?: boolean;
   bundledInfo?: Record<string, { hypercertId: string; title?: string | null }>;
+  /** Available assessments for filtering attestations */
+  assessments?: GardenAssessment[];
+  /** Currently selected assessment ID */
+  selectedAssessmentId?: string | null;
+  /** Callback when assessment selection changes */
+  onAssessmentChange?: (assessmentId: string | null) => void;
 }
 
 /** Domain options derived from the canonical ActionDomain constant */
@@ -35,15 +43,29 @@ export function AttestationSelector({
   isLoading,
   hasError,
   bundledInfo,
+  assessments,
+  selectedAssessmentId,
+  onAssessmentChange,
 }: AttestationSelectorProps) {
   const { formatMessage } = useIntl();
   const [searchQuery, setSearchQuery] = useState("");
   const [domainFilter, setDomainFilter] = useState<DomainOption | "">("");
 
+  const selectedAssessment = useMemo(
+    () => assessments?.find((a) => a.id === selectedAssessmentId) ?? null,
+    [assessments, selectedAssessmentId]
+  );
+
   const filtered = useMemo(() => {
+    // Apply assessment filter first (reportingPeriod + domain)
+    const base = selectedAssessment
+      ? filterAttestationsByAssessment(attestations, selectedAssessment)
+      : attestations;
+
     const query = searchQuery.trim().toLowerCase();
-    return attestations.filter((attestation) => {
-      if (domainFilter && attestation.domain !== domainFilter) return false;
+    return base.filter((attestation) => {
+      // Manual domain filter takes precedence only when no assessment is selected
+      if (!selectedAssessment && domainFilter && attestation.domain !== domainFilter) return false;
       if (!query) return true;
       const haystack = [
         attestation.title,
@@ -56,7 +78,7 @@ export function AttestationSelector({
         .toLowerCase();
       return haystack.includes(query);
     });
-  }, [attestations, domainFilter, searchQuery]);
+  }, [attestations, domainFilter, searchQuery, selectedAssessment]);
 
   const selectable = useMemo(
     () => filtered.filter((attestation) => !bundledInfo?.[attestation.id]),
@@ -110,6 +132,34 @@ export function AttestationSelector({
         </p>
       </header>
 
+      {/* Assessment filter (only shown when assessments are available) */}
+      {assessments && assessments.length > 0 && onAssessmentChange && (
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor="assessment-filter"
+            className="font-semibold text-text-strong-950 text-label-sm"
+          >
+            {formatMessage({ id: "app.hypercerts.attestations.filter.assessment" })}
+          </label>
+          <select
+            id="assessment-filter"
+            aria-label={formatMessage({ id: "app.hypercerts.attestations.filter.assessment" })}
+            value={selectedAssessmentId ?? ""}
+            onChange={(event) => onAssessmentChange(event.target.value || null)}
+            className="block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-200 focus:ring-2 focus:ring-primary-lighter focus:border-primary-base"
+          >
+            <option value="">
+              {formatMessage({ id: "app.hypercerts.attestations.filter.assessment.none" })}
+            </option>
+            {assessments.map((assessment) => (
+              <option key={assessment.id} value={assessment.id}>
+                {assessment.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
         <FormInput
           id="attestation-search"
@@ -130,9 +180,13 @@ export function AttestationSelector({
           <select
             id="domain-filter"
             aria-label={formatMessage({ id: "app.hypercerts.attestations.filter.domain" })}
-            value={domainFilter}
+            value={selectedAssessment ? "" : domainFilter}
+            disabled={Boolean(selectedAssessment)}
             onChange={(event) => setDomainFilter(event.target.value as DomainOption | "")}
-            className="block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-200 focus:ring-2 focus:ring-primary-lighter focus:border-primary-base"
+            className={cn(
+              "block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-200 focus:ring-2 focus:ring-primary-lighter focus:border-primary-base",
+              selectedAssessment && "opacity-50 cursor-not-allowed"
+            )}
           >
             <option value="">{formatMessage({ id: "app.hypercerts.filters.all" })}</option>
             {DOMAIN_OPTIONS.map((domain) => (

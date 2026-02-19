@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import type { WorkApproval, Address } from "../../types/domain";
+import { type WorkApproval } from "../../types/domain";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
+import { parseWorkApprovalAttestation } from "../../modules/data/eas";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
 import { logger } from "../../modules/app/logger";
@@ -59,44 +60,32 @@ async function getWorkApprovalsByAttester(
 
     return (data.attestations as unknown[]).flatMap((attestation: unknown) => {
       try {
-        const decodedData = JSON.parse(
-          (attestation as { decodedDataJson: string }).decodedDataJson
-        );
-
-        const actionUID =
-          ((decodedData as Array<{ name: string; value?: { value?: unknown } }>).find(
-            (d) => d.name === "actionUID"
-          )?.value?.value as number) || 0;
-        const workUID =
-          ((decodedData as Array<{ name: string; value?: { value?: unknown } }>).find(
-            (d) => d.name === "workUID"
-          )?.value?.value as string) || "";
-        const approved =
-          ((decodedData as Array<{ name: string; value?: { value?: unknown } }>).find(
-            (d) => d.name === "approved"
-          )?.value?.value as boolean) || false;
-        const feedback =
-          ((decodedData as Array<{ name: string; value?: { value?: unknown } }>).find(
-            (d) => d.name === "feedback"
-          )?.value?.value as string) || "";
-
-        const approval: WorkApproval = {
-          id: (attestation as { id: string }).id,
-          operatorAddress: (attestation as { attester: string }).attester as Address,
-          gardenerAddress: (attestation as { recipient: string }).recipient as Address,
-          actionUID,
-          workUID,
-          approved,
-          feedback,
-          createdAt: (attestation as { timeCreated: number }).timeCreated * 1000, // Convert to milliseconds
+        const att = attestation as {
+          id: string;
+          attester: string;
+          recipient: string;
+          timeCreated: number;
+          decodedDataJson: string;
         };
+        const approval: WorkApproval = parseWorkApprovalAttestation(att);
         return [approval];
-      } catch {
+      } catch (error) {
+        logger.warn("Failed to parse attestation data", {
+          source: "useWorkApprovals",
+          attestationId: (attestation as { id?: string }).id,
+          error,
+        });
         return [];
       }
     });
-  } catch {
-    return []; // Always return empty array on any error
+  } catch (error) {
+    logger.warn("Failed to fetch work approvals", {
+      source: "useWorkApprovals",
+      attesterAddress,
+      chainId,
+      error,
+    });
+    return [];
   }
 }
 

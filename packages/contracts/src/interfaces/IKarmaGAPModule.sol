@@ -121,13 +121,21 @@ interface IKarmaGAPModule {
     /// @param garden The garden address
     /// @param milestoneTitle The milestone title
     /// @param milestoneDescription The milestone description
-    /// @param milestoneMeta Additional metadata JSON
+    /// @param startDate Assessment start date (unix timestamp)
+    /// @param endDate Assessment end date (unix timestamp)
+    /// @param domain Domain enum (0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE)
+    /// @param location Assessment location
+    /// @param assessmentConfigCID IPFS CID for the full assessment configuration
     /// @return milestoneUID The created milestone UID (bytes32(0) if creation failed gracefully)
     function createMilestone(
         address garden,
         string calldata milestoneTitle,
         string calldata milestoneDescription,
-        string calldata milestoneMeta
+        uint256 startDate,
+        uint256 endDate,
+        uint8 domain,
+        string calldata location,
+        string calldata assessmentConfigCID
     )
         external
         returns (bytes32 milestoneUID);

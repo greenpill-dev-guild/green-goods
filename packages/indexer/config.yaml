@@ -7,7 +7,8 @@ contracts:
   - name: ActionRegistry
     handler: src/EventHandlers.ts
     events:
-      - event: ActionRegistered(address owner, uint256 indexed actionUID, uint256 indexed startTime, uint256 indexed endTime, string title, string instructions, uint8[] capitals, string[] media)
+      - event: ActionRegistered(address owner, uint256 indexed actionUID, uint256 indexed startTime, uint256 indexed endTime, string title, string slug, string instructions, uint8[] capitals, string[] media, uint8 domain)
+      - event: GardenDomainsUpdated(address indexed garden, uint8 indexed domainMask)
       - event: ActionStartTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed startTime)
       - event: ActionEndTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed endTime)
       - event: ActionTitleUpdated(address indexed owner, uint256 indexed actionUID, string indexed title)
@@ -29,10 +30,24 @@ contracts:
   - name: HatsModule
     handler: src/EventHandlers.ts
     events:
-      - event: GardenHatTreeCreated(address indexed garden, uint256 adminHatId)
       - event: RoleGranted(address indexed garden, address indexed account, uint8 role)
       - event: RoleRevoked(address indexed garden, address indexed account, uint8 role)
-      - event: PartialGrantFailed(address indexed garden, address indexed account, uint8 role, string reason)
+  - name: OctantModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: VaultCreated(address indexed garden, address indexed vault, address indexed asset)
+      - event: HarvestTriggered(address indexed garden, address indexed asset, address indexed caller)
+      - event: EmergencyPaused(address indexed garden, address indexed asset, address indexed caller)
+      - event: DonationAddressUpdated(address indexed garden, address indexed oldAddress, address indexed newAddress)
+  - name: OctantVault
+    handler: src/EventHandlers.ts
+    events:
+      - event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
+      - event: Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
+  - name: YieldSplitter
+    handler: src/EventHandlers.ts
+    events:
+      - event: YieldSplit(address indexed garden, address indexed asset, uint256 cookieJarAmount, uint256 fractionsAmount, uint256 juiceboxAmount, uint256 totalYield)
   - name: HypercertMinter
     handler: src/EventHandlers.ts
     events:
@@ -48,20 +63,15 @@ networks:
         address: "0x0a7Ca3203f25c1c028D54C19789e83b401383F92"
       - name: GardenAccount
         address: "0x7de23111804b374E3a8d79932C4068d378F6843f"
+      # TODO: Update addresses after deployment — these are pre-deployment placeholders.
+      # Run `bun deploy:testnet` then update with deployed addresses from the output.
       - name: HatsModule
         address: "0x0000000000000000000000000000000000000000"
-      - name: HypercertMinter
-        address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
-  - id: 84532
-    start_block: 32407622
-    contracts:
-      - name: ActionRegistry
-        address: "0x9685E9E5430C13AFF7ef32D9E8fc93d516e121E0"
-      - name: GardenToken
-        address: "0x0B0EA0FfB996B0b04335507Ef1523124480f7310"
-      - name: GardenAccount
-        address: "0xa624FDdBdfA1E13C739791fB65E2D174b7316519"
-      - name: HatsModule
+      - name: OctantModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: OctantVault
+        address: "0x0000000000000000000000000000000000000000"
+      - name: YieldSplitter
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
@@ -76,6 +86,12 @@ networks:
         address: "0x710cBFB9a29920B4577692eD495972fcd27286b4"
       - name: HatsModule
         address: "0x0000000000000000000000000000000000000000"
+      - name: OctantModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: OctantVault
+        address: "0x0000000000000000000000000000000000000000"
+      - name: YieldSplitter
+        address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
   - id: 11155111
@@ -87,3 +103,13 @@ networks:
         address: "0xEcbB6E69BE882d2e4E35CCe0E6637c7e1D64c791"
       - name: GardenAccount
         address: "0x83287652b4e1514e101a4053c9bcAFf6a24d051C"
+      - name: HatsModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: OctantModule
+        address: "0x0000000000000000000000000000000000000000"
+      - name: OctantVault
+        address: "0x0000000000000000000000000000000000000000"
+      - name: YieldSplitter
+        address: "0x0000000000000000000000000000000000000000"
+      - name: HypercertMinter
+        address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"

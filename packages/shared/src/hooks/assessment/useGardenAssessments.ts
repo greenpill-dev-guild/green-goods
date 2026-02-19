@@ -4,11 +4,11 @@ import { getGardenAssessments } from "../../modules/data/eas";
 import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
 import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 
-export function useGardenAssessments(gardenAddress?: string, limit?: number) {
+export function useGardenAssessments(gardenAddress?: string) {
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
 
   return useQuery({
-    queryKey: queryKeys.assessments.byGarden(gardenAddress ?? "", selectedChainId, limit),
+    queryKey: queryKeys.assessments.byGardenBase(gardenAddress ?? "", selectedChainId),
     queryFn: () => {
       if (!gardenAddress) {
         return Promise.resolve([]);

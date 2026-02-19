@@ -1,12 +1,6 @@
 ---
 name: testing
 description: Testing patterns - TDD workflow, Vitest unit tests, Playwright E2E. Use for writing tests, implementing features, debugging.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin, contracts]
-dependencies: []
 ---
 
 # Testing Skill
@@ -73,8 +67,10 @@ test('retries failed operations 3 times', async () => {
 **MANDATORY. Never skip.**
 
 ```bash
-bun test path/to/test.test.ts
+bun run test -- path/to/test.test.ts
 ```
+
+> **CRITICAL: `bun test` vs `bun run test`** — `bun test` invokes bun's built-in test runner which **ignores vitest config** (no jsdom, no aliases, no setup files). `bun run test` runs the package.json `"test"` script (vitest). **Always use `bun run test`** for vitest-based packages (shared, client, admin). To run a single test file: `bun run test -- path/to/test.test.ts`.
 
 Confirm:
 - Test fails (not errors)
@@ -105,7 +101,7 @@ async function retryOperation<T>(fn: () => Promise<T>): Promise<T> {
 **MANDATORY.**
 
 ```bash
-bun test path/to/test.test.ts
+bun run test -- path/to/test.test.ts
 ```
 
 #### REFACTOR - Clean Up
@@ -158,7 +154,7 @@ test("adds numbers", () => {
 // With describe grouping
 describe("GardenService", () => {
   it("fetches gardens by chain", async () => {
-    const gardens = await fetchGardens(84532);
+    const gardens = await fetchGardens(11155111);
     expect(gardens).toHaveLength(3);
   });
 
@@ -270,7 +266,7 @@ const wrapper = ({ children }) => (
 );
 
 test("useGardens fetches gardens", async () => {
-  const { result } = renderHook(() => useGardens(84532), { wrapper });
+  const { result } = renderHook(() => useGardens(11155111), { wrapper });
 
   await waitFor(() => {
     expect(result.current.isSuccess).toBe(true);
@@ -314,15 +310,150 @@ test("work submission flow", () => {
 });
 ```
 
+#### Testing Hook Cleanup (Rules 1-3)
+
+Hooks that use timers, event listeners, or async effects must clean up on unmount. Verify cleanup to prevent memory leaks.
+
+```typescript
+// Rule 1: Timer cleanup — verify setTimeout/setInterval is cleared
+test("useDelayedInvalidation clears timer on unmount", () => {
+  vi.useFakeTimers();
+  const callback = vi.fn();
+  const { result, unmount } = renderHook(() => useDelayedInvalidation(callback, 3000));
+
+  result.current(); // Schedule
+  unmount();        // Unmount before timer fires
+  vi.advanceTimersByTime(5000);
+
+  expect(callback).not.toHaveBeenCalled();
+  vi.useRealTimers();
+});
+
+// Rule 2: Event listener cleanup — verify removeEventListener on unmount
+test("useEventListener removes listener on unmount", () => {
+  const handler = vi.fn();
+  const addSpy = vi.spyOn(window, "addEventListener");
+  const removeSpy = vi.spyOn(window, "removeEventListener");
+
+  const { unmount } = renderHook(() => useWindowEvent("resize", handler));
+
+  expect(addSpy).toHaveBeenCalledWith("resize", expect.any(Function));
+  unmount();
+  expect(removeSpy).toHaveBeenCalledWith("resize", expect.any(Function));
+});
+
+// Rule 3: Async cleanup — verify isMounted guard prevents stale updates
+test("useAsyncEffect skips state update after unmount", async () => {
+  const setState = vi.fn();
+  const { unmount } = renderHook(() =>
+    useAsyncEffect(async ({ isMounted }) => {
+      await new Promise((r) => setTimeout(r, 100));
+      if (isMounted()) setState("data");
+    }, [])
+  );
+
+  unmount(); // Unmount before async completes
+  await vi.advanceTimersByTimeAsync(200);
+  expect(setState).not.toHaveBeenCalled();
+});
+```
+
+#### Testing Mutation Error Paths
+
+Every mutation hook must test error handling. Verify that errors are logged, tracked, and surfaced to the user.
+
+```typescript
+test("mutation calls error handler on failure", async () => {
+  // Arrange: mock the contract call to reject
+  const mockError = new Error("Transaction reverted");
+  vi.mocked(writeContract).mockRejectedValueOnce(mockError);
+
+  const { result } = renderHook(() => useMutationHook(), { wrapper });
+
+  // Act: trigger the mutation
+  result.current.mutate(payload);
+
+  // Assert: error is handled, not swallowed
+  await waitFor(() => {
+    expect(result.current.isError).toBe(true);
+  });
+  expect(mockLogger.error).toHaveBeenCalledWith(
+    expect.stringContaining("failed"),
+    expect.objectContaining({ error: mockError })
+  );
+});
+
+// For components: verify toast/UI feedback on error
+test("shows error toast on submission failure", async () => {
+  vi.mocked(useSubmitWork).mockReturnValue({
+    mutateAsync: vi.fn().mockRejectedValue(new Error("gas estimation failed")),
+    isPending: false,
+  });
+
+  render(<SubmitButton />, { wrapper });
+  await userEvent.click(screen.getByRole("button"));
+
+  expect(screen.getByText(/transaction failed/i)).toBeInTheDocument();
+});
+```
+
+#### Testing Offline Scenarios
+
+Client uses IndexedDB + job queue for offline operation. Test offline paths with mock network state and fake-indexeddb.
+
+```typescript
+import "fake-indexeddb/auto";
+import { useJobQueue, JobKind } from "@green-goods/shared";
+
+test("queues work submission when offline", async () => {
+  // Simulate offline
+  vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+
+  const { result } = renderHook(() => useJobQueue(), { wrapper });
+
+  await act(async () => {
+    await result.current.addJob({
+      kind: JobKind.WORK_SUBMISSION,
+      payload: { gardenAddress: "0x123", actionUID: "uid-1" },
+      maxRetries: 3,
+    });
+  });
+
+  const jobs = result.current.getJobs({ status: "pending" });
+  expect(jobs).toHaveLength(1);
+  expect(jobs[0].kind).toBe(JobKind.WORK_SUBMISSION);
+});
+
+test("processes queued jobs when back online", async () => {
+  vi.spyOn(navigator, "onLine", "get").mockReturnValue(true);
+  // ... trigger sync, verify jobs transition to "completed"
+});
+```
+
+#### Critical Paths for Shared Package
+
+These paths require **80%+ coverage** with 100% for auth and crypto:
+
+| Path | Files | Why Critical |
+|------|-------|-------------|
+| **Authentication** | `hooks/auth/useAuth.ts`, `hooks/auth/usePasskeyAuth.ts` | User identity, session management |
+| **Job Queue** | `hooks/work/useJobQueue.ts`, `stores/jobQueueStore.ts` | Offline work submission pipeline |
+| **Contract Errors** | `utils/errors/contract-errors.ts`, `utils/errors/mutation-error-handler.ts` | Error parsing and user feedback |
+| **Garden Operations** | `hooks/garden/useGardens.ts`, `hooks/garden/useGardenMembers.ts` | Core domain CRUD |
+| **Work Submission** | `hooks/work/useSubmitWork.ts`, `hooks/work/useWorkApproval.ts` | Primary user workflow |
+| **Offline Sync** | `hooks/utils/useOfflineStatus.ts`, `modules/sync/` | Data integrity across network states |
+| **Query Keys** | `hooks/query-keys.ts` | Cache correctness across all queries |
+| **Role Management** | `hooks/roles/useRole.ts`, `hooks/roles/useHatsRole.ts` | Access control enforcement |
+
 ### Commands
 
 ```bash
-bun test                    # Run all tests
-bun test --watch            # Watch mode
-bun test garden.test.ts     # Run specific file
-bun test --coverage         # With coverage
-bun test --ui               # UI mode
-bun test -t "should validate"  # Filter by name
+bun run test                # Run all tests
+bun run test --watch        # Watch mode
+bun run test -- garden.test.ts # Run specific file
+bun run test --coverage     # With coverage
+bun run test --ui           # UI mode
+bun run test -t "should validate" # Filter by name
 ```
 
 ### Coverage Requirements
@@ -336,7 +467,7 @@ bun test -t "should validate"  # Filter by name
 
 **Measuring coverage:**
 ```bash
-bun test --coverage              # Run with coverage
+bun run test --coverage          # Run with coverage
 open coverage/index.html         # View HTML report
 ```
 
@@ -363,7 +494,7 @@ Before marking work complete:
 - [ ] Edge cases and errors covered
 
 ### Validation Commands
-- [ ] Run `bun format && bun lint && bun test` — no errors/warnings
+- [ ] Run `bun format && bun lint && bun run test` — no errors/warnings
 - [ ] Package-specific: `cd packages/[pkg] && npx tsc --noEmit`
 
 ### Documentation & Communication
@@ -376,11 +507,18 @@ Before marking work complete:
 
 Can't check all boxes? You skipped TDD. Start over.
 
+## Anti-Patterns
+
+- Writing implementation before a failing test is in place
+- Keeping placeholder assertions (`expect(true).toBe(true)`)
+- Ignoring cleanup tests for timers/listeners/async hooks
+- Using brittle snapshots where behavioral assertions are required
+- Declaring completion without running `bun run test`, `bun lint`, and build checks
+
 ## Related Skills
 
 - `contracts` — Foundry test patterns (fuzz, invariant) for smart contracts
 - `react` — React Testing Library patterns and component testing
 - `tanstack-query` — Testing queries, mutations, and cache behavior
-- `offline` — Testing offline scenarios with mocked IndexedDB
-- `storage` — Testing IndexedDB with fake-indexeddb, migrations and schema changes
+- `data-layer` — Testing offline scenarios, IndexedDB with fake-indexeddb, migrations and schema changes
 - `storybook` — Interaction testing in Storybook (visual regression + play functions)

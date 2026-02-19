@@ -1,12 +1,7 @@
 ---
 name: vite
+user-invocable: false
 description: Vite 7.x build tool. Use when configuring Vite, adding plugins, working with dev server, or building.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [client, admin]
-dependencies: []
 ---
 
 # Vite Skill
@@ -24,7 +19,7 @@ When invoked:
 - Keep root `.env` only (no package-level env files).
 - Preserve React Compiler and PWA setup unless the request is explicit.
 
-## Green Goods Defaults
+## Part 1: Green Goods Defaults
 
 - Client config: `packages/client/vite.config.ts`
 - Admin config: `packages/admin/vite.config.ts`
@@ -382,6 +377,14 @@ What Vite work?
 | Import errors | Check `resolve.alias` configuration |
 | Build fails | Run `vite build --debug` for details |
 | ENV not available | Ensure `VITE_` prefix on variables |
+
+## Anti-Patterns
+
+- Adding package-level `.env` files instead of using root `.env`
+- Replacing existing React/PWA config without explicit migration intent
+- Using unprefixed env vars in frontend code (`VITE_` required)
+- Introducing overlapping aliases that shadow shared package imports
+- Optimizing bundle output without profiling evidence
 
 ## Related Skills
 

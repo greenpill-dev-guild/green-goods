@@ -1,10 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { type Hex, keccak256, toHex } from "viem";
+import { type Address, type Hex, keccak256, toHex } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
-import { logger } from "../../modules/app/logger";
 import { useToastAction } from "../app/useToastAction";
+import { useCurrentChain } from "../blockchain/useChainConfig";
 
 export interface GardenInvite {
   id: string;
@@ -18,55 +17,14 @@ export interface GardenInvite {
   chainId: number;
 }
 
-export function useGardenInvites(gardenAddress: string) {
+export function useGardenInvites(gardenAddress: Address) {
+  const chainId = useCurrentChain();
+  const [invites, setInvites] = useState<GardenInvite[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
   const { executeWithToast } = useToastAction();
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
-
-  // Fetch invites from Envio indexer
-  const {
-    data: invites,
-    isLoading: isFetching,
-    refetch,
-  } = useQuery<GardenInvite[]>({
-    queryKey: ["garden-invites", gardenAddress],
-    queryFn: async (): Promise<GardenInvite[]> => {
-      const ENVIO_URL = import.meta.env.VITE_ENVIO_INDEXER_URL;
-      if (!ENVIO_URL) {
-        logger.warn("ENVIO_INDEXER_URL not configured", { source: "useGardenInvites" });
-        return [];
-      }
-
-      const response = await fetch(ENVIO_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `
-            query GetGardenInvites($gardenId: String!) {
-              gardenInvites(where: { garden: $gardenId }) {
-                id
-                garden
-                creator
-                expiry
-                used
-                usedBy
-                createdAt
-                usedAt
-                chainId
-              }
-            }
-          `,
-          variables: { gardenId: gardenAddress.toLowerCase() },
-        }),
-      });
-
-      const result = await response.json();
-      return result.data?.gardenInvites || [];
-    },
-    enabled: !!gardenAddress,
-  });
 
   /**
    * Generates a unique invite code
@@ -119,6 +77,20 @@ export function useGardenInvites(gardenAddress: string) {
         }
       );
 
+      const now = Math.floor(Date.now() / 1000);
+      setInvites((current) => [
+        {
+          id: inviteCode,
+          garden: gardenAddress,
+          creator: address,
+          expiry: BigInt(expiry),
+          used: false,
+          createdAt: now,
+          chainId,
+        },
+        ...current,
+      ]);
+
       // Return the invite link
       return generateInviteLink(inviteCode);
     } finally {
@@ -155,17 +127,29 @@ export function useGardenInvites(gardenAddress: string) {
           errorMessage: "Failed to revoke invite",
         }
       );
-
-      // Refetch invites after revocation
-      await refetch();
+      const now = Math.floor(Date.now() / 1000);
+      setInvites((current) =>
+        current.map((invite) =>
+          invite.id === inviteCode
+            ? {
+                ...invite,
+                used: true,
+                usedBy: address,
+                usedAt: now,
+              }
+            : invite
+        )
+      );
     } finally {
       setIsRevoking(false);
     }
   };
 
+  const refetch = async (): Promise<GardenInvite[]> => invites;
+
   return {
     invites,
-    isLoading: isLoading || isFetching,
+    isLoading,
     isRevoking,
     createInvite,
     revokeInvite,

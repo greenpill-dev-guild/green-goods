@@ -1,7 +1,4 @@
-import { usePendingWorksCount } from "@green-goods/shared/hooks";
-import { SyncStatusBar } from "@green-goods/shared/components";
-import { useUIStore } from "@green-goods/shared/stores";
-import { cn } from "@green-goods/shared/utils";
+import { cn, SyncStatusBar, usePendingWorksCount, useUIStore } from "@green-goods/shared";
 import {
   type RemixiconComponentType,
   RiHomeFill,
@@ -22,7 +19,8 @@ export const AppBar = () => {
   const { data: pendingCount = 0 } = usePendingWorksCount();
 
   // Check if any drawer is open to hide AppBar beneath them
-  const { isWorkDashboardOpen, isGardenFilterOpen } = useUIStore();
+  const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
+  const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
   const isAnyDrawerOpen = isWorkDashboardOpen || isGardenFilterOpen;
   const shouldHideBar = isGarden || isWorkDetail || isAnyDrawerOpen;
 

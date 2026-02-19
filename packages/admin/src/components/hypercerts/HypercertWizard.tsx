@@ -5,17 +5,21 @@ import {
   ErrorBoundary,
   logger,
   TOTAL_UNITS,
-  buildContributorWeights,
-  calculateDistribution,
   formatHypercertMetadata,
+  getSDGLabel,
+  prefillMetadataFromAssessment,
   toastService,
   useAdminStore,
   useHypercertAttestations,
   useAuth,
   useCreateHypercertWorkflow,
+  useHypercertAllowlist,
   useHypercertDraft,
   useHypercerts,
+  useHypercertContributorWeights,
   useMintHypercert,
+  useWindowEvent,
+  useGardenAssessments,
   useHypercertWizardStore,
   type HypercertAttestation,
   type CategorizedError,
@@ -106,8 +110,28 @@ export function HypercertWizard({
   const { currentStep, nextStep, previousStep, setStep, canProceed } = useCreateHypercertWorkflow();
 
   const { attestations, isLoading, hasError } = useHypercertAttestations(gardenId);
+  const { data: assessments } = useGardenAssessments(gardenId);
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(null);
   const { hypercerts } = useHypercerts({ gardenId });
   const { mint, retry, cancel } = useMintHypercert();
+
+  // Resolve the selected assessment object for prefill
+  const selectedAssessment = useMemo(
+    () => assessments?.find((a) => a.id === selectedAssessmentId) ?? null,
+    [assessments, selectedAssessmentId]
+  );
+
+  // Prefill metadata when an assessment is selected (one-time apply)
+  const lastPrefillId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selectedAssessment) return;
+    // Only prefill once per assessment selection (don't re-apply on re-renders)
+    if (lastPrefillId.current === selectedAssessment.id) return;
+    lastPrefillId.current = selectedAssessment.id;
+
+    const prefill = prefillMetadataFromAssessment(selectedAssessment, getSDGLabel);
+    updateMetadata(prefill);
+  }, [selectedAssessment, updateMetadata]);
 
   // State for confirm dialog when blocking navigation
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -128,18 +152,12 @@ export function HypercertWizard({
   );
 
   // Handle browser refresh/close with beforeunload
-  useEffect(() => {
+  useWindowEvent("beforeunload", (event) => {
     if (!hasUnsavedChanges) return;
-
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      // Modern browsers ignore custom messages, but this triggers the dialog
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+    event.preventDefault();
+    // Modern browsers ignore custom messages, but this triggers the dialog
+    event.returnValue = "";
+  });
 
   // Handle blocker state - show confirmation dialog
   useEffect(() => {
@@ -218,29 +236,15 @@ export function HypercertWizard({
     }
   }, [bundledAttestations, selectedAttestationIds, setSelectedAttestations]);
 
-  const contributorWeights = useMemo(
-    () => buildContributorWeights(selectedAttestations),
-    [selectedAttestations]
-  );
+  const contributorWeights = useHypercertContributorWeights(selectedAttestations);
 
-  useEffect(() => {
-    if (!selectedAttestations.length) return;
-    if (distributionMode === "custom" && allowlist.length > 0) return;
-
-    const mode = distributionMode === "proportional" ? "count" : distributionMode;
-    const nextAllowlist = calculateDistribution(contributorWeights, mode, allowlist);
-
-    // Deep compare to avoid infinite loop - only update if contents differ
-    const isDifferent =
-      nextAllowlist.length !== allowlist.length ||
-      nextAllowlist.some(
-        (entry, i) => entry.address !== allowlist[i]?.address || entry.units !== allowlist[i]?.units
-      );
-
-    if (isDifferent) {
-      setAllowlist(nextAllowlist);
-    }
-  }, [allowlist, contributorWeights, distributionMode, selectedAttestations, setAllowlist]);
+  useHypercertAllowlist({
+    allowlist,
+    contributorWeights,
+    distributionMode,
+    hasSelectedAttestations: selectedAttestations.length > 0,
+    onAllowlistChange: setAllowlist,
+  });
 
   const suggestedScopes = useMemo(() => {
     const scopes = selectedAttestations.flatMap((attestation) => attestation.workScope ?? []);
@@ -573,6 +577,9 @@ export function HypercertWizard({
               isLoading={isLoading}
               hasError={hasError}
               bundledInfo={bundledAttestations}
+              assessments={assessments}
+              selectedAssessmentId={selectedAssessmentId}
+              onAssessmentChange={setSelectedAssessmentId}
             />
           )}
 
@@ -583,6 +590,7 @@ export function HypercertWizard({
               suggestedWorkScopes={suggestedScopes}
               suggestedStart={suggestedTimeframe.start}
               suggestedEnd={suggestedTimeframe.end}
+              selectedAssessment={selectedAssessment}
             />
           )}
 
@@ -600,11 +608,13 @@ export function HypercertWizard({
             <HypercertPreview
               metadata={previewMetadata}
               gardenName={gardenName}
+              gardenId={gardenId}
               attestationCount={selectedAttestations.length}
               totalUnits={TOTAL_UNITS}
               allowlist={allowlist}
               mintingState={mintingState}
               chainId={chainId}
+              selectedAssessment={selectedAssessment}
               onEditMetadata={() => setStep(2)}
               onEditDistribution={() => setStep(3)}
             />

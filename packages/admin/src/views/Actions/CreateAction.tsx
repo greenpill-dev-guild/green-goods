@@ -265,9 +265,36 @@ export default function CreateAction() {
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
               >
                 <option value="">Keep current configuration</option>
-                <option value="plantingAction">Planting Action</option>
-                <option value="wateringAction">Watering Action</option>
-                <option value="harvestAction">Harvest Action</option>
+                <optgroup label="Solar">
+                  <option value="solar.site_setup">Site & Readiness Setup</option>
+                  <option value="solar.install_milestone">Infrastructure Milestone</option>
+                  <option value="solar.service_session">Hub Service Session</option>
+                  <option value="solar.energy_uptime_check">Energy & Uptime Check</option>
+                  <option value="solar.node_ops">Node Operation Log</option>
+                </optgroup>
+                <optgroup label="Agroforestry">
+                  <option value="agro.site_species_plan">Site Assessment & Species Plan</option>
+                  <option value="agro.planting_event">Planting Event</option>
+                  <option value="agro.survival_check">Survival Check</option>
+                  <option value="agro.maintenance_activity">Maintenance Activity</option>
+                  <option value="agro.learning_reflection">Learning Reflection</option>
+                  <option value="agro.harvest_yield">Harvest & Yield Record</option>
+                </optgroup>
+                <optgroup label="Education">
+                  <option value="edu.publish_session">Publish Session & Open Roster</option>
+                  <option value="edu.deliver_session">Workshop Delivered</option>
+                  <option value="edu.verify_attendance">Attendance Verified</option>
+                  <option value="edu.followup_action">Follow-up Action Logged</option>
+                  <option value="edu.learning_assessment">Learning Assessment</option>
+                </optgroup>
+                <optgroup label="Waste Management">
+                  <option value="waste.site_assessment">Site Assessment (Before)</option>
+                  <option value="waste.cleanup_event">Cleanup Event</option>
+                  <option value="waste.sorting_breakdown">Sorting & Breakdown</option>
+                  <option value="waste.transfer_receipt">Recycler/Disposal Transfer</option>
+                  <option value="waste.upcycle_batch">Compost/Upcycle Batch</option>
+                  <option value="waste.maintenance_check">Recurring Maintenance Check</option>
+                </optgroup>
               </select>
             </div>
             <InstructionsBuilder
@@ -313,7 +340,18 @@ export default function CreateAction() {
     }
   };
 
-  const handleNext = () => {
+  // Fields to validate per wizard step before advancing
+  const stepFields: Record<number, (keyof CreateActionFormData)[]> = {
+    0: ["title", "startTime", "endTime"],
+    1: ["capitals"],
+  };
+
+  const handleNext = async () => {
+    const fields = stepFields[currentStep];
+    if (fields) {
+      const valid = await form.trigger(fields, { shouldFocus: true });
+      if (!valid) return;
+    }
     setCurrentStep((prev) => Math.min(prev + 1, stepConfigs.length - 1));
   };
 

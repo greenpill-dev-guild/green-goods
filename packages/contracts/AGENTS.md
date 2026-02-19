@@ -373,7 +373,6 @@ After deployment, artifacts are saved to:
 ```
 deployments/
 ├── 11155111-latest.json # Sepolia
-├── 84532-latest.json   # Base Sepolia (optional)
 ├── 42161-latest.json   # Arbitrum
 ├── 42220-latest.json   # Celo
 └── networks.json       # Network configuration

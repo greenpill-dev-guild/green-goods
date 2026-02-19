@@ -1,12 +1,7 @@
 ---
 name: monitoring
+user-invocable: false
 description: Production monitoring and observability - transaction tracking, service worker health, storage quotas, indexer sync lag, error tracking. Use for production health checks, alerting, and diagnostics.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin, indexer, agent]
-dependencies: [deployment]
 ---
 
 # Monitoring Skill
@@ -304,12 +299,10 @@ async function checkIndexerLag() {
 
 ```bash
 # Check indexer is responding
-curl -s http://localhost:8080/healthz
+node -e 'fetch("http://localhost:8080/healthz").then(r=>console.log(r.status))'
 
 # Query GraphQL playground
-curl -s http://localhost:8080/v1/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query": "{ _metadata { lastProcessedBlock } }"}'
+node -e 'fetch("http://localhost:8080/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ _metadata { lastProcessedBlock } }"})}).then(r=>r.text()).then(console.log)'
 
 # Check Docker container status
 docker compose -f docker-compose.indexer.yaml ps
@@ -709,7 +702,7 @@ export function trackEvent(event: string, properties?: Record<string, unknown>) 
 
 ## Related Skills
 
-- `offline` — Job queue events and storage patterns
+- `data-layer` — Job queue events and storage patterns
 - `web3` — Transaction lifecycle monitoring
 - `deployment` — Service health checks post-deploy
 - `error-handling-patterns` — Error categorization and tracking

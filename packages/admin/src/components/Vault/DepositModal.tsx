@@ -1,0 +1,254 @@
+import {
+  type Address,
+  type GardenVault,
+  AssetSelector,
+  formatTokenAmount,
+  getVaultAssetDecimals,
+  getVaultAssetSymbol,
+  useDepositForm,
+  useUser,
+  useDebouncedValue,
+  useVaultDeposit,
+  useVaultPreview,
+} from "@green-goods/shared";
+import * as Dialog from "@radix-ui/react-dialog";
+import { RiCloseLine, RiLoader4Line } from "@remixicon/react";
+import { useBalance, useEstimateGas } from "wagmi";
+import { useEffect, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
+import { encodeFunctionData, formatUnits } from "viem";
+
+const VAULT_DEPOSIT_ABI = [
+  {
+    type: "function",
+    name: "deposit",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "assets", type: "uint256" },
+      { name: "receiver", type: "address" },
+    ],
+    outputs: [{ name: "shares", type: "uint256" }],
+  },
+] as const;
+
+interface DepositModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  gardenAddress: Address;
+  vaults: GardenVault[];
+  defaultAsset?: string;
+}
+
+export function DepositModal({
+  isOpen,
+  onClose,
+  gardenAddress,
+  vaults,
+  defaultAsset,
+}: DepositModalProps) {
+  const { formatMessage } = useIntl();
+  const { primaryAddress } = useUser();
+  const depositMutation = useVaultDeposit();
+  const [selectedAsset, setSelectedAsset] = useState<string>(
+    defaultAsset ?? vaults[0]?.asset ?? ""
+  );
+
+  const selectedVault = vaults.find((v) => v.asset.toLowerCase() === selectedAsset.toLowerCase());
+  const assetSymbol = selectedVault
+    ? getVaultAssetSymbol(selectedVault.asset, selectedVault.chainId)
+    : "";
+
+  const { data: balance } = useBalance({
+    address: primaryAddress as Address | undefined,
+    token: selectedVault?.asset as Address | undefined,
+    query: {
+      enabled: isOpen && Boolean(primaryAddress && selectedVault),
+      refetchInterval: isOpen ? 10_000 : false,
+    },
+  });
+
+  const decimals =
+    balance?.decimals ?? getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
+  const { form, amount, amountBigInt, amountErrorKey, hasBlockingError, resetAmount } =
+    useDepositForm({
+      decimals,
+      balance: balance?.value,
+    });
+  const amountError = amountErrorKey;
+  const amountField = form.register("amount");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedAsset(defaultAsset ?? vaults[0]?.asset ?? "");
+    resetAmount();
+  }, [defaultAsset, isOpen, resetAmount, vaults]);
+
+  const debouncedAmount = useDebouncedValue(amountBigInt, 300);
+
+  const { preview } = useVaultPreview({
+    vaultAddress: selectedVault?.vaultAddress as Address | undefined,
+    amount: debouncedAmount,
+    userAddress: primaryAddress as Address | undefined,
+    enabled: isOpen && Boolean(selectedVault && debouncedAmount > 0n),
+  });
+
+  const depositData = useMemo(() => {
+    if (!selectedVault || !primaryAddress || amountBigInt <= 0n || hasBlockingError) {
+      return undefined;
+    }
+
+    return encodeFunctionData({
+      abi: VAULT_DEPOSIT_ABI,
+      functionName: "deposit",
+      args: [amountBigInt, primaryAddress as Address],
+    });
+  }, [amountBigInt, hasBlockingError, primaryAddress, selectedVault]);
+
+  const { data: estimatedGas } = useEstimateGas({
+    to: selectedVault?.vaultAddress as Address | undefined,
+    data: depositData,
+    query: { enabled: isOpen && Boolean(selectedVault && depositData) },
+  });
+
+  const onSubmit = () => {
+    if (selectedVault?.paused) return;
+    if (!selectedVault || !primaryAddress || amountBigInt <= 0n || hasBlockingError) return;
+
+    depositMutation.mutate(
+      {
+        gardenAddress,
+        assetAddress: selectedVault.asset,
+        vaultAddress: selectedVault.vaultAddress,
+        amount: amountBigInt,
+        receiver: primaryAddress as Address,
+      },
+      { onSuccess: () => onClose() }
+    );
+  };
+
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <Dialog.Title className="text-lg font-semibold text-text-strong">
+                {formatMessage({ id: "app.treasury.deposit" })}
+              </Dialog.Title>
+              <Dialog.Description className="text-sm text-text-sub">
+                {formatMessage({ id: "app.treasury.depositDescription" })}
+              </Dialog.Description>
+            </div>
+            <Dialog.Close asChild>
+              <button type="button" className="rounded-md p-2 text-text-soft hover:text-text-sub">
+                <RiCloseLine className="h-5 w-5" />
+              </button>
+            </Dialog.Close>
+          </div>
+
+          <div className="space-y-4">
+            <AssetSelector
+              vaults={vaults}
+              selectedAsset={selectedAsset}
+              onSelect={setSelectedAsset}
+              ariaLabel={formatMessage({ id: "app.treasury.asset" })}
+            />
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-sub">
+                {formatMessage({ id: "app.treasury.depositAmount" })}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  {...amountField}
+                  value={amount}
+                  onChange={(event) => amountField.onChange(event)}
+                  placeholder="0.0"
+                  aria-invalid={Boolean(amountError)}
+                  aria-describedby={amountError ? "deposit-error" : undefined}
+                  className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+                    amountError
+                      ? "border-error-base focus:border-error-base"
+                      : "border-stroke-sub bg-bg-white focus:border-primary-base"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!balance) return;
+                    form.setValue("amount", formatUnits(balance.value, balance.decimals), {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                  }}
+                  className="rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub hover:bg-bg-weak"
+                >
+                  {formatMessage({ id: "app.treasury.max" })}
+                </button>
+              </div>
+              {amountError && (
+                <p id="deposit-error" className="text-xs text-error-dark" role="alert">
+                  {formatMessage({ id: amountError })}
+                </p>
+              )}
+              <p className="text-xs text-text-soft">
+                {formatMessage({ id: "app.treasury.walletBalance" })}:{" "}
+                {balance
+                  ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
+                  : "--"}
+              </p>
+            </div>
+
+            <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
+              <p>
+                {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
+                <span className="font-medium text-text-strong">
+                  {preview ? `${formatTokenAmount(preview.previewShares, 18)} shares` : "--"}
+                </span>
+              </p>
+              <p>
+                {formatMessage({ id: "app.treasury.estimatedGas" })}:{" "}
+                <span className="font-medium text-text-strong">
+                  {estimatedGas ? formatTokenAmount(estimatedGas, 0, 0) : "--"}
+                </span>
+              </p>
+              {assetSymbol && (
+                <p>
+                  {formatMessage({ id: "app.treasury.amountDenomination" })}:{" "}
+                  <span className="font-medium text-text-strong">{assetSymbol}</span>
+                </p>
+              )}
+            </div>
+
+            {selectedVault?.paused && (
+              <p className="text-xs text-warning-base" role="alert">
+                {formatMessage({ id: "app.treasury.vaultPaused" })}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={onSubmit}
+              disabled={
+                !selectedVault ||
+                !primaryAddress ||
+                amountBigInt <= 0n ||
+                hasBlockingError ||
+                selectedVault?.paused ||
+                depositMutation.isPending
+              }
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {depositMutation.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
+              {depositMutation.isPending
+                ? formatMessage({ id: "app.treasury.depositing" })
+                : formatMessage({ id: "app.treasury.deposit" })}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}

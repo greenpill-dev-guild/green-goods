@@ -239,3 +239,83 @@ export interface HypercertRecord {
   status?: HypercertStatus;
   allowlistEntries?: HypercertAllowlistClaim[];
 }
+
+// =============================================================================
+// Marketplace Types (HypercertMarketplaceAdapter + HypercertsModule)
+// =============================================================================
+
+export type ListingStatus = "active" | "expired" | "cancelled" | "filled";
+
+/** A signed maker ask order registered in the marketplace adapter */
+export interface HypercertListing {
+  orderId: number;
+  hypercertId: bigint;
+  fractionId: bigint;
+  seller: Address;
+  currency: Address;
+  pricePerUnit: bigint;
+  minUnitAmount: bigint;
+  maxUnitAmount: bigint;
+  minUnitsToKeep: bigint;
+  sellLeftover: boolean;
+  startTime: number;
+  endTime: number;
+  status: ListingStatus;
+  signature: Hex;
+  orderNonce: bigint;
+  createdAt: number;
+}
+
+/** Parameters for creating a new listing via HypercertsModule.listForYield() */
+export interface CreateListingParams {
+  hypercertId: bigint;
+  fractionId: bigint;
+  currency: Address;
+  pricePerUnit: bigint;
+  minUnitAmount: bigint;
+  maxUnitAmount: bigint;
+  minUnitsToKeep: bigint;
+  sellLeftover: boolean;
+  durationDays: number;
+}
+
+/** Recommended defaults for operator-created maker orders */
+export const LISTING_DEFAULTS = {
+  /** ~$0.00001 for stables — $1 buys 100k units */
+  pricePerUnit: 1n * 10n ** 13n,
+  /** No minimum purchase */
+  minUnitAmount: 1n,
+  /** No cap — yield should never be blocked */
+  maxUnitAmount: 2n ** 256n - 1n,
+  /** Sell all units */
+  minUnitsToKeep: 0n,
+  /** Auto-sell remainder when order exhausted */
+  sellLeftover: true,
+  /** Long-lived orders, renew quarterly */
+  durationDays: 90,
+} as const;
+
+/** A completed fraction purchase from the marketplace adapter */
+export interface FractionTrade {
+  orderId: number;
+  hypercertId: bigint;
+  recipient: Address;
+  units: bigint;
+  payment: bigint;
+  currency: Address;
+  timestamp: number;
+  txHash: Hex;
+}
+
+/** Marketplace order status read from on-chain adapter storage */
+export interface RegisteredOrderView {
+  orderId: number;
+  hypercertId: bigint;
+  seller: Address;
+  currency: Address;
+  pricePerUnit: bigint;
+  minUnitAmount: bigint;
+  maxUnitAmount: bigint;
+  endTime: number;
+  active: boolean;
+}

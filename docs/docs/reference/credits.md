@@ -1,3 +1,15 @@
+---
+title: Credits & Licenses
+slug: /reference/credits
+audience: all
+owner: docs
+last_verified: 2026-02-19
+feature_status: Live
+source_of_truth:
+  - LICENSE
+  - AGENTS.md
+---
+
 # Credits & Licenses
 
 Built with love by the Greenpill Dev Guild and contributors worldwide.
@@ -66,7 +78,7 @@ Thank you to everyone who has contributed to Green Goods!
 - Community support
 - Translations
 
-[Contributing Guide →](../developer/contributing)
+[Contributing Guide →](../developers/getting-started)
 
 ---
 
@@ -126,7 +138,7 @@ Green Goods has been supported by:
 
 **Interested in supporting Green Goods?**
 - Contact us: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh)
-- Sponsor: [GitHub Sponsors](https://github.com/sponsors/greenpill-dev-guild) (coming soon)
+- Sponsor: [GitHub Sponsors](https://github.com/sponsors/greenpill-dev-guild)
 
 ---
 
@@ -200,7 +212,7 @@ Contact: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) for media inquiries
 
 ## Contributing
 
-Want to be listed here? [Start contributing!](../developer/contributing)
+Want to be listed here? [Start contributing!](../developers/getting-started)
 
 All contributors are credited in:
 - GitHub contributors list
@@ -234,4 +246,3 @@ Green Goods is provided "as is" under MIT License. See license above.
 ---
 
 Thank you for being part of the Green Goods community! 🌱
-

@@ -1,7 +1,7 @@
 /**
  * Client Fork Tests
  *
- * E2E tests that run against an Anvil fork of Base Sepolia.
+ * E2E tests that run against an Anvil fork of Sepolia.
  * These tests verify real blockchain interactions with deterministic state.
  *
  * Prerequisites:
@@ -36,7 +36,7 @@ let snapshotId: string;
 
 /**
  * Before all fork tests:
- * 1. Start Anvil fork of Base Sepolia
+ * 1. Start Anvil fork of Sepolia
  * 2. Create initial snapshot for fast test isolation
  */
 test.beforeAll(async () => {

@@ -1,12 +1,6 @@
 ---
 name: agent
 description: Multi-platform bot development - Telegram handlers, platform adapters, crypto services, rate limiting. Use for bot features, command handlers, and platform integrations.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [agent]
-dependencies: [testing]
 ---
 
 # Agent Skill
@@ -300,7 +294,7 @@ WEBHOOK_URL=https://agent.greengoods.app
 DB_PATH=/data/agent.db
 
 # Health check
-curl https://agent.greengoods.app/health
+node -e 'fetch("https://agent.greengoods.app/health").then(r=>r.text()).then(console.log)'
 ```
 
 ### Health Endpoints

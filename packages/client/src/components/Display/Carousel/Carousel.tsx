@@ -2,8 +2,7 @@
 
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
 import * as React from "react";
-import { CarouselContext, useCarousel, type CarouselProps } from "@green-goods/shared/hooks";
-import { cn } from "@green-goods/shared/utils";
+import { CarouselContext, cn, useCarousel, type CarouselProps } from "@green-goods/shared";
 import { ImagePreviewDialog } from "@/components/Dialogs";
 
 type CarouselApi = UseEmblaCarouselType[1];

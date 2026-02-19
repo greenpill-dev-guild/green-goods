@@ -1,4 +1,4 @@
-import { type AllowlistEntry, TOTAL_UNITS } from "@green-goods/shared";
+import { type Address, type AllowlistEntry, TOTAL_UNITS } from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
@@ -25,7 +25,7 @@ interface ChartDataItem {
   name: string;
   value: number;
   percentage: number;
-  address?: string;
+  address?: Address;
   isOthers?: boolean;
 }
 

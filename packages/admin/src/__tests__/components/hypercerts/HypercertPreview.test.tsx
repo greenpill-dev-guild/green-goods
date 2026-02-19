@@ -21,9 +21,9 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
   return {
     ...actual,
-    DEFAULT_CHAIN_ID: 84532,
+    DEFAULT_CHAIN_ID: 11155111,
     getNetworkConfig: () => ({
-      blockExplorer: "https://sepolia.basescan.org",
+      blockExplorer: "https://sepolia.etherscan.io",
     }),
     copyToClipboard: vi.fn().mockResolvedValue(true),
     ImageWithFallback: ({
@@ -127,6 +127,8 @@ function createMockMintingState(overrides: Partial<MintingState> = {}): MintingS
     txHash: null,
     hypercertId: null,
     error: null,
+    poolRegistered: null,
+    signalPoolAddress: null,
     ...overrides,
   };
 }
@@ -139,7 +141,7 @@ describe("components/hypercerts/HypercertPreview", () => {
     totalUnits: TOTAL_UNITS,
     allowlist: createMockAllowlist(),
     mintingState: createMockMintingState(),
-    chainId: 84532,
+    chainId: 11155111,
     onEditMetadata: vi.fn(),
     onEditDistribution: vi.fn(),
   };

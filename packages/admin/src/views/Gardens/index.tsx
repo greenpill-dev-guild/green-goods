@@ -1,5 +1,4 @@
-import { useGardenPermissions, useGardens } from "@green-goods/shared/hooks";
-import { resolveIPFSUrl } from "@green-goods/shared/modules";
+import { useGardenPermissions, useGardens, resolveIPFSUrl } from "@green-goods/shared";
 import {
   RiAddLine,
   RiEyeLine,

@@ -76,6 +76,14 @@ bun run dev:docker:down
 
 ---
 
+### ENS Profile Fields on Gardener
+
+`Gardener.ensAvatar`, `ensDescription`, `ensTwitter`, `ensGithub`, and `ensEmail` are schema fields for client consumption, but they are **not** populated by indexer handlers.
+
+These values are resolved client-side from ENS text records (mainnet resolver reads), while the indexer tracks protocol events and ENS registration lifecycle events.
+
+---
+
 ### Commands Reference
 
 ```bash
@@ -130,9 +138,12 @@ The root `.env` is automatically loaded by the indexer's Docker Compose setup an
 
 ### Entities (from `schema.graphql`)
 
-- Gardens and Actions
-- Work Submissions and Approvals
-- EAS Attestations
+- Gardens and Actions (`Garden`, `Action`, `Gardener`)
+- Garden governance (`GardenCommunity`, `GardenSignalPool`, `GardenHatTree`, `PartialGrantFailure`)
+- Vaults and yield accounting (`GardenVault`, `GardenVaultIndex`, `VaultDeposit`, `VaultEvent`, `VaultAddressIndex`)
+- Yield distribution outputs (`YieldAllocation`, `YieldAccumulation`, `YieldFractionPurchase`, `YieldCookieJarTransfer`, `YieldJuiceboxPayment`, `YieldStranded`)
+- Hypercert ecosystem (`Hypercert`, `HypercertClaim`, `GoodsAirdrop`, `GardenTreasury`)
+- Integrations (`CookieJar`, `ENSRegistration`, `GardenDomains`)
 
 ### Client Configuration
 

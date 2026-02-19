@@ -1,43 +1,108 @@
-import { createMachine, assign } from "xstate";
+import { setup, assign, fromPromise } from "xstate";
+import type { Address, AssessmentWorkflowParams } from "../types/domain";
 
-// Define CreateAssessmentForm inline
-export interface CreateAssessmentForm {
-  gardenId: string;
-  title: string;
-  description: string;
-  assessmentType: string;
-  capitals: string[];
-  metrics: Record<string, unknown>;
-  evidenceMedia: File[];
-  reportDocuments: string[];
-  impactAttestations: string[];
-  startDate: number;
-  endDate: number;
-  location: string;
-  tags: string[];
-}
+// Re-export from canonical location for backwards compatibility
+export type { AssessmentWorkflowParams } from "../types/domain";
+export type { CreateAssessmentForm } from "../types/domain";
 
 export interface CreateAssessmentContext {
-  assessmentParams?: CreateAssessmentForm & { gardenId: string };
+  assessmentParams?: AssessmentWorkflowParams;
   txHash?: string;
   error?: string;
   retryCount: number;
 }
 
 export type CreateAssessmentEvent =
-  | { type: "START"; params: CreateAssessmentForm & { gardenId: string } }
+  | { type: "START"; params: AssessmentWorkflowParams }
   | { type: "SUBMIT" }
-  | { type: "SUCCESS"; txHash: string }
-  | { type: "FAILURE"; error: string }
   | { type: "RETRY" }
+  | { type: "CLOSE" }
   | { type: "RESET" };
 
-export const createAssessmentMachine = createMachine({
-  id: "createAssessment",
-  types: {} as {
-    context: CreateAssessmentContext;
-    events: CreateAssessmentEvent;
+const createAssessmentSetup = setup({
+  types: {
+    context: {} as CreateAssessmentContext,
+    events: {} as CreateAssessmentEvent,
   },
+  actions: {
+    storeParams: assign({
+      assessmentParams: ({ event }) =>
+        (event as { type: "START"; params: AssessmentWorkflowParams }).params,
+      error: undefined,
+      txHash: undefined,
+    }),
+    updateParams: assign({
+      assessmentParams: ({ event }) =>
+        (event as { type: "START"; params: AssessmentWorkflowParams }).params,
+    }),
+    clearParamsError: assign({
+      assessmentParams: ({ event }) =>
+        (event as { type: "START"; params: AssessmentWorkflowParams }).params,
+      error: undefined,
+    }),
+    clearError: assign({ error: undefined }),
+    clearContext: assign({
+      assessmentParams: undefined,
+      error: undefined,
+      txHash: undefined,
+      retryCount: 0,
+    }),
+    storeTxHash: assign({
+      txHash: ({ event }) => (event as { type: string; output: string }).output,
+      error: undefined,
+    }),
+    storeFailure: assign({
+      error: ({ event }) => {
+        const error = (event as { type: string; error: unknown }).error;
+        return error instanceof Error ? error.message : String(error);
+      },
+    }),
+    incrementRetry: assign({
+      retryCount: ({ context }) => context.retryCount + 1,
+    }),
+  },
+  actors: {
+    submitAssessment: fromPromise<string, AssessmentWorkflowParams & { gardenId: Address }>(
+      async () => {
+        throw new Error("submitAssessment actor must be provided");
+      }
+    ),
+  },
+  guards: {
+    isValid: ({ context }) => {
+      const params = context.assessmentParams;
+      if (!params) return false;
+
+      const toMs = (v: string | number | null): number => {
+        if (v === null || v === undefined || v === 0 || v === "") return NaN;
+        if (typeof v === "number") return v > 10_000_000_000 ? v : v * 1000;
+        return new Date(v).getTime();
+      };
+
+      const startMs = toMs(params.startDate);
+      const endMs = toMs(params.endDate);
+
+      return (
+        params.title.trim().length > 0 &&
+        params.description.trim().length > 0 &&
+        params.assessmentType.trim().length > 0 &&
+        (typeof params.metrics === "string"
+          ? params.metrics.trim().length > 0
+          : params.metrics !== null &&
+            params.metrics !== undefined &&
+            Object.keys(params.metrics).length > 0) &&
+        params.location.trim().length > 0 &&
+        !Number.isNaN(startMs) &&
+        !Number.isNaN(endMs) &&
+        endMs > startMs
+      );
+    },
+    canRetry: ({ context }) => context.retryCount < 3,
+  },
+});
+
+export const createAssessmentMachine = createAssessmentSetup.createMachine({
+  id: "createAssessment",
   initial: "idle",
   context: {
     retryCount: 0,
@@ -47,11 +112,7 @@ export const createAssessmentMachine = createMachine({
       on: {
         START: {
           target: "validating",
-          actions: assign({
-            assessmentParams: ({ event }) => event.params,
-            error: undefined,
-            txHash: undefined,
-          }),
+          actions: "storeParams",
         },
       },
     },
@@ -59,22 +120,7 @@ export const createAssessmentMachine = createMachine({
       always: [
         {
           target: "ready",
-          guard: ({ context }) => {
-            const params = context.assessmentParams;
-            return !!(
-              params &&
-              params.title.trim().length > 0 &&
-              params.description.trim().length > 0 &&
-              params.assessmentType.trim().length > 0 &&
-              Array.isArray(params.capitals) &&
-              params.capitals.length > 0 &&
-              params.metrics &&
-              params.location.trim().length > 0 &&
-              params.startDate &&
-              params.endDate &&
-              new Date(params.endDate).getTime() >= new Date(params.startDate).getTime()
-            );
-          },
+          guard: "isValid",
         },
         {
           target: "invalid",
@@ -85,19 +131,11 @@ export const createAssessmentMachine = createMachine({
       on: {
         START: {
           target: "validating",
-          actions: assign({
-            assessmentParams: ({ event }) => event.params,
-            error: undefined,
-          }),
+          actions: "clearParamsError",
         },
         RESET: {
           target: "idle",
-          actions: assign({
-            assessmentParams: undefined,
-            error: undefined,
-            txHash: undefined,
-            retryCount: 0,
-          }),
+          actions: "clearContext",
         },
       },
     },
@@ -108,49 +146,41 @@ export const createAssessmentMachine = createMachine({
         },
         START: {
           target: "validating",
-          actions: assign({
-            assessmentParams: ({ event }) => event.params,
-          }),
+          actions: "updateParams",
         },
         RESET: {
           target: "idle",
-          actions: assign({
-            assessmentParams: undefined,
-            error: undefined,
-            txHash: undefined,
-            retryCount: 0,
-          }),
+          actions: "clearContext",
         },
       },
     },
     submitting: {
-      on: {
-        SUCCESS: {
+      entry: "clearError",
+      invoke: {
+        src: "submitAssessment",
+        input: ({ context }) =>
+          context.assessmentParams as AssessmentWorkflowParams & {
+            gardenId: Address;
+          },
+        onDone: {
           target: "success",
-          actions: assign({
-            txHash: ({ event }) => event.txHash,
-            error: undefined,
-          }),
+          actions: "storeTxHash",
         },
-        FAILURE: {
+        onError: {
           target: "error",
-          actions: assign({
-            error: ({ event }) => event.error,
-            retryCount: ({ context }) => context.retryCount + 1,
-          }),
+          actions: ["storeFailure", "incrementRetry"],
         },
       },
     },
     success: {
       on: {
+        CLOSE: {
+          target: "idle",
+          actions: "clearContext",
+        },
         RESET: {
           target: "idle",
-          actions: assign({
-            assessmentParams: undefined,
-            error: undefined,
-            txHash: undefined,
-            retryCount: 0,
-          }),
+          actions: "clearContext",
         },
       },
     },
@@ -158,16 +188,15 @@ export const createAssessmentMachine = createMachine({
       on: {
         RETRY: {
           target: "submitting",
-          guard: ({ context }) => context.retryCount < 3,
+          guard: "canRetry",
+        },
+        CLOSE: {
+          target: "idle",
+          actions: "clearContext",
         },
         RESET: {
           target: "idle",
-          actions: assign({
-            assessmentParams: undefined,
-            error: undefined,
-            txHash: undefined,
-            retryCount: 0,
-          }),
+          actions: "clearContext",
         },
       },
     },

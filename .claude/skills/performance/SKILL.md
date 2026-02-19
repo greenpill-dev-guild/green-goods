@@ -1,12 +1,7 @@
 ---
 name: performance
+user-invocable: false
 description: Performance profiling and optimization - bundle analysis, Lighthouse CI, React Profiler, memory leaks, service worker cache efficiency. Use for performance investigations, optimization, and budget enforcement.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: established
-packages: [shared, client, admin]
-dependencies: [react, vite]
 ---
 
 # Performance Skill
@@ -425,6 +420,6 @@ function GardenLink({ gardenAddress }: Props) {
 
 - `react` — React-specific optimization (useMemo, useCallback, React.memo)
 - `vite` — Bundle splitting and build optimization
-- `offline` — Service worker cache efficiency
+- `data-layer` — Service worker cache efficiency
 - `monitoring` — Runtime performance tracking
 - `storybook` — Visual regression for performance-impacting changes

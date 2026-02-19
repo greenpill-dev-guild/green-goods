@@ -1,12 +1,7 @@
 ---
 name: dependency-management
+user-invocable: false
 description: Monorepo dependency management - workspace protocol, lockfile conflicts, audit/update workflows, phantom dependencies. Use for dependency upgrades, lockfile issues, workspace management.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: established
-packages: []
-dependencies: []
 ---
 
 # Dependency Management Skill
@@ -106,7 +101,7 @@ bun update
 # 4. Validate after update
 bun install --frozen-lockfile  # Should work
 bun build                      # Build all packages
-bun test                       # Run all tests
+bun run test                   # Run all tests
 ```
 
 ### The fix-multiformats.js Script

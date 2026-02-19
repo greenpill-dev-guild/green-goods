@@ -9,14 +9,19 @@ import { render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Mock the useRole hook
 const mockUseRole = vi.fn();
 
-vi.mock("@green-goods/shared/hooks", () => ({
-  useRole: () => mockUseRole(),
-}));
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    useRole: () => mockUseRole(),
+  };
+});
 
 // Mock the DashboardLayoutSkeleton
 vi.mock("@/components/Layout/DashboardLayoutSkeleton", () => ({
@@ -24,6 +29,15 @@ vi.mock("@/components/Layout/DashboardLayoutSkeleton", () => ({
 }));
 
 import RequireOperatorOrDeployer from "../../routes/RequireOperatorOrDeployer";
+
+const messages: Record<string, string> = {
+  "app.admin.auth.unauthorized": "Unauthorized",
+  "app.admin.auth.noPermission": "You don't have permission to access this area.",
+  "app.admin.auth.requireRole": "To access this area, you need to be:",
+  "app.admin.auth.requireDeployer":
+    "Added to the deployment registry allowlist for contract management",
+  "app.admin.auth.requireOperator": "An operator of at least one garden for garden management",
+};
 
 // Test components
 const ProtectedContent = () => createElement("div", null, "Protected Content");
@@ -35,18 +49,22 @@ const renderWithProviders = (initialRoute = "/protected") => {
 
   return render(
     createElement(
-      QueryClientProvider,
-      { client: queryClient },
+      IntlProvider,
+      { locale: "en", messages },
       createElement(
-        MemoryRouter,
-        { initialEntries: [initialRoute] },
+        QueryClientProvider,
+        { client: queryClient },
         createElement(
-          Routes,
-          null,
+          MemoryRouter,
+          { initialEntries: [initialRoute] },
           createElement(
-            Route,
-            { element: createElement(RequireOperatorOrDeployer) },
-            createElement(Route, { path: "/protected", element: createElement(ProtectedContent) })
+            Routes,
+            null,
+            createElement(
+              Route,
+              { element: createElement(RequireOperatorOrDeployer) },
+              createElement(Route, { path: "/protected", element: createElement(ProtectedContent) })
+            )
           )
         )
       )
@@ -108,7 +126,11 @@ describe("routes/RequireOperatorOrDeployer", () => {
       renderWithProviders();
 
       expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
+      expect(screen.getByTestId("unauthorized")).toBeInTheDocument();
       expect(screen.getByText("Unauthorized")).toBeInTheDocument();
+      expect(
+        screen.getByText("You don't have permission to access this area.")
+      ).toBeInTheDocument();
     });
   });
 });

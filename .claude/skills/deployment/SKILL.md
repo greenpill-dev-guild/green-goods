@@ -1,12 +1,7 @@
 ---
 name: deployment
 description: Full deployment pipeline - contracts via deploy.ts, indexer via Docker Compose, frontends via Vercel, environment promotion. Use for deployments, releases, and environment management.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [contracts, indexer, client, admin]
-dependencies: [contracts]
+disable-model-invocation: true
 ---
 
 # Deployment Skill
@@ -52,9 +47,9 @@ indexer ──→ GraphQL endpoint ──→ client (queries)
 
 ```bash
 # ✅ ALWAYS use the TypeScript CLI
-bun script/deploy.ts core --network baseSepolia              # Dry run
-bun script/deploy.ts core --network baseSepolia --broadcast  # Deploy
-bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas  # With schemas
+bun script/deploy.ts core --network sepolia              # Dry run
+bun script/deploy.ts core --network sepolia --broadcast  # Deploy
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # With schemas
 
 # ❌ NEVER use direct forge commands
 # forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
@@ -90,21 +85,17 @@ bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas  # 
 ### Pre-Deployment Checklist
 
 ```bash
-# 1. Tests passing
-cd packages/contracts && bun test
+# 1. Full production readiness (build → lint → tests → E2E → dry runs on all chains)
+bun run verify:contracts
 
-# 2. Build succeeds
-bun build
-
-# 3. Dry run successful
-bun script/deploy.ts core --network baseSepolia
-
-# 4. Check deployer balance
+# 2. Check deployer balance
 cast balance $(cast wallet address --account deployer) --rpc-url $RPC
 
-# 5. Verify RPC accessibility
+# 3. Verify RPC accessibility
 cast block-number --rpc-url $RPC
 ```
+
+> `verify:contracts` runs `scripts/verify-production.sh` which handles build, lint, unit tests, E2E workflow, and dry runs for Sepolia, Arbitrum, and Celo in one command. Use `bun run verify:contracts:fast` to skip E2E and dry runs for quick iteration.
 
 ### Network Configuration
 
@@ -121,7 +112,7 @@ cast block-number --rpc-url $RPC
 After deployment, artifacts are written to:
 ```
 packages/contracts/deployments/
-├── 84532-latest.json    # Base Sepolia addresses
+├── 11155111-latest.json  # Sepolia addresses
 ├── 42161-latest.json    # Arbitrum addresses
 ├── 42220-latest.json    # Celo addresses
 ├── 31337-latest.json    # Localhost addresses
@@ -186,7 +177,7 @@ docker compose -f docker-compose.indexer.yaml up -d
 
 # Check service health
 docker compose -f docker-compose.indexer.yaml ps
-curl -s http://localhost:8080/healthz
+node -e 'fetch("http://localhost:8080/healthz").then(r=>console.log(r.status))'
 ```
 
 **Stack components:**
@@ -255,11 +246,11 @@ done
 
 ### Chain-Specific Validation
 
-| Variable | Base Sepolia (84532) | Arbitrum (42161) | Celo (42220) |
+| Variable | Sepolia (11155111) | Arbitrum (42161) | Celo (42220) |
 |----------|---------------------|-----------------|--------------|
-| `VITE_CHAIN_ID` | `84532` | `42161` | `42220` |
-| RPC URL required | `BASE_SEPOLIA_RPC_URL` | `ARBITRUM_RPC_URL` | `CELO_RPC_URL` |
-| Deployment artifact | `84532-latest.json` | `42161-latest.json` | `42220-latest.json` |
+| `VITE_CHAIN_ID` | `11155111` | `42161` | `42220` |
+| RPC URL required | `SEPOLIA_RPC_URL` | `ARBITRUM_RPC_URL` | `CELO_RPC_URL` |
+| Deployment artifact | `11155111-latest.json` | `42161-latest.json` | `42220-latest.json` |
 
 ### Validation Checklist
 
@@ -278,7 +269,7 @@ cast block-number --rpc-url "$RPC_URL"
 
 # 4. Indexer endpoint matches chain
 # Verify the GraphQL endpoint returns data for the correct chain
-curl -s "${GRAPHQL_ENDPOINT}/health" || echo "Indexer not reachable"
+node -e 'fetch(`${process.env.GRAPHQL_ENDPOINT}/health`).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' || echo "Indexer not reachable"
 ```
 
 ### Common Env Mistakes
@@ -307,10 +298,9 @@ curl -s "${GRAPHQL_ENDPOINT}/health" || echo "Indexer not reachable"
 
 ### Pre-Mainnet Checklist
 
-- [ ] All contract tests pass (100% coverage required for mainnet)
+- [ ] Production readiness verified: `bun run verify:contracts` (all phases green)
 - [ ] Gas benchmarks within targets
 - [ ] Upgrade safety tests pass (storage layout preserved)
-- [ ] Dry run on mainnet succeeds
 - [ ] Deployer wallet funded on mainnet
 - [ ] Indexer config ready for mainnet addresses
 - [ ] Frontend env vars set for mainnet chain ID
@@ -358,19 +348,19 @@ Failed deployment scenario:
 **Steps:**
 ```bash
 # 1. Check what actually deployed
-bun script/deploy.ts status baseSepolia
+bun script/deploy.ts status sepolia
 
 # 2. If artifacts were written incorrectly, restore from git
-git checkout -- packages/contracts/deployments/84532-latest.json
+git checkout -- packages/contracts/deployments/11155111-latest.json
 
 # 3. Fix the issue and redeploy
-bun script/deploy.ts core --network baseSepolia --broadcast
+bun script/deploy.ts core --network sepolia --broadcast
 ```
 
 **For UUPS proxies:** If the implementation is buggy, deploy a new implementation and upgrade:
 ```bash
 # The proxy address stays the same — only the implementation changes
-bun script/deploy.ts core --network baseSepolia --broadcast --force
+bun script/deploy.ts core --network sepolia --broadcast --force
 ```
 
 ### Indexer Rollback

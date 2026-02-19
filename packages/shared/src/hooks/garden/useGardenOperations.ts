@@ -207,6 +207,7 @@ export function useGardenOperations(gardenId: string) {
     }
 
     const optimisticCallback = createOptimisticCallback();
+    const narrowedAddress = address as `0x${string}`;
 
     return {
       addGardener: createOperationWrapper(
@@ -217,7 +218,7 @@ export function useGardenOperations(gardenId: string) {
             messages: buildMessages("gardener", "add"),
           },
           walletClient,
-          address,
+          narrowedAddress,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -233,7 +234,7 @@ export function useGardenOperations(gardenId: string) {
             messages: buildMessages("gardener", "remove"),
           },
           walletClient,
-          address,
+          narrowedAddress,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -249,7 +250,7 @@ export function useGardenOperations(gardenId: string) {
             messages: buildMessages("operator", "add"),
           },
           walletClient,
-          address,
+          narrowedAddress,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -265,7 +266,7 @@ export function useGardenOperations(gardenId: string) {
             messages: buildMessages("operator", "remove"),
           },
           walletClient,
-          address,
+          narrowedAddress,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -281,7 +282,7 @@ export function useGardenOperations(gardenId: string) {
             messages: buildMessages("evaluator", "add"),
           },
           walletClient,
-          address,
+          narrowedAddress,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -297,7 +298,7 @@ export function useGardenOperations(gardenId: string) {
             messages: buildMessages("evaluator", "remove"),
           },
           walletClient,
-          address,
+          narrowedAddress,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -313,7 +314,7 @@ export function useGardenOperations(gardenId: string) {
             messages: buildMessages("owner", "add"),
           },
           walletClient,
-          address,
+          narrowedAddress,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -329,7 +330,7 @@ export function useGardenOperations(gardenId: string) {
             messages: buildMessages("owner", "remove"),
           },
           walletClient,
-          address,
+          narrowedAddress,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -345,7 +346,7 @@ export function useGardenOperations(gardenId: string) {
             messages: buildMessages("funder", "add"),
           },
           walletClient,
-          address,
+          narrowedAddress,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -361,7 +362,7 @@ export function useGardenOperations(gardenId: string) {
             messages: buildMessages("funder", "remove"),
           },
           walletClient,
-          address,
+          narrowedAddress,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -377,7 +378,7 @@ export function useGardenOperations(gardenId: string) {
             messages: buildMessages("community", "add"),
           },
           walletClient,
-          address,
+          narrowedAddress,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -393,7 +394,7 @@ export function useGardenOperations(gardenId: string) {
             messages: buildMessages("community", "remove"),
           },
           walletClient,
-          address,
+          narrowedAddress,
           executeWithToast,
           setIsLoading,
           optimisticCallback

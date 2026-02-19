@@ -11,9 +11,17 @@ import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { ActionRegistry } from "../registries/Action.sol";
 
 error NotActiveAction();
+/// @notice Thrown when the action's domain is not enabled for the target garden
+error ActionDomainMismatch();
+/// @notice Thrown when work metadata CID is empty
+error MetadataRequired();
 /// @notice Thrown when attester is not a member (gardener or operator) of the garden
 error NotGardenMember();
 error NotInActionRegistry();
+/// @notice Thrown when work title is empty
+error TitleRequired();
+/// @notice Thrown when attestation uses wrong schema UID
+error InvalidSchema();
 
 /// @title WorkResolver
 /// @notice A schema resolver for the Actions event schema
@@ -21,13 +29,19 @@ error NotInActionRegistry();
 contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     address public immutable ACTION_REGISTRY;
 
+    /// @notice Expected EAS schema UID for work attestations
+    bytes32 public schemaUID;
+
+    /// @notice Emitted when the expected schema UID is updated
+    event SchemaUIDUpdated(bytes32 indexed schemaUID);
+
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 50 slots (50 total - 0 used in storage)
+     * Reserves 49 slots (50 total - 1 used: schemaUID)
      * Note: ACTION_REGISTRY is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address easAddrs, address actionAddrs) SchemaResolver(IEAS(easAddrs)) {
@@ -43,24 +57,37 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
         _transferOwnership(_multisig);
     }
 
+    /// @notice Sets the expected schema UID for work attestations
+    /// @dev When schemaUID is bytes32(0), schema validation is bypassed. This is intentional
+    ///      during the deployment window before EAS schemas are registered.
+    /// @param _schemaUID The schema UID to validate against
+    function setSchemaUID(bytes32 _schemaUID) external onlyOwner {
+        schemaUID = _schemaUID;
+        emit SchemaUIDUpdated(_schemaUID);
+    }
+
     /// @notice Indicates whether the resolver is payable.
-    /// @dev This is a pure function that always returns true.
-    /// @return A boolean indicating that the resolver is payable.
+    /// @dev This is a pure function that always returns false.
+    /// @return A boolean indicating that the resolver is not payable.
     function isPayable() public pure override returns (bool) {
-        return true;
+        return false;
     }
 
     /// @notice Handles the logic to be executed when an attestation is made
-    /// @dev Validates attester identity and action validity before allowing work submission
+    /// @dev Validates attester identity, required fields, action validity, and domain match
     ///
     /// **Validation Order (Security Critical):**
     /// 1. IDENTITY: Verify attester is a gardener OR operator of the target garden
-    /// 2. ACTION: Verify action exists in registry
-    /// 3. TIMING: Verify action is still active (not expired)
+    /// 2. REQUIRED FIELDS: Verify title and metadata CID are non-empty
+    /// 3. ACTION: Verify action exists in registry
+    /// 4. TIMING: Verify action is still active (not expired)
+    /// 5. DOMAIN: Verify the action's domain is enabled for the target garden
     ///
     /// @param attestation The attestation data structure
     /// @return bool True if attestation is valid
     function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
+        if (schemaUID != bytes32(0) && attestation.schema != schemaUID) revert InvalidSchema();
+
         WorkSchema memory schema = abi.decode(attestation.data, (WorkSchema));
         IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);
 
@@ -74,14 +101,34 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
             revert NotGardenMember();
         }
 
-        // ACTION VALIDATION: Verify action exists in registry
-        if (ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID).startTime == 0) {
+        // REQUIRED FIELDS: Validate essential data
+        if (bytes(schema.title).length == 0) {
+            revert TitleRequired();
+        }
+
+        if (bytes(schema.metadata).length == 0) {
+            revert MetadataRequired();
+        }
+
+        // ACTION VALIDATION: Load action once and verify it exists
+        ActionRegistry.Action memory action = ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID);
+        if (action.startTime == 0) {
             revert NotInActionRegistry();
         }
 
-        // TIMING VALIDATION: Verify action is still active
-        if (ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID).endTime < block.timestamp) {
+        // TIMING VALIDATION: Verify action has started
+        if (action.startTime > block.timestamp) {
             revert NotActiveAction();
+        }
+
+        // TIMING VALIDATION: Verify action is still active
+        if (action.endTime < block.timestamp) {
+            revert NotActiveAction();
+        }
+
+        // DOMAIN VALIDATION: Verify garden has the action's domain enabled
+        if (!ActionRegistry(ACTION_REGISTRY).gardenHasDomain(attestation.recipient, action.domain)) {
+            revert ActionDomainMismatch();
         }
 
         return (true);

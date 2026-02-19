@@ -106,15 +106,21 @@ packages/contracts/out/*
 !packages/contracts/out/Garden.sol/
 !packages/contracts/out/Action.sol/
 !packages/contracts/out/EAS.sol/
+!packages/contracts/out/ENS.sol/
+!packages/contracts/out/IHats.sol/
 # Step 4: Re-ignore everything inside those subdirectories
 packages/contracts/out/Garden.sol/*
 packages/contracts/out/Action.sol/*
 packages/contracts/out/EAS.sol/*
+packages/contracts/out/ENS.sol/*
+packages/contracts/out/IHats.sol/*
 # Step 5: Un-ignore only the specific ABI files we need
 !packages/contracts/out/Garden.sol/GardenAccount.json
 !packages/contracts/out/Garden.sol/GardenToken.json
 !packages/contracts/out/Action.sol/ActionRegistry.json
 !packages/contracts/out/EAS.sol/MockEAS.json
+!packages/contracts/out/ENS.sol/GreenGoodsENS.json
+!packages/contracts/out/IHats.sol/IHats.json
 
 # Vite dev build output
 dev-dist
@@ -205,6 +211,7 @@ debug-storybook.log
 test-results.json
 FINAL_TEST_REPORT.md
 .ipfs-cache.json
+.action-images-cache.json
 
 # ================================
 # Other Package Manager Lockfiles (project uses bun)
@@ -276,8 +283,7 @@ docker-compose.local.yml
 # ================================
 # Cursor
 # ================================
-# Track .cursor/BUGBOT.md and .cursor/rules/*.mdc (shared team rules)
-# Ignore any local/user-specific cursor settings
+# Ignore local/user-specific Cursor settings
 .cursor/settings.local.json
 .cursor/.cursorignore
 
@@ -295,7 +301,6 @@ docker-compose.local.yml
 
 # Keep shared Claude settings
 !.claude/settings.json
-!.claude/commands/
 
 # ================================
 # OS Generated
@@ -332,11 +337,19 @@ packages/*/dist/
 packages/*/.cache/
 packages/*/build/
 
+# Generated output (audits, reports, etc.)
+output/
+
+# Backup files
+*.backup
+
 # Docs build output (Docusaurus)
 docs/build/
 
 # Package-specific generated files
 packages/contracts/cache/
+packages/contracts/cache-*/
+packages/contracts/out-*/
 packages/contracts/broadcast/
 
 # Indexer: generated directory (Envio codegen output, rebuilt on dev)

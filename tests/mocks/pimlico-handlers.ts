@@ -90,7 +90,7 @@ interface UserOperationReceipt {
 const MOCK_PAYMASTER = "0x00000000000000fBf0ac735561cCAb0e5c8f75c5" as const;
 
 /**
- * Mock gas prices (realistic values for Base Sepolia)
+ * Mock gas prices (realistic values for Sepolia)
  */
 const MOCK_GAS_PRICES: UserOperationGasPrice = {
   slow: {
@@ -275,7 +275,7 @@ function handlePimlicoRpc(body: JsonRpcRequest): JsonRpcResponse {
     // ============================
 
     case "eth_chainId":
-      return successResponse(id, "0x14A34"); // 84532 (Base Sepolia)
+      return successResponse(id, "0xAA36A7"); // 11155111 (Sepolia)
 
     case "eth_blockNumber":
       return successResponse(id, "0x1");

@@ -2,8 +2,8 @@
  * Transaction Polling Utility
  *
  * Handles polling queries after blockchain transactions to account for indexer lag.
- * Base Sepolia block time: ~2 seconds
- * Envio indexer lag: typically 1-3 blocks behind (2-6 seconds)
+ * Sepolia block time: ~12 seconds
+ * Envio indexer lag: typically 1-3 blocks behind
  *
  * Strategy: Smart polling with early exit when data changes
  * - Faster initial delays (1s, 2s, 4s) for responsiveness
@@ -14,7 +14,13 @@
  */
 
 import { queryClient } from "../../config/react-query";
+import { logger } from "../../modules/app/logger";
 import { debugLog } from "../debug";
+
+/**
+ * Shared timeout for waiting on on-chain transaction receipts.
+ */
+export const TX_RECEIPT_TIMEOUT_MS = 120_000;
 
 interface PollConfig {
   /** Array of query keys to invalidate and refetch */
@@ -84,7 +90,7 @@ export async function pollQueriesAfterTransaction(config: PollConfig): Promise<v
   } = config;
 
   if (queryKeys.length === 0) {
-    console.warn("[Polling] No query keys provided, skipping polling");
+    logger.warn("[Polling] No query keys provided, skipping polling");
     return;
   }
 

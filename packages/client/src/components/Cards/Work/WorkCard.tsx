@@ -1,13 +1,14 @@
-import { useEnsName } from "@green-goods/shared/hooks";
 import {
   cn,
   formatAddress,
   formatFileSize,
   formatRelativeTime,
+  getStatusColors,
+  logger,
   truncateAddress,
-} from "@green-goods/shared/utils";
-import { getStatusColors } from "@green-goods/shared/components";
-import type { Work } from "@green-goods/shared";
+  useEnsName,
+  type Work,
+} from "@green-goods/shared";
 import { RiFileTextLine, RiImageLine, RiRefreshLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -206,7 +207,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
 
       setThumbUrl(url);
     } catch (error) {
-      console.error("[MinimalWorkCard] Error processing media:", error);
+      logger.error("[MinimalWorkCard] Error processing media:", { error });
       setThumbUrl(undefined);
     }
     return () => {
@@ -215,7 +216,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
           URL.revokeObjectURL(createdUrl);
         } catch (error) {
           // Non-critical: URL will be garbage collected eventually
-          console.warn("[MinimalWorkCard] Failed to revoke object URL:", error);
+          logger.warn("[MinimalWorkCard] Failed to revoke object URL:", { error });
         }
       }
     };
@@ -313,5 +314,5 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
 };
 
 // Re-export StatusBadge from shared for convenience
-export { StatusBadge } from "@green-goods/shared/components";
-export type { StatusBadgeProps } from "@green-goods/shared/components";
+export { StatusBadge } from "@green-goods/shared";
+export type { StatusBadgeProps } from "@green-goods/shared";

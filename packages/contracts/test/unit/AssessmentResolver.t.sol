@@ -8,18 +8,18 @@ import { Attestation } from "@eas/IEAS.sol";
 import { AssessmentSchema } from "../../src/Schemas.sol";
 import {
     AssessmentResolver,
-    NotGardenOperator,
+    NotAuthorizedAttester,
     TitleRequired,
-    AssessmentTypeRequired,
-    AtLeastOneCapitalRequired,
-    InvalidCapital
+    ConfigCIDRequired,
+    InvalidDomain,
+    InvalidSchema
 } from "../../src/resolvers/Assessment.sol";
 import { MockEAS } from "../../src/mocks/EAS.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
 
 /// @title AssessmentResolverTest
-/// @notice Unit tests for AssessmentResolver onAttest validation logic
-/// @dev Tests identity checks, required field validation, and capital validation
+/// @notice Unit tests for AssessmentResolver v2 onAttest validation logic
+/// @dev Tests identity checks, required field validation, and domain validation
 contract AssessmentResolverTest is Test {
     AssessmentResolver private assessmentResolver;
     MockEAS private mockEAS;
@@ -57,7 +57,7 @@ contract AssessmentResolverTest is Test {
     }
 
     function testIsPayable() public {
-        assertTrue(assessmentResolver.isPayable(), "Resolver should be payable");
+        assertFalse(assessmentResolver.isPayable(), "Resolver should not be payable");
     }
 
     // =========================================================================
@@ -80,26 +80,18 @@ contract AssessmentResolverTest is Test {
         assertTrue(result, "Operator should also be able to create assessments");
     }
 
-    function testOnAttestAllValidCapitals() public {
-        // Test all 8 valid capital types
-        string[] memory allCapitals = new string[](8);
-        allCapitals[0] = "social";
-        allCapitals[1] = "material";
-        allCapitals[2] = "financial";
-        allCapitals[3] = "living";
-        allCapitals[4] = "intellectual";
-        allCapitals[5] = "experiential";
-        allCapitals[6] = "spiritual";
-        allCapitals[7] = "cultural";
+    function testOnAttestAllValidDomains() public {
+        // Test all 4 valid domain values (SOLAR=0, AGRO=1, EDU=2, WASTE=3)
+        for (uint8 d = 0; d <= 3; d++) {
+            AssessmentSchema memory schema = _validAssessment();
+            schema.domain = d;
 
-        AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = allCapitals;
+            Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
 
-        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
-
-        vm.prank(address(mockEAS));
-        bool result = assessmentResolver.attest(attestation);
-        assertTrue(result, "All 8 valid capitals should be accepted");
+            vm.prank(address(mockEAS));
+            bool result = assessmentResolver.attest(attestation);
+            assertTrue(result, "Valid domain should be accepted");
+        }
     }
 
     // =========================================================================
@@ -110,7 +102,7 @@ contract AssessmentResolverTest is Test {
         Attestation memory attestation = _buildAssessmentAttestation(stranger, _validAssessment());
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(NotGardenOperator.selector);
+        vm.expectRevert(NotAuthorizedAttester.selector);
         assessmentResolver.attest(attestation);
     }
 
@@ -119,7 +111,7 @@ contract AssessmentResolverTest is Test {
         Attestation memory attestation = _buildAssessmentAttestation(gardener, _validAssessment());
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(NotGardenOperator.selector);
+        vm.expectRevert(NotAuthorizedAttester.selector);
         assessmentResolver.attest(attestation);
     }
 
@@ -138,69 +130,61 @@ contract AssessmentResolverTest is Test {
         assessmentResolver.attest(attestation);
     }
 
-    function testOnAttestRevertsForEmptyAssessmentType() public {
+    function testOnAttestRevertsForEmptyConfigCID() public {
         AssessmentSchema memory schema = _validAssessment();
-        schema.assessmentType = "";
+        schema.assessmentConfigCID = "";
 
         Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(AssessmentTypeRequired.selector);
-        assessmentResolver.attest(attestation);
-    }
-
-    function testOnAttestRevertsForEmptyCapitals() public {
-        AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = new string[](0);
-
-        Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
-
-        vm.prank(address(mockEAS));
-        vm.expectRevert(AtLeastOneCapitalRequired.selector);
+        vm.expectRevert(ConfigCIDRequired.selector);
         assessmentResolver.attest(attestation);
     }
 
     // =========================================================================
-    // onAttest: Capital Validation
+    // onAttest: Domain Validation
     // =========================================================================
 
-    function testOnAttestRevertsForInvalidCapital() public {
+    function testOnAttestRevertsForInvalidDomain() public {
         AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = new string[](1);
-        schema.capitals[0] = "invalid_capital";
+        schema.domain = 4; // Invalid — only 0-3 are valid
 
         Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(abi.encodeWithSelector(InvalidCapital.selector, "invalid_capital"));
+        vm.expectRevert(abi.encodeWithSelector(InvalidDomain.selector, uint8(4)));
         assessmentResolver.attest(attestation);
     }
 
-    function testOnAttestRevertsForMixedValidAndInvalidCapitals() public {
+    function testOnAttestRevertsForMaxUint8Domain() public {
         AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = new string[](3);
-        schema.capitals[0] = "social"; // valid
-        schema.capitals[1] = "living"; // valid
-        schema.capitals[2] = "bogus"; // invalid
+        schema.domain = 255;
 
         Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(abi.encodeWithSelector(InvalidCapital.selector, "bogus"));
+        vm.expectRevert(abi.encodeWithSelector(InvalidDomain.selector, uint8(255)));
         assessmentResolver.attest(attestation);
     }
 
-    function testOnAttestRevertsForCapitalCaseSensitivity() public {
-        // Capitals must be lowercase
+    // =========================================================================
+    // onAttest: Domain Fuzz Tests
+    // =========================================================================
+
+    function testFuzz_assessmentDomainValidation(uint8 domain) public {
         AssessmentSchema memory schema = _validAssessment();
-        schema.capitals = new string[](1);
-        schema.capitals[0] = "Social"; // uppercase S should fail
+        schema.domain = domain;
 
         Attestation memory attestation = _buildAssessmentAttestation(evaluator, schema);
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(abi.encodeWithSelector(InvalidCapital.selector, "Social"));
-        assessmentResolver.attest(attestation);
+        if (domain <= 3) {
+            bool result = assessmentResolver.attest(attestation);
+            assertTrue(result, "Valid domain should be accepted");
+        } else {
+            vm.expectRevert(abi.encodeWithSelector(InvalidDomain.selector, domain));
+            assessmentResolver.attest(attestation);
+        }
     }
 
     // =========================================================================
@@ -208,14 +192,14 @@ contract AssessmentResolverTest is Test {
     // =========================================================================
 
     function testValidationOrderIdentityBeforeFields() public {
-        // Stranger with empty title: should revert with NotGardenOperator (identity check first)
+        // Stranger with empty title: should revert with NotAuthorizedAttester (identity check first)
         AssessmentSchema memory schema = _validAssessment();
         schema.title = "";
 
         Attestation memory attestation = _buildAssessmentAttestation(stranger, schema);
 
         vm.prank(address(mockEAS));
-        vm.expectRevert(NotGardenOperator.selector);
+        vm.expectRevert(NotAuthorizedAttester.selector);
         assessmentResolver.attest(attestation);
     }
 
@@ -232,8 +216,31 @@ contract AssessmentResolverTest is Test {
     }
 
     // =========================================================================
-    // Configuration Tests
+    // Configuration Tests (with Event Verification)
     // =========================================================================
+
+    event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
+    event SchemaUIDUpdated(bytes32 indexed schemaUID);
+
+    function testSetSchemaUID_emitsEvent() public {
+        bytes32 newSchemaUID = bytes32(uint256(300));
+
+        vm.expectEmit(true, false, false, false);
+        emit SchemaUIDUpdated(newSchemaUID);
+
+        vm.prank(multisig);
+        assessmentResolver.setSchemaUID(newSchemaUID);
+    }
+
+    function testSetKarmaGAPModule_emitsEvent() public {
+        address module = address(0xCAFE);
+
+        vm.expectEmit(true, true, false, false);
+        emit KarmaGAPModuleUpdated(address(0), module);
+
+        vm.prank(multisig);
+        assessmentResolver.setKarmaGAPModule(module);
+    }
 
     function testSetKarmaGAPModule() public {
         address module = address(0xCAFE);
@@ -263,36 +270,108 @@ contract AssessmentResolverTest is Test {
     }
 
     // =========================================================================
+    // Double Initialization Test
+    // =========================================================================
+
+    function test_initialize_revertsOnDoubleInit() public {
+        vm.expectRevert("Initializable: contract is already initialized");
+        assessmentResolver.initialize(address(0x999));
+    }
+
+    // =========================================================================
+    // UUPS Upgrade Tests
+    // =========================================================================
+
+    function test_authorizeUpgrade_ownerCanUpgrade() public {
+        AssessmentResolver newImpl = new AssessmentResolver(address(mockEAS));
+
+        vm.prank(multisig);
+        assessmentResolver.upgradeTo(address(newImpl));
+    }
+
+    function test_authorizeUpgrade_nonOwnerCannotUpgrade() public {
+        AssessmentResolver newImpl = new AssessmentResolver(address(mockEAS));
+
+        vm.prank(stranger);
+        vm.expectRevert("Ownable: caller is not the owner");
+        assessmentResolver.upgradeTo(address(newImpl));
+    }
+
+    // =========================================================================
+    // GAP Integration Branch Tests (karmaGAPModule configured vs not)
+    // =========================================================================
+
+    function testOnAttestSucceedsWithKarmaGAPModuleConfigured() public {
+        // Configure a mock KarmaGAPModule (just needs to not revert on createMilestone)
+        MockKarmaGAPModule mockModule = new MockKarmaGAPModule();
+
+        vm.prank(multisig);
+        assessmentResolver.setKarmaGAPModule(address(mockModule));
+
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, _validAssessment());
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+        assertTrue(result, "Assessment should succeed with GAP module configured");
+        assertTrue(mockModule.createMilestoneCalled(), "GAP module should have been called");
+    }
+
+    function testOnAttestSucceedsWithoutKarmaGAPModule() public {
+        // Default setup: no karmaGAPModule configured
+        assertEq(address(assessmentResolver.karmaGAPModule()), address(0));
+
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, _validAssessment());
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+        assertTrue(result, "Assessment should succeed without GAP module");
+    }
+
+    function testOnAttestSucceedsWhenKarmaGAPModuleReverts() public {
+        // Configure a failing mock
+        MockKarmaGAPModule mockModule = new MockKarmaGAPModule();
+        mockModule.setShouldRevert(true);
+
+        vm.prank(multisig);
+        assessmentResolver.setKarmaGAPModule(address(mockModule));
+
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, _validAssessment());
+
+        vm.prank(address(mockEAS));
+        bool result = assessmentResolver.attest(attestation);
+        assertTrue(result, "Assessment should succeed even when GAP module reverts (try/catch)");
+    }
+
+    // =========================================================================
+    // Schema UID Validation Tests
+    // =========================================================================
+
+    function test_revert_InvalidSchema() public {
+        bytes32 expectedSchema = bytes32(uint256(200));
+        vm.prank(multisig);
+        assessmentResolver.setSchemaUID(expectedSchema);
+
+        // Build attestation with a different schema UID (102 != 200)
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, _validAssessment());
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(InvalidSchema.selector);
+        assessmentResolver.attest(attestation);
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 
     function _validAssessment() internal pure returns (AssessmentSchema memory) {
-        string[] memory capitals = new string[](2);
-        capitals[0] = "living";
-        capitals[1] = "social";
-
-        string[] memory evidence = new string[](1);
-        evidence[0] = "ipfs://QmEvidence";
-
-        string[] memory reports = new string[](1);
-        reports[0] = "ipfs://QmReport";
-
-        string[] memory tags = new string[](1);
-        tags[0] = "biodiversity";
-
         return AssessmentSchema({
             title: "Q1 Assessment",
-            description: "Biodiversity assessment",
-            assessmentType: "biodiversity",
-            capitals: capitals,
-            metricsJSON: "ipfs://QmMetrics",
-            evidenceMedia: evidence,
-            reportDocuments: reports,
-            impactAttestations: new bytes32[](0),
+            description: "Solar panel installation assessment",
+            assessmentConfigCID: "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+            domain: 0, // SOLAR
             startDate: 1_000_000,
             endDate: 2_000_000,
-            location: "Garden Plot A",
-            tags: tags
+            location: "Garden Plot A"
         });
     }
 
@@ -316,5 +395,37 @@ contract AssessmentResolverTest is Test {
             revocable: true,
             data: abi.encode(schema)
         });
+    }
+}
+
+/// @notice Minimal mock for IKarmaGAPModule.createMilestone used in assessment tests
+contract MockKarmaGAPModule {
+    bool private _createMilestoneCalled;
+    bool private _shouldRevert;
+
+    function createMilestone(
+        address,
+        string calldata,
+        string calldata,
+        uint256,
+        uint256,
+        uint8,
+        string calldata,
+        string calldata
+    )
+        external
+        returns (bytes32)
+    {
+        if (_shouldRevert) revert("MockKarmaGAPModule: failed");
+        _createMilestoneCalled = true;
+        return bytes32(uint256(1));
+    }
+
+    function createMilestoneCalled() external view returns (bool) {
+        return _createMilestoneCalled;
+    }
+
+    function setShouldRevert(bool val) external {
+        _shouldRevert = val;
     }
 }

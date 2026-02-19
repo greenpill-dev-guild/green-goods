@@ -35,6 +35,7 @@
 import { createActor } from "xstate";
 
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { logger } from "../modules/app/logger";
 import { authMachine } from "./authMachine";
 import { authServices } from "./authServices";
 
@@ -49,7 +50,7 @@ import { authServices } from "./authServices";
 function getChainId(): number {
   const envChainId = (import.meta as any).env?.VITE_CHAIN_ID;
   const chainId = envChainId ? Number(envChainId) : DEFAULT_CHAIN_ID;
-  console.debug("[AuthActor] Using chainId:", chainId, "from env:", envChainId);
+  logger.debug("[AuthActor] Using chainId", { chainId, envChainId });
   return chainId;
 }
 
@@ -67,7 +68,6 @@ function createAuthActor() {
         restoreSession: authServices.restoreSession,
         registerPasskey: authServices.registerPasskey,
         authenticatePasskey: authServices.authenticatePasskey,
-        claimENS: authServices.claimENS,
       },
     }),
     {
@@ -150,10 +150,7 @@ export const authSelectors = {
 
   // Auth mode derived from state
   authMode: (snapshot: AuthSnapshot) => {
-    if (
-      snapshot.matches({ authenticated: "passkey" }) ||
-      snapshot.matches({ authenticated: "claiming_ens" })
-    ) {
+    if (snapshot.matches({ authenticated: "passkey" })) {
       return "passkey" as const;
     }
     if (snapshot.matches({ authenticated: "wallet" })) {

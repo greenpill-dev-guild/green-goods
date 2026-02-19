@@ -1,12 +1,7 @@
 ---
 name: web3
+user-invocable: false
 description: Web3 frontend patterns - Wagmi, Viem, wallet/passkey auth, transaction lifecycle, contract interactions. Use for wallet flows, chain switching, contract reads/writes, and account abstraction.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin]
-dependencies: [react, tanstack-query]
 ---
 
 # Web3 Skill
@@ -157,7 +152,7 @@ if (!simulation.success) {
 
 ```typescript
 // ✅ ALWAYS: Import from deployment artifacts
-import deployment from "../../../contracts/deployments/84532-latest.json";
+import deployment from "../../../contracts/deployments/11155111-latest.json";
 const gardenToken = deployment.gardenToken;
 
 // ✅ ALSO: Use shared utilities
@@ -199,8 +194,7 @@ function ChainInfo() {
 
 | Chain ID | Network | Usage |
 |----------|---------|-------|
-| `84532` | Base Sepolia | Default testnet |
-| `11155111` | Sepolia | Legacy testnet |
+| `11155111` | Sepolia | Default testnet |
 | `42161` | Arbitrum One | Production |
 | `42220` | Celo | Production |
 | `31337` | Localhost (Anvil) | Local development |
@@ -421,4 +415,4 @@ async function ensureSufficientBalance(address: Address) {
 - `error-handling-patterns` — Contract error categorization and user messages
 - `react` — State management for transaction UI
 - `contracts` — Solidity side of the contract interactions
-- `offline` — Job queue for offline transaction queueing
+- `data-layer` — Job queue for offline transaction queueing

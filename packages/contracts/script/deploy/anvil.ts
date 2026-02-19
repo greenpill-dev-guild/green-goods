@@ -5,13 +5,47 @@ import { NetworkManager } from "../utils/network";
 /**
  * AnvilManager - Manages Anvil local blockchain lifecycle
  *
- * Extracted from deploy.js to handle Anvil process management
+ * Extracted from deploy.js to handle Anvil process management.
+ * Tracks spawned child processes and registers cleanup handlers
+ * to prevent orphaned Anvil instances.
  */
 export class AnvilManager {
   private networkManager: NetworkManager;
+  /** PIDs of background Anvil processes spawned by this manager */
+  private spawnedPids: number[] = [];
 
-  constructor() {
-    this.networkManager = new NetworkManager();
+  constructor(networkManager?: NetworkManager) {
+    this.networkManager = networkManager ?? new NetworkManager();
+    this._registerCleanup();
+  }
+
+  /**
+   * Register process-level cleanup to kill any Anvil processes we started.
+   * Uses 'exit' (sync) since SIGINT/SIGTERM may not fire in all environments.
+   */
+  private _registerCleanup(): void {
+    const cleanup = (): void => {
+      for (const pid of this.spawnedPids) {
+        try {
+          process.kill(pid);
+        } catch {
+          // Process already exited — ignore
+        }
+      }
+      this.spawnedPids = [];
+    };
+
+    process.on("exit", cleanup);
+  }
+
+  /** Track a spawned Anvil process for cleanup */
+  private _trackProcess(child: ChildProcess): void {
+    if (child.pid) {
+      this.spawnedPids.push(child.pid);
+      child.on("exit", () => {
+        this.spawnedPids = this.spawnedPids.filter((p) => p !== child.pid);
+      });
+    }
   }
 
   /**
@@ -90,6 +124,7 @@ export class AnvilManager {
         detached: true,
       },
     );
+    this._trackProcess(anvil);
 
     anvil.on("error", (error) => {
       console.error("Failed to start anvil:", error);
@@ -153,6 +188,7 @@ export class AnvilManager {
       stdio: background ? "pipe" : "inherit",
       detached: background,
     });
+    this._trackProcess(anvil);
 
     anvil.on("error", (error) => {
       console.error("Failed to start anvil:", error);

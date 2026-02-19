@@ -1,15 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 
 import type { HypercertRecord, HypercertStatus } from "../../types/hypercerts";
 import {
   getGardenHypercerts,
   getHypercertById,
   getHypercertFromSdkApi,
+  hydrateHypercertMetadata,
+  hydrateHypercertRecords,
 } from "../../modules/data/hypercerts";
 import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 import { ValidationError } from "../../utils/errors/validation-error";
 import { logger } from "../../modules/app/logger";
+import { useCurrentChain } from "../blockchain/useChainConfig";
 
 /**
  * Sync status for newly minted hypercerts.
@@ -135,8 +138,24 @@ function optimisticToRecord(data: OptimisticHypercertData, gardenId?: string): H
   };
 }
 
+function mergeRecordWithMetadata(
+  record: HypercertRecord,
+  metadata?: Partial<HypercertRecord>
+): HypercertRecord {
+  if (!metadata) return record;
+
+  return {
+    ...record,
+    title: metadata.title ?? record.title,
+    description: metadata.description ?? record.description,
+    imageUri: metadata.imageUri ?? record.imageUri,
+    workScopes: metadata.workScopes ?? record.workScopes,
+  };
+}
+
 export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsResult {
   const { gardenId, status, hypercertId, optimisticData } = params;
+  const chainId = useCurrentChain();
 
   // Polling state for newly minted hypercerts
   const [pollAttempts, setPollAttempts] = useState(0);
@@ -144,6 +163,7 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
   const [syncStatus, setSyncStatus] = useState<HypercertSyncStatus>(
     optimisticData ? "syncing" : "synced"
   );
+  const [metadataById, setMetadataById] = useState<Record<string, Partial<HypercertRecord>>>({});
 
   // Reset polling state when hypercertId changes
   useEffect(() => {
@@ -152,17 +172,43 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
     setSyncStatus(optimisticData ? "syncing" : "synced");
   }, [hypercertId, optimisticData]);
 
+  // Prevent metadata bleed when chain context changes.
+  useEffect(() => {
+    setMetadataById({});
+  }, [chainId]);
+
   const listQuery = useQuery({
-    queryKey: queryKeys.hypercerts.list(gardenId, status),
+    queryKey: queryKeys.hypercerts.list(gardenId, chainId, status),
     queryFn: () => {
       if (!gardenId) {
         throw new ValidationError("gardenId is required for listing hypercerts");
       }
-      return getGardenHypercerts(gardenId, status);
+      return getGardenHypercerts(gardenId, chainId, status);
     },
     enabled: Boolean(gardenId) && !hypercertId,
     staleTime: STALE_TIME_MEDIUM,
   });
+
+  const listMetadataQuery = useQuery({
+    queryKey: [
+      ...queryKeys.hypercerts.all,
+      "metadata",
+      "list",
+      chainId,
+      (listQuery.data ?? [])
+        .map((record) => record.id)
+        .sort()
+        .join(","),
+    ] as const,
+    queryFn: async () => hydrateHypercertRecords(listQuery.data ?? [], chainId),
+    enabled: Boolean(listQuery.data?.length) && !hypercertId,
+    staleTime: STALE_TIME_MEDIUM,
+  });
+
+  useEffect(() => {
+    if (!listMetadataQuery.data) return;
+    setMetadataById((current) => ({ ...current, ...listMetadataQuery.data }));
+  }, [listMetadataQuery.data]);
 
   // Should poll: have optimistic data, haven't found real data yet, haven't exceeded attempts
   const shouldPoll = Boolean(optimisticData) && !hasFoundData && pollAttempts < MAX_POLL_ATTEMPTS;
@@ -178,6 +224,34 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
     // Enable polling when we have optimistic data but no real data yet
     refetchInterval: shouldPoll ? POLL_INTERVAL_MS : false,
   });
+
+  const detailMetadataQuery = useQuery({
+    queryKey: [
+      ...queryKeys.hypercerts.all,
+      "metadata",
+      "detail",
+      chainId,
+      hypercertId,
+      detailQuery.data?.metadataUri ?? "",
+    ] as const,
+    queryFn: async () => {
+      if (!hypercertId) return null;
+      return hydrateHypercertMetadata(hypercertId, detailQuery.data?.metadataUri, chainId);
+    },
+    enabled: Boolean(hypercertId),
+    staleTime: STALE_TIME_MEDIUM,
+  });
+
+  useEffect(() => {
+    if (!detailMetadataQuery.data || !hypercertId) return;
+    setMetadataById((current) => ({
+      ...current,
+      [hypercertId]: {
+        ...(current[hypercertId] ?? {}),
+        ...detailMetadataQuery.data,
+      },
+    }));
+  }, [detailMetadataQuery.data, hypercertId]);
 
   // Track polling attempts and update sync status
   useEffect(() => {
@@ -204,14 +278,36 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
     }
   }, [detailQuery.data, detailQuery.isFetching, optimisticData, hypercertId, pollAttempts]);
 
+  const mergedList = useMemo(
+    () =>
+      (listQuery.data ?? []).map((record) =>
+        mergeRecordWithMetadata(record, metadataById[record.id])
+      ),
+    [listQuery.data, metadataById]
+  );
+
+  const mergedDetail = useMemo(() => {
+    if (!detailQuery.data) return null;
+    return mergeRecordWithMetadata(detailQuery.data, metadataById[detailQuery.data.id]);
+  }, [detailQuery.data, metadataById]);
+
+  const optimisticFallback =
+    optimisticData && hypercertId
+      ? mergeRecordWithMetadata(
+          optimisticToRecord(optimisticData, gardenId),
+          metadataById[hypercertId] ?? metadataById[optimisticData.id]
+        )
+      : optimisticData
+        ? optimisticToRecord(optimisticData, gardenId)
+        : null;
+
   const isLoading = listQuery.isLoading || detailQuery.isLoading;
   const error = (listQuery.error as Error) ?? (detailQuery.error as Error) ?? null;
 
   // Determine the hypercert to return:
   // 1. Real indexed data if available
   // 2. Optimistic data as fallback
-  const hypercert =
-    detailQuery.data ?? (optimisticData ? optimisticToRecord(optimisticData, gardenId) : null);
+  const hypercert = mergedDetail ?? optimisticFallback;
 
   const refetch = useCallback(async () => {
     if (hypercertId) {
@@ -223,7 +319,7 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
   }, [hypercertId, detailQuery, listQuery]);
 
   return {
-    hypercerts: listQuery.data ?? [],
+    hypercerts: mergedList,
     hypercert,
     isLoading: isLoading && !optimisticData, // Don't show loading if we have optimistic data
     error,

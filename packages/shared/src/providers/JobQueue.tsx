@@ -25,14 +25,7 @@ interface JobQueueContextValue {
   getPendingCount: () => Promise<number>;
 }
 
-const JobQueueContext = createContext<JobQueueContextValue>({
-  stats: { total: 0, pending: 0, failed: 0, synced: 0 },
-  isProcessing: false,
-  lastEvent: null,
-  flush: async () => {},
-  hasPendingJobs: async () => false,
-  getPendingCount: async () => 0,
-});
+const JobQueueContext = createContext<JobQueueContextValue | undefined>(undefined);
 
 export const useJobQueue = () => {
   const context = useContext(JobQueueContext);
@@ -183,14 +176,15 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 
       if (!event.job) return;
 
-      // Suppress error toasts for background retries
-      // Failures are visible in Work Dashboard/status UI
       if (event.job.kind === "work") {
+        queueToasts.jobFailed("work", event.error);
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
         queryClient.invalidateQueries({ queryKey: queryKeys.works.offline(gardenId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+      } else if (event.job.kind === "approval") {
+        queueToasts.jobFailed("approval", event.error);
       }
     };
 

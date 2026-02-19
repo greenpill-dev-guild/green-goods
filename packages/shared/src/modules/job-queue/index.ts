@@ -1,6 +1,6 @@
 import type { SmartAccountClient } from "permissionless";
 import { DEFAULT_CHAIN_ID } from "../../config";
-import type { WorkApprovalDraft, WorkSubmission } from "../../types/domain";
+import type { WorkSubmission } from "../../types/domain";
 import type {
   ApprovalJobPayload,
   Job,
@@ -13,6 +13,7 @@ import { scheduleTask, yieldToMain } from "../../utils/scheduler";
 import { getStorageQuota } from "../../utils/storage/quota";
 import { trackSyncError, addBreadcrumb, getBreadcrumbs } from "../app/error-tracking";
 import { getIpfsInitStatus } from "../data/ipfs";
+import { logger } from "../app/logger";
 import { track } from "../app/posthog";
 import { submitApprovalWithPasskey, submitWorkWithPasskey } from "../work/passkey-submission";
 import { jobQueueDB } from "./db";
@@ -60,25 +61,33 @@ async function executeWorkJob(
   smartAccountClient: SmartAccountClient
 ): Promise<string> {
   const images = await jobQueueDB.getImagesForJob(jobId);
-  const files = images.map((img) => img.file);
+  const allFiles = images.map((img) => img.file);
   const payload = job.payload as WorkJobPayload;
   const actionTitle = payload.title || `Action ${payload.actionUID}`;
+
+  // Separate audio from visual media by MIME type
+  const audioFiles = allFiles.filter((f) => f.type.startsWith("audio/"));
+  const mediaFiles = allFiles.filter((f) => !f.type.startsWith("audio/"));
 
   return await submitWorkWithPasskey({
     client: smartAccountClient,
     draft: {
       actionUID: payload.actionUID,
       title: actionTitle,
-      plantSelection: ensureArray<string>(payload.plantSelection),
-      plantCount: typeof payload.plantCount === "number" ? payload.plantCount : 0,
       feedback: payload.feedback,
-      media: files,
+      media: mediaFiles,
+      details: payload.details ?? {},
+      ...(typeof payload.timeSpentMinutes === "number"
+        ? { timeSpentMinutes: payload.timeSpentMinutes }
+        : {}),
+      ...(payload.tags ? { tags: payload.tags } : {}),
+      ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
     } as WorkSubmission,
     gardenAddress: payload.gardenAddress,
     actionUID: payload.actionUID,
     actionTitle,
     chainId,
-    images: files,
+    images: mediaFiles,
   });
 }
 
@@ -96,7 +105,10 @@ async function executeApprovalJob(
       workUID: payload.workUID,
       approved: payload.approved,
       feedback: payload.feedback,
-    } as WorkApprovalDraft,
+      confidence: payload.confidence,
+      verificationMethod: payload.verificationMethod,
+      reviewNotesCID: payload.reviewNotesCID,
+    },
     gardenAddress: payload.gardenAddress,
     chainId,
   });
@@ -162,7 +174,7 @@ class JobQueue {
       this.failedDeleteCount = storedIds.length;
       this.failedDeleteIdsInitialized = true;
     } catch (err) {
-      console.warn("[JobQueue] Failed to load failed delete IDs from IndexedDB:", err);
+      logger.warn("[JobQueue] Failed to load failed delete IDs from IndexedDB", { error: err });
       this.failedDeleteIdsInitialized = true;
     }
   }
@@ -174,7 +186,7 @@ class JobQueue {
     try {
       await jobQueueDB.saveFailedDeleteIds([...this.failedDeleteJobIds]);
     } catch (err) {
-      console.warn("[JobQueue] Failed to persist failed delete IDs to IndexedDB:", err);
+      logger.warn("[JobQueue] Failed to persist failed delete IDs to IndexedDB", { error: err });
     }
   }
 
@@ -218,7 +230,7 @@ class JobQueue {
         percent_used: storageQuota.percentUsed,
       });
 
-      console.warn(
+      logger.warn(
         `[JobQueue] Storage critically low (${Math.round(storageQuota.percentUsed)}% used). Job may fail to persist.`
       );
     } else if (storageQuota.isLow) {
@@ -444,7 +456,7 @@ class JobQueue {
             jobId
           );
         } catch (error) {
-          console.warn("[JobQueue] Failed to store clientWorkId mapping:", error);
+          logger.warn("[JobQueue] Failed to store clientWorkId mapping", { error });
         }
       }
 
@@ -457,7 +469,7 @@ class JobQueue {
         this.failedDeleteCount += 1;
         await this.persistFailedDeleteIds();
 
-        console.warn("[JobQueue] Failed to delete synced job:", jobId, deleteErr);
+        logger.warn("[JobQueue] Failed to delete synced job", { jobId, error: deleteErr });
 
         // Alert if threshold exceeded
         if (this.failedDeleteCount >= FAILED_DELETE_ALERT_THRESHOLD) {
@@ -802,14 +814,14 @@ class JobQueue {
 
     // Rehydrate failed delete IDs from IndexedDB on startup
     this.initFailedDeleteIds().catch((err) => {
-      console.warn("[JobQueue] Failed to init failed delete IDs:", err);
+      logger.warn("[JobQueue] Failed to init failed delete IDs", { error: err });
     });
 
     this.cleanupIntervalId = setInterval(() => {
       // Only run cleanup if there are failed deletes to retry
       if (this.failedDeleteJobIds.size > 0) {
         this.cleanupOrphanedSyncedJobs().catch((err) => {
-          console.warn("[JobQueue] Cleanup scheduler error:", err);
+          logger.warn("[JobQueue] Cleanup scheduler error", { error: err });
         });
       }
     }, intervalMs);

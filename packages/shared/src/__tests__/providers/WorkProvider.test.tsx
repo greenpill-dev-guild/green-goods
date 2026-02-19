@@ -58,15 +58,18 @@ vi.mock("../../hooks/work/useWorkImages", () => ({
   useWorkImages: () => mockUseWorkImages(),
 }));
 
-vi.mock("../../stores/useWorkFlowStore", () => ({
-  useWorkFlowStore: (selector: (state: typeof mockWorkFlowStore) => unknown) => {
+vi.mock("../../stores/useWorkFlowStore", () => {
+  const storeFn = (selector: (state: typeof mockWorkFlowStore) => unknown) => {
     // Handle useShallow - just call selector directly
     if (typeof selector === "function") {
       return selector(mockWorkFlowStore);
     }
     return mockWorkFlowStore;
-  },
-}));
+  };
+  // Zustand stores expose getState() for non-reactive access
+  storeFn.getState = () => ({ ...mockWorkFlowStore, audioNotes: [] });
+  return { useWorkFlowStore: storeFn };
+});
 
 vi.mock("../../components/toast", () => ({
   validationToasts: {

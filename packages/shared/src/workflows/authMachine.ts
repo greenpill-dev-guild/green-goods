@@ -39,6 +39,7 @@ import { type SmartAccountClient } from "permissionless";
 import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { logger } from "../modules/app/logger";
 import { assign, fromPromise, setup } from "xstate";
 
 // ============================================================================
@@ -89,10 +90,6 @@ export type AuthEvent =
   | { type: "EXTERNAL_WALLET_DISCONNECTED" }
   | { type: "MODAL_CLOSED" } // Wallet modal was closed without connecting
   // ─────────────────────────────────────────────────────────────────────────
-  // ENS
-  // ─────────────────────────────────────────────────────────────────────────
-  | { type: "CLAIM_ENS"; name: string }
-  // ─────────────────────────────────────────────────────────────────────────
   // Internal (from services/actors)
   // ─────────────────────────────────────────────────────────────────────────
   | { type: "done.invoke.restoreSession"; output: RestoreSessionResult | null }
@@ -100,9 +97,7 @@ export type AuthEvent =
   | { type: "done.invoke.registerPasskey"; output: PasskeySessionResult }
   | { type: "error.platform.registerPasskey"; error: unknown }
   | { type: "done.invoke.authenticatePasskey"; output: PasskeySessionResult }
-  | { type: "error.platform.authenticatePasskey"; error: unknown }
-  | { type: "done.invoke.claimENS"; output: void }
-  | { type: "error.platform.claimENS"; error: unknown };
+  | { type: "error.platform.authenticatePasskey"; error: unknown };
 
 // Service result types
 export interface PasskeySessionResult {
@@ -127,12 +122,6 @@ export interface RestoreSessionInput {
 export interface PasskeyOperationInput {
   userName: string | null;
   chainId: number;
-}
-
-/** Input for ENS claiming */
-export interface ClaimENSInput {
-  smartAccountClient: SmartAccountClient | null;
-  name: string;
 }
 
 // ============================================================================
@@ -259,24 +248,17 @@ const authSetup = setup({
     /** Log when external wallet connects during passkey session */
     logWalletConnectedDuringPasskey: ({ context, event }) => {
       const e = event as { type: "EXTERNAL_WALLET_CONNECTED"; address: Hex };
-      console.debug(
-        "[AuthMachine] External wallet connected while in passkey mode.",
-        "\n  Wallet:",
-        e.address,
-        "\n  Smart Account:",
-        context.smartAccountAddress,
-        "\n  Use SWITCH_TO_WALLET event to switch auth method."
-      );
+      logger.debug("[AuthMachine] External wallet connected while in passkey mode.", {
+        wallet: e.address,
+        smartAccount: context.smartAccountAddress,
+      });
     },
 
     /** Log when external wallet disconnects during wallet auth */
     logWalletDisconnectedDuringWalletAuth: ({ context }) => {
-      console.debug(
-        "[AuthMachine] External wallet disconnected while in wallet auth mode.",
-        "\n  Previous wallet:",
-        context.walletAddress,
-        "\n  Transitioning to unauthenticated."
-      );
+      logger.debug("[AuthMachine] External wallet disconnected while in wallet auth mode.", {
+        previousWallet: context.walletAddress,
+      });
     },
   },
   guards: {
@@ -302,9 +284,6 @@ const authSetup = setup({
     }),
     authenticatePasskey: fromPromise<PasskeySessionResult, PasskeyOperationInput>(async () => {
       throw new Error("authenticatePasskey actor not provided");
-    }),
-    claimENS: fromPromise<void, ClaimENSInput>(async () => {
-      throw new Error("claimENS actor not provided");
     }),
   },
 });
@@ -520,11 +499,6 @@ export const authMachine = authSetup.createMachine({
         // ─────────────────────────────────────────────────────────────────────────
         passkey: {
           on: {
-            // User wants to claim ENS
-            CLAIM_ENS: {
-              target: "claiming_ens",
-            },
-
             // User explicitly wants to switch to wallet
             SWITCH_TO_WALLET: [
               {
@@ -537,7 +511,7 @@ export const authMachine = authSetup.createMachine({
                 // No wallet connected - could show error or open modal
                 // For now, do nothing (UI should disable button if no wallet)
                 actions: () =>
-                  console.warn("[AuthMachine] SWITCH_TO_WALLET: No external wallet connected"),
+                  logger.warn("[AuthMachine] SWITCH_TO_WALLET: No external wallet connected"),
               },
             ],
 
@@ -605,33 +579,6 @@ export const authMachine = authSetup.createMachine({
               actions: ["trackExternalWalletConnected", "storeWalletAuth"],
             },
           },
-        },
-
-        // ─────────────────────────────────────────────────────────────────────────
-        // CLAIMING ENS
-        // Sub-state of authenticated.passkey for ENS claiming
-        // ─────────────────────────────────────────────────────────────────────────
-        claiming_ens: {
-          invoke: {
-            src: "claimENS",
-            input: ({ context, event }): ClaimENSInput => {
-              // This state is only entered via CLAIM_ENS event
-              const claimEvent = event as { type: "CLAIM_ENS"; name: string };
-              return {
-                smartAccountClient: context.smartAccountClient,
-                name: claimEvent.name,
-              };
-            },
-            onDone: {
-              target: "passkey",
-            },
-            onError: {
-              target: "passkey",
-              actions: "storeError",
-            },
-          },
-
-          // EXTERNAL_WALLET_CONNECTED handled by global handler
         },
       },
     },

@@ -1,4 +1,4 @@
-import { HydrationFallback } from "@green-goods/shared/components";
+import { HydrationFallback } from "@green-goods/shared";
 import { createBrowserRouter, createHashRouter, Navigate, redirect } from "react-router-dom";
 
 // Use hash router for IPFS builds to ensure proper SPA routing on IPFS gateways
@@ -58,6 +58,12 @@ export const router = createRouter([
                     }),
                   },
                   {
+                    path: "gardens/:id/work/:workId",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/WorkDetail")).default,
+                    }),
+                  },
+                  {
                     path: "gardens/:id/assessments",
                     lazy: async () => ({
                       Component: (await import("@/views/Gardens/Garden/Assessment")).default,
@@ -86,6 +92,40 @@ export const router = createRouter([
                     lazy: async () => ({
                       Component: (await import("@/views/Gardens/Garden/HypercertDetail")).default,
                     }),
+                  },
+                  {
+                    path: "gardens/:id/vault",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/Vault")).default,
+                    }),
+                  },
+                  {
+                    path: "gardens/:id/cookie-jars",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/CookieJars")).default,
+                    }),
+                  },
+                  {
+                    path: "gardens/:id/strategies",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/Strategies")).default,
+                    }),
+                  },
+                  {
+                    path: "gardens/:id/signal-pool",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/SignalPool")).default,
+                    }),
+                  },
+                  {
+                    path: "gardens/:id/signal-pool/:poolType",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/SignalPool")).default,
+                    }),
+                  },
+                  {
+                    path: "treasury",
+                    lazy: async () => ({ Component: (await import("@/views/Treasury")).default }),
                   },
                   {
                     path: "actions",

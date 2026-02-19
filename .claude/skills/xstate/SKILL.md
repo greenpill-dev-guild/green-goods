@@ -1,12 +1,7 @@
 ---
 name: xstate
+user-invocable: false
 description: XState state machines and workflows - actor model, state machine design, React integration, testing. Use for multi-step flows, workflow orchestration, and complex UI state.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client]
-dependencies: [react, testing]
 ---
 
 # XState/Workflow Skill
@@ -474,5 +469,5 @@ states: {
 
 - `react` — State management decision guide
 - `web3` — Transaction lifecycle that maps to machine states
-- `offline` — Job queue lifecycle as state machine
+- `data-layer` — Job queue lifecycle as state machine
 - `testing` — Testing XState machines with Vitest

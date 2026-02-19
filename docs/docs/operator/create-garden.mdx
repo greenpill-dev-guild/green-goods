@@ -1,0 +1,82 @@
+---
+title: Create Garden
+sidebar_position: 2
+slug: /operator/create-garden
+audience: operator
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Complete Create Garden with clear, role-specific next actions."
+difficulty: "standard"
+estimated_time: "10-25 minutes."
+prereqs: "Operator/deployer permissions and clear garden metadata."
+next_steps: "./manage-actions"
+persona_context: "Operators coordinating gardens, approvals, and governance/treasury execution."
+source_of_truth:
+  - packages/admin/src/views/Gardens/CreateGarden.tsx
+  - packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts
+  - packages/shared/src/hooks/garden/useCreateGardenForm.ts
+keywords:
+  - create garden
+  - operator workflow
+---
+
+import {AtAGlanceCard, JourneyMap, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+
+# Create Garden
+
+<StatusBadge status="Live" />
+
+<AtAGlanceCard
+  goal="Complete Create Garden with clear, role-specific next actions."
+  difficulty="standard"
+  estimatedTime="10-25 minutes."
+  prereqs="Operator/deployer permissions and clear garden metadata."
+  outcome="New garden created with baseline metadata and membership model."
+  personaContext="Operators coordinating gardens, approvals, and governance/treasury execution."
+  lastVerified="2026-02-18"
+/>
+
+<JourneyMap
+  role="Operator"
+  steps={[
+    {title: "Get started + roles", href: "./get-started-and-roles", state: "complete"},
+    {title: "Create garden", href: "./create-garden", state: "current", note: "Define metadata, policy, and membership setup."},
+    {title: "Manage actions", href: "./manage-actions", state: "upcoming"},
+    {title: "Review work", href: "./review-work", state: "upcoming"},
+  ]}
+/>
+
+## Required inputs
+
+- Garden name and short description.
+- Location and banner/media assets.
+- Joining policy (open vs restricted).
+- Initial member/role setup plan.
+
+## Creation flow
+
+<StepFlow
+  steps={[
+    {title: "Open Create Garden", detail: "Use `/gardens/create` in admin."},
+    {title: "Complete form", detail: "Enter metadata and joining settings."},
+    {title: "Review transaction", detail: "Confirm chain/network and sign the transaction."},
+    {title: "Verify visibility", detail: "Confirm new garden appears in list and detail page."},
+  ]}
+/>
+
+## Quality checks before sharing
+
+1. Garden metadata renders correctly in admin and client.
+2. Correct operator/admin permissions are present.
+3. Action creation works in the new garden.
+
+<NextBestAction
+  title="Next best action"
+  why="Keep momentum by moving to the next high-value step in this journey."
+  actionLabel="Manage Actions"
+  actionHref="./manage-actions"
+  alternatives={[
+    {label: "Review Work", href: "./review-work"},
+  ]}
+/>

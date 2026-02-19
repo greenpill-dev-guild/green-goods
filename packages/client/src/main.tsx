@@ -1,12 +1,13 @@
 import {
+  AppKitProvider,
   AppProvider,
+  AuthProvider,
   DEFAULT_CHAIN_ID,
   initGlobalErrorHandlers,
   initTheme,
+  updateToasts,
   useServiceWorkerUpdate,
 } from "@green-goods/shared";
-import { updateToasts } from "@green-goods/shared/components";
-import { AppKitProvider, AuthProvider } from "@green-goods/shared/providers";
 import { StrictMode, useEffect } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { createRoot } from "react-dom/client";

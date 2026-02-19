@@ -1,12 +1,7 @@
 ---
 name: debug
 description: Debugging & Troubleshooting - root cause investigation. Use for systematic debugging and verification.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin, contracts, indexer]
-dependencies: []
+argument-hint: "[error-description]"
 ---
 
 # Debug Skill
@@ -22,15 +17,25 @@ Systematic debugging: find root causes before fixes, verify with evidence before
 | Trigger | Action |
 |---------|--------|
 | `/debug` | Start root cause investigation |
+| `/debug --mode incident_hotfix` | Emergency stabilization with minimal fixes |
+| `/debug --mode tdd_bugfix` | Test-first bugfix loop |
+| `/debug --panic` | Legacy alias routed to `incident_hotfix` mode |
 | Tests failing | Systematic debugging |
 | Build failures | Trace and fix |
 | Verifying completion | Evidence-based checks |
 
 ## Progress Tracking (REQUIRED)
 
-Every debug session MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
+Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
 
 ---
+
+## Safety Rules
+
+- Non-destructive recovery only
+- Save a patch snapshot before risky edits: `git diff > /tmp/green-goods-debug.patch`
+- Use a safety branch for experiments: `git switch -c debug/incident-$(date +%Y%m%d-%H%M%S)`
+- Never use destructive reset/reclone patterns in debug flow
 
 ## Core Principle
 
@@ -99,7 +104,7 @@ Every debug session MUST use **TodoWrite**. See `CLAUDE.md` → Session Continui
 
 | Claim | Command |
 |-------|---------|
-| "Tests pass" | `bun test` |
+| "Tests pass" | `bun run test` (NOT `bun test` — see CLAUDE.md) |
 | "Build succeeds" | `bun build` |
 | "Linting clean" | `bun lint` |
 | "Types correct" | `bun run tsc --noEmit` |
@@ -130,16 +135,13 @@ If you say these, STOP and verify first:
 cd packages/contracts && bun build
 
 # Inspect deployment addresses
-cat deployments/84532-latest.json | jq '.gardenToken'
+cat deployments/11155111-latest.json | jq '.gardenToken'
 
-# Verbose test output (traces all calls)
-forge test --match-test "testFailing" -vvvv
+# Verbose test output (traces all calls) through bun wrapper
+cd packages/contracts && bun run test -- --match-test "testFailing" -vvvv
 
-# Gas snapshot for regression detection
-forge snapshot --diff
-
-# Check storage layout for upgrade safety
-forge inspect GardenToken storage-layout
+# Quick production-readiness gate for contract-touching fixes
+bun run verify:contracts:fast
 
 # Decode transaction calldata
 cast decode-function "functionName(uint256)" 0xcalldata
@@ -169,9 +171,7 @@ cd packages/indexer && bun run dev:docker:logs
 open http://localhost:8080/console
 
 # Test a GraphQL query directly
-curl -X POST http://localhost:8080/v1/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query": "{ Garden { id name } }"}'
+node -e 'fetch(\"http://localhost:8080/v1/graphql\", {method:\"POST\", headers:{\"Content-Type\":\"application/json\"}, body: JSON.stringify({query:\"{ Garden { id name } }\"})}).then(r=>r.text()).then(console.log)'
 
 # Restart indexer containers
 bun run dev:docker:down && bun run dev:docker
@@ -251,7 +251,7 @@ IndexedDB Draft → Job Queue → IPFS Upload → Contract Call → Indexer Even
 # Job payload should contain a CID after upload
 
 # Verify CID is retrievable
-curl https://w3s.link/ipfs/<CID>
+node -e 'fetch(\"https://w3s.link/ipfs/<CID>\").then(r => console.log(r.status))'
 
 # Check Storacha service health
 # Look for 4xx/5xx in Network tab for storacha requests
@@ -281,14 +281,12 @@ cast receipt <txHash> --rpc-url $RPC | grep -A5 "logs"
 
 # Check indexer lag — how far behind is it?
 # Compare latest indexed block vs chain head
-INDEXED=$(curl -s localhost:8080/v1/graphql -H "Content-Type: application/json" \
-  -d '{"query":"{ _metadata { lastProcessedBlock } }"}' | jq '.data._metadata.lastProcessedBlock')
+INDEXED=$(node -e 'fetch(\"http://localhost:8080/v1/graphql\", {method:\"POST\", headers:{\"Content-Type\":\"application/json\"}, body: JSON.stringify({query:\"{ _metadata { lastProcessedBlock } }\"})}).then(r=>r.json()).then(x=>console.log(x.data._metadata.lastProcessedBlock))')
 CHAIN_HEAD=$(cast block-number --rpc-url $RPC)
-echo "Indexer lag: $((CHAIN_HEAD - INDEXED)) blocks"
+echo \"Indexer lag: $((CHAIN_HEAD - INDEXED)) blocks\"
 
 # Check if entity exists in indexer
-curl -s localhost:8080/v1/graphql -H "Content-Type: application/json" \
-  -d '{"query":"{ Work(where: {id: {_eq: \"<workId>\"}}) { id status } }"}'
+node -e 'fetch(\"http://localhost:8080/v1/graphql\", {method:\"POST\", headers:{\"Content-Type\":\"application/json\"}, body: JSON.stringify({query:\"{ Work(where: {id: {_eq: \\\"<workId>\\\"}}) { id status } }\"})}).then(r=>r.text()).then(console.log)'
 ```
 
 #### Layer 5: Frontend Cache
@@ -315,11 +313,10 @@ echo -n "Chain: "; cast block-number --rpc-url $RPC && echo "OK" || echo "UNREAC
 echo -n "Contract: "; cast call $GARDEN_ADDRESS "name()(string)" --rpc-url $RPC && echo "OK" || echo "MISSING"
 
 # 3. Indexer running
-echo -n "Indexer: "; curl -sf localhost:8080/healthz && echo "OK" || echo "DOWN"
+echo -n \"Indexer: \"; node -e 'fetch(\"http://localhost:8080/healthz\").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' && echo \"OK\" || echo \"DOWN\"
 
 # 4. Frontend GraphQL reachable
-echo -n "GraphQL: "; curl -sf localhost:8080/v1/graphql -H "Content-Type: application/json" \
-  -d '{"query":"{ __typename }"}' && echo "OK" || echo "UNREACHABLE"
+echo -n \"GraphQL: \"; node -e 'fetch(\"http://localhost:8080/v1/graphql\", {method:\"POST\", headers:{\"Content-Type\":\"application/json\"}, body: JSON.stringify({query:\"{ __typename }\"})}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' && echo \"OK\" || echo \"UNREACHABLE\"
 ```
 
 ---
@@ -337,10 +334,31 @@ After 3 failed fixes:
 ## Output
 
 After debugging provide:
-1. Root cause explanation
-2. Fix applied
-3. Verification results
-4. Prevention recommendations
+
+### Summary
+- Symptom and scope
+- Mode used
+
+### Root Cause
+- Evidence-backed cause statement
+
+### Actions
+- Fix applied (or recommended if report-only)
+
+### Verification
+- Commands executed and outcomes
+- Contract-touching fixes should also run: `bun run verify:contracts:fast`
+
+### Next Step
+- `DONE`, `NEEDS_INPUT`, or `ESCALATE`
+
+## Anti-Patterns
+
+- **Guessing without reproduction** — never change code before reproducing the issue
+- **Using destructive recovery commands** — avoid `git checkout -- .`, repo deletion, and forced resets in debug workflows
+- **Claiming success without evidence** — always attach commands and outputs for build/test verification
+- **Skipping dependency order checks** — contracts/indexer/shared/app drift can hide root cause
+- **Using blocked network commands in docs** — prefer `node -e fetch(...)` examples over `curl`/`wget`
 
 ## Related Skills
 

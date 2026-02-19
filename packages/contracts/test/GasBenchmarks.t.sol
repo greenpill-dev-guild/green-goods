@@ -7,17 +7,50 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { HatsModule } from "../src/modules/Hats.sol";
 import { IHatsModule } from "../src/interfaces/IHatsModule.sol";
 import { MockHats } from "../src/mocks/Hats.sol";
-import { ActionRegistry, Capital } from "../src/registries/Action.sol";
+import { ActionRegistry, Capital, Domain } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
+import { IGardensModule } from "../src/interfaces/IGardensModule.sol";
+import { YieldResolver } from "../src/resolvers/Yield.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {
+    MockCookieJar,
+    MockHypercertMarketplace,
+    MockJBMultiTerminalForYield,
+    MockOctantVaultForYield
+} from "../src/mocks/YieldDeps.sol";
+import { MockHatsModule as MockHatsModuleForBench } from "./helpers/MockHatsModule.sol";
 
 /// @title GasBenchmarks
 /// @notice Gas consumption benchmarks for critical contract operations
 /// @dev Run with `forge test --match-contract GasBenchmarks -vvv` for gas reports
 ///      Uses MockHats (lighter than real Hats), so numbers are lower bounds.
 contract GasBenchmarks is Test, ERC6551Helper {
+    // =========================================================================
+    // Gas Budget Constants (must stay under these to prevent regressions)
+    // Set at ~2x measured values to allow headroom but still catch regressions
+    // =========================================================================
+    uint256 constant MAX_MINT_GARDEN_GAS = 3_500_000;
+    uint256 constant MAX_MINT_GARDEN_WITH_GARDENERS_GAS = 3_500_000;
+    uint256 constant MAX_BATCH_MINT_5_GARDENS_GAS = 16_000_000;
+    uint256 constant MAX_GRANT_GARDENER_GAS = 200_000;
+    uint256 constant MAX_GRANT_EVALUATOR_GAS = 200_000;
+    uint256 constant MAX_GRANT_OPERATOR_GAS = 500_000;
+    uint256 constant MAX_GRANT_OWNER_GAS = 600_000;
+    uint256 constant MAX_REVOKE_GARDENER_GAS = 200_000;
+    uint256 constant MAX_BATCH_GRANT_5_GARDENERS_GAS = 800_000;
+    uint256 constant MAX_BATCH_GRANT_5_OPERATORS_GAS = 2_200_000;
+    uint256 constant MAX_REGISTER_ACTION_GAS = 500_000;
+    uint256 constant MAX_REGISTER_ACTION_ALL_CAPITALS_GAS = 700_000;
+    uint256 constant MAX_CREATE_GARDEN_HAT_TREE_GAS = 2_200_000;
+    uint256 constant MAX_CONFIGURE_GARDEN_GAS = 400_000;
+    uint256 constant MAX_IS_GARDENER_OF_GAS = 20_000;
+    uint256 constant MAX_SPLIT_YIELD_GAS = 700_000;
+    uint256 constant MAX_SET_SPLIT_RATIO_GAS = 200_000;
+    uint256 constant MAX_RESCUE_TOKENS_GAS = 100_000;
+
     /// @dev Required to receive ERC721 tokens from GardenToken.mintGarden()
     function onERC721Received(address, address, uint256, bytes calldata) external pure returns (bytes4) {
         return this.onERC721Received.selector;
@@ -60,8 +93,9 @@ contract GasBenchmarks is Test, ERC6551Helper {
         bytes memory gardenInitData = abi.encodeWithSelector(GardenToken.initialize.selector, owner, address(0));
         gardenToken = GardenToken(address(new ERC1967Proxy(address(gardenTokenImpl), gardenInitData)));
 
-        // Wire HatsModule into GardenToken (separate from initialize)
+        // Wire HatsModule and community token into GardenToken
         gardenToken.setHatsModule(address(adapter));
+        gardenToken.setCommunityToken(address(mockToken));
 
         // Wire up: HatsModule needs gardenToken authorized
         adapter.setGardenToken(address(gardenToken));
@@ -82,13 +116,15 @@ contract GasBenchmarks is Test, ERC6551Helper {
         operators[0] = address(0x5001);
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(mockToken),
             name: "Gas Test Garden",
+            slug: "",
             description: "A garden for gas benchmarking",
             location: "Location",
             bannerImage: "Banner",
             metadata: "",
-            openJoining: false
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
 
         uint256 gasBefore = gasleft();
@@ -96,6 +132,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: mintGarden (single, with hat tree)", gasUsed);
+        assertLt(gasUsed, MAX_MINT_GARDEN_GAS, "Gas budget exceeded for mintGarden");
         assertTrue(garden != address(0), "Garden should be created");
     }
 
@@ -109,13 +146,15 @@ contract GasBenchmarks is Test, ERC6551Helper {
         operators[0] = address(0x5001);
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(mockToken),
             name: "Garden With Gardeners",
+            slug: "",
             description: "5 initial gardeners",
             location: "Location",
             bannerImage: "Banner",
             metadata: "",
-            openJoining: false
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
 
         uint256 gasBefore = gasleft();
@@ -123,6 +162,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: mintGarden (5 gardeners + hat tree)", gasUsed);
+        assertLt(gasUsed, MAX_MINT_GARDEN_WITH_GARDENERS_GAS, "Gas budget exceeded for mintGarden with 5 gardeners");
         assertTrue(g != address(0));
     }
 
@@ -136,13 +176,15 @@ contract GasBenchmarks is Test, ERC6551Helper {
             operators[0] = address(uint160(0x5001 + i));
 
             configs[i] = GardenToken.GardenConfig({
-                communityToken: address(mockToken),
                 name: string(abi.encodePacked("Batch Garden ", _uint2str(i))),
+                slug: "",
                 description: "Batch description",
                 location: "Location",
                 bannerImage: "Banner",
                 metadata: "",
-                openJoining: false
+                openJoining: false,
+                weightScheme: IGardensModule.WeightScheme.Linear,
+                domainMask: 0
             });
         }
 
@@ -152,6 +194,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
 
         emit log_named_uint("Gas: batchMintGardens (5 gardens)", gasUsed);
         emit log_named_uint("Gas: per garden in batch of 5", gasUsed / 5);
+        assertLt(gasUsed, MAX_BATCH_MINT_5_GARDENS_GAS, "Gas budget exceeded for batchMintGardens (5)");
         assertEq(gardens.length, 5);
     }
 
@@ -169,6 +212,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: grantRole(Gardener) - single mint", gasUsed);
+        assertLt(gasUsed, MAX_GRANT_GARDENER_GAS, "Gas budget exceeded for grantRole(Gardener)");
     }
 
     /// @notice Benchmark: grantRole(Evaluator) — single hat mint, no cascading
@@ -181,6 +225,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: grantRole(Evaluator) - single mint", gasUsed);
+        assertLt(gasUsed, MAX_GRANT_EVALUATOR_GAS, "Gas budget exceeded for grantRole(Evaluator)");
     }
 
     /// @notice Benchmark: grantRole(Operator) — cascading: mints Operator + Evaluator + Gardener
@@ -193,6 +238,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: grantRole(Operator) - cascading 3 mints", gasUsed);
+        assertLt(gasUsed, MAX_GRANT_OPERATOR_GAS, "Gas budget exceeded for grantRole(Operator)");
     }
 
     /// @notice Benchmark: grantRole(Owner) — full cascade: Owner + Operator + Evaluator + Gardener
@@ -205,6 +251,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: grantRole(Owner) - cascading 4 mints", gasUsed);
+        assertLt(gasUsed, MAX_GRANT_OWNER_GAS, "Gas budget exceeded for grantRole(Owner)");
     }
 
     /// @notice Benchmark: revokeRole(Gardener) — single hat transfer
@@ -219,6 +266,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: revokeRole(Gardener) - single transfer", gasUsed);
+        assertLt(gasUsed, MAX_REVOKE_GARDENER_GAS, "Gas budget exceeded for revokeRole(Gardener)");
     }
 
     // =========================================================================
@@ -242,6 +290,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
 
         emit log_named_uint("Gas: grantRoles (5 gardeners)", gasUsed);
         emit log_named_uint("Gas: per gardener in batch of 5", gasUsed / 5);
+        assertLt(gasUsed, MAX_BATCH_GRANT_5_GARDENERS_GAS, "Gas budget exceeded for batch grant 5 gardeners");
     }
 
     /// @notice Benchmark: grantRoles batch — 5 operators (each cascades to 3 mints)
@@ -261,6 +310,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
 
         emit log_named_uint("Gas: grantRoles (5 operators, cascading)", gasUsed);
         emit log_named_uint("Gas: per operator in batch of 5", gasUsed / 5);
+        assertLt(gasUsed, MAX_BATCH_GRANT_5_OPERATORS_GAS, "Gas budget exceeded for batch grant 5 operators");
     }
 
     // =========================================================================
@@ -275,11 +325,19 @@ contract GasBenchmarks is Test, ERC6551Helper {
 
         uint256 gasBefore = gasleft();
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 30 days, "Plant Trees", "ipfs://instructions", capitals, media
+            block.timestamp,
+            block.timestamp + 30 days,
+            "Plant Trees",
+            "agro.planting_event",
+            "ipfs://instructions",
+            capitals,
+            media,
+            Domain.AGRO
         );
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: registerAction (single capital)", gasUsed);
+        assertLt(gasUsed, MAX_REGISTER_ACTION_GAS, "Gas budget exceeded for registerAction (single capital)");
     }
 
     /// @notice Benchmark: registerAction with all capital types
@@ -295,11 +353,19 @@ contract GasBenchmarks is Test, ERC6551Helper {
 
         uint256 gasBefore = gasleft();
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 30 days, "Complex Action", "ipfs://instructions", capitals, media
+            block.timestamp,
+            block.timestamp + 30 days,
+            "Complex Action",
+            "solar.node_ops",
+            "ipfs://instructions",
+            capitals,
+            media,
+            Domain.SOLAR
         );
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: registerAction (8 capitals + 3 media)", gasUsed);
+        assertLt(gasUsed, MAX_REGISTER_ACTION_ALL_CAPITALS_GAS, "Gas budget exceeded for registerAction (all capitals)");
     }
 
     // =========================================================================
@@ -316,6 +382,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: createGardenHatTree (6 role hats)", gasUsed);
+        assertLt(gasUsed, MAX_CREATE_GARDEN_HAT_TREE_GAS, "Gas budget exceeded for createGardenHatTree");
     }
 
     /// @notice Benchmark: configureGarden (manual hat ID assignment)
@@ -327,6 +394,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: configureGarden (manual)", gasUsed);
+        assertLt(gasUsed, MAX_CONFIGURE_GARDEN_GAS, "Gas budget exceeded for configureGarden");
     }
 
     // =========================================================================
@@ -344,6 +412,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: isGardenerOf view call", gasUsed);
+        assertLt(gasUsed, MAX_IS_GARDENER_OF_GAS, "Gas budget exceeded for isGardenerOf");
     }
 
     // =========================================================================
@@ -356,13 +425,15 @@ contract GasBenchmarks is Test, ERC6551Helper {
         operators[0] = address(0x5001);
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(mockToken),
             name: "Benchmark Garden",
+            slug: "",
             description: "Gas benchmark garden",
             location: "Location",
             bannerImage: "Banner",
             metadata: "",
-            openJoining: false
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
 
         garden = gardenToken.mintGarden(config);
@@ -370,6 +441,80 @@ contract GasBenchmarks is Test, ERC6551Helper {
         // Authorize ourselves as owner in HatsModule for role management
         (uint256 ownerHatId,,,,,,,) = adapter.gardenHats(garden);
         mockHats.setWearer(ownerHatId, owner, true);
+    }
+
+    // =========================================================================
+    // YieldResolver Benchmarks
+    // =========================================================================
+
+    /// @notice Benchmark: splitYield (redeem + three-way split)
+    function testGas_splitYield() public {
+        // Deploy YieldResolver infrastructure
+        (YieldResolver ys, MockOctantVaultForYield ysVault, MockWETHForBench ysWeth) = _setupYieldResolver();
+
+        // Fund vault and mint shares
+        ysWeth.mint(address(ysVault), 10_000);
+        ysVault.mintShares(address(ys), 10_000);
+        ys.registerShares(address(0x100), address(ysVault), 10_000);
+
+        uint256 gasBefore = gasleft();
+        ys.splitYield(address(0x100), address(ysWeth), address(ysVault));
+        uint256 gasUsed = gasBefore - gasleft();
+
+        emit log_named_uint("Gas: splitYield (three-way distribution)", gasUsed);
+        assertLt(gasUsed, MAX_SPLIT_YIELD_GAS, "Gas budget exceeded for splitYield");
+    }
+
+    /// @notice Benchmark: setSplitRatio
+    function testGas_setSplitRatio() public {
+        (YieldResolver ys,,) = _setupYieldResolver();
+
+        uint256 gasBefore = gasleft();
+        ys.setSplitRatio(address(0x100), 5000, 3000, 2000);
+        uint256 gasUsed = gasBefore - gasleft();
+
+        emit log_named_uint("Gas: setSplitRatio", gasUsed);
+        assertLt(gasUsed, MAX_SET_SPLIT_RATIO_GAS, "Gas budget exceeded for setSplitRatio");
+    }
+
+    /// @notice Benchmark: rescueTokens
+    function testGas_rescueTokens() public {
+        (YieldResolver ys,, MockWETHForBench ysWeth) = _setupYieldResolver();
+        ysWeth.mint(address(ys), 5000);
+
+        uint256 gasBefore = gasleft();
+        ys.rescueTokens(address(ysWeth), address(0x400), 5000);
+        uint256 gasUsed = gasBefore - gasleft();
+
+        emit log_named_uint("Gas: rescueTokens", gasUsed);
+        assertLt(gasUsed, MAX_RESCUE_TOKENS_GAS, "Gas budget exceeded for rescueTokens");
+    }
+
+    function _setupYieldResolver()
+        internal
+        returns (YieldResolver ys, MockOctantVaultForYield ysVault, MockWETHForBench ysWeth)
+    {
+        ysWeth = new MockWETHForBench();
+        ysVault = new MockOctantVaultForYield(address(ysWeth));
+        MockCookieJar cookieJar = new MockCookieJar();
+        MockJBMultiTerminalForYield jbTerminal = new MockJBMultiTerminalForYield();
+        MockHatsModuleForBench hatsModuleBench = new MockHatsModuleForBench();
+
+        YieldResolver impl = new YieldResolver();
+        bytes memory initData =
+            abi.encodeWithSelector(YieldResolver.initialize.selector, owner, address(0x2), address(hatsModuleBench), 0);
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        ys = YieldResolver(address(proxy));
+
+        address ysGarden = address(0x100);
+        ys.setCookieJar(ysGarden, address(cookieJar));
+        ys.setGardenTreasury(ysGarden, address(0x200));
+        ys.setGardenVault(ysGarden, address(ysWeth), address(ysVault));
+        ys.setHypercertMarketplace(address(new MockHypercertMarketplace()));
+        ys.setJBMultiTerminal(address(jbTerminal));
+        ys.setJuiceboxProjectId(1);
+
+        hatsModuleBench.setOperator(ysGarden, owner, true);
     }
 
     function _uint2str(uint256 _i) internal pure returns (string memory) {
@@ -388,5 +533,14 @@ contract GasBenchmarks is Test, ERC6551Helper {
             _i /= 10;
         }
         return string(bstr);
+    }
+}
+
+/// @title MockWETHForBench — Minimal ERC20 for gas benchmarks
+contract MockWETHForBench is ERC20 {
+    constructor() ERC20("Wrapped Ether", "WETH") { }
+
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
     }
 }

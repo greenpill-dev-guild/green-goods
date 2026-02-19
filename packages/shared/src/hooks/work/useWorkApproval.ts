@@ -13,6 +13,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
@@ -30,6 +31,8 @@ import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
+import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
+import { useMutationLock } from "../utils/useMutationLock";
 import { useTimeout } from "../utils/useTimeout";
 
 interface UseWorkApprovalParams {
@@ -41,6 +44,9 @@ interface UseWorkApprovalParams {
 interface ApprovalMutationResult {
   hash: `0x${string}`;
 }
+
+const PENDING_AUTO_CLEAR_MS = 60_000;
+type PendingWork = Work & { _isPending?: boolean; _pendingUntilMs?: number };
 
 /**
  * Hook for submitting work approvals
@@ -78,11 +84,12 @@ export function useWorkApproval() {
   const { authMode, smartAccountClient, smartAccountAddress } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
+  const { runWithLock, isPending: isLockPending } = useMutationLock();
 
   // Use managed timeout for query invalidation to ensure cleanup on unmount
   const { set: scheduleInvalidation } = useTimeout();
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async ({ draft, work }: UseWorkApprovalParams): Promise<ApprovalMutationResult> => {
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Starting approval submission", {
@@ -207,6 +214,8 @@ export function useWorkApproval() {
         queryKeys.works.online(work.gardenAddress, chainId)
       );
 
+      const pendingUntilMs = Date.now() + PENDING_AUTO_CLEAR_MS;
+
       // Optimistically update the work status with a pending indicator
       const optimisticStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
 
@@ -214,7 +223,14 @@ export function useWorkApproval() {
         queryKeys.works.merged(work.gardenAddress, chainId),
         (old: Work[] = []) =>
           old.map((w) =>
-            w.id === draft.workUID ? { ...w, status: optimisticStatus, _isPending: true } : w
+            w.id === draft.workUID
+              ? {
+                  ...w,
+                  status: optimisticStatus,
+                  _isPending: true,
+                  _pendingUntilMs: pendingUntilMs,
+                }
+              : w
           )
       );
 
@@ -222,9 +238,38 @@ export function useWorkApproval() {
         queryKeys.works.online(work.gardenAddress, chainId),
         (old: Work[] = []) =>
           old.map((w) =>
-            w.id === draft.workUID ? { ...w, status: optimisticStatus, _isPending: true } : w
+            w.id === draft.workUID
+              ? {
+                  ...w,
+                  status: optimisticStatus,
+                  _isPending: true,
+                  _pendingUntilMs: pendingUntilMs,
+                }
+              : w
           )
       );
+
+      // Auto-clear stale pending flags if no completion signal is observed.
+      scheduleInvalidation(() => {
+        queryClient.setQueryData(
+          queryKeys.works.merged(work.gardenAddress, chainId),
+          (old: PendingWork[] = []) =>
+            old.map((w) =>
+              w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
+                ? { ...w, _isPending: false, _pendingUntilMs: undefined }
+                : w
+            )
+        );
+        queryClient.setQueryData(
+          queryKeys.works.online(work.gardenAddress, chainId),
+          (old: PendingWork[] = []) =>
+            old.map((w) =>
+              w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
+                ? { ...w, _isPending: false, _pendingUntilMs: undefined }
+                : w
+            )
+        );
+      }, PENDING_AUTO_CLEAR_MS + 1000);
 
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Applied optimistic update", {
@@ -300,6 +345,7 @@ export function useWorkApproval() {
                     status: confirmedStatus,
                     _isPending: isOfflineHash, // Keep pending for offline, clear for confirmed
                     _txHash: isOfflineHash ? undefined : txHash,
+                    _pendingUntilMs: undefined,
                   }
                 : w
             )
@@ -315,6 +361,7 @@ export function useWorkApproval() {
                     status: confirmedStatus,
                     _isPending: isOfflineHash,
                     _txHash: isOfflineHash ? undefined : txHash,
+                    _pendingUntilMs: undefined,
                   }
                 : w
             )
@@ -459,4 +506,22 @@ export function useWorkApproval() {
       });
     },
   });
+
+  const isPending = mutation.isPending || isLockPending;
+  useBeforeUnloadWhilePending(isPending);
+
+  const mutateAsync = useCallback(
+    (...args: Parameters<typeof mutation.mutateAsync>) =>
+      runWithLock(() => mutation.mutateAsync(...args)),
+    [mutation, runWithLock]
+  );
+
+  const mutate = useCallback(
+    (...args: Parameters<typeof mutation.mutate>) => {
+      void mutateAsync(...args).catch(() => undefined);
+    },
+    [mutateAsync]
+  );
+
+  return { ...mutation, mutate, mutateAsync, isPending };
 }

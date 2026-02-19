@@ -40,8 +40,10 @@ describe("stores/useWorkFlowStore", () => {
       expect(state.gardenAddress).toBeNull();
       expect(state.actionUID).toBeNull();
       expect(state.feedback).toBe("");
-      expect(state.plantSelection).toEqual([]);
-      expect(state.plantCount).toBeUndefined();
+      expect(state.details).toEqual({});
+      expect(state.tags).toEqual([]);
+      expect(state.audioNotes).toEqual([]);
+      expect(state.selectedDomain).toBeNull();
       expect(state.images).toEqual([]);
       expect(state.imageObjectUrls).toEqual([]);
     });
@@ -90,24 +92,34 @@ describe("stores/useWorkFlowStore", () => {
       expect(result.current.feedback).toBe("Great work!");
     });
 
-    it("sets plant selection", () => {
+    it("sets details", () => {
       const { result } = renderHook(() => useWorkFlowStore());
 
       act(() => {
-        result.current.setPlantSelection(["Rose", "Tulip"]);
+        result.current.setDetails({ species: "Oak", count: 5 });
       });
 
-      expect(result.current.plantSelection).toEqual(["Rose", "Tulip"]);
+      expect(result.current.details).toEqual({ species: "Oak", count: 5 });
     });
 
-    it("sets plant count", () => {
+    it("sets tags", () => {
       const { result } = renderHook(() => useWorkFlowStore());
 
       act(() => {
-        result.current.setPlantCount(5);
+        result.current.setTags(["agroforestry", "native-species"]);
       });
 
-      expect(result.current.plantCount).toBe(5);
+      expect(result.current.tags).toEqual(["agroforestry", "native-species"]);
+    });
+
+    it("sets selected domain", () => {
+      const { result } = renderHook(() => useWorkFlowStore());
+
+      act(() => {
+        result.current.setSelectedDomain(1); // Domain.AGRO
+      });
+
+      expect(result.current.selectedDomain).toBe(1);
     });
 
     it("sets images", () => {

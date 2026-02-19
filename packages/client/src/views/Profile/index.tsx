@@ -1,13 +1,15 @@
 import {
+  formatAddress,
+  resolveAvatarUrl,
   useAuth,
+  useENSRegistrationStatus,
   useEnsAvatar,
   useEnsName,
   useGardenerProfile,
+  useProtocolMemberStatus,
   useUser,
-} from "@green-goods/shared/hooks";
-import { resolveAvatarUrl } from "@green-goods/shared/modules";
-import { formatAddress } from "@green-goods/shared/utils";
-import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
+} from "@green-goods/shared";
+import { RiGlobalLine, RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Profile as UserProfile } from "@/components/Features";
@@ -54,6 +56,14 @@ const Profile: React.FC = () => {
     ? resolveAvatarUrl(profile.imageURI)
     : ensAvatar || DEFAULT_AVATAR;
 
+  // ENS eligibility badge
+  const { data: isProtocolMember = false } = useProtocolMemberStatus(
+    primaryAddress as `0x${string}` | undefined
+  );
+  const { data: ensRegistration } = useENSRegistrationStatus(undefined);
+  const showENSBadge =
+    isProtocolMember && (!ensRegistration || ensRegistration.status === "available");
+
   const tabs: StandardTab[] = [
     {
       id: "account",
@@ -85,6 +95,21 @@ const Profile: React.FC = () => {
             location={profile?.location?.trim() || undefined}
           />
         </div>
+
+        {/* ENS claim discovery badge */}
+        {showENSBadge && (
+          <button
+            type="button"
+            onClick={() => setActiveTab("account")}
+            className="mx-4 mb-2 flex items-center gap-2 rounded-full bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 active:scale-[0.98]"
+          >
+            <RiGlobalLine className="h-3.5 w-3.5" />
+            {intl.formatMessage({
+              id: "app.profile.claimENSBadge",
+              defaultMessage: "Claim your .greengoods.eth name",
+            })}
+          </button>
+        )}
 
         {/* Full Screen Tabs - outside padding */}
         <StandardTabs

@@ -1,6 +1,7 @@
 import {
   cn,
   TOTAL_UNITS,
+  type Address,
   type AllowlistEntry,
   type DistributionMode,
   sumUnits,
@@ -12,7 +13,7 @@ import { useIntl } from "react-intl";
 import { DistributionChart } from "../DistributionChart";
 
 /** Displays truncated Ethereum address with copy button */
-function TruncatedAddress({ address }: { address: string }) {
+function TruncatedAddress({ address }: { address: Address }) {
   const { formatMessage } = useIntl();
   const { copied, copy } = useCopyToClipboard();
 

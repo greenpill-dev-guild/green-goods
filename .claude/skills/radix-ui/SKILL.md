@@ -1,12 +1,7 @@
 ---
 name: radix-ui
+user-invocable: false
 description: Radix UI primitives with TailwindCSS v4 - accessible, unstyled components. Use for dialogs, selects, accordions, popovers, and other interactive UI patterns.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin]
-dependencies: [react, ui-compliance]
 ---
 
 # Radix UI Skill

@@ -13,7 +13,7 @@ import { readContract } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
 import { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
-import { encodeFunctionData, type Hex } from "viem";
+import { type Address, encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
@@ -50,7 +50,7 @@ import { useDelayedInvalidation } from "../utils/useTimeout";
 /**
  * Check if a garden has openJoining enabled on-chain
  */
-export async function checkGardenOpenJoining(gardenAddress: string): Promise<boolean> {
+export async function checkGardenOpenJoining(gardenAddress: Address): Promise<boolean> {
   try {
     const isOpen = await readContract(wagmiConfig, {
       address: gardenAddress as `0x${string}`,

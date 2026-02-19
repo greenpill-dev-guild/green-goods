@@ -1,6 +1,7 @@
-import { toastService } from "@green-goods/shared";
 import {
+  cn,
   queryKeys,
+  toastService,
   useAuth,
   useBrowserNavigation,
   useFilteredGardens,
@@ -9,9 +10,9 @@ import {
   useNavigateToTop,
   useOffline,
   usePrimaryAddress,
-} from "@green-goods/shared/hooks";
-import { useUIStore } from "@green-goods/shared/stores";
-import { cn } from "@green-goods/shared/utils";
+  useTimeout,
+  useUIStore,
+} from "@green-goods/shared";
 import { RiFilterLine } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -21,6 +22,8 @@ import { Outlet, useLocation } from "react-router-dom";
 import { PullToRefresh } from "@/components/Inputs";
 import { GardenList } from "./GardenList";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
+import { WalletDrawerIcon } from "./WalletDrawer/Icon";
+import { WalletDrawer } from "./WalletDrawer";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
 /** Storage key for welcome prompt - shown once per device */
@@ -57,8 +60,13 @@ const Home: React.FC = () => {
     normalizedAddress
   );
 
+  // Wallet drawer state
+  const [isWalletDrawerOpen, setIsWalletDrawerOpen] = useState(false);
+
   // UI state from store
-  const { isGardenFilterOpen, openGardenFilter, closeGardenFilter } = useUIStore();
+  const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
+  const openGardenFilter = useUIStore((s) => s.openGardenFilter);
+  const closeGardenFilter = useUIStore((s) => s.closeGardenFilter);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -66,6 +74,7 @@ const Home: React.FC = () => {
   // Auth state for welcome message
   const { isAuthenticated } = useAuth();
   const hasShownWelcomeRef = useRef(false);
+  const { set: scheduleWelcome } = useTimeout();
 
   // Ref for scrolling to article on card click
   const articleRef = useRef<HTMLElement>(null);
@@ -104,7 +113,7 @@ const Home: React.FC = () => {
     hasShownWelcomeRef.current = true;
 
     // Small delay to let page render first
-    const timer = setTimeout(() => {
+    scheduleWelcome(() => {
       toastService.info({
         title: "Welcome to Green Goods! 🌱",
         message: "Visit your Profile to discover and join gardens.",
@@ -117,9 +126,7 @@ const Home: React.FC = () => {
         suppressLogging: true,
       });
     }, 800);
-
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, location.pathname, navigate]);
+  }, [isAuthenticated, location.pathname, navigate, scheduleWelcome]);
 
   // Handlers
   const handleRetry = () => {
@@ -193,6 +200,7 @@ const Home: React.FC = () => {
                   </span>
                 )}
               </button>
+              <WalletDrawerIcon onClick={() => setIsWalletDrawerOpen(true)} />
               <WorkDashboardIcon />
             </div>
           </div>
@@ -225,6 +233,7 @@ const Home: React.FC = () => {
         </PullToRefresh>
       )}
       <Outlet />
+      <WalletDrawer isOpen={isWalletDrawerOpen} onClose={() => setIsWalletDrawerOpen(false)} />
     </article>
   );
 };

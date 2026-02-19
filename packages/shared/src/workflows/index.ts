@@ -12,6 +12,7 @@ export { createAssessmentMachine } from "./createAssessment";
 export type {
   CreateGardenContext,
   CreateGardenEvent,
+  CreateGardenFormStatus,
 } from "./createGarden";
 export { createGardenMachine } from "./createGarden";
 
@@ -36,7 +37,6 @@ export {
   restoreSessionService,
   registerPasskeyService,
   authenticatePasskeyService,
-  claimENSService,
 } from "./authServices";
 
 // Auth Actor (Singleton)

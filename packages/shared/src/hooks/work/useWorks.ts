@@ -31,8 +31,9 @@ export function jobToWork(job: Job<WorkJobPayload>): Work {
     gardenAddress: job.payload.gardenAddress,
     feedback: job.payload.feedback,
     metadata: JSON.stringify({
-      plantCount: job.payload.plantCount,
-      plantSelection: job.payload.plantSelection,
+      details: job.payload.details,
+      timeSpentMinutes: job.payload.timeSpentMinutes,
+      tags: job.payload.tags,
     }),
     media: [], // Media will be loaded separately for offline jobs
     createdAt: job.createdAt,

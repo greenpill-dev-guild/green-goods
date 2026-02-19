@@ -9,7 +9,8 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { SmartAccountClient } from "permissionless";
-import type { Action, Work, WorkDraft } from "../../types/domain";
+import { useCallback } from "react";
+import type { Action, Address, Work, WorkDraft } from "../../types/domain";
 import {
   showWalletProgress,
   toastService,
@@ -35,15 +36,30 @@ import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { queryKeys } from "../query-keys";
 import { useTimeout } from "../utils/useTimeout";
+import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
+import { useMutationLock } from "../utils/useMutationLock";
 
 interface UseWorkMutationOptions {
   authMode: "wallet" | "passkey" | null;
   smartAccountClient: SmartAccountClient | null;
-  gardenAddress: string | null;
+  gardenAddress: Address | null;
   actionUID: number | null;
   actions: Action[];
   /** User address (smart account or wallet) for scoping jobs */
-  userAddress: string | null;
+  userAddress: Address | null;
+}
+
+function isNetworkError(error: unknown): boolean {
+  const message =
+    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return (
+    message.includes("network") ||
+    message.includes("fetch") ||
+    message.includes("timeout") ||
+    message.includes("socket") ||
+    message.includes("connection") ||
+    message.includes("gateway")
+  );
 }
 
 /**
@@ -63,13 +79,20 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+  const { runWithLock, isPending: isLockPending } = useMutationLock();
 
   // Use managed timeout for toast dismissal to ensure cleanup on unmount
   const { set: scheduleToastDismiss } = useTimeout();
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
-      // Validate user address is available for queue operations
+      // Validate required context before submission
+      if (!gardenAddress) {
+        throw new Error("Garden must be selected before submitting work");
+      }
+      if (typeof actionUID !== "number") {
+        throw new Error("Action must be selected before submitting work");
+      }
       if (!userAddress) {
         throw new Error("User address is required for work submission");
       }
@@ -78,8 +101,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         const draftSummary = {
           hasFeedback: Boolean(draft.feedback),
           feedbackLength: draft.feedback?.length ?? 0,
-          plantSelection: draft.plantSelection,
-          plantCount: draft.plantCount ?? null,
+          detailKeys: Object.keys(draft.details ?? {}),
+          hasTags: Boolean(draft.tags?.length),
+          hasAudioNotes: Boolean(draft.audioNotes?.length),
         };
         debugLog("[WorkMutation] Preparing work submission payload", {
           authMode,
@@ -107,8 +131,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           }
           const { txHash: offlineTxHash } = await submitWorkToQueue(
             { ...draft } as WorkDraft,
-            gardenAddress!,
-            actionUID!,
+            gardenAddress,
+            actionUID,
             actions,
             chainId,
             images,
@@ -125,24 +149,40 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             actionTitle,
           });
         }
-        return await submitWorkDirectly(
-          draft,
-          gardenAddress!,
-          actionUID!,
-          actionTitle,
-          chainId,
-          images,
-          {
-            onProgress: (stage, message) => {
-              // Map wallet submission stages to toast updates
-              if (stage === "complete") {
-                walletProgressToasts.success();
-              } else {
-                showWalletProgress(stage, message);
-              }
-            },
+        try {
+          return await submitWorkDirectly(
+            draft,
+            gardenAddress,
+            actionUID,
+            actionTitle,
+            chainId,
+            images,
+            {
+              onProgress: (stage, message) => {
+                // Map wallet submission stages to toast updates
+                if (stage === "complete") {
+                  walletProgressToasts.success();
+                } else {
+                  showWalletProgress(stage, message);
+                }
+              },
+            }
+          );
+        } catch (error) {
+          if (isNetworkError(error)) {
+            const { txHash: offlineTxHash } = await submitWorkToQueue(
+              { ...draft } as WorkDraft,
+              gardenAddress,
+              actionUID,
+              actions,
+              chainId,
+              images,
+              userAddress
+            );
+            return offlineTxHash;
           }
-        );
+          throw error;
+        }
       }
 
       if (DEBUG_ENABLED) {
@@ -157,9 +197,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       if (navigator.onLine) {
         await simulateWorkSubmission({
           draft,
-          gardenAddress: gardenAddress!,
-          actionUID: actionUID!,
-          actionTitle: actionTitle || `Action ${actionUID!}`,
+          gardenAddress,
+          actionUID,
+          actionTitle: actionTitle || `Action ${actionUID}`,
           chainId,
           images,
           accountAddress: userAddress as `0x${string}`,
@@ -172,8 +212,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         clientWorkId,
       } = await submitWorkToQueue(
         { ...draft } as WorkDraft,
-        gardenAddress!,
-        actionUID!,
+        gardenAddress,
+        actionUID,
         actions,
         chainId,
         images,
@@ -262,8 +302,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           gardenAddress,
           feedback: variables.draft.feedback || "",
           metadata: JSON.stringify({
-            plantCount: variables.draft.plantCount,
-            plantSelection: variables.draft.plantSelection,
+            details: variables.draft.details ?? {},
+            timeSpentMinutes: variables.draft.timeSpentMinutes,
           }),
           media: [],
           createdAt: Math.floor(Date.now() / 1000),
@@ -350,6 +390,14 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       // Provide haptic feedback for error
       hapticError();
 
+      // Best-effort cleanup for any blob preview URLs attached to failed upload files.
+      variables?.images.forEach((image) => {
+        const maybePreviewUrl = (image as File & { preview?: string }).preview;
+        if (typeof maybePreviewUrl === "string" && maybePreviewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(maybePreviewUrl);
+        }
+      });
+
       // Rollback optimistic cache insertion
       if (context?.previousMerged && gardenAddress) {
         queryClient.setQueryData(
@@ -424,6 +472,24 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
     },
   });
+
+  const isPending = mutation.isPending || isLockPending;
+  useBeforeUnloadWhilePending(isPending);
+
+  const mutateAsync = useCallback(
+    (...args: Parameters<typeof mutation.mutateAsync>) =>
+      runWithLock(() => mutation.mutateAsync(...args)),
+    [mutation, runWithLock]
+  );
+
+  const mutate = useCallback(
+    (...args: Parameters<typeof mutation.mutate>) => {
+      void mutateAsync(...args).catch(() => undefined);
+    },
+    [mutateAsync]
+  );
+
+  return { ...mutation, mutate, mutateAsync, isPending };
 }
 
 export type UseWorkMutationReturn = ReturnType<typeof useWorkMutation>;

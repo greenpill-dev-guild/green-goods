@@ -1,4 +1,4 @@
-import { useAuth } from "@green-goods/shared/hooks";
+import { useAuth } from "@green-goods/shared";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 export default function RequireAuth() {

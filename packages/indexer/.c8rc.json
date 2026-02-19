@@ -1,0 +1,10 @@
+{
+  "all": true,
+  "src": ["src/"],
+  "exclude": ["node_modules/", "generated/", "test/", "**/*.d.ts"],
+  "reporter": ["text", "json", "html"],
+  "branches": 50,
+  "functions": 50,
+  "lines": 50,
+  "statements": 50
+}

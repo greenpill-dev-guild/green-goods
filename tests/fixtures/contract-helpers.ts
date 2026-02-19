@@ -714,11 +714,11 @@ export async function deployMockERC20(
   _symbol: string = "TEST"
 ): Promise<`0x${string}`> {
   // In a forked environment, we can use an existing ERC20 or deploy a mock
-  // For simplicity, we'll use USDC on Base Sepolia if available
+  // For simplicity, we'll use USDC on Sepolia if available
   // Or you could deploy a mock contract here
 
-  // Base Sepolia USDC address (if it exists)
-  const MOCK_USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as `0x${string}`;
+  // Sepolia USDC address (if it exists)
+  const MOCK_USDC = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238" as `0x${string}`;
 
   // Verify it's a contract
   const code = await context.publicClient.getCode({ address: MOCK_USDC });

@@ -9,4 +9,9 @@ contract MockERC20 is ERC20 {
     constructor() ERC20("Mock Token", "MOCK") {
         _mint(msg.sender, 1_000_000 * 10 ** 18);
     }
+
+    /// @notice Mint tokens to an address (test helper)
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
 }

@@ -6,12 +6,14 @@ import { greenGoodsIndexer } from "../../modules/data/graphql-client";
 import { logger } from "../../modules/app/logger";
 import { useAuthContext } from "../../providers/Auth";
 import { queryKeys } from "../query-keys";
+import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 
 const GET_OPERATOR_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
-  query GetOperatorGardens($operator: [String!]!) {
+  query GetOperatorGardens($operator: [String!]!, $chainId: Int!) {
     Garden(
       where: {
+        chainId: { _eq: $chainId }
         _or: [{operators: {_contains: $operator}}, {owners: {_contains: $operator}}]
       }
     ) {
@@ -29,10 +31,10 @@ interface OperatorGarden {
 /**
  * Fetches gardens where the given address is an operator
  */
-async function fetchOperatorGardens(address: string): Promise<OperatorGarden[]> {
+async function fetchOperatorGardens(address: string, chainId: number): Promise<OperatorGarden[]> {
   const { data, error } = await greenGoodsIndexer.query(
     GET_OPERATOR_GARDENS,
-    { operator: [address] },
+    { operator: [address.toLowerCase()], chainId },
     "getOperatorGardens"
   );
 
@@ -62,9 +64,11 @@ export interface RoleInfo {
 export function useRole(): RoleInfo {
   const auth = useAuthContext();
   const { address: wagmiAddress, isConnected } = useAccount();
+  const chainId = useCurrentChain();
 
   // Get address - prioritize wagmi for wallet mode, then auth context (wallet or passkey)
   const address = wagmiAddress ?? auth.walletAddress ?? auth.smartAccountAddress;
+  const normalizedAddress = address?.toLowerCase();
 
   // Ready when either wagmi is connected OR auth context is authenticated
   const ready = isConnected || (auth.isReady && auth.isAuthenticated);
@@ -73,9 +77,9 @@ export function useRole(): RoleInfo {
 
   // Use React Query for fetching operator gardens
   const { data: operatorGardens = [], isLoading: isFetching } = useQuery({
-    queryKey: queryKeys.role.operatorGardens(address ?? undefined),
-    queryFn: () => fetchOperatorGardens(address!),
-    enabled: !!address && ready,
+    queryKey: queryKeys.role.operatorGardens(normalizedAddress ?? undefined, chainId),
+    queryFn: () => fetchOperatorGardens(normalizedAddress!, chainId),
+    enabled: !!normalizedAddress && ready,
     staleTime: STALE_TIMES.baseLists,
     // Offline-first: prefer cached data
     networkMode: "offlineFirst",

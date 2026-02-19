@@ -1,10 +1,16 @@
-import { hapticLight, type Work } from "@green-goods/shared";
+import {
+  hapticLight,
+  logger,
+  trackSyncError,
+  useBatchWorkSync,
+  useOffline,
+  useQueueFlush,
+  useTimeout,
+  useUser,
+  type Work,
+} from "@green-goods/shared";
 import React, { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-
-import { useBatchWorkSync, useOffline, useUser } from "@green-goods/shared/hooks";
-import { trackSyncError } from "@green-goods/shared/modules";
-import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
 
 import { MinimalWorkCard } from "@/components/Cards";
 import { BeatLoader } from "@/components/Communication";
@@ -36,6 +42,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
   const flush = useQueueFlush();
   const batchWorkSync = useBatchWorkSync();
   const [isFlushing, setIsFlushing] = useState(false);
+  const { set: scheduleConfirmClear } = useTimeout();
 
   // Only offline (unsynced) work is actively "uploading".
   const uploadingOfflineWork = uploadingWork.filter((work) => work.id.startsWith("0xoffline_"));
@@ -79,16 +86,13 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
 
     if (newlyConfirmed.size > 0) {
       setConfirmedIds(newlyConfirmed);
-      const timeout = window.setTimeout(() => {
+      scheduleConfirmClear(() => {
         setConfirmedIds(new Set());
       }, 200);
-
-      previousOfflineRef.current = currentOffline;
-      return () => window.clearTimeout(timeout);
     }
 
     previousOfflineRef.current = currentOffline;
-  }, [uploadingWork]);
+  }, [uploadingWork, scheduleConfirmClear]);
 
   const isSyncing = isFlushing || batchWorkSync.isPending;
 
@@ -104,7 +108,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
         await flush();
       }
     } catch (error) {
-      console.error("Failed to sync all items:", error);
+      logger.error("Failed to sync all items:", { error });
       trackSyncError(error, {
         source: "Uploading.handleSyncAll",
         userAction: authMode === "wallet" ? "retrying failed uploads" : "syncing all pending items",

@@ -1,12 +1,7 @@
 ---
 name: ci-cd
+user-invocable: false
 description: GitHub Actions CI/CD patterns - workflow config, build matrix, caching, PR checks, status gates. Use for pipeline configuration and automation.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: established
-packages: []
-dependencies: [git-workflow, testing]
 ---
 
 # CI/CD Skill
@@ -219,10 +214,10 @@ Run the same checks locally before pushing:
 
 ```bash
 # Full validation (same as CI)
-bun format && bun lint && bun test && bun build
+bun format && bun lint && bun run test && bun build
 
 # Quick check (just the essentials)
-bun lint && bun test
+bun lint && bun run test
 ```
 
 ### Husky Hooks
@@ -232,7 +227,7 @@ bun lint && bun test
 bun lint-staged
 
 # .husky/pre-push
-bun test && bun build
+bun run test && bun build
 ```
 
 ### Simulating CI Locally
@@ -276,7 +271,7 @@ What CI/CD work?
 │                                   → Use environment protection
 │
 └── Testing CI locally? ────────► Part 6: Local Simulation
-                                    → bun format && bun lint && bun test && bun build
+                                    → bun format && bun lint && bun run test && bun build
 ```
 
 ## Related Skills

@@ -59,3 +59,10 @@ export {
 
 // From react-query.ts
 export { GC_TIMES, queryClient, STALE_TIMES } from "./react-query";
+
+// From gardens-subgraph.ts
+export { getGardensSubgraphUrl } from "./gardens-subgraph";
+
+// From sdg.ts
+export type { SDGTarget, SDGGoalId } from "./sdg";
+export { SDG_TARGETS, getSDGLabel } from "./sdg";

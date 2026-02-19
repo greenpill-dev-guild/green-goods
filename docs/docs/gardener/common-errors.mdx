@@ -1,0 +1,94 @@
+---
+title: Common Errors
+sidebar_position: 5
+slug: /gardener/common-errors
+audience: gardener
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Complete Common Errors with clear, role-specific next actions."
+difficulty: "standard"
+estimated_time: "5-15 minutes."
+prereqs: "Existing draft or failed submission."
+next_steps: "./submit-work-mdr"
+persona_context: "Gardeners documenting and syncing impact work in field conditions."
+source_of_truth:
+  - packages/shared/src/hooks/work/useWorkForm.ts
+  - packages/shared/src/hooks/work/useWorkMutation.ts
+  - packages/shared/src/modules/job-queue
+keywords:
+  - gardener errors
+  - submission failed
+  - offline retry
+---
+
+import {AtAGlanceCard, FeatureState, NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Common Errors
+
+<StatusBadge status="Live" />
+
+<AtAGlanceCard
+  goal="Complete Common Errors with clear, role-specific next actions."
+  difficulty="standard"
+  estimatedTime="5-15 minutes."
+  prereqs="Existing draft or failed submission."
+  outcome="You can diagnose and recover the most common issues."
+  personaContext="Gardeners documenting and syncing impact work in field conditions."
+  lastVerified="2026-02-18"
+/>
+
+## Fast triage
+
+<FeatureState
+  title="Validation errors"
+  status="Live"
+  summary="Missing required fields, invalid values, or oversized media prevent submit until fixed."
+>
+  Fix by reopening the draft, correcting highlighted fields, and resubmitting.
+</FeatureState>
+
+<FeatureState
+  title="Network or offline failures"
+  status="Live"
+  summary="Submit fails when connectivity drops. The queue retries automatically when online."
+>
+  Confirm connection, then reopen the queue state and trigger retry if needed.
+</FeatureState>
+
+<FeatureState
+  title="Signature or session issues"
+  status="Live"
+  summary="Passkey/wallet session may expire before mutation completes."
+>
+  Re-authenticate, then submit the same draft. Do not duplicate a new entry unless the old one is missing.
+</FeatureState>
+
+## Error-to-fix map
+
+| Error Pattern | Likely Cause | Recommended Fix |
+| --- | --- | --- |
+| `media required` or image missing | Media not attached or local blob cleared | Reattach media and confirm preview before submit |
+| `failed to submit work` | Network/API failure | Keep draft, reconnect, retry from queue |
+| `unauthorized` or `forbidden` | Role/membership mismatch | Confirm you are in the target garden and action is active |
+| `transaction rejected` | User rejected signature | Re-open submit flow and approve signature |
+
+## Escalate with context
+
+If retries keep failing, share these items with operators/developers:
+
+1. Garden address and action UID.
+2. Approximate timestamp.
+3. Error text shown in UI.
+4. Whether the submission is in `Queued`, `Failed`, or `Pending`.
+
+<NextBestAction
+  title="Next best action"
+  why="Keep momentum by moving to the next high-value step in this journey."
+  actionLabel="Submit Work with MDR"
+  actionHref="./submit-work-mdr"
+  alternatives={[
+    {label: "Offline Sync and Drafts", href: "./offline-sync-and-drafts"},
+    {label: "Track Status and Attestations", href: "./track-status-and-attestations"},
+  ]}
+/>

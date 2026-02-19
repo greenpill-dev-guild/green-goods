@@ -1,6 +1,10 @@
 // Utilities — EXPLICIT EXPORTS for tree-shaking
 
 // ============================================================================
+// DOMAIN BITMASK
+// ============================================================================
+export { expandDomainMask, hasDomain } from "./domain";
+// ============================================================================
 // ACTION
 // ============================================================================
 export {
@@ -111,6 +115,16 @@ export {
   getRpcUrl,
   isChainSupported,
 } from "./blockchain/chain-registry";
+export {
+  formatTokenAmount,
+  getNetDeposited,
+  getVaultAssetDecimals,
+  getVaultAssetSymbol,
+  isZeroAddressValue,
+  isZeroBytes32,
+  validateDecimalInput,
+  ZERO_ADDRESS,
+} from "./blockchain/vaults";
 // ============================================================================
 // CONTRACTS (ABIs & clients)
 // ============================================================================
@@ -119,10 +133,14 @@ export {
   createClients,
   GardenAccountABI,
   GardenTokenABI,
+  GreenGoodsENSABI,
+  HatsABI,
   getNetworkContracts,
 } from "./blockchain/contracts";
+export { GARDEN_ACCOUNT_ROLE_ABI } from "./blockchain/abis";
 export type { ResolveEnsAddressOptions, ResolveEnsOptions } from "./blockchain/ens";
-export { resolveEnsAddress, resolveEnsName } from "./blockchain/ens";
+export { resolveEnsAddress, resolveEnsName, suggestSlug, validateSlug } from "./blockchain/ens";
+export type { SlugValidationResult } from "./blockchain/ens";
 // ============================================================================
 // BLOCKCHAIN POLLING
 // ============================================================================
@@ -201,9 +219,11 @@ export {
   isRecoverableBlockchainError,
 } from "./errors/blockchain-errors";
 export {
+  formatTimeSpent,
   normalizeFeedback,
   normalizePlantCount,
   normalizePlantSelection,
+  normalizeTimeSpentMinutes,
 } from "./form/normalizers";
 // ============================================================================
 // QUERY INVALIDATION
@@ -278,6 +298,7 @@ export {
   // Core utilities (backward compatible)
   filterByTimeRange,
   formatDate,
+  formatDateRange,
   formatDateTime,
   formatDuration,
   formatRelativeTime,

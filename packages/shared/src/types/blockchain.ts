@@ -18,12 +18,15 @@ export interface DeploymentConfig {
   deploymentRegistry?: Address;
   hatsModule?: Address;
   karmaGAPModule?: Address;
+  cookieJarModule?: Address;
+  goodsToken?: Address;
+  juiceboxProjectId?: number;
   eas?: {
     address: Address;
     schemaRegistry: Address;
   };
   schemas?: {
-    gardenAssessmentSchemaUID: string;
+    assessmentSchemaUID: string;
     workSchemaUID: string;
     workApprovalSchemaUID: string;
   };

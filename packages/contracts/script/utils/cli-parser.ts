@@ -22,6 +22,32 @@ export interface ParsedOptions {
   error?: string;
 }
 
+/** Flags that consume the next argument as their value */
+const VALUE_FLAGS = new Set(["--network", "-n", "--chain", "--salt"]);
+
+/** Flags whose values contain secrets and must be redacted in logs */
+const SENSITIVE_FLAGS = new Set(["--private-key", "--etherscan-api-key", "--account", "--sender"]);
+
+/**
+ * Redact sensitive flag values from a forge argument list for safe logging.
+ * Returns a new array with secret values replaced by "[REDACTED]".
+ *
+ * @param args - The full argument list passed to forge
+ * @returns A copy with sensitive values replaced
+ */
+export function redactSensitiveArgs(args: string[]): string[] {
+  const redacted: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    redacted.push(arg);
+    if (SENSITIVE_FLAGS.has(arg) && i + 1 < args.length) {
+      redacted.push("[REDACTED]");
+      i++;
+    }
+  }
+  return redacted;
+}
+
 export class CliParser {
   /**
    * Parse command line arguments into structured options
@@ -53,6 +79,9 @@ export class CliParser {
       switch (arg) {
         case "--network":
         case "-n":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a network name` };
+          }
           options.network = args[++i];
           break;
         case "--broadcast":
@@ -87,6 +116,9 @@ export class CliParser {
           options.overrideSepoliaGate = true;
           break;
         case "--salt":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a salt value` };
+          }
           options.deploymentSalt = args[++i];
           break;
         case "--help":
@@ -131,10 +163,7 @@ export class CliParser {
       const arg = args[i];
       // Skip flags and their values
       if (arg.startsWith("-")) {
-        // Skip next arg if this is a flag that takes a value
-        if (arg === "--network" || arg === "-n" || arg === "--chain" || arg === "--salt") {
-          i++;
-        }
+        if (VALUE_FLAGS.has(arg)) i++;
         continue;
       }
 

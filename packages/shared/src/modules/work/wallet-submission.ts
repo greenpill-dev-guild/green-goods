@@ -12,6 +12,7 @@
  * @module modules/work/wallet-submission
  */
 
+import type { Address } from "viem";
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import { wagmiConfig } from "../../config/appkit";
@@ -21,7 +22,8 @@ import { queryKeys } from "../../hooks/query-keys";
 import type { EASWork, EASWorkApproval } from "../../types/eas-responses";
 import { ANALYTICS_EVENTS, trackWalletSubmissionTiming } from "../../modules/app/analytics-events";
 import { track } from "../../modules/app/posthog";
-import { pollQueriesAfterTransaction } from "../../utils/blockchain/polling";
+import { pollQueriesAfterTransaction, TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
+import { logger } from "../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import {
@@ -57,7 +59,7 @@ export type OnProgressCallback = (stage: WalletSubmissionStage, message: string)
 export interface WalletSubmissionOptions {
   /** Callback for progress updates */
   onProgress?: OnProgressCallback;
-  /** Transaction timeout in milliseconds (default: 60000) */
+  /** Transaction timeout in milliseconds (default: TX_RECEIPT_TIMEOUT_MS) */
   txTimeout?: number;
 }
 
@@ -72,7 +74,7 @@ export interface WalletSubmissionOptions {
 async function waitForReceiptWithTimeout(
   hash: `0x${string}`,
   chainId: number,
-  timeoutMs: number = 60_000
+  timeoutMs: number = TX_RECEIPT_TIMEOUT_MS
 ): Promise<void> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -121,14 +123,14 @@ async function waitForReceiptWithTimeout(
  */
 export async function submitWorkDirectly(
   draft: WorkDraft,
-  gardenAddress: string,
+  gardenAddress: Address,
   actionUID: number,
   actionTitle: string,
   chainId: number,
   images: File[],
   options: WalletSubmissionOptions = {}
 ): Promise<`0x${string}`> {
-  const { onProgress, txTimeout = 60_000 } = options;
+  const { onProgress, txTimeout = TX_RECEIPT_TIMEOUT_MS } = options;
   const startTime = Date.now();
 
   debugLog("[WalletSubmission] Starting direct work submission", { gardenAddress, actionUID });
@@ -141,7 +143,7 @@ export async function submitWorkDirectly(
     if (DEBUG_ENABLED) {
       debugError(message);
     } else {
-      console.error(message);
+      logger.error(message);
     }
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
@@ -158,7 +160,7 @@ export async function submitWorkDirectly(
         actionTitle,
         chainId,
         images,
-        accountAddress: walletClient.account.address,
+        accountAddress: walletClient.account.address as `0x${string}`,
       });
     } catch (err: unknown) {
       debugError("[WalletSubmission] Simulation failed", err);
@@ -224,10 +226,7 @@ export async function submitWorkDirectly(
       actionUID,
       title: workTitle,
       feedback: draft.feedback || "",
-      metadata: JSON.stringify({
-        plantSelection: draft.plantSelection,
-        plantCount: draft.plantCount,
-      }),
+      metadata: "{}",
       media: [], // Media URLs will be populated by indexer
       createdAt: Math.floor(Date.now() / 1000),
     };
@@ -289,7 +288,7 @@ export async function submitWorkDirectly(
     if (DEBUG_ENABLED) {
       debugError(logMessage, err);
     } else {
-      console.error(logMessage, err);
+      logger.error(logMessage, { error: err });
     }
 
     // Use centralized error formatting
@@ -318,8 +317,8 @@ export async function submitWorkDirectly(
  */
 export async function submitApprovalDirectly(
   draft: WorkApprovalDraft,
-  gardenAddress: string,
-  gardenerAddress: string,
+  gardenAddress: Address,
+  gardenerAddress: Address,
   chainId: number,
   options: WalletSubmissionOptions = {}
 ): Promise<`0x${string}`> {
@@ -339,7 +338,7 @@ export async function submitApprovalDirectly(
     if (DEBUG_ENABLED) {
       debugError(message);
     } else {
-      console.error(message);
+      logger.error(message);
     }
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
@@ -387,6 +386,9 @@ export async function submitApprovalDirectly(
       workUID: draft.workUID,
       approved: draft.approved,
       feedback: draft.feedback || "",
+      confidence: 0,
+      verificationMethod: 0,
+      reviewNotesCID: "",
       createdAt: Math.floor(Date.now() / 1000),
     };
 
@@ -437,7 +439,7 @@ export async function submitApprovalDirectly(
     if (DEBUG_ENABLED) {
       debugError(logMessage, err);
     } else {
-      console.error(logMessage, err);
+      logger.error(logMessage, { error: err });
     }
 
     // Use centralized error formatting
@@ -451,7 +453,7 @@ export async function submitApprovalDirectly(
 export interface BatchApprovalOptions {
   /** Callback for progress updates */
   onProgress?: OnProgressCallback;
-  /** Transaction timeout in milliseconds (default: 90000 for batch) */
+  /** Transaction timeout in milliseconds (default: TX_RECEIPT_TIMEOUT_MS for batch) */
   txTimeout?: number;
 }
 
@@ -476,8 +478,8 @@ export interface BatchApprovalOptions {
 export async function submitBatchApprovalsDirectly(
   approvals: Array<{
     draft: WorkApprovalDraft;
-    gardenAddress: string;
-    gardenerAddress: string;
+    gardenAddress: Address;
+    gardenerAddress: Address;
   }>,
   chainId: number,
   options: BatchApprovalOptions = {}
@@ -488,12 +490,12 @@ export async function submitBatchApprovalsDirectly(
     if (DEBUG_ENABLED) {
       debugError(logMessage);
     } else {
-      console.error(logMessage);
+      logger.error(logMessage);
     }
     throw new Error("No approvals provided. At least one approval is required.");
   }
 
-  const { onProgress, txTimeout = 90_000 } = options;
+  const { onProgress, txTimeout = TX_RECEIPT_TIMEOUT_MS } = options;
   const startTime = Date.now();
 
   debugLog("[WalletSubmission] Starting batch approval submission", {
@@ -560,6 +562,9 @@ export async function submitBatchApprovalsDirectly(
       workUID: draft.workUID,
       approved: draft.approved,
       feedback: draft.feedback || "",
+      confidence: 0,
+      verificationMethod: 0,
+      reviewNotesCID: "",
       createdAt: Math.floor(Date.now() / 1000),
     }));
 
@@ -614,7 +619,7 @@ export async function submitBatchApprovalsDirectly(
     if (DEBUG_ENABLED) {
       debugError(logMessage, err);
     } else {
-      console.error(logMessage, err);
+      logger.error(logMessage, { error: err });
     }
     throw new Error(formatWalletError(err));
   }

@@ -1,62 +1,45 @@
-import { cn } from "@green-goods/shared/utils";
-import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
-import { type ReactNode, useState } from "react";
-import {
-  type Control,
-  type FieldError,
-  type FieldErrorsImpl,
-  useFieldArray,
-  useWatch,
-} from "react-hook-form";
+import { cn, type CynefinPhase, Domain } from "@green-goods/shared";
+import type { ReactNode } from "react";
+import { type FieldError, type FieldErrorsImpl } from "react-hook-form";
 import { z } from "zod";
 
-// Schema and types
-const stringListSchema = z
-  .array(z.string().trim())
-  .optional()
-  .default([])
-  .transform((values) => values.filter((value) => value.trim().length > 0));
+// ============================================
+// Schema — mirrors AssessmentDraft from shared types
+// ============================================
+
+const smartOutcomeSchema = z.object({
+  description: z.string().trim().min(1, "Outcome description is required"),
+  metric: z.string().trim().min(1, "Select a metric"),
+  target: z.coerce.number().positive("Target must be a positive number"),
+});
 
 const baseAssessmentSchema = z.object({
+  // Common
   title: z.string().trim().min(1, "Title is required"),
-  description: z
-    .string()
-    .trim()
-    .min(1, "Describe what was evaluated or the key findings for this assessment"),
-  assessmentType: z.string().trim().min(1, "Assessment type is required"),
-  capitals: z.array(z.string().trim()).default([]),
-  metrics: z
-    .string()
-    .trim()
-    .min(2, "Provide assessment metrics")
-    .refine((value) => {
-      try {
-        JSON.parse(value);
-        return true;
-      } catch {
-        return false;
-      }
-    }, "Metrics must be valid JSON"),
-  reportDocuments: stringListSchema,
-  impactAttestations: stringListSchema,
-  startDate: z.string().trim().min(1, "Start date is required"),
-  endDate: z.string().trim().min(1, "End date is required"),
+  description: z.string().trim().min(1, "Description is required"),
   location: z.string().trim().min(1, "Location is required"),
-  tags: stringListSchema,
-  evidenceMedia: z.array(z.instanceof(File)).optional().default([]),
+
+  // Step 1: Strategy kernel
+  diagnosis: z.string().trim().min(10, "Provide a root-cause diagnosis (at least 10 characters)"),
+  smartOutcomes: z.array(smartOutcomeSchema).min(1, "Add at least one SMART outcome"),
+  cynefinPhase: z.coerce.number().min(0).max(3),
+
+  // Step 2: Domain + action set
+  domain: z.coerce.number().min(0).max(3),
+  selectedActionUIDs: z.array(z.string().trim().min(1)).min(1, "Select at least one action"),
+
+  // Step 3: SDG + harvest
+  sdgTargets: z.array(z.coerce.number().min(1).max(17)).min(1, "Select at least one SDG target"),
+  reportingPeriodStart: z.string().trim().min(1, "Start date is required"),
+  reportingPeriodEnd: z.string().trim().min(1, "End date is required"),
+
+  // Attachments (optional)
+  attachments: z.array(z.instanceof(File)).optional().default([]),
 });
 
 export const createAssessmentSchema = baseAssessmentSchema.superRefine((data, ctx) => {
-  if (data.capitals.length === 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Select at least one form of capital",
-      path: ["capitals"],
-    });
-  }
-
-  // Normalize dates to midnight UTC to avoid timezone comparison issues
-  const startDate = new Date(data.startDate);
+  // Validate reporting period dates
+  const startDate = new Date(data.reportingPeriodStart);
   startDate.setUTCHours(0, 0, 0, 0);
   const startTimestamp = startDate.getTime();
 
@@ -64,11 +47,11 @@ export const createAssessmentSchema = baseAssessmentSchema.superRefine((data, ct
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Start date is invalid",
-      path: ["startDate"],
+      path: ["reportingPeriodStart"],
     });
   }
 
-  const endDate = new Date(data.endDate);
+  const endDate = new Date(data.reportingPeriodEnd);
   endDate.setUTCHours(0, 0, 0, 0);
   const endTimestamp = endDate.getTime();
 
@@ -76,7 +59,7 @@ export const createAssessmentSchema = baseAssessmentSchema.superRefine((data, ct
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "End date is invalid",
-      path: ["endDate"],
+      path: ["reportingPeriodEnd"],
     });
   }
 
@@ -88,43 +71,34 @@ export const createAssessmentSchema = baseAssessmentSchema.superRefine((data, ct
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "End date must be after start date",
-      path: ["endDate"],
-    });
-  }
-
-  const invalidAttestations = data.impactAttestations.filter(
-    (value) => !/^0x[a-fA-F0-9]{64}$/.test(value)
-  );
-  if (invalidAttestations.length > 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Each impact attestation must be a 32-byte hex string (0x...)",
-      path: ["impactAttestations"],
+      path: ["reportingPeriodEnd"],
     });
   }
 });
 
-// Use the base schema for type inference to avoid superRefine complexity
 export type CreateAssessmentForm = z.infer<typeof baseAssessmentSchema>;
 
 export function createDefaultAssessmentForm(): CreateAssessmentForm {
   return {
     title: "",
     description: "",
-    assessmentType: "",
-    capitals: [],
-    metrics: '{\n  "indicators": []\n}',
-    reportDocuments: [],
-    impactAttestations: [],
-    startDate: "",
-    endDate: "",
     location: "",
-    tags: [],
-    evidenceMedia: [],
+    diagnosis: "",
+    smartOutcomes: [{ description: "", metric: "", target: 0 }],
+    cynefinPhase: 0 as CynefinPhase,
+    domain: Domain.SOLAR,
+    selectedActionUIDs: [],
+    sdgTargets: [],
+    reportingPeriodStart: "",
+    reportingPeriodEnd: "",
+    attachments: [],
   };
 }
 
-// Helper components
+// ============================================
+// Helper components (reused across steps)
+// ============================================
+
 interface LabeledFieldProps {
   label: string;
   required?: boolean;
@@ -159,118 +133,6 @@ export const textareaClassName = (error?: FieldError) =>
     "mt-1 w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
     error && "border-red-300 focus:border-red-400 focus:ring-red-100/60"
   );
-
-/** String array field names in CreateAssessmentForm */
-type StringArrayFieldName = "tags" | "reportDocuments" | "impactAttestations" | "capitals";
-
-interface ArrayInputProps {
-  control: Control<CreateAssessmentForm>;
-  name: StringArrayFieldName;
-  label: string;
-  placeholder?: string;
-  helper?: string;
-  emptyHint?: string;
-  addLabel?: string;
-  required?: boolean;
-  disabled?: boolean;
-  error?: string;
-  transformValue?: (value: string) => string;
-}
-
-export function ArrayInput({
-  control,
-  name,
-  label,
-  placeholder,
-  helper,
-  emptyHint,
-  addLabel = "Add entry",
-  required,
-  disabled,
-  error,
-  transformValue,
-}: ArrayInputProps) {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name,
-  });
-  const values = useWatch({ control, name }) ?? [];
-  const [inputValue, setInputValue] = useState("");
-
-  const handleAdd = () => {
-    const trimmed = inputValue.trim();
-    if (!trimmed) {
-      return;
-    }
-    append(transformValue ? transformValue(trimmed) : trimmed);
-    setInputValue("");
-  };
-
-  return (
-    <div className="space-y-2">
-      <div className="space-y-1 text-sm">
-        <span className="font-medium text-text-sub">
-          {label}
-          {required ? <span className="ml-1 text-red-500">*</span> : null}
-        </span>
-        {helper ? <span className="block text-xs text-text-soft">{helper}</span> : null}
-      </div>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          type="text"
-          value={inputValue}
-          placeholder={placeholder}
-          disabled={disabled}
-          onChange={(event) => setInputValue(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              handleAdd();
-            }
-          }}
-          className={cn(
-            "flex-1 rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
-            error && "border-red-300 focus:border-red-400 focus:ring-red-100/60"
-          )}
-          aria-invalid={Boolean(error)}
-        />
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={disabled || inputValue.trim().length === 0}
-          className="inline-flex items-center justify-center gap-1 rounded-md border border-stroke-soft px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <RiAddLine className="h-4 w-4" />
-          {addLabel}
-        </button>
-      </div>
-      {/* Always render to reserve space and prevent layout shift */}
-      <span className="block min-h-[1.25rem] text-xs text-red-600">{error || "\u00A0"}</span>
-      <div className="space-y-1.5">
-        {fields.length === 0
-          ? emptyHint && <p className="text-xs text-text-soft">{emptyHint}</p>
-          : fields.map((field, index) => (
-              <div
-                key={field.id}
-                className="flex items-center justify-between gap-2.5 rounded-md border border-gray-100 bg-bg-weak px-3 py-2 text-sm text-text-sub/60"
-              >
-                <span className="break-all">{values[index] ?? ""}</span>
-                <button
-                  type="button"
-                  onClick={() => remove(index)}
-                  disabled={disabled}
-                  className="rounded-md p-1 text-red-500 transition hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-                  // eslint-disable-next-line jsx-a11y/aria-proptypes
-                  aria-label={`Remove ${label.toLowerCase()} entry`}
-                >
-                  <RiDeleteBinLine className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-      </div>
-    </div>
-  );
-}
 
 export function extractErrorMessage(error?: FieldError | FieldErrorsImpl<any>): string | undefined {
   if (!error) {
@@ -325,27 +187,13 @@ export function ReviewRow({
   );
 }
 
-export function formatDateRange(start?: string | number | null, end?: string | number | null) {
-  if (!start && !end) return "Not provided";
+// ============================================
+// Step field mappings for per-step validation
+// ============================================
 
-  const formatValue = (value?: string | number | null) => {
-    if (!value) return undefined;
-    if (typeof value === "string" && value.includes("-")) {
-      const date = new Date(value);
-      return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
-    }
-    const numeric = typeof value === "string" ? Number(value) : value;
-    if (!numeric) return undefined;
-    const timestamp = numeric > 10_000_000_000 ? numeric : numeric * 1000;
-    const date = new Date(timestamp);
-    return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
-  };
-
-  const startLabel = formatValue(start);
-  const endLabel = formatValue(end);
-
-  if (startLabel && endLabel) {
-    return `${startLabel} – ${endLabel}`;
-  }
-  return startLabel ?? endLabel ?? "Not provided";
-}
+/** Fields validated on each wizard step (used for trigger validation) */
+export const STEP_FIELDS = {
+  strategy: ["title", "description", "location", "diagnosis", "smartOutcomes", "cynefinPhase"],
+  domain: ["domain", "selectedActionUIDs"],
+  sdgHarvest: ["sdgTargets", "reportingPeriodStart", "reportingPeriodEnd"],
+} as const satisfies Record<string, readonly (keyof CreateAssessmentForm)[]>;

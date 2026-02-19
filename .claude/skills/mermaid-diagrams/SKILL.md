@@ -1,12 +1,7 @@
 ---
 name: mermaid-diagrams
+user-invocable: false
 description: Create software diagrams using Mermaid syntax. Use for architecture explanations, workflow/flow diagrams, state machines, and relationship maps.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: []
-dependencies: []
 ---
 
 # Mermaid Diagramming
@@ -20,7 +15,7 @@ When invoked:
 - Keep labels short and unambiguous.
 - Prefer simple diagrams unless the user requests detail.
 
-## Diagram Type Selection
+## Part 1: Diagram Type Selection
 
 **All diagram types render in Markdown** (GitHub, GitLab, docs, PRs):
 
@@ -212,7 +207,15 @@ What diagram?
 **Export options:**
 - [Mermaid Live Editor](https://mermaid.live) - PNG/SVG export
 - CLI: `npx @mermaid-js/mermaid-cli -i input.mmd -o output.png`
-- Miro MCP: Available for architecture diagrams and collaborative planning (via `miro` MCP server)
+- Keep Mermaid sources in-repo for deterministic rendering and review
+
+## Anti-Patterns
+
+- Mixing multiple unrelated concepts in one oversized diagram
+- Using ambiguous labels that require extra prose to decode
+- Drawing sequence diagrams when state diagrams would be clearer
+- Omitting failure branches in workflow diagrams
+- Producing diagrams that contradict the implementation
 
 ## Related Skills
 

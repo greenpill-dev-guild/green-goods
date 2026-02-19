@@ -1,12 +1,7 @@
 ---
 name: biome
+user-invocable: false
 description: Biome formatter and import organizer - fast Rust-based code formatting. Use for formatting configuration, import organization, and migration from Prettier.
-version: "1.1"
-last_updated: "2026-02-09"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin, indexer, agent]
-dependencies: []
 ---
 
 # Biome Skill
@@ -181,7 +176,7 @@ cd packages/contracts && forge fmt
 bun format && bun lint
 
 # Full validation
-bun format && bun lint && bun test && bun build
+bun format && bun lint && bun run test && bun build
 
 # Check if formatting is clean (CI mode)
 bunx biome check --write=false

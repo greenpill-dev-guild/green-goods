@@ -240,7 +240,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   },
 
   // ============================================================================
-  // GardenerRegistry.sol errors (ENS)
+  // GreenGoodsENS.sol errors (ENS registration)
   // ============================================================================
   "0xa18ea0b6": {
     name: "NameNotAvailable",

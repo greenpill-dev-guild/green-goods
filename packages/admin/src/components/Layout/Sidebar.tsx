@@ -1,7 +1,6 @@
-import { useAuth, useRole } from "@green-goods/shared/hooks";
-import { useUIStore } from "@green-goods/shared/stores";
-import { cn } from "@green-goods/shared/utils";
+import { useAuth, useRole, useUIStore, cn } from "@green-goods/shared";
 import {
+  RiBankLine,
   RiDashboardLine,
   RiHammerFill,
   RiLogoutBoxLine,
@@ -19,6 +18,7 @@ const navigation = [
     roles: ["deployer", "operator", "user"],
   },
   { name: "Gardens", href: "/gardens", icon: RiPlantLine, roles: ["deployer", "operator", "user"] },
+  { name: "Treasury", href: "/treasury", icon: RiBankLine, roles: ["deployer", "operator"] },
   { name: "Actions", href: "/actions", icon: RiHammerFill, roles: ["deployer", "operator"] },
   { name: "Contracts", href: "/contracts", icon: RiSettings3Line, roles: ["deployer"] },
   { name: "Deployment", href: "/deployment", icon: RiUploadLine, roles: ["deployer"] },
@@ -28,7 +28,8 @@ export function Sidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
   const { role } = useRole();
-  const { sidebarOpen, setSidebarOpen } = useUIStore();
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+  const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
 
   const filteredNavigation = navigation.filter((item) => item.roles.includes(role));
 

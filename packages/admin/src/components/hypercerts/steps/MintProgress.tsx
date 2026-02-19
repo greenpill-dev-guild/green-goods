@@ -214,7 +214,6 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
             <p className="mt-1 text-xs">
               {formatMessage({
                 id: getBlockchainErrorI18nKey(state.error),
-                defaultMessage: state.error,
               })}
             </p>
           )}

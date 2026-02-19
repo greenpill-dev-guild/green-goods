@@ -1,9 +1,9 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   useEnsAddress,
-  logger,
   cn,
   formatAddress,
+  logger,
   parseContractError,
   resolveEnsAddress,
   USER_FRIENDLY_ERRORS,
@@ -111,7 +111,7 @@ export function AddMemberModal({
         setError("");
       }
     } catch (err) {
-      logger.error("Failed to read clipboard", { err });
+      logger.error("Failed to read clipboard", { error: err });
       setError(formatMessage({ id: "app.admin.roles.error.clipboardFailed" }));
     }
   };

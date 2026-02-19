@@ -18,6 +18,9 @@ on:
           - mobile-safari
         default: all
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -67,7 +70,7 @@ jobs:
         run: bun run build:client
         env:
           VITE_USE_HASH_ROUTER: "true"
-          VITE_CHAIN_ID: "84532"
+          VITE_CHAIN_ID: "11155111"
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
           VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:8080' }}
@@ -75,9 +78,10 @@ jobs:
       - name: Run E2E tests
         run: |
           if [ "${{ github.event.inputs.project }}" = "all" ] || [ -z "${{ github.event.inputs.project }}" ]; then
-            # Run default projects: chromium (admin), chromium-client (client smoke), performance
+            # Run default projects: chromium (admin), chromium-client (client smoke),
+            # critical-path (work submission/approval/offline sync CI tests), performance
             # Mobile and client-full projects are optional (run manually with --project flag)
-            npx playwright test --project=chromium --project=chromium-client --project=performance
+            npx playwright test --project=chromium --project=chromium-client --project=critical-path --project=performance
           else
             npx playwright test --project=${{ github.event.inputs.project }}
           fi
@@ -146,7 +150,7 @@ jobs:
         run: bun run build:client
         env:
           VITE_USE_HASH_ROUTER: "true"
-          VITE_CHAIN_ID: "84532"
+          VITE_CHAIN_ID: "11155111"
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
           VITE_ENVIO_INDEXER_URL: "http://localhost:8080"

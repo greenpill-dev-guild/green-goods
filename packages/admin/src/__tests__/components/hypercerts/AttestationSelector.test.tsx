@@ -13,13 +13,11 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { HypercertAttestation } from "@green-goods/shared";
 
 // Mock dependencies
-vi.mock("@green-goods/shared/utils", () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-}));
-
 vi.mock("@green-goods/shared", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   formatDateTime: (timestamp: number) => new Date(timestamp).toLocaleDateString(),
   ACTION_DOMAINS: ["biodiversity", "water", "soil", "carbon"],
+  filterAttestationsByAssessment: (attestations: any[]) => attestations,
   // Minimal FormInput mock for search functionality with accessible label
   FormInput: ({
     id,
@@ -129,8 +127,8 @@ describe("components/hypercerts/AttestationSelector", () => {
     it("displays attestation count", () => {
       render(createElement(AttestationSelector, defaultProps));
 
-      // Should show "4 attestations available" or similar
-      expect(screen.getByText(/4 available/)).toBeInTheDocument();
+      // Should show "4 available" count text
+      expect(screen.getByText("4 available")).toBeInTheDocument();
     });
 
     it("shows gardener names", () => {

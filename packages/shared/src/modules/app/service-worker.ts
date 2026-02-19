@@ -1,5 +1,5 @@
-// import { jobQueue } from "./job-queue";
 import { jobQueueEventBus } from "../job-queue/event-bus";
+import { logger } from "./logger";
 import { track } from "./posthog";
 
 /**
@@ -11,6 +11,7 @@ class ServiceWorkerManager {
   private isSupported = false;
   private hasController = false;
   private hasReloadedForUpdate = false;
+  private readonly boundMessageHandler = this.handleMessage.bind(this);
 
   constructor() {
     const hasNavigator = typeof navigator !== "undefined";
@@ -33,7 +34,7 @@ class ServiceWorkerManager {
    */
   async register(): Promise<boolean> {
     if (!this.isSupported) {
-      console.warn("Service Worker or Background Sync not supported");
+      logger.warn("[ServiceWorker] Service Worker or Background Sync not supported");
       return false;
     }
 
@@ -43,7 +44,9 @@ class ServiceWorkerManager {
       });
 
       // Set up message handler for background sync notifications
-      navigator.serviceWorker.addEventListener("message", this.handleMessage.bind(this));
+      navigator.serviceWorker.removeEventListener("message", this.boundMessageHandler);
+      navigator.serviceWorker.removeEventListener("controllerchange", this.handleControllerChange);
+      navigator.serviceWorker.addEventListener("message", this.boundMessageHandler);
       navigator.serviceWorker.addEventListener("controllerchange", this.handleControllerChange);
 
       // Wait for service worker to be ready
@@ -56,7 +59,7 @@ class ServiceWorkerManager {
 
       return true;
     } catch (error) {
-      console.error("Service Worker registration failed:", error);
+      logger.error("[ServiceWorker] Service Worker registration failed", { error });
       track("service_worker_registration_failed", {
         error: error instanceof Error ? error.message : "Unknown error",
       });
@@ -94,7 +97,7 @@ class ServiceWorkerManager {
    */
   async requestBackgroundSync(): Promise<boolean> {
     if (!this.isBackgroundSyncSupported()) {
-      console.warn("Background Sync not available");
+      logger.warn("[ServiceWorker] Background Sync not available");
       return false;
     }
 
@@ -117,7 +120,7 @@ class ServiceWorkerManager {
 
       return true;
     } catch (error) {
-      console.error("Failed to request background sync:", error);
+      logger.error("[ServiceWorker] Failed to request background sync", { error });
       track("background_sync_request_failed", {
         error: error instanceof Error ? error.message : "Unknown error",
       });
@@ -179,7 +182,7 @@ if (typeof window !== "undefined") {
       .then((registrations) => Promise.all(registrations.map((r) => r.unregister())))
       .catch((error) => {
         // Log but don't block - this is best-effort cleanup
-        console.warn("[ServiceWorker] Failed to unregister existing workers:", error);
+        logger.warn("[ServiceWorker] Failed to unregister existing workers", { error });
       });
     // Clear caches that could serve stale assets
     if ("caches" in window) {
@@ -188,7 +191,7 @@ if (typeof window !== "undefined") {
         .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
         .catch((error) => {
           // Log but don't block - this is best-effort cleanup
-          console.warn("[ServiceWorker] Failed to clear caches:", error);
+          logger.warn("[ServiceWorker] Failed to clear caches", { error });
         });
     }
   }

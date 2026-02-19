@@ -257,7 +257,7 @@ async function loadDeployment(): Promise<DeploymentArtifact> {
     // Resolve path relative to this file
     const deploymentPath = path.resolve(
       path.dirname(new URL(import.meta.url).pathname),
-      "../../packages/contracts/deployments/84532-latest.json"
+      "../../packages/contracts/deployments/11155111-latest.json"
     );
 
     const content = await fs.readFile(deploymentPath, "utf-8");

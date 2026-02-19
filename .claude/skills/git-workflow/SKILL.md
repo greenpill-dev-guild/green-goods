@@ -1,12 +1,7 @@
 ---
 name: git-workflow
+user-invocable: false
 description: Git workflow patterns - branching, conventional commits, conflict resolution, release tagging, changelog. Use for branch management, merge conflicts, release workflows.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: []
-dependencies: []
 ---
 
 # Git Workflow Skill
@@ -21,6 +16,18 @@ When invoked:
 - Check current branch with `git branch --show-current`.
 - Follow conventional commit format for all commits.
 - Reference `CLAUDE.md` → Git Workflow section for branch naming rules.
+
+## Repository
+
+The canonical repository is `greenpill-dev-guild/green-goods`. There should be a single `origin` remote:
+
+```
+origin  git@github.com:greenpill-dev-guild/green-goods.git
+```
+
+**Do NOT add `camp-green` as a remote.** The `greenpill-dev-guild/camp-green` repository is **archived** and read-only — all issues, PRs, and pushes go to `green-goods`. If `gh` CLI commands fail with "Repository was archived", verify your remote with `git remote -v`.
+
+---
 
 ## Part 1: Branch Strategy
 
@@ -132,7 +139,7 @@ For actual code conflicts:
 2. Understand the intent of each change
 3. Merge manually, preserving both intents
 4. Run `bun build` to verify
-5. Run `bun test` to verify behavior
+5. Run `bun run test` to verify behavior
 
 ## Part 4: Release Workflow
 
@@ -145,7 +152,7 @@ v{major}.{minor}.{patch}-rc.{n}  # Release candidates
 
 ### Pre-Release Validation Checklist
 
-- [ ] All tests passing: `bun test`
+- [ ] All tests passing: `bun run test`
 - [ ] Lint clean: `bun lint`
 - [ ] Build succeeds: `bun build`
 - [ ] Format clean: `bun format --check`
@@ -195,7 +202,7 @@ git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"%s" | sort
 
 Before requesting review:
 1. Run `/review` skill (6-pass review)
-2. Full validation: `bun format && bun lint && bun test && bun build`
+2. Full validation: `bun format && bun lint && bun run test && bun build`
 3. Self-review the diff once
 4. PR description filled out
 

@@ -165,6 +165,18 @@ export {
   withTimeout,
 } from "./data/graphql-client";
 // ============================================================================
+// DATA / GARDENS (Gardens V2 Subgraph)
+// ============================================================================
+export {
+  getConvictionStrategiesFromSubgraph,
+  getConvictionWeightsFromSubgraph,
+  getGardenCommunityFromSubgraph,
+  getGardenPoolsFromSubgraph,
+  getMemberPowerFromSubgraph,
+  getRegisteredHypercertsFromSubgraph,
+} from "./data/gardens";
+
+// ============================================================================
 // DATA / GREENGOODS
 // ============================================================================
 export {
@@ -179,11 +191,36 @@ export {
 // DATA / HYPERCERTS
 // ============================================================================
 export {
+  type AssessmentMetadataPrefill,
   checkAttestationsBundled,
+  domainToActionDomain,
+  filterAttestationsByAssessment,
   getApprovedAttestations,
   getGardenHypercerts,
   getHypercertById,
+  prefillMetadataFromAssessment,
 } from "./data/hypercerts";
+// ============================================================================
+// DATA / MARKETPLACE (On-chain reads & event queries)
+// ============================================================================
+export {
+  getRegisteredOrders,
+  getActiveOrder,
+  previewPurchase,
+  getMinPrice,
+  getSellerOrders,
+  getTradeHistory,
+  getListingHistory,
+} from "./data/marketplace";
+// ============================================================================
+// DATA / VAULTS
+// ============================================================================
+export {
+  getAllGardenVaults,
+  getGardenVaults,
+  getVaultDeposits,
+  getVaultEvents,
+} from "./data/vaults";
 // ============================================================================
 // DATA / IPFS (Storacha)
 // ============================================================================
@@ -259,3 +296,25 @@ export {
   validateApprovalDraft,
   validateWorkDraft,
 } from "./work/work-submission";
+
+// ============================================================================
+// MARKETPLACE (HypercertExchange SDK integration)
+// ============================================================================
+export {
+  // Client
+  getMarketplaceClient,
+  getMarketplaceAddresses,
+  isMarketplaceSupported,
+  resetMarketplaceClients,
+  // Signing
+  type MakerAskOrder,
+  type ValidationResult,
+  buildMakerAsk,
+  signMakerAsk,
+  validateOrder,
+  // Approvals
+  type MarketplaceApprovals,
+  type EncodedApprovalCall,
+  checkMarketplaceApprovals,
+  buildApprovalTransactions,
+} from "./marketplace";

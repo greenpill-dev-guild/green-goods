@@ -1,12 +1,6 @@
 ---
 name: ui-compliance
 description: UI compliance - accessibility (WCAG), forms, responsive design, animation. Use for a11y, mobile-first, forms, i18n.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin]
-dependencies: [react, i18n]
 ---
 
 # UI Compliance Skill
@@ -337,6 +331,14 @@ const rowVirtualizer = useVirtualizer({
 - [ ] All strings use `intl.formatMessage()`
 - [ ] **Update all three language files (en, es, pt) — mandatory**
 - [ ] Dates/numbers use Intl API
+
+## Anti-Patterns
+
+- Relying on color alone to convey state or validation failures
+- Shipping forms without accessible labels and error associations
+- Ignoring `prefers-reduced-motion` for animated interactions
+- Hardcoding user-facing strings instead of i18n keys
+- Assuming desktop-only layouts without mobile verification
 
 ## Related Skills
 

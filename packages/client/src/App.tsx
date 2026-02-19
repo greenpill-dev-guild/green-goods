@@ -1,5 +1,4 @@
-import { queryClient } from "@green-goods/shared/config/react-query";
-import { debugWarn } from "@green-goods/shared/utils/debug";
+import { queryClient, debugWarn } from "@green-goods/shared";
 import {
   type PersistedClient,
   type Persister,
@@ -96,7 +95,7 @@ function App() {
     if (query.state.fetchStatus !== "idle") return false;
 
     const key = query.queryKey;
-    if (!Array.isArray(key) || key[0] !== "greengoods") return true;
+    if (!Array.isArray(key) || key[0] !== "greengoods") return false;
 
     // Queue keys are high churn; don't persist
     if (key[1] === "queue") return false;

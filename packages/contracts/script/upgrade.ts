@@ -5,7 +5,7 @@ import * as path from "node:path";
 import { execSync } from "node:child_process";
 import * as dotenv from "dotenv";
 import { NetworkManager } from "./utils/network";
-import { assertSepoliaGate, writeSepoliaCheckpoint } from "./utils/release-gate";
+import { assertSepoliaGate } from "./utils/release-gate";
 
 // Load environment variables from root .env
 dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
@@ -27,7 +27,7 @@ const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
   "assessment-resolver": "upgradeAssessmentResolver()",
-  "deployment-registry": "upgradeDeploymentRegistry()",
+  "deployment-registry": "upgradeDeployment()",
   all: "upgradeAll()",
 };
 
@@ -151,7 +151,7 @@ Contracts:
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver
   assessment-resolver     Upgrade AssessmentResolver
-  deployment-registry     Upgrade DeploymentRegistry
+  deployment-registry     Upgrade Deployment
   all                     Upgrade all contracts
 
 Options:
@@ -228,7 +228,6 @@ function main(): void {
     assertSepoliaGate({
       network,
       broadcast,
-      operation: "upgrade",
       overrideSepoliaGate,
     });
 
@@ -273,15 +272,6 @@ function main(): void {
       env: { ...process.env, FOUNDRY_PROFILE: "production" },
     });
 
-    if (broadcast && network === "sepolia") {
-      const checkpoint = writeSepoliaCheckpoint({
-        chainId: networkManager.getChainIdString(network),
-        operation: "upgrade",
-      });
-      console.log(
-        `✅ Wrote Sepolia checkpoint (${checkpoint.timestamp}, commit ${checkpoint.commitHash.slice(0, 12)})`,
-      );
-    }
     console.log("\n✅ Upgrade completed successfully");
   } catch (error) {
     console.error("\n❌ Upgrade failed", error);

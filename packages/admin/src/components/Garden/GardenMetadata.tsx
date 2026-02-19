@@ -1,4 +1,4 @@
-import { cn, getNetworkConfig, useCopyToClipboard } from "@green-goods/shared";
+import { cn, getNetworkConfig, useCopyToClipboard, type Address } from "@green-goods/shared";
 import {
   RiCheckLine,
   RiExternalLinkLine,
@@ -8,8 +8,8 @@ import {
 } from "@remixicon/react";
 
 interface GardenMetadataProps {
-  gardenId: string; // Garden smart account address
-  tokenAddress: string;
+  gardenId: Address; // Garden smart account address
+  tokenAddress: Address;
   tokenId: bigint | number;
   chainId: number;
   className?: string;
@@ -28,7 +28,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
   const networkConfig = getNetworkConfig(chainId);
   const blockExplorer = networkConfig.blockExplorer;
 
-  const getExplorerUrl = (address: string, type: "address" | "token" | "nft") => {
+  const getExplorerUrl = (address: Address, type: "address" | "token" | "nft") => {
     if (!blockExplorer) return null;
 
     switch (type) {
@@ -45,7 +45,8 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
 
   const getOpenSeaUrl = () => {
     // OpenSea URLs differ by chain
-    const chainSlug = chainId === 84532 ? "base-sepolia" : chainId === 42161 ? "arbitrum" : "base";
+    const chainSlug =
+      chainId === 11155111 ? "sepolia" : chainId === 42161 ? "arbitrum" : "ethereum";
     return `https://testnets.opensea.io/assets/${chainSlug}/${tokenAddress}/${tokenId}`;
   };
 

@@ -21,9 +21,15 @@ vi.mock("../../components/Actions", () => ({
   Button: ({ label, onClick }: any) => createElement("button", { onClick, type: "button" }, label),
 }));
 
-// Mock shared modules to avoid WalletConnect dependency chain
-vi.mock("@green-goods/shared/modules", () => ({
+// Mock shared barrel to avoid WalletConnect/shared dependency chain resolution
+vi.mock("@green-goods/shared", () => ({
   trackErrorBoundary: vi.fn(),
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
 }));
 
 import { GardenErrorBoundary } from "../../components/Errors/ErrorBoundary";
@@ -84,11 +90,7 @@ describe("GardenErrorBoundary", () => {
   });
 
   describe("custom fallback", () => {
-    // Note: Tests that intentionally throw errors cause "Uncaught Exception" reports
-    // in Vitest/jsdom even though they pass. These are skipped to avoid CI failures.
-    // The error boundary behavior is verified by the custom fallback test which uses
-    // a simpler rendering approach.
-    it.skip("renders custom fallback when provided and error occurs", () => {
+    it("renders custom fallback when provided and error occurs", () => {
       const customFallback = createElement("div", null, "Custom error fallback");
 
       // Render with a component that will throw
@@ -119,10 +121,7 @@ describe("GardenErrorBoundary", () => {
     });
   });
 
-  // Note: Tests that intentionally throw errors cause "Uncaught Exception" reports
-  // in Vitest/jsdom even though they pass. These are skipped to avoid CI failures.
-  // The error boundary behavior is verified via E2E tests and the custom fallback test.
-  describe.skip("default error UI", () => {
+  describe("default error UI", () => {
     it("shows default error UI when error occurs without custom fallback", () => {
       render(
         createElement(
@@ -138,7 +137,7 @@ describe("GardenErrorBoundary", () => {
       ).toBeInTheDocument();
     });
 
-    it("shows reload and go back buttons in error state", () => {
+    it("shows try again and go back buttons in error state", () => {
       render(
         createElement(
           GardenErrorBoundary,
@@ -147,7 +146,7 @@ describe("GardenErrorBoundary", () => {
         )
       );
 
-      expect(screen.getByText("Reload")).toBeInTheDocument();
+      expect(screen.getByText("Try Again")).toBeInTheDocument();
       expect(screen.getByText("Go Back")).toBeInTheDocument();
     });
 

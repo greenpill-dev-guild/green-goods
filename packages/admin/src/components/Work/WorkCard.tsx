@@ -1,6 +1,9 @@
-import { WorkCard as SharedWorkCard, type WorkCardData } from "@green-goods/shared/components";
-import { resolveIPFSUrl } from "@green-goods/shared/modules";
-import { formatAddress } from "@green-goods/shared/utils";
+import {
+  WorkCardComponent as SharedWorkCard,
+  type WorkCardData,
+  resolveIPFSUrl,
+  formatAddress,
+} from "@green-goods/shared";
 import { Link } from "react-router-dom";
 
 interface WorkCardProps {

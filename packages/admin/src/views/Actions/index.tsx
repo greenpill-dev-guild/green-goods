@@ -1,10 +1,11 @@
-import { DEFAULT_CHAIN_ID, formatDate } from "@green-goods/shared";
-import { useActions } from "@green-goods/shared/hooks";
+import { DEFAULT_CHAIN_ID, formatDate, useActions } from "@green-goods/shared";
 import { RiAddLine, RiCalendarLine, RiEditLine, RiEyeLine } from "@remixicon/react";
+import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 export default function Actions() {
+  const { formatMessage } = useIntl();
   const { data: actions = [], isLoading } = useActions(DEFAULT_CHAIN_ID);
 
   const headerActions = (
@@ -13,14 +14,18 @@ export default function Actions() {
       className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
     >
       <RiAddLine className="mr-2 h-4 w-4" />
-      Create Action
+      {formatMessage({ id: "app.actions.create" })}
     </Link>
   );
 
   if (isLoading) {
     return (
       <div>
-        <PageHeader title="Actions" description="Loading actions..." actions={headerActions} />
+        <PageHeader
+          title={formatMessage({ id: "app.actions.title" })}
+          description={formatMessage({ id: "app.actions.loading" })}
+          actions={headerActions}
+        />
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 mt-6">
           {[...Array(6)].map((_, i) => (
             <div
@@ -42,8 +47,8 @@ export default function Actions() {
   return (
     <div>
       <PageHeader
-        title="Actions"
-        description={`${actions.length} action${actions.length !== 1 ? "s" : ""} available`}
+        title={formatMessage({ id: "app.actions.title" })}
+        description={formatMessage({ id: "app.actions.count" }, { count: actions.length })}
         actions={headerActions}
       />
 
@@ -65,7 +70,7 @@ export default function Actions() {
               </h3>
 
               <p className="text-sm text-text-sub mb-4 line-clamp-2">
-                {action.description || "No description"}
+                {action.description || formatMessage({ id: "app.actions.noDescription" })}
               </p>
 
               <div className="flex items-center justify-between text-xs text-text-soft">
@@ -86,14 +91,14 @@ export default function Actions() {
       </div>
 
       {actions.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-text-sub mb-4">No actions yet</p>
+        <div className="text-center py-12" role="status">
+          <p className="text-text-sub mb-4">{formatMessage({ id: "app.actions.empty" })}</p>
           <Link
             to="/actions/create"
             className="inline-flex items-center text-green-600 hover:text-green-700"
           >
             <RiAddLine className="mr-1" />
-            Create your first action
+            {formatMessage({ id: "app.actions.createFirst" })}
           </Link>
         </div>
       )}

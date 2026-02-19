@@ -1,12 +1,7 @@
 ---
 name: docker
+user-invocable: false
 description: Docker and Docker Compose patterns - containerized services, volume management, networking, health checks, dev vs prod configs. Use for indexer Docker workflow, container debugging, and service orchestration.
-version: "1.0"
-last_updated: "2026-02-09"
-last_verified: "2026-02-09"
-status: proven
-packages: [indexer]
-dependencies: [deployment]
 ---
 
 # Docker Skill
@@ -215,7 +210,7 @@ environment:
 
   # RPC URLs from host (no defaults — must be set)
   ARBITRUM_RPC_URL: ${ARBITRUM_RPC_URL:-}
-  BASE_SEPOLIA_RPC_URL: ${BASE_SEPOLIA_RPC_URL:-}
+  SEPOLIA_RPC_URL: ${SEPOLIA_RPC_URL:-}
 ```
 
 ### Default Credentials (Development Only)

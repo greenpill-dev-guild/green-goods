@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import type { Action, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
+import type { Action, Address, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { serviceWorkerManager } from "../app/service-worker";
 import { createOfflineTxHash, jobQueue } from "../job-queue";
@@ -18,12 +18,12 @@ import { createOfflineTxHash, jobQueue } from "../job-queue";
  */
 export async function submitWorkToQueue(
   draft: WorkDraft,
-  gardenAddress: string,
+  gardenAddress: Address,
   actionUID: number,
   actions: Action[],
   chainId: number,
   images: File[],
-  userAddress: string
+  userAddress: Address
 ): Promise<{ txHash: `0x${string}`; jobId: string; clientWorkId: string }> {
   if (!gardenAddress) {
     throw new Error("Garden address is required");
@@ -39,28 +39,13 @@ export async function submitWorkToQueue(
 
   const actionTitle = getActionTitle(actions, actionUID);
 
-  // Use existing clientWorkId if provided, otherwise generate new one
-  const incomingId =
-    draft.metadata && typeof draft.metadata === "object"
-      ? ((draft.metadata as Record<string, unknown>).clientWorkId as string | undefined)
-      : undefined;
-  const clientWorkId = incomingId && incomingId.length > 0 ? incomingId : uuidv4();
-
-  // Add to metadata for deduplication
-  const enrichedDraft = {
-    ...draft,
-    metadata: {
-      ...(draft.metadata || {}),
-      clientWorkId,
-      submittedAt: Date.now(),
-    },
-  };
+  const clientWorkId = uuidv4();
 
   // Add job to queue - this handles both offline and online scenarios
   const jobId = await jobQueue.addJob(
     "work",
     {
-      ...enrichedDraft,
+      ...draft,
       title: `${actionTitle} - ${new Date().toISOString()}`,
       actionUID,
       gardenAddress,
@@ -91,7 +76,7 @@ export async function submitApprovalToQueue(
   draft: WorkApprovalDraft,
   work: Work | undefined,
   chainId: number,
-  userAddress: string
+  userAddress: Address
 ): Promise<{ txHash: `0x${string}`; jobId: string }> {
   if (!draft.workUID) {
     throw new Error("Work UID is required");
@@ -125,6 +110,9 @@ export async function submitApprovalToQueue(
  * Maximum file size for work images (10MB)
  */
 export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+export const MAX_IMAGE_COUNT = 10;
+export const MAX_TOTAL_IMAGE_SIZE_BYTES = 50 * 1024 * 1024;
+export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /**
  * Options for validating work submission context
@@ -146,7 +134,7 @@ export interface ValidateWorkContextOptions {
  * @returns Array of error messages (empty if valid)
  */
 export function validateWorkSubmissionContext(
-  gardenAddress: string | null,
+  gardenAddress: Address | null,
   actionUID: number | null,
   images: File[],
   options: ValidateWorkContextOptions = {}
@@ -172,10 +160,24 @@ export function validateWorkSubmissionContext(
     }
   }
 
+  if (images.length > MAX_IMAGE_COUNT) {
+    errors.push(`You can upload up to ${MAX_IMAGE_COUNT} images`);
+  }
+
   // Check image file sizes
   const oversizedImages = images.filter((img) => img.size > MAX_IMAGE_SIZE_BYTES);
   if (oversizedImages.length > 0) {
     errors.push(`${oversizedImages.length} image(s) exceed 10MB limit`);
+  }
+
+  const totalSize = images.reduce((acc, image) => acc + image.size, 0);
+  if (totalSize > MAX_TOTAL_IMAGE_SIZE_BYTES) {
+    errors.push("Total image upload size cannot exceed 50MB");
+  }
+
+  const invalidImageTypes = images.filter((img) => !ALLOWED_IMAGE_TYPES.has(img.type));
+  if (invalidImageTypes.length > 0) {
+    errors.push("Only JPEG, PNG, and WebP images are supported");
   }
 
   return errors;
@@ -187,7 +189,7 @@ export function validateWorkSubmissionContext(
  */
 export function validateWorkDraft(
   _draft: WorkDraft,
-  gardenAddress: string | null,
+  gardenAddress: Address | null,
   actionUID: number | null,
   images: File[],
   options: ValidateWorkContextOptions = {}
@@ -216,6 +218,16 @@ export function validateApprovalDraft(draft: WorkApprovalDraft): string[] {
   // Feedback is optional but if provided, should not be empty
   if (draft.feedback !== undefined && draft.feedback.trim().length === 0) {
     errors.push("Feedback cannot be empty if provided");
+  }
+
+  // Confidence validation (decision #31: approvals require >= LOW, rejections use NONE)
+  if (draft.approved && typeof draft.confidence === "number" && draft.confidence < 1) {
+    errors.push("Confidence must be at least LOW for approvals");
+  }
+
+  // Verification method must be set for approvals
+  if (draft.approved && (!draft.verificationMethod || draft.verificationMethod === 0)) {
+    errors.push("At least one verification method is required for approvals");
   }
 
   return errors;

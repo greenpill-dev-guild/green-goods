@@ -1,9 +1,16 @@
-import { formatDate, type HypercertRecord } from "@green-goods/shared";
-import { useGardens, useGardenPermissions, useHypercerts } from "@green-goods/shared/hooks";
+import {
+  type Address,
+  formatDate,
+  type HypercertRecord,
+  useGardens,
+  useGardenPermissions,
+  useHypercerts,
+} from "@green-goods/shared";
 import { RiAddLine, RiAwardLine, RiExternalLinkLine } from "@remixicon/react";
 import { Link, useParams } from "react-router-dom";
 import { useIntl } from "react-intl";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { ActiveListingsTable } from "@/components/hypercerts/ActiveListingsTable";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
 
@@ -119,6 +126,16 @@ export default function Hypercerts() {
           </div>
         )}
 
+        {/* Active Marketplace Listings */}
+        {!isLoading && hypercerts.length > 0 && canManage && garden && (
+          <div className="mb-6">
+            <h3 className="mb-3 text-sm font-semibold text-text-strong">
+              Active Marketplace Listings
+            </h3>
+            <ActiveListingsTable gardenAddress={garden.id as Address} />
+          </div>
+        )}
+
         {!isLoading && hypercerts.length > 0 && (
           <div className="grid gap-4">
             {hypercerts.map((record) => {
@@ -148,7 +165,7 @@ export default function Hypercerts() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         to={`/gardens/${garden.id}/hypercerts/${record.id}`}
-                        className="rounded-md border border-stroke-sub px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
+                        className="min-h-[44px] inline-flex items-center rounded-md border border-stroke-sub px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
                       >
                         {formatMessage({ id: "app.hypercerts.list.viewDetails" })}
                       </Link>
@@ -156,7 +173,7 @@ export default function Hypercerts() {
                         href={buildHypercertUrl(record.id)}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 rounded-md border border-stroke-sub px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
+                        className="min-h-[44px] inline-flex items-center gap-1 rounded-md border border-stroke-sub px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
                       >
                         <RiExternalLinkLine className="h-3.5 w-3.5" />
                         {formatMessage({ id: "app.hypercerts.list.viewExternal" })}

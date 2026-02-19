@@ -1,5 +1,4 @@
-import { useAuth, useRole, useTheme } from "@green-goods/shared/hooks";
-import { cn } from "@green-goods/shared/utils";
+import { cn, useAuth, useDocumentEvent, useRole, useTheme } from "@green-goods/shared";
 import {
   RiArrowDownSLine,
   RiComputerLine,
@@ -8,7 +7,7 @@ import {
   RiSunLine,
   RiUserLine,
 } from "@remixicon/react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { AddressDisplay } from "../AddressDisplay";
 
 export function UserProfile() {
@@ -18,19 +17,13 @@ export function UserProfile() {
   const { role } = useRole();
   const { theme, setTheme } = useTheme();
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+  // Close dropdown when clicking outside (auto-cleanup via useDocumentEvent)
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      setIsOpen(false);
     }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
   }, []);
+  useDocumentEvent("mousedown", handleClickOutside);
 
   const handleLogout = () => {
     setIsOpen(false);

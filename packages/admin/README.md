@@ -154,7 +154,7 @@ await executeWithToast(
 ### Supported Networks
 - **Arbitrum One** (42161) - Production
 - **Celo** (42220) - Production
-- **Base Sepolia** (84532) - Testnet
+- **Sepolia** (11155111) - Testnet
 
 ### Contract Interactions
 

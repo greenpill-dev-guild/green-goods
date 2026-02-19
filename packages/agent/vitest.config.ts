@@ -16,7 +16,7 @@ export default defineConfig({
       NODE_ENV: "test",
       ENCRYPTION_SECRET: "test-secret-key-for-encryption-32chars!",
       TELEGRAM_BOT_TOKEN: "123456:ABC-TEST-TOKEN",
-      VITE_RPC_URL_84532: "http://localhost:8545",
+      VITE_RPC_URL_11155111: "http://localhost:8545",
     },
     // Run tests sequentially to avoid env variable issues
     fileParallelism: false,

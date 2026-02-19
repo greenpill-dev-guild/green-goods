@@ -4,9 +4,16 @@ import {
   FormInput,
   FormTextarea,
   type CapitalType,
+  type GardenAssessment,
   type HypercertDraft,
 } from "@green-goods/shared";
-import { RiAddLine, RiCalendarLine, RiCheckLine, RiSparklingLine } from "@remixicon/react";
+import {
+  RiAddLine,
+  RiCalendarLine,
+  RiCheckLine,
+  RiFileTextLine,
+  RiSparklingLine,
+} from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl, type IntlShape } from "react-intl";
 
@@ -35,6 +42,8 @@ interface MetadataEditorProps {
   suggestedWorkScopes: string[];
   suggestedStart: number | null;
   suggestedEnd: number | null;
+  /** Assessment used to prefill metadata fields (if any) */
+  selectedAssessment?: GardenAssessment | null;
 }
 
 const CAPITALS: CapitalType[] = [
@@ -63,6 +72,7 @@ export function MetadataEditor({
   suggestedWorkScopes,
   suggestedStart,
   suggestedEnd,
+  selectedAssessment,
 }: MetadataEditorProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -113,6 +123,24 @@ export function MetadataEditor({
 
   return (
     <div className="space-y-6">
+      {/* Assessment prefill indicator */}
+      {selectedAssessment && (
+        <div className="flex items-start gap-3 rounded-lg border border-primary-light bg-primary-lighter/30 p-3">
+          <RiFileTextLine className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-base" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-primary-dark">
+              {formatMessage({ id: "app.hypercerts.metadata.prefilled.title" })}
+            </p>
+            <p className="mt-0.5 text-xs text-primary-dark/70">
+              {formatMessage(
+                { id: "app.hypercerts.metadata.prefilled.description" },
+                { assessmentTitle: selectedAssessment.title }
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
       <FormInput
         id="hypercert-title"
         label={

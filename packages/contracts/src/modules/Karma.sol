@@ -6,7 +6,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
 import { KarmaLib } from "../lib/Karma.sol";
-import { GAPJsonBuilder } from "../lib/GAPJsonBuilder.sol";
+import { JsonBuilder } from "../lib/JsonBuilder.sol";
 import { IGap } from "../interfaces/IKarma.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 
@@ -193,8 +193,6 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             }
         }
 
-        gardenProjects[garden] = projectUID;
-
         // 2. Create MemberOf attestation for operator
         {
             AttestationRequestData memory reqData = AttestationRequestData({
@@ -211,14 +209,14 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             try gap.attest(req) {
                 // Success - continue to details
             } catch {
-                // Non-critical: MemberOf failed but project exists
                 emit GAPOperationFailed(garden, "createProject", "MemberOf attestation failed");
+                return bytes32(0);
             }
         }
 
         // 3. Create Details attestation
         {
-            string memory detailsJson = GAPJsonBuilder.buildProjectDetails(name, description, location, bannerImage);
+            string memory detailsJson = JsonBuilder.buildProjectDetails(name, description, location, bannerImage);
 
             AttestationRequestData memory reqData = AttestationRequestData({
                 recipient: garden,
@@ -232,12 +230,15 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getDetailsSchemaUID(), data: reqData });
 
             try gap.attest(req) {
-                emit GAPProjectCreated(projectUID, garden, name);
+                // Success - finalize below
             } catch {
-                // Non-critical: Details failed but project exists
                 emit GAPOperationFailed(garden, "createProject", "Details attestation failed");
+                return bytes32(0);
             }
         }
+
+        gardenProjects[garden] = projectUID;
+        emit GAPProjectCreated(projectUID, garden, name);
 
         return projectUID;
     }
@@ -268,6 +269,19 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         }
     }
 
+    /// @notice Emitted when a GAP project mapping is reset
+    event GAPProjectReset(address indexed garden, bytes32 indexed previousUID);
+
+    /// @notice Reset a garden's GAP project mapping for recovery
+    /// @dev Allows re-creating a GAP project if the original attestation is orphaned
+    /// @param garden The garden address to reset
+    function resetProject(address garden) external onlyOwner {
+        bytes32 prev = gardenProjects[garden];
+        if (prev == bytes32(0)) return; // No-op if no project
+        delete gardenProjects[garden];
+        emit GAPProjectReset(garden, prev);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Impact & Milestone Creation
     // ═══════════════════════════════════════════════════════════════════════════
@@ -275,7 +289,7 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
     /// @inheritdoc IKarmaGAPModule
     function createImpact(
         address garden,
-        uint256 tokenId,
+        uint256, /*tokenId*/
         string calldata workTitle,
         string calldata impactDescription,
         string calldata proofIPFS,
@@ -295,9 +309,8 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             return bytes32(0);
         }
 
-        string memory impactJson = GAPJsonBuilder.buildImpact(
-            workTitle, impactDescription, proofIPFS, workUID, tokenId, block.timestamp, block.chainid
-        );
+        string memory impactJson =
+            JsonBuilder.buildImpact(workTitle, impactDescription, proofIPFS, workUID, garden, block.timestamp);
 
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: garden,
@@ -324,7 +337,11 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         address garden,
         string calldata milestoneTitle,
         string calldata milestoneDescription,
-        string calldata milestoneMeta
+        uint256 startDate,
+        uint256 endDate,
+        uint8 domain,
+        string calldata location,
+        string calldata assessmentConfigCID
     )
         external
         onlyAssessmentResolver
@@ -340,7 +357,9 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             return bytes32(0);
         }
 
-        string memory milestoneJson = GAPJsonBuilder.buildMilestone(milestoneTitle, milestoneDescription, milestoneMeta);
+        string memory milestoneJson = JsonBuilder.buildMilestone(
+            milestoneTitle, milestoneDescription, startDate, endDate, domain, location, assessmentConfigCID
+        );
 
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: garden,

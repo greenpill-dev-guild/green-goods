@@ -1,12 +1,6 @@
 ---
 name: contracts
 description: Solidity smart contract development with Foundry. Use for contract design, testing, gas optimization, UUPS upgrades, and deployment via deploy.ts.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [contracts]
-dependencies: [testing]
 ---
 
 # Contracts Skill
@@ -45,11 +39,16 @@ packages/contracts/
 
 | Command | Purpose |
 |---------|---------|
-| `bun test` | Run unit tests (skips E2E) |
+| `bun run test` | Run unit tests (skips E2E) |
 | `bun test:gas` | Tests with gas report |
-| `bun build` | Compile contracts |
+| `bun build` | Adaptive build (~2s cached, skips test/script when unchanged) |
+| `bun build:fast` | Explicit fast (~2s cached, source contracts only) |
+| `bun build:full` | Full compilation including tests (>180s cold) |
+| `bun run test:lite` | ~35 fast tests, excludes heavy/account suites |
 | `bun lint` | Format & lint with forge fmt + solhint |
-| `bun deploy:testnet` | Deploy to Base Sepolia |
+| `bun deploy:testnet` | Deploy to Sepolia |
+
+> **Build guidance:** Use `build:full` before deployment. Use `build` (adaptive) for iteration.
 
 ### Custom Errors (MANDATORY)
 
@@ -177,7 +176,7 @@ function process(uint256 start, uint256 count) external {
 ```bash
 # ALWAYS
 bun deploy:testnet
-bun script/deploy.ts core --network baseSepolia --broadcast
+bun script/deploy.ts core --network sepolia --broadcast
 
 # NEVER use direct forge commands
 # forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
@@ -194,15 +193,20 @@ bun script/deploy.ts core --network baseSepolia --broadcast
 bun deploy:testnet
 
 # Update schema name/description only
-bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 ```
 
 ### Pre-Flight Checklist
 
 ```bash
-bun test            # Tests passing
-bun script/deploy.ts core --network baseSepolia  # Dry run
-bun script/deploy.ts core --network baseSepolia --broadcast  # Deploy
+# Full production readiness (build → lint → tests → E2E → dry runs on all chains)
+bun run verify:contracts
+
+# Or run steps individually:
+bun run test        # Tests passing
+bun run build:full  # Full build
+bun script/deploy.ts core --network sepolia  # Dry run
+bun script/deploy.ts core --network sepolia --broadcast  # Deploy
 ```
 
 ## Part 5: Testing

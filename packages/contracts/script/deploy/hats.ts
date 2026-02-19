@@ -11,9 +11,9 @@ export class HatsTreeDeployer {
   private networkManager: NetworkManager;
   private deploymentAddresses: DeploymentAddresses;
 
-  constructor() {
-    this.networkManager = new NetworkManager();
-    this.deploymentAddresses = new DeploymentAddresses();
+  constructor(networkManager?: NetworkManager, deploymentAddresses?: DeploymentAddresses) {
+    this.networkManager = networkManager ?? new NetworkManager();
+    this.deploymentAddresses = deploymentAddresses ?? new DeploymentAddresses();
   }
 
   async setupHatsTree(options: ParsedOptions): Promise<void> {

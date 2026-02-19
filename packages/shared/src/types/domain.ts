@@ -34,6 +34,61 @@ export enum Capital {
   CULTURAL = 7,
 }
 
+/**
+ * Action domain — mirrors the Solidity Domain enum exactly.
+ * On-chain for indexer queryability and SignalPool filtering.
+ */
+export enum Domain {
+  SOLAR = 0,
+  AGRO = 1,
+  EDU = 2,
+  WASTE = 3,
+}
+
+/**
+ * Cynefin complexity framework phase — classifies the operating environment
+ * for a garden assessment's strategy kernel.
+ *
+ * CLEAR:       Known knowns — best practices apply, cause-effect obvious
+ * COMPLICATED: Known unknowns — expert analysis needed, multiple right answers
+ * COMPLEX:     Unknown unknowns — safe-to-fail probes, emergent practice
+ * CHAOTIC:     No cause-effect — act first, novel practice required
+ */
+export enum CynefinPhase {
+  CLEAR = 0,
+  COMPLICATED = 1,
+  COMPLEX = 2,
+  CHAOTIC = 3,
+}
+
+/**
+ * 4-value verification confidence — simple for field operators.
+ * On-chain as uint8. Off-chain scoring maps these to numeric weights.
+ */
+export enum Confidence {
+  NONE = 0, // not assessed (valid only for rejections)
+  LOW = 1, // minimal evidence, trust-based
+  MEDIUM = 2, // photo/document evidence reviewed by operator
+  HIGH = 3, // strong proof (receipt, IoT, on-chain tx, witness)
+}
+
+/**
+ * Verification method flags — stored as bitmask (uint8).
+ * Multiple methods can apply to a single review (e.g., HUMAN + IOT).
+ *
+ * Bit mapping:
+ *   bit 0 (1) = HUMAN   — human-driven review (photos, receipts, witnesses, onsite)
+ *   bit 1 (2) = IOT     — sensor/meter/inverter data
+ *   bit 2 (4) = ONCHAIN — blockchain transaction proof
+ *   bit 3 (8) = AGENT   — automated/AI verification
+ */
+export enum VerificationMethod {
+  HUMAN = 1 << 0, // 1
+  IOT = 1 << 1, // 2
+  ONCHAIN = 1 << 2, // 4
+  AGENT = 1 << 3, // 8
+}
+
 // ============================================
 // Gardener Types
 // ============================================
@@ -43,9 +98,8 @@ export interface GardenerCard {
   id: string; // Privy ID
   /**
    * Smart Account Ethereum address.
-   * @todo Migrate to Address type when data layer is updated
    */
-  account?: string;
+  account?: Address;
   username?: string | null; // Unique username
   email?: string;
   phone?: string;
@@ -66,9 +120,8 @@ export interface GardenCard {
   bannerImage: string;
   /**
    * Operator Ethereum addresses.
-   * @todo Migrate to Address type when data layer is updated
    */
-  operators: string[];
+  operators: Address[];
 }
 
 /** Full garden entity with all related data (assessments, works, gardeners) */
@@ -81,82 +134,125 @@ export interface Garden extends GardenCard {
   createdAt: number;
   /**
    * Gardener Ethereum addresses.
-   * @todo Migrate to Address type when data layer is updated
    */
-  gardeners: string[];
+  gardeners: Address[];
   /**
    * Evaluator Ethereum addresses.
-   * @todo Migrate to Address type when data layer is updated
    */
-  evaluators: string[];
+  evaluators: Address[];
   /**
    * Owner Ethereum addresses.
-   * @todo Migrate to Address type when data layer is updated
    */
-  owners: string[];
+  owners: Address[];
   /**
    * Funder Ethereum addresses.
-   * @todo Migrate to Address type when data layer is updated
    */
-  funders: string[];
+  funders: Address[];
   /**
    * Community member Ethereum addresses.
-   * @todo Migrate to Address type when data layer is updated
    */
-  communities: string[];
+  communities: Address[];
   /** Community token contract address */
   communityToken?: Address;
   assessments: GardenAssessment[];
   works: Work[];
   /** Whether the garden allows open joining (from indexer, updated by OpenJoiningUpdated event) */
   openJoining?: boolean;
+  /** Domain bitmask from ActionRegistry (bit 0=Solar, 1=Agro, 2=Edu, 3=Waste). 0 = no domains set. */
+  domainMask?: number;
 }
 
 // ============================================
 // Assessment Types
 // ============================================
 
+/** A SMART outcome target within an assessment's strategy kernel */
+export interface SmartOutcome {
+  /** What this outcome achieves */
+  description: string;
+  /** Metric name from the domain action list */
+  metric: string;
+  /** Numeric target value for the metric */
+  target: number;
+}
+
+/** File attachment stored on IPFS, referenced by CID */
+export interface AssessmentAttachment {
+  /** Human-readable file name */
+  name: string;
+  /** IPFS content identifier */
+  cid: string;
+  /** MIME type (e.g., "application/pdf", "image/png") */
+  mimeType: string;
+}
+
 export interface GardenAssessment {
   id: string;
+  schemaVersion: "assessment_v2";
   /**
    * Assessment author's Ethereum address.
-   * @todo Migrate to Address type when data layer is updated
    */
-  authorAddress: string;
+  authorAddress: Address;
   /**
    * Garden contract address.
-   * @todo Migrate to Address type when data layer is updated
    */
-  gardenAddress: string;
+  gardenAddress: Address;
   title: string;
   description: string;
-  assessmentType: string;
-  capitals: string[];
-  metricsCid: string | null;
-  metrics: Record<string, unknown> | null;
-  evidenceMedia: string[];
-  reportDocuments: string[];
-  impactAttestations: string[];
-  startDate: number | null;
-  endDate: number | null;
+
+  // Strategy kernel
+  /** Root-cause analysis of the challenge being addressed */
+  diagnosis: string;
+  /** SMART outcome targets with metric + numeric target */
+  smartOutcomes: SmartOutcome[];
+  /** Cynefin complexity phase for the operating environment */
+  cynefinPhase: CynefinPhase;
+
+  // Domain selection
+  /** Primary action domain for this assessment */
+  domain: Domain;
+  /** UIDs of the selected actions within the domain */
+  selectedActionUIDs: string[];
+
+  // Harvest intent
+  /** Reporting window for work aggregation into hypercerts */
+  reportingPeriod: { start: number; end: number };
+
+  // SDG alignment
+  /** UN SDG goal IDs (1-17) this assessment aligns with */
+  sdgTargets: number[];
+
+  // Attachments
+  /** Supporting documents stored on IPFS */
+  attachments: AssessmentAttachment[];
+
   location: string;
-  tags: string[];
   createdAt: number;
 }
 
 export interface AssessmentDraft {
   title: string;
   description: string;
-  assessmentType: string;
-  capitals: string[];
-  metrics: Record<string, unknown>;
-  evidenceMedia: File[];
-  reportDocuments: string[];
-  impactAttestations: string[];
-  startDate: number;
-  endDate: number;
+
+  // Strategy kernel
+  diagnosis: string;
+  smartOutcomes: SmartOutcome[];
+  cynefinPhase: CynefinPhase;
+
+  // Domain selection
+  domain: Domain;
+  selectedActionUIDs: string[];
+
+  // Harvest intent
+  reportingPeriod: { start: number; end: number };
+
+  // SDG alignment
+  sdgTargets: number[];
+
+  // Attachments (File objects for upload, not yet stored on IPFS)
+  attachments: File[];
+
   location: string;
-  tags: string[];
 }
 
 // ============================================
@@ -166,12 +262,14 @@ export interface AssessmentDraft {
 /** Minimal action data for display in cards and lists */
 export interface ActionCard {
   id: string;
+  slug: string;
   startTime: number;
   endTime: number;
   title: string;
   instructions?: string;
   capitals: Capital[];
   media: string[];
+  domain: Domain;
   createdAt: number;
 }
 
@@ -203,9 +301,12 @@ export interface WorkInput {
   key: string;
   title: string;
   placeholder: string;
-  type: "text" | "textarea" | "select" | "number";
+  type: "text" | "textarea" | "select" | "multi-select" | "number" | "band" | "repeater";
   required: boolean;
   options: string[];
+  bands?: string[];
+  unit?: string;
+  repeaterFields?: WorkInput[];
 }
 
 // ============================================
@@ -215,17 +316,18 @@ export interface WorkInput {
 /**
  * Data submitted when a gardener documents their work.
  * This is the form input shape before processing/submission.
+ * Generalized to support all 22 actions across 4 domains.
  *
  * @example
  * ```typescript
  * const submission: WorkSubmission = {
  *   actionUID: 1,
- *   title: "Planted tomatoes",
- *   plantSelection: ["tomato", "basil"],
- *   plantCount: 12,
+ *   title: "Cleanup Event",
  *   timeSpentMinutes: 90,
- *   feedback: "Great growing conditions",
- *   media: [photoFile1, photoFile2]
+ *   feedback: "Collected lots of plastic",
+ *   media: [photoFile1, photoFile2],
+ *   details: { participantsCount: 12, amountRemovedKg: 32.5 },
+ *   tags: ["riverbank", "plastic"],
  * };
  * ```
  *
@@ -235,13 +337,16 @@ export interface WorkInput {
 export interface WorkSubmission {
   actionUID: number;
   title: string;
-  plantSelection: string[];
-  plantCount: number;
-  /** Time spent on the work in minutes */
-  timeSpentMinutes?: number;
+  /** Time spent on the work in minutes (required for all actions) */
+  timeSpentMinutes: number;
   feedback: string;
   media: File[];
-  metadata?: Record<string, unknown>;
+  /** Domain-specific fields from action config */
+  details: Record<string, unknown>;
+  /** Optional standardized tags */
+  tags?: string[];
+  /** Optional audio recordings */
+  audioNotes?: File[];
 }
 
 /**
@@ -256,14 +361,12 @@ export interface WorkCard {
   actionUID: number;
   /**
    * Gardener's Ethereum address.
-   * @todo Migrate to Address type when data layer is updated
    */
-  gardenerAddress: string;
+  gardenerAddress: Address;
   /**
    * Garden contract address.
-   * @todo Migrate to Address type when data layer is updated
    */
-  gardenAddress: string;
+  gardenAddress: Address;
   feedback: string;
   metadata: string;
   media: string[];
@@ -275,10 +378,31 @@ export interface Work extends WorkCard {
   status: "pending" | "approved" | "rejected";
 }
 
+/**
+ * Work metadata v2 — generic, domain-aware.
+ * Stored as JSON on IPFS, CID referenced in EAS attestation.
+ */
 export interface WorkMetadata {
+  schemaVersion: "work_metadata_v2";
+  domain: Domain;
+  actionSlug: string;
+  timeSpentMinutes: number;
+  details: Record<string, unknown>;
+  tags?: string[];
+  audioNoteCids?: string[];
+  clientWorkId: string;
+  submittedAt: string;
+  /** Optional GPS location (coarse, user-triggered) */
+  location?: { lat: number; lng: number; accuracy: number } | null;
+}
+
+/**
+ * Work metadata v1 — old shape for legacy works.
+ * Kept for backward compatibility with existing attestations.
+ */
+export interface WorkMetadataV1 {
   plantCount: number;
   plantSelection: string[];
-  /** Time spent on the work in minutes */
   timeSpentMinutes?: number;
 }
 
@@ -291,6 +415,12 @@ export interface WorkApprovalDraft {
   workUID: string;
   approved: boolean;
   feedback?: string;
+  /** Verification confidence (required: NONE for rejections, >=LOW for approvals) */
+  confidence: Confidence;
+  /** Bitmask of VerificationMethod flags (at least 1 required for approvals) */
+  verificationMethod: number;
+  /** Optional IPFS CID for review audio + notes JSON */
+  reviewNotesCID?: string;
 }
 
 export interface WorkApproval extends WorkApprovalDraft {
@@ -331,6 +461,50 @@ export interface ActionInstructionConfig {
     };
   };
 }
+
+// ============================================
+// ENS Registration Types
+// ============================================
+
+/**
+ * ENS registration status data tracked through CCIP delivery.
+ * Fully serializable for IndexedDB persistence via PersistQueryClientProvider.
+ */
+export interface ENSRegistrationData {
+  status: "available" | "pending" | "active" | "timed_out";
+  ccipMessageId?: string;
+  submittedAt?: number;
+  registration?: {
+    owner: Address;
+    nameType: number;
+    registeredAt: string; // Serialized bigint (string, not BigInt) for IndexedDB
+  };
+}
+
+// ============================================
+// Assessment Workflow Types
+// ============================================
+
+/** Parameters for the assessment creation XState workflow */
+export interface AssessmentWorkflowParams {
+  gardenId: Address;
+  title: string;
+  description: string;
+  assessmentType: string;
+  capitals: string[];
+  metrics: string | Record<string, unknown>;
+  evidenceMedia: File[];
+  reportDocuments: string[];
+  impactAttestations: string[];
+  startDate: string | number | null;
+  endDate: string | number | null;
+  location: string;
+  tags: string[];
+  domain?: number;
+}
+
+/** @deprecated Use AssessmentWorkflowParams instead */
+export type CreateAssessmentForm = AssessmentWorkflowParams;
 
 // ============================================
 // UI Helper Types

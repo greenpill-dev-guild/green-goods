@@ -1,12 +1,6 @@
 ---
 name: frontend-design
 description: Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, or applications. Generates creative, polished code that avoids generic AI aesthetics.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin]
-dependencies: [react, radix-ui]
 ---
 
 This skill guides creation of distinctive, production-grade frontend interfaces that avoid generic "AI slop" aesthetics. Implement real working code with exceptional attention to aesthetic details and creative choices.
@@ -15,7 +9,14 @@ This skill guides creation of distinctive, production-grade frontend interfaces 
 
 The user provides frontend requirements: a component, page, application, or interface to build. They may include context about the purpose, audience, or technical constraints.
 
-## Design Thinking
+## Activation
+
+When invoked:
+- Choose a clear aesthetic direction before writing code.
+- Preserve existing Green Goods design tokens when working in existing views/components.
+- Pair this skill with `ui-compliance` for accessibility and responsive checks.
+
+## Part 1: Design Thinking
 
 Before coding, understand the context and commit to a BOLD aesthetic direction:
 - **Purpose**: What problem does this interface solve? Who uses it?
@@ -272,6 +273,14 @@ What kind of UI work?
                                 → Build sections as compound components
                                 → Add animation last (page transition)
 ```
+
+## Anti-Patterns
+
+- Shipping generic default UI without an explicit visual direction
+- Ignoring existing design tokens in established Green Goods surfaces
+- Prioritizing novelty over accessibility, readability, and interaction clarity
+- Using placeholder motion without intent (random micro-animations)
+- Creating visual complexity without corresponding information hierarchy
 
 ## Related Skills
 

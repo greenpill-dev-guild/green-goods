@@ -42,10 +42,10 @@ const ciEnv = {
   // Agent tests
   ENCRYPTION_SECRET: "test-secret-for-ci-encryption-32chars",
   TELEGRAM_BOT_TOKEN: "test-bot-token",
-  VITE_RPC_URL_84532: "http://localhost:8545",
+  VITE_RPC_URL_11155111: "http://localhost:8545",
   // Client/Admin builds
   VITE_USE_HASH_ROUTER: "false",
-  VITE_CHAIN_ID: "84532",
+  VITE_CHAIN_ID: "11155111",
   VITE_WALLETCONNECT_PROJECT_ID: "test",
   VITE_PIMLICO_API_KEY: "test",
   VITE_ENVIO_INDEXER_URL: "http://localhost:8080",
@@ -180,6 +180,7 @@ function showHelp() {
   console.log("  --help, -h          Show this help message");
   console.log("");
   console.log("This script runs the same checks as GitHub Actions CI:");
+  console.log("  0. Contract ABI artifact tracking (pre-flight)");
   console.log("  1. Format check (biome)");
   console.log("  2. Lint (oxlint + solhint)");
   console.log("  3. Type checking (TypeScript)");
@@ -283,6 +284,62 @@ async function main() {
   }
 
   // ============================================================================
+  // Pre-flight: Contract ABI Artifact Tracking
+  // ============================================================================
+  // Shared imports ABIs directly from contracts/out/. CI doesn't build contracts
+  // first — it relies on these files being committed. If a new ABI import is added
+  // but the .gitignore isn't updated, ALL downstream builds fail (13+ checks).
+  printSection("Contract ABI Artifact Tracking");
+  {
+    const contractsTs = resolve(projectRoot, "packages/shared/src/utils/blockchain/contracts.ts");
+    if (existsSync(contractsTs)) {
+      const content = readFileSync(contractsTs, "utf8");
+      const importPattern = /from\s+["']\.\.\/\.\.\/\.\.\/\.\.\/contracts\/out\/(.+?)["']/g;
+      let match;
+      const missingArtifacts = [];
+
+      while ((match = importPattern.exec(content)) !== null) {
+        const artifactRelPath = `packages/contracts/out/${match[1]}`;
+        const artifactAbsPath = resolve(projectRoot, artifactRelPath);
+
+        if (!existsSync(artifactAbsPath)) {
+          missingArtifacts.push({ path: artifactRelPath, reason: "file does not exist — run contract build" });
+          continue;
+        }
+
+        // Check if git is tracking the file (not ignored by .gitignore)
+        try {
+          const child = spawn("git", ["check-ignore", "-q", artifactRelPath], {
+            cwd: projectRoot,
+            stdio: "pipe",
+          });
+          const exitCode = await new Promise((res) => child.on("close", res));
+          if (exitCode === 0) {
+            // exit 0 means git IGNORES the file
+            missingArtifacts.push({ path: artifactRelPath, reason: "tracked by .gitignore — update .gitignore to un-ignore it" });
+          }
+        } catch {
+          // git check-ignore not available, skip
+        }
+      }
+
+      if (missingArtifacts.length > 0) {
+        printError("Contract ABI artifacts imported by shared but not available in git:");
+        for (const { path, reason } of missingArtifacts) {
+          console.log(`  ${colors.red}✗ ${path}${colors.reset}`);
+          console.log(`    ${colors.yellow}→ ${reason}${colors.reset}`);
+        }
+        console.log("");
+        console.log(`${colors.yellow}Fix: Update .gitignore to un-ignore these paths, then git add the files.${colors.reset}`);
+        console.log(`${colors.yellow}See the .gitignore "Keep only the specific ABIs" section for the pattern.${colors.reset}`);
+        failures.push("ABI artifact tracking");
+      } else {
+        printSuccess("All contract ABI imports are tracked in git");
+      }
+    }
+  }
+
+  // ============================================================================
   // Phase 1: Format & Lint (matches all workflow lint jobs)
   // ============================================================================
   printSection("Format Check");
@@ -347,7 +404,7 @@ async function main() {
       CI: "true",
       ENCRYPTION_SECRET: ciEnv.ENCRYPTION_SECRET,
       TELEGRAM_BOT_TOKEN: ciEnv.TELEGRAM_BOT_TOKEN,
-      VITE_RPC_URL_84532: ciEnv.VITE_RPC_URL_84532,
+      VITE_RPC_URL_11155111: ciEnv.VITE_RPC_URL_11155111,
     }
   );
 

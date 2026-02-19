@@ -283,6 +283,8 @@ describe("wallet-submission", () => {
       actionUID: 456,
       approved: true,
       feedback: "Great work!",
+      confidence: 2,
+      verificationMethod: 1,
     };
 
     it("should successfully submit approval when wallet is connected", async () => {

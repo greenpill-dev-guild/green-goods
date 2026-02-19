@@ -39,4 +39,4 @@ body:
     attributes:
       label: Environment
       description: Browser, OS, chain, etc.
-      placeholder: "Chrome 120, macOS, Base Sepolia"
+      placeholder: "Chrome 120, macOS, Sepolia"

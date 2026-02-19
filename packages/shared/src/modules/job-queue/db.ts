@@ -6,8 +6,11 @@ import {
   buildFileMetadata,
 } from "../../utils/storage/file-serialization";
 import { trackStorageError, addBreadcrumb } from "../app/error-tracking";
+import { createLogger } from "../app/logger";
 import { mediaResourceManager } from "./media-resource-manager";
 import type { Job, JobQueueDBImage, CachedWork, SerializedFileData } from "../../types/job-queue";
+
+const log = createLogger({ source: "job-queue/db" });
 
 const DB_NAME = "green-goods-job-queue";
 const DB_VERSION = 5; // Incremented for userAddress field
@@ -122,8 +125,8 @@ class JobQueueDatabase {
       }
 
       await tx.done;
-    } catch {
-      // Silently handle cleanup errors
+    } catch (error) {
+      log.error("Failed to cleanup stale URLs", { error });
     }
   }
 
@@ -166,6 +169,24 @@ class JobQueueDatabase {
           }
 
           normalizedMediaFiles.push(file);
+        }
+      }
+    }
+
+    // Also serialize audio notes if present in payload
+    if (job.payload && typeof job.payload === "object" && "audioNotes" in job.payload) {
+      const audioNotes = (job.payload as { audioNotes?: File[] }).audioNotes;
+      if (Array.isArray(audioNotes)) {
+        for (let index = 0; index < audioNotes.length; index++) {
+          const input = audioNotes[index] as unknown;
+          const file = normalizeToFile(input, {
+            fallbackName: `audio-note-${id}-${index}.webm`,
+          });
+
+          if (file) {
+            normalizedMediaFiles.push(file);
+          }
+          // Audio notes are optional — don't fail if normalization fails
         }
       }
     }
@@ -227,20 +248,6 @@ class JobQueueDatabase {
       } catch {
         // Transaction may already be aborted; ignore error
       }
-
-      // Track IndexedDB storage failure with detailed context
-      trackStorageError(error, {
-        source: "JobQueueDatabase.addJob",
-        userAction: "storing job and images in IndexedDB",
-        metadata: {
-          job_id: id,
-          job_kind: job.kind,
-          file_count: serializedFiles.length,
-          total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
-          error_name: error instanceof Error ? error.name : "Unknown",
-          error_message: error instanceof Error ? error.message : String(error),
-        },
-      });
 
       // Track IndexedDB storage failure with detailed context
       trackStorageError(error, {

@@ -1,5 +1,4 @@
-import type { Action } from "@green-goods/shared";
-import { cn } from "@green-goods/shared/utils";
+import { cn, type Action } from "@green-goods/shared";
 import { RiCamera3Line } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";

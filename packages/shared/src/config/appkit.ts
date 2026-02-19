@@ -15,6 +15,7 @@ import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { DEFAULT_CHAIN_ID } from "./blockchain";
 import { getChain, SUPPORTED_CHAINS } from "./chains";
+import { logger } from "../modules/app/logger";
 import { getResolvedTheme } from "../utils/styles/theme";
 
 type AppKitMetadata = {
@@ -82,7 +83,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
   const projectId = options?.projectId ?? defaultProjectId ?? "";
 
   if (!projectId) {
-    console.warn("[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Wallet login will not work.");
+    logger.warn("[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Wallet login will not work.");
   }
 
   const metadata = options?.metadata ?? defaultMetadata;

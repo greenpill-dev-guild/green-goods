@@ -11,19 +11,16 @@ export function createMockMessage(overrides: Partial<InboundMessage> = {}): Inbo
     sender: {
       platformId: faker.string.numeric(10),
       displayName: faker.person.firstName(),
-      username: faker.internet.username(),
     },
     content: { type: "text", text: "Default test message" },
     locale: "en",
     timestamp: Date.now(),
-    raw: {},
     ...overrides,
   };
 }
 
 export function createMockUser(overrides: Partial<User> = {}): User {
   return {
-    id: faker.number.int({ min: 1, max: 1000 }),
     platform: "telegram",
     platformId: faker.string.numeric(10),
     privateKey: "0x" + faker.string.hexadecimal({ length: 64, prefix: "" }),
@@ -31,17 +28,16 @@ export function createMockUser(overrides: Partial<User> = {}): User {
     role: "gardener",
     currentGarden: undefined,
     createdAt: Date.now(),
-    updatedAt: Date.now(),
     ...overrides,
   };
 }
 
 export function createMockSession(overrides: Partial<Session> = {}): Session {
   return {
+    platform: "telegram",
     platformId: faker.string.numeric(10),
     step: "idle",
-    data: {},
-    createdAt: Date.now(),
+    draft: undefined,
     updatedAt: Date.now(),
     ...overrides,
   };
@@ -49,22 +45,12 @@ export function createMockSession(overrides: Partial<Session> = {}): Session {
 
 export function createMockWorkDraft(overrides: Partial<WorkDraftData> = {}): WorkDraftData {
   return {
-    actions: [
-      {
-        actionUID: "water",
-        quantity: faker.number.int({ min: 1, max: 100 }),
-      },
-      {
-        actionUID: "plant",
-        quantity: faker.number.int({ min: 1, max: 20 }),
-      },
-    ],
-    gardenAddress: "0x" + faker.string.hexadecimal({ length: 40, prefix: "" }),
-    metadata: {
-      description: faker.lorem.sentence(),
-      mediaHashes: [],
-    },
-    estimatedReward: faker.number.int({ min: 10, max: 1000 }),
+    actionUID: faker.number.int({ min: 1, max: 100 }),
+    title: faker.lorem.words(3),
+    plantSelection: ["Oak", "Maple"],
+    plantCount: faker.number.int({ min: 1, max: 20 }),
+    feedback: faker.lorem.sentence(),
+    media: [],
     ...overrides,
   };
 }
@@ -87,8 +73,8 @@ export class MessageBuilder {
     return this;
   }
 
-  withPhoto(photoId: string, caption?: string): this {
-    this.message.content = { type: "photo", photoId, caption };
+  withPhoto(imageUrl: string, caption?: string): this {
+    this.message.content = { type: "image", imageUrl, mimeType: "image/jpeg", caption };
     return this;
   }
 

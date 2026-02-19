@@ -56,41 +56,43 @@ export function setupTestEnvironment() {
       log: console.log, // Keep log for debugging
     };
 
-    // Mock window properties
-    Object.defineProperty(window, "location", {
-      value: {
-        href: "http://localhost:3000",
-        origin: "http://localhost:3000",
-        pathname: "/",
-        search: "",
-        hash: "",
-        hostname: "localhost",
-        assign: vi.fn(),
-        replace: vi.fn(),
-        reload: vi.fn(),
-      },
-      writable: true,
-    });
+    // Mock window properties (only in browser-like environments)
+    if (typeof window !== "undefined") {
+      Object.defineProperty(window, "location", {
+        value: {
+          href: "http://localhost:3000",
+          origin: "http://localhost:3000",
+          pathname: "/",
+          search: "",
+          hash: "",
+          hostname: "localhost",
+          assign: vi.fn(),
+          replace: vi.fn(),
+          reload: vi.fn(),
+        },
+        writable: true,
+      });
 
-    // Mock window.addEventListener for online/offline events
-    const eventListeners: Record<string, Function[]> = {};
-    (global.window.addEventListener as any) = vi.fn((event: string, listener: Function) => {
-      if (!eventListeners[event]) eventListeners[event] = [];
-      eventListeners[event].push(listener);
-    });
+      // Mock window.addEventListener for online/offline events
+      const eventListeners: Record<string, Function[]> = {};
+      (global.window.addEventListener as any) = vi.fn((event: string, listener: Function) => {
+        if (!eventListeners[event]) eventListeners[event] = [];
+        eventListeners[event].push(listener);
+      });
 
-    (global.window.removeEventListener as any) = vi.fn((event: string, listener: Function) => {
-      if (eventListeners[event]) {
-        const index = eventListeners[event].indexOf(listener);
-        if (index > -1) eventListeners[event].splice(index, 1);
-      }
-    });
+      (global.window.removeEventListener as any) = vi.fn((event: string, listener: Function) => {
+        if (eventListeners[event]) {
+          const index = eventListeners[event].indexOf(listener);
+          if (index > -1) eventListeners[event].splice(index, 1);
+        }
+      });
 
-    (global.window.dispatchEvent as any) = vi.fn((event: Event) => {
-      const listeners = eventListeners[event.type] || [];
-      listeners.forEach((listener) => listener(event));
-      return true;
-    });
+      (global.window.dispatchEvent as any) = vi.fn((event: Event) => {
+        const listeners = eventListeners[event.type] || [];
+        listeners.forEach((listener) => listener(event));
+        return true;
+      });
+    }
 
     // Mock performance.now for consistent timing in tests
     global.performance = {

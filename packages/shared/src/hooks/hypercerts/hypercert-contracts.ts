@@ -42,14 +42,12 @@ import { isZeroAddress } from "./hypercert-utils";
  */
 export const HYPERCERT_MINTER_BY_CHAIN: Record<number, Address> = {
   // Testnets
-  84532: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07", // Base Sepolia
   11155111: "0xa16DFb32Eb140a6f3F2AC68f41dAd8c7e83C4941", // Sepolia
 
   // Mainnets
   10: "0xC2d179166bc9dbB00A03686a5b17eBe2224c2704", // Optimism
   42161: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07", // Arbitrum (per protocol config)
   42220: "0x16bA53B74c234C870c61EFC04cD418B8f2865959", // Celo
-  8453: "0xC2d179166bc9dbB00A03686a5b17eBe2224c2704", // Base
 };
 
 /**

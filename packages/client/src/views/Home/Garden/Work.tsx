@@ -1,32 +1,37 @@
-import { toastService, type WorkApprovalDraft, type WorkMetadata } from "@green-goods/shared";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
+  cn,
+  Confidence,
+  ConfidenceSelector,
+  debugWarn,
+  DEFAULT_CHAIN_ID,
+  downloadWorkData,
+  downloadWorkMedia,
+  getFileByHash,
+  isAddressInList,
+  isUserAddress as sharedIsUserAddress,
+  isValidAttestationId,
+  jobQueue,
+  openEASExplorer,
   queryKeys,
+  shareWork,
+  toastService,
   useActions,
   useAsyncEffect,
   useGardens,
   useHasRole,
+  useJobQueueEvents,
   useNavigateToTop,
   useTimeout,
   useUser,
   useWorkApproval,
   useWorks,
-} from "@green-goods/shared/hooks";
-import { getFileByHash, useJobQueueEvents } from "@green-goods/shared/modules";
-import { jobQueue } from "@green-goods/shared/modules/job-queue";
-import {
-  cn,
-  isAddressInList,
-  isUserAddress as sharedIsUserAddress,
-} from "@green-goods/shared/utils";
-import { debugWarn } from "@green-goods/shared/utils/debug";
-import { isValidAttestationId, openEASExplorer } from "@green-goods/shared/utils/eas/explorers";
-import {
-  downloadWorkData,
-  downloadWorkMedia,
-  shareWork,
+  VerificationMethod,
+  type Address,
+  type ApprovalJobPayload,
+  type WorkApprovalDraft,
   type WorkData,
-} from "@green-goods/shared/utils/work/workActions";
+  type WorkMetadata,
+} from "@green-goods/shared";
 import {
   RiCheckLine,
   RiCloseLine,
@@ -38,7 +43,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useOutletContext, useParams } from "react-router-dom";
-import type { Address } from "viem";
+
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
@@ -55,8 +60,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     "loading"
   );
   const [metadataError, setMetadataError] = useState<string | null>(null);
+  const [metadataRetryKey, setMetadataRetryKey] = useState(0);
   const [feedbackMode, setFeedbackMode] = useState<"approve" | "reject" | null>(null);
   const [inlineFeedback, setInlineFeedback] = useState<string>("");
+  const [confidence, setConfidence] = useState<Confidence>(Confidence.NONE);
   const [optimisticStatus, setOptimisticStatus] = useState<"approved" | "rejected" | null>(null);
   const navigateToTop = useNavigateToTop();
   const location = useLocation();
@@ -235,6 +242,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const handleApprovePress = () => {
     if (navigator.vibrate) navigator.vibrate([50]);
     setFeedbackMode("approve");
+    // Default confidence to MEDIUM for approvals
+    setConfidence(Confidence.MEDIUM);
     // Focus feedback input after animation (auto-cleared on unmount)
     scheduleTimeout(() => {
       document.getElementById("approval-feedback-input")?.focus();
@@ -244,6 +253,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const handleRejectPress = () => {
     if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
     setFeedbackMode("reject");
+    // Confidence defaults to NONE for rejections (per decision #31)
+    setConfidence(Confidence.NONE);
     scheduleTimeout(() => {
       document.getElementById("approval-feedback-input")?.focus();
     }, 300);
@@ -252,6 +263,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const handleCancelFeedback = () => {
     setFeedbackMode(null);
     setInlineFeedback("");
+    setConfidence(Confidence.NONE);
   };
 
   const handleSubmitApproval = () => {
@@ -272,17 +284,37 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       return;
     }
 
+    // Confidence validation: must be LOW or higher for approvals (decision #21)
+    if (feedbackMode === "approve" && confidence < Confidence.LOW) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.home.workApproval.confidenceRequired",
+          defaultMessage: "Confidence required",
+        }),
+        message: intl.formatMessage({
+          id: "app.home.workApproval.confidenceRequiredMessage",
+          defaultMessage: "Please select a confidence level (Low or higher) when approving.",
+        }),
+        context: "work approval",
+      });
+      return;
+    }
+
     const draft: WorkApprovalDraft = {
       actionUID: work.actionUID,
       workUID: work.id,
       approved: feedbackMode === "approve",
       feedback: inlineFeedback,
+      confidence: feedbackMode === "approve" ? confidence : Confidence.NONE,
+      // Client PWA hardcodes HUMAN verification method (decision #33)
+      verificationMethod: VerificationMethod.HUMAN,
     };
 
     // Optimistic status is set AFTER transaction confirms (in job:completed handler)
     workApprovalMutation.mutate({ draft, work });
     setFeedbackMode(null);
     setInlineFeedback("");
+    setConfidence(Confidence.NONE);
   };
 
   const workApprovalMutation = useWorkApproval();
@@ -354,7 +386,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
   // Load work metadata with proper async cleanup (Rule 3: Async Cleanup)
   useAsyncEffect(
-    async ({ isMounted }) => {
+    async ({ signal, isMounted }) => {
       setMetadataStatus("loading");
       setMetadataError(null);
       setWorkMetadata(null);
@@ -398,7 +430,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
       // Fetch from IPFS gateway
       try {
-        const file = await getFileByHash(trimmed);
+        const file = await getFileByHash(trimmed, { signal, timeoutMs: 30_000 });
         const data = file.data as unknown as WorkMetadata | null | undefined;
         if (!isMounted()) return;
 
@@ -422,7 +454,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         debugWarn(`[GardenWork] Failed to fetch metadata for work ${work.id}: ${message}`);
       }
     },
-    [work]
+    [work?.id, work?.metadata, metadataRetryKey]
   );
 
   const handleBack = () => {
@@ -526,13 +558,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
               feedbackMode ? "translate-y-0" : "translate-y-full"
             )}
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Escape") handleCancelFeedback();
+            }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="feedback-drawer-title"
             aria-describedby="feedback-drawer-description"
           >
-            <div className="p-4 space-y-3 max-w-screen-sm mx-auto">
+            <div className="p-4 space-y-3 max-w-screen-sm mx-auto overflow-y-auto max-h-[60vh]">
               <div className="flex items-center justify-between">
                 <h2 id="feedback-drawer-title" className="text-sm font-medium text-text-strong-950">
                   {feedbackMode === "approve"
@@ -545,6 +580,17 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                         defaultMessage: "Add Feedback (Required)",
                       })}
                 </h2>
+                <button
+                  type="button"
+                  onClick={handleCancelFeedback}
+                  className="p-1 rounded-md text-text-soft-400 hover:text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary"
+                  aria-label={intl.formatMessage({
+                    id: "app.home.workApproval.closeFeedback",
+                    defaultMessage: "Close feedback",
+                  })}
+                >
+                  <RiCloseLine className="w-5 h-5" />
+                </button>
               </div>
 
               <p id="feedback-drawer-description" className="sr-only">
@@ -553,6 +599,19 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                   defaultMessage: "Enter your feedback for this work submission.",
                 })}
               </p>
+
+              {/* Confidence selector — above feedback, required for approvals */}
+              {feedbackMode === "approve" && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-text-sub-600 uppercase tracking-wide">
+                    {intl.formatMessage({
+                      id: "app.home.workApproval.confidence",
+                      defaultMessage: "Confidence",
+                    })}
+                  </label>
+                  <ConfidenceSelector value={confidence} onChange={setConfidence} required />
+                </div>
+              )}
 
               <label htmlFor="approval-feedback-input" className="sr-only">
                 {intl.formatMessage({
@@ -708,6 +767,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         )
       : null;
 
+  const handleRetryMetadataFetch = () => {
+    setMetadataRetryKey((prev) => prev + 1);
+  };
+
   return (
     <article>
       <TopNav onBackClick={handleBack} overlay />
@@ -748,6 +811,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
               {metadataErrorDetail && (
                 <p className="mt-1 text-xs text-error-base">{metadataErrorDetail}</p>
               )}
+              <button
+                type="button"
+                onClick={handleRetryMetadataFetch}
+                className="mt-2 text-xs font-medium text-error-dark underline underline-offset-2 hover:text-error-base"
+              >
+                {intl.formatMessage({
+                  id: "app.home.work.retryMetadataLoad",
+                  defaultMessage: "Retry loading details",
+                })}
+              </button>
             </div>
           </div>
         )}

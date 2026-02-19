@@ -9,9 +9,9 @@
  */
 
 export interface ChainConfig {
-  /** Network name for deployment configs (e.g., "arbitrum", "baseSepolia") */
+  /** Network name for deployment configs (e.g., "arbitrum", "sepolia") */
   name: string;
-  /** EAS explorer subdomain name (e.g., "arbitrum-one", "base-sepolia") */
+  /** EAS explorer subdomain name (e.g., "arbitrum-one", "sepolia") */
   easName: string;
   /** Block explorer base URL */
   blockExplorer: string;
@@ -54,13 +54,6 @@ export const CHAIN_REGISTRY: Record<number, ChainConfig> = {
     blockExplorer: "https://polygonscan.com",
     rpcTemplate: "https://polygon-mainnet.g.alchemy.com/v2/{ALCHEMY_KEY}",
   },
-  8453: {
-    name: "base",
-    easName: "base",
-    blockExplorer: "https://basescan.org",
-    rpcTemplate: "https://base-mainnet.g.alchemy.com/v2/{ALCHEMY_KEY}",
-  },
-
   // Testnet chains
   11155111: {
     name: "sepolia",
@@ -68,13 +61,6 @@ export const CHAIN_REGISTRY: Record<number, ChainConfig> = {
     blockExplorer: "https://sepolia.etherscan.io",
     rpcTemplate: "https://eth-sepolia.g.alchemy.com/v2/{ALCHEMY_KEY}",
   },
-  84532: {
-    name: "baseSepolia",
-    easName: "base-sepolia",
-    blockExplorer: "https://sepolia.basescan.org",
-    rpcTemplate: "https://base-sepolia.g.alchemy.com/v2/{ALCHEMY_KEY}",
-  },
-
   // Local development
   31337: {
     name: "localhost",
@@ -108,7 +94,7 @@ export function getChainConfig(chainId: number): ChainConfig {
  * Get the network name for a chain ID
  *
  * @param chainId - The chain ID to look up
- * @returns Network name (e.g., "arbitrum", "baseSepolia")
+ * @returns Network name (e.g., "arbitrum", "sepolia")
  */
 export function getNetworkName(chainId: number): string {
   return getChainConfig(chainId).name;
@@ -118,7 +104,7 @@ export function getNetworkName(chainId: number): string {
  * Get the EAS explorer name for a chain ID
  *
  * @param chainId - The chain ID to look up
- * @returns EAS explorer subdomain (e.g., "arbitrum-one", "base-sepolia")
+ * @returns EAS explorer subdomain (e.g., "arbitrum-one", "sepolia")
  */
 export function getEASName(chainId: number): string {
   return getChainConfig(chainId).easName;

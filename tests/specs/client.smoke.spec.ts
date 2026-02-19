@@ -64,6 +64,7 @@ test.describe("Client PWA", () => {
       // Skip passkey e2e tests - virtual authenticator credentials are rejected by real Pimlico server
       // Passkey flow is tested in unit tests with mocked Pimlico responses
       // See: packages/shared/src/__tests__/workflows/authServices.test.ts
+      // SKIP: #338 owner:afo expiry:2026-08-17 — virtual authenticator creds rejected by Pimlico
       test.skip(
         true,
         "Passkey e2e tests skipped: virtual authenticator credentials rejected by Pimlico server. " +
@@ -93,6 +94,7 @@ test.describe("Client PWA", () => {
 
     test("wallet flow - inject auth and navigate (iOS Safari)", async ({ page }, testInfo) => {
       // Only run on iOS Safari - passkey tests cover Android/Chromium
+      // SKIP: #338 owner:afo expiry:2026-08-17 — platform-conditional, only iOS Safari
       test.skip(!isIOS(testInfo.project.name), "Wallet injection only needed for iOS Safari");
 
       const helper = new ClientTestHelper(page);

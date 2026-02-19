@@ -72,11 +72,6 @@ contract HatsLibTest is Test {
         assertTrue(wrapper.isSupported(), "Sepolia should be supported");
     }
 
-    function testIsSupportedBaseSepolia() public {
-        vm.chainId(84_532);
-        assertTrue(wrapper.isSupported(), "Base Sepolia should be supported");
-    }
-
     function testIsSupportedCelo() public {
         vm.chainId(42_220);
         assertTrue(wrapper.isSupported(), "Celo should be supported");
@@ -152,22 +147,6 @@ contract HatsLibTest is Test {
     }
 
     // =========================================================================
-    // Base Sepolia Constants (Placeholders = 0)
-    // =========================================================================
-
-    function testBaseSepoliaGardensHatIsZero() public {
-        vm.chainId(84_532);
-        uint256 hatId = wrapper.getGardensHatId();
-        assertEq(hatId, 0, "Base Sepolia gardens hat should be zero (placeholder)");
-    }
-
-    function testBaseSepolicaCommunityHatIsZero() public {
-        vm.chainId(84_532);
-        uint256 hatId = wrapper.getCommunityHatId();
-        assertEq(hatId, 0, "Base Sepolia community hat should be zero (placeholder)");
-    }
-
-    // =========================================================================
     // Unsupported Chain Reverts
     // =========================================================================
 
@@ -194,7 +173,7 @@ contract HatsLibTest is Test {
     // =========================================================================
 
     function testAllowlistEligibilityModulesAreZero() public {
-        uint256[4] memory chains = [uint256(42_161), uint256(11_155_111), uint256(84_532), uint256(42_220)];
+        uint256[3] memory chains = [uint256(42_161), uint256(11_155_111), uint256(42_220)];
         for (uint256 i = 0; i < chains.length; i++) {
             vm.chainId(chains[i]);
             assertEq(
@@ -204,7 +183,7 @@ contract HatsLibTest is Test {
     }
 
     function testERC20EligibilityModulesAreZero() public {
-        uint256[4] memory chains = [uint256(42_161), uint256(11_155_111), uint256(84_532), uint256(42_220)];
+        uint256[3] memory chains = [uint256(42_161), uint256(11_155_111), uint256(42_220)];
         for (uint256 i = 0; i < chains.length; i++) {
             vm.chainId(chains[i]);
             assertEq(wrapper.getERC20EligibilityModule(), address(0), "ERC20 eligibility should be zero (placeholder)");

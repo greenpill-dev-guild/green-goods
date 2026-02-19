@@ -24,6 +24,11 @@ export interface MintHypercertReceiptInput {
   hash: Hex;
 }
 
+export interface RegisterInSignalPoolInput {
+  gardenAddress: Address;
+  hypercertId: string;
+}
+
 export interface MintHypercertContext {
   input: MintHypercertInput | null;
   metadataCid: string | null;
@@ -34,6 +39,8 @@ export interface MintHypercertContext {
   hypercertId: string | null;
   error: string | null;
   retryCount: number;
+  poolRegistered: boolean | null;
+  signalPoolAddress: string | null;
 }
 
 type MintDoneEvent = { type: "done.invoke.uploadMetadata"; output: { cid: string } };
@@ -85,6 +92,13 @@ function requireUserOpHash(context: MintHypercertContext): Hex {
   return context.userOpHash;
 }
 
+function requireHypercertId(context: MintHypercertContext): string {
+  if (!context.hypercertId) {
+    throw new Error("Missing hypercertId in context - receipt not processed");
+  }
+  return context.hypercertId;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Machine Setup (XState v5)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -109,6 +123,8 @@ const mintHypercertSetup = setup({
       hypercertId: null,
       error: null,
       retryCount: 0,
+      poolRegistered: null,
+      signalPoolAddress: null,
     }),
     /**
      * Resets progress state but preserves the original input.
@@ -124,6 +140,8 @@ const mintHypercertSetup = setup({
       hypercertId: null,
       error: null,
       retryCount: 0,
+      poolRegistered: null,
+      signalPoolAddress: null,
     }),
     storeMetadataCid: assign({
       metadataCid: ({ event }) => (event as MintDoneEvent).output.cid,
@@ -155,6 +173,15 @@ const mintHypercertSetup = setup({
      */
     clearError: assign({
       error: null,
+    }),
+    storePoolRegistration: assign({
+      poolRegistered: ({ event }) =>
+        (event as unknown as { output: { registered: boolean } }).output.registered,
+      signalPoolAddress: ({ event }) =>
+        (event as unknown as { output: { poolAddress: string | null } }).output.poolAddress,
+    }),
+    markPoolRegistrationFailed: assign({
+      poolRegistered: false,
     }),
   },
   guards: {
@@ -190,6 +217,12 @@ const mintHypercertSetup = setup({
     pollForReceipt: fromPromise<{ txHash: Hex; hypercertId: string }, { hash: Hex }>(async () => {
       throw new Error("pollForReceipt actor not implemented");
     }),
+    registerInSignalPool: fromPromise<
+      { registered: boolean; poolAddress: string | null },
+      RegisterInSignalPoolInput
+    >(async () => {
+      throw new Error("registerInSignalPool actor not implemented");
+    }),
   },
 });
 
@@ -210,6 +243,8 @@ export const mintHypercertMachine = mintHypercertSetup.createMachine({
     hypercertId: null,
     error: null,
     retryCount: 0,
+    poolRegistered: null,
+    signalPoolAddress: null,
   },
   states: {
     idle: {
@@ -281,7 +316,7 @@ export const mintHypercertMachine = mintHypercertSetup.createMachine({
         src: "pollForReceipt",
         input: ({ context }) => ({ hash: requireUserOpHash(context) }),
         onDone: {
-          target: "confirmed",
+          target: "registeringProposal",
           actions: "storeReceipt",
         },
         onError: {
@@ -292,6 +327,25 @@ export const mintHypercertMachine = mintHypercertSetup.createMachine({
       on: {
         CANCEL: { target: "idle", actions: "resetProgressButKeepInput" },
       },
+    },
+    registeringProposal: {
+      invoke: {
+        src: "registerInSignalPool",
+        input: ({ context }): RegisterInSignalPoolInput => ({
+          gardenAddress: requireInput(context).gardenAddress,
+          hypercertId: requireHypercertId(context),
+        }),
+        onDone: {
+          target: "confirmed",
+          actions: "storePoolRegistration",
+        },
+        onError: {
+          // Non-blocking: mint already confirmed on-chain
+          target: "confirmed",
+          actions: "markPoolRegistrationFailed",
+        },
+      },
+      // No CANCEL — the hypercert is already minted on-chain
     },
     confirmed: {
       type: "final",

@@ -6,28 +6,37 @@ Loaded when working in `packages/contracts/`. Extends CLAUDE.md.
 
 | Command | Purpose |
 |---------|---------|
-| `bun test` | Run unit tests (skips E2E) |
-| `bun test:gas` | Tests with gas report |
-| `bun build` | Compile contracts |
+| `bun run test` | Run unit tests (skips E2E) |
+| `bun run test:gas` | Tests with gas report |
+| `bun build` | Adaptive build (~2s cached, skips test/script when unchanged) |
+| `bun build:fast` | Explicit fast (~2s cached, source contracts only) |
+| `bun build:full` | Full compilation including tests (>180s cold) |
+| `bun run test:lite` | ~35 fast tests, excludes heavy/account suites |
 | `bun lint` | Format & lint with forge fmt + solhint |
-| `bun deploy:testnet` | Deploy to Base Sepolia |
+| `bun deploy:testnet` | Deploy to Sepolia |
 | `bun upgrade:testnet` | Upgrade existing contracts |
+
+> **Build modes:** Use `build:full` for deployment and CI. Use `build` (adaptive) for local iteration.
 
 ## Architecture
 
 ```
 packages/contracts/
-├── src/               # Solidity source
-│   ├── GardenToken.sol       # ERC721 for gardens
-│   ├── GardenAccount.sol     # Garden TBA
-│   ├── GreenGoodsResolver.sol  # Central resolver
-│   ├── registries/           # Action, Gardener, Deployment
-│   ├── resolvers/            # Work, WorkApproval, Assessment
-│   └── modules/              # Octant, Unlock, Hats
-├── script/            # Deployment (TypeScript + Solidity)
-├── test/              # Foundry tests
-├── config/            # schemas.json (READ ONLY)
-└── deployments/       # Output artifacts
+├── src/
+│   ├── accounts/          # Garden token-bound account contracts
+│   ├── interfaces/        # Integration + protocol interfaces
+│   ├── lib/               # Shared Solidity libs (Karma, Hats, TBA, JsonBuilder)
+│   ├── markets/           # Marketplace adapters (e.g., Hypercert)
+│   ├── modules/           # Integrations (Hats, Karma, Octant, Gardens, CookieJar, Hypercerts)
+│   ├── registries/        # Deployment, action, ENS, power registries
+│   ├── resolvers/         # Work, approval, assessment, and yield resolvers
+│   ├── strategies/        # Yield and external strategy contracts
+│   ├── tokens/            # Garden + goods token contracts
+│   └── Schemas.sol        # EAS schema constants + helpers
+├── script/                # TypeScript deploy/upgrade orchestration
+├── test/                  # Unit, integration, E2E, fork, fuzz, upgrade tests
+├── config/                # schemas.json (READ ONLY in normal workflow)
+└── deployments/           # chainId-latest artifacts + network config
 ```
 
 ## Critical Patterns
@@ -39,7 +48,7 @@ packages/contracts/
 ```bash
 # ✅ ALWAYS
 bun deploy:testnet
-bun script/deploy.ts core --network baseSepolia --broadcast
+bun script/deploy.ts core --network sepolia --broadcast
 
 # ❌ NEVER
 forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
@@ -57,7 +66,7 @@ forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
 
 This file defines **production EAS schemas** deployed on-chain. Modifying it:
 - Creates duplicate schemas with wrong metadata
-- Breaks indexer queries
+- Breaks EAS GraphQL queries (assessments, work approvals queried via easscan.org)
 - Makes historical attestations unfindable
 
 **For test schemas:** Create `schemas.test.json` instead.
@@ -67,7 +76,7 @@ This file defines **production EAS schemas** deployed on-chain. Modifying it:
 bun deploy:testnet
 
 # Update schema name/description only (not fields)
-bun script/deploy.ts core --network baseSepolia --broadcast --update-schemas
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 ```
 
 ### UUPS Upgrades (MANDATORY)
@@ -219,7 +228,7 @@ function testFuzz_mintGarden(address to, string calldata uri) public {
 const WORK_SCHEMA_UID = '0x123...';
 
 // ✅ Load from deployment
-import deployment from '../deployments/84532-latest.json';
+import deployment from '../deployments/11155111-latest.json';
 const WORK_SCHEMA_UID = deployment.schemas.workSchemaUID;
 ```
 
@@ -263,13 +272,16 @@ Before upgrading:
 
 ```bash
 # Tests passing
-bun test
+bun run test
+
+# Full build
+bun run build:full
 
 # Dry run
-bun script/deploy.ts core --network baseSepolia
+bun script/deploy.ts core --network sepolia
 
 # Deploy
-bun script/deploy.ts core --network baseSepolia --broadcast
+bun script/deploy.ts core --network sepolia --broadcast
 ```
 
 ## Reference Files

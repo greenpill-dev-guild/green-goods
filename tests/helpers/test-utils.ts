@@ -186,7 +186,7 @@ export class ClientTestHelper {
                   "mock",
                   {
                     accounts: [address],
-                    chainId: 84532, // Base Sepolia
+                    chainId: 11155111, // Sepolia
                   },
                 ],
               ],
@@ -198,7 +198,7 @@ export class ClientTestHelper {
 
         // Also set reown/appkit state
         localStorage.setItem("@w3m/connected_connector", '"mock"');
-        localStorage.setItem("@w3m/active_caip_network_id", '"eip155:84532"');
+        localStorage.setItem("@w3m/active_caip_network_id", '"eip155:11155111"');
       },
       { address, authModeKey: AUTH_STORAGE_KEYS.authMode }
     );
@@ -529,7 +529,7 @@ export class AdminTestHelper {
                 "mock",
                 {
                   accounts: [address],
-                  chainId: 84532, // Base Sepolia
+                  chainId: 11155111, // Sepolia
                 },
               ],
             ],
@@ -541,7 +541,7 @@ export class AdminTestHelper {
 
       // Also set reown/appkit state
       localStorage.setItem("@w3m/connected_connector", '"mock"');
-      localStorage.setItem("@w3m/active_caip_network_id", '"eip155:84532"');
+      localStorage.setItem("@w3m/active_caip_network_id", '"eip155:11155111"');
 
       // Set a marker so we can detect if injection worked
       localStorage.setItem("__test_auth_injected", "true");
@@ -737,7 +737,7 @@ export async function hasGardens(page: Page, chainId?: number): Promise<boolean>
     const resolvedChainId =
       typeof chainId === "number" && !Number.isNaN(chainId)
         ? chainId
-        : Number(process.env.VITE_CHAIN_ID ?? process.env.TEST_CHAIN_ID ?? 84532);
+        : Number(process.env.VITE_CHAIN_ID ?? process.env.TEST_CHAIN_ID ?? 11155111);
 
     const data = await queryIndexer<{ Garden: Array<{ id: string }> }>(
       page,

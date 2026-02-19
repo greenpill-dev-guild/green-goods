@@ -1,12 +1,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { NetworkManager } from "../utils/network";
 import { AnvilManager } from "./anvil";
 import { EnvioIntegration } from "../utils/envio-integration";
 import { DocsUpdater } from "../utils/docs-updater";
-import type { ParsedOptions } from "../utils/cli-parser";
-import { assertSepoliaGate, writeSepoliaCheckpoint } from "../utils/release-gate";
+import { type ParsedOptions, redactSensitiveArgs } from "../utils/cli-parser";
+import { assertSepoliaGate } from "../utils/release-gate";
 
 /**
  * CoreDeployer - Handles core contract deployment
@@ -17,9 +17,9 @@ export class CoreDeployer {
   private networkManager: NetworkManager;
   private anvilManager: AnvilManager;
 
-  constructor() {
-    this.networkManager = new NetworkManager();
-    this.anvilManager = new AnvilManager();
+  constructor(networkManager?: NetworkManager, anvilManager?: AnvilManager) {
+    this.networkManager = networkManager ?? new NetworkManager();
+    this.anvilManager = anvilManager ?? new AnvilManager(this.networkManager);
   }
 
   /**
@@ -36,7 +36,7 @@ export class CoreDeployer {
     this._logActiveFlags(options);
 
     const networkConfig = this.networkManager.getNetwork(options.network);
-    const pureSimulation = options.pureSimulation || options.dryRun;
+    const pureSimulation = options.pureSimulation;
 
     if (pureSimulation) {
       this._runPureSimulation(networkConfig);
@@ -46,7 +46,6 @@ export class CoreDeployer {
     assertSepoliaGate({
       network: options.network,
       broadcast: options.broadcast,
-      operation: "deploy",
       overrideSepoliaGate: options.overrideSepoliaGate,
     });
 
@@ -70,14 +69,19 @@ export class CoreDeployer {
       const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
       args.push("--account", keystoreName);
 
-      // Optionally specify sender address for verification
-      const senderAddress = process.env.SENDER_ADDRESS;
-      if (senderAddress) {
-        args.push("--sender", senderAddress);
-      }
-
       console.log(`🔐 Using Foundry keystore: ${keystoreName}`);
       console.log("💡 Password will be prompted interactively");
+    }
+
+    // Use explicit sender for both broadcast and dry-run simulation when provided.
+    // This keeps role/admin checks aligned with the real deployer identity.
+    const senderAddress = process.env.SENDER_ADDRESS;
+    if (senderAddress) {
+      args.push("--sender", senderAddress);
+    }
+
+    if (options.dryRun && !options.broadcast) {
+      console.log("🧪 Dry-run execution enabled (RPC simulation, no broadcast)");
     }
 
     // Handle verification
@@ -96,35 +100,33 @@ export class CoreDeployer {
     }
 
     console.log("\nExecuting deployment command:");
-    const displayArgs = args.map((arg, idx) => (idx > 0 && args[idx - 1] === "--private-key" ? "[REDACTED]" : arg));
-    console.log("forge", displayArgs.join(" "));
+    console.log("forge", redactSensitiveArgs(args).join(" "));
 
     try {
-      execSync(`forge ${args.join(" ")}`, {
+      execFileSync("forge", args, {
         stdio: "inherit",
         env: {
           ...process.env,
           FOUNDRY_PROFILE: "production",
           FORGE_BROADCAST: options.broadcast ? "true" : "false",
+          FORGE_DRY_RUN_CHECKS: options.dryRun ? "true" : "false",
         },
         cwd: path.join(__dirname, "../.."),
       });
 
-      console.log("\n✅ Core contracts deployed successfully!");
-
-      if (options.broadcast && options.network === "sepolia") {
-        const chainId = this.networkManager.getChainIdString(options.network);
-        const checkpoint = writeSepoliaCheckpoint({
-          chainId,
-          operation: "deploy",
-        });
-        console.log(
-          `✅ Wrote Sepolia checkpoint (${checkpoint.timestamp}, commit ${checkpoint.commitHash.slice(0, 12)})`,
-        );
+      if (options.broadcast) {
+        console.log("\n✅ Core contracts deployed successfully!");
+      } else if (options.dryRun) {
+        console.log("\n✅ Core dry-run simulation completed successfully!");
+      } else {
+        console.log("\n✅ Core deployment simulation completed successfully!");
       }
 
-      // Auto-update Envio configuration after successful deployment
-      if (!options.skipEnvio) {
+      // After mainnet ENS infra broadcast, sync ENS_L1_RECEIVER into root .env for Arbitrum deploys.
+      this._autoPopulateEnsL1Receiver(options);
+
+      // Auto-update Envio configuration after successful broadcast deployment
+      if (options.broadcast && !options.skipEnvio) {
         await this._updateEnvioConfig(options);
       }
 
@@ -154,7 +156,7 @@ export class CoreDeployer {
     console.log(`RPC Source: ${networkConfig.rpcUrl}`);
 
     console.log("\n🔨 Running forge build preflight...");
-    execSync("forge build --skip test", {
+    execFileSync("forge", ["build", "--skip", "test"], {
       stdio: "inherit",
       env: {
         ...process.env,
@@ -203,7 +205,8 @@ export class CoreDeployer {
       console.log(`\nFlags: ${activeFlags.join(", ")}`);
     }
 
-    console.log("\nGovernance: 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19 (Green Goods Safe)\n");
+    const multisig = this.networkManager.getDeploymentDefault("multisig") ?? "not configured";
+    console.log(`\nGovernance: ${multisig} (Green Goods Safe)\n`);
 
     const allowlistAddresses: string[] = [];
     if (process.env.DEPLOYMENT_REGISTRY_ALLOWLIST) {
@@ -227,6 +230,10 @@ export class CoreDeployer {
    * @returns True if should verify
    */
   private _shouldVerifyContracts(options: ParsedOptions): boolean {
+    if (!options.broadcast) {
+      return false;
+    }
+
     const verifierConfig = this.networkManager.getVerifierConfig(options.network);
     let shouldVerify = options.verify && verifierConfig !== null && !options.skipVerification;
 
@@ -277,11 +284,15 @@ export class CoreDeployer {
           }
         };
 
-        // Register cleanup handlers
-        process.on("exit", cleanup);
-        process.on("SIGINT", cleanup);
-        process.on("SIGTERM", cleanup);
-        process.on("uncaughtException", cleanup);
+        // Register cleanup handlers for graceful shutdown signals.
+        // Note: "exit" is intentionally excluded — it runs synchronously
+        // and cannot await the async cleanup function.
+        const signalCleanup = async (): Promise<void> => {
+          await cleanup();
+          process.exit(0);
+        };
+        process.on("SIGINT", signalCleanup);
+        process.on("SIGTERM", signalCleanup);
       }
 
       // Optionally start indexer for localhost deployments
@@ -312,5 +323,64 @@ export class CoreDeployer {
       console.warn("   You can manually update docs using:");
       console.warn(`   bun script/utils/docs-updater.ts ${chainId}`);
     }
+  }
+
+  /**
+   * Auto-populate ENS_L1_RECEIVER in root .env after successful Ethereum mainnet deploy.
+   * Uses the freshly written deployments/1-latest.json ensReceiver field.
+   */
+  private _autoPopulateEnsL1Receiver(options: ParsedOptions): void {
+    if (!options.broadcast || options.network !== "mainnet") {
+      return;
+    }
+
+    try {
+      const chainId = this.networkManager.getChainIdString(options.network);
+      const deploymentPath = path.join(__dirname, "../../deployments", `${chainId}-latest.json`);
+      if (!fs.existsSync(deploymentPath)) {
+        console.warn(`⚠️  ENS sync skipped: deployment file not found at ${deploymentPath}`);
+        return;
+      }
+
+      const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8")) as { ensReceiver?: string };
+      const ensReceiver = deployment.ensReceiver;
+      if (!ensReceiver || /^0x0+$/i.test(ensReceiver)) {
+        console.warn("⚠️  ENS sync skipped: ensReceiver missing or zero in deployment JSON");
+        return;
+      }
+
+      this._upsertRootEnvVar("ENS_L1_RECEIVER", ensReceiver);
+      process.env.ENS_L1_RECEIVER = ensReceiver;
+      console.log(`✅ ENS_L1_RECEIVER auto-populated: ${ensReceiver}`);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.warn(`⚠️  ENS_L1_RECEIVER auto-populate failed: ${errorMsg}`);
+      console.warn("   Set ENS_L1_RECEIVER manually in .env before Arbitrum deploy.");
+    }
+  }
+
+  /**
+   * Upsert a key/value entry in the monorepo root .env file.
+   */
+  private _upsertRootEnvVar(key: string, value: string): void {
+    const envPath = path.join(__dirname, "../../../../.env");
+    const normalizedLine = `${key}="${value}"`;
+
+    if (!fs.existsSync(envPath)) {
+      fs.writeFileSync(envPath, `${normalizedLine}\n`, "utf8");
+      return;
+    }
+
+    const current = fs.readFileSync(envPath, "utf8");
+    const regex = new RegExp(`^\\s*${key}\\s*=.*$`, "m");
+
+    if (regex.test(current)) {
+      const updated = current.replace(regex, normalizedLine);
+      fs.writeFileSync(envPath, updated, "utf8");
+      return;
+    }
+
+    const separator = current.endsWith("\n") ? "" : "\n";
+    fs.writeFileSync(envPath, `${current}${separator}${normalizedLine}\n`, "utf8");
   }
 }

@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { ReactNode } from "react";
 import toast, { type Toast as HotToast, type ToastOptions } from "react-hot-toast";
+import { logger } from "../../modules/app/logger";
 import { useUIStore } from "../../stores/useUIStore";
 import { capitalize } from "../../utils/app/text";
 import { cn } from "../../utils/styles/cn";
@@ -360,14 +361,13 @@ function logDiagnostics(resolved: ResolvedToastDescriptor) {
   const diagnostic = getDiagnostics(resolved.error, resolved.devMessage);
 
   if (resolved.error) {
-    console.error(
-      `[toast:error] ${resolved.context ?? resolved.title ?? "operation failed"}`,
-      resolved.error
-    );
+    logger.error(`[toast:error] ${resolved.context ?? resolved.title ?? "operation failed"}`, {
+      error: resolved.error,
+    });
   }
 
   if (diagnostic) {
-    console.error(`[toast:detail] ${diagnostic}`);
+    logger.error(`[toast:detail] ${diagnostic}`);
   }
 }
 
@@ -431,6 +431,7 @@ function ToastMessage({
 
     return (
       <div
+        role="status"
         tabIndex={0}
         className={containerClassName}
         aria-label={ariaLabel}

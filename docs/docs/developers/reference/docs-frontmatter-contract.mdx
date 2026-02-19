@@ -1,0 +1,84 @@
+---
+title: Docs Frontmatter Contract
+slug: /developers/reference/docs-frontmatter-contract
+audience: developer
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Define required metadata so docs stay scannable and trustworthy."
+difficulty: "advanced"
+estimated_time: "10-20 minutes"
+prereqs: "Basic MDX frontmatter familiarity."
+next_steps: "./docs-writing-guide"
+persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
+source_of_truth:
+  - docs/docs/developers/reference/deployment-indexer-status.mdx
+  - docs/scripts/docs-audit.mjs
+---
+
+import {NextBestAction, QuickAnswer} from "@site/src/components/docs";
+
+# Docs Frontmatter Contract
+
+All non-reference docs in the v1 IA must include these trust fields:
+
+- `audience`
+- `owner`
+- `last_verified`
+- `feature_status`
+- `source_of_truth`
+
+All canonical docs also include these UX fields:
+
+- `goal`
+- `difficulty` (`quickstart|standard|advanced`)
+- `estimated_time`
+- `prereqs`
+- `next_steps`
+- `persona_context`
+
+## Canonical template
+
+```yaml
+---
+title: Example Title
+slug: /role-or-section/page
+audience: gardener|operator|evaluator|developer
+owner: docs|protocol|ops
+last_verified: YYYY-MM-DD
+feature_status: Live|Implemented (activation pending indexing)|Implemented (activation pending deployment)|Planned
+goal: Clear one-sentence outcome for this page
+difficulty: quickstart|standard|advanced
+estimated_time: 5-15 minutes
+prereqs: Required context or permissions
+next_steps: ./next-page
+persona_context: Who this page is optimized for
+source_of_truth:
+  - packages/path/to/file.ts
+  - packages/path/to/another-file.ts
+---
+```
+
+## Why this exists
+
+1. Gives human readers immediate scope and trust signals.
+2. Gives AI/agents machine-parseable context for retrieval.
+3. Forces explicit source references for accuracy audits.
+
+<QuickAnswer question="What should `source_of_truth` include?" openByDefault>
+  List concrete files that a reviewer can open to verify claims. Prefer deployment JSON, indexer config, router files, and hook/module entry points.
+</QuickAnswer>
+
+<QuickAnswer question="When do we use activation-pending statuses?">
+  Use <code>Implemented (activation pending indexing)</code> when deployment is live but indexer is not ready. Use <code>Implemented (activation pending deployment)</code> when code exists but deployment address is missing or zero.
+</QuickAnswer>
+
+<NextBestAction
+  title="Next best action"
+  why="After locking metadata rules, apply writing patterns that reduce repetition and hallucinated claims."
+  actionLabel="Open docs writing guide"
+  actionHref="./docs-writing-guide"
+  alternatives={[
+    {label: "Back to developer reference", href: "./"},
+  ]}
+/>

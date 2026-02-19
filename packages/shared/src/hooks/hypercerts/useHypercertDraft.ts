@@ -5,6 +5,7 @@ import type { HypercertDraft } from "../../types/hypercerts";
 import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
+import { useTimeout } from "../utils/useTimeout";
 
 export interface UseHypercertDraftResult {
   draftKey: string | null;
@@ -180,6 +181,8 @@ export function useHypercertDraft(
     }
   }, [draftKey, resetStore, setDraftMeta]);
 
+  const { set: scheduleSave, clear: clearScheduledSave } = useTimeout();
+
   useEffect(() => {
     if (!enabled || !autoLoad) return;
     void loadDraft();
@@ -187,10 +190,6 @@ export function useHypercertDraft(
 
   useEffect(() => {
     if (!enabled || !draftKey) return;
-
-    // Subscribe to store changes with short debounce for responsive auto-save
-    // Only trigger on draft-relevant fields to avoid unnecessary saves from UI state changes
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     // Selector for draft-relevant fields only (excludes UI state like currentStep, mintingState)
     const selectDraftContent = (state: ReturnType<typeof useHypercertWizardStore.getState>) => ({
@@ -237,14 +236,12 @@ export function useHypercertDraft(
       );
     };
 
+    // Subscribe to store changes with debounced auto-save via useTimeout (Rule 1)
     const unsubscribe = useHypercertWizardStore.subscribe(
       selectDraftContent,
       () => {
-        // Clear any pending save
-        if (timeoutId) clearTimeout(timeoutId);
-
-        // Short debounce: save after user stops typing (default 2s)
-        timeoutId = setTimeout(() => {
+        // scheduleSave auto-clears any pending timeout before setting a new one
+        scheduleSave(() => {
           void saveDraft();
         }, autoSaveDebounceMs);
       },
@@ -258,10 +255,18 @@ export function useHypercertDraft(
 
     return () => {
       unsubscribe();
-      if (timeoutId) clearTimeout(timeoutId);
+      clearScheduledSave();
       clearInterval(interval);
     };
-  }, [enabled, draftKey, autoSaveDebounceMs, autoSaveIntervalMs, saveDraft]);
+  }, [
+    enabled,
+    draftKey,
+    autoSaveDebounceMs,
+    autoSaveIntervalMs,
+    saveDraft,
+    scheduleSave,
+    clearScheduledSave,
+  ]);
 
   return {
     draftKey,

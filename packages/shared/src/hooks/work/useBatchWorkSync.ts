@@ -12,12 +12,14 @@ import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import type { WorkDraft } from "../../types/domain";
 import { logger } from "../../modules/app/logger";
+import { trackContractError } from "../../modules/app/error-tracking";
 import { queueToasts } from "../../components/toast";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
 import { jobQueue, jobQueueDB, jobQueueEventBus } from "../../modules/job-queue";
 import { encodeWorkData } from "../../utils/eas/encoders";
 import { buildBatchWorkAttestTx } from "../../utils/eas/transaction-builder";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";
@@ -35,17 +37,21 @@ interface EncodedWorkJob {
 }
 
 function toWorkDraft(payload: WorkJobPayload, mediaFiles: File[], createdAt: number): WorkDraft {
+  // Separate audio from visual media
+  const audioFiles = mediaFiles.filter((f) => f.type.startsWith("audio/"));
+  const visualFiles = mediaFiles.filter((f) => !f.type.startsWith("audio/"));
+
   return {
     actionUID: payload.actionUID,
     title: payload.title || `Action ${payload.actionUID} - ${new Date(createdAt).toISOString()}`,
     feedback: payload.feedback,
-    plantSelection: Array.isArray(payload.plantSelection) ? payload.plantSelection : [],
-    plantCount: typeof payload.plantCount === "number" ? payload.plantCount : 0,
-    media: mediaFiles,
-    metadata:
-      payload.metadata && typeof payload.metadata === "object"
-        ? (payload.metadata as Record<string, unknown>)
-        : undefined,
+    media: visualFiles,
+    details: payload.details ?? {},
+    ...(typeof payload.timeSpentMinutes === "number"
+      ? { timeSpentMinutes: payload.timeSpentMinutes }
+      : { timeSpentMinutes: 0 }),
+    ...(payload.tags ? { tags: payload.tags } : {}),
+    ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
   };
 }
 
@@ -111,7 +117,11 @@ export function useBatchWorkSync() {
         account: walletClient.account,
       });
 
-      await waitForTransactionReceipt(wagmiConfig, { hash, chainId });
+      await waitForTransactionReceipt(wagmiConfig, {
+        hash,
+        chainId,
+        timeout: TX_RECEIPT_TIMEOUT_MS,
+      });
 
       for (const { job } of encodedJobs) {
         try {
@@ -183,7 +193,20 @@ export function useBatchWorkSync() {
         });
       }
     },
-    onError: () => {
+    onError: (error) => {
+      logger.error("Batch work sync failed", {
+        source: "useBatchWorkSync",
+        error,
+        authMode,
+        primaryAddress,
+      });
+
+      trackContractError(error, {
+        source: "useBatchWorkSync",
+        userAction: "batch work sync",
+        metadata: { authMode },
+      });
+
       queueToasts.syncError();
     },
   });

@@ -7,10 +7,6 @@ import { KarmaLib, KarmaGAPNotSupported } from "../../src/lib/Karma.sol";
 /// @title KarmaLibWrapper
 /// @notice Wrapper contract to expose KarmaLib internal functions for testing
 contract KarmaLibWrapper {
-    function getEAS() external view returns (address) {
-        return KarmaLib.getEAS();
-    }
-
     function getProjectResolver() external view returns (address) {
         return KarmaLib.getProjectResolver();
     }
@@ -38,16 +34,15 @@ contract KarmaLibWrapper {
 
 /// @title KarmaLibTest
 /// @notice Unit tests for KarmaLib chain constant lookups
-/// @dev Verifies correct addresses and schema UIDs across 8 supported networks
+/// @dev Verifies correct addresses and schema UIDs across 7 supported networks
 contract KarmaLibTest is Test {
     KarmaLibWrapper private wrapper;
 
-    // All 8 supported chain IDs
+    // All 7 supported chain IDs
     uint256 constant OPTIMISM = 10;
     uint256 constant OPTIMISM_SEPOLIA = 11_155_420;
     uint256 constant ARBITRUM = 42_161;
     uint256 constant SEPOLIA = 11_155_111;
-    uint256 constant BASE_SEPOLIA = 84_532;
     uint256 constant CELO = 42_220;
     uint256 constant SEI = 1329;
     uint256 constant SEI_TESTNET = 1328;
@@ -60,13 +55,26 @@ contract KarmaLibTest is Test {
     // isSupported Tests
     // =========================================================================
 
-    function testIsSupportedForAll8Networks() public {
-        uint256[8] memory supportedChains =
-            [OPTIMISM, OPTIMISM_SEPOLIA, ARBITRUM, SEPOLIA, BASE_SEPOLIA, CELO, SEI, SEI_TESTNET];
+    function testIsSupportedForGAPNetworks() public {
+        // isSupported() gates on chains with full GAP contracts (3 networks only)
+        uint256[3] memory supportedChains = [ARBITRUM, SEPOLIA, CELO];
 
         for (uint256 i = 0; i < supportedChains.length; i++) {
             vm.chainId(supportedChains[i]);
             assertTrue(wrapper.isSupported(), string.concat("Chain should be supported: ", vm.toString(supportedChains[i])));
+        }
+    }
+
+    function testIsNotSupportedForResolverOnlyChains() public {
+        // These chains have resolvers/schemas but no GAP contracts
+        uint256[4] memory resolverOnlyChains = [OPTIMISM, OPTIMISM_SEPOLIA, SEI, SEI_TESTNET];
+
+        for (uint256 i = 0; i < resolverOnlyChains.length; i++) {
+            vm.chainId(resolverOnlyChains[i]);
+            assertFalse(
+                wrapper.isSupported(),
+                string.concat("Resolver-only chain should NOT be supported: ", vm.toString(resolverOnlyChains[i]))
+            );
         }
     }
 
@@ -81,31 +89,6 @@ contract KarmaLibTest is Test {
     }
 
     // =========================================================================
-    // EAS Address Tests
-    // =========================================================================
-
-    function testEASAddressArbitrum() public {
-        vm.chainId(ARBITRUM);
-        assertEq(wrapper.getEAS(), 0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458);
-    }
-
-    function testEASAddressCelo() public {
-        vm.chainId(CELO);
-        assertEq(wrapper.getEAS(), 0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92);
-    }
-
-    function testEASAddressSepolia() public {
-        vm.chainId(SEPOLIA);
-        assertEq(wrapper.getEAS(), 0xC2679fBD37d54388Ce493F1DB75320D236e1815e);
-    }
-
-    function testEASAddressRevertsForUnsupported() public {
-        vm.chainId(31_337);
-        vm.expectRevert(KarmaGAPNotSupported.selector);
-        wrapper.getEAS();
-    }
-
-    // =========================================================================
     // Project Resolver Address Tests
     // =========================================================================
 
@@ -117,11 +100,6 @@ contract KarmaLibTest is Test {
     function testProjectResolverCelo() public {
         vm.chainId(CELO);
         assertEq(wrapper.getProjectResolver(), 0x6dC1D6b864e8BEf815806f9e4677123496e12026);
-    }
-
-    function testProjectResolverBaseSepolia() public {
-        vm.chainId(BASE_SEPOLIA);
-        assertEq(wrapper.getProjectResolver(), 0xC891F8eBA218f5034bf3a472528408BE19E1130E);
     }
 
     function testProjectResolverRevertsForUnsupported() public {
@@ -142,11 +120,6 @@ contract KarmaLibTest is Test {
     function testGapContractCelo() public {
         vm.chainId(CELO);
         assertEq(wrapper.getGapContract(), 0x8791Ac8c099314bB1D1514D76de13a1E80275950);
-    }
-
-    function testGapContractBaseSepolia() public {
-        vm.chainId(BASE_SEPOLIA);
-        assertEq(wrapper.getGapContract(), 0x4Ca7230fB6b78875bdd1B1e4F665B7B7f1891239);
     }
 
     function testGapContractRevertsForOptimism() public {
@@ -205,22 +178,13 @@ contract KarmaLibTest is Test {
     }
 
     function testAllSchemaUIDsNonZeroOnSupportedChains() public {
-        uint256[8] memory chains = [OPTIMISM, OPTIMISM_SEPOLIA, ARBITRUM, SEPOLIA, BASE_SEPOLIA, CELO, SEI, SEI_TESTNET];
+        uint256[7] memory chains = [OPTIMISM, OPTIMISM_SEPOLIA, ARBITRUM, SEPOLIA, CELO, SEI, SEI_TESTNET];
 
         for (uint256 i = 0; i < chains.length; i++) {
             vm.chainId(chains[i]);
             assertTrue(wrapper.getProjectSchemaUID() != bytes32(0), "Project schema UID should be non-zero");
             assertTrue(wrapper.getDetailsSchemaUID() != bytes32(0), "Details schema UID should be non-zero");
             assertTrue(wrapper.getMemberOfSchemaUID() != bytes32(0), "MemberOf schema UID should be non-zero");
-        }
-    }
-
-    function testEASAddressNonZeroOnSupportedChains() public {
-        uint256[8] memory chains = [OPTIMISM, OPTIMISM_SEPOLIA, ARBITRUM, SEPOLIA, BASE_SEPOLIA, CELO, SEI, SEI_TESTNET];
-
-        for (uint256 i = 0; i < chains.length; i++) {
-            vm.chainId(chains[i]);
-            assertTrue(wrapper.getEAS() != address(0), "EAS address should be non-zero");
         }
     }
 }

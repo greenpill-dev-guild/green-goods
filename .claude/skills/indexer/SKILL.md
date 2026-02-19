@@ -1,12 +1,6 @@
 ---
 name: indexer
 description: Envio blockchain indexer development. Use for event handlers, schema.graphql design, Docker workflow, and GraphQL patterns.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [indexer]
-dependencies: [contracts]
 ---
 
 # Indexer Skill

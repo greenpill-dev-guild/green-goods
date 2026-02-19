@@ -1,7 +1,15 @@
-import { ConfirmDialog } from "@green-goods/shared/components";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import { type DraftWithImages, useActions, useDrafts, useGardens } from "@green-goods/shared/hooks";
-import { findActionByUID } from "@green-goods/shared/utils";
+import {
+  ConfirmDialog,
+  DEFAULT_CHAIN_ID,
+  findActionByUID,
+  logger,
+  toastService,
+  useActions,
+  useDrafts,
+  useGardens,
+  type Address,
+  type DraftWithImages,
+} from "@green-goods/shared";
 import { RiAlertLine, RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
@@ -35,7 +43,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
   };
 
   // Helper to get garden name
-  const getGardenName = (gardenAddress: string | null): string | undefined => {
+  const getGardenName = (gardenAddress: Address | null): string | undefined => {
     if (!gardenAddress) return undefined;
     const garden = gardens.find((g) => g.id === gardenAddress);
     return garden?.name;
@@ -56,7 +64,18 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
       try {
         await deleteDraft(draftToDelete.id);
       } catch (error) {
-        console.error("[DraftsTab] Failed to delete draft:", error);
+        logger.error("[DraftsTab] Failed to delete draft:", { error });
+        toastService.error({
+          title: intl.formatMessage({
+            id: "app.drafts.delete.error",
+            defaultMessage: "Failed to delete draft",
+          }),
+          message: intl.formatMessage({
+            id: "app.drafts.delete.errorMessage",
+            defaultMessage: "Please try again.",
+          }),
+          context: "drafts",
+        });
       }
       setDraftToDelete(null);
     }

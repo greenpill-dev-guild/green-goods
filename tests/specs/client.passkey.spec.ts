@@ -106,6 +106,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
         if (hasAppError) {
           console.log("App error detected - checking state...");
           await page.screenshot({ path: "test-results/passkey-app-error.png" });
+          // SKIP: #338 owner:afo expiry:2026-08-17 — runtime env detection
           test.skip(true, "App has error - likely missing environment");
           return;
         }
@@ -236,7 +237,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
       await setupPimlicoMock(page);
 
       // Make a direct request to verify mock works
-      const response = await page.request.post("https://api.pimlico.io/v2/84532/rpc", {
+      const response = await page.request.post("https://api.pimlico.io/v2/11155111/rpc", {
         data: {
           jsonrpc: "2.0",
           id: 1,
@@ -258,7 +259,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
     test("mock handles user operation estimation", async ({ page }) => {
       await setupPimlicoMock(page);
 
-      const response = await page.request.post("https://api.pimlico.io/v2/84532/rpc", {
+      const response = await page.request.post("https://api.pimlico.io/v2/11155111/rpc", {
         data: {
           jsonrpc: "2.0",
           id: 1,
@@ -287,7 +288,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
     test("mock handles paymaster sponsorship", async ({ page }) => {
       await setupPimlicoMock(page);
 
-      const response = await page.request.post("https://api.pimlico.io/v2/84532/rpc", {
+      const response = await page.request.post("https://api.pimlico.io/v2/11155111/rpc", {
         data: {
           jsonrpc: "2.0",
           id: 1,

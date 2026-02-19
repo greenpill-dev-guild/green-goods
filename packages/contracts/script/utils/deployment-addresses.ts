@@ -1,16 +1,18 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { CHAIN_ID_MAP } from "./network";
 
 export interface DeploymentData {
   actionRegistry: string;
   gardenToken: string;
   deploymentRegistry: string;
-  gardenerAccountLogic: string;
-  gardenAccountImpl?: string;
+  gardenAccountImpl: string;
   accountProxy?: string;
   workResolver?: string;
   workApprovalResolver?: string;
   assessmentResolver?: string;
+  greenGoodsENS?: string;
+  ensReceiver?: string;
   hatsModule?: string;
   karmaGAPModule?: string;
   [key: string]: string | undefined;
@@ -35,14 +37,6 @@ export interface NetworksConfig {
   networks: Record<string, NetworkConfig>;
 }
 
-const CHAIN_MAP: Record<string, string> = {
-  localhost: "31337",
-  arbitrum: "42161",
-  sepolia: "11155111",
-  baseSepolia: "84532",
-  celo: "42220",
-};
-
 export class DeploymentAddresses {
   private contractsDir: string;
 
@@ -51,7 +45,7 @@ export class DeploymentAddresses {
   }
 
   loadForChain(chainId: string): DeploymentData {
-    const normalizedChainId = CHAIN_MAP[chainId] || chainId.toString();
+    const normalizedChainId = CHAIN_ID_MAP[chainId] || chainId.toString();
     const deploymentFile = path.join(this.contractsDir, `${normalizedChainId}-latest.json`);
 
     if (!fs.existsSync(deploymentFile)) {
@@ -59,7 +53,7 @@ export class DeploymentAddresses {
     }
 
     const deploymentData = JSON.parse(fs.readFileSync(deploymentFile, "utf8")) as DeploymentData;
-    const requiredAddresses = ["actionRegistry", "gardenToken", "deploymentRegistry", "gardenerAccountLogic"];
+    const requiredAddresses = ["actionRegistry", "gardenToken", "deploymentRegistry", "gardenAccountImpl"];
     const missing = requiredAddresses.filter((addr) => !deploymentData[addr]);
 
     if (missing.length > 0) {

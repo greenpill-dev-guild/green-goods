@@ -1,32 +1,38 @@
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
+  DEFAULT_CHAIN_ID,
   GardenTab,
   isGardenMember,
   useActions,
   useBrowserNavigation,
+  useConvictionStrategies,
   useGardeners,
+  useGardenVaults,
   useGardens,
   useGardenTabs,
   useHasRole,
   useJoinGarden,
   useNavigateToTop,
   useUser,
+  useVaultDeposits,
   useWorks,
-} from "@green-goods/shared/hooks";
+  toastService,
+  type Address,
+} from "@green-goods/shared";
 import {
   RiCalendarEventFill,
   RiFileChartFill,
   RiGroupFill,
   RiHammerFill,
+  RiLoader4Line,
   RiMapPin2Fill,
   RiUserAddLine,
 } from "@remixicon/react";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
-import type { Address } from "viem";
-import toast from "react-hot-toast";
+import { isAddress } from "viem";
 import { Button } from "@/components/Actions";
+import { ConvictionDrawer, TreasuryDrawer } from "@/components/Dialogs";
 import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
@@ -41,6 +47,8 @@ type GardenProps = {};
 export const Garden: React.FC<GardenProps> = () => {
   const intl = useIntl();
   const { primaryAddress } = useUser();
+  const [isTreasuryOpen, setIsTreasuryOpen] = useState(false);
+  const [isGovernanceOpen, setIsGovernanceOpen] = useState(false);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -70,7 +78,11 @@ export const Garden: React.FC<GardenProps> = () => {
   const { id: gardenIdParam } = useParams<{ id: string }>();
   const { pathname } = useLocation();
   const chainId = DEFAULT_CHAIN_ID;
-  const { data: allGardens = [], isFetching: gardensLoading } = useGardens(chainId);
+  const {
+    data: allGardens = [],
+    isLoading: gardensInitialLoading,
+    isFetching: gardensLoading,
+  } = useGardens(chainId);
   const garden = allGardens.find((g) => g.id === gardenIdParam);
   const gardenStatus: "error" | "success" | "pending" = garden ? "success" : "pending";
   const { data: allGardeners = [] } = useGardeners();
@@ -119,7 +131,52 @@ export const Garden: React.FC<GardenProps> = () => {
     });
   }, [allGardeners, garden]);
 
-  if (!garden) return null;
+  const { vaults: gardenVaults = [] } = useGardenVaults(garden?.id, {
+    enabled: Boolean(garden?.id),
+  });
+  const { deposits: myVaultDeposits = [] } = useVaultDeposits(garden?.id, {
+    userAddress: primaryAddress ?? undefined,
+    enabled: Boolean(garden?.id && primaryAddress),
+  });
+  const hasTreasuryDeposits = useMemo(
+    () => myVaultDeposits.some((deposit) => deposit.shares > 0n),
+    [myVaultDeposits]
+  );
+
+  const validGardenAddress = gardenIdParam && isAddress(gardenIdParam) ? gardenIdParam : undefined;
+  const { strategies: convictionStrategies } = useConvictionStrategies(validGardenAddress, {
+    enabled: Boolean(validGardenAddress),
+  });
+  const hasGovernance = convictionStrategies.length > 0;
+
+  if (!garden) {
+    if (gardensInitialLoading) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
+          <TopNav onBackClick={() => navigate("/home")} />
+          <RiLoader4Line className="w-8 h-8 text-text-soft-400 animate-spin" />
+          <p className="text-sm text-text-sub-600 text-center">
+            {intl.formatMessage({
+              id: "app.garden.loading",
+              defaultMessage: "Loading garden...",
+            })}
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
+        <TopNav onBackClick={() => navigate("/home")} />
+        <RiMapPin2Fill className="w-10 h-10 text-text-soft-400" />
+        <p className="text-sm text-text-sub-600 text-center">
+          {intl.formatMessage({
+            id: "app.garden.notFound",
+            defaultMessage: "Garden not found",
+          })}
+        </p>
+      </div>
+    );
+  }
 
   const { name, bannerImage, location, createdAt, assessments, description } = garden;
 
@@ -150,27 +207,27 @@ export const Garden: React.FC<GardenProps> = () => {
     try {
       const result = await joinGarden(garden.id);
       if (result === "already-member") {
-        toast.success(
-          intl.formatMessage({
+        toastService.success({
+          title: intl.formatMessage({
             id: "app.garden.alreadyMember",
             defaultMessage: "You're already a member of this garden",
-          })
-        );
+          }),
+        });
       } else {
-        toast.success(
-          intl.formatMessage({
+        toastService.success({
+          title: intl.formatMessage({
             id: "app.garden.joinSuccess",
             defaultMessage: "Successfully joined the garden!",
-          })
-        );
+          }),
+        });
       }
     } catch {
-      toast.error(
-        intl.formatMessage({
+      toastService.error({
+        title: intl.formatMessage({
           id: "app.garden.joinError",
           defaultMessage: "Failed to join garden. Please try again.",
-        })
-      );
+        }),
+      });
     }
   }, [garden.id, joinGarden, intl]);
 
@@ -262,6 +319,11 @@ export const Garden: React.FC<GardenProps> = () => {
                     works={mergedWorks}
                     garden={garden}
                     isOperator={canReview}
+                    showGovernanceButton={hasGovernance}
+                    onGovernanceClick={() => setIsGovernanceOpen(true)}
+                    showTreasuryButton={gardenVaults.length > 0}
+                    hasTreasuryDeposits={hasTreasuryDeposits}
+                    onTreasuryClick={() => setIsTreasuryOpen(true)}
                   />
                 </div>
               </div>
@@ -325,6 +387,22 @@ export const Garden: React.FC<GardenProps> = () => {
               {renderTabContent()}
             </div>
           </>
+        )}
+        {garden && (
+          <TreasuryDrawer
+            isOpen={isTreasuryOpen}
+            onClose={() => setIsTreasuryOpen(false)}
+            gardenAddress={garden.id}
+            gardenName={garden.name}
+          />
+        )}
+        {garden && hasGovernance && (
+          <ConvictionDrawer
+            isOpen={isGovernanceOpen}
+            onClose={() => setIsGovernanceOpen(false)}
+            gardenAddress={garden.id}
+            gardenName={garden.name}
+          />
         )}
         <Outlet context={{ gardenId: garden.id }} />
       </div>

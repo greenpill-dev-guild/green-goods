@@ -4,52 +4,18 @@ pragma solidity >=0.8.25;
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import { ActionRegistry, Capital } from "../src/registries/Action.sol";
+import { ActionRegistry, Capital, Domain } from "../src/registries/Action.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
 import { GardenAccount } from "../src/accounts/Garden.sol";
-import { IHatsModule } from "../src/interfaces/IHatsModule.sol";
+import { OctantModule } from "../src/modules/Octant.sol";
+import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { MockERC20 } from "../src/mocks/ERC20.sol";
+import { MockHatsModule } from "./helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
+import { IGardensModule } from "../src/interfaces/IGardensModule.sol";
 
 /// @title FuzzTests
 /// @notice Fuzz testing for edge cases and boundary conditions
-contract MockHatsModule is IHatsModule {
-    function createGardenHatTree(address, string calldata, address) external pure returns (uint256 adminHatId) {
-        return 1;
-    }
-
-    function grantRole(address, address, GardenRole) external { }
-
-    function revokeRole(address, address, GardenRole) external { }
-
-    function grantRoles(address, address[] calldata, GardenRole[] calldata) external { }
-
-    function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
-
-    function isGardenerOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isEvaluatorOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isOperatorOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isOwnerOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isFunderOf(address, address) external pure returns (bool) {
-        return false;
-    }
-
-    function isCommunityOf(address, address) external pure returns (bool) {
-        return false;
-    }
-}
 
 contract FuzzTests is Test, ERC6551Helper {
     ActionRegistry private actionRegistry;
@@ -86,8 +52,10 @@ contract FuzzTests is Test, ERC6551Helper {
         ERC1967Proxy gardenProxy = new ERC1967Proxy(address(gardenTokenImpl), gardenInitData);
         gardenToken = GardenToken(address(gardenProxy));
         mockHatsModule = new MockHatsModule();
-        vm.prank(multisig);
+        vm.startPrank(multisig);
         gardenToken.setHatsModule(address(mockHatsModule));
+        gardenToken.setCommunityToken(address(mockToken));
+        vm.stopPrank();
     }
 
     /// @notice Fuzz test action registration with random timestamps
@@ -108,7 +76,9 @@ contract FuzzTests is Test, ERC6551Helper {
         string[] memory media = new string[](0);
 
         vm.prank(multisig);
-        actionRegistry.registerAction(startTime, endTime, "Fuzz Test Action", "instructions", capitals, media);
+        actionRegistry.registerAction(
+            startTime, endTime, "Fuzz Test Action", "test.fuzz", "instructions", capitals, media, Domain.AGRO
+        );
 
         ActionRegistry.Action memory action = actionRegistry.getAction(0);
         assertEq(action.startTime, startTime, "Start time should match");
@@ -130,13 +100,15 @@ contract FuzzTests is Test, ERC6551Helper {
 
         vm.prank(multisig);
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(mockToken),
             name: name,
+            slug: "",
             description: description,
             location: "Location",
             bannerImage: "Banner",
             metadata: "",
-            openJoining: false
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
         address gardenAccount = gardenToken.mintGarden(config);
 
@@ -155,13 +127,15 @@ contract FuzzTests is Test, ERC6551Helper {
 
         for (uint256 i = 0; i < batchSize; i++) {
             configs[i] = GardenToken.GardenConfig({
-                communityToken: address(mockToken),
                 name: string(abi.encodePacked("Garden", uint2str(i))),
+                slug: "",
                 description: "Description",
                 location: "Location",
                 bannerImage: "Banner",
                 metadata: "",
-                openJoining: false
+                openJoining: false,
+                weightScheme: IGardensModule.WeightScheme.Linear,
+                domainMask: 0
             });
         }
 
@@ -175,13 +149,15 @@ contract FuzzTests is Test, ERC6551Helper {
     function testFuzz_OpenJoiningInitialization(bool openJoiningValue) public {
         vm.prank(multisig);
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            communityToken: address(mockToken),
             name: "Test",
+            slug: "",
             description: "Description",
             location: "Location",
             bannerImage: "Banner",
             metadata: "",
-            openJoining: openJoiningValue
+            openJoining: openJoiningValue,
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
         });
 
         address gardenAccount = gardenToken.mintGarden(config);
@@ -201,7 +177,14 @@ contract FuzzTests is Test, ERC6551Helper {
 
         vm.prank(multisig);
         actionRegistry.registerAction(
-            block.timestamp, block.timestamp + 1 days, "Fuzz Capital Test", "instructions", capitals, media
+            block.timestamp,
+            block.timestamp + 1 days,
+            "Fuzz Capital Test",
+            "test.capital",
+            "instructions",
+            capitals,
+            media,
+            Domain.SOLAR
         );
 
         ActionRegistry.Action memory action = actionRegistry.getAction(0);
@@ -235,6 +218,111 @@ contract FuzzTests is Test, ERC6551Helper {
             _i /= 10;
         }
         return string(bstr);
+    }
+
+    // =========================================================================
+    // Negative-Path Fuzz Tests
+    // =========================================================================
+
+    /// @notice Fuzz: registerAction reverts when startTime >= endTime
+    function testFuzz_registerAction_revertsInvalidDateRange(uint256 startTime, uint256 endTime) public {
+        vm.assume(startTime >= endTime);
+
+        Capital[] memory capitals = new Capital[](1);
+        capitals[0] = Capital.LIVING;
+
+        vm.prank(multisig);
+        vm.expectRevert();
+        actionRegistry.registerAction(
+            startTime, endTime, "Invalid Dates", "test.invalid", "instructions", capitals, new string[](0), Domain.WASTE
+        );
+    }
+
+    /// @notice Fuzz: gardenToken mint from random unauthorized address reverts
+    function testFuzz_gardenToken_mintRevertUnauthorized(address caller) public {
+        vm.assume(caller != multisig);
+        vm.assume(caller != address(0));
+
+        GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
+            name: "Unauthorized Garden",
+            slug: "",
+            description: "Desc",
+            location: "Location",
+            bannerImage: "Banner",
+            metadata: "",
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0
+        });
+
+        vm.prank(caller);
+        vm.expectRevert();
+        gardenToken.mintGarden(config);
+    }
+
+    /// @notice Fuzz: octantModule harvest from random unauthorized address reverts
+    function testFuzz_octantModule_harvestRevertUnauthorized(address caller) public {
+        vm.assume(caller != address(0));
+        // No garden access control mock set up for random callers
+
+        OctantModule octantImpl = new OctantModule();
+        bytes memory initData = abi.encodeWithSelector(OctantModule.initialize.selector, multisig, address(0), 7 days);
+        OctantModule octant = OctantModule(address(new ERC1967Proxy(address(octantImpl), initData)));
+
+        vm.prank(caller);
+        vm.expectRevert();
+        octant.harvest(address(0x1), address(0x2));
+    }
+
+    // =========================================================================
+    // YieldResolver Fuzz Tests
+    // =========================================================================
+
+    /// @notice Fuzz: setSplitRatio always reverts when BPS don't sum to 10000
+    function testFuzz_setSplitRatio_revertsIfNotSumTo10000(
+        uint256 cookieJarBps,
+        uint256 fractionsBps,
+        uint256 juiceboxBps
+    )
+        public
+    {
+        // Bound first to prevent overflow, then reject valid triples
+        cookieJarBps = bound(cookieJarBps, 0, 10_000);
+        fractionsBps = bound(fractionsBps, 0, 10_000);
+        juiceboxBps = bound(juiceboxBps, 0, 10_000);
+        vm.assume(cookieJarBps + fractionsBps + juiceboxBps != 10_000);
+
+        // Deploy a minimal YieldResolver for this fuzz test
+        YieldResolver ys = _deployYieldResolver();
+
+        vm.prank(multisig);
+        vm.expectRevert(YieldResolver.InvalidSplitRatio.selector);
+        ys.setSplitRatio(address(0x100), cookieJarBps, fractionsBps, juiceboxBps);
+    }
+
+    /// @notice Fuzz: setSplitRatio succeeds for any valid BPS triple summing to 10000
+    function testFuzz_setSplitRatio_acceptsValidBps(uint256 cookieJarBps, uint256 fractionsBps) public {
+        cookieJarBps = bound(cookieJarBps, 0, 10_000);
+        fractionsBps = bound(fractionsBps, 0, 10_000 - cookieJarBps);
+        uint256 juiceboxBps = 10_000 - cookieJarBps - fractionsBps;
+
+        YieldResolver ys = _deployYieldResolver();
+        address garden = address(0x100);
+
+        vm.prank(multisig);
+        ys.setSplitRatio(garden, cookieJarBps, fractionsBps, juiceboxBps);
+
+        YieldResolver.SplitConfig memory config = ys.getSplitConfig(garden);
+        assertEq(config.cookieJarBps + config.fractionsBps + config.juiceboxBps, 10_000, "BPS must always sum to 10000");
+    }
+
+    /// @notice Helper: deploy a minimal YieldResolver for fuzz testing
+    function _deployYieldResolver() internal returns (YieldResolver) {
+        YieldResolver impl = new YieldResolver();
+        bytes memory initData =
+            abi.encodeWithSelector(YieldResolver.initialize.selector, multisig, address(0x2), address(0x3), 0);
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        return YieldResolver(address(proxy));
     }
 
     /// @notice Convert bitmap to capital array

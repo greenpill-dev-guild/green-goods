@@ -1,0 +1,72 @@
+---
+title: Architecture
+sidebar_position: 2
+slug: /developers/architecture
+audience: developer
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Complete Architecture with clear, role-specific next actions."
+difficulty: "standard"
+estimated_time: "15-30 minutes."
+prereqs: "Familiarity with monorepo workspace and TypeScript/Solidity flows."
+next_steps: "./reference/deployment-indexer-status"
+persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
+source_of_truth:
+  - AGENTS.md
+  - CLAUDE.md
+  - .claude/context/shared.md
+keywords:
+  - architecture
+  - package boundaries
+---
+
+import {AtAGlanceCard, NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Architecture
+
+<StatusBadge status="Live" />
+
+<AtAGlanceCard
+  goal="Complete Architecture with clear, role-specific next actions."
+  difficulty="standard"
+  estimatedTime="15-30 minutes."
+  prereqs="Familiarity with monorepo workspace and TypeScript/Solidity flows."
+  outcome="Correct boundaries between UI, shared logic, contracts, indexer, and agent runtime."
+  personaContext="Developers and maintainers building, operating, and validating Green Goods systems."
+  lastVerified="2026-02-18"
+/>
+
+## Package boundaries
+
+| Package | Responsibility |
+| --- | --- |
+| `packages/client` | Gardener-facing PWA UI |
+| `packages/admin` | Operator-facing dashboard UI |
+| `packages/shared` | Hooks, providers, stores, business logic |
+| `packages/contracts` | Solidity modules + deployment scripts |
+| `packages/indexer` | Envio event indexing and GraphQL surface |
+| `packages/agent` | Automation/bot workflows |
+
+## Architecture principles
+
+- DRY for shared hooks/query keys/deployment addresses.
+- KISS for chain/environment model.
+- YAGNI for config surface and feature toggles.
+- Separation of concerns across packages.
+
+## Diagram references
+
+- [Deployment/indexer status model](./reference/deployment-indexer-status)
+- [Build patterns](./build-patterns)
+
+<NextBestAction
+  title="Next best action"
+  why="Move from static architecture context into implementation conventions."
+  actionLabel="Open build patterns"
+  actionHref="./build-patterns"
+  alternatives={[
+    {label: "Integrations", href: "./integrations"},
+    {label: "Deployment/indexer status", href: "./reference/deployment-indexer-status"},
+  ]}
+/>

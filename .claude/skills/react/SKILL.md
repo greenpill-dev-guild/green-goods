@@ -1,12 +1,6 @@
 ---
 name: react
 description: React patterns - state management (Zustand, Query), composition, performance. Use for components, state, hooks, optimization.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin]
-dependencies: []
 ---
 
 # React Skill
@@ -663,10 +657,18 @@ useQuery({
 - Don't use boolean props — Use explicit variants
 - Don't add useMemo/useCallback/React.memo by default — React Compiler handles it (see Part 3)
 
+## Anti-Patterns
+
+- Creating hooks in `client` or `admin` instead of `shared`
+- Selecting full Zustand state (`state => state`) in UI components
+- Introducing query waterfalls when data can be prefetched in parallel
+- Using deep imports from `@green-goods/shared/*` instead of barrel imports
+- Memoizing trivial values without measured performance impact
+
 ## Related Skills
 
 - `tanstack-query` — Server state management that complements React's local state patterns
-- `offline` — Offline indicators and sync state that integrate with React components
+- `data-layer` — Offline indicators and sync state that integrate with React components
 - `architecture` — Clean Architecture and composition patterns for React
 - `testing` — Vitest and React Testing Library patterns for component tests
 - `performance` — React Profiler, re-render optimization, and bundle analysis

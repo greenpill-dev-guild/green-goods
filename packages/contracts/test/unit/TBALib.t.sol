@@ -45,18 +45,6 @@ contract TBALibTest is Test, ERC6551Helper {
         assertTrue(account != address(0), "Account should be created on Sepolia");
     }
 
-    function testCreateAccountOnBaseSepolia() public {
-        vm.chainId(84_532);
-        address account = TBALib.createAccount(implementation, tokenContract, 1);
-        assertTrue(account != address(0), "Account should be created on Base Sepolia");
-    }
-
-    function testCreateAccountOnBaseMainnet() public {
-        vm.chainId(8453);
-        address account = TBALib.createAccount(implementation, tokenContract, 1);
-        assertTrue(account != address(0), "Account should be created on Base mainnet");
-    }
-
     function testCreateAccountOnOptimism() public {
         vm.chainId(10);
         address account = TBALib.createAccount(implementation, tokenContract, 1);

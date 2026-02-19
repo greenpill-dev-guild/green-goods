@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ParsedOptions } from "../utils/cli-parser";
+import { type ParsedOptions, redactSensitiveArgs } from "../utils/cli-parser";
 import { DeploymentAddresses } from "../utils/deployment-addresses";
 import { NetworkManager } from "../utils/network";
 import { ConfigValidator, type GardenConfig } from "../utils/validation";
@@ -18,11 +18,11 @@ export class GardenDeployer {
   protected deploymentAddresses: DeploymentAddresses;
   protected anvilManager: AnvilManager;
 
-  constructor() {
-    this.networkManager = new NetworkManager();
+  constructor(networkManager?: NetworkManager, anvilManager?: AnvilManager, deploymentAddresses?: DeploymentAddresses) {
+    this.networkManager = networkManager ?? new NetworkManager();
+    this.anvilManager = anvilManager ?? new AnvilManager(this.networkManager);
+    this.deploymentAddresses = deploymentAddresses ?? new DeploymentAddresses();
     this.validator = new ConfigValidator();
-    this.deploymentAddresses = new DeploymentAddresses();
-    this.anvilManager = new AnvilManager();
   }
 
   /**
@@ -138,8 +138,7 @@ export class GardenDeployer {
     }
 
     console.log("\nExecuting deployment...");
-    const displayArgs = this._redactSensitiveArgs(args);
-    console.log("forge", displayArgs.join(" "));
+    console.log("forge", redactSensitiveArgs(args).join(" "));
 
     execFileSync("forge", args, {
       stdio: "inherit",
@@ -188,27 +187,5 @@ export class GardenDeployer {
     fs.writeFileSync(recordPath, JSON.stringify(deploymentRecord, null, 2));
 
     console.log(`Deployment record saved to: ${recordPath}`);
-  }
-
-  /**
-   * Redact sensitive arguments from the displayed forge command.
-   *
-   * This keeps execution behaviour unchanged while avoiding logging
-   * secrets such as private keys and API keys.
-   */
-  private _redactSensitiveArgs(args: string[]): string[] {
-    const sensitiveFlags = new Set(["--private-key", "--etherscan-api-key", "--account", "--sender"]);
-
-    const redacted: string[] = [];
-    for (let i = 0; i < args.length; i++) {
-      const arg = args[i];
-      redacted.push(arg);
-      if (sensitiveFlags.has(arg) && i + 1 < args.length) {
-        redacted.push("[REDACTED]");
-        i++; // skip original sensitive value
-      }
-    }
-
-    return redacted;
   }
 }

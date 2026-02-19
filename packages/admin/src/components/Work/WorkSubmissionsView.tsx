@@ -1,6 +1,7 @@
-import { useWorks } from "@green-goods/shared/hooks";
+import { useWorks } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiCloseLine, RiFileList3Line, RiTimeLine } from "@remixicon/react";
 import { useState } from "react";
+import { useIntl } from "react-intl";
 import { WorkCard } from "./WorkCard";
 
 interface WorkSubmissionsViewProps {
@@ -11,6 +12,7 @@ interface WorkSubmissionsViewProps {
 type FilterType = "all" | "pending" | "approved" | "rejected";
 
 export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ gardenId }) => {
+  const intl = useIntl();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
   const { works, isLoading } = useWorks(gardenId);
@@ -23,10 +25,26 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
   });
 
   const filterButtons: Array<{ id: FilterType; label: string; icon: React.ReactNode }> = [
-    { id: "all", label: "All", icon: <RiFileList3Line className="h-4 w-4" /> },
-    { id: "pending", label: "Pending", icon: <RiTimeLine className="h-4 w-4" /> },
-    { id: "approved", label: "Approved", icon: <RiCheckboxCircleLine className="h-4 w-4" /> },
-    { id: "rejected", label: "Rejected", icon: <RiCloseLine className="h-4 w-4" /> },
+    {
+      id: "all",
+      label: intl.formatMessage({ id: "admin.work.filter.all", defaultMessage: "All" }),
+      icon: <RiFileList3Line className="h-4 w-4" />,
+    },
+    {
+      id: "pending",
+      label: intl.formatMessage({ id: "admin.work.filter.pending", defaultMessage: "Pending" }),
+      icon: <RiTimeLine className="h-4 w-4" />,
+    },
+    {
+      id: "approved",
+      label: intl.formatMessage({ id: "admin.work.filter.approved", defaultMessage: "Approved" }),
+      icon: <RiCheckboxCircleLine className="h-4 w-4" />,
+    },
+    {
+      id: "rejected",
+      label: intl.formatMessage({ id: "admin.work.filter.rejected", defaultMessage: "Rejected" }),
+      icon: <RiCloseLine className="h-4 w-4" />,
+    },
   ];
 
   return (
@@ -34,7 +52,12 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
       {/* Header */}
       <div className="flex flex-col gap-3 border-b border-stroke-soft p-4 sm:gap-4 sm:p-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h3 className="text-base font-medium text-text-strong sm:text-lg">Work Submissions</h3>
+          <h3 className="text-base font-medium text-text-strong sm:text-lg">
+            {intl.formatMessage({
+              id: "admin.work.submissions.title",
+              defaultMessage: "Work Submissions",
+            })}
+          </h3>
           <p className="mt-1 text-sm text-text-soft">
             {filteredWorks.length} {activeFilter !== "all" ? activeFilter : ""} submission
             {filteredWorks.length !== 1 ? "s" : ""}
@@ -75,11 +98,26 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
         ) : filteredWorks.length === 0 ? (
           <div className="py-12 text-center">
             <RiFileList3Line className="mx-auto h-12 w-12 text-text-soft" />
-            <h4 className="mt-4 text-sm font-medium text-text-strong">No work submissions found</h4>
+            <h4 className="mt-4 text-sm font-medium text-text-strong">
+              {intl.formatMessage({
+                id: "admin.work.submissions.empty",
+                defaultMessage: "No work submissions found",
+              })}
+            </h4>
             <p className="mt-1 text-sm text-text-soft">
               {activeFilter === "all"
-                ? "Work submissions will appear here once gardeners start contributing."
-                : `No ${activeFilter} work submissions yet.`}
+                ? intl.formatMessage({
+                    id: "admin.work.submissions.empty.all",
+                    defaultMessage:
+                      "Work submissions will appear here once gardeners start contributing.",
+                  })
+                : intl.formatMessage(
+                    {
+                      id: "admin.work.submissions.empty.filtered",
+                      defaultMessage: "No {filter} work submissions yet.",
+                    },
+                    { filter: activeFilter }
+                  )}
             </p>
           </div>
         ) : (

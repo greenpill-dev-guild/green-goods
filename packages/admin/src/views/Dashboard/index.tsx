@@ -1,13 +1,69 @@
-import { useGardens, useRole } from "@green-goods/shared/hooks";
-import { RiPlantLine, RiUserLine } from "@remixicon/react";
+import {
+  ENSProgressTimeline,
+  useENSClaim,
+  useENSRegistrationStatus,
+  useGardens,
+  useProtocolMemberStatus,
+  useRole,
+  useSlugAvailability,
+  useSlugForm,
+  useWindowEvent,
+} from "@green-goods/shared";
+import {
+  RiCheckLine,
+  RiGlobalLine,
+  RiLoader4Line,
+  RiPlantLine,
+  RiUserLine,
+  RiWifiOffLine,
+} from "@remixicon/react";
+import { useState } from "react";
+import { useIntl } from "react-intl";
+import { useAccount } from "wagmi";
 
 export default function Dashboard() {
+  const intl = useIntl();
   const { role, operatorGardens } = useRole();
   const { data: gardens = [], isLoading, error } = useGardens();
   const totalGardens = gardens.length;
   const userOperatorGardens = operatorGardens.length;
   const totalOperators = new Set(gardens.flatMap((g) => g.operators)).size;
   const totalGardeners = new Set(gardens.flatMap((g) => g.gardeners)).size;
+
+  // ── Network Status ────────────────────────────────
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useWindowEvent("online", () => setIsOnline(true));
+  useWindowEvent("offline", () => setIsOnline(false));
+
+  // ── ENS Claim (Self-Funded) ────────────────────────
+  const { address } = useAccount();
+  const { data: isProtocolMember = false } = useProtocolMemberStatus(address);
+  const slugForm = useSlugForm();
+  const slugValue = slugForm.watch("slug");
+  const { data: isSlugAvailable, isFetching: isCheckingSlug } = useSlugAvailability(
+    slugValue || undefined
+  );
+  const ensClaim = useENSClaim();
+  const [claimedSlug, setClaimedSlug] = useState<string | null>(null);
+  const { data: registrationData } = useENSRegistrationStatus(claimedSlug ?? undefined);
+
+  const hasExistingName =
+    registrationData?.status === "pending" || registrationData?.status === "active";
+  const showENSCard = isProtocolMember && !hasExistingName;
+
+  const handleAdminENSClaim = async () => {
+    const isValid = await slugForm.trigger("slug");
+    if (!isValid) return;
+    const slug = slugForm.getValues("slug");
+    try {
+      await ensClaim.mutateAsync({ slug });
+      setClaimedSlug(slug);
+      slugForm.reset();
+    } catch {
+      // Error handled in mutation hook
+    }
+  };
+  // ─────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
@@ -27,7 +83,7 @@ export default function Dashboard() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-warning-lighter border border-warning-light rounded-md p-4">
+        <div className="bg-warning-lighter border border-warning-light rounded-md p-4" role="alert">
           <div className="flex items-start">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-warning-base" viewBox="0 0 20 20" fill="currentColor">
@@ -39,7 +95,12 @@ export default function Dashboard() {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-warning-dark">Indexer Connection Issue</h3>
+              <h3 className="text-sm font-medium text-warning-dark">
+                {intl.formatMessage({
+                  id: "admin.dashboard.indexer.error",
+                  defaultMessage: "Indexer Connection Issue",
+                })}
+              </h3>
               <div className="mt-2 text-sm text-warning-dark">
                 <p>
                   Unable to connect to the indexer:{" "}
@@ -59,7 +120,11 @@ export default function Dashboard() {
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-text-strong">
               Welcome back,{" "}
-              {role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User"}
+              {intl.formatMessage({
+                id: `admin.dashboard.role.${role}`,
+                defaultMessage:
+                  role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User",
+              })}
             </h1>
             <p className="text-text-sub mt-1">
               {role === "deployer"
@@ -71,22 +136,47 @@ export default function Dashboard() {
           </div>
 
           <div className="bg-bg-white rounded-lg shadow-sm transition-shadow duration-200 hover:shadow-md border border-stroke-soft p-6">
-            <h2 className="text-lg font-medium text-text-strong mb-4">Quick Actions</h2>
+            <h2 className="text-lg font-medium text-text-strong mb-4">
+              {intl.formatMessage({
+                id: "admin.dashboard.quickActions",
+                defaultMessage: "Quick Actions",
+              })}
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <a
                 href="/gardens"
                 className="block p-4 border border-stroke-soft rounded-lg hover:bg-bg-weak transition-all duration-200"
               >
-                <h3 className="font-medium text-text-strong">View Gardens</h3>
-                <p className="text-sm text-text-sub mt-1">Browse and manage gardens</p>
+                <h3 className="font-medium text-text-strong">
+                  {intl.formatMessage({
+                    id: "admin.dashboard.actions.viewGardens",
+                    defaultMessage: "View Gardens",
+                  })}
+                </h3>
+                <p className="text-sm text-text-sub mt-1">
+                  {intl.formatMessage({
+                    id: "admin.dashboard.actions.viewGardens.desc",
+                    defaultMessage: "Browse and manage gardens",
+                  })}
+                </p>
               </a>
               {role === "deployer" && (
                 <a
                   href="/contracts"
                   className="block p-4 border border-stroke-soft rounded-lg hover:bg-bg-weak transition-all duration-200"
                 >
-                  <h3 className="font-medium text-text-strong">Contract Management</h3>
-                  <p className="text-sm text-text-sub mt-1">Deploy and manage contracts</p>
+                  <h3 className="font-medium text-text-strong">
+                    {intl.formatMessage({
+                      id: "admin.dashboard.actions.contracts",
+                      defaultMessage: "Contract Management",
+                    })}
+                  </h3>
+                  <p className="text-sm text-text-sub mt-1">
+                    {intl.formatMessage({
+                      id: "admin.dashboard.actions.contracts.desc",
+                      defaultMessage: "Deploy and manage contracts",
+                    })}
+                  </p>
                 </a>
               )}
             </div>
@@ -101,7 +191,20 @@ export default function Dashboard() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-strong">
           Welcome back,{" "}
-          {role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User"}
+          {role === "deployer"
+            ? intl.formatMessage({
+                id: "admin.dashboard.role.deployer",
+                defaultMessage: "Deployer",
+              })
+            : role === "operator"
+              ? intl.formatMessage({
+                  id: "admin.dashboard.role.operator",
+                  defaultMessage: "Operator",
+                })
+              : intl.formatMessage({
+                  id: "admin.dashboard.role.user",
+                  defaultMessage: "User",
+                })}
         </h1>
         <p className="text-text-sub mt-1">
           {role === "deployer"
@@ -121,7 +224,15 @@ export default function Dashboard() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-text-soft">
-                {role === "operator" ? "Your Gardens" : "Total Gardens"}
+                {role === "operator"
+                  ? intl.formatMessage({
+                      id: "admin.dashboard.stats.yourGardens",
+                      defaultMessage: "Your Gardens",
+                    })
+                  : intl.formatMessage({
+                      id: "admin.dashboard.stats.totalGardens",
+                      defaultMessage: "Total Gardens",
+                    })}
               </p>
               <p className="text-2xl font-bold text-text-strong">
                 {role === "operator" ? userOperatorGardens : totalGardens}
@@ -138,7 +249,12 @@ export default function Dashboard() {
                   <RiUserLine className="h-6 w-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-text-soft">Total Operators</p>
+                  <p className="text-sm font-medium text-text-soft">
+                    {intl.formatMessage({
+                      id: "admin.dashboard.stats.totalOperators",
+                      defaultMessage: "Total Operators",
+                    })}
+                  </p>
                   <p className="text-2xl font-bold text-text-strong">{totalOperators}</p>
                 </div>
               </div>
@@ -150,7 +266,12 @@ export default function Dashboard() {
                   <RiUserLine className="h-6 w-6 text-purple-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-text-soft">Total Gardeners</p>
+                  <p className="text-sm font-medium text-text-soft">
+                    {intl.formatMessage({
+                      id: "admin.dashboard.stats.totalGardeners",
+                      defaultMessage: "Total Gardeners",
+                    })}
+                  </p>
                   <p className="text-2xl font-bold text-text-strong">{totalGardeners}</p>
                 </div>
               </div>
@@ -159,10 +280,94 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* ENS Claim Card */}
+      {showENSCard && (
+        <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft p-6 mb-8">
+          <div className="flex items-start gap-4">
+            <div className="p-2 bg-green-100 rounded-lg shrink-0">
+              <RiGlobalLine className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-medium text-text-strong">Claim your ENS name</h2>
+              <p className="text-sm text-text-sub mt-1 mb-4">
+                As a protocol member, you can claim a personal{" "}
+                <span className="font-mono">.greengoods.eth</span> subdomain. Registration takes
+                ~15-20 minutes via Chainlink CCIP cross-chain messaging. You will pay the CCIP fee.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <input
+                    {...slugForm.register("slug")}
+                    placeholder="your-name"
+                    inputMode="text"
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="w-full rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2 pr-10 font-mono text-sm text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80"
+                  />
+                  {slugValue && slugValue.length >= 3 && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {isCheckingSlug ? (
+                        <RiLoader4Line className="h-4 w-4 animate-spin text-text-soft" />
+                      ) : isSlugAvailable ? (
+                        <RiCheckLine className="h-4 w-4 text-green-500" />
+                      ) : isSlugAvailable === false ? (
+                        <span className="text-xs text-error-base">Taken</span>
+                      ) : null}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAdminENSClaim}
+                  disabled={
+                    !isOnline ||
+                    ensClaim.isPending ||
+                    !isSlugAvailable ||
+                    isCheckingSlug ||
+                    !slugValue
+                  }
+                  className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                >
+                  {!isOnline ? (
+                    <RiWifiOffLine className="h-4 w-4" />
+                  ) : ensClaim.isPending ? (
+                    <RiLoader4Line className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RiGlobalLine className="h-4 w-4" />
+                  )}
+                  {!isOnline ? "Offline" : ensClaim.isPending ? "Claiming..." : "Claim name"}
+                </button>
+              </div>
+              {slugValue && (
+                <p className="text-xs text-text-soft mt-2 font-mono">{slugValue}.greengoods.eth</p>
+              )}
+              {slugForm.formState.errors.slug && (
+                <p className="text-xs text-error-base mt-1">
+                  {slugForm.formState.errors.slug.message}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ENS Registration Progress */}
+      {claimedSlug && registrationData && registrationData.status !== "available" && (
+        <div className="mb-8">
+          <ENSProgressTimeline data={registrationData} slug={claimedSlug} />
+        </div>
+      )}
+
       {/* Recent Activity */}
       <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft">
         <div className="p-6 border-b border-stroke-soft">
-          <h2 className="text-lg font-medium text-text-strong">Recent Gardens</h2>
+          <h2 className="text-lg font-medium text-text-strong">
+            {intl.formatMessage({
+              id: "admin.dashboard.recentGardens",
+              defaultMessage: "Recent Gardens",
+            })}
+          </h2>
         </div>
         <div className="p-6">
           {role === "operator"
@@ -198,7 +403,12 @@ export default function Dashboard() {
                 </div>
               ))}
           {(role === "operator" ? operatorGardens : gardens).length === 0 && (
-            <p className="text-text-soft text-center py-8">No gardens found</p>
+            <p className="text-text-soft text-center py-8">
+              {intl.formatMessage({
+                id: "admin.dashboard.noGardens",
+                defaultMessage: "No gardens found",
+              })}
+            </p>
           )}
         </div>
       </div>

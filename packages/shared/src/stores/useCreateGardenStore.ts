@@ -2,21 +2,27 @@ import { getAddress, isAddress } from "viem";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import type { CreateGardenParams } from "../types/contracts";
+import {
+  createGardenSchema,
+  gardenStepFields,
+  type GardenStepId,
+} from "../hooks/garden/useCreateGardenForm";
+import type { Address } from "../types/domain";
+import { type CreateGardenParams, WeightScheme } from "../types/contracts";
 
 // Storage key for garden creation flow persistence
 const CREATE_GARDEN_STORAGE_KEY = "green-goods:create-garden";
 
 export interface CreateGardenFormState {
   name: string;
+  slug: string;
   description: string;
   location: string;
   bannerImage: string;
-  communityToken: string;
   metadata: string;
   openJoining: boolean;
-  gardeners: string[];
-  operators: string[];
+  gardeners: Address[];
+  operators: Address[];
 }
 
 export interface CreateGardenStep {
@@ -72,10 +78,10 @@ const defaultSteps: CreateGardenStep[] = [
 export function createEmptyGardenForm(): CreateGardenFormState {
   return {
     name: "",
+    slug: "",
     description: "",
     location: "",
     bannerImage: "",
-    communityToken: "",
     metadata: "",
     openJoining: false,
     gardeners: [],
@@ -122,22 +128,23 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           return { success: false, error: "Enter a valid wallet address" };
         }
 
+        const validAddress = sanitized as Address;
         const { form } = get();
 
         // Check if already a gardener (case-insensitive via checksummed comparison)
-        if (form.gardeners.includes(sanitized)) {
+        if (form.gardeners.includes(validAddress)) {
           return { success: false, error: "Address already added as gardener" };
         }
 
         // Check if already an operator
-        if (form.operators.includes(sanitized)) {
+        if (form.operators.includes(validAddress)) {
           return { success: false, error: "Address is already an operator" };
         }
 
         set((state) => ({
           form: {
             ...state.form,
-            gardeners: [...state.form.gardeners, sanitized],
+            gardeners: [...state.form.gardeners, validAddress],
           },
         }));
 
@@ -156,22 +163,23 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           return { success: false, error: "Enter a valid wallet address" };
         }
 
+        const validAddress = sanitized as Address;
         const { form } = get();
 
         // Check if already an operator (case-insensitive via checksummed comparison)
-        if (form.operators.includes(sanitized)) {
+        if (form.operators.includes(validAddress)) {
           return { success: false, error: "Address already added as operator" };
         }
 
         // Check if already a gardener
-        if (form.gardeners.includes(sanitized)) {
+        if (form.gardeners.includes(validAddress)) {
           return { success: false, error: "Address is already a gardener" };
         }
 
         set((state) => ({
           form: {
             ...state.form,
-            operators: [...state.form.operators, sanitized],
+            operators: [...state.form.operators, validAddress],
           },
         }));
 
@@ -212,22 +220,15 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         set({ currentStep: steps.length - 2 });
       },
       isStepValid: (stepId) => {
+        if (stepId === "review") return true;
         const { form } = get();
-        switch (stepId) {
-          case "details":
-            return (
-              form.name.trim().length > 0 &&
-              form.description.trim().length > 0 &&
-              form.location.trim().length > 0 &&
-              isValidAddress(form.communityToken.trim())
-            );
-          case "team":
-            return form.gardeners.length > 0 && form.operators.length > 0;
-          case "review":
-            return true;
-          default:
-            return false;
-        }
+        const fields = gardenStepFields[stepId as GardenStepId];
+        if (!fields || fields.length === 0) return false;
+        const parseResult = createGardenSchema.safeParse(form);
+        if (parseResult.success) return true;
+
+        const stepFields = new Set<string>(fields);
+        return parseResult.error.issues.every((issue) => !stepFields.has(String(issue.path[0])));
       },
       canProceed: () => {
         const { steps, currentStep } = get();
@@ -249,13 +250,15 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         }
 
         return {
-          communityToken: form.communityToken.trim(),
           name: form.name.trim(),
+          slug: form.slug.trim(),
           description: form.description.trim(),
           location: form.location.trim(),
           bannerImage: form.bannerImage.trim(),
           metadata: form.metadata.trim(),
           openJoining: form.openJoining,
+          weightScheme: WeightScheme.Linear,
+          domainMask: 0x0f,
         } satisfies CreateGardenParams;
       },
     }),

@@ -99,8 +99,6 @@ export default defineConfig(({ mode }) => {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         globPatterns: ["**/*.{html,js,css,ico,png,svg}"],
         cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
         importScripts: ["sw-custom.js"],
         runtimeCaching: [
           {

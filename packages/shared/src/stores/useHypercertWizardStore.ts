@@ -126,6 +126,7 @@ export type MintingStatus =
   | "awaiting_signature"
   | "submitting"
   | "pending"
+  | "registering_proposal"
   | "confirmed"
   | "failed";
 
@@ -138,6 +139,8 @@ export interface MintingState {
   txHash: string | null;
   hypercertId: string | null;
   error: string | null;
+  poolRegistered: boolean | null;
+  signalPoolAddress: string | null;
 }
 
 export interface HypercertWizardStore {
@@ -222,6 +225,8 @@ const emptyMintingState: MintingState = {
   txHash: null,
   hypercertId: null,
   error: null,
+  poolRegistered: null,
+  signalPoolAddress: null,
 };
 
 /**
@@ -238,6 +243,7 @@ function persistMintingState(state: MintingState): void {
     "awaiting_signature",
     "submitting",
     "pending",
+    "registering_proposal",
   ];
 
   if (inProgressStatuses.includes(state.status)) {

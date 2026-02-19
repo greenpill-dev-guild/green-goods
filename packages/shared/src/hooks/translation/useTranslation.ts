@@ -24,10 +24,14 @@ export function useTranslation<T extends TranslatableValue>(
   const [isTranslating, setIsTranslating] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     // Skip if same language or no translation API
     if (locale === sourceLang) {
       setTranslated(content);
-      return;
+      return () => {
+        isMounted = false;
+      };
     }
 
     if (!browserTranslator.isSupported) {
@@ -35,32 +39,44 @@ export function useTranslation<T extends TranslatableValue>(
         `⚠️ [Translation] Skipping translation - browser API not supported (locale: ${locale})`
       );
       setTranslated(content);
-      return;
+      return () => {
+        isMounted = false;
+      };
     }
 
     // Skip if content is null/undefined
     if (!content) {
       setTranslated(content);
-      return;
+      return () => {
+        isMounted = false;
+      };
     }
 
     const translateContent = async () => {
+      if (!isMounted) return;
       setIsTranslating(true);
       console.debug(`🔄 [Translation] Translating content to ${locale}...`);
 
       try {
         const result = await translateValue(content, locale, sourceLang);
+        if (!isMounted) return;
         setTranslated(result as T);
         console.debug(`✅ [Translation] Content translated to ${locale}`);
       } catch (error) {
+        if (!isMounted) return;
         logger.error(`Translation to ${locale} failed`, { source: "useTranslation", error });
         setTranslated(content); // Fallback to original
       } finally {
+        if (!isMounted) return;
         setIsTranslating(false);
       }
     };
 
     translateContent();
+
+    return () => {
+      isMounted = false;
+    };
   }, [content, locale, sourceLang]);
 
   return {

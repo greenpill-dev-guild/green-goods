@@ -86,6 +86,20 @@ contract MockHatsModuleForJoin is IHatsModule {
     function isCommunityOf(address garden, address account) external view returns (bool) {
         return roles[garden][account][uint8(GardenRole.Community)];
     }
+
+    function setConvictionStrategies(address, address[] calldata) external { }
+
+    function getConvictionStrategies(address) external view returns (address[] memory) {
+        return new address[](0);
+    }
+
+    function getGardenHatIds(address)
+        external
+        pure
+        returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, bool)
+    {
+        return (0, 0, 0, 0, 0, 0, 0, false);
+    }
 }
 
 contract GardenJoinIntegrationTest is Test {
@@ -133,6 +147,7 @@ contract GardenJoinIntegrationTest is Test {
         IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
             communityToken: address(0),
             name: "Test Garden",
+            slug: "",
             description: "A test garden",
             location: "Location",
             bannerImage: "",

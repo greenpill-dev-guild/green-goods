@@ -8,7 +8,6 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 
 import { WorkApprovalSchema, WorkSchema } from "../Schemas.sol";
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
-import { IGreenGoodsResolver } from "../interfaces/IGreenGoodsResolver.sol";
 import { IERC6551Account } from "../interfaces/IERC6551Account.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 import { ActionRegistry } from "../registries/Action.sol";
@@ -16,6 +15,13 @@ import { NotInActionRegistry } from "./Work.sol";
 
 error NotInWorkRegistry();
 error NotGardenOperator();
+error InvalidConfidence();
+error InvalidVerificationMethod();
+error ActionMismatch();
+/// @notice Thrown when attestation uses wrong schema UID
+error InvalidSchema();
+/// @notice Thrown when the action has expired (endTime < block.timestamp)
+error ActionExpired();
 
 /// @title WorkApprovalResolver
 /// @notice A schema resolver for the Actions event schema
@@ -23,21 +29,24 @@ error NotGardenOperator();
 contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     address public immutable ACTION_REGISTRY;
 
-    /// @notice The GreenGoods resolver for triggering protocol integrations
-    IGreenGoodsResolver public greenGoodsResolver;
-
     /// @notice The Karma GAP module for impact creation
     IKarmaGAPModule public karmaGAPModule;
 
-    /// @notice Emitted when the GreenGoods resolver is updated
-    event GreenGoodsResolverUpdated(address indexed oldResolver, address indexed newResolver);
+    /// @notice Expected EAS schema UID for work approval attestations
+    bytes32 public schemaUID;
 
     /// @notice Emitted when the KarmaGAPModule is updated
     event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
 
+    /// @notice Emitted when the KarmaGAPModule is intentionally disabled
+    event KarmaGAPModuleDisabled(address indexed oldModule);
+
+    /// @notice Emitted when the expected schema UID is updated
+    event SchemaUIDUpdated(bytes32 indexed schemaUID);
+
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 48 slots (50 total - 2 used: greenGoodsResolver, karmaGAPModule)
+     * Reserves 48 slots (50 total - 2 used: karmaGAPModule, schemaUID)
      * Note: ACTION_REGISTRY is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
@@ -57,37 +66,42 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         _transferOwnership(_multisig);
     }
 
-    /// @notice Sets the GreenGoods resolver address
-    /// @param _resolver The new resolver address
-    function setGreenGoodsResolver(address _resolver) external onlyOwner {
-        address oldResolver = address(greenGoodsResolver);
-        greenGoodsResolver = IGreenGoodsResolver(_resolver);
-        emit GreenGoodsResolverUpdated(oldResolver, _resolver);
-    }
-
-    /// @notice Sets the KarmaGAPModule address
-    /// @param _module The new KarmaGAPModule address
+    /// @notice Sets the KarmaGAPModule address (use address(0) to disable)
+    /// @param _module The new KarmaGAPModule address, or address(0) to disable
     function setKarmaGAPModule(address _module) external onlyOwner {
         address oldModule = address(karmaGAPModule);
         karmaGAPModule = IKarmaGAPModule(_module);
         emit KarmaGAPModuleUpdated(oldModule, _module);
+        if (_module == address(0)) {
+            emit KarmaGAPModuleDisabled(oldModule);
+        }
+    }
+
+    /// @notice Sets the expected schema UID for work approval attestations
+    /// @dev When schemaUID is bytes32(0), schema validation is bypassed. This is intentional
+    ///      during the deployment window before EAS schemas are registered.
+    /// @param _schemaUID The schema UID to validate against
+    function setSchemaUID(bytes32 _schemaUID) external onlyOwner {
+        schemaUID = _schemaUID;
+        emit SchemaUIDUpdated(_schemaUID);
     }
 
     /// @notice Indicates whether the resolver is payable.
-    /// @dev This is a pure function that always returns true.
-    /// @return A boolean indicating that the resolver is payable
+    /// @dev This is a pure function that always returns false.
+    /// @return A boolean indicating that the resolver is not payable.
     function isPayable() public pure override returns (bool) {
-        return true;
+        return false;
     }
 
     /// @notice Handles the logic to be executed when an attestation is made
-    /// @dev Validates operator identity, work relationship, and action validity
+    /// @dev Validates operator identity, work relationship, action validity, and confidence fields
     ///
     /// **Validation Order (Security Critical):**
     /// 1. WORK RELATIONSHIP: Verify work was submitted to this garden
-    /// 2. IDENTITY: Verify attester is a garden operator (can approve work)
+    /// 2. IDENTITY: Verify attester is a garden operator (can approve/reject work)
     /// 3. ACTION: Verify action exists in registry
-    /// 4. GAP INTEGRATION: Create project impact if approved and GAP supported
+    /// 4. CONFIDENCE: Validate confidence value (0-3) and verificationMethod bitmask (0-15)
+    /// 5. GAP INTEGRATION: Create project impact if approved and GAP supported
     ///
     /// **GAP Impact Creation:**
     /// - Only created if schema.approved == true
@@ -96,7 +110,10 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     ///
     /// @param attestation The attestation data structure
     /// @return bool True if attestation is valid
+    // solhint-disable-next-line code-complexity
     function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal override returns (bool) {
+        if (schemaUID != bytes32(0) && attestation.schema != schemaUID) revert InvalidSchema();
+
         WorkApprovalSchema memory schema = abi.decode(attestation.data, (WorkApprovalSchema));
         Attestation memory workAttestation = _eas.getAttestation(schema.workUID);
 
@@ -105,98 +122,68 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
             revert NotInWorkRegistry();
         }
 
+        // ACTION CROSS-VALIDATION: Verify approval references same action as work
+        WorkSchema memory workSchema = abi.decode(workAttestation.data, (WorkSchema));
+        if (schema.actionUID != workSchema.actionUID) revert ActionMismatch();
+
         // Use IGardenAccessControl interface for role verification
         IGardenAccessControl accessControl = IGardenAccessControl(workAttestation.recipient);
 
-        // IDENTITY CHECK: Verify evaluator OR operator status
-        // Uses IGardenAccessControl interface for swappable access control backends
-        bool isEvaluator = accessControl.isEvaluator(attestation.attester);
-        bool isOperator = accessControl.isOperator(attestation.attester);
-        if (!isEvaluator && !isOperator) {
+        // IDENTITY CHECK: Only operators can approve/reject work
+        // Evaluators handle assessments via AssessmentResolver, not work approvals
+        if (!accessControl.isOperator(attestation.attester)) {
             revert NotGardenOperator();
         }
 
-        // ACTION VALIDATION: Verify action exists
-        if (ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID).startTime == 0) {
+        // ACTION VALIDATION: Verify action exists and is still active
+        ActionRegistry.Action memory action = ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID);
+        if (action.startTime == 0) {
             revert NotInActionRegistry();
+        }
+
+        // TIMING VALIDATION: Verify action has not expired (matches WorkResolver pattern)
+        if (action.endTime < block.timestamp) {
+            revert ActionExpired();
+        }
+
+        // CONFIDENCE VALIDATION: Must be within valid range (0-3)
+        if (schema.confidence > 3) {
+            revert InvalidConfidence();
+        }
+
+        // VERIFICATION METHOD VALIDATION: Must be valid 4-bit bitmask (0-15)
+        if (schema.verificationMethod > 15) {
+            revert InvalidVerificationMethod();
         }
 
         // GAP INTEGRATION: Create project impact if approved
         if (schema.approved && address(karmaGAPModule) != address(0)) {
-            _createGAPProjectImpact(schema, workAttestation);
-        }
-
-        // GREENGOODS RESOLVER: Trigger all enabled integrations (Octant, Unlock, etc.)
-        // Only called for approved work; resolver uses try/catch internally
-        if (schema.approved && address(greenGoodsResolver) != address(0)) {
-            _callGreenGoodsResolver(schema, workAttestation, attestation);
+            _createGAPProjectImpact(schema, workAttestation, workSchema);
         }
 
         return (true);
     }
 
-    /// @notice Calls the GreenGoods resolver for approved work
-    /// @dev Called after validation; uses try/catch to prevent resolver failures from reverting approval
-    function _callGreenGoodsResolver(
-        WorkApprovalSchema memory schema,
-        Attestation memory workAttestation,
-        Attestation calldata approvalAttestation
-    )
-        private
-    {
-        WorkSchema memory workSchema = abi.decode(workAttestation.data, (WorkSchema));
-
-        // Get first media IPFS CID (for proof)
-        string memory mediaIPFS = workSchema.media.length > 0 ? workSchema.media[0] : "";
-
-        // Call resolver with try/catch — integration failures don't block attestations
-        // solhint-disable-next-line no-empty-blocks
-        try greenGoodsResolver.onWorkApproved(
-            workAttestation.recipient, // garden address
-            schema.workUID, // work UID
-            approvalAttestation.uid, // approval UID
-            bytes32(schema.actionUID), // action UID (converted from uint256)
-            workAttestation.attester, // worker (who submitted work)
-            approvalAttestation.attester, // operator (who approved)
-            schema.feedback, // approval feedback
-            mediaIPFS // evidence
-        ) {
-            // Success - resolver events provide observability
-        } catch {
-            // Intentionally ignore resolver failures — approval succeeds even if integrations fail
-        }
-    }
-
-    /// @notice Handles the logic to be executed when an attestation is revoked.
-    /// @dev Only garden operators can revoke work approvals.
-    ///
-    /// **Validation:**
-    /// - Verifies the revoker is an operator of the garden the approval was for
-    /// - Original approver OR any garden operator can revoke
-    ///
-    /// @param attestation The attestation being revoked
-    /// @return A boolean indicating whether the revocation is valid.
-    function onRevoke(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
-        // The approval attestation recipient is the garden address
-        IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);
-
-        // IDENTITY CHECK: Evaluators or operators can revoke work approvals
-        bool isEvaluator = accessControl.isEvaluator(attestation.attester);
-        bool isOperator = accessControl.isOperator(attestation.attester);
-        if (!isEvaluator && !isOperator) {
-            revert NotGardenOperator();
-        }
-
-        return true;
+    /// @notice Work approval decisions are permanent and cannot be revoked.
+    /// @dev Operators submit a new attestation if they need to change a decision.
+    /// @return Always false to reject revocation attempts.
+    function onRevoke(Attestation calldata, uint256 /*value*/ ) internal pure override returns (bool) {
+        return false;
     }
 
     /// @notice Creates GAP project impact securely via KarmaGAPModule
     /// @dev SECURITY: Only called after full validation in onAttest()
     /// @param schema Work approval schema data
     /// @param workAttestation The work attestation being approved
-    function _createGAPProjectImpact(WorkApprovalSchema memory schema, Attestation memory workAttestation) private {
-        // Get work and action data
-        WorkSchema memory workSchema = abi.decode(workAttestation.data, (WorkSchema));
+    /// @param workSchema The decoded work schema (already decoded in onAttest)
+    function _createGAPProjectImpact(
+        WorkApprovalSchema memory schema,
+        Attestation memory workAttestation,
+        WorkSchema memory workSchema
+    )
+        private
+    {
+        // Get action data
         ActionRegistry.Action memory action = ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID);
 
         // Prepare impact data

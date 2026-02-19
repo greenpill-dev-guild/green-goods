@@ -1,12 +1,7 @@
 ---
 name: storybook
+user-invocable: false
 description: Storybook development - CSF3 stories, visual testing, design system documentation, addon configuration. Use for component stories, visual regression, and design system docs.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared]
-dependencies: [react, radix-ui]
 ---
 
 # Storybook Skill

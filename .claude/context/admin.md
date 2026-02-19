@@ -6,7 +6,7 @@ Loaded when working in `packages/admin/`. Extends CLAUDE.md.
 
 | Command | Purpose |
 |---------|---------|
-| `bun test` | Run tests |
+| `bun run test` | Run tests (vitest) |
 | `bun build` | Build (includes TypeScript check) |
 | `bun lint` | Lint with oxlint |
 | `bun dev` | Start dev server (via PM2 from root) |

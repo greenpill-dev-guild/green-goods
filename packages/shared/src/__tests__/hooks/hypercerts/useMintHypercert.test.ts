@@ -53,6 +53,8 @@ function createMockUseMintHypercert(
     txHash: null,
     hypercertId: null,
     error: null,
+    poolRegistered: null,
+    signalPoolAddress: null,
     mint: vi.fn().mockResolvedValue(undefined),
     retry: vi.fn(),
     cancel: vi.fn(),

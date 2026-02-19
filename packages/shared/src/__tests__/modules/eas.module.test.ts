@@ -18,13 +18,18 @@ vi.mock("../../modules/data/graphql-client", () => ({
   GQLClient: vi.fn(),
 }));
 
-// Mock config
+// Mock config (barrel and direct import path — eas.ts imports from config/blockchain)
+const mockEASConfig = {
+  ASSESSMENT: { uid: "0xAssessmentSchemaUID" },
+  WORK: { uid: "0xWorkSchemaUID" },
+  WORK_APPROVAL: { uid: "0xApprovalSchemaUID" },
+};
 vi.mock("../../config", () => ({
-  getEASConfig: vi.fn(() => ({
-    ASSESSMENT: { uid: "0xAssessmentSchemaUID" },
-    WORK: { uid: "0xWorkSchemaUID" },
-    WORK_APPROVAL: { uid: "0xApprovalSchemaUID" },
-  })),
+  getEASConfig: vi.fn(() => mockEASConfig),
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+vi.mock("../../config/blockchain", () => ({
+  getEASConfig: vi.fn(() => mockEASConfig),
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -57,10 +62,11 @@ describe("modules/data/eas", () => {
           decodedDataJson: JSON.stringify([
             { name: "title", value: { value: "Test Assessment" } },
             { name: "description", value: { value: "Test Description" } },
-            { name: "assessmentType", value: { value: "impact" } },
-            { name: "capitals", value: { value: ["social", "living"] } },
-            { name: "evidenceMedia", value: { value: ["QmHash1"] } },
-            { name: "tags", value: { value: ["community", "green"] } },
+            { name: "assessmentConfigCID", value: { value: "bafyConfigCID123" } },
+            { name: "domain", value: { value: { hex: "0x03" } } },
+            { name: "startDate", value: { value: { hex: "0x65B8D800" } } },
+            { name: "endDate", value: { value: { hex: "0x660D5800" } } },
+            { name: "location", value: { value: "Austin TX" } },
           ]),
         },
       ];

@@ -1,5 +1,4 @@
-import type { Action, Work } from "@green-goods/shared";
-import { useNavigateToTop } from "@green-goods/shared/hooks";
+import { useNavigateToTop, type Action, type Work } from "@green-goods/shared";
 import { RiLoader4Line } from "@remixicon/react";
 import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -25,7 +24,6 @@ interface WorkListProps {
 const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
   const intl = useIntl();
   const navigate = useNavigateToTop();
-  // const chainId = useCurrentChain();
 
   const actionById = useMemo(() => {
     const map = new Map<string, Action>();

@@ -1,0 +1,78 @@
+---
+title: Offline Sync and Drafts
+sidebar_position: 3
+slug: /gardener/offline-sync-and-drafts
+audience: gardener
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Complete Offline Sync and Drafts with clear, role-specific next actions."
+difficulty: "standard"
+estimated_time: "5 minutes to understand behavior."
+prereqs: "Existing account and at least one draft/submission attempt."
+next_steps: "./submit-work-mdr"
+persona_context: "Gardeners documenting and syncing impact work in field conditions."
+source_of_truth:
+  - packages/shared/src/modules/job-queue
+  - packages/shared/src/hooks/work/useDrafts.ts
+  - packages/shared/src/hooks/app/useOffline.ts
+keywords:
+  - offline
+  - drafts
+  - sync
+  - queue
+---
+
+import {AtAGlanceCard, FeatureState, NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Offline Sync and Drafts
+
+<StatusBadge status="Live" />
+
+<AtAGlanceCard
+  goal="Complete Offline Sync and Drafts with clear, role-specific next actions."
+  difficulty="standard"
+  estimatedTime="5 minutes to understand behavior."
+  prereqs="Existing account and at least one draft/submission attempt."
+  outcome="You can work confidently without constant internet."
+  personaContext="Gardeners documenting and syncing impact work in field conditions."
+  lastVerified="2026-02-18"
+/>
+
+## How it works
+
+<FeatureState
+  title="Draft persistence"
+  status="Live"
+  summary="Draft data and media references are stored locally so you can resume later."
+/>
+
+<FeatureState
+  title="Queued submissions"
+  status="Live"
+  summary="When submit cannot complete online, work is queued and retried after reconnection."
+/>
+
+<FeatureState
+  title="Automatic sync"
+  status="Live"
+  summary="Queued jobs flush when connectivity and signing conditions are available."
+/>
+
+## Practical guidance
+
+1. Save progress before leaving field conditions.
+2. Reopen drafts and verify media is still attached.
+3. Check queue/upload states before repeating submissions.
+4. If a job fails repeatedly, retry from dashboard with corrected data.
+
+<NextBestAction
+  title="Next best action"
+  why="Keep momentum by moving to the next high-value step in this journey."
+  actionLabel="Submit Work with MDR"
+  actionHref="./submit-work-mdr"
+  alternatives={[
+    {label: "Track Status and Attestations", href: "./track-status-and-attestations"},
+    {label: "Common Errors", href: "./common-errors"},
+  ]}
+/>

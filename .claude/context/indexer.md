@@ -13,7 +13,7 @@ Loaded when working in `packages/indexer/`. Extends CLAUDE.md.
 | `bun stop` | Stop native indexer |
 | `bun reset` | Reset state completely |
 | `bun codegen` | Regenerate after schema/config changes |
-| `bun test` | Run tests |
+| `bun run test` | Run tests |
 
 **Prerequisite:** Docker Desktop must be running.
 
@@ -30,6 +30,33 @@ packages/indexer/
 ├── test/               # Tests
 └── generated/          # Envio-generated code
 ```
+
+## EAS Architecture Boundary
+
+**The Envio indexer does NOT index EAS attestation data.** EAS attestations (assessments, work approvals, work submissions) are queried from EAS's own GraphQL indexer at `easscan.org`.
+
+| Data Source | Indexed By | Queried Via |
+|-------------|-----------|-------------|
+| Green Goods protocol events (Actions, Gardens, Gardeners) | **Envio indexer** | `localhost:8080/v1/graphql` |
+| EAS attestations (Work, WorkApproval, Assessment) | **EAS indexer** | `easscan.org/graphql` |
+
+**Why:** EAS already provides a production GraphQL indexer per chain. Re-indexing EAS `Attested` events would duplicate data, require schema UID filtering, and add RPC call overhead for attestation decoding.
+
+**Where EAS queries happen:** `packages/shared/src/modules/data/eas.ts` — uses schema UIDs from `deployments/{chainId}-latest.json` to query EAS GraphQL directly.
+
+**Contracts handled by this indexer:**
+- ActionRegistry, GardenToken, GardenAccount
+- HatsModule, OctantModule, OctantVault, YieldSplitter
+- HypercertMinter (minimal linkage + claims)
+
+**Externalized (do not index in Envio):**
+- EAS attestations -> EAS GraphQL
+- Gardens V2 community/pools -> Gardens subgraph
+- Marketplace orders/trades -> on-chain reads/logs
+- ENS registration lifecycle -> RPC reads
+- Cookie jars -> on-chain reads
+- Hypercert display metadata (`title`, `description`, `image`, `workScopes`) -> Hypercert API/IPFS at read time
+- Power registry audit entities -> not needed at app runtime
 
 ## Critical Patterns
 
@@ -64,7 +91,7 @@ const actionId = `${event.chainId}-${actionUID}`;
 const gardenerId = `${event.chainId}-${address}`;
 ```
 
-**Why:** Same actionUID on Base Sepolia vs Arbitrum creates separate entities.
+**Why:** Same actionUID on Sepolia vs Arbitrum creates separate entities.
 
 ### Event Handler Pattern
 
