@@ -102,8 +102,9 @@ describe("hooks/vault/useVaultOperations", () => {
 
   it("runs two-step deposit flow (approve -> deposit) when allowance is insufficient", async () => {
     // First call: allowance check (returns 0n = insufficient)
-    // Second call: previewDeposit for slippage check (returns 10n shares)
-    mockReadContract.mockResolvedValueOnce(0n).mockResolvedValueOnce(10n);
+    // Second call: post-approval allowance re-check (returns 10n = sufficient)
+    // Third call: previewDeposit for slippage check (returns 10n shares)
+    mockReadContract.mockResolvedValueOnce(0n).mockResolvedValueOnce(10n).mockResolvedValueOnce(10n);
     mockWriteContractAsync.mockResolvedValue(
       "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     );
@@ -129,8 +130,17 @@ describe("hooks/vault/useVaultOperations", () => {
       });
     });
 
-    // readContract called twice: allowance + previewDeposit
-    expect(mockReadContract).toHaveBeenCalledTimes(2);
+    // readContract called three times: allowance + refreshed allowance + previewDeposit
+    expect(mockReadContract).toHaveBeenCalledTimes(3);
+    expect(mockReadContract).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        address: TEST_ASSET,
+        functionName: "allowance",
+        args: [TEST_PRIMARY_ADDRESS, TEST_VAULT],
+      })
+    );
     expect(mockWriteContractAsync).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({

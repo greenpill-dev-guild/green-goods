@@ -1,4 +1,5 @@
 import {
+  type Address,
   useHypercertListings,
   useCancelListing,
   type RegisteredOrderView,
@@ -11,7 +12,7 @@ import {
   RiAlertLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { type Address, formatEther } from "viem";
+import { formatEther } from "viem";
 
 interface ActiveListingsTableProps {
   gardenAddress: Address;

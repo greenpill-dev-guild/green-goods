@@ -4,13 +4,14 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import {
+  type Address,
   useCreateListing,
   LISTING_DEFAULTS,
   type CreateListingParams,
   type ListingStep,
   DEFAULT_CHAIN_ID,
 } from "@green-goods/shared";
-import { type Address, parseEther, zeroAddress } from "viem";
+import { parseEther, zeroAddress } from "viem";
 
 interface CreateListingDialogProps {
   open: boolean;

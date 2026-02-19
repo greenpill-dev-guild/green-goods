@@ -1,6 +1,5 @@
-import type { Address } from "viem";
 import { create } from "zustand";
-import type { Domain } from "../types/domain";
+import type { Address, Domain } from "../types/domain";
 import { WorkTab } from "./workFlowTypes";
 
 export type WorkDraftState = {
