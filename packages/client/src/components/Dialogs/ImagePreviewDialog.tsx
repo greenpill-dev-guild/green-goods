@@ -312,6 +312,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             {/* Image Container */}
             <div
               ref={imageRef}
+              role="application"
               className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-xl border border-white/10"
               onWheel={handleWheel}
               onTouchStart={handleTouchStart}

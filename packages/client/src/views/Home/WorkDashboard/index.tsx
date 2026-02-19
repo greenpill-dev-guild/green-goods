@@ -781,6 +781,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   return (
     <div
+      role="presentation"
       className={cn(
         "fixed inset-0 bg-black/30 backdrop-blur-sm z-[20000] flex items-end justify-center",
         isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"

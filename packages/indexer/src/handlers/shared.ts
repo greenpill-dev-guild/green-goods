@@ -1,6 +1,6 @@
 import type { Domain_t } from "../../generated/src/db/Enums.gen";
 
-import type { Garden, GardenVault } from "../../generated/src/Types.gen";
+import type { Garden, GardenVault, Hypercert } from "../../generated/src/Types.gen";
 
 import { Capital, HypercertStatus, PoolType, VaultEventType, WeightScheme } from "../../generated";
 
@@ -755,7 +755,7 @@ export function parseHypercertMetadata(metadata: unknown): {
   };
 }
 
-import type { Hypercert } from "../../generated/src/Types.gen";
+
 
 // Helper to create default Hypercert entity
 // Note: claims are stored as separate HypercertClaim entities (Envio doesn't support entity arrays)

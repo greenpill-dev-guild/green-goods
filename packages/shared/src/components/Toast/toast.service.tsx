@@ -431,6 +431,7 @@ function ToastMessage({
 
     return (
       <div
+        role="status"
         tabIndex={0}
         className={containerClassName}
         aria-label={ariaLabel}
