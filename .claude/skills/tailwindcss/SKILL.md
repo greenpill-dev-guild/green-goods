@@ -2,6 +2,12 @@
 name: tailwindcss
 user-invocable: false
 description: TailwindCSS v4 configuration and theming - @theme directive, CSS custom properties, design tokens, dark mode, responsive utilities. Use for styling configuration, theme customization, and CSS architecture.
+version: "1.0.0"
+status: active
+packages: ["shared", "client", "admin"]
+dependencies: []
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # TailwindCSS v4 Skill

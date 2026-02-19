@@ -2,6 +2,12 @@
 name: xstate
 user-invocable: false
 description: XState state machines and workflows - actor model, state machine design, React integration, testing. Use for multi-step flows, workflow orchestration, and complex UI state.
+version: "1.0.0"
+status: active
+packages: ["shared", "client"]
+dependencies: []
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # XState/Workflow Skill

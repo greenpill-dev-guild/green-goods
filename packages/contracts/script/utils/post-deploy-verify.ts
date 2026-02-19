@@ -86,6 +86,11 @@ interface RuntimeIndexerResponse {
 }
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+/** Mask API key segments in RPC URLs to prevent credential leakage in logs. */
+function maskRpcApiKey(value: string): string {
+  return value.replace(/(\/v\d+\/)[^\s/]+/g, "$1***");
+}
 const DEFAULT_LOCAL_INDEXER_ENDPOINT = "http://localhost:8080/v1/graphql";
 const RUNTIME_INDEXER_QUERY = `
   query PostDeployIndexerRuntime($chainId: Int!, $limit: Int!) {
@@ -221,7 +226,7 @@ function castCall(rpcUrl: string, to: string, signature: string, args: string[] 
     return execFileSync("cast", callArgs, { encoding: "utf8" }).trim();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`cast call failed (${to} ${signature}): ${message}`);
+    throw new Error(`cast call failed (${to} ${signature}): ${maskRpcApiKey(message)}`);
   }
 }
 
@@ -569,7 +574,7 @@ async function main(): Promise<void> {
   console.log("\nPost-deploy verification");
   console.log(`  network: ${options.network}`);
   console.log(`  chainId: ${options.chainId}`);
-  console.log(`  rpcUrl: ${options.rpcUrl}`);
+  console.log(`  rpcUrl: ${maskRpcApiKey(options.rpcUrl)}`);
   console.log(`  communitySlug: ${options.communitySlug}\n`);
 
   const deployment = loadDeployment(options.chainId);
@@ -768,6 +773,6 @@ async function main(): Promise<void> {
 
 main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`Verification command failed: ${message}`);
+  console.error(`Verification command failed: ${maskRpcApiKey(message)}`);
   process.exit(1);
 });

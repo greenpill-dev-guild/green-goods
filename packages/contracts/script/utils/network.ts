@@ -166,7 +166,12 @@ export class NetworkManager {
       return true;
     }
 
-    return rpcUrl.toLowerCase().includes("publicnode.com");
+    try {
+      const hostname = new URL(rpcUrl).hostname.toLowerCase();
+      return hostname === "publicnode.com" || hostname.endsWith(".publicnode.com");
+    } catch {
+      return false;
+    }
   }
 
   /**

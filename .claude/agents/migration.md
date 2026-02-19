@@ -90,6 +90,7 @@ Create migration notes at `.plans/migrations/[date]-[name].md`.
 ### Execution Order
 ### Validation Results
 ### Risks / Rollback
+### Completion Checklist
 ```
 
 ## Anti-Patterns

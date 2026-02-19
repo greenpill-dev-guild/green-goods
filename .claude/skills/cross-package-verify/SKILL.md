@@ -1,6 +1,12 @@
 ---
 name: cross-package-verify
 description: Cross-package verification wrapper. Use for deterministic multi-package validation before optional fix mode.
+version: "1.0.0"
+status: active
+packages: ["all"]
+dependencies: ["review"]
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Cross-Package Verify Skill

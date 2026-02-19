@@ -2,6 +2,12 @@
 name: vite
 user-invocable: false
 description: Vite 7.x build tool. Use when configuring Vite, adding plugins, working with dev server, or building.
+version: "1.0.0"
+status: active
+packages: ["client", "admin"]
+dependencies: []
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Vite Skill

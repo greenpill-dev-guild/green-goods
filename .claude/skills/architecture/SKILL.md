@@ -2,6 +2,12 @@
 name: architecture
 user-invocable: false
 description: Architecture patterns (Clean, Hexagonal, DDD) and entropy reduction. Use for system design, refactoring, deletion.
+version: "1.0.0"
+status: active
+packages: ["contracts", "shared", "client", "admin"]
+dependencies: []
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Architecture Skill

@@ -31,16 +31,22 @@ Load the review protocol from `.claude/skills/review/SKILL.md`.
 
 ## Workflow
 
-1. Load review protocol from `.claude/skills/review/SKILL.md`
-2. Execute review passes and collect evidence
-3. Map severities: `Critical|High` = must-fix, `Medium` = should-fix, `Low` = nice-to-have
-4. Emit structured findings with file:line evidence
-5. Stop and wait for instruction
+Canonical review protocol: Load and execute `.claude/skills/review/SKILL.md`.
 
-## Output Format
+1. Execute review passes and collect evidence
+2. Map severities per Severity Mapping below
+3. Emit structured findings with file:line evidence
+4. Stop and wait for instruction
+
+Canonical output contract:
 
 ### Summary
 - Scope and change intent
+
+### Severity Mapping
+- Critical|High -> must-fix (blocking, must resolve before merge)
+- Medium -> should-fix (important quality improvement)
+- Low -> nice-to-have (optional polish)
 
 ### Must-Fix
 - Blocking findings with file:line evidence

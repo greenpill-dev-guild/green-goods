@@ -2,6 +2,12 @@
 name: review
 description: Code Review & PR Creation - 6-pass systematic review. Use for code reviews and PR feedback.
 argument-hint: "[file-or-PR]"
+version: "1.0.0"
+status: active
+packages: ["all"]
+dependencies: []
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Review Skill

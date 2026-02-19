@@ -3,6 +3,12 @@ name: audit
 description: Codebase Audit - quality analysis, dead code detection. Use for health checks and anti-pattern detection.
 argument-hint: "[package-name]"
 context: fork
+version: "1.0.0"
+status: active
+packages: ["all"]
+dependencies: ["review", "security"]
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Audit Skill
