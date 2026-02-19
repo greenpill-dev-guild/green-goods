@@ -120,6 +120,7 @@ export {
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
+  hasVaultAssetDecimals,
   isZeroAddressValue,
   isZeroBytes32,
   validateDecimalInput,

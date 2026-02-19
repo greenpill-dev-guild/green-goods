@@ -38,7 +38,7 @@ The admin dashboard will be available at `http://localhost:3002`
 - **EAS Explorer Links**: Direct links to verify attestations on-chain
 - **Filter by Garden**: View impact data for specific gardens
 
-**Note:** Impact data is queried via Karma GAP SDK, not Green Goods indexer. See [docs/KARMA_GAP.md](../../docs/KARMA_GAP.md) for details.
+**Note:** Impact data is queried via Karma GAP SDK, not Green Goods indexer. See [Reporting & GAP](https://docs.greengoods.app/operator/reporting-and-gap) for details.
 
 ## Access Control
 
@@ -302,8 +302,7 @@ Use browser DevTools and React DevTools for debugging. TanStack Query DevTools a
 - 📋 [Managing Gardens Guide](https://docs.greengoods.app/guides/operators/managing-gardens) — Garden management workflows
 
 **Package-Specific Documentation:**
-- **[Migration Guide](./docs/GARDEN_FEATURE_MIGRATION.md)** — Implementing garden features that were previously CLI scripts
-- **[Local README](./docs/README.md)** — Overview of admin dashboard architecture
+- **[Architecture](https://docs.greengoods.app/developers/architecture)** — System design and package relationships
 
 ## Related Resources
 

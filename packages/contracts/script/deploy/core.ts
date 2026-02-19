@@ -31,6 +31,7 @@ export class CoreDeployer {
 
     // Set environment variables for the Solidity script
     this._setEnvironmentFlags(options);
+    this._ensureArbitrumEnsReceiver(options);
 
     // Display active deployment flags
     this._logActiveFlags(options);
@@ -192,6 +193,46 @@ export class CoreDeployer {
   }
 
   /**
+   * Ensure ENS_L1_RECEIVER is available for Arbitrum deployments.
+   * If unset, attempt to load it from deployments/1-latest.json (ensReceiver)
+   * after a successful mainnet ENS infra deployment.
+   */
+  private _ensureArbitrumEnsReceiver(options: ParsedOptions): void {
+    if (options.network !== "arbitrum") {
+      return;
+    }
+
+    const envReceiver = process.env.ENS_L1_RECEIVER;
+    if (envReceiver && !/^0x0+$/i.test(envReceiver)) {
+      return;
+    }
+
+    try {
+      const deploymentPath = path.join(__dirname, "../../deployments/1-latest.json");
+      if (!fs.existsSync(deploymentPath)) {
+        console.warn("⚠️  ENS_L1_RECEIVER is unset and mainnet deployment file was not found.");
+        console.warn("   Run mainnet ENS deployment first or set ENS_L1_RECEIVER manually.");
+        return;
+      }
+
+      const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8")) as { ensReceiver?: string };
+      const ensReceiver = deployment.ensReceiver;
+      if (!ensReceiver || /^0x0+$/i.test(ensReceiver)) {
+        console.warn("⚠️  ENS_L1_RECEIVER is unset and deployments/1-latest.json has no valid ensReceiver.");
+        console.warn("   Set ENS_L1_RECEIVER manually before Arbitrum deploy.");
+        return;
+      }
+
+      process.env.ENS_L1_RECEIVER = ensReceiver;
+      console.log(`✅ Loaded ENS_L1_RECEIVER from deployments/1-latest.json: ${ensReceiver}`);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.warn(`⚠️  Failed to load ENS_L1_RECEIVER from mainnet deployment JSON: ${errorMsg}`);
+      console.warn("   Set ENS_L1_RECEIVER manually before Arbitrum deploy.");
+    }
+  }
+
+  /**
    * Log active deployment flags
    * @param options - Deployment options
    */
@@ -233,27 +274,8 @@ export class CoreDeployer {
     if (!options.broadcast) {
       return false;
     }
-
     const verifierConfig = this.networkManager.getVerifierConfig(options.network);
-    let shouldVerify = options.verify && verifierConfig !== null && !options.skipVerification;
-
-    if (shouldVerify) {
-      try {
-        const chainId = this.networkManager.getChainIdString(options.network);
-        const deploymentFile = path.join(__dirname, "../../deployments", `${chainId}-latest.json`);
-
-        if (fs.existsSync(deploymentFile) && !options.force) {
-          console.log("⏭️  Skipping verification - contracts already deployed and likely verified");
-          shouldVerify = false;
-        }
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.error("❌ Failed to check deployment status:", errorMsg);
-        // If check fails, proceed with verification
-      }
-    }
-
-    return shouldVerify;
+    return options.verify && verifierConfig !== null && !options.skipVerification;
   }
 
   /**

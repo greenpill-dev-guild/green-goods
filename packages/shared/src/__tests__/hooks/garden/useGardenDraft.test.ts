@@ -353,6 +353,39 @@ describe("useGardenDraft", () => {
       expect(saved).not.toBeNull();
     });
 
+    it("location alone counts as meaningful", async () => {
+      mockStoreState = {
+        form: { ...mockFormState, location: "Bogota, CO" },
+        currentStep: 0,
+      };
+
+      const { result } = renderHook(() => useGardenDraft(OPERATOR_ADDR));
+
+      let saved: any;
+      await act(async () => {
+        saved = await result.current.saveDraft();
+      });
+      expect(saved).not.toBeNull();
+    });
+
+    it("planned members count as meaningful", async () => {
+      mockStoreState = {
+        form: {
+          ...mockFormState,
+          gardeners: ["0x1111111111111111111111111111111111111111"] as string[],
+        },
+        currentStep: 0,
+      };
+
+      const { result } = renderHook(() => useGardenDraft(OPERATOR_ADDR));
+
+      let saved: any;
+      await act(async () => {
+        saved = await result.current.saveDraft();
+      });
+      expect(saved).not.toBeNull();
+    });
+
     it("whitespace-only fields are not meaningful", async () => {
       mockStoreState = {
         form: { ...mockFormState, name: "   ", slug: "  ", description: "  " },

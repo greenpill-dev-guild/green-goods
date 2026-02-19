@@ -37,6 +37,7 @@ export interface VerifierConfig {
 /** Canonical network name → chain ID string mapping. Single source of truth. */
 export const CHAIN_ID_MAP: Record<string, string> = {
   localhost: "31337",
+  mainnet: "1",
   arbitrum: "42161",
   sepolia: "11155111",
   celo: "42220",

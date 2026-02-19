@@ -41,7 +41,7 @@ A lightweight, cost-free translation system using native browser Translation API
 ### Basic Translation Hook
 
 ```typescript
-import { useTranslation } from "@green-goods/shared/hooks/useTranslation";
+import { useTranslation } from "@green-goods/shared";
 
 function MyComponent() {
   const text = "Hello world";
@@ -95,7 +95,7 @@ function GardenCard({ garden }: { garden: Garden }) {
 ### Translation Badge
 
 ```typescript
-import { TranslationBadge, UnsupportedTranslationNotice } from "@green-goods/shared/components/TranslationBadge";
+import { TranslationBadge, UnsupportedTranslationNotice } from "@green-goods/shared";
 
 function Layout() {
   return (
@@ -168,7 +168,7 @@ const { translated } = useTranslation(data);
 ### Manual Cache Stats
 
 ```typescript
-import { translationCache } from "@green-goods/shared/modules/translation/db";
+import { translationCache } from "@green-goods/shared";
 
 const stats = await translationCache.getStats();
 console.log(stats);
@@ -213,20 +213,20 @@ const { translatedContent, isTranslating } = useMyContentTranslation(myContent);
 
 1. Check browser support:
 ```typescript
-import { browserTranslator } from "@green-goods/shared/modules/translation/browser-translator";
+import { browserTranslator } from "@green-goods/shared";
 console.log(browserTranslator.isSupported); // Should be true
 ```
 
 2. Check language selection:
 ```typescript
-import { AppContext } from "@green-goods/shared/providers/App";
+import { AppContext } from "@green-goods/shared";
 const { locale } = useContext(AppContext);
 console.log(locale); // Should be 'es' or 'pt', not 'en'
 ```
 
 3. Check cache:
 ```typescript
-import { translationCache } from "@green-goods/shared/modules/translation/db";
+import { translationCache } from "@green-goods/shared";
 const cached = await translationCache.get("Hello", "en", "es");
 console.log(cached); // Should return Spanish translation or null
 ```

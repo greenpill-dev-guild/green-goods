@@ -344,14 +344,32 @@ export const queryInvalidation = {
   ],
 
   // Get queries to invalidate when a job is completed
-  onJobCompleted: (gardenId: string, chainId: number) => [
-    queryKeys.queue.stats(),
-    queryKeys.queue.pendingCount(),
-    queryKeys.works.all,
-    queryKeys.works.online(gardenId, chainId),
-    queryKeys.works.merged(gardenId, chainId),
-    queryKeys.works.approvals(),
-  ],
+  onJobCompleted: (gardenId: string, chainId: number, userAddress?: string) => {
+    const keys: Array<
+      | ReturnType<typeof queryKeys.queue.stats>
+      | ReturnType<typeof queryKeys.queue.pendingCount>
+      | typeof queryKeys.works.all
+      | ReturnType<typeof queryKeys.works.online>
+      | ReturnType<typeof queryKeys.works.merged>
+      | ReturnType<typeof queryKeys.works.approvals>
+    > = [
+      queryKeys.queue.stats(),
+      queryKeys.queue.pendingCount(),
+      queryKeys.works.all,
+      queryKeys.works.online(gardenId, chainId),
+      queryKeys.works.merged(gardenId, chainId),
+      // Keep legacy broad invalidation for callers using omitted params.
+      queryKeys.works.approvals(),
+      // Invalidate chain-scoped approvals (most callers pass chainId).
+      queryKeys.works.approvals(undefined, chainId),
+    ];
+
+    if (userAddress) {
+      keys.push(queryKeys.works.approvals(userAddress, chainId));
+    }
+
+    return keys;
+  },
 
   // Get queries to invalidate when sync is completed
   onSyncCompleted: () => [queryKeys.queue.all, queryKeys.works.all, queryKeys.offline.sync()],

@@ -8,7 +8,7 @@ import {
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiErrorWarningLine, RiLoader4Line } from "@remixicon/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { FormWizard } from "@/components/Form/FormWizard";
@@ -35,7 +35,9 @@ export default function CreateGarden() {
     submitCreation,
     estimateCreationCost,
     retry,
+    draft,
   } = useCreateGardenWorkflow();
+  const { loadDraft } = draft;
 
   const [showValidation, setShowValidation] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -50,10 +52,41 @@ export default function CreateGarden() {
   const isSubmitting = state.value === "submitting";
   const hasError = state.value === "error";
   const isSuccess = state.value === "success";
+  const plannedMemberCount = form.gardeners.length + form.operators.length;
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    openFlow();
-  }, [openFlow]);
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    let cancelled = false;
+
+    const initializeFlow = async () => {
+      openFlow();
+
+      const storeForm = useCreateGardenStore.getState().form;
+      const hasSessionProgress =
+        storeForm.name.trim().length > 0 ||
+        storeForm.slug.trim().length > 0 ||
+        storeForm.description.trim().length > 0 ||
+        storeForm.location.trim().length > 0 ||
+        storeForm.bannerImage.trim().length > 0 ||
+        storeForm.metadata.trim().length > 0 ||
+        storeForm.openJoining ||
+        storeForm.gardeners.length > 0 ||
+        storeForm.operators.length > 0;
+      if (hasSessionProgress) return;
+
+      const restoredDraft = await loadDraft();
+      if (cancelled || !restoredDraft) return;
+    };
+
+    void initializeFlow();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [openFlow, loadDraft]);
 
   useEffect(() => {
     if (isSuccess) {
@@ -69,10 +102,28 @@ export default function CreateGarden() {
         context: "garden creation",
         suppressLogging: true,
       });
+      if (plannedMemberCount > 0) {
+        toastService.info({
+          title: intl.formatMessage({
+            id: "app.admin.garden.create.teamAssignmentReminder.title",
+            defaultMessage: "Add planned members next",
+          }),
+          message: intl.formatMessage(
+            {
+              id: "app.admin.garden.create.teamAssignmentReminder.message",
+              defaultMessage:
+                "{count} planned members were not assigned during deployment. Add them from Garden Members.",
+            },
+            { count: plannedMemberCount }
+          ),
+          context: "garden creation",
+          suppressLogging: true,
+        });
+      }
       resetForm();
       navigate("/gardens");
     }
-  }, [isSuccess, navigate, resetForm, intl]);
+  }, [isSuccess, navigate, resetForm, intl, plannedMemberCount]);
 
   useEffect(() => {
     setShowValidation(false);
@@ -262,13 +313,17 @@ export default function CreateGarden() {
                 <span className="text-text-soft">
                   {intl.formatMessage({
                     id: "app.admin.garden.create.confirm.members",
-                    defaultMessage: "Team members",
+                    defaultMessage: "Planned members",
                   })}
                 </span>
-                <span className="font-medium text-text-strong">
-                  {form.gardeners.length + form.operators.length}
-                </span>
+                <span className="font-medium text-text-strong">{plannedMemberCount}</span>
               </div>
+              <p className="text-xs text-text-soft">
+                {intl.formatMessage({
+                  id: "app.admin.garden.create.confirm.membersHelp",
+                  defaultMessage: "Planned members are added after deployment.",
+                })}
+              </p>
             </div>
 
             <div className="mt-4 rounded-lg border border-stroke-soft p-3 text-sm">

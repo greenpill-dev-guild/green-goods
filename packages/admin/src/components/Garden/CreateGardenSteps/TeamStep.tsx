@@ -1,13 +1,12 @@
 import { cn, formatAddress, useAddressInput, useCreateGardenStore } from "@green-goods/shared";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
-import { useMemo } from "react";
 import { useIntl } from "react-intl";
 
 interface TeamStepProps {
   showValidation: boolean;
 }
 
-export function TeamStep({ showValidation }: TeamStepProps) {
+export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
   const form = useCreateGardenStore((s) => s.form);
   const addGardener = useCreateGardenStore((s) => s.addGardener);
   const removeGardener = useCreateGardenStore((s) => s.removeGardener);
@@ -19,32 +18,29 @@ export function TeamStep({ showValidation }: TeamStepProps) {
   const gardenerInput = useAddressInput(addGardener, formatMessage);
   const operatorInput = useAddressInput(addOperator, formatMessage);
 
-  const teamError = useMemo(
-    () =>
-      form.gardeners.length > 0
-        ? null
-        : formatMessage({ id: "app.admin.garden.create.requireGardener" }),
-    [form.gardeners.length, formatMessage]
-  );
-
-  const operatorRequiredError = useMemo(
-    () =>
-      form.operators.length > 0
-        ? null
-        : formatMessage({ id: "app.admin.garden.create.requireOperator" }),
-    [form.operators.length, formatMessage]
-  );
-
-  const showTeamErrors = showValidation;
-
   return (
     <div className="space-y-2.5 sm:space-y-3">
+      <div className="rounded-lg border border-primary-light bg-primary-lighter/40 p-3 text-xs text-text-sub">
+        <p className="font-semibold text-text-strong">
+          {formatMessage({
+            id: "app.admin.garden.create.teamAdvisory.title",
+            defaultMessage: "Planned team members",
+          })}
+        </p>
+        <p className="mt-1">
+          {formatMessage({
+            id: "app.admin.garden.create.teamAdvisory.message",
+            defaultMessage:
+              "These addresses are planning notes. Add them on-chain from Garden Members after deployment.",
+          })}
+        </p>
+      </div>
       <div>
         <label
           className="mb-2 block text-sm font-medium text-text-sub"
           htmlFor="create-garden-gardener-address"
         >
-          {formatMessage({ id: "app.roles.gardener.plural", defaultMessage: "Gardeners" })} *
+          {formatMessage({ id: "app.roles.gardener.plural", defaultMessage: "Gardeners" })}
         </label>
         <div className="rounded-lg bg-bg-weak p-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -94,7 +90,7 @@ export function TeamStep({ showValidation }: TeamStepProps) {
         )}
         {/* Always render to reserve space and prevent layout shift */}
         <p className="mt-1 block min-h-[1.25rem] text-xs text-error-dark">
-          {gardenerInput.error || (showTeamErrors && teamError) || "\u00A0"}
+          {gardenerInput.error || "\u00A0"}
         </p>
         <ul className="mt-1.5 space-y-1.5">
           {form.gardeners.map((gardener) => (
@@ -171,7 +167,7 @@ export function TeamStep({ showValidation }: TeamStepProps) {
         )}
         {/* Always render to reserve space and prevent layout shift */}
         <p className="mt-1 block min-h-[1.25rem] text-xs text-error-dark">
-          {operatorInput.error || (showTeamErrors && operatorRequiredError) || "\u00A0"}
+          {operatorInput.error || "\u00A0"}
         </p>
         <ul className="mt-1.5 space-y-1.5">
           {form.operators.map((operator) => (

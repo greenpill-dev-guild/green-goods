@@ -48,14 +48,17 @@ function isRecoverableAllowanceReadError(error: unknown): boolean {
 }
 
 type VaultDepositStage = "approval" | "deposit";
+type VaultDepositFailureReason = "vaultUnavailable";
 
 class VaultDepositStageError extends Error {
   stage: VaultDepositStage;
+  reason?: VaultDepositFailureReason;
 
-  constructor(stage: VaultDepositStage, message: string) {
+  constructor(stage: VaultDepositStage, message: string, reason?: VaultDepositFailureReason) {
     super(message);
     this.name = "VaultDepositStageError";
     this.stage = stage;
+    this.reason = reason;
   }
 }
 
@@ -98,6 +101,28 @@ export function useVaultDeposit() {
       }
 
       const receiver = (params.receiver ?? primaryAddress) as Address;
+
+      const maxDepositResult = await readContract(wagmiConfig, {
+        address: params.vaultAddress,
+        abi: OCTANT_VAULT_ABI,
+        functionName: "maxDeposit",
+        args: [receiver],
+      });
+      const maxDeposit = typeof maxDepositResult === "bigint" ? maxDepositResult : 0n;
+
+      if (maxDeposit <= 0n) {
+        throw new VaultDepositStageError(
+          "deposit",
+          "Vault is not accepting deposits right now",
+          "vaultUnavailable"
+        );
+      }
+      if (params.amount > maxDeposit) {
+        throw new VaultDepositStageError(
+          "deposit",
+          "Deposit amount exceeds the current vault limit"
+        );
+      }
 
       // Slippage protection: verify expected shares before approvals/transfers
       const previewShares = await readContract(wagmiConfig, {
@@ -225,7 +250,11 @@ export function useVaultDeposit() {
       if (context?.toastId) toastService.dismiss(context.toastId);
       if (error instanceof VaultDepositStageError) {
         const messageId =
-          error.stage === "approval" ? "app.treasury.approvalFailed" : "app.treasury.depositFailed";
+          error.stage === "approval"
+            ? "app.treasury.approvalFailed"
+            : error.reason === "vaultUnavailable"
+              ? "app.treasury.vaultPaused"
+              : "app.treasury.depositFailed";
         toastService.error({
           title: formatMessage({ id: "app.treasury.deposit" }),
           message: formatMessage({

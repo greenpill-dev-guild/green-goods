@@ -3,7 +3,7 @@ import type { Address } from "../../types/domain";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { getAllGardenVaults, getGardenVaults } from "../../modules/data/vaults";
 import type { GardenVault } from "../../types/vaults";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import { queryKeys, STALE_TIME_FAST } from "../query-keys";
 
 interface UseGardenVaultsOptions {
   chainId?: number;
@@ -22,7 +22,7 @@ export function useGardenVaults(gardenAddress?: Address, options: UseGardenVault
     queryFn: () =>
       normalizedGarden ? getGardenVaults(normalizedGarden, chainId) : getAllGardenVaults(chainId),
     enabled: enabled && (normalizedGarden ? normalizedGarden.length > 0 : true),
-    staleTime: STALE_TIME_MEDIUM,
+    staleTime: STALE_TIME_FAST,
   });
 
   return {

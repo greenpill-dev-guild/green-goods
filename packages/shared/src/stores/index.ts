@@ -11,7 +11,6 @@ export type {
   CreateGardenStore,
 } from "./useCreateGardenStore";
 export {
-  ADDRESS_REGEX,
   createEmptyGardenForm,
   isValidAddress,
   resetCreateGardenStore,

@@ -185,6 +185,7 @@ cache_path = "cache-fork"
   sepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "11155111" }
   baseSepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "84532" }
   celo = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "42220" }
+  mainnet = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/v2/api", chainId = "1" }
 
 [fmt]
   ignore = ["src/vendor/**"]

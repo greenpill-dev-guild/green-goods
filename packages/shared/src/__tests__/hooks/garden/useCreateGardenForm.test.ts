@@ -91,22 +91,14 @@ describe("createGardenSchema", () => {
       expect(result.success).toBe(false);
     });
 
-    it("rejects empty gardeners array", () => {
+    it("accepts empty gardeners array", () => {
       const result = createGardenSchema.safeParse(createValidForm({ gardeners: [] }));
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        const issue = result.error.issues.find((i) => i.path.includes("gardeners"));
-        expect(issue?.message).toBe("At least one gardener is required");
-      }
+      expect(result.success).toBe(true);
     });
 
-    it("rejects empty operators array", () => {
+    it("accepts empty operators array", () => {
       const result = createGardenSchema.safeParse(createValidForm({ operators: [] }));
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        const issue = result.error.issues.find((i) => i.path.includes("operators"));
-        expect(issue?.message).toBe("At least one operator is required");
-      }
+      expect(result.success).toBe(true);
     });
   });
 

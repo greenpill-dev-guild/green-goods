@@ -61,7 +61,15 @@ function buildDraftKey(operatorAddress?: string) {
 
 function hasMeaningfulProgress(form: CreateGardenFormState): boolean {
   return (
-    form.name.trim().length > 0 || form.slug.trim().length > 0 || form.description.trim().length > 0
+    form.name.trim().length > 0 ||
+    form.slug.trim().length > 0 ||
+    form.description.trim().length > 0 ||
+    form.location.trim().length > 0 ||
+    form.bannerImage.trim().length > 0 ||
+    form.metadata.trim().length > 0 ||
+    form.openJoining ||
+    form.gardeners.length > 0 ||
+    form.operators.length > 0
   );
 }
 

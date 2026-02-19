@@ -52,7 +52,13 @@ export function WithdrawModal({
     [selectedAsset, vaults]
   );
 
-  const { deposits } = useVaultDeposits(gardenAddress, {
+  const {
+    deposits,
+    isError: depositsError,
+    error: depositsQueryError,
+    refetch: refetchDeposits,
+    isFetching: depositsFetching,
+  } = useVaultDeposits(gardenAddress, {
     userAddress: primaryAddress ?? undefined,
     enabled: isOpen && Boolean(primaryAddress),
     refetchInterval: isOpen ? 10_000 : false,
@@ -162,6 +168,30 @@ export function WithdrawModal({
                 );
               }}
             />
+            {depositsError && (
+              <div
+                role="alert"
+                className="rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark"
+              >
+                <p>
+                  {depositsQueryError instanceof Error
+                    ? depositsQueryError.message
+                    : formatMessage({ id: "app.treasury.errorLoading" })}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void refetchDeposits();
+                  }}
+                  disabled={depositsFetching}
+                  className="mt-2 rounded-md border border-error-light px-2 py-1 text-xs font-medium text-error-dark hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {depositsFetching
+                    ? formatMessage({ id: "app.common.refreshing" })
+                    : formatMessage({ id: "app.common.tryAgain" })}
+                </button>
+              </div>
+            )}
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>
@@ -234,6 +264,7 @@ export function WithdrawModal({
               disabled={
                 Boolean(sharesError) ||
                 shares <= 0n ||
+                depositsError ||
                 selectedVault?.paused ||
                 withdrawMutation.isPending
               }

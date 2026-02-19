@@ -43,8 +43,8 @@ export const createGardenSchema = z.object({
   bannerImage: z.string().optional().default(""),
   metadata: z.string().optional().default(""),
   openJoining: z.boolean().default(false),
-  gardeners: z.array(addressSchema).min(1, "At least one gardener is required"),
-  operators: z.array(addressSchema).min(1, "At least one operator is required"),
+  gardeners: z.array(addressSchema).default([]),
+  operators: z.array(addressSchema).default([]),
 });
 
 type CreateGardenFormInput = z.input<typeof createGardenSchema>;

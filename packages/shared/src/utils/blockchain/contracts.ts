@@ -2,7 +2,7 @@
  * Contracts Utilities
  *
  * Provides contract addresses, ABIs, and client creation utilities.
- * Re-exports from config and imports ABIs directly from contracts/out.
+ * Re-exports from config and imports ABIs from @green-goods/contracts.
  */
 
 import { type Abi, type Address, createPublicClient, http } from "viem";
@@ -14,25 +14,24 @@ import { getNetworkName, getRpcUrl } from "./chain-registry";
 export { getChain } from "../../config/chains";
 
 // Import deployment configurations
-import deployment42161 from "../../../../contracts/deployments/42161-latest.json";
-import deployment42220 from "../../../../contracts/deployments/42220-latest.json";
-import deployment11155111 from "../../../../contracts/deployments/11155111-latest.json";
-import networksConfig from "../../../../contracts/deployments/networks.json";
-import ActionRegistryABIJson from "../../../../contracts/out/Action.sol/ActionRegistry.json";
-import EASABIJson from "../../../../contracts/out/EAS.sol/MockEAS.json";
-import GardenAccountABIJson from "../../../../contracts/out/Garden.sol/GardenAccount.json";
-// Import ABIs directly from contracts/out (single source of truth)
-import GardenTokenABIJson from "../../../../contracts/out/Garden.sol/GardenToken.json";
-import GreenGoodsENSABIJson from "../../../../contracts/out/ENS.sol/GreenGoodsENS.json";
-import IHatsABIJson from "../../../../contracts/out/IHats.sol/IHats.json";
+import deployment42161 from "@green-goods/contracts/deployments/42161-latest.json";
+import deployment42220 from "@green-goods/contracts/deployments/42220-latest.json";
+import deployment11155111 from "@green-goods/contracts/deployments/11155111-latest.json";
+import networksConfig from "@green-goods/contracts/deployments/networks.json";
+import ActionRegistryABIJson from "@green-goods/contracts/abis/ActionRegistry.json";
+import EASABIJson from "@green-goods/contracts/abis/MockEAS.json";
+import GardenAccountABIJson from "@green-goods/contracts/abis/GardenAccount.json";
+import GardenTokenABIJson from "@green-goods/contracts/abis/GardenToken.json";
+import GreenGoodsENSABIJson from "@green-goods/contracts/abis/GreenGoodsENS.json";
+import IHatsABIJson from "@green-goods/contracts/abis/IHats.json";
 
 // Export the ABIs for viem compatibility
-export const GardenTokenABI = GardenTokenABIJson.abi as Abi;
-export const GardenAccountABI = GardenAccountABIJson.abi as Abi;
-export const ActionRegistryABI = ActionRegistryABIJson.abi as Abi;
-export const EASABI = EASABIJson.abi as Abi;
-export const GreenGoodsENSABI = GreenGoodsENSABIJson.abi as Abi;
-export const HatsABI = IHatsABIJson.abi as Abi;
+export const GardenTokenABI = GardenTokenABIJson as Abi;
+export const GardenAccountABI = GardenAccountABIJson as Abi;
+export const ActionRegistryABI = ActionRegistryABIJson as Abi;
+export const EASABI = EASABIJson as Abi;
+export const GreenGoodsENSABI = GreenGoodsENSABIJson as Abi;
+export const HatsABI = IHatsABIJson as Abi;
 
 function getNetworkConfigFromNetworksJson(chainId: number) {
   const networksData = networksConfig as { networks: Record<string, any> };

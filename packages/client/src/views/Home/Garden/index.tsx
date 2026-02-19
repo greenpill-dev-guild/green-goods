@@ -285,7 +285,7 @@ export const Garden: React.FC<GardenProps> = () => {
       case GardenTab.Insights:
         return (
           <GardenAssessments
-            asessmentFetchStatus={gardensLoading ? "pending" : gardenStatus}
+            assessmentFetchStatus={gardensLoading ? "pending" : gardenStatus}
             assessments={assessments}
             description={description}
           />

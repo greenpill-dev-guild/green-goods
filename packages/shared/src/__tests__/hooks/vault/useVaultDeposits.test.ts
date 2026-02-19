@@ -158,4 +158,18 @@ describe("useVaultDeposits", () => {
 
     expect(mockGetVaultDeposits).toHaveBeenCalledWith(TEST_GARDEN.toLowerCase(), 42161, undefined);
   });
+
+  it("exposes query errors when loading deposits fails", async () => {
+    const expectedError = new Error("Indexer unavailable");
+    mockGetVaultDeposits.mockRejectedValue(expectedError);
+
+    const { result } = renderHook(() => useVaultDeposits(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.deposits).toEqual([]);
+    expect(result.current.error).toBe(expectedError);
+  });
 });

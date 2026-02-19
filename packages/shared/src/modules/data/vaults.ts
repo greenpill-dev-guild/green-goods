@@ -224,8 +224,12 @@ export async function getGardenVaults(
   );
 
   if (error) {
-    logger.error("[getGardenVaults] Indexer query failed", { error: error.message });
-    return [];
+    logger.error("[getGardenVaults] Indexer query failed", {
+      chainId,
+      gardenAddress,
+      error: error.message,
+    });
+    throw new Error(`Failed to load garden vaults: ${error.message}`);
   }
 
   return (data?.GardenVault ?? []).map(mapGardenVault);
@@ -241,8 +245,8 @@ export async function getAllGardenVaults(
   );
 
   if (error) {
-    logger.error("[getAllGardenVaults] Indexer query failed", { error: error.message });
-    return [];
+    logger.error("[getAllGardenVaults] Indexer query failed", { chainId, error: error.message });
+    throw new Error(`Failed to load vault catalog: ${error.message}`);
   }
 
   return (data?.GardenVault ?? []).map(mapGardenVault);
@@ -265,8 +269,13 @@ export async function getVaultDeposits(
     );
 
     if (error) {
-      logger.error("[getVaultDepositsByUser] Indexer query failed", { error: error.message });
-      return [];
+      logger.error("[getVaultDepositsByUser] Indexer query failed", {
+        chainId,
+        gardenAddress,
+        depositorAddress,
+        error: error.message,
+      });
+      throw new Error(`Failed to load user vault deposits: ${error.message}`);
     }
 
     return (data?.VaultDeposit ?? []).map(mapVaultDeposit);
@@ -279,8 +288,12 @@ export async function getVaultDeposits(
   );
 
   if (error) {
-    logger.error("[getVaultDeposits] Indexer query failed", { error: error.message });
-    return [];
+    logger.error("[getVaultDeposits] Indexer query failed", {
+      chainId,
+      gardenAddress,
+      error: error.message,
+    });
+    throw new Error(`Failed to load vault deposits: ${error.message}`);
   }
 
   return (data?.VaultDeposit ?? []).map(mapVaultDeposit);

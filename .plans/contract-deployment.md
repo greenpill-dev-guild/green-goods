@@ -1,23 +1,19 @@
 **Deployment Overview (Sepolia + Arbitrum)**
 
-**Verification Snapshot (2026-02-18)**
+**Verification Snapshot (2026-02-19)**
 
 Validated from repo root with full dry-run simulation (no broadcast):
 
 - `bun --filter @green-goods/contracts deploy:dry:mainnet` ✅
 - `bun --filter @green-goods/contracts deploy:dry:sepolia` ✅
-- `bun --filter @green-goods/contracts deploy:dry:arbitrum` ✅
-
-Post-deploy validators currently fail against existing `*-latest.json` artifacts:
-
-- `bun --filter @green-goods/contracts verify:post-deploy:sepolia` ❌ `contract ... does not have any code`
-- `bun --filter @green-goods/contracts verify:post-deploy:arbitrum` ❌ `contract ... does not have any code`
+- `bun --filter @green-goods/contracts deploy:dry:arbitrum` ❌ when `ENS_L1_RECEIVER` is unset (`MissingArbitrumL1Receiver()`)
+- `ENS_L1_RECEIVER=<mainnet_receiver> bun --filter @green-goods/contracts deploy:dry:arbitrum` ✅
 
 Interpretation:
 
-- Deployment wrappers and dry-run simulation path are working.
-- Existing `deployments/11155111-latest.json` and `deployments/42161-latest.json` point to non-live/stale addresses for verification checks.
-- Run broadcast in the sequence below so fresh deployment files are written, then re-run post-deploy verification.
+- Core deploy wrappers and dry-run simulation path are working.
+- Arbitrum is intentionally hard-gated on `ENS_L1_RECEIVER` even in dry-run mode.
+- Run mainnet ENS infra first (or manually set `ENS_L1_RECEIVER`) before any Arbitrum run.
 
 `deploy:sepolia` / `deploy:arbitrum` (via `packages/contracts/package.json`) run the same core flow:
 
@@ -62,16 +58,18 @@ Notes:
 
 **Required Env Vars**
 
-- `MAINNET_RPC_URL` (or `ALCHEMY_API_KEY` / `ALCHEMY_KEY`)
-- `SEPOLIA_RPC_URL` (or `ALCHEMY_API_KEY` / `ALCHEMY_KEY`)
-- `ARBITRUM_RPC_URL` (or `ALCHEMY_API_KEY` / `ALCHEMY_KEY`)
+- `MAINNET_RPC_URL` (or one shared Alchemy key var)
+- `SEPOLIA_RPC_URL` (or one shared Alchemy key var)
+- `ARBITRUM_RPC_URL` (or one shared Alchemy key var)
+- Alchemy key (one of): `VITE_ALCHEMY_API_KEY`, `ALCHEMY_API_KEY`, `ALCHEMY_KEY`
 - `FOUNDRY_KEYSTORE_ACCOUNT` (default is `green-goods-deployer`)
 - `ETHERSCAN_API_KEY` (for verification)
-- `ENS_L1_RECEIVER` (required for Arbitrum broadcast)
+- `ENS_L1_RECEIVER` (required for Arbitrum dry-run and broadcast)
 - Keystore password (interactive prompt unless you run forge directly with `--password-file`)
 
 Notes:
-- Deploy scripts auto-derive mainnet/sepolia/arbitrum RPC URLs from `ALCHEMY_API_KEY` (or `ALCHEMY_KEY`) when chain-specific RPC env vars are unset.
+- Deploy scripts auto-derive mainnet/sepolia/arbitrum RPC URLs from `VITE_ALCHEMY_API_KEY` (or `ALCHEMY_API_KEY` / `ALCHEMY_KEY`) when chain-specific RPC vars are unset.
+- For supported networks, if chain RPC vars point to `publicnode.com`, deploy wrappers prefer Alchemy automatically.
 - Celo is intentionally not auto-derived; keep `CELO_RPC_URL` as a dedicated endpoint.
 
 If you want explicit sender matching:
@@ -109,6 +107,25 @@ If you want explicit sender matching:
 
 ---
 
+**Post-Deploy Verify Flags**
+
+- `--check-indexer-runtime` (runs local Envio GraphQL ingestion validation)
+- `--start-local-indexer` / `--skip-local-indexer-start`
+- `--stop-local-indexer-after-check`
+- `--indexer-url <url>` (defaults to local `http://localhost:8080/v1/graphql`)
+- `--indexer-timeout-seconds <n>`
+- `--indexer-poll-seconds <n>`
+
+---
+
+**Envio Hosted Service Notes**
+
+- Hosted Envio deployment remains manual and tied to your merge/promotion workflow on `develop`.
+- Contract deployment validation should not assume hosted indexer rollout is complete.
+- Use local indexer runtime checks as the release gate for query correctness, then deploy hosted indexer separately.
+
+---
+
 **Recommended Run Order**
 
 From repo root:
@@ -127,6 +144,8 @@ bun --filter @green-goods/contracts deploy:sepolia
 
 # 3) Sepolia post-deploy validation
 bun --filter @green-goods/contracts verify:post-deploy:sepolia
+# 3b) Sepolia local indexer runtime validation (auto-sync config + starts local Envio stack)
+bun --filter @green-goods/contracts verify:post-deploy:indexer:local:sepolia
 
 # 4) Arbitrum preflight (ENS_L1_RECEIVER must already be set from mainnet step)
 bun --filter @green-goods/contracts deploy:dry:arbitrum
@@ -136,6 +155,8 @@ bun --filter @green-goods/contracts deploy:arbitrum
 
 # 6) Arbitrum post-deploy validation
 bun --filter @green-goods/contracts verify:post-deploy:arbitrum
+# 6b) Arbitrum local indexer runtime validation
+bun --filter @green-goods/contracts verify:post-deploy:indexer:local:arbitrum
 ```
 
 Expected success markers:
@@ -144,6 +165,13 @@ Expected success markers:
 - Mainnet broadcast prints ENS deployment output and writes `ensReceiver` to `packages/contracts/deployments/1-latest.json`
 - `ENS_L1_RECEIVER` is updated in root `.env` automatically after successful mainnet broadcast
 - Post-deploy verification should not return `contract ... does not have any code`
+- Local indexer runtime check prints: `✅ local indexer query check passed (root garden, domain mask, and actions ingested)`
+
+Local indexer runtime check prerequisites:
+
+1. Docker Desktop running (Envio local stack uses docker compose).
+2. Local ports available: `8080` (GraphQL), `5433` (Postgres), `9898` (indexer).
+3. Fresh deployment JSON exists for the target chain (`packages/contracts/deployments/<chainId>-latest.json`).
 
 If post-deploy verification fails with `does not have any code`:
 
@@ -160,9 +188,11 @@ bun run deploy:mainnet
 bun run deploy:dry:sepolia
 bun run deploy:sepolia
 bun run verify:post-deploy:sepolia
+bun run verify:post-deploy:indexer:local:sepolia
 bun run deploy:dry:arbitrum
 bun run deploy:arbitrum
 bun run verify:post-deploy:arbitrum
+bun run verify:post-deploy:indexer:local:arbitrum
 ```
 
 Compile-only preflight (no RPC calls) is still available:

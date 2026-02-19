@@ -66,7 +66,7 @@ export const createAssessmentSchema = baseAssessmentSchema.superRefine((data, ct
   if (
     !Number.isNaN(startTimestamp) &&
     !Number.isNaN(endTimestamp) &&
-    endTimestamp < startTimestamp
+    endTimestamp <= startTimestamp
   ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

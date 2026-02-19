@@ -21,6 +21,7 @@ import {
 } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
 import { wagmiConfig } from "../../config/appkit";
+import { getChain } from "../../config/chains";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useCreateGardenStore } from "../../stores/useCreateGardenStore";
 import {
@@ -111,72 +112,78 @@ export function useCreateGardenWorkflow() {
   const queryClient = useQueryClient();
   const { runWithLock, isPending: isLockPending } = useMutationLock();
 
-  // Store mutable dependencies in refs so the machine actor can read
-  // current values without recreating the machine on every change
-  const walletClientRef = useRef(walletClient);
-  const addressRef = useRef(address);
-  const chainIdRef = useRef(selectedChainId);
-  const addPendingTxRef = useRef(addPendingTransaction);
-  const queryClientRef = useRef(queryClient);
-  const storeNextStepRef = useRef(storeNextStep);
-  const storePreviousStepRef = useRef(storePreviousStep);
-  const storeGoToReviewRef = useRef(storeGoToReview);
-  const storeGoToFirstIncompleteRef = useRef(storeGoToFirstIncomplete);
-
-  useEffect(() => {
-    walletClientRef.current = walletClient;
-  }, [walletClient]);
-  useEffect(() => {
-    addressRef.current = address;
-  }, [address]);
-  useEffect(() => {
-    chainIdRef.current = selectedChainId;
-  }, [selectedChainId]);
-  useEffect(() => {
-    addPendingTxRef.current = addPendingTransaction;
-  }, [addPendingTransaction]);
-  useEffect(() => {
-    queryClientRef.current = queryClient;
-  }, [queryClient]);
-  useEffect(() => {
-    storeNextStepRef.current = storeNextStep;
-  }, [storeNextStep]);
-  useEffect(() => {
-    storePreviousStepRef.current = storePreviousStep;
-  }, [storePreviousStep]);
-  useEffect(() => {
-    storeGoToReviewRef.current = storeGoToReview;
-  }, [storeGoToReview]);
-  useEffect(() => {
-    storeGoToFirstIncompleteRef.current = storeGoToFirstIncomplete;
-  }, [storeGoToFirstIncomplete]);
+  // Keep mutable dependencies current for the long-lived machine actor/actions.
+  const dependenciesRef = useRef({
+    walletClient,
+    address,
+    chainId: selectedChainId,
+    addPendingTransaction,
+    queryClient,
+    storeNextStep,
+    storePreviousStep,
+    storeGoToReview,
+    storeGoToFirstIncomplete,
+    scheduleGardenRefresh: () => {},
+  });
 
   const { start: scheduleGardenRefresh } = useDelayedInvalidation(
     useCallback(() => {
+      const { chainId, queryClient: latestQueryClient } = dependenciesRef.current;
       queryInvalidation
-        .invalidateGardens(chainIdRef.current)
-        .forEach((queryKey) => queryClientRef.current.invalidateQueries({ queryKey }));
+        .invalidateGardens(chainId)
+        .forEach((queryKey) => latestQueryClient.invalidateQueries({ queryKey }));
     }, []),
     INDEXER_LAG_FOLLOWUP_MS
   );
-  const scheduleGardenRefreshRef = useRef(scheduleGardenRefresh);
+
   useEffect(() => {
-    scheduleGardenRefreshRef.current = scheduleGardenRefresh;
-  }, [scheduleGardenRefresh]);
+    dependenciesRef.current = {
+      ...dependenciesRef.current,
+      walletClient,
+      address,
+      chainId: selectedChainId,
+      addPendingTransaction,
+      queryClient,
+      storeNextStep,
+      storePreviousStep,
+      storeGoToReview,
+      storeGoToFirstIncomplete,
+      scheduleGardenRefresh,
+    };
+  }, [
+    walletClient,
+    address,
+    selectedChainId,
+    addPendingTransaction,
+    queryClient,
+    storeNextStep,
+    storePreviousStep,
+    storeGoToReview,
+    storeGoToFirstIncomplete,
+    scheduleGardenRefresh,
+  ]);
 
   const machine = useMemo(
     () =>
       createGardenMachine.provide({
         actors: {
           submitGarden: fromPromise<string, void>(async () => {
-            const params = useCreateGardenStore.getState().getParams();
+            const gardenStoreState = useCreateGardenStore.getState();
+            const params = gardenStoreState.getParams();
             if (!params) {
               throw new Error("Garden form is incomplete");
             }
+            const plannedGardeners = gardenStoreState.form.gardeners;
+            const plannedOperators = gardenStoreState.form.operators;
 
-            const currentWalletClient = walletClientRef.current;
-            const currentAddress = addressRef.current;
-            const currentChainId = chainIdRef.current;
+            const {
+              walletClient: currentWalletClient,
+              address: currentAddress,
+              chainId: currentChainId,
+              addPendingTransaction: addPendingTx,
+              queryClient: latestQueryClient,
+              scheduleGardenRefresh: scheduleRefresh,
+            } = dependenciesRef.current;
 
             if (!currentWalletClient || !currentAddress || !isAddress(currentAddress)) {
               throw new Error("Connect a wallet to deploy the garden");
@@ -187,6 +194,15 @@ export function useCreateGardenWorkflow() {
               gardenName: params.name,
               chainId: currentChainId,
             });
+
+            if (plannedGardeners.length > 0 || plannedOperators.length > 0) {
+              logger.info("Garden created with planned members requiring post-deploy assignment", {
+                source: "useCreateGardenWorkflow.submitGarden",
+                plannedGardenerCount: plannedGardeners.length,
+                plannedOperatorCount: plannedOperators.length,
+                chainId: currentChainId,
+              });
+            }
 
             try {
               const contracts = getNetworkContracts(currentChainId);
@@ -216,7 +232,8 @@ export function useCreateGardenWorkflow() {
                 GardenTokenABI,
                 "mintGarden",
                 [config],
-                accountAddress
+                accountAddress,
+                currentChainId
               );
 
               if (!simulation.success) {
@@ -231,9 +248,10 @@ export function useCreateGardenWorkflow() {
                 account: accountAddress,
                 args: [config],
                 value: ccipFee,
+                chain: getChain(currentChainId),
               });
 
-              addPendingTxRef.current(txHash, "garden:create");
+              addPendingTx(txHash, "garden:create");
 
               // Wait for on-chain confirmation before declaring success
               await waitForTransactionReceipt(wagmiConfig, {
@@ -252,9 +270,9 @@ export function useCreateGardenWorkflow() {
               // Invalidate garden queries so the list updates immediately
               queryInvalidation
                 .invalidateGardens(currentChainId)
-                .forEach((queryKey) => queryClientRef.current.invalidateQueries({ queryKey }));
+                .forEach((queryKey) => latestQueryClient.invalidateQueries({ queryKey }));
               // Schedule follow-up for indexer lag
-              scheduleGardenRefreshRef.current();
+              scheduleRefresh();
 
               return txHash;
             } catch (error) {
@@ -269,16 +287,16 @@ export function useCreateGardenWorkflow() {
         },
         actions: {
           goToNextStep: () => {
-            storeNextStepRef.current();
+            dependenciesRef.current.storeNextStep();
           },
           goToPreviousStep: () => {
-            storePreviousStepRef.current();
+            dependenciesRef.current.storePreviousStep();
           },
           goToReviewStep: () => {
-            storeGoToReviewRef.current();
+            dependenciesRef.current.storeGoToReview();
           },
           goToFirstIncompleteStep: () => {
-            storeGoToFirstIncompleteRef.current();
+            dependenciesRef.current.storeGoToFirstIncomplete();
           },
         },
       }),
@@ -299,9 +317,8 @@ export function useCreateGardenWorkflow() {
 
   // Navigation handlers that bridge store and machine
   const openFlow = useCallback(() => {
-    storeReset();
     send({ type: "OPEN" });
-  }, [send, storeReset]);
+  }, [send]);
 
   const closeFlow = useCallback(() => {
     storeReset();
@@ -340,8 +357,8 @@ export function useCreateGardenWorkflow() {
       throw new Error("Garden form is incomplete");
     }
 
-    const currentAddress = addressRef.current;
-    const currentChainId = chainIdRef.current;
+    const currentAddress = dependenciesRef.current.address;
+    const currentChainId = dependenciesRef.current.chainId;
 
     if (!currentAddress || !isAddress(currentAddress)) {
       throw new Error("Connect a wallet to estimate deployment cost");

@@ -1,0 +1,606 @@
+[
+  {
+    "type": "function",
+    "name": "batchCreateHats",
+    "inputs": [
+      {
+        "name": "_admins",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "_details",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "_maxSupplies",
+        "type": "uint32[]",
+        "internalType": "uint32[]"
+      },
+      {
+        "name": "_eligibilityModules",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "_toggleModules",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "_mutables",
+        "type": "bool[]",
+        "internalType": "bool[]"
+      },
+      {
+        "name": "_imageURIs",
+        "type": "string[]",
+        "internalType": "string[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "success",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "batchMintHats",
+    "inputs": [
+      {
+        "name": "_hatIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "_wearers",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "success",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "changeHatDetails",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_newDetails",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "changeHatEligibility",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_newEligibility",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "changeHatImageURI",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_newImageURI",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "changeHatMaxSupply",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_newMaxSupply",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "changeHatToggle",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_newToggle",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "checkHatStatus",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "toggled",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "checkHatWearerStatus",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_wearer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "updated",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createHat",
+    "inputs": [
+      {
+        "name": "_admin",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_details",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "_maxSupply",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "_eligibility",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_toggle",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_mutable",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "_imageURI",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "newHatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getAdminAtLevel",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_level",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "adminHatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "getHatImageUri",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "imageUri",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getHatLevel",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "level",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getNextId",
+    "inputs": [
+      {
+        "name": "_admin",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "nextId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isActive",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "active",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isAdminOfHat",
+    "inputs": [
+      {
+        "name": "_user",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "isAdmin",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isTopHat",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "isTopHat_",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isWearerOfHat",
+    "inputs": [
+      {
+        "name": "_user",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "isWearer",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "makeHatImmutable",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "mintHat",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_wearer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "success",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "mintTopHat",
+    "inputs": [
+      {
+        "name": "_target",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_details",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "_imageURI",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "topHatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setHatWearerStatus",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_wearer",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_eligible",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "_standing",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "updated",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "transferHat",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_from",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_to",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "viewHat",
+    "inputs": [
+      {
+        "name": "_hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "details",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "maxSupply",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "supply",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "eligibility",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "toggle",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "imageURI",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "lastHatId",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "mutable_",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "active",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

@@ -10,7 +10,7 @@
         "decimals": 18
       },
       "blockExplorer": "https://etherscan.io",
-      "verifyApiUrl": "https://api.etherscan.io/api",
+      "verifyApiUrl": "https://api.etherscan.io/v2/api",
       "verifyApiKey": "${ETHERSCAN_API_KEY}",
       "deployConfig": {
         "gasPrice": "auto",
@@ -39,7 +39,7 @@
         "decimals": 18
       },
       "blockExplorer": "https://sepolia.etherscan.io",
-      "verifyApiUrl": "https://api-sepolia.etherscan.io/api",
+      "verifyApiUrl": "https://api.etherscan.io/v2/api",
       "verifyApiKey": "${ETHERSCAN_API_KEY}",
       "deployConfig": {
         "gasPrice": "auto",

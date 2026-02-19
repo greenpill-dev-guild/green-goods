@@ -55,7 +55,10 @@ export function ReviewStep() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-              {formatMessage({ id: "app.garden.create.gardeners", defaultMessage: "Gardeners" })}
+              {formatMessage({
+                id: "app.garden.create.plannedGardeners",
+                defaultMessage: "Planned gardeners",
+              })}
             </h4>
             {form.gardeners.length === 0 ? (
               <p className="mt-2 text-xs text-text-soft">
@@ -76,7 +79,10 @@ export function ReviewStep() {
           </div>
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-              {formatMessage({ id: "app.garden.create.operators", defaultMessage: "Operators" })}
+              {formatMessage({
+                id: "app.garden.create.plannedOperators",
+                defaultMessage: "Planned operators",
+              })}
             </h4>
             {form.operators.length === 0 ? (
               <p className="mt-2 text-xs text-text-soft">
@@ -96,6 +102,13 @@ export function ReviewStep() {
             )}
           </div>
         </div>
+        <p className="rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-xs text-text-soft">
+          {formatMessage({
+            id: "app.garden.create.teamAssignmentNotice",
+            defaultMessage:
+              "Planned members are not assigned during deployment. Add them from Garden Members after creation.",
+          })}
+        </p>
       </div>
     </div>
   );

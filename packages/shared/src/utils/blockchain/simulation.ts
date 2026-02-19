@@ -66,7 +66,8 @@ export async function simulateTransaction(
   abi: Abi,
   functionName: string,
   args: unknown[] = [],
-  account: Address
+  account: Address,
+  chainId?: number
 ): Promise<SimulationResult> {
   try {
     const result = await simulateContract(wagmiConfig, {
@@ -75,6 +76,7 @@ export async function simulateTransaction(
       functionName,
       args,
       account,
+      chainId,
     });
 
     return {

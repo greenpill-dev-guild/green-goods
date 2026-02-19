@@ -1,10 +1,10 @@
 import {
   cn,
   createActionSchema,
-  debugError,
   DEFAULT_CHAIN_ID,
   defaultTemplate,
   instructionTemplates,
+  logger,
   toastService,
   uploadFileToIPFS,
   useActionOperations,
@@ -76,8 +76,17 @@ export default function CreateAction() {
 
       navigate("/actions");
     } catch (error) {
-      debugError("Failed to create action:", error);
-      toastService.error({ title: "Failed to create action" });
+      logger.error("Failed to create action", {
+        source: "CreateAction.onSubmit",
+        error: error instanceof Error ? error.message : String(error),
+        title: data.title,
+        mediaCount: data.media.length,
+      });
+      toastService.error({
+        title: "Failed to create action",
+        context: "action creation",
+        error,
+      });
     }
   };
 
@@ -149,7 +158,7 @@ export default function CreateAction() {
           </div>
         );
 
-      case 1:
+      case 1: {
         const capitals = form.watch("capitals");
         const CAPITALS_OPTIONS = [
           { value: 0, label: "Social" },
@@ -244,6 +253,7 @@ export default function CreateAction() {
             </div>
           </div>
         );
+      }
 
       case 2:
         return (
@@ -304,7 +314,7 @@ export default function CreateAction() {
           </div>
         );
 
-      case 3:
+      case 3: {
         const data = form.getValues();
         return (
           <div className="space-y-4">
@@ -334,6 +344,7 @@ export default function CreateAction() {
             </div>
           </div>
         );
+      }
 
       default:
         return null;

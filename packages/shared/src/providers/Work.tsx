@@ -240,14 +240,14 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       // Build generic details from form data (exclude fixed fields)
       const { feedback: _feedback, timeSpentMinutes: _time, ...dynamicFields } = data;
 
-      const storeAudioNotes = useWorkFlowStore.getState().audioNotes;
+      const audioNotesSnapshot = useWorkFlowStore.getState().audioNotes.slice();
       const draft = {
         feedback: data.feedback ?? "",
         details: dynamicFields as Record<string, unknown>,
         ...(typeof data.timeSpentMinutes === "number"
           ? { timeSpentMinutes: data.timeSpentMinutes }
           : {}),
-        ...(storeAudioNotes.length > 0 ? { audioNotes: storeAudioNotes } : {}),
+        ...(audioNotesSnapshot.length > 0 ? { audioNotes: audioNotesSnapshot } : {}),
       };
 
       const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images, {

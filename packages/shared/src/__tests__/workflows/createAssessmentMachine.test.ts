@@ -386,6 +386,35 @@ describe("workflows/createAssessmentMachine", () => {
   // ------------------------------------------
 
   describe("submitting state", () => {
+    it("allows CLOSE while submitting to return to idle", () => {
+      const machine = createAssessmentMachine.provide({
+        actors: {
+          submitAssessment: fromPromise<string, CreateAssessmentForm>(
+            async () =>
+              await new Promise<string>((resolve) => {
+                setTimeout(() => resolve("0xDelayedSuccess"), 1000);
+              })
+          ),
+        },
+      });
+      const actor = createActor(machine);
+      actor.start();
+
+      actor.send({ type: "START", params: createValidParams() });
+      actor.send({ type: "SUBMIT" });
+      expect(actor.getSnapshot().value).toBe("submitting");
+
+      actor.send({ type: "CLOSE" });
+
+      expect(actor.getSnapshot().value).toBe("idle");
+      expect(actor.getSnapshot().context.assessmentParams).toBeUndefined();
+      expect(actor.getSnapshot().context.error).toBeUndefined();
+      expect(actor.getSnapshot().context.txHash).toBeUndefined();
+      expect(actor.getSnapshot().context.retryCount).toBe(0);
+
+      actor.stop();
+    });
+
     it("transitions to success when actor resolves", async () => {
       const machine = createMachineWithSuccessActor("0xSuccessTxHash");
       const actor = createActor(machine);

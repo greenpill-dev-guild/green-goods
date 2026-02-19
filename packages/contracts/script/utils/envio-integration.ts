@@ -28,8 +28,13 @@ interface DeploymentData {
   hatsModule?: string;
   octantModule?: string;
   octantVault?: string;
+  gardensModule?: string;
   yieldSplitter?: string;
+  cookieJarModule?: string;
   hypercertMinter?: string;
+  marketplaceAdapter?: string;
+  unifiedPowerRegistry?: string;
+  greenGoodsENS?: string;
   [key: string]: string | undefined;
 }
 
@@ -53,8 +58,13 @@ const INDEXER_MANAGED_CONTRACT_ORDER = [
   "HatsModule",
   "OctantModule",
   "OctantVault",
+  "GardensModule",
   "YieldSplitter",
+  "CookieJarModule",
   "HypercertMinter",
+  "HypercertMarketplaceAdapter",
+  "UnifiedPowerRegistry",
+  "GreenGoodsENS",
 ] as const;
 
 const INDEXER_MANAGED_CONTRACTS = new Set<string>(INDEXER_MANAGED_CONTRACT_ORDER);
@@ -256,7 +266,12 @@ export class EnvioIntegration {
       upsertContract("HatsModule", deployment.hatsModule);
       upsertContract("OctantModule", deployment.octantModule);
       upsertContract("OctantVault", deployment.octantVault);
-      // OctantVault and HypercertMinter may be absent in deployment JSON for some networks.
+      upsertContract("GardensModule", deployment.gardensModule);
+      upsertContract("CookieJarModule", deployment.cookieJarModule);
+      upsertContract("HypercertMarketplaceAdapter", deployment.marketplaceAdapter);
+      upsertContract("UnifiedPowerRegistry", deployment.unifiedPowerRegistry);
+      upsertContract("GreenGoodsENS", deployment.greenGoodsENS);
+      // Some contracts may be absent in deployment JSON for specific networks.
       // In that case, we preserve existing config entries (including placeholders).
       upsertContract("YieldSplitter", deployment.yieldSplitter);
       upsertContract("HypercertMinter", deployment.hypercertMinter);

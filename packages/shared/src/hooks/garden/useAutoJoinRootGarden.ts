@@ -20,7 +20,6 @@ import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
 import { logger } from "../../modules/app/logger";
 import { trackNetworkError } from "../../modules/app/error-tracking";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
-import { GARDEN_ACCOUNT_ROLE_ABI } from "../../utils/blockchain/abis";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
@@ -62,7 +61,7 @@ export async function checkMembership(address: string): Promise<{
   try {
     const isGardener = await readContract(wagmiConfig, {
       address: rootGarden.address,
-      abi: GARDEN_ACCOUNT_ROLE_ABI,
+      abi: GardenAccountABI,
       functionName: "isGardener",
       args: [address as `0x${string}`],
     });

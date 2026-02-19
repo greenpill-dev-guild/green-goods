@@ -118,7 +118,7 @@ export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/we
  * Options for validating work submission context
  */
 export interface ValidateWorkContextOptions {
-  /** Minimum required images (from action config). Defaults to 1 if not provided. */
+  /** Minimum required images (from action config). Defaults to 0 if not provided. */
   minRequired?: number;
 }
 
@@ -141,8 +141,8 @@ export function validateWorkSubmissionContext(
 ): string[] {
   const errors: string[] = [];
 
-  // Default to 1 if not specified (backward compatibility)
-  const minRequired = options.minRequired ?? 1;
+  // Default to 0 so direct callers don't accidentally require media.
+  const minRequired = options.minRequired ?? 0;
 
   if (!gardenAddress) {
     errors.push("Garden must be selected");

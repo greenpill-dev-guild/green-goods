@@ -92,7 +92,8 @@
       "ms-azuretools.vscode-docker",
       "GraphQL.vscode-graphql",
       "GraphQL.vscode-graphql-syntax"
-    ]
+    ],
+    "chatgpt.openOnStartup": true
   },
   "extensions": {
     "recommendations": [

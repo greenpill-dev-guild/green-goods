@@ -32,7 +32,13 @@ export default function GardenVaultView() {
   const garden = gardens.find((item) => item.id === id);
   const permissions = useGardenPermissions();
 
-  const { vaults, isLoading: vaultsLoading } = useGardenVaults(garden?.id ?? id, {
+  const {
+    vaults,
+    isLoading: vaultsLoading,
+    isError: vaultsHasError,
+    refetch: refetchVaults,
+    isFetching: vaultsFetching,
+  } = useGardenVaults(garden?.id ?? id, {
     enabled: Boolean(garden?.id ?? id),
   });
 
@@ -162,7 +168,28 @@ export default function GardenVaultView() {
           </p>
         )}
 
-        {!vaultsLoading && vaults.length === 0 && (
+        {vaultsHasError && (
+          <div
+            role="alert"
+            className="rounded-md border border-error-light bg-error-lighter px-4 py-3 text-sm text-error-dark"
+          >
+            <p>{formatMessage({ id: "app.treasury.errorLoading" })}</p>
+            <button
+              type="button"
+              onClick={() => {
+                void refetchVaults();
+              }}
+              disabled={vaultsFetching}
+              className="mt-2 rounded-md border border-error-light px-3 py-1.5 text-xs font-medium text-error-dark hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {vaultsFetching
+                ? formatMessage({ id: "app.common.refreshing" })
+                : formatMessage({ id: "app.common.tryAgain" })}
+            </button>
+          </div>
+        )}
+
+        {!vaultsLoading && !vaultsHasError && vaults.length === 0 && (
           <p className="rounded-md border border-stroke-soft bg-bg-white px-4 py-3 text-sm text-text-soft">
             {formatMessage({ id: "app.treasury.noVault" })}
           </p>

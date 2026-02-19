@@ -68,6 +68,14 @@ export function getVaultAssetDecimals(
   return ASSET_DECIMALS_BY_CHAIN[chainId]?.[normalized] ?? 18;
 }
 
+export function hasVaultAssetDecimals(
+  assetAddress: string,
+  chainId: number = DEFAULT_CHAIN_ID
+): boolean {
+  const normalized = assetAddress.toLowerCase();
+  return typeof ASSET_DECIMALS_BY_CHAIN[chainId]?.[normalized] === "number";
+}
+
 /**
  * Validates a decimal string for token amount input.
  * Returns an i18n error key if the input is non-empty but invalid, or null if valid/empty.

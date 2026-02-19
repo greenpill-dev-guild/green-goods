@@ -14,7 +14,7 @@ src/
 │   └── Hats.sol        # Role management
 ├── registries/          # Protocol registries
 │   ├── Action.sol      # Action registry
-│   └── Gardener.sol    # ENS subdomains + passkey recovery
+│   └── ENS.sol         # ENS subdomain registration (CCIP)
 ├── resolvers/           # EAS schema resolvers
 │   ├── GreenGoods.sol  # Central fan-out resolver
 │   ├── Assessment.sol  # Assessment attestations
@@ -278,9 +278,9 @@ function onWorkApproved(address garden, string name, bytes32 workUID, address wo
 - Per-garden badge configuration
 - Supports permanent or time-limited badges
 
-**HatsModule** — Role management (planned)
-- DAO-style permissions
-- Garden-specific role trees
+**HatsModule** — Role management
+- Hats Protocol RBAC with 6-role garden trees (Owner, Operator, Evaluator, Gardener, Funder, Community)
+- Garden-specific role trees created during minting
 
 **Location:** `src/modules/`
 
@@ -295,16 +295,16 @@ NFT representing gardens in the protocol.
 
 **Location:** `src/tokens/Garden.sol`
 
-### GardenerRegistry
+### GreenGoodsENS
 
-Manages greengoods.eth subdomain registration with passkey recovery.
+Manages greengoods.eth subdomain registration via Chainlink CCIP (L2 to L1).
 
 **Key features:**
-- ENS subdomain management
-- WebAuthn credential storage for recovery
-- Mainnet-only (ENS coordination)
+- ENS subdomain registration for gardens and users
+- CCIP cross-chain messaging (L2 sender to L1 receiver)
+- Sponsored claims for passkey users
 
-**Location:** `src/registries/Gardener.sol`
+**Location:** `src/registries/ENS.sol`
 
 ### ActionRegistry
 
@@ -401,17 +401,17 @@ deployments/
 ### Running Tests
 
 ```bash
-# Run all tests
-bun test
+# Run all tests (never use raw forge commands)
+bun run test
 
 # Run specific test
-forge test --match-test testGardenToken
+bun run test -- --match-test testGardenToken
 
-# Gas report
-forge test --gas-report
+# Fork tests (needs RPC URLs)
+bun run test:fork
 
-# Coverage
-forge coverage
+# E2E workflow
+bun run test:e2e:workflow
 ```
 
 ### Test Structure
@@ -502,15 +502,12 @@ try octantModule.onWorkApproved(garden, name) returns (address vault) {
 
 ## Deep Dive Rules
 
-Detailed patterns in `.cursor/rules/`:
+Detailed patterns in `.claude/rules/`:
 
-- **rules.mdc** — Solidity style, linting, testing, gas optimization
-- **deployment-patterns.mdc** — deploy.ts usage, CLI structure
-- **schema-management.mdc** — EAS schema immutability
-- **uups-upgrades.mdc** — Storage gaps, upgrade safety
+- **contracts.md** — Solidity style, bun scripts, testing, gas optimization
 
 ## Reference Documentation
 
 - Contracts README: `/packages/contracts/README.md`
-- Deployment guide: `/docs/developer/contracts-handbook.md`
+- Docs site: [docs.greengoods.app](https://docs.greengoods.app)
 - Root agent guide: `/AGENTS.md`

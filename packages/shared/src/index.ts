@@ -694,6 +694,7 @@ export {
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
+  hasVaultAssetDecimals,
   isZeroAddressValue,
   // Address utilities
   isAddressInList,

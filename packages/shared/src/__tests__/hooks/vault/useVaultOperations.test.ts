@@ -101,12 +101,12 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("runs two-step deposit flow (approve -> deposit) when allowance is insufficient", async () => {
-    // First call: allowance check (returns 0n = insufficient)
-    // Second call: post-approval allowance re-check (returns 10n = sufficient)
-    // Third call: previewDeposit for slippage check (returns 10n shares)
+    // Read sequence:
+    // 1) maxDeposit, 2) previewDeposit, 3) allowance, 4) refreshed allowance
     mockReadContract
-      .mockResolvedValueOnce(0n)
+      .mockResolvedValueOnce(100n)
       .mockResolvedValueOnce(10n)
+      .mockResolvedValueOnce(0n)
       .mockResolvedValueOnce(10n);
     mockWriteContractAsync.mockResolvedValue(
       "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -133,10 +133,10 @@ describe("hooks/vault/useVaultOperations", () => {
       });
     });
 
-    // readContract called three times: allowance + refreshed allowance + previewDeposit
-    expect(mockReadContract).toHaveBeenCalledTimes(3);
+    // readContract called four times: maxDeposit + preview + allowance + refreshed allowance
+    expect(mockReadContract).toHaveBeenCalledTimes(4);
     expect(mockReadContract).toHaveBeenNthCalledWith(
-      2,
+      3,
       expect.anything(),
       expect.objectContaining({
         address: TEST_ASSET,
@@ -162,9 +162,8 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("skips approve when allowance is already sufficient", async () => {
-    // First call: allowance check (returns 100n = sufficient for amount 10n)
-    // Second call: previewDeposit for slippage check (returns 10n shares)
-    mockReadContract.mockResolvedValueOnce(100n).mockResolvedValueOnce(10n);
+    // Read sequence: maxDeposit, previewDeposit, allowance
+    mockReadContract.mockResolvedValueOnce(100n).mockResolvedValueOnce(10n).mockResolvedValueOnce(100n);
     mockWriteContractAsync.mockResolvedValue(
       "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     );
@@ -334,9 +333,8 @@ describe("hooks/vault/useVaultOperations", () => {
       sendTransaction: mockSendTransaction,
     };
 
-    // First call: allowance check (returns 100n = sufficient)
-    // Second call: previewDeposit for slippage check (returns 10n shares)
-    mockReadContract.mockResolvedValueOnce(100n).mockResolvedValueOnce(10n);
+    // Read sequence: maxDeposit, previewDeposit, allowance
+    mockReadContract.mockResolvedValueOnce(100n).mockResolvedValueOnce(10n).mockResolvedValueOnce(100n);
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -368,10 +366,7 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("uses createMutationErrorHandler when a mutation fails", async () => {
-    // First call: allowance check (returns 0n = insufficient)
-    // Second call: previewDeposit for slippage check (returns 10n shares)
-    mockReadContract.mockResolvedValueOnce(0n).mockResolvedValueOnce(10n);
-    mockWriteContractAsync.mockRejectedValue(new Error("boom"));
+    mockReadContract.mockRejectedValueOnce(new Error("boom"));
 
     const queryClient = new QueryClient({
       defaultOptions: {

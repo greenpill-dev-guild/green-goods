@@ -1310,10 +1310,36 @@ contract Deploy is Script, DeploymentBase {
         console.log("\n=== Verification Commands ===");
         console.log("Run these if auto-verification failed:\n");
         string memory cid = vm.toString(block.chainid);
-        string memory gt = vm.toString(address(gardenToken));
-        string memory ar = vm.toString(address(actionRegistry));
-        console.log(string.concat("forge verify-contract ", gt, " src/tokens/Garden.sol:GardenToken --chain ", cid));
-        console.log(string.concat("forge verify-contract ", ar, " src/registries/Action.sol:ActionRegistry --chain ", cid));
+
+        // Core contracts (always deployed)
+        _verifyCmd(address(deploymentRegistry), "src/registries/Deployment.sol:Deployment", cid);
+        _verifyCmd(address(gardenAccountImpl), "src/accounts/Garden.sol:GardenAccount", cid);
+        _verifyCmd(address(gardenToken), "src/tokens/Garden.sol:GardenToken", cid);
+        _verifyCmd(address(actionRegistry), "src/registries/Action.sol:ActionRegistry", cid);
+        _verifyCmd(address(workResolver), "src/resolvers/Work.sol:WorkResolver", cid);
+        _verifyCmd(address(workApprovalResolver), "src/resolvers/WorkApproval.sol:WorkApprovalResolver", cid);
+        _verifyCmd(address(assessmentResolver), "src/resolvers/Assessment.sol:AssessmentResolver", cid);
+        _verifyCmd(address(hatsModule), "src/modules/Hats.sol:HatsModule", cid);
+
+        // Optional modules (may be zero on some chains)
+        _verifyCmd(address(karmaGAPModule), "src/modules/Karma.sol:KarmaGAPModule", cid);
+        _verifyCmd(address(octantModule), "src/modules/Octant.sol:OctantModule", cid);
+        _verifyCmd(address(gardensModule), "src/modules/Gardens.sol:GardensModule", cid);
+        _verifyCmd(address(unifiedPowerRegistry), "src/registries/Power.sol:UnifiedPowerRegistry", cid);
+        _verifyCmd(address(yieldSplitter), "src/resolvers/Yield.sol:YieldResolver", cid);
+        _verifyCmd(address(cookieJarModule), "src/modules/CookieJar.sol:CookieJarModule", cid);
+        _verifyCmd(address(hypercertsModule), "src/modules/Hypercerts.sol:HypercertsModule", cid);
+        _verifyCmd(
+            address(marketplaceAdapter), "src/markets/HypercertMarketplaceAdapter.sol:HypercertMarketplaceAdapter", cid
+        );
+        _verifyCmd(address(greenGoodsENS), "src/registries/ENS.sol:GreenGoodsENS", cid);
+
         console.log("=============================\n");
+    }
+
+    /// @notice Emit a single forge verify-contract command, skipping zero addresses
+    function _verifyCmd(address addr, string memory sourcePath, string memory chainId) internal view {
+        if (addr == address(0)) return;
+        console.log(string.concat("forge verify-contract ", vm.toString(addr), " ", sourcePath, " --chain ", chainId));
     }
 }

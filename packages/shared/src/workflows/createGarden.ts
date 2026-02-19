@@ -65,25 +65,29 @@ const createGardenSetup = setup({
     goToPreviousStep: () => {},
     goToReviewStep: () => {},
     goToFirstIncompleteStep: () => {},
-    storeTxHash: assign({
-      txHash: ({ event }) => (event as SubmitDoneEvent).output,
-      retryCount: 0,
+    storeTxHash: assign(({ event }) => {
+      if (event.type !== "done.invoke.submitGarden") return {};
+      return {
+        txHash: event.output,
+        retryCount: 0,
+      };
     }),
-    storeFailure: assign({
-      error: ({ event }) => {
-        const error = (event as SubmitErrorEvent).error;
-        if (error instanceof Error) {
-          return error.message;
-        }
-        if (typeof error === "string") {
-          return error;
-        }
+    storeFailure: assign(({ event }) => {
+      if (event.type !== "error.platform.submitGarden") return {};
+      const error = event.error;
+      let message = "Failed to create garden";
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (typeof error === "string") {
+        message = error;
+      } else {
         try {
-          return JSON.stringify(error);
+          message = JSON.stringify(error);
         } catch {
-          return "Failed to create garden";
+          message = "Failed to create garden";
         }
-      },
+      }
+      return { error: message };
     }),
     incrementRetry: assign({
       retryCount: ({ context }) => context.retryCount + 1,

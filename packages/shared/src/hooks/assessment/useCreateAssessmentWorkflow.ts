@@ -3,8 +3,10 @@ import { useMachine } from "@xstate/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ethers, type Eip1193Provider } from "ethers";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useIntl } from "react-intl";
 import { fromPromise } from "xstate";
 import { useAccount, useWalletClient } from "wagmi";
+import { toastService } from "../../components/toast";
 import { getEASConfig } from "../../config/blockchain";
 import { logger } from "../../modules/app/logger";
 import {
@@ -12,7 +14,7 @@ import {
   trackAdminAssessmentCreateStarted,
   trackAdminAssessmentCreateSuccess,
 } from "../../modules/app/analytics-events";
-import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
+import { getIpfsInitStatus, uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -57,6 +59,7 @@ export interface UseCreateAssessmentWorkflowOptions {
 
 export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflowOptions = {}) {
   const { gardenId: draftGardenId } = options;
+  const { formatMessage } = useIntl();
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
@@ -65,12 +68,49 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   const draft = useAssessmentDraft(draftGardenId, address, {
     enabled: !!draftGardenId && !!address,
   });
+  const { saveDraft, clearDraft, peekDraft, draftKey } = draft;
+  const draftPersistenceWarningShownRef = useRef(false);
+
+  const notifyDraftPersistenceIssue = useCallback(
+    (stage: "save" | "clear") => {
+      if (draftPersistenceWarningShownRef.current) return;
+      draftPersistenceWarningShownRef.current = true;
+
+      const titleId =
+        stage === "save"
+          ? "app.assessment.draftPersistence.saveFailed.title"
+          : "app.assessment.draftPersistence.clearFailed.title";
+      const messageId =
+        stage === "save"
+          ? "app.assessment.draftPersistence.saveFailed.message"
+          : "app.assessment.draftPersistence.clearFailed.message";
+
+      toastService.info({
+        title: formatMessage({
+          id: titleId,
+          defaultMessage:
+            stage === "save" ? "Draft backup unavailable" : "Draft cleanup incomplete",
+        }),
+        message: formatMessage({
+          id: messageId,
+          defaultMessage:
+            stage === "save"
+              ? "Assessment submission will continue, but your draft could not be saved."
+              : "Assessment submission succeeded, but the local draft could not be cleared.",
+        }),
+        context: "assessment draft",
+        suppressLogging: true,
+      });
+    },
+    [formatMessage]
+  );
 
   // Store mutable dependencies in refs so the machine actor can read
   // current values without recreating the machine on every change
   const addressRef = useRef(address);
   const walletClientRef = useRef(walletClient);
   const chainIdRef = useRef(selectedChainId);
+  const formatMessageRef = useRef(formatMessage);
 
   useEffect(() => {
     addressRef.current = address;
@@ -81,6 +121,9 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   useEffect(() => {
     chainIdRef.current = selectedChainId;
   }, [selectedChainId]);
+  useEffect(() => {
+    formatMessageRef.current = formatMessage;
+  }, [formatMessage]);
 
   const machine = useMemo(
     () =>
@@ -98,6 +141,19 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
 
               if (!currentWalletClient) {
                 throw new Error("No wallet client available");
+              }
+
+              if (
+                typeof currentWalletClient.chain?.id === "number" &&
+                currentWalletClient.chain.id !== currentChainId
+              ) {
+                throw new Error(
+                  formatMessageRef.current({
+                    id: "app.assessment.chainMismatch",
+                    defaultMessage:
+                      "Switch your wallet network to the selected chain before submitting this assessment.",
+                  })
+                );
               }
 
               trackAdminAssessmentCreateStarted({
@@ -143,6 +199,26 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                       failedCount: failed.length,
                       totalCount: params.evidenceMedia.length,
                     });
+                    toastService.info({
+                      title: formatMessageRef.current(
+                        {
+                          id: "app.assessment.partialEvidenceUpload.title",
+                          defaultMessage:
+                            "{failedCount} of {totalCount} evidence files failed to upload",
+                        },
+                        {
+                          failedCount: failed.length,
+                          totalCount: params.evidenceMedia.length,
+                        }
+                      ),
+                      message: formatMessageRef.current({
+                        id: "app.assessment.partialEvidenceUpload.message",
+                        defaultMessage:
+                          "The assessment was created with partial evidence. You can add more files later.",
+                      }),
+                      context: "assessment creation",
+                      suppressLogging: true,
+                    });
                   }
                   evidenceMediaCids = results
                     .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
@@ -151,11 +227,18 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
 
                 // Upload metrics JSON to IPFS
                 let metricsCid = "";
+                const metricsPayload =
+                  typeof params.metrics === "string"
+                    ? (() => {
+                        try {
+                          return JSON.parse(params.metrics);
+                        } catch {
+                          throw new Error("Invalid metrics JSON. Please provide valid JSON content.");
+                        }
+                      })()
+                    : params.metrics;
+
                 try {
-                  const metricsPayload =
-                    typeof params.metrics === "string"
-                      ? JSON.parse(params.metrics)
-                      : params.metrics;
                   const uploadedMetrics = await uploadJSONToIPFS(metricsPayload);
                   metricsCid = uploadedMetrics.cid;
                 } catch (error) {
@@ -163,7 +246,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                     source: "useCreateAssessmentWorkflow",
                     error,
                   });
-                  throw new Error("Invalid metrics JSON. Please provide valid JSON content.");
+                  throw error;
                 }
 
                 // Pack rich v1 data into a config JSON and upload to IPFS
@@ -248,11 +331,39 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
 
   const startCreation = useCallback(
     (params: AssessmentWorkflowParams & { gardenId: Address }) => {
+      const ipfsStatus = getIpfsInitStatus();
+      if (ipfsStatus.status === "failed" || ipfsStatus.status === "skipped_no_config") {
+        toastService.error({
+          title: formatMessage({
+            id: "app.assessment.storageUnavailable",
+            defaultMessage: "Storage unavailable",
+          }),
+          message: formatMessage({
+            id: "app.assessment.storageUnavailableMessage",
+            defaultMessage:
+              "Assessment uploads are unavailable right now. Please try again after storage is configured.",
+          }),
+          context: "assessment submission",
+          suppressLogging: true,
+        });
+        return false;
+      }
+
       send({ type: "START", params });
       // Persist draft to IndexedDB for offline resilience
-      void draft.saveDraft(params);
+      void (async () => {
+        const savedDraft = await saveDraft(params);
+        if (savedDraft) {
+          draftPersistenceWarningShownRef.current = false;
+          return;
+        }
+
+        if (!draftKey) return;
+        notifyDraftPersistenceIssue("save");
+      })();
+      return true;
     },
-    [send, draft]
+    [send, saveDraft, draftKey, notifyDraftPersistenceIssue, formatMessage]
   );
 
   const retry = useCallback(() => {
@@ -273,15 +384,34 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   const isSuccess = state.matches("success");
   const gardenId = state.context.assessmentParams?.gardenId;
   useEffect(() => {
-    if (isSuccess) {
-      void draft.clearDraft();
+    if (!isSuccess) return;
+
+    let cancelled = false;
+
+    const finalizeSuccess = async () => {
+      await clearDraft();
+      const persistedDraft = await peekDraft();
+      if (!cancelled) {
+        if (persistedDraft) {
+          notifyDraftPersistenceIssue("clear");
+        } else {
+          draftPersistenceWarningShownRef.current = false;
+        }
+      }
+
       // Invalidate assessment queries so the list updates immediately
       const keys = queryInvalidation.invalidateAssessments(gardenId, chainIdRef.current);
       for (const key of keys) {
         queryClient.invalidateQueries({ queryKey: key });
       }
-    }
-  }, [isSuccess, draft, gardenId, queryClient]);
+    };
+
+    void finalizeSuccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSuccess, clearDraft, peekDraft, notifyDraftPersistenceIssue, gardenId, queryClient]);
 
   return {
     state,

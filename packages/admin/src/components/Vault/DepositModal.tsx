@@ -5,6 +5,7 @@ import {
   formatTokenAmount,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
+  hasVaultAssetDecimals,
   useDepositForm,
   useUser,
   useDebouncedValue,
@@ -67,8 +68,12 @@ export function DepositModal({
     },
   });
 
-  const decimals =
-    balance?.decimals ?? getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
+  const hasStaticDecimals = selectedVault
+    ? hasVaultAssetDecimals(selectedVault.asset, selectedVault.chainId)
+    : false;
+  const fallbackDecimals = getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
+  const decimals = balance?.decimals ?? fallbackDecimals;
+  const decimalsReady = typeof balance?.decimals === "number" || hasStaticDecimals;
   const { form, amount, amountBigInt, amountErrorKey, hasBlockingError, resetAmount } =
     useDepositForm({
       decimals,
@@ -167,6 +172,7 @@ export function DepositModal({
                   value={amount}
                   onChange={(event) => amountField.onChange(event)}
                   placeholder="0.0"
+                  disabled={!decimalsReady || depositMutation.isPending}
                   aria-invalid={Boolean(amountError)}
                   aria-describedby={amountError ? "deposit-error" : undefined}
                   className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
@@ -184,6 +190,7 @@ export function DepositModal({
                       shouldValidate: true,
                     });
                   }}
+                  disabled={!decimalsReady || depositMutation.isPending}
                   className="rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub hover:bg-bg-weak"
                 >
                   {formatMessage({ id: "app.treasury.max" })}
@@ -200,6 +207,14 @@ export function DepositModal({
                   ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
                   : "--"}
               </p>
+              {!decimalsReady && selectedVault && (
+                <p className="text-xs text-warning-base" role="alert">
+                  {formatMessage({
+                    id: "app.treasury.decimalsUnavailable",
+                    defaultMessage: "Token metadata is still loading. Try again in a moment.",
+                  })}
+                </p>
+              )}
             </div>
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
@@ -236,6 +251,7 @@ export function DepositModal({
                 !primaryAddress ||
                 amountBigInt <= 0n ||
                 hasBlockingError ||
+                !decimalsReady ||
                 selectedVault?.paused ||
                 depositMutation.isPending
               }

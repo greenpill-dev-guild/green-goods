@@ -146,7 +146,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
 
         // Use DRY helper instead of inline invalidation
-        invalidateKeys(queryInvalidation.onJobCompleted(gardenId, chainId));
+        invalidateKeys(
+          queryInvalidation.onJobCompleted(gardenId, chainId, currentUserAddress ?? undefined)
+        );
       } else if (event.job.kind === "approval") {
         queueToasts.jobCompleted("approval");
         const approvalPayload = event.job.payload as ApprovalJobPayload;

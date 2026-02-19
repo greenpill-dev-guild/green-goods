@@ -171,6 +171,12 @@ export const createAssessmentMachine = createAssessmentSetup.createMachine({
           actions: ["storeFailure", "incrementRetry"],
         },
       },
+      on: {
+        CLOSE: {
+          target: "idle",
+          actions: "clearContext",
+        },
+      },
     },
     success: {
       on: {

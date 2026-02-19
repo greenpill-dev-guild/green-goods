@@ -1,18 +1,15 @@
 import {
   type Address,
-  clearFormDraft,
   ConfirmDialog,
   ErrorBoundary,
   type CreateAssessmentForm as WorkflowAssessmentForm,
-  loadFormDraft,
-  saveFormDraft,
   toastService,
   useCreateAssessmentWorkflow,
   useGardenDomains,
 } from "@green-goods/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RiErrorWarningLine } from "@remixicon/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
@@ -47,6 +44,80 @@ const stepConfigs: Step[] = [
   },
 ];
 
+function toInputDate(value: string | number | null | undefined): string {
+  if (!value) return "";
+
+  let timestampMs: number;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value) || value <= 0) return "";
+    timestampMs = value > 10_000_000_000 ? value : value * 1000;
+  } else {
+    const parsed = new Date(value).getTime();
+    if (Number.isNaN(parsed)) return "";
+    timestampMs = parsed;
+  }
+
+  if (!Number.isFinite(timestampMs) || timestampMs <= 0) return "";
+  return new Date(timestampMs).toISOString().slice(0, 10);
+}
+
+function toUnixSeconds(value: string): number {
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return 0;
+  return Math.floor(timestamp / 1000);
+}
+
+function toAssessmentFormDraft(
+  draft: WorkflowAssessmentForm,
+  fallback: CreateAssessmentForm
+): CreateAssessmentForm {
+  const metrics =
+    typeof draft.metrics === "string"
+      ? (() => {
+          try {
+            const parsed = JSON.parse(draft.metrics);
+            return typeof parsed === "object" && parsed !== null
+              ? (parsed as Record<string, unknown>)
+              : {};
+          } catch {
+            return {};
+          }
+        })()
+      : ((draft.metrics as Record<string, unknown> | null) ?? {});
+
+  const smartOutcomes = Array.isArray(metrics.smartOutcomes)
+    ? metrics.smartOutcomes.filter(
+        (item): item is { description: string; metric: string; target: number } =>
+          typeof item === "object" &&
+          item !== null &&
+          typeof (item as { description?: unknown }).description === "string" &&
+          typeof (item as { metric?: unknown }).metric === "string" &&
+          typeof (item as { target?: unknown }).target === "number"
+      )
+    : [];
+
+  return {
+    ...fallback,
+    title: draft.title ?? fallback.title,
+    description: draft.description ?? fallback.description,
+    location: draft.location ?? fallback.location,
+    diagnosis: typeof metrics.diagnosis === "string" ? metrics.diagnosis : fallback.diagnosis,
+    smartOutcomes: smartOutcomes.length > 0 ? smartOutcomes : fallback.smartOutcomes,
+    cynefinPhase:
+      typeof metrics.cynefinPhase === "number" ? metrics.cynefinPhase : fallback.cynefinPhase,
+    domain: typeof metrics.domain === "number" ? metrics.domain : fallback.domain,
+    selectedActionUIDs: Array.isArray(metrics.selectedActionUIDs)
+      ? metrics.selectedActionUIDs.filter((item): item is string => typeof item === "string")
+      : fallback.selectedActionUIDs,
+    sdgTargets: Array.isArray(metrics.sdgTargets)
+      ? metrics.sdgTargets.filter((item): item is number => typeof item === "number")
+      : fallback.sdgTargets,
+    reportingPeriodStart: toInputDate(draft.startDate),
+    reportingPeriodEnd: toInputDate(draft.endDate),
+    attachments: draft.evidenceMedia ?? [],
+  };
+}
+
 export default function CreateAssessment() {
   const { formatMessage } = useIntl();
   const { id: gardenId } = useParams<{ id: string }>();
@@ -64,8 +135,6 @@ export default function CreateAssessment() {
         ? gardenDomainMask
         : undefined;
 
-  const DRAFT_KEY = `assessment-v2-draft-${gardenId}`;
-
   const {
     state,
     startCreation,
@@ -73,7 +142,10 @@ export default function CreateAssessment() {
     retry,
     reset: resetWorkflow,
     canRetry,
-  } = useCreateAssessmentWorkflow();
+    draft,
+  } = useCreateAssessmentWorkflow({ gardenId });
+  const { loadDraft, saveDraft, draftKey } = draft;
+  const draftPersistenceWarningShownRef = useRef(false);
 
   const {
     register,
@@ -90,25 +162,101 @@ export default function CreateAssessment() {
     shouldUnregister: false,
   });
 
+  const buildWorkflowPayload = useCallback(
+    (formData: CreateAssessmentForm): WorkflowAssessmentForm | null => {
+      if (!gardenId) return null;
+
+      return {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        assessmentType: `domain-${formData.domain}`,
+        capitals: [],
+        metrics: {
+          diagnosis: formData.diagnosis,
+          smartOutcomes: formData.smartOutcomes,
+          cynefinPhase: formData.cynefinPhase,
+          domain: formData.domain,
+          selectedActionUIDs: formData.selectedActionUIDs,
+          sdgTargets: formData.sdgTargets,
+        },
+        evidenceMedia: formData.attachments ?? [],
+        reportDocuments: [],
+        impactAttestations: [],
+        startDate: toUnixSeconds(formData.reportingPeriodStart),
+        endDate: toUnixSeconds(formData.reportingPeriodEnd),
+        location: formData.location.trim(),
+        tags: formData.sdgTargets.map((id) => `sdg-${id}`),
+        gardenId: gardenId as Address,
+      };
+    },
+    [gardenId]
+  );
+
   const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");
   const isSuccess = state.matches("success");
 
   // Load draft on mount
   useEffect(() => {
-    const draft = loadFormDraft<CreateAssessmentForm>(DRAFT_KEY);
-    if (draft) {
-      resetForm(draft);
-    }
-  }, [DRAFT_KEY, resetForm]);
+    let cancelled = false;
 
-  // Save draft on form change
+    const restoreDraft = async () => {
+      const savedDraft = await loadDraft();
+      if (!savedDraft || cancelled) return;
+      resetForm(toAssessmentFormDraft(savedDraft, createDefaultAssessmentForm()));
+    };
+
+    void restoreDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadDraft, resetForm]);
+
+  // Save draft on form changes with a small debounce to reduce IDB writes
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const subscription = watch((value) => {
-      saveFormDraft(DRAFT_KEY, value);
+      const payload = buildWorkflowPayload({
+        ...createDefaultAssessmentForm(),
+        ...(value as Partial<CreateAssessmentForm>),
+      });
+      if (!payload) return;
+
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        void (async () => {
+          const savedDraft = await saveDraft(payload);
+          if (savedDraft) {
+            draftPersistenceWarningShownRef.current = false;
+            return;
+          }
+
+          if (!draftKey || draftPersistenceWarningShownRef.current) return;
+          draftPersistenceWarningShownRef.current = true;
+          toastService.info({
+            title: formatMessage({
+              id: "app.assessment.draftPersistence.saveFailed.title",
+              defaultMessage: "Draft backup unavailable",
+            }),
+            message: formatMessage({
+              id: "app.assessment.draftPersistence.saveFailed.message",
+              defaultMessage:
+                "Assessment submission will continue, but your draft could not be saved.",
+            }),
+            context: "assessment draft",
+            suppressLogging: true,
+          });
+        })();
+      }, 600);
     });
-    return () => subscription.unsubscribe();
-  }, [watch, DRAFT_KEY]);
+
+    return () => {
+      subscription.unsubscribe();
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [watch, buildWorkflowPayload, saveDraft, draftKey, formatMessage]);
 
   // Navigate on success
   useEffect(() => {
@@ -125,10 +273,9 @@ export default function CreateAssessment() {
         context: "assessment submission",
         suppressLogging: true,
       });
-      clearFormDraft(DRAFT_KEY);
       navigate(`/gardens/${gardenId}/assessments`);
     }
-  }, [isSuccess, navigate, gardenId, DRAFT_KEY, formatMessage]);
+  }, [isSuccess, navigate, gardenId, formatMessage]);
 
   useEffect(() => {
     resetWorkflow();
@@ -152,7 +299,8 @@ export default function CreateAssessment() {
         return;
       }
 
-      if (!gardenId) {
+      const payload = buildWorkflowPayload(formData);
+      if (!payload) {
         toastService.error({
           title: formatMessage({
             id: "app.assessment.selectGarden",
@@ -167,35 +315,6 @@ export default function CreateAssessment() {
         });
         return;
       }
-
-      // Build workflow payload from v2 form data
-      // The workflow hook still expects the old CreateAssessmentForm shape,
-      // so we map the new fields to the existing interface.
-      // This mapping will be updated when the workflow hook is upgraded.
-      // Cast gardenId from route param (string) to Address at the boundary
-      const payload: WorkflowAssessmentForm = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        // Map new fields to legacy interface until workflow is upgraded
-        assessmentType: `domain-${formData.domain}`,
-        capitals: [],
-        metrics: {
-          diagnosis: formData.diagnosis,
-          smartOutcomes: formData.smartOutcomes,
-          cynefinPhase: formData.cynefinPhase,
-          domain: formData.domain,
-          selectedActionUIDs: formData.selectedActionUIDs,
-          sdgTargets: formData.sdgTargets,
-        },
-        evidenceMedia: formData.attachments ?? [],
-        reportDocuments: [],
-        impactAttestations: [],
-        startDate: Math.floor(new Date(formData.reportingPeriodStart).getTime() / 1000),
-        endDate: Math.floor(new Date(formData.reportingPeriodEnd).getTime() / 1000),
-        location: formData.location.trim(),
-        tags: formData.sdgTargets.map((id) => `sdg-${id}`),
-        gardenId: gardenId as Address,
-      };
 
       setPendingPayload(payload);
       setShowGasConfirm(true);
@@ -254,8 +373,10 @@ export default function CreateAssessment() {
 
   const handleConfirmAssessment = () => {
     if (pendingPayload) {
-      startCreation(pendingPayload);
-      submitCreation();
+      const started = startCreation(pendingPayload);
+      if (started) {
+        submitCreation();
+      }
     }
     setShowGasConfirm(false);
     setPendingPayload(null);
