@@ -114,23 +114,29 @@ export class NetworkManager {
   getRpcUrl(networkName: string): string {
     const network = this.getNetwork(networkName);
     let rpcUrl = network.rpcUrl;
+    const derivedAlchemyRpc = this._deriveAlchemyRpcUrl(networkName);
 
     // Handle environment variable substitution (e.g., ${ARBITRUM_RPC_URL})
     if (rpcUrl.startsWith("${") && rpcUrl.endsWith("}")) {
       const envVar = rpcUrl.slice(2, -1);
       rpcUrl = process.env[envVar] || "";
 
-      if (!rpcUrl) {
-        const derivedAlchemyRpc = this._deriveAlchemyRpcUrl(networkName);
-        if (derivedAlchemyRpc) {
-          return derivedAlchemyRpc;
-        }
+      // Prefer Alchemy on supported networks when the configured RPC is a
+      // default public endpoint (for example publicnode) or missing.
+      if (derivedAlchemyRpc && this._shouldPreferAlchemyRpc(rpcUrl)) {
+        return derivedAlchemyRpc;
+      }
 
+      if (!rpcUrl) {
         throw new Error(
           `Environment variable ${envVar} not set for network ${networkName}. ` +
-            `Set ${envVar} or provide ALCHEMY_API_KEY/ALCHEMY_KEY for supported networks.`,
+            `Set ${envVar} or provide ALCHEMY_API_KEY/ALCHEMY_KEY/VITE_ALCHEMY_API_KEY for supported networks.`,
         );
       }
+    }
+
+    if (derivedAlchemyRpc && this._shouldPreferAlchemyRpc(rpcUrl)) {
+      return derivedAlchemyRpc;
     }
 
     return rpcUrl;
@@ -141,7 +147,7 @@ export class NetworkManager {
    * Returns null when key/network is unsupported so explicit RPC env vars still work.
    */
   private _deriveAlchemyRpcUrl(networkName: string): string | null {
-    const apiKey = process.env.ALCHEMY_API_KEY || process.env.ALCHEMY_KEY;
+    const apiKey = process.env.ALCHEMY_API_KEY || process.env.ALCHEMY_KEY || process.env.VITE_ALCHEMY_API_KEY;
     if (!apiKey) {
       return null;
     }
@@ -152,6 +158,14 @@ export class NetworkManager {
     }
 
     return `https://${networkPath}.g.alchemy.com/v2/${apiKey}`;
+  }
+
+  private _shouldPreferAlchemyRpc(rpcUrl: string): boolean {
+    if (!rpcUrl) {
+      return true;
+    }
+
+    return rpcUrl.toLowerCase().includes("publicnode.com");
   }
 
   /**

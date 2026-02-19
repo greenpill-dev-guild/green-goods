@@ -90,8 +90,11 @@ contract Deploy is Script, DeploymentBase {
             // Deployer (msg.sender) is the owner for all contracts
             deployFullStack(config.communityToken, msg.sender);
 
-            // 1b. Set community token on GardenToken (state variable, not per-config)
-            gardenToken.setCommunityToken(config.communityToken);
+            // 1b. Set community token on GardenToken (L2 protocol deployments only).
+            // Mainnet deploy path is ENS-only and does not deploy GardenToken.
+            if (!_isMainnetChain(block.chainid)) {
+                gardenToken.setCommunityToken(config.communityToken);
+            }
 
             // 2. Add production-specific governance features (L2 only)
             if (!_isMainnetChain(block.chainid)) {
