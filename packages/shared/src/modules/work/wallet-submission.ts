@@ -22,7 +22,7 @@ import { queryKeys } from "../../hooks/query-keys";
 import type { EASWork, EASWorkApproval } from "../../types/eas-responses";
 import { ANALYTICS_EVENTS, trackWalletSubmissionTiming } from "../../modules/app/analytics-events";
 import { track } from "../../modules/app/posthog";
-import { pollQueriesAfterTransaction } from "../../utils/blockchain/polling";
+import { pollQueriesAfterTransaction, TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { logger } from "../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
@@ -59,7 +59,7 @@ export type OnProgressCallback = (stage: WalletSubmissionStage, message: string)
 export interface WalletSubmissionOptions {
   /** Callback for progress updates */
   onProgress?: OnProgressCallback;
-  /** Transaction timeout in milliseconds (default: 60000) */
+  /** Transaction timeout in milliseconds (default: TX_RECEIPT_TIMEOUT_MS) */
   txTimeout?: number;
 }
 
@@ -74,7 +74,7 @@ export interface WalletSubmissionOptions {
 async function waitForReceiptWithTimeout(
   hash: `0x${string}`,
   chainId: number,
-  timeoutMs: number = 60_000
+  timeoutMs: number = TX_RECEIPT_TIMEOUT_MS
 ): Promise<void> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -130,7 +130,7 @@ export async function submitWorkDirectly(
   images: File[],
   options: WalletSubmissionOptions = {}
 ): Promise<`0x${string}`> {
-  const { onProgress, txTimeout = 60_000 } = options;
+  const { onProgress, txTimeout = TX_RECEIPT_TIMEOUT_MS } = options;
   const startTime = Date.now();
 
   debugLog("[WalletSubmission] Starting direct work submission", { gardenAddress, actionUID });
@@ -453,7 +453,7 @@ export async function submitApprovalDirectly(
 export interface BatchApprovalOptions {
   /** Callback for progress updates */
   onProgress?: OnProgressCallback;
-  /** Transaction timeout in milliseconds (default: 90000 for batch) */
+  /** Transaction timeout in milliseconds (default: TX_RECEIPT_TIMEOUT_MS for batch) */
   txTimeout?: number;
 }
 
@@ -495,7 +495,7 @@ export async function submitBatchApprovalsDirectly(
     throw new Error("No approvals provided. At least one approval is required.");
   }
 
-  const { onProgress, txTimeout = 90_000 } = options;
+  const { onProgress, txTimeout = TX_RECEIPT_TIMEOUT_MS } = options;
   const startTime = Date.now();
 
   debugLog("[WalletSubmission] Starting batch approval submission", {

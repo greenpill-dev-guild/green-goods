@@ -32,8 +32,11 @@ import {
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { createGardenMachine, type CreateGardenFormStatus } from "../../workflows/createGarden";
 import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
+import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
+import { useMutationLock } from "../utils/useMutationLock";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 import { useGardenDraft } from "./useGardenDraft";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 
 export type { GardenDraft } from "./useGardenDraft";
 
@@ -99,11 +102,14 @@ export function useCreateGardenWorkflow() {
   const draft = useGardenDraft(address, { enabled: !!address });
 
   // Get store actions for step navigation
+  const storeNextStep = useCreateGardenStore((s) => s.nextStep);
+  const storePreviousStep = useCreateGardenStore((s) => s.previousStep);
   const storeGoToReview = useCreateGardenStore((s) => s.goToReview);
   const storeGoToFirstIncomplete = useCreateGardenStore((s) => s.goToFirstIncompleteStep);
   const storeReset = useCreateGardenStore((s) => s.reset);
 
   const queryClient = useQueryClient();
+  const { runWithLock, isPending: isLockPending } = useMutationLock();
 
   // Store mutable dependencies in refs so the machine actor can read
   // current values without recreating the machine on every change
@@ -112,6 +118,10 @@ export function useCreateGardenWorkflow() {
   const chainIdRef = useRef(selectedChainId);
   const addPendingTxRef = useRef(addPendingTransaction);
   const queryClientRef = useRef(queryClient);
+  const storeNextStepRef = useRef(storeNextStep);
+  const storePreviousStepRef = useRef(storePreviousStep);
+  const storeGoToReviewRef = useRef(storeGoToReview);
+  const storeGoToFirstIncompleteRef = useRef(storeGoToFirstIncomplete);
 
   useEffect(() => {
     walletClientRef.current = walletClient;
@@ -128,6 +138,18 @@ export function useCreateGardenWorkflow() {
   useEffect(() => {
     queryClientRef.current = queryClient;
   }, [queryClient]);
+  useEffect(() => {
+    storeNextStepRef.current = storeNextStep;
+  }, [storeNextStep]);
+  useEffect(() => {
+    storePreviousStepRef.current = storePreviousStep;
+  }, [storePreviousStep]);
+  useEffect(() => {
+    storeGoToReviewRef.current = storeGoToReview;
+  }, [storeGoToReview]);
+  useEffect(() => {
+    storeGoToFirstIncompleteRef.current = storeGoToFirstIncomplete;
+  }, [storeGoToFirstIncomplete]);
 
   const { start: scheduleGardenRefresh } = useDelayedInvalidation(
     useCallback(() => {
@@ -217,6 +239,7 @@ export function useCreateGardenWorkflow() {
               await waitForTransactionReceipt(wagmiConfig, {
                 hash: txHash,
                 chainId: currentChainId,
+                timeout: TX_RECEIPT_TIMEOUT_MS,
               });
 
               trackAdminGardenCreateSuccess({
@@ -244,11 +267,27 @@ export function useCreateGardenWorkflow() {
             }
           }),
         },
+        actions: {
+          goToNextStep: () => {
+            storeNextStepRef.current();
+          },
+          goToPreviousStep: () => {
+            storePreviousStepRef.current();
+          },
+          goToReviewStep: () => {
+            storeGoToReviewRef.current();
+          },
+          goToFirstIncompleteStep: () => {
+            storeGoToFirstIncompleteRef.current();
+          },
+        },
       }),
-    [] // Machine created once — actor reads current values from refs
+    [] // Machine created once — actors/actions read current values from refs
   );
 
   const [state, send] = useMachine(machine);
+  const isSubmitting = state.matches("submitting") || isLockPending;
+  useBeforeUnloadWhilePending(isSubmitting);
 
   useEffect(() => {
     if (state.value === "success" && state.context.txHash) {
@@ -282,16 +321,18 @@ export function useCreateGardenWorkflow() {
 
   const goToReview = useCallback(() => {
     const formStatus = getFormStatus();
-    if (formStatus.isReviewReady) {
-      storeGoToReview();
-    }
     send({ type: "REVIEW", formStatus });
-  }, [send, storeGoToReview]);
+  }, [send]);
 
   const submitCreation = useCallback(() => {
-    const formStatus = getFormStatus();
-    send({ type: "SUBMIT", formStatus });
-  }, [send]);
+    if (state.matches("submitting")) {
+      return;
+    }
+    void runWithLock(async () => {
+      const formStatus = getFormStatus();
+      send({ type: "SUBMIT", formStatus });
+    });
+  }, [send, state, runWithLock]);
 
   const estimateCreationCost = useCallback(async () => {
     const params = useCreateGardenStore.getState().getParams();
@@ -361,9 +402,8 @@ export function useCreateGardenWorkflow() {
   }, [send]);
 
   const edit = useCallback(() => {
-    storeGoToFirstIncomplete();
     send({ type: "EDIT" });
-  }, [send, storeGoToFirstIncomplete]);
+  }, [send]);
 
   const createAnother = useCallback(() => {
     storeReset();

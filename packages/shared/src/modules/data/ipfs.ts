@@ -337,9 +337,48 @@ export function resolveIPFSUrl(url: string, customGateway?: string): string {
 /**
  * Fetches a file from IPFS by its hash/CID using the gateway
  */
-export async function getFileByHash(hash: string): Promise<{ data: Blob | string }> {
+export interface GetFileByHashOptions {
+  signal?: AbortSignal;
+  timeoutMs?: number;
+}
+
+export async function getFileByHash(
+  hash: string,
+  options: GetFileByHashOptions = {}
+): Promise<{ data: Blob | string }> {
+  const { signal, timeoutMs = 30_000 } = options;
   const url = resolveIPFSUrl(hash);
-  const response = await fetch(url);
+  const abortController = new AbortController();
+  const timeoutId =
+    timeoutMs > 0
+      ? setTimeout(() => {
+          abortController.abort();
+        }, timeoutMs)
+      : null;
+
+  const abortFromUpstream = () => abortController.abort();
+  if (signal) {
+    if (signal.aborted) {
+      abortController.abort();
+    } else {
+      signal.addEventListener("abort", abortFromUpstream, { once: true });
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, { signal: abortController.signal });
+  } catch (error) {
+    if (abortController.signal.aborted) {
+      throw new Error(`IPFS request timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    signal?.removeEventListener("abort", abortFromUpstream);
+  }
 
   if (!response.ok) {
     throw new Error(`Failed to fetch file from IPFS: ${response.statusText}`);

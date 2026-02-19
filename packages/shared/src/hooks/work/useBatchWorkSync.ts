@@ -19,6 +19,7 @@ import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
 import { jobQueue, jobQueueDB, jobQueueEventBus } from "../../modules/job-queue";
 import { encodeWorkData } from "../../utils/eas/encoders";
 import { buildBatchWorkAttestTx } from "../../utils/eas/transaction-builder";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";
@@ -116,7 +117,7 @@ export function useBatchWorkSync() {
         account: walletClient.account,
       });
 
-      await waitForTransactionReceipt(wagmiConfig, { hash, chainId });
+      await waitForTransactionReceipt(wagmiConfig, { hash, chainId, timeout: TX_RECEIPT_TIMEOUT_MS });
 
       for (const { job } of encodedJobs) {
         try {

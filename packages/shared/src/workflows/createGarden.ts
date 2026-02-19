@@ -61,6 +61,10 @@ const createGardenSetup = setup({
   actions: {
     clearContext: assign({ txHash: undefined, error: undefined, retryCount: 0 }),
     clearError: assign({ error: undefined }),
+    goToNextStep: () => {},
+    goToPreviousStep: () => {},
+    goToReviewStep: () => {},
+    goToFirstIncompleteStep: () => {},
     storeTxHash: assign({
       txHash: ({ event }) => (event as SubmitDoneEvent).output,
       retryCount: 0,
@@ -157,19 +161,21 @@ export const createGardenMachine = createGardenSetup.createMachine({
           {
             guard: "isReviewStep",
             target: "review",
+            actions: "goToReviewStep",
           },
           {
             guard: "canGoForward",
-            // Navigation is handled by the hook layer, not by machine actions
+            actions: "goToNextStep",
           },
         ],
         BACK: {
           guard: "canGoBack",
-          // Navigation is handled by the hook layer
+          actions: "goToPreviousStep",
         },
         REVIEW: {
           guard: "isReviewReady",
           target: "review",
+          actions: "goToReviewStep",
         },
         CLOSE: {
           target: "idle",
@@ -185,10 +191,12 @@ export const createGardenMachine = createGardenSetup.createMachine({
       on: {
         EDIT: {
           target: "collecting",
+          actions: "goToFirstIncompleteStep",
         },
         BACK: {
           guard: "canGoBack",
           target: "collecting",
+          actions: "goToPreviousStep",
         },
         SUBMIT: {
           guard: "canSubmit",

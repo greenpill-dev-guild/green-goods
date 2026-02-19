@@ -9,6 +9,8 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
 import { useUser } from "../auth/useUser";
 import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
+import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
+import { useMutationLock } from "../utils/useMutationLock";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 import { COOKIE_JAR_ABI, ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis";
 import { wagmiConfig } from "../../config/appkit";
@@ -24,6 +26,7 @@ export function useCookieJarDeposit(gardenAddress: Address) {
     source: "useCookieJarDeposit",
     toastContext: "cookie jar deposit",
   });
+  const { runWithLock, isPending: isLockPending } = useMutationLock();
 
   const activeToastId = useRef<string | undefined>(undefined);
   const lastParamsRef = useRef<{ gardenAddress: string; jarAddress: string }>({
@@ -45,7 +48,7 @@ export function useCookieJarDeposit(gardenAddress: Address) {
     INDEXER_LAG_FOLLOWUP_MS
   );
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (params: CookieJarDepositParams) => {
       if (!primaryAddress) {
         throw new Error("Connected account required");
@@ -125,4 +128,22 @@ export function useCookieJarDeposit(gardenAddress: Address) {
       });
     },
   });
+
+  const isPending = mutation.isPending || isLockPending;
+  useBeforeUnloadWhilePending(isPending);
+
+  const mutateAsync = useCallback(
+    (...args: Parameters<typeof mutation.mutateAsync>) =>
+      runWithLock(() => mutation.mutateAsync(...args)),
+    [mutation, runWithLock]
+  );
+
+  const mutate = useCallback(
+    (...args: Parameters<typeof mutation.mutate>) => {
+      void mutateAsync(...args).catch(() => undefined);
+    },
+    [mutateAsync]
+  );
+
+  return { ...mutation, mutate, mutateAsync, isPending };
 }

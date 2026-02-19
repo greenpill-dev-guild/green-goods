@@ -253,8 +253,8 @@ export const queryKeys = {
   // Role related keys (operator/deployer detection)
   role: {
     all: ["greengoods", "role"] as const,
-    operatorGardens: (address?: Address) =>
-      ["greengoods", "role", "operatorGardens", address] as const,
+    operatorGardens: (address?: Address, chainId?: number) =>
+      ["greengoods", "role", "operatorGardens", address, chainId] as const,
     gardenRoles: (gardenId?: string, address?: Address) =>
       ["greengoods", "role", "gardenRoles", gardenId, address] as const,
     hasRole: (gardenId?: string, address?: Address, role?: string) =>
@@ -289,8 +289,8 @@ export const queryKeys = {
         gardenId,
         serializeAttestationFilters(filters),
       ] as const,
-    list: (gardenId?: string, status?: string) =>
-      ["greengoods", "hypercerts", "list", gardenId, status] as const,
+    list: (gardenId?: string, chainId?: number, status?: string) =>
+      ["greengoods", "hypercerts", "list", gardenId, chainId, status] as const,
     detail: (hypercertId?: string) => ["greengoods", "hypercerts", "detail", hypercertId] as const,
     drafts: (gardenId?: string, operatorAddress?: string) =>
       ["greengoods", "hypercerts", "drafts", gardenId, operatorAddress] as const,
@@ -381,9 +381,9 @@ export const queryInvalidation = {
   ],
 
   // Invalidate hypercert lists
-  invalidateHypercerts: (gardenId?: string) => [
+  invalidateHypercerts: (gardenId?: string, chainId?: number, status?: string) => [
     queryKeys.hypercerts.all,
-    queryKeys.hypercerts.list(gardenId),
+    queryKeys.hypercerts.list(gardenId, chainId, status),
     queryKeys.hypercerts.attestations(gardenId),
   ],
 

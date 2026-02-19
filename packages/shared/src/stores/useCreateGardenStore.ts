@@ -1,9 +1,14 @@
-import { type Address, getAddress, isAddress } from "viem";
+import { getAddress, isAddress } from "viem";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import {
+  createGardenSchema,
+  gardenStepFields,
+  type GardenStepId,
+} from "../hooks/garden/useCreateGardenForm";
+import type { Address } from "../types/domain";
 import { type CreateGardenParams, WeightScheme } from "../types/contracts";
-import { validateSlug } from "../utils/blockchain/ens";
 
 // Storage key for garden creation flow persistence
 const CREATE_GARDEN_STORAGE_KEY = "green-goods:create-garden";
@@ -215,22 +220,15 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         set({ currentStep: steps.length - 2 });
       },
       isStepValid: (stepId) => {
+        if (stepId === "review") return true;
         const { form } = get();
-        switch (stepId) {
-          case "details":
-            return (
-              form.name.trim().length > 0 &&
-              validateSlug(form.slug.trim()).valid &&
-              form.description.trim().length > 0 &&
-              form.location.trim().length > 0
-            );
-          case "team":
-            return form.gardeners.length > 0 && form.operators.length > 0;
-          case "review":
-            return true;
-          default:
-            return false;
-        }
+        const fields = gardenStepFields[stepId as GardenStepId];
+        if (!fields || fields.length === 0) return false;
+        const parseResult = createGardenSchema.safeParse(form);
+        if (parseResult.success) return true;
+
+        const stepFields = new Set<string>(fields);
+        return parseResult.error.issues.every((issue) => !stepFields.has(String(issue.path[0])));
       },
       canProceed: () => {
         const { steps, currentStep } = get();
@@ -260,7 +258,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           metadata: form.metadata.trim(),
           openJoining: form.openJoining,
           weightScheme: WeightScheme.Linear,
-          domainMask: 0xff,
+          domainMask: 0x0f,
         } satisfies CreateGardenParams;
       },
     }),

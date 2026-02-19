@@ -110,6 +110,9 @@ export async function submitApprovalToQueue(
  * Maximum file size for work images (10MB)
  */
 export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+export const MAX_IMAGE_COUNT = 10;
+export const MAX_TOTAL_IMAGE_SIZE_BYTES = 50 * 1024 * 1024;
+export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /**
  * Options for validating work submission context
@@ -157,10 +160,24 @@ export function validateWorkSubmissionContext(
     }
   }
 
+  if (images.length > MAX_IMAGE_COUNT) {
+    errors.push(`You can upload up to ${MAX_IMAGE_COUNT} images`);
+  }
+
   // Check image file sizes
   const oversizedImages = images.filter((img) => img.size > MAX_IMAGE_SIZE_BYTES);
   if (oversizedImages.length > 0) {
     errors.push(`${oversizedImages.length} image(s) exceed 10MB limit`);
+  }
+
+  const totalSize = images.reduce((acc, image) => acc + image.size, 0);
+  if (totalSize > MAX_TOTAL_IMAGE_SIZE_BYTES) {
+    errors.push("Total image upload size cannot exceed 50MB");
+  }
+
+  const invalidImageTypes = images.filter((img) => !ALLOWED_IMAGE_TYPES.has(img.type));
+  if (invalidImageTypes.length > 0) {
+    errors.push("Only JPEG, PNG, and WebP images are supported");
   }
 
   return errors;

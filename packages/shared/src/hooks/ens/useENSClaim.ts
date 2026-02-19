@@ -18,6 +18,7 @@ import { useAuth } from "../auth/useAuth";
 import { queryKeys } from "../query-keys";
 import { logger } from "../../modules/app/logger";
 import { parseContractError } from "../../utils/errors/contract-errors";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import {
   createClients,
   GreenGoodsENSABI,
@@ -93,7 +94,10 @@ export function useENSClaim() {
       }
 
       // Wait for receipt and parse NameRegistrationSent event
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        timeout: TX_RECEIPT_TIMEOUT_MS,
+      });
 
       let ccipMessageId: string | null = null;
       for (const log of receipt.logs) {

@@ -13,6 +13,8 @@ export type {
 export { useCopyToClipboard } from "./utils/useCopyToClipboard";
 export { useDebouncedValue } from "./utils/useDebouncedValue";
 export { useAddressInput } from "./utils/useAddressInput";
+export { useMutationLock } from "./utils/useMutationLock";
+export { useBeforeUnloadWhilePending } from "./utils/useBeforeUnloadWhilePending";
 
 // ============================================================================
 // ACTION
@@ -232,6 +234,8 @@ export { useRolePermissions } from "./roles/useRolePermissions";
 export { useGardenVaults } from "./vault/useGardenVaults";
 export { useVaultDeposits } from "./vault/useVaultDeposits";
 export { useVaultEvents } from "./vault/useVaultEvents";
+export type { UseDepositFormResult } from "./vault/useDepositForm";
+export { useDepositForm } from "./vault/useDepositForm";
 export { useVaultPreview } from "./vault/useVaultPreview";
 export {
   useEmergencyPause,

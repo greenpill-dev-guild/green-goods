@@ -17,6 +17,11 @@ import { queryClient } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { debugLog } from "../debug";
 
+/**
+ * Shared timeout for waiting on on-chain transaction receipts.
+ */
+export const TX_RECEIPT_TIMEOUT_MS = 120_000;
+
 interface PollConfig {
   /** Array of query keys to invalidate and refetch */
   queryKeys: readonly (readonly unknown[])[];

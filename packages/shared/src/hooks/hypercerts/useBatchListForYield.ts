@@ -25,6 +25,7 @@ import type { CreateListingParams } from "../../types/hypercerts";
 import { useAuth } from "../auth/useAuth";
 import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
 import { queryInvalidation } from "../query-keys";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 
 export interface BatchProgress {
   total: number;
@@ -151,7 +152,7 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
           data: callData,
           account: signer,
         });
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
+        await publicClient.waitForTransactionReceipt({ hash: txHash, timeout: TX_RECEIPT_TIMEOUT_MS });
       }
 
       setProgress((prev) => ({ ...prev, status: "done" }));

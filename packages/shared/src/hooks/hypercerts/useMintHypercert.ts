@@ -10,7 +10,8 @@
 import { validateAllowlist as sdkValidateAllowlist } from "@hypercerts-org/sdk";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { type Address, type Hex, encodeFunctionData, isAddress } from "viem";
+import { useIntl } from "react-intl";
+import { type Hex, encodeFunctionData, isAddress } from "viem";
 import { useWalletClient } from "wagmi";
 import { fromPromise } from "xstate";
 
@@ -32,6 +33,7 @@ import type {
   HypercertDraft,
   HypercertMetadata,
 } from "../../types/hypercerts";
+import type { Address } from "../../types/domain";
 import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
 import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
 import {
@@ -114,6 +116,7 @@ export function useMintHypercert(): UseMintHypercertResult {
   const { data: walletClient } = useWalletClient();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const setMintingState = useHypercertWizardStore((state) => state.setMintingState);
+  const { formatMessage } = useIntl();
 
   // Store mutable dependencies in refs so the machine actor can read
   // current values without recreating the machine on every change.
@@ -141,8 +144,6 @@ export function useMintHypercert(): UseMintHypercertResult {
   }, [chainId]);
 
   const machine = useMemo(() => {
-    logger.debug("[useMintHypercert] Creating machine with provide()");
-
     const providedMachine = mintHypercertMachine.provide({
       actors: {
         // Note: XState automatically stops actors if the machine transitions away (e.g., on CANCEL).
@@ -340,7 +341,7 @@ export function useMintHypercert(): UseMintHypercertResult {
 
             const publicClient = createPublicClientForChain(currentChainId);
 
-            // Read signal pools for this garden (index 0 = HypercertSignalPool)
+            // Read signal pools for this garden (index 1 = HypercertSignalPool)
             const pools = (await publicClient.readContract({
               address: gardensModuleAddr,
               abi: GARDENS_MODULE_ABI,
@@ -356,7 +357,18 @@ export function useMintHypercert(): UseMintHypercertResult {
               return { registered: false, poolAddress: null };
             }
 
-            const hypercertPoolAddress = pools[0];
+            if (pools.length < 2) {
+              logger.info(
+                "[useMintHypercert] HypercertSignalPool missing (action-only pool set), skipping registration",
+                {
+                  gardenAddress,
+                  poolsCount: pools.length,
+                }
+              );
+              return { registered: false, poolAddress: null };
+            }
+
+            const hypercertPoolAddress = pools[1];
 
             if (!hypercertPoolAddress || isZeroAddress(hypercertPoolAddress)) {
               logger.warn("[useMintHypercert] HypercertSignalPool is zero address", {
@@ -434,23 +446,6 @@ export function useMintHypercert(): UseMintHypercertResult {
       // See: https://stately.ai/docs/actors#fromPromise
     } as unknown as typeof mintHypercertMachine.implementations);
 
-    logger.debug("[useMintHypercert] Machine created successfully", {
-      machineId: providedMachine.id,
-      machineType: typeof providedMachine,
-      hasConfig: !!providedMachine.config,
-    });
-
-    // Debug introspection - only run in development
-    if (process.env.NODE_ENV === "development") {
-      const implementations = (providedMachine as unknown as { implementations?: unknown })
-        .implementations;
-      logger.debug("[useMintHypercert] Machine implementations", {
-        hasImplementations: !!implementations,
-        implementationsType: typeof implementations,
-        implementationsKeys: implementations ? Object.keys(implementations as object) : [],
-      });
-    }
-
     return providedMachine;
   }, []); // Machine created once — actors read current values from refs
 
@@ -464,6 +459,17 @@ export function useMintHypercert(): UseMintHypercertResult {
 
     // Log and toast when minting fails
     if (status === "failed" && state.context.error) {
+      const normalizedError = state.context.error.toLowerCase();
+      const errorMessageId = normalizedError.includes("user rejected")
+        ? "app.hypercerts.mint.error.userRejected"
+        : normalizedError.includes("insufficient")
+          ? "app.hypercerts.mint.error.insufficientFunds"
+          : normalizedError.includes("nonce")
+            ? "app.hypercerts.mint.error.nonce"
+            : normalizedError.includes("network")
+              ? "app.hypercerts.mint.error.network"
+              : "app.hypercerts.mint.error.generic.message";
+
       logger.error("[useMintHypercert] Minting failed", {
         error: state.context.error,
         lastStep: state.value,
@@ -479,8 +485,14 @@ export function useMintHypercert(): UseMintHypercertResult {
         authMode: authModeRef.current,
       });
       toastService.error({
-        title: "Hypercert minting failed",
-        message: state.context.error,
+        title: formatMessage({ id: "app.hypercerts.mint.error.generic.title" }),
+        message: formatMessage(
+          {
+            id: errorMessageId,
+            defaultMessage: state.context.error,
+          },
+          { error: state.context.error }
+        ),
         context: "hypercert minting",
       });
     }

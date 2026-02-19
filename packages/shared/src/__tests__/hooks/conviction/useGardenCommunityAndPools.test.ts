@@ -69,7 +69,7 @@ vi.mock("../../../config/appkit", () => ({
 
 import { useGardenCommunity } from "../../../hooks/conviction/useGardenCommunity";
 import { useGardenPools } from "../../../hooks/conviction/useGardenPools";
-import { WeightScheme } from "../../../types/gardens-community";
+import { PoolType, WeightScheme } from "../../../types/gardens-community";
 import type { Address } from "../../../types/domain";
 
 function createWrapper(queryClient: QueryClient) {
@@ -340,13 +340,13 @@ describe("useGardenPools — subgraph path", () => {
     mockGetGardenPools.mockResolvedValueOnce([
       {
         poolAddress: TEST_POOL_1,
-        poolType: 0,
+        poolType: PoolType.Action,
         gardenAddress: TEST_GARDEN.toLowerCase(),
         communityAddress: TEST_COMMUNITY,
       },
       {
         poolAddress: TEST_POOL_2,
-        poolType: 1,
+        poolType: PoolType.Hypercert,
         gardenAddress: TEST_GARDEN.toLowerCase(),
         communityAddress: TEST_COMMUNITY,
       },
@@ -364,9 +364,9 @@ describe("useGardenPools — subgraph path", () => {
 
     expect(result.current.pools).toHaveLength(2);
     expect(result.current.pools[0].poolAddress).toBe(TEST_POOL_1);
-    expect(result.current.pools[0].poolType).toBe(0);
+    expect(result.current.pools[0].poolType).toBe(PoolType.Action);
     expect(result.current.pools[1].poolAddress).toBe(TEST_POOL_2);
-    expect(result.current.pools[1].poolType).toBe(1);
+    expect(result.current.pools[1].poolType).toBe(PoolType.Hypercert);
     expect(result.current.pools[0].gardenAddress).toBe(TEST_GARDEN.toLowerCase());
     expect(result.current.pools[0].communityAddress).toBe(TEST_COMMUNITY);
   });
@@ -410,11 +410,11 @@ describe("useGardenPools — subgraph path", () => {
     expect(result.current.pools).toEqual([]);
   });
 
-  it("assigns Hypercert type to single pool at index 0", async () => {
+  it("assigns Action type to single pool at index 0", async () => {
     mockGetGardenPools.mockResolvedValueOnce([
       {
         poolAddress: TEST_POOL_1,
-        poolType: 0,
+        poolType: PoolType.Action,
         gardenAddress: TEST_GARDEN.toLowerCase(),
         communityAddress: TEST_COMMUNITY,
       },
@@ -431,7 +431,7 @@ describe("useGardenPools — subgraph path", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.pools).toHaveLength(1);
-    expect(result.current.pools[0].poolType).toBe(0);
+    expect(result.current.pools[0].poolType).toBe(PoolType.Action);
   });
 
   it("normalizes garden address before subgraph query", async () => {
@@ -439,7 +439,7 @@ describe("useGardenPools — subgraph path", () => {
     mockGetGardenPools.mockResolvedValueOnce([
       {
         poolAddress: TEST_POOL_1,
-        poolType: 0,
+        poolType: PoolType.Action,
         gardenAddress: mixedCase.toLowerCase(),
         communityAddress: TEST_COMMUNITY,
       },
@@ -505,8 +505,8 @@ describe("useGardenPools — RPC fallback", () => {
 
     expect(mockGetGardenPools).not.toHaveBeenCalled();
     expect(result.current.pools).toHaveLength(2);
-    expect(result.current.pools[0].poolType).toBe(0);
-    expect(result.current.pools[1].poolType).toBe(1);
+    expect(result.current.pools[0].poolType).toBe(PoolType.Action);
+    expect(result.current.pools[1].poolType).toBe(PoolType.Hypercert);
     expect(result.current.pools[0].communityAddress).toBe(TEST_COMMUNITY);
   });
 

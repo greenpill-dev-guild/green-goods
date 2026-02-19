@@ -11,6 +11,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
@@ -23,6 +24,8 @@ import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { useUser } from "../auth/useUser";
 import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
+import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
+import { useMutationLock } from "../utils/useMutationLock";
 import { useTimeout } from "../utils/useTimeout";
 
 interface BatchApprovalItem {
@@ -81,8 +84,9 @@ export function useBatchWorkApproval() {
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const { set: scheduleInvalidation } = useTimeout();
+  const { runWithLock, isPending: isLockPending } = useMutationLock();
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (items: BatchApprovalItem[]): Promise<BatchApprovalResult> => {
       if (items.length === 0) {
         throw new Error("No items to approve");
@@ -319,4 +323,22 @@ export function useBatchWorkApproval() {
       }
     },
   });
+
+  const isPending = mutation.isPending || isLockPending;
+  useBeforeUnloadWhilePending(isPending);
+
+  const mutateAsync = useCallback(
+    (...args: Parameters<typeof mutation.mutateAsync>) =>
+      runWithLock(() => mutation.mutateAsync(...args)),
+    [mutation, runWithLock]
+  );
+
+  const mutate = useCallback(
+    (...args: Parameters<typeof mutation.mutate>) => {
+      void mutateAsync(...args).catch(() => undefined);
+    },
+    [mutateAsync]
+  );
+
+  return { ...mutation, mutate, mutateAsync, isPending };
 }

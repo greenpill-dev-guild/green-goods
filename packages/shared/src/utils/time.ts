@@ -545,3 +545,32 @@ export function getCurrentTimezone(): string {
   }
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
+
+/**
+ * Format a date range as "start - end" with safe timestamp handling.
+ * Handles seconds, milliseconds, ISO strings, and null values.
+ */
+export function formatDateRange(
+  start?: string | number | null,
+  end?: string | number | null,
+  fallback = "\u2014"
+): string {
+  const formatValue = (value?: string | number | null): string | undefined => {
+    if (value === null || value === undefined) return undefined;
+    if (typeof value === "string" && value.includes("-")) {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
+    }
+    const numeric = typeof value === "string" ? Number(value) : value;
+    if (!numeric) return undefined;
+    const timestamp = numeric > 10_000_000_000 ? numeric : numeric * 1000;
+    const date = new Date(timestamp);
+    return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
+  };
+
+  if (!start && !end) return fallback;
+  const startLabel = formatValue(start);
+  const endLabel = formatValue(end);
+  if (startLabel && endLabel) return `${startLabel} \u2013 ${endLabel}`;
+  return startLabel ?? endLabel ?? fallback;
+}

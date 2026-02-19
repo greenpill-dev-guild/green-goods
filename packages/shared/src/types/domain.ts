@@ -362,7 +362,7 @@ export interface WorkCard {
   /**
    * Gardener's Ethereum address.
    */
-  gardenerAddress: string;
+  gardenerAddress: Address;
   /**
    * Garden contract address.
    */

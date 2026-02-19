@@ -17,12 +17,12 @@ interface UseGardenPoolsOptions {
 }
 
 /**
- * Query a garden's signal pools (HypercertSignalPool + ActionSignalPool).
+ * Query a garden's signal pools (ActionSignalPool + HypercertSignalPool).
  * Returns pool addresses with their type annotation.
  *
  * The GardensModule deploys exactly two pools per garden:
- * - Index 0: HypercertSignalPool (conviction-weighted hypercert curation)
- * - Index 1: ActionSignalPool (priority signaling on registered Actions)
+ * - Index 0: ActionSignalPool (priority signaling on registered Actions)
+ * - Index 1: HypercertSignalPool (conviction-weighted hypercert curation)
  *
  * When `communityAddress` is provided, fetches from the Gardens V2 subgraph
  * instead of making RPC calls to the GardensModule contract.
@@ -67,11 +67,11 @@ export function useGardenPools(gardenAddress?: Address, options: UseGardenPoolsO
       const addresses = (poolAddresses as Address[]) ?? [];
 
       // Pool ordering is deterministic: GardensModule._createSignalPools() pushes
-      // HypercertSignal first (index 0) and ActionSignal second (index 1).
+      // ActionSignal first (index 0) and HypercertSignal second (index 1).
       // This ordering is guaranteed by the contract and immutable post-deployment.
       return addresses.map((poolAddress, index) => ({
         poolAddress,
-        poolType: index === 0 ? PoolType.Hypercert : PoolType.Action,
+        poolType: index === 0 ? PoolType.Action : PoolType.Hypercert,
         gardenAddress: normalizedGarden as Address,
         communityAddress: resolvedCommunity as Address,
       }));

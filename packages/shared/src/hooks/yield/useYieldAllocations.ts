@@ -26,9 +26,9 @@ interface YieldAllocationResponse {
 }
 
 const YIELD_ALLOCATIONS_QUERY = `
-  query YieldAllocations($garden: String!, $limit: Int!) {
+  query YieldAllocations($garden: String!, $chainId: Int!, $limit: Int!) {
     YieldAllocation(
-      where: { garden: { _eq: $garden } }
+      where: { garden: { _eq: $garden }, chainId: { _eq: $chainId } }
       order_by: { timestamp: desc }
       limit: $limit
     ) {
@@ -63,7 +63,7 @@ export function useYieldAllocations(
 
       const { data, error } = await greenGoodsIndexer.query<YieldAllocationResponse>(
         YIELD_ALLOCATIONS_QUERY,
-        { garden: normalizedGarden, limit },
+        { garden: normalizedGarden, chainId, limit },
         "YieldAllocations"
       );
 
@@ -71,6 +71,7 @@ export function useYieldAllocations(
         logger.error("Yield allocations query failed", {
           error,
           gardenAddress: normalizedGarden,
+          chainId,
         });
         throw error;
       }
@@ -89,6 +90,8 @@ export function useYieldAllocations(
     },
     enabled: enabled && Boolean(normalizedGarden),
     staleTime: STALE_TIME_MEDIUM,
+    // Ensure chain switches never flash stale allocations from a previous scope.
+    placeholderData: [],
   });
 
   return {

@@ -104,7 +104,10 @@ describe("hooks/vault/useVaultOperations", () => {
     // First call: allowance check (returns 0n = insufficient)
     // Second call: post-approval allowance re-check (returns 10n = sufficient)
     // Third call: previewDeposit for slippage check (returns 10n shares)
-    mockReadContract.mockResolvedValueOnce(0n).mockResolvedValueOnce(10n).mockResolvedValueOnce(10n);
+    mockReadContract
+      .mockResolvedValueOnce(0n)
+      .mockResolvedValueOnce(10n)
+      .mockResolvedValueOnce(10n);
     mockWriteContractAsync.mockResolvedValue(
       "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     );

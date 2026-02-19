@@ -16,6 +16,7 @@ import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { useAuth } from "../auth/useAuth";
 import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
 import { queryInvalidation } from "../query-keys";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 
 export interface UseCancelListingResult {
   cancelListing: (orderId: number) => Promise<void>;
@@ -66,7 +67,7 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
           data: callData,
           account: signer,
         });
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
+        await publicClient.waitForTransactionReceipt({ hash: txHash, timeout: TX_RECEIPT_TIMEOUT_MS });
       } else {
         throw new Error("No wallet available for transaction");
       }

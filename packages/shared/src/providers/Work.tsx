@@ -9,7 +9,7 @@
  * @module providers/work
  */
 
-import React, { useCallback, useContext, useMemo } from "react";
+import React, { useCallback, useContext, useMemo, useState } from "react";
 import type { Action, Domain, Garden, WorkDraft } from "../types/domain";
 import type { Control, FormState, UseFormRegister } from "react-hook-form";
 import { useShallow } from "zustand/react/shallow";
@@ -66,6 +66,7 @@ export interface WorkFormValue {
   reset: () => void;
   uploadWork: (e?: React.BaseSyntheticEvent) => Promise<void>;
   workMutation: ReturnType<typeof useWorkMutation>;
+  validationErrors: string[];
 }
 
 /**
@@ -91,6 +92,7 @@ export interface WorkDataProps {
     timeSpentMinutes: number | undefined;
     values: Record<string, unknown>;
     reset: () => void;
+    validationErrors: string[];
   };
   activeTab: WorkTab;
   setActiveTab: (value: WorkTab) => void;
@@ -114,6 +116,7 @@ const WorkContext = React.createContext<WorkDataProps>({
     gardenAddress: null,
     setGardenAddress: () => {},
     reset: () => {},
+    validationErrors: [],
   },
 } as unknown as WorkDataProps);
 
@@ -208,6 +211,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   // Use extracted hooks
   const { images, setImages } = useWorkImages();
   const workForm = useWorkForm();
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Work mutation with proper auth branching
   const workMutation = useWorkMutation({
@@ -250,12 +254,14 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         minRequired: minRequiredImages,
       });
       if (errors.length > 0) {
+        setValidationErrors(errors);
         validationToasts.formError(errors[0]);
         if (DEBUG_ENABLED) {
           debugWarn("[WorkProvider] Work submission context validation failed", { errors });
         }
         return;
       }
+      setValidationErrors([]);
 
       const imagesSnapshot = images.slice();
       if (DEBUG_ENABLED) {
@@ -328,6 +334,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       reset: workForm.reset,
       uploadWork,
       workMutation,
+      validationErrors,
     }),
     [
       workForm.formState,
@@ -341,6 +348,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       workForm.reset,
       uploadWork,
       workMutation,
+      validationErrors,
     ]
   );
 
@@ -366,6 +374,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         timeSpentMinutes: workForm.timeSpentMinutes,
         values: workForm.values,
         reset: workForm.reset,
+        validationErrors,
       },
       activeTab,
       setActiveTab,
@@ -389,6 +398,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       workForm.timeSpentMinutes,
       workForm.values,
       workForm.reset,
+      validationErrors,
       activeTab,
       setActiveTab,
     ]

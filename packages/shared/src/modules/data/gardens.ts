@@ -189,7 +189,7 @@ interface CVStrategiesResponse {
 
 /**
  * Fetches signal pools (CV strategies) for a garden from the subgraph.
- * Pool ordering matches the contract: index 0 = Hypercert, index 1 = Action.
+ * Pool ordering matches the contract: index 0 = Action, index 1 = Hypercert.
  */
 export async function getGardenPoolsFromSubgraph(
   communityAddress: Address,
@@ -217,7 +217,7 @@ export async function getGardenPoolsFromSubgraph(
 
   return strategies.map((strategy, index) => ({
     poolAddress: strategy.id as Address,
-    poolType: index === 0 ? PoolType.Hypercert : PoolType.Action,
+    poolType: index === 0 ? PoolType.Action : PoolType.Hypercert,
     gardenAddress,
     communityAddress: communityAddress as Address,
   }));

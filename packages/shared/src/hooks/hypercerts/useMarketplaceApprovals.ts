@@ -4,7 +4,7 @@
  * 1. transferManager.grantApprovals([exchange])
  * 2. hypercertMinter.setApprovalForAll(transferManager, true)
  */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, skipToken } from "@tanstack/react-query";
 import type { Address } from "../../types/domain";
 import { useWalletClient } from "wagmi";
 
@@ -17,14 +17,15 @@ import {
 } from "../../modules/marketplace";
 import { useAuth } from "../auth/useAuth";
 import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
-import { queryKeys, queryInvalidation } from "../query-keys";
+import { queryKeys, queryInvalidation, STALE_TIME_RARE } from "../query-keys";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 
 export interface UseMarketplaceApprovalsResult {
   approvals: MarketplaceApprovals | null;
   isFullyApproved: boolean;
   isLoading: boolean;
   error: Error | null;
-  grantApprovals: () => Promise<void>;
+  grantApprovals: () => void;
   isGranting: boolean;
 }
 
@@ -38,12 +39,13 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
 
   const { data, isLoading, error } = useQuery({
     queryKey: queryKeys.marketplace.approvals(operator ?? ("" as Address), chainId),
-    queryFn: () => {
-      if (!operator) throw new Error("Operator address required");
-      logger.debug("[useMarketplaceApprovals] Checking approvals", { operator, chainId });
-      return checkMarketplaceApprovals(operator, chainId);
-    },
-    enabled: Boolean(operator),
+    queryFn: operator
+      ? () => {
+          logger.debug("[useMarketplaceApprovals] Checking approvals", { operator, chainId });
+          return checkMarketplaceApprovals(operator, chainId);
+        }
+      : skipToken,
+    staleTime: STALE_TIME_RARE,
   });
 
   const isFullyApproved = Boolean(data?.exchangeApproved && data?.minterApproved);
@@ -71,7 +73,7 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
             data: txs.grantExchange.data,
             account: operator,
           });
-          await publicClient.waitForTransactionReceipt({ hash });
+          await publicClient.waitForTransactionReceipt({ hash, timeout: TX_RECEIPT_TIMEOUT_MS });
         }
       }
 
@@ -89,7 +91,7 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
             data: txs.approveMinter.data,
             account: operator,
           });
-          await publicClient.waitForTransactionReceipt({ hash });
+          await publicClient.waitForTransactionReceipt({ hash, timeout: TX_RECEIPT_TIMEOUT_MS });
         }
       }
     },
@@ -113,7 +115,9 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
     isFullyApproved,
     isLoading,
     error: error as Error | null,
-    grantApprovals: () => grantMutation.mutateAsync(),
+    grantApprovals: () => {
+      grantMutation.mutate();
+    },
     isGranting: grantMutation.isPending,
   };
 }

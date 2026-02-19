@@ -83,6 +83,18 @@ export function useWorkImages() {
     saveImages();
   }, [images]);
 
+  // Best-effort cleanup for any blob preview URLs attached to File objects.
+  useEffect(() => {
+    return () => {
+      images.forEach((image) => {
+        const maybePreviewUrl = (image as File & { preview?: string }).preview;
+        if (typeof maybePreviewUrl === "string" && maybePreviewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(maybePreviewUrl);
+        }
+      });
+    };
+  }, [images]);
+
   return {
     images,
     setImages,

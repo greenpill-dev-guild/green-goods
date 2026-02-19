@@ -7,6 +7,11 @@ import { fromPromise } from "xstate";
 import { useAccount, useWalletClient } from "wagmi";
 import { getEASConfig } from "../../config/blockchain";
 import { logger } from "../../modules/app/logger";
+import {
+  trackAdminAssessmentCreateFailed,
+  trackAdminAssessmentCreateStarted,
+  trackAdminAssessmentCreateSuccess,
+} from "../../modules/app/analytics-events";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { isZeroBytes32 } from "../../utils/blockchain/vaults";
@@ -95,119 +100,143 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                 throw new Error("No wallet client available");
               }
 
-              const contracts = getNetworkContracts(currentChainId);
-              const easConfig = getEASConfig(currentChainId);
-              if (
-                !contracts?.eas ||
-                !easConfig.ASSESSMENT.uid ||
-                isZeroBytes32(easConfig.ASSESSMENT.uid) ||
-                !easConfig.ASSESSMENT.schema
-              ) {
-                throw new Error(`EAS configuration missing for chain ${currentChainId}`);
-              }
-
-              // EAS SDK requires an ethers Signer — bridge from viem wallet client
-              const eas = new EAS(contracts.eas);
-              const { account, transport } = currentWalletClient;
-              const ethersProvider = new ethers.BrowserProvider(transport as Eip1193Provider);
-              const signer = await ethersProvider.getSigner(account.address);
-              eas.connect(signer);
-
-              const schemaEncoder = new SchemaEncoder(easConfig.ASSESSMENT.schema);
-
-              // Upload evidence media to IPFS (partial success allowed)
-              let evidenceMediaCids: string[] = [];
-              if (params.evidenceMedia?.length) {
-                const results = await Promise.allSettled(
-                  params.evidenceMedia.map(async (file: File) => {
-                    const uploaded = await uploadFileToIPFS(file);
-                    return uploaded.cid;
-                  })
-                );
-                const failed = results.filter((r) => r.status === "rejected");
-                if (failed.length > 0) {
-                  logger.warn("Some evidence media uploads failed", {
-                    source: "useCreateAssessmentWorkflow",
-                    failedCount: failed.length,
-                    totalCount: params.evidenceMedia.length,
-                  });
-                }
-                evidenceMediaCids = results
-                  .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
-                  .map((r) => r.value);
-              }
-
-              // Upload metrics JSON to IPFS
-              let metricsCid = "";
-              try {
-                const metricsPayload =
-                  typeof params.metrics === "string" ? JSON.parse(params.metrics) : params.metrics;
-                const uploadedMetrics = await uploadJSONToIPFS(metricsPayload);
-                metricsCid = uploadedMetrics.cid;
-              } catch (error) {
-                logger.error("Failed to upload assessment metrics JSON", {
-                  source: "useCreateAssessmentWorkflow",
-                  error,
-                });
-                throw new Error("Invalid metrics JSON. Please provide valid JSON content.");
-              }
-
-              // Pack rich v1 data into a config JSON and upload to IPFS
-              // The contract's v2 AssessmentSchema only stores assessmentConfigCID on-chain
-              const reportDocuments = (params.reportDocuments || []).filter(Boolean);
-              const impactAttestations = (params.impactAttestations || []).map((uid: string) =>
-                uid.trim().toLowerCase()
-              );
-
-              const assessmentConfig = {
+              trackAdminAssessmentCreateStarted({
+                gardenId: params.gardenId,
                 assessmentType: params.assessmentType,
-                capitals: params.capitals,
-                metricsCid,
-                evidenceMediaCids,
-                reportDocuments,
-                impactAttestations,
-                tags: params.tags,
-              };
-
-              const configUpload = await uploadJSONToIPFS(assessmentConfig);
-              const assessmentConfigCID = configUpload.cid;
-
-              // Map assessmentType to domain enum (0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE)
-              const domain = params.domain ?? assessmentTypeToDomain(params.assessmentType);
-
-              const toUnixSeconds = (value?: string | number | null) => {
-                if (!value) return 0;
-                if (typeof value === "number") return Math.floor(value);
-                const timestamp = new Date(value).getTime();
-                if (Number.isNaN(timestamp)) return 0;
-                return Math.floor(timestamp / 1000);
-              };
-
-              // Encode v2 schema matching contract's AssessmentSchema struct:
-              // (string title, string description, string assessmentConfigCID,
-              //  uint8 domain, uint256 startDate, uint256 endDate, string location)
-              const encodedData = schemaEncoder.encodeData([
-                { name: "title", value: params.title, type: "string" },
-                { name: "description", value: params.description, type: "string" },
-                { name: "assessmentConfigCID", value: assessmentConfigCID, type: "string" },
-                { name: "domain", value: domain, type: "uint8" },
-                { name: "startDate", value: toUnixSeconds(params.startDate), type: "uint256" },
-                { name: "endDate", value: toUnixSeconds(params.endDate), type: "uint256" },
-                { name: "location", value: params.location, type: "string" },
-              ]);
-
-              const attestResult: Transaction<string> = await eas.attest({
-                schema: easConfig.ASSESSMENT.uid,
-                data: {
-                  recipient: params.gardenId,
-                  expirationTime: 0n,
-                  revocable: true,
-                  data: encodedData,
-                },
+                chainId: currentChainId,
               });
 
-              const newAttestationUID = await attestResult.wait();
-              return newAttestationUID;
+              try {
+                const contracts = getNetworkContracts(currentChainId);
+                const easConfig = getEASConfig(currentChainId);
+                if (
+                  !contracts?.eas ||
+                  !easConfig.ASSESSMENT.uid ||
+                  isZeroBytes32(easConfig.ASSESSMENT.uid) ||
+                  !easConfig.ASSESSMENT.schema
+                ) {
+                  throw new Error(`EAS configuration missing for chain ${currentChainId}`);
+                }
+
+                // EAS SDK requires an ethers Signer — bridge from viem wallet client
+                const eas = new EAS(contracts.eas);
+                const { account, transport } = currentWalletClient;
+                const ethersProvider = new ethers.BrowserProvider(transport as Eip1193Provider);
+                const signer = await ethersProvider.getSigner(account.address);
+                eas.connect(signer);
+
+                const schemaEncoder = new SchemaEncoder(easConfig.ASSESSMENT.schema);
+
+                // Upload evidence media to IPFS (partial success allowed)
+                let evidenceMediaCids: string[] = [];
+                if (params.evidenceMedia?.length) {
+                  const results = await Promise.allSettled(
+                    params.evidenceMedia.map(async (file: File) => {
+                      const uploaded = await uploadFileToIPFS(file);
+                      return uploaded.cid;
+                    })
+                  );
+                  const failed = results.filter((r) => r.status === "rejected");
+                  if (failed.length > 0) {
+                    logger.warn("Some evidence media uploads failed", {
+                      source: "useCreateAssessmentWorkflow",
+                      failedCount: failed.length,
+                      totalCount: params.evidenceMedia.length,
+                    });
+                  }
+                  evidenceMediaCids = results
+                    .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+                    .map((r) => r.value);
+                }
+
+                // Upload metrics JSON to IPFS
+                let metricsCid = "";
+                try {
+                  const metricsPayload =
+                    typeof params.metrics === "string"
+                      ? JSON.parse(params.metrics)
+                      : params.metrics;
+                  const uploadedMetrics = await uploadJSONToIPFS(metricsPayload);
+                  metricsCid = uploadedMetrics.cid;
+                } catch (error) {
+                  logger.error("Failed to upload assessment metrics JSON", {
+                    source: "useCreateAssessmentWorkflow",
+                    error,
+                  });
+                  throw new Error("Invalid metrics JSON. Please provide valid JSON content.");
+                }
+
+                // Pack rich v1 data into a config JSON and upload to IPFS
+                // The contract's v2 AssessmentSchema only stores assessmentConfigCID on-chain
+                const reportDocuments = (params.reportDocuments || []).filter(Boolean);
+                const impactAttestations = (params.impactAttestations || []).map((uid: string) =>
+                  uid.trim().toLowerCase()
+                );
+
+                const assessmentConfig = {
+                  assessmentType: params.assessmentType,
+                  capitals: params.capitals,
+                  metricsCid,
+                  evidenceMediaCids,
+                  reportDocuments,
+                  impactAttestations,
+                  tags: params.tags,
+                };
+
+                const configUpload = await uploadJSONToIPFS(assessmentConfig);
+                const assessmentConfigCID = configUpload.cid;
+
+                // Map assessmentType to domain enum (0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE)
+                const domain = params.domain ?? assessmentTypeToDomain(params.assessmentType);
+
+                const toUnixSeconds = (value?: string | number | null) => {
+                  if (!value) return 0;
+                  if (typeof value === "number") return Math.floor(value);
+                  const timestamp = new Date(value).getTime();
+                  if (Number.isNaN(timestamp)) return 0;
+                  return Math.floor(timestamp / 1000);
+                };
+
+                // Encode v2 schema matching contract's AssessmentSchema struct:
+                // (string title, string description, string assessmentConfigCID,
+                //  uint8 domain, uint256 startDate, uint256 endDate, string location)
+                const encodedData = schemaEncoder.encodeData([
+                  { name: "title", value: params.title, type: "string" },
+                  { name: "description", value: params.description, type: "string" },
+                  { name: "assessmentConfigCID", value: assessmentConfigCID, type: "string" },
+                  { name: "domain", value: domain, type: "uint8" },
+                  { name: "startDate", value: toUnixSeconds(params.startDate), type: "uint256" },
+                  { name: "endDate", value: toUnixSeconds(params.endDate), type: "uint256" },
+                  { name: "location", value: params.location, type: "string" },
+                ]);
+
+                const attestResult: Transaction<string> = await eas.attest({
+                  schema: easConfig.ASSESSMENT.uid,
+                  data: {
+                    recipient: params.gardenId,
+                    expirationTime: 0n,
+                    revocable: true,
+                    data: encodedData,
+                  },
+                });
+
+                const newAttestationUID = await attestResult.wait();
+                trackAdminAssessmentCreateSuccess({
+                  gardenId: params.gardenId,
+                  assessmentType: params.assessmentType,
+                  chainId: currentChainId,
+                  attestationUid: newAttestationUID,
+                });
+                return newAttestationUID;
+              } catch (error) {
+                trackAdminAssessmentCreateFailed({
+                  gardenId: params.gardenId,
+                  assessmentType: params.assessmentType,
+                  chainId: currentChainId,
+                  error: error instanceof Error ? error.message : String(error),
+                });
+                throw error;
+              }
             }
           ),
         },

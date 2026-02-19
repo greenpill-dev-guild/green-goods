@@ -15,6 +15,8 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
 import { useUser } from "../auth/useUser";
 import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
+import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
+import { useMutationLock } from "../utils/useMutationLock";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 import { wagmiConfig } from "../../config/appkit";
 import {
@@ -34,6 +36,29 @@ function getOctantModuleAddress(chainId: number): Address {
   return moduleAddress as Address;
 }
 
+function isRecoverableAllowanceReadError(error: unknown): boolean {
+  const message =
+    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return (
+    message.includes("revert") ||
+    message.includes("execution reverted") ||
+    message.includes("contractfunctionexecutionerror") ||
+    message.includes("call_exception")
+  );
+}
+
+type VaultDepositStage = "approval" | "deposit";
+
+class VaultDepositStageError extends Error {
+  stage: VaultDepositStage;
+
+  constructor(stage: VaultDepositStage, message: string) {
+    super(message);
+    this.name = "VaultDepositStageError";
+    this.stage = stage;
+  }
+}
+
 export function useVaultDeposit() {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
@@ -44,6 +69,7 @@ export function useVaultDeposit() {
     source: "useVaultDeposit",
     toastContext: "vault deposit",
   });
+  const { runWithLock, isPending: isLockPending } = useMutationLock();
 
   const activeToastId = useRef<string | undefined>(undefined);
   const lastParamsRef = useRef<{ gardenAddress: string; userAddress: string | undefined }>({
@@ -65,38 +91,15 @@ export function useVaultDeposit() {
     INDEXER_LAG_FOLLOWUP_MS
   );
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (params: DepositParams) => {
       if (!primaryAddress) {
         throw new Error("Connected account required");
       }
 
       const receiver = (params.receiver ?? primaryAddress) as Address;
-      let allowance: bigint;
-      try {
-        const allowanceResult = await readContract(wagmiConfig, {
-          address: params.assetAddress,
-          abi: ERC20_ALLOWANCE_ABI,
-          functionName: "allowance",
-          args: [primaryAddress as Address, params.vaultAddress],
-        });
-        allowance = typeof allowanceResult === "bigint" ? allowanceResult : 0n;
-      } catch {
-        // Non-standard tokens (e.g., USDT) may revert on allowance(); treat as zero
-        // so the approval step proceeds, which will surface its own error if unsupported.
-        allowance = 0n;
-      }
 
-      if (allowance < params.amount) {
-        await sendContractTx({
-          address: params.assetAddress,
-          abi: ERC20_ALLOWANCE_ABI,
-          functionName: "approve",
-          args: [params.vaultAddress, params.amount],
-        });
-      }
-
-      // Slippage protection: verify expected shares before deposit
+      // Slippage protection: verify expected shares before approvals/transfers
       const previewShares = await readContract(wagmiConfig, {
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
@@ -113,6 +116,64 @@ export function useVaultDeposit() {
         );
       }
 
+      let allowance: bigint;
+      try {
+        const allowanceResult = await readContract(wagmiConfig, {
+          address: params.assetAddress,
+          abi: ERC20_ALLOWANCE_ABI,
+          functionName: "allowance",
+          args: [primaryAddress as Address, params.vaultAddress],
+        });
+        allowance = typeof allowanceResult === "bigint" ? allowanceResult : 0n;
+      } catch (error) {
+        // Some non-standard tokens may revert on allowance() reads.
+        // We only downgrade known contract reverts to zero allowance and rethrow RPC/transport errors.
+        if (!isRecoverableAllowanceReadError(error)) {
+          throw error;
+        }
+        allowance = 0n;
+      }
+
+      if (allowance < params.amount) {
+        try {
+          // USDT-style tokens may require zeroing allowance before setting a new value.
+          if (allowance > 0n) {
+            await sendContractTx({
+              address: params.assetAddress,
+              abi: ERC20_ALLOWANCE_ABI,
+              functionName: "approve",
+              args: [params.vaultAddress, 0n],
+            });
+          }
+
+          await sendContractTx({
+            address: params.assetAddress,
+            abi: ERC20_ALLOWANCE_ABI,
+            functionName: "approve",
+            args: [params.vaultAddress, params.amount],
+          });
+
+          const refreshedAllowanceResult = await readContract(wagmiConfig, {
+            address: params.assetAddress,
+            abi: ERC20_ALLOWANCE_ABI,
+            functionName: "allowance",
+            args: [primaryAddress as Address, params.vaultAddress],
+          });
+          const refreshedAllowance =
+            typeof refreshedAllowanceResult === "bigint" ? refreshedAllowanceResult : 0n;
+          if (refreshedAllowance < params.amount) {
+            throw new Error(
+              "Token approval was confirmed, but allowance is still below the deposit amount."
+            );
+          }
+        } catch (error) {
+          throw new VaultDepositStageError(
+            "approval",
+            error instanceof Error ? error.message : "Approval failed"
+          );
+        }
+      }
+
       // Update toast to reflect deposit phase (after approval)
       if (activeToastId.current) {
         toastService.loading({
@@ -122,12 +183,19 @@ export function useVaultDeposit() {
         });
       }
 
-      return sendContractTx({
-        address: params.vaultAddress,
-        abi: OCTANT_VAULT_ABI,
-        functionName: "deposit",
-        args: [params.amount, receiver],
-      });
+      try {
+        return await sendContractTx({
+          address: params.vaultAddress,
+          abi: OCTANT_VAULT_ABI,
+          functionName: "deposit",
+          args: [params.amount, receiver],
+        });
+      } catch (error) {
+        throw new VaultDepositStageError(
+          "deposit",
+          error instanceof Error ? error.message : "Deposit failed"
+        );
+      }
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -155,6 +223,23 @@ export function useVaultDeposit() {
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
+      if (error instanceof VaultDepositStageError) {
+        const messageId =
+          error.stage === "approval" ? "app.treasury.approvalFailed" : "app.treasury.depositFailed";
+        toastService.error({
+          title: formatMessage({ id: "app.treasury.deposit" }),
+          message: formatMessage({
+            id: messageId,
+            defaultMessage:
+              error.stage === "approval"
+                ? "Approval failed. Please try again."
+                : "Deposit failed. Please try again.",
+          }),
+          context: "vault deposit",
+          error,
+        });
+        return;
+      }
       handleError(error, {
         metadata: {
           gardenAddress: params?.gardenAddress,
@@ -164,6 +249,24 @@ export function useVaultDeposit() {
       });
     },
   });
+
+  const isPending = mutation.isPending || isLockPending;
+  useBeforeUnloadWhilePending(isPending);
+
+  const mutateAsync = useCallback(
+    (...args: Parameters<typeof mutation.mutateAsync>) =>
+      runWithLock(() => mutation.mutateAsync(...args)),
+    [mutation, runWithLock]
+  );
+
+  const mutate = useCallback(
+    (...args: Parameters<typeof mutation.mutate>) => {
+      void mutateAsync(...args).catch(() => undefined);
+    },
+    [mutateAsync]
+  );
+
+  return { ...mutation, mutate, mutateAsync, isPending };
 }
 
 export function useVaultWithdraw() {
@@ -176,6 +279,7 @@ export function useVaultWithdraw() {
     source: "useVaultWithdraw",
     toastContext: "vault withdraw",
   });
+  const { runWithLock, isPending: isLockPending } = useMutationLock();
 
   const lastParamsRef = useRef<{ gardenAddress: string; userAddress: string | undefined }>({
     gardenAddress: "",
@@ -196,7 +300,7 @@ export function useVaultWithdraw() {
     INDEXER_LAG_FOLLOWUP_MS
   );
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (params: WithdrawParams) => {
       if (!primaryAddress) {
         throw new Error("Connected account required");
@@ -245,6 +349,24 @@ export function useVaultWithdraw() {
       });
     },
   });
+
+  const isPending = mutation.isPending || isLockPending;
+  useBeforeUnloadWhilePending(isPending);
+
+  const mutateAsync = useCallback(
+    (...args: Parameters<typeof mutation.mutateAsync>) =>
+      runWithLock(() => mutation.mutateAsync(...args)),
+    [mutation, runWithLock]
+  );
+
+  const mutate = useCallback(
+    (...args: Parameters<typeof mutation.mutate>) => {
+      void mutateAsync(...args).catch(() => undefined);
+    },
+    [mutateAsync]
+  );
+
+  return { ...mutation, mutate, mutateAsync, isPending };
 }
 
 export function useHarvest() {
@@ -256,6 +378,7 @@ export function useHarvest() {
     source: "useHarvest",
     toastContext: "vault harvest",
   });
+  const { runWithLock, isPending: isLockPending } = useMutationLock();
 
   const lastGardenRef = useRef<string>("");
   const { start: scheduleFollowUp } = useDelayedInvalidation(
@@ -269,7 +392,7 @@ export function useHarvest() {
     INDEXER_LAG_FOLLOWUP_MS
   );
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (params: HarvestParams) => {
       const octantModule = getOctantModuleAddress(chainId);
 
@@ -309,6 +432,24 @@ export function useHarvest() {
       });
     },
   });
+
+  const isPending = mutation.isPending || isLockPending;
+  useBeforeUnloadWhilePending(isPending);
+
+  const mutateAsync = useCallback(
+    (...args: Parameters<typeof mutation.mutateAsync>) =>
+      runWithLock(() => mutation.mutateAsync(...args)),
+    [mutation, runWithLock]
+  );
+
+  const mutate = useCallback(
+    (...args: Parameters<typeof mutation.mutate>) => {
+      void mutateAsync(...args).catch(() => undefined);
+    },
+    [mutateAsync]
+  );
+
+  return { ...mutation, mutate, mutateAsync, isPending };
 }
 
 export function useEmergencyPause() {
@@ -320,6 +461,7 @@ export function useEmergencyPause() {
     source: "useEmergencyPause",
     toastContext: "vault emergency pause",
   });
+  const { runWithLock, isPending: isLockPending } = useMutationLock();
 
   const lastGardenRef = useRef<string>("");
   const { start: scheduleFollowUp } = useDelayedInvalidation(
@@ -333,7 +475,7 @@ export function useEmergencyPause() {
     INDEXER_LAG_FOLLOWUP_MS
   );
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (params: EmergencyPauseParams) => {
       const octantModule = getOctantModuleAddress(chainId);
 
@@ -372,6 +514,24 @@ export function useEmergencyPause() {
       });
     },
   });
+
+  const isPending = mutation.isPending || isLockPending;
+  useBeforeUnloadWhilePending(isPending);
+
+  const mutateAsync = useCallback(
+    (...args: Parameters<typeof mutation.mutateAsync>) =>
+      runWithLock(() => mutation.mutateAsync(...args)),
+    [mutation, runWithLock]
+  );
+
+  const mutate = useCallback(
+    (...args: Parameters<typeof mutation.mutate>) => {
+      void mutateAsync(...args).catch(() => undefined);
+    },
+    [mutateAsync]
+  );
+
+  return { ...mutation, mutate, mutateAsync, isPending };
 }
 
 export function useSetDonationAddress() {
@@ -383,6 +543,7 @@ export function useSetDonationAddress() {
     source: "useSetDonationAddress",
     toastContext: "set donation address",
   });
+  const { runWithLock, isPending: isLockPending } = useMutationLock();
 
   const lastGardenRef = useRef<string>("");
   const { start: scheduleFollowUp } = useDelayedInvalidation(
@@ -396,7 +557,7 @@ export function useSetDonationAddress() {
     INDEXER_LAG_FOLLOWUP_MS
   );
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (params: SetDonationAddressParams) => {
       const octantModule = getOctantModuleAddress(chainId);
 
@@ -435,4 +596,22 @@ export function useSetDonationAddress() {
       });
     },
   });
+
+  const isPending = mutation.isPending || isLockPending;
+  useBeforeUnloadWhilePending(isPending);
+
+  const mutateAsync = useCallback(
+    (...args: Parameters<typeof mutation.mutateAsync>) =>
+      runWithLock(() => mutation.mutateAsync(...args)),
+    [mutation, runWithLock]
+  );
+
+  const mutate = useCallback(
+    (...args: Parameters<typeof mutation.mutate>) => {
+      void mutateAsync(...args).catch(() => undefined);
+    },
+    [mutateAsync]
+  );
+
+  return { ...mutation, mutate, mutateAsync, isPending };
 }

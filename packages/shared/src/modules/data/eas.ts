@@ -10,6 +10,7 @@ import type {
   EASWork,
   EASWorkApproval,
 } from "../../types/eas-responses";
+import type { WorkApproval } from "../../types/domain";
 import { logger } from "../app/logger";
 
 const GATEWAY_BASE_URL = "https://w3s.link";
@@ -160,7 +161,7 @@ const parseDataToWork = (
   };
 };
 
-const parseDataToWorkApproval = (
+export const parseDataToWorkApproval = (
   workApprovalUID: string,
   attestation: {
     attester: string;
@@ -212,6 +213,44 @@ const parseDataToWorkApproval = (
     createdAt: attestation.time,
   };
 };
+
+interface WorkApprovalAttestationRecord {
+  id: string;
+  attester: string;
+  recipient: string;
+  timeCreated: number;
+  decodedDataJson: string;
+}
+
+/**
+ * Converts an EAS attestation record into the canonical WorkApproval domain model.
+ */
+export function parseWorkApprovalAttestation(
+  attestation: WorkApprovalAttestationRecord
+): WorkApproval {
+  const parsed = parseDataToWorkApproval(
+    attestation.id,
+    {
+      attester: attestation.attester,
+      recipient: attestation.recipient,
+      time: attestation.timeCreated,
+    },
+    attestation.decodedDataJson
+  );
+
+  return {
+    id: parsed.id,
+    operatorAddress: parsed.operatorAddress,
+    gardenerAddress: parsed.gardenerAddress,
+    actionUID: parsed.actionUID,
+    workUID: parsed.workUID,
+    approved: parsed.approved,
+    feedback: parsed.feedback,
+    confidence: parsed.confidence,
+    verificationMethod: parsed.verificationMethod,
+    createdAt: parsed.createdAt * 1000, // Parser returns seconds, UI expects ms
+  };
+}
 
 /** Fetches garden assessment attestations from EAS */
 export const getGardenAssessments = async (

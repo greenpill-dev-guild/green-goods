@@ -777,12 +777,14 @@ describe("queryKeys", () => {
         "role",
         "operatorGardens",
         undefined,
+        undefined,
       ]);
-      expect(queryKeys.role.operatorGardens(TEST_OPERATOR)).toEqual([
+      expect(queryKeys.role.operatorGardens(TEST_OPERATOR, TEST_CHAIN_ID)).toEqual([
         "greengoods",
         "role",
         "operatorGardens",
         TEST_OPERATOR,
+        TEST_CHAIN_ID,
       ]);
     });
 
@@ -909,11 +911,12 @@ describe("queryKeys", () => {
     });
 
     it("generates list, detail, and drafts keys", () => {
-      expect(queryKeys.hypercerts.list(TEST_GARDEN, "active")).toEqual([
+      expect(queryKeys.hypercerts.list(TEST_GARDEN, TEST_CHAIN_ID, "active")).toEqual([
         "greengoods",
         "hypercerts",
         "list",
         TEST_GARDEN,
+        TEST_CHAIN_ID,
         "active",
       ]);
       expect(queryKeys.hypercerts.detail(TEST_HYPERCERT_ID)).toEqual([
@@ -1169,10 +1172,10 @@ describe("queryInvalidation", () => {
 
   describe("invalidateHypercerts", () => {
     it("returns hypercerts.all, list, and attestations keys", () => {
-      const result = queryInvalidation.invalidateHypercerts(TEST_GARDEN);
+      const result = queryInvalidation.invalidateHypercerts(TEST_GARDEN, TEST_CHAIN_ID);
       expect(result).toHaveLength(3);
       expect(result).toContainEqual(queryKeys.hypercerts.all);
-      expect(result).toContainEqual(queryKeys.hypercerts.list(TEST_GARDEN));
+      expect(result).toContainEqual(queryKeys.hypercerts.list(TEST_GARDEN, TEST_CHAIN_ID));
       expect(result).toContainEqual(queryKeys.hypercerts.attestations(TEST_GARDEN));
     });
 

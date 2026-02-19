@@ -9,11 +9,13 @@ interface UseVaultDepositsOptions {
   chainId?: number;
   userAddress?: Address;
   enabled?: boolean;
+  refetchInterval?: number | false;
 }
 
 export function useVaultDeposits(gardenAddress?: Address, options: UseVaultDepositsOptions = {}) {
   const chainId = options.chainId ?? DEFAULT_CHAIN_ID;
   const enabled = options.enabled ?? true;
+  const refetchInterval = options.refetchInterval ?? false;
   const normalizedGarden = gardenAddress?.toLowerCase();
   const normalizedUser = options.userAddress?.toLowerCase();
 
@@ -25,6 +27,7 @@ export function useVaultDeposits(gardenAddress?: Address, options: UseVaultDepos
     queryFn: () => getVaultDeposits(normalizedGarden ?? "", chainId, normalizedUser),
     enabled: enabled && Boolean(normalizedGarden),
     staleTime: STALE_TIME_MEDIUM,
+    refetchInterval,
   });
 
   return {

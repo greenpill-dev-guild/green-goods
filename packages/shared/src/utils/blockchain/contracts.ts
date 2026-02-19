@@ -5,7 +5,7 @@
  * Re-exports from config and imports ABIs directly from contracts/out.
  */
 
-import { type Abi, createPublicClient, http } from "viem";
+import { type Abi, type Address, createPublicClient, http } from "viem";
 import type { NetworkContracts } from "../../types/contracts";
 import { getChain as getChainFromConfig } from "../../config/chains";
 import { getNetworkName, getRpcUrl } from "./chain-registry";
@@ -46,6 +46,12 @@ const DEPLOYMENT_CONFIGS: Record<string, Record<string, any>> = {
   "11155111": deployment11155111 as Record<string, any>,
 };
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
+
+function asAddress(value: unknown): Address {
+  return typeof value === "string" ? (value as Address) : ZERO_ADDRESS;
+}
+
 function getDeploymentConfig(chainId: number | string): Record<string, any> {
   const chain = String(chainId);
   return DEPLOYMENT_CONFIGS[chain] ?? {};
@@ -56,38 +62,30 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
   const networkConfig = getNetworkConfigFromNetworksJson(chainId);
 
   return {
-    gardenToken: deployment.gardenToken || "0x0000000000000000000000000000000000000000",
-    actionRegistry: deployment.actionRegistry || "0x0000000000000000000000000000000000000000",
-    workResolver: deployment.workResolver || "0x0000000000000000000000000000000000000000",
-    workApprovalResolver:
-      deployment.workApprovalResolver || "0x0000000000000000000000000000000000000000",
-    deploymentRegistry:
-      deployment.deploymentRegistry || "0x0000000000000000000000000000000000000000",
-    octantModule: deployment.octantModule || "0x0000000000000000000000000000000000000000",
-    hatsModule: deployment.hatsModule || "0x0000000000000000000000000000000000000000",
-    karmaGAPModule: deployment.karmaGAPModule || "0x0000000000000000000000000000000000000000",
-    eas: networkConfig.contracts?.eas || "0x0000000000000000000000000000000000000000",
-    easSchemaRegistry:
-      networkConfig.contracts?.easSchemaRegistry || "0x0000000000000000000000000000000000000000",
-    communityToken:
-      networkConfig.contracts?.communityToken || "0x0000000000000000000000000000000000000000",
-    erc4337EntryPoint:
-      networkConfig.contracts?.erc4337EntryPoint || "0x0000000000000000000000000000000000000000",
-    multicallForwarder:
-      networkConfig.contracts?.multicallForwarder || "0x0000000000000000000000000000000000000000",
-    cookieJarModule: deployment.cookieJarModule || "0x0000000000000000000000000000000000000000",
-    yieldSplitter: deployment.yieldSplitter || "0x0000000000000000000000000000000000000000",
-    gardensModule: deployment.gardensModule || "0x0000000000000000000000000000000000000000",
-    greenGoodsENS: deployment.greenGoodsENS || "0x0000000000000000000000000000000000000000",
+    gardenToken: asAddress(deployment.gardenToken),
+    actionRegistry: asAddress(deployment.actionRegistry),
+    workResolver: asAddress(deployment.workResolver),
+    workApprovalResolver: asAddress(deployment.workApprovalResolver),
+    deploymentRegistry: asAddress(deployment.deploymentRegistry),
+    octantModule: asAddress(deployment.octantModule),
+    hatsModule: asAddress(deployment.hatsModule),
+    karmaGAPModule: asAddress(deployment.karmaGAPModule),
+    eas: asAddress(networkConfig.contracts?.eas),
+    easSchemaRegistry: asAddress(networkConfig.contracts?.easSchemaRegistry),
+    communityToken: asAddress(networkConfig.contracts?.communityToken),
+    erc4337EntryPoint: asAddress(networkConfig.contracts?.erc4337EntryPoint),
+    multicallForwarder: asAddress(networkConfig.contracts?.multicallForwarder),
+    cookieJarModule: asAddress(deployment.cookieJarModule),
+    yieldSplitter: asAddress(deployment.yieldSplitter),
+    gardensModule: asAddress(deployment.gardensModule),
+    greenGoodsENS: asAddress(deployment.greenGoodsENS),
     // Hypercert marketplace integration
-    hypercertExchange: deployment.hypercertExchange || "0x0000000000000000000000000000000000000000",
-    hypercertMinter: deployment.hypercertMinter || "0x0000000000000000000000000000000000000000",
-    transferManager: deployment.transferManager || "0x0000000000000000000000000000000000000000",
-    marketplaceAdapter:
-      deployment.marketplaceAdapter || "0x0000000000000000000000000000000000000000",
-    hypercertsModule: deployment.hypercertsModule || "0x0000000000000000000000000000000000000000",
-    strategyHypercertFractionOffer:
-      deployment.strategyHypercertFractionOffer || "0x0000000000000000000000000000000000000000",
+    hypercertExchange: asAddress(deployment.hypercertExchange),
+    hypercertMinter: asAddress(deployment.hypercertMinter),
+    transferManager: asAddress(deployment.transferManager),
+    marketplaceAdapter: asAddress(deployment.marketplaceAdapter),
+    hypercertsModule: asAddress(deployment.hypercertsModule),
+    strategyHypercertFractionOffer: asAddress(deployment.strategyHypercertFractionOffer),
   };
 }
 
