@@ -46,8 +46,17 @@ packages/indexer/
 
 **Contracts handled by this indexer:**
 - ActionRegistry, GardenToken, GardenAccount
-- HatsModule, OctantModule, GardensModule, YieldSplitter
-- HypercertMinter
+- HatsModule, OctantModule, OctantVault, YieldSplitter
+- HypercertMinter (minimal linkage + claims)
+
+**Externalized (do not index in Envio):**
+- EAS attestations -> EAS GraphQL
+- Gardens V2 community/pools -> Gardens subgraph
+- Marketplace orders/trades -> on-chain reads/logs
+- ENS registration lifecycle -> RPC reads
+- Cookie jars -> on-chain reads
+- Hypercert display metadata (`title`, `description`, `image`, `workScopes`) -> Hypercert API/IPFS at read time
+- Power registry audit entities -> not needed at app runtime
 
 ## Critical Patterns
 

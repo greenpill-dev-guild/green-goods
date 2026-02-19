@@ -1,12 +1,7 @@
 ---
 name: review
 description: Code Review & PR Creation - 6-pass systematic review. Use for code reviews and PR feedback.
-version: "1.1"
-last_updated: "2026-02-09"
-last_verified: "2026-02-09"
-status: proven
-packages: []
-dependencies: [architecture, testing]
+argument-hint: "[file-or-PR]"
 ---
 
 # Review Skill
@@ -14,6 +9,7 @@ dependencies: [architecture, testing]
 Code review workflow: request reviews, perform 6-pass analysis, process feedback.
 
 **References**: See `CLAUDE.md` for codebase patterns and conventions. Use `code-reviewer` agent for PRs.
+Canonical output contract: `.claude/standards/output-contracts.md`.
 
 ---
 
@@ -22,12 +18,19 @@ Code review workflow: request reviews, perform 6-pass analysis, process feedback
 | Trigger | Action |
 |---------|--------|
 | `/review` | Perform 6-pass code review |
+| `/review --mode verify_only --scope cross-package` | Cross-package verification pass |
+| `/review --mode apply_fixes` | Explicit review-and-fix pass |
 | After implementation | Request review |
 | PR feedback received | Process and respond |
 
 ## Progress Tracking (REQUIRED)
 
-Every review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
+Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
+
+## Modes
+
+- **Default mode**: `report_only`
+- **Fix mode**: switch to `apply_fixes` only when explicitly requested (for example: `"apply fixes"`)
 
 ---
 
@@ -186,29 +189,31 @@ bun run verify:contracts:fast  # Quick: skip E2E and dry runs
 ```markdown
 ## Code Review: [PR Title]
 
-### Change Explanation
-[Summary with Mermaid diagram]
+### Summary
+[Scope + change explanation + requirement coverage]
 
-### Issue Coverage
-| Requirement | Status |
-|-------------|--------|
-Coverage: X/Y (Z%)
+### Severity Mapping
+- `Critical|High -> must-fix`
+- `Medium -> should-fix`
+- `Low -> nice-to-have`
 
-### Critical (Blocking)
-- [Issue] - `file.ts:123` — [Explanation + fix suggestion]
+### Must-Fix
+- [Issue] - `file.ts:123` — [Critical/High finding]
 
-### High Priority
-- [Issue] - `file.ts:456` — [Explanation + fix suggestion]
+### Should-Fix
+- [Issue] - `file.ts:456` — [Medium finding]
 
-### Medium (Non-blocking)
-- [Issue] - `file.ts:789`
+### Nice-to-Have
+- [Suggestion] - `file.ts:789` — [Low finding]
 
-### Low (Suggestions)
-- [Suggestion] - `file.ts:101`
+### Verification
+`bun run test`  
+`bun lint`  
+`bun build`
 
 ### Recommendation
-**[APPROVE / REQUEST CHANGES]**
-[Summary of what must change before approval]
+**[APPROVE / REQUEST_CHANGES]**
+[Brief rationale]
 ```
 
 ### Severity Guide
@@ -220,11 +225,22 @@ Coverage: X/Y (Z%)
 | **Medium** | Style inconsistency, minor optimization, missing test | Fix in this PR or create follow-up issue |
 | **Low** | Suggestion, nitpick, alternative approach | Author's discretion |
 
+### Severity Mapping
+
+| Review Severity | Action Bucket |
+|----------------|---------------|
+| Critical | must-fix |
+| High | must-fix |
+| Medium | should-fix |
+| Low | nice-to-have |
+
 ### Post to GitHub
 
 ```bash
 gh pr comment [PR_NUMBER] --body "[review content]"
 ```
+
+Only post when PR context exists. For working-copy reviews, return findings in chat.
 
 ---
 
@@ -279,7 +295,7 @@ gh pr create --title "feat(scope): description" --body "..."
 
 - **ANY COVERAGE < 100%** → DO NOT APPROVE
 - **ANY UNRESOLVED CRITICAL/HIGH** → DO NOT APPROVE
-- **ALWAYS POST TO GITHUB**
+- **POST TO GITHUB ONLY IN PR CONTEXT**
 
 ## Related Skills
 

@@ -1,12 +1,7 @@
 ---
 name: biome
+user-invocable: false
 description: Biome formatter and import organizer - fast Rust-based code formatting. Use for formatting configuration, import organization, and migration from Prettier.
-version: "1.1"
-last_updated: "2026-02-09"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin, indexer, agent]
-dependencies: []
 ---
 
 # Biome Skill

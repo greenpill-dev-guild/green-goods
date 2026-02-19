@@ -1,12 +1,7 @@
 ---
 name: web3
+user-invocable: false
 description: Web3 frontend patterns - Wagmi, Viem, wallet/passkey auth, transaction lifecycle, contract interactions. Use for wallet flows, chain switching, contract reads/writes, and account abstraction.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin]
-dependencies: [react, tanstack-query]
 ---
 
 # Web3 Skill
@@ -420,4 +415,4 @@ async function ensureSufficientBalance(address: Address) {
 - `error-handling-patterns` — Contract error categorization and user messages
 - `react` — State management for transaction UI
 - `contracts` — Solidity side of the contract interactions
-- `offline` — Job queue for offline transaction queueing
+- `data-layer` — Job queue for offline transaction queueing

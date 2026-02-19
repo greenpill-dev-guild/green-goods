@@ -1,12 +1,8 @@
 ---
 name: audit
 description: Codebase Audit - quality analysis, dead code detection. Use for health checks and anti-pattern detection.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin, contracts, indexer]
-dependencies: [architecture]
+argument-hint: "[package-name]"
+context: fork
 ---
 
 # Audit Skill
@@ -28,7 +24,7 @@ Systematic codebase analysis: quality audit, dead code detection, architectural 
 
 ## Progress Tracking (REQUIRED)
 
-Every audit MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
+Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
 
 ---
 
@@ -235,7 +231,7 @@ Add to audit report:
 
 | Reference | Location | Status |
 |-----------|----------|--------|
-| `useDelayedInvalidation` | offline SKILL.md, architectural-rules.md | ✅ Exists |
+| `useDelayedInvalidation` | data-layer SKILL.md, architectural-rules.md | ✅ Exists |
 | `parseContractError` | error-handling SKILL.md | ⚠️ Renamed to `decodeContractError` |
 | `Address` type | web3 SKILL.md, contracts SKILL.md | ✅ Exists |
 | Provider order (Rule #13) | architectural-rules.md | ⚠️ `JobQueueProvider` moved above `AppProvider` |

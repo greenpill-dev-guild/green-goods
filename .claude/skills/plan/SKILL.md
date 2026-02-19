@@ -1,12 +1,7 @@
 ---
 name: plan
 description: Planning & Execution - create plans, check progress, execute in batches, manage lifecycle. Use for implementation planning.
-version: "1.2"
-last_updated: "2026-02-15"
-last_verified: "2026-02-15"
-status: proven
-packages: []
-dependencies: []
+argument-hint: "[feature-name]"
 ---
 
 # Plan Skill
@@ -22,14 +17,16 @@ Planning lifecycle for Green Goods: create plans, check progress, execute in bat
 | Trigger | Action |
 |---------|--------|
 | `/plan` | Create new implementation plan |
-| `/plan check` | Audit progress against plan |
-| `/plan execute` | Execute plan in batches |
-| `/plan cleanup` | Audit `.plans/` — archive implemented, flag stale |
+| `/plan --mode check` | Audit progress against plan |
+| `/plan --mode execute` | Execute plan in batches |
+| `/plan --mode cleanup` | Audit `.plans/` — archive implemented, flag stale |
+| `/plan --mode teams*` | Team-lane orchestration modes |
+| `/teams*` | Legacy alias routed to `/plan --mode teams*` |
 | Starting new feature | Create plan before coding |
 
 ## Progress Tracking (REQUIRED)
 
-Every planning workflow MUST use **TodoWrite** for visibility. See `CLAUDE.md` → Session Continuity.
+Use **TodoWrite** for visibility when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
 
 ---
 
@@ -261,7 +258,7 @@ This gives Claude and future contributors unambiguous constraints without readin
 - **Plans with vague steps** — "Update the component" is not a plan step; "Add `onSubmit` handler to `WorkForm` that calls `useJobQueue.addJob()`" is
 - **Skipping impact analysis** — A plan without "Files to Modify" will surprise you during execution
 - **Infinite planning** — If the plan exceeds 15 steps, split into multiple plans or incremental PRs
-- **Planning alone when blocked** — If you need information to plan, ask (use `AskUserQuestion` or `oracle`) instead of guessing
+- **Planning alone when blocked** — If you need information to plan, ask the user directly (or use `oracle`) instead of guessing
 - **Ignoring CLAUDE.md compliance** — Plans that skip the compliance checklist produce non-conforming code
 - **Plan proliferation** — Never have 2+ active plans for the same feature. When a new plan supersedes an old one, delete the old one immediately
 - **Missing test strategy** — Every feature plan needs a "Test Strategy" section. Contracts plans always include tests; frontend plans must too

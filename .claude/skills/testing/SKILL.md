@@ -1,12 +1,6 @@
 ---
 name: testing
 description: Testing patterns - TDD workflow, Vitest unit tests, Playwright E2E. Use for writing tests, implementing features, debugging.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin, contracts]
-dependencies: []
 ---
 
 # Testing Skill
@@ -512,6 +506,14 @@ Before marking work complete:
 - [ ] For contracts: ≥80% test pass rate (testnet), 100% (mainnet)
 
 Can't check all boxes? You skipped TDD. Start over.
+
+## Anti-Patterns
+
+- Writing implementation before a failing test is in place
+- Keeping placeholder assertions (`expect(true).toBe(true)`)
+- Ignoring cleanup tests for timers/listeners/async hooks
+- Using brittle snapshots where behavioral assertions are required
+- Declaring completion without running `bun run test`, `bun lint`, and build checks
 
 ## Related Skills
 

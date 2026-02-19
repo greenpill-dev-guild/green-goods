@@ -1,12 +1,7 @@
 ---
 name: deployment
 description: Full deployment pipeline - contracts via deploy.ts, indexer via Docker Compose, frontends via Vercel, environment promotion. Use for deployments, releases, and environment management.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [contracts, indexer, client, admin]
-dependencies: [contracts]
+disable-model-invocation: true
 ---
 
 # Deployment Skill
@@ -182,7 +177,7 @@ docker compose -f docker-compose.indexer.yaml up -d
 
 # Check service health
 docker compose -f docker-compose.indexer.yaml ps
-curl -s http://localhost:8080/healthz
+node -e 'fetch("http://localhost:8080/healthz").then(r=>console.log(r.status))'
 ```
 
 **Stack components:**
@@ -274,7 +269,7 @@ cast block-number --rpc-url "$RPC_URL"
 
 # 4. Indexer endpoint matches chain
 # Verify the GraphQL endpoint returns data for the correct chain
-curl -s "${GRAPHQL_ENDPOINT}/health" || echo "Indexer not reachable"
+node -e 'fetch(`${process.env.GRAPHQL_ENDPOINT}/health`).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' || echo "Indexer not reachable"
 ```
 
 ### Common Env Mistakes

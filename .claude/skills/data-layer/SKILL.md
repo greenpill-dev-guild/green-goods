@@ -1,12 +1,7 @@
 ---
 name: data-layer
+user-invocable: false
 description: Offline-first data layer - job queue, IndexedDB schema, service workers, background sync, storage quotas, draft persistence. Use for offline features, storage design, sync logic, and PWA lifecycle.
-version: "1.0"
-last_updated: "2026-02-09"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client]
-dependencies: [web3]
 ---
 
 # Data Layer Skill

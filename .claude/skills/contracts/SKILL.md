@@ -1,12 +1,6 @@
 ---
 name: contracts
 description: Solidity smart contract development with Foundry. Use for contract design, testing, gas optimization, UUPS upgrades, and deployment via deploy.ts.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [contracts]
-dependencies: [testing]
 ---
 
 # Contracts Skill

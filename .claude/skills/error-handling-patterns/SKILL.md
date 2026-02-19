@@ -1,12 +1,7 @@
 ---
 name: error-handling-patterns
+user-invocable: false
 description: Robust error handling strategies for graceful failures and debugging. Use for error handling implementations, error flow debugging, error boundaries, retry mechanisms, and user-friendly error messages.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin]
-dependencies: [react, monitoring]
 ---
 
 # Error Handling Patterns
@@ -21,7 +16,7 @@ When invoked:
 - Ensure logging captures actionable context.
 - Add or update tests for error paths.
 
-## Error Categories
+## Part 1: Error Categories
 
 ### Recoverable vs Unrecoverable
 
@@ -43,7 +38,7 @@ When invoked:
 | `blockchain` | Tx failed, gas estimation | Show failure, offer retry |
 | `storage` | IndexedDB full, quota exceeded | Prompt cleanup |
 
-## TypeScript Error Handling
+## Part 2: TypeScript Error Handling
 
 ### Error Utility Structure
 
@@ -118,7 +113,7 @@ useMutation({
 });
 ```
 
-## React Error Handling
+## Part 3: React Error Handling
 
 ### Error Boundaries
 
@@ -160,7 +155,7 @@ function GardenPage() {
 }
 ```
 
-## Contract Error Handling
+## Part 4: Contract Error Handling
 
 ```typescript
 import { parseContractError, USER_FRIENDLY_ERRORS } from "@green-goods/shared";
@@ -188,7 +183,7 @@ async function handleTransaction(tx: Promise<TransactionReceipt>) {
 }
 ```
 
-## Retry Patterns
+## Part 5: Retry Patterns
 
 ### Exponential Backoff
 
@@ -287,7 +282,7 @@ try {
 }
 ```
 
-## Green Goods Integration
+## Part 6: Green Goods Integration
 
 ### Toast Service Pattern
 
@@ -339,11 +334,19 @@ try {
 }
 ```
 
+## Anti-Patterns
+
+- Swallowing exceptions with empty `catch {}` blocks
+- Returning generic errors without category/context metadata
+- Retrying non-recoverable errors (validation/permission) indefinitely
+- Showing raw blockchain revert messages directly to users
+- Logging sensitive values (keys, tokens, proofs) in error payloads
+
 ## Related Skills
 
 - `react` — Error boundaries and component-level error handling
 - `monitoring` — PostHog error tracking and observability
-- `offline` — Sync failure categorization and retry patterns
+- `data-layer` — Sync failure categorization and retry patterns
 - `web3` — Domain-specific error handling for wallet and blockchain errors (see web3 skill for contract error patterns)
 - `tanstack-query` — Query/mutation error handling (see tanstack-query skill for onError patterns)
 - `contracts` — Smart contract error parsing (see contracts skill for Solidity revert handling)

@@ -1,12 +1,7 @@
 ---
 name: git-workflow
+user-invocable: false
 description: Git workflow patterns - branching, conventional commits, conflict resolution, release tagging, changelog. Use for branch management, merge conflicts, release workflows.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: []
-dependencies: []
 ---
 
 # Git Workflow Skill

@@ -1,12 +1,7 @@
 ---
 name: ci-cd
+user-invocable: false
 description: GitHub Actions CI/CD patterns - workflow config, build matrix, caching, PR checks, status gates. Use for pipeline configuration and automation.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: established
-packages: []
-dependencies: [git-workflow, testing]
 ---
 
 # CI/CD Skill

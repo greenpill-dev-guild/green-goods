@@ -1,12 +1,7 @@
 ---
 name: tanstack-query
-description: TanStack Query v5 for server state. Use when setting up data fetching, fixing v4→v5 migration, or debugging hydration.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [shared, client, admin]
-dependencies: [react]
+user-invocable: false
+description: TanStack Query v5 for server state. Use when setting up data fetching, fixing v4->v5 migration, or debugging hydration.
 ---
 
 # TanStack Query v5 Skill
@@ -24,7 +19,7 @@ When invoked:
 - Prefer object syntax for all queries/mutations.
 - Avoid ad-hoc cache keys or inline query key arrays.
 
-## Green Goods Defaults
+## Part 1: Green Goods Defaults
 
 - Query client config: `packages/shared/src/config/react-query.ts`
 - Query keys and invalidation: `packages/shared/src/hooks/query-keys.ts`
@@ -478,9 +473,17 @@ What data fetching pattern?
                                   → No query callbacks
 ```
 
+## Anti-Patterns
+
+- Using inline ad-hoc query key arrays instead of `queryKeys`
+- Treating mutation success as complete without invalidating dependent caches
+- Running dependent queries without `enabled` guards
+- Using `bun test` for Vitest packages instead of `bun run test`
+- Hiding query errors without user-facing feedback or logging
+
 ## Related Skills
 
 - `react` — Local state management that complements server state
-- `offline` — Job queue and sync patterns that work alongside queries
+- `data-layer` — Job queue and sync patterns that work alongside queries
 - `error-handling-patterns` — Error handling for failed queries and mutations
 - `testing` — Testing queries, cache behavior, and optimistic updates

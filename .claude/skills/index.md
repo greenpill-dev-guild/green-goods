@@ -7,14 +7,23 @@
 
 ## Command Skills (Workflow Orchestration)
 
-Use these to start structured workflows:
+Use these canonical commands to start structured workflows:
 
 | Skill | Invoke With | Use For |
 |-------|-------------|---------|
 | **plan** | `/plan`, "plan this feature", "create implementation plan" | Creating structured implementation plans with specs |
 | **debug** | `/debug`, "debug this", "investigate this bug" | Root cause investigation, systematic debugging |
-| **review** | `/review`, "review this PR", "code review" | 6-pass systematic code review, post to GitHub |
+| **review** | `/review`, "review this PR", "code review" | 6-pass systematic code review (report-first by default) |
 | **audit** | `/audit`, "audit the codebase", "health check" | Dead code detection, architectural anti-patterns |
+| **teams** | `/teams`, "create agent team", "agent team" | Coordinate multiple Claude Code sessions as a team |
+
+### Command Mode Wrappers (Aliases)
+
+| Wrapper Skill | Canonical Route | Use For |
+|---------------|-----------------|---------|
+| **cross-package-verify** | `/review --mode verify_only --scope cross-package` | Multi-package verification wrapper |
+| **autonomous-review** | `/review --mode apply_fixes` | Explicit review-and-fix wrapper |
+| **tdd-bugfix** | `/debug --mode tdd_bugfix` | Test-first bugfix wrapper |
 
 ---
 
@@ -74,14 +83,10 @@ Use these for structural decisions and production concerns:
 
 ---
 
-## Deprecated Skills
+## Alias Map
 
-These skills have been merged and redirect to their replacement:
-
-| Skill | Merged Into | Reason |
-|-------|-------------|--------|
-| ~~offline~~ | **data-layer** | Combined with storage to eliminate IndexedDB overlap |
-| ~~storage~~ | **data-layer** | Combined with offline to eliminate IndexedDB overlap |
+- `offline` -> `data-layer`
+- `storage` -> `data-layer`
 
 ---
 
@@ -110,7 +115,7 @@ Triage → Research → Implementation → Review:
 ```
 
 **Context Passing Rules:**
-- **triage → /plan or /debug or migration**: Triage report includes severity, type, affected packages, and recommended skill chain. Entry point depends on classification.
+- **triage → canonical command route**: Triage report includes severity, type, affected packages, selected bundle ID, and bundle entrypoint.
 - **oracle → cracked-coder**: Pass findings as a concise brief (key decisions, affected files, constraints discovered). Don't pass raw research dumps.
 - **cracked-coder → code-reviewer**: PR description should reference the original plan/issue. Reviewer reads the diff + plan, not the implementation conversation.
 - **code-reviewer → cracked-coder**: Review feedback becomes new todos. Cracked-coder addresses each comment as a separate task.
@@ -131,10 +136,14 @@ What do you need?
 ├─► Debug something? ─────────► /debug
 ├─► Review code? ─────────────► /review (or code-reviewer agent)
 ├─► Health check? ────────────► /audit
+├─► Verify whole repo? ───────► /review --mode verify_only --scope cross-package
+├─► Coordinate agent team? ──► /teams (build, review, investigate)
 │
 ├─► Research/investigate? ────► oracle agent
 ├─► Complex implementation? ──► cracked-coder agent
 ├─► Classify/triage issue? ───► triage agent
+├─► Bugfix with TDD loop? ────► /debug --mode tdd_bugfix
+├─► Review and auto-fix? ─────► /review --mode apply_fixes
 │
 ├─► Write tests? ─────────────► testing skill
 ├─► React work? ──────────────► react skill
@@ -194,97 +203,23 @@ When working deeply in a specific package, load the corresponding context file f
 
 ---
 
-## Skill Chaining Patterns
+## Routing Guide
 
-**New Feature:**
-```
-/plan → testing (write tests first) → react → tanstack-query
-```
+Use these categories to route implementation work:
 
-**UI Implementation:**
-```
-/plan (from design specs) → frontend-design → tailwindcss → storybook → react → ui-compliance → i18n
-```
+| Bundle ID | Entry Point | Use When |
+|-----------|-------------|----------|
+| `frontend-change` | `/plan` | User-facing client/admin/shared UI changes |
+| `shared-domain-change` | `/plan` | Shared hooks/providers/store/module behavior |
+| `contracts-change` | `/plan` | Solidity/UUPS/deploy/security-impacting changes |
+| `indexer-change` | `/plan` | Envio schema/handler or indexer deployment changes |
+| `agent-change` | `/plan` | Bot handler/platform adapter changes |
+| `cross-package-change` | `/review --mode verify_only --scope cross-package` | Multi-package verification and coordination |
+| `incident-hotfix` | `/debug --mode incident_hotfix` | P0/P1 incident response and hotfix routing |
 
-**Web3 Feature:**
-```
-/plan → web3 (wallet/passkey patterns) → contracts (if new) → testing → data-layer (if writes)
-```
-
-**Bug Fix:**
-```
-/debug → error-handling-patterns (if error handling) → testing (regression test)
-```
-
-**Contract Change:**
-```
-contracts → migration (if breaking) → indexer (if events changed) → shared (if types changed) → deployment
-```
-
-**Offline Feature:**
-```text
-/plan → data-layer (job queue + schema) → xstate (workflow) → web3 (tx patterns) → testing (mock IndexedDB)
-```
-
-**Full-Stack Feature:**
-```
-/plan → contracts → indexer → testing → react → web3 → tanstack-query → data-layer
-```
-
-**Security Audit:**
-```
-security (static analysis + access control) → contracts (fixes) → testing (regression tests) → deployment
-```
-
-**Protocol Upgrade:**
-```
-migration agent (blast radius) → contracts → security (verify) → indexer → deployment → monitoring (verify)
-```
-
-**Release:**
-```
-deployment (contracts → indexer → apps) → monitoring (health check) → /review
-```
-
-**Code Quality:**
-```
-/audit → architecture → performance → /review
-```
-
-**Bot Feature:**
-```
-/plan → agent (handler + adapter) → testing → deployment (Railway)
-```
-
-**Component Library:**
-```
-react (component design) → tailwindcss (theming) → storybook (stories) → ui-compliance (a11y) → frontend-design (polish)
-```
-
-**Hotfix:**
-```
-triage (classify P0/P1) → /debug (root cause) → git-workflow (hotfix branch) → testing (regression) → deployment
-```
-
-**Dependency Upgrade:**
-```
-dependency-management (update + audit) → migration (if breaking) → ci-cd (verify pipeline) → testing (full suite)
-```
-
-**Incident Response:**
-```
-triage (P0 classification) → monitoring (diagnose) → /debug (root cause) → cracked-coder (fix) → deployment (rollback or hotfix)
-```
-
-**Docker/Indexer Issue:**
-```
-docker (container diagnostics) → indexer (event handler check) → monitoring (sync lag) → deployment (if redeploy needed)
-```
-
-**Theme/Styling Change:**
-```
-tailwindcss (token design) → frontend-design (visual direction) → radix-ui (component styling) → storybook (document) → ui-compliance (verify)
-```
+Routing guidance:
+1. Triage identifies affected packages and selects entry point skill.
+2. Escalate to cross-package verification when blast radius spans multiple package boundaries.
 
 ---
 
@@ -292,65 +227,42 @@ tailwindcss (token design) → frontend-design (visual direction) → radix-ui (
 
 | Convention | Enforced By |
 |------------|-------------|
-| Hooks in `@green-goods/shared` only | Claude hook (blocks) |
-| Single root `.env` only | Claude hook (blocks) |
-| TDD for all features | Claude hook (warns) + cracked-coder |
-| No hardcoded addresses | Claude hook (warns) |
-| i18n for UI strings | Claude hook (reminds) |
-| Pre-commit validation | Claude hook (reminds) |
-| Deploy via deploy.ts only | deployment skill + Claude hook |
+| Hooks in `@green-goods/shared` only | Hook (blocks) |
+| Single root `.env` only | Hook (blocks) |
+| Use `bun run test` not `bun test` | Hook (blocks) |
+| No force push to main/master | Hook (blocks) |
+| Confirm production deploys | Hook (warns) |
+| Deploy via deploy.ts only | deployment skill |
+| TDD for all features | cracked-coder agent |
+| Use `Address` type, not `string` | `.claude/rules/typescript.md` |
+| Use logger, not console.log | `.claude/rules/typescript.md` |
+| Barrel imports only | `.claude/rules/typescript.md` |
+| Timer/listener cleanup in hooks | `.claude/rules/react-patterns.md` |
 | Writes go through job queue | data-layer skill |
-| Use `Address` type, not `string` | web3 skill + architectural rule #5 |
-| All components have Storybook stories | storybook skill |
-| Use logger service, not console.log | monitoring skill + architectural rule #12 |
-| State machines for multi-step flows | xstate skill |
-| IndexedDB schema versioning | data-layer skill |
-| Track business events in PostHog | monitoring skill (Part 8) |
-| New shared components have Storybook stories | Claude hook (warns) + storybook skill |
-| Mutations consider PostHog tracking | Claude hook (reminds) |
-| Schema changes sync with EventHandlers | Claude hook (reminds) |
 | Conventional commits with scope | git-workflow skill |
-| CI uses `--frozen-lockfile` | ci-cd skill |
-| Lockfile conflicts always regenerated | dependency-management skill |
-| Semantic color tokens, not raw colors | tailwindcss skill |
-| Docker for indexer on macOS | docker skill |
-
----
-
-## Skill Maturity
-
-| Status | Count | Meaning |
-|--------|-------|---------|
-| **proven** | 30 | Battle-tested in production, comprehensive coverage |
-| **established** | 3 | Functional, may need expansion for edge cases |
-| **deprecated** | 2 | Merged into another skill, redirect only |
-
-**Established skills** (candidates for promotion): `i18n`, `performance`, `ci-cd`
 
 ---
 
 ## Skill Metadata Standard
 
-All skills follow this frontmatter template:
+All skills use official Claude Code YAML frontmatter:
 
 ```yaml
 ---
 name: skill-name
-description: Brief description for Claude's skill registry
-version: "1.0"
-last_updated: "YYYY-MM-DD"     # When content was last changed
-last_verified: "YYYY-MM-DD"    # When content was last checked against codebase
-status: proven | established | deprecated
-packages: [shared, client, admin, contracts, indexer, agent]
-dependencies: [other-skill-names]
+description: Brief description for Claude's skill discovery
+# Optional official fields:
+# argument-hint: "[args]"           # Shown in autocomplete after /name
+# disable-model-invocation: true    # Only user can invoke (for side-effect skills)
+# context: fork                     # Run in isolated subagent context
 ---
 ```
 
 **Minimum sections** for every skill:
 1. **Activation** — When and how to use the skill
 2. **Parts** — Numbered content sections with patterns and examples
-3. **Anti-Patterns** — What NOT to do (every skill must have this)
-4. **Related Skills** — Cross-references to related skills (bidirectional)
+3. **Anti-Patterns** — What NOT to do
+4. **Related Skills** — Cross-references to related skills
 
 ---
 
@@ -405,7 +317,7 @@ Which skills apply to which packages:
 | deployment | x | x | | x | x | |
 | monitoring | | x | x | x | x | x |
 | performance | | | x | x | x | |
-| error-handling | | | x | x | x | |
+| error-handling-patterns | | | x | x | x | |
 | frontend-design | | | x | x | x | |
 | tailwindcss | | | x | x | x | |
 | radix-ui | | | x | x | x | |

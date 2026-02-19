@@ -1,12 +1,7 @@
 ---
 name: security
+user-invocable: false
 description: Smart contract security auditing - vulnerability detection, access control review, static analysis tooling, and Hats Protocol patterns. Use for security reviews, pre-deployment audits, and threat modeling.
-version: "1.0"
-last_updated: "2026-02-08"
-last_verified: "2026-02-09"
-status: proven
-packages: [contracts]
-dependencies: [contracts]
 ---
 
 # Security Skill
@@ -28,7 +23,7 @@ Smart contract security auditing: vulnerability detection, access control patter
 
 ## Progress Tracking (REQUIRED)
 
-Every security review MUST use **TodoWrite**. See `CLAUDE.md` → Session Continuity.
+Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
 
 ---
 
@@ -57,7 +52,7 @@ slither src/ --json report.json        # Machine-readable
 
 ```bash
 # Install
-curl -L https://raw.githubusercontent.com/Cyfrin/aderyn/dev/cyfrinup/install | bash
+brew install cyfrin/tap/aderyn
 cyfrinup
 
 # Run analysis
