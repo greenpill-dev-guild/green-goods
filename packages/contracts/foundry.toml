@@ -22,7 +22,6 @@ src = 'src'
 test = 'test'
 via_ir = false
 sparse_mode = true       # Only recompile changed files
-ignore = ["lib/**"]
 fs_permissions = [
   { access = "read-write", path = "./" }
 ]

@@ -16,7 +16,7 @@
     "build": "bun script/utils/build-adaptive.ts",
     "build:abis": "bun script/build-abis.ts",
     "build:fast": "forge build --skip test --skip script",
-    "build:full": "forge build",
+    "build:full": "forge build --skip test --skip script",
     "clean:artifacts": "rm -rf out out-* cache cache-*",
     "build:fresh": "bun run clean:artifacts && forge build",
     "build:core": "forge build --skip test --skip script",

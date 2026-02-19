@@ -37,9 +37,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          # nightly required: foundry.toml uses `ignore` and `compilation_restrictions`
-          # which are nightly-only features not yet promoted to stable
-          version: nightly
+          version: stable
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -77,8 +75,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          # nightly required: foundry.toml uses `ignore` and `compilation_restrictions`
-          version: nightly
+          version: stable
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -117,7 +114,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -188,7 +185,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
