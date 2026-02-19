@@ -1,3 +1,15 @@
+---
+title: Glossary
+slug: /glossary
+audience: all
+owner: docs
+last_verified: 2026-02-19
+feature_status: Live
+source_of_truth:
+  - docs/docs/developers/reference/deployment-indexer-status.mdx
+  - packages/shared/src/hooks/index.ts
+---
+
 # Glossary
 
 ## Garden
@@ -7,7 +19,7 @@ A community hub for regenerative work, represented as an NFT using the ERC-6551 
 Community members who perform on-the-ground conservation and regenerative work. Gardeners submit work through the Green Goods PWA using the MDR (Media-Details-Review) workflow, documenting their contributions with photos and metrics. Gardeners can belong to multiple gardens and earn recognition for verified work.
 
 ## Garden Operator
-Trusted coordinators who manage gardens and validate gardener submissions. Operators review work submissions, approve or reject them with feedback, and oversee garden membership. Operators have elevated permissions within their assigned gardens but cannot create new gardens (admin-only).
+Trusted coordinators who manage gardens and validate gardener submissions. Operators review work submissions, approve or reject them with feedback, and oversee garden membership. Operators have elevated permissions within assigned gardens, and garden creation depends on current permission policy.
 
 ## Action
 A task or bounty available for gardeners to complete within a garden. Actions define specific regenerative activities (like planting trees, litter cleanup, or biodiversity surveys) with clear instructions, metrics, and optional time windows. Each action is registered on-chain and tracks completion statistics.
@@ -45,7 +57,7 @@ This pattern ensures high-quality documentation and reduces submission errors.
 A smart contract account bound to an NFT, following the ERC-6551 standard. Each Green Goods garden is a Tokenbound Account, allowing gardens to own assets, sign transactions, and interact with other contracts as autonomous entities. Learn more at [tokenbound.org](https://tokenbound.org).
 
 ## Hypercert
-A semi-fungible token representing a claim of impact work. Hypercerts enable retroactive funding by allowing impact to be certified, tracked, and fractionally owned. Green Goods plans to aggregate approved work into Hypercerts for gardens. Learn more at [hypercerts.org](https://hypercerts.org).
+A semi-fungible token representing a claim of impact work. Hypercerts enable retroactive funding by allowing impact to be certified, tracked, and fractionally owned. In Green Goods, hypercert mint/list workflows are implemented but may be activation-pending depending on deployment and indexing status. Learn more at [hypercerts.org](https://hypercerts.org) and [Mint and List Hypercerts](/operator/mint-and-list-hypercerts).
 
 ## Impact Token
 A token representing verified impact work that can be traded, funded, or used to unlock benefits. Green Goods uses Karma GAP attestations as the foundation for impact tokenization.
@@ -63,7 +75,7 @@ A smart contract-based wallet that enables gasless transactions, social recovery
 A web application that can be installed on mobile devices and work offline. The Green Goods client is a PWA, enabling gardeners to document work in the field even without internet connectivity. Work is queued locally and synced when back online.
 
 ## Indexer
-A service that listens to blockchain events and indexes them into a queryable database. Green Goods uses [Envio](#envio) to index garden creation, work submissions, approvals, and attestations, exposing this data via a GraphQL API for fast queries.
+A service that listens to blockchain events and indexes them into a queryable database. Green Goods uses [Envio](https://envio.dev) to index garden creation, work submissions, approvals, and attestations, exposing this data via a GraphQL API for fast queries.
 
 ## Eight Forms of Capital
 A holistic framework for measuring wealth and impact beyond money:
@@ -169,4 +181,3 @@ An account abstraction platform that provides Kernel smart account implementatio
 
 ## Zustand
 A lightweight state management library for React. Green Goods uses Zustand for global UI state (selected garden, wizard steps, theme) that needs to persist across component re-renders but doesn't require the complexity of XState.
-

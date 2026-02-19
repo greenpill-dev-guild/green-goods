@@ -1,0 +1,549 @@
+{
+  "generated_at": "2026-02-19T04:08:27.590Z",
+  "source_files": [
+    "packages/contracts/deployments/11155111-latest.json",
+    "packages/contracts/deployments/42161-latest.json",
+    "packages/contracts/deployments/42220-latest.json",
+    "packages/indexer/config.yaml"
+  ],
+  "status_scale": [
+    "Live",
+    "Live (external source)",
+    "Implemented (activation pending indexing)",
+    "Implemented (activation pending deployment)",
+    "Planned"
+  ],
+  "chains": [
+    {
+      "chainId": 11155111,
+      "chainName": "Sepolia",
+      "modules": [
+        {
+          "id": "core",
+          "label": "Core gardens/actions/roles",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": true,
+          "effective_status": "Live",
+          "deployment_addresses": {
+            "actionRegistry": "0x71F9B8B9842466e67fA2a12858267B8cb9C19B8B",
+            "gardenToken": "0xd72c21378ebfdA7ceBb3B89d88f834b92fCC7122",
+            "gardenAccountImpl": "0xf92C093629f5a9cd7d5252ED77Cc7c4d81C4D83C"
+          },
+          "indexer_addresses": {
+            "ActionRegistry": "0x547e82BF9c8496f41927583793242f6b91C182A6",
+            "GardenToken": "0xEcbB6E69BE882d2e4E35CCe0E6637c7e1D64c791",
+            "GardenAccount": "0x83287652b4e1514e101a4053c9bcAFf6a24d051C"
+          }
+        },
+        {
+          "id": "hats",
+          "label": "Hats role membership",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending indexing)",
+          "deployment_addresses": {
+            "hatsModule": "0x9243a2039Ec7Aa0587159b4eB8d4533B5D39f543"
+          },
+          "indexer_addresses": {
+            "HatsModule": "0x0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "id": "octant-module",
+          "label": "Vault lifecycle events",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending indexing)",
+          "deployment_addresses": {
+            "octantModule": "0xFB025b627c0F8884ff5fE93654E69370f8c1c40a"
+          },
+          "indexer_addresses": {
+            "OctantModule": "0x0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "id": "octant-vault",
+          "label": "Vault deposit/withdraw history",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending indexing)",
+          "deployment_addresses": {
+            "octantModule": "0xFB025b627c0F8884ff5fE93654E69370f8c1c40a",
+            "octantFactory": "0xcFd7b7C0424Cd0115cdB1B50c2a4E613bF4511Bb"
+          },
+          "indexer_addresses": {
+            "OctantVault": "0x0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "id": "yield-splitter",
+          "label": "Yield split history",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending indexing)",
+          "deployment_addresses": {
+            "yieldSplitter": "0x233aB2d3fbBf6754FDbB5321962905f6Bc857d91"
+          },
+          "indexer_addresses": {
+            "YieldSplitter": "0x0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "id": "hypercert-linkage",
+          "label": "Hypercert GG linkage + claims",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": true,
+          "effective_status": "Live",
+          "deployment_addresses": {
+            "hypercertsModule": "0x2CDBBd222854e48cb422a4Fa341383E43B469A0F"
+          },
+          "indexer_addresses": {
+            "HypercertMinter": "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+          }
+        },
+        {
+          "id": "eas-attestations",
+          "label": "EAS attestations",
+          "data_source": "EAS GraphQL",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {},
+          "indexer_addresses": {}
+        },
+        {
+          "id": "gardens-v2",
+          "label": "Gardens V2 community/pools",
+          "data_source": "Gardens subgraph",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {
+            "gardensModule": "0xDe06c8914f12fa03DE2AC227E0D6892CE5bF0ABc"
+          },
+          "indexer_addresses": {}
+        },
+        {
+          "id": "cookie-jar",
+          "label": "Cookie jars",
+          "data_source": "On-chain reads",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {
+            "cookieJarModule": "0xc954CdADB611F8ad07aC2844022e58ae837CF1Ca"
+          },
+          "indexer_addresses": {}
+        },
+        {
+          "id": "marketplace",
+          "label": "Marketplace orders/trades",
+          "data_source": "On-chain reads/logs",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {
+            "marketplaceAdapter": "0x7D9B877EE735f280fa871fA5305afe6a33950a84"
+          },
+          "indexer_addresses": {}
+        },
+        {
+          "id": "ens",
+          "label": "ENS registration lifecycle",
+          "data_source": "RPC reads",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {
+            "greenGoodsENS": "0x0f85eC07214B72e1587Fac00ab55C2Bd08916D59"
+          },
+          "indexer_addresses": {}
+        },
+        {
+          "id": "power-registry-audit",
+          "label": "Power registry audit entities",
+          "data_source": "Not required at runtime",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {
+            "unifiedPowerRegistry": "0xe50064c4DE4a1C0a1D2926Ba49B821decF78b43E"
+          },
+          "indexer_addresses": {}
+        }
+      ]
+    },
+    {
+      "chainId": 42161,
+      "chainName": "Arbitrum",
+      "modules": [
+        {
+          "id": "core",
+          "label": "Core gardens/actions/roles",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": true,
+          "effective_status": "Live",
+          "deployment_addresses": {
+            "actionRegistry": "0x72F172c1cB4bD22f90F196445E11B434Fcc4Bcf0",
+            "gardenToken": "0x95E74C32c6eC368565A0B5AA309261f2e1e4e241",
+            "gardenAccountImpl": "0xf92C093629f5a9cd7d5252ED77Cc7c4d81C4D83C"
+          },
+          "indexer_addresses": {
+            "ActionRegistry": "0x042D2b082Cdd4DCBc0aD9dD7c631BC2e45B05cB1",
+            "GardenToken": "0x0a7Ca3203f25c1c028D54C19789e83b401383F92",
+            "GardenAccount": "0x7de23111804b374E3a8d79932C4068d378F6843f"
+          }
+        },
+        {
+          "id": "hats",
+          "label": "Hats role membership",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending indexing)",
+          "deployment_addresses": {
+            "hatsModule": "0xDe873c53D170b0B68aAE5c42efe7aeAc5510A97b"
+          },
+          "indexer_addresses": {
+            "HatsModule": "0x0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "id": "octant-module",
+          "label": "Vault lifecycle events",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending indexing)",
+          "deployment_addresses": {
+            "octantModule": "0x6C9eA8BCa51Fd26eF3698EBb06BB01CcC72559E7"
+          },
+          "indexer_addresses": {
+            "OctantModule": "0x0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "id": "octant-vault",
+          "label": "Vault deposit/withdraw history",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending indexing)",
+          "deployment_addresses": {
+            "octantModule": "0x6C9eA8BCa51Fd26eF3698EBb06BB01CcC72559E7",
+            "octantFactory": "0xEE03dd7743FFA5857f368DeEC3de9AFD7fDbaf64"
+          },
+          "indexer_addresses": {
+            "OctantVault": "0x0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "id": "yield-splitter",
+          "label": "Yield split history",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending indexing)",
+          "deployment_addresses": {
+            "yieldSplitter": "0x8d25186c8c58584Fb9787d4200Bec02643d37973"
+          },
+          "indexer_addresses": {
+            "YieldSplitter": "0x0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "id": "hypercert-linkage",
+          "label": "Hypercert GG linkage + claims",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": true,
+          "effective_status": "Live",
+          "deployment_addresses": {
+            "hypercertsModule": "0xEb559842eb1322D60687Ec54c147611da7D5CbaC"
+          },
+          "indexer_addresses": {
+            "HypercertMinter": "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+          }
+        },
+        {
+          "id": "eas-attestations",
+          "label": "EAS attestations",
+          "data_source": "EAS GraphQL",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {},
+          "indexer_addresses": {}
+        },
+        {
+          "id": "gardens-v2",
+          "label": "Gardens V2 community/pools",
+          "data_source": "Gardens subgraph",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {
+            "gardensModule": "0x366C25c6b938589C09f6c540cF3520D97Ccb6ad2"
+          },
+          "indexer_addresses": {}
+        },
+        {
+          "id": "cookie-jar",
+          "label": "Cookie jars",
+          "data_source": "On-chain reads",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {
+            "cookieJarModule": "0x7DAcF90A000Ce9809Dec738cC922565eF7fEC59f"
+          },
+          "indexer_addresses": {}
+        },
+        {
+          "id": "marketplace",
+          "label": "Marketplace orders/trades",
+          "data_source": "On-chain reads/logs",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {
+            "marketplaceAdapter": "0xC7ff47dc773D6639EE9386466eeEd6Fe5CB2B9FB"
+          },
+          "indexer_addresses": {}
+        },
+        {
+          "id": "ens",
+          "label": "ENS registration lifecycle",
+          "data_source": "RPC reads",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {
+            "greenGoodsENS": "0x4fAD8Db8e04005884D484eC730aDae10d7A2e491"
+          },
+          "indexer_addresses": {}
+        },
+        {
+          "id": "power-registry-audit",
+          "label": "Power registry audit entities",
+          "data_source": "Not required at runtime",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {
+            "unifiedPowerRegistry": "0xd7F7332150dE52D892D999E0676Af390bc17E5f9"
+          },
+          "indexer_addresses": {}
+        }
+      ]
+    },
+    {
+      "chainId": 42220,
+      "chainName": "Celo",
+      "modules": [
+        {
+          "id": "core",
+          "label": "Core gardens/actions/roles",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": true,
+          "effective_status": "Live",
+          "deployment_addresses": {
+            "actionRegistry": "0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92",
+            "gardenToken": "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B",
+            "gardenAccountImpl": "0x710cBFB9a29920B4577692eD495972fcd27286b4"
+          },
+          "indexer_addresses": {
+            "ActionRegistry": "0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92",
+            "GardenToken": "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B",
+            "GardenAccount": "0x710cBFB9a29920B4577692eD495972fcd27286b4"
+          }
+        },
+        {
+          "id": "hats",
+          "label": "Hats role membership",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": false,
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending deployment)",
+          "deployment_addresses": {
+            "hatsModule": "0x0000000000000000000000000000000000000000"
+          },
+          "indexer_addresses": {
+            "HatsModule": "0x0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "id": "octant-module",
+          "label": "Vault lifecycle events",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": false,
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending deployment)",
+          "deployment_addresses": {
+            "octantModule": "0x0000000000000000000000000000000000000000"
+          },
+          "indexer_addresses": {
+            "OctantModule": "0x0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "id": "octant-vault",
+          "label": "Vault deposit/withdraw history",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": false,
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending deployment)",
+          "deployment_addresses": {
+            "octantModule": "0x0000000000000000000000000000000000000000",
+            "octantFactory": "0x0000000000000000000000000000000000000000"
+          },
+          "indexer_addresses": {
+            "OctantVault": "0x0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "id": "yield-splitter",
+          "label": "Yield split history",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": false,
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending deployment)",
+          "deployment_addresses": {
+            "yieldSplitter": "0x0000000000000000000000000000000000000000"
+          },
+          "indexer_addresses": {
+            "YieldSplitter": "0x0000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "id": "hypercert-linkage",
+          "label": "Hypercert GG linkage + claims",
+          "data_source": "Envio indexer",
+          "implemented_in_code": true,
+          "deployment_ready": false,
+          "indexer_ready": true,
+          "effective_status": "Implemented (activation pending deployment)",
+          "deployment_addresses": {
+            "hypercertsModule": "0x0000000000000000000000000000000000000000"
+          },
+          "indexer_addresses": {
+            "HypercertMinter": "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+          }
+        },
+        {
+          "id": "eas-attestations",
+          "label": "EAS attestations",
+          "data_source": "EAS GraphQL",
+          "implemented_in_code": true,
+          "deployment_ready": true,
+          "indexer_ready": null,
+          "effective_status": "Live (external source)",
+          "deployment_addresses": {},
+          "indexer_addresses": {}
+        },
+        {
+          "id": "gardens-v2",
+          "label": "Gardens V2 community/pools",
+          "data_source": "Gardens subgraph",
+          "implemented_in_code": true,
+          "deployment_ready": false,
+          "indexer_ready": null,
+          "effective_status": "Implemented (activation pending deployment)",
+          "deployment_addresses": {
+            "gardensModule": "0x0000000000000000000000000000000000000000"
+          },
+          "indexer_addresses": {}
+        },
+        {
+          "id": "cookie-jar",
+          "label": "Cookie jars",
+          "data_source": "On-chain reads",
+          "implemented_in_code": true,
+          "deployment_ready": false,
+          "indexer_ready": null,
+          "effective_status": "Implemented (activation pending deployment)",
+          "deployment_addresses": {
+            "cookieJarModule": "0x0000000000000000000000000000000000000000"
+          },
+          "indexer_addresses": {}
+        },
+        {
+          "id": "marketplace",
+          "label": "Marketplace orders/trades",
+          "data_source": "On-chain reads/logs",
+          "implemented_in_code": true,
+          "deployment_ready": false,
+          "indexer_ready": null,
+          "effective_status": "Implemented (activation pending deployment)",
+          "deployment_addresses": {
+            "marketplaceAdapter": "0x0000000000000000000000000000000000000000"
+          },
+          "indexer_addresses": {}
+        },
+        {
+          "id": "ens",
+          "label": "ENS registration lifecycle",
+          "data_source": "RPC reads",
+          "implemented_in_code": true,
+          "deployment_ready": false,
+          "indexer_ready": null,
+          "effective_status": "Implemented (activation pending deployment)",
+          "deployment_addresses": {
+            "greenGoodsENS": "0x0000000000000000000000000000000000000000"
+          },
+          "indexer_addresses": {}
+        },
+        {
+          "id": "power-registry-audit",
+          "label": "Power registry audit entities",
+          "data_source": "Not required at runtime",
+          "implemented_in_code": true,
+          "deployment_ready": false,
+          "indexer_ready": null,
+          "effective_status": "Implemented (activation pending deployment)",
+          "deployment_addresses": {
+            "unifiedPowerRegistry": "0x0000000000000000000000000000000000000000"
+          },
+          "indexer_addresses": {}
+        }
+      ]
+    }
+  ]
+}

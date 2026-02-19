@@ -2,201 +2,152 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
 /**
  * Green Goods Documentation Sidebars
- * 
- * Two separate navigation structures:
- * - usersSidebar: For gardeners, operators, evaluators
- * - developersSidebar: For developers and contributors
+ *
+ * Role-first information architecture:
+ * - gardenerSidebar
+ * - operatorSidebar
+ * - evaluatorSidebar
+ * - developersSidebar
+ * - referenceSidebar
  */
 const sidebars: SidebarsConfig = {
-  // ============================================================================
-  // USERS SIDEBAR - Gardeners, Operators, Evaluators
-  // ============================================================================
-  usersSidebar: [
+  gardenerSidebar: [
     {
       type: 'doc',
-      id: 'intro',
-      label: 'Introduction',
+      id: 'gardener/get-started',
+      label: 'Get Started',
     },
     {
       type: 'category',
-      label: 'Welcome to Green Goods',
+      label: 'Journey',
       collapsed: false,
       items: [
-        'welcome/why-green-goods',
-        'welcome/who-is-it-for',
-        'welcome/what-you-can-do',
+        'gardener/submit-work-mdr',
+        'gardener/offline-sync-and-drafts',
+        'gardener/track-status-and-attestations',
+        'gardener/common-errors',
       ],
+    },
+  ],
+
+  operatorSidebar: [
+    {
+      type: 'doc',
+      id: 'operator/get-started-and-roles',
+      label: 'Get Started',
     },
     {
       type: 'category',
-      label: 'Quick Start',
+      label: 'Core Workflows',
       collapsed: false,
       items: [
-        'welcome/quickstart-gardener',
-        'welcome/quickstart-operator',
-        'welcome/quickstart-evaluator',
+        'operator/create-garden',
+        'operator/manage-actions',
+        'operator/review-work',
+        'operator/create-assessments',
+        'operator/mint-and-list-hypercerts',
       ],
     },
     {
       type: 'category',
-      label: 'Core Concepts',
+      label: 'Treasury & Governance',
       items: [
-        'concepts/roles',
-        'concepts/gardens-and-work',
-        'concepts/mdr-workflow',
-        'concepts/attestations',
-        'concepts/hypercerts',
+        'operator/vaults-and-treasury',
+        'operator/cookie-jars',
+        'operator/conviction-and-signal-pools',
       ],
     },
     {
       type: 'category',
-      label: 'Product Features',
+      label: 'Reporting',
       items: [
-        'features/overview',
-        'features/core-features',
-        'features/architecture',
+        'operator/reporting-and-gap',
+        'operator/troubleshooting',
       ],
+    },
+  ],
+
+  evaluatorSidebar: [
+    {
+      type: 'doc',
+      id: 'evaluator/get-started',
+      label: 'Get Started',
     },
     {
       type: 'category',
-      label: 'Gardeners',
+      label: 'Data Access',
+      collapsed: false,
       items: [
-        'gardeners/logging-work',
-        'gardeners/tracking-contributions',
-        'gardeners/best-practices',
+        'evaluator/query-indexer',
+        'evaluator/query-eas',
+        'evaluator/verify-attestation-chains',
+        'evaluator/cross-framework-mapping',
+        'evaluator/export-and-analysis',
+        'evaluator/troubleshooting',
       ],
     },
+  ],
+
+  developersSidebar: [
     {
-      type: 'category',
-      label: 'Operators',
-      items: [
-        'operators/managing-gardens',
-        'operators/managing-actions',
-        'operators/reviewing-work',
-        'operators/reporting-impact',
-      ],
+      type: 'doc',
+      id: 'developers/getting-started',
+      label: 'Getting Started',
     },
     {
-      type: 'category',
-      label: 'Evaluators',
-      items: [
-        'evaluators/accessing-data',
-        'evaluators/exploring-gardens',
-        'evaluators/using-attestation-data',
-        'evaluators/external-frameworks',
-      ],
+      type: 'doc',
+      id: 'developers/architecture',
+      label: 'Architecture',
+    },
+    {
+      type: 'doc',
+      id: 'developers/build-patterns',
+      label: 'Build Patterns',
+    },
+    {
+      type: 'doc',
+      id: 'developers/integrations',
+      label: 'Integrations',
+    },
+    {
+      type: 'doc',
+      id: 'developers/operations',
+      label: 'Operations',
     },
     {
       type: 'category',
       label: 'Reference',
       items: [
-        'reference/faq',
-        'reference/changelog',
-        'reference/design-research',
-        'reference/credits',
-        'glossary',
+        'developers/reference/index',
+        'developers/reference/api-index',
+        'developers/reference/deployment-indexer-status',
+        'developers/reference/agent-mcp-guide',
+        'developers/reference/docs-frontmatter-contract',
+        'developers/reference/docs-writing-guide',
       ],
     },
   ],
 
-  // ============================================================================
-  // DEVELOPERS SIDEBAR - Technical Documentation (Flattened to max 2 levels)
-  // ============================================================================
-  developersSidebar: [
+  referenceSidebar: [
     {
       type: 'doc',
-      id: 'developer/index',
-      label: 'Developer Hub',
+      id: 'reference/faq',
+      label: 'FAQ',
     },
     {
-      type: 'category',
-      label: 'Setup',
-      collapsed: false,
-      items: [
-        'developer/installation',
-      ],
+      type: 'doc',
+      id: 'reference/changelog',
+      label: 'Changelog',
     },
     {
-      type: 'category',
-      label: 'Architecture',
-      items: [
-        'developer/architecture',
-        'developer/shared',
-        'developer/client',
-        'developer/admin',
-        'developer/contracts',
-        'developer/indexer',
-        'developer/agent',
-        'developer/diagrams',
-        'developer/gardener-accounts',
-        'developer/hypercerts',
-      ],
+      type: 'doc',
+      id: 'glossary',
+      label: 'Glossary',
     },
     {
-      type: 'category',
-      label: 'Patterns',
-      items: [
-        'developer/error-handling',
-        'developer/testing',
-        'developer/theming',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'API & Data',
-      items: [
-        'developer/api-reference',
-        'developer/karma-gap',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Deployment',
-      items: [
-        'developer/releasing',
-        'developer/contracts-handbook',
-        'developer/ipfs-deployment',
-        'developer/monitoring',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Contributing',
-      items: [
-        'developer/contributing',
-        'developer/docs-contributing',
-        'developer/docs-deployment',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'AI-Assisted Development',
-      items: [
-        'developer/claude-mcp-workflows',
-        'developer/cursor-workflows',
-        'developer/n8n-automation',
-        'developer/n8n-story-workflow',
-        'developer/auto-translation-flow',
-        'developer/translation-troubleshooting',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Product Requirements',
-      items: [
-        'prd/prd-overview',
-        'prd/green-goods-v1',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Specifications',
-      items: [
-        'specs/specs-overview',
-        'specs/hypercerts/hypercerts-overview',
-        'specs/hypercerts/feature-spec',
-        'specs/hypercerts/technical-spec',
-      ],
+      type: 'doc',
+      id: 'reference/credits',
+      label: 'Credits',
     },
   ],
 };

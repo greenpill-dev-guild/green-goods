@@ -7,6 +7,9 @@
     "dev": "docusaurus start --port 3003",
     "start": "docusaurus start --port 3003",
     "build": "docusaurus build",
+    "protocol-status:generate": "node scripts/generate-protocol-status.mjs",
+    "audit": "node scripts/docs-audit.mjs",
+    "audit:ci": "node scripts/docs-audit.mjs --ci",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
@@ -17,6 +20,7 @@
   },
   "dependencies": {
     "@docusaurus/core": "3.9.2",
+    "@docusaurus/plugin-client-redirects": "3.9.2",
     "@docusaurus/preset-classic": "3.9.2",
     "@docusaurus/theme-mermaid": "^3.9.2",
     "@easyops-cn/docusaurus-search-local": "^0.52.2",

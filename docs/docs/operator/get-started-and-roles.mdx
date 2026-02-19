@@ -1,0 +1,112 @@
+---
+title: Operator Get Started and Roles
+sidebar_position: 1
+slug: /operator/get-started-and-roles
+audience: operator
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Complete Operator Get Started and Roles with clear, role-specific next actions."
+difficulty: "quickstart"
+estimated_time: "10-20 minutes."
+prereqs: "Operator role in at least one garden, admin login access."
+next_steps: "./create-garden"
+persona_context: "Operators coordinating gardens, approvals, and governance/treasury execution."
+source_of_truth:
+  - packages/admin/src/router.tsx
+  - packages/shared/src/hooks/roles/useRolePermissions.ts
+  - packages/shared/src/hooks/garden/useGardenPermissions.ts
+keywords:
+  - operator
+  - admin dashboard
+  - garden roles
+---
+
+import {
+  AtAGlanceCard,
+  FeatureState,
+  JourneyMap,
+  NextBestAction,
+  StatusBadge,
+  StepFlow,
+} from "@site/src/components/docs";
+
+# Operator Get Started and Roles
+
+<StatusBadge status="Live" />
+
+<AtAGlanceCard
+  goal="Complete Operator Get Started and Roles with clear, role-specific next actions."
+  difficulty="quickstart"
+  estimatedTime="10-20 minutes."
+  prereqs="Operator role in at least one garden, admin login access."
+  outcome="You can navigate operator flows and understand which v1 surfaces are live versus activation-pending."
+  personaContext="Operators coordinating gardens, approvals, and governance/treasury execution."
+  lastVerified="2026-02-18"
+/>
+
+<JourneyMap
+  role="Operator"
+  steps={[
+    {title: "Get started + roles", href: "./get-started-and-roles", state: "current", note: "Validate route access and role scope."},
+    {title: "Create garden", href: "./create-garden", state: "upcoming"},
+    {title: "Manage actions", href: "./manage-actions", state: "upcoming"},
+    {title: "Review work", href: "./review-work", state: "upcoming"},
+    {title: "Treasury and governance", href: "./vaults-and-treasury", state: "upcoming"},
+  ]}
+/>
+
+## First session checklist
+
+<StepFlow
+  steps={[
+    {title: "Sign in to admin", detail: "Open admin.greengoods.app and complete authentication."},
+    {title: "Validate role access", detail: "Confirm you can open dashboard, gardens, and actions pages."},
+    {title: "Open one garden", detail: "Check work, assessments, and governance tabs for your garden."},
+    {title: "Review feature status", detail: "Use status badges in this guide before announcing a workflow as live."},
+  ]}
+/>
+
+## Feature-state snapshot
+
+<FeatureState
+  title="Garden and action operations"
+  status="Live"
+  summary="Garden creation, action management, and work review are active operator workflows."
+/>
+
+<FeatureState
+  title="Hypercert mint/list routes"
+  status="Implemented (activation pending deployment)"
+  summary="UI and hooks are present, but marketplace and module addresses are still zero in latest deployment artifacts."
+/>
+
+<FeatureState
+  title="Vault, cookie jar, conviction, signal pool routes"
+  status="Implemented (activation pending deployment)"
+  summary="Routes exist in admin; activation depends on module deployment + indexer address updates."
+/>
+
+## Route coverage in admin
+
+| Capability | Route | Status |
+| --- | --- | --- |
+| Garden management | `/gardens`, `/gardens/create`, `/gardens/:id` | Live |
+| Work review | `/gardens/:id/work/:workId` | Live |
+| Assessments | `/gardens/:id/assessments`, `/create` | Live |
+| Hypercerts | `/gardens/:id/hypercerts` | Implemented (activation pending deployment) |
+| Vault | `/gardens/:id/vault` | Implemented (activation pending deployment) |
+| Cookie jars | `/gardens/:id/cookie-jars` | Implemented (activation pending deployment) |
+| Conviction/signal | `/gardens/:id/strategies`, `/signal-pool` | Implemented (activation pending deployment) |
+
+<NextBestAction
+  title="Next best action"
+  why="Keep momentum by moving to the next high-value step in this journey."
+  actionLabel="Create Garden"
+  actionHref="./create-garden"
+  alternatives={[
+    {label: "Manage Actions", href: "./manage-actions"},
+    {label: "Review Work", href: "./review-work"},
+    {label: "Troubleshooting", href: "./troubleshooting"},
+  ]}
+/>

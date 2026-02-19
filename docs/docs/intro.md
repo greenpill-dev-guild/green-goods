@@ -1,161 +1,97 @@
 ---
 sidebar_position: 1
 slug: /
-title: Welcome to Green Goods
+title: Green Goods Documentation
+audience: all
+owner: docs
+last_verified: 2026-02-19
+feature_status: Live
+source_of_truth:
+  - docs/docusaurus.config.ts
+  - docs/sidebars.ts
+keywords:
+  - green goods docs
+  - submit work
+  - review work
+  - mint hypercert
+  - vault deposit
+  - query attestations
 ---
 
-# Welcome to Green Goods
+import {RolePathCard, StatusBadge} from "@site/src/components/docs";
+import styles from "@site/src/components/docs/styles.module.css";
 
-**Bringing community and environmental actions onchain to better measure, track and reward impact on local communities.**
+# Green Goods Documentation
 
-Green Goods is an offline-first Progressive Web App (PWA) that makes it simple for communities to document, verify, and prove their regenerative impact work. Whether you're planting trees, cleaning waterways, or restoring biodiversity,  Green Goods helps you capture that work in three easy steps and turn it into permanent, verifiable on-chain records.
+Role-first docs for Green Goods v1.
 
-**[Try it now at greengoods.app →](https://greengoods.app)**
+<StatusBadge status="Live" />
 
-## Why Green Goods Matters
+## Choose your path
 
-Traditional impact measurement is:
-- 📋 **Tedious and meticulous**: Complex forms, spreadsheets, and bureaucratic reporting
-- 💸 **Undervalued**: Grassroots conservation work rarely gets funded or recognized
-- 🌍 **Fragmented**: Bioregional efforts lack coordination and shared infrastructure
+<div className={styles.roleGrid}>
+  <RolePathCard
+    title="Gardener"
+    href="/gardener/get-started"
+    description="Document work with MDR, work offline, and track approvals and attestations."
+    audience="Gardeners in the field"
+    time="5-10 minutes"
+    status="Live"
+    ctaLabel="Open gardener path"
+  />
+  <RolePathCard
+    title="Operator"
+    href="/operator/get-started-and-roles"
+    description="Run garden operations, review work, and manage v1 treasury/governance features with explicit activation status."
+    audience="Garden operators"
+    time="10-20 minutes"
+    status="Live"
+    ctaLabel="Open operator path"
+  />
+  <RolePathCard
+    title="Evaluator"
+    href="/evaluator/get-started"
+    description="Query indexer and EAS data, verify attestation chains, and export analysis-ready datasets."
+    audience="Funders, analysts, researchers"
+    time="15-25 minutes"
+    status="Live"
+    ctaLabel="Open evaluator path"
+  />
+  <RolePathCard
+    title="Developers"
+    href="/developers/getting-started"
+    description="Build with architecture, patterns, integration, and operational references designed for human and AI use."
+    audience="Engineers and contributors"
+    time="20-40 minutes"
+    status="Live"
+    ctaLabel="Open developer hub"
+  />
+</div>
 
-Green Goods solves this with:
-- 📱 **Simple 3-step workflow**: Media → Details → Review (MDR)
-- ⛓️ **On-chain attestations**: Permanent, verifiable proof of impact
-- 🏡 **Hyper-local gardens**: Community hubs serving diverse regenerative needs
+## Popular tasks
 
-[Learn more about why Green Goods →](welcome/why-green-goods)
+Use these intent-first links for common searches:
 
-## Who Is This For?
+- [Submit work](/gardener/submit-work-mdr)
+- [Review work](/operator/review-work)
+- [Mint hypercert](/operator/mint-and-list-hypercerts)
+- [Vault deposit](/operator/vaults-and-treasury)
+- [Query attestations](/evaluator/query-eas)
 
-Green Goods serves four key audiences:
+## v1 status model
 
-### 🌱 Gardeners
-On-the-ground workers documenting conservation efforts directly from their mobile devices. Get started in 5 minutes with passkey authentication—no seed phrases or gas fees.
+Green Goods docs now distinguish:
 
-[**Gardener Quickstart →**](welcome/quickstart-gardener)
+- `Live`: available in production workflows.
+- `Implemented (activation pending indexing)`: deployed on chain, but indexer coverage is not active yet.
+- `Implemented (activation pending deployment)`: built in code and often present in UI, but blocked by deployment activation.
+- `Planned`: not implemented.
 
-### 🧑‍🌾 Garden Operators
-Community coordinators who manage gardens, create tasks, and validate work submissions. Approve work with feedback and watch impact grow in real-time.
+Use [Deployment and Indexer Status](/developers/reference/deployment-indexer-status) as canonical source for activation state.
 
-[**Operator Quickstart →**](welcome/quickstart-operator)
+## Quick links
 
-### 📊 Impact Evaluators
-Researchers, funders, and analysts who need verifiable impact data. Query on-chain attestations, explore gardens, and export data for analysis.
-
-[**Evaluator Quickstart →**](welcome/quickstart-evaluator)
-
-### 👩‍💻 Developers
-Builders integrating with Green Goods protocol or extending the platform. Access GraphQL APIs, smart contracts, and comprehensive developer docs.
-
-[**Developer Quickstart →**](welcome/quickstart-developer)
-
-## What You Can Do
-
-<table>
-  <tr>
-    <td><strong>For Gardeners</strong></td>
-    <td><strong>For Operators</strong></td>
-  </tr>
-  <tr>
-    <td>
-      • Submit work with photos<br/>
-      • Track your contributions<br/>
-      • Earn recognition onchain<br/>
-      • Work offline, sync later
-    </td>
-    <td>
-      • Create and manage gardens<br/>
-      • Design action tasks<br/>
-      • Review and approve work<br/>
-      • Generate impact reports
-    </td>
-  </tr>
-  <tr>
-    <td><strong>For Evaluators</strong></td>
-    <td><strong>For Developers</strong></td>
-  </tr>
-  <tr>
-    <td>
-      • Query verified work data<br/>
-      • View on-chain attestations<br/>
-      • Export for analysis<br/>
-      • Map to impact frameworks
-    </td>
-    <td>
-      • Build on Green Goods<br/>
-      • Integrate via GraphQL<br/>
-      • Deploy contracts<br/>
-      • Contribute to the platform
-    </td>
-  </tr>
-</table>
-
-[See all use cases →](welcome/what-you-can-do)
-
-## Key Features
-
-- 🔐 **Frictionless Onboarding**: Passkey authentication with Face ID/Touch ID
-- 📱 **Mobile-First PWA**: Install on your phone, works offline
-- ⛓️ **Multi-Chain**: Deployed on Arbitrum, Celo, and Sepolia
-- 🌍 **Localization**: Available in English, Spanish, and Portuguese
-- 🤖 **Automated Impact Reporting**: Karma GAP integration for transparent tracking
-- 🎨 **Beautiful Design**: Modern UI with accessibility built-in
-
-## Quick Links
-
-- 🚀 **Try the App**: [greengoods.app](https://greengoods.app)
-- 🛠️ **Admin Dashboard**: [admin.greengoods.app](https://admin.greengoods.app)
-- 💬 **Join Community**: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) • [Twitter](https://x.com/greengoodsapp)
-- 📖 **Read the Blog**: [Simplifying Impact Capture](https://paragraph.com/@greenpilldevguild/green-goods-simplifying-impact-capture-and-exchange)
-- 🧑‍💻 **View Source**: [GitHub](https://github.com/greenpill-dev-guild/green-goods)
-
-## Ready to Get Started?
-
-Choose your path:
-
-<table>
-  <tr>
-    <td align="center" width="25%">
-      <h3>🌱</h3>
-      <a href="welcome/quickstart-gardener"><strong>I want to document work</strong></a><br/>
-      <small>Start submitting impact in 5 minutes</small>
-    </td>
-    <td align="center" width="25%">
-      <h3>🧑‍🌾</h3>
-      <a href="welcome/quickstart-operator"><strong>I want to manage a garden</strong></a><br/>
-      <small>Create your community hub</small>
-    </td>
-    <td align="center" width="25%">
-      <h3>📊</h3>
-      <a href="welcome/quickstart-evaluator"><strong>I want to analyze impact</strong></a><br/>
-      <small>Access verified data</small>
-    </td>
-    <td align="center" width="25%">
-      <h3>👩‍💻</h3>
-      <a href="welcome/quickstart-developer"><strong>I want to build</strong></a><br/>
-      <small>Integrate or contribute</small>
-    </td>
-  </tr>
-</table>
-
----
-
-## Learn More
-
-- [Core Concepts](concepts/roles) — Understand gardens, actions, work, and attestations
-- [Product Features](features/overview) — Explore what makes Green Goods unique
-- [How-To Guides](gardeners/logging-work) — Step-by-step tutorials for all roles
-- [Developer Docs](developer/installation) — Technical documentation and APIs
-
-## Built By
-
-Green Goods is developed by the [Greenpill Dev Guild](https://github.com/greenpill-dev-guild), a community of builders creating regenerative web3 infrastructure.
-
-**Open Source**: MIT License • [View on GitHub](https://github.com/greenpill-dev-guild/green-goods)
-
----
-
-<p align="center">
-  <em>Making regenerative impact measurable, verifiable, and fundable.</em>
-</p>
+- App: [greengoods.app](https://greengoods.app)
+- Admin: [admin.greengoods.app](https://admin.greengoods.app)
+- Developer reference: [/developers/reference](/developers/reference)
+- Changelog: [/reference/changelog](/reference/changelog)

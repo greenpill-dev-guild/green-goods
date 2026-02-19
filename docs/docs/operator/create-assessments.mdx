@@ -1,0 +1,66 @@
+---
+title: Create Assessments
+sidebar_position: 5
+slug: /operator/create-assessments
+audience: operator
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Complete Create Assessments with clear, role-specific next actions."
+difficulty: "standard"
+estimated_time: "15-30 minutes."
+prereqs: "Garden with active members and clear evaluation goals."
+next_steps: "./mint-and-list-hypercerts"
+persona_context: "Operators coordinating gardens, approvals, and governance/treasury execution."
+source_of_truth:
+  - packages/admin/src/views/Gardens/Garden/Assessment.tsx
+  - packages/admin/src/views/Gardens/Garden/CreateAssessment.tsx
+  - packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts
+keywords:
+  - assessments
+  - strategy
+  - operator
+---
+
+import {AtAGlanceCard, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+
+# Create Assessments
+
+<StatusBadge status="Live" />
+
+<AtAGlanceCard
+  goal="Complete Create Assessments with clear, role-specific next actions."
+  difficulty="standard"
+  estimatedTime="15-30 minutes."
+  prereqs="Garden with active members and clear evaluation goals."
+  outcome="Assessment created with on-chain reference plus structured config."
+  personaContext="Operators coordinating gardens, approvals, and governance/treasury execution."
+  lastVerified="2026-02-18"
+/>
+
+## Assessment flow
+
+<StepFlow
+  steps={[
+    {title: "Open assessments", detail: "Navigate to `/gardens/:id/assessments`."},
+    {title: "Create new assessment", detail: "Set title, description, timeline, and domain."},
+    {title: "Attach strategy config", detail: "Include diagnosis, outcomes, and supporting references."},
+    {title: "Publish", detail: "Submit and confirm assessment is visible for the garden."},
+  ]}
+/>
+
+## Good assessment hygiene
+
+- Keep names stable and date ranges explicit.
+- Document assumptions in attached config references.
+- Use follow-on assessments for major scope changes.
+
+<NextBestAction
+  title="Next best action"
+  why="Keep momentum by moving to the next high-value step in this journey."
+  actionLabel="Mint and List Hypercerts"
+  actionHref="./mint-and-list-hypercerts"
+  alternatives={[
+    {label: "Reporting and GAP", href: "./reporting-and-gap"},
+  ]}
+/>

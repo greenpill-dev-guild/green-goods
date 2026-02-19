@@ -1,323 +1,162 @@
-# Frequently Asked Questions
-
-Common questions about Green Goods, organized by topic and user role.
-
+---
+title: Frequently Asked Questions
+slug: /reference/faq
+audience: all
+owner: docs
+last_verified: 2026-02-19
+feature_status: Live
+source_of_truth:
+  - docs/docs/intro.md
+  - docs/docs/developers/reference/api-index.mdx
+  - docs/docs/developers/reference/deployment-indexer-status.mdx
 ---
 
-## General Questions
+Common questions about Green Goods, organized by role.
+
+## General
 
 ### What is Green Goods?
 
-Green Goods is an offline-first Progressive Web App that makes it simple to document, verify, and fund regenerative impact work. It turns conservation activities into permanent on-chain records.
+Green Goods is an offline-first web app for documenting regenerative work, reviewing submissions, and producing verifiable on-chain records.
 
-### What chains is Green Goods deployed on?
+### What chains are currently in scope?
 
-- **Arbitrum One** (42161) - Production
-- **Celo** (42220) - Production
-- **Sepolia** (11155111) - Testnet
+- Arbitrum One (`42161`) for production workflows.
+- Celo (`42220`) for production workflows.
+- Sepolia (`11155111`) for testnet and validation workflows.
+
+### Can Green Goods work offline?
+
+Yes. Gardener workflows support offline drafts and queued sync when connectivity returns.
 
 ### Is Green Goods free to use?
 
-**For Gardeners**: Yes! Passkey authentication and gasless transactions (sponsored by Pimlico).
+- Gardener flows are passkey-first and gasless for common submission workflows.
+- Operator actions that submit transactions can require network gas.
 
-**For Operators**: Small gas fees for transactions (approving work, managing members). Typically < $0.50 per transaction on L2s.
+### Is uploaded data private?
 
-### What wallets are supported?
+No by default. Garden and attestation data is designed to be publicly verifiable. Do not include sensitive personal information in uploads.
 
-**Gardeners**: No wallet needed—uses passkey (Face ID/Touch ID).
-
-**Operators**: MetaMask, WalletConnect, Coinbase Wallet, and any wallet supported by Reown AppKit.
-
-### Can I use Green Goods offline?
-
-**Yes!** The gardener app works completely offline:
-- Take photos
-- Fill forms
-- Submit work (queued)
-- Auto-syncs when online
-
-### Is my data private?
-
-**Public by Design**:
-- Garden data is publicly queryable
-- Work submissions visible to operators
-- Approved work creates public attestations
-
-**Privacy Considerations**:
-- Wallet addresses are pseudonymous
-- Exact GPS coordinates visible only to operators
-- Photos you upload are public (via IPFS)
-- Don't include sensitive personal info
-
----
-
-## Gardener Questions
+## Gardener
 
 ### How do I sign up?
 
-1. Visit [greengoods.app](https://greengoods.app)
-2. Click "Sign Up with Passkey"
-3. Use Face ID/Touch ID/Fingerprint
-4. Done in ~30 seconds!
+1. Open [greengoods.app](https://greengoods.app).
+2. Choose passkey sign in.
+3. Complete device biometric confirmation.
 
+### Do I need crypto to submit work?
 
+No. Gardener submission flows are designed to work without wallet management.
 
-### Do I need cryptocurrency?
+### What if my submission is rejected?
 
-**No!** Gardeners use passkey authentication with gasless transactions. You never need to buy crypto or manage private keys.
+Use operator feedback to update evidence and resubmit. See:
 
-### How long until my work is approved?
+- [Submit Work with MDR](../gardener/submit-work-mdr)
+- [Common Errors](../gardener/common-errors)
 
-**Typical**: 24-48 hours
+### How do I track approval status and attestations?
 
-**Depends on**:
-- Operator availability
-- Garden activity level
-- Work complexity
-- Review backlog
+See [Track Status and Attestations](../gardener/track-status-and-attestations).
 
-### What if my work is rejected?
+## Operator
 
-- Read operator feedback carefully
-- Understand what needs improvement
-- Revise and resubmit
-- Or document future work better
-- Learn and improve!
+### How do I get operator access?
 
-### Can I join multiple gardens?
-
-**Yes!** You can join as many gardens as you want and submit work to each one.
-
-### How do I get paid?
-
-**Currently**: Green Goods creates verified on-chain records. Gardens and funders determine compensation.
-
-**Future**: Hypercerts will enable direct retroactive funding for verified work.
-
-### What if I lose my phone?
-
-**Passkeys are device-bound**. If you lose your phone:
-- Your smart account is still accessible
-- Contact support for recovery assistance
-- Future: Multi-device passkey sync
-
----
-
-## Operator Questions
-
-See the  for a role-specific landing page with all guides and tooling.
-
-### How do I become an operator?
-
-**Two paths**:
-1. **Admin grant**: Platform admins designate you
-2. **Garden assignment**: Existing operators add you to their gardens
-
-Contact us in [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) to request operator status.
+Operator permissions are assigned by admins or existing operator governance in a garden context.
 
 ### Can I create a new garden?
 
-**Only admins** can create gardens currently. Operators can manage gardens they're assigned to.
+Use [Create Garden](../operator/create-garden). Availability depends on your current permissions.
 
-**To request a garden**:
-- Contact admin team via [Telegram](https://t.me/+N3o3_43iRec1Y2Jh)
-- Provide garden details
-- Demonstrate community need
+### Where are treasury and governance workflows documented?
 
-### How much does it cost to approve work?
+Use the operator treasury/governance pages:
 
-**Gas fees on L2s**:
-- Arbitrum: ~$0.10-0.50 per approval
-- Celo: ~$0.05-0.20 per approval
-- Base: ~$0.10-0.30 per approval
+- [Vaults and Treasury](../operator/vaults-and-treasury)
+- [Cookie Jars](../operator/cookie-jars)
+- [Conviction and Signal Pools](../operator/conviction-and-signal-pools)
 
-**Depends on**: Network congestion and gas prices.
+Check [Deployment and Indexer Status](../developers/reference/deployment-indexer-status) before announcing those flows as live.
 
-### How many operators should a garden have?
+### How much does operator activity cost?
 
-**Recommended**: 2-3 active operators
+Gas cost depends on chain conditions and operation type. Validate current costs in your wallet before signing.
 
-**Why**:
-- Distributes review workload
-- Provides backup coverage
-- Ensures consistency
-- Prevents single point of failure
+## Evaluator
 
-### What if I disagree with another operator's decision?
+### Do I need an account to query data?
 
-**Garden Governance**:
-- Discuss privately first
-- Establish shared standards
-- Document review criteria
-- Escalate to garden admin if needed
+No for read-only query access to public surfaces.
 
-### How do I generate reports for funders?
+### Where are canonical endpoints and schemas listed?
 
-1. Admin dashboard → Your garden
-2. Click "Export Data"
-3. Choose format (CSV/JSON)
-4. Select date range
-5. Download report
+Use [API Index](../developers/reference/api-index).
 
-Includes all approved work, metrics, and attestation links.
+### How do I verify attestation chains?
 
----
+Use [Verify Attestation Chains](../evaluator/verify-attestation-chains).
 
-## Evaluator Questions
+### Can I export data for analysis?
 
-See the  for curated guides, recipes, and external references.
+Yes. Start with:
 
-### Do I need an account to access data?
+- [Query Indexer](../evaluator/query-indexer)
+- [Query EAS](../evaluator/query-eas)
+- [Export and Analysis](../evaluator/export-and-analysis)
 
-**No!** The GraphQL API is public: https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql
-
-### Are there API rate limits?
-
-**Currently no**, but we may add reasonable limits to prevent abuse in the future.
-
-### How do I verify attestations?
-
-1. Get attestation UID from GraphQL query
-2. Visit EAS explorer for your chain
-3. View attestation details
-4. Verify signature and data
-
-[Verification Guide →](../evaluators/using-attestation-data)
-
-### Can I export all data?
-
-**Yes!** Via GraphQL queries. No limits on data export for research/analysis.
-
-### How do I cite Green Goods data in research?
-
-**Citation format**:
-```
-Green Goods Protocol. (2024). [Garden Name] Impact Data. 
-Retrieved from https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql
-Verified on-chain: [Attestation UID]
-```
-
----
-
-## Technical Questions
+## Technical
 
 ### Is Green Goods open source?
 
-**Yes!** MIT License.
+Yes. Repository: [greenpill-dev-guild/green-goods](https://github.com/greenpill-dev-guild/green-goods)
 
-**Repository**: https://github.com/greenpill-dev-guild/green-goods
-
-### What tech stack does Green Goods use?
-
-**Frontend**: React + TypeScript + Vite + Tailwind
-**Blockchain**: Solidity + Foundry + EAS
-**Indexer**: Envio + PostgreSQL + GraphQL
-**Storage**: IPFS via Storacha
-
-[Technical Architecture →](../developer/architecture)
-
-### How are attestations stored?
-
-**On-chain** (via EAS):
-- Attestation UID
-- Schema reference
-- Attester signature
-- Compact data
-
-**Off-chain** (IPFS):
-- Photos/videos
-- Detailed metadata
-- Referenced by CID in attestation
-
-### What is EAS?
-
-**Ethereum Attestation Service**: A protocol for on-chain and off-chain attestations. Used by ENS, Gitcoin, Optimism, and Green Goods.
-
-[Learn more: attest.sh](https://attest.sh)
-
-### What is Karma GAP?
-
-**Grantee Accountability Protocol**: Standardized impact reporting framework. Green Goods automatically creates GAP attestations.
-
-[Karma GAP Details →](../developer/karma-gap)
-
-### Can I run Green Goods locally?
-
-**Yes!**
+### How do I run Green Goods locally?
 
 ```bash
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
-bun setup    # Checks deps, installs packages, creates .env
-vi .env      # Add your API keys
+bun setup
 bun dev
 ```
 
-[Installation Guide →](../developer/installation)
+See [Developer Getting Started](../developers/getting-started).
 
-### How do I contribute code?
+### How do I contribute?
 
-1. Fork the repository
-2. Create a feature branch
-3. Make changes and test
-4. Submit pull request
-
-[Contributing Guide →](../developer/contributing)
-
----
+Open an issue or PR in GitHub and follow the developer docs in [Developer Hub](../developers/getting-started).
 
 ## Troubleshooting
 
-### App won't load
+### App does not load
 
-- Check internet connection
-- Try different browser (Chrome/Safari recommended)
-- Clear cache and reload
-- Check [status page](https://github.com/greenpill-dev-guild/green-goods/issues)
+- Check connection.
+- Refresh and clear browser cache.
+- Confirm service availability in GitHub issues.
 
-### Photos won't upload
+### Media upload fails
 
-- Check file size (< 10 MB)
-- Verify internet connection
-- Try again in a few minutes
-- Check camera permissions
+- Check file size and permissions.
+- Retry with stable connection.
+- Use offline draft flow if connectivity is unstable.
 
-### Transaction failing
+### Transaction fails
 
-- Check wallet has gas
-- Verify correct network selected
-- Try increasing gas limit
-- Contact support if persistent
+- Confirm correct network.
+- Confirm wallet balance for gas.
+- Retry with updated gas estimate.
 
-### Can't connect wallet
+## Support
 
-- Update wallet extension
-- Try different wallet
-- Clear wallet cache
-- Check network is supported
+- Telegram: [Join chat](https://t.me/+N3o3_43iRec1Y2Jh)
+- Bug reports: [GitHub Issues](https://github.com/greenpill-dev-guild/green-goods/issues)
+- Feature requests: [GitHub Discussions](https://github.com/greenpill-dev-guild/green-goods/discussions)
 
----
+For role-first guides:
 
-## Getting Help
-
-### Community Support
-
-- 💬 **Telegram**: [Join chat](https://t.me/+N3o3_43iRec1Y2Jh)
-- 📖 **Docs**: You're here!
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/greenpill-dev-guild/green-goods/issues)
-- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/greenpill-dev-guild/green-goods/discussions)
-
-### Documentation
-
-- 
-- 
-- 
-- [Developer Quickstart](../welcome/quickstart-developer)
-- [Core Concepts](../concepts/roles)
-
----
-
-## Still Have Questions?
-
-Ask in our [Telegram community](https://t.me/+N3o3_43iRec1Y2Jh) or [open a discussion on GitHub](https://github.com/greenpill-dev-guild/green-goods/discussions)!
-
+- [Gardener](../gardener/get-started)
+- [Operator](../operator/get-started-and-roles)
+- [Evaluator](../evaluator/get-started)
+- [Developers](../developers/getting-started)

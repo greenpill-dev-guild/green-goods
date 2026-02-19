@@ -1,3 +1,15 @@
+---
+title: Design & Research
+slug: /reference/design-research
+audience: all
+owner: docs
+last_verified: 2026-02-19
+feature_status: Live
+source_of_truth:
+  - docs/docs/operator/get-started-and-roles.mdx
+  - docs/docs/gardener/get-started.mdx
+---
+
 # Design & Research
 
 Design resources, research materials, and product vision documents for Green Goods.
@@ -30,7 +42,7 @@ Design resources, research materials, and product vision documents for Green Goo
 - Interactive prototypes
 - View: [Figma Board](https://www.figma.com/design/aNmqUjGZ5wR4eNaRqfhbQZ/Green-Goods)
 
-<!-- TODO: Add Figma embed or screenshot -->
+Design embeds are intentionally omitted in docs to keep pages fast on low-bandwidth connections.
 
 ### Miro Board
 
@@ -47,7 +59,7 @@ Design resources, research materials, and product vision documents for Green Goo
 - User flow examples
 - Watch: [Loom Video](https://www.loom.com/share/e09225ec813147a6aacd4dc8816ce8be?sid=985a42f4-574b-499d-9dc8-03051b797f3d)
 
-<!-- TODO: Add video thumbnail -->
+Video preview image is omitted; use the Loom link above for the latest walkthrough.
 
 ---
 
@@ -156,15 +168,15 @@ Green Goods uses a holistic framework for impact measurement:
 
 ## Case Studies
 
-### Coming Soon
+### Case Studies in Progress
 
-We're documenting real-world deployments and impact stories:
+We are documenting real-world deployments and impact stories:
 - Pilot gardens
 - Impact metrics
 - Funder testimonials
 - Gardener success stories
 
-**Stay tuned**: [Twitter](https://x.com/greengoodsapp) • [Blog](https://paragraph.com/@greenpilldevguild)
+Follow updates on [X](https://x.com/greengoodsapp) and the [Dev Guild Blog](https://paragraph.com/@greenpilldevguild).
 
 ---
 
@@ -203,9 +215,9 @@ We're documenting real-world deployments and impact stories:
 
 ---
 
-## Future Research Areas
+## Open Research Areas
 
-**We're exploring**:
+Current research directions:
 - AI-assisted impact verification
 - Satellite imagery integration
 - Predictive impact models
@@ -213,4 +225,3 @@ We're documenting real-world deployments and impact stories:
 - Impact market mechanisms
 
 **Collaborate with us**: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh)
-

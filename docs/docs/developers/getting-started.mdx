@@ -1,0 +1,74 @@
+---
+title: Developer Getting Started
+sidebar_position: 1
+slug: /developers/getting-started
+audience: developer
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Complete Developer Getting Started with clear, role-specific next actions."
+difficulty: "standard"
+estimated_time: "20-40 minutes."
+prereqs: "Node 20+, Bun, Foundry, Git."
+next_steps: "./architecture"
+persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
+source_of_truth:
+  - AGENTS.md
+  - CLAUDE.md
+  - package.json
+keywords:
+  - developer quickstart
+  - green goods monorepo
+---
+
+import {AtAGlanceCard, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+
+# Developer Getting Started
+
+<StatusBadge status="Live" />
+
+<AtAGlanceCard
+  goal="Complete Developer Getting Started with clear, role-specific next actions."
+  difficulty="standard"
+  estimatedTime="20-40 minutes."
+  prereqs="Node 20+, Bun, Foundry, Git."
+  outcome="Local dev stack running with a shared understanding of repo rules."
+  personaContext="Developers and maintainers building, operating, and validating Green Goods systems."
+  lastVerified="2026-02-18"
+/>
+
+## Bootstrap
+
+```bash
+bun setup
+bun dev
+```
+
+## First-run checklist
+
+<StepFlow
+  steps={[
+    {title: "Read project rules", detail: "Start with `AGENTS.md`, `CLAUDE.md`, and `.claude/context/*`."},
+    {title: "Configure root env", detail: "Use root `.env` only. Never add package-level env files."},
+    {title: "Start services", detail: "Run `bun dev` and verify client, admin, indexer, and docs start cleanly."},
+    {title: "Run quality gate", detail: "Run package tests/lint before pushing changes."},
+  ]}
+/>
+
+## Non-negotiables
+
+- Hooks live in `packages/shared`.
+- Single chain derives from `VITE_CHAIN_ID` defaults.
+- Deployment changes go through `bun deploy:*` wrappers.
+- User-facing strings must be added to `en/es/pt` translation files.
+
+<NextBestAction
+  title="Next best action"
+  why="Keep momentum by moving to the next high-value step in this journey."
+  actionLabel="Architecture"
+  actionHref="./architecture"
+  alternatives={[
+    {label: "Build Patterns", href: "./build-patterns"},
+    {label: "Operations", href: "./operations"},
+  ]}
+/>

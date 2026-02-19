@@ -1,0 +1,59 @@
+---
+title: API Index
+slug: /developers/reference/api-index
+audience: developer
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Locate canonical endpoints and schema sources without ambiguity."
+difficulty: "advanced"
+estimated_time: "10-20 minutes"
+prereqs: "Chain-aware deployment context."
+next_steps: "./deployment-indexer-status"
+persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
+source_of_truth:
+  - docs/src/data/endpoints.ts
+  - packages/indexer/config.yaml
+  - packages/contracts/deployments/42161-latest.json
+---
+
+import {NextBestAction} from "@site/src/components/docs";
+import {INDEXER_ENDPOINT, EAS_GRAPHQL_ENDPOINTS} from "@site/src/data/endpoints";
+
+# API Index
+
+## Primary data endpoints
+
+| Surface | Endpoint | Notes |
+| --- | --- | --- |
+| Green Goods Indexer | <code>{INDEXER_ENDPOINT}</code> | Gardens, actions, memberships |
+| EAS GraphQL (Arbitrum) | <code>{EAS_GRAPHQL_ENDPOINTS[42161]}</code> | Work/approval/assessment attestations |
+| EAS GraphQL (Celo) | <code>{EAS_GRAPHQL_ENDPOINTS[42220]}</code> | Chain-specific attestations |
+| EAS GraphQL (Sepolia) | <code>{EAS_GRAPHQL_ENDPOINTS[11155111]}</code> | Testnet attestations |
+
+## Contract and deployment sources
+
+- `packages/contracts/deployments/42161-latest.json`
+- `packages/contracts/deployments/42220-latest.json`
+- `packages/contracts/deployments/11155111-latest.json`
+- `packages/contracts/config/schemas.json` (read-only source)
+
+## Shared package integration entry points
+
+- `packages/shared/src/modules/data/eas.ts`
+- `packages/shared/src/hooks/index.ts`
+
+## Notes
+
+1. Always select chain context before querying schema-scoped data.
+2. Work and approval schema IDs must come from deployment artifacts for the same chain.
+
+<NextBestAction
+  title="Next best action"
+  why="After selecting endpoints, confirm whether each module is actually live, indexing-pending, or deployment-pending."
+  actionLabel="Open deployment and indexer status"
+  actionHref="./deployment-indexer-status"
+  alternatives={[
+    {label: "Agent and MCP guide", href: "./agent-mcp-guide"},
+  ]}
+/>

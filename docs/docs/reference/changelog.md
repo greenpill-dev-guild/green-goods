@@ -1,3 +1,15 @@
+---
+title: Changelog / Release Notes
+slug: /reference/changelog
+audience: all
+owner: docs
+last_verified: 2026-02-19
+feature_status: Live
+source_of_truth:
+  - docs/docs/developers/reference/deployment-indexer-status.mdx
+  - docs/docusaurus.config.ts
+---
+
 # Changelog / Release Notes
 
 Major updates and feature releases for Green Goods.
@@ -7,6 +19,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ---
 
 ## 2026
+
+### v1.0.0 - February 18, 2026
+
+**Role-first docs and v1 capability alignment release**
+
+This release updates documentation IA and workflows to reflect current Green Goods capabilities:
+
+- Role-first navigation (`Gardener`, `Operator`, `Evaluator`) plus a dedicated `Developers` hub.
+- New activation-state model across docs:
+  - `Live`
+  - `Implemented (activation pending indexing)`
+  - `Implemented (activation pending deployment)`
+  - `Planned`
+- Operator coverage for hypercert, vault, cookie-jar, strategy, and signal-pool surfaces with explicit activation gating.
+- Evaluator query packs for indexer + EAS with chain-aware variable patterns.
+- Developer reference consolidation under `/developers/reference`, including deployment/indexer status and MCP alignment notes.
+- Legacy route redirects added for prior `welcome`, role, `developer`, `prd`, and `specs` paths.
+
+---
 
 ### v0.4.0 - January 2026 🎉
 
@@ -224,7 +255,7 @@ This is the first official release of Green Goods — an offline-first platform 
 **Tooling:**
 - `CLAUDE.md` — AI assistant context
 - `AGENTS.md` — agent orchestration guide
-- `.cursor/rules/` — 7 rule files for AI-assisted development
+- `.claude/registry/` — canonical skill and routing registries for AI-assisted development
 
 ---
 
