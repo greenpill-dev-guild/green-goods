@@ -30,13 +30,8 @@ contracts:
   - name: HatsModule
     handler: src/EventHandlers.ts
     events:
-      - event: GardenHatTreeCreated(address indexed garden, uint256 adminHatId)
       - event: RoleGranted(address indexed garden, address indexed account, uint8 role)
       - event: RoleRevoked(address indexed garden, address indexed account, uint8 role)
-      - event: PartialGrantFailed(address indexed garden, address indexed account, uint8 role, string reason)
-      - event: ConvictionStrategiesUpdated(address indexed garden, address[] strategies)
-      - event: ConvictionSyncTriggered(address indexed garden, address indexed account, address indexed strategy)
-      - event: ConvictionSyncFailed(address indexed garden, address indexed account, address indexed strategy, string reason)
   - name: OctantModule
     handler: src/EventHandlers.ts
     events:
@@ -44,54 +39,20 @@ contracts:
       - event: HarvestTriggered(address indexed garden, address indexed asset, address indexed caller)
       - event: EmergencyPaused(address indexed garden, address indexed asset, address indexed caller)
       - event: DonationAddressUpdated(address indexed garden, address indexed oldAddress, address indexed newAddress)
-      - event: SupportedAssetUpdated(address indexed asset, address indexed strategy)
   - name: OctantVault
     handler: src/EventHandlers.ts
     events:
       - event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
       - event: Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
-  - name: GardensModule
-    handler: src/EventHandlers.ts
-    events:
-      - event: CommunityCreated(address indexed garden, address indexed community, uint8 weightScheme, address goodsToken)
-      - event: SignalPoolCreated(address indexed garden, address indexed pool, uint8 poolType, address indexed community)
-      - event: GardenPowerRegistered(address indexed garden, uint8 weightScheme, uint256 sourceCount)
-      - event: GoodsAirdropped(address indexed garden, uint256 totalAmount)
-      - event: GardenTreasurySeeded(address indexed garden, uint256 amount)
   - name: YieldSplitter
     handler: src/EventHandlers.ts
     events:
       - event: YieldSplit(address indexed garden, address indexed asset, uint256 cookieJarAmount, uint256 fractionsAmount, uint256 juiceboxAmount, uint256 totalYield)
-      - event: FractionPurchased(address indexed garden, uint256 indexed hypercertId, uint256 amount, uint256 fractionId, address treasury)
-      - event: YieldAccumulated(address indexed garden, address indexed asset, uint256 amount, uint256 totalPending)
-      - event: YieldToCookieJar(address indexed garden, address indexed asset, uint256 amount, address indexed jar)
-      - event: YieldToJuicebox(address indexed garden, address indexed asset, uint256 amount, uint256 projectId)
-      - event: YieldStranded(address indexed garden, address indexed asset, uint256 amount, string destination)
-  - name: CookieJarModule
-    handler: src/EventHandlers.ts
-    events:
-      - event: JarCreated(address indexed garden, address indexed asset, address jar)
   - name: HypercertMinter
     handler: src/EventHandlers.ts
     events:
       - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
       - event: ClaimStored(uint256 indexed claimID, string uri, uint256 totalUnits)
-  - name: HypercertMarketplaceAdapter
-    handler: src/EventHandlers.ts
-    events:
-      - event: OrderRegistered(uint256 indexed orderId, uint256 indexed hypercertId, address indexed seller, address currency, uint256 pricePerUnit, uint256 endTime)
-      - event: OrderDeactivated(uint256 indexed orderId, address indexed deactivatedBy)
-      - event: FractionPurchased(uint256 indexed orderId, uint256 indexed hypercertId, address indexed recipient, uint256 units, uint256 payment)
-  - name: UnifiedPowerRegistry
-    handler: src/EventHandlers.ts
-    events:
-      - event: ConfigUpdated(string indexed key, address indexed oldValue, address indexed newValue)
-      - event: GardenDeregistered(address indexed garden, uint256 poolsCleared)
-  - name: GreenGoodsENS
-    handler: src/EventHandlers.ts
-    events:
-      - event: NameRegistrationSent(bytes32 indexed messageId, string slug, address indexed owner, uint8 nameType, uint256 ccipFee)
-      - event: NameReleaseSent(bytes32 indexed messageId, string slug, address indexed previousOwner)
 networks:
   - id: 42161
     start_block: 422901795
@@ -110,20 +71,10 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: OctantVault
         address: "0x0000000000000000000000000000000000000000"
-      - name: GardensModule
-        address: "0x0000000000000000000000000000000000000000"
       - name: YieldSplitter
-        address: "0x0000000000000000000000000000000000000000"
-      - name: CookieJarModule
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
-      - name: HypercertMarketplaceAdapter
-        address: "0x0000000000000000000000000000000000000000"
-      - name: UnifiedPowerRegistry
-        address: "0x0000000000000000000000000000000000000000"
-      - name: GreenGoodsENS
-        address: "0x0000000000000000000000000000000000000000"
   - id: 42220
     start_block: 48697725
     contracts:
@@ -139,20 +90,10 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: OctantVault
         address: "0x0000000000000000000000000000000000000000"
-      - name: GardensModule
-        address: "0x0000000000000000000000000000000000000000"
       - name: YieldSplitter
-        address: "0x0000000000000000000000000000000000000000"
-      - name: CookieJarModule
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
-      - name: HypercertMarketplaceAdapter
-        address: "0x0000000000000000000000000000000000000000"
-      - name: UnifiedPowerRegistry
-        address: "0x0000000000000000000000000000000000000000"
-      - name: GreenGoodsENS
-        address: "0x0000000000000000000000000000000000000000"
   - id: 11155111
     start_block: 0
     contracts:
@@ -168,17 +109,7 @@ networks:
         address: "0x0000000000000000000000000000000000000000"
       - name: OctantVault
         address: "0x0000000000000000000000000000000000000000"
-      - name: GardensModule
-        address: "0x0000000000000000000000000000000000000000"
       - name: YieldSplitter
-        address: "0x0000000000000000000000000000000000000000"
-      - name: CookieJarModule
         address: "0x0000000000000000000000000000000000000000"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
-      - name: HypercertMarketplaceAdapter
-        address: "0x0000000000000000000000000000000000000000"
-      - name: UnifiedPowerRegistry
-        address: "0x0000000000000000000000000000000000000000"
-      - name: GreenGoodsENS
-        address: "0x0000000000000000000000000000000000000000"

@@ -18,6 +18,19 @@ enum Domain {
   UNKNOWN
 }
 
+# Retained for compatibility with existing helper mappings.
+enum WeightScheme {
+  LINEAR
+  EXPONENTIAL
+  POWER
+}
+
+# Retained for compatibility with existing helper mappings.
+enum PoolType {
+  HYPERCERT
+  ACTION
+}
+
 type Action {
   id: ID!
   chainId: Int!
@@ -25,21 +38,21 @@ type Action {
   startTime: BigInt!
   endTime: BigInt!
   title: String!
-  slug: String!                     # On-chain slug (e.g., "waste.cleanup_event")
+  slug: String! # On-chain slug (e.g., "waste.cleanup_event")
   instructions: String!
   capitals: [Capital!]!
   media: [String!]!
-  domain: Domain!                   # Domain category
+  domain: Domain!
   createdAt: Int!
 }
 
-# Tracks which domains are enabled for each garden
+# Tracks which domains are enabled for each garden.
 type GardenDomains {
-  id: ID!                           # gardenAddress
+  id: ID! # chainId-gardenAddress
   chainId: Int!
-  garden: String!                   # Garden address
-  domainMask: Int!                  # Bitmask: bit 0=Solar, 1=Agro, 2=Edu, 3=Waste
-  domains: [Domain!]!              # Expanded for query convenience
+  garden: String! # Garden address
+  domainMask: Int! # Bitmask: bit 0=Solar, 1=Agro, 2=Edu, 3=Waste
+  domains: [Domain!]!
   updatedAt: Int!
 }
 
@@ -61,38 +74,9 @@ type Garden {
   owners: [String!]! # Address
   funders: [String!]! # Address
   communities: [String!]! # Address
-  
+
   # Karma GAP Integration
   gapProjectUID: String # Karma GAP project attestation UID (bytes32)
-
-  # ENS Integration
-  slug: String          # ENS subdomain slug (e.g., "my-garden" for my-garden.greengoods.eth)
-  ensStatus: String     # "pending" | "active" | "released" — tracked via CCIP events
-}
-
-type GardenHatTree {
-  id: ID!                    # gardenAddress
-  chainId: Int!
-  garden: String!            # Garden address
-  adminHatId: String!        # Admin hat ID (uint256 as string)
-  ownerHatId: String         # Available when GardenConfigured event is indexed
-  operatorHatId: String
-  evaluatorHatId: String
-  gardenerHatId: String
-  funderHatId: String
-  communityHatId: String
-  createdAt: Int!
-}
-
-type PartialGrantFailure {
-  id: ID!                    # chainId-txHash-logIndex
-  chainId: Int!
-  garden: String!            # Garden address
-  account: String!           # Account that failed to receive role
-  role: Int!                 # GardenRole enum value (0-5)
-  reason: String!            # Error reason
-  txHash: String!
-  timestamp: Int!
 }
 
 enum VaultEventType {
@@ -162,72 +146,25 @@ type Gardener {
   id: ID! # Smart account address
   chainId: Int!
   createdAt: Int!
-  firstGarden: String # First garden joined
-  gardens: [String!]! # All gardens this gardener belongs to
-  
+  firstGarden: String
+  gardens: [String!]!
+
   # Identity (from Gardener smart contract on mainnet or L2)
-  owner: String # Current owner key (EOA from passkey)
-  
+  owner: String
+
   # ENS Identity (from mainnet Gardener contract)
-  ensName: String # Full ENS name (e.g., "alice.greengoods.eth")
-  passkeyCredentialId: String # WebAuthn credential ID (bytes32) for recovery
-  claimedAt: Int # Timestamp of ENS claim on mainnet
-  
-  # Profile data stored in ENS text records (mainnet only)
+  ensName: String
+  passkeyCredentialId: String
+  claimedAt: Int
+
+  # Profile data stored in ENS text records (mainnet only).
   # Not populated by Envio handlers; resolved client-side from ENS resolver reads.
-  # Query via ENS resolver: resolver.text(node, "avatar"), resolver.text(node, "description"), etc.
-  ensAvatar: String # ENS text record: avatar
-  ensDescription: String # ENS text record: description
-  ensTwitter: String # ENS text record: com.twitter
-  ensGithub: String # ENS text record: com.github
-  ensEmail: String # ENS text record: email
-  
-  # Future extensibility:
-  # - totalWork: Int
-  # - approvals: [WorkApproval!]
-  # - reputation: Int
-  # - attestations: [Attestation!]
+  ensAvatar: String
+  ensDescription: String
+  ensTwitter: String
+  ensGithub: String
+  ensEmail: String
 }
-
-# =============================================================================
-# Gardens Community Entities
-# =============================================================================
-
-enum WeightScheme {
-  LINEAR
-  EXPONENTIAL
-  POWER
-}
-
-enum PoolType {
-  HYPERCERT
-  ACTION
-}
-
-type GardenCommunity {
-  id: ID! # chainId-garden
-  chainId: Int!
-  garden: String! # Garden address
-  communityAddress: String! # RegistryCommunity address
-  weightScheme: WeightScheme!
-  goodsToken: String! # GOODS token address
-  powerSourceCount: Int # Number of power sources registered (set on GardenPowerRegistered)
-  createdAt: Int!
-}
-
-type GardenSignalPool {
-  id: ID! # chainId-garden-poolAddress
-  chainId: Int!
-  garden: String! # Garden address
-  poolAddress: String! # CVStrategy pool address
-  poolType: PoolType!
-  communityAddress: String! # Parent RegistryCommunity
-  createdAt: Int!
-}
-
-# =============================================================================
-# Yield Allocation Entities
-# =============================================================================
 
 type YieldAllocation {
   id: ID! # chainId-txHash-logIndex
@@ -242,81 +179,6 @@ type YieldAllocation {
   timestamp: Int!
 }
 
-type YieldAccumulation {
-  id: ID! # chainId-garden-asset
-  chainId: Int!
-  garden: String! # Garden address
-  asset: String! # Asset address
-  pendingAmount: BigInt!
-  lastAccumulatedAt: Int!
-}
-
-type YieldFractionPurchase {
-  id: ID! # chainId-txHash-logIndex-hypercertId
-  chainId: Int!
-  garden: String! # Garden address
-  hypercertId: BigInt!
-  amount: BigInt!
-  fractionId: BigInt
-  treasury: String! # Treasury address that received the fraction
-  txHash: String!
-  timestamp: Int!
-}
-
-# =============================================================================
-# Yield Routing Entities
-# =============================================================================
-
-type YieldCookieJarTransfer {
-  id: ID! # chainId-txHash-logIndex
-  chainId: Int!
-  garden: String! # Garden address
-  asset: String! # Asset address
-  amount: BigInt!
-  jar: String! # Cookie jar or treasury address
-  txHash: String!
-  timestamp: Int!
-}
-
-type YieldJuiceboxPayment {
-  id: ID! # chainId-txHash-logIndex
-  chainId: Int!
-  garden: String! # Garden address
-  asset: String! # Asset address
-  amount: BigInt!
-  projectId: BigInt!
-  txHash: String!
-  timestamp: Int!
-}
-
-type YieldStranded {
-  id: ID! # chainId-txHash-logIndex
-  chainId: Int!
-  garden: String! # Garden address
-  asset: String! # Asset address
-  amount: BigInt!
-  destination: String! # Destination that failed (e.g. "cookieJar", "juicebox", "recompound")
-  txHash: String!
-  timestamp: Int!
-}
-
-# =============================================================================
-# GoodsAirdrop Entity
-# =============================================================================
-
-type GoodsAirdrop {
-  id: ID! # chainId-txHash-logIndex
-  chainId: Int!
-  garden: String! # Garden address
-  totalAmount: BigInt!
-  txHash: String!
-  timestamp: Int!
-}
-
-# =============================================================================
-# Hypercert Entities
-# =============================================================================
-
 enum HypercertStatus {
   ACTIVE
   CLAIMED
@@ -325,138 +187,31 @@ enum HypercertStatus {
 }
 
 type Hypercert {
-  id: ID!                           # chainId-tokenId
+  id: ID! # chainId-tokenId
   chainId: Int!
   tokenId: BigInt!
-  garden: String!                   # Garden address
-  metadataUri: String!              # IPFS URI (ipfs://...)
+  garden: String! # Garden address
+  metadataUri: String! # IPFS URI (ipfs://...)
   mintedAt: Int!
-  mintedBy: String!                 # Operator address who minted
+  mintedBy: String! # Operator address who minted
   txHash: String!
   totalUnits: BigInt!
   claimedUnits: BigInt!
   attestationCount: Int!
-  attestationUIDs: [String!]!       # EAS attestation UIDs bundled into this hypercert
-
-  # Metadata fields (populated from IPFS)
-  title: String
-  description: String
-  imageUri: String
-  workScopes: [String!]
-
+  attestationUIDs: [String!]! # EAS attestation UIDs bundled into this hypercert
   status: HypercertStatus!
-  # Note: Query claims via HypercertClaim.hypercertId (Envio doesn't support entity arrays)
   createdAt: Int!
   updatedAt: Int!
 }
 
 type HypercertClaim {
-  id: ID!                           # chainId-hypercertTokenId-claimant
+  id: ID! # chainId-hypercertTokenId-claimant
   chainId: Int!
-  hypercertId: String!              # Reference to parent Hypercert
-  claimant: String!                 # Address who claimed
+  hypercertId: String! # Reference to parent Hypercert
+  claimant: String! # Address who claimed
   units: BigInt!
   claimedAt: Int!
   txHash: String!
-}
-
-# =============================================================================
-# Garden Treasury Entities
-# =============================================================================
-
-type GardenTreasury {
-  id: ID!                    # chainId-garden
-  chainId: Int!
-  garden: String!            # Garden address
-  totalSeeded: BigInt!       # Cumulative GOODS seeded
-  lastSeededAt: Int!
-}
-
-# =============================================================================
-# CookieJar Entities
-# =============================================================================
-
-type CookieJar {
-  id: ID!                    # chainId-garden-asset
-  chainId: Int!
-  garden: String!            # Garden address
-  asset: String!             # Asset address
-  jarAddress: String!        # Vault contract address
-  createdAt: Int!
-}
-
-# =============================================================================
-# ENS Registration Entity (L2 CCIP tracking)
-# =============================================================================
-
-type ENSRegistration {
-  id: ID!                 # chainId-slug (e.g., "42161-alice")
-  chainId: Int!
-  slug: String!
-  owner: String!          # Address that initiated the claim
-  nameType: String!       # "Gardener" | "Garden"
-  ccipMessageId: String!  # CCIP message ID (bytes32) for cross-chain tracking
-  status: String!         # "pending" | "active" | "released"
-  ccipFee: BigInt!        # Fee paid for CCIP delivery
-  registeredAt: Int!      # Block timestamp of L2 registration
-  txHash: String!
-}
-
-# =============================================================================
-# Hypercert Marketplace Entities
-# =============================================================================
-
-type MarketplaceOrder {
-  id: ID!                    # chainId-orderId
-  chainId: Int!
-  orderId: BigInt!
-  hypercertId: BigInt!
-  seller: String!            # Address
-  currency: String!          # Address
-  pricePerUnit: BigInt!
-  endTime: BigInt!
-  active: Boolean!
-  totalUnitsSold: BigInt!
-  totalPaymentsReceived: BigInt!
-  createdAt: Int!
-  deactivatedAt: Int
-  deactivatedBy: String      # Address (null if still active)
-  txHash: String!
-}
-
-type MarketplacePurchase {
-  id: ID!                    # chainId-txHash-logIndex
-  chainId: Int!
-  orderId: BigInt!
-  hypercertId: BigInt!
-  recipient: String!         # Address
-  units: BigInt!
-  payment: BigInt!
-  txHash: String!
-  timestamp: Int!
-}
-
-# =============================================================================
-# Unified Power Registry Entities
-# =============================================================================
-
-type PowerRegistryConfig {
-  id: ID!                    # chainId-txHash-logIndex
-  chainId: Int!
-  key: String!               # Config key (e.g., "gardensModule", "hatsProtocol")
-  oldValue: String!          # Address
-  newValue: String!          # Address
-  txHash: String!
-  timestamp: Int!
-}
-
-type PowerRegistryDeregistration {
-  id: ID!                    # chainId-txHash-logIndex
-  chainId: Int!
-  garden: String!            # Address
-  poolsCleared: BigInt!
-  txHash: String!
-  timestamp: Int!
 }
 
 # =============================================================================
