@@ -67,7 +67,10 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
           data: callData,
           account: signer,
         });
-        await publicClient.waitForTransactionReceipt({ hash: txHash, timeout: TX_RECEIPT_TIMEOUT_MS });
+        await publicClient.waitForTransactionReceipt({
+          hash: txHash,
+          timeout: TX_RECEIPT_TIMEOUT_MS,
+        });
       } else {
         throw new Error("No wallet available for transaction");
       }

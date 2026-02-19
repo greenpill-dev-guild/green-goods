@@ -152,7 +152,10 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
           data: callData,
           account: signer,
         });
-        await publicClient.waitForTransactionReceipt({ hash: txHash, timeout: TX_RECEIPT_TIMEOUT_MS });
+        await publicClient.waitForTransactionReceipt({
+          hash: txHash,
+          timeout: TX_RECEIPT_TIMEOUT_MS,
+        });
       }
 
       setProgress((prev) => ({ ...prev, status: "done" }));

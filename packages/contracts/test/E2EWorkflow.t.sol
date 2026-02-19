@@ -124,9 +124,7 @@ contract E2EWorkflowForkTest is ForkTestBase {
         vm.expectRevert(NOT_GARDEN_OPERATOR_SELECTOR);
         gardenAccount.updateDescription("Unauthorized update");
         assertEq(
-            gardenAccount.description(),
-            initialDescription,
-            "Description must remain unchanged after unauthorized update"
+            gardenAccount.description(), initialDescription, "Description must remain unchanged after unauthorized update"
         );
 
         // Grant operator role via real HatsModule

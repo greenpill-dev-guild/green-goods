@@ -117,7 +117,11 @@ export function useBatchWorkSync() {
         account: walletClient.account,
       });
 
-      await waitForTransactionReceipt(wagmiConfig, { hash, chainId, timeout: TX_RECEIPT_TIMEOUT_MS });
+      await waitForTransactionReceipt(wagmiConfig, {
+        hash,
+        chainId,
+        timeout: TX_RECEIPT_TIMEOUT_MS,
+      });
 
       for (const { job } of encodedJobs) {
         try {

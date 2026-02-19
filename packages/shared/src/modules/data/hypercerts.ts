@@ -493,7 +493,9 @@ function parseMetadataPayload(payload: unknown): Partial<HypercertRecord> {
   };
 }
 
-async function getHypercertMetadataFromIpfs(metadataUri?: string): Promise<Partial<HypercertRecord>> {
+async function getHypercertMetadataFromIpfs(
+  metadataUri?: string
+): Promise<Partial<HypercertRecord>> {
   if (!metadataUri) return {};
 
   try {
@@ -523,14 +525,17 @@ export async function hydrateHypercertMetadata(
   ]);
 
   const sdkMetadata =
-    sdkResult.status === "fulfilled" && sdkResult.value ? sdkResult.value : ({} as Partial<HypercertRecord>);
+    sdkResult.status === "fulfilled" && sdkResult.value
+      ? sdkResult.value
+      : ({} as Partial<HypercertRecord>);
   const ipfsMetadata = ipfsResult.status === "fulfilled" ? ipfsResult.value : {};
 
   if (sdkResult.status === "rejected") {
     logger.debug("[hydrateHypercertMetadata] SDK metadata fetch failed", {
       hypercertId,
       chainId,
-      error: sdkResult.reason instanceof Error ? sdkResult.reason.message : String(sdkResult.reason),
+      error:
+        sdkResult.reason instanceof Error ? sdkResult.reason.message : String(sdkResult.reason),
     });
   }
 

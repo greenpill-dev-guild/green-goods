@@ -222,7 +222,7 @@ export function useWorkApproval() {
       queryClient.setQueryData(
         queryKeys.works.merged(work.gardenAddress, chainId),
         (old: Work[] = []) =>
-            old.map((w) =>
+          old.map((w) =>
             w.id === draft.workUID
               ? {
                   ...w,
@@ -231,13 +231,13 @@ export function useWorkApproval() {
                   _pendingUntilMs: pendingUntilMs,
                 }
               : w
-            )
+          )
       );
 
       queryClient.setQueryData(
         queryKeys.works.online(work.gardenAddress, chainId),
         (old: Work[] = []) =>
-            old.map((w) =>
+          old.map((w) =>
             w.id === draft.workUID
               ? {
                   ...w,
@@ -246,7 +246,7 @@ export function useWorkApproval() {
                   _pendingUntilMs: pendingUntilMs,
                 }
               : w
-            )
+          )
       );
 
       // Auto-clear stale pending flags if no completion signal is observed.

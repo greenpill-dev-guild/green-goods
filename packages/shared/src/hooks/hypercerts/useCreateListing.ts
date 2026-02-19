@@ -141,7 +141,10 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
           data: callData,
           account: signer,
         });
-        await publicClient.waitForTransactionReceipt({ hash: txHash, timeout: TX_RECEIPT_TIMEOUT_MS });
+        await publicClient.waitForTransactionReceipt({
+          hash: txHash,
+          timeout: TX_RECEIPT_TIMEOUT_MS,
+        });
       } else {
         throw new Error("No wallet available for transaction");
       }

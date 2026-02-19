@@ -755,8 +755,6 @@ export function parseHypercertMetadata(metadata: unknown): {
   };
 }
 
-
-
 // Helper to create default Hypercert entity
 // Note: claims are stored as separate HypercertClaim entities (Envio doesn't support entity arrays)
 export function createDefaultHypercert(

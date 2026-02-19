@@ -438,7 +438,15 @@ contract HatsModule is
     }
 
     /// @inheritdoc IHatsModule
-    function grantRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external override nonReentrant {
+    function grantRoles(
+        address garden,
+        address[] calldata accounts,
+        GardenRole[] calldata roles
+    )
+        external
+        override
+        nonReentrant
+    {
         _requireOwnerOrOperator(garden);
         if (accounts.length != roles.length) revert ArrayLengthMismatch();
 

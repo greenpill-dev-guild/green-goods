@@ -5,7 +5,8 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const generated = require("../generated");
 const { TestHelpers } = generated;
-const { MockDb, Addresses, GardenAccount, HatsModule, YieldSplitter, HypercertMinter } = TestHelpers;
+const { MockDb, Addresses, GardenAccount, HatsModule, YieldSplitter, HypercertMinter } =
+  TestHelpers;
 
 const CHAIN_ID = 42161;
 

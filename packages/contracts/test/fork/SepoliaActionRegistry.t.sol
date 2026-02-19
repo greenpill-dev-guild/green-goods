@@ -139,9 +139,7 @@ contract SepoliaActionRegistryForkTest is ForkTestBase {
         capitals[0] = Capital.SOCIAL;
 
         vm.prank(forkNonMember);
-        vm.expectRevert(
-            abi.encodeWithSelector(bytes4(keccak256("OwnableUnauthorizedAccount(address)")), forkNonMember)
-        );
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("OwnableUnauthorizedAccount(address)")), forkNonMember));
         actionRegistry.registerAction(
             block.timestamp,
             block.timestamp + 30 days,

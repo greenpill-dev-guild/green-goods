@@ -152,14 +152,13 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
         (address gardenAccount, uint256 actionUID) = _setupGardenWithAction();
 
         string[] memory media = new string[](0);
-        WorkSchema memory work =
-            WorkSchema({
-                actionUID: actionUID,
-                title: "Unauthorized Work",
-                feedback: "",
-                metadata: "ipfs://QmUnauthorizedWorkMeta",
-                media: media
-            });
+        WorkSchema memory work = WorkSchema({
+            actionUID: actionUID,
+            title: "Unauthorized Work",
+            feedback: "",
+            metadata: "ipfs://QmUnauthorizedWorkMeta",
+            media: media
+        });
 
         AttestationRequest memory request = AttestationRequest({
             schema: workSchemaUID,

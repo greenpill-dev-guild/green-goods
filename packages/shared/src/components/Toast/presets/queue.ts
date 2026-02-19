@@ -60,7 +60,9 @@ export const queueToasts = {
       title: queueDefaults.jobFailed.title,
       message:
         detail ??
-        (kind === "work" ? queueDefaults.jobFailed.workMessage : queueDefaults.jobFailed.approvalMessage),
+        (kind === "work"
+          ? queueDefaults.jobFailed.workMessage
+          : queueDefaults.jobFailed.approvalMessage),
       context: "job queue",
     }),
 

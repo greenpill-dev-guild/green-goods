@@ -50,7 +50,8 @@ interface UseWorkMutationOptions {
 }
 
 function isNetworkError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  const message =
+    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
   return (
     message.includes("network") ||
     message.includes("fetch") ||

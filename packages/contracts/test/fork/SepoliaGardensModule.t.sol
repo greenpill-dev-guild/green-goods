@@ -121,9 +121,7 @@ contract SepoliaGardensModuleForkTest is ForkTestBase {
 
         // Direct call from non-gardenToken should revert
         vm.prank(forkNonMember);
-        vm.expectRevert(
-            abi.encodeWithSelector(bytes4(keccak256("NotGardenToken(address)")), forkNonMember)
-        );
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("NotGardenToken(address)")), forkNonMember));
         gardensModule.onGardenMinted(address(0xDEAD), IGardensModule.WeightScheme.Linear);
     }
 

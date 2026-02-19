@@ -280,7 +280,9 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
 
   const mergedList = useMemo(
     () =>
-      (listQuery.data ?? []).map((record) => mergeRecordWithMetadata(record, metadataById[record.id])),
+      (listQuery.data ?? []).map((record) =>
+        mergeRecordWithMetadata(record, metadataById[record.id])
+      ),
     [listQuery.data, metadataById]
   );
 

@@ -1,4 +1,9 @@
-import { SUPPORTED_CHAINS, useAdminStore, getNetworkContracts, type Address } from "@green-goods/shared";
+import {
+  SUPPORTED_CHAINS,
+  useAdminStore,
+  getNetworkContracts,
+  type Address,
+} from "@green-goods/shared";
 import { RiRefreshLine, RiSettings3Line, RiUploadLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
