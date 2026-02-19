@@ -5,10 +5,18 @@ on:
     branches: [main, develop]
     paths:
       - "packages/contracts/**"
+      - "scripts/check-contract-test-realism.sh"
+      - "scripts/run-contract-coverage-audit.sh"
+      - "scripts/validate-contract-test-realism-tooling.sh"
+      - ".github/workflows/contracts-tests.yml"
   pull_request:
     branches: [main, develop]
     paths:
       - "packages/contracts/**"
+      - "scripts/check-contract-test-realism.sh"
+      - "scripts/run-contract-coverage-audit.sh"
+      - "scripts/validate-contract-test-realism-tooling.sh"
+      - ".github/workflows/contracts-tests.yml"
 
 permissions:
   contents: read
@@ -42,6 +50,10 @@ jobs:
           cd packages/contracts
           bun run build:full
 
+      # NOTE: forge coverage is blocked by Yul/stack-too-deep constraints in selected
+      # contracts. Selective via_ir is used for those paths; forge test pass/fail + gas
+      # regression checks serve as interim coverage proxy. No coverage gating
+      # until the Yul issue is resolved upstream.
       - name: Run tests
         run: |
           cd packages/contracts
@@ -69,6 +81,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build contracts
+        run: |
+          cd packages/contracts
+          bun run build:full
+
       - name: Run fork protocol suite (exclude Celo + Unlock)
         run: |
           cd packages/contracts
@@ -79,6 +96,77 @@ jobs:
           ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL || 'https://ethereum-rpc.publicnode.com' }}
           COOKIE_JAR_FACTORY_ADDRESS: ${{ secrets.COOKIE_JAR_FACTORY_ADDRESS }}
           CI: true
+
+  realism-audit:
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [test, fork]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Resolve realism gate phase
+        id: realism-phase
+        run: |
+          TODAY="$(date -u +%F)"
+          if [[ "$TODAY" < "2026-02-26" ]]; then
+            MODE="advisory"
+            THRESHOLD="0.70"
+            PHASE="phase-0"
+          elif [[ "$TODAY" < "2026-03-05" ]]; then
+            MODE="enforce-must-fix"
+            THRESHOLD="0.70"
+            PHASE="phase-1"
+          elif [[ "$TODAY" < "2026-03-19" ]]; then
+            MODE="enforce-should-fix"
+            THRESHOLD="0.80"
+            PHASE="phase-2"
+          else
+            MODE="enforce-should-fix"
+            THRESHOLD="0.90"
+            PHASE="phase-3"
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "revert_threshold=$THRESHOLD" >> "$GITHUB_OUTPUT"
+          echo "phase=$PHASE" >> "$GITHUB_OUTPUT"
+          echo "today=$TODAY" >> "$GITHUB_OUTPUT"
+
+      - name: Validate realism tooling scenarios
+        run: |
+          cd packages/contracts
+          bun run test:audit:realism:tooling
+
+      - name: Run contracts realism audit
+        run: |
+          cd packages/contracts
+          bun run test:audit:realism
+        env:
+          CI: true
+          CONTRACT_REALISM_MODE: ${{ steps.realism-phase.outputs.mode }}
+          REALISM_REVERT_THRESHOLD: ${{ steps.realism-phase.outputs.revert_threshold }}
+          CONTRACT_REALISM_REPORT_MD: ../../output/contracts-test-audit/realism-report-ci.md
+          CONTRACT_REALISM_REPORT_JSON: ../../output/contracts-test-audit/realism-report-ci.json
+
+      - name: Upload realism audit artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contracts-test-realism-audit
+          path: output/contracts-test-audit/
+          retention-days: 14
 
   lint:
     runs-on: ubuntu-latest
@@ -103,11 +191,6 @@ jobs:
         run: |
           cd packages/contracts
           bun run lint
-
-
-
-
-
 
 
 

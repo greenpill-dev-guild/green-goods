@@ -283,8 +283,7 @@ docker-compose.local.yml
 # ================================
 # Cursor
 # ================================
-# Track .cursor/BUGBOT.md and .cursor/rules/*.mdc (shared team rules)
-# Ignore any local/user-specific cursor settings
+# Ignore local/user-specific Cursor settings
 .cursor/settings.local.json
 .cursor/.cursorignore
 
@@ -302,7 +301,6 @@ docker-compose.local.yml
 
 # Keep shared Claude settings
 !.claude/settings.json
-!.claude/commands/
 
 # ================================
 # OS Generated
@@ -339,11 +337,19 @@ packages/*/dist/
 packages/*/.cache/
 packages/*/build/
 
+# Generated output (audits, reports, etc.)
+output/
+
+# Backup files
+*.backup
+
 # Docs build output (Docusaurus)
 docs/build/
 
 # Package-specific generated files
 packages/contracts/cache/
+packages/contracts/cache-*/
+packages/contracts/out-*/
 packages/contracts/broadcast/
 
 # Indexer: generated directory (Envio codegen output, rebuilt on dev)

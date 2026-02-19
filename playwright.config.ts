@@ -86,6 +86,14 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
 
+    // Desktop Chrome - critical path CI tests (work submission, approval, offline sync)
+    // Lightweight mock-based tests that validate core UI flows without real infrastructure
+    {
+      name: "critical-path",
+      testMatch: /\.ci\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+
     // Performance tests - separate project for load time and resource checks
     {
       name: "performance",

@@ -78,9 +78,10 @@ jobs:
       - name: Run E2E tests
         run: |
           if [ "${{ github.event.inputs.project }}" = "all" ] || [ -z "${{ github.event.inputs.project }}" ]; then
-            # Run default projects: chromium (admin), chromium-client (client smoke), performance
+            # Run default projects: chromium (admin), chromium-client (client smoke),
+            # critical-path (work submission/approval/offline sync CI tests), performance
             # Mobile and client-full projects are optional (run manually with --project flag)
-            npx playwright test --project=chromium --project=chromium-client --project=performance
+            npx playwright test --project=chromium --project=chromium-client --project=critical-path --project=performance
           else
             npx playwright test --project=${{ github.event.inputs.project }}
           fi

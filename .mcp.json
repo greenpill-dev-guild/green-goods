@@ -51,8 +51,8 @@
       "note": "Implementation access: contracts, storage, services"
     },
     "oracle": {
-      "servers": ["miro"],
-      "note": "Research access: architecture diagrams"
+      "servers": [],
+      "note": "Research access is documentation-first; no dedicated MCP server required"
     }
   }
 }
