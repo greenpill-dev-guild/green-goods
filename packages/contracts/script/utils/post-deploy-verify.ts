@@ -80,9 +80,9 @@ interface RuntimeGardenDomains {
 }
 
 interface RuntimeIndexerResponse {
-  gardens?: RuntimeGarden[];
-  actions?: RuntimeAction[];
-  gardenDomains?: RuntimeGardenDomains[];
+  Garden?: RuntimeGarden[];
+  Action?: RuntimeAction[];
+  GardenDomains?: RuntimeGardenDomains[];
 }
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -94,15 +94,15 @@ function maskRpcApiKey(value: string): string {
 const DEFAULT_LOCAL_INDEXER_ENDPOINT = "http://localhost:8080/v1/graphql";
 const RUNTIME_INDEXER_QUERY = `
   query PostDeployIndexerRuntime($chainId: Int!, $limit: Int!) {
-    gardens(where: { chainId: { _eq: $chainId } }, limit: $limit, order_by: { createdAt: desc }) {
+    Garden(where: { chainId: { _eq: $chainId } }, limit: $limit, order_by: { createdAt: desc }) {
       id
       chainId
     }
-    actions(where: { chainId: { _eq: $chainId } }, limit: 1, order_by: { createdAt: desc }) {
+    Action(where: { chainId: { _eq: $chainId } }, limit: 1, order_by: { createdAt: desc }) {
       id
       chainId
     }
-    gardenDomains(where: { chainId: { _eq: $chainId } }, limit: $limit, order_by: { updatedAt: desc }) {
+    GardenDomains(where: { chainId: { _eq: $chainId } }, limit: $limit, order_by: { updatedAt: desc }) {
       garden
       domainMask
     }
@@ -484,9 +484,9 @@ async function validateIndexerRuntime(
       const result = await queryRuntimeIndexer(indexerUrl, chainId);
 
       if (!result.error && result.data) {
-        const gardens = result.data.gardens ?? [];
-        const actions = result.data.actions ?? [];
-        const gardenDomains = result.data.gardenDomains ?? [];
+        const gardens = result.data.Garden ?? [];
+        const actions = result.data.Action ?? [];
+        const gardenDomains = result.data.GardenDomains ?? [];
 
         const rootGardenLower = normalizeAddress(rootGarden as string);
         const hasRootGarden = gardens.some((garden) => normalizeAddress(garden.id) === rootGardenLower);
@@ -752,9 +752,10 @@ async function main(): Promise<void> {
     validateIndexerConfig(options.chainId, deployment, failures);
   }
 
-  if (failures.length === 0) {
-    await validateIndexerRuntime(options, deployment, failures);
-  }
+  // Indexer runtime check runs independently of onchain failures — the indexer
+  // validates its own indexed data, not onchain wiring (e.g. Sepolia has no
+  // marketplace exchange, which is an onchain gap, not an indexer gap).
+  await validateIndexerRuntime(options, deployment, failures);
 
   if (options.checkEtherscan) {
     validateEtherscanVerification(options.chainId, deployment, failures);
