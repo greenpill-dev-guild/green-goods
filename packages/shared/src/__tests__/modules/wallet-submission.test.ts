@@ -46,6 +46,7 @@ vi.mock("../../utils/eas/transaction-builder", () => ({
 
 vi.mock("../../utils/blockchain/polling", () => ({
   pollQueriesAfterTransaction: vi.fn(),
+  TX_RECEIPT_TIMEOUT_MS: 120_000,
 }));
 
 vi.mock("../../modules/work/simulate", () => ({

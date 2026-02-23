@@ -112,8 +112,8 @@ export function DomainActionStep({
                 className={cn(
                   "flex items-center gap-2 rounded-lg border px-3 py-3 text-sm font-medium transition",
                   isSelected
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-stroke-soft bg-bg-white text-text-sub hover:border-green-300 hover:bg-green-50/5",
+                    ? "border-primary-base bg-primary-alpha-10 text-primary-darker"
+                    : "border-stroke-soft bg-bg-white text-text-sub hover:border-primary-alpha-24 hover:bg-primary-alpha-10",
                   isSubmitting && "cursor-not-allowed opacity-60"
                 )}
               >
@@ -123,7 +123,7 @@ export function DomainActionStep({
             );
           })}
         </div>
-        {errors.domain && <p className="text-xs text-red-600">{errors.domain.message}</p>}
+        {errors.domain && <p className="text-xs text-error-dark">{errors.domain.message}</p>}
       </Section>
 
       {/* Action Multi-Select */}
@@ -169,8 +169,8 @@ export function DomainActionStep({
                     className={cn(
                       "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 text-sm transition",
                       isChecked
-                        ? "border-green-500 bg-green-50 text-green-800"
-                        : "border-stroke-soft bg-bg-white text-text-sub hover:border-green-300 hover:bg-green-50/5",
+                        ? "border-primary-base bg-primary-alpha-10 text-primary-dark"
+                        : "border-stroke-soft bg-bg-white text-text-sub hover:border-primary-alpha-24 hover:bg-primary-alpha-10",
                       isSubmitting && "cursor-not-allowed opacity-60"
                     )}
                   >
@@ -179,7 +179,7 @@ export function DomainActionStep({
                       checked={isChecked}
                       onChange={() => handleToggleAction(action.id)}
                       disabled={isSubmitting}
-                      className="mt-0.5 h-4 w-4 rounded border-stroke-sub text-green-600 focus:ring-2 focus:ring-green-200 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="mt-0.5 h-4 w-4 rounded border-stroke-sub text-primary-base focus:ring-2 focus:ring-primary-alpha-24 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60"
                     />
                     <div className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{action.title}</span>
@@ -195,7 +195,7 @@ export function DomainActionStep({
         )}
 
         {/* Always render to reserve space */}
-        <span className="block min-h-[1.25rem] text-xs text-red-600">
+        <span className="block min-h-[1.25rem] text-xs text-error-dark">
           {extractErrorMessage(errors.selectedActionUIDs) || "\u00A0"}
         </span>
       </Section>

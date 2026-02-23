@@ -73,7 +73,7 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
               onClick={() => setActiveFilter(filter.id)}
               className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition active:scale-95 sm:min-h-0 sm:px-3 sm:py-1.5 ${
                 activeFilter === filter.id
-                  ? "bg-green-100 text-green-700"
+                  ? "bg-primary-alpha-16 text-primary-darker"
                   : "bg-bg-soft text-text-sub hover:bg-bg-sub"
               }`}
               // eslint-disable-next-line jsx-a11y/aria-proptypes

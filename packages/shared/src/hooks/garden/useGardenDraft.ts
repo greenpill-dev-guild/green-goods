@@ -265,13 +265,16 @@ export function useGardenDraft(
     };
   }, [enabled, draftKey, autoSaveDebounceMs, autoSaveIntervalMs, saveDraft]);
 
-  return {
-    draftKey,
-    isLoading,
-    lastSavedAt,
-    peekDraft,
-    loadDraft,
-    saveDraft,
-    clearDraft,
-  };
+  return useMemo(
+    () => ({
+      draftKey,
+      isLoading,
+      lastSavedAt,
+      peekDraft,
+      loadDraft,
+      saveDraft,
+      clearDraft,
+    }),
+    [draftKey, isLoading, lastSavedAt, peekDraft, loadDraft, saveDraft, clearDraft]
+  );
 }

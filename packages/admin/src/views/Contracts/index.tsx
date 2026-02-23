@@ -73,15 +73,17 @@ export default function Contracts() {
 
       {/* Tabs */}
       <div className="border-b border-stroke-soft mb-8">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex space-x-8" role="tablist">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
               onClick={() => setActiveTab(tab.id as "deployed" | "deploy" | "upgrade")}
               className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
-                  ? "border-green-500 text-green-600"
+                  ? "border-primary-base text-primary-base"
                   : "border-transparent text-text-soft hover:text-text-sub hover:border-stroke-sub"
               }`}
             >

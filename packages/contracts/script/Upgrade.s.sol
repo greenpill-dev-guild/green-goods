@@ -15,6 +15,7 @@ import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { Deployment } from "../src/registries/Deployment.sol";
+import { OctantModule } from "../src/modules/Octant.sol";
 
 /// @title Upgrade Script for Green Goods Contracts
 /// @notice Handles UUPS proxy upgrades for all upgradeable contracts
@@ -254,6 +255,34 @@ contract Upgrade is Script {
         vm.stopBroadcast();
     }
 
+    /// @notice Upgrade OctantModule
+    function upgradeOctantModule() public {
+        address proxy = loadProxyAddress("octantModule");
+        console.log("Upgrading OctantModule proxy at:", proxy);
+
+        // Validate proxy
+        validateProxy(proxy, "OctantModule");
+
+        // Get current implementation
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+        bytes32 currentImpl = vm.load(proxy, implementationSlot);
+        address currentImplAddr = address(uint160(uint256(currentImpl)));
+        console.log("Current OctantModule implementation:", currentImplAddr);
+
+        vm.startBroadcast();
+
+        OctantModule newImpl = new OctantModule();
+        console.log("New OctantModule implementation:", address(newImpl));
+
+        // Verify implementations differ
+        if (address(newImpl) == currentImplAddr) revert SameImplementation();
+
+        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        console.log("OctantModule upgraded successfully");
+
+        vm.stopBroadcast();
+    }
+
     // NOTE: upgradeGardenerAccount() removed as part of interface-based split architecture
     // Gardener.sol (Kernel-based smart account) has been removed from the codebase
 
@@ -265,6 +294,7 @@ contract Upgrade is Script {
         upgradeWorkApprovalResolver();
         upgradeAssessmentResolver();
         upgradeDeployment();
+        upgradeOctantModule();
         // NOTE: upgradeGardenerAccount() removed - Gardener.sol has been removed
     }
 

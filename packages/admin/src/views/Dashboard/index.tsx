@@ -10,6 +10,7 @@ import {
   useWindowEvent,
 } from "@green-goods/shared";
 import {
+  RiAlertLine,
   RiCheckLine,
   RiGlobalLine,
   RiLoader4Line,
@@ -68,11 +69,11 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-bg-soft rounded w-1/4"></div>
+        <div className="space-y-4">
+          <div className="h-8 skeleton-shimmer rounded w-1/4"></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-bg-soft rounded"></div>
+              <div key={i} className="h-32 skeleton-shimmer rounded"></div>
             ))}
           </div>
         </div>
@@ -86,13 +87,7 @@ export default function Dashboard() {
         <div className="bg-warning-lighter border border-warning-light rounded-md p-4" role="alert">
           <div className="flex items-start">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-warning-base" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <RiAlertLine className="h-5 w-5 text-warning-base" />
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-warning-dark">
@@ -219,8 +214,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-bg-white p-6 rounded-lg shadow-sm border border-stroke-soft">
           <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <RiPlantLine className="h-6 w-6 text-green-600" />
+            <div className="p-2 bg-primary-alpha-16 rounded-lg">
+              <RiPlantLine className="h-6 w-6 text-primary-base" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-text-soft">
@@ -245,8 +240,8 @@ export default function Dashboard() {
           <>
             <div className="bg-bg-white p-6 rounded-lg shadow-sm border border-stroke-soft">
               <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <RiUserLine className="h-6 w-6 text-blue-600" />
+                <div className="p-2 bg-information-lighter rounded-lg">
+                  <RiUserLine className="h-6 w-6 text-information-dark" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-text-soft">
@@ -262,8 +257,8 @@ export default function Dashboard() {
 
             <div className="bg-bg-white p-6 rounded-lg shadow-sm border border-stroke-soft">
               <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <RiUserLine className="h-6 w-6 text-purple-600" />
+                <div className="p-2 bg-feature-lighter rounded-lg">
+                  <RiUserLine className="h-6 w-6 text-feature-dark" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-text-soft">
@@ -284,8 +279,8 @@ export default function Dashboard() {
       {showENSCard && (
         <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft p-6 mb-8">
           <div className="flex items-start gap-4">
-            <div className="p-2 bg-green-100 rounded-lg shrink-0">
-              <RiGlobalLine className="h-6 w-6 text-green-600" />
+            <div className="p-2 bg-primary-alpha-16 rounded-lg shrink-0">
+              <RiGlobalLine className="h-6 w-6 text-primary-base" />
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-medium text-text-strong">Claim your ENS name</h2>
@@ -303,14 +298,14 @@ export default function Dashboard() {
                     autoCapitalize="none"
                     autoComplete="off"
                     spellCheck={false}
-                    className="w-full rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2 pr-10 font-mono text-sm text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80"
+                    className="w-full rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2 pr-10 font-mono text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
                   />
                   {slugValue && slugValue.length >= 3 && (
                     <span className="absolute right-3 top-1/2 -translate-y-1/2">
                       {isCheckingSlug ? (
                         <RiLoader4Line className="h-4 w-4 animate-spin text-text-soft" />
                       ) : isSlugAvailable ? (
-                        <RiCheckLine className="h-4 w-4 text-green-500" />
+                        <RiCheckLine className="h-4 w-4 text-primary-base" />
                       ) : isSlugAvailable === false ? (
                         <span className="text-xs text-error-base">Taken</span>
                       ) : null}
@@ -327,7 +322,7 @@ export default function Dashboard() {
                     isCheckingSlug ||
                     !slugValue
                   }
-                  className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-darker disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                 >
                   {!isOnline ? (
                     <RiWifiOffLine className="h-4 w-4" />

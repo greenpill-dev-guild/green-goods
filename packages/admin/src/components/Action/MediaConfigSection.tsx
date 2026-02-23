@@ -170,7 +170,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             <button
               type="button"
               onClick={addNeeded}
-              className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center gap-1"
+              className="px-3 py-2 bg-primary-base text-white rounded-md hover:bg-primary-darker text-sm flex items-center gap-1"
             >
               <RiAddLine className="h-4 w-4" />
               Add
@@ -226,7 +226,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             <button
               type="button"
               onClick={addOptional}
-              className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center gap-1"
+              className="px-3 py-2 bg-primary-base text-white rounded-md hover:bg-primary-darker text-sm flex items-center gap-1"
             >
               <RiAddLine className="h-4 w-4" />
               Add

@@ -36,7 +36,7 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
           onClick={() => setActiveTab("media")}
           className={`px-4 py-3 text-sm font-medium ${
             activeTab === "media"
-              ? "border-b-2 border-green-500 text-green-600"
+              ? "border-b-2 border-primary-base text-primary-base"
               : "text-text-sub hover:text-text-strong"
           }`}
         >
@@ -47,7 +47,7 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
           onClick={() => setActiveTab("details")}
           className={`px-4 py-3 text-sm font-medium ${
             activeTab === "details"
-              ? "border-b-2 border-green-500 text-green-600"
+              ? "border-b-2 border-primary-base text-primary-base"
               : "text-text-sub hover:text-text-strong"
           }`}
         >
@@ -58,7 +58,7 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
           onClick={() => setActiveTab("review")}
           className={`px-4 py-3 text-sm font-medium ${
             activeTab === "review"
-              ? "border-b-2 border-green-500 text-green-600"
+              ? "border-b-2 border-primary-base text-primary-base"
               : "text-text-sub hover:text-text-strong"
           }`}
         >

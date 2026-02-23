@@ -18,8 +18,6 @@ interface DraftFormState {
   gardenAddress: string | null;
   actionUID: number | null;
   feedback: string;
-  plantSelection: string[];
-  plantCount: number | null;
 }
 
 interface UseDraftResumeOptions {
@@ -46,7 +44,7 @@ interface UseDraftResumeOptions {
  *   handleContinueDraft,
  *   handleStartFresh,
  * } = useDraftResume({
- *   formState: { images, gardenAddress, actionUID, feedback, plantSelection, plantCount },
+ *   formState: { images, gardenAddress, actionUID, feedback },
  *   isOnIntroTab: activeTab === WorkTab.Intro,
  *   searchParams,
  *   setSearchParams,
@@ -125,10 +123,7 @@ export function useDraftResume(options: UseDraftResumeOptions) {
 
     // Having both selections + some form input indicates progress
     const hasBothSelections = formState.gardenAddress !== null && formState.actionUID !== null;
-    const hasFormInput =
-      formState.feedback.length > 0 ||
-      formState.plantSelection.length > 0 ||
-      (formState.plantCount ?? 0) > 0;
+    const hasFormInput = formState.feedback.length > 0;
     const hasProgressWithSelections = hasBothSelections && hasFormInput;
 
     const hasMeaningfulDraft = hasImages || hasProgressWithSelections;

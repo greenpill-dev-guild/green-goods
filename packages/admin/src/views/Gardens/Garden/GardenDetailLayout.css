@@ -1,68 +1,25 @@
-/* Garden Detail Grid Layout with CSS Grid Areas */
+/* Garden Detail Layout */
 
-.garden-detail-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: 1fr;
-  grid-template-areas:
-    "hero"
-    "metadata"
-    "stats"
-    "work"
-    "roles"
-    "assessments";
-}
-
-/* Bounce/elastic scroll effect container */
 .garden-detail-container {
   position: relative;
   min-height: 100%;
 }
 
-/* Grid area assignments */
-.grid-area-hero { grid-area: hero; }
-.grid-area-metadata { grid-area: metadata; }
-.grid-area-stats { grid-area: stats; }
-.grid-area-work { grid-area: work; }
-.grid-area-roles { grid-area: roles; }
-.grid-area-assessments { grid-area: assessments; }
+/* Tab content sections use simple vertical stacking with consistent gap */
+.garden-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 
-/* Small mobile: 480px+ - Slightly larger gap */
 @media (min-width: 480px) {
-  .garden-detail-grid {
+  .garden-tab-content {
     gap: 1.5rem;
   }
 }
 
-/* Tablet: 768px+ - Side-by-side operators and gardeners */
 @media (min-width: 768px) {
-  .garden-detail-grid {
+  .garden-tab-content {
     gap: 2rem;
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-areas:
-      "hero hero"
-      "metadata metadata"
-      "stats stats"
-      "work work"
-      "roles roles"
-      "assessments assessments";
   }
-}
-
-/* Desktop: 1280px+ - Sidebar layout with work on left */
-@media (min-width: 1280px) {
-  .garden-detail-grid {
-    grid-template-columns: 2fr 1fr;
-    grid-template-areas:
-      "hero hero"
-      "metadata metadata"
-      "stats stats"
-      "work roles"
-      "assessments roles";
-  }
-}
-
-/* Smooth transitions for grid area changes */
-.garden-detail-grid > * {
-  transition: all 0.2s ease;
 }

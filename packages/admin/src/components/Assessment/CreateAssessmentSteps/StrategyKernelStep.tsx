@@ -189,14 +189,14 @@ export function StrategyKernelStep({
                   placeholder="What this outcome achieves..."
                   disabled={isSubmitting}
                   className={cn(
-                    "w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
+                    "w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
                     errors.smartOutcomes?.[index]?.description &&
-                      "border-red-300 focus:border-red-400 focus:ring-red-100/60"
+                      "border-error-light focus:border-error-base focus:ring-error-lighter"
                   )}
                   {...register(`smartOutcomes.${index}.description`)}
                 />
                 {errors.smartOutcomes?.[index]?.description && (
-                  <p className="text-xs text-red-600">
+                  <p className="text-xs text-error-dark">
                     {errors.smartOutcomes[index].description.message}
                   </p>
                 )}
@@ -206,9 +206,9 @@ export function StrategyKernelStep({
                 <select
                   disabled={isSubmitting}
                   className={cn(
-                    "w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
+                    "w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
                     errors.smartOutcomes?.[index]?.metric &&
-                      "border-red-300 focus:border-red-400 focus:ring-red-100/60"
+                      "border-error-light focus:border-error-base focus:ring-error-lighter"
                   )}
                   {...register(`smartOutcomes.${index}.metric`)}
                 >
@@ -220,7 +220,7 @@ export function StrategyKernelStep({
                   ))}
                 </select>
                 {errors.smartOutcomes?.[index]?.metric && (
-                  <p className="mt-0.5 text-xs text-red-600">
+                  <p className="mt-0.5 text-xs text-error-dark">
                     {errors.smartOutcomes[index].metric.message}
                   </p>
                 )}
@@ -235,14 +235,14 @@ export function StrategyKernelStep({
                     placeholder="Target"
                     disabled={isSubmitting}
                     className={cn(
-                      "w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
+                      "w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
                       errors.smartOutcomes?.[index]?.target &&
-                        "border-red-300 focus:border-red-400 focus:ring-red-100/60"
+                        "border-error-light focus:border-error-base focus:ring-error-lighter"
                     )}
                     {...register(`smartOutcomes.${index}.target`, { valueAsNumber: true })}
                   />
                   {errors.smartOutcomes?.[index]?.target && (
-                    <p className="mt-0.5 text-xs text-red-600">
+                    <p className="mt-0.5 text-xs text-error-dark">
                       {errors.smartOutcomes[index].target.message}
                     </p>
                   )}
@@ -253,7 +253,7 @@ export function StrategyKernelStep({
                     type="button"
                     onClick={() => remove(index)}
                     disabled={isSubmitting}
-                    className="mt-1 rounded-md p-1.5 text-red-500 transition hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-1 rounded-md p-1.5 text-error-base transition hover:bg-error-lighter hover:text-error-dark disabled:cursor-not-allowed disabled:opacity-60"
                     aria-label="Remove outcome"
                   >
                     <RiDeleteBinLine className="h-4 w-4" />
@@ -265,7 +265,7 @@ export function StrategyKernelStep({
 
           {/* Array-level error */}
           {errors.smartOutcomes && !Array.isArray(errors.smartOutcomes) && (
-            <p className="text-xs text-red-600">{extractErrorMessage(errors.smartOutcomes)}</p>
+            <p className="text-xs text-error-dark">{extractErrorMessage(errors.smartOutcomes)}</p>
           )}
 
           <button
@@ -295,8 +295,8 @@ export function StrategyKernelStep({
                 className={cn(
                   "flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition",
                   isSelected
-                    ? "border-green-500 bg-green-50 text-green-800"
-                    : "border-stroke-soft bg-bg-white text-text-sub hover:border-green-300 hover:bg-green-50/5",
+                    ? "border-primary-base bg-primary-alpha-10 text-primary-dark"
+                    : "border-stroke-soft bg-bg-white text-text-sub hover:border-primary-alpha-24 hover:bg-primary-alpha-10",
                   isSubmitting && "cursor-not-allowed opacity-60"
                 )}
               >
@@ -307,7 +307,7 @@ export function StrategyKernelStep({
                   checked={isSelected}
                   onChange={() => cynefinField.onChange(option.value)}
                   disabled={isSubmitting}
-                  className="mt-0.5 h-4 w-4 border-stroke-sub text-green-600 focus:ring-2 focus:ring-green-200 focus:ring-offset-0"
+                  className="mt-0.5 h-4 w-4 border-stroke-sub text-primary-base focus:ring-2 focus:ring-primary-alpha-24 focus:ring-offset-0"
                 />
                 <div>
                   <span className="text-sm font-medium">{option.label}</span>
@@ -318,7 +318,7 @@ export function StrategyKernelStep({
           })}
         </div>
         {errors.cynefinPhase && (
-          <p className="text-xs text-red-600">{errors.cynefinPhase.message}</p>
+          <p className="text-xs text-error-dark">{errors.cynefinPhase.message}</p>
         )}
       </Section>
     </div>

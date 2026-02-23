@@ -22,7 +22,7 @@ export default function ActionDetail() {
     return (
       <div className="text-center py-12">
         <p className="text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
-        <Link to="/actions" className="text-green-600 hover:underline mt-2 inline-block">
+        <Link to="/actions" className="text-primary-base hover:underline mt-2 inline-block">
           {formatMessage({ id: "app.actions.backToActions" })}
         </Link>
       </div>

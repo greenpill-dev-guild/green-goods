@@ -8,7 +8,7 @@
  */
 
 import { get as idbGet, set as idbSet } from "idb-keyval";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
@@ -83,17 +83,23 @@ export function useWorkImages() {
     saveImages();
   }, [images]);
 
-  // Best-effort cleanup for any blob preview URLs attached to File objects.
+  // Track latest images via ref so the unmount cleanup sees the current array
+  // without causing the effect to re-run on every image change.
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
+
+  // Revoke blob preview URLs only on unmount (not on every images change,
+  // which would break displayed thumbnails mid-session).
   useEffect(() => {
     return () => {
-      images.forEach((image) => {
+      imagesRef.current.forEach((image) => {
         const maybePreviewUrl = (image as File & { preview?: string }).preview;
         if (typeof maybePreviewUrl === "string" && maybePreviewUrl.startsWith("blob:")) {
           URL.revokeObjectURL(maybePreviewUrl);
         }
       });
     };
-  }, [images]);
+  }, []);
 
   return {
     images,

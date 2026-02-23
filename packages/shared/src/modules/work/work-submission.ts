@@ -124,7 +124,7 @@ export interface ValidateWorkContextOptions {
 
 /**
  * Validate submission context before work submission.
- * Note: Form field validation (feedback, plantSelection, plantCount) is handled
+ * Note: Form field validation (feedback) is handled
  * by the Zod schema in useWorkForm.ts. This function only validates context.
  *
  * @param gardenAddress - Selected garden address

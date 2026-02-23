@@ -4,7 +4,6 @@ import {
   useCreateGardenForm,
   useCreateGardenStore,
   useCreateGardenWorkflow,
-  useOffline,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiErrorWarningLine, RiLoader4Line } from "@remixicon/react";
@@ -23,7 +22,18 @@ export default function CreateGarden() {
   const currentStep = useCreateGardenStore((state) => state.currentStep);
   const form = useCreateGardenStore((state) => state.form);
   const resetForm = useCreateGardenStore((state) => state.reset);
-  const { isOnline } = useOffline();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
   const { trigger, reset: resetValidationForm } = useCreateGardenForm();
 
   const {
@@ -32,6 +42,7 @@ export default function CreateGarden() {
     closeFlow,
     goNext,
     goBack,
+    goToReview,
     submitCreation,
     estimateCreationCost,
     retry,
@@ -64,7 +75,8 @@ export default function CreateGarden() {
     const initializeFlow = async () => {
       openFlow();
 
-      const storeForm = useCreateGardenStore.getState().form;
+      const storeState = useCreateGardenStore.getState();
+      const storeForm = storeState.form;
       const hasSessionProgress =
         storeForm.name.trim().length > 0 ||
         storeForm.slug.trim().length > 0 ||
@@ -75,7 +87,17 @@ export default function CreateGarden() {
         storeForm.openJoining ||
         storeForm.gardeners.length > 0 ||
         storeForm.operators.length > 0;
-      if (hasSessionProgress) return;
+
+      if (hasSessionProgress) {
+        // Reconcile XState machine with persisted step position.
+        // openFlow() moved the machine to "collecting", but if the user was on
+        // the review step before refresh, advance the machine to match.
+        const isOnReviewStep = storeState.currentStep === storeState.steps.length - 1;
+        if (isOnReviewStep && storeState.isReviewReady()) {
+          goToReview();
+        }
+        return;
+      }
 
       const restoredDraft = await loadDraft();
       if (cancelled || !restoredDraft) return;
@@ -86,7 +108,7 @@ export default function CreateGarden() {
     return () => {
       cancelled = true;
     };
-  }, [openFlow, loadDraft]);
+  }, [openFlow, goToReview, loadDraft]);
 
   useEffect(() => {
     if (isSuccess) {
@@ -192,8 +214,23 @@ export default function CreateGarden() {
   };
 
   const handleConfirmDeploy = () => {
+    const started = submitCreation();
+    if (!started) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "admin.garden.deploy.notReady.title",
+          defaultMessage: "Cannot deploy yet",
+        }),
+        message: intl.formatMessage({
+          id: "admin.garden.deploy.notReady.message",
+          defaultMessage:
+            "The form isn't ready for submission. Please go back and check all fields.",
+        }),
+        context: "garden creation",
+      });
+      return;
+    }
     setShowConfirmDialog(false);
-    submitCreation();
   };
 
   const handleCancel = () => {
@@ -390,7 +427,7 @@ export default function CreateGarden() {
               <button
                 onClick={handleConfirmDeploy}
                 disabled={isSubmitting || isEstimating || Boolean(estimateError)}
-                className="rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-white hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {intl.formatMessage({
                   id: "app.admin.garden.create.confirm.deploy",

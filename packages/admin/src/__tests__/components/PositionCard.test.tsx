@@ -5,14 +5,16 @@
  * yield info, and operator management actions (harvest, emergency pause).
  */
 
-import { screen, fireEvent } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { renderWithProviders as render } from "../test-utils";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const mockHarvestMutate = vi.fn();
 const mockPauseMutate = vi.fn();
+const mockConfigureVaultRolesMutate = vi.fn();
+const mockUseVaultPreview = vi.fn().mockReturnValue({ preview: null });
 
 vi.mock("@green-goods/shared", () => ({
   formatTokenAmount: (value: bigint, decimals?: number) => {
@@ -23,12 +25,12 @@ vi.mock("@green-goods/shared", () => ({
   getNetDeposited: (deposited: bigint, withdrawn: bigint) => deposited - withdrawn,
   getVaultAssetDecimals: () => 18,
   getVaultAssetSymbol: () => "USDC",
-  isZeroAddressValue: (addr: string) =>
-    !addr || addr === "0x0000000000000000000000000000000000000000",
   ZERO_ADDRESS: "0x0000000000000000000000000000000000000000",
+  useConfigureVaultRoles: () => ({ mutate: mockConfigureVaultRolesMutate, isPending: false }),
   useEmergencyPause: () => ({ mutate: mockPauseMutate, isPending: false }),
   useHarvest: () => ({ mutate: mockHarvestMutate, isPending: false }),
-  useVaultPreview: () => ({ preview: null }),
+  useUser: () => ({ primaryAddress: "0xUserAddress1234567890abcdef1234567890abcdef" }),
+  useVaultPreview: (...args: unknown[]) => mockUseVaultPreview(...args),
 }));
 
 import { PositionCard } from "../../components/Vault/PositionCard";
@@ -42,7 +44,6 @@ const mockVault = {
   depositorCount: 5,
   totalHarvestCount: 2,
   paused: false,
-  donationAddress: "0xDonation1234567890abcdef1234567890abcdef",
 };
 
 const defaultProps = {
@@ -50,6 +51,7 @@ const defaultProps = {
   vault: mockVault as any,
   canManage: false,
   canEmergencyPause: false,
+  isModuleOwner: false,
   onDeposit: vi.fn(),
   onWithdraw: vi.fn(),
 };
@@ -57,6 +59,7 @@ const defaultProps = {
 describe("PositionCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseVaultPreview.mockReturnValue({ preview: null });
   });
 
   describe("rendering", () => {
@@ -78,21 +81,18 @@ describe("PositionCard", () => {
       expect(screen.getByText("2")).toBeInTheDocument();
     });
 
-    it("does not show paused badge when vault is active", () => {
+    it("does not show deposits disabled badge when vault is accepting deposits", () => {
+      mockUseVaultPreview.mockReturnValue({ preview: { maxDeposit: 1000n, totalAssets: 0n } });
       render(createElement(PositionCard, defaultProps));
 
-      expect(screen.queryByText("Paused")).not.toBeInTheDocument();
+      expect(screen.queryByText("Deposits disabled")).not.toBeInTheDocument();
     });
 
-    it("shows paused badge when vault is paused", () => {
-      render(
-        createElement(PositionCard, {
-          ...defaultProps,
-          vault: { ...mockVault, paused: true },
-        })
-      );
+    it("shows deposits disabled badge when vault is not accepting deposits", () => {
+      mockUseVaultPreview.mockReturnValue({ preview: { maxDeposit: 0n, totalAssets: 0n } });
+      render(createElement(PositionCard, defaultProps));
 
-      expect(screen.getByText("Paused")).toBeInTheDocument();
+      expect(screen.getByText("Deposits disabled")).toBeInTheDocument();
     });
   });
 
@@ -155,39 +155,6 @@ describe("PositionCard", () => {
         gardenAddress: defaultProps.gardenAddress,
         assetAddress: mockVault.asset,
       });
-    });
-
-    it("disables harvest when donation address is not configured", () => {
-      render(
-        createElement(PositionCard, {
-          ...defaultProps,
-          canManage: true,
-          vault: {
-            ...mockVault,
-            donationAddress: "0x0000000000000000000000000000000000000000",
-          },
-        })
-      );
-
-      const harvestButton = screen.getByText("Harvest").closest("button");
-      expect(harvestButton).toBeDisabled();
-    });
-
-    it("shows donation warning when donation address is not configured", () => {
-      render(
-        createElement(PositionCard, {
-          ...defaultProps,
-          canManage: true,
-          vault: {
-            ...mockVault,
-            donationAddress: "0x0000000000000000000000000000000000000000",
-          },
-        })
-      );
-
-      expect(
-        screen.getByText("Set a donation address before harvesting yield")
-      ).toBeInTheDocument();
     });
   });
 

@@ -145,10 +145,22 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
     };
 
     onSubmit(draft);
+    // Don't reset state here — the mutation is async and might fail.
+    // Reset only the drawer mode; feedback is preserved for retry if needed.
     setFeedbackMode(null);
-    setInlineFeedback("");
-    setConfidence(Confidence.NONE);
   };
+
+  // Reset feedback state when the work changes (new work selected)
+  // or when the mutation completes (isPending transitions from true → false)
+  const prevPendingRef = useRef(isPending);
+  useEffect(() => {
+    if (prevPendingRef.current && !isPending) {
+      // Mutation just completed (success or error handled by parent)
+      setInlineFeedback("");
+      setConfidence(Confidence.NONE);
+    }
+    prevPendingRef.current = isPending;
+  }, [isPending]);
 
   return (
     <>

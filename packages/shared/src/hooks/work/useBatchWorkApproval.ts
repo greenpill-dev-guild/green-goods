@@ -84,7 +84,7 @@ export function useBatchWorkApproval() {
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const { set: scheduleInvalidation } = useTimeout();
-  const { runWithLock, isPending: isLockPending } = useMutationLock();
+  const { runWithLock, isPending: isLockPending } = useMutationLock("approval");
 
   const mutation = useMutation({
     mutationFn: async (items: BatchApprovalItem[]): Promise<BatchApprovalResult> => {

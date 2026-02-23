@@ -1,9 +1,11 @@
 import {
   WorkCardComponent as SharedWorkCard,
   type WorkCardData,
+  type EASWork,
   resolveIPFSUrl,
   formatAddress,
 } from "@green-goods/shared";
+import type React from "react";
 import { Link } from "react-router-dom";
 
 interface WorkCardProps {
@@ -36,7 +38,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work }) => {
       renderActions={() => (
         <Link
           to={`/gardens/${work.gardenAddress}/work/${work.id}`}
-          className="inline-flex items-center text-xs font-medium text-green-600 hover:text-green-700 transition-colors ml-auto"
+          className="inline-flex items-center text-xs font-medium text-primary-base hover:text-primary-darker transition-colors ml-auto"
         >
           View Details
           <span className="ml-1" aria-hidden="true">

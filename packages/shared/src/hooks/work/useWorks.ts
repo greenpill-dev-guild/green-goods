@@ -36,7 +36,7 @@ export function jobToWork(job: Job<WorkJobPayload>): Work {
       tags: job.payload.tags,
     }),
     media: [], // Media will be loaded separately for offline jobs
-    createdAt: job.createdAt,
+    createdAt: Math.floor(job.createdAt / 1000), // Convert ms (Date.now()) to seconds (EAS format)
     status: job.synced
       ? "pending" // Synced but awaiting approval
       : job.lastError

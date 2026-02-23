@@ -85,8 +85,9 @@ class JobQueueDatabase {
       },
     });
 
-    // Clean up stale URLs on init
-    this.cleanupStaleUrls();
+    // Clean up stale URLs after init completes (awaited to prevent
+    // concurrent transactions on iOS Safari which can deadlock).
+    await this.cleanupStaleUrls();
 
     return this.db;
   }

@@ -9,6 +9,8 @@
 
 import { assign, fromPromise, setup } from "xstate";
 
+import { formatUserError } from "../utils/errors/user-messages";
+
 /**
  * Form validation status passed to the machine through events
  */
@@ -31,9 +33,6 @@ export interface CreateGardenContext {
   retryCount: number;
 }
 
-type SubmitDoneEvent = { type: "done.invoke.submitGarden"; output: string };
-type SubmitErrorEvent = { type: "error.platform.submitGarden"; error: unknown };
-
 /**
  * Navigation events now include form status for validation
  */
@@ -51,7 +50,7 @@ type BaseEvents =
   | { type: "RETRY" }
   | { type: "CREATE_ANOTHER" };
 
-export type CreateGardenEvent = BaseEvents | NavigationEvents | SubmitDoneEvent | SubmitErrorEvent;
+export type CreateGardenEvent = BaseEvents | NavigationEvents;
 
 const createGardenSetup = setup({
   types: {
@@ -66,28 +65,20 @@ const createGardenSetup = setup({
     goToReviewStep: () => {},
     goToFirstIncompleteStep: () => {},
     storeTxHash: assign(({ event }) => {
-      if (event.type !== "done.invoke.submitGarden") return {};
-      return {
-        txHash: event.output,
-        retryCount: 0,
-      };
+      // XState v5 invoke-done events carry `output` (v4 used `done.invoke.*` type strings)
+      const output = "output" in event ? (event.output as string) : undefined;
+      if (!output) return {};
+      return { txHash: output, retryCount: 0 };
     }),
     storeFailure: assign(({ event }) => {
-      if (event.type !== "error.platform.submitGarden") return {};
-      const error = event.error;
-      let message = "Failed to create garden";
-      if (error instanceof Error) {
-        message = error.message;
-      } else if (typeof error === "string") {
-        message = error;
-      } else {
-        try {
-          message = JSON.stringify(error);
-        } catch {
-          message = "Failed to create garden";
-        }
-      }
-      return { error: message };
+      // XState v5 invoke-error events carry `error` (v4 used `error.platform.*` type strings)
+      const error = "error" in event ? event.error : undefined;
+      if (error === undefined) return {};
+      const message = formatUserError(error);
+      // formatUserError falls through to String() for non-Error/non-string types,
+      // producing unhelpful output like "[object Object]". Replace with a fallback.
+      const isHelpful = message.length > 0 && !message.startsWith("[object ");
+      return { error: isHelpful ? message : "Failed to create garden" };
     }),
     incrementRetry: assign({
       retryCount: ({ context }) => context.retryCount + 1,
@@ -225,12 +216,9 @@ export const createGardenMachine = createGardenSetup.createMachine({
           actions: ["storeFailure", "incrementRetry"],
         },
       },
-      on: {
-        CLOSE: {
-          target: "idle",
-          actions: "clearContext",
-        },
-      },
+      // CLOSE intentionally omitted: once a transaction is in-flight it cannot
+      // be cancelled on-chain. Allowing CLOSE here would hide the real outcome
+      // from the user (garden created but UI shows idle).
     },
     success: {
       on: {

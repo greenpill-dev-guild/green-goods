@@ -238,9 +238,9 @@ export type { UseDepositFormResult } from "./vault/useDepositForm";
 export { useDepositForm } from "./vault/useDepositForm";
 export { useVaultPreview } from "./vault/useVaultPreview";
 export {
+  useConfigureVaultRoles,
   useEmergencyPause,
   useHarvest,
-  useSetDonationAddress,
   useVaultDeposit,
   useVaultWithdraw,
 } from "./vault/useVaultOperations";

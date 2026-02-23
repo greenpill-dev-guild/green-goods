@@ -8,7 +8,6 @@ import {
   type GardenOperationResult,
   type GardenRole,
   getNetDeposited,
-  isZeroAddressValue,
   queryInvalidation,
   toastService,
   useConvictionStrategies,
@@ -27,6 +26,7 @@ import {
   WeightScheme,
 } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiMedalLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
+import * as Tabs from "@radix-ui/react-tabs";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -43,6 +43,9 @@ import { MembersModal } from "@/components/Garden/MembersModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
 import "./GardenDetailLayout.css";
+
+const TAB_TRIGGER_BASE =
+  "border-b-2 border-transparent px-4 py-2 text-sm font-medium text-text-soft transition-colors hover:text-text-sub hover:border-stroke-sub data-[state=active]:border-primary-base data-[state=active]:text-primary-dark";
 
 export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
@@ -148,13 +151,6 @@ export default function GardenDetail() {
     };
   }, [gardenVaults]);
 
-  const donationAddressUnset = useMemo(
-    () =>
-      gardenVaults.length > 0 &&
-      gardenVaults.some((vault) => isZeroAddressValue(vault.donationAddress)),
-    [gardenVaults]
-  );
-
   const { works } = useWorks(gardenId);
 
   const roleMembers: Record<GardenRole, Address[]> = {
@@ -244,37 +240,74 @@ export default function GardenDetail() {
     <div className="garden-detail-container pb-6">
       <PageHeader title={garden.name} {...baseHeaderProps} />
 
-      <div className="garden-detail-grid mt-6 px-4 sm:px-6">
-        <GardenHeroSection
-          garden={garden}
-          gardenId={gardenId}
-          canManage={canManage}
-          canReview={canReview}
-        />
+      <Tabs.Root defaultValue="overview" className="mt-6 px-4 sm:px-6">
+        <Tabs.List className="flex border-b border-stroke-soft">
+          <Tabs.Trigger value="overview" className={TAB_TRIGGER_BASE}>
+            {formatMessage({ id: "app.garden.admin.tab.overview" })}
+          </Tabs.Trigger>
+          <Tabs.Trigger value="work" className={TAB_TRIGGER_BASE}>
+            {formatMessage({ id: "app.garden.admin.tab.work" })}
+          </Tabs.Trigger>
+          <Tabs.Trigger value="roles" className={TAB_TRIGGER_BASE}>
+            {formatMessage({ id: "app.garden.admin.tab.roles" })}
+          </Tabs.Trigger>
+          <Tabs.Trigger value="community" className={TAB_TRIGGER_BASE}>
+            {formatMessage({ id: "app.garden.admin.tab.community" })}
+          </Tabs.Trigger>
+        </Tabs.List>
 
-        <section className="grid-area-metadata">
+        <Tabs.Content value="overview" className="garden-tab-content mt-4">
+          <GardenHeroSection
+            garden={garden}
+            gardenId={gardenId}
+            canManage={canManage}
+            canReview={canReview}
+          />
+
+          <GardenStatsGrid
+            gardenerCount={garden.gardeners.length}
+            operatorCount={garden.operators.length}
+            workCount={works.length}
+            assessmentCount={assessments.length}
+            hasVaults={gardenVaults.length > 0}
+            vaultNetDeposited={vaultNetDeposited}
+            vaultHarvestCount={vaultHarvestCount}
+            vaultDepositorCount={vaultDepositorCount}
+            communityLoading={communityLoading}
+            communityLabel={weightSchemeLabel}
+          />
+
           <GardenMetadata
             gardenId={garden.id}
             tokenAddress={garden.tokenAddress}
             tokenId={garden.tokenID}
             chainId={garden.chainId}
           />
-        </section>
 
-        <GardenStatsGrid
-          gardenerCount={garden.gardeners.length}
-          operatorCount={garden.operators.length}
-          workCount={works.length}
-          assessmentCount={assessments.length}
-          hasVaults={gardenVaults.length > 0}
-          vaultNetDeposited={vaultNetDeposited}
-          vaultHarvestCount={vaultHarvestCount}
-          vaultDepositorCount={vaultDepositorCount}
-          communityLoading={communityLoading}
-          communityLabel={weightSchemeLabel}
-        />
+          <GardenAssessmentsPanel
+            assessments={assessments}
+            isLoading={fetchingAssessments}
+            error={assessmentsError}
+            gardenId={gardenId}
+          />
+        </Tabs.Content>
 
-        <section className="grid-area-work">
+        <Tabs.Content value="work" className="garden-tab-content mt-4">
+          <WorkSubmissionsView gardenId={garden.id} canManage={canReview} />
+        </Tabs.Content>
+
+        <Tabs.Content value="roles" className="garden-tab-content mt-4">
+          <GardenRolesPanel
+            roleMembers={roleMembers}
+            canManageRoles={canManageRoles}
+            isLoading={isLoading}
+            onOpenAddMember={openAddMemberModal}
+            onOpenMembersModal={openMembersModal}
+            onRemoveMember={(address, role) => setMemberToRemove({ address, role })}
+          />
+        </Tabs.Content>
+
+        <Tabs.Content value="community" className="garden-tab-content mt-4">
           <ErrorBoundary context="GardenDetail.YieldCommunity">
             <GardenCommunityCard
               community={community}
@@ -285,7 +318,6 @@ export default function GardenDetail() {
               cookieJarCount={cookieJarCount}
               gardenName={garden.name}
               convictionStrategyCount={convictionStrategies.length}
-              donationAddressUnset={donationAddressUnset}
               vaultsLoading={vaultsLoading}
               hasVaults={gardenVaults.length > 0}
               isCreatingPools={isCreatingPools}
@@ -294,25 +326,8 @@ export default function GardenDetail() {
             />
             <GardenYieldCard allocations={allocations} allocationsLoading={allocationsLoading} />
           </ErrorBoundary>
-          <WorkSubmissionsView gardenId={garden.id} canManage={canReview} />
-        </section>
-
-        <GardenRolesPanel
-          roleMembers={roleMembers}
-          canManageRoles={canManageRoles}
-          isLoading={isLoading}
-          onOpenAddMember={openAddMemberModal}
-          onOpenMembersModal={openMembersModal}
-          onRemoveMember={(address, role) => setMemberToRemove({ address, role })}
-        />
-
-        <GardenAssessmentsPanel
-          assessments={assessments}
-          isLoading={fetchingAssessments}
-          error={assessmentsError}
-          gardenId={gardenId}
-        />
-      </div>
+        </Tabs.Content>
+      </Tabs.Root>
 
       <AddMemberModal
         isOpen={addMemberModalOpen}

@@ -8,7 +8,6 @@ import type {
   DepositParams,
   EmergencyPauseParams,
   HarvestParams,
-  SetDonationAddressParams,
   WithdrawParams,
 } from "../../types/vaults";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -48,11 +47,17 @@ function isRecoverableAllowanceReadError(error: unknown): boolean {
 }
 
 type VaultDepositStage = "approval" | "deposit";
-type VaultDepositFailureReason = "vaultUnavailable";
+type VaultDepositFailureReason =
+  | "vaultShutdown"
+  | "depositLimitZero"
+  | "depositLimitReached"
+  | "vaultUnavailable"
+  | "slippage";
 
 class VaultDepositStageError extends Error {
   stage: VaultDepositStage;
   reason?: VaultDepositFailureReason;
+  diagnostics?: Record<string, string>;
 
   constructor(stage: VaultDepositStage, message: string, reason?: VaultDepositFailureReason) {
     super(message);
@@ -111,11 +116,56 @@ export function useVaultDeposit() {
       const maxDeposit = typeof maxDepositResult === "bigint" ? maxDepositResult : 0n;
 
       if (maxDeposit <= 0n) {
-        throw new VaultDepositStageError(
-          "deposit",
-          "Vault is not accepting deposits right now",
-          "vaultUnavailable"
-        );
+        // Run diagnostic reads to determine the specific reason maxDeposit is 0
+        const [shutdownResult, depositLimitResult, totalAssetsResult] = await Promise.all([
+          readContract(wagmiConfig, {
+            address: params.vaultAddress,
+            abi: OCTANT_VAULT_ABI,
+            functionName: "isShutdown",
+            args: [],
+          }).catch(() => "read_failed" as const),
+          readContract(wagmiConfig, {
+            address: params.vaultAddress,
+            abi: OCTANT_VAULT_ABI,
+            functionName: "depositLimit",
+            args: [],
+          }).catch(() => "read_failed" as const),
+          readContract(wagmiConfig, {
+            address: params.vaultAddress,
+            abi: OCTANT_VAULT_ABI,
+            functionName: "totalAssets",
+            args: [],
+          }).catch(() => "read_failed" as const),
+        ]);
+
+        const isShutdown = shutdownResult === true;
+        const depLimit = typeof depositLimitResult === "bigint" ? depositLimitResult : null;
+        const totalAssets = typeof totalAssetsResult === "bigint" ? totalAssetsResult : null;
+
+        let reason: VaultDepositFailureReason = "vaultUnavailable";
+        let message = "Vault is not accepting deposits right now";
+
+        if (isShutdown) {
+          reason = "vaultShutdown";
+          message = "Vault has been permanently shut down";
+        } else if (depLimit === 0n) {
+          reason = "depositLimitZero";
+          message = "Vault deposit limit is zero — configureVaultRoles() may be needed";
+        } else if (depLimit !== null && totalAssets !== null && totalAssets >= depLimit) {
+          reason = "depositLimitReached";
+          message = `Vault deposit limit reached (${totalAssets}/${depLimit})`;
+        }
+
+        const error = new VaultDepositStageError("deposit", message, reason);
+        error.diagnostics = {
+          vaultAddress: params.vaultAddress,
+          receiver,
+          maxDeposit: String(maxDeposit),
+          isShutdown: String(shutdownResult),
+          depositLimit: String(depositLimitResult),
+          totalAssets: String(totalAssetsResult),
+        };
+        throw error;
       }
       if (params.amount > maxDeposit) {
         throw new VaultDepositStageError(
@@ -124,21 +174,20 @@ export function useVaultDeposit() {
         );
       }
 
-      // Slippage protection: verify expected shares before approvals/transfers
-      const previewShares = await readContract(wagmiConfig, {
-        address: params.vaultAddress,
-        abi: OCTANT_VAULT_ABI,
-        functionName: "previewDeposit",
-        args: [params.amount],
-      });
-      const expectedShares = typeof previewShares === "bigint" ? previewShares : 0n;
-
-      // Default slippage tolerance: 1% (99% of preview)
-      const minShares = params.minSharesOut ?? (expectedShares * 99n) / 100n;
-      if (expectedShares < minShares) {
-        throw new Error(
-          "Deposit would receive fewer shares than expected due to price movement. Please try again."
-        );
+      // Early slippage check: reject if caller-provided minSharesOut already fails
+      if (params.minSharesOut != null) {
+        const earlyPreview = await readContract(wagmiConfig, {
+          address: params.vaultAddress,
+          abi: OCTANT_VAULT_ABI,
+          functionName: "previewDeposit",
+          args: [params.amount],
+        });
+        const earlyShares = typeof earlyPreview === "bigint" ? earlyPreview : 0n;
+        if (earlyShares < params.minSharesOut) {
+          throw new Error(
+            "Deposit would receive fewer shares than expected due to price movement. Please try again."
+          );
+        }
       }
 
       let allowance: bigint;
@@ -199,6 +248,24 @@ export function useVaultDeposit() {
         }
       }
 
+      // Post-approval slippage check: re-read preview with fresh exchange rate
+      const freshPreview = await readContract(wagmiConfig, {
+        address: params.vaultAddress,
+        abi: OCTANT_VAULT_ABI,
+        functionName: "previewDeposit",
+        args: [params.amount],
+      });
+      const freshShares = typeof freshPreview === "bigint" ? freshPreview : 0n;
+      // Default slippage tolerance: 1% (99% of fresh preview)
+      const minShares = params.minSharesOut ?? (freshShares * 99n) / 100n;
+      if (freshShares > 0n && freshShares < minShares) {
+        throw new VaultDepositStageError(
+          "deposit",
+          "Exchange rate moved unfavorably during approval. Please try again.",
+          "slippage"
+        );
+      }
+
       // Update toast to reflect deposit phase (after approval)
       if (activeToastId.current) {
         toastService.loading({
@@ -249,21 +316,43 @@ export function useVaultDeposit() {
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
       if (error instanceof VaultDepositStageError) {
-        const messageId =
-          error.stage === "approval"
-            ? "app.treasury.approvalFailed"
-            : error.reason === "vaultUnavailable"
-              ? "app.treasury.vaultPaused"
-              : "app.treasury.depositFailed";
+        let messageId: string;
+
+        if (error.stage === "approval") {
+          messageId = "app.treasury.approvalFailed";
+        } else {
+          switch (error.reason) {
+            case "vaultShutdown":
+              messageId = "app.treasury.vaultShutdown";
+              break;
+            case "depositLimitZero":
+              messageId = "app.treasury.depositLimitZero";
+              break;
+            case "depositLimitReached":
+              messageId = "app.treasury.depositLimitReached";
+              break;
+            case "vaultUnavailable":
+              messageId = "app.treasury.vaultPaused";
+              break;
+            default:
+              messageId = "app.treasury.depositFailed";
+          }
+        }
+
+        const diagnosticsSuffix = error.diagnostics
+          ? ` [vault: ${error.diagnostics.vaultAddress?.slice(0, 10)}… | depositLimit: ${error.diagnostics.depositLimit} | totalAssets: ${error.diagnostics.totalAssets} | shutdown: ${error.diagnostics.isShutdown}]`
+          : "";
+
         toastService.error({
           title: formatMessage({ id: "app.treasury.deposit" }),
-          message: formatMessage({
-            id: messageId,
-            defaultMessage:
-              error.stage === "approval"
-                ? "Approval failed. Please try again."
-                : "Deposit failed. Please try again.",
-          }),
+          message:
+            formatMessage({
+              id: messageId,
+              defaultMessage:
+                error.stage === "approval"
+                  ? "Approval failed. Please try again."
+                  : "Deposit failed. Please try again.",
+            }) + diagnosticsSuffix,
           context: "vault deposit",
           error,
         });
@@ -337,6 +426,22 @@ export function useVaultWithdraw() {
 
       const receiver = (params.receiver ?? primaryAddress) as Address;
       const owner = (params.owner ?? primaryAddress) as Address;
+
+      // Pre-check: verify shares don't exceed redeemable limit
+      const maxRedeemResult = await readContract(wagmiConfig, {
+        address: params.vaultAddress,
+        abi: OCTANT_VAULT_ABI,
+        functionName: "maxRedeem",
+        args: [owner],
+      });
+      const maxRedeem = typeof maxRedeemResult === "bigint" ? maxRedeemResult : 0n;
+
+      if (maxRedeem <= 0n) {
+        throw new Error("Vault is not accepting withdrawals right now");
+      }
+      if (params.shares > maxRedeem) {
+        throw new Error("Withdrawal amount exceeds the redeemable limit");
+      }
 
       return sendContractTx({
         address: params.vaultAddress,
@@ -563,64 +668,57 @@ export function useEmergencyPause() {
   return { ...mutation, mutate, mutateAsync, isPending };
 }
 
-export function useSetDonationAddress() {
+interface ConfigureVaultRolesParams {
+  gardenAddress: Address;
+  assetAddress: Address;
+}
+
+export function useConfigureVaultRoles() {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sendContractTx = useContractTxSender();
   const handleError = createMutationErrorHandler({
-    source: "useSetDonationAddress",
-    toastContext: "set donation address",
+    source: "useConfigureVaultRoles",
+    toastContext: "vault configure",
   });
   const { runWithLock, isPending: isLockPending } = useMutationLock();
 
-  const lastGardenRef = useRef<string>("");
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
-    useCallback(() => {
-      if (lastGardenRef.current) {
-        queryInvalidation
-          .onVaultHarvest(lastGardenRef.current, chainId)
-          .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
-      }
-    }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
-  );
-
   const mutation = useMutation({
-    mutationFn: async (params: SetDonationAddressParams) => {
+    mutationFn: async (params: ConfigureVaultRolesParams) => {
       const octantModule = getOctantModuleAddress(chainId);
 
       return sendContractTx({
         address: octantModule,
         abi: OCTANT_MODULE_ABI,
-        functionName: "setDonationAddress",
-        args: [params.gardenAddress, params.donationAddress],
+        functionName: "configureVaultRoles",
+        args: [params.gardenAddress, params.assetAddress],
       });
     },
     onMutate: () => {
       const toastId = toastService.loading({
-        title: formatMessage({ id: "app.treasury.donationAddress" }),
+        title: formatMessage({ id: "app.treasury.configureVault" }),
+        message: formatMessage({ id: "app.treasury.configuringVault" }),
       });
       return { toastId };
     },
     onSuccess: (_txHash, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
       toastService.success({
-        title: formatMessage({ id: "app.treasury.donationAddress" }),
+        title: formatMessage({ id: "app.treasury.configureVault" }),
+        message: formatMessage({ id: "app.treasury.configureVaultSuccess" }),
       });
 
-      lastGardenRef.current = params.gardenAddress;
       queryInvalidation
-        .onVaultHarvest(params.gardenAddress, chainId)
+        .onVaultDeposit(params.gardenAddress, undefined, chainId)
         .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
-      scheduleFollowUp();
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
       handleError(error, {
         metadata: {
           gardenAddress: params?.gardenAddress,
-          donationAddress: params?.donationAddress,
+          assetAddress: params?.assetAddress,
         },
       });
     },

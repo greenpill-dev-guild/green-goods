@@ -68,6 +68,10 @@ paths = "src/mocks/Juicebox.sol"
 via_ir = true
 
 [[profile.default.compilation_restrictions]]
+paths = "test/helpers/DeploymentBase.sol"
+via_ir = true
+
+[[profile.default.compilation_restrictions]]
 paths = "lib/tokenbound/lib/forge-std/src/StdStorage.sol"
 via_ir = true
 

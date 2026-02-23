@@ -12,12 +12,11 @@ import {
   useGardenCookieJars,
   useGardenPermissions,
   useGardens,
-  useOffline,
   useUser,
   validateDecimalInput,
 } from "@green-goods/shared";
 import { useBalance } from "wagmi";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import { formatUnits, parseUnits } from "viem";
@@ -27,7 +26,18 @@ export default function CookieJarsView() {
   const { id } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  const { isOnline } = useOffline();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
   const permissions = useGardenPermissions();
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();

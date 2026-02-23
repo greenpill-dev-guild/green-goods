@@ -14,7 +14,7 @@ import {
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiLoader4Line } from "@remixicon/react";
-import { useBalance, useEstimateGas } from "wagmi";
+import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { encodeFunctionData, formatUnits } from "viem";
@@ -90,6 +90,15 @@ export function DepositModal({
 
   const debouncedAmount = useDebouncedValue(amountBigInt, 300);
 
+  // Health check: always read maxDeposit when modal is open (independent of amount)
+  const { preview: healthCheck } = useVaultPreview({
+    vaultAddress: selectedVault?.vaultAddress as Address | undefined,
+    userAddress: primaryAddress as Address | undefined,
+    enabled: isOpen && Boolean(selectedVault),
+  });
+  const vaultAcceptingDeposits = healthCheck ? healthCheck.maxDeposit > 0n : true;
+
+  // Amount-dependent preview for estimated shares
   const { preview } = useVaultPreview({
     vaultAddress: selectedVault?.vaultAddress as Address | undefined,
     amount: debouncedAmount,
@@ -114,9 +123,13 @@ export function DepositModal({
     data: depositData,
     query: { enabled: isOpen && Boolean(selectedVault && depositData) },
   });
+  const { data: gasPrice } = useGasPrice({
+    query: { enabled: isOpen && Boolean(estimatedGas) },
+  });
+  const estimatedGasCost = estimatedGas && gasPrice ? estimatedGas * gasPrice : undefined;
 
   const onSubmit = () => {
-    if (selectedVault?.paused) return;
+    if (!vaultAcceptingDeposits) return;
     if (!selectedVault || !primaryAddress || amountBigInt <= 0n || hasBlockingError) return;
 
     depositMutation.mutate(
@@ -227,7 +240,7 @@ export function DepositModal({
               <p>
                 {formatMessage({ id: "app.treasury.estimatedGas" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {estimatedGas ? formatTokenAmount(estimatedGas, 0, 0) : "--"}
+                  {estimatedGasCost ? `~${formatUnits(estimatedGasCost, 18)} ETH` : "--"}
                 </span>
               </p>
               {assetSymbol && (
@@ -238,9 +251,9 @@ export function DepositModal({
               )}
             </div>
 
-            {selectedVault?.paused && (
-              <p className="text-xs text-warning-base" role="alert">
-                {formatMessage({ id: "app.treasury.vaultPaused" })}
+            {!vaultAcceptingDeposits && (
+              <p className="text-xs text-error-dark" role="alert">
+                {formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })}
               </p>
             )}
             <button
@@ -252,7 +265,7 @@ export function DepositModal({
                 amountBigInt <= 0n ||
                 hasBlockingError ||
                 !decimalsReady ||
-                selectedVault?.paused ||
+                !vaultAcceptingDeposits ||
                 depositMutation.isPending
               }
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"

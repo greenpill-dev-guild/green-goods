@@ -112,26 +112,26 @@ export function LabeledField({ label, required, error, helpText, children }: Lab
     <label className="space-y-0.5 text-sm">
       <span className="font-medium text-text-sub">
         {label}
-        {required ? <span className="ml-1 text-red-500">*</span> : null}
+        {required ? <span className="ml-1 text-error-base">*</span> : null}
       </span>
       {helpText ? <span className="block text-xs text-text-soft">{helpText}</span> : null}
       {children}
       {/* Always render to reserve space and prevent layout shift */}
-      <span className="block min-h-[1.25rem] text-xs text-red-600">{error || "\u00A0"}</span>
+      <span className="block min-h-[1.25rem] text-xs text-error-dark">{error || "\u00A0"}</span>
     </label>
   );
 }
 
 export const inputClassName = (error?: FieldError) =>
   cn(
-    "mt-1 w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
-    error && "border-red-300 focus:border-red-400 focus:ring-red-100/60"
+    "mt-1 w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
+    error && "border-error-light focus:border-error-base focus:ring-error-lighter"
   );
 
 export const textareaClassName = (error?: FieldError) =>
   cn(
-    "mt-1 w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
-    error && "border-red-300 focus:border-red-400 focus:ring-red-100/60"
+    "mt-1 w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
+    error && "border-error-light focus:border-error-base focus:ring-error-lighter"
   );
 
 export function extractErrorMessage(error?: FieldError | FieldErrorsImpl<any>): string | undefined {

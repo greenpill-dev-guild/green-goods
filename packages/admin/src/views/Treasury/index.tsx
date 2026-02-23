@@ -2,7 +2,6 @@ import {
   formatTokenAmount,
   getNetDeposited,
   getVaultAssetSymbol,
-  isZeroAddressValue,
   useGardenVaults,
   useGardens,
 } from "@green-goods/shared";
@@ -38,9 +37,6 @@ export default function TreasuryOverview() {
             0n
           ),
           harvestCount: gardenVaults.reduce((sum, vault) => sum + vault.totalHarvestCount, 0),
-          donationConfigured: gardenVaults.some(
-            (vault) => !isZeroAddressValue(vault.donationAddress)
-          ),
         };
       })
       .filter((item) => item.garden)
@@ -115,24 +111,11 @@ export default function TreasuryOverview() {
                 key={item.gardenAddress}
                 className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5"
               >
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-base font-semibold text-text-strong sm:text-lg">
-                      {item.garden?.name}
-                    </h2>
-                    <p className="text-xs text-text-sub">{item.garden?.location}</p>
-                  </div>
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${
-                      item.donationConfigured
-                        ? "bg-success-lighter text-success-dark"
-                        : "bg-warning-lighter text-warning-dark"
-                    }`}
-                  >
-                    {item.donationConfigured
-                      ? formatMessage({ id: "app.treasury.donationConfigured" })
-                      : formatMessage({ id: "app.treasury.donationNotConfigured" })}
-                  </span>
+                <div className="mb-4">
+                  <h2 className="text-base font-semibold text-text-strong sm:text-lg">
+                    {item.garden?.name}
+                  </h2>
+                  <p className="text-xs text-text-sub">{item.garden?.location}</p>
                 </div>
 
                 <div className="space-y-2">

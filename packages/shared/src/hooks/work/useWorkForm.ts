@@ -111,19 +111,22 @@ export function useWorkForm(inputs?: WorkInput[]) {
     resolver,
   });
 
-  const { watch } = form;
+  const { watch, getValues } = form;
 
-  // Watch form values
+  // Watch only specific fields that need reactive updates
   const feedback = watch("feedback") ?? "";
   const timeSpentMinutes = normalizeTimeSpentMinutes(watch("timeSpentMinutes"));
-  const values = watch() as unknown as Record<string, unknown>;
 
   return {
     ...form,
     // Normalized watch values
     feedback,
     timeSpentMinutes,
-    values,
+    // Use getValues() instead of watch() to read all form values on demand
+    // without subscribing to every field change (avoids unnecessary re-renders)
+    get values() {
+      return getValues() as unknown as Record<string, unknown>;
+    },
   };
 }
 

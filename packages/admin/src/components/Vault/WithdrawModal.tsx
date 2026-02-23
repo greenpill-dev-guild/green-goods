@@ -112,8 +112,7 @@ export function WithdrawModal({
   const availableAssets = availablePreview?.previewAssets ?? 0n;
 
   const onSubmit = () => {
-    if (selectedVault?.paused) return;
-    if (!selectedVault || !primaryAddress || shares <= 0n) return;
+    if (!selectedVault || !primaryAddress || shares <= 0n || sharesError) return;
 
     withdrawMutation.mutate(
       {
@@ -253,11 +252,6 @@ export function WithdrawModal({
               </p>
             </div>
 
-            {selectedVault?.paused && (
-              <p className="text-xs text-warning-base" role="alert">
-                {formatMessage({ id: "app.treasury.vaultPaused" })}
-              </p>
-            )}
             <button
               type="button"
               onClick={onSubmit}
@@ -265,7 +259,6 @@ export function WithdrawModal({
                 Boolean(sharesError) ||
                 shares <= 0n ||
                 depositsError ||
-                selectedVault?.paused ||
                 withdrawMutation.isPending
               }
               className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"

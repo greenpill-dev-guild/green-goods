@@ -69,6 +69,10 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
 
     uint256 public constant DEACTIVATION_DELAY = 3 days;
 
+    /// @notice Role bitmask for vault operations this module performs
+    /// @dev ADD_STRATEGY(0) | REVOKE_STRATEGY(1) | REPORTING(5) | DEPOSIT_LIMIT(8)
+    uint256 private constant VAULT_ROLE_BITMASK = (1 << 0) | (1 << 1) | (1 << 5) | (1 << 8);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
     // ═══════════════════════════════════════════════════════════════════════════
@@ -447,6 +451,16 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
         emit SupportedAssetUpdated(asset, strategy);
     }
 
+    /// @notice Configure vault roles and deposit limit for an existing vault
+    /// @dev For vaults deployed before role-granting was added to _createVaultForGardenAsset()
+    function configureVaultRoles(address garden, address asset) external onlyOwner {
+        address vault = gardenAssetVaults[garden][asset];
+        if (vault == address(0)) revert NoVaultForAsset(garden, asset);
+
+        IOctantVault(vault).set_role(address(this), VAULT_ROLE_BITMASK);
+        IOctantVault(vault).set_deposit_limit(type(uint256).max, false);
+    }
+
     /// @notice Cancel a pending asset deactivation
     function cancelDeactivation(address asset) external onlyOwner {
         if (pendingDeactivations[asset] == 0) revert NoDeactivationPending(asset);
@@ -497,6 +511,11 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
 
         vault = octantFactory.deployNewVault(asset, vaultName, vaultSymbol, address(this), defaultProfitUnlockTime);
         gardenAssetVaults[garden][asset] = vault;
+
+        // Grant this module the operational roles it needs and enable unlimited deposits.
+        // This module is the roleManager (set during deployNewVault), so set_role succeeds.
+        IOctantVault(vault).set_role(address(this), VAULT_ROLE_BITMASK);
+        IOctantVault(vault).set_deposit_limit(type(uint256).max, false);
 
         // Strategy attachment is best-effort to keep mint path non-fragile.
         // Only record vaultStrategies on success to prevent phantom strategy references.

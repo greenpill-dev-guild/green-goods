@@ -206,6 +206,7 @@ export function useAutoJoinRootGarden() {
         throw new Error("Root garden not configured for this network");
       }
 
+      setIsLoading(true);
       try {
         await executeJoin(sessionOverride);
         markOnboarded(targetAddress);

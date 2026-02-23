@@ -1,6 +1,7 @@
 import { useAuth, useRole, useUIStore, cn } from "@green-goods/shared";
 import {
   RiBankLine,
+  RiCloseLine,
   RiDashboardLine,
   RiHammerFill,
   RiLogoutBoxLine,
@@ -48,16 +49,10 @@ export function Sidebar() {
           <h1 className="text-lg font-semibold text-text-strong">Green Goods</h1>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 rounded-md text-text-soft hover:text-text-sub"
+            aria-label="Close navigation menu"
+            className="lg:hidden p-2 rounded-md text-text-soft hover:text-text-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
           >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <RiCloseLine className="h-6 w-6" />
           </button>
         </div>
 
@@ -75,7 +70,7 @@ export function Sidebar() {
                 className={cn(
                   "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
                   isActive
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-primary-alpha-16 text-primary-darker"
                     : "text-text-sub hover:bg-bg-weak hover:text-text-strong"
                 )}
               >

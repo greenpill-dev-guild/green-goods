@@ -28,7 +28,6 @@ interface GardenCommunityCardProps {
   cookieJarCount: number;
   gardenName: string;
   convictionStrategyCount: number;
-  donationAddressUnset: boolean;
   vaultsLoading: boolean;
   hasVaults: boolean;
   isCreatingPools: boolean;
@@ -45,7 +44,6 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
   cookieJarCount,
   gardenName,
   convictionStrategyCount,
-  donationAddressUnset,
   vaultsLoading,
   hasVaults,
   isCreatingPools,
@@ -78,11 +76,6 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
               {formatMessage({ id: "app.treasury.manageVault" })}
             </Link>
           </div>
-          {donationAddressUnset && (
-            <p className="mt-3 rounded-md border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark">
-              {formatMessage({ id: "app.treasury.setDonationFirst" })}
-            </p>
-          )}
           {vaultsLoading && (
             <p className="mt-3 text-sm text-text-soft">
               {formatMessage({ id: "app.treasury.loadingVaults" })}
@@ -167,7 +160,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
               </h3>
               <p className="mt-0.5 flex items-center gap-1.5 text-sm text-text-sub">
                 <span
-                  className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? "bg-emerald-500" : "bg-text-soft"}`}
+                  className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? "bg-success-base" : "bg-text-soft"}`}
                   aria-hidden="true"
                 />
                 {community
@@ -195,7 +188,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
               </p>
               <p className="mt-0.5 text-xs text-text-sub">
                 {formatMessage({
-                  id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}.description`,
+                  id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}Description`,
                 })}
               </p>
               <div className="mt-2 flex gap-3 text-xs text-text-sub">

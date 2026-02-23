@@ -206,6 +206,10 @@ contract MockOctantVault is IOctantVault {
 
         return (0, 0);
     }
+
+    function set_role(address, uint256) external override { }
+
+    function set_deposit_limit(uint256, bool) external override { }
 }
 
 /// @title ProcessReportRevertingVault
@@ -350,4 +354,8 @@ contract RevertingOctantVault is IOctantVault {
     function process_report(address) external pure override returns (uint256, uint256) {
         return (0, 0);
     }
+
+    function set_role(address, uint256) external override { }
+
+    function set_deposit_limit(uint256, bool) external override { }
 }

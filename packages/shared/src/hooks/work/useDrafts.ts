@@ -285,13 +285,11 @@ export function useDrafts() {
         },
       });
 
-      // Also sync images
-      if (store.images.length > 0) {
-        await setImagesMutation.mutateAsync({
-          draftId: targetDraftId,
-          files: store.images,
-        });
-      }
+      // Always sync images — including empty array to clear stale draft images
+      await setImagesMutation.mutateAsync({
+        draftId: targetDraftId,
+        files: store.images,
+      });
     },
     [activeDraftId, updateDraftMutation, setImagesMutation]
   );

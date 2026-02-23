@@ -7,6 +7,7 @@ import {
   useCreateAssessmentWorkflow,
   useGardenDomains,
 } from "@green-goods/shared";
+import { isAddress } from "viem";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RiErrorWarningLine } from "@remixicon/react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -164,7 +165,7 @@ export default function CreateAssessment() {
 
   const buildWorkflowPayload = useCallback(
     (formData: CreateAssessmentForm): WorkflowAssessmentForm | null => {
-      if (!gardenId) return null;
+      if (!gardenId || !isAddress(gardenId)) return null;
 
       return {
         title: formData.title.trim(),
@@ -278,8 +279,10 @@ export default function CreateAssessment() {
   }, [isSuccess, navigate, gardenId, formatMessage]);
 
   useEffect(() => {
-    resetWorkflow();
-  }, [resetWorkflow]);
+    if (!isSuccess) {
+      resetWorkflow();
+    }
+  }, [resetWorkflow, isSuccess]);
 
   const onValid = async (formData: CreateAssessmentForm) => {
     try {

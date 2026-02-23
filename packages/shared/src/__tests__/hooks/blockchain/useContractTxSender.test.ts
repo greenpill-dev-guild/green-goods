@@ -42,6 +42,12 @@ vi.mock("wagmi", () => ({
   useWriteContract: () => ({
     writeContractAsync: mockWriteContractAsync,
   }),
+  useConfig: () => ({}),
+}));
+
+// Mock @wagmi/core (waitForTransactionReceipt used in wallet mode)
+vi.mock("@wagmi/core", () => ({
+  waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
 }));
 
 // Mock appkit config (needed by wagmi internals)

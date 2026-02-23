@@ -467,11 +467,23 @@ export const authMachine = authSetup.createMachine({
     // Wallet modal is open, waiting for user to connect
     // ═══════════════════════════════════════════════════════════════════════════
     wallet_connecting: {
+      after: {
+        // Safety timeout: if wallet modal stalls (e.g. mobile app switch),
+        // fall back to unauthenticated after 60 seconds.
+        60_000: {
+          target: "unauthenticated",
+          actions: () => logger.warn("[AuthMachine] wallet_connecting timed out after 60s"),
+        },
+      },
       on: {
         // External wallet connected → authenticate with wallet
         EXTERNAL_WALLET_CONNECTED: {
           target: "authenticated.wallet",
           actions: ["trackExternalWalletConnected", "storeWalletAuth"],
+        },
+        // Wallet disconnected while waiting → abort
+        EXTERNAL_WALLET_DISCONNECTED: {
+          target: "unauthenticated",
         },
         // Modal closed without connecting
         MODAL_CLOSED: {

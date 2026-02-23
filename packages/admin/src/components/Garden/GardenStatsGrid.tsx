@@ -38,7 +38,7 @@ export const GardenStatsGrid: React.FC<GardenStatsGridProps> = ({
   const { formatMessage } = useIntl();
 
   return (
-    <section className="grid-area-stats grid grid-cols-1 gap-3 xs:grid-cols-2 sm:gap-4 md:grid-cols-4">
+    <section className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:gap-4 md:grid-cols-4">
       <StatCard
         icon={<RiUserLine className="h-5 w-5" />}
         label={formatMessage({ id: "app.roles.gardener.plural" })}

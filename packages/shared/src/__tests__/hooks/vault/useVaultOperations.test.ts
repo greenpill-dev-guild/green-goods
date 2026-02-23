@@ -37,10 +37,12 @@ vi.mock("wagmi", () => ({
   useWriteContract: () => ({
     writeContractAsync: mockWriteContractAsync,
   }),
+  useConfig: () => ({}),
 }));
 
 vi.mock("@wagmi/core", () => ({
   readContract: (...args: unknown[]) => mockReadContract(...args),
+  waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
 }));
 
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
@@ -70,7 +72,6 @@ const messages = {
   "app.treasury.withdraw": "Withdraw",
   "app.treasury.harvest": "Harvest",
   "app.treasury.emergencyPause": "Emergency Pause",
-  "app.treasury.donationAddress": "Donation Address",
   "app.treasury.depositSuccess": "Deposit successful",
   "app.treasury.withdrawSuccess": "Withdraw successful",
   "app.treasury.harvestSuccess": "Harvest successful",
@@ -88,8 +89,7 @@ function createWrapper(queryClient: QueryClient) {
 }
 
 const operationsModule = await import("../../../hooks/vault/useVaultOperations");
-const { useVaultDeposit, useVaultWithdraw, useHarvest, useEmergencyPause, useSetDonationAddress } =
-  operationsModule;
+const { useVaultDeposit, useVaultWithdraw, useHarvest, useEmergencyPause } = operationsModule;
 
 describe("hooks/vault/useVaultOperations", () => {
   beforeEach(() => {
@@ -101,12 +101,12 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("runs two-step deposit flow (approve -> deposit) when allowance is insufficient", async () => {
-    // Read sequence:
-    // 1) maxDeposit, 2) previewDeposit, 3) allowance, 4) refreshed allowance
+    // Read sequence (no minSharesOut → early slippage check skipped):
+    // 1) maxDeposit, 2) allowance, 3) refreshed allowance, 4) post-approval previewDeposit
     mockReadContract
       .mockResolvedValueOnce(100n)
-      .mockResolvedValueOnce(10n)
       .mockResolvedValueOnce(0n)
+      .mockResolvedValueOnce(10n)
       .mockResolvedValueOnce(10n);
     mockWriteContractAsync.mockResolvedValue(
       "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -133,10 +133,10 @@ describe("hooks/vault/useVaultOperations", () => {
       });
     });
 
-    // readContract called four times: maxDeposit + preview + allowance + refreshed allowance
+    // readContract: maxDeposit + allowance + refreshed allowance + post-approval previewDeposit
     expect(mockReadContract).toHaveBeenCalledTimes(4);
     expect(mockReadContract).toHaveBeenNthCalledWith(
-      3,
+      2,
       expect.anything(),
       expect.objectContaining({
         address: TEST_ASSET,
@@ -162,11 +162,12 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("skips approve when allowance is already sufficient", async () => {
-    // Read sequence: maxDeposit, previewDeposit, allowance
+    // Read sequence (no minSharesOut → early slippage check skipped):
+    // maxDeposit, allowance (sufficient → skip approval), post-approval previewDeposit
     mockReadContract
       .mockResolvedValueOnce(100n)
-      .mockResolvedValueOnce(10n)
-      .mockResolvedValueOnce(100n);
+      .mockResolvedValueOnce(100n)
+      .mockResolvedValueOnce(10n);
     mockWriteContractAsync.mockResolvedValue(
       "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     );
@@ -200,6 +201,8 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("runs single-step withdraw flow using redeem", async () => {
+    // maxRedeem pre-check
+    mockReadContract.mockResolvedValueOnce(100n);
     mockWriteContractAsync.mockResolvedValue(
       "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     );
@@ -294,37 +297,6 @@ describe("hooks/vault/useVaultOperations", () => {
     );
   });
 
-  it("calls OctantModule.setDonationAddress for donation updates", async () => {
-    mockWriteContractAsync.mockResolvedValue(
-      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-    );
-
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
-
-    const { result } = renderHook(() => useSetDonationAddress(), {
-      wrapper: createWrapper(queryClient),
-    });
-
-    await act(async () => {
-      await result.current.mutateAsync({
-        gardenAddress: TEST_GARDEN as `0x${string}`,
-        donationAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
-      });
-    });
-
-    expect(mockWriteContractAsync).toHaveBeenCalledWith(
-      expect.objectContaining({
-        address: TEST_OCTANT_MODULE,
-        functionName: "setDonationAddress",
-      })
-    );
-  });
-
   it("routes through smartAccountClient when authMode is passkey", async () => {
     const mockSendTransaction = vi
       .fn()
@@ -336,11 +308,12 @@ describe("hooks/vault/useVaultOperations", () => {
       sendTransaction: mockSendTransaction,
     };
 
-    // Read sequence: maxDeposit, previewDeposit, allowance
+    // Read sequence (no minSharesOut → early slippage check skipped):
+    // maxDeposit, allowance (sufficient), post-approval previewDeposit
     mockReadContract
       .mockResolvedValueOnce(100n)
-      .mockResolvedValueOnce(10n)
-      .mockResolvedValueOnce(100n);
+      .mockResolvedValueOnce(100n)
+      .mockResolvedValueOnce(10n);
 
     const queryClient = new QueryClient({
       defaultOptions: {

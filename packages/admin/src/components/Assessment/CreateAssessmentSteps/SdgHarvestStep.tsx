@@ -96,8 +96,8 @@ export function SdgHarvestStep({ register, errors, control, isSubmitting }: SdgH
                 className={cn(
                   "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition",
                   isSelected
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-stroke-soft bg-bg-white text-text-sub hover:border-green-300 hover:bg-green-50/5",
+                    ? "border-primary-base bg-primary-alpha-10 text-primary-darker"
+                    : "border-stroke-soft bg-bg-white text-text-sub hover:border-primary-alpha-24 hover:bg-primary-alpha-10",
                   isSubmitting && "cursor-not-allowed opacity-60"
                 )}
               >
@@ -112,7 +112,7 @@ export function SdgHarvestStep({ register, errors, control, isSubmitting }: SdgH
         </div>
 
         {/* Error message */}
-        <span className="block min-h-[1.25rem] text-xs text-red-600">
+        <span className="block min-h-[1.25rem] text-xs text-error-dark">
           {extractErrorMessage(errors.sdgTargets) || "\u00A0"}
         </span>
       </Section>

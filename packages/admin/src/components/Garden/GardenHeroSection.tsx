@@ -28,7 +28,7 @@ export const GardenHeroSection: React.FC<GardenHeroSectionProps> = ({
   const { formatMessage } = useIntl();
 
   return (
-    <section className="grid-area-hero overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
+    <section className="overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
       <div className="relative h-64 sm:h-72">
         {garden.bannerImage ? (
           <img

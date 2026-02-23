@@ -99,7 +99,6 @@ export type {
   EmergencyPauseParams,
   GardenVault,
   HarvestParams,
-  SetDonationAddressParams,
   VaultDeposit,
   VaultEvent,
   VaultEventType,

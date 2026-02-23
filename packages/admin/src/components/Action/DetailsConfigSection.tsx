@@ -111,7 +111,7 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
           <button
             type="button"
             onClick={addInput}
-            className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center gap-1"
+            className="px-3 py-1.5 bg-primary-base text-white rounded-md hover:bg-primary-darker text-sm flex items-center gap-1"
           >
             <RiAddLine className="h-4 w-4" />
             Add Input
@@ -137,7 +137,7 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
               <button
                 type="button"
                 onClick={addInput}
-                className="text-green-600 hover:text-green-700 text-sm"
+                className="text-primary-base hover:text-primary-darker text-sm"
               >
                 Add your first input field
               </button>
@@ -349,7 +349,7 @@ function InputFieldEditor({
               <button
                 type="button"
                 onClick={addOption}
-                className="px-2 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-xs"
+                className="px-2 py-1 bg-primary-base text-white rounded-md hover:bg-primary-darker text-xs"
               >
                 <RiAddLine className="h-3.5 w-3.5" />
               </button>

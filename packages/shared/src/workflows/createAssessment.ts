@@ -155,6 +155,9 @@ export const createAssessmentMachine = createAssessmentSetup.createMachine({
       },
     },
     submitting: {
+      // CLOSE intentionally omitted: once a transaction is in-flight it cannot
+      // be cancelled on-chain. Allowing CLOSE here would hide the real outcome
+      // from the user. (Matches createGarden pattern.)
       entry: "clearError",
       invoke: {
         src: "submitAssessment",
@@ -169,12 +172,6 @@ export const createAssessmentMachine = createAssessmentSetup.createMachine({
         onError: {
           target: "error",
           actions: ["storeFailure", "incrementRetry"],
-        },
-      },
-      on: {
-        CLOSE: {
-          target: "idle",
-          actions: "clearContext",
         },
       },
     },

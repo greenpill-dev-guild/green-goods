@@ -153,7 +153,7 @@ export default function Deployment() {
             <div
               className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-2 ${
                 permissions.canDeploy
-                  ? "bg-purple-100 text-purple-600"
+                  ? "bg-feature-lighter text-feature-dark"
                   : "bg-bg-weak text-text-disabled"
               }`}
             >
@@ -163,7 +163,7 @@ export default function Deployment() {
               {formatMessage({ id: "app.deployment.role.canDeploy" })}
             </p>
             <p
-              className={`text-xs ${permissions.canDeploy ? "text-purple-600" : "text-text-soft"}`}
+              className={`text-xs ${permissions.canDeploy ? "text-feature-dark" : "text-text-soft"}`}
             >
               {permissions.canDeploy
                 ? formatMessage({ id: "app.deployment.authorized" })
@@ -200,7 +200,7 @@ export default function Deployment() {
                 type="button"
                 onClick={handleDeploy}
                 disabled={isDeploying}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-base hover:bg-primary-darker focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base disabled:opacity-50"
               >
                 {isDeploying ? (
                   <>

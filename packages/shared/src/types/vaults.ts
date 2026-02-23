@@ -72,11 +72,6 @@ export interface EmergencyPauseParams {
   assetAddress: Address;
 }
 
-export interface SetDonationAddressParams {
-  gardenAddress: Address;
-  donationAddress: Address;
-}
-
 export interface VaultPreview {
   previewShares: bigint;
   previewAssets: bigint;

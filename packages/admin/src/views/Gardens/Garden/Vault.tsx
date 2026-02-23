@@ -3,22 +3,19 @@ import {
   formatTokenAmount,
   getNetDeposited,
   getVaultAssetSymbol,
-  isZeroAddressValue,
   useGardenPermissions,
   useGardenVaults,
   useGardens,
+  useUser,
+  useCurrentChain,
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
+import { useReadContract } from "wagmi";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import {
-  DepositModal,
-  DonationAddressConfig,
-  PositionCard,
-  VaultEventHistory,
-  WithdrawModal,
-} from "@/components/Vault";
+import { DepositModal, PositionCard, VaultEventHistory, WithdrawModal } from "@/components/Vault";
+import { getNetworkContracts, OCTANT_MODULE_ABI } from "@green-goods/shared";
 
 export default function GardenVaultView() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +28,21 @@ export default function GardenVaultView() {
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => item.id === id);
   const permissions = useGardenPermissions();
+  const { primaryAddress } = useUser();
+  const chainId = useCurrentChain();
+
+  // Check if current user is the OctantModule owner (can call configureVaultRoles)
+  const octantModuleAddress = getNetworkContracts(chainId).octantModule as Address | undefined;
+  const { data: moduleOwner } = useReadContract({
+    address: octantModuleAddress,
+    abi: OCTANT_MODULE_ABI,
+    functionName: "owner",
+    query: { enabled: Boolean(octantModuleAddress && primaryAddress) },
+  });
+  const isModuleOwner =
+    Boolean(primaryAddress) &&
+    typeof moduleOwner === "string" &&
+    moduleOwner.toLowerCase() === primaryAddress?.toLowerCase();
 
   const {
     vaults,
@@ -70,12 +82,6 @@ export default function GardenVaultView() {
 
     return formatMessage({ id: "app.treasury.tokenDenominationFallback" });
   }, [formatMessage, vaults]);
-
-  const donationAddress = useMemo(() => {
-    const configured = vaults.find((vault) => !isZeroAddressValue(vault.donationAddress));
-    return configured?.donationAddress ?? vaults[0]?.donationAddress ?? null;
-  }, [vaults]);
-  const donationUnset = isZeroAddressValue(donationAddress);
 
   if (gardensLoading) {
     return (
@@ -127,12 +133,6 @@ export default function GardenVaultView() {
       />
 
       <div className="mx-auto mt-6 max-w-6xl space-y-6 px-4 sm:px-6">
-        {donationUnset && vaults.length > 0 && (
-          <div className="rounded-md border border-warning-light bg-warning-lighter px-4 py-3 text-sm text-warning-dark">
-            {formatMessage({ id: "app.treasury.setDonationFirst" })}
-          </div>
-        )}
-
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
             <p className="text-xs text-text-soft">
@@ -155,12 +155,6 @@ export default function GardenVaultView() {
             <p className="mt-1 text-xl font-semibold text-text-strong">{totalDepositorCount}</p>
           </div>
         </section>
-
-        <DonationAddressConfig
-          gardenAddress={gardenAddress}
-          donationAddress={donationAddress}
-          canEdit={canManage}
-        />
 
         {vaultsLoading && (
           <p className="text-sm text-text-soft">
@@ -204,6 +198,7 @@ export default function GardenVaultView() {
                 vault={vault}
                 canManage={canManage}
                 canEmergencyPause={canEmergencyPause}
+                isModuleOwner={isModuleOwner}
                 onDeposit={(assetAddress) => {
                   setDepositAsset(assetAddress);
                   setDepositOpen(true);

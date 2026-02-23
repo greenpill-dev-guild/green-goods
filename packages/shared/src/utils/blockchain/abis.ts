@@ -677,6 +677,23 @@ export const OCTANT_MODULE_ABI = [
     inputs: [],
     outputs: [{ name: "", type: "address[]" }],
   },
+  {
+    type: "function",
+    name: "configureVaultRoles",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "asset", type: "address" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "owner",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
 ] as const;
 
 export const OCTANT_VAULT_ABI = [
@@ -755,6 +772,27 @@ export const OCTANT_VAULT_ABI = [
     name: "totalAssets",
     stateMutability: "view",
     inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "depositLimit",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "isShutdown",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "maxRedeem",
+    stateMutability: "view",
+    inputs: [{ name: "owner", type: "address" }],
     outputs: [{ name: "", type: "uint256" }],
   },
   {

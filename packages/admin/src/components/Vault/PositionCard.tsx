@@ -5,10 +5,11 @@ import {
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  isZeroAddressValue,
   ZERO_ADDRESS,
+  useConfigureVaultRoles,
   useEmergencyPause,
   useHarvest,
+  useUser,
   useVaultPreview,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -21,6 +22,7 @@ interface PositionCardProps {
   vault: GardenVault;
   canManage: boolean;
   canEmergencyPause: boolean;
+  isModuleOwner: boolean;
   onDeposit: (assetAddress: Address) => void;
   onWithdraw: (assetAddress: Address) => void;
 }
@@ -30,15 +32,17 @@ export function PositionCard({
   vault,
   canManage,
   canEmergencyPause,
+  isModuleOwner,
   onDeposit,
   onWithdraw,
 }: PositionCardProps) {
   const { formatMessage } = useIntl();
+  const { primaryAddress } = useUser();
   const harvest = useHarvest();
   const emergencyPause = useEmergencyPause();
+  const configureVaultRoles = useConfigureVaultRoles();
   const [confirmPauseOpen, setConfirmPauseOpen] = useState(false);
 
-  const donationConfigured = !isZeroAddressValue(vault.donationAddress);
   const assetDecimals = getVaultAssetDecimals(vault.asset, vault.chainId);
   const netDeposited = getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
   const hasDeposits = netDeposited > 0n;
@@ -51,8 +55,15 @@ export function PositionCard({
   const totalAssets = preview?.totalAssets ?? netDeposited;
   const currentYield = totalAssets > netDeposited ? totalAssets - netDeposited : 0n;
 
+  // On-chain health check: does this vault accept deposits?
+  const { preview: depositHealth } = useVaultPreview({
+    vaultAddress: vault.vaultAddress,
+    userAddress: primaryAddress as Address | undefined,
+    enabled: Boolean(primaryAddress),
+  });
+  const vaultAcceptingDeposits = depositHealth ? depositHealth.maxDeposit > 0n : true;
+
   const onHarvest = () => {
-    if (!donationConfigured) return;
     harvest.mutate({ gardenAddress, assetAddress: vault.asset });
   };
 
@@ -63,13 +74,17 @@ export function PositionCard({
     );
   };
 
+  const onConfigureVault = () => {
+    configureVaultRoles.mutate({ gardenAddress, assetAddress: vault.asset });
+  };
+
   return (
     <article className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-base font-semibold text-text-strong sm:text-lg">{assetSymbol}</h3>
-        {vault.paused && (
-          <span className="rounded-full bg-error-lighter px-2 py-1 text-xs font-medium text-error-dark">
-            {formatMessage({ id: "app.treasury.paused" })}
+        {!vaultAcceptingDeposits && (
+          <span className="rounded-full bg-warning-lighter px-2 py-1 text-xs font-medium text-warning-dark">
+            {formatMessage({ id: "app.treasury.depositsDisabled" })}
           </span>
         )}
       </div>
@@ -109,7 +124,13 @@ export function PositionCard({
         <button
           type="button"
           onClick={() => onDeposit(vault.asset)}
-          className="rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
+          disabled={!vaultAcceptingDeposits}
+          title={
+            !vaultAcceptingDeposits
+              ? formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })
+              : undefined
+          }
+          className="rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-40"
         >
           {formatMessage({ id: "app.treasury.deposit" })}
         </button>
@@ -122,25 +143,35 @@ export function PositionCard({
         </button>
       </div>
 
+      {/* Configure vault roles — shown when vault is misconfigured and user is module owner */}
+      {!vaultAcceptingDeposits && isModuleOwner && (
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={onConfigureVault}
+            disabled={configureVaultRoles.isPending}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-warning-base bg-warning-lighter px-3 py-2 text-sm font-medium text-warning-dark transition hover:bg-warning-light disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {configureVaultRoles.isPending && (
+              <RiLoader4Line className="h-4 w-4 animate-spin" />
+            )}
+            {formatMessage({ id: "app.treasury.configureVault" })}
+          </button>
+        </div>
+      )}
+
       {canManage && (
         <div className="mt-2">
           <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-1">
-              <button
-                type="button"
-                onClick={onHarvest}
-                disabled={!donationConfigured || harvest.isPending}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {harvest.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
-                {formatMessage({ id: "app.treasury.harvest" })}
-              </button>
-              {!donationConfigured && (
-                <p className="text-xs text-warning-dark">
-                  {formatMessage({ id: "app.treasury.setDonationFirst" })}
-                </p>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={onHarvest}
+              disabled={harvest.isPending}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {harvest.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
+              {formatMessage({ id: "app.treasury.harvest" })}
+            </button>
             <button
               type="button"
               onClick={() => setConfirmPauseOpen(true)}

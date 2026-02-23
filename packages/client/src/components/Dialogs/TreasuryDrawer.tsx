@@ -5,12 +5,10 @@ import {
   type VaultDeposit,
   AssetSelector,
   ConfirmDialog,
-  formatAddress,
   formatTokenAmount,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  isZeroAddressValue,
   validateDecimalInput,
   useCookieJarWithdraw,
   useGardenCookieJars,
@@ -540,12 +538,6 @@ export function TreasuryDrawer({
                           getNetDeposited(vault.totalDeposited, vault.totalWithdrawn),
                           assetDecimals
                         )}
-                      </p>
-                      <p className="mt-1 text-xs text-text-sub">
-                        {formatMessage({ id: "app.treasury.donationAddress" })}:{" "}
-                        {isZeroAddressValue(vault.donationAddress)
-                          ? formatMessage({ id: "app.treasury.notSet" })
-                          : formatAddress(vault.donationAddress, { variant: "card" })}
                       </p>
                     </div>
                   );

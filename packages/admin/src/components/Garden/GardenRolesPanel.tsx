@@ -51,7 +51,7 @@ export const GardenRolesPanel: React.FC<GardenRolesPanelProps> = ({
   });
 
   return (
-    <section className="grid-area-roles">
+    <section>
       <ErrorBoundary context="GardenDetail.Roles">
         <div className="grid gap-4 sm:grid-cols-2">
           {GARDEN_ROLE_ORDER.map((role) => {

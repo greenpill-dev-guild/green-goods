@@ -28,7 +28,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
   const { formatMessage } = useIntl();
 
   return (
-    <aside className="grid-area-assessments rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
+    <aside className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
       <div className="flex items-center justify-between gap-2 border-b border-stroke-soft p-4 sm:p-6">
         <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
           {formatMessage({ id: "app.garden.admin.recentAssessments" })}

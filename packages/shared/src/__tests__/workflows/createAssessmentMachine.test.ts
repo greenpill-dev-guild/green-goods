@@ -386,7 +386,7 @@ describe("workflows/createAssessmentMachine", () => {
   // ------------------------------------------
 
   describe("submitting state", () => {
-    it("allows CLOSE while submitting to return to idle", () => {
+    it("ignores CLOSE while submitting (in-flight tx cannot be cancelled)", () => {
       const machine = createAssessmentMachine.provide({
         actors: {
           submitAssessment: fromPromise<string, CreateAssessmentForm>(
@@ -404,13 +404,12 @@ describe("workflows/createAssessmentMachine", () => {
       actor.send({ type: "SUBMIT" });
       expect(actor.getSnapshot().value).toBe("submitting");
 
+      // CLOSE is intentionally ignored during submitting — once a transaction
+      // is in-flight it cannot be cancelled on-chain. The machine stays in
+      // submitting to prevent hiding the real outcome from the user.
       actor.send({ type: "CLOSE" });
 
-      expect(actor.getSnapshot().value).toBe("idle");
-      expect(actor.getSnapshot().context.assessmentParams).toBeUndefined();
-      expect(actor.getSnapshot().context.error).toBeUndefined();
-      expect(actor.getSnapshot().context.txHash).toBeUndefined();
-      expect(actor.getSnapshot().context.retryCount).toBe(0);
+      expect(actor.getSnapshot().value).toBe("submitting");
 
       actor.stop();
     });

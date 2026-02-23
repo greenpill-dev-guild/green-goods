@@ -193,7 +193,7 @@ export function FileUploadField({
         onClick={handleButtonClick}
         disabled={disabled || isProcessing}
         className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-stroke-sub bg-bg-white px-4 py-3 text-sm font-medium text-text-sub transition hover:border-green-500 hover:bg-bg-weak/80",
+          "flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-stroke-sub bg-bg-white px-4 py-3 text-sm font-medium text-text-sub transition hover:border-primary-base hover:bg-bg-weak/80",
           (disabled || isProcessing) && "cursor-not-allowed opacity-60"
         )}
       >
@@ -236,7 +236,7 @@ export function FileUploadField({
                   <button
                     type="button"
                     onClick={() => handleRemove(index)}
-                    className="rounded-md p-1 text-red-500 transition hover:bg-red-100/20"
+                    className="rounded-md p-1 text-error-base transition hover:bg-error-lighter"
                     // eslint-disable-next-line jsx-a11y/aria-proptypes
                     aria-label={`Remove ${safeFileName}`}
                   >

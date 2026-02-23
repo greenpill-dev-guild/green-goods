@@ -12,7 +12,8 @@ export function Header() {
         {/* Mobile menu button */}
         <button
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden p-2 rounded-md text-text-soft hover:text-text-sub"
+          aria-label="Open navigation menu"
+          className="lg:hidden p-2 rounded-md text-text-soft hover:text-text-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
         >
           <RiMenuLine className="h-6 w-6" />
         </button>

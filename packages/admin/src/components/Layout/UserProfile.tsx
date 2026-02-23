@@ -25,6 +25,17 @@ export function UserProfile() {
   }, []);
   useDocumentEvent("mousedown", handleClickOutside);
 
+  // Close dropdown on Escape key
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isOpen) {
+        setIsOpen(false);
+      }
+    },
+    [isOpen]
+  );
+  useDocumentEvent("keydown", handleKeyDown);
+
   const handleLogout = () => {
     setIsOpen(false);
     signOut?.();
@@ -60,7 +71,9 @@ export function UserProfile() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-bg-soft transition-colors"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-bg-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
       >
         <div className="text-right">
           <div className="text-sm font-medium text-text-strong capitalize">{role}</div>
@@ -81,7 +94,10 @@ export function UserProfile() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-bg-soft rounded-lg shadow-xl border border-stroke-sub z-50 ring-1 ring-black/5">
+        <div
+          role="menu"
+          className="absolute right-0 mt-2 w-64 bg-bg-soft rounded-lg shadow-xl border border-stroke-sub z-50 ring-1 ring-black/5"
+        >
           {/* User Info Header */}
           <div className="px-4 py-3 border-b border-stroke-sub">
             <div className="flex items-center space-x-3">
@@ -110,6 +126,7 @@ export function UserProfile() {
                 {(["light", "dark", "system"] as const).map((mode) => (
                   <button
                     key={mode}
+                    role="menuitem"
                     onClick={() => {
                       setTheme(mode);
                       setIsOpen(false);
@@ -132,6 +149,7 @@ export function UserProfile() {
             <div className="border-t border-stroke-soft my-2"></div>
 
             <button
+              role="menuitem"
               onClick={handleLogout}
               className="flex items-center w-full px-4 py-2 text-sm text-error-base hover:bg-error-lighter transition-colors"
             >

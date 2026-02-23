@@ -177,7 +177,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
               onBlur={() => handleFieldBlur("name")}
               placeholder="eg. Rio rainforest lab"
               className={cn(
-                "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
+                "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
                 showFieldError("name") &&
                   detailsErrors.name &&
                   "border-error-base focus:border-error-base focus:ring-error-lighter"
@@ -200,7 +200,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
               onBlur={() => handleFieldBlur("location")}
               placeholder="City, country or coordinates"
               className={cn(
-                "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
+                "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
                 showFieldError("location") &&
                   detailsErrors.location &&
                   "border-error-base focus:border-error-base focus:ring-error-lighter"
@@ -237,7 +237,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
               autoComplete="off"
               spellCheck={false}
               className={cn(
-                "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 pr-10 text-sm font-mono text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
+                "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 pr-10 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
                 showFieldError("slug") &&
                   detailsErrors.slug &&
                   "border-error-base focus:border-error-base focus:ring-error-lighter",
@@ -256,7 +256,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
                     aria-label="Checking availability"
                   />
                 ) : isSlugAvailable ? (
-                  <RiCheckLine className="h-4 w-4 text-green-500" aria-label="Name available" />
+                  <RiCheckLine className="h-4 w-4 text-primary-base" aria-label="Name available" />
                 ) : isSlugAvailable === false ? (
                   <RiCloseLine className="h-4 w-4 text-error-base" aria-label="Name taken" />
                 ) : null}
@@ -300,7 +300,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             placeholder="Share the story, mission and unique traits of the garden."
             rows={3}
             className={cn(
-              "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
+              "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
               showFieldError("description") &&
                 detailsErrors.description &&
                 "border-error-base focus:border-error-base focus:ring-error-lighter"

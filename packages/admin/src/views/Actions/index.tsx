@@ -11,7 +11,7 @@ export default function Actions() {
   const headerActions = (
     <Link
       to="/actions/create"
-      className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+      className="inline-flex items-center rounded-md border border-transparent bg-primary-base px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-darker focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2"
     >
       <RiAddLine className="mr-2 h-4 w-4" />
       {formatMessage({ id: "app.actions.create" })}
@@ -30,12 +30,12 @@ export default function Actions() {
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="animate-pulse overflow-hidden rounded-lg border border-stroke-soft bg-bg-white"
+              className="overflow-hidden rounded-lg border border-stroke-soft bg-bg-white"
             >
-              <div className="h-40 bg-bg-soft" />
+              <div className="h-40 skeleton-shimmer" />
               <div className="p-6">
-                <div className="h-6 bg-bg-soft rounded mb-2" />
-                <div className="h-4 bg-bg-soft rounded w-3/4" />
+                <div className="h-6 skeleton-shimmer rounded mb-2" />
+                <div className="h-4 skeleton-shimmer rounded w-3/4" />
               </div>
             </div>
           ))}
@@ -53,19 +53,20 @@ export default function Actions() {
       />
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 mt-6">
-        {actions.map((action) => (
+        {actions.map((action, index) => (
           <Link
             key={action.id}
             to={`/actions/${action.id}`}
             data-testid="action-card"
-            className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-green-500 hover:shadow-md"
+            className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-primary-base hover:shadow-md opacity-0 animate-fade-in-up active:scale-[0.98]"
+            style={{ animationDelay: `${index * 50}ms` }}
           >
             {action.media[0] && (
               <img src={action.media[0]} alt={action.title} className="w-full h-40 object-cover" />
             )}
 
             <div className="p-6">
-              <h3 className="text-xl font-semibold text-text-strong mb-2 group-hover:text-green-600">
+              <h3 className="text-xl font-semibold text-text-strong mb-2 group-hover:text-primary-base">
                 {action.title}
               </h3>
 
@@ -95,7 +96,7 @@ export default function Actions() {
           <p className="text-text-sub mb-4">{formatMessage({ id: "app.actions.empty" })}</p>
           <Link
             to="/actions/create"
-            className="inline-flex items-center text-green-600 hover:text-green-700"
+            className="inline-flex items-center text-primary-base hover:text-primary-darker"
           >
             <RiAddLine className="mr-1" />
             {formatMessage({ id: "app.actions.createFirst" })}

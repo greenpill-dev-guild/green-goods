@@ -102,7 +102,7 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
               <button
                 type="button"
                 onClick={() => removeGardener(form.gardeners.indexOf(gardener))}
-                className="rounded-md p-1 text-text-soft transition hover:bg-bg-white hover:text-red-600"
+                className="rounded-md p-1 text-text-soft transition hover:bg-bg-white hover:text-error-dark"
                 aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
               >
                 <RiDeleteBinLine className="h-4 w-4" />
@@ -179,7 +179,7 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
               <button
                 type="button"
                 onClick={() => removeOperator(form.operators.indexOf(operator))}
-                className="rounded-md p-1 text-text-soft transition hover:bg-bg-white hover:text-red-600"
+                className="rounded-md p-1 text-text-soft transition hover:bg-bg-white hover:text-error-dark"
                 aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
               >
                 <RiDeleteBinLine className="h-4 w-4" />

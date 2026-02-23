@@ -106,7 +106,7 @@ export default function EditAction() {
     return (
       <div className="text-center py-12">
         <p className="text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
-        <Link to="/actions" className="text-green-600 hover:underline mt-2 inline-block">
+        <Link to="/actions" className="text-primary-base hover:underline mt-2 inline-block">
           {formatMessage({ id: "app.actions.backToActions" })}
         </Link>
       </div>
@@ -236,7 +236,7 @@ export default function EditAction() {
               <button
                 type="button"
                 onClick={() => setIsEditingInstructions(!isEditingInstructions)}
-                className="text-sm text-green-600 hover:text-green-700"
+                className="text-sm text-primary-base hover:text-primary-darker"
               >
                 {isEditingInstructions
                   ? formatMessage({ id: "app.actions.edit.cancelEditing" })
@@ -263,7 +263,7 @@ export default function EditAction() {
           <button
             type="submit"
             disabled={isLoading}
-            className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+            className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-white hover:bg-primary-darker disabled:opacity-50"
           >
             {isLoading
               ? formatMessage({ id: "app.actions.edit.saving" })
