@@ -1,6 +1,8 @@
 import { AudioPlayer, resolveIPFSUrl } from "@green-goods/shared";
 import { RiCloseLine, RiImageLine, RiZoomInLine } from "@remixicon/react";
 import { useCallback, useState } from "react";
+import { useIntl } from "react-intl";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface MediaEvidenceProps {
   /** IPFS CIDs for photo/video media */
@@ -16,6 +18,7 @@ interface MediaEvidenceProps {
  * and AudioPlayer for gardener audio notes.
  */
 export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEvidenceProps) {
+  const { formatMessage } = useIntl();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const resolvedMedia = media.map((cid) => resolveIPFSUrl(cid));
@@ -38,7 +41,9 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-text-strong">Media Evidence</h3>
+      <h3 className="text-sm font-semibold text-text-strong">
+        {formatMessage({ id: "admin.work.mediaEvidence", defaultMessage: "Media Evidence" })}
+      </h3>
 
       {/* Photo grid */}
       {resolvedMedia.length > 0 ? (
@@ -64,16 +69,21 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-stroke-soft bg-bg-weak py-8">
-          <RiImageLine className="h-8 w-8 text-text-soft" />
-          <p className="mt-2 text-sm text-text-soft">No media attached</p>
-        </div>
+        <EmptyState
+          icon={<RiImageLine className="h-6 w-6" />}
+          title={formatMessage({
+            id: "admin.work.media.empty",
+            defaultMessage: "No media attached",
+          })}
+        />
       )}
 
       {/* Audio notes from gardener */}
       {audioNoteCids && audioNoteCids.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-medium text-text-sub">Audio Notes</h4>
+          <h4 className="text-xs font-medium text-text-sub">
+            {formatMessage({ id: "admin.work.audioNotes", defaultMessage: "Audio Notes" })}
+          </h4>
           {audioNoteCids.map((cid) => (
             <AudioPlayer key={cid} src={resolveIPFSUrl(cid)} compact={false} className="w-full" />
           ))}

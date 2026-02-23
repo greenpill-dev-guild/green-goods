@@ -55,7 +55,9 @@ export function PageHeader({
           ) : null}
 
           <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1">
-            <h1 className="truncate text-lg font-semibold text-text-strong sm:text-2xl">{title}</h1>
+            <h1 className="truncate font-heading text-lg font-semibold text-text-strong sm:text-2xl">
+              {title}
+            </h1>
             {description ? (
               <p className="line-clamp-2 text-xs text-text-sub sm:text-sm">{description}</p>
             ) : null}

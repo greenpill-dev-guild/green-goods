@@ -2,6 +2,8 @@ import { useWorks } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiCloseLine, RiFileList3Line, RiTimeLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { WorkCard } from "./WorkCard";
 
 interface WorkSubmissionsViewProps {
@@ -48,9 +50,9 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
   ];
 
   return (
-    <div className="overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
+    <Card className="overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col gap-3 border-b border-stroke-soft p-4 sm:gap-4 sm:p-6 sm:flex-row sm:items-center sm:justify-between">
+      <Card.Header className="flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h3 className="text-base font-medium text-text-strong sm:text-lg">
             {intl.formatMessage({
@@ -85,27 +87,52 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
             </button>
           ))}
         </div>
-      </div>
+      </Card.Header>
 
       {/* Work Grid */}
-      <div className="p-4 sm:p-6">
+      <Card.Body>
         {isLoading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2" role="status" aria-live="polite">
+            <span className="sr-only">
+              {intl.formatMessage({
+                id: "admin.work.submissions.title",
+                defaultMessage: "Loading submissions",
+              })}
+            </span>
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 animate-pulse rounded-lg bg-bg-soft" />
+              <Card key={i} padding="compact">
+                <div className="flex items-start gap-3">
+                  <div
+                    className="h-10 w-10 rounded-lg skeleton-shimmer"
+                    style={{ animationDelay: `${i * 0.1}s` }}
+                  />
+                  <div className="flex-1 space-y-2">
+                    <div
+                      className="h-4 w-3/4 rounded skeleton-shimmer"
+                      style={{ animationDelay: `${i * 0.1}s` }}
+                    />
+                    <div
+                      className="h-3 w-1/2 rounded skeleton-shimmer"
+                      style={{ animationDelay: `${i * 0.1 + 0.05}s` }}
+                    />
+                    <div
+                      className="h-3 w-1/3 rounded skeleton-shimmer"
+                      style={{ animationDelay: `${i * 0.1 + 0.1}s` }}
+                    />
+                  </div>
+                </div>
+              </Card>
             ))}
           </div>
         ) : filteredWorks.length === 0 ? (
-          <div className="py-12 text-center">
-            <RiFileList3Line className="mx-auto h-12 w-12 text-text-soft" />
-            <h4 className="mt-4 text-sm font-medium text-text-strong">
-              {intl.formatMessage({
-                id: "admin.work.submissions.empty",
-                defaultMessage: "No work submissions found",
-              })}
-            </h4>
-            <p className="mt-1 text-sm text-text-soft">
-              {activeFilter === "all"
+          <EmptyState
+            icon={<RiFileList3Line className="h-6 w-6" />}
+            title={intl.formatMessage({
+              id: "admin.work.submissions.empty",
+              defaultMessage: "No work submissions found",
+            })}
+            description={
+              activeFilter === "all"
                 ? intl.formatMessage({
                     id: "admin.work.submissions.empty.all",
                     defaultMessage:
@@ -117,9 +144,9 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
                       defaultMessage: "No {filter} work submissions yet.",
                     },
                     { filter: activeFilter }
-                  )}
-            </p>
-          </div>
+                  )
+            }
+          />
         ) : (
           <div className="work-cards-grid grid grid-cols-1 gap-4 md:grid-cols-2">
             {filteredWorks.map((work) => (
@@ -127,7 +154,7 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </Card.Body>
+    </Card>
   );
 };

@@ -3,6 +3,7 @@ import { RiMenuLine } from "@remixicon/react";
 import { UserProfile } from "./UserProfile";
 
 export function Header() {
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
   const chainLabel = getChainName(DEFAULT_CHAIN_ID);
 
@@ -13,6 +14,7 @@ export function Header() {
         <button
           onClick={() => setSidebarOpen(true)}
           aria-label="Open navigation menu"
+          aria-expanded={sidebarOpen}
           className="lg:hidden p-2 rounded-md text-text-soft hover:text-text-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
         >
           <RiMenuLine className="h-6 w-6" />

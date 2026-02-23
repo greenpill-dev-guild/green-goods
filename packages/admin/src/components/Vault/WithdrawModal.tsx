@@ -13,9 +13,10 @@ import {
   useVaultWithdraw,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
-import { RiCloseLine, RiLoader4Line } from "@remixicon/react";
+import { RiCloseLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { Button } from "@/components/ui/Button";
 import { formatUnits, parseUnits } from "viem";
 
 interface WithdrawModalProps {
@@ -226,13 +227,13 @@ export function WithdrawModal({
                       : "border-stroke-sub bg-bg-white focus:border-primary-base"
                   }`}
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setSharesInput(formatUnits(maxShares, 18))}
-                  className="rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub hover:bg-bg-weak"
                 >
                   {formatMessage({ id: "app.treasury.max" })}
-                </button>
+                </Button>
               </div>
               {sharesError && (
                 <p id="withdraw-error" className="text-xs text-error-dark" role="alert">
@@ -252,22 +253,18 @@ export function WithdrawModal({
               </p>
             </div>
 
-            <button
-              type="button"
+            <Button
+              className="w-full"
               onClick={onSubmit}
               disabled={
-                Boolean(sharesError) ||
-                shares <= 0n ||
-                depositsError ||
-                withdrawMutation.isPending
+                Boolean(sharesError) || shares <= 0n || depositsError || withdrawMutation.isPending
               }
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
+              loading={withdrawMutation.isPending}
             >
-              {withdrawMutation.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
               {withdrawMutation.isPending
                 ? formatMessage({ id: "app.treasury.withdrawing" })
                 : formatMessage({ id: "app.treasury.withdraw" })}
-            </button>
+            </Button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

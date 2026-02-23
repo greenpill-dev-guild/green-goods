@@ -1,6 +1,7 @@
-import { cn, formatAddress, useAddressInput, useCreateGardenStore } from "@green-goods/shared";
+import { formatAddress, useAddressInput, useCreateGardenStore } from "@green-goods/shared";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { Button } from "@/components/ui/Button";
 
 interface TeamStepProps {
   showValidation: boolean;
@@ -48,23 +49,21 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
               id="create-garden-gardener-address"
               value={gardenerInput.input}
               onChange={(event) => gardenerInput.setInput(event.target.value)}
-              placeholder="0x... or vitalik.eth"
+              placeholder={formatMessage({
+                id: "admin.team.addressPlaceholder",
+                defaultMessage: "0x... or vitalik.eth",
+              })}
               className="flex-1 rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
             />
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={gardenerInput.handleAdd}
               disabled={gardenerInput.shouldResolveEns && gardenerInput.resolvingEns}
-              className={cn(
-                "flex items-center justify-center gap-1 rounded-md border border-stroke-soft px-3 py-2 text-sm font-medium text-text-sub transition-all duration-200 hover:bg-bg-soft",
-                gardenerInput.shouldResolveEns &&
-                  gardenerInput.resolvingEns &&
-                  "cursor-not-allowed opacity-50"
-              )}
             >
               <RiAddLine className="h-4 w-4" />{" "}
               {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
-            </button>
+            </Button>
           </div>
         </div>
         {gardenerInput.shouldResolveEns && (
@@ -96,7 +95,7 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
           {form.gardeners.map((gardener) => (
             <li
               key={gardener}
-              className="flex items-center justify-between rounded-md border border-gray-100 bg-bg-weak px-3 py-2 text-xs font-mono text-text-sub/60"
+              className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-xs font-mono text-text-sub/60"
             >
               <span>{gardener}</span>
               <button
@@ -125,23 +124,21 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
               id="create-garden-operator-address"
               value={operatorInput.input}
               onChange={(event) => operatorInput.setInput(event.target.value)}
-              placeholder="0x... or vitalik.eth"
+              placeholder={formatMessage({
+                id: "admin.team.addressPlaceholder",
+                defaultMessage: "0x... or vitalik.eth",
+              })}
               className="flex-1 rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
             />
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={operatorInput.handleAdd}
               disabled={operatorInput.shouldResolveEns && operatorInput.resolvingEns}
-              className={cn(
-                "flex items-center justify-center gap-1 rounded-md border border-stroke-soft px-3 py-2 text-sm font-medium text-text-sub transition-all duration-200 hover:bg-bg-soft",
-                operatorInput.shouldResolveEns &&
-                  operatorInput.resolvingEns &&
-                  "cursor-not-allowed opacity-50"
-              )}
             >
               <RiAddLine className="h-4 w-4" />{" "}
               {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
-            </button>
+            </Button>
           </div>
         </div>
         {operatorInput.shouldResolveEns && (
@@ -173,7 +170,7 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
           {form.operators.map((operator) => (
             <li
               key={operator}
-              className="flex items-center justify-between rounded-md border border-gray-100 bg-bg-weak px-3 py-2 text-xs font-mono text-text-sub/60"
+              className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-xs font-mono text-text-sub/60"
             >
               <span>{operator}</span>
               <button

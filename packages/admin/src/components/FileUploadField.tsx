@@ -7,6 +7,7 @@ import {
 } from "@green-goods/shared";
 import { RiCloseLine, RiLoader4Line, RiUploadCloudLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 
 const PREVIEWABLE_IMAGE_TYPES = new Set([
   "image/avif",
@@ -42,6 +43,7 @@ export function FileUploadField({
   currentFiles = [],
   onRemoveFile,
 }: FileUploadFieldProps) {
+  const { formatMessage } = useIntl();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -94,8 +96,14 @@ export function FileUploadField({
       const shortError =
         errorText.length > 120 ? `${errorText.slice(0, 117).trimEnd()}...` : errorText;
       toastService.error({
-        title: "File processing failed",
-        message: `Please try again. ${shortError}`,
+        title: formatMessage({
+          id: "admin.fileUpload.error.title",
+          defaultMessage: "File processing failed",
+        }),
+        message: formatMessage(
+          { id: "admin.fileUpload.error.message", defaultMessage: "Please try again. {error}" },
+          { error: shortError }
+        ),
         context: "file upload",
         error,
       });
@@ -200,12 +208,27 @@ export function FileUploadField({
         {isProcessing ? (
           <>
             <RiLoader4Line className="h-5 w-5 animate-spin" />
-            <span>Processing... {Math.round(progress)}%</span>
+            <span>
+              {formatMessage(
+                { id: "admin.fileUpload.processing", defaultMessage: "Processing... {progress}%" },
+                { progress: Math.round(progress) }
+              )}
+            </span>
           </>
         ) : (
           <>
             <RiUploadCloudLine className="h-5 w-5" />
-            <span>{multiple ? "Choose files" : "Choose file"}</span>
+            <span>
+              {multiple
+                ? formatMessage({
+                    id: "admin.fileUpload.chooseFiles",
+                    defaultMessage: "Choose files",
+                  })
+                : formatMessage({
+                    id: "admin.fileUpload.chooseFile",
+                    defaultMessage: "Choose file",
+                  })}
+            </span>
           </>
         )}
       </button>
@@ -219,7 +242,7 @@ export function FileUploadField({
             return (
               <div
                 key={`${safeFileName}-${index}`}
-                className="flex items-center gap-3 rounded-md border border-gray-100 bg-bg-weak p-3"
+                className="flex items-center gap-3 rounded-md border border-stroke-soft bg-bg-weak p-3"
               >
                 {safePreviewUrl && (
                   <img

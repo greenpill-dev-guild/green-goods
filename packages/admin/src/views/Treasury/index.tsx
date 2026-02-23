@@ -9,6 +9,9 @@ import { RiArrowRightLine, RiSafe2Line } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 export default function TreasuryOverview() {
@@ -63,56 +66,91 @@ export default function TreasuryOverview() {
       />
 
       <div className="mx-auto mt-6 max-w-6xl space-y-6 px-4 sm:px-6">
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
+        <section className="stagger-children grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Card padding="compact">
             <p className="text-xs text-text-soft">
               {formatMessage({ id: "app.treasury.totalValueLocked" })}
             </p>
-            <p className="mt-1 text-xl font-semibold text-text-strong">
+            <p className="mt-1 font-heading text-xl font-semibold tabular-nums text-text-strong">
               {formatTokenAmount(totalTVL)}
             </p>
-          </div>
-          <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
+          </Card>
+          <Card padding="compact">
             <p className="text-xs text-text-soft">
               {formatMessage({ id: "app.treasury.totalHarvests" })}
             </p>
-            <p className="mt-1 text-xl font-semibold text-text-strong">{totalHarvests}</p>
-          </div>
-          <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
+            <p className="mt-1 font-heading text-xl font-semibold tabular-nums text-text-strong">
+              {totalHarvests}
+            </p>
+          </Card>
+          <Card padding="compact">
             <p className="text-xs text-text-soft">
               {formatMessage({ id: "app.treasury.gardensWithVaults" })}
             </p>
-            <p className="mt-1 text-xl font-semibold text-text-strong">{grouped.length}</p>
-          </div>
+            <p className="mt-1 font-heading text-xl font-semibold tabular-nums text-text-strong">
+              {grouped.length}
+            </p>
+          </Card>
         </section>
 
         {isLoading && (
-          <p className="text-sm text-text-soft">
-            {formatMessage({ id: "app.treasury.loadingVaults" })}
-          </p>
+          <section
+            className="grid grid-cols-1 gap-4 lg:grid-cols-2"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="sr-only">{formatMessage({ id: "app.treasury.loadingVaults" })}</span>
+            {[0, 1, 2, 3].map((i) => (
+              <Card key={i} padding="compact" className="sm:p-5">
+                <div className="mb-4 space-y-2">
+                  <div
+                    className="h-5 w-32 rounded skeleton-shimmer"
+                    style={{ animationDelay: `${i * 0.1}s` }}
+                  />
+                  <div
+                    className="h-3 w-20 rounded skeleton-shimmer"
+                    style={{ animationDelay: `${i * 0.1 + 0.05}s` }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div
+                    className="h-9 rounded-md skeleton-shimmer"
+                    style={{ animationDelay: `${i * 0.1 + 0.1}s` }}
+                  />
+                  <div
+                    className="h-9 rounded-md skeleton-shimmer"
+                    style={{ animationDelay: `${i * 0.1 + 0.15}s` }}
+                  />
+                </div>
+                <div className="mt-4 flex items-center justify-between">
+                  <div
+                    className="h-3 w-24 rounded skeleton-shimmer"
+                    style={{ animationDelay: `${i * 0.1 + 0.2}s` }}
+                  />
+                  <div
+                    className="h-8 w-28 rounded-md skeleton-shimmer"
+                    style={{ animationDelay: `${i * 0.1 + 0.2}s` }}
+                  />
+                </div>
+              </Card>
+            ))}
+          </section>
         )}
 
         {!isLoading && grouped.length === 0 && (
-          <div className="rounded-lg border border-stroke-soft bg-bg-white py-16 text-center">
-            <RiSafe2Line className="mx-auto h-12 w-12 text-text-disabled" />
-            <h3 className="mt-2 text-sm font-medium text-text-strong">
-              {formatMessage({ id: "app.treasury.noVault" })}
-            </h3>
-            <p className="mt-1 text-sm text-text-soft">
-              {formatMessage({ id: "app.treasury.noVaultDescription" })}
-            </p>
-          </div>
+          <EmptyState
+            icon={<RiSafe2Line className="h-6 w-6" />}
+            title={formatMessage({ id: "app.treasury.noVault" })}
+            description={formatMessage({ id: "app.treasury.noVaultDescription" })}
+          />
         )}
 
         {!isLoading && grouped.length > 0 && (
-          <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <section className="stagger-children grid grid-cols-1 gap-4 lg:grid-cols-2">
             {grouped.map((item) => (
-              <article
-                key={item.gardenAddress}
-                className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5"
-              >
+              <Card key={item.gardenAddress} padding="compact" className="sm:p-5">
                 <div className="mb-4">
-                  <h2 className="text-base font-semibold text-text-strong sm:text-lg">
+                  <h2 className="font-heading text-base font-semibold text-text-strong sm:text-lg">
                     {item.garden?.name}
                   </h2>
                   <p className="text-xs text-text-sub">{item.garden?.location}</p>
@@ -141,16 +179,15 @@ export default function TreasuryOverview() {
                     {formatMessage({ id: "app.treasury.harvestCount" })}: {item.harvestCount}
                   </p>
                   {item.garden && (
-                    <Link
-                      to={`/gardens/${item.garden.id}/vault`}
-                      className="inline-flex items-center gap-1 rounded-md border border-stroke-sub bg-bg-white px-3 py-1.5 text-sm font-medium text-text-sub hover:bg-bg-weak"
-                    >
-                      {formatMessage({ id: "app.treasury.manageVault" })}
-                      <RiArrowRightLine className="h-4 w-4" />
-                    </Link>
+                    <Button variant="secondary" size="sm" asChild>
+                      <Link to={`/gardens/${item.garden.id}/vault`}>
+                        {formatMessage({ id: "app.treasury.manageVault" })}
+                        <RiArrowRightLine className="h-4 w-4" />
+                      </Link>
+                    </Button>
                   )}
                 </div>
-              </article>
+              </Card>
             ))}
           </section>
         )}

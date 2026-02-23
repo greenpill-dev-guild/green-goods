@@ -24,11 +24,31 @@ const cardVariants = tv({
 
 type CardVariantProps = VariantProps<typeof cardVariants>;
 
-interface CardRootProps extends React.HTMLAttributes<HTMLDivElement>, CardVariantProps {}
+type ColorAccent = "primary" | "success" | "warning" | "error" | "info";
+
+const colorAccentMap: Record<ColorAccent, string> = {
+  primary: "border-l-2 border-l-primary-base",
+  success: "border-l-2 border-l-success-base",
+  warning: "border-l-2 border-l-warning-base",
+  error: "border-l-2 border-l-error-base",
+  info: "border-l-2 border-l-information-base",
+};
+
+interface CardRootProps extends React.HTMLAttributes<HTMLDivElement>, CardVariantProps {
+  colorAccent?: ColorAccent;
+}
 
 const CardRoot = React.forwardRef<HTMLDivElement, CardRootProps>(
-  ({ className, variant, padding, ...props }, ref) => (
-    <div ref={ref} className={cn(cardVariants({ variant, padding }), className)} {...props} />
+  ({ className, variant, padding, colorAccent, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        cardVariants({ variant, padding }),
+        colorAccent && colorAccentMap[colorAccent],
+        className
+      )}
+      {...props}
+    />
   )
 );
 CardRoot.displayName = "Card";

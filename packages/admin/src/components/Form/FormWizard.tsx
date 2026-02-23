@@ -1,7 +1,8 @@
-import { cn, useTimeout } from "@green-goods/shared";
-import { RiArrowLeftLine, RiLoader4Line } from "@remixicon/react";
+import { useTimeout } from "@green-goods/shared";
+import { RiArrowLeftLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
+import { Button } from "@/components/ui/Button";
 import { type Step, StepIndicator } from "./StepIndicator";
 
 interface FormWizardProps {
@@ -96,57 +97,43 @@ export function FormWizard({
           )}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
             {!isFirstStep && onBack && (
-              <button
-                type="button"
-                onClick={onBack}
-                disabled={isSubmitting}
-                className="flex items-center justify-center gap-1.5 rounded-md border border-stroke-sub bg-bg-white px-4 py-2.5 text-sm font-medium text-text-sub transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              <Button variant="secondary" onClick={onBack} disabled={isSubmitting}>
                 <RiArrowLeftLine className="h-4 w-4" />
                 {formatMessage({ id: "app.wizard.back" })}
-              </button>
+              </Button>
             )}
 
             <div className="flex gap-3 sm:ml-auto">
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 onClick={onCancel}
                 disabled={isSubmitting}
-                className="flex-1 rounded-md border border-stroke-sub px-4 py-2.5 text-sm font-medium text-text-sub transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60 sm:flex-initial"
+                className="flex-1 sm:flex-initial"
               >
                 {formatMessage({ id: "app.wizard.cancel" })}
-              </button>
+              </Button>
 
               {!isLastStep && onNext && (
-                <button
-                  type="button"
+                <Button
                   onClick={onNext}
                   disabled={isSubmitting || nextDisabled}
-                  className="flex-1 rounded-md bg-primary-base px-6 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60 sm:flex-initial"
+                  className="flex-1 sm:flex-initial"
                 >
                   {resolvedNextLabel}
-                </button>
+                </Button>
               )}
 
               {isLastStep && onSubmit && (
-                <button
-                  type="button"
+                <Button
                   onClick={onSubmit}
                   disabled={isSubmitting}
-                  className={cn(
-                    "flex flex-1 items-center justify-center gap-2 rounded-md bg-primary-base px-6 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60 sm:flex-initial",
-                    isSubmitting && "cursor-not-allowed opacity-70"
-                  )}
+                  loading={isSubmitting}
+                  className="flex-1 sm:flex-initial"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <RiLoader4Line className="h-4 w-4 animate-spin" />
-                      {formatMessage({ id: "app.wizard.submitting" })}
-                    </>
-                  ) : (
-                    resolvedSubmitLabel
-                  )}
-                </button>
+                  {isSubmitting
+                    ? formatMessage({ id: "app.wizard.submitting" })
+                    : resolvedSubmitLabel}
+                </Button>
               )}
             </div>
           </div>

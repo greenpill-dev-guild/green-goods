@@ -54,7 +54,9 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           <p className="text-xs font-medium text-text-soft">
             {formatMessage({ id: "app.yield.cookieJar" })}
           </p>
-          <p className="mt-1 text-lg font-semibold text-text-strong">{cookieJarPct}%</p>
+          <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
+            {cookieJarPct}%
+          </p>
           <p className="mt-0.5 text-xs text-text-sub">
             {formatMessage({ id: "app.yield.cookieJarDescription" })}
           </p>
@@ -63,7 +65,9 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           <p className="text-xs font-medium text-text-soft">
             {formatMessage({ id: "app.yield.fractions" })}
           </p>
-          <p className="mt-1 text-lg font-semibold text-text-strong">{fractionsPct}%</p>
+          <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
+            {fractionsPct}%
+          </p>
           <p className="mt-0.5 text-xs text-text-sub">
             {formatMessage({ id: "app.yield.fractionsDescription" })}
           </p>
@@ -72,7 +76,9 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           <p className="text-xs font-medium text-text-soft">
             {formatMessage({ id: "app.yield.juicebox" })}
           </p>
-          <p className="mt-1 text-lg font-semibold text-text-strong">{juiceboxPct}%</p>
+          <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
+            {juiceboxPct}%
+          </p>
           <p className="mt-0.5 text-xs text-text-sub">
             {formatMessage({ id: "app.yield.juiceboxDescription" })}
           </p>
@@ -90,11 +96,18 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           {formatMessage({ id: "app.yield.history" })}
         </h4>
         {allocationsLoading ? (
-          <div className="mt-2 space-y-2">
+          <div className="mt-2 space-y-2" role="status" aria-live="polite">
+            <span className="sr-only">{formatMessage({ id: "app.yield.history" })}</span>
             {[1, 2].map((i) => (
-              <div key={i} className="animate-pulse rounded-md bg-bg-weak p-3">
-                <div className="h-4 w-24 rounded bg-stroke-soft" />
-                <div className="mt-1 h-3 w-16 rounded bg-stroke-soft" />
+              <div key={i} className="rounded-md bg-bg-weak p-3">
+                <div
+                  className="h-4 w-24 rounded skeleton-shimmer"
+                  style={{ animationDelay: `${i * 0.1}s` }}
+                />
+                <div
+                  className="mt-1 h-3 w-16 rounded skeleton-shimmer"
+                  style={{ animationDelay: `${i * 0.1 + 0.05}s` }}
+                />
               </div>
             ))}
           </div>

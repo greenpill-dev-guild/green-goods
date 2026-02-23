@@ -10,13 +10,14 @@ import {
   RiCodeBoxLine,
   RiErrorWarningLine,
   RiGitBranchLine,
-  RiLoaderLine,
   RiSettings3Line,
   RiShieldCheckLine,
   RiUploadLine,
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 export default function Deployment() {
   const { formatMessage } = useIntl();
@@ -98,7 +99,7 @@ export default function Deployment() {
       </div>
 
       {/* Permissions Status */}
-      <div className="bg-bg-white shadow rounded-lg p-6">
+      <Card padding="feature">
         <div className="flex items-center mb-4">
           <RiShieldCheckLine className="h-5 w-5 text-information-base mr-2" />
           <h2 className="text-lg font-medium text-text-strong">
@@ -171,10 +172,10 @@ export default function Deployment() {
             </p>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Deployment Actions */}
-      <div className="bg-bg-white shadow rounded-lg p-6">
+      <Card padding="feature">
         <div className="flex items-center mb-4">
           <RiUploadLine className="h-5 w-5 text-success-base mr-2" />
           <h2 className="text-lg font-medium text-text-strong">
@@ -196,24 +197,17 @@ export default function Deployment() {
                   )}
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={handleDeploy}
                 disabled={isDeploying}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-base hover:bg-primary-darker focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base disabled:opacity-50"
+                loading={isDeploying}
               >
-                {isDeploying ? (
-                  <>
-                    <RiLoaderLine className="animate-spin -ml-1 mr-3 h-4 w-4" />
-                    {formatMessage({ id: "app.deployment.deploying" })}
-                  </>
-                ) : (
-                  <>
-                    <RiUploadLine className="-ml-1 mr-2 h-4 w-4" />
-                    {formatMessage({ id: "app.deployment.deployContracts" })}
-                  </>
-                )}
-              </button>
+                {!isDeploying && <RiUploadLine className="-ml-1 mr-2 h-4 w-4" />}
+                {isDeploying
+                  ? formatMessage({ id: "app.deployment.deploying" })
+                  : formatMessage({ id: "app.deployment.deployContracts" })}
+              </Button>
             </div>
 
             {deploymentResult && (
@@ -245,10 +239,10 @@ export default function Deployment() {
             </p>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Documentation */}
-      <div className="bg-bg-white shadow rounded-lg p-6">
+      <Card padding="feature">
         <div className="flex items-center mb-4">
           <RiCodeBoxLine className="h-5 w-5 text-text-soft mr-2" />
           <h2 className="text-lg font-medium text-text-strong">
@@ -263,7 +257,7 @@ export default function Deployment() {
             bun script/deploy.ts core --network {chain.name.toLowerCase()} --broadcast
           </code>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { formatDate } from "@green-goods/shared";
 import { RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 const EAS_EXPLORER_URL = "https://explorer.easscan.org";
 
@@ -28,26 +30,27 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
   const { formatMessage } = useIntl();
 
   return (
-    <aside className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-      <div className="flex items-center justify-between gap-2 border-b border-stroke-soft p-4 sm:p-6">
+    <Card>
+      <Card.Header className="gap-2">
         <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
           {formatMessage({ id: "app.garden.admin.recentAssessments" })}
         </h3>
-        <Link
-          to={`/gardens/${gardenId}/assessments`}
-          className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
-          aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
-        >
-          {formatMessage({ id: "app.garden.admin.viewAll" })}
-        </Link>
-      </div>
-      <div className="p-4 sm:p-6">
+        <Button variant="secondary" size="sm" asChild>
+          <Link
+            to={`/gardens/${gardenId}/assessments`}
+            aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
+          >
+            {formatMessage({ id: "app.garden.admin.viewAll" })}
+          </Link>
+        </Button>
+      </Card.Header>
+      <Card.Body>
         {isLoading ? (
           <p className="py-4 text-center text-sm text-text-soft">
             {formatMessage({ id: "app.garden.admin.loadingAssessments" })}
           </p>
         ) : error ? (
-          <p className="py-4 text-center text-sm text-error-base">
+          <p className="py-4 text-center text-sm text-error-base" role="alert">
             {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}:{" "}
             {error instanceof Error ? error.message : ""}
           </p>
@@ -88,7 +91,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
             ))}
           </div>
         )}
-      </div>
-    </aside>
+      </Card.Body>
+    </Card>
   );
 };

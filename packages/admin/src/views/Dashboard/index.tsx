@@ -10,17 +10,26 @@ import {
   useWindowEvent,
 } from "@green-goods/shared";
 import {
+  RiAddLine,
   RiAlertLine,
+  RiArrowRightSLine,
   RiCheckLine,
+  RiFileList3Line,
   RiGlobalLine,
   RiLoader4Line,
   RiPlantLine,
+  RiSafeLine,
   RiUserLine,
   RiWifiOffLine,
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
+import { StatCard } from "@/components/StatCard";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function Dashboard() {
   const intl = useIntl();
@@ -68,12 +77,30 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
+      <div className="p-6" role="status" aria-live="polite">
+        <span className="sr-only">Loading dashboard</span>
         <div className="space-y-4">
-          <div className="h-8 skeleton-shimmer rounded w-1/4"></div>
+          <div className="h-8 skeleton-shimmer rounded w-1/4" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 skeleton-shimmer rounded"></div>
+              <Card key={i} padding="feature">
+                <div className="flex items-center">
+                  <div
+                    className="h-10 w-10 rounded-lg skeleton-shimmer"
+                    style={{ animationDelay: `${i * 0.1}s` }}
+                  />
+                  <div className="ml-4 flex-1">
+                    <div
+                      className="h-4 w-20 rounded skeleton-shimmer"
+                      style={{ animationDelay: `${i * 0.1}s` }}
+                    />
+                    <div
+                      className="mt-2 h-7 w-12 rounded skeleton-shimmer"
+                      style={{ animationDelay: `${i * 0.1 + 0.05}s` }}
+                    />
+                  </div>
+                </div>
+              </Card>
             ))}
           </div>
         </div>
@@ -113,7 +140,7 @@ export default function Dashboard() {
         {/* Fallback dashboard without stats */}
         <div className="mt-8">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-text-strong">
+            <h1 className="font-heading text-2xl font-bold text-text-strong">
               Welcome back,{" "}
               {intl.formatMessage({
                 id: `admin.dashboard.role.${role}`,
@@ -123,14 +150,28 @@ export default function Dashboard() {
             </h1>
             <p className="text-text-sub mt-1">
               {role === "deployer"
-                ? "Manage gardens, deploy contracts, and oversee platform operations"
+                ? intl.formatMessage({
+                    id: "admin.dashboard.desc.deployer",
+                    defaultMessage:
+                      "Manage gardens, deploy contracts, and oversee platform operations",
+                  })
                 : role === "operator"
-                  ? `Manage your ${operatorGardens.length} garden${operatorGardens.length !== 1 ? "s" : ""}`
-                  : "View gardens and explore the Green Goods ecosystem"}
+                  ? intl.formatMessage(
+                      {
+                        id: "admin.dashboard.desc.operator",
+                        defaultMessage:
+                          "Manage your {count} {count, plural, one {garden} other {gardens}}",
+                      },
+                      { count: operatorGardens.length }
+                    )
+                  : intl.formatMessage({
+                      id: "admin.dashboard.desc.user",
+                      defaultMessage: "View gardens and explore the Green Goods ecosystem",
+                    })}
             </p>
           </div>
 
-          <div className="bg-bg-white rounded-lg shadow-sm transition-shadow duration-200 hover:shadow-md border border-stroke-soft p-6">
+          <Card padding="feature" variant="interactive">
             <h2 className="text-lg font-medium text-text-strong mb-4">
               {intl.formatMessage({
                 id: "admin.dashboard.quickActions",
@@ -138,8 +179,8 @@ export default function Dashboard() {
               })}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <a
-                href="/gardens"
+              <Link
+                to="/gardens"
                 className="block p-4 border border-stroke-soft rounded-lg hover:bg-bg-weak transition-all duration-200"
               >
                 <h3 className="font-medium text-text-strong">
@@ -154,10 +195,10 @@ export default function Dashboard() {
                     defaultMessage: "Browse and manage gardens",
                   })}
                 </p>
-              </a>
+              </Link>
               {role === "deployer" && (
-                <a
-                  href="/contracts"
+                <Link
+                  to="/contracts"
                   className="block p-4 border border-stroke-soft rounded-lg hover:bg-bg-weak transition-all duration-200"
                 >
                   <h3 className="font-medium text-text-strong">
@@ -172,19 +213,19 @@ export default function Dashboard() {
                       defaultMessage: "Deploy and manage contracts",
                     })}
                   </p>
-                </a>
+                </Link>
               )}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="px-4 py-6 sm:px-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-text-strong">
+        <h1 className="font-heading text-2xl font-bold text-text-strong">
           Welcome back,{" "}
           {role === "deployer"
             ? intl.formatMessage({
@@ -203,91 +244,90 @@ export default function Dashboard() {
         </h1>
         <p className="text-text-sub mt-1">
           {role === "deployer"
-            ? "Manage gardens, deploy contracts, and oversee platform operations"
+            ? intl.formatMessage({
+                id: "admin.dashboard.desc.deployer",
+                defaultMessage: "Manage gardens, deploy contracts, and oversee platform operations",
+              })
             : role === "operator"
-              ? `Manage your ${operatorGardens.length} garden${operatorGardens.length !== 1 ? "s" : ""}`
-              : "View gardens and explore the Green Goods ecosystem"}
+              ? intl.formatMessage(
+                  {
+                    id: "admin.dashboard.desc.operator",
+                    defaultMessage:
+                      "Manage your {count} {count, plural, one {garden} other {gardens}}",
+                  },
+                  { count: operatorGardens.length }
+                )
+              : intl.formatMessage({
+                  id: "admin.dashboard.desc.user",
+                  defaultMessage: "View gardens and explore the Green Goods ecosystem",
+                })}
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-bg-white p-6 rounded-lg shadow-sm border border-stroke-soft">
-          <div className="flex items-center">
-            <div className="p-2 bg-primary-alpha-16 rounded-lg">
-              <RiPlantLine className="h-6 w-6 text-primary-base" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-text-soft">
-                {role === "operator"
-                  ? intl.formatMessage({
-                      id: "admin.dashboard.stats.yourGardens",
-                      defaultMessage: "Your Gardens",
-                    })
-                  : intl.formatMessage({
-                      id: "admin.dashboard.stats.totalGardens",
-                      defaultMessage: "Total Gardens",
-                    })}
-              </p>
-              <p className="text-2xl font-bold text-text-strong">
-                {role === "operator" ? userOperatorGardens : totalGardens}
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="stagger-children grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatCard
+          icon={<RiPlantLine className="h-6 w-6" />}
+          label={
+            role === "operator"
+              ? intl.formatMessage({
+                  id: "admin.dashboard.stats.yourGardens",
+                  defaultMessage: "Your Gardens",
+                })
+              : intl.formatMessage({
+                  id: "admin.dashboard.stats.totalGardens",
+                  defaultMessage: "Total Gardens",
+                })
+          }
+          value={role === "operator" ? userOperatorGardens : totalGardens}
+          colorScheme="success"
+        />
 
         {(role === "deployer" || role === "operator") && (
           <>
-            <div className="bg-bg-white p-6 rounded-lg shadow-sm border border-stroke-soft">
-              <div className="flex items-center">
-                <div className="p-2 bg-information-lighter rounded-lg">
-                  <RiUserLine className="h-6 w-6 text-information-dark" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-text-soft">
-                    {intl.formatMessage({
-                      id: "admin.dashboard.stats.totalOperators",
-                      defaultMessage: "Total Operators",
-                    })}
-                  </p>
-                  <p className="text-2xl font-bold text-text-strong">{totalOperators}</p>
-                </div>
-              </div>
-            </div>
+            <StatCard
+              icon={<RiUserLine className="h-6 w-6" />}
+              label={intl.formatMessage({
+                id: "admin.dashboard.stats.totalOperators",
+                defaultMessage: "Total Operators",
+              })}
+              value={totalOperators}
+              colorScheme="info"
+            />
 
-            <div className="bg-bg-white p-6 rounded-lg shadow-sm border border-stroke-soft">
-              <div className="flex items-center">
-                <div className="p-2 bg-feature-lighter rounded-lg">
-                  <RiUserLine className="h-6 w-6 text-feature-dark" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-text-soft">
-                    {intl.formatMessage({
-                      id: "admin.dashboard.stats.totalGardeners",
-                      defaultMessage: "Total Gardeners",
-                    })}
-                  </p>
-                  <p className="text-2xl font-bold text-text-strong">{totalGardeners}</p>
-                </div>
-              </div>
-            </div>
+            <StatCard
+              icon={<RiUserLine className="h-6 w-6" />}
+              label={intl.formatMessage({
+                id: "admin.dashboard.stats.totalGardeners",
+                defaultMessage: "Total Gardeners",
+              })}
+              value={totalGardeners}
+              colorScheme="warning"
+            />
           </>
         )}
       </div>
 
       {/* ENS Claim Card */}
       {showENSCard && (
-        <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft p-6 mb-8">
+        <Card padding="feature" className="mb-8">
           <div className="flex items-start gap-4">
             <div className="p-2 bg-primary-alpha-16 rounded-lg shrink-0">
               <RiGlobalLine className="h-6 w-6 text-primary-base" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-medium text-text-strong">Claim your ENS name</h2>
+              <h2 className="text-lg font-medium text-text-strong">
+                {intl.formatMessage({
+                  id: "admin.dashboard.ens.title",
+                  defaultMessage: "Claim your ENS name",
+                })}
+              </h2>
               <p className="text-sm text-text-sub mt-1 mb-4">
-                As a protocol member, you can claim a personal{" "}
-                <span className="font-mono">.greengoods.eth</span> subdomain. Registration takes
-                ~15-20 minutes via Chainlink CCIP cross-chain messaging. You will pay the CCIP fee.
+                {intl.formatMessage({
+                  id: "admin.dashboard.ens.description",
+                  defaultMessage:
+                    "As a protocol member, you can claim a personal .greengoods.eth subdomain. Registration takes ~15-20 minutes via Chainlink CCIP cross-chain messaging. You will pay the CCIP fee.",
+                })}
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
@@ -307,12 +347,17 @@ export default function Dashboard() {
                       ) : isSlugAvailable ? (
                         <RiCheckLine className="h-4 w-4 text-primary-base" />
                       ) : isSlugAvailable === false ? (
-                        <span className="text-xs text-error-base">Taken</span>
+                        <span className="text-xs text-error-base">
+                          {intl.formatMessage({
+                            id: "admin.dashboard.ens.taken",
+                            defaultMessage: "Taken",
+                          })}
+                        </span>
                       ) : null}
                     </span>
                   )}
                 </div>
-                <button
+                <Button
                   type="button"
                   onClick={handleAdminENSClaim}
                   disabled={
@@ -322,29 +367,41 @@ export default function Dashboard() {
                     isCheckingSlug ||
                     !slugValue
                   }
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-darker disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                  loading={ensClaim.isPending}
+                  className="shrink-0"
                 >
                   {!isOnline ? (
                     <RiWifiOffLine className="h-4 w-4" />
-                  ) : ensClaim.isPending ? (
-                    <RiLoader4Line className="h-4 w-4 animate-spin" />
-                  ) : (
+                  ) : !ensClaim.isPending ? (
                     <RiGlobalLine className="h-4 w-4" />
-                  )}
-                  {!isOnline ? "Offline" : ensClaim.isPending ? "Claiming..." : "Claim name"}
-                </button>
+                  ) : null}
+                  {!isOnline
+                    ? intl.formatMessage({
+                        id: "admin.dashboard.ens.offline",
+                        defaultMessage: "Offline",
+                      })
+                    : ensClaim.isPending
+                      ? intl.formatMessage({
+                          id: "admin.dashboard.ens.claiming",
+                          defaultMessage: "Claiming...",
+                        })
+                      : intl.formatMessage({
+                          id: "admin.dashboard.ens.claimName",
+                          defaultMessage: "Claim name",
+                        })}
+                </Button>
               </div>
               {slugValue && (
                 <p className="text-xs text-text-soft mt-2 font-mono">{slugValue}.greengoods.eth</p>
               )}
               {slugForm.formState.errors.slug && (
-                <p className="text-xs text-error-base mt-1">
+                <p className="text-xs text-error-base mt-1" role="alert">
                   {slugForm.formState.errors.slug.message}
                 </p>
               )}
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* ENS Registration Progress */}
@@ -354,59 +411,113 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Recent Activity */}
-      <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft">
-        <div className="p-6 border-b border-stroke-soft">
-          <h2 className="text-lg font-medium text-text-strong">
+      {/* Quick Actions */}
+      <Card padding="feature" className="mb-8 animate-fade-in-up">
+        <h2 className="font-heading text-lg font-medium text-text-strong mb-4">
+          {intl.formatMessage({
+            id: "admin.dashboard.quickActions",
+            defaultMessage: "Quick Actions",
+          })}
+        </h2>
+        <div className="flex flex-wrap gap-3">
+          <Button variant="secondary" size="sm" asChild>
+            <Link to="/gardens/create">
+              <RiAddLine className="h-4 w-4" />
+              {intl.formatMessage({
+                id: "admin.dashboard.quickActions.createGarden",
+                defaultMessage: "Create Garden",
+              })}
+            </Link>
+          </Button>
+          {(role === "deployer" || role === "operator") && (
+            <Button variant="secondary" size="sm" asChild>
+              <Link to="/actions/create">
+                <RiFileList3Line className="h-4 w-4" />
+                {intl.formatMessage({
+                  id: "admin.dashboard.quickActions.createAction",
+                  defaultMessage: "Create Action",
+                })}
+              </Link>
+            </Button>
+          )}
+          {(role === "deployer" || role === "operator") && (
+            <Button variant="secondary" size="sm" asChild>
+              <Link to="/treasury">
+                <RiSafeLine className="h-4 w-4" />
+                {intl.formatMessage({
+                  id: "admin.dashboard.quickActions.viewTreasury",
+                  defaultMessage: "View Treasury",
+                })}
+              </Link>
+            </Button>
+          )}
+        </div>
+      </Card>
+
+      {/* Recent Gardens */}
+      <Card className="animate-fade-in-up">
+        <Card.Header>
+          <h2 className="font-heading text-lg font-medium text-text-strong">
             {intl.formatMessage({
               id: "admin.dashboard.recentGardens",
               defaultMessage: "Recent Gardens",
             })}
           </h2>
-        </div>
-        <div className="p-6">
-          {role === "operator"
-            ? operatorGardens.slice(0, 5).map((garden) => (
-                <div
-                  key={garden.id}
-                  className="flex items-center justify-between py-3 border-b border-stroke-soft last:border-b-0"
-                >
-                  <div>
-                    <h3 className="text-sm font-medium text-text-strong">{garden.name}</h3>
-                    <p className="text-sm text-text-soft">Operator Garden</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-text-soft">Managed Garden</p>
-                  </div>
-                </div>
-              ))
-            : gardens.slice(0, 5).map((garden) => (
-                <div
-                  key={garden.id}
-                  className="flex items-center justify-between py-3 border-b border-stroke-soft last:border-b-0"
-                >
-                  <div>
-                    <h3 className="text-sm font-medium text-text-strong">{garden.name}</h3>
-                    <p className="text-sm text-text-soft">{garden.location || "No location"}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-text-soft">
-                      {garden.operators?.length || 0} operators, {garden.gardeners?.length || 0}{" "}
-                      gardeners
-                    </p>
-                  </div>
-                </div>
-              ))}
+          <Link
+            to="/gardens"
+            className="text-sm text-primary-base hover:text-primary-darker transition-colors"
+          >
+            {intl.formatMessage({
+              id: "admin.dashboard.viewAll",
+              defaultMessage: "View all",
+            })}
+          </Link>
+        </Card.Header>
+        <div className="divide-y divide-stroke-soft">
+          {(role === "operator" ? operatorGardens : gardens).slice(0, 5).map((garden) => (
+            <Link
+              key={garden.id}
+              to={`/gardens/${garden.id}`}
+              className="group flex items-center justify-between px-6 py-3 transition-colors hover:bg-bg-weak"
+            >
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-medium text-text-strong group-hover:text-primary-base transition-colors">
+                  {garden.name}
+                </h3>
+                <p className="text-sm text-text-soft">
+                  {garden.location ||
+                    intl.formatMessage({
+                      id: "admin.dashboard.noLocation",
+                      defaultMessage: "No location",
+                    })}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-xs tabular-nums text-text-soft hidden sm:block">
+                  {garden.operators?.length || 0} operators, {garden.gardeners?.length || 0}{" "}
+                  gardeners
+                </span>
+                <RiArrowRightSLine className="h-4 w-4 text-text-disabled group-hover:text-primary-base transition-colors" />
+              </div>
+            </Link>
+          ))}
           {(role === "operator" ? operatorGardens : gardens).length === 0 && (
-            <p className="text-text-soft text-center py-8">
-              {intl.formatMessage({
-                id: "admin.dashboard.noGardens",
-                defaultMessage: "No gardens found",
-              })}
-            </p>
+            <Card.Body>
+              <EmptyState
+                icon={<RiPlantLine className="h-6 w-6" />}
+                title={intl.formatMessage({
+                  id: "admin.dashboard.noGardens",
+                  defaultMessage: "No gardens found",
+                })}
+                description={intl.formatMessage({
+                  id: "admin.dashboard.noGardens.description",
+                  defaultMessage: "Gardens will appear here once they are created.",
+                })}
+              />
+            </Card.Body>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

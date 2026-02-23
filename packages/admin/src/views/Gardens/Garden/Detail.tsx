@@ -207,10 +207,20 @@ export default function GardenDetail() {
           description={formatMessage({ id: "app.garden.admin.loadingDescription" })}
           {...baseHeaderProps}
         />
-        <div className="mt-6 px-6">
+        <div className="mt-6 px-6" role="status" aria-live="polite">
+          <span className="sr-only">{formatMessage({ id: "app.garden.admin.loadingGarden" })}</span>
           <div className="space-y-4 rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
-            <div className="h-8 w-1/4 animate-pulse rounded bg-bg-soft" />
-            <div className="h-64 animate-pulse rounded bg-bg-soft" />
+            <div className="h-8 w-1/4 rounded skeleton-shimmer" />
+            <div className="h-48 rounded skeleton-shimmer" style={{ animationDelay: "0.1s" }} />
+            <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 md:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-20 rounded-lg skeleton-shimmer"
+                  style={{ animationDelay: `${0.15 + i * 0.05}s` }}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

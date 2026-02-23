@@ -16,6 +16,8 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AddressDisplay } from "@/components/AddressDisplay";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 const roleIcons = {
   owner: RiShieldCheckLine,
@@ -61,30 +63,27 @@ export const GardenRolesPanel: React.FC<GardenRolesPanelProps> = ({
             const Icon = roleIcons[role];
 
             return (
-              <aside
-                key={role}
-                className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm"
-              >
-                <div className="flex items-center justify-between gap-2 border-b border-stroke-soft p-4 sm:p-6">
+              <Card key={role}>
+                <Card.Header>
                   <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
                     {roleLabel.plural}
                   </h3>
                   {canManageRoles && (
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => onOpenAddMember(role)}
-                      className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
                       aria-label={formatMessage(
                         { id: "app.admin.roles.add" },
                         { role: roleLabel.singular }
                       )}
-                      type="button"
                     >
                       <RiUserAddLine className="mr-1 h-4 w-4" />
                       {formatMessage({ id: "app.garden.admin.add" })}
-                    </button>
+                    </Button>
                   )}
-                </div>
-                <div className="p-4 sm:p-6">
+                </Card.Header>
+                <Card.Body>
                   {members.length === 0 ? (
                     <p className="py-4 text-center text-sm text-text-soft">
                       {formatMessage({ id: "app.admin.roles.empty" }, { role: roleLabel.plural })}
@@ -123,21 +122,22 @@ export const GardenRolesPanel: React.FC<GardenRolesPanelProps> = ({
                         ))}
                       </div>
                       {members.length > 3 && (
-                        <button
-                          type="button"
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="mt-3 w-full"
                           onClick={() => onOpenMembersModal(role)}
-                          className="mt-3 w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
                         >
                           {formatMessage(
                             { id: "app.garden.admin.viewAllCount" },
                             { count: members.length }
                           )}
-                        </button>
+                        </Button>
                       )}
                     </>
                   )}
-                </div>
-              </aside>
+                </Card.Body>
+              </Card>
             );
           })}
         </div>

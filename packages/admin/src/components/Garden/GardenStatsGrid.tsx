@@ -82,13 +82,15 @@ export const GardenStatsGrid: React.FC<GardenStatsGridProps> = ({
         icon={<RiGroupLine className="h-5 w-5" />}
         label={formatMessage({ id: "app.community.title" })}
         value={
-          communityLoading
-            ? "..."
-            : communityLabel
-              ? formatMessage({
-                  id: `app.community.weightScheme.${communityLabel.toLowerCase()}`,
-                })
-              : formatMessage({ id: "app.community.noCommunity" })
+          communityLoading ? (
+            <span className="inline-block h-6 w-20 rounded skeleton-shimmer align-middle" />
+          ) : communityLabel ? (
+            formatMessage({
+              id: `app.community.weightScheme.${communityLabel.toLowerCase()}`,
+            })
+          ) : (
+            formatMessage({ id: "app.community.noCommunity" })
+          )
         }
       />
     </section>

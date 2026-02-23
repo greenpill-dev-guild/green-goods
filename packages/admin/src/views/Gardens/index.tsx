@@ -11,6 +11,9 @@ import {
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 export default function Gardens() {
@@ -21,46 +24,74 @@ export default function Gardens() {
   const errorMessage = error instanceof Error ? error.message : error ? "Unknown error" : null;
 
   const headerDescription = errorMessage
-    ? "Indexer offline — limited functionality available."
-    : "View all gardens. Manage gardens where you are an operator.";
+    ? formatMessage({
+        id: "admin.gardens.indexerOffline",
+        defaultMessage: "Indexer offline — limited functionality available.",
+      })
+    : formatMessage({
+        id: "admin.gardens.description",
+        defaultMessage: "View all gardens. Manage gardens where you are an operator.",
+      });
 
   const headerActions = (
-    <Link
-      to="/gardens/create"
-      className="inline-flex items-center rounded-md border border-transparent bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      <RiAddLine className="mr-2 h-4 w-4" />
-      Create Garden
-    </Link>
+    <Button asChild>
+      <Link to="/gardens/create">
+        <RiAddLine className="mr-2 h-4 w-4" />
+        {formatMessage({ id: "admin.gardens.createGarden", defaultMessage: "Create Garden" })}
+      </Link>
+    </Button>
   );
 
   let content: ReactNode;
 
   if (isLoading) {
     content = (
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <div
+        className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+        role="status"
+        aria-live="polite"
+      >
+        <span className="sr-only">Loading gardens</span>
         {[...Array(8)].map((_, i) => (
-          <div
-            key={i}
-            className="min-w-[320px] overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm"
-          >
-            <div className="h-48 skeleton-shimmer" />
+          <Card key={i} className="overflow-hidden">
+            <div className="h-48 skeleton-shimmer" style={{ animationDelay: `${i * 0.05}s` }} />
             <div className="space-y-4 p-6">
               <div className="space-y-2">
-                <div className="h-6 rounded skeleton-shimmer" />
-                <div className="h-4 w-24 rounded skeleton-shimmer" />
+                <div
+                  className="h-6 rounded skeleton-shimmer"
+                  style={{ animationDelay: `${i * 0.05}s` }}
+                />
+                <div
+                  className="h-4 w-24 rounded skeleton-shimmer"
+                  style={{ animationDelay: `${i * 0.05 + 0.05}s` }}
+                />
               </div>
-              <div className="h-4 rounded skeleton-shimmer" />
-              <div className="h-4 w-3/4 rounded skeleton-shimmer" />
+              <div
+                className="h-4 rounded skeleton-shimmer"
+                style={{ animationDelay: `${i * 0.05 + 0.1}s` }}
+              />
+              <div
+                className="h-4 w-3/4 rounded skeleton-shimmer"
+                style={{ animationDelay: `${i * 0.05 + 0.1}s` }}
+              />
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className="h-4 w-20 rounded skeleton-shimmer" />
-                  <div className="h-4 w-20 rounded skeleton-shimmer" />
+                  <div
+                    className="h-4 w-20 rounded skeleton-shimmer"
+                    style={{ animationDelay: `${i * 0.05 + 0.15}s` }}
+                  />
+                  <div
+                    className="h-4 w-20 rounded skeleton-shimmer"
+                    style={{ animationDelay: `${i * 0.05 + 0.15}s` }}
+                  />
                 </div>
-                <div className="h-8 w-20 rounded skeleton-shimmer" />
+                <div
+                  className="h-8 w-20 rounded skeleton-shimmer"
+                  style={{ animationDelay: `${i * 0.05 + 0.2}s` }}
+                />
               </div>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     );
@@ -71,39 +102,72 @@ export default function Gardens() {
           <div className="flex items-start gap-3">
             <RiAlertLine className="h-5 w-5 flex-shrink-0 text-warning-base" />
             <div>
-              <h3 className="text-sm font-medium text-warning-dark">Indexer Connection Issue</h3>
+              <h3 className="text-sm font-medium text-warning-dark">
+                {formatMessage({
+                  id: "admin.gardens.indexerError.title",
+                  defaultMessage: "Indexer Connection Issue",
+                })}
+              </h3>
               <div className="mt-2 space-y-1 text-sm text-warning-dark/80">
-                <p>Unable to load gardens from indexer: {errorMessage}</p>
                 <p>
-                  Garden management features are still available if you have direct garden
-                  addresses.
+                  {formatMessage(
+                    {
+                      id: "admin.gardens.indexerError.message",
+                      defaultMessage: "Unable to load gardens from indexer: {error}",
+                    },
+                    { error: errorMessage }
+                  )}
+                </p>
+                <p>
+                  {formatMessage({
+                    id: "admin.gardens.indexerError.fallback",
+                    defaultMessage:
+                      "Garden management features are still available if you have direct garden addresses.",
+                  })}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6 text-center shadow-sm">
-          <RiPlantLine className="mx-auto h-12 w-12 text-text-soft" />
-          <h3 className="mt-2 text-sm font-medium text-text-strong">Gardens Unavailable</h3>
-          <p className="mt-1 text-sm text-text-soft">
-            Cannot load gardens due to indexer connection issues. Please check back later.
-          </p>
-        </div>
+        <EmptyState
+          icon={<RiPlantLine className="h-6 w-6" />}
+          title={formatMessage({
+            id: "admin.gardens.unavailable.title",
+            defaultMessage: "Gardens Unavailable",
+          })}
+          description={formatMessage({
+            id: "admin.gardens.unavailable.description",
+            defaultMessage:
+              "Cannot load gardens due to indexer connection issues. Please check back later.",
+          })}
+        />
       </div>
     );
   } else if (gardens.length === 0) {
     content = (
-      <div className="rounded-lg border border-dashed border-stroke-sub p-12 text-center">
-        <RiPlantLine className="mx-auto h-12 w-12 text-text-soft" />
-        <h3 className="mt-4 text-lg font-medium text-text-strong">No gardens yet</h3>
-        <p className="mt-2 text-sm text-text-soft">Get started by creating your first garden.</p>
-      </div>
+      <EmptyState
+        icon={<RiPlantLine className="h-6 w-6" />}
+        title={formatMessage({ id: "admin.gardens.empty.title", defaultMessage: "No gardens yet" })}
+        description={formatMessage({
+          id: "admin.gardens.empty.description",
+          defaultMessage: "Get started by creating your first garden.",
+        })}
+        action={{
+          label: formatMessage({
+            id: "admin.gardens.empty.action",
+            defaultMessage: "Create Garden",
+          }),
+          onClick: () => {
+            window.location.href = "/gardens/create";
+          },
+        }}
+      />
     );
   } else {
     content = (
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-        {gardens.map((garden, index) => {
+      <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        {gardens.map((garden) => {
           const canManage = gardenPermissions.canManageGarden(garden);
           const isOwner = gardenPermissions.isOwnerOfGarden(garden);
           const isOperator = gardenPermissions.isOperatorOfGarden(garden);
@@ -138,11 +202,11 @@ export default function Gardens() {
           })();
 
           return (
-            <div
+            <Card
               key={garden.id}
               data-testid="garden-card"
-              className="min-w-[320px] overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md opacity-0 animate-fade-in-up active:scale-[0.98]"
-              style={{ animationDelay: `${index * 50}ms` }}
+              variant="interactive"
+              className="overflow-hidden active:scale-[0.98]"
             >
               <div className="relative h-48">
                 {resolvedBannerImage ? (
@@ -181,7 +245,9 @@ export default function Gardens() {
               <div className="p-6">
                 <div className="mb-2 flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="mb-1 text-lg font-medium text-text-strong">{garden.name}</h3>
+                    <h3 className="mb-1 font-heading text-lg font-medium text-text-strong">
+                      {garden.name}
+                    </h3>
                     <p className="text-sm text-text-soft">{garden.location}</p>
                   </div>
                   {!resolvedBannerImage && roleBadge && (
@@ -209,16 +275,17 @@ export default function Gardens() {
                 </div>
 
                 <div className="flex items-center justify-end">
-                  <Link
-                    to={`/gardens/${garden.id}`}
-                    className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-1.5 text-sm font-medium text-text-sub transition hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base"
-                  >
-                    <RiEyeLine className="mr-1 h-4 w-4" />
-                    {canManage ? "Manage" : "View"}
-                  </Link>
+                  <Button variant="secondary" size="sm" asChild>
+                    <Link to={`/gardens/${garden.id}`}>
+                      <RiEyeLine className="mr-1 h-4 w-4" />
+                      {canManage
+                        ? formatMessage({ id: "admin.gardens.manage", defaultMessage: "Manage" })
+                        : formatMessage({ id: "admin.gardens.view", defaultMessage: "View" })}
+                    </Link>
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
@@ -227,8 +294,12 @@ export default function Gardens() {
 
   return (
     <div className="pb-6">
-      <PageHeader title="Gardens" description={headerDescription} actions={headerActions} />
-      <div className="mt-6 px-6">{content}</div>
+      <PageHeader
+        title={formatMessage({ id: "admin.gardens.title", defaultMessage: "Gardens" })}
+        description={headerDescription}
+        actions={headerActions}
+      />
+      <div className="mt-6 px-4 sm:px-6">{content}</div>
     </div>
   );
 }

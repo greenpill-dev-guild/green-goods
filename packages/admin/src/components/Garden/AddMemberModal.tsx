@@ -164,7 +164,10 @@ export function AddMemberModal({
                     setError("");
                   }}
                   className="w-full px-3 py-2 pr-10 border border-stroke-sub bg-bg-white text-text-strong rounded-md focus:outline-none focus:ring-2 focus:ring-primary-base focus:border-primary-base"
-                  placeholder="0x..."
+                  placeholder={formatMessage({
+                    id: "admin.addMember.placeholder",
+                    defaultMessage: "0x... or name.eth",
+                  })}
                   disabled={isLoading}
                 />
                 <button
@@ -172,7 +175,10 @@ export function AddMemberModal({
                   onClick={handlePaste}
                   disabled={isLoading}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-soft hover:text-text-sub disabled:opacity-50"
-                  title="Paste from clipboard"
+                  title={formatMessage({
+                    id: "admin.addMember.paste",
+                    defaultMessage: "Paste from clipboard",
+                  })}
                 >
                   <RiClipboardLine className="h-4 w-4" />
                 </button>
@@ -180,10 +186,22 @@ export function AddMemberModal({
               {shouldResolveEns && (
                 <p className="mt-2 text-xs text-text-soft">
                   {resolvingEns
-                    ? "Resolving ENS name..."
+                    ? formatMessage({
+                        id: "admin.addMember.resolvingEns",
+                        defaultMessage: "Resolving ENS name...",
+                      })
                     : resolvedEnsAddress
-                      ? `Resolves to ${formatAddress(resolvedEnsAddress)}`
-                      : "Enter a valid ENS name or 0x address."}
+                      ? formatMessage(
+                          {
+                            id: "admin.addMember.ensResolved",
+                            defaultMessage: "Resolves to {address}",
+                          },
+                          { address: formatAddress(resolvedEnsAddress) }
+                        )
+                      : formatMessage({
+                          id: "admin.addMember.enterValidAddress",
+                          defaultMessage: "Enter a valid ENS name or 0x address.",
+                        })}
                 </p>
               )}
               {error && <p className="mt-1 text-sm text-error-dark">{error}</p>}
@@ -197,7 +215,7 @@ export function AddMemberModal({
                   disabled={isLoading}
                   className="px-4 py-2 border border-stroke-sub text-sm font-medium rounded-md text-text-sub bg-bg-white hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base disabled:opacity-50"
                 >
-                  Cancel
+                  {formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" })}
                 </button>
               </Dialog.Close>
               <button
@@ -211,7 +229,7 @@ export function AddMemberModal({
                 )}
               >
                 {isLoading
-                  ? "Adding..."
+                  ? formatMessage({ id: "admin.addMember.adding", defaultMessage: "Adding..." })
                   : formatMessage({ id: "app.admin.roles.add" }, { role: roleLabel })}
               </button>
             </div>

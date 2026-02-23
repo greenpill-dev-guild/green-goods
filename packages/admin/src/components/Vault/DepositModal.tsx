@@ -13,10 +13,11 @@ import {
   useVaultPreview,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
-import { RiCloseLine, RiLoader4Line } from "@remixicon/react";
+import { RiCloseLine } from "@remixicon/react";
 import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { Button } from "@/components/ui/Button";
 import { encodeFunctionData, formatUnits } from "viem";
 
 const VAULT_DEPOSIT_ABI = [
@@ -194,8 +195,9 @@ export function DepositModal({
                       : "border-stroke-sub bg-bg-white focus:border-primary-base"
                   }`}
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => {
                     if (!balance) return;
                     form.setValue("amount", formatUnits(balance.value, balance.decimals), {
@@ -204,10 +206,9 @@ export function DepositModal({
                     });
                   }}
                   disabled={!decimalsReady || depositMutation.isPending}
-                  className="rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub hover:bg-bg-weak"
                 >
                   {formatMessage({ id: "app.treasury.max" })}
-                </button>
+                </Button>
               </div>
               {amountError && (
                 <p id="deposit-error" className="text-xs text-error-dark" role="alert">
@@ -256,8 +257,8 @@ export function DepositModal({
                 {formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })}
               </p>
             )}
-            <button
-              type="button"
+            <Button
+              className="w-full"
               onClick={onSubmit}
               disabled={
                 !selectedVault ||
@@ -268,13 +269,12 @@ export function DepositModal({
                 !vaultAcceptingDeposits ||
                 depositMutation.isPending
               }
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
+              loading={depositMutation.isPending}
             >
-              {depositMutation.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
               {depositMutation.isPending
                 ? formatMessage({ id: "app.treasury.depositing" })
                 : formatMessage({ id: "app.treasury.deposit" })}
-            </button>
+            </Button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

@@ -9,6 +9,8 @@ import { RiAddLine, RiCupLine, RiGroupLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AddressDisplay } from "@/components/AddressDisplay";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface GardenPool {
   poolType: PoolType;
@@ -59,7 +61,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
   return (
     <>
       {hasVaults && (
-        <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+        <Card padding="compact" className="mb-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-base font-semibold text-text-strong sm:text-lg">
@@ -69,23 +71,22 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                 {formatMessage({ id: "app.treasury.gardenTreasuryDescription" }, { gardenName })}
               </p>
             </div>
-            <Link
-              to={`/gardens/${gardenId}/vault`}
-              className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-            >
-              {formatMessage({ id: "app.treasury.manageVault" })}
-            </Link>
+            <Button variant="secondary" size="sm" asChild>
+              <Link to={`/gardens/${gardenId}/vault`}>
+                {formatMessage({ id: "app.treasury.manageVault" })}
+              </Link>
+            </Button>
           </div>
           {vaultsLoading && (
             <p className="mt-3 text-sm text-text-soft">
               {formatMessage({ id: "app.treasury.loadingVaults" })}
             </p>
           )}
-        </div>
+        </Card>
       )}
 
       {canManage && (
-        <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+        <Card padding="compact" className="mb-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-base font-semibold text-text-strong sm:text-lg">
@@ -99,31 +100,28 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link
-                to={`/gardens/${gardenId}/signal-pool/hypercert`}
-                className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-              >
-                {formatMessage({ id: "app.signal.viewHypercertPool" })}
-              </Link>
-              <Link
-                to={`/gardens/${gardenId}/signal-pool/action`}
-                className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-              >
-                {formatMessage({ id: "app.signal.viewActionPool" })}
-              </Link>
-              <Link
-                to={`/gardens/${gardenId}/strategies`}
-                className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-              >
-                {formatMessage({ id: "app.conviction.manageStrategies" })}
-              </Link>
+              <Button variant="secondary" size="sm" asChild>
+                <Link to={`/gardens/${gardenId}/signal-pool/hypercert`}>
+                  {formatMessage({ id: "app.signal.viewHypercertPool" })}
+                </Link>
+              </Button>
+              <Button variant="secondary" size="sm" asChild>
+                <Link to={`/gardens/${gardenId}/signal-pool/action`}>
+                  {formatMessage({ id: "app.signal.viewActionPool" })}
+                </Link>
+              </Button>
+              <Button variant="secondary" size="sm" asChild>
+                <Link to={`/gardens/${gardenId}/strategies`}>
+                  {formatMessage({ id: "app.conviction.manageStrategies" })}
+                </Link>
+              </Button>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {cookieJarCount > 0 && (
-        <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+        <Card padding="compact" className="mb-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-lighter">
@@ -138,17 +136,16 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                 </p>
               </div>
             </div>
-            <Link
-              to={`/gardens/${gardenId}/cookie-jars`}
-              className="inline-flex items-center rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-            >
-              {formatMessage({ id: "app.actions.view" })}
-            </Link>
+            <Button variant="secondary" size="sm" asChild>
+              <Link to={`/gardens/${gardenId}/cookie-jars`}>
+                {formatMessage({ id: "app.actions.view" })}
+              </Link>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
-      <div className="mb-4 rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+      <Card padding="compact" className="mb-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-feature-lighter">
@@ -246,8 +243,9 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
               {formatMessage({ id: "app.community.noPoolsYet" })}
             </p>
             {canManage && community && (
-              <button
-                type="button"
+              <Button
+                size="sm"
+                className="mt-2"
                 onClick={async () => {
                   try {
                     await onCreatePools();
@@ -262,17 +260,17 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   }
                 }}
                 disabled={isCreatingPools}
-                className="mt-2 inline-flex items-center gap-2 rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker active:scale-95 disabled:opacity-50"
+                loading={isCreatingPools}
               >
-                <RiAddLine className="h-4 w-4" />
+                {!isCreatingPools && <RiAddLine className="h-4 w-4" />}
                 {isCreatingPools
                   ? formatMessage({ id: "app.community.creatingPools" })
                   : formatMessage({ id: "app.community.createPools" })}
-              </button>
+              </Button>
             )}
           </div>
         )}
-      </div>
+      </Card>
     </>
   );
 };

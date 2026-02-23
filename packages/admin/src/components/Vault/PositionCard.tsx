@@ -16,6 +16,8 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { RiLoader4Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface PositionCardProps {
   gardenAddress: Address;
@@ -79,7 +81,7 @@ export function PositionCard({
   };
 
   return (
-    <article className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+    <Card padding="compact" className="sm:p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-base font-semibold text-text-strong sm:text-lg">{assetSymbol}</h3>
         {!vaultAcceptingDeposits && (
@@ -121,8 +123,9 @@ export function PositionCard({
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => onDeposit(vault.asset)}
           disabled={!vaultAcceptingDeposits}
           title={
@@ -130,17 +133,12 @@ export function PositionCard({
               ? formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })
               : undefined
           }
-          className="rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-40"
         >
           {formatMessage({ id: "app.treasury.deposit" })}
-        </button>
-        <button
-          type="button"
-          onClick={() => onWithdraw(vault.asset)}
-          className="rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-        >
+        </Button>
+        <Button variant="secondary" size="sm" onClick={() => onWithdraw(vault.asset)}>
           {formatMessage({ id: "app.treasury.withdraw" })}
-        </button>
+        </Button>
       </div>
 
       {/* Configure vault roles — shown when vault is misconfigured and user is module owner */}
@@ -152,9 +150,7 @@ export function PositionCard({
             disabled={configureVaultRoles.isPending}
             className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-warning-base bg-warning-lighter px-3 py-2 text-sm font-medium text-warning-dark transition hover:bg-warning-light disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {configureVaultRoles.isPending && (
-              <RiLoader4Line className="h-4 w-4 animate-spin" />
-            )}
+            {configureVaultRoles.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
             {formatMessage({ id: "app.treasury.configureVault" })}
           </button>
         </div>
@@ -163,15 +159,14 @@ export function PositionCard({
       {canManage && (
         <div className="mt-2">
           <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
+            <Button
+              size="sm"
               onClick={onHarvest}
               disabled={harvest.isPending}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
+              loading={harvest.isPending}
             >
-              {harvest.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
               {formatMessage({ id: "app.treasury.harvest" })}
-            </button>
+            </Button>
             <button
               type="button"
               onClick={() => setConfirmPauseOpen(true)}
@@ -198,12 +193,7 @@ export function PositionCard({
             </Dialog.Description>
             <div className="mt-6 flex items-center justify-end gap-3">
               <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className="rounded-md border border-stroke-sub bg-bg-white px-4 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak"
-                >
-                  {formatMessage({ id: "app.wizard.cancel" })}
-                </button>
+                <Button variant="secondary">{formatMessage({ id: "app.wizard.cancel" })}</Button>
               </Dialog.Close>
               <button
                 type="button"
@@ -218,6 +208,6 @@ export function PositionCard({
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-    </article>
+    </Card>
   );
 }

@@ -6,6 +6,7 @@ import {
   RiNftLine,
   RiWallet3Line,
 } from "@remixicon/react";
+import { useIntl } from "react-intl";
 
 interface GardenMetadataProps {
   gardenId: Address; // Garden smart account address
@@ -22,6 +23,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
   chainId,
   className,
 }) => {
+  const { formatMessage } = useIntl();
   const { copied: copiedGarden, copy: copyGarden } = useCopyToClipboard();
   const { copied: copiedToken, copy: copyToken } = useCopyToClipboard();
 
@@ -61,7 +63,12 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-text-soft">
           <RiWallet3Line className="h-3.5 w-3.5 flex-shrink-0" />
-          <span className="truncate">Garden Account</span>
+          <span className="truncate">
+            {formatMessage({
+              id: "admin.gardenMetadata.gardenAccount",
+              defaultMessage: "Garden Account",
+            })}
+          </span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
           <code className="flex-1 truncate text-xs font-mono text-text-strong sm:text-sm">
@@ -75,9 +82,15 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           <button
             onClick={() => copyGarden(gardenId)}
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-text-soft transition hover:bg-bg-weak hover:text-text-sub active:scale-95"
-            title="Copy address"
+            title={formatMessage({
+              id: "admin.gardenMetadata.copyAddress",
+              defaultMessage: "Copy address",
+            })}
             type="button"
-            aria-label="Copy garden address"
+            aria-label={formatMessage({
+              id: "admin.gardenMetadata.copyGardenAddress",
+              defaultMessage: "Copy garden address",
+            })}
           >
             {copiedGarden ? (
               <RiCheckLine className="h-4 w-4 text-success-dark" />
@@ -91,8 +104,14 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-information-dark transition hover:bg-information-lighter active:scale-95"
-              title="View on block explorer"
-              aria-label="View garden on block explorer"
+              title={formatMessage({
+                id: "admin.gardenMetadata.viewOnExplorer",
+                defaultMessage: "View on block explorer",
+              })}
+              aria-label={formatMessage({
+                id: "admin.gardenMetadata.viewGardenOnExplorer",
+                defaultMessage: "View garden on block explorer",
+              })}
             >
               <RiExternalLinkLine className="h-4 w-4" />
             </a>
@@ -104,7 +123,9 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-text-soft">
           <RiNftLine className="h-3.5 w-3.5 flex-shrink-0" />
-          <span className="truncate">Garden NFT</span>
+          <span className="truncate">
+            {formatMessage({ id: "admin.gardenMetadata.gardenNFT", defaultMessage: "Garden NFT" })}
+          </span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
           <code className="flex-1 truncate text-xs font-mono text-text-strong sm:text-sm">
@@ -118,9 +139,15 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           <button
             onClick={() => copyToken(`${tokenAddress}/${tokenId}`)}
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-text-soft transition hover:bg-bg-weak hover:text-text-sub active:scale-95"
-            title="Copy NFT identifier"
+            title={formatMessage({
+              id: "admin.gardenMetadata.copyNFT",
+              defaultMessage: "Copy NFT identifier",
+            })}
             type="button"
-            aria-label="Copy NFT identifier"
+            aria-label={formatMessage({
+              id: "admin.gardenMetadata.copyNFTId",
+              defaultMessage: "Copy NFT identifier",
+            })}
           >
             {copiedToken ? (
               <RiCheckLine className="h-4 w-4 text-success-dark" />
@@ -134,8 +161,14 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-information-dark transition hover:bg-information-lighter active:scale-95"
-              title="View NFT on block explorer"
-              aria-label="View NFT on block explorer"
+              title={formatMessage({
+                id: "admin.gardenMetadata.viewNFTOnExplorer",
+                defaultMessage: "View NFT on block explorer",
+              })}
+              aria-label={formatMessage({
+                id: "admin.gardenMetadata.viewNFTOnExplorer",
+                defaultMessage: "View NFT on block explorer",
+              })}
             >
               <RiExternalLinkLine className="h-4 w-4" />
             </a>
@@ -145,7 +178,12 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
 
       {/* Quick Actions */}
       <div className="flex flex-col gap-2 md:col-span-2 lg:col-span-1">
-        <div className="text-xs uppercase tracking-wide text-text-soft">External Links</div>
+        <div className="text-xs uppercase tracking-wide text-text-soft">
+          {formatMessage({
+            id: "admin.gardenMetadata.externalLinks",
+            defaultMessage: "External Links",
+          })}
+        </div>
         <div className="flex flex-wrap gap-2">
           {blockExplorer && (
             <a
@@ -155,7 +193,12 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
               className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-stroke-sub bg-bg-white px-4 py-2.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
             >
               <RiExternalLinkLine className="h-4 w-4 flex-shrink-0" />
-              <span className="whitespace-nowrap">Token Contract</span>
+              <span className="whitespace-nowrap">
+                {formatMessage({
+                  id: "admin.gardenMetadata.tokenContract",
+                  defaultMessage: "Token Contract",
+                })}
+              </span>
             </a>
           )}
           <a

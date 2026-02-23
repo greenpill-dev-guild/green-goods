@@ -175,7 +175,10 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
               value={form.name}
               onChange={(event) => setField("name", event.target.value)}
               onBlur={() => handleFieldBlur("name")}
-              placeholder="eg. Rio rainforest lab"
+              placeholder={formatMessage({
+                id: "admin.details.namePlaceholder",
+                defaultMessage: "eg. Rio rainforest lab",
+              })}
               className={cn(
                 "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
                 showFieldError("name") &&
@@ -198,7 +201,10 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
               value={form.location}
               onChange={(event) => setField("location", event.target.value)}
               onBlur={() => handleFieldBlur("location")}
-              placeholder="City, country or coordinates"
+              placeholder={formatMessage({
+                id: "admin.details.locationPlaceholder",
+                defaultMessage: "City, country or coordinates",
+              })}
               className={cn(
                 "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
                 showFieldError("location") &&
@@ -231,7 +237,10 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
                 setField("slug", event.target.value.toLowerCase());
               }}
               onBlur={() => handleFieldBlur("slug")}
-              placeholder="eg. rio-rainforest-lab"
+              placeholder={formatMessage({
+                id: "admin.details.slugPlaceholder",
+                defaultMessage: "eg. rio-rainforest-lab",
+              })}
               inputMode="text"
               autoCapitalize="none"
               autoComplete="off"
@@ -297,7 +306,10 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             value={form.description}
             onChange={(event) => setField("description", event.target.value)}
             onBlur={() => handleFieldBlur("description")}
-            placeholder="Share the story, mission and unique traits of the garden."
+            placeholder={formatMessage({
+              id: "admin.details.descriptionPlaceholder",
+              defaultMessage: "Share the story, mission and unique traits of the garden.",
+            })}
             rows={3}
             className={cn(
               "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",

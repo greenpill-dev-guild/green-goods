@@ -12,8 +12,63 @@ export default function ActionDetail() {
 
   if (isLoading) {
     return (
-      <div className="text-center py-12">
-        <p className="text-text-sub">{formatMessage({ id: "app.actions.loading" })}</p>
+      <div role="status" aria-live="polite">
+        <span className="sr-only">{formatMessage({ id: "app.actions.loading" })}</span>
+        <div className="border-b border-stroke-soft bg-bg-white px-4 py-3 sm:px-6 sm:py-4">
+          <div className="h-7 w-48 rounded skeleton-shimmer" />
+          <div
+            className="mt-2 h-4 w-32 rounded skeleton-shimmer"
+            style={{ animationDelay: "0.05s" }}
+          />
+        </div>
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6 px-4 sm:px-6">
+          <div className="lg:col-span-2">
+            <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
+              <div
+                className="h-6 w-24 rounded skeleton-shimmer mb-4"
+                style={{ animationDelay: "0.1s" }}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-48 rounded skeleton-shimmer"
+                    style={{ animationDelay: `${0.1 + i * 0.05}s` }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-6">
+            <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
+              <div
+                className="h-6 w-20 rounded skeleton-shimmer mb-4"
+                style={{ animationDelay: "0.15s" }}
+              />
+              <div className="space-y-3">
+                <div
+                  className="h-4 w-full rounded skeleton-shimmer"
+                  style={{ animationDelay: "0.2s" }}
+                />
+                <div
+                  className="h-4 w-full rounded skeleton-shimmer"
+                  style={{ animationDelay: "0.25s" }}
+                />
+                <div
+                  className="h-4 w-2/3 rounded skeleton-shimmer"
+                  style={{ animationDelay: "0.3s" }}
+                />
+              </div>
+            </div>
+            <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
+              <div
+                className="h-6 w-28 rounded skeleton-shimmer mb-4"
+                style={{ animationDelay: "0.2s" }}
+              />
+              <div className="h-16 rounded skeleton-shimmer" style={{ animationDelay: "0.25s" }} />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

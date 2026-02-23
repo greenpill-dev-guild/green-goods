@@ -14,7 +14,7 @@ const colorSchemeMap: Record<ColorScheme, string> = {
 interface StatCardProps {
   icon: React.ReactNode;
   label: string;
-  value: number | string;
+  value: React.ReactNode;
   colorScheme?: ColorScheme;
   className?: string;
 }
@@ -42,12 +42,12 @@ export const StatCard: React.FC<StatCardProps> = ({
         >
           {icon}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs uppercase tracking-wide text-text-soft">{label}</p>
-          <p className="mt-1 truncate text-xl font-semibold text-text-strong sm:text-2xl">
+        <dl className="min-w-0 flex-1">
+          <dt className="truncate text-xs uppercase tracking-wide text-text-soft">{label}</dt>
+          <dd className="mt-1 truncate font-heading text-xl font-semibold tabular-nums text-text-strong sm:text-2xl">
             {value}
-          </p>
-        </div>
+          </dd>
+        </dl>
       </div>
     </div>
   );

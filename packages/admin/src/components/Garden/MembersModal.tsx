@@ -2,6 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiDeleteBinLine, RiUserLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { AddressDisplay } from "../AddressDisplay";
 
 type MembersModalProps = {
@@ -108,16 +109,10 @@ export function MembersModal({
           {/* Content */}
           <div className="overflow-y-auto p-4 sm:p-6" style={{ maxHeight: "calc(90vh - 80px)" }}>
             {members.length === 0 ? (
-              <div className="py-12 text-center">
-                <div
-                  className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${colors.iconBg}`}
-                >
-                  {icon || <RiUserLine className={`h-8 w-8 ${colors.iconText}`} />}
-                </div>
-                <p className="text-sm text-text-soft">
-                  {formatMessage({ id: "app.admin.garden.members.empty" })}
-                </p>
-              </div>
+              <EmptyState
+                icon={icon || <RiUserLine className="h-6 w-6" />}
+                title={formatMessage({ id: "app.admin.garden.members.empty" })}
+              />
             ) : (
               <div className="space-y-2 sm:space-y-3">
                 {members.map((member: string, index: number) => (
