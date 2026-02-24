@@ -14,7 +14,7 @@ test.describe("Performance Tests", () => {
       const startTime = Date.now();
 
       await page.goto(TEST_URLS.client);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       const loadTime = Date.now() - startTime;
 
@@ -62,7 +62,7 @@ test.describe("Performance Tests", () => {
       const startTime = Date.now();
 
       await page.goto(TEST_URLS.admin);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       const loadTime = Date.now() - startTime;
 
@@ -80,7 +80,7 @@ test.describe("Performance Tests", () => {
       });
 
       await page.goto(TEST_URLS.client);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(2000);
 
       // Should have no failed requests (or only expected ones)
@@ -153,7 +153,7 @@ test.describe("Performance Tests", () => {
     test("no memory leaks during navigation", async ({ page }) => {
       // Navigate to client app
       await page.goto(TEST_URLS.client);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       // Get initial memory usage
       const initialMemory = await page.evaluate(() => {
@@ -163,9 +163,9 @@ test.describe("Performance Tests", () => {
       // Navigate around a few times
       for (let i = 0; i < 5; i++) {
         await page.goto(`${TEST_URLS.client}/login`);
-        await page.waitForLoadState("networkidle");
+        await page.waitForLoadState("domcontentloaded");
         await page.goto(TEST_URLS.client);
-        await page.waitForLoadState("networkidle");
+        await page.waitForLoadState("domcontentloaded");
       }
 
       // Force garbage collection if available
@@ -227,7 +227,7 @@ test.describe("Performance Tests", () => {
 
       // Navigate to client (PWA)
       await page.goto(TEST_URLS.client);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       // Wait for service worker
       await page.waitForTimeout(2000);

@@ -32,7 +32,7 @@ test.describe("Admin Dashboard", () => {
 
     test("shows login page with correct branding", async ({ page }) => {
       await page.goto("/login");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       // Wait for page to fully render
       await page.waitForTimeout(1000);
@@ -212,7 +212,7 @@ test.describe("Admin Dashboard", () => {
 
     test("login page loads without errors", async ({ page }) => {
       await page.goto("/login");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       // No JS errors
       const errors: string[] = [];

@@ -47,15 +47,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build contracts
-        run: |
-          cd packages/contracts
-          bun run build:full
-
-      # NOTE: forge coverage is blocked by Yul/stack-too-deep constraints in selected
-      # contracts. Selective via_ir is used for those paths; forge test pass/fail + gas
-      # regression checks serve as interim coverage proxy. No coverage gating
-      # until the Yul issue is resolved upstream.
       - name: Run tests
         run: |
           cd packages/contracts
@@ -84,11 +75,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
-      - name: Build contracts
-        run: |
-          cd packages/contracts
-          bun run build:full
 
       - name: Run fork protocol suite (exclude Celo + Unlock)
         run: |

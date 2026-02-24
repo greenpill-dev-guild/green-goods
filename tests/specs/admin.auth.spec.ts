@@ -299,7 +299,7 @@ test.describe("Admin Authentication", () => {
 
       // Login in first tab
       await page1.goto("/dashboard");
-      await page1.waitForLoadState("networkidle");
+      await page1.waitForLoadState("domcontentloaded");
 
       // Wait for auth to settle
       const isAuthenticated = await helper1.waitForAuthSettled({ timeout: 15000 });
@@ -318,7 +318,7 @@ test.describe("Admin Authentication", () => {
       // Open second tab - init script should apply via context
       const page2 = await context.newPage();
       await page2.goto("/dashboard");
-      await page2.waitForLoadState("networkidle");
+      await page2.waitForLoadState("domcontentloaded");
 
       // Create helper for page2 to use waitForAuthSettled
       const helper2 = new AdminTestHelper(page2);

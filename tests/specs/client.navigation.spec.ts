@@ -22,7 +22,7 @@ test.describe("Client Navigation", () => {
 
       for (const route of protectedRoutes) {
         await page.goto(route);
-        await page.waitForLoadState("networkidle");
+        await page.waitForLoadState("domcontentloaded");
 
         // Should redirect to login
         expect(page.url()).toContain("/login");
@@ -213,7 +213,7 @@ test.describe("Client Navigation", () => {
   test.describe("Error Pages", () => {
     test("shows 404 page for non-existent routes", async ({ page }) => {
       await page.goto("/this-page-does-not-exist-12345");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       // Wait for React Router to handle the route
       await page.waitForTimeout(1000);

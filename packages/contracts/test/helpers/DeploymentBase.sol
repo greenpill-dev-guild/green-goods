@@ -176,12 +176,29 @@ abstract contract DeploymentBase is Test, DeployHelper {
     }
 
     /// @notice Deploy L2 core contracts with FULL production features (CREATE2, UUPS, Guardian)
-    /// @dev Only for L2 chains - mainnet uses _deployMainnetENS instead
+    /// @dev Only for L2 chains - mainnet uses _deployMainnetENS instead.
+    ///      Split into three sub-functions to avoid Yul stack-too-deep in via_ir compilation.
     function _deployCoreContracts(
         address, /* communityToken */
         address owner,
         address eas,
         address, /* easSchemaRegistry */
+        bytes32 salt,
+        address factory,
+        address tokenboundRegistry
+    )
+        internal
+        virtual
+    {
+        _deployCorePart1(owner, eas, salt, factory, tokenboundRegistry);
+        _deployCorePart2(owner, salt, factory);
+        _wireModules();
+    }
+
+    /// @notice Deploy core infrastructure: Guardian, ActionRegistry, Resolvers, Hats, Account, Token
+    function _deployCorePart1(
+        address owner,
+        address eas,
         bytes32 salt,
         address factory,
         address tokenboundRegistry
@@ -228,7 +245,17 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // 7. Deploy GardenToken with CREATE2 + proxy (owner will own it)
         gardenToken =
             GardenToken(deployGardenToken(address(gardenAccountImpl), owner, address(deploymentRegistry), salt, factory));
+    }
 
+    /// @notice Deploy extension modules: Karma, Octant, Power, Gardens, Yield, CookieJar, Hypercerts, ENS, Goods
+    function _deployCorePart2(
+        address owner,
+        bytes32 salt,
+        address factory
+    )
+        internal
+        virtual
+    {
         // 8. Deploy KarmaGAPModule (after GardenToken exists)
         karmaGAPModule = KarmaGAPModule(
             _deployKarmaGAPModule(
@@ -310,8 +337,10 @@ abstract contract DeploymentBase is Test, DeployHelper {
         // 15b. Deploy GoodsToken (standalone ERC-20 for community staking)
         // Owner starts as deployer, ownership transferred to GardensModule after wiring
         goodsTokenContract = new GoodsToken("Green Goods", "GOODS", owner, 0, 10_000_000e18);
+    }
 
-        // 16. Wire modules
+    /// @notice Wire all module cross-references after deployment
+    function _wireModules() internal virtual {
         hatsModule.setGardenToken(address(gardenToken));
         hatsModule.setKarmaGAPModule(address(karmaGAPModule));
         gardenToken.setHatsModule(address(hatsModule));
@@ -1165,7 +1194,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         } catch { }
 
         // Deployed addresses from ../cookie-jar/contracts/broadcast/Deploy.s.sol/{chainId}/run-latest.json
-        if (chainId == 42_161) return 0xfe367D31d181D305dcF5AAaa345a70A65c345153; // Arbitrum
+        if (chainId == 42_161) return 0x294d222eDE6DF6625B43544F1C634322467528Da; // Arbitrum (upgradeable proxy)
         if (chainId == 11_155_111) return 0x021368bf9958f4D535d39d571Bc45f74d20e4666; // Sepolia
 
         return address(0);
