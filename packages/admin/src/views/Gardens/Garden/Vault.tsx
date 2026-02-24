@@ -2,12 +2,14 @@ import {
   type Address,
   formatTokenAmount,
   getNetDeposited,
+  getNetworkContracts,
   getVaultAssetSymbol,
+  OCTANT_MODULE_ABI,
+  useCurrentChain,
   useGardenPermissions,
   useGardenVaults,
   useGardens,
   useUser,
-  useCurrentChain,
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -15,7 +17,6 @@ import { useParams } from "react-router-dom";
 import { useReadContract } from "wagmi";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { DepositModal, PositionCard, VaultEventHistory, WithdrawModal } from "@/components/Vault";
-import { getNetworkContracts, OCTANT_MODULE_ABI } from "@green-goods/shared";
 
 export default function GardenVaultView() {
   const { id } = useParams<{ id: string }>();

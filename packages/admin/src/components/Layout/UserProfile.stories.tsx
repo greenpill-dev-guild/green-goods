@@ -10,8 +10,7 @@ import {
 } from "@remixicon/react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useIntl } from "react-intl";
-import { cn } from "@green-goods/shared";
-import type { Address } from "@green-goods/shared";
+import { cn, type Address } from "@green-goods/shared";
 import { AddressDisplay } from "../AddressDisplay";
 
 // ─── Mock UserProfile ────────────────────────────────────────────────

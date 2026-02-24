@@ -1,5 +1,4 @@
-import type { Action } from "../../types";
-import { Domain } from "../../types";
+import { type Action, Domain } from "../../types";
 
 export type ActionSortOrder = "default" | "title" | "recent";
 

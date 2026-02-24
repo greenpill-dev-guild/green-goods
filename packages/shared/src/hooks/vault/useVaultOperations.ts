@@ -175,7 +175,7 @@ export function useVaultDeposit() {
       }
 
       // Early slippage check: reject if caller-provided minSharesOut already fails
-      if (params.minSharesOut != null) {
+      if (params.minSharesOut !== undefined) {
         const earlyPreview = await readContract(wagmiConfig, {
           address: params.vaultAddress,
           abi: OCTANT_VAULT_ABI,
