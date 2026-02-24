@@ -19,7 +19,10 @@ export function Header() {
         {/* Mobile menu button */}
         <button
           onClick={() => setSidebarOpen(true)}
-          aria-label={intl.formatMessage({ id: "app.admin.header.openNavMenu", defaultMessage: "Open navigation menu" })}
+          aria-label={intl.formatMessage({
+            id: "app.admin.header.openNavMenu",
+            defaultMessage: "Open navigation menu",
+          })}
           aria-expanded={sidebarOpen}
           className="lg:hidden min-h-11 min-w-11 p-2 rounded-md text-text-soft hover:text-text-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
         >
@@ -47,7 +50,11 @@ export function Header() {
             {chainLabel}
           </div>
 
-          {isAuthenticated && eoaAddress ? <UserProfile /> : <ConnectButton variant="primary" size="sm" />}
+          {isAuthenticated && eoaAddress ? (
+            <UserProfile />
+          ) : (
+            <ConnectButton variant="primary" size="sm" />
+          )}
         </div>
       </div>
     </header>

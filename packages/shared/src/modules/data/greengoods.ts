@@ -105,9 +105,7 @@ export async function getActions(): Promise<Action[]> {
             id, // composite id stays for uniqueness but downstream selection matches numeric UID
             title,
             slug: typeof slug === "string" ? slug : "",
-            instructions: instructions
-              ? resolveIPFSUrl(instructions, GATEWAY_BASE_URL)
-              : undefined,
+            instructions: instructions ? resolveIPFSUrl(instructions, GATEWAY_BASE_URL) : undefined,
             domain: parseDomain(domain as string | undefined),
             startTime: startTime ? Number(startTime) * 1000 : Date.now(),
             endTime: endTime ? Number(endTime) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now

@@ -18,12 +18,42 @@ interface SearchResult {
 }
 
 const STATIC_ROUTES: { id: string; labelId: string; defaultLabel: string; href: string }[] = [
-  { id: "page-dashboard", labelId: "app.admin.nav.dashboard", defaultLabel: "Dashboard", href: "/dashboard" },
-  { id: "page-gardens", labelId: "app.admin.nav.gardens", defaultLabel: "Gardens", href: "/gardens" },
-  { id: "page-endowments", labelId: "app.admin.nav.treasury", defaultLabel: "Endowments", href: "/endowments" },
-  { id: "page-actions", labelId: "app.admin.nav.actions", defaultLabel: "Actions", href: "/actions" },
-  { id: "page-contracts", labelId: "app.admin.nav.contracts", defaultLabel: "Contracts", href: "/contracts" },
-  { id: "page-deployment", labelId: "app.admin.nav.deployment", defaultLabel: "Deployment", href: "/deployment" },
+  {
+    id: "page-dashboard",
+    labelId: "app.admin.nav.dashboard",
+    defaultLabel: "Dashboard",
+    href: "/dashboard",
+  },
+  {
+    id: "page-gardens",
+    labelId: "app.admin.nav.gardens",
+    defaultLabel: "Gardens",
+    href: "/gardens",
+  },
+  {
+    id: "page-endowments",
+    labelId: "app.admin.nav.treasury",
+    defaultLabel: "Endowments",
+    href: "/endowments",
+  },
+  {
+    id: "page-actions",
+    labelId: "app.admin.nav.actions",
+    defaultLabel: "Actions",
+    href: "/actions",
+  },
+  {
+    id: "page-contracts",
+    labelId: "app.admin.nav.contracts",
+    defaultLabel: "Contracts",
+    href: "/contracts",
+  },
+  {
+    id: "page-deployment",
+    labelId: "app.admin.nav.deployment",
+    defaultLabel: "Deployment",
+    href: "/deployment",
+  },
 ];
 
 export function CommandPalette() {

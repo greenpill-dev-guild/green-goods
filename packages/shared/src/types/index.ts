@@ -135,7 +135,14 @@ export type {
   WorkMetadataV1,
 } from "./domain";
 // Re-export enums (value exports, not type)
-export { Capital, Confidence, CynefinPhase, Domain, DOMAIN_COLORS, VerificationMethod } from "./domain";
+export {
+  Capital,
+  Confidence,
+  CynefinPhase,
+  Domain,
+  DOMAIN_COLORS,
+  VerificationMethod,
+} from "./domain";
 
 // ============================================
 // Hypercert Types

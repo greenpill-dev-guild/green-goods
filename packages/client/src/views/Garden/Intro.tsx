@@ -24,8 +24,16 @@ import { type StandardTab, StandardTabs } from "@/components/Navigation";
 const DOMAIN_TAB_CONFIG: Record<Domain, { labelId: string; defaultLabel: string; icon: string }> = {
   [Domain.SOLAR]: { labelId: "app.domain.tab.solar", defaultLabel: "Solar", icon: "ri-sun-line" },
   [Domain.AGRO]: { labelId: "app.domain.tab.agro", defaultLabel: "Agro", icon: "ri-plant-line" },
-  [Domain.EDU]: { labelId: "app.domain.tab.education", defaultLabel: "Education", icon: "ri-book-open-line" },
-  [Domain.WASTE]: { labelId: "app.domain.tab.waste", defaultLabel: "Waste", icon: "ri-recycle-line" },
+  [Domain.EDU]: {
+    labelId: "app.domain.tab.education",
+    defaultLabel: "Education",
+    icon: "ri-book-open-line",
+  },
+  [Domain.WASTE]: {
+    labelId: "app.domain.tab.waste",
+    defaultLabel: "Waste",
+    icon: "ri-recycle-line",
+  },
 };
 
 interface WorkIntroProps {

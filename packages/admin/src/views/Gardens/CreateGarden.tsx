@@ -288,12 +288,7 @@ export default function CreateGarden() {
                     defaultMessage: "Please review the details and try again.",
                   })}
               </p>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={retry}
-                className="mt-3"
-              >
+              <Button variant="secondary" size="sm" onClick={retry} className="mt-3">
                 {intl.formatMessage({
                   id: "admin.garden.deploy.retry",
                   defaultMessage: "Retry deployment",

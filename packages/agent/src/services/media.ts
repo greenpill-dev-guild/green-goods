@@ -56,7 +56,10 @@ export async function initMedia(key: string, proof: string, customGateway?: stri
     // Parse the ed25519 principal from the key — without this, Client.create()
     // generates a random DID and UCAN delegation fails ("not authorized")
     const principal = Signer.parse(key);
-    storachaClient = (await Client.create({ principal, store: new StoreMemory() })) as StorachaClient;
+    storachaClient = (await Client.create({
+      principal,
+      store: new StoreMemory(),
+    })) as StorachaClient;
 
     // Parse and add proof to the client
     const parsedProof = await Proof.parse(proof);

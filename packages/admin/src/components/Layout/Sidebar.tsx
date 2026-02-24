@@ -54,7 +54,10 @@ export function Sidebar() {
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            aria-label={intl.formatMessage({ id: "admin.sidebar.closeMenu", defaultMessage: "Close navigation menu" })}
+            aria-label={intl.formatMessage({
+              id: "admin.sidebar.closeMenu",
+              defaultMessage: "Close navigation menu",
+            })}
             className="lg:hidden p-2 rounded-md text-text-soft hover:text-text-sub"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

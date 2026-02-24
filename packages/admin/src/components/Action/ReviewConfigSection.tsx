@@ -13,7 +13,10 @@ export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionPro
     <div className="space-y-4">
       <div>
         <label htmlFor="review-title" className="block text-sm font-medium text-text-strong mb-2">
-          {formatMessage({ id: "app.admin.actions.reviewConfig.sectionTitle", defaultMessage: "Section Title" })}
+          {formatMessage({
+            id: "app.admin.actions.reviewConfig.sectionTitle",
+            defaultMessage: "Section Title",
+          })}
         </label>
         <input
           id="review-title"
@@ -21,7 +24,10 @@ export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionPro
           value={config.title}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
-          placeholder={formatMessage({ id: "app.admin.actions.reviewConfig.sectionTitlePlaceholder", defaultMessage: "e.g., Review & Submit" })}
+          placeholder={formatMessage({
+            id: "app.admin.actions.reviewConfig.sectionTitlePlaceholder",
+            defaultMessage: "e.g., Review & Submit",
+          })}
         />
       </div>
 
@@ -30,7 +36,10 @@ export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionPro
           htmlFor="review-description"
           className="block text-sm font-medium text-text-strong mb-2"
         >
-          {formatMessage({ id: "app.admin.actions.reviewConfig.description", defaultMessage: "Description" })}
+          {formatMessage({
+            id: "app.admin.actions.reviewConfig.description",
+            defaultMessage: "Description",
+          })}
         </label>
         <textarea
           id="review-description"
@@ -38,7 +47,10 @@ export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionPro
           onChange={(e) => onChange({ ...config, description: e.target.value })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
           rows={3}
-          placeholder={formatMessage({ id: "app.admin.actions.reviewConfig.descriptionPlaceholder", defaultMessage: "Instructions for the review screen..." })}
+          placeholder={formatMessage({
+            id: "app.admin.actions.reviewConfig.descriptionPlaceholder",
+            defaultMessage: "Instructions for the review screen...",
+          })}
         />
       </div>
     </div>

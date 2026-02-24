@@ -1,9 +1,6 @@
 import { cn, CynefinPhase, Domain } from "@green-goods/shared";
 import { type ReactNode } from "react";
-import {
-  type FieldError,
-  type FieldErrorsImpl,
-} from "react-hook-form";
+import { type FieldError, type FieldErrorsImpl } from "react-hook-form";
 import { useIntl, type IntlShape } from "react-intl";
 import { z } from "zod";
 
@@ -12,7 +9,9 @@ import { z } from "zod";
 const smartOutcomeSchema = z.object({
   description: z.string().trim().min(1, "Description is required"),
   metric: z.string().trim().min(1, "Select a metric"),
-  target: z.number({ invalid_type_error: "Target must be a number" }).min(0, "Target must be positive"),
+  target: z
+    .number({ invalid_type_error: "Target must be a number" })
+    .min(0, "Target must be positive"),
 });
 
 /**
@@ -47,36 +46,80 @@ export function createAssessmentSchema(intl: IntlShape) {
       title: z
         .string()
         .trim()
-        .min(1, intl.formatMessage({ id: "app.admin.assessment.validation.titleRequired", defaultMessage: "Title is required" })),
+        .min(
+          1,
+          intl.formatMessage({
+            id: "app.admin.assessment.validation.titleRequired",
+            defaultMessage: "Title is required",
+          })
+        ),
       description: z
         .string()
         .trim()
-        .min(1, intl.formatMessage({ id: "app.admin.assessment.validation.descriptionRequired", defaultMessage: "Description is required" })),
+        .min(
+          1,
+          intl.formatMessage({
+            id: "app.admin.assessment.validation.descriptionRequired",
+            defaultMessage: "Description is required",
+          })
+        ),
       location: z
         .string()
         .trim()
-        .min(1, intl.formatMessage({ id: "app.admin.assessment.validation.locationRequired", defaultMessage: "Location is required" })),
+        .min(
+          1,
+          intl.formatMessage({
+            id: "app.admin.assessment.validation.locationRequired",
+            defaultMessage: "Location is required",
+          })
+        ),
       diagnosis: z
         .string()
         .trim()
-        .min(1, intl.formatMessage({ id: "app.admin.assessment.validation.diagnosisRequired", defaultMessage: "Diagnosis is required" })),
-      smartOutcomes: z
-        .array(smartOutcomeSchema)
-        .min(1, intl.formatMessage({ id: "app.admin.assessment.validation.smartOutcomesRequired", defaultMessage: "At least one SMART outcome is required" })),
+        .min(
+          1,
+          intl.formatMessage({
+            id: "app.admin.assessment.validation.diagnosisRequired",
+            defaultMessage: "Diagnosis is required",
+          })
+        ),
+      smartOutcomes: z.array(smartOutcomeSchema).min(
+        1,
+        intl.formatMessage({
+          id: "app.admin.assessment.validation.smartOutcomesRequired",
+          defaultMessage: "At least one SMART outcome is required",
+        })
+      ),
       cynefinPhase: z.nativeEnum(CynefinPhase),
       domain: z.nativeEnum(Domain),
       selectedActionUIDs: z.array(z.string()),
-      sdgTargets: z
-        .array(z.number())
-        .min(1, intl.formatMessage({ id: "app.admin.assessment.validation.sdgRequired", defaultMessage: "Select at least one SDG target" })),
+      sdgTargets: z.array(z.number()).min(
+        1,
+        intl.formatMessage({
+          id: "app.admin.assessment.validation.sdgRequired",
+          defaultMessage: "Select at least one SDG target",
+        })
+      ),
       reportingPeriodStart: z
         .string()
         .trim()
-        .min(1, intl.formatMessage({ id: "app.admin.assessment.validation.reportingStartRequired", defaultMessage: "Start date is required" })),
+        .min(
+          1,
+          intl.formatMessage({
+            id: "app.admin.assessment.validation.reportingStartRequired",
+            defaultMessage: "Start date is required",
+          })
+        ),
       reportingPeriodEnd: z
         .string()
         .trim()
-        .min(1, intl.formatMessage({ id: "app.admin.assessment.validation.reportingEndRequired", defaultMessage: "End date is required" })),
+        .min(
+          1,
+          intl.formatMessage({
+            id: "app.admin.assessment.validation.reportingEndRequired",
+            defaultMessage: "End date is required",
+          })
+        ),
       attachments: z.array(z.instanceof(File)).optional().default([]),
     })
     .superRefine((data, ctx) => {
@@ -88,7 +131,10 @@ export function createAssessmentSchema(intl: IntlShape) {
       if (Number.isNaN(startTimestamp)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: intl.formatMessage({ id: "app.admin.assessment.validation.startDateInvalid", defaultMessage: "Start date is invalid" }),
+          message: intl.formatMessage({
+            id: "app.admin.assessment.validation.startDateInvalid",
+            defaultMessage: "Start date is invalid",
+          }),
           path: ["reportingPeriodStart"],
         });
       }
@@ -100,7 +146,10 @@ export function createAssessmentSchema(intl: IntlShape) {
       if (Number.isNaN(endTimestamp)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: intl.formatMessage({ id: "app.admin.assessment.validation.endDateInvalid", defaultMessage: "End date is invalid" }),
+          message: intl.formatMessage({
+            id: "app.admin.assessment.validation.endDateInvalid",
+            defaultMessage: "End date is invalid",
+          }),
           path: ["reportingPeriodEnd"],
         });
       }
@@ -112,7 +161,10 @@ export function createAssessmentSchema(intl: IntlShape) {
       ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: intl.formatMessage({ id: "app.admin.assessment.validation.endBeforeStart", defaultMessage: "End date must be after start date" }),
+          message: intl.formatMessage({
+            id: "app.admin.assessment.validation.endBeforeStart",
+            defaultMessage: "End date must be after start date",
+          }),
           path: ["reportingPeriodEnd"],
         });
       }
@@ -233,7 +285,12 @@ export function ReviewRow({
           multiline ? "whitespace-pre-wrap break-words" : "truncate"
         )}
       >
-        {value && value.trim().length > 0 ? value : intl.formatMessage({ id: "admin.assessment.review.notProvided", defaultMessage: "Not provided" })}
+        {value && value.trim().length > 0
+          ? value
+          : intl.formatMessage({
+              id: "admin.assessment.review.notProvided",
+              defaultMessage: "Not provided",
+            })}
       </p>
     </div>
   );

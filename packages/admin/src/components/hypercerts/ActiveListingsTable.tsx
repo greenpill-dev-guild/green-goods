@@ -27,15 +27,28 @@ function getListingStatus(order: RegisteredOrderView): "active" | "expired" {
 
 function formatTimeRemaining(
   endTime: number,
-  intl: { formatMessage: (descriptor: { id: string; defaultMessage: string }, values?: Record<string, string | number>) => string }
+  intl: {
+    formatMessage: (
+      descriptor: { id: string; defaultMessage: string },
+      values?: Record<string, string | number>
+    ) => string;
+  }
 ): string {
   const now = Math.floor(Date.now() / 1000);
   const diff = endTime - now;
-  if (diff <= 0) return intl.formatMessage({ id: "app.admin.listings.expired", defaultMessage: "Expired" });
+  if (diff <= 0)
+    return intl.formatMessage({ id: "app.admin.listings.expired", defaultMessage: "Expired" });
   const days = Math.floor(diff / 86400);
-  if (days > 0) return intl.formatMessage({ id: "app.admin.listings.daysRemaining", defaultMessage: "{days}d remaining" }, { days });
+  if (days > 0)
+    return intl.formatMessage(
+      { id: "app.admin.listings.daysRemaining", defaultMessage: "{days}d remaining" },
+      { days }
+    );
   const hours = Math.floor(diff / 3600);
-  return intl.formatMessage({ id: "app.admin.listings.hoursRemaining", defaultMessage: "{hours}h remaining" }, { hours });
+  return intl.formatMessage(
+    { id: "app.admin.listings.hoursRemaining", defaultMessage: "{hours}h remaining" },
+    { hours }
+  );
 }
 
 /**
@@ -52,7 +65,10 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
       <div className="flex items-center justify-center gap-2 py-8">
         <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
         <span className="text-sm text-text-soft">
-          {intl.formatMessage({ id: "app.admin.listings.loading", defaultMessage: "Loading listings..." })}
+          {intl.formatMessage({
+            id: "app.admin.listings.loading",
+            defaultMessage: "Loading listings...",
+          })}
         </span>
       </div>
     );
@@ -63,7 +79,10 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
       <div className="flex items-center gap-2 rounded-md bg-error-lighter p-4">
         <RiAlertLine className="h-4 w-4 text-error-base" />
         <span className="text-sm text-error-dark">
-          {intl.formatMessage({ id: "app.admin.listings.loadError", defaultMessage: "Failed to load listings" })}
+          {intl.formatMessage({
+            id: "app.admin.listings.loadError",
+            defaultMessage: "Failed to load listings",
+          })}
         </span>
       </div>
     );
@@ -74,10 +93,17 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
       <div className="rounded-lg border border-dashed border-stroke-soft p-8 text-center">
         <RiExchangeDollarLine className="mx-auto h-8 w-8 text-text-disabled" />
         <p className="mt-2 text-sm text-text-soft">
-          {intl.formatMessage({ id: "app.admin.listings.empty", defaultMessage: "No active listings" })}
+          {intl.formatMessage({
+            id: "app.admin.listings.empty",
+            defaultMessage: "No active listings",
+          })}
         </p>
         <p className="mt-1 text-xs text-text-disabled">
-          {intl.formatMessage({ id: "app.admin.listings.emptyHint", defaultMessage: "List your hypercerts for yield to allow supporters to purchase fractions" })}
+          {intl.formatMessage({
+            id: "app.admin.listings.emptyHint",
+            defaultMessage:
+              "List your hypercerts for yield to allow supporters to purchase fractions",
+          })}
         </p>
       </div>
     );
@@ -89,19 +115,34 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
         <thead>
           <tr className="border-b border-stroke-soft bg-bg-soft">
             <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft">
-              {intl.formatMessage({ id: "app.admin.listings.columnHypercert", defaultMessage: "Hypercert" })}
+              {intl.formatMessage({
+                id: "app.admin.listings.columnHypercert",
+                defaultMessage: "Hypercert",
+              })}
             </th>
             <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft">
-              {intl.formatMessage({ id: "app.admin.listings.columnPricePerUnit", defaultMessage: "Price/Unit" })}
+              {intl.formatMessage({
+                id: "app.admin.listings.columnPricePerUnit",
+                defaultMessage: "Price/Unit",
+              })}
             </th>
             <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft">
-              {intl.formatMessage({ id: "app.admin.listings.columnStatus", defaultMessage: "Status" })}
+              {intl.formatMessage({
+                id: "app.admin.listings.columnStatus",
+                defaultMessage: "Status",
+              })}
             </th>
             <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft">
-              {intl.formatMessage({ id: "app.admin.listings.columnExpires", defaultMessage: "Expires" })}
+              {intl.formatMessage({
+                id: "app.admin.listings.columnExpires",
+                defaultMessage: "Expires",
+              })}
             </th>
             <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft text-right">
-              {intl.formatMessage({ id: "app.admin.listings.columnActions", defaultMessage: "Actions" })}
+              {intl.formatMessage({
+                id: "app.admin.listings.columnActions",
+                defaultMessage: "Actions",
+              })}
             </th>
           </tr>
         </thead>
@@ -131,8 +172,14 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                       }`}
                     />
                     {status === "active"
-                      ? intl.formatMessage({ id: "app.admin.listings.statusActive", defaultMessage: "Active" })
-                      : intl.formatMessage({ id: "app.admin.listings.statusExpired", defaultMessage: "Expired" })}
+                      ? intl.formatMessage({
+                          id: "app.admin.listings.statusActive",
+                          defaultMessage: "Active",
+                        })
+                      : intl.formatMessage({
+                          id: "app.admin.listings.statusExpired",
+                          defaultMessage: "Expired",
+                        })}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-text-sub">
@@ -154,7 +201,10 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                       ) : (
                         <RiCloseLine className="h-3.5 w-3.5" />
                       )}
-                      {intl.formatMessage({ id: "app.admin.listings.cancel", defaultMessage: "Cancel" })}
+                      {intl.formatMessage({
+                        id: "app.admin.listings.cancel",
+                        defaultMessage: "Cancel",
+                      })}
                     </button>
                   ) : (
                     onCreateListing && (
@@ -164,7 +214,10 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                         className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-primary-base transition hover:bg-primary-lighter"
                       >
                         <RiExchangeDollarLine className="h-3.5 w-3.5" />
-                        {intl.formatMessage({ id: "app.admin.listings.renew", defaultMessage: "Renew" })}
+                        {intl.formatMessage({
+                          id: "app.admin.listings.renew",
+                          defaultMessage: "Renew",
+                        })}
                       </button>
                     )
                   )}

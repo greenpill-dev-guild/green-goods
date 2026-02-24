@@ -77,7 +77,10 @@ export function AddressDisplay({ address, className, showCopyButton = true }: Ad
           type="button"
           onClick={handleCopy}
           className="p-1 text-text-soft hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/20 rounded"
-          title={intl.formatMessage({ id: "app.common.copyAddress", defaultMessage: "Copy address" })}
+          title={intl.formatMessage({
+            id: "app.common.copyAddress",
+            defaultMessage: "Copy address",
+          })}
         >
           {copied ? (
             <RiCheckLine className="h-3 w-3 text-success-dark" />

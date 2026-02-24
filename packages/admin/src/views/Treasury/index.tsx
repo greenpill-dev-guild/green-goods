@@ -82,9 +82,7 @@ export default function TreasuryOverview() {
         return 0;
       });
     }
-    return [...working].sort((a, b) =>
-      (a.garden?.name ?? "").localeCompare(b.garden?.name ?? "")
-    );
+    return [...working].sort((a, b) => (a.garden?.name ?? "").localeCompare(b.garden?.name ?? ""));
   }, [grouped, debouncedSearch, sortOrder]);
 
   const isFilterActive = !!debouncedSearch || sortOrder !== "name";

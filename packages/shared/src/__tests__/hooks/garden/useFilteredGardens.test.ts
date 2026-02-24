@@ -252,10 +252,7 @@ describe("useFilteredGardens", () => {
     });
 
     it("does not filter when search is empty string", () => {
-      const gardens = [
-        createGarden({ id: "g1" }),
-        createGarden({ id: "g2" }),
-      ];
+      const gardens = [createGarden({ id: "g1" }), createGarden({ id: "g2" })];
 
       const result = useFilteredGardens(gardens, defaultFilters({ search: "" }), null);
 
@@ -263,10 +260,7 @@ describe("useFilteredGardens", () => {
     });
 
     it("does not filter when search is undefined", () => {
-      const gardens = [
-        createGarden({ id: "g1" }),
-        createGarden({ id: "g2" }),
-      ];
+      const gardens = [createGarden({ id: "g1" }), createGarden({ id: "g2" })];
 
       const result = useFilteredGardens(gardens, defaultFilters({ search: undefined }), null);
 

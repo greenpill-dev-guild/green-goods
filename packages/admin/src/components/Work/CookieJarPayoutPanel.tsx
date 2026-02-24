@@ -258,10 +258,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
           {/* Accordion sections for Fund and Manage */}
           <Accordion.Root type="multiple" className="mt-6">
             {/* Fund Jars */}
-            <Accordion.Item
-              value="fund"
-              className="border-t border-stroke-soft"
-            >
+            <Accordion.Item value="fund" className="border-t border-stroke-soft">
               <Accordion.Trigger className="group flex w-full items-center justify-between py-3 text-sm font-medium text-text-strong transition-colors hover:text-primary-dark">
                 {formatMessage({ id: "app.cookieJar.fundJars" })}
                 <RiArrowDownSLine className="h-4 w-4 text-text-soft transition-transform group-data-[state=open]:rotate-180" />
@@ -269,10 +266,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
               <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                 <div className="space-y-3 pb-4">
                   <div>
-                    <label
-                      htmlFor="fund-jar-select"
-                      className="text-xs font-medium text-text-sub"
-                    >
+                    <label htmlFor="fund-jar-select" className="text-xs font-medium text-text-sub">
                       {formatMessage({ id: "app.cookieJar.title" })}
                     </label>
                     <select
@@ -310,12 +304,39 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                       {formatMessage({ id: depositInputError })}
                     </p>
                   )}
+                  {selectedDepositJar &&
+                    !depositInputError &&
+                    parsedDepositAmount > 0n &&
+                    parsedDepositAmount < selectedDepositJar.minDeposit && (
+                      <p className="text-xs text-error-dark" role="alert">
+                        {formatMessage(
+                          { id: "app.cookieJar.belowMinDeposit" },
+                          {
+                            amount: formatTokenAmount(
+                              selectedDepositJar.minDeposit,
+                              selectedDepositJar.decimals
+                            ),
+                            asset: getVaultAssetSymbol(selectedDepositJar.assetAddress, undefined),
+                          }
+                        )}
+                      </p>
+                    )}
                   <p className="text-xs text-text-soft">
                     {formatMessage({ id: "app.treasury.walletBalance" })}:{" "}
                     {walletBalance
                       ? `${formatTokenAmount(walletBalance.value, walletBalance.decimals)} ${walletBalance.symbol}`
                       : "--"}
                   </p>
+                  {selectedDepositJar && selectedDepositJar.minDeposit > 0n && (
+                    <p className="text-xs text-text-soft">
+                      {formatMessage({ id: "app.cookieJar.minDeposit" })}:{" "}
+                      {formatTokenAmount(
+                        selectedDepositJar.minDeposit,
+                        selectedDepositJar.decimals
+                      )}{" "}
+                      {getVaultAssetSymbol(selectedDepositJar.assetAddress, undefined)}
+                    </p>
+                  )}
 
                   <button
                     type="button"
@@ -334,6 +355,9 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                       !isOnline ||
                       !selectedDepositJar ||
                       parsedDepositAmount <= 0n ||
+                      (selectedDepositJar &&
+                        selectedDepositJar.minDeposit > 0n &&
+                        parsedDepositAmount < selectedDepositJar.minDeposit) ||
                       depositMutation.isPending
                     }
                     className="inline-flex w-full items-center justify-center rounded-md border border-stroke-sub bg-bg-white px-4 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60"
@@ -348,10 +372,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
 
             {/* Manage Jars (canManage-gated) */}
             {canManage && (
-              <Accordion.Item
-                value="manage"
-                className="border-t border-stroke-soft"
-              >
+              <Accordion.Item value="manage" className="border-t border-stroke-soft">
                 <Accordion.Trigger className="group flex w-full items-center justify-between py-3 text-sm font-medium text-text-strong transition-colors hover:text-primary-dark">
                   {formatMessage({ id: "app.cookieJar.manageJars" })}
                   <RiArrowDownSLine className="h-4 w-4 text-text-soft transition-transform group-data-[state=open]:rotate-180" />
@@ -471,9 +492,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
             amount: emergencyJar
               ? formatTokenAmount(emergencyJar.balance, emergencyJar.decimals)
               : "0",
-            asset: emergencyJar
-              ? getVaultAssetSymbol(emergencyJar.assetAddress, undefined)
-              : "",
+            asset: emergencyJar ? getVaultAssetSymbol(emergencyJar.assetAddress, undefined) : "",
           }
         )}
         confirmLabel={formatMessage({ id: "app.cookieJar.emergencyWithdraw" })}

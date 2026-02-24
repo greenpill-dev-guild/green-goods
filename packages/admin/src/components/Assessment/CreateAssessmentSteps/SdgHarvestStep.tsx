@@ -69,13 +69,23 @@ export function SdgHarvestStep({ register, errors, control, isSubmitting }: SdgH
     <div className="space-y-6">
       {/* SDG Alignment */}
       <Section
-        title={intl.formatMessage({ id: "app.admin.assessment.sdgHarvest.sdgTitle", defaultMessage: "SDG Alignment" })}
-        description={intl.formatMessage({ id: "app.admin.assessment.sdgHarvest.sdgDescription", defaultMessage: "Select the UN Sustainable Development Goals this assessment aligns with." })}
+        title={intl.formatMessage({
+          id: "app.admin.assessment.sdgHarvest.sdgTitle",
+          defaultMessage: "SDG Alignment",
+        })}
+        description={intl.formatMessage({
+          id: "app.admin.assessment.sdgHarvest.sdgDescription",
+          defaultMessage:
+            "Select the UN Sustainable Development Goals this assessment aligns with.",
+        })}
       >
         <div className="flex items-center justify-between text-xs text-text-soft">
           <span>
             {intl.formatMessage(
-              { id: "app.admin.assessment.sdgHarvest.goalsSelected", defaultMessage: "{count} of 17 goals selected" },
+              {
+                id: "app.admin.assessment.sdgHarvest.goalsSelected",
+                defaultMessage: "{count} of 17 goals selected",
+              },
               { count: selectedSdgs.length }
             )}
           </span>
@@ -86,7 +96,10 @@ export function SdgHarvestStep({ register, errors, control, isSubmitting }: SdgH
               disabled={isSubmitting}
               className="text-xs font-medium text-primary-dark hover:text-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {intl.formatMessage({ id: "app.admin.assessment.sdgHarvest.clearSelection", defaultMessage: "Clear selection" })}
+              {intl.formatMessage({
+                id: "app.admin.assessment.sdgHarvest.clearSelection",
+                defaultMessage: "Clear selection",
+              })}
             </button>
           )}
         </div>
@@ -127,15 +140,27 @@ export function SdgHarvestStep({ register, errors, control, isSubmitting }: SdgH
 
       {/* Harvest Intent -- Reporting Period */}
       <Section
-        title={intl.formatMessage({ id: "app.admin.assessment.sdgHarvest.harvestTitle", defaultMessage: "Harvest Intent" })}
-        description={intl.formatMessage({ id: "app.admin.assessment.sdgHarvest.harvestDescription", defaultMessage: "Set the reporting period for work aggregation into hypercerts." })}
+        title={intl.formatMessage({
+          id: "app.admin.assessment.sdgHarvest.harvestTitle",
+          defaultMessage: "Harvest Intent",
+        })}
+        description={intl.formatMessage({
+          id: "app.admin.assessment.sdgHarvest.harvestDescription",
+          defaultMessage: "Set the reporting period for work aggregation into hypercerts.",
+        })}
       >
         <div className="grid gap-2.5 md:grid-cols-2 md:gap-3">
           <LabeledField
-            label={intl.formatMessage({ id: "app.admin.assessment.sdgHarvest.reportingStartLabel", defaultMessage: "Reporting period start" })}
+            label={intl.formatMessage({
+              id: "app.admin.assessment.sdgHarvest.reportingStartLabel",
+              defaultMessage: "Reporting period start",
+            })}
             required
             error={errors.reportingPeriodStart?.message}
-            helpText={intl.formatMessage({ id: "app.admin.assessment.sdgHarvest.reportingStartHelp", defaultMessage: "Start of the harvest window." })}
+            helpText={intl.formatMessage({
+              id: "app.admin.assessment.sdgHarvest.reportingStartHelp",
+              defaultMessage: "Start of the harvest window.",
+            })}
           >
             <input
               type="date"
@@ -145,10 +170,16 @@ export function SdgHarvestStep({ register, errors, control, isSubmitting }: SdgH
             />
           </LabeledField>
           <LabeledField
-            label={intl.formatMessage({ id: "app.admin.assessment.sdgHarvest.reportingEndLabel", defaultMessage: "Reporting period end" })}
+            label={intl.formatMessage({
+              id: "app.admin.assessment.sdgHarvest.reportingEndLabel",
+              defaultMessage: "Reporting period end",
+            })}
             required
             error={errors.reportingPeriodEnd?.message}
-            helpText={intl.formatMessage({ id: "app.admin.assessment.sdgHarvest.reportingEndHelp", defaultMessage: "End of the harvest window." })}
+            helpText={intl.formatMessage({
+              id: "app.admin.assessment.sdgHarvest.reportingEndHelp",
+              defaultMessage: "End of the harvest window.",
+            })}
           >
             <input
               type="date"

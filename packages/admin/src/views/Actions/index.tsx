@@ -18,10 +18,22 @@ import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SortSelect } from "@/components/ui/SortSelect";
 
 const DOMAIN_TAGS: { value: Domain; label: string; activeClass: string }[] = [
-  { value: Domain.SOLAR, label: "Solar", activeClass: "bg-yellow-100 text-yellow-800 border-yellow-300" },
-  { value: Domain.AGRO, label: "Agro", activeClass: "bg-green-100 text-green-800 border-green-300" },
+  {
+    value: Domain.SOLAR,
+    label: "Solar",
+    activeClass: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  },
+  {
+    value: Domain.AGRO,
+    label: "Agro",
+    activeClass: "bg-green-100 text-green-800 border-green-300",
+  },
   { value: Domain.EDU, label: "Edu", activeClass: "bg-blue-100 text-blue-800 border-blue-300" },
-  { value: Domain.WASTE, label: "Waste", activeClass: "bg-orange-100 text-orange-800 border-orange-300" },
+  {
+    value: Domain.WASTE,
+    label: "Waste",
+    activeClass: "bg-orange-100 text-orange-800 border-orange-300",
+  },
 ];
 
 export default function Actions() {
@@ -41,16 +53,31 @@ export default function Actions() {
   const resetFilters = () => setFilters({ sort: "default" });
 
   const sortOptions = [
-    { value: "default" as const, label: intl.formatMessage({ id: "admin.actions.sort.default", defaultMessage: "Default" }) },
-    { value: "title" as const, label: intl.formatMessage({ id: "admin.actions.sort.title", defaultMessage: "Title" }) },
-    { value: "recent" as const, label: intl.formatMessage({ id: "admin.actions.sort.recent", defaultMessage: "Recent" }) },
+    {
+      value: "default" as const,
+      label: intl.formatMessage({ id: "admin.actions.sort.default", defaultMessage: "Default" }),
+    },
+    {
+      value: "title" as const,
+      label: intl.formatMessage({ id: "admin.actions.sort.title", defaultMessage: "Title" }),
+    },
+    {
+      value: "recent" as const,
+      label: intl.formatMessage({ id: "admin.actions.sort.recent", defaultMessage: "Recent" }),
+    },
   ];
 
   const showToolbar = !isLoading && actions.length > 0;
 
   const description = isLoading
     ? intl.formatMessage({ id: "admin.actions.loading" })
-    : intl.formatMessage({ id: "admin.actions.description", defaultMessage: "{count} {count, plural, one {action} other {actions}} available" }, { count: actions.length });
+    : intl.formatMessage(
+        {
+          id: "admin.actions.description",
+          defaultMessage: "{count} {count, plural, one {action} other {actions}} available",
+        },
+        { count: actions.length }
+      );
 
   return (
     <div className="pb-6">
@@ -71,8 +98,13 @@ export default function Actions() {
             <div className="space-y-3">
               <ListToolbar
                 search={filters.search ?? ""}
-                onSearchChange={(value) => setFilters((prev) => ({ ...prev, search: value || undefined }))}
-                searchPlaceholder={intl.formatMessage({ id: "admin.actions.searchPlaceholder", defaultMessage: "Search actions..." })}
+                onSearchChange={(value) =>
+                  setFilters((prev) => ({ ...prev, search: value || undefined }))
+                }
+                searchPlaceholder={intl.formatMessage({
+                  id: "admin.actions.searchPlaceholder",
+                  defaultMessage: "Search actions...",
+                })}
               >
                 <SortSelect
                   value={filters.sort}
@@ -81,7 +113,14 @@ export default function Actions() {
                 />
               </ListToolbar>
 
-              <div className="flex flex-wrap items-center gap-2" role="group" aria-label={intl.formatMessage({ id: "admin.actions.filterByDomain", defaultMessage: "Filter by domain" })}>
+              <div
+                className="flex flex-wrap items-center gap-2"
+                role="group"
+                aria-label={intl.formatMessage({
+                  id: "admin.actions.filterByDomain",
+                  defaultMessage: "Filter by domain",
+                })}
+              >
                 {DOMAIN_TAGS.map((tag) => {
                   const isActive = filters.domain === tag.value;
                   return (
@@ -128,17 +167,29 @@ export default function Actions() {
         {!isLoading && actions.length === 0 && (
           <EmptyState
             icon={<RiFileListLine className="h-6 w-6" />}
-            title={intl.formatMessage({ id: "admin.actions.noActions", defaultMessage: "No actions yet" })}
-            description={intl.formatMessage({ id: "admin.actions.noActionsDescription", defaultMessage: "Get started by creating your first action." })}
+            title={intl.formatMessage({
+              id: "admin.actions.noActions",
+              defaultMessage: "No actions yet",
+            })}
+            description={intl.formatMessage({
+              id: "admin.actions.noActionsDescription",
+              defaultMessage: "Get started by creating your first action.",
+            })}
           />
         )}
 
         {!isLoading && actions.length > 0 && filteredActions.length === 0 && (
           <EmptyState
             icon={<RiFileListLine className="h-6 w-6" />}
-            title={intl.formatMessage({ id: "admin.actions.noResults", defaultMessage: "No actions match your filters" })}
+            title={intl.formatMessage({
+              id: "admin.actions.noResults",
+              defaultMessage: "No actions match your filters",
+            })}
             action={{
-              label: intl.formatMessage({ id: "admin.actions.resetFilters", defaultMessage: "Reset filters" }),
+              label: intl.formatMessage({
+                id: "admin.actions.resetFilters",
+                defaultMessage: "Reset filters",
+              }),
               onClick: resetFilters,
             }}
           />
@@ -154,7 +205,11 @@ export default function Actions() {
                 className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-green-500 hover:shadow-md"
               >
                 {action.media[0] && (
-                  <img src={action.media[0]} alt={action.title} className="w-full h-40 object-cover" />
+                  <img
+                    src={action.media[0]}
+                    alt={action.title}
+                    className="w-full h-40 object-cover"
+                  />
                 )}
 
                 <div className="p-6">

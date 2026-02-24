@@ -52,7 +52,10 @@ export function TradeHistoryTable({
       <div className="flex items-center justify-center gap-2 py-6">
         <RiLoader4Line className="h-4 w-4 animate-spin text-text-soft" />
         <span className="text-sm text-text-soft">
-          {intl.formatMessage({ id: "app.admin.tradeHistory.loading", defaultMessage: "Loading trade history..." })}
+          {intl.formatMessage({
+            id: "app.admin.tradeHistory.loading",
+            defaultMessage: "Loading trade history...",
+          })}
         </span>
       </div>
     );
@@ -63,7 +66,10 @@ export function TradeHistoryTable({
       <div className="flex items-center gap-2 rounded-md bg-error-lighter p-3">
         <RiAlertLine className="h-4 w-4 text-error-base" />
         <span className="text-sm text-error-dark">
-          {intl.formatMessage({ id: "app.admin.tradeHistory.loadError", defaultMessage: "Failed to load trades" })}
+          {intl.formatMessage({
+            id: "app.admin.tradeHistory.loadError",
+            defaultMessage: "Failed to load trades",
+          })}
         </span>
       </div>
     );
@@ -74,7 +80,10 @@ export function TradeHistoryTable({
       <div className="rounded-lg border border-dashed border-stroke-soft p-6 text-center">
         <RiHistoryLine className="mx-auto h-6 w-6 text-text-disabled" />
         <p className="mt-2 text-sm text-text-soft">
-          {intl.formatMessage({ id: "app.admin.tradeHistory.empty", defaultMessage: "No trades yet" })}
+          {intl.formatMessage({
+            id: "app.admin.tradeHistory.empty",
+            defaultMessage: "No trades yet",
+          })}
         </p>
       </div>
     );
@@ -86,16 +95,28 @@ export function TradeHistoryTable({
         <thead>
           <tr className="border-b border-stroke-soft bg-bg-soft">
             <th className="px-4 py-2.5 text-xs font-medium uppercase text-text-soft">
-              {intl.formatMessage({ id: "app.admin.tradeHistory.columnDate", defaultMessage: "Date" })}
+              {intl.formatMessage({
+                id: "app.admin.tradeHistory.columnDate",
+                defaultMessage: "Date",
+              })}
             </th>
             <th className="px-4 py-2.5 text-xs font-medium uppercase text-text-soft">
-              {intl.formatMessage({ id: "app.admin.tradeHistory.columnUnits", defaultMessage: "Units" })}
+              {intl.formatMessage({
+                id: "app.admin.tradeHistory.columnUnits",
+                defaultMessage: "Units",
+              })}
             </th>
             <th className="px-4 py-2.5 text-xs font-medium uppercase text-text-soft">
-              {intl.formatMessage({ id: "app.admin.tradeHistory.columnPayment", defaultMessage: "Payment" })}
+              {intl.formatMessage({
+                id: "app.admin.tradeHistory.columnPayment",
+                defaultMessage: "Payment",
+              })}
             </th>
             <th className="px-4 py-2.5 text-xs font-medium uppercase text-text-soft">
-              {intl.formatMessage({ id: "app.admin.tradeHistory.columnRecipient", defaultMessage: "Recipient" })}
+              {intl.formatMessage({
+                id: "app.admin.tradeHistory.columnRecipient",
+                defaultMessage: "Recipient",
+              })}
             </th>
             <th className="px-4 py-2.5 text-xs font-medium uppercase text-text-soft text-right">
               {intl.formatMessage({ id: "app.admin.tradeHistory.columnTx", defaultMessage: "Tx" })}

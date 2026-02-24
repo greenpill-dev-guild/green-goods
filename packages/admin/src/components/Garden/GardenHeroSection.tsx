@@ -81,7 +81,6 @@ export const GardenHeroSection: React.FC<GardenHeroSectionProps> = ({
           <h2 className="text-xl font-bold drop-shadow-lg sm:text-2xl">{garden.name}</h2>
           <p className="mt-1 body-sm opacity-90">{garden.location}</p>
         </div>
-
       </div>
 
       {/* Overlapping stat chips */}

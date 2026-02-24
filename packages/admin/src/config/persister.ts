@@ -36,7 +36,10 @@ function createIDBPersister(dbName: string, storeName: string): Persister | unde
       },
     } as Persister;
   } catch (e) {
-    debugWarn("[Persister] Failed to initialize IndexedDB persister, falling back to localStorage:", e);
+    debugWarn(
+      "[Persister] Failed to initialize IndexedDB persister, falling back to localStorage:",
+      e
+    );
     return undefined;
   }
 }

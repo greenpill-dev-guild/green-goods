@@ -19,7 +19,12 @@ export function ListToolbar({
   className,
 }: ListToolbarProps) {
   const intl = useIntl();
-  const placeholder = searchPlaceholder ?? intl.formatMessage({ id: "app.admin.listToolbar.searchPlaceholder", defaultMessage: "Search..." });
+  const placeholder =
+    searchPlaceholder ??
+    intl.formatMessage({
+      id: "app.admin.listToolbar.searchPlaceholder",
+      defaultMessage: "Search...",
+    });
   return (
     <div className={cn("flex flex-wrap items-center gap-3", className)}>
       <div className="relative min-w-0 flex-1 sm:max-w-xs">
@@ -37,7 +42,10 @@ export function ListToolbar({
             type="button"
             onClick={() => onSearchChange("")}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-text-soft hover:text-text-strong"
-            aria-label={intl.formatMessage({ id: "app.admin.listToolbar.clearSearch", defaultMessage: "Clear search" })}
+            aria-label={intl.formatMessage({
+              id: "app.admin.listToolbar.clearSearch",
+              defaultMessage: "Clear search",
+            })}
           >
             <RiCloseLine className="h-4 w-4" />
           </button>

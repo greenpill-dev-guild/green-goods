@@ -374,11 +374,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         )}
         {form.bannerImage && !bannerFile && (
           <div className="mt-2">
-            <img
-              src={form.bannerImage}
-              alt=""
-              className="h-24 w-full rounded-lg object-cover"
-            />
+            <img src={form.bannerImage} alt="" className="h-24 w-full rounded-lg object-cover" />
           </div>
         )}
       </div>

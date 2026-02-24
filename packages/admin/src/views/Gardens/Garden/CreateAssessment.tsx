@@ -32,18 +32,36 @@ function useStepConfigs(): Step[] {
   return [
     {
       id: "strategy",
-      title: formatMessage({ id: "app.admin.assessment.create.stepStrategy.title", defaultMessage: "Strategy Kernel" }),
-      description: formatMessage({ id: "app.admin.assessment.create.stepStrategy.description", defaultMessage: "Diagnosis, outcomes, and complexity" }),
+      title: formatMessage({
+        id: "app.admin.assessment.create.stepStrategy.title",
+        defaultMessage: "Strategy Kernel",
+      }),
+      description: formatMessage({
+        id: "app.admin.assessment.create.stepStrategy.description",
+        defaultMessage: "Diagnosis, outcomes, and complexity",
+      }),
     },
     {
       id: "domain",
-      title: formatMessage({ id: "app.admin.assessment.create.stepDomain.title", defaultMessage: "Domain & Actions" }),
-      description: formatMessage({ id: "app.admin.assessment.create.stepDomain.description", defaultMessage: "Domain selection and coherent actions" }),
+      title: formatMessage({
+        id: "app.admin.assessment.create.stepDomain.title",
+        defaultMessage: "Domain & Actions",
+      }),
+      description: formatMessage({
+        id: "app.admin.assessment.create.stepDomain.description",
+        defaultMessage: "Domain selection and coherent actions",
+      }),
     },
     {
       id: "sdgHarvest",
-      title: formatMessage({ id: "app.admin.assessment.create.stepSdgHarvest.title", defaultMessage: "SDG & Harvest" }),
-      description: formatMessage({ id: "app.admin.assessment.create.stepSdgHarvest.description", defaultMessage: "SDG alignment and reporting period" }),
+      title: formatMessage({
+        id: "app.admin.assessment.create.stepSdgHarvest.title",
+        defaultMessage: "SDG & Harvest",
+      }),
+      description: formatMessage({
+        id: "app.admin.assessment.create.stepSdgHarvest.description",
+        defaultMessage: "SDG alignment and reporting period",
+      }),
     },
   ];
 }

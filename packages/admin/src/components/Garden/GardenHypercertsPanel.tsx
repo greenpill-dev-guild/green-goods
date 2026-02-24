@@ -42,10 +42,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="animate-pulse rounded-lg bg-bg-weak p-3"
-              >
+              <div key={i} className="animate-pulse rounded-lg bg-bg-weak p-3">
                 <div className="flex justify-between">
                   <div className="space-y-2">
                     <div className="h-4 w-40 rounded bg-bg-soft" />

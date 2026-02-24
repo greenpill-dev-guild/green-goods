@@ -1,7 +1,4 @@
-import {
-  type GardenFiltersState,
-  useFilteredGardens,
-} from "@green-goods/shared";
+import { type GardenFiltersState, useFilteredGardens } from "@green-goods/shared";
 import { useAuth, useGardenPermissions, useGardens } from "@green-goods/shared/hooks";
 import { resolveIPFSUrl } from "@green-goods/shared/modules";
 import { RiAddLine, RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
@@ -28,21 +25,40 @@ export default function Gardens() {
   );
 
   const sortOptions = [
-    { value: "default" as const, label: intl.formatMessage({ id: "admin.gardens.sort.default", defaultMessage: "Default" }) },
-    { value: "name" as const, label: intl.formatMessage({ id: "admin.gardens.sort.name", defaultMessage: "Name" }) },
-    { value: "recent" as const, label: intl.formatMessage({ id: "admin.gardens.sort.recent", defaultMessage: "Recent" }) },
+    {
+      value: "default" as const,
+      label: intl.formatMessage({ id: "admin.gardens.sort.default", defaultMessage: "Default" }),
+    },
+    {
+      value: "name" as const,
+      label: intl.formatMessage({ id: "admin.gardens.sort.name", defaultMessage: "Name" }),
+    },
+    {
+      value: "recent" as const,
+      label: intl.formatMessage({ id: "admin.gardens.sort.recent", defaultMessage: "Recent" }),
+    },
   ];
 
   const scopeOptions = [
-    { value: "all" as const, label: intl.formatMessage({ id: "admin.gardens.scope.all", defaultMessage: "All gardens" }) },
-    { value: "mine" as const, label: intl.formatMessage({ id: "admin.gardens.scope.mine", defaultMessage: "My gardens ({count})" }, { count: myGardensCount }) },
+    {
+      value: "all" as const,
+      label: intl.formatMessage({ id: "admin.gardens.scope.all", defaultMessage: "All gardens" }),
+    },
+    {
+      value: "mine" as const,
+      label: intl.formatMessage(
+        { id: "admin.gardens.scope.mine", defaultMessage: "My gardens ({count})" },
+        { count: myGardensCount }
+      ),
+    },
   ];
 
-  const errorMessage = error instanceof Error
-    ? error.message
-    : error
-      ? intl.formatMessage({ id: "admin.gardens.unknownError", defaultMessage: "Unknown error" })
-      : null;
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : error
+        ? intl.formatMessage({ id: "admin.gardens.unknownError", defaultMessage: "Unknown error" })
+        : null;
 
   const headerDescription = errorMessage
     ? intl.formatMessage({ id: "admin.gardens.indexerOffline" })
@@ -70,15 +86,23 @@ export default function Gardens() {
           showToolbar ? (
             <ListToolbar
               search={filters.search ?? ""}
-              onSearchChange={(value) => setFilters((prev) => ({ ...prev, search: value || undefined }))}
-              searchPlaceholder={intl.formatMessage({ id: "admin.gardens.searchPlaceholder", defaultMessage: "Search gardens..." })}
+              onSearchChange={(value) =>
+                setFilters((prev) => ({ ...prev, search: value || undefined }))
+              }
+              searchPlaceholder={intl.formatMessage({
+                id: "admin.gardens.searchPlaceholder",
+                defaultMessage: "Search gardens...",
+              })}
             >
               {eoaAddress && (
                 <SortSelect
                   value={filters.scope}
                   onChange={(value) => setFilters((prev) => ({ ...prev, scope: value }))}
                   options={scopeOptions}
-                  aria-label={intl.formatMessage({ id: "admin.gardens.filterScope", defaultMessage: "Filter scope" })}
+                  aria-label={intl.formatMessage({
+                    id: "admin.gardens.filterScope",
+                    defaultMessage: "Filter scope",
+                  })}
                 />
               )}
               <SortSelect
@@ -133,7 +157,12 @@ export default function Gardens() {
                     {intl.formatMessage({ id: "admin.gardens.indexerError.title" })}
                   </h3>
                   <div className="mt-2 space-y-1 text-sm text-warning-dark/80">
-                    <p>{intl.formatMessage({ id: "admin.gardens.indexerError.message" }, { error: errorMessage })}</p>
+                    <p>
+                      {intl.formatMessage(
+                        { id: "admin.gardens.indexerError.message" },
+                        { error: errorMessage }
+                      )}
+                    </p>
                     <p>{intl.formatMessage({ id: "admin.gardens.indexerError.fallback" })}</p>
                   </div>
                 </div>
@@ -159,9 +188,15 @@ export default function Gardens() {
         {!isLoading && !errorMessage && gardens.length > 0 && filteredGardens.length === 0 && (
           <EmptyState
             icon={<RiPlantLine className="h-6 w-6" />}
-            title={intl.formatMessage({ id: "admin.gardens.noResults", defaultMessage: "No gardens match your filters" })}
+            title={intl.formatMessage({
+              id: "admin.gardens.noResults",
+              defaultMessage: "No gardens match your filters",
+            })}
             action={{
-              label: intl.formatMessage({ id: "admin.gardens.resetFilters", defaultMessage: "Reset filters" }),
+              label: intl.formatMessage({
+                id: "admin.gardens.resetFilters",
+                defaultMessage: "Reset filters",
+              }),
               onClick: resetFilters,
             }}
           />
@@ -216,7 +251,9 @@ export default function Gardens() {
                   </div>
                   <div className="p-6">
                     <div className="mb-2">
-                      <h3 className="mb-1 text-lg font-medium text-text-strong group-hover:text-primary-dark">{garden.name}</h3>
+                      <h3 className="mb-1 text-lg font-medium text-text-strong group-hover:text-primary-dark">
+                        {garden.name}
+                      </h3>
                       <p className="text-sm text-text-soft">{garden.location}</p>
                     </div>
                     <p className="mb-4 line-clamp-2 text-sm text-text-sub">{garden.description}</p>
@@ -225,11 +262,29 @@ export default function Gardens() {
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center">
                           <RiUserLine className="mr-1 h-4 w-4" />
-                          <span>{intl.formatMessage({ id: "admin.gardens.operatorCount", defaultMessage: "{count, plural, one {# operator} other {# operators}}" }, { count: garden.operators?.length ?? 0 })}</span>
+                          <span>
+                            {intl.formatMessage(
+                              {
+                                id: "admin.gardens.operatorCount",
+                                defaultMessage:
+                                  "{count, plural, one {# operator} other {# operators}}",
+                              },
+                              { count: garden.operators?.length ?? 0 }
+                            )}
+                          </span>
                         </div>
                         <div className="flex items-center">
                           <RiUserLine className="mr-1 h-4 w-4" />
-                          <span>{intl.formatMessage({ id: "admin.gardens.gardenerCount", defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}" }, { count: garden.gardeners?.length ?? 0 })}</span>
+                          <span>
+                            {intl.formatMessage(
+                              {
+                                id: "admin.gardens.gardenerCount",
+                                defaultMessage:
+                                  "{count, plural, one {# gardener} other {# gardeners}}",
+                              },
+                              { count: garden.gardeners?.length ?? 0 }
+                            )}
+                          </span>
                         </div>
                       </div>
                     </div>

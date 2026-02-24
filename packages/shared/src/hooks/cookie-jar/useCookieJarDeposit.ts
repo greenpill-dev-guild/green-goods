@@ -105,30 +105,6 @@ export function useCookieJarDeposit(gardenAddress: Address) {
           functionName: "approve",
           args: [params.jarAddress, params.amount],
         });
-
-        // Poll until the RPC reflects the updated allowance.
-        // On L2s like Arbitrum, load-balanced RPCs may serve stale state
-        // briefly after a tx is confirmed, causing the deposit's gas
-        // estimation to revert with "insufficient-allowance".
-        for (let i = 0; i < ALLOWANCE_POLL_MAX_RETRIES; i++) {
-          await new Promise((resolve) => setTimeout(resolve, ALLOWANCE_POLL_DELAY_MS));
-          try {
-            const updatedAllowance = await readContract(wagmiConfig, {
-              address: params.assetAddress,
-              abi: ERC20_ALLOWANCE_ABI,
-              functionName: "allowance",
-              args: [primaryAddress as Address, params.jarAddress],
-            });
-            if (typeof updatedAllowance === "bigint" && updatedAllowance >= params.amount) {
-              break;
-            }
-          } catch {
-            // Retry on RPC error
-          }
-          if (i === ALLOWANCE_POLL_MAX_RETRIES - 1) {
-            logger.warn("[CookieJarDeposit] Allowance not reflected after polling, attempting deposit anyway");
-          }
-        }
       }
 
       // Update toast to reflect deposit phase

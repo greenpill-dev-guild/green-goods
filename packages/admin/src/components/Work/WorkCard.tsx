@@ -19,7 +19,9 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work }) => {
   // Transform EASWork to WorkCardData for the shared component
   const workData: WorkCardData = {
     id: work.id,
-    title: work.title || intl.formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" }),
+    title:
+      work.title ||
+      intl.formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" }),
     status: work.status || "pending",
     createdAt: work.createdAt,
     mediaPreview: work.media?.map((m) => resolveIPFSUrl(m)),

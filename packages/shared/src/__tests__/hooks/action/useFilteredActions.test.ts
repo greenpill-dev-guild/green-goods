@@ -52,10 +52,7 @@ describe("useFilteredActions", () => {
 
   describe("no filters", () => {
     it("returns all actions with default filters", () => {
-      const actions = [
-        createAction({ id: "a1" }),
-        createAction({ id: "a2" }),
-      ];
+      const actions = [createAction({ id: "a1" }), createAction({ id: "a2" })];
 
       const result = useFilteredActions(actions, defaultFilters());
 
@@ -100,9 +97,7 @@ describe("useFilteredActions", () => {
     });
 
     it("returns empty when no actions match domain", () => {
-      const actions = [
-        createAction({ id: "a1", domain: Domain.SOLAR }),
-      ];
+      const actions = [createAction({ id: "a1", domain: Domain.SOLAR })];
 
       const result = useFilteredActions(actions, defaultFilters({ domain: Domain.EDU }));
 
@@ -168,10 +163,7 @@ describe("useFilteredActions", () => {
     });
 
     it("does not filter when search is empty", () => {
-      const actions = [
-        createAction({ id: "a1" }),
-        createAction({ id: "a2" }),
-      ];
+      const actions = [createAction({ id: "a1" }), createAction({ id: "a2" })];
 
       const result = useFilteredActions(actions, defaultFilters({ search: "" }));
 

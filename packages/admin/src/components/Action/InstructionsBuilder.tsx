@@ -42,7 +42,10 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
               : "text-text-sub hover:text-text-strong"
           }`}
         >
-          {formatMessage({ id: "app.admin.actions.instructions.tabMedia", defaultMessage: "Media Configuration" })}
+          {formatMessage({
+            id: "app.admin.actions.instructions.tabMedia",
+            defaultMessage: "Media Configuration",
+          })}
         </button>
         <button
           type="button"
@@ -53,7 +56,10 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
               : "text-text-sub hover:text-text-strong"
           }`}
         >
-          {formatMessage({ id: "app.admin.actions.instructions.tabFormInputs", defaultMessage: "Form Inputs" })}
+          {formatMessage({
+            id: "app.admin.actions.instructions.tabFormInputs",
+            defaultMessage: "Form Inputs",
+          })}
         </button>
         <button
           type="button"
@@ -64,7 +70,10 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
               : "text-text-sub hover:text-text-strong"
           }`}
         >
-          {formatMessage({ id: "app.admin.actions.instructions.tabReview", defaultMessage: "Review Screen" })}
+          {formatMessage({
+            id: "app.admin.actions.instructions.tabReview",
+            defaultMessage: "Review Screen",
+          })}
         </button>
       </div>
 
@@ -96,7 +105,10 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
       <div className="border-t border-stroke-soft p-4 bg-bg-soft">
         <details>
           <summary className="text-sm font-medium text-text-strong cursor-pointer mb-2">
-            {formatMessage({ id: "app.admin.actions.instructions.jsonPreview", defaultMessage: "JSON Preview" })}
+            {formatMessage({
+              id: "app.admin.actions.instructions.jsonPreview",
+              defaultMessage: "JSON Preview",
+            })}
           </summary>
           <pre className="text-xs bg-bg-white p-3 rounded border border-stroke-soft overflow-x-auto">
             {JSON.stringify(value, null, 2)}
