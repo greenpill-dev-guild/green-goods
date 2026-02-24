@@ -17,10 +17,28 @@ import {
   RiExternalLinkLine,
   RiFileCopyLine,
   RiMore2Fill,
-  RiSmartphoneLine,
   RiUploadLine,
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
+
+function useIsDarkMode() {
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.classList.contains("dark")
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  return isDark;
+}
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -34,6 +52,8 @@ export const Hero: FC<HeroProps> = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyError, setCopyError] = useState(false);
 
+  const isDark = useIsDarkMode();
+  
   // Get smart installation guidance based on current browser/platform
   const guidance = useInstallGuidance(
     platform,
@@ -129,10 +149,12 @@ export const Hero: FC<HeroProps> = () => {
             })}
           </span>
 
-          <div className="bg-white p-4 rounded-xl shadow-sm">
+          <div className="p-4 rounded-xl shadow-sm bg-white dark:bg-gray-800 transition-colors border border-transparent dark:border-gray-600">
             <QRCodeCanvas
               value={window.location.origin}
               size={128}
+              fgColor={isDark ? "#ffffff" : "#000000"}
+              bgColor={isDark ? "#1a1a1a" : "#ffffff"}
               aria-label={intl.formatMessage({
                 id: "app.hero.qr.ariaLabel",
                 defaultMessage: "QR code linking to Green Goods app",
@@ -156,18 +178,7 @@ export const Hero: FC<HeroProps> = () => {
             })}
           </a>
         ) : guidance.scenario === "desktop" ? (
-          /* Desktop view - prompt to open on mobile */
-          <div className="text-center lg:text-left">
-            <div className="flex items-center gap-2 text-primary">
-              <RiSmartphoneLine className="w-5 h-5" />
-              <span className="font-bold">
-                {intl.formatMessage({
-                  id: "app.hero.desktop.prompt",
-                  defaultMessage: "Open on your phone to install",
-                })}
-              </span>
-            </div>
-          </div>
+          null
         ) : (
           /* Mobile installation flow */
           <div className="space-y-3 w-full">
