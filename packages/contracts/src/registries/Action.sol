@@ -99,19 +99,19 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
     /// @param owner The address of the action owner.
     /// @param actionUID The unique identifier of the action.
     /// @param title The new title of the action.
-    event ActionTitleUpdated(address indexed owner, uint256 indexed actionUID, string indexed title);
+    event ActionTitleUpdated(address indexed owner, uint256 indexed actionUID, string title);
 
     /// @notice Emitted when an existing action is instructions are updated.
     /// @param owner The address of the action owner.
     /// @param actionUID The unique identifier of the action.
     /// @param instructions The new instructions of the action.
-    event ActionInstructionsUpdated(address indexed owner, uint256 indexed actionUID, string indexed instructions);
+    event ActionInstructionsUpdated(address indexed owner, uint256 indexed actionUID, string instructions);
 
     /// @notice Emitted when an existing action is media is updated.
     /// @param owner The address of the action owner.
     /// @param actionUID The unique identifier of the action.
     /// @param media The new media URLs of the action.
-    event ActionMediaUpdated(address indexed owner, uint256 indexed actionUID, string[] indexed media);
+    event ActionMediaUpdated(address indexed owner, uint256 indexed actionUID, string[] media);
 
     uint256 private _nextActionUID;
 

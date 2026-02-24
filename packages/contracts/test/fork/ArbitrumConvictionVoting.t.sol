@@ -533,11 +533,7 @@ contract ArbitrumConvictionVotingForkTest is Test {
         powerRegistry.registerPool(address(freshStrategy), garden);
 
         // Verify the pool mapping was written correctly
-        assertEq(
-            powerRegistry.getPoolGarden(address(freshStrategy)),
-            garden,
-            "fresh pool should map to garden"
-        );
+        assertEq(powerRegistry.getPoolGarden(address(freshStrategy)), garden, "fresh pool should map to garden");
 
         // Power resolution should work through the new pool
         uint256 opPower = powerRegistry.getMemberPowerInStrategy(operator, address(freshStrategy));
