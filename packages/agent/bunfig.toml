@@ -1,2 +1,2 @@
-[test]
-preload = ["./test-setup.ts"]
+# Bun configuration
+# Tests now use Vitest - run with `bun run test`

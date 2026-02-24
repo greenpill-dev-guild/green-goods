@@ -1,9 +1,44 @@
 /**
  * Action instruction templates for configuring work submission UI.
- * These templates define the media, details, and review steps for different action types.
+ * These templates define the media, details, and review steps for each action slug.
+ * Keyed by action slug (e.g., "solar.site_setup") matching config/actions.json.
  */
 
 import type { ActionInstructionConfig } from "../../types/domain";
+
+import {
+  solarSiteSetup,
+  solarInstallMilestone,
+  solarServiceSession,
+  solarEnergyUptimeCheck,
+  solarNodeOps,
+} from "./templates/solar";
+
+import {
+  agroSiteSpeciesPlan,
+  agroPlantingEvent,
+  agroSurvivalCheck,
+  agroMaintenanceActivity,
+  agroLearningReflection,
+  agroHarvestYield,
+} from "./templates/agro";
+
+import {
+  eduPublishSession,
+  eduDeliverSession,
+  eduVerifyAttendance,
+  eduFollowupAction,
+  eduLearningAssessment,
+} from "./templates/edu";
+
+import {
+  wasteSiteAssessment,
+  wasteCleanupEvent,
+  wasteSortingBreakdown,
+  wasteTransferReceipt,
+  wasteUpcycleBatch,
+  wasteMaintenanceCheck,
+} from "./templates/waste";
 
 export const defaultTemplate: ActionInstructionConfig = {
   description: "Complete this action",
@@ -32,151 +67,34 @@ export const defaultTemplate: ActionInstructionConfig = {
 
 export const instructionTemplates: Record<string, ActionInstructionConfig> = {
   default: defaultTemplate,
-  plantingAction: {
-    description: "Track planting activities in your garden",
-    uiConfig: {
-      media: {
-        title: "Document Your Planting",
-        description: "Take photos showing the planting area and plants",
-        maxImageCount: 5,
-        minImageCount: 1,
-        required: true,
-        needed: ["Overview of area", "Close-up of plants"],
-        optional: ["Before photo", "Progress shots"],
-      },
-      details: {
-        title: "Planting Details",
-        description: "Tell us what you planted",
-        feedbackPlaceholder: "Any observations about soil conditions, weather, or plant health...",
-        inputs: [
-          {
-            key: "plantType",
-            title: "Plant Type",
-            placeholder: "Select the type of plant",
-            type: "select",
-            required: true,
-            options: ["Tomato", "Lettuce", "Carrot", "Cucumber", "Pepper", "Other"],
-          },
-          {
-            key: "plantCount",
-            title: "Number of Plants",
-            placeholder: "Enter count",
-            type: "number",
-            required: true,
-            options: [],
-          },
-          {
-            key: "location",
-            title: "Planting Location",
-            placeholder: "e.g., North bed, greenhouse",
-            type: "text",
-            required: false,
-            options: [],
-          },
-        ],
-      },
-      review: {
-        title: "Review Your Planting",
-        description: "Confirm your planting details before submitting",
-      },
-    },
-  },
-  wateringAction: {
-    description: "Track watering activities",
-    uiConfig: {
-      media: {
-        title: "Document Watering",
-        description: "Capture photos of the watered areas",
-        maxImageCount: 3,
-        minImageCount: 1,
-        required: false,
-        needed: [],
-        optional: ["Before watering", "After watering", "Water source"],
-      },
-      details: {
-        title: "Watering Details",
-        description: "Provide information about the watering",
-        feedbackPlaceholder: "Notes about water quality, weather conditions, or plant response...",
-        inputs: [
-          {
-            key: "areaWatered",
-            title: "Area Watered",
-            placeholder: "Describe the area",
-            type: "textarea",
-            required: true,
-            options: [],
-          },
-          {
-            key: "duration",
-            title: "Duration (minutes)",
-            placeholder: "How long did you water?",
-            type: "number",
-            required: false,
-            options: [],
-          },
-          {
-            key: "waterSource",
-            title: "Water Source",
-            placeholder: "Select source",
-            type: "select",
-            required: false,
-            options: ["Tap water", "Rainwater", "Well water", "Other"],
-          },
-        ],
-      },
-      review: {
-        title: "Review Watering Record",
-        description: "Confirm your watering details",
-      },
-    },
-  },
-  harvestAction: {
-    description: "Record harvest activities",
-    uiConfig: {
-      media: {
-        title: "Show Your Harvest",
-        description: "Take photos of what you harvested",
-        maxImageCount: 5,
-        minImageCount: 1,
-        required: true,
-        needed: ["Harvested produce", "Harvest area"],
-        optional: ["Weight measurement", "Sorting/preparation"],
-      },
-      details: {
-        title: "Harvest Details",
-        description: "Tell us what you harvested",
-        feedbackPlaceholder: "Notes about quality, ripeness, or any issues encountered...",
-        inputs: [
-          {
-            key: "cropType",
-            title: "Crop Harvested",
-            placeholder: "What did you harvest?",
-            type: "text",
-            required: true,
-            options: [],
-          },
-          {
-            key: "quantity",
-            title: "Quantity/Weight",
-            placeholder: "e.g., 5 kg, 20 pieces",
-            type: "text",
-            required: true,
-            options: [],
-          },
-          {
-            key: "quality",
-            title: "Quality Assessment",
-            placeholder: "Select quality",
-            type: "select",
-            required: false,
-            options: ["Excellent", "Good", "Fair", "Poor"],
-          },
-        ],
-      },
-      review: {
-        title: "Review Harvest Record",
-        description: "Confirm harvest details before submitting",
-      },
-    },
-  },
+
+  // Solar (5)
+  "solar.site_setup": solarSiteSetup,
+  "solar.install_milestone": solarInstallMilestone,
+  "solar.service_session": solarServiceSession,
+  "solar.energy_uptime_check": solarEnergyUptimeCheck,
+  "solar.node_ops": solarNodeOps,
+
+  // Agro (6)
+  "agro.site_species_plan": agroSiteSpeciesPlan,
+  "agro.planting_event": agroPlantingEvent,
+  "agro.survival_check": agroSurvivalCheck,
+  "agro.maintenance_activity": agroMaintenanceActivity,
+  "agro.learning_reflection": agroLearningReflection,
+  "agro.harvest_yield": agroHarvestYield,
+
+  // Edu (5)
+  "edu.publish_session": eduPublishSession,
+  "edu.deliver_session": eduDeliverSession,
+  "edu.verify_attendance": eduVerifyAttendance,
+  "edu.followup_action": eduFollowupAction,
+  "edu.learning_assessment": eduLearningAssessment,
+
+  // Waste (6)
+  "waste.site_assessment": wasteSiteAssessment,
+  "waste.cleanup_event": wasteCleanupEvent,
+  "waste.sorting_breakdown": wasteSortingBreakdown,
+  "waste.transfer_receipt": wasteTransferReceipt,
+  "waste.upcycle_batch": wasteUpcycleBatch,
+  "waste.maintenance_check": wasteMaintenanceCheck,
 };

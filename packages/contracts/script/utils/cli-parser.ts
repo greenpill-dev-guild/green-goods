@@ -11,12 +11,41 @@ export interface ParsedOptions {
   updateSchemasOnly: boolean;
   force: boolean;
   dryRun: boolean;
+  pureSimulation: boolean;
   skipEnvio: boolean;
   skipVerification: boolean;
   startIndexer: boolean;
   saveReport: boolean;
+  overrideSepoliaGate: boolean;
+  deploymentSalt?: string;
   help?: boolean;
   error?: string;
+}
+
+/** Flags that consume the next argument as their value */
+const VALUE_FLAGS = new Set(["--network", "-n", "--chain", "--salt"]);
+
+/** Flags whose values contain secrets and must be redacted in logs */
+const SENSITIVE_FLAGS = new Set(["--private-key", "--etherscan-api-key", "--account", "--sender"]);
+
+/**
+ * Redact sensitive flag values from a forge argument list for safe logging.
+ * Returns a new array with secret values replaced by "[REDACTED]".
+ *
+ * @param args - The full argument list passed to forge
+ * @returns A copy with sensitive values replaced
+ */
+export function redactSensitiveArgs(args: string[]): string[] {
+  const redacted: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    redacted.push(arg);
+    if (SENSITIVE_FLAGS.has(arg) && i + 1 < args.length) {
+      redacted.push("[REDACTED]");
+      i++;
+    }
+  }
+  return redacted;
 }
 
 export class CliParser {
@@ -33,10 +62,12 @@ export class CliParser {
       updateSchemasOnly: false,
       force: false,
       dryRun: false,
+      pureSimulation: false,
       skipEnvio: false,
       skipVerification: false,
       startIndexer: false,
       saveReport: false,
+      overrideSepoliaGate: false,
     };
 
     for (let i = 1; i < args.length; i++) {
@@ -48,6 +79,9 @@ export class CliParser {
       switch (arg) {
         case "--network":
         case "-n":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a network name` };
+          }
           options.network = args[++i];
           break;
         case "--broadcast":
@@ -63,6 +97,9 @@ export class CliParser {
         case "--dry-run":
           options.dryRun = true;
           break;
+        case "--pure-simulation":
+          options.pureSimulation = true;
+          break;
         case "--skip-envio":
           options.skipEnvio = true;
           break;
@@ -74,6 +111,15 @@ export class CliParser {
           break;
         case "--save-report":
           options.saveReport = true;
+          break;
+        case "--override-sepolia-gate":
+          options.overrideSepoliaGate = true;
+          break;
+        case "--salt":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a salt value` };
+          }
+          options.deploymentSalt = args[++i];
           break;
         case "--help":
         case "-h":
@@ -117,10 +163,7 @@ export class CliParser {
       const arg = args[i];
       // Skip flags and their values
       if (arg.startsWith("-")) {
-        // Skip next arg if this is a flag that takes a value
-        if (arg === "--network" || arg === "-n" || arg === "--chain") {
-          i++;
-        }
+        if (VALUE_FLAGS.has(arg)) i++;
         continue;
       }
 

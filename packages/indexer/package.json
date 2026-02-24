@@ -5,44 +5,46 @@
     "clean": "tsc --clean",
     "build": "tsc --build",
     "watch": "tsc --watch",
-    "mocha": "ts-mocha test/**/*.ts",
-
+    "mocha": "node --import tsx ./node_modules/mocha/bin/mocha.js \"test/**/*.ts\"",
     "setup-generated": "cd generated && pnpm install && pnpm run build",
     "codegen": "envio codegen",
-    "dev": "./setup-and-start.sh",
+    "dev": "./scripts/dev.sh",
+    "dev:docker": "docker compose -f docker-compose.indexer.yaml up --build",
+    "dev:docker:detach": "docker compose -f docker-compose.indexer.yaml up --build -d",
+    "dev:docker:logs": "docker compose -f docker-compose.indexer.yaml logs -f indexer",
+    "dev:docker:down": "docker compose -f docker-compose.indexer.yaml down",
     "dev:manual": "envio dev",
     "start": "envio start",
     "stop": "pkill -f 'envio dev' || true && lsof -ti:9898 -ti:8080 2>/dev/null | xargs kill -9 2>/dev/null || true",
-
-    "doctor": "./doctor.sh",
-    "doctor:fix": "./doctor.sh --fix",
+    "doctor": "./scripts/doctor.sh",
+    "doctor:fix": "./scripts/doctor.sh --fix",
+    "check:indexing-boundary": "node scripts/check-indexing-boundary.mjs",
     "db:up": "cd generated && docker compose up -d",
     "db:down": "cd generated && docker compose down",
     "db:logs": "cd generated && docker compose logs -f",
-
     "test:setup": "bun run codegen && bun run setup-generated",
     "pretest": "[ -d generated/src ] || bun run test:setup",
     "test": "bun run mocha",
+    "test:coverage": "c8 bun run mocha",
     "test:full": "bun run test:setup && bun run mocha",
     "lint": "oxlint src test",
-    "reset": "./reset-indexer.sh"
+    "reset": "./scripts/reset.sh"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.20",
+    "@types/chai": "^5.0.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.2.1",
-    "chai": "^4.5.0",
-    "mocha": "^10.8.2",
-    "ts-mocha": "^10.0.0",
+    "c8": "^10.1.3",
+    "chai": "^5.0.0",
+    "mocha": "^11.0.0",
+    "ts-mocha": "^11.0.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@elastic/ecs-pino-format": "^1.5.0",
     "envio": "2.32.3",
-    "postgres": "^3.4.7",
-    "rescript-envsafe": "^5.0.0"
+    "postgres": "^3.4.7"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }

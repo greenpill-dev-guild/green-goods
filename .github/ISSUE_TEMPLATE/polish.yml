@@ -1,0 +1,35 @@
+name: Polish
+description: UI polish and UX improvements
+labels: ["polish"]
+body:
+  - type: textarea
+    id: current
+    attributes:
+      label: Current State
+      description: What does it look like/feel like now?
+    validations:
+      required: true
+  - type: textarea
+    id: desired
+    attributes:
+      label: Desired State
+      description: What should it look like/feel like?
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Component/Area
+      options:
+        - client
+        - admin
+        - component
+        - design
+    validations:
+      required: true
+  - type: textarea
+    id: figma
+    attributes:
+      label: Figma Reference
+      description: Link to Figma design if applicable
+      placeholder: "https://figma.com/..."

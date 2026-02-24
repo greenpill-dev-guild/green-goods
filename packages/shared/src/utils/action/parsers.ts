@@ -16,7 +16,7 @@ import type { Action } from "../../types/domain";
  * @returns The numeric actionUID, or null if parsing fails
  *
  * @example
- * parseActionUID("84532-42") // returns 42
+ * parseActionUID("11155111-42") // returns 42
  * parseActionUID("invalid") // returns null
  */
 export function parseActionUID(compositeId: string | undefined | null): number | null {

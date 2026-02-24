@@ -5,6 +5,8 @@ import React, { useState } from "react";
 export interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
   alt: string;
+  /** Image loading strategy. Defaults to "lazy" for performance. */
+  loading?: "lazy" | "eager";
   fallbackIcon?: React.ComponentType<{ className?: string }>;
   fallbackClassName?: string;
   onErrorCallback?: () => void;
@@ -18,13 +20,17 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   src,
   alt,
   className,
+  loading = "lazy",
   fallbackIcon: FallbackIcon = RiImageLine,
   fallbackClassName,
   onErrorCallback,
   ...props
 }) => {
-  const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // Sanitize src to prevent javascript: XSS
+  const safeSrc = /^(https?:|data:image\/|\/|blob:)/i.test(src) ? src : "";
+
+  const [hasError, setHasError] = useState(!safeSrc);
+  const [isLoading, setIsLoading] = useState(!!safeSrc);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const handleError = () => {
@@ -64,8 +70,9 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         />
       )}
       <img
-        src={src}
+        src={safeSrc}
         alt={alt}
+        loading={loading}
         className={cn(className, isLoading && "opacity-0", isLoaded && "image-reveal")}
         onError={handleError}
         onLoad={handleLoad}

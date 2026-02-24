@@ -1,20 +1,35 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
   Capital,
+  Domain,
   type Action,
   type ActionInstructionConfig,
+  type Address,
   type Garden,
   type GardenerCard,
   type WorkInput,
 } from "../../types/domain";
+import { logger } from "../app/logger";
 import { greenGoodsGraphQL } from "./graphql";
 import { greenGoodsIndexer } from "./graphql-client";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs";
 
-const GATEWAY_BASE_URL = "https://w3s.link";
+const GATEWAY_BASE_URL = "https://storacha.link";
 
 // Re-export Capital for backward compatibility
 export { Capital };
+
+/** Maps indexer domain string (e.g., "SOLAR") to the Domain enum value. */
+function parseDomain(domain: string | undefined | null): Domain {
+  if (!domain) return Domain.SOLAR;
+  const map: Record<string, Domain> = {
+    SOLAR: Domain.SOLAR,
+    AGRO: Domain.AGRO,
+    EDU: Domain.EDU,
+    WASTE: Domain.WASTE,
+  };
+  return map[domain] ?? Domain.SOLAR;
+}
 
 /** Fetches action definitions from the indexer and enriches media + UI config. */
 export async function getActions(): Promise<Action[]> {
@@ -28,9 +43,11 @@ export async function getActions(): Promise<Action[]> {
           startTime
           endTime
           title
+          slug
           instructions
           capitals
           media
+          domain
           createdAt
         }
       }
@@ -39,7 +56,7 @@ export async function getActions(): Promise<Action[]> {
     const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getActions");
 
     if (error) {
-      console.error("[getActions] Indexer query failed:", error.message);
+      logger.error("[getActions] Indexer query failed", { error: error.message });
       return [];
     }
 
@@ -47,7 +64,18 @@ export async function getActions(): Promise<Action[]> {
 
     return await Promise.all(
       data.Action.map(
-        async ({ id, title, startTime, endTime, capitals, media, instructions, createdAt }) => {
+        async ({
+          id,
+          title,
+          slug,
+          startTime,
+          endTime,
+          capitals,
+          media,
+          domain,
+          instructions,
+          createdAt,
+        }) => {
           // Resolve media CIDs to gateway URLs
           const resolvedMedia =
             media && Array.isArray(media)
@@ -70,12 +98,15 @@ export async function getActions(): Promise<Action[]> {
               }
             }
           } catch (error) {
-            console.error(`[getActions] Failed to fetch instructions for action ${id}:`, error);
+            logger.error(`[getActions] Failed to fetch instructions for action ${id}`, { error });
           }
 
           return {
             id, // composite id stays for uniqueness but downstream selection matches numeric UID
             title,
+            slug: typeof slug === "string" ? slug : "",
+            instructions: instructions ? resolveIPFSUrl(instructions, GATEWAY_BASE_URL) : undefined,
+            domain: parseDomain(domain as string | undefined),
             startTime: startTime ? Number(startTime) * 1000 : Date.now(),
             endTime: endTime ? Number(endTime) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now
             capitals: Array.isArray(capitals) ? capitals.map((c: unknown) => c as Capital) : [],
@@ -104,7 +135,7 @@ export async function getActions(): Promise<Action[]> {
       )
     );
   } catch (error) {
-    console.error("[getActions] Failed to fetch actions:", error);
+    logger.error("[getActions] Failed to fetch actions", { error });
     return [];
   }
 }
@@ -126,8 +157,16 @@ export async function getGardens(): Promise<Garden[]> {
           bannerImage
           gardeners
           operators
+          evaluators
+          owners
+          funders
+          communities
           openJoining
           createdAt
+        }
+        GardenDomains(where: {chainId: {_eq: $chainId}}) {
+          garden
+          domainMask
         }
       }
     `);
@@ -135,11 +174,19 @@ export async function getGardens(): Promise<Garden[]> {
     const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardens");
 
     if (error) {
-      console.error("[getGardens] Indexer query failed:", error.message);
+      logger.error("[getGardens] Indexer query failed", { error: error.message });
       return [];
     }
 
     if (!data || !data.Garden || !Array.isArray(data.Garden)) return [];
+
+    // Build a lookup from garden address -> domainMask
+    const domainMap = new Map<string, number>(
+      ((data.GardenDomains ?? []) as Array<{ garden: string; domainMask: number }>).map((d) => [
+        d.garden,
+        d.domainMask,
+      ])
+    );
 
     return data.Garden.map((garden) => {
       // DIRTY FIX: Override Octant Community Garden banner until indexer is updated
@@ -155,22 +202,27 @@ export async function getGardens(): Promise<Garden[]> {
       return {
         id: garden.id,
         chainId: garden.chainId,
-        tokenAddress: garden.tokenAddress,
+        tokenAddress: garden.tokenAddress as Address,
         tokenID: BigInt(garden.tokenID),
         name: garden.name || "Unnamed Garden",
         description: garden.description || "",
         location: garden.location || "Unknown Location",
         bannerImage,
-        gardeners: garden.gardeners || [],
-        operators: garden.operators || [],
+        gardeners: (garden.gardeners || []) as Address[],
+        operators: (garden.operators || []) as Address[],
+        evaluators: (garden.evaluators || []) as Address[],
+        owners: (garden.owners || []) as Address[],
+        funders: (garden.funders || []) as Address[],
+        communities: (garden.communities || []) as Address[],
         openJoining: Boolean(garden.openJoining),
+        domainMask: domainMap.get(garden.id) ?? 0,
         assessments: [],
         works: [],
         createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
       };
     });
   } catch (error) {
-    console.error("[getGardens] Failed to fetch gardens:", error);
+    logger.error("[getGardens] Failed to fetch gardens", { error });
     return [];
   }
 }
@@ -193,7 +245,7 @@ export async function getGardeners(): Promise<GardenerCard[]> {
     const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardeners");
 
     if (error) {
-      console.error("[getGardeners] Indexer query failed:", error.message);
+      logger.error("[getGardeners] Indexer query failed", { error: error.message });
       return [];
     }
     if (!data || !data.Gardener || !Array.isArray(data.Gardener)) return [];
@@ -209,7 +261,7 @@ export async function getGardeners(): Promise<GardenerCard[]> {
       avatar: undefined,
     }));
   } catch (error) {
-    console.error("[getGardeners] Failed to fetch gardeners:", error);
+    logger.error("[getGardeners] Failed to fetch gardeners", { error });
     return [];
   }
 }

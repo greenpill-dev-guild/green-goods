@@ -5,7 +5,7 @@ This file provides rules for AI agents to assess production readiness of Green G
 
 ## Deployment Readiness Assessment Protocol
 
-When asked about production readiness for Base Sepolia or any network, execute these checks in order:
+When asked about production readiness for Sepolia or any network, execute these checks in order:
 
 ### 1. Test Coverage Check
 
@@ -15,7 +15,7 @@ cd packages/contracts && bun test
 ```
 
 **Requirements:**
-- **Testnet (Base Sepolia):** >= 80% pass rate acceptable
+- **Testnet (Sepolia):** >= 80% pass rate acceptable
 - **Mainnet:** 100% tests must pass
 - **Review:** Check `TEST_FIXES_SUMMARY.md` for known issues
 
@@ -51,7 +51,7 @@ grep -r "TODO\|FIXME\|HACK\|XXX" packages/contracts/src/
 
 **Command to verify:**
 ```bash
-cat packages/contracts/deployments/84532-latest.json | jq
+cat packages/contracts/deployments/11155111-latest.json | jq
 ```
 
 **Required fields:**
@@ -79,7 +79,7 @@ cd packages/contracts && bun network:verify
 - Environment variables set
 
 **Required env vars:**
-- `BASE_SEPOLIA_RPC_URL` (for Base Sepolia)
+- `SEPOLIA_RPC_URL` (for Sepolia)
 - `FOUNDRY_KEYSTORE_ACCOUNT`
 - `ETHERSCAN_API_KEY` (optional but recommended)
 
@@ -115,7 +115,7 @@ cd packages/contracts && bun run build
 
 ## Production Deployment Workflow
 
-### For Base Sepolia (Testnet)
+### For Sepolia (Testnet)
 
 **Pre-flight checks:**
 ```bash
@@ -133,15 +133,15 @@ bun deploy:testnet
 **Post-deployment verification:**
 ```bash
 # Check contract ownership
-cast call $GARDEN_TOKEN "owner()" --rpc-url $BASE_SEPOLIA_RPC_URL
+cast call $GARDEN_TOKEN "owner()" --rpc-url $SEPOLIA_RPC_URL
 
 # Verify contract on explorer
-forge verify-contract --chain-id 84532 $CONTRACT_ADDRESS src/Contract.sol:Contract
+forge verify-contract --chain-id 11155111 $CONTRACT_ADDRESS src/Contract.sol:Contract
 ```
 
 **Acceptance criteria:**
 - All contracts deployed successfully
-- All contracts verified on Basescan
+- All contracts verified on Etherscan (Sepolia)
 - Basic operations tested (mint, register, submit, approve)
 - No errors in 24-hour monitoring period
 
@@ -334,4 +334,3 @@ This file should be updated when:
 - Production incidents occur
 
 Last updated: 2025-10-09
-

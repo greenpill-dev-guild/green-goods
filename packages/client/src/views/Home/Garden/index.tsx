@@ -1,25 +1,38 @@
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
+  DEFAULT_CHAIN_ID,
   GardenTab,
+  isGardenMember,
   useActions,
   useBrowserNavigation,
+  useConvictionStrategies,
   useGardeners,
+  useGardenVaults,
   useGardens,
   useGardenTabs,
+  useHasRole,
+  useJoinGarden,
   useNavigateToTop,
   useUser,
+  useVaultDeposits,
   useWorks,
-} from "@green-goods/shared/hooks";
+  toastService,
+  type Address,
+} from "@green-goods/shared";
 import {
   RiCalendarEventFill,
   RiFileChartFill,
   RiGroupFill,
   RiHammerFill,
+  RiLoader4Line,
   RiMapPin2Fill,
+  RiUserAddLine,
 } from "@remixicon/react";
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
+import { isAddress } from "viem";
+import { Button } from "@/components/Actions";
+import { ConvictionDrawer, EndowmentDrawer } from "@/components/Dialogs";
 import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
@@ -34,6 +47,8 @@ type GardenProps = {};
 export const Garden: React.FC<GardenProps> = () => {
   const intl = useIntl();
   const { primaryAddress } = useUser();
+  const [isEndowmentOpen, setIsEndowmentOpen] = useState(false);
+  const [isGovernanceOpen, setIsGovernanceOpen] = useState(false);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -63,7 +78,11 @@ export const Garden: React.FC<GardenProps> = () => {
   const { id: gardenIdParam } = useParams<{ id: string }>();
   const { pathname } = useLocation();
   const chainId = DEFAULT_CHAIN_ID;
-  const { data: allGardens = [], isFetching: gardensLoading } = useGardens(chainId);
+  const {
+    data: allGardens = [],
+    isLoading: gardensInitialLoading,
+    isFetching: gardensLoading,
+  } = useGardens(chainId);
   const garden = allGardens.find((g) => g.id === gardenIdParam);
   const gardenStatus: "error" | "success" | "pending" = garden ? "success" : "pending";
   const { data: allGardeners = [] } = useGardeners();
@@ -74,7 +93,7 @@ export const Garden: React.FC<GardenProps> = () => {
     isFetching: worksFetching,
     isError: worksError,
     refetch: refetchWorks,
-  } = useWorks(gardenIdParam || "");
+  } = useWorks(gardenIdParam || "", { offline: true });
   const members = useMemo<GardenMember[]>(() => {
     if (!garden) return [];
 
@@ -112,7 +131,52 @@ export const Garden: React.FC<GardenProps> = () => {
     });
   }, [allGardeners, garden]);
 
-  if (!garden) return null;
+  const { vaults: gardenVaults = [] } = useGardenVaults(garden?.id, {
+    enabled: Boolean(garden?.id),
+  });
+  const { deposits: myVaultDeposits = [] } = useVaultDeposits(garden?.id, {
+    userAddress: primaryAddress ?? undefined,
+    enabled: Boolean(garden?.id && primaryAddress),
+  });
+  const hasEndowmentDeposits = useMemo(
+    () => myVaultDeposits.some((deposit) => deposit.shares > 0n),
+    [myVaultDeposits]
+  );
+
+  const validGardenAddress = gardenIdParam && isAddress(gardenIdParam) ? gardenIdParam : undefined;
+  const { strategies: convictionStrategies } = useConvictionStrategies(validGardenAddress, {
+    enabled: Boolean(validGardenAddress),
+  });
+  const hasGovernance = convictionStrategies.length > 0;
+
+  if (!garden) {
+    if (gardensInitialLoading) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
+          <TopNav onBackClick={() => navigate("/home")} />
+          <RiLoader4Line className="w-8 h-8 text-text-soft-400 animate-spin" />
+          <p className="text-sm text-text-sub-600 text-center">
+            {intl.formatMessage({
+              id: "app.garden.loading",
+              defaultMessage: "Loading garden...",
+            })}
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
+        <TopNav onBackClick={() => navigate("/home")} />
+        <RiMapPin2Fill className="w-10 h-10 text-text-soft-400" />
+        <p className="text-sm text-text-sub-600 text-center">
+          {intl.formatMessage({
+            id: "app.garden.notFound",
+            defaultMessage: "Garden not found",
+          })}
+        </p>
+      </div>
+    );
+  }
 
   const { name, bannerImage, location, createdAt, assessments, description } = garden;
 
@@ -122,6 +186,61 @@ export const Garden: React.FC<GardenProps> = () => {
     const normalizedUserAddress = primaryAddress.toLowerCase();
     return garden.operators.some((addr) => addr.toLowerCase() === normalizedUserAddress);
   }, [primaryAddress, garden.operators]);
+  const { hasRole: canReviewOnChain } = useHasRole(
+    garden.id as Address | undefined,
+    primaryAddress as Address | undefined,
+    "evaluator"
+  );
+  const canReview = isOperator || canReviewOnChain;
+
+  // Check if current user is already a member of this garden
+  const isMember = useMemo(() => {
+    return isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id);
+  }, [primaryAddress, garden.gardeners, garden.operators, garden.id]);
+
+  // Join garden functionality
+  const { joinGarden, isJoining } = useJoinGarden();
+
+  const handleJoinGarden = useCallback(async () => {
+    if (!garden.id) return;
+
+    try {
+      const result = await joinGarden(garden.id);
+      if (result === "already-member") {
+        toastService.success({
+          title: intl.formatMessage({
+            id: "app.garden.alreadyMember",
+            defaultMessage: "You're already a member of this garden",
+          }),
+        });
+      } else {
+        toastService.success({
+          title: intl.formatMessage({
+            id: "app.garden.joinSuccess",
+            defaultMessage: "Successfully joined the garden!",
+          }),
+        });
+      }
+    } catch {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.garden.joinError",
+          defaultMessage: "Failed to join garden. Please try again.",
+        }),
+      });
+    }
+  }, [garden.id, joinGarden, intl]);
+
+  // Determine if join button should be shown
+  const showJoinButton = useMemo(() => {
+    // Must be authenticated
+    if (!primaryAddress) return false;
+    // Must not already be a member
+    if (isMember) return false;
+    // Garden must allow open joining
+    if (!garden.openJoining) return false;
+    return true;
+  }, [primaryAddress, isMember, garden.openJoining]);
 
   // Restore scroll position when switching tabs
 
@@ -166,7 +285,7 @@ export const Garden: React.FC<GardenProps> = () => {
       case GardenTab.Insights:
         return (
           <GardenAssessments
-            asessmentFetchStatus={gardensLoading ? "pending" : gardenStatus}
+            assessmentFetchStatus={gardensLoading ? "pending" : gardenStatus}
             assessments={assessments}
             description={description}
           />
@@ -199,14 +318,35 @@ export const Garden: React.FC<GardenProps> = () => {
                     onBackClick={() => navigate("/home")}
                     works={mergedWorks}
                     garden={garden}
-                    isOperator={isOperator}
+                    isOperator={canReview}
+                    showGovernanceButton={hasGovernance}
+                    onGovernanceClick={() => setIsGovernanceOpen(true)}
+                    showEndowmentButton={gardenVaults.length > 0}
+                    hasEndowmentDeposits={hasEndowmentDeposits}
+                    onEndowmentClick={() => setIsEndowmentOpen(true)}
                   />
                 </div>
               </div>
 
               {/* Title and meta below banner */}
               <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
-                <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
+                <div className="flex items-start justify-between gap-3">
+                  <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
+                  {showJoinButton && (
+                    <Button
+                      label={intl.formatMessage({
+                        id: "app.garden.join",
+                        defaultMessage: "Join",
+                      })}
+                      leadingIcon={<RiUserAddLine className="w-4 h-4" />}
+                      variant="primary"
+                      mode="filled"
+                      size="small"
+                      onClick={handleJoinGarden}
+                      disabled={isJoining}
+                    />
+                  )}
+                </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
                     <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
@@ -235,33 +375,34 @@ export const Garden: React.FC<GardenProps> = () => {
               </div>
             </div>
 
-            {/* Title and meta below banner */}
-            <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5">
-              <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
-                <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
-                  <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>{location}</span>
-                </div>
-                <span className="hidden sm:inline text-text-soft-400">•</span>
-                <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
-                  <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>
-                    {intl.formatMessage({ id: "app.home.founded" })}{" "}
-                    {new Date(createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            </div>
+            {/* Spacer for fixed header - matches header height without duplicating content
+                Height breakdown: banner (176px/208px) + title section (~80px) + tabs (~48px) = ~304px/336px */}
+            <div className="h-[304px] md:h-[336px] flex-shrink-0" aria-hidden="true" />
 
-            {/* Scrollable content below fixed header (add top padding to match header height) */}
+            {/* Scrollable content below fixed header */}
             <div
-              className="flex-1 min-h-0 px-4 md:px-6 pb-24 pt-56 overflow-y-auto overflow-x-hidden"
+              className="flex-1 min-h-0 px-4 md:px-6 pb-24 overflow-y-auto overflow-x-hidden"
               aria-busy={worksFetching}
             >
               {renderTabContent()}
             </div>
           </>
+        )}
+        {garden && (
+          <EndowmentDrawer
+            isOpen={isEndowmentOpen}
+            onClose={() => setIsEndowmentOpen(false)}
+            gardenAddress={garden.id}
+            gardenName={garden.name}
+          />
+        )}
+        {garden && hasGovernance && (
+          <ConvictionDrawer
+            isOpen={isGovernanceOpen}
+            onClose={() => setIsGovernanceOpen(false)}
+            gardenAddress={garden.id}
+            gardenName={garden.name}
+          />
         )}
         <Outlet context={{ gardenId: garden.id }} />
       </div>

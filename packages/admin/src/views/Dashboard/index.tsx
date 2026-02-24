@@ -1,7 +1,9 @@
 import { useGardens, useRole } from "@green-goods/shared/hooks";
 import { RiPlantLine, RiUserLine } from "@remixicon/react";
+import { useIntl } from "react-intl";
 
 export default function Dashboard() {
+  const intl = useIntl();
   const { role, operatorGardens } = useRole();
   const { data: gardens = [], isLoading, error } = useGardens();
   const totalGardens = gardens.length;
@@ -42,12 +44,28 @@ export default function Dashboard() {
               <h3 className="text-sm font-medium text-warning-dark">Indexer Connection Issue</h3>
               <div className="mt-2 text-sm text-warning-dark">
                 <p>
-                  Unable to connect to the indexer:{" "}
-                  {error instanceof Error ? error.message : "Unknown error"}
+                  {intl.formatMessage(
+                    {
+                      id: "admin.dashboard.indexerError.message",
+                      defaultMessage: "Unable to connect to the indexer: {error}",
+                    },
+                    {
+                      error:
+                        error instanceof Error
+                          ? error.message
+                          : intl.formatMessage({
+                              id: "admin.gardens.unknownError",
+                              defaultMessage: "Unknown error",
+                            }),
+                    }
+                  )}
                 </p>
                 <p className="mt-1">
-                  The dashboard will work with limited functionality. Garden operations are still
-                  available.
+                  {intl.formatMessage({
+                    id: "admin.dashboard.indexerError.fallback",
+                    defaultMessage:
+                      "The dashboard will work with limited functionality. Garden operations are still available.",
+                  })}
                 </p>
               </div>
             </div>
@@ -58,8 +76,13 @@ export default function Dashboard() {
         <div className="mt-8">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-text-strong">
-              Welcome back,{" "}
-              {role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User"}
+              {intl.formatMessage(
+                { id: "admin.dashboard.welcome", defaultMessage: "Welcome back, {role}" },
+                {
+                  role:
+                    role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User",
+                }
+              )}
             </h1>
             <p className="text-text-sub mt-1">
               {role === "deployer"
@@ -100,8 +123,10 @@ export default function Dashboard() {
     <div className="p-6">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-text-strong">
-          Welcome back,{" "}
-          {role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User"}
+          {intl.formatMessage(
+            { id: "admin.dashboard.welcome", defaultMessage: "Welcome back, {role}" },
+            { role: role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User" }
+          )}
         </h1>
         <p className="text-text-sub mt-1">
           {role === "deployer"

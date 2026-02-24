@@ -1,0 +1,89 @@
+---
+title: Mint Hypercerts and List on Marketplace
+sidebar_position: 6
+slug: /operator/mint-and-list-hypercerts
+audience: operator
+owner: docs
+last_verified: 2026-02-19
+feature_status: Implemented (activation pending deployment)
+goal: "Complete Mint Hypercerts and List on Marketplace with clear, role-specific next actions."
+difficulty: "standard"
+estimated_time: "20-40 minutes once activation is complete."
+prereqs: "Assessment/work history prepared; deployment status reviewed."
+next_steps: "./vaults-and-treasury"
+persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
+source_of_truth:
+  - packages/admin/src/views/Gardens/Garden/Hypercerts.tsx
+  - packages/admin/src/views/Gardens/Garden/CreateHypercert.tsx
+  - packages/shared/src/hooks/hypercerts/useMintHypercert.ts
+  - packages/shared/src/hooks/hypercerts/useMarketplaceApprovals.ts
+  - packages/contracts/deployments/42161-latest.json
+keywords:
+  - hypercerts
+  - mint hypercert
+  - list hypercert
+  - hypercert marketplace
+  - mint
+  - marketplace
+---
+
+import {AtAGlanceCard, FeatureState, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+
+# Mint Hypercerts and List on Marketplace
+
+<StatusBadge status="Implemented (activation pending deployment)" />
+
+<AtAGlanceCard
+  goal="Complete Mint Hypercerts and List on Marketplace with clear, role-specific next actions."
+  difficulty="standard"
+  estimatedTime="20-40 minutes once activation is complete."
+  prereqs="Assessment/work history prepared; deployment status reviewed."
+  outcome="Clear runbook for mint/list flow plus current activation constraints."
+  personaContext="Operators coordinating gardens, approvals, and governance/endowment execution."
+  lastVerified="2026-02-19"
+/>
+
+## When to use this page
+
+Use this guide when you need to mint hypercert claims from verified work and prepare marketplace listing steps.
+
+## Current state
+
+<FeatureState
+  title="UI and hooks"
+  status="Implemented (activation pending deployment)"
+  summary="Admin routes and shared hooks for mint/list/approvals are implemented."
+/>
+
+<FeatureState
+  title="Marketplace activation"
+  status="Implemented (activation pending deployment)"
+  summary="`marketplaceAdapter` remains zero-address in latest deployment artifacts, so public listing is not fully active."
+/>
+
+## Activation-gated operator flow
+
+<StepFlow
+  steps={[
+    {title: "Prepare claim", detail: "Aggregate verified work/assessment scope for the hypercert claim."},
+    {title: "Mint hypercert", detail: "Use create/mint flow and confirm token data."},
+    {title: "Approve marketplace", detail: "Grant adapter permissions for listing."},
+    {title: "Create listing", detail: "Set pricing, units, and expiration strategy."},
+  ]}
+/>
+
+## Activation checklist
+
+1. Non-zero module/adapter addresses in `deployments/*-latest.json`.
+2. Indexer config updated with those addresses.
+3. End-to-end mint/list test passes on target chain.
+
+<NextBestAction
+  title="Next best action"
+  why="Keep momentum by moving to the next high-value step in this journey."
+  actionLabel="Vault deposit and endowment operations"
+  actionHref="./vaults-and-treasury"
+  alternatives={[
+    {label: "Conviction and Signal Pools", href: "./conviction-and-signal-pools"},
+  ]}
+/>

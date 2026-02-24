@@ -1,7 +1,22 @@
-import { imageCompressor } from "@green-goods/shared";
-import { cn } from "@green-goods/shared/utils";
+import {
+  cn,
+  extractErrorMessage,
+  imageCompressor,
+  logger,
+  toastService,
+} from "@green-goods/shared";
 import { RiCloseLine, RiLoader4Line, RiUploadCloudLine } from "@remixicon/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useIntl } from "react-intl";
+
+const PREVIEWABLE_IMAGE_TYPES = new Set([
+  "image/avif",
+  "image/bmp",
+  "image/gif",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 interface FileUploadFieldProps {
   onFilesChange: (files: File[]) => void;
@@ -28,17 +43,10 @@ export function FileUploadField({
   currentFiles = [],
   onRemoveFile,
 }: FileUploadFieldProps) {
+  const { formatMessage } = useIntl();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const previewableImageTypes = new Set([
-    "image/avif",
-    "image/bmp",
-    "image/gif",
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-  ]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -83,7 +91,24 @@ export function FileUploadField({
         onFilesChange(fileArray);
       }
     } catch (error) {
-      console.error("File processing failed:", error);
+      logger.error("File processing failed", { error });
+      const errorText = extractErrorMessage(error);
+      const shortError =
+        errorText.length > 120 ? `${errorText.slice(0, 117).trimEnd()}...` : errorText;
+      toastService.error({
+        title: formatMessage({
+          id: "admin.fileUpload.error.title",
+          defaultMessage: "File processing failed",
+        }),
+        message: formatMessage(
+          { id: "admin.fileUpload.error.message", defaultMessage: "Please try again. {error}" },
+          { error: shortError }
+        ),
+        context: "file upload",
+        error,
+      });
+      setIsProcessing(false);
+      setProgress(0);
     } finally {
       setIsProcessing(false);
       setProgress(0);
@@ -120,12 +145,41 @@ export function FileUploadField({
       })
       .join("");
 
-  const getFilePreviewUrl = (file: File): string | null => {
-    if (previewableImageTypes.has(file.type)) {
-      return URL.createObjectURL(file);
+  // Create blob URLs in an effect instead of during render
+  // Store them in state and clean up when files change
+  // Use string keys instead of File object identity to handle cases where
+  // parent provides new File instances with same metadata
+  const [previewUrls, setPreviewUrls] = useState<Map<string, string>>(new Map());
+
+  // Create stable key from file metadata
+  const fileKey = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
+  const filesKey = currentFiles.map(fileKey).join("|");
+
+  useEffect(() => {
+    if (!showPreview) {
+      for (const url of previewUrls.values()) {
+        URL.revokeObjectURL(url);
+      }
+      setPreviewUrls(new Map());
+      return;
     }
-    return null;
-  };
+
+    const urls = new Map<string, string>();
+    for (const file of currentFiles) {
+      if (PREVIEWABLE_IMAGE_TYPES.has(file.type)) {
+        urls.set(fileKey(file), URL.createObjectURL(file));
+      }
+    }
+    setPreviewUrls(urls);
+
+    // Cleanup function to revoke URLs when files change
+    return () => {
+      const urlsToRevoke = new Set([...previewUrls.values(), ...urls.values()]);
+      for (const url of urlsToRevoke) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [filesKey, showPreview]);
 
   return (
     <div className="space-y-2">
@@ -147,19 +201,34 @@ export function FileUploadField({
         onClick={handleButtonClick}
         disabled={disabled || isProcessing}
         className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-stroke-sub bg-bg-white px-4 py-3 text-sm font-medium text-text-sub transition hover:border-green-500 hover:bg-bg-weak/80",
+          "flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-stroke-sub bg-bg-white px-4 py-3 text-sm font-medium text-text-sub transition hover:border-primary-base hover:bg-bg-weak/80",
           (disabled || isProcessing) && "cursor-not-allowed opacity-60"
         )}
       >
         {isProcessing ? (
           <>
             <RiLoader4Line className="h-5 w-5 animate-spin" />
-            <span>Processing... {Math.round(progress)}%</span>
+            <span>
+              {formatMessage(
+                { id: "admin.fileUpload.processing", defaultMessage: "Processing... {progress}%" },
+                { progress: Math.round(progress) }
+              )}
+            </span>
           </>
         ) : (
           <>
             <RiUploadCloudLine className="h-5 w-5" />
-            <span>{multiple ? "Choose files" : "Choose file"}</span>
+            <span>
+              {multiple
+                ? formatMessage({
+                    id: "admin.fileUpload.chooseFiles",
+                    defaultMessage: "Choose files",
+                  })
+                : formatMessage({
+                    id: "admin.fileUpload.chooseFile",
+                    defaultMessage: "Choose file",
+                  })}
+            </span>
           </>
         )}
       </button>
@@ -168,12 +237,12 @@ export function FileUploadField({
         <div className="mt-3 space-y-2">
           {currentFiles.map((file, index) => {
             const safeFileName = sanitizeFileName(file.name);
-            const previewUrl = getFilePreviewUrl(file);
+            const previewUrl = previewUrls.get(fileKey(file)) ?? null;
             const safePreviewUrl = previewUrl?.startsWith("blob:") ? previewUrl : null;
             return (
               <div
                 key={`${safeFileName}-${index}`}
-                className="flex items-center gap-3 rounded-md border border-gray-100 bg-bg-weak p-3"
+                className="flex items-center gap-3 rounded-md border border-stroke-soft bg-bg-weak p-3"
               >
                 {safePreviewUrl && (
                   <img
@@ -190,7 +259,7 @@ export function FileUploadField({
                   <button
                     type="button"
                     onClick={() => handleRemove(index)}
-                    className="rounded-md p-1 text-red-500 transition hover:bg-red-100/20"
+                    className="rounded-md p-1 text-error-base transition hover:bg-error-lighter"
                     // eslint-disable-next-line jsx-a11y/aria-proptypes
                     aria-label={`Remove ${safeFileName}`}
                   >

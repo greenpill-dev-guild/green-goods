@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, type RenderHookOptions } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
+import enMessages from "../../i18n/en.json";
 
 // Re-export mock factories and offline helpers
 export * from "./mock-factories";
@@ -50,7 +51,7 @@ export function createTestWrapper(queryClient?: QueryClient) {
     return createElement(
       QueryClientProvider,
       { client },
-      createElement(IntlProvider, { locale: "en", messages: {} }, children)
+      createElement(IntlProvider, { locale: "en", messages: enMessages }, children)
     );
   };
 }
@@ -60,7 +61,7 @@ export function createTestWrapper(queryClient?: QueryClient) {
  */
 export function createIntlWrapper() {
   return function IntlWrapper({ children }: WrapperProps) {
-    return createElement(IntlProvider, { locale: "en", messages: {} }, children);
+    return createElement(IntlProvider, { locale: "en", messages: enMessages }, children);
   };
 }
 
@@ -181,17 +182,21 @@ export function mock<T>(fn: T): T & MockMethods<T> {
 // ============================================
 
 /**
- * Wrapper component that provides only QueryClient (no IntlProvider)
- * Useful for components that don't need internationalization
+ * Wrapper component that provides QueryClient and IntlProvider
+ * Used by renderWithQuery for component testing
  */
 export function QueryTestWrapper({ children }: WrapperProps) {
   const queryClient = createTestQueryClient();
-  return createElement(QueryClientProvider, { client: queryClient }, children);
+  return createElement(
+    QueryClientProvider,
+    { client: queryClient },
+    createElement(IntlProvider, { locale: "en", messages: enMessages }, children)
+  );
 }
 
 /**
- * Renders a component with only QueryClientProvider
- * Alternative to render() when you don't need IntlProvider
+ * Renders a component with QueryClientProvider and IntlProvider
+ * Standard render for component tests that may use react-intl
  */
 export function renderWithQuery(
   ui: React.ReactElement,

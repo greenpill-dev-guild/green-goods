@@ -55,6 +55,165 @@ const config: Config = {
     ],
   ],
 
+  plugins: [
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        redirects: [
+          {
+            from: [
+              '/welcome/quickstart-gardener',
+              '/gardeners/logging-work',
+              '/welcome/why-green-goods',
+              '/welcome/who-is-it-for',
+              '/welcome/what-you-can-do',
+            ],
+            to: '/gardener/get-started',
+          },
+          {
+            from: ['/gardeners/tracking-contributions'],
+            to: '/gardener/track-status-and-attestations',
+          },
+          {from: ['/gardeners/best-practices'], to: '/gardener/common-errors'},
+          {
+            from: ['/welcome/quickstart-operator', '/operators/managing-gardens'],
+            to: '/operator/get-started-and-roles',
+          },
+          {from: ['/operators/managing-actions'], to: '/operator/manage-actions'},
+          {from: ['/operators/reviewing-work'], to: '/operator/review-work'},
+          {from: ['/operators/reporting-impact'], to: '/operator/reporting-and-gap'},
+          {
+            from: ['/welcome/quickstart-evaluator', '/evaluators/accessing-data'],
+            to: '/evaluator/get-started',
+          },
+          {from: ['/evaluators/exploring-gardens'], to: '/evaluator/export-and-analysis'},
+          {
+            from: ['/evaluators/using-attestation-data'],
+            to: '/evaluator/verify-attestation-chains',
+          },
+          {
+            from: ['/evaluators/external-frameworks'],
+            to: '/evaluator/cross-framework-mapping',
+          },
+          {
+            from: [
+              '/welcome/quickstart-developer',
+              '/developer',
+              '/developer/index',
+              '/developer/installation',
+              '/developer/contributing',
+              '/developer/client',
+              '/developer/admin',
+              '/developer/shared',
+            ],
+            to: '/developers/getting-started',
+          },
+          {from: ['/developer/architecture', '/developer/diagrams'], to: '/developers/architecture'},
+          {
+            from: [
+              '/developer/contracts',
+              '/developer/hypercerts',
+              '/developer/error-handling',
+              '/developer/gardener-accounts',
+              '/developer/theming',
+            ],
+            to: '/developers/build-patterns',
+          },
+          {
+            from: [
+              '/developer/indexer',
+              '/developer/ipfs-deployment',
+              '/developer/karma-gap',
+              '/developer/n8n-automation',
+              '/developer/n8n-story-workflow',
+              '/developer/claude-agent-teams',
+              '/developer/cursor-workflows',
+              '/developer/auto-translation-flow',
+              '/developer/translation-troubleshooting',
+            ],
+            to: '/developers/integrations',
+          },
+          {
+            from: [
+              '/developer/releasing',
+              '/developer/testing',
+              '/developer/docs-contributing',
+              '/developer/docs-deployment',
+              '/developer/monitoring',
+              '/developer/contracts-handbook',
+            ],
+            to: '/developers/operations',
+          },
+          {from: ['/developer/api-reference'], to: '/developers/reference/api-index'},
+          {
+            from: ['/developer/claude-mcp-workflows', '/developer/agent'],
+            to: '/developers/reference/agent-mcp-guide',
+          },
+          {
+            from: [
+              '/concepts/roles',
+              '/concepts/gardens-and-work',
+            ],
+            to: '/gardener/get-started',
+          },
+          {
+            from: ['/concepts/mdr-workflow'],
+            to: '/gardener/submit-work-mdr',
+          },
+          {
+            from: ['/concepts/attestations'],
+            to: '/evaluator/verify-attestation-chains',
+          },
+          {
+            from: ['/concepts/hypercerts'],
+            to: '/operator/mint-and-list-hypercerts',
+          },
+          {
+            from: ['/features/overview', '/features/core-features'],
+            to: '/',
+          },
+          {
+            from: ['/features/architecture'],
+            to: '/developers/architecture',
+          },
+          {
+            from: [
+              '/specs',
+              '/specs/index',
+              '/specs/action-registry-v1',
+              '/specs/cookie-jar',
+              '/specs/cookie-jar/index',
+              '/specs/ens',
+              '/specs/ens/index',
+              '/specs/gardens',
+              '/specs/gardens/gardens-overview',
+              '/specs/hypercerts',
+              '/specs/hypercerts/index',
+              '/specs/juicebox',
+              '/specs/juicebox/index',
+              '/specs/octant',
+              '/specs/octant/octant-overview',
+              '/specs/yield-splitting',
+              '/specs/yield-splitting/index',
+            ],
+            to: '/developers/reference',
+          },
+          {
+            from: [
+              '/prd',
+              '/prd/index',
+              '/prd/green-goods-v1',
+              '/developers/reference/prd',
+              '/developers/reference/specs',
+              '/developers/reference/legacy',
+            ],
+            to: '/developers/reference',
+          },
+        ],
+      },
+    ],
+  ],
+
   // Enable Mermaid diagrams
   markdown: {
     mermaid: true,
@@ -89,15 +248,33 @@ const config: Config = {
       items: [
         {
           type: 'docSidebar',
-          sidebarId: 'usersSidebar',
+          sidebarId: 'gardenerSidebar',
           position: 'left',
-          label: 'Users',
+          label: 'Gardener',
+        },
+        {
+          type: 'docSidebar',
+          sidebarId: 'operatorSidebar',
+          position: 'left',
+          label: 'Operator',
+        },
+        {
+          type: 'docSidebar',
+          sidebarId: 'evaluatorSidebar',
+          position: 'left',
+          label: 'Evaluator',
         },
         {
           type: 'docSidebar',
           sidebarId: 'developersSidebar',
           position: 'left',
           label: 'Developers',
+        },
+        {
+          type: 'docSidebar',
+          sidebarId: 'referenceSidebar',
+          position: 'left',
+          label: 'Reference',
         },
         {
           href: 'https://paragraph.com/@greenpilldevguild',
@@ -120,19 +297,19 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Users',
+          title: 'Roles',
           items: [
             {
-              label: 'Gardener Guide',
-              to: '/welcome/quickstart-gardener',
+              label: 'Gardener',
+              to: '/gardener/get-started',
             },
             {
-              label: 'Operator Guide',
-              to: '/welcome/quickstart-operator',
+              label: 'Operator',
+              to: '/operator/get-started-and-roles',
             },
             {
-              label: 'Evaluator Guide',
-              to: '/welcome/quickstart-evaluator',
+              label: 'Evaluator',
+              to: '/evaluator/get-started',
             },
           ],
         },
@@ -141,15 +318,15 @@ const config: Config = {
           items: [
             {
               label: 'Developer Quickstart',
-              to: '/welcome/quickstart-developer',
+              to: '/developers/getting-started',
             },
             {
               label: 'Architecture',
-              to: '/developer/architecture',
+              to: '/developers/architecture',
             },
             {
-              label: 'API Reference',
-              to: '/developer/api-reference',
+              label: 'Integrations',
+              to: '/developers/integrations',
             },
           ],
         },

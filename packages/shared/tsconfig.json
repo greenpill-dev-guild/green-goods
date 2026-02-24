@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "composite": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
     "resolvePackageJsonExports": true,
@@ -13,11 +12,13 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
-    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["./src/*"]
+      "@shared/*": ["./src/*"],
+      "@green-goods/contracts/deployments/*": ["../contracts/deployments/*"],
+      "@green-goods/contracts/abis/*": ["../contracts/abis/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],

@@ -1,20 +1,23 @@
-import { cn, copyToClipboard, formatAddress } from "@green-goods/shared/utils";
+import {
+  cn,
+  copyToClipboard,
+  formatAddress,
+  logger,
+  useTimeout,
+  type Address,
+} from "@green-goods/shared";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useIntl } from "react-intl";
 
 interface AddressDisplayProps {
-  address: string;
+  address: Address;
   className?: string;
   showCopyButton?: boolean;
-  truncateLength?: number;
 }
 
-export function AddressDisplay({
-  address,
-  className,
-  showCopyButton = true,
-  truncateLength: _truncateLength = 6,
-}: AddressDisplayProps) {
+export function AddressDisplay({ address, className, showCopyButton = true }: AddressDisplayProps) {
+  const intl = useIntl();
   const [copied, setCopied] = useState(false);
   const tooltipId = useId();
   // ENS temporarily disabled to fix QueryClient initialization
@@ -24,19 +27,17 @@ export function AddressDisplay({
     variant: ensName ? "default" : "card",
   });
 
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), 2000);
-    return () => clearTimeout(timer);
-  }, [copied]);
+  // Auto-cleanup timer via useTimeout (Rule 1)
+  const { set: scheduleCopyReset } = useTimeout(() => setCopied(false), 2000);
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       await copyToClipboard(address);
       setCopied(true);
+      scheduleCopyReset();
     } catch (err) {
-      console.error("Failed to copy address:", err);
+      logger.error("Failed to copy address", { error: err });
     }
   };
 
@@ -55,7 +56,7 @@ export function AddressDisplay({
         id={tooltipId}
         // @ts-expect-error - popover is a valid HTML attribute but not in React types yet
         popover="hint"
-        className="px-2 py-1 bg-bg-strong text-static-white text-xs rounded whitespace-nowrap m-0 border-0"
+        className="px-2 py-1 bg-bg-strong text-text-white text-xs rounded whitespace-nowrap m-0 border-0"
         style={{
           inset: "unset",
           margin: "unset",
@@ -76,7 +77,10 @@ export function AddressDisplay({
           type="button"
           onClick={handleCopy}
           className="p-1 text-text-soft hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/20 rounded"
-          title="Copy address"
+          title={intl.formatMessage({
+            id: "app.common.copyAddress",
+            defaultMessage: "Copy address",
+          })}
         >
           {copied ? (
             <RiCheckLine className="h-3 w-3 text-success-dark" />

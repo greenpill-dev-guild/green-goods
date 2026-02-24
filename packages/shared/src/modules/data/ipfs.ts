@@ -4,6 +4,7 @@ import {
   trackUploadSuccess,
   type UploadErrorCategory,
 } from "../app/error-tracking";
+import { logger } from "../app/logger";
 
 interface IpfsConfig {
   /** Base64-encoded ed25519 private key */
@@ -15,7 +16,7 @@ interface IpfsConfig {
 }
 
 let storachaClient: Client | null = null;
-let gatewayUrl = "https://w3s.link";
+let gatewayUrl = "https://storacha.link";
 
 type IpfsInitStatus = "not_started" | "in_progress" | "success" | "failed" | "skipped_no_config";
 
@@ -101,7 +102,7 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
     return { cid };
   } catch (error) {
     const uploadDuration = Date.now() - startTime;
-    console.error(`Failed to upload to Storacha (${category}):`, error);
+    logger.error(`Failed to upload to Storacha (${category})`, { error });
 
     trackUploadError(error, {
       uploadCategory: category,
@@ -170,13 +171,13 @@ export async function initializeIpfs(config: IpfsConfig): Promise<{
     }
 
     ipfsInitializationStatus = "success";
-    console.log(`✅ Storacha initialized (${Date.now() - startTime}ms) - Space: ${space.did()}`);
+    logger.info(`Storacha initialized (${Date.now() - startTime}ms) - Space: ${space.did()}`);
 
     return { client: storachaClient, gatewayUrl };
   } catch (error) {
     ipfsInitializationStatus = "failed";
     ipfsInitializationError = error instanceof Error ? error.message : String(error);
-    console.error("Failed to initialize Storacha client:", error);
+    logger.error("Failed to initialize Storacha client", { error });
 
     // Track initialization failure
     trackUploadError(error, {
@@ -209,6 +210,12 @@ export interface FileUploadContext {
   gardenAddress?: string;
   /** Auth mode if relevant */
   authMode?: "passkey" | "wallet" | null;
+  /** Optional callback fired when this file upload completes or fails */
+  onFileProgress?: (event: {
+    fileIndex?: number;
+    totalFiles?: number;
+    status: "uploaded" | "failed";
+  }) => void;
 }
 
 /**
@@ -223,18 +230,35 @@ export async function uploadFileToIPFS(
   file: File,
   context: FileUploadContext = {}
 ): Promise<{ cid: string }> {
-  return executeUpload(
-    async () => ({ cid: await storachaClient!.uploadFile(file) }),
-    "file_upload",
-    { source: context.source ?? "uploadFileToIPFS", gardenAddress: context.gardenAddress },
-    {
-      size: file.size,
-      type: file.type,
-      name: file.name,
-      index: context.fileIndex,
-      total: context.totalFiles,
-    }
-  );
+  try {
+    const result = await executeUpload(
+      async () => ({ cid: await storachaClient!.uploadFile(file) }),
+      "file_upload",
+      { source: context.source ?? "uploadFileToIPFS", gardenAddress: context.gardenAddress },
+      {
+        size: file.size,
+        type: file.type,
+        name: file.name,
+        index: context.fileIndex,
+        total: context.totalFiles,
+      }
+    );
+
+    context.onFileProgress?.({
+      fileIndex: context.fileIndex,
+      totalFiles: context.totalFiles,
+      status: "uploaded",
+    });
+
+    return result;
+  } catch (error) {
+    context.onFileProgress?.({
+      fileIndex: context.fileIndex,
+      totalFiles: context.totalFiles,
+      status: "failed",
+    });
+    throw error;
+  }
 }
 
 /**
@@ -313,9 +337,48 @@ export function resolveIPFSUrl(url: string, customGateway?: string): string {
 /**
  * Fetches a file from IPFS by its hash/CID using the gateway
  */
-export async function getFileByHash(hash: string): Promise<{ data: Blob | string }> {
+export interface GetFileByHashOptions {
+  signal?: AbortSignal;
+  timeoutMs?: number;
+}
+
+export async function getFileByHash(
+  hash: string,
+  options: GetFileByHashOptions = {}
+): Promise<{ data: Blob | string }> {
+  const { signal, timeoutMs = 30_000 } = options;
   const url = resolveIPFSUrl(hash);
-  const response = await fetch(url);
+  const abortController = new AbortController();
+  const timeoutId =
+    timeoutMs > 0
+      ? setTimeout(() => {
+          abortController.abort();
+        }, timeoutMs)
+      : null;
+
+  const abortFromUpstream = () => abortController.abort();
+  if (signal) {
+    if (signal.aborted) {
+      abortController.abort();
+    } else {
+      signal.addEventListener("abort", abortFromUpstream, { once: true });
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, { signal: abortController.signal });
+  } catch (error) {
+    if (abortController.signal.aborted) {
+      throw new Error(`IPFS request timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    signal?.removeEventListener("abort", abortFromUpstream);
+  }
 
   if (!response.ok) {
     throw new Error(`Failed to fetch file from IPFS: ${response.statusText}`);
@@ -391,7 +454,7 @@ export async function initializeIpfsFromEnv(
     ipfsInitializationStatus = "skipped_no_config";
     // Only warn in development, not in CI/production builds with placeholders
     if (import.meta.env.DEV) {
-      console.warn(
+      logger.warn(
         "VITE_STORACHA_KEY and VITE_STORACHA_PROOF are not configured. " +
           "Media features will be unavailable. " +
           "See: https://docs.storacha.network/how-to/upload-from-ci/"
@@ -404,7 +467,7 @@ export async function initializeIpfsFromEnv(
     await initializeIpfs({ key, proof, gatewayBaseUrl });
     return true;
   } catch (err) {
-    console.error("Failed to initialize Storacha:", err);
+    logger.error("Failed to initialize Storacha", { error: err });
     return false;
   }
 }

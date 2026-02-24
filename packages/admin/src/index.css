@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap");
 @import "tailwindcss";
 @import "@green-goods/shared/styles/theme.css";
 
@@ -9,6 +10,9 @@
  * Migrated from tailwind.config.ts to CSS-first approach (Tailwind v4)
  * ============================================================================ */
 @theme {
+  /* Heading font family */
+  --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
+
   /* Semantic background tokens */
   --color-bg-strong: rgb(var(--bg-strong-950));
   --color-bg-surface: rgb(var(--bg-surface-800));
@@ -65,6 +69,9 @@
   --color-gray-100: rgb(var(--gray-100));
   --color-gray-50: rgb(var(--gray-50));
 
+  /* Typography @theme tokens (labels, paragraphs, subheadings) are inherited
+     from the shared theme.css import above -- no need to re-declare them here. */
+
   /* Green scale (brand color - from shared theme CSS variables) */
   --color-green-950: rgb(var(--green-950));
   --color-green-900: rgb(var(--green-900));
@@ -87,16 +94,20 @@
       'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 200ms ease, color 200ms ease;
   }
 
-  /* Hide scrollbars globally */
+  /* Smooth theme transitions for sidebar and card surfaces */
+  [data-testid="sidebar"],
+  .rounded-xl {
+    transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+  }
+
+  /* Thin styled scrollbars - visible for accessibility */
   * {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* Internet Explorer 10+ */
-  }
-
-  *::-webkit-scrollbar {
-    display: none; /* WebKit */
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+    scrollbar-color: rgb(var(--bg-sub-300)) transparent;
   }
 
   /* Lock the root document to prevent double scrollbars; delegate scroll to app shell */
@@ -161,7 +172,7 @@
   }
 
   [data-theme="dark"] .shadow-2xl {
-    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.8);
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.8), 0 0 0 1px rgb(255 255 255 / 0.06);
   }
 }
 
@@ -209,6 +220,179 @@
   }
   100% {
     background-position: -200% 0;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spring-bump {
+  from {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes pageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes confirmedShimmer {
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--success-base) / 0);
+    background-position: -200% 0;
+  }
+  30% {
+    box-shadow: 0 0 0 2px rgb(var(--success-base) / 0.15);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(var(--success-base) / 0);
+    background-position: 200% 0;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Named Type Scale Utilities ── */
+  .label-md {
+    font-size: var(--text-label-md);
+    line-height: var(--text-label-md--line-height);
+    letter-spacing: var(--text-label-md--letter-spacing);
+    font-weight: var(--text-label-md--font-weight);
+  }
+  .label-sm {
+    font-size: var(--text-label-sm);
+    line-height: var(--text-label-sm--line-height);
+    letter-spacing: var(--text-label-sm--letter-spacing);
+    font-weight: var(--text-label-sm--font-weight);
+  }
+  .label-xs {
+    font-size: var(--text-label-xs);
+    line-height: var(--text-label-xs--line-height);
+    letter-spacing: var(--text-label-xs--letter-spacing);
+    font-weight: var(--text-label-xs--font-weight);
+  }
+  .body-md {
+    font-size: var(--text-paragraph-md);
+    line-height: var(--text-paragraph-md--line-height);
+    letter-spacing: var(--text-paragraph-md--letter-spacing);
+    font-weight: var(--text-paragraph-md--font-weight);
+  }
+  .body-sm {
+    font-size: var(--text-paragraph-sm);
+    line-height: var(--text-paragraph-sm--line-height);
+    letter-spacing: var(--text-paragraph-sm--letter-spacing);
+    font-weight: var(--text-paragraph-sm--font-weight);
+  }
+  .body-xs {
+    font-size: var(--text-paragraph-xs);
+    line-height: var(--text-paragraph-xs--line-height);
+    letter-spacing: var(--text-paragraph-xs--letter-spacing);
+    font-weight: var(--text-paragraph-xs--font-weight);
+  }
+  .subheading-sm {
+    font-size: var(--text-subheading-sm);
+    line-height: var(--text-subheading-sm--line-height);
+    letter-spacing: var(--text-subheading-sm--letter-spacing);
+    font-weight: var(--text-subheading-sm--font-weight);
+    text-transform: uppercase;
+  }
+  .subheading-xs {
+    font-size: var(--text-subheading-xs);
+    line-height: var(--text-subheading-xs--line-height);
+    letter-spacing: var(--text-subheading-xs--letter-spacing);
+    font-weight: var(--text-subheading-xs--font-weight);
+    text-transform: uppercase;
+  }
+
+  /* ── Touch Target ── */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, rgb(var(--bg-soft-200)) 25%, rgb(var(--bg-weak-50)) 50%, rgb(var(--bg-soft-200)) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.3s ease-out forwards;
+  }
+
+  .animate-spring-bump {
+    animation: spring-bump 0.56s ease-in-out;
+  }
+
+  .animate-page-slide-in {
+    animation: pageSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-confirmed-shimmer {
+    background-image: linear-gradient(90deg, transparent 0%, rgb(var(--success-base) / 0.08) 45%, transparent 100%);
+    background-size: 200% 100%;
+    animation: confirmedShimmer 0.6s ease-out;
+  }
+
+  /* Staggered entrance animation for lists/grids of children */
+  .stagger-children > * {
+    opacity: 0;
+    animation: fade-in-up 0.3s ease-out both;
+  }
+  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+  .stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+  .stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer,
+  .animate-pulse,
+  .animate-spin,
+  .animate-fade-in-up,
+  .animate-spring-bump,
+  .animate-page-slide-in,
+  .animate-confirmed-shimmer,
+  .stagger-children > * {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  body,
+  [data-testid="sidebar"],
+  .rounded-xl {
+    transition: none !important;
   }
 }
 

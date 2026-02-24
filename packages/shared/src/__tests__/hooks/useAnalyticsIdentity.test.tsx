@@ -37,7 +37,7 @@ vi.mock("../../hooks/auth/useUser", () => ({
 
 // Mock config
 vi.mock("../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 import { useAnalyticsIdentity } from "../../hooks/analytics/useAnalyticsIdentity";
@@ -115,7 +115,7 @@ describe("useAnalyticsIdentity", () => {
       {
         auth_mode: "passkey",
         app: "client",
-        chain_id: 84532,
+        chain_id: 11155111,
         is_pwa: true,
         locale: "en",
       }

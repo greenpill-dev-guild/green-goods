@@ -1,3 +1,15 @@
+---
+title: Changelog / Release Notes
+slug: /reference/changelog
+audience: all
+owner: docs
+last_verified: 2026-02-19
+feature_status: Live
+source_of_truth:
+  - docs/docs/developers/reference/deployment-indexer-status.mdx
+  - docs/docusaurus.config.ts
+---
+
 # Changelog / Release Notes
 
 Major updates and feature releases for Green Goods.
@@ -7,6 +19,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ---
 
 ## 2026
+
+### v1.0.0 - February 18, 2026
+
+**Role-first docs and v1 capability alignment release**
+
+This release updates documentation IA and workflows to reflect current Green Goods capabilities:
+
+- Role-first navigation (`Gardener`, `Operator`, `Evaluator`) plus a dedicated `Developers` hub.
+- New activation-state model across docs:
+  - `Live`
+  - `Implemented (activation pending indexing)`
+  - `Implemented (activation pending deployment)`
+  - `Planned`
+- Operator coverage for hypercert, vault, cookie-jar, strategy, and signal-pool surfaces with explicit activation gating.
+- Evaluator query packs for indexer + EAS with chain-aware variable patterns.
+- Developer reference consolidation under `/developers/reference`, including deployment/indexer status and MCP alignment notes.
+- Legacy route redirects added for prior `welcome`, role, `developer`, `prd`, and `specs` paths.
+
+---
 
 ### v0.4.0 - January 2026 🎉
 
@@ -197,7 +228,7 @@ This is the first official release of Green Goods — an offline-first platform 
 - `/docs/developer/docs-contributing.md` — contribution guide
 - `/docs/developer/docs-deployment.md` — deployment process
 - `/docs/developer/architecture/diagrams.md` — Mermaid architecture diagrams
-- `/docs/guides/evaluators/` — evaluator guides
+- `/docs/evaluators/` — evaluator guides
 
 ---
 
@@ -224,7 +255,7 @@ This is the first official release of Green Goods — an offline-first platform 
 **Tooling:**
 - `CLAUDE.md` — AI assistant context
 - `AGENTS.md` — agent orchestration guide
-- `.cursor/rules/` — 7 rule files for AI-assisted development
+- `.claude/registry/` — canonical skill and routing registries for AI-assisted development
 
 ---
 
@@ -274,7 +305,7 @@ This is the first official release of Green Goods — an offline-first platform 
 
 - **Documentation**: https://docs.greengoods.app
 - **GitHub Release**: [v0.4.0](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v0.4.0)
-- **Testnet**: Base Sepolia (chain ID: 84532)
+- **Testnet**: Sepolia (chain ID: 11155111)
 - **Mainnets**: Arbitrum One, Celo
 
 ---
@@ -293,7 +324,7 @@ This is the first official release of Green Goods — an offline-first platform 
 - ✅ Smart contracts (Garden, Action, Resolvers)
 
 **Deployments**:
-- Base Sepolia testnet
+- Sepolia testnet
 
 ### Q2 2024 - Multi-Chain Expansion 🌍
 
@@ -320,18 +351,17 @@ This is the first official release of Green Goods — an offline-first platform 
 - ✅ Advanced search and filtering
 - ✅ Enhanced impact reports
 - ✅ Garden templates
-- 🚧 Hypercert integration (in progress)
-- 🚧 Map view for gardens (in progress)
-- 🚧 Batch operations (in progress)
 
 ### Q4 2024 - Impact Markets 💰
 
-**Planned**:
-- 🔮 Impact token minting
-- 🔮 Marketplace integration
-- 🔮 Retroactive funding tools
-- 🔮 DAO governance features
-- 🔮 Native mobile apps
+**Delivered**:
+- ✅ Hypercert minting and marketplace integration
+- ✅ Batch garden minting operations
+- ✅ Octant yield vaults with harvest and donation flows
+- ✅ Cookie Jar petty cash module
+- ✅ Gardens V2 conviction voting and signal pools
+- ✅ YieldSplitter (CookieJar / Fractions / Juicebox split)
+- ✅ HypercertExchange marketplace adapter
 
 ---
 

@@ -40,7 +40,7 @@ vi.mock("../../components/toast", () => ({
 }));
 
 vi.mock("../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 vi.mock("../../utils/debug", () => ({
@@ -55,6 +55,7 @@ import { submitApprovalToQueue } from "../../modules/work/work-submission";
 import { jobQueue } from "../../modules/job-queue";
 import { toastService } from "../../components/toast";
 import { useWorkApproval } from "../../hooks/work/useWorkApproval";
+import { Confidence, VerificationMethod } from "../../types/domain";
 import {
   createMockWork,
   createMockWorkApprovalDraft,
@@ -118,7 +119,7 @@ describe("hooks/work/useWorkApproval", () => {
         draft,
         work.gardenAddress,
         work.gardenerAddress,
-        84532
+        11155111
       );
       expect(submitApprovalToQueue).not.toHaveBeenCalled();
     });
@@ -160,7 +161,7 @@ describe("hooks/work/useWorkApproval", () => {
       expect(submitApprovalToQueue).toHaveBeenCalledWith(
         draft,
         work,
-        84532,
+        11155111,
         MOCK_ADDRESSES.smartAccount
       );
       expect(jobQueue.processJob).toHaveBeenCalledWith("job-approval-1", {
@@ -222,7 +223,7 @@ describe("hooks/work/useWorkApproval", () => {
         expect.objectContaining({ feedback: "" }),
         work.gardenAddress,
         work.gardenerAddress,
-        84532
+        11155111
       );
     });
 
@@ -250,7 +251,7 @@ describe("hooks/work/useWorkApproval", () => {
         }),
         work.gardenAddress,
         work.gardenerAddress,
-        84532
+        11155111
       );
     });
   });
@@ -303,6 +304,178 @@ describe("hooks/work/useWorkApproval", () => {
           id: "approval-submit",
           title: "Approval submission failed",
         })
+      );
+    });
+  });
+
+  describe("Confidence and verification data flow", () => {
+    it("passes confidence through queue for passkey approval", async () => {
+      const smartAccountClient = createMockSmartAccountClient();
+
+      mockUseUser.mockReturnValue({
+        authMode: "passkey",
+        smartAccountClient,
+        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+      });
+
+      (submitApprovalToQueue as any).mockResolvedValue({
+        txHash: "0xoffline_conf_test",
+        jobId: "job-conf-1",
+      });
+
+      (jobQueue.processJob as any).mockResolvedValue({
+        success: true,
+        txHash: MOCK_TX_HASH,
+        skipped: false,
+      });
+
+      const { result } = renderHook(() => useWorkApproval(), {
+        wrapper: createWrapper(),
+      });
+
+      const work = createMockWork();
+      const draft = createMockWorkApprovalDraft({
+        approved: true,
+        confidence: Confidence.HIGH,
+        verificationMethod: VerificationMethod.HUMAN,
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      // Verify the full draft with confidence is passed to the queue
+      expect(submitApprovalToQueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          confidence: Confidence.HIGH,
+          verificationMethod: VerificationMethod.HUMAN,
+          approved: true,
+        }),
+        work,
+        11155111,
+        MOCK_ADDRESSES.smartAccount
+      );
+    });
+
+    it("passes NONE confidence for rejection via queue", async () => {
+      Object.defineProperty(navigator, "onLine", { value: false });
+
+      mockUseUser.mockReturnValue({
+        authMode: "passkey",
+        smartAccountClient: createMockSmartAccountClient(),
+        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+      });
+
+      (submitApprovalToQueue as any).mockResolvedValue({
+        txHash: "0xoffline_reject",
+        jobId: "job-reject-1",
+      });
+
+      const { result } = renderHook(() => useWorkApproval(), {
+        wrapper: createWrapper(),
+      });
+
+      const work = createMockWork();
+      const draft = createMockWorkApprovalDraft({
+        approved: false,
+        confidence: Confidence.NONE,
+        verificationMethod: VerificationMethod.HUMAN,
+        feedback: "Work not meeting standards",
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      expect(submitApprovalToQueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          confidence: Confidence.NONE,
+          verificationMethod: VerificationMethod.HUMAN,
+          approved: false,
+          feedback: "Work not meeting standards",
+        }),
+        work,
+        11155111,
+        MOCK_ADDRESSES.smartAccount
+      );
+      // Offline: processJob should not be called
+      expect(jobQueue.processJob).not.toHaveBeenCalled();
+    });
+
+    it("passes confidence through wallet direct submission", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+
+      const { result } = renderHook(() => useWorkApproval(), {
+        wrapper: createWrapper(),
+      });
+
+      const work = createMockWork();
+      const draft = createMockWorkApprovalDraft({
+        approved: true,
+        confidence: Confidence.LOW,
+        verificationMethod: VerificationMethod.HUMAN,
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      expect(submitApprovalDirectly).toHaveBeenCalledWith(
+        expect.objectContaining({
+          confidence: Confidence.LOW,
+          verificationMethod: VerificationMethod.HUMAN,
+        }),
+        work.gardenAddress,
+        work.gardenerAddress,
+        11155111
+      );
+    });
+
+    it("includes reviewNotesCID when provided", async () => {
+      const smartAccountClient = createMockSmartAccountClient();
+
+      mockUseUser.mockReturnValue({
+        authMode: "passkey",
+        smartAccountClient,
+        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+      });
+
+      (submitApprovalToQueue as any).mockResolvedValue({
+        txHash: "0xoffline_notes",
+        jobId: "job-notes-1",
+      });
+
+      (jobQueue.processJob as any).mockResolvedValue({
+        success: true,
+        txHash: MOCK_TX_HASH,
+        skipped: false,
+      });
+
+      const { result } = renderHook(() => useWorkApproval(), {
+        wrapper: createWrapper(),
+      });
+
+      const work = createMockWork();
+      const draft = createMockWorkApprovalDraft({
+        approved: true,
+        confidence: Confidence.MEDIUM,
+        verificationMethod: VerificationMethod.HUMAN,
+        reviewNotesCID: "bafyReviewNotes123",
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      expect(submitApprovalToQueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          confidence: Confidence.MEDIUM,
+          verificationMethod: VerificationMethod.HUMAN,
+          reviewNotesCID: "bafyReviewNotes123",
+        }),
+        work,
+        11155111,
+        MOCK_ADDRESSES.smartAccount
       );
     });
   });

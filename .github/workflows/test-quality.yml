@@ -1,0 +1,34 @@
+name: Test Quality Guardrails
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "packages/*/src/__tests__/**"
+      - "packages/*/test/**"
+      - "tests/**"
+      - "scripts/check-test-quality.sh"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "packages/*/src/__tests__/**"
+      - "packages/*/test/**"
+      - "tests/**"
+      - "scripts/check-test-quality.sh"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run test quality checks
+        run: bash scripts/check-test-quality.sh

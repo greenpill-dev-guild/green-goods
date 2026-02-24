@@ -1,13 +1,18 @@
 import { render, screen } from "@testing-library/react";
 import React from "react";
+import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import RequireRole from "@/routes/RequireRole";
 
 const mockUseRole = vi.fn();
 
-vi.mock("@green-goods/shared/hooks", () => ({
-  useRole: () => mockUseRole(),
-}));
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    useRole: () => mockUseRole(),
+  };
+});
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
@@ -16,6 +21,15 @@ vi.mock("react-router-dom", async () => {
     Outlet: () => React.createElement("div", { "data-testid": "outlet" }, "Authorized Content"),
   };
 });
+
+const messages: Record<string, string> = {
+  "app.admin.auth.unauthorized": "Unauthorized",
+  "app.admin.auth.noPermission": "You don't have permission to access this area.",
+  "app.admin.auth.requireRole": "To access this area, you need to be:",
+  "app.admin.auth.requireDeployer":
+    "Added to the deployment registry allowlist for contract management",
+  "app.admin.auth.requireOperator": "An operator of at least one garden for garden management",
+};
 
 type RoleOverrides = {
   role?: "deployer" | "operator" | "user";
@@ -48,21 +62,29 @@ function buildRoleState(overrides: RoleOverrides = {}) {
   };
 }
 
+function renderWithIntl(ui: React.ReactElement) {
+  return render(
+    <IntlProvider locale="en" messages={messages}>
+      {ui}
+    </IntlProvider>
+  );
+}
+
 describe("RequireRole", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders the layout skeleton while roles are loading", () => {
+  it("renders a loading spinner while roles are loading", () => {
     mockUseRole.mockReturnValue(
       buildRoleState({
         loading: true,
       })
     );
 
-    render(<RequireRole allowedRoles={["deployer"]} />);
+    renderWithIntl(<RequireRole allowedRoles={["deployer"]} />);
 
-    expect(screen.getByTestId("dashboard-layout-skeleton")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeInTheDocument();
     expect(screen.queryByTestId("outlet")).not.toBeInTheDocument();
   });
 
@@ -79,7 +101,7 @@ describe("RequireRole", () => {
       })
     );
 
-    render(<RequireRole allowedRoles={["deployer"]} />);
+    renderWithIntl(<RequireRole allowedRoles={["deployer"]} />);
 
     expect(screen.getByTestId("outlet")).toBeInTheDocument();
     expect(screen.queryByText("Unauthorized")).not.toBeInTheDocument();
@@ -88,7 +110,7 @@ describe("RequireRole", () => {
   it("shows guidance when a general user is unauthorized", () => {
     mockUseRole.mockReturnValue(buildRoleState());
 
-    render(<RequireRole allowedRoles={["deployer"]} />);
+    renderWithIntl(<RequireRole allowedRoles={["deployer"]} />);
 
     expect(screen.getByText("Unauthorized")).toBeInTheDocument();
     expect(screen.getByText("You don't have permission to access this area.")).toBeInTheDocument();
@@ -108,7 +130,7 @@ describe("RequireRole", () => {
       })
     );
 
-    render(<RequireRole allowedRoles={["deployer"]} />);
+    renderWithIntl(<RequireRole allowedRoles={["deployer"]} />);
 
     expect(screen.getByText("Unauthorized")).toBeInTheDocument();
     expect(screen.getByText("You don't have permission to access this area.")).toBeInTheDocument();

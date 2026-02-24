@@ -45,6 +45,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Check indexing boundary
+        run: |
+          cd packages/indexer
+          bun run check:indexing-boundary
+
       - name: Generate indexer code
         run: |
           cd packages/indexer
@@ -59,6 +64,13 @@ jobs:
         run: |
           cd packages/indexer
           bun run test
+        env:
+          CI: true
+
+      - name: Generate coverage report (informational)
+        run: |
+          cd packages/indexer
+          bun run test:coverage || true
         env:
           CI: true
 
@@ -80,6 +92,11 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Check indexing boundary
+        run: |
+          cd packages/indexer
+          bun run check:indexing-boundary
 
       - name: Run linting
         run: |

@@ -12,6 +12,8 @@
 
 import type { SmartAccountClient } from "permissionless";
 
+import type { Address } from "./domain";
+
 // ============================================
 // Core Job Types
 // ============================================
@@ -28,7 +30,7 @@ export interface Job<T = unknown> {
   synced: boolean;
   chainId?: number;
   /** User address (smart account or wallet) that created this job */
-  userAddress: string;
+  userAddress: Address;
 }
 
 export interface QueueEvent {
@@ -56,20 +58,28 @@ export interface WorkJobPayload {
   title?: string;
   feedback: string;
   metadata?: Record<string, unknown>;
-  plantSelection: string[];
-  plantCount: number;
+  details?: Record<string, unknown>;
+  timeSpentMinutes?: number;
+  tags?: string[];
+  audioNotes?: File[];
   actionUID: number;
-  gardenAddress: string;
+  gardenAddress: Address;
   media?: File[];
 }
 
 export interface ApprovalJobPayload {
   actionUID: number;
   workUID: string;
-  gardenAddress: string;
-  gardenerAddress: string;
+  gardenAddress: Address;
+  gardenerAddress: Address;
   approved: boolean;
   feedback?: string;
+  /** Verification confidence (NONE for rejections, >=LOW for approvals) */
+  confidence: number;
+  /** Bitmask of VerificationMethod flags */
+  verificationMethod: number;
+  /** Optional IPFS CID for review audio + notes */
+  reviewNotesCID?: string;
 }
 
 // ============================================
@@ -139,8 +149,8 @@ export interface CachedWork {
   id: string;
   title: string;
   actionUID: number;
-  gardenerAddress: string;
-  gardenAddress: string;
+  gardenerAddress: Address;
+  gardenAddress: Address;
   feedback: string;
   metadata: string;
   media: string[];
@@ -167,12 +177,10 @@ export type DraftStep = "intro" | "media" | "details" | "review";
  * const draft: WorkDraftRecord = {
  *   id: "draft-123",
  *   userAddress: "0x...",
- *   chainId: 84532,
+ *   chainId: 11155111,
  *   gardenAddress: "0x...",
  *   actionUID: 1,
  *   feedback: "In progress...",
- *   plantSelection: ["tomato"],
- *   plantCount: 5,
  *   currentStep: "details",
  *   firstIncompleteStep: "details",
  *   createdAt: 1704067200000,
@@ -185,13 +193,11 @@ export type DraftStep = "intro" | "media" | "details" | "review";
  */
 export interface WorkDraftRecord {
   id: string;
-  userAddress: string;
+  userAddress: Address;
   chainId: number;
-  gardenAddress: string | null;
+  gardenAddress: Address | null;
   actionUID: number | null;
   feedback: string;
-  plantSelection: string[];
-  plantCount: number | undefined;
   /** Time spent on the work in minutes */
   timeSpentMinutes?: number;
   /** Current step in the flow (for resume) */

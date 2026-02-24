@@ -1,9 +1,9 @@
-import type {
-  GardenFilterScope,
-  GardenFiltersState,
-  GardenSortOrder,
-} from "@green-goods/shared/hooks";
-import { cn } from "@green-goods/shared/utils";
+import {
+  cn,
+  type GardenFilterScope,
+  type GardenFiltersState,
+  type GardenSortOrder,
+} from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { ModalDrawer } from "@/components/Dialogs/ModalDrawer";

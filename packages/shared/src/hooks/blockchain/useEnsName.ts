@@ -6,7 +6,7 @@
  * @module hooks/blockchain/useEnsName
  */
 
-import { isAddress } from "viem";
+import { type Address, isAddress } from "viem";
 import { resolveEnsName } from "../../utils/blockchain/ens";
 import { queryKeys } from "../query-keys";
 import { useEnsQuery, type UseEnsQueryOptions, type UseEnsQueryResult } from "./useEnsQuery";
@@ -24,7 +24,7 @@ import { useEnsQuery, type UseEnsQueryOptions, type UseEnsQueryResult } from "./
  * ```
  */
 export function useEnsName(
-  address?: string | null,
+  address?: Address | null,
   options: UseEnsQueryOptions = {}
 ): UseEnsQueryResult<string> {
   return useEnsQuery(

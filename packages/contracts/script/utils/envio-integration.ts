@@ -25,6 +25,16 @@ interface DeploymentData {
   gardenToken: string;
   gardenAccountImpl?: string;
   accountProxy?: string;
+  hatsModule?: string;
+  octantModule?: string;
+  octantVault?: string;
+  gardensModule?: string;
+  yieldSplitter?: string;
+  cookieJarModule?: string;
+  hypercertMinter?: string;
+  marketplaceAdapter?: string;
+  unifiedPowerRegistry?: string;
+  greenGoodsENS?: string;
   [key: string]: string | undefined;
 }
 
@@ -40,6 +50,24 @@ interface BroadcastData {
   transactions?: BroadcastTransaction[];
   receipts?: BroadcastReceipt[];
 }
+
+const INDEXER_MANAGED_CONTRACT_ORDER = [
+  "ActionRegistry",
+  "GardenToken",
+  "GardenAccount",
+  "HatsModule",
+  "OctantModule",
+  "OctantVault",
+  "GardensModule",
+  "YieldSplitter",
+  "CookieJarModule",
+  "HypercertMinter",
+  "HypercertMarketplaceAdapter",
+  "UnifiedPowerRegistry",
+  "GreenGoodsENS",
+] as const;
+
+const INDEXER_MANAGED_CONTRACTS = new Set<string>(INDEXER_MANAGED_CONTRACT_ORDER);
 
 export class EnvioIntegration {
   private contractsDir: string;
@@ -179,9 +207,18 @@ export class EnvioIntegration {
 
       const deployment = JSON.parse(fs.readFileSync(deploymentFile, "utf8")) as DeploymentData;
 
+      const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+      const gardenAccountAddress =
+        deployment.gardenAccountImpl && deployment.gardenAccountImpl !== ZERO_ADDRESS
+          ? deployment.gardenAccountImpl
+          : deployment.accountProxy;
+
       // Validate required addresses
-      const requiredAddresses = ["actionRegistry", "gardenToken", "gardenAccountImpl"];
+      const requiredAddresses = ["actionRegistry", "gardenToken"];
       const missingAddresses = requiredAddresses.filter((addr) => !deployment[addr]);
+      if (!gardenAccountAddress || gardenAccountAddress === ZERO_ADDRESS) {
+        missingAddresses.push("gardenAccountImpl/accountProxy");
+      }
 
       if (missingAddresses.length > 0) {
         throw new Error(`Missing required addresses: ${missingAddresses.join(", ")}`);
@@ -207,29 +244,53 @@ export class EnvioIntegration {
       const networkIndex = envioConfig.networks.findIndex((n) => n.id === targetChainId);
 
       const startBlock = this.getStartBlock(chainId);
+      const existingContracts = networkIndex >= 0 ? (envioConfig.networks[networkIndex].contracts ?? []) : [];
+
+      const contractsByName = new Map<string, EnvioContract>();
+      existingContracts.forEach((contract) => {
+        if (!INDEXER_MANAGED_CONTRACTS.has(contract.name)) return;
+        contractsByName.set(contract.name, {
+          name: contract.name,
+          address: String(contract.address),
+        });
+      });
+
+      const upsertContract = (name: string, address?: string): void => {
+        if (!address || address === ZERO_ADDRESS) return;
+        contractsByName.set(name, { name, address: String(address) });
+      };
+
+      upsertContract("ActionRegistry", deployment.actionRegistry);
+      upsertContract("GardenToken", deployment.gardenToken);
+      upsertContract("GardenAccount", gardenAccountAddress);
+      upsertContract("HatsModule", deployment.hatsModule);
+      upsertContract("OctantModule", deployment.octantModule);
+      upsertContract("OctantVault", deployment.octantVault);
+      upsertContract("GardensModule", deployment.gardensModule);
+      upsertContract("CookieJarModule", deployment.cookieJarModule);
+      upsertContract("HypercertMarketplaceAdapter", deployment.marketplaceAdapter);
+      upsertContract("UnifiedPowerRegistry", deployment.unifiedPowerRegistry);
+      upsertContract("GreenGoodsENS", deployment.greenGoodsENS);
+      // Some contracts may be absent in deployment JSON for specific networks.
+      // In that case, we preserve existing config entries (including placeholders).
+      upsertContract("YieldSplitter", deployment.yieldSplitter);
+      upsertContract("HypercertMinter", deployment.hypercertMinter);
+      // HypercertMinter has a fixed address per chain, managed in config.yaml.
+      // EAS attestation data is queried from EAS GraphQL (easscan.org), not indexed by Envio.
+
+      const orderedContracts: EnvioContract[] = [];
+
+      INDEXER_MANAGED_CONTRACT_ORDER.forEach((name) => {
+        const contract = contractsByName.get(name);
+        if (contract) {
+          orderedContracts.push(contract);
+        }
+      });
+
       const networkConfig: EnvioNetwork = {
         id: targetChainId,
         start_block: startBlock,
-        contracts: [
-          {
-            name: "ActionRegistry",
-            address: String(deployment.actionRegistry), // Ensure string
-          },
-          {
-            name: "GardenToken",
-            address: String(deployment.gardenToken), // Ensure string
-          },
-          {
-            name: "GardenAccount",
-            // Use gardenAccountImpl (new) or accountProxy (old deployments) - check for zero address
-            address: String(
-              deployment.gardenAccountImpl &&
-                deployment.gardenAccountImpl !== "0x0000000000000000000000000000000000000000"
-                ? deployment.gardenAccountImpl
-                : deployment.accountProxy,
-            ),
-          },
-        ],
+        contracts: orderedContracts,
       };
 
       if (networkIndex >= 0) {
@@ -271,15 +332,19 @@ export class EnvioIntegration {
       console.log("✅ Envio config updated successfully");
 
       // Display the updated addresses
-      const gardenAccountAddress =
-        deployment.gardenAccountImpl && deployment.gardenAccountImpl !== "0x0000000000000000000000000000000000000000"
-          ? deployment.gardenAccountImpl
-          : deployment.accountProxy;
-
       console.log(`\n📋 Contract addresses updated in Envio for chain ${chainId}:`);
       console.log(`   ActionRegistry: ${deployment.actionRegistry}`);
       console.log(`   GardenToken: ${deployment.gardenToken}`);
       console.log(`   GardenAccount: ${gardenAccountAddress}`);
+      if (deployment.hatsModule && deployment.hatsModule !== ZERO_ADDRESS) {
+        console.log(`   HatsModule: ${deployment.hatsModule}`);
+      }
+      if (deployment.octantModule && deployment.octantModule !== ZERO_ADDRESS) {
+        console.log(`   OctantModule: ${deployment.octantModule}`);
+      }
+      if (deployment.yieldSplitter && deployment.yieldSplitter !== ZERO_ADDRESS) {
+        console.log(`   YieldSplitter: ${deployment.yieldSplitter}`);
+      }
       console.log(`   start_block: ${startBlock}`);
 
       return deployment;
@@ -459,7 +524,7 @@ Options:
 
 Examples:
   bun envio-integration.ts update 31337
-  bun envio-integration.ts watch 31337 84532
+  bun envio-integration.ts watch 31337 11155111
   bun envio-integration.ts update && bun envio-integration.ts start
 
 Note: RPC URLs are now configured via environment variables.

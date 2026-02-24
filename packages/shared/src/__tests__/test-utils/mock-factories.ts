@@ -7,6 +7,18 @@
 
 import { vi } from "vitest";
 
+import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types";
+import type { CookieJar } from "../../types/cookie-jar";
+import { Confidence, Domain, VerificationMethod } from "../../types";
+import type {
+  AllowlistEntry,
+  HypercertAttestation,
+  HypercertDraft,
+  HypercertRecord,
+  OutcomeMetrics,
+} from "../../types/hypercerts";
+import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
+
 // ============================================
 // Address Constants
 // ============================================
@@ -32,9 +44,9 @@ export function createMockWorkDraft(overrides?: Partial<WorkDraft>): WorkDraft {
     actionUID: 1,
     title: "Test Work Submission",
     feedback: "Test feedback for the work",
-    plantSelection: ["Rose", "Tulip"],
-    plantCount: 5,
+    timeSpentMinutes: 60,
     media: [],
+    details: {},
     ...overrides,
   };
 }
@@ -51,7 +63,7 @@ export function createMockWork(overrides?: Partial<Work>): Work {
     gardenerAddress: MOCK_ADDRESSES.gardener,
     gardenAddress: MOCK_ADDRESSES.garden,
     feedback: "Test feedback",
-    metadata: JSON.stringify({ plantCount: 5, plantSelection: ["Rose"] }),
+    metadata: JSON.stringify({ details: {}, timeSpentMinutes: 60 }),
     media: ["ipfs://QmTest123"],
     createdAt: Date.now(),
     status: "pending",
@@ -71,6 +83,8 @@ export function createMockWorkApprovalDraft(
     workUID: "0xWorkUID123",
     approved: true,
     feedback: "",
+    confidence: Confidence.MEDIUM,
+    verificationMethod: VerificationMethod.HUMAN,
     ...overrides,
   };
 }
@@ -82,7 +96,7 @@ export function createMockWorkApprovalDraft(
 export function createMockGarden(overrides?: Partial<Garden>): Garden {
   return {
     id: `garden-${Date.now()}`,
-    chainId: 84532,
+    chainId: 11155111,
     tokenAddress: MOCK_ADDRESSES.garden,
     tokenID: BigInt(1),
     name: "Test Garden",
@@ -105,6 +119,7 @@ export function createMockGarden(overrides?: Partial<Garden>): Garden {
 export function createMockAction(overrides?: Partial<Action>): Action {
   return {
     id: `action-${Date.now()}`,
+    slug: "agro.planting_event",
     startTime: Date.now() - 86400000, // 1 day ago
     endTime: Date.now() + 86400000, // 1 day from now
     title: "Test Action",
@@ -112,8 +127,29 @@ export function createMockAction(overrides?: Partial<Action>): Action {
     instructions: "Follow these test instructions",
     capitals: [],
     media: [],
+    domain: Domain.AGRO,
     createdAt: Date.now(),
     inputs: [],
+    ...overrides,
+  };
+}
+
+// ============================================
+// CookieJar Factory
+// ============================================
+
+export function createMockCookieJar(overrides?: Partial<CookieJar>): CookieJar {
+  return {
+    jarAddress: "0xJar123456789012345678901234567890123456",
+    gardenAddress: MOCK_ADDRESSES.garden,
+    assetAddress: "0xAsset12345678901234567890123456789012345",
+    balance: 1000000000000000000n, // 1e18
+    currency: "0xAsset12345678901234567890123456789012345",
+    decimals: 18,
+    maxWithdrawal: 500000000000000000n, // 0.5e18
+    withdrawalInterval: 86400n, // 1 day in seconds
+    isPaused: false,
+    emergencyWithdrawalEnabled: false,
     ...overrides,
   };
 }
@@ -128,7 +164,7 @@ export function createMockSmartAccountClient() {
       address: MOCK_ADDRESSES.smartAccount,
     },
     sendTransaction: vi.fn().mockResolvedValue(MOCK_TX_HASH),
-    chain: { id: 84532, name: "Base Sepolia" },
+    chain: { id: 11155111, name: "Sepolia" },
   };
 }
 
@@ -226,4 +262,135 @@ export function createMockFile(name = "test-image.jpg", type = "image/jpeg", siz
 
 export function createMockFiles(count = 2): File[] {
   return Array.from({ length: count }, (_, i) => createMockFile(`test-image-${i + 1}.jpg`));
+}
+
+// ============================================
+// Hypercert Factories
+// ============================================
+
+export function createMockHypercertAttestation(
+  overrides: Partial<HypercertAttestation> = {}
+): HypercertAttestation {
+  return {
+    id: `0x${Date.now().toString(16).padStart(64, "0")}`,
+    workUid: `0x${Date.now().toString(16).padStart(64, "0")}`,
+    gardenId: MOCK_ADDRESSES.garden,
+    title: "Test Work Submission",
+    actionType: "planting",
+    domain: "agroforestry",
+    workScope: ["gardening", "planting"],
+    gardenerAddress: MOCK_ADDRESSES.gardener as `0x${string}`,
+    gardenerName: "Test Gardener",
+    mediaUrls: ["ipfs://QmMedia123"],
+    metrics: {
+      trees_planted: { value: 10, unit: "trees" },
+      area_covered: { value: 50, unit: "sqm" },
+    },
+    createdAt: Math.floor(Date.now() / 1000) - 86400, // 1 day ago
+    approvedAt: Math.floor(Date.now() / 1000),
+    approvedBy: MOCK_ADDRESSES.operator as `0x${string}`,
+    feedback: "Good work!",
+    ...overrides,
+  };
+}
+
+export function createMockHypercertDraft(overrides: Partial<HypercertDraft> = {}): HypercertDraft {
+  const now = Math.floor(Date.now() / 1000);
+  return {
+    id: `draft-${Date.now()}`,
+    gardenId: MOCK_ADDRESSES.garden,
+    operatorAddress: MOCK_ADDRESSES.operator as `0x${string}`,
+    stepNumber: 1,
+    attestationIds: [],
+    title: "Test Hypercert",
+    description: "A test hypercert for conservation work",
+    workScopes: ["gardening", "planting"],
+    impactScopes: ["environment"],
+    workTimeframeStart: now - 86400 * 30, // 30 days ago
+    workTimeframeEnd: now,
+    impactTimeframeStart: now - 86400 * 30,
+    impactTimeframeEnd: null, // Indefinite
+    sdgs: [13, 15], // Climate Action, Life on Land
+    capitals: ["living", "social"],
+    outcomes: {
+      predefined: {
+        trees_planted: {
+          value: 100,
+          unit: "trees",
+          aggregation: "sum",
+          label: "Trees Planted",
+        },
+      },
+      custom: {},
+    },
+    allowlist: [],
+    externalUrl: "",
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...overrides,
+  };
+}
+
+export function createMockAllowlistEntry(overrides: Partial<AllowlistEntry> = {}): AllowlistEntry {
+  return {
+    address: MOCK_ADDRESSES.gardener as `0x${string}`,
+    units: TOTAL_UNITS / 2n,
+    label: "Test Contributor",
+    ...overrides,
+  };
+}
+
+export function createMockAllowlist(count = 2): AllowlistEntry[] {
+  const baseUnits = TOTAL_UNITS / BigInt(count);
+  const remainder = TOTAL_UNITS - baseUnits * BigInt(count);
+
+  return Array.from({ length: count }, (_, i) => ({
+    address: `0x${String(i + 1).padStart(40, "0")}` as `0x${string}`,
+    units: i === 0 ? baseUnits + remainder : baseUnits,
+    label: `Contributor ${i + 1}`,
+  }));
+}
+
+export function createMockHypercertRecord(
+  overrides: Partial<HypercertRecord> = {}
+): HypercertRecord {
+  return {
+    id: `hypercert-${Date.now()}`,
+    tokenId: BigInt(1),
+    gardenId: MOCK_ADDRESSES.garden,
+    metadataUri: "ipfs://QmMetadata123",
+    imageUri: "ipfs://QmImage123",
+    mintedAt: Math.floor(Date.now() / 1000),
+    mintedBy: MOCK_ADDRESSES.operator as `0x${string}`,
+    txHash: MOCK_TX_HASH as `0x${string}`,
+    totalUnits: TOTAL_UNITS,
+    claimedUnits: 0n,
+    attestationCount: 3,
+    title: "Test Hypercert",
+    description: "A test hypercert record",
+    workScopes: ["gardening", "planting"],
+    status: "active",
+    ...overrides,
+  };
+}
+
+export function createMockOutcomeMetrics(overrides: Partial<OutcomeMetrics> = {}): OutcomeMetrics {
+  return {
+    predefined: {
+      trees_planted: {
+        value: 100,
+        unit: "trees",
+        aggregation: "sum",
+        label: "Trees Planted",
+      },
+      area_covered: {
+        value: 500,
+        unit: "sqm",
+        aggregation: "sum",
+        label: "Area Covered",
+      },
+    },
+    custom: {},
+    ...overrides,
+  };
 }

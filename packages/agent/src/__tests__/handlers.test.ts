@@ -4,7 +4,7 @@
  * Tests for the core message handlers (start, join, submit).
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 
 import { handleStart, type StartDeps } from "../handlers/start";
 import { handleJoin, type JoinDeps } from "../handlers/join";
@@ -16,20 +16,10 @@ import * as db from "../services/db";
 
 // Set up test environment
 const TEST_DB_PATH = "data/test/handlers-test.db";
-const originalSecret = process.env.ENCRYPTION_SECRET;
 
 beforeAll(() => {
-  process.env.ENCRYPTION_SECRET = "test-secret-key-for-encryption-32chars!";
   initDB(TEST_DB_PATH);
   initAI();
-});
-
-afterAll(async () => {
-  if (originalSecret) {
-    process.env.ENCRYPTION_SECRET = originalSecret;
-  } else {
-    delete process.env.ENCRYPTION_SECRET;
-  }
 });
 
 // ============================================================================

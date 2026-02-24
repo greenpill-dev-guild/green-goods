@@ -1,10 +1,16 @@
-import { hapticLight, type Work } from "@green-goods/shared";
-import React, { useState } from "react";
+import {
+  hapticLight,
+  logger,
+  trackSyncError,
+  useBatchWorkSync,
+  useOffline,
+  useQueueFlush,
+  useTimeout,
+  useUser,
+  type Work,
+} from "@green-goods/shared";
+import React, { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-
-import { useOffline, useUser } from "@green-goods/shared/hooks";
-import { trackSyncError } from "@green-goods/shared/modules";
-import { useQueueFlush } from "@green-goods/shared/providers/JobQueue";
 
 import { MinimalWorkCard } from "@/components/Cards";
 import { BeatLoader } from "@/components/Communication";
@@ -34,21 +40,75 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
   const { authMode } = useUser();
   const { isOnline } = useOffline();
   const flush = useQueueFlush();
-  const [isSyncing, setIsSyncing] = useState(false);
+  const batchWorkSync = useBatchWorkSync();
+  const [isFlushing, setIsFlushing] = useState(false);
+  const { set: scheduleConfirmClear } = useTimeout();
 
   // Only offline (unsynced) work is actively "uploading".
   const uploadingOfflineWork = uploadingWork.filter((work) => work.id.startsWith("0xoffline_"));
   const uploadingCount = uploadingOfflineWork.length;
+  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
+  const previousOfflineRef = useRef<Work[]>(uploadingOfflineWork);
+
+  useEffect(() => {
+    const previousOffline = previousOfflineRef.current;
+    const currentOffline = uploadingWork.filter((work) => work.id.startsWith("0xoffline_"));
+    const currentOnline = uploadingWork.filter((work) => !work.id.startsWith("0xoffline_"));
+
+    const removedOffline = previousOffline.filter(
+      (offlineWork) => !currentOffline.some((current) => current.id === offlineWork.id)
+    );
+
+    if (removedOffline.length === 0) {
+      previousOfflineRef.current = currentOffline;
+      return;
+    }
+
+    const toMs = (timestamp: number) =>
+      timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp;
+    const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
+    const newlyConfirmed = new Set<string>();
+
+    for (const onlineWork of currentOnline) {
+      const onlineTs = toMs(onlineWork.createdAt);
+      const match = removedOffline.some((offlineWork) => {
+        const offlineTs = toMs(offlineWork.createdAt);
+        return (
+          offlineWork.actionUID === onlineWork.actionUID &&
+          Math.abs(offlineTs - onlineTs) <= CONFIRM_WINDOW_MS
+        );
+      });
+
+      if (match) {
+        newlyConfirmed.add(onlineWork.id);
+      }
+    }
+
+    if (newlyConfirmed.size > 0) {
+      setConfirmedIds(newlyConfirmed);
+      scheduleConfirmClear(() => {
+        setConfirmedIds(new Set());
+      }, 200);
+    }
+
+    previousOfflineRef.current = currentOffline;
+  }, [uploadingWork, scheduleConfirmClear]);
+
+  const isSyncing = isFlushing || batchWorkSync.isPending;
 
   const handleSyncAll = async () => {
     if (isSyncing) return;
     // Provide haptic feedback when sync is triggered
     hapticLight();
-    setIsSyncing(true);
     try {
-      await flush();
+      if (authMode === "wallet") {
+        await batchWorkSync.mutateAsync();
+      } else {
+        setIsFlushing(true);
+        await flush();
+      }
     } catch (error) {
-      console.error("Failed to sync all items:", error);
+      logger.error("Failed to sync all items:", { error });
       trackSyncError(error, {
         source: "Uploading.handleSyncAll",
         userAction: authMode === "wallet" ? "retrying failed uploads" : "syncing all pending items",
@@ -61,7 +121,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
         },
       });
     } finally {
-      setIsSyncing(false);
+      setIsFlushing(false);
     }
   };
 
@@ -96,10 +156,13 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
                       defaultMessage: "Syncing...",
                     })
                   : authMode === "wallet"
-                    ? intl.formatMessage({
-                        id: "app.workDashboard.queue.retry",
-                        defaultMessage: "Retry",
-                      })
+                    ? intl.formatMessage(
+                        {
+                          id: "app.syncBar.syncAll",
+                          defaultMessage: "Sync All ({count})",
+                        },
+                        { count: uploadingCount }
+                      )
                     : intl.formatMessage({
                         id: "app.workDashboard.queue.syncAll",
                         defaultMessage: "Sync All",
@@ -218,6 +281,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
                   work={work as unknown as Work}
                   onClick={() => onWorkClick(work)}
                   className="stagger-item"
+                  confirmed={confirmedIds.has(work.id)}
                   style={{ animationDelay: `${index * 30}ms` } as React.CSSProperties}
                   badges={badges}
                 />

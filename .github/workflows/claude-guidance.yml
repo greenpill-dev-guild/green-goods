@@ -1,0 +1,42 @@
+name: Claude Guidance Consistency
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - ".mcp.json"
+      - ".claude/**"
+      - ".claude/registry/**"
+      - ".claude/standards/**"
+      - "package.json"
+      - ".github/workflows/claude-guidance.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - ".mcp.json"
+      - ".claude/**"
+      - ".claude/registry/**"
+      - ".claude/standards/**"
+      - "package.json"
+      - ".github/workflows/claude-guidance.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guidance-consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check guidance consistency
+        run: node .claude/scripts/check-guidance-consistency.js

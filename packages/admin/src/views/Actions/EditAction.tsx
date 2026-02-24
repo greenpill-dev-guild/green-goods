@@ -2,21 +2,38 @@ import {
   DEFAULT_CHAIN_ID,
   defaultTemplate,
   fromDateTimeLocalValue,
+  logger,
   toastService,
   toDateTimeLocalValue,
   toSafeDate,
   uploadFileToIPFS,
+  useActionOperations,
+  useActions,
+  useAsyncEffect,
+  type ActionInstructionConfig,
 } from "@green-goods/shared";
-import { useActionOperations, useActions } from "@green-goods/shared/hooks";
-import { useEffect, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { useIntl } from "react-intl";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { PageHeader } from "@/components/Layout/PageHeader";
+
+const editActionSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  startTime: z.coerce.date(),
+  endTime: z.coerce.date(),
+});
+
+type EditActionFormData = z.infer<typeof editActionSchema>;
 
 export default function EditAction() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: actions = [] } = useActions(DEFAULT_CHAIN_ID);
+  const { formatMessage } = useIntl();
+  const { data: actions = [], isLoading: actionsLoading } = useActions(DEFAULT_CHAIN_ID);
   const action = actions.find((a) => a.id === id);
   const {
     updateActionTitle,
@@ -26,80 +43,96 @@ export default function EditAction() {
     isLoading,
   } = useActionOperations(DEFAULT_CHAIN_ID);
 
-  const [title, setTitle] = useState("");
-  const [startTime, setStartTime] = useState<Date>(new Date());
-  const [endTime, setEndTime] = useState<Date>(new Date());
+  const form = useForm<EditActionFormData>({
+    resolver: zodResolver(editActionSchema),
+    defaultValues: {
+      title: "",
+      startTime: new Date(),
+      endTime: new Date(),
+    },
+  });
+
   const [instructionConfig, setInstructionConfig] =
     useState<ActionInstructionConfig>(defaultTemplate);
   const [isEditingInstructions, setIsEditingInstructions] = useState(false);
   const [isLoadingInstructions, setIsLoadingInstructions] = useState(false);
 
   // Sync form state when action data loads or changes
-  useEffect(() => {
-    if (action) {
-      setTitle(action.title || "");
-      setStartTime(toSafeDate(action.startTime) ?? new Date());
-      setEndTime(toSafeDate(action.endTime) ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000));
-    }
-  }, [action]);
+  useAsyncEffect(
+    async ({ isMounted }) => {
+      if (!action) return;
 
-  // Load existing instruction config from IPFS when action is available
-  useEffect(() => {
-    async function loadInstructions() {
-      if (!action?.instructions) return;
+      form.reset({
+        title: action.title || "",
+        startTime: toSafeDate(action.startTime) ?? new Date(),
+        endTime: toSafeDate(action.endTime) ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      });
+
+      if (!action.instructions) return;
 
       setIsLoadingInstructions(true);
       try {
         const response = await fetch(action.instructions);
         const config = await response.json();
-        setInstructionConfig(config);
+        if (isMounted()) {
+          setInstructionConfig(config);
+        }
       } catch (error) {
-        console.error("Failed to load instructions:", error);
-        toastService.error({
-          title: "Failed to load instructions",
-          description: "Using default template instead",
-        });
+        if (isMounted()) {
+          logger.error("Failed to load instructions", { error });
+          toastService.error({
+            title: formatMessage({ id: "app.actions.edit.loadInstructionsFailed" }),
+            description: formatMessage({ id: "app.actions.edit.usingDefault" }),
+          });
+        }
       } finally {
-        setIsLoadingInstructions(false);
+        if (isMounted()) {
+          setIsLoadingInstructions(false);
+        }
       }
-    }
+    },
+    [action?.id, action?.instructions]
+  );
 
-    loadInstructions();
-  }, [action?.instructions]);
+  if (actionsLoading) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-text-sub">{formatMessage({ id: "app.actions.loading" })}</p>
+      </div>
+    );
+  }
 
   if (!action) {
     return (
       <div className="text-center py-12">
-        <p className="text-text-sub">Action not found</p>
-        <Link to="/actions" className="text-green-600 hover:underline mt-2 inline-block">
-          Back to Actions
+        <p className="text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
+        <Link to="/actions" className="text-primary-base hover:underline mt-2 inline-block">
+          {formatMessage({ id: "app.actions.backToActions" })}
         </Link>
       </div>
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = async (data: EditActionFormData) => {
     try {
-      // Extract numeric UID from composite ID (chainId-UID format)
       const actionUID = id!.split("-")[1];
 
-      if (title !== action.title) {
-        await updateActionTitle(actionUID, title);
+      if (data.title !== action.title) {
+        await updateActionTitle(actionUID, data.title);
       }
 
-      if (startTime.getTime() !== action.startTime) {
-        await updateActionStartTime(actionUID, Math.floor(startTime.getTime() / 1000));
+      if (data.startTime.getTime() !== action.startTime) {
+        await updateActionStartTime(actionUID, Math.floor(data.startTime.getTime() / 1000));
       }
 
-      if (endTime.getTime() !== action.endTime) {
-        await updateActionEndTime(actionUID, Math.floor(endTime.getTime() / 1000));
+      if (data.endTime.getTime() !== action.endTime) {
+        await updateActionEndTime(actionUID, Math.floor(data.endTime.getTime() / 1000));
       }
 
-      // If instructions were edited, upload new version to IPFS
       if (isEditingInstructions) {
-        toastService.loading({ title: "Uploading new instructions to IPFS..." });
+        toastService.loading({
+          title: formatMessage({ id: "app.actions.edit.uploadingInstructions" }),
+        });
         const instructionsBlob = new Blob([JSON.stringify(instructionConfig, null, 2)], {
           type: "application/json",
         });
@@ -113,37 +146,46 @@ export default function EditAction() {
         await updateActionInstructions(actionUID, instructionsCID);
       }
 
-      toastService.success({ title: "Action updated successfully" });
+      toastService.success({ title: formatMessage({ id: "app.actions.edit.success" }) });
       navigate(`/actions/${id}`);
     } catch (error) {
-      console.error("Failed to update action:", error);
-      toastService.error({ title: "Failed to update action" });
+      logger.error("Failed to update action", { error });
+      toastService.error({ title: formatMessage({ id: "app.actions.edit.failed" }) });
     }
   };
 
   return (
     <div>
-      <PageHeader title={`Edit: ${action.title}`} description="Update action details" />
+      <PageHeader
+        title={formatMessage({ id: "app.actions.edit.title" }, { name: action.title })}
+        description={formatMessage({ id: "app.actions.edit.description" })}
+      />
 
-      <form onSubmit={handleSubmit} className="mt-6 max-w-4xl space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 max-w-4xl space-y-6">
         {/* Basic Fields */}
         <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
-          <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+          <h3 className="text-lg font-semibold mb-4">
+            {formatMessage({ id: "app.actions.edit.basicInfo" })}
+          </h3>
           <div className="space-y-4">
             <div>
               <label
                 htmlFor="action-title"
                 className="block text-sm font-medium text-text-strong mb-2"
               >
-                Title
+                {formatMessage({ id: "app.assessment.table.title" })}
               </label>
               <input
                 id="action-title"
                 type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                {...form.register("title")}
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
               />
+              {form.formState.errors.title && (
+                <p className="mt-1 text-xs text-error-base">
+                  {form.formState.errors.title.message}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -152,13 +194,15 @@ export default function EditAction() {
                   htmlFor="action-start-time"
                   className="block text-sm font-medium text-text-strong mb-2"
                 >
-                  Start Time
+                  {formatMessage({ id: "app.actions.detail.startTime" })}
                 </label>
                 <input
                   id="action-start-time"
                   type="datetime-local"
-                  value={toDateTimeLocalValue(startTime.getTime())}
-                  onChange={(e) => setStartTime(fromDateTimeLocalValue(e.target.value))}
+                  value={toDateTimeLocalValue(form.watch("startTime").getTime())}
+                  onChange={(e) =>
+                    form.setValue("startTime", fromDateTimeLocalValue(e.target.value))
+                  }
                   className="w-full rounded-md border border-stroke-soft px-3 py-2"
                 />
               </div>
@@ -168,13 +212,13 @@ export default function EditAction() {
                   htmlFor="action-end-time"
                   className="block text-sm font-medium text-text-strong mb-2"
                 >
-                  End Time
+                  {formatMessage({ id: "app.actions.detail.endTime" })}
                 </label>
                 <input
                   id="action-end-time"
                   type="datetime-local"
-                  value={toDateTimeLocalValue(endTime.getTime())}
-                  onChange={(e) => setEndTime(fromDateTimeLocalValue(e.target.value))}
+                  value={toDateTimeLocalValue(form.watch("endTime").getTime())}
+                  onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
                   className="w-full rounded-md border border-stroke-soft px-3 py-2"
                 />
               </div>
@@ -185,26 +229,31 @@ export default function EditAction() {
         {/* Instructions Configuration */}
         <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Instructions Configuration</h3>
+            <h3 className="text-lg font-semibold">
+              {formatMessage({ id: "app.actions.edit.instructionsConfig" })}
+            </h3>
             {!isLoadingInstructions && (
               <button
                 type="button"
                 onClick={() => setIsEditingInstructions(!isEditingInstructions)}
-                className="text-sm text-green-600 hover:text-green-700"
+                className="text-sm text-primary-base hover:text-primary-darker"
               >
-                {isEditingInstructions ? "Cancel editing" : "Edit instructions"}
+                {isEditingInstructions
+                  ? formatMessage({ id: "app.actions.edit.cancelEditing" })
+                  : formatMessage({ id: "app.actions.edit.editInstructions" })}
               </button>
             )}
           </div>
 
           {isLoadingInstructions ? (
-            <p className="text-text-sub text-sm">Loading instructions...</p>
+            <p className="text-text-sub text-sm">
+              {formatMessage({ id: "app.actions.edit.loadingInstructions" })}
+            </p>
           ) : isEditingInstructions ? (
             <InstructionsBuilder value={instructionConfig} onChange={setInstructionConfig} />
           ) : (
             <p className="text-text-sub text-sm">
-              Click &quot;Edit instructions&quot; to modify the work submission form configuration.
-              This will create a new version of the instructions.
+              {formatMessage({ id: "app.actions.edit.instructionsHint" })}
             </p>
           )}
         </div>
@@ -214,16 +263,18 @@ export default function EditAction() {
           <button
             type="submit"
             disabled={isLoading}
-            className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+            className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-darker disabled:opacity-50"
           >
-            {isLoading ? "Saving..." : "Save Changes"}
+            {isLoading
+              ? formatMessage({ id: "app.actions.edit.saving" })
+              : formatMessage({ id: "app.actions.edit.saveChanges" })}
           </button>
           <button
             type="button"
             onClick={() => navigate(`/actions/${id}`)}
             className="rounded-md border border-stroke-soft px-4 py-2 text-sm font-medium text-text-strong hover:bg-bg-soft"
           >
-            Cancel
+            {formatMessage({ id: "app.common.cancel" })}
           </button>
         </div>
       </form>

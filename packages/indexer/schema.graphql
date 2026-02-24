@@ -10,6 +10,27 @@ enum Capital {
   UNKNOWN
 }
 
+enum Domain {
+  SOLAR
+  AGRO
+  EDU
+  WASTE
+  UNKNOWN
+}
+
+# Retained for compatibility with existing helper mappings.
+enum WeightScheme {
+  LINEAR
+  EXPONENTIAL
+  POWER
+}
+
+# Retained for compatibility with existing helper mappings.
+enum PoolType {
+  HYPERCERT
+  ACTION
+}
+
 type Action {
   id: ID!
   chainId: Int!
@@ -17,10 +38,22 @@ type Action {
   startTime: BigInt!
   endTime: BigInt!
   title: String!
+  slug: String! # On-chain slug (e.g., "waste.cleanup_event")
   instructions: String!
   capitals: [Capital!]!
   media: [String!]!
+  domain: Domain!
   createdAt: Int!
+}
+
+# Tracks which domains are enabled for each garden.
+type GardenDomains {
+  id: ID! # chainId-gardenAddress
+  chainId: Int!
+  garden: String! # Garden address
+  domainMask: Int! # Bitmask: bit 0=Solar, 1=Agro, 2=Edu, 3=Waste
+  domains: [Domain!]!
+  updatedAt: Int!
 }
 
 type Garden {
@@ -37,38 +70,153 @@ type Garden {
 
   gardeners: [String!]! # Address
   operators: [String!]! # Address
-  
+  evaluators: [String!]! # Address
+  owners: [String!]! # Address
+  funders: [String!]! # Address
+  communities: [String!]! # Address
+
   # Karma GAP Integration
   gapProjectUID: String # Karma GAP project attestation UID (bytes32)
+}
+
+enum VaultEventType {
+  DEPOSIT
+  WITHDRAW
+  HARVEST
+  EMERGENCY_PAUSED
+}
+
+type GardenVault {
+  id: ID! # chainId-garden-asset
+  chainId: Int!
+  garden: String! # Garden address
+  asset: String! # Asset address
+  vaultAddress: String! # Vault contract address
+  totalDeposited: BigInt!
+  totalWithdrawn: BigInt!
+  totalHarvestCount: Int!
+  donationAddress: String
+  depositorCount: Int!
+  paused: Boolean!
+  createdAt: Int!
+}
+
+type GardenVaultIndex {
+  id: ID! # chainId-garden
+  chainId: Int!
+  garden: String!
+  assets: [String!]!
+}
+
+type VaultAddressIndex {
+  id: ID! # chainId-vaultAddress
+  chainId: Int!
+  vaultAddress: String!
+  garden: String!
+  asset: String!
+}
+
+type VaultDeposit {
+  id: ID! # chainId-vault-depositor
+  chainId: Int!
+  garden: String! # Garden address
+  asset: String! # Asset address
+  vaultAddress: String! # Vault contract address
+  depositor: String! # Depositor address
+  shares: BigInt!
+  totalDeposited: BigInt!
+  totalWithdrawn: BigInt!
+}
+
+type VaultEvent {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  garden: String! # Garden address
+  asset: String! # Asset address
+  vaultAddress: String! # Vault contract address
+  eventType: VaultEventType!
+  actor: String! # Caller/sender
+  amount: BigInt
+  shares: BigInt
+  txHash: String!
+  timestamp: Int!
 }
 
 type Gardener {
   id: ID! # Smart account address
   chainId: Int!
   createdAt: Int!
-  firstGarden: String # First garden joined
-  gardens: [String!]! # All gardens this gardener belongs to
-  
+  firstGarden: String
+  gardens: [String!]!
+
   # Identity (from Gardener smart contract on mainnet or L2)
-  owner: String # Current owner key (EOA from passkey)
-  
+  owner: String
+
   # ENS Identity (from mainnet Gardener contract)
-  ensName: String # Full ENS name (e.g., "alice.greengoods.eth")
-  passkeyCredentialId: String # WebAuthn credential ID (bytes32) for recovery
-  claimedAt: Int # Timestamp of ENS claim on mainnet
-  
-  # Profile data stored in ENS text records (mainnet only)
-  # These fields are read from ENS resolver on mainnet
-  # Query via ENS resolver: resolver.text(node, "avatar"), resolver.text(node, "description"), etc.
-  ensAvatar: String # ENS text record: avatar
-  ensDescription: String # ENS text record: description
-  ensTwitter: String # ENS text record: com.twitter
-  ensGithub: String # ENS text record: com.github
-  ensEmail: String # ENS text record: email
-  
-  # Future extensibility:
-  # - totalWork: Int
-  # - approvals: [WorkApproval!]
-  # - reputation: Int
-  # - attestations: [Attestation!]
+  ensName: String
+  passkeyCredentialId: String
+  claimedAt: Int
+
+  # Profile data stored in ENS text records (mainnet only).
+  # Not populated by Envio handlers; resolved client-side from ENS resolver reads.
+  ensAvatar: String
+  ensDescription: String
+  ensTwitter: String
+  ensGithub: String
+  ensEmail: String
 }
+
+type YieldAllocation {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  garden: String! # Garden address
+  asset: String! # Asset address
+  cookieJarAmount: BigInt!
+  fractionsAmount: BigInt!
+  juiceboxAmount: BigInt!
+  totalAmount: BigInt!
+  txHash: String!
+  timestamp: Int!
+}
+
+enum HypercertStatus {
+  ACTIVE
+  CLAIMED
+  SOLD
+  UNKNOWN
+}
+
+type Hypercert {
+  id: ID! # chainId-tokenId
+  chainId: Int!
+  tokenId: BigInt!
+  garden: String! # Garden address
+  metadataUri: String! # IPFS URI (ipfs://...)
+  mintedAt: Int!
+  mintedBy: String! # Operator address who minted
+  txHash: String!
+  totalUnits: BigInt!
+  claimedUnits: BigInt!
+  attestationCount: Int!
+  attestationUIDs: [String!]! # EAS attestation UIDs bundled into this hypercert
+  status: HypercertStatus!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type HypercertClaim {
+  id: ID! # chainId-hypercertTokenId-claimant
+  chainId: Int!
+  hypercertId: String! # Reference to parent Hypercert
+  claimant: String! # Address who claimed
+  units: BigInt!
+  claimedAt: Int!
+  txHash: String!
+}
+
+# =============================================================================
+# EAS Attestation Data (NOT indexed here)
+# =============================================================================
+# WorkApproval and GardenAssessment attestations are queried directly from the
+# EAS GraphQL indexer (easscan.org), not from this Envio indexer.
+# See: packages/shared/src/modules/data/eas.ts

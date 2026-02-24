@@ -1,0 +1,446 @@
+.roleGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.roleCard {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 14px;
+  padding: 1rem;
+  background: linear-gradient(180deg, var(--ifm-background-surface-color), rgba(30, 120, 90, 0.06));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+.roleCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.roleCardTitleWrap {
+  min-width: 0;
+}
+
+.roleCardTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.roleCardIcon {
+  line-height: 1;
+}
+
+.roleCardBody {
+  margin: 0.8rem 0;
+  color: var(--ifm-font-color-secondary);
+}
+
+.metaList {
+  margin: 0 0 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.metaList dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.metaList dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.roleCardLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-weight: 700;
+}
+
+.stepFlow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.stepFlowItem {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  padding: 0.75rem;
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  background: var(--ifm-background-surface-color);
+}
+
+.stepNumber {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--ifm-color-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.stepTitle {
+  margin: 0;
+  font-weight: 700;
+}
+
+.stepDetail {
+  margin: 0.25rem 0 0;
+  color: var(--ifm-font-color-secondary);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.statusLive {
+  color: #065f46;
+  background: #ecfdf3;
+  border-color: #6ee7b7;
+}
+
+.statusExternal {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.statusImplemented {
+  color: #1d4ed8;
+  background: #eef4ff;
+  border-color: #93c5fd;
+}
+
+.statusImplementedIndexing {
+  color: #4c1d95;
+  background: #f5f3ff;
+  border-color: #c4b5fd;
+}
+
+.statusPlanned {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
+.featureState {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  padding: 0.9rem;
+  background: var(--ifm-background-surface-color);
+}
+
+.featureStateHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.featureStateTitle {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.featureStateSummary {
+  margin: 0.7rem 0 0;
+}
+
+.featureStateBody {
+  margin-top: 0.6rem;
+}
+
+.queryBlock {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  padding: 0.9rem;
+  background: var(--ifm-background-surface-color);
+}
+
+.queryTitle {
+  margin-top: 0;
+}
+
+.queryEndpoint,
+.queryVariablesLabel {
+  margin: 0.5rem 0;
+  color: var(--ifm-font-color-secondary);
+}
+
+.queryPre {
+  border-radius: 10px;
+  padding: 0.75rem;
+  overflow: auto;
+  margin: 0.25rem 0;
+  background: var(--ifm-color-emphasis-100);
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.chainBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.atAGlance {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 14px;
+  padding: 1rem;
+  background:
+    radial-gradient(circle at top right, rgba(35, 144, 101, 0.14), transparent 40%),
+    var(--ifm-background-surface-color);
+}
+
+.atAGlanceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.atAGlanceTitle {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.difficultyBadge {
+  border: 1px solid var(--ifm-color-primary);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.atAGlanceGrid {
+  margin: 0.85rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
+}
+
+.atAGlanceGrid dt {
+  margin: 0;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.atAGlanceGrid dd {
+  margin: 0.2rem 0 0;
+  font-weight: 600;
+  color: var(--ifm-font-color-base);
+}
+
+.journeyMap {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 14px;
+  padding: 1rem;
+  background: var(--ifm-background-surface-color);
+}
+
+.journeyTitle {
+  margin: 0;
+}
+
+.journeyList {
+  list-style: none;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.journeyItem {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 10px;
+  padding: 0.65rem;
+  display: grid;
+  grid-template-columns: 1.8rem 1fr;
+  gap: 0.6rem;
+}
+
+.journeyComplete {
+  border-left: 4px solid #16a34a;
+}
+
+.journeyCurrent {
+  border-left: 4px solid var(--ifm-color-primary);
+  background: color-mix(in srgb, var(--ifm-color-primary) 8%, transparent);
+}
+
+.journeyUpcoming {
+  border-left: 4px solid var(--ifm-color-emphasis-300);
+}
+
+.journeyIndex {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  background: var(--ifm-color-emphasis-200);
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.journeyLink,
+.journeyText {
+  margin: 0;
+  font-weight: 700;
+}
+
+.journeyNote {
+  margin: 0.2rem 0 0;
+  color: var(--ifm-font-color-secondary);
+  font-size: 0.9rem;
+}
+
+.decisionGuide {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 14px;
+  padding: 1rem;
+  background: var(--ifm-background-surface-color);
+}
+
+.decisionTitle {
+  margin: 0;
+}
+
+.decisionRows {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.decisionRow {
+  border-radius: 10px;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  padding: 0.7rem;
+  background: var(--ifm-color-emphasis-100);
+}
+
+.decisionRow p {
+  margin: 0;
+}
+
+.decisionRow p + p {
+  margin-top: 0.4rem;
+}
+
+.quickAnswer {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  background: var(--ifm-background-surface-color);
+}
+
+.quickAnswer summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.quickAnswerBody {
+  margin-top: 0.45rem;
+  color: var(--ifm-font-color-secondary);
+}
+
+.nextAction {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 14px;
+  padding: 1rem;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--ifm-color-primary) 13%, transparent), transparent 45%),
+    var(--ifm-background-surface-color);
+}
+
+.nextActionTitle {
+  margin: 0;
+}
+
+.nextActionWhy {
+  margin: 0.5rem 0;
+  color: var(--ifm-font-color-secondary);
+}
+
+.nextActionPrimary {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  background: var(--ifm-color-primary);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.nextActionPrimary:hover {
+  color: #fff;
+  text-decoration: none;
+  filter: brightness(0.95);
+}
+
+.nextActionAlternatives {
+  margin: 0.7rem 0 0;
+  padding-left: 1rem;
+}
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .metaList {
+    grid-template-columns: 1fr;
+  }
+
+  .roleCard {
+    padding: 0.9rem;
+  }
+
+  .atAGlanceGrid {
+    grid-template-columns: 1fr;
+  }
+}

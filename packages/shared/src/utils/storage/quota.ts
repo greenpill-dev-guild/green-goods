@@ -11,6 +11,7 @@
  * @module utils/storage/quota
  */
 
+import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
 import { trackStorageError } from "../../modules/app/error-tracking";
 
@@ -114,7 +115,7 @@ export async function getStorageQuota(
     };
   } catch (error) {
     // Log but don't throw - storage quota is informational
-    console.warn("[StorageQuota] Failed to get storage estimate:", error);
+    logger.warn("[StorageQuota] Failed to get storage estimate", { error });
     return {
       used: 0,
       quota: 0,

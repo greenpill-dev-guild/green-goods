@@ -1,90 +1,119 @@
-import { DEFAULT_CHAIN_ID, formatDate, STALE_TIMES } from "@green-goods/shared";
 import {
-  queryKeys,
-  useGardenAssessments,
-  useGardenOperations,
-  useGardenPermissions,
-  useGardens,
-} from "@green-goods/shared/hooks";
-import { getWorks, resolveIPFSUrl } from "@green-goods/shared/modules";
+  type Address,
+  ConfirmDialog,
+  ErrorBoundary,
+  GARDEN_ROLE_COLORS,
+  type GardenRole,
+  formatAddress,
+  toastService,
+} from "@green-goods/shared";
 import {
+  RiAddLine,
   RiCheckboxCircleLine,
-  RiDeleteBinLine,
-  RiExternalLinkLine,
+  RiErrorWarningLine,
   RiFileList3Line,
+  RiMedalLine,
   RiShieldCheckLine,
-  RiUserAddLine,
   RiUserLine,
 } from "@remixicon/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import * as Tabs from "@radix-ui/react-tabs";
+import { useState } from "react";
+import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
-import { AddressDisplay } from "@/components/AddressDisplay";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
+import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
+import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
+import { GardenHeroSection } from "@/components/Garden/GardenHeroSection";
+import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
 import { GardenMetadata } from "@/components/Garden/GardenMetadata";
+import { GardenRolesPanel } from "@/components/Garden/GardenRolesPanel";
+import { GardenStatsGrid } from "@/components/Garden/GardenStatsGrid";
+import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
 import { MembersModal } from "@/components/Garden/MembersModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { StatCard } from "@/components/StatCard";
+import { CookieJarPayoutPanel } from "@/components/Work/CookieJarPayoutPanel";
 import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
+import { useGardenDetailData } from "./useGardenDetailData";
 import "./GardenDetailLayout.css";
 
-const EAS_EXPLORER_URL = "https://explorer.easscan.org";
+const TAB_TRIGGER_BASE =
+  "border-b-2 border-transparent px-4 py-2 text-sm font-medium text-text-soft transition-colors hover:text-text-sub hover:border-stroke-sub data-[state=active]:border-primary-base data-[state=active]:text-primary-dark";
 
 export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
-  const queryClient = useQueryClient();
-  const gardenPermissions = useGardenPermissions();
-  const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
-  const [memberType, setMemberType] = useState<"gardener" | "operator">("gardener");
-  const [membersModalOpen, setMembersModalOpen] = useState(false);
-  const [membersModalType, setMembersModalType] = useState<"gardener" | "operator">("gardener");
+  const { formatMessage } = useIntl();
 
-  const openAddMemberModal = (type: "gardener" | "operator") => {
+  const {
+    garden,
+    fetching,
+    error,
+    gardenId,
+    canManage,
+    canReview,
+    canManageRoles,
+    isOwner,
+    assessments,
+    fetchingAssessments,
+    assessmentsError,
+    roleMembers,
+    roleActions,
+    isOperationLoading,
+    community,
+    communityLoading,
+    weightSchemeLabel,
+    pools,
+    createPools,
+    isCreatingPools,
+    gardenVaults,
+    vaultsLoading,
+    vaultNetDeposited,
+    vaultHarvestCount,
+    vaultDepositorCount,
+    allocations,
+    allocationsLoading,
+    works,
+    hypercerts,
+    hypercertsLoading,
+    convictionStrategyCount,
+    scheduleBackgroundRefetch,
+  } = useGardenDetailData(id);
+
+  const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
+  const [memberType, setMemberType] = useState<GardenRole>("gardener");
+  const [membersModalOpen, setMembersModalOpen] = useState(false);
+  const [membersModalType, setMembersModalType] = useState<GardenRole>("gardener");
+  const [memberToRemove, setMemberToRemove] = useState<{
+    address: Address;
+    role: GardenRole;
+  } | null>(null);
+
+  const openAddMemberModal = (type: GardenRole) => {
     setMemberType(type);
     setAddMemberModalOpen(true);
   };
 
-  const openMembersModal = (type: "gardener" | "operator") => {
+  const openMembersModal = (type: GardenRole) => {
     setMembersModalType(type);
     setMembersModalOpen(true);
   };
 
-  // Use shared useGardens hook and find the specific garden
-  const { data: gardens = [], isLoading: fetching, error } = useGardens();
-  const garden = gardens.find((g) => g.id === id);
+  const roleIcons = {
+    owner: RiShieldCheckLine,
+    operator: RiUserLine,
+    evaluator: RiCheckboxCircleLine,
+    gardener: RiUserLine,
+    funder: RiMedalLine,
+    community: RiUserLine,
+  } as const;
 
-  // Background refetch to sync with indexer after transaction confirms
-  // This is a fallback - optimistic updates handle immediate UI updates
-  const scheduleBackgroundRefetch = useCallback(() => {
-    // Delay refetch to allow indexer to process the transaction
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(DEFAULT_CHAIN_ID) });
-    }, 5000);
-  }, [queryClient]);
-
-  const {
-    data: assessmentList = [],
-    isLoading: fetchingAssessments,
-    error: assessmentsError,
-  } = useGardenAssessments(id, 5);
-
-  const assessments = assessmentList;
-
-  const { addGardener, removeGardener, addOperator, removeOperator, isLoading } =
-    useGardenOperations(id!);
-
-  const canManage = garden ? gardenPermissions.canManageGarden(garden) : false;
-
-  // Fetch work submissions for this garden
-  const { data: works = [] } = useQuery({
-    queryKey: queryKeys.works.online(id!, DEFAULT_CHAIN_ID),
-    queryFn: () => getWorks(id),
-    enabled: !!id,
-    staleTime: STALE_TIMES.works,
-  });
+  const activeRole = membersModalType;
+  const ActiveRoleIcon = roleIcons[activeRole];
 
   const baseHeaderProps = {
-    backLink: { to: "/gardens", label: "Back to gardens" },
+    backLink: { to: "/gardens", label: formatMessage({ id: "app.garden.admin.backToGardens" }) },
     sticky: true,
   } as const;
 
@@ -92,14 +121,24 @@ export default function GardenDetail() {
     return (
       <div className="pb-6">
         <PageHeader
-          title="Loading garden…"
-          description="Fetching garden details."
+          title={formatMessage({ id: "app.garden.admin.loadingGarden" })}
+          description={formatMessage({ id: "app.garden.admin.loadingDescription" })}
           {...baseHeaderProps}
         />
-        <div className="mt-6 px-6">
+        <div className="mt-6 px-6" role="status" aria-live="polite">
+          <span className="sr-only">{formatMessage({ id: "app.garden.admin.loadingGarden" })}</span>
           <div className="space-y-4 rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
-            <div className="h-8 w-1/4 animate-pulse rounded bg-bg-soft" />
-            <div className="h-64 animate-pulse rounded bg-bg-soft" />
+            <div className="h-8 w-1/4 rounded skeleton-shimmer" />
+            <div className="h-48 rounded skeleton-shimmer" style={{ animationDelay: "0.1s" }} />
+            <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 md:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-20 rounded-lg skeleton-shimmer"
+                  style={{ animationDelay: `${0.15 + i * 0.05}s` }}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -110,361 +149,258 @@ export default function GardenDetail() {
     return (
       <div className="pb-6">
         <PageHeader
-          title="Garden"
-          description="Unable to load garden details."
+          title={formatMessage({ id: "app.garden" })}
+          description={formatMessage({ id: "app.garden.admin.unableToLoad" })}
           {...baseHeaderProps}
         />
         <div className="mt-6 px-6">
-          <div className="rounded-md border border-error-light bg-error-lighter p-4">
-            <p className="text-sm text-error-dark">{error?.message ?? "Garden not found"}</p>
-          </div>
+          <Card className="mx-auto max-w-lg" role="alert">
+            <Card.Body className="flex flex-col items-center py-10 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-error-lighter">
+                <RiErrorWarningLine className="h-6 w-6 text-error-base" />
+              </div>
+              <h2 className="mt-4 font-heading text-lg font-semibold text-text-strong">
+                {formatMessage({ id: "app.garden.admin.notFound" })}
+              </h2>
+              <p className="mt-2 text-sm text-text-sub">
+                {error?.message ?? formatMessage({ id: "app.garden.admin.unableToLoad" })}
+              </p>
+              <Button variant="secondary" className="mt-6" asChild>
+                <Link to="/gardens">{formatMessage({ id: "app.garden.admin.backToGardens" })}</Link>
+              </Button>
+            </Card.Body>
+          </Card>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="garden-detail-container pb-6">
-      <PageHeader title={garden.name} {...baseHeaderProps} />
-
-      <div className="garden-detail-grid mt-6 px-4 sm:px-6">
-        {/* Hero: Garden Banner & Description */}
-        <section className="grid-area-hero overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-          <div className="relative h-64 sm:h-72">
-            {garden.bannerImage ? (
-              <img
-                src={resolveIPFSUrl(garden.bannerImage)}
-                alt={garden.name}
-                className="h-full w-full object-cover"
-                onError={(event) => {
-                  const placeholder = event.currentTarget.nextElementSibling as HTMLElement | null;
-                  if (placeholder) {
-                    placeholder.style.display = "flex";
-                  }
-                  event.currentTarget.style.display = "none";
-                }}
-                loading="lazy"
-              />
-            ) : null}
-            <div
-              className={`absolute inset-0 items-center justify-center bg-gradient-to-br from-primary-dark via-primary-base to-primary-darker text-primary-foreground ${garden.bannerImage ? "hidden" : "flex"}`}
-              style={{ display: garden.bannerImage ? "none" : "flex" }}
-            >
-              <div className="text-center">
-                <div className="text-4xl font-bold opacity-80">{garden.name.charAt(0)}</div>
-                <div className="mt-2 text-lg opacity-60">{garden.name}</div>
-              </div>
-            </div>
-
-            {/* Garden Name Overlay */}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-static-black/80 via-static-black/50 to-transparent p-4 text-static-white sm:p-6">
-              <h2 className="text-xl font-bold drop-shadow-lg sm:text-2xl">{garden.name}</h2>
-              <p className="mt-1 text-sm opacity-90 sm:text-base">{garden.location}</p>
-            </div>
-
-            {/* Floating Action Buttons */}
-            <div className="absolute top-3 right-3 flex flex-col gap-2 sm:top-4 sm:right-4 sm:flex-row">
-              <Link
-                to={`/gardens/${id}/assessments`}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-bg-white/95 text-text-sub shadow-lg backdrop-blur transition hover:bg-bg-white active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
-                title="View Assessments"
-                aria-label="View Assessments"
-              >
-                <RiFileList3Line className="h-5 w-5" />
-                <span className="hidden text-sm font-medium sm:inline">View Assessments</span>
-              </Link>
-              {canManage && (
-                <Link
-                  to={`/gardens/${id}/assessments/create`}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-base text-primary-foreground shadow-lg transition hover:bg-primary-darker active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
-                  title="New Assessment"
-                  aria-label="New Assessment"
-                >
-                  <RiFileList3Line className="h-5 w-5" />
-                  <span className="hidden text-sm font-medium sm:inline">New Assessment</span>
+    <Tabs.Root defaultValue="overview" className="garden-detail-container pb-6">
+      <PageHeader
+        title={garden.name}
+        {...baseHeaderProps}
+        actions={
+          <>
+            {canReview && (
+              <Button size="sm" asChild>
+                <Link to={`/gardens/${gardenId}/assessments/create`}>
+                  <RiFileList3Line className="mr-1.5 h-4 w-4" />
+                  {formatMessage({ id: "app.garden.admin.newAssessment" })}
                 </Link>
-              )}
-            </div>
-          </div>
-          <div className="p-4 sm:p-6">
-            <p className="text-sm text-text-sub">{garden.description}</p>
-          </div>
-        </section>
+              </Button>
+            )}
+            {canManage && (
+              <Button size="sm" asChild>
+                <Link to={`/gardens/${gardenId}/hypercerts/create`}>
+                  <RiAddLine className="mr-1.5 h-4 w-4" />
+                  {formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
+                </Link>
+              </Button>
+            )}
+          </>
+        }
+      >
+        <Tabs.List className="-mb-[1px] flex">
+          <Tabs.Trigger value="overview" className={TAB_TRIGGER_BASE}>
+            {formatMessage({ id: "app.garden.admin.tab.overview" })}
+          </Tabs.Trigger>
+          <Tabs.Trigger value="impact" className={TAB_TRIGGER_BASE}>
+            {formatMessage({ id: "app.garden.admin.tab.impact" })}
+          </Tabs.Trigger>
+          <Tabs.Trigger value="work" className={TAB_TRIGGER_BASE}>
+            {formatMessage({ id: "app.garden.admin.tab.work" })}
+          </Tabs.Trigger>
+          <Tabs.Trigger value="community" className={TAB_TRIGGER_BASE}>
+            {formatMessage({ id: "app.garden.admin.tab.community" })}
+          </Tabs.Trigger>
+        </Tabs.List>
+      </PageHeader>
 
-        {/* Metadata: Quick Actions & Links */}
-        <section className="grid-area-metadata">
+      <div className="px-4 sm:px-6">
+        <Tabs.Content
+          value="overview"
+          className="garden-tab-content"
+          aria-label={formatMessage({ id: "app.garden.admin.tab.overview" })}
+        >
+          <GardenHeroSection
+            garden={garden}
+            gardenerCount={garden.gardeners.length}
+            operatorCount={garden.operators.length}
+            workCount={works.length}
+          />
+
+          <GardenStatsGrid
+            gardenerCount={garden.gardeners.length}
+            operatorCount={garden.operators.length}
+            workCount={works.length}
+            assessmentCount={assessments.length}
+            hasVaults={gardenVaults.length > 0}
+            vaultNetDeposited={vaultNetDeposited}
+            vaultHarvestCount={vaultHarvestCount}
+            vaultDepositorCount={vaultDepositorCount}
+            communityLoading={communityLoading}
+            communityLabel={weightSchemeLabel}
+          />
+
           <GardenMetadata
             gardenId={garden.id}
             tokenAddress={garden.tokenAddress}
             tokenId={garden.tokenID}
             chainId={garden.chainId}
           />
-        </section>
+        </Tabs.Content>
 
-        {/* Stats: 4 Stat Cards */}
-        <section className="grid-area-stats grid grid-cols-1 gap-3 xs:grid-cols-2 sm:gap-4 md:grid-cols-4">
-          <StatCard
-            icon={<RiUserLine className="h-5 w-5" />}
-            label="Gardeners"
-            value={garden.gardeners.length}
+        <Tabs.Content
+          value="impact"
+          className="garden-tab-content"
+          aria-label={formatMessage({ id: "app.garden.admin.tab.impact" })}
+        >
+          <GardenAssessmentsPanel
+            assessments={assessments}
+            isLoading={fetchingAssessments}
+            error={assessmentsError}
+            gardenId={gardenId}
+            chainId={garden.chainId}
           />
-          <StatCard
-            icon={<RiShieldCheckLine className="h-5 w-5" />}
-            label="Operators"
-            value={garden.operators.length}
+          <GardenHypercertsPanel
+            gardenId={gardenId}
+            gardenAddress={garden.id as Address}
+            hypercerts={hypercerts}
+            isLoading={hypercertsLoading}
+            canManage={canManage}
           />
-          <StatCard
-            icon={<RiCheckboxCircleLine className="h-5 w-5" />}
-            label="Work"
-            value={works.length}
+        </Tabs.Content>
+
+        <Tabs.Content
+          value="work"
+          className="garden-tab-content"
+          aria-label={formatMessage({ id: "app.garden.admin.tab.work" })}
+        >
+          <CookieJarPayoutPanel
+            gardenAddress={garden.id as Address}
+            canManage={canManage}
+            isOwner={isOwner}
           />
-          <StatCard
-            icon={<RiFileList3Line className="h-5 w-5" />}
-            label="Assessments"
-            value={assessments.length}
+          <WorkSubmissionsView gardenId={garden.id} canManage={canReview} />
+        </Tabs.Content>
+
+        <Tabs.Content
+          value="community"
+          className="garden-tab-content"
+          aria-label={formatMessage({ id: "app.garden.admin.tab.community" })}
+        >
+          <GardenRolesPanel
+            roleMembers={roleMembers}
+            canManageRoles={canManageRoles}
+            isLoading={isOperationLoading}
+            onOpenAddMember={openAddMemberModal}
+            onOpenMembersModal={openMembersModal}
+            onRemoveMember={(address, role) => setMemberToRemove({ address, role })}
           />
-        </section>
-
-        {/* Work: Primary Content */}
-        <section className="grid-area-work">
-          <WorkSubmissionsView gardenId={garden.id} canManage={canManage} />
-        </section>
-
-        {/* Operators: Sidebar */}
-        <aside className="grid-area-operators rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-          <div className="flex items-center justify-between gap-2 border-b border-stroke-soft p-4 sm:p-6">
-            <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
-              Operators
-            </h3>
-            {canManage && (
-              <button
-                onClick={() => openAddMemberModal("operator")}
-                className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
-                aria-label="Add operator"
-                type="button"
-              >
-                <RiUserAddLine className="mr-1 h-4 w-4" />
-                Add
-              </button>
-            )}
-          </div>
-          <div className="p-4 sm:p-6">
-            {garden.operators.length === 0 ? (
-              <p className="py-4 text-center text-sm text-text-soft">No operators assigned</p>
-            ) : (
-              <>
-                <div className="space-y-2 sm:space-y-3">
-                  {garden.operators.slice(0, 3).map((operator: string, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between gap-2 rounded-md bg-bg-weak p-2.5 sm:p-3"
-                    >
-                      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-information-lighter sm:h-9 sm:w-9">
-                          <RiUserLine className="h-4 w-4 text-information-base" />
-                        </div>
-                        <AddressDisplay address={operator} className="min-w-0 flex-1" />
-                      </div>
-                      {canManage && (
-                        <button
-                          onClick={async () => {
-                            const result = await removeOperator(operator);
-                            if (result.success) {
-                              // Schedule background refetch to sync with indexer
-                              scheduleBackgroundRefetch();
-                            }
-                          }}
-                          disabled={isLoading}
-                          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
-                          aria-label="Remove operator"
-                          type="button"
-                        >
-                          <RiDeleteBinLine className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {garden.operators.length > 3 && (
-                  <button
-                    type="button"
-                    onClick={() => openMembersModal("operator")}
-                    className="mt-3 w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
-                  >
-                    View All ({garden.operators.length})
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        </aside>
-
-        {/* Gardeners: Sidebar */}
-        <aside className="grid-area-gardeners rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-          <div className="border-b border-stroke-soft p-4 sm:p-6">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
-                Gardeners
-              </h3>
-              {canManage && (
-                <button
-                  onClick={() => openAddMemberModal("gardener")}
-                  className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
-                  aria-label="Add gardener"
-                  type="button"
-                >
-                  <RiUserAddLine className="mr-1 h-4 w-4" />
-                  Add
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="p-4 sm:p-6">
-            {garden.gardeners.length === 0 ? (
-              <p className="py-4 text-center text-sm text-text-soft">No gardeners assigned</p>
-            ) : (
-              <>
-                <div className="space-y-2 sm:space-y-3">
-                  {garden.gardeners.slice(0, 3).map((gardener: string, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between gap-2 rounded-md bg-bg-weak p-2.5 sm:p-3"
-                    >
-                      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-success-lighter sm:h-9 sm:w-9">
-                          <RiUserLine className="h-4 w-4 text-success-base" />
-                        </div>
-                        <AddressDisplay address={gardener} className="min-w-0 flex-1" />
-                      </div>
-                      {canManage && (
-                        <button
-                          onClick={async () => {
-                            const result = await removeGardener(gardener);
-                            if (result.success) {
-                              // Schedule background refetch to sync with indexer
-                              scheduleBackgroundRefetch();
-                            }
-                          }}
-                          disabled={isLoading}
-                          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20"
-                          aria-label="Remove gardener"
-                          type="button"
-                        >
-                          <RiDeleteBinLine className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {garden.gardeners.length > 3 && (
-                  <button
-                    type="button"
-                    onClick={() => openMembersModal("gardener")}
-                    className="mt-3 w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
-                  >
-                    View All ({garden.gardeners.length})
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        </aside>
-
-        {/* Assessments: Sidebar */}
-        <aside className="grid-area-assessments rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-          <div className="flex items-center justify-between gap-2 border-b border-stroke-soft p-4 sm:p-6">
-            <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
-              Recent Assessments
-            </h3>
-            <Link
-              to={`/gardens/${id}/assessments`}
-              className="inline-flex min-h-[44px] flex-shrink-0 items-center whitespace-nowrap rounded-md bg-bg-weak border border-stroke-sub px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft active:scale-95 sm:min-h-0 sm:py-1.5"
-              aria-label="View all assessments"
-            >
-              View All
-            </Link>
-          </div>
-          <div className="p-4 sm:p-6">
-            {fetchingAssessments ? (
-              <p className="py-4 text-center text-sm text-text-soft">Loading assessments...</p>
-            ) : assessmentsError ? (
-              <p className="py-4 text-center text-sm text-error-base">
-                Failed to load assessments:{" "}
-                {assessmentsError instanceof Error ? assessmentsError.message : "Unknown error"}
-              </p>
-            ) : assessments.length === 0 ? (
-              <p className="py-4 text-center text-sm text-text-soft">No assessments found</p>
-            ) : (
-              <div className="space-y-3">
-                {assessments.map((assessment) => (
-                  <div
-                    key={assessment.id}
-                    className="flex items-center justify-between rounded-md bg-bg-weak p-3"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center space-x-3">
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-feature-lighter">
-                        <RiFileList3Line className="h-4 w-4 text-feature-dark" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-text-strong">
-                          {assessment.title || assessment.assessmentType || "Assessment"}
-                        </p>
-                        <p className="text-xs text-text-soft">{formatDate(assessment.createdAt)}</p>
-                      </div>
-                    </div>
-                    <a
-                      href={`${EAS_EXPLORER_URL}/attestation/view/${assessment.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-sm text-primary-dark transition hover:text-primary-darker"
-                    >
-                      View <RiExternalLinkLine className="ml-1 h-4 w-4" />
-                    </a>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </aside>
+          <ErrorBoundary context="GardenDetail.YieldCommunity">
+            <GardenCommunityCard
+              community={community}
+              communityLoading={communityLoading}
+              pools={pools}
+              gardenId={gardenId}
+              canManage={canManage}
+              gardenName={garden.name}
+              convictionStrategyCount={convictionStrategyCount}
+              vaultsLoading={vaultsLoading}
+              hasVaults={gardenVaults.length > 0}
+              isCreatingPools={isCreatingPools}
+              onCreatePools={createPools}
+              onScheduleRefetch={scheduleBackgroundRefetch}
+            />
+            <GardenYieldCard allocations={allocations} allocationsLoading={allocationsLoading} />
+          </ErrorBoundary>
+        </Tabs.Content>
       </div>
 
       <AddMemberModal
         isOpen={addMemberModalOpen}
         onClose={() => setAddMemberModalOpen(false)}
         memberType={memberType}
-        onAdd={async (address: string) => {
-          const result =
-            memberType === "gardener" ? await addGardener(address) : await addOperator(address);
-
+        onAdd={async (address: Address) => {
+          const result = await roleActions[memberType].add(address);
           if (result.success) {
-            // Schedule background refetch to sync with indexer
             scheduleBackgroundRefetch();
           }
         }}
-        isLoading={isLoading}
+        isLoading={isOperationLoading}
       />
 
       <MembersModal
         isOpen={membersModalOpen}
         onClose={() => setMembersModalOpen(false)}
-        title={membersModalType === "operator" ? "All Operators" : "All Gardeners"}
-        members={membersModalType === "operator" ? garden.operators : garden.gardeners}
-        canManage={canManage}
+        title={formatMessage(
+          { id: "app.admin.roles.all" },
+          { role: getRoleLabel(activeRole, formatMessage).plural }
+        )}
+        members={roleMembers[activeRole]}
+        canManage={canManageRoles}
         onRemove={async (member: string) => {
-          const result =
-            membersModalType === "operator"
-              ? await removeOperator(member)
-              : await removeGardener(member);
-
+          const result = await roleActions[activeRole].remove(member);
           if (result.success) {
-            // Schedule background refetch to sync with indexer
             scheduleBackgroundRefetch();
+          } else {
+            toastService.error({
+              title: formatMessage(
+                { id: "app.admin.roles.removeFailed" },
+                { role: getRoleLabel(activeRole, formatMessage).singular }
+              ),
+              message:
+                result.error?.message ??
+                formatMessage(
+                  { id: "app.admin.roles.removeFailed" },
+                  { role: getRoleLabel(activeRole, formatMessage).singular }
+                ),
+            });
           }
         }}
-        isLoading={isLoading}
-        icon={<RiUserLine className="h-5 w-5" />}
-        colorScheme={membersModalType === "operator" ? "blue" : "green"}
+        isLoading={isOperationLoading}
+        icon={<ActiveRoleIcon className="h-5 w-5" />}
+        colorScheme={GARDEN_ROLE_COLORS[activeRole]}
       />
-    </div>
+
+      <ConfirmDialog
+        isOpen={memberToRemove !== null}
+        onClose={() => setMemberToRemove(null)}
+        title={formatMessage({ id: "app.admin.roles.confirmRemoveTitle" })}
+        description={formatMessage(
+          { id: "app.admin.roles.confirmRemoveDescription" },
+          {
+            address: formatAddress(memberToRemove?.address),
+            role: memberToRemove ? getRoleLabel(memberToRemove.role, formatMessage).singular : "",
+          }
+        )}
+        confirmLabel={formatMessage({ id: "app.admin.roles.confirmRemoveAction" })}
+        variant="danger"
+        isLoading={isOperationLoading}
+        onConfirm={async () => {
+          if (!memberToRemove) return;
+          const removeMemberRole = memberToRemove.role;
+          const removeMemberAddress = memberToRemove.address;
+          const roleLabel = getRoleLabel(removeMemberRole, formatMessage);
+          setMemberToRemove(null);
+
+          const result = await roleActions[removeMemberRole].remove(removeMemberAddress);
+          if (result.success) {
+            scheduleBackgroundRefetch();
+          } else {
+            toastService.error({
+              title: formatMessage(
+                { id: "app.admin.roles.removeFailed" },
+                { role: roleLabel.singular }
+              ),
+              message:
+                result.error?.message ??
+                formatMessage({ id: "app.admin.roles.removeFailed" }, { role: roleLabel.singular }),
+            });
+          }
+        }}
+      />
+    </Tabs.Root>
   );
 }

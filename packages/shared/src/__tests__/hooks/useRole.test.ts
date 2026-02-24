@@ -2,13 +2,14 @@
  * @vitest-environment jsdom
  */
 
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock auth provider
 const mockUseAuthContext = vi.fn();
 const mockUseAccount = vi.fn();
 const mockUseDeploymentRegistry = vi.fn();
+const TEST_CHAIN_ID = 11155111;
 
 vi.mock("../../providers/Auth", () => ({
   useAuthContext: () => mockUseAuthContext(),
@@ -20,6 +21,10 @@ vi.mock("wagmi", () => ({
 
 vi.mock("../../hooks/blockchain/useDeploymentRegistry", () => ({
   useDeploymentRegistry: () => mockUseDeploymentRegistry(),
+}));
+
+vi.mock("../../hooks/blockchain/useChainConfig", () => ({
+  useCurrentChain: () => TEST_CHAIN_ID,
 }));
 
 // Mock React Query
@@ -51,7 +56,13 @@ vi.mock("../../config/react-query", () => ({
 vi.mock("../query-keys", () => ({
   queryKeys: {
     role: {
-      operatorGardens: (address?: string) => ["greengoods", "role", "operatorGardens", address],
+      operatorGardens: (address?: string, chainId?: number) => [
+        "greengoods",
+        "role",
+        "operatorGardens",
+        address,
+        chainId,
+      ],
     },
   },
 }));

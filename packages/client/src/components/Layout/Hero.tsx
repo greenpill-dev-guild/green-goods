@@ -1,12 +1,11 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { useCallback, useState, type FC } from "react";
+import { useCallback, useEffect, useState, type FC } from "react";
 import { useNavigate } from "react-router-dom";
 import { DeviceFrameset } from "react-device-frameset";
 
 import "react-device-frameset/styles/marvel-devices.min.css";
 
-import { useInstallGuidance, copyToClipboard } from "@green-goods/shared";
-import { useApp } from "@green-goods/shared/providers/App";
+import { copyToClipboard, useApp, useInstallGuidance } from "@green-goods/shared";
 import {
   RiAddBoxLine,
   RiAlertLine,
@@ -43,20 +42,38 @@ export const Hero: FC<HeroProps> = () => {
     isMobile
   );
 
+  // Auto-reset copy states after 2 seconds (with proper cleanup)
+  useEffect(() => {
+    if (!copySuccess) return;
+    const timer = setTimeout(() => {
+      setCopySuccess(false);
+      setCopyError(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [copySuccess]);
+
+  useEffect(() => {
+    if (!copyError) return;
+    const timer = setTimeout(() => {
+      setCopySuccess(false);
+      setCopyError(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [copyError]);
+
   const handleCopyUrl = useCallback(async () => {
     try {
       const success = await copyToClipboard(window.location.href);
       if (success) {
-        setCopySuccess(true);
         setCopyError(false);
-        setTimeout(() => setCopySuccess(false), 2000);
+        setCopySuccess(true);
       } else {
+        setCopySuccess(false);
         setCopyError(true);
-        setTimeout(() => setCopyError(false), 2000);
       }
     } catch {
+      setCopySuccess(false);
       setCopyError(true);
-      setTimeout(() => setCopyError(false), 2000);
     }
   }, []);
 

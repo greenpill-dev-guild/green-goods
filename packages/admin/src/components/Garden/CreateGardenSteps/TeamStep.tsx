@@ -1,193 +1,108 @@
-import { useEnsAddress } from "@green-goods/shared/hooks";
-import { cn, formatAddress, resolveEnsAddress } from "@green-goods/shared/utils";
+import { formatAddress, useAddressInput, useCreateGardenStore } from "@green-goods/shared";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
-import { isAddress } from "viem";
+import { useIntl } from "react-intl";
+import { Button } from "@/components/ui/Button";
 
-interface TeamStepProps {
-  form: {
-    gardeners: string[];
-    operators: string[];
-  };
-  addGardener: (address: string) => { success: boolean; error?: string };
-  removeGardener: (index: number) => void;
-  addOperator: (address: string) => { success: boolean; error?: string };
-  removeOperator: (index: number) => void;
-  showValidation: boolean;
-}
+export function TeamStep() {
+  const form = useCreateGardenStore((s) => s.form);
+  const addGardener = useCreateGardenStore((s) => s.addGardener);
+  const removeGardener = useCreateGardenStore((s) => s.removeGardener);
+  const addOperator = useCreateGardenStore((s) => s.addOperator);
+  const removeOperator = useCreateGardenStore((s) => s.removeOperator);
+  const { formatMessage } = useIntl();
 
-export function TeamStep({
-  form,
-  addGardener,
-  removeGardener,
-  addOperator,
-  removeOperator,
-  showValidation,
-}: TeamStepProps) {
-  const [gardenerInput, setGardenerInput] = useState("");
-  const [operatorInput, setOperatorInput] = useState("");
-  const [gardenerError, setGardenerError] = useState<string | null>(null);
-  const [operatorError, setOperatorError] = useState<string | null>(null);
-
-  // ENS resolution for gardener input
-  const trimmedGardenerInput = gardenerInput.trim();
-  const isGardenerHexAddress = useMemo(
-    () => (trimmedGardenerInput ? isAddress(trimmedGardenerInput) : false),
-    [trimmedGardenerInput]
-  );
-  const shouldResolveGardenerEns = trimmedGardenerInput.length > 2 && !isGardenerHexAddress;
-  const { data: resolvedGardenerAddress, isFetching: resolvingGardenerEns } = useEnsAddress(
-    shouldResolveGardenerEns ? trimmedGardenerInput : null,
-    {
-      enabled: shouldResolveGardenerEns,
-    }
-  );
-
-  // ENS resolution for operator input
-  const trimmedOperatorInput = operatorInput.trim();
-  const isOperatorHexAddress = useMemo(
-    () => (trimmedOperatorInput ? isAddress(trimmedOperatorInput) : false),
-    [trimmedOperatorInput]
-  );
-  const shouldResolveOperatorEns = trimmedOperatorInput.length > 2 && !isOperatorHexAddress;
-  const { data: resolvedOperatorAddress, isFetching: resolvingOperatorEns } = useEnsAddress(
-    shouldResolveOperatorEns ? trimmedOperatorInput : null,
-    {
-      enabled: shouldResolveOperatorEns,
-    }
-  );
-
-  const handleAddGardener = async () => {
-    if (!trimmedGardenerInput) {
-      setGardenerError("Enter a wallet address or ENS name");
-      return;
-    }
-
-    setGardenerError(null);
-    let addressToAdd = trimmedGardenerInput;
-
-    // Resolve ENS if needed
-    if (!isAddress(addressToAdd)) {
-      try {
-        const lookup = resolvedGardenerAddress ?? (await resolveEnsAddress(addressToAdd));
-        if (!lookup || !isAddress(lookup)) {
-          setGardenerError("Could not resolve ENS name");
-          return;
-        }
-        addressToAdd = lookup;
-      } catch {
-        setGardenerError("Could not resolve ENS name");
-        return;
-      }
-    }
-
-    const result = addGardener(addressToAdd);
-    if (!result.success) {
-      setGardenerError(result.error ?? "Invalid gardener address");
-      return;
-    }
-    setGardenerInput("");
-    setGardenerError(null);
-  };
-
-  const handleAddOperator = async () => {
-    if (!trimmedOperatorInput) {
-      setOperatorError("Enter a wallet address or ENS name");
-      return;
-    }
-
-    setOperatorError(null);
-    let addressToAdd = trimmedOperatorInput;
-
-    // Resolve ENS if needed
-    if (!isAddress(addressToAdd)) {
-      try {
-        const lookup = resolvedOperatorAddress ?? (await resolveEnsAddress(addressToAdd));
-        if (!lookup || !isAddress(lookup)) {
-          setOperatorError("Could not resolve ENS name");
-          return;
-        }
-        addressToAdd = lookup;
-      } catch {
-        setOperatorError("Could not resolve ENS name");
-        return;
-      }
-    }
-
-    const result = addOperator(addressToAdd);
-    if (!result.success) {
-      setOperatorError(result.error ?? "Invalid operator address");
-      return;
-    }
-    setOperatorInput("");
-    setOperatorError(null);
-  };
-
-  const teamError = useMemo(
-    () => (form.gardeners.length > 0 ? null : "Add at least one gardener to steward the garden"),
-    [form.gardeners]
-  );
-
-  const showTeamErrors = showValidation;
+  // Use shared hook for both gardener and operator inputs
+  const gardenerInput = useAddressInput(addGardener, formatMessage);
+  const operatorInput = useAddressInput(addOperator, formatMessage);
 
   return (
-    <div className="space-y-2.5 sm:space-y-3">
+    <div className="space-y-5">
+      <div className="rounded-lg border border-primary-light bg-primary-lighter/40 p-3.5 text-xs text-text-sub">
+        <p className="font-semibold text-text-strong">
+          {formatMessage({
+            id: "app.admin.garden.create.teamAdvisory.title",
+            defaultMessage: "Planned team members",
+          })}
+        </p>
+        <p className="mt-1">
+          {formatMessage({
+            id: "app.admin.garden.create.teamAdvisory.message",
+            defaultMessage:
+              "These addresses are planning notes. Add them on-chain from Garden Members after deployment.",
+          })}
+        </p>
+      </div>
       <div>
         <label
-          className="mb-2 block text-sm font-medium text-text-sub"
+          className="mb-2 block text-sm font-medium text-text-strong"
           htmlFor="create-garden-gardener-address"
         >
-          Gardeners *
+          {formatMessage({ id: "app.roles.gardener.plural", defaultMessage: "Gardeners" })}
         </label>
-        <div className="rounded-lg bg-bg-weak p-2">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <input
-              id="create-garden-gardener-address"
-              value={gardenerInput}
-              onChange={(event) => {
-                setGardenerInput(event.target.value);
-                setGardenerError(null);
-              }}
-              placeholder="0x... or vitalik.eth"
-              className="flex-1 rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm font-mono text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80"
-            />
-            <button
-              type="button"
-              onClick={handleAddGardener}
-              disabled={shouldResolveGardenerEns && resolvingGardenerEns}
-              className={cn(
-                "flex items-center justify-center gap-1 rounded-md border border-stroke-soft px-3 py-2 text-sm font-medium text-text-sub transition-all duration-200 hover:bg-bg-soft",
-                shouldResolveGardenerEns && resolvingGardenerEns && "cursor-not-allowed opacity-50"
-              )}
-            >
-              <RiAddLine className="h-4 w-4" /> Add
-            </button>
-          </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            id="create-garden-gardener-address"
+            value={gardenerInput.input}
+            onChange={(event) => gardenerInput.setInput(event.target.value)}
+            placeholder={formatMessage({
+              id: "admin.team.addressPlaceholder",
+              defaultMessage: "0x... or vitalik.eth",
+            })}
+            aria-invalid={!!gardenerInput.error}
+            aria-describedby="gardener-error"
+            className="flex-1 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={gardenerInput.handleAdd}
+            disabled={gardenerInput.shouldResolveEns && gardenerInput.resolvingEns}
+          >
+            <RiAddLine className="h-4 w-4" />{" "}
+            {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
+          </Button>
         </div>
-        {shouldResolveGardenerEns && (
+        {gardenerInput.shouldResolveEns && (
           <p className="mt-2 text-xs text-text-soft">
-            {resolvingGardenerEns
-              ? "Resolving ENS name..."
-              : resolvedGardenerAddress
-                ? `Resolves to ${formatAddress(resolvedGardenerAddress)}`
-                : "Enter a valid ENS name or 0x address."}
+            {gardenerInput.resolvingEns
+              ? formatMessage({
+                  id: "app.admin.garden.create.resolvingEns",
+                  defaultMessage: "Resolving ENS name...",
+                })
+              : gardenerInput.resolvedAddress
+                ? formatMessage(
+                    {
+                      id: "app.admin.garden.create.ensResolved",
+                      defaultMessage: "Resolves to {address}",
+                    },
+                    { address: formatAddress(gardenerInput.resolvedAddress) }
+                  )
+                : formatMessage({
+                    id: "app.admin.garden.create.enterValidAddress",
+                    defaultMessage: "Enter a valid ENS name or 0x address.",
+                  })}
           </p>
         )}
         {/* Always render to reserve space and prevent layout shift */}
-        <p className="mt-1 block min-h-[1.25rem] text-xs text-red-600">
-          {gardenerError || (showTeamErrors && teamError) || "\u00A0"}
+        <p
+          id="gardener-error"
+          role="alert"
+          className="mt-1 block min-h-[1.25rem] text-xs text-error-dark"
+        >
+          {gardenerInput.error || "\u00A0"}
         </p>
         <ul className="mt-1.5 space-y-1.5">
-          {form.gardeners.map((gardener, index) => (
+          {form.gardeners.map((gardener) => (
             <li
-              key={`${gardener}-${index}`}
-              className="flex items-center justify-between rounded-md border border-gray-100 bg-bg-weak px-3 py-2 text-xs font-mono text-text-sub/60"
+              key={gardener}
+              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
             >
               <span>{gardener}</span>
               <button
                 type="button"
-                onClick={() => removeGardener(index)}
-                className="rounded-md p-1 text-text-soft transition hover:bg-bg-white hover:text-red-600"
+                onClick={() => removeGardener(form.gardeners.indexOf(gardener))}
+                className="min-h-11 min-w-11 flex items-center justify-center rounded-md text-text-soft transition hover:bg-bg-white hover:text-error-dark"
+                aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
               >
                 <RiDeleteBinLine className="h-4 w-4" />
               </button>
@@ -198,60 +113,75 @@ export function TeamStep({
 
       <div>
         <label
-          className="mb-2 block text-sm font-medium text-text-sub"
+          className="mb-2 block text-sm font-medium text-text-strong"
           htmlFor="create-garden-operator-address"
         >
-          Garden operators
+          {formatMessage({ id: "app.roles.operator.plural", defaultMessage: "Garden operators" })}
         </label>
-        <div className="rounded-lg bg-bg-weak p-2">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <input
-              id="create-garden-operator-address"
-              value={operatorInput}
-              onChange={(event) => {
-                setOperatorInput(event.target.value);
-                setOperatorError(null);
-              }}
-              placeholder="0x... or vitalik.eth"
-              className="flex-1 rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm font-mono text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80"
-            />
-            <button
-              type="button"
-              onClick={handleAddOperator}
-              disabled={shouldResolveOperatorEns && resolvingOperatorEns}
-              className={cn(
-                "flex items-center justify-center gap-1 rounded-md border border-stroke-soft px-3 py-2 text-sm font-medium text-text-sub transition-all duration-200 hover:bg-bg-soft",
-                shouldResolveOperatorEns && resolvingOperatorEns && "cursor-not-allowed opacity-50"
-              )}
-            >
-              <RiAddLine className="h-4 w-4" /> Add
-            </button>
-          </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            id="create-garden-operator-address"
+            value={operatorInput.input}
+            onChange={(event) => operatorInput.setInput(event.target.value)}
+            placeholder={formatMessage({
+              id: "admin.team.addressPlaceholder",
+              defaultMessage: "0x... or vitalik.eth",
+            })}
+            aria-invalid={!!operatorInput.error}
+            aria-describedby="operator-error"
+            className="flex-1 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={operatorInput.handleAdd}
+            disabled={operatorInput.shouldResolveEns && operatorInput.resolvingEns}
+          >
+            <RiAddLine className="h-4 w-4" />{" "}
+            {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
+          </Button>
         </div>
-        {shouldResolveOperatorEns && (
+        {operatorInput.shouldResolveEns && (
           <p className="mt-2 text-xs text-text-soft">
-            {resolvingOperatorEns
-              ? "Resolving ENS name..."
-              : resolvedOperatorAddress
-                ? `Resolves to ${formatAddress(resolvedOperatorAddress)}`
-                : "Enter a valid ENS name or 0x address."}
+            {operatorInput.resolvingEns
+              ? formatMessage({
+                  id: "app.admin.garden.create.resolvingEns",
+                  defaultMessage: "Resolving ENS name...",
+                })
+              : operatorInput.resolvedAddress
+                ? formatMessage(
+                    {
+                      id: "app.admin.garden.create.ensResolved",
+                      defaultMessage: "Resolves to {address}",
+                    },
+                    { address: formatAddress(operatorInput.resolvedAddress) }
+                  )
+                : formatMessage({
+                    id: "app.admin.garden.create.enterValidAddress",
+                    defaultMessage: "Enter a valid ENS name or 0x address.",
+                  })}
           </p>
         )}
         {/* Always render to reserve space and prevent layout shift */}
-        <p className="mt-1 block min-h-[1.25rem] text-xs text-red-600">
-          {operatorError || "\u00A0"}
+        <p
+          id="operator-error"
+          role="alert"
+          className="mt-1 block min-h-[1.25rem] text-xs text-error-dark"
+        >
+          {operatorInput.error || "\u00A0"}
         </p>
         <ul className="mt-1.5 space-y-1.5">
-          {form.operators.map((operator, index) => (
+          {form.operators.map((operator) => (
             <li
-              key={`${operator}-${index}`}
-              className="flex items-center justify-between rounded-md border border-gray-100 bg-bg-weak px-3 py-2 text-xs font-mono text-text-sub/60"
+              key={operator}
+              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
             >
               <span>{operator}</span>
               <button
                 type="button"
-                onClick={() => removeOperator(index)}
-                className="rounded-md p-1 text-text-soft transition hover:bg-bg-white hover:text-red-600"
+                onClick={() => removeOperator(form.operators.indexOf(operator))}
+                className="min-h-11 min-w-11 flex items-center justify-center rounded-md text-text-soft transition hover:bg-bg-white hover:text-error-dark"
+                aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
               >
                 <RiDeleteBinLine className="h-4 w-4" />
               </button>

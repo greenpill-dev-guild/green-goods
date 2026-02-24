@@ -42,7 +42,7 @@ try {
 ### Check Specific Errors
 
 ```typescript
-import { isNotGardenerError, isAlreadyGardenerError } from "@green-goods/shared/utils/errors";
+import { isNotGardenMemberError, isAlreadyGardenerError } from "@green-goods/shared/utils/errors";
 
 try {
   await joinGarden();
@@ -52,8 +52,8 @@ try {
     console.log("Already a gardener, continuing...");
     return;
   }
-  
-  if (isNotGardenerError(error)) {
+
+  if (isNotGardenMemberError(error)) {
     // Show garden join prompt
     showJoinPrompt();
   }

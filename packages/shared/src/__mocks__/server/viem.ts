@@ -11,8 +11,8 @@ export const mockWalletClient = {
     address: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
   },
   chain: {
-    id: 84532,
-    name: "Base Sepolia",
+    id: 11155111,
+    name: "Sepolia",
   },
 };
 

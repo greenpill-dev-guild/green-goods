@@ -6,9 +6,11 @@ import {
   RiHammerFill,
   RiLogoutBoxLine,
   RiPlantLine,
+  RiSafe2Line,
   RiSettings3Line,
   RiUploadLine,
 } from "@remixicon/react";
+import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 
 const navigation = [
@@ -20,11 +22,13 @@ const navigation = [
   },
   { name: "Gardens", href: "/gardens", icon: RiPlantLine, roles: ["deployer", "operator", "user"] },
   { name: "Actions", href: "/actions", icon: RiHammerFill, roles: ["deployer", "operator"] },
+  { name: "Endowments", href: "/endowments", icon: RiSafe2Line, roles: ["deployer", "operator"] },
   { name: "Contracts", href: "/contracts", icon: RiSettings3Line, roles: ["deployer"] },
   { name: "Deployment", href: "/deployment", icon: RiUploadLine, roles: ["deployer"] },
 ];
 
 export function Sidebar() {
+  const intl = useIntl();
   const location = useLocation();
   const { signOut } = useAuth();
   const { role } = useRole();
@@ -44,9 +48,16 @@ export function Sidebar() {
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-stroke-soft shadow-sm">
-          <h1 className="text-lg font-semibold text-text-strong">Green Goods</h1>
+          <div className="flex items-center gap-2">
+            <img src="/green-goods-logo.png" alt="" className="h-7 w-auto" />
+            <h1 className="text-lg font-semibold text-text-strong">Green Goods</h1>
+          </div>
           <button
             onClick={() => setSidebarOpen(false)}
+            aria-label={intl.formatMessage({
+              id: "admin.sidebar.closeMenu",
+              defaultMessage: "Close navigation menu",
+            })}
             className="lg:hidden p-2 rounded-md text-text-soft hover:text-text-sub"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

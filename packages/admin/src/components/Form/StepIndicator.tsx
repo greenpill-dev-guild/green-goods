@@ -1,25 +1,29 @@
-import { cn } from "@green-goods/shared/utils";
+import { cn } from "@green-goods/shared";
 import { RiCheckboxCircleLine } from "@remixicon/react";
+import { useIntl } from "react-intl";
 
 export interface Step {
   id: string;
   title: string;
-  description: string;
+  description?: string;
 }
 
 interface StepIndicatorProps {
   steps: Step[];
   currentStep: number;
+  /** Called when user clicks on a completed step to navigate back */
+  onStepClick?: (stepIndex: number) => void;
 }
 
-export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
+export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicatorProps) {
+  const { formatMessage } = useIntl();
   return (
     <div
       className="sticky top-0 z-30 border-b border-stroke-soft bg-bg-white shadow-sm"
       data-testid="step-indicator"
     >
       {/* Step progress indicators */}
-      <div className="relative bg-bg-weak">
+      <div className="overflow-hidden bg-bg-weak">
         <ol className="flex">
           {steps.map((step, index) => {
             const completed = index < currentStep;
@@ -29,59 +33,72 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
             return (
               <li
                 key={step.id}
+                aria-current={active ? "step" : undefined}
                 className={cn(
-                  "relative flex flex-1 items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4 sm:py-4",
-                  active && "bg-bg-white"
+                  "flex min-w-0 flex-1 items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4 sm:py-4",
+                  active && "bg-bg-white",
+                  !isLast && "border-r border-stroke-soft"
                 )}
               >
                 {/* Progress indicator dot/check */}
-                <span
-                  className={cn(
-                    "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border text-xs font-medium sm:h-7 sm:w-7",
-                    completed && "border-success-base bg-success-lighter text-success-dark",
-                    active && !completed && "border-success-base bg-bg-white text-success-base",
-                    !completed && !active && "border-stroke-sub bg-bg-white text-text-disabled"
-                  )}
-                >
-                  {completed ? (
-                    <RiCheckboxCircleLine className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  ) : (
-                    index + 1
-                  )}
-                </span>
+                {completed && onStepClick ? (
+                  <button
+                    type="button"
+                    onClick={() => onStepClick(index)}
+                    className={cn(
+                      "group flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center",
+                      "cursor-pointer transition focus:outline-none",
+                      "focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2",
+                      "rounded-full"
+                    )}
+                    aria-label={formatMessage(
+                      { id: "app.hypercerts.wizard.goToStep" },
+                      { step: step.title }
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-6 w-6 items-center justify-center rounded-full border text-xs font-medium sm:h-7 sm:w-7",
+                        "border-success-base bg-success-lighter text-success-dark",
+                        "transition group-hover:ring-2 group-hover:ring-primary-light"
+                      )}
+                    >
+                      <RiCheckboxCircleLine className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    </span>
+                  </button>
+                ) : (
+                  <span
+                    className={cn(
+                      "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border text-xs font-medium sm:h-7 sm:w-7",
+                      completed && "border-success-base bg-success-lighter text-success-dark",
+                      active && !completed && "border-success-base bg-bg-white text-success-base",
+                      !completed && !active && "border-stroke-sub bg-bg-white text-text-disabled"
+                    )}
+                  >
+                    {completed ? (
+                      <RiCheckboxCircleLine className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    ) : (
+                      index + 1
+                    )}
+                  </span>
+                )}
 
-                {/* Step title - mobile shows only active step title */}
-                <div className="min-w-0 flex-1">
+                {/* Step title + description */}
+                <div className={cn("min-w-0 flex-1", !active && "hidden sm:block")}>
                   <p
                     className={cn(
                       "truncate text-xs font-medium sm:text-sm",
-                      active ? "text-text-strong" : "text-text-soft",
-                      // On mobile, hide non-active step titles
-                      !active && "hidden sm:block"
+                      active ? "text-text-strong" : "text-text-soft"
                     )}
                   >
                     {step.title}
                   </p>
-                  <p
-                    className={cn(
-                      "hidden truncate text-xs text-text-soft sm:block",
-                      !active && "sm:hidden md:block"
-                    )}
-                  >
-                    {step.description}
-                  </p>
+                  {step.description && (
+                    <p className="hidden truncate text-xs text-text-soft sm:block">
+                      {step.description}
+                    </p>
+                  )}
                 </div>
-
-                {/* Connector line between steps */}
-                {!isLast && (
-                  <div
-                    className={cn(
-                      "absolute left-1/2 top-1/2 h-px w-full -translate-y-1/2",
-                      completed ? "bg-success-base" : "bg-bg-soft"
-                    )}
-                    style={{ zIndex: 0 }}
-                  />
-                )}
               </li>
             );
           })}

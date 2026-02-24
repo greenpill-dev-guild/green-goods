@@ -1,32 +1,50 @@
-import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { defineConfig } from "vitest/config";
+import path from "path";
 
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
-    setupFiles: ['./test/setup.ts'],
+    environment: "node",
+    setupFiles: ["./src/__tests__/setup.ts"],
+    include: ["src/__tests__/**/*.test.ts"],
+    exclude: [
+      "node_modules/",
+      "**/*.test.skip.ts",
+    ],
+    // Set test environment variables at config level
     env: {
-      ENCRYPTION_SECRET: 'test-secret-key-for-encryption-32chars!',
-      TELEGRAM_BOT_TOKEN: 'test-token',
-      VITE_RPC_URL_84532: 'http://localhost:8545'
+      NODE_ENV: "test",
+      ENCRYPTION_SECRET: "test-secret-key-for-encryption-32chars!",
+      TELEGRAM_BOT_TOKEN: "123456:ABC-TEST-TOKEN",
+      VITE_RPC_URL_11155111: "http://localhost:8545",
     },
+    // Run tests sequentially to avoid env variable issues
+    fileParallelism: false,
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      include: ["src/**/*.ts"],
       exclude: [
-        'node_modules/',
-        'test/',
-        '**/*.d.ts',
-        '**/*.test.ts',
-        '**/index.ts',
+        "node_modules/",
+        "src/**/*.d.ts",
+        "src/__tests__/**",
+        "src/index.ts",
+        "src/types.ts",
       ],
+      thresholds: {
+        branches: 70,
+        functions: 70,
+        lines: 70,
+        statements: 70,
+      },
     },
+    // Increase timeout for database tests
+    testTimeout: 10000,
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@green-goods/shared': path.resolve(__dirname, '../shared/src'),
+      "@": path.resolve(__dirname, "./src"),
+      "@green-goods/shared": path.resolve(__dirname, "../shared/src"),
     },
   },
 });

@@ -8,8 +8,9 @@
  * @module hooks/work/useDraftAutoSave
  */
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
+import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { useDrafts } from "./useDrafts";
 
@@ -17,8 +18,6 @@ interface DraftFormData {
   gardenAddress: string | null;
   actionUID: number | null;
   feedback: string;
-  plantSelection: string[];
-  plantCount: number | null | undefined;
   timeSpentMinutes?: number;
 }
 
@@ -34,12 +33,8 @@ function hasMeaningfulProgress(formData: DraftFormData, imageCount: number): boo
   // Images are the strongest indicator of progress
   if (imageCount > 0) return true;
 
-  // Having form input (feedback, plant selection, plant count, or time spent) indicates progress
-  const hasFormInput =
-    formData.feedback.trim().length > 0 ||
-    formData.plantSelection.length > 0 ||
-    (formData.plantCount ?? 0) > 0 ||
-    (formData.timeSpentMinutes ?? 0) > 0;
+  // Having form input (feedback or time spent) indicates progress
+  const hasFormInput = formData.feedback.trim().length > 0 || (formData.timeSpentMinutes ?? 0) > 0;
 
   return hasFormInput;
 }
@@ -54,7 +49,7 @@ function hasMeaningfulProgress(formData: DraftFormData, imageCount: number): boo
  * @example
  * ```tsx
  * const { saveOnExit, hasMeaningfulProgress } = useDraftAutoSave(
- *   { gardenAddress, actionUID, feedback, plantSelection, plantCount },
+ *   { gardenAddress, actionUID, feedback },
  *   images
  * );
  *
@@ -79,6 +74,18 @@ export function useDraftAutoSave(
   // Track if a save is in progress to avoid overlapping saves
   const isSavingRef = useRef(false);
 
+  // Use ref for formData and images so the callback always reads the latest
+  // values without being recreated on every render (stale closure prevention)
+  const formDataRef = useRef(formData);
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
+  const imagesRef = useRef(safeImages);
+  useEffect(() => {
+    imagesRef.current = safeImages;
+  }, [safeImages]);
+
   /**
    * Save draft on exit - creates a new draft or updates existing one.
    * Only saves if there's meaningful progress (images or form data).
@@ -88,8 +95,11 @@ export function useDraftAutoSave(
   const saveOnExit = useCallback(async (): Promise<string | null> => {
     if (!enabled || isSavingRef.current) return null;
 
+    const currentFormData = formDataRef.current;
+    const currentImages = imagesRef.current;
+
     // Only save if there's meaningful progress
-    if (!hasMeaningfulProgress(formData, safeImages.length)) {
+    if (!hasMeaningfulProgress(currentFormData, currentImages.length)) {
       return null;
     }
 
@@ -101,12 +111,10 @@ export function useDraftAutoSave(
       // Create a new draft if we don't have one
       if (!draftId) {
         draftId = await createDraft({
-          gardenAddress: formData.gardenAddress,
-          actionUID: formData.actionUID,
-          feedback: formData.feedback,
-          plantSelection: formData.plantSelection,
-          plantCount: formData.plantCount ?? undefined,
-          timeSpentMinutes: formData.timeSpentMinutes,
+          gardenAddress: currentFormData.gardenAddress,
+          actionUID: currentFormData.actionUID,
+          feedback: currentFormData.feedback,
+          timeSpentMinutes: currentFormData.timeSpentMinutes,
           currentStep: "intro",
           firstIncompleteStep: "intro",
         });
@@ -115,42 +123,40 @@ export function useDraftAutoSave(
         await updateDraft({
           draftId,
           data: {
-            gardenAddress: formData.gardenAddress,
-            actionUID: formData.actionUID,
-            feedback: formData.feedback,
-            plantSelection: formData.plantSelection,
-            plantCount: formData.plantCount ?? undefined,
-            timeSpentMinutes: formData.timeSpentMinutes,
+            gardenAddress: currentFormData.gardenAddress,
+            actionUID: currentFormData.actionUID,
+            feedback: currentFormData.feedback,
+            timeSpentMinutes: currentFormData.timeSpentMinutes,
           },
         });
       }
 
       // Sync images if there are any
-      if (draftId && safeImages.length > 0) {
-        await setDraftImages({ draftId, files: safeImages });
+      if (draftId && currentImages.length > 0) {
+        await setDraftImages({ draftId, files: currentImages });
       }
 
       return draftId;
     } catch (error) {
-      console.error("[useDraftAutoSave] Failed to save draft on exit:", error);
+      logger.error("Failed to save draft on exit", { source: "useDraftAutoSave", error });
       trackStorageError(error, {
         source: "useDraftAutoSave.saveOnExit",
         userAction: "saving draft on navigation exit",
         recoverable: true,
         metadata: {
           draft_id: activeDraftId,
-          has_images: safeImages.length > 0,
-          image_count: safeImages.length,
-          garden_address: formData.gardenAddress,
-          action_uid: formData.actionUID,
-          has_feedback: formData.feedback.length > 0,
+          has_images: currentImages.length > 0,
+          image_count: currentImages.length,
+          garden_address: currentFormData.gardenAddress,
+          action_uid: currentFormData.actionUID,
+          has_feedback: currentFormData.feedback.length > 0,
         },
       });
       return null;
     } finally {
       isSavingRef.current = false;
     }
-  }, [enabled, activeDraftId, createDraft, updateDraft, setDraftImages, formData, safeImages]);
+  }, [enabled, activeDraftId, createDraft, updateDraft, setDraftImages]);
 
   return {
     /** Save draft when exiting the flow (only if there's meaningful progress) */

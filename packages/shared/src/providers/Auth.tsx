@@ -40,6 +40,7 @@ import { useAccount, useConfig } from "wagmi";
 
 import { appKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
+import { logger } from "../modules/app/logger";
 import {
   type AuthMode,
   clearAuthMode,
@@ -90,7 +91,6 @@ export interface AuthContextType {
   switchToPasskey: (userName?: string) => void;
 
   // Actions - Additional
-  claimENS: (name: string) => void;
   retry: () => void;
   dismissError: () => void;
 
@@ -184,7 +184,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (isConnected && currentAddress && !isConnecting) {
       if (!prev.isConnected || prev.address !== currentAddress) {
         // Report wallet connection to machine - it decides what to do
-        console.debug("[AuthProvider] Reporting EXTERNAL_WALLET_CONNECTED:", currentAddress);
+        logger.debug("[AuthProvider] Reporting EXTERNAL_WALLET_CONNECTED", {
+          address: currentAddress,
+        });
         actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: currentAddress });
 
         // If machine is unauthenticated and wallet just connected, trigger wallet login
@@ -193,7 +195,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (currentState?.matches("unauthenticated")) {
           if (!walletRestoreAttemptedRef.current) {
             walletRestoreAttemptedRef.current = true;
-            console.debug(
+            logger.debug(
               "[AuthProvider] Wallet connected in unauthenticated state, triggering LOGIN_WALLET"
             );
             actor.send({ type: "LOGIN_WALLET" });
@@ -205,7 +207,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Detect wallet disconnection (was connected, now isn't)
     if (!isConnected && !isConnecting && prev.isConnected) {
-      console.debug("[AuthProvider] Reporting EXTERNAL_WALLET_DISCONNECTED");
+      logger.debug("[AuthProvider] Reporting EXTERNAL_WALLET_DISCONNECTED");
       actor.send({ type: "EXTERNAL_WALLET_DISCONNECTED" });
     }
 
@@ -244,14 +246,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Guard: only attempt wallet restore once per session (shared with WALLET EVENT SYNC)
       if (!walletRestoreAttemptedRef.current) {
         walletRestoreAttemptedRef.current = true;
-        console.debug(
-          "[AuthProvider] Auto-restoring wallet session after init:",
-          wagmiWalletAddress
-        );
+        logger.debug("[AuthProvider] Auto-restoring wallet session after init", {
+          address: wagmiWalletAddress,
+        });
         actor.send({ type: "LOGIN_WALLET" });
       }
     }
   }, [actor, snapshot, isConnected, wagmiWalletAddress]);
+
+  // ============================================================
+  // WALLET_CONNECTING SAFETY NET
+  // ============================================================
+  // If the machine enters wallet_connecting but the wallet is not connected
+  // (e.g. user closed the modal, or wallet disconnected), recover gracefully.
+  useEffect(() => {
+    if (!actor || !snapshot) return;
+    if (!snapshot.matches("wallet_connecting")) return;
+
+    // Wallet isn't connected and isn't in the process of connecting — stuck
+    if (!isConnected && !isConnecting) {
+      logger.debug("[AuthProvider] wallet_connecting with no wallet, sending MODAL_CLOSED");
+      actor.send({ type: "MODAL_CLOSED" });
+    }
+  }, [actor, snapshot, isConnected, isConnecting]);
 
   // ============================================================
   // HELPER: Disconnect wallet
@@ -362,14 +379,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     queryClient.clear();
   }, [actor, disconnectWallet]);
 
-  const claimENS = useCallback(
-    (name: string) => {
-      if (!actor) return;
-      actor.send({ type: "CLAIM_ENS", name });
-    },
-    [actor]
-  );
-
   const retry = useCallback(() => {
     if (!actor) return;
     actor.send({ type: "RETRY" });
@@ -416,10 +425,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Determine auth mode from state
     let authMode: AuthMode = null;
-    if (
-      snapshot.matches({ authenticated: "passkey" }) ||
-      snapshot.matches({ authenticated: "claiming_ens" })
-    ) {
+    if (snapshot.matches({ authenticated: "passkey" })) {
       authMode = "passkey";
     } else if (snapshot.matches({ authenticated: "wallet" })) {
       authMode = "wallet";
@@ -510,7 +516,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       switchToPasskey,
 
       // Actions - Additional
-      claimENS,
       retry,
       dismissError,
 
@@ -529,7 +534,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       signOut,
       switchToWallet,
       switchToPasskey,
-      claimENS,
       retry,
       dismissError,
       clearPasskey,

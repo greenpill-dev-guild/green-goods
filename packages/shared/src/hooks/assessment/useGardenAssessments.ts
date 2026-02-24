@@ -2,12 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 
 import { getGardenAssessments } from "../../modules/data/eas";
 import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
+import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 
-export function useGardenAssessments(gardenAddress?: string, limit?: number) {
+export function useGardenAssessments(gardenAddress?: string) {
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
 
   return useQuery({
-    queryKey: ["garden-assessments", selectedChainId, gardenAddress, limit],
+    queryKey: queryKeys.assessments.byGardenBase(gardenAddress ?? "", selectedChainId),
     queryFn: () => {
       if (!gardenAddress) {
         return Promise.resolve([]);
@@ -15,7 +16,7 @@ export function useGardenAssessments(gardenAddress?: string, limit?: number) {
       return getGardenAssessments(gardenAddress, selectedChainId);
     },
     enabled: Boolean(gardenAddress),
-    staleTime: 30_000,
+    staleTime: STALE_TIME_MEDIUM,
     refetchInterval: 60_000,
   });
 }

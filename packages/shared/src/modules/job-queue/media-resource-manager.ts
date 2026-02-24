@@ -1,3 +1,7 @@
+import { createLogger } from "../app/logger";
+
+const log = createLogger({ source: "media-resource-manager" });
+
 /**
  * Centralized Media Resource Manager
  * Handles creation and cleanup of object URLs to prevent memory leaks
@@ -70,7 +74,7 @@ class MediaResourceManager {
           this.globalUrls.delete(url);
         } catch (error) {
           // Silently handle revocation errors (URL might already be revoked)
-          console.debug("Failed to revoke URL:", url, error);
+          log.debug("Failed to revoke URL", { url, error });
         }
       });
       this.urlMap.delete(trackingId);
@@ -104,7 +108,7 @@ class MediaResourceManager {
         }
       }
     } catch (error) {
-      console.debug("Failed to revoke URL:", url, error);
+      log.debug("Failed to revoke URL", { url, error });
     }
   }
 
@@ -117,7 +121,7 @@ class MediaResourceManager {
       try {
         URL.revokeObjectURL(url);
       } catch (error) {
-        console.debug("Failed to revoke URL during cleanup:", url, error);
+        log.debug("Failed to revoke URL during cleanup", { url, error });
       }
     }
 
@@ -133,17 +137,6 @@ class MediaResourceManager {
       totalUrls: this.globalUrls.size,
       trackedIds: this.urlMap.size,
     };
-  }
-
-  /**
-   * Cleanup stale URLs older than specified age
-   */
-  cleanupStale(_maxAgeMs: number = 60 * 60 * 1000): void {
-    // This would require tracking creation timestamps
-    // For now, we'll implement a simple cleanup of all URLs
-    // In a production app, you'd want to track creation times
-    console.debug("Performing stale URL cleanup");
-    this.cleanupAll();
   }
 }
 

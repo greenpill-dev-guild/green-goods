@@ -10,6 +10,8 @@
  * ```
  */
 
+import type { Address } from "./domain";
+
 // ============================================
 // Garden Responses
 // ============================================
@@ -17,14 +19,18 @@
 export interface IndexerGarden {
   id: string;
   chainId: number;
-  tokenAddress: string;
+  tokenAddress: Address;
   tokenID: string | bigint;
   name: string | null;
   description: string | null;
   location: string | null;
   bannerImage: string | null;
-  gardeners: string[] | null;
-  operators: string[] | null;
+  gardeners: Address[] | null;
+  operators: Address[] | null;
+  evaluators: Address[] | null;
+  owners: Address[] | null;
+  funders: Address[] | null;
+  communities: Address[] | null;
   createdAt: number | null;
 }
 
@@ -60,8 +66,8 @@ export interface IndexerGardener {
   id: string;
   chainId: number;
   createdAt: number | null;
-  firstGarden: string | null;
-  joinedVia: string | null;
+  firstGarden: Address | null;
+  joinedVia: Address | null;
 }
 
 export interface IndexerGardenersResponse {

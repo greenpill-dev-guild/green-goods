@@ -1,6 +1,4 @@
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
-import { useGardens } from "@green-goods/shared/hooks";
-import { getTag } from "@green-goods/shared/utils";
+import { DEFAULT_CHAIN_ID, getTag, useGardens } from "@green-goods/shared";
 import { type FC, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";

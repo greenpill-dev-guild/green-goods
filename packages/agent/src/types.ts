@@ -211,6 +211,7 @@ export interface SubmitWorkParams {
     plantSelection: string[];
     plantCount: number;
     feedback: string;
+    timeSpentMinutes?: number;
   };
   media?: Buffer[];
 }

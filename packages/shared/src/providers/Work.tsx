@@ -3,15 +3,15 @@
  *
  * Orchestrates work submission functionality by composing hooks.
  * Split into two contexts for performance optimization:
- * - WorkSelectionContext: Low-frequency updates (gardens, actions, tabs)
+ * - WorkSelectionContext: Low-frequency updates (gardens, actions, tabs, domain)
  * - WorkFormContext: High-frequency updates (form state, images)
  *
  * @module providers/work
  */
 
-import React, { useCallback, useContext } from "react";
-import type { Action, Garden, WorkDraft } from "../types/domain";
-import type { Control, FormState, UseFormRegister } from "react-hook-form";
+import React, { useCallback, useContext, useMemo, useState } from "react";
+import type { Action, Domain, Garden, WorkDraft } from "../types/domain";
+import type { Control, FormState, UseFormRegister, UseFormSetValue } from "react-hook-form";
 import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../components/toast";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
@@ -34,7 +34,7 @@ export { WorkTab };
 // ============================================================================
 
 /**
- * Low-frequency selection data (gardens, actions, navigation)
+ * Low-frequency selection data (gardens, actions, navigation, domain)
  */
 export interface WorkSelectionValue {
   gardens: Garden[];
@@ -46,6 +46,9 @@ export interface WorkSelectionValue {
   setGardenAddress: (value: string | null) => void;
   actionUID: number | null;
   setActionUID: (value: number | null) => void;
+  /** Selected domain for domain-centric filtering */
+  selectedDomain: Domain | null;
+  setSelectedDomain: (domain: Domain | null) => void;
 }
 
 /**
@@ -55,16 +58,16 @@ export interface WorkFormValue {
   state: FormState<WorkFormData>;
   control: Control<WorkFormData>;
   register: UseFormRegister<WorkFormData>;
+  setValue: UseFormSetValue<WorkFormData>;
   images: File[];
   setImages: React.Dispatch<React.SetStateAction<File[]>>;
   feedback: string;
-  plantSelection: string[];
-  plantCount: number | undefined;
   timeSpentMinutes: number | undefined;
   values: Record<string, unknown>;
   reset: () => void;
   uploadWork: (e?: React.BaseSyntheticEvent) => Promise<void>;
   workMutation: ReturnType<typeof useWorkMutation>;
+  validationErrors: string[];
 }
 
 /**
@@ -82,16 +85,16 @@ export interface WorkDataProps {
     setImages: React.Dispatch<React.SetStateAction<File[]>>;
     setActionUID: (value: number | null) => void;
     register: UseFormRegister<WorkFormData>;
+    setValue: UseFormSetValue<WorkFormData>;
     control: Control<WorkFormData>;
     uploadWork: (e?: React.BaseSyntheticEvent) => Promise<void>;
     gardenAddress: string | null;
     setGardenAddress: (value: string | null) => void;
     feedback: string;
-    plantSelection: string[];
-    plantCount: number | undefined;
     timeSpentMinutes: number | undefined;
     values: Record<string, unknown>;
     reset: () => void;
+    validationErrors: string[];
   };
   activeTab: WorkTab;
   setActiveTab: (value: WorkTab) => void;
@@ -108,6 +111,7 @@ const WorkFormContext = React.createContext<WorkFormValue | null>(null);
 const WorkContext = React.createContext<WorkDataProps>({
   form: {
     register: () => ({}) as ReturnType<UseFormRegister<WorkFormData>>,
+    setValue: (() => {}) as UseFormSetValue<WorkFormData>,
     control: {} as Control<WorkFormData>,
     actionUID: null,
     setActionUID: () => {},
@@ -115,6 +119,7 @@ const WorkContext = React.createContext<WorkDataProps>({
     gardenAddress: null,
     setGardenAddress: () => {},
     reset: () => {},
+    validationErrors: [],
   },
 } as unknown as WorkDataProps);
 
@@ -123,7 +128,7 @@ const WorkContext = React.createContext<WorkDataProps>({
 // ============================================================================
 
 /**
- * Access low-frequency selection data (gardens, actions, tabs).
+ * Access low-frequency selection data (gardens, actions, tabs, domain).
  * Use this when you only need selection state to avoid re-renders on form changes.
  */
 export function useWorkSelection(): WorkSelectionValue {
@@ -172,7 +177,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const userAddress = normalizeAddress(primaryAddress);
 
   // Filter gardens to only show ones user is a member of
-  // React 19: Compiler handles memoization
+  // Filter to user's gardens
   const userGardens =
     userAddress && gardensData
       ? gardensData.filter((garden: Garden) => {
@@ -184,21 +189,32 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       : [];
 
   // UI state via Zustand with useShallow for multi-select optimization
-  const { actionUID, gardenAddress, activeTab, setActionUID, setGardenAddress, setActiveTab } =
-    useWorkFlowStore(
-      useShallow((s) => ({
-        actionUID: s.actionUID,
-        gardenAddress: s.gardenAddress,
-        activeTab: s.activeTab,
-        setActionUID: s.setActionUID,
-        setGardenAddress: s.setGardenAddress,
-        setActiveTab: s.setActiveTab,
-      }))
-    );
+  const {
+    actionUID,
+    gardenAddress,
+    activeTab,
+    selectedDomain,
+    setActionUID,
+    setGardenAddress,
+    setActiveTab,
+    setSelectedDomain,
+  } = useWorkFlowStore(
+    useShallow((s) => ({
+      actionUID: s.actionUID,
+      gardenAddress: s.gardenAddress,
+      activeTab: s.activeTab,
+      selectedDomain: s.selectedDomain,
+      setActionUID: s.setActionUID,
+      setGardenAddress: s.setGardenAddress,
+      setActiveTab: s.setActiveTab,
+      setSelectedDomain: s.setSelectedDomain,
+    }))
+  );
 
   // Use extracted hooks
   const { images, setImages } = useWorkImages();
   const workForm = useWorkForm();
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Work mutation with proper auth branching
   const workMutation = useWorkMutation({
@@ -211,7 +227,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   // Compute minimum required images from selected action
-  // React 19: Compiler handles memoization
   const getMinRequiredImages = () => {
     if (typeof actionUID !== "number" || !actionsData.length) return 1;
     const selectedAction = actionsData.find(
@@ -225,25 +240,31 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   // Upload work handler
   const handleUploadWork = useCallback(
     async (data: WorkFormData) => {
+      // Build generic details from form data (exclude fixed fields)
+      const { feedback: _feedback, timeSpentMinutes: _time, ...dynamicFields } = data;
+
+      const audioNotesSnapshot = useWorkFlowStore.getState().audioNotes.slice();
       const draft = {
-        feedback: data.feedback,
-        plantSelection: data.plantSelection,
-        ...(typeof data.plantCount === "number" ? { plantCount: data.plantCount } : {}),
+        feedback: data.feedback ?? "",
+        details: dynamicFields as Record<string, unknown>,
         ...(typeof data.timeSpentMinutes === "number"
           ? { timeSpentMinutes: data.timeSpentMinutes }
           : {}),
+        ...(audioNotesSnapshot.length > 0 ? { audioNotes: audioNotesSnapshot } : {}),
       };
 
       const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images, {
         minRequired: minRequiredImages,
       });
       if (errors.length > 0) {
+        setValidationErrors(errors);
         validationToasts.formError(errors[0]);
         if (DEBUG_ENABLED) {
           debugWarn("[WorkProvider] Work submission context validation failed", { errors });
         }
         return;
       }
+      setValidationErrors([]);
 
       const imagesSnapshot = images.slice();
       if (DEBUG_ENABLED) {
@@ -270,49 +291,109 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
   const uploadWork = workForm.handleSubmit(handleUploadWork);
 
+  const isLoading = actionsLoading || gardensLoading;
+
   // Selection context value (low-frequency updates)
-  // React 19: Compiler handles memoization
-  const selectionValue: WorkSelectionValue = {
-    gardens: userGardens,
-    actions: actionsData,
-    isLoading: actionsLoading || gardensLoading,
-    activeTab,
-    setActiveTab,
-    gardenAddress,
-    setGardenAddress,
-    actionUID,
-    setActionUID,
-  };
+  const selectionValue: WorkSelectionValue = useMemo(
+    () => ({
+      gardens: userGardens,
+      actions: actionsData,
+      isLoading,
+      activeTab,
+      setActiveTab,
+      gardenAddress,
+      setGardenAddress,
+      actionUID,
+      setActionUID,
+      selectedDomain,
+      setSelectedDomain,
+    }),
+    [
+      userGardens,
+      actionsData,
+      isLoading,
+      activeTab,
+      setActiveTab,
+      gardenAddress,
+      setGardenAddress,
+      actionUID,
+      setActionUID,
+      selectedDomain,
+      setSelectedDomain,
+    ]
+  );
 
   // Form context value (high-frequency updates)
-  // React 19: Compiler handles memoization
-  const formValue: WorkFormValue = {
-    state: workForm.formState,
-    control: workForm.control,
-    register: workForm.register,
-    images,
-    setImages,
-    feedback: workForm.feedback,
-    plantSelection: workForm.plantSelection,
-    plantCount: workForm.plantCount,
-    timeSpentMinutes: workForm.timeSpentMinutes,
-    values: workForm.values,
-    reset: workForm.reset,
-    uploadWork,
-    workMutation,
-  };
-
-  // Legacy combined value for backward compatibility
-  // React 19: Compiler handles memoization
-  const legacyValue: WorkDataProps = {
-    gardens: userGardens,
-    actions: actionsData,
-    isLoading: actionsLoading || gardensLoading,
-    workMutation,
-    form: {
+  const formValue: WorkFormValue = useMemo(
+    () => ({
       state: workForm.formState,
       control: workForm.control,
       register: workForm.register,
+      setValue: workForm.setValue,
+      images,
+      setImages,
+      feedback: workForm.feedback as string,
+      timeSpentMinutes: workForm.timeSpentMinutes,
+      values: workForm.values,
+      reset: workForm.reset,
+      uploadWork,
+      workMutation,
+      validationErrors,
+    }),
+    [
+      workForm.formState,
+      workForm.control,
+      workForm.register,
+      workForm.setValue,
+      images,
+      setImages,
+      workForm.feedback,
+      workForm.timeSpentMinutes,
+      workForm.values,
+      workForm.reset,
+      uploadWork,
+      workMutation,
+      validationErrors,
+    ]
+  );
+
+  // Legacy combined value for backward compatibility
+  const legacyValue: WorkDataProps = useMemo(
+    () => ({
+      gardens: userGardens,
+      actions: actionsData,
+      isLoading,
+      workMutation,
+      form: {
+        state: workForm.formState,
+        control: workForm.control,
+        register: workForm.register,
+        setValue: workForm.setValue,
+        actionUID,
+        images,
+        setImages,
+        setActionUID,
+        uploadWork,
+        gardenAddress,
+        setGardenAddress,
+        feedback: workForm.feedback as string,
+        timeSpentMinutes: workForm.timeSpentMinutes,
+        values: workForm.values,
+        reset: workForm.reset,
+        validationErrors,
+      },
+      activeTab,
+      setActiveTab,
+    }),
+    [
+      userGardens,
+      actionsData,
+      isLoading,
+      workMutation,
+      workForm.formState,
+      workForm.control,
+      workForm.register,
+      workForm.setValue,
       actionUID,
       images,
       setImages,
@@ -320,16 +401,15 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       uploadWork,
       gardenAddress,
       setGardenAddress,
-      feedback: workForm.feedback,
-      plantSelection: workForm.plantSelection,
-      plantCount: workForm.plantCount,
-      timeSpentMinutes: workForm.timeSpentMinutes,
-      values: workForm.values,
-      reset: workForm.reset,
-    },
-    activeTab,
-    setActiveTab,
-  };
+      workForm.feedback,
+      workForm.timeSpentMinutes,
+      workForm.values,
+      workForm.reset,
+      validationErrors,
+      activeTab,
+      setActiveTab,
+    ]
+  );
 
   return (
     <WorkSelectionContext.Provider value={selectionValue}>

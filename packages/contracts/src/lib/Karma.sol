@@ -6,7 +6,7 @@ import { IProjectResolver } from "../interfaces/IKarma.sol";
 error KarmaGAPNotSupported();
 
 /// @title KarmaLib
-/// @notice Library for Karma GAP protocol integration across Arbitrum, Celo, Base Sepolia
+/// @notice Library for Karma GAP protocol integration across Arbitrum, Celo, Sepolia
 /// @dev All Karma GAP constants and helper functions centralized here
 /// @dev Source: karma-gap-sdk/core/consts/index.ts
 library KarmaLib {
@@ -23,7 +23,6 @@ library KarmaLib {
     // Testnet Networks
     address internal constant GAP_PROJECT_RESOLVER_OPTIMISM_SEPOLIA = 0x832931F23ea4e3c70957DA71a7eB50F5B7efA93D;
     address internal constant GAP_PROJECT_RESOLVER_SEPOLIA = 0x099787D5a5aC92779A519CfD925ACB0Dc7E8bd23;
-    address internal constant GAP_PROJECT_RESOLVER_BASE_SEPOLIA = 0xC891F8eBA218f5034bf3a472528408BE19E1130E;
     address internal constant GAP_PROJECT_RESOLVER_SEI_TESTNET = 0xdA2c62101851365EEdC5A1f7087d92Ffde7345B4;
 
     // ============================================================================
@@ -31,7 +30,7 @@ library KarmaLib {
     // ============================================================================
     address internal constant GAP_CONTRACT_ARBITRUM = 0x6dC1D6b864e8BEf815806f9e4677123496e12026;
     address internal constant GAP_CONTRACT_CELO = 0x8791Ac8c099314bB1D1514D76de13a1E80275950;
-    address internal constant GAP_CONTRACT_BASE_SEPOLIA = 0x4Ca7230fB6b78875bdd1B1e4F665B7B7f1891239;
+    address internal constant GAP_CONTRACT_SEPOLIA = 0x9E5560f5b084c227Dc40672f48F59DA617eeFA28;
 
     // ============================================================================
     // SCHEMA UIDs - OPTIMISM (Chain ID: 10)
@@ -74,16 +73,6 @@ library KarmaLib {
         0xdd87b3500457931252424f4439365534ba72a367503a8805ff3482353fb90301;
 
     // ============================================================================
-    // SCHEMA UIDs - BASE SEPOLIA (Chain ID: 84532)
-    // ============================================================================
-    bytes32 internal constant GAP_PROJECT_SCHEMA_BASE_SEPOLIA =
-        0x5ddd6b7a11406771308431ca9bd146cc717848b74b52993a532dc1aad0ccc83f;
-    bytes32 internal constant GAP_DETAILS_SCHEMA_BASE_SEPOLIA =
-        0x9b06f811608d135f913c18295486693fe626f35e213a7d132be87b1f952e508c;
-    bytes32 internal constant GAP_MEMBEROF_SCHEMA_BASE_SEPOLIA =
-        0x857398d86e2d31bec5af882b950ee7b00d1fefefba2432737ab28b68ee041eb8;
-
-    // ============================================================================
     // SCHEMA UIDs - CELO (Chain ID: 42220)
     // ============================================================================
     bytes32 internal constant GAP_PROJECT_SCHEMA_CELO = 0xf3f753b41e04d1052b5a5ec7624d1dfdb6c2da288a985120e477ddbcac071022;
@@ -112,26 +101,6 @@ library KarmaLib {
     // HELPER FUNCTIONS
     // ============================================================================
 
-    /// @notice Returns EAS contract address for current chain
-    /// @dev Required for direct attestations to Karma GAP schemas
-    /// @return EAS contract address
-    function getEAS() internal view returns (address) {
-        uint256 chainId = block.chainid;
-        // Mainnet chains
-        if (chainId == 10) return 0x4200000000000000000000000000000000000021; // Optimism
-        if (chainId == 42_161) return 0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458; // Arbitrum
-        if (chainId == 42_220) return 0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92; // Celo
-        if (chainId == 1329) return 0x6c3970F4e8a23B3849F1C2e155aEe1fb3d44eb48; // Sei
-
-        // Testnet chains
-        if (chainId == 11_155_420) return 0x4200000000000000000000000000000000000021; // Optimism Sepolia
-        if (chainId == 11_155_111) return 0xC2679fBD37d54388Ce493F1DB75320D236e1815e; // Sepolia
-        if (chainId == 84_532) return 0x4200000000000000000000000000000000000021; // Base Sepolia
-        if (chainId == 1328) return 0x98222b52Cc47D9e97FC54583F1DBB4Eb3E3Dfa38; // Sei Testnet
-
-        _revertUnsupported();
-    }
-
     /// @notice Returns Project Resolver contract address for current chain
     /// @return Project Resolver contract address
     function getProjectResolver() internal view returns (address) {
@@ -142,7 +111,6 @@ library KarmaLib {
         if (chainId == 1329) return GAP_PROJECT_RESOLVER_SEI;
         if (chainId == 11_155_420) return GAP_PROJECT_RESOLVER_OPTIMISM_SEPOLIA;
         if (chainId == 11_155_111) return GAP_PROJECT_RESOLVER_SEPOLIA;
-        if (chainId == 84_532) return GAP_PROJECT_RESOLVER_BASE_SEPOLIA;
         if (chainId == 1328) return GAP_PROJECT_RESOLVER_SEI_TESTNET;
         _revertUnsupported();
     }
@@ -153,7 +121,8 @@ library KarmaLib {
         uint256 chainId = block.chainid;
         if (chainId == 42_161) return GAP_CONTRACT_ARBITRUM;
         if (chainId == 42_220) return GAP_CONTRACT_CELO;
-        if (chainId == 84_532) return GAP_CONTRACT_BASE_SEPOLIA;
+        if (chainId == 11_155_111) return GAP_CONTRACT_SEPOLIA;
+
         _revertUnsupported();
     }
 
@@ -165,7 +134,6 @@ library KarmaLib {
         if (chainId == 11_155_420) return GAP_PROJECT_SCHEMA_OPTIMISM_SEPOLIA;
         if (chainId == 42_161) return GAP_PROJECT_SCHEMA_ARBITRUM;
         if (chainId == 11_155_111) return GAP_PROJECT_SCHEMA_SEPOLIA;
-        if (chainId == 84_532) return GAP_PROJECT_SCHEMA_BASE_SEPOLIA;
         if (chainId == 42_220) return GAP_PROJECT_SCHEMA_CELO;
         if (chainId == 1329) return GAP_PROJECT_SCHEMA_SEI;
         if (chainId == 1328) return GAP_PROJECT_SCHEMA_SEI_TESTNET;
@@ -180,7 +148,6 @@ library KarmaLib {
         if (chainId == 11_155_420) return GAP_DETAILS_SCHEMA_OPTIMISM_SEPOLIA;
         if (chainId == 42_161) return GAP_DETAILS_SCHEMA_ARBITRUM;
         if (chainId == 11_155_111) return GAP_DETAILS_SCHEMA_SEPOLIA;
-        if (chainId == 84_532) return GAP_DETAILS_SCHEMA_BASE_SEPOLIA;
         if (chainId == 42_220) return GAP_DETAILS_SCHEMA_CELO;
         if (chainId == 1329) return GAP_DETAILS_SCHEMA_SEI;
         if (chainId == 1328) return GAP_DETAILS_SCHEMA_SEI_TESTNET;
@@ -196,7 +163,6 @@ library KarmaLib {
         if (chainId == 11_155_420) return GAP_MEMBEROF_SCHEMA_OPTIMISM_SEPOLIA;
         if (chainId == 42_161) return GAP_MEMBEROF_SCHEMA_ARBITRUM;
         if (chainId == 11_155_111) return GAP_MEMBEROF_SCHEMA_SEPOLIA;
-        if (chainId == 84_532) return GAP_MEMBEROF_SCHEMA_BASE_SEPOLIA;
         if (chainId == 42_220) return GAP_MEMBEROF_SCHEMA_CELO;
         if (chainId == 1329) return GAP_MEMBEROF_SCHEMA_SEI;
         if (chainId == 1328) return GAP_MEMBEROF_SCHEMA_SEI_TESTNET;
@@ -211,11 +177,10 @@ library KarmaLib {
 
     /// @notice Checks if Karma GAP is supported on current chain
     /// @dev Localhost (31337) is NOT supported for unit tests - use fork tests instead
-    /// @return True if supported (8 production networks only)
+    /// @return True if supported (3 networks with GAP contracts only)
     function isSupported() internal view returns (bool) {
         uint256 chainId = block.chainid;
-        return chainId == 10 || chainId == 11_155_420 || chainId == 42_161 || chainId == 11_155_111 || chainId == 84_532
-            || chainId == 42_220 || chainId == 1329 || chainId == 1328;
+        return chainId == 42_161 || chainId == 11_155_111 || chainId == 42_220;
     }
 
     // ============================================================================

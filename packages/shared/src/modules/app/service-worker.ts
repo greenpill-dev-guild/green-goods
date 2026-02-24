@@ -1,4 +1,5 @@
-// import { jobQueue } from "./job-queue";
+import { jobQueueEventBus } from "../job-queue/event-bus";
+import { logger } from "./logger";
 import { track } from "./posthog";
 
 /**
@@ -10,6 +11,7 @@ class ServiceWorkerManager {
   private isSupported = false;
   private hasController = false;
   private hasReloadedForUpdate = false;
+  private readonly boundMessageHandler = this.handleMessage.bind(this);
 
   constructor() {
     const hasNavigator = typeof navigator !== "undefined";
@@ -32,7 +34,7 @@ class ServiceWorkerManager {
    */
   async register(): Promise<boolean> {
     if (!this.isSupported) {
-      console.warn("Service Worker or Background Sync not supported");
+      logger.warn("[ServiceWorker] Service Worker or Background Sync not supported");
       return false;
     }
 
@@ -42,7 +44,9 @@ class ServiceWorkerManager {
       });
 
       // Set up message handler for background sync notifications
-      navigator.serviceWorker.addEventListener("message", this.handleMessage.bind(this));
+      navigator.serviceWorker.removeEventListener("message", this.boundMessageHandler);
+      navigator.serviceWorker.removeEventListener("controllerchange", this.handleControllerChange);
+      navigator.serviceWorker.addEventListener("message", this.boundMessageHandler);
       navigator.serviceWorker.addEventListener("controllerchange", this.handleControllerChange);
 
       // Wait for service worker to be ready
@@ -55,7 +59,7 @@ class ServiceWorkerManager {
 
       return true;
     } catch (error) {
-      console.error("Service Worker registration failed:", error);
+      logger.error("[ServiceWorker] Service Worker registration failed", { error });
       track("service_worker_registration_failed", {
         error: error instanceof Error ? error.message : "Unknown error",
       });
@@ -93,15 +97,22 @@ class ServiceWorkerManager {
    */
   async requestBackgroundSync(): Promise<boolean> {
     if (!this.isBackgroundSyncSupported()) {
-      console.warn("Background Sync not available");
+      logger.warn("[ServiceWorker] Background Sync not available");
       return false;
     }
 
     try {
-      // Send message to service worker to register sync
-      navigator.serviceWorker.controller?.postMessage({
+      const payload = {
         type: "REGISTER_SYNC",
-      });
+      };
+
+      const controller = navigator.serviceWorker.controller;
+      if (controller) {
+        controller.postMessage(payload);
+      } else {
+        const readyRegistration = this.registration ?? (await navigator.serviceWorker.ready);
+        readyRegistration.active?.postMessage(payload);
+      }
 
       track("background_sync_requested", {
         timestamp: Date.now(),
@@ -109,7 +120,7 @@ class ServiceWorkerManager {
 
       return true;
     } catch (error) {
-      console.error("Failed to request background sync:", error);
+      logger.error("[ServiceWorker] Failed to request background sync", { error });
       track("background_sync_request_failed", {
         error: error instanceof Error ? error.message : "Unknown error",
       });
@@ -122,27 +133,20 @@ class ServiceWorkerManager {
    */
   private async handleMessage(event: MessageEvent) {
     if (event.data?.type === "BACKGROUND_SYNC") {
+      const timestamp =
+        typeof event.data?.payload?.timestamp === "number"
+          ? event.data.payload.timestamp
+          : Date.now();
+
       track("background_sync_triggered", {
-        timestamp: event.data.payload.timestamp,
+        timestamp,
       });
 
-      // Trigger job queue sync
-      try {
-        // Provider handles inline processing; simply trigger stats refresh via event bus
-        const result = { processed: 0, failed: 0, skipped: 0 } as any;
-
-        track("background_sync_completed", {
-          processed: result.processed,
-          failed: result.failed,
-          skipped: result.skipped,
-        });
-      } catch (error) {
-        console.error("Background sync failed:", error);
-
-        track("background_sync_failed", {
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
+      // Provider reacts to this event and triggers queue flush for passkey users.
+      jobQueueEventBus.emit("background:sync-requested", {
+        source: "service-worker",
+        timestamp,
+      });
     }
   }
 
@@ -176,13 +180,19 @@ if (typeof window !== "undefined") {
     navigator.serviceWorker
       .getRegistrations()
       .then((registrations) => Promise.all(registrations.map((r) => r.unregister())))
-      .catch(() => {});
+      .catch((error) => {
+        // Log but don't block - this is best-effort cleanup
+        logger.warn("[ServiceWorker] Failed to unregister existing workers", { error });
+      });
     // Clear caches that could serve stale assets
     if ("caches" in window) {
       caches
         .keys()
         .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
-        .catch(() => {});
+        .catch((error) => {
+          // Log but don't block - this is best-effort cleanup
+          logger.warn("[ServiceWorker] Failed to clear caches", { error });
+        });
     }
   }
 }

@@ -43,7 +43,7 @@ describe("modules/work/bot-submission", () => {
   const mockTxHash = ("0x" + "a".repeat(64)) as `0x${string}`;
 
   const mockWalletClient = {
-    chain: { id: 84532, name: "Base Sepolia" },
+    chain: { id: 11155111, name: "Sepolia" },
     account: { address: "0xBotAddress" as `0x${string}` },
     sendTransaction: vi.fn().mockResolvedValue(mockTxHash),
   } as any;
@@ -72,7 +72,7 @@ describe("modules/work/bot-submission", () => {
         "0xGardenAddress",
         1,
         "Planting Trees",
-        84532,
+        11155111,
         []
       );
 
@@ -82,7 +82,7 @@ describe("modules/work/bot-submission", () => {
           feedback: "Bot submitted work",
           actionUID: 1,
         }),
-        84532
+        11155111
       );
       expect(buildWorkAttestTx).toHaveBeenCalled();
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
@@ -102,7 +102,7 @@ describe("modules/work/bot-submission", () => {
         "0xGardenAddress",
         42,
         "Community Cleanup",
-        84532,
+        11155111,
         []
       );
 
@@ -111,7 +111,7 @@ describe("modules/work/bot-submission", () => {
           title: expect.stringContaining("Community Cleanup"),
           actionUID: 42,
         }),
-        84532
+        11155111
       );
     });
 
@@ -125,7 +125,7 @@ describe("modules/work/bot-submission", () => {
         gardenAddress,
         1,
         "Test Action",
-        84532,
+        11155111,
         []
       );
 
@@ -149,7 +149,7 @@ describe("modules/work/bot-submission", () => {
         "0xGarden",
         1,
         "Action",
-        84532,
+        11155111,
         mockImages
       );
 
@@ -157,7 +157,7 @@ describe("modules/work/bot-submission", () => {
         expect.objectContaining({
           media: mockImages,
         }),
-        84532
+        11155111
       );
     });
 
@@ -189,7 +189,7 @@ describe("modules/work/bot-submission", () => {
           "0xGarden",
           1,
           "Action",
-          84532,
+          11155111,
           []
         )
       ).rejects.toThrow("Transaction failed");
@@ -209,11 +209,11 @@ describe("modules/work/bot-submission", () => {
         mockWalletClient,
         mockApprovalDraft,
         "0xGardenerAddress",
-        84532
+        11155111
       );
 
       expect(result).toBe(mockTxHash);
-      expect(encodeWorkApprovalData).toHaveBeenCalledWith(mockApprovalDraft, 84532);
+      expect(encodeWorkApprovalData).toHaveBeenCalledWith(mockApprovalDraft, 11155111);
       expect(buildApprovalAttestTx).toHaveBeenCalled();
       expect(mockWalletClient.sendTransaction).toHaveBeenCalled();
     });
@@ -225,14 +225,14 @@ describe("modules/work/bot-submission", () => {
         feedback: "Excellent planting technique!",
       };
 
-      await submitApprovalBot(mockWalletClient, draftWithFeedback, "0xGardener", 84532);
+      await submitApprovalBot(mockWalletClient, draftWithFeedback, "0xGardener", 11155111);
 
       expect(encodeWorkApprovalData).toHaveBeenCalledWith(
         expect.objectContaining({
           approved: true,
           feedback: "Excellent planting technique!",
         }),
-        84532
+        11155111
       );
     });
 
@@ -244,21 +244,21 @@ describe("modules/work/bot-submission", () => {
         feedback: "Plants were not watered properly",
       };
 
-      await submitApprovalBot(mockWalletClient, rejectionDraft, "0xGardener", 84532);
+      await submitApprovalBot(mockWalletClient, rejectionDraft, "0xGardener", 11155111);
 
       expect(encodeWorkApprovalData).toHaveBeenCalledWith(
         expect.objectContaining({
           approved: false,
           feedback: "Plants were not watered properly",
         }),
-        84532
+        11155111
       );
     });
 
     it("passes gardener address to transaction builder", async () => {
       const gardenerAddress = "0xGardener123456789012345678901234567890";
 
-      await submitApprovalBot(mockWalletClient, mockApprovalDraft, gardenerAddress, 84532);
+      await submitApprovalBot(mockWalletClient, mockApprovalDraft, gardenerAddress, 11155111);
 
       expect(buildApprovalAttestTx).toHaveBeenCalledWith(
         expect.anything(),
@@ -268,7 +268,7 @@ describe("modules/work/bot-submission", () => {
     });
 
     it("uses correct chain for transaction", async () => {
-      await submitApprovalBot(mockWalletClient, mockApprovalDraft, "0xGardener", 84532);
+      await submitApprovalBot(mockWalletClient, mockApprovalDraft, "0xGardener", 11155111);
 
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -283,7 +283,7 @@ describe("modules/work/bot-submission", () => {
       mockWalletClient.sendTransaction.mockRejectedValueOnce(error);
 
       await expect(
-        submitApprovalBot(mockWalletClient, mockApprovalDraft, "0xGardener", 84532)
+        submitApprovalBot(mockWalletClient, mockApprovalDraft, "0xGardener", 11155111)
       ).rejects.toThrow("Approval transaction failed");
     });
 
@@ -295,13 +295,13 @@ describe("modules/work/bot-submission", () => {
         feedback: "",
       };
 
-      await submitApprovalBot(mockWalletClient, draftNoFeedback, "0xGardener", 84532);
+      await submitApprovalBot(mockWalletClient, draftNoFeedback, "0xGardener", 11155111);
 
       expect(encodeWorkApprovalData).toHaveBeenCalledWith(
         expect.objectContaining({
           feedback: "",
         }),
-        84532
+        11155111
       );
     });
   });

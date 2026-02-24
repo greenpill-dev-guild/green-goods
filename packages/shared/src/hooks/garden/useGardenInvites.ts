@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { type Hex, keccak256, toHex } from "viem";
+import { type Address, type Hex, keccak256, toHex } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { useToastAction } from "../app/useToastAction";
+import { useCurrentChain } from "../blockchain/useChainConfig";
 
 export interface GardenInvite {
   id: string;
@@ -17,64 +17,23 @@ export interface GardenInvite {
   chainId: number;
 }
 
-export function useGardenInvites(gardenAddress: string) {
+export function useGardenInvites(gardenAddress: Address) {
+  const chainId = useCurrentChain();
+  const [invites, setInvites] = useState<GardenInvite[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
   const { executeWithToast } = useToastAction();
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
 
-  // Fetch invites from Envio indexer
-  const {
-    data: invites,
-    isLoading: isFetching,
-    refetch,
-  } = useQuery<GardenInvite[]>({
-    queryKey: ["garden-invites", gardenAddress],
-    queryFn: async (): Promise<GardenInvite[]> => {
-      const ENVIO_URL = import.meta.env.VITE_ENVIO_INDEXER_URL;
-      if (!ENVIO_URL) {
-        console.warn("ENVIO_INDEXER_URL not configured");
-        return [];
-      }
-
-      const response = await fetch(ENVIO_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `
-            query GetGardenInvites($gardenId: String!) {
-              gardenInvites(where: { garden: $gardenId }) {
-                id
-                garden
-                creator
-                expiry
-                used
-                usedBy
-                createdAt
-                usedAt
-                chainId
-              }
-            }
-          `,
-          variables: { gardenId: gardenAddress.toLowerCase() },
-        }),
-      });
-
-      const result = await response.json();
-      return result.data?.gardenInvites || [];
-    },
-    enabled: !!gardenAddress,
-  });
-
   /**
-   * Generates a unique invite code
+   * Generates a unique invite code using cryptographically secure randomness
    */
   const generateInviteCode = (): Hex => {
-    const random = Math.random().toString(36).substring(2, 15);
-    const timestamp = Date.now().toString();
-    const combined = `${random}-${timestamp}-${gardenAddress}`;
-    return keccak256(toHex(combined));
+    const randomBytes = new Uint8Array(32);
+    crypto.getRandomValues(randomBytes);
+    const hexString = Array.from(randomBytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    return keccak256(`0x${hexString}` as Hex);
   };
 
   /**
@@ -118,6 +77,20 @@ export function useGardenInvites(gardenAddress: string) {
         }
       );
 
+      const now = Math.floor(Date.now() / 1000);
+      setInvites((current) => [
+        {
+          id: inviteCode,
+          garden: gardenAddress,
+          creator: address,
+          expiry: BigInt(expiry),
+          used: false,
+          createdAt: now,
+          chainId,
+        },
+        ...current,
+      ]);
+
       // Return the invite link
       return generateInviteLink(inviteCode);
     } finally {
@@ -154,17 +127,29 @@ export function useGardenInvites(gardenAddress: string) {
           errorMessage: "Failed to revoke invite",
         }
       );
-
-      // Refetch invites after revocation
-      await refetch();
+      const now = Math.floor(Date.now() / 1000);
+      setInvites((current) =>
+        current.map((invite) =>
+          invite.id === inviteCode
+            ? {
+                ...invite,
+                used: true,
+                usedBy: address,
+                usedAt: now,
+              }
+            : invite
+        )
+      );
     } finally {
       setIsRevoking(false);
     }
   };
 
+  const refetch = async (): Promise<GardenInvite[]> => invites;
+
   return {
     invites,
-    isLoading: isLoading || isFetching,
+    isLoading,
     isRevoking,
     createInvite,
     revokeInvite,

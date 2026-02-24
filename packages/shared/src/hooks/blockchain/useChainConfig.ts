@@ -70,7 +70,7 @@ export function getNetworkConfigForChain(chainId: number) {
 
 /**
  * Hook to get the current chain ID from build configuration.
- * Falls back to Base Sepolia if not configured.
+ * Falls back to Sepolia if not configured.
  *
  * Note: This is a pure function wrapper - no React state is used.
  * Prefer `getCurrentChain()` in non-component contexts.

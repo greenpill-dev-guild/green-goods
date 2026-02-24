@@ -9,6 +9,8 @@
 
 import { assign, fromPromise, setup } from "xstate";
 
+import { formatUserError } from "../utils/errors/user-messages";
+
 /**
  * Form validation status passed to the machine through events
  */
@@ -31,9 +33,6 @@ export interface CreateGardenContext {
   retryCount: number;
 }
 
-type SubmitDoneEvent = { type: "done.invoke.submitGarden"; output: string };
-type SubmitErrorEvent = { type: "error.platform.submitGarden"; error: unknown };
-
 /**
  * Navigation events now include form status for validation
  */
@@ -51,7 +50,7 @@ type BaseEvents =
   | { type: "RETRY" }
   | { type: "CREATE_ANOTHER" };
 
-export type CreateGardenEvent = BaseEvents | NavigationEvents | SubmitDoneEvent | SubmitErrorEvent;
+export type CreateGardenEvent = BaseEvents | NavigationEvents;
 
 const createGardenSetup = setup({
   types: {
@@ -61,25 +60,25 @@ const createGardenSetup = setup({
   actions: {
     clearContext: assign({ txHash: undefined, error: undefined, retryCount: 0 }),
     clearError: assign({ error: undefined }),
-    storeTxHash: assign({
-      txHash: ({ event }) => (event as SubmitDoneEvent).output,
-      retryCount: 0,
+    goToNextStep: () => {},
+    goToPreviousStep: () => {},
+    goToReviewStep: () => {},
+    goToFirstIncompleteStep: () => {},
+    storeTxHash: assign(({ event }) => {
+      // XState v5 invoke-done events carry `output` (v4 used `done.invoke.*` type strings)
+      const output = "output" in event ? (event.output as string) : undefined;
+      if (!output) return {};
+      return { txHash: output, retryCount: 0 };
     }),
-    storeFailure: assign({
-      error: ({ event }) => {
-        const error = (event as SubmitErrorEvent).error;
-        if (error instanceof Error) {
-          return error.message;
-        }
-        if (typeof error === "string") {
-          return error;
-        }
-        try {
-          return JSON.stringify(error);
-        } catch {
-          return "Failed to create garden";
-        }
-      },
+    storeFailure: assign(({ event }) => {
+      // XState v5 invoke-error events carry `error` (v4 used `error.platform.*` type strings)
+      const error = "error" in event ? event.error : undefined;
+      if (error === undefined) return {};
+      const message = formatUserError(error);
+      // formatUserError falls through to String() for non-Error/non-string types,
+      // producing unhelpful output like "[object Object]". Replace with a fallback.
+      const isHelpful = message.length > 0 && !message.startsWith("[object ");
+      return { error: isHelpful ? message : "Failed to create garden" };
     }),
     incrementRetry: assign({
       retryCount: ({ context }) => context.retryCount + 1,
@@ -157,19 +156,21 @@ export const createGardenMachine = createGardenSetup.createMachine({
           {
             guard: "isReviewStep",
             target: "review",
+            actions: "goToReviewStep",
           },
           {
             guard: "canGoForward",
-            // Navigation is handled by the hook layer, not by machine actions
+            actions: "goToNextStep",
           },
         ],
         BACK: {
           guard: "canGoBack",
-          // Navigation is handled by the hook layer
+          actions: "goToPreviousStep",
         },
         REVIEW: {
           guard: "isReviewReady",
           target: "review",
+          actions: "goToReviewStep",
         },
         CLOSE: {
           target: "idle",
@@ -185,10 +186,12 @@ export const createGardenMachine = createGardenSetup.createMachine({
       on: {
         EDIT: {
           target: "collecting",
+          actions: "goToFirstIncompleteStep",
         },
         BACK: {
           guard: "canGoBack",
           target: "collecting",
+          actions: "goToPreviousStep",
         },
         SUBMIT: {
           guard: "canSubmit",
@@ -213,12 +216,9 @@ export const createGardenMachine = createGardenSetup.createMachine({
           actions: ["storeFailure", "incrementRetry"],
         },
       },
-      on: {
-        CLOSE: {
-          target: "idle",
-          actions: "clearContext",
-        },
-      },
+      // CLOSE intentionally omitted: once a transaction is in-flight it cannot
+      // be cancelled on-chain. Allowing CLOSE here would hide the real outcome
+      // from the user (garden created but UI shows idle).
     },
     success: {
       on: {

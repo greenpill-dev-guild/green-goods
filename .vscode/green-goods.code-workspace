@@ -30,13 +30,19 @@
     },
     {
       "path": "../docs"
+    },
+    {
+      "name": "gardens",
+      "path": "../../gardens"
     }
   ],
   "settings": {
     "[solidity]": {
       "editor.defaultFormatter": "JuanBlanco.solidity",
       "editor.formatOnSave": true,
-      "editor.rulers": [120],
+      "editor.rulers": [
+        120
+      ],
       "editor.wordWrap": "bounded",
       "editor.wordWrapColumn": 120
     },
@@ -83,7 +89,8 @@
       "ms-azuretools.vscode-docker",
       "GraphQL.vscode-graphql",
       "GraphQL.vscode-graphql-syntax"
-    ]
+    ],
+    "chatgpt.openOnStartup": true
   },
   "extensions": {
     "recommendations": [

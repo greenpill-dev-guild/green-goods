@@ -61,7 +61,7 @@ describe("GQLClient", () => {
 describe("Factory functions", () => {
   describe("createEasClient", () => {
     it("creates a GQLClient instance", () => {
-      const client = createEasClient(84532);
+      const client = createEasClient(11155111);
 
       expect(client).toBeInstanceOf(GQLClient);
       expect(typeof client.query).toBe("function");
@@ -75,7 +75,7 @@ describe("Factory functions", () => {
     });
 
     it("accepts string chain ID", () => {
-      const client = createEasClient("84532");
+      const client = createEasClient("11155111");
 
       expect(client).toBeInstanceOf(GQLClient);
     });

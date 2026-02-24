@@ -403,7 +403,7 @@ cast call $ACTION_REGISTRY "getAction(uint256)" 1 --rpc-url $RPC
 - Add new keyword to priority array if needed
 
 **IPFS upload failing:**
-- Verify `STORACHA_KEY` and `STORACHA_PROOF` in `.env`
+- Verify `VITE_STORACHA_KEY` in root `.env`
 - Check `.ipfs-cache.json` for cached hashes
 - Use `--force` flag to skip cache
 
@@ -414,8 +414,7 @@ cast call $ACTION_REGISTRY "getAction(uint256)" 1 --rpc-url $RPC
 
 ## Reference
 
-- Deployment script: `script/deploy.js`
+- Deployment script: `script/deploy.ts`
 - IPFS uploader: `script/utils/ipfs-uploader.ts`
-- Deployment guide: `/docs/DEPLOYMENT.md`
-- Contracts handbook: `/docs/CONTRACTS_HANDBOOK.md`
+- Docs site: [docs.greengoods.app](https://docs.greengoods.app)
 

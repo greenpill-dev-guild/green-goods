@@ -1,5 +1,5 @@
-import { useAuth, useRole, useTheme } from "@green-goods/shared/hooks";
-import { cn } from "@green-goods/shared/utils";
+import { cn, useAuth, useRole, useTheme } from "@green-goods/shared";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   RiArrowDownSLine,
   RiComputerLine,
@@ -8,34 +8,14 @@ import {
   RiSunLine,
   RiUserLine,
 } from "@remixicon/react";
-import { useEffect, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 import { AddressDisplay } from "../AddressDisplay";
 
 export function UserProfile() {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { formatMessage } = useIntl();
   const { signOut, eoaAddress } = useAuth();
   const { role } = useRole();
   const { theme, setTheme } = useTheme();
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const handleLogout = () => {
-    setIsOpen(false);
-    signOut?.();
-  };
 
   const getThemeIcon = (mode: string) => {
     switch (mode) {
@@ -53,101 +33,108 @@ export function UserProfile() {
   const getThemeLabel = (mode: string) => {
     switch (mode) {
       case "light":
-        return "Light Mode";
+        return formatMessage({
+          id: "app.admin.userProfile.lightMode",
+          defaultMessage: "Light Mode",
+        });
       case "dark":
-        return "Dark Mode";
+        return formatMessage({ id: "app.admin.userProfile.darkMode", defaultMessage: "Dark Mode" });
       case "system":
-        return "System";
+        return formatMessage({ id: "app.admin.userProfile.system", defaultMessage: "System" });
       default:
-        return "System";
+        return formatMessage({ id: "app.admin.userProfile.system", defaultMessage: "System" });
     }
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-bg-soft transition-colors"
-      >
-        <div className="text-right">
-          <div className="text-sm font-medium text-text-strong capitalize">{role}</div>
-          <div className="text-xs">
-            {eoaAddress && <AddressDisplay address={eoaAddress} showCopyButton={false} />}
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button className="flex items-center space-x-3 p-2 rounded-lg hover:bg-bg-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base">
+          <div className="text-right">
+            <div className="text-sm font-medium text-text-strong capitalize">{role}</div>
+            <div className="text-xs">
+              {eoaAddress && <AddressDisplay address={eoaAddress} showCopyButton={false} />}
+            </div>
           </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="h-8 w-8 bg-bg-soft rounded-full flex items-center justify-center">
-            <span className="text-sm font-medium text-text-sub">
-              {role === "deployer" ? "D" : role === "operator" ? "O" : "U"}
-            </span>
+          <div className="flex items-center space-x-2">
+            <div className="h-8 w-8 bg-bg-soft rounded-full flex items-center justify-center">
+              <span className="text-sm font-medium text-text-sub">
+                {role === "deployer" ? "D" : role === "operator" ? "O" : "U"}
+              </span>
+            </div>
+            <RiArrowDownSLine
+              className="h-4 w-4 text-text-soft transition-transform"
+              aria-hidden="true"
+            />
           </div>
-          <RiArrowDownSLine
-            className={cn("h-4 w-4 text-text-soft transition-transform", isOpen && "rotate-180")}
-          />
-        </div>
-      </button>
+        </button>
+      </DropdownMenu.Trigger>
 
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-bg-soft rounded-lg shadow-xl border border-stroke-sub z-50 ring-1 ring-black/5">
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="end"
+          sideOffset={8}
+          className="w-64 bg-bg-soft rounded-lg shadow-xl border border-stroke-sub z-50 ring-1 ring-black/5 animate-fade-in-up"
+        >
           {/* User Info Header */}
-          <div className="px-4 py-3 border-b border-stroke-sub">
+          <DropdownMenu.Label className="px-4 py-3 border-b border-stroke-sub">
             <div className="flex items-center space-x-3">
               <div className="h-10 w-10 bg-bg-weak rounded-full flex items-center justify-center">
                 <RiUserLine className="h-5 w-5 text-text-sub" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-text-strong capitalize">
-                  {role} Account
+                  {formatMessage(
+                    { id: "app.admin.userProfile.roleAccount", defaultMessage: "{role} Account" },
+                    { role }
+                  )}
                 </div>
                 <div className="text-xs">
                   {eoaAddress && <AddressDisplay address={eoaAddress} showCopyButton={true} />}
                 </div>
               </div>
             </div>
-          </div>
+          </DropdownMenu.Label>
 
-          {/* Menu Items */}
-          <div className="py-2">
-            {/* Theme Options */}
-            <div className="px-4 py-2">
-              <div className="text-xs font-medium text-text-soft uppercase tracking-wider mb-2">
-                Theme
-              </div>
-              <div className="space-y-1">
-                {(["light", "dark", "system"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => {
-                      setTheme(mode);
-                      setIsOpen(false);
-                    }}
-                    className={cn(
-                      "flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors",
-                      theme === mode
-                        ? "bg-success-lighter text-success-dark border border-success-light"
-                        : "text-text-sub hover:bg-bg-weak"
-                    )}
-                  >
-                    {getThemeIcon(mode)}
-                    <span className="flex-1 text-left">{getThemeLabel(mode)}</span>
-                    {theme === mode && <div className="w-2 h-2 bg-success-base rounded-full"></div>}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* Theme Options */}
+          <DropdownMenu.Group>
+            <DropdownMenu.Label className="px-4 pt-3 pb-1 text-xs font-medium text-text-soft uppercase tracking-wider">
+              {formatMessage({ id: "app.admin.userProfile.theme", defaultMessage: "Theme" })}
+            </DropdownMenu.Label>
+            {(["light", "dark", "system"] as const).map((mode) => (
+              <DropdownMenu.Item
+                key={mode}
+                onSelect={() => setTheme(mode)}
+                className={cn(
+                  "flex items-center mx-2 px-3 py-2 text-sm rounded-md transition-colors cursor-pointer outline-none",
+                  theme === mode
+                    ? "bg-success-lighter text-success-dark border border-success-light"
+                    : "text-text-sub hover:bg-bg-weak data-[highlighted]:bg-bg-weak"
+                )}
+              >
+                {getThemeIcon(mode)}
+                <span className="flex-1 text-left">{getThemeLabel(mode)}</span>
+                {theme === mode && <div className="w-2 h-2 bg-success-base rounded-full"></div>}
+              </DropdownMenu.Item>
+            ))}
+          </DropdownMenu.Group>
 
-            <div className="border-t border-stroke-soft my-2"></div>
+          <DropdownMenu.Separator className="border-t border-stroke-soft my-2" />
 
-            <button
-              onClick={handleLogout}
-              className="flex items-center w-full px-4 py-2 text-sm text-error-base hover:bg-error-lighter transition-colors"
-            >
-              <RiLogoutBoxLine className="mr-3 h-4 w-4" />
-              Disconnect
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+          <DropdownMenu.Item
+            onSelect={() => signOut?.()}
+            className="flex items-center w-full px-4 py-2 text-sm text-error-base hover:bg-error-lighter data-[highlighted]:bg-error-lighter transition-colors cursor-pointer outline-none"
+          >
+            <RiLogoutBoxLine className="mr-3 h-4 w-4" />
+            {formatMessage({
+              id: "app.admin.userProfile.disconnect",
+              defaultMessage: "Disconnect",
+            })}
+          </DropdownMenu.Item>
+
+          <div className="py-1" />
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }

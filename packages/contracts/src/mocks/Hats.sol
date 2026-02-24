@@ -302,8 +302,10 @@ contract MockHats is IHats {
     }
 
     /// @inheritdoc IHats
+    /// @dev Matches real Hats Protocol behavior: reverts if _to already wears the hat.
     function transferHat(uint256 _hatId, address _from, address _to) external {
         if (!hats[_hatId].mutable_) revert HatNotMutable();
+        if (wearers[_hatId][_to]) revert AlreadyWearingHat();
 
         wearers[_hatId][_from] = false;
         hats[_hatId].supply--;

@@ -1,3 +1,4 @@
+import { logger } from "../app/logger";
 import { translationCache } from "./db";
 
 // Old API shape (window.translation)
@@ -38,8 +39,8 @@ class BrowserTranslator {
       // Browser Translation API not available - silently fall back to English
       // Only log in debug mode to reduce console noise
       if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_MODE === "true") {
-        console.warn(
-          "⚠️ [Translation] Browser Translation API not available. " +
+        logger.warn(
+          "[Translation] Browser Translation API not available. " +
             "Auto-translation requires Chrome 125+ or Edge 125+. " +
             "Content will display in English."
         );
@@ -79,9 +80,7 @@ class BrowserTranslator {
             const availability = caps.languagePairAvailable(sourceLang, targetLang);
 
             if (availability === "no") {
-              console.warn(
-                `⚠️ [Translation] ${sourceLang} → ${targetLang} not supported by browser`
-              );
+              logger.warn(`[Translation] ${sourceLang} → ${targetLang} not supported by browser`);
               return null;
             }
           }
@@ -101,9 +100,7 @@ class BrowserTranslator {
             });
 
             if (availability === "no") {
-              console.warn(
-                `⚠️ [Translation] ${sourceLang} → ${targetLang} not supported by browser`
-              );
+              logger.warn(`[Translation] ${sourceLang} → ${targetLang} not supported by browser`);
               return null;
             }
           }
@@ -128,7 +125,7 @@ class BrowserTranslator {
 
       return translated;
     } catch (error) {
-      console.warn("[BrowserTranslator] Translation failed:", error);
+      logger.warn("[BrowserTranslator] Translation failed", { error });
       return null;
     }
   }

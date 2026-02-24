@@ -13,12 +13,12 @@ import { GAPTestHelper } from "../helpers/GAPTestHelper.sol";
 ///
 /// **Integration Flow:**
 /// 1. GardenToken.mintGarden()
-///    → GardenHatsModule.createGardenHatTree()  (creates 5 role hats)
+///    → HatsModule.createGardenHatTree()  (creates 5 role hats)
 ///    → KarmaGAPModule.createProject()          (creates GAP project)
 ///    → KarmaGAPModule.addProjectAdmin()        (adds operators)
 ///
 /// 2. Garden.addOperator()
-///    → GardenHatsModule.assignOperator()       (mints operator hat)
+///    → HatsModule.assignOperator()       (mints operator hat)
 ///    → KarmaGAPModule.addProjectAdmin()        (adds GAP admin)
 ///
 /// 3. WorkApprovalResolver.onAttest()
@@ -170,7 +170,7 @@ contract HatsGAPIntegrationTest is Test {
         // Setup: Create garden with initial operator
         _setupGardenWithOperator();
 
-        // Add second operator (simulating GardenHatsModule + KarmaGAPModule)
+        // Add second operator (simulating HatsModule + KarmaGAPModule)
         mockHats.mintHat(GARDEN1_OPERATOR_HAT, operator2);
         vm.prank(operator1); // operator1 is an admin after setup
         mockGAP.addProjectAdmin(garden1ProjectUID, operator2);

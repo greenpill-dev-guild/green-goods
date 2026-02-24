@@ -41,9 +41,70 @@ export type { AuthMode, BaseAuthContext } from "./auth";
 // ============================================
 export type { ChainId, DeploymentConfig } from "./blockchain";
 // ============================================
+// Conviction Types
+// ============================================
+export type {
+  SetConvictionStrategiesParams,
+  HypercertSignal,
+  HypercertEntry,
+  ConvictionWeight,
+  MemberPower,
+  VoterAllocation,
+  AllocateHypercertSupportParams,
+  RegisterHypercertParams,
+  DeregisterHypercertParams,
+  SetDecayParams,
+  SetPointsPerVoterParams,
+  SetRoleHatIdsParams,
+} from "./conviction";
+// ============================================
+// Gardens Community Types
+// ============================================
+export { WeightScheme, PoolType } from "./gardens-community";
+export {
+  WEIGHT_SCHEME_VALUES,
+  DEFAULT_SPLIT_CONFIG,
+  MIN_YIELD_THRESHOLD_USD,
+} from "./gardens-community";
+export type {
+  WeightSchemeConfig,
+  GardenCommunity,
+  GardenSignalPool,
+  SplitConfig,
+  YieldAllocation,
+  AllocateYieldParams,
+  SetSplitRatioParams,
+} from "./gardens-community";
+// ============================================
 // Contract Types
 // ============================================
 export type { CreateGardenParams, DeploymentParams, NetworkContracts } from "./contracts";
+// ============================================
+// Cookie Jar Types
+// ============================================
+export type {
+  CookieJar,
+  CookieJarAdminParams,
+  CookieJarDepositParams,
+  CookieJarEmergencyWithdrawParams,
+  CookieJarUpdateIntervalParams,
+  CookieJarUpdateMaxWithdrawalParams,
+  CookieJarWithdrawParams,
+} from "./cookie-jar";
+// ============================================
+// Vault Types
+// ============================================
+export type {
+  DepositParams,
+  EmergencyPauseParams,
+  GardenVault,
+  HarvestParams,
+  VaultDeposit,
+  VaultEvent,
+  VaultEventType,
+  VaultPreview,
+  WithdrawParams,
+} from "./vaults";
 // ============================================
 // Domain Types
 // ============================================
@@ -52,12 +113,17 @@ export type {
   ActionCard,
   ActionInstructionConfig,
   Address,
+  AssessmentAttachment,
   AssessmentDraft,
+  AssessmentWorkflowParams,
+  CreateAssessmentForm, // @deprecated - use AssessmentWorkflowParams
+  ENSRegistrationData,
   Garden,
   GardenAssessment,
   GardenCard,
   GardenerCard,
   Link,
+  SmartOutcome,
   Work,
   WorkApproval,
   WorkApprovalDraft,
@@ -66,9 +132,50 @@ export type {
   WorkDraft, // @deprecated - use WorkSubmission
   WorkInput,
   WorkMetadata,
+  WorkMetadataV1,
 } from "./domain";
-// Re-export Capital enum (value export, not type)
-export { Capital } from "./domain";
+// Re-export enums (value exports, not type)
+export {
+  Capital,
+  Confidence,
+  CynefinPhase,
+  Domain,
+  DOMAIN_COLORS,
+  VerificationMethod,
+} from "./domain";
+
+// ============================================
+// Hypercert Types
+// ============================================
+export { ACTION_DOMAINS, LISTING_DEFAULTS } from "./hypercerts";
+export type {
+  ActionDomain,
+  ActionType,
+  AttestationFilters,
+  AllowlistEntry,
+  AttestationRef,
+  CapitalType,
+  CreateListingParams,
+  CustomMetric,
+  FractionTrade,
+  GreenGoodsExtension,
+  HypercertAllowlistClaim,
+  HypercertAttestation,
+  HypercertDraft,
+  HypercertListing,
+  HypercertMetadata,
+  HypercertRecord,
+  HypercertStatus,
+  ListingStatus,
+  MetricValue,
+  OutcomeMetrics,
+  PredefinedMetric,
+  PropertyDefinition,
+  RegisteredOrderView,
+  ScopeDefinition,
+  TimeframeDefinition,
+  WorkApprovalNode,
+} from "./hypercerts";
 
 // ============================================
 // EAS Response Types

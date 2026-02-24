@@ -16,6 +16,7 @@
 
 import { posthog } from "posthog-js";
 import { getAppContext, track } from "./posthog";
+import { logger } from "./logger";
 import { parseContractError, type ParsedContractError } from "../../utils/errors/contract-errors";
 
 const IS_DEV = import.meta.env.DEV;
@@ -97,7 +98,7 @@ export function addBreadcrumb(action: string, data?: Record<string, unknown>): v
   }
 
   if (IS_DEBUG) {
-    console.log(`[ErrorTracking] Breadcrumb: ${action}`, data);
+    logger.info(`[ErrorTracking] Breadcrumb: ${action}`, data);
   }
 }
 
@@ -254,10 +255,9 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
   };
 
   if (IS_DEBUG) {
-    console.log(`[ErrorTracking] ${severity.toUpperCase()}: ${normalizedError.message}`, {
+    logger.info(`[ErrorTracking] ${severity.toUpperCase()}: ${normalizedError.message}`, {
       category,
       source,
-      properties,
     });
   }
 
@@ -265,7 +265,7 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
   if (IS_DEV) return;
   if (!isPostHogReady()) {
     if (IS_DEBUG) {
-      console.warn("[ErrorTracking] PostHog not ready, skipping capture");
+      logger.warn("[ErrorTracking] PostHog not ready, skipping capture");
     }
     return;
   }
@@ -464,7 +464,7 @@ export function initGlobalErrorHandlers(): () => void {
   globalHandlersInitialized = true;
 
   if (IS_DEBUG) {
-    console.log("[ErrorTracking] Global error handlers initialized");
+    logger.info("[ErrorTracking] Global error handlers initialized");
   }
 
   // Return cleanup function
@@ -475,7 +475,7 @@ export function initGlobalErrorHandlers(): () => void {
     cleanupGlobalHandlers = null;
 
     if (IS_DEBUG) {
-      console.log("[ErrorTracking] Global error handlers cleaned up");
+      logger.info("[ErrorTracking] Global error handlers cleaned up");
     }
   };
 

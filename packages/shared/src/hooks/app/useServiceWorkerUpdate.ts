@@ -1,4 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+/**
+ * Service Worker Update Hook
+ *
+ * Manages service worker updates with user control.
+ * Uses utility hooks for proper event listener and async cleanup.
+ *
+ * @module hooks/app/useServiceWorkerUpdate
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
 
 export interface ServiceWorkerUpdateState {
@@ -43,51 +53,74 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    // Only run in production or when SW is explicitly enabled
+  // Track registration for cleanup
+  const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const installingWorkerRef = useRef<ServiceWorker | null>(null);
+
+  // Check if SW is enabled - memoized to avoid recomputation
+  const isEnabled = useMemo(() => {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return false;
     const enableDevServiceWorker = import.meta.env.VITE_ENABLE_SW_DEV === "true";
-    if (!(import.meta.env.PROD || enableDevServiceWorker)) return;
-    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    return import.meta.env.PROD || enableDevServiceWorker;
+  }, []);
 
-    let registration: ServiceWorkerRegistration | undefined;
+  // Handler for when a new SW is found installing
+  const handleStateChange = useCallback(() => {
+    const installing = installingWorkerRef.current;
+    if (installing?.state === "installed" && navigator.serviceWorker.controller) {
+      setWaitingWorker(installing);
+      setUpdateAvailable(true);
+      track("sw_update_available", { source: "update_found" });
+    }
+  }, []);
 
-    const checkForWaitingWorker = (reg: ServiceWorkerRegistration) => {
-      if (reg.waiting) {
-        setWaitingWorker(reg.waiting);
-        setUpdateAvailable(true);
-        track("sw_update_available", { source: "initial_check" });
-      }
-    };
+  // Handler for update found event
+  const handleUpdateFound = useCallback(() => {
+    const registration = registrationRef.current;
+    const installing = registration?.installing;
+    if (!installing) return;
 
-    const handleUpdateFound = () => {
-      const installing = registration?.installing;
-      if (!installing) return;
+    // Clean up previous listener if any
+    if (installingWorkerRef.current) {
+      installingWorkerRef.current.removeEventListener("statechange", handleStateChange);
+    }
 
-      installing.addEventListener("statechange", () => {
-        if (installing.state === "installed" && navigator.serviceWorker.controller) {
-          // New SW installed, waiting to activate
-          setWaitingWorker(installing);
-          setUpdateAvailable(true);
-          track("sw_update_available", { source: "update_found" });
-        }
-      });
-    };
+    // Store reference and add listener
+    installingWorkerRef.current = installing;
+    installing.addEventListener("statechange", handleStateChange);
+  }, [handleStateChange]);
+
+  // Setup effect - get registration and check for waiting worker
+  useEffect(() => {
+    if (!isEnabled) return;
+
+    let isMounted = true;
+    const cleanupFns: (() => void)[] = [];
 
     const setup = async () => {
       try {
-        registration = await navigator.serviceWorker.getRegistration();
-        if (!registration) return;
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration || !isMounted) return;
+
+        registrationRef.current = registration;
 
         // Check if there's already a waiting worker
-        checkForWaitingWorker(registration);
+        if (registration.waiting) {
+          setWaitingWorker(registration.waiting);
+          setUpdateAvailable(true);
+          track("sw_update_available", { source: "initial_check" });
+        }
 
         // Listen for future updates
         registration.addEventListener("updatefound", handleUpdateFound);
+        cleanupFns.push(() => {
+          registration.removeEventListener("updatefound", handleUpdateFound);
+        });
 
-        // Proactively check for updates on visibility change (mobile PWA optimization)
+        // Proactively check for updates
         const checkForUpdates = async () => {
           try {
-            await registration?.update();
+            await registration.update();
           } catch {
             // Silently ignore update check failures (offline, etc.)
           }
@@ -108,22 +141,43 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
         document.addEventListener("visibilitychange", handleVisibilityChange);
         window.addEventListener("focus", handleFocus);
 
-        return () => {
-          registration?.removeEventListener("updatefound", handleUpdateFound);
+        cleanupFns.push(() => {
           document.removeEventListener("visibilitychange", handleVisibilityChange);
           window.removeEventListener("focus", handleFocus);
-        };
+        });
       } catch (error) {
-        console.error("[useServiceWorkerUpdate] Setup failed:", error);
+        logger.error("Service worker update setup failed", {
+          source: "useServiceWorkerUpdate",
+          error,
+        });
       }
     };
 
-    const cleanup = setup();
+    void setup();
+
     return () => {
-      cleanup.then((fn) => fn?.());
+      isMounted = false;
+      // Clean up installing worker listener
+      if (installingWorkerRef.current) {
+        installingWorkerRef.current.removeEventListener("statechange", handleStateChange);
+        installingWorkerRef.current = null;
+      }
+      // Run all cleanup functions
+      cleanupFns.forEach((fn) => fn());
+      registrationRef.current = null;
     };
+  }, [isEnabled, handleUpdateFound, handleStateChange]);
+
+  // Use the event listener hook for controller change (with { once: true })
+  // This ensures we only handle it once and it's properly cleaned up
+  const handleControllerChange = useCallback(() => {
+    window.location.reload();
   }, []);
 
+  // Track if we've added the controllerchange listener
+  const controllerChangeListenerRef = useRef(false);
+
+  // Apply update handler
   const applyUpdate = useCallback(() => {
     if (!waitingWorker) return;
 
@@ -133,11 +187,23 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
     // Tell the waiting SW to skip waiting and become active
     waitingWorker.postMessage({ type: "SKIP_WAITING" });
 
-    // Listen for the controller change to reload
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      window.location.reload();
+    // Use { once: true } to automatically remove the listener after it fires
+    // Track that we added it for cleanup on unmount
+    controllerChangeListenerRef.current = true;
+    navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange, {
+      once: true,
     });
-  }, [waitingWorker]);
+  }, [waitingWorker, handleControllerChange]);
+
+  // Cleanup effect for controllerchange listener if component unmounts before it fires
+  useEffect(() => {
+    return () => {
+      if (controllerChangeListenerRef.current) {
+        navigator.serviceWorker?.removeEventListener("controllerchange", handleControllerChange);
+        controllerChangeListenerRef.current = false;
+      }
+    };
+  }, [handleControllerChange]);
 
   const dismissUpdate = useCallback(() => {
     setDismissed(true);

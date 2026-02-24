@@ -26,20 +26,25 @@ beforeAll(() => {
   });
 });
 
-// Mock the shared modules
-vi.mock("@green-goods/shared/modules", () => ({
+// Mock shared barrel imports — component imports everything from @green-goods/shared
+vi.mock("@green-goods/shared", () => ({
+  AudioPlayer: ({ file, onDelete }: any) => <div data-testid="audio-player">{file?.name}</div>,
+  AudioRecorder: ({ onRecordingComplete }: any) => (
+    <button
+      data-testid="audio-recorder"
+      onClick={() => onRecordingComplete?.(new File([], "recording.webm"))}
+    >
+      Record
+    </button>
+  ),
   track: vi.fn(),
   mediaResourceManager: {
     getOrCreateUrl: vi.fn((file: File) => `blob:mock-url-${file.name}`),
     cleanupUrls: vi.fn(),
   },
-}));
-
-// Mock image compressor
-vi.mock("@green-goods/shared/utils/work/image-compression", () => ({
   imageCompressor: {
     shouldCompress: () => false,
-    compressImages: vi.fn().mockImplementation((files) => Promise.resolve(files)),
+    compressImages: vi.fn().mockImplementation((files: File[]) => Promise.resolve(files)),
     getCompressionStats: vi.fn().mockReturnValue({}),
   },
 }));
@@ -88,6 +93,8 @@ function renderWithIntl(ui: React.ReactElement) {
 }
 
 describe("WorkMedia", () => {
+  const mockSetAudioNotes = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -105,11 +112,14 @@ describe("WorkMedia", () => {
         }}
         images={[]}
         setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
         minRequired={1}
       />
     );
 
-    expect(screen.getByTestId("form-info")).toBeInTheDocument();
+    const formInfos = screen.getAllByTestId("form-info");
+    expect(formInfos.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders file input for gallery upload", () => {
@@ -120,6 +130,8 @@ describe("WorkMedia", () => {
         config={{ required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
         minRequired={1}
       />
     );
@@ -138,6 +150,8 @@ describe("WorkMedia", () => {
         config={{ required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
         minRequired={1}
       />
     );
@@ -158,6 +172,8 @@ describe("WorkMedia", () => {
         config={{ required: true, maxImageCount: 5 }}
         images={[mockFile1, mockFile2]}
         setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
         minRequired={1}
       />
     );
@@ -175,6 +191,8 @@ describe("WorkMedia", () => {
         config={{ required: true, maxImageCount: 5, minImageCount: 2 }}
         images={[]}
         setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
         minRequired={2}
       />
     );
@@ -192,6 +210,8 @@ describe("WorkMedia", () => {
         config={{ required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
         minRequired={1}
         onGalleryClickRef={galleryClickRef}
       />
@@ -210,6 +230,8 @@ describe("WorkMedia", () => {
         config={{ required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
         minRequired={1}
         onCameraClickRef={cameraClickRef}
       />
@@ -228,6 +250,8 @@ describe("WorkMedia", () => {
         config={{ required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
         minRequired={1}
       />
     );

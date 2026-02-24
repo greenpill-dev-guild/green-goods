@@ -95,7 +95,7 @@ await page.addInitScript(({ address, authModeKey }) => {
         __type: "Map",
         value: [[
           "mock",
-          { accounts: [address], chainId: 84532 }
+          { accounts: [address], chainId: 11155111 }
         ]]
       },
       current: "mock"
@@ -105,7 +105,7 @@ await page.addInitScript(({ address, authModeKey }) => {
 
   // Set AppKit state
   localStorage.setItem("@w3m/connected_connector", '"mock"');
-  localStorage.setItem("@w3m/active_caip_network_id", '"eip155:84532"');
+  localStorage.setItem("@w3m/active_caip_network_id", '"eip155:11155111"');
 }, { address: "0xAddress", authModeKey: "greengoods_auth_mode" });
 
 // 2. Navigate to authenticated route
@@ -301,7 +301,7 @@ const data = await queryIndexer<T>(page, query, variables);
 
 ### MCP Servers vs Playwright
 
-You have these MCP servers configured (`.cursor/mcp.json`):
+You have these MCP servers configured (`.mcp.json`):
 
 | MCP Server | Purpose | Overlap with Playwright? |
 |------------|---------|--------------------------|
@@ -337,7 +337,7 @@ Tests use these env vars (set in `global-setup.ts`):
 process.env.TEST_CLIENT_URL = "https://localhost:3001";
 process.env.TEST_ADMIN_URL = "https://localhost:3002";
 process.env.TEST_INDEXER_URL = "http://localhost:8080/v1/graphql";
-process.env.TEST_CHAIN_ID = "84532";  // Base Sepolia
+process.env.TEST_CHAIN_ID = "11155111";  // Sepolia
 ```
 
 **Control flags:**

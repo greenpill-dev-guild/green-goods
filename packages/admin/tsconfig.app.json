@@ -11,7 +11,7 @@
     "resolvePackageJsonExports": false,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
     "incremental": true,
@@ -52,10 +52,12 @@
       "@green-goods/shared/i18n/*": ["../shared/src/i18n/*.json"],
       "@green-goods/shared/workflows": ["../shared/src/workflows/index.ts"],
       "@green-goods/shared/workflows/*": ["../shared/src/workflows/*.ts"],
-      "@green-goods/shared/constants": ["../shared/src/constants/index.ts"]
+      "@green-goods/shared/constants": ["../shared/src/constants/index.ts"],
+      "@green-goods/contracts/deployments/*": ["../contracts/deployments/*"],
+      "@green-goods/contracts/abis/*": ["../contracts/abis/*"]
     }
   },
-  "include": ["src/**/*", "src/types/**/*.d.ts", "../shared/src/**/*"],
+  "include": ["src/**/*", "src/types/**/*.d.ts", "../shared/src/types/**/*.d.ts"],
   "exclude": [
     "src/__tests__",
     "src/**/__tests__/**",

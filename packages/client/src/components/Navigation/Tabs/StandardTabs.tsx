@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared/utils";
+import { cn } from "@green-goods/shared";
 import React from "react";
 
 export interface StandardTab {
@@ -73,6 +73,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
     <div className={cn("flex border-b border-border flex-shrink-0", className)}>
       {tabs.map((tab) => (
         <button
+          type="button"
           key={tab.id}
           onClick={(event) => {
             if (tab.disabled) return;

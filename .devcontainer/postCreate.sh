@@ -114,23 +114,68 @@ echo "════════════════════════�
 echo "🤖 Claude Code"
 echo "═══════════════════════════════════════════════════════════"
 
+# Create claude-auto alias for autonomous mode
+ZSHRC="$HOME/.zshrc"
+BASHRC="$HOME/.bashrc"
+CLAUDE_ALIAS='alias claude-auto="claude --dangerously-skip-permissions"'
+
+# Add alias to shell configs if not present
+for rc in "$ZSHRC" "$BASHRC"; do
+    # Create file if it doesn't exist
+    [ ! -f "$rc" ] && touch "$rc"
+    if ! grep -q "claude-auto" "$rc" 2>/dev/null; then
+        echo "" >> "$rc"
+        echo "# Claude Code autonomous mode (firewall-protected)" >> "$rc"
+        echo "$CLAUDE_ALIAS" >> "$rc"
+    fi
+done
+
 if command -v claude &> /dev/null; then
     echo "   ✅ Installed: $(claude --version 2>/dev/null || echo 'version unknown')"
     echo ""
 
-    # Check authentication status
+    # Check authentication status (priority order)
+    CLAUDE_AUTH_STATUS=""
+
     if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+        CLAUDE_AUTH_STATUS="api_key"
         echo "   ✅ Authenticated via API key"
     elif [ "${CLAUDE_CODE_USE_BEDROCK:-}" = "1" ]; then
+        CLAUDE_AUTH_STATUS="bedrock"
         echo "   ✅ Authenticated via Amazon Bedrock"
         [ -n "${AWS_REGION:-}" ] && echo "      Region: $AWS_REGION"
     elif [ "${CLAUDE_CODE_USE_VERTEX:-}" = "1" ]; then
+        CLAUDE_AUTH_STATUS="vertex"
         echo "   ✅ Authenticated via Google Vertex AI"
         [ -n "${CLOUD_ML_REGION:-}" ] && echo "      Region: $CLOUD_ML_REGION"
     elif [ "${CLAUDE_CODE_USE_FOUNDRY:-}" = "1" ]; then
+        CLAUDE_AUTH_STATUS="foundry"
         echo "   ✅ Authenticated via Microsoft Foundry"
         [ -n "${ANTHROPIC_FOUNDRY_RESOURCE:-}" ] && echo "      Resource: $ANTHROPIC_FOUNDRY_RESOURCE"
-    else
+    elif [ -f "$HOME/.claude/.credentials.json" ]; then
+        # Check for OAuth credentials in persistent volume
+        if grep -q "accessToken" "$HOME/.claude/.credentials.json" 2>/dev/null; then
+            CLAUDE_AUTH_STATUS="oauth"
+            # Check if token might be expired (robust JSON parsing with jq fallback)
+            if command -v jq &> /dev/null; then
+                EXPIRES_AT=$(jq -r '.expiresAt // empty' "$HOME/.claude/.credentials.json" 2>/dev/null)
+            else
+                # Fallback to grep if jq not available (allow optional whitespace after colon)
+                EXPIRES_AT=$(grep -oE '"expiresAt":[[:space:]]*[0-9]+' "$HOME/.claude/.credentials.json" 2>/dev/null | grep -oE '[0-9]+')
+            fi
+            CURRENT_MS=$(($(date +%s) * 1000))
+            if [ -n "$EXPIRES_AT" ] && [[ "$EXPIRES_AT" =~ ^[0-9]+$ ]] && [ "$CURRENT_MS" -lt "$EXPIRES_AT" ]; then
+                echo "   ✅ Authenticated via OAuth (persisted in volume)"
+                echo "      Credentials will persist across container restarts."
+            else
+                echo "   ⚠️  OAuth token may be expired"
+                echo "      Run 'claude login' to refresh your session."
+                CLAUDE_AUTH_STATUS=""
+            fi
+        fi
+    fi
+
+    if [ -z "$CLAUDE_AUTH_STATUS" ]; then
         echo "   📝 To authenticate, run:"
         echo ""
         echo "      claude login"
@@ -138,10 +183,16 @@ if command -v claude &> /dev/null; then
         echo "      This opens a browser to sign in with your Anthropic account."
         echo "      Your session will persist across container restarts."
     fi
+
+    echo ""
+    echo "   🚀 Autonomous mode (with firewall protection):"
+    echo ""
+    echo "      claude-auto          # Alias for --dangerously-skip-permissions"
+    echo "      claude-auto \"task\"   # Run a task autonomously"
+    echo ""
 else
     echo "   ❌ CLI not found (installation may have failed)"
 fi
 
-echo ""
 echo "═══════════════════════════════════════════════════════════"
 echo ""

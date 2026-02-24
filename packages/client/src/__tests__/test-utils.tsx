@@ -1,0 +1,24 @@
+/**
+ * Test Utilities for Client Package
+ *
+ * Re-exports shared test utilities with client-specific additions.
+ */
+
+// Re-export everything from shared testing utilities
+export {
+  mock,
+  createTestQueryClient,
+  QueryTestWrapper as TestWrapper,
+  renderWithQuery as renderWithProviders,
+  MOCK_ADDRESSES,
+  MOCK_TX_HASH,
+  createMockSmartAccountClient,
+} from "@green-goods/shared/testing";
+
+// Re-export testing library
+export * from "@testing-library/react";
+export { default as userEvent } from "@testing-library/user-event";
+
+// Client-specific: Re-export render as renderWithProviders for backward compatibility
+import { renderWithQuery } from "@green-goods/shared/testing";
+export const render = renderWithQuery;

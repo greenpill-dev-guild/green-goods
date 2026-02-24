@@ -1,0 +1,442 @@
+/* Storybook CSS Entry Point
+ * Configures Tailwind CSS v4 and imports all necessary styles
+ * to match the client/admin app styling.
+ */
+
+@import "tailwindcss";
+
+/* Configure dark mode to use data-theme attribute (matching shared theme system) */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Import unified theme from shared package (CSS variables + @theme block) */
+@import "../src/styles/theme.css";
+
+/* ============================================================================
+ * ROOT STYLES
+ * Base configuration for the Storybook preview
+ * ============================================================================ */
+
+:root {
+  color-scheme: light dark;
+
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-synthesis: none;
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================================================
+ * TYPOGRAPHY THEME TOKENS
+ * Font sizes, line heights, weights for consistent typography
+ * ============================================================================ */
+
+/* Header color with dark mode support */
+:root {
+  --color-header-text: #254d31; /* Dark forest green for light mode */
+}
+
+:root[data-theme="dark"] {
+  --color-header-text: rgb(var(--green-200)); /* Pale mint for dark mode - matches primary */
+}
+
+/* Typography, shadow, and animation @theme tokens are inherited from
+   the shared theme.css import above -- no need to re-declare them here. */
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+    filter: blur(2px) contrast(6);
+  }
+  20% {
+    filter: blur(0px) contrast(1);
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    filter: blur(0px) contrast(1);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    filter: blur(0px) contrast(1);
+  }
+  20% {
+    filter: blur(0px) contrast(1);
+  }
+  to {
+    height: 0;
+    filter: blur(2px) contrast(6);
+  }
+}
+
+@keyframes spring-bump {
+  from {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* ============================================================================
+ * TYPOGRAPHY UTILITIES
+ * ============================================================================ */
+
+@layer utilities {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-family-sans);
+    color: var(--color-header-text);
+  }
+
+  * {
+    font-family: var(--font-family-sans);
+  }
+
+  h1 {
+    font-size: 2em;
+    font-weight: bold;
+  }
+
+  h2 {
+    font-size: 1.5em;
+    font-weight: bold;
+  }
+
+  h3 {
+    font-size: 1.25em;
+    font-weight: bold;
+  }
+
+  h4 {
+    font-size: 1.125em;
+    font-weight: bold;
+  }
+
+  h5 {
+    font-size: 1.125em;
+    font-weight: bold;
+  }
+
+  h6 {
+    font-size: 1em;
+    font-weight: 600;
+  }
+
+  p {
+    font-size: 1em;
+  }
+
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  ul {
+    list-style: none;
+  }
+
+  ol {
+    list-style: none;
+  }
+
+  /* Shadow utilities */
+  .shadow-regular-xs {
+    box-shadow: var(--shadow-regular-xs);
+  }
+
+  .shadow-regular-sm {
+    box-shadow: var(--shadow-regular-sm);
+  }
+
+  .shadow-regular-md {
+    box-shadow: var(--shadow-regular-md);
+  }
+
+  .shadow-button-primary-focus {
+    box-shadow: var(--shadow-button-primary-focus);
+  }
+
+  .shadow-button-important-focus {
+    box-shadow: var(--shadow-button-important-focus);
+  }
+
+  .shadow-button-error-focus {
+    box-shadow: var(--shadow-button-error-focus);
+  }
+
+  .shadow-fancy-buttons-neutral {
+    box-shadow: var(--shadow-fancy-buttons-neutral);
+  }
+
+  .shadow-fancy-buttons-primary {
+    box-shadow: var(--shadow-fancy-buttons-primary);
+  }
+
+  .shadow-fancy-buttons-error {
+    box-shadow: var(--shadow-fancy-buttons-error);
+  }
+
+  .shadow-fancy-buttons-stroke {
+    box-shadow: var(--shadow-fancy-buttons-stroke);
+  }
+
+  .shadow-toggle-switch {
+    box-shadow: var(--shadow-toggle-switch);
+  }
+
+  .shadow-switch-thumb {
+    box-shadow: var(--shadow-switch-thumb);
+  }
+
+  .shadow-tooltip {
+    box-shadow: var(--shadow-tooltip);
+  }
+
+  /* Custom Border Radius Utilities */
+  .rounded-10 {
+    border-radius: 0.625rem;
+  }
+  .rounded-20 {
+    border-radius: 1.25rem;
+  }
+
+  /* Universal Icon Button Class - Dark mode compatible */
+  .btn-icon {
+    @apply relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border;
+    @apply bg-bg-white-0 border-stroke-soft-200 text-text-soft-400;
+    @apply transition-all duration-200 active:scale-95;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary;
+  }
+
+  .btn-icon svg {
+    @apply text-text-soft-400 focus:text-primary active:text-primary;
+  }
+
+  /* Status Badge Variants - Dark mode compatible */
+  .badge-pill {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply border-stroke-soft-200 text-text-sub-600;
+  }
+
+  .badge-pill-blue {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-information-lighter text-information-dark border-information-light;
+  }
+
+  .badge-pill-amber {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-warning-lighter text-warning-dark border-warning-light;
+  }
+
+  .badge-pill-green {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-success-lighter text-success-dark border-success-light;
+  }
+
+  .badge-pill-red {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-error-lighter text-error-dark border-error-light;
+  }
+
+  .badge-pill-purple {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-feature-lighter text-feature-dark border-feature-light;
+  }
+
+  .badge-pill-slate {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-bg-soft-200 text-text-sub-600 border-stroke-soft-200;
+  }
+
+  .badge-pill-emerald {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-xs font-medium;
+    @apply bg-success-lighter text-success-dark border-success-light;
+  }
+
+  /* Additional utility classes */
+  .small {
+    @apply text-paragraph-sm;
+  }
+
+  .extra-small {
+    @apply text-paragraph-xs;
+  }
+}
+
+/* ============================================================================
+ * ANIMATIONS
+ * ============================================================================ */
+
+/* Staggered list animations */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stagger-item {
+  opacity: 0;
+  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Shimmer skeleton - Dark mode friendly */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: rgb(var(--bg-soft-200));
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--bg-sub-300) / 60%),
+    transparent
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Micro-interactions */
+.tap-feedback {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.tap-feedback:active {
+  transform: scale(0.98);
+}
+
+/* Toast animations */
+@keyframes toastSlideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toastSlideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.toast-enter {
+  animation: toastSlideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-exit {
+  animation: toastSlideOutRight 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* Modal animations */
+@keyframes modalBackdropFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0.8;
+  }
+  60% {
+    transform: translate3d(0, -2%, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+.modal-backdrop-enter {
+  animation: modalBackdropFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-slide-enter {
+  animation: modalSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+/* Accessibility - respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

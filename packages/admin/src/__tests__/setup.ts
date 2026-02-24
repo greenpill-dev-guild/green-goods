@@ -6,6 +6,22 @@
 
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 
+// Mock window.matchMedia for components and libraries that rely on it in tests
+// (e.g., responsive layout logic and chart libraries that expect matchMedia in JSDOM)
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(), // Deprecated
+    removeListener: vi.fn(), // Deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 // Import base setup from shared (includes common mocks)
 import "@green-goods/shared/__tests__/setupTests.base";
 
@@ -30,7 +46,7 @@ Object.defineProperty(import.meta, "env", {
   value: {
     VITE_PRIVY_APP_ID: "test-app-id",
     VITE_ENVIO_INDEXER_URL: "http://localhost:8081/v1/graphql",
-    VITE_DEFAULT_CHAIN_ID: "84532", // Base Sepolia
+    VITE_DEFAULT_CHAIN_ID: "11155111", // Sepolia
     VITE_TEST_ADMIN_ADDRESS: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
     VITE_TEST_OPERATOR_ADDRESS: "0x04D60647836bcA09c37B379550038BdaaFD82503",
     VITE_TEST_USER_ADDRESS: "0x1234567890123456789012345678901234567890",

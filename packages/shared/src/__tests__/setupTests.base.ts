@@ -15,6 +15,25 @@ import "fake-indexeddb/auto";
 import "../__mocks__/browser/crypto";
 import "../__mocks__/browser/navigator";
 
+// Mock matchMedia immediately (before any module imports that might use it)
+// This needs to be at the top level, not in beforeAll, because it's called during module import
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "matchMedia", {
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+    writable: true,
+    configurable: true,
+  });
+}
+
 /**
  * Setup common test environment
  * Call this from package-specific setupTests files
@@ -37,41 +56,43 @@ export function setupTestEnvironment() {
       log: console.log, // Keep log for debugging
     };
 
-    // Mock window properties
-    Object.defineProperty(window, "location", {
-      value: {
-        href: "http://localhost:3000",
-        origin: "http://localhost:3000",
-        pathname: "/",
-        search: "",
-        hash: "",
-        hostname: "localhost",
-        assign: vi.fn(),
-        replace: vi.fn(),
-        reload: vi.fn(),
-      },
-      writable: true,
-    });
+    // Mock window properties (only in browser-like environments)
+    if (typeof window !== "undefined") {
+      Object.defineProperty(window, "location", {
+        value: {
+          href: "http://localhost:3000",
+          origin: "http://localhost:3000",
+          pathname: "/",
+          search: "",
+          hash: "",
+          hostname: "localhost",
+          assign: vi.fn(),
+          replace: vi.fn(),
+          reload: vi.fn(),
+        },
+        writable: true,
+      });
 
-    // Mock window.addEventListener for online/offline events
-    const eventListeners: Record<string, Function[]> = {};
-    (global.window.addEventListener as any) = vi.fn((event: string, listener: Function) => {
-      if (!eventListeners[event]) eventListeners[event] = [];
-      eventListeners[event].push(listener);
-    });
+      // Mock window.addEventListener for online/offline events
+      const eventListeners: Record<string, Function[]> = {};
+      (global.window.addEventListener as any) = vi.fn((event: string, listener: Function) => {
+        if (!eventListeners[event]) eventListeners[event] = [];
+        eventListeners[event].push(listener);
+      });
 
-    (global.window.removeEventListener as any) = vi.fn((event: string, listener: Function) => {
-      if (eventListeners[event]) {
-        const index = eventListeners[event].indexOf(listener);
-        if (index > -1) eventListeners[event].splice(index, 1);
-      }
-    });
+      (global.window.removeEventListener as any) = vi.fn((event: string, listener: Function) => {
+        if (eventListeners[event]) {
+          const index = eventListeners[event].indexOf(listener);
+          if (index > -1) eventListeners[event].splice(index, 1);
+        }
+      });
 
-    (global.window.dispatchEvent as any) = vi.fn((event: Event) => {
-      const listeners = eventListeners[event.type] || [];
-      listeners.forEach((listener) => listener(event));
-      return true;
-    });
+      (global.window.dispatchEvent as any) = vi.fn((event: Event) => {
+        const listeners = eventListeners[event.type] || [];
+        listeners.forEach((listener) => listener(event));
+        return true;
+      });
+    }
 
     // Mock performance.now for consistent timing in tests
     global.performance = {

@@ -221,7 +221,7 @@ webServer: [
 - `TEST_CLIENT_URL` → https://localhost:3001
 - `TEST_ADMIN_URL` → https://localhost:3002
 - `TEST_INDEXER_URL` → http://localhost:8080/v1/graphql
-- `TEST_CHAIN_ID` → 84532 (Base Sepolia)
+- `TEST_CHAIN_ID` → 11155111 (Sepolia)
 
 ## CI/CD
 

@@ -1,13 +1,12 @@
-import deployment31337 from "../../../contracts/deployments/31337-latest.json";
-import deployment42161 from "../../../contracts/deployments/42161-latest.json";
-import deployment42220 from "../../../contracts/deployments/42220-latest.json";
-import deployment84532 from "../../../contracts/deployments/84532-latest.json";
-import networksConfig from "../../../contracts/deployments/networks.json";
+import deployment31337 from "@green-goods/contracts/deployments/31337-latest.json";
+import deployment11155111 from "@green-goods/contracts/deployments/11155111-latest.json";
+import deployment42161 from "@green-goods/contracts/deployments/42161-latest.json";
+import deployment42220 from "@green-goods/contracts/deployments/42220-latest.json";
+import networksConfig from "@green-goods/contracts/deployments/networks.json";
 
 // Export types
 export interface EASConfig {
-  GARDEN_ASSESSMENT: { uid: string; schema: string };
-  ASSESSMENT?: { uid: string; schema: string };
+  ASSESSMENT: { uid: string; schema: string };
   WORK: { uid: string; schema: string };
   WORK_APPROVAL: { uid: string; schema: string };
   EAS: { address: string };
@@ -27,8 +26,6 @@ export interface NetworkConfig {
 // Internal type for deployment JSON structure
 interface DeploymentConfig {
   schemas?: {
-    gardenAssessmentSchemaUID?: string;
-    gardenAssessmentSchema?: string;
     assessmentSchemaUID?: string;
     assessmentSchema?: string;
     workSchemaUID?: string;
@@ -45,6 +42,13 @@ interface DeploymentConfig {
   workResolver?: string;
   workApprovalResolver?: string;
   deploymentRegistry?: string;
+  octantModule?: string;
+  octantFactory?: string;
+  hatsModule?: string;
+  karmaGAPModule?: string;
+  cookieJarModule?: string;
+  goodsToken?: string;
+  juiceboxProjectId?: number;
   rootGarden?: {
     address: string;
     tokenId: number;
@@ -64,18 +68,40 @@ interface NetworkJsonConfig {
 // Configuration maps for chain-specific data
 const DEPLOYMENT_CONFIGS: Record<string, DeploymentConfig> = {
   "31337": deployment31337 as DeploymentConfig,
+  "11155111": deployment11155111 as DeploymentConfig,
   "42161": deployment42161 as DeploymentConfig,
   "42220": deployment42220 as DeploymentConfig,
-  "84532": deployment84532 as DeploymentConfig,
 };
 
 const EAS_GRAPHQL_URLS: Record<string, string> = {
   "42161": "https://arbitrum.easscan.org/graphql",
   "42220": "https://celo.easscan.org/graphql",
-  "84532": "https://base-sepolia.easscan.org/graphql",
+  "11155111": "https://sepolia.easscan.org/graphql",
 };
 
-const DEFAULT_EAS_GRAPHQL_URL = "https://base-sepolia.easscan.org/graphql";
+const DEFAULT_EAS_GRAPHQL_URL = "https://sepolia.easscan.org/graphql";
+const FALLBACK_CHAIN_ID = 11155111;
+
+function hasNetworkConfig(chainId: number): boolean {
+  return Object.values(networksConfig.networks).some(
+    (config) => (config as NetworkJsonConfig).chainId === chainId
+  );
+}
+
+function resolveChainId(chainId?: number | string): number {
+  if (chainId === undefined || chainId === null || chainId === "") {
+    return FALLBACK_CHAIN_ID;
+  }
+  const parsed = Number(chainId);
+  if (!Number.isFinite(parsed)) {
+    return FALLBACK_CHAIN_ID;
+  }
+  const hasDeployment = Boolean(DEPLOYMENT_CONFIGS[String(parsed)]);
+  if (!hasDeployment || !hasNetworkConfig(parsed)) {
+    return FALLBACK_CHAIN_ID;
+  }
+  return parsed;
+}
 
 // Helper function to get network config by chain ID
 function getNetworkConfigFromNetworksJson(chainId: number): NetworkJsonConfig {
@@ -88,8 +114,8 @@ function getNetworkConfigFromNetworksJson(chainId: number): NetworkJsonConfig {
     }
   }
 
-  // Fallback to Base Sepolia if not found
-  return networks.baseSepolia as NetworkJsonConfig;
+  // Fallback to Sepolia if not found
+  return networks.sepolia as NetworkJsonConfig;
 }
 
 // Function to safely get deployment config using map lookup
@@ -100,23 +126,17 @@ function getDeploymentConfig(chainId: number | string): DeploymentConfig {
 
 // Get EAS GraphQL URL based on chain using map lookup
 export function getEasGraphqlUrl(chainId?: number | string): string {
-  const chain = String(chainId ?? 84532);
+  const chain = String(resolveChainId(chainId));
   return EAS_GRAPHQL_URLS[chain] ?? DEFAULT_EAS_GRAPHQL_URL;
 }
 
 // Function to get EAS config for a specific chain
 export function getEASConfig(chainId?: number | string): EASConfig {
-  const chain = chainId ? Number(chainId) : 84532; // Default to Base Sepolia
+  const chain = resolveChainId(chainId);
   const deployment = getDeploymentConfig(chain);
   const networkConfig = getNetworkConfigFromNetworksJson(chain);
 
   return {
-    GARDEN_ASSESSMENT: {
-      uid:
-        deployment.schemas?.gardenAssessmentSchemaUID ||
-        "0x0000000000000000000000000000000000000000000000000000000000000000",
-      schema: deployment.schemas?.gardenAssessmentSchema || "",
-    },
     ASSESSMENT: {
       uid:
         deployment.schemas?.assessmentSchemaUID ||
@@ -147,17 +167,11 @@ export function getEASConfig(chainId?: number | string): EASConfig {
 // Function to build RPC URL with Alchemy key
 function buildRpcUrl(rpcUrlTemplate: string, alchemyKey: string): string {
   // Handle different RPC URL patterns
-  if (rpcUrlTemplate.includes("${BASE_SEPOLIA_RPC_URL}")) {
-    return `https://base-sepolia.g.alchemy.com/v2/${alchemyKey}`;
-  }
   if (rpcUrlTemplate.includes("${ARBITRUM_RPC_URL}")) {
     return `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
   }
   if (rpcUrlTemplate.includes("${CELO_RPC_URL}")) {
     return `https://celo-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-  }
-  if (rpcUrlTemplate.includes("${BASE_RPC_URL}")) {
-    return `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`;
   }
   if (rpcUrlTemplate.includes("${OPTIMISM_RPC_URL}")) {
     return `https://opt-mainnet.g.alchemy.com/v2/${alchemyKey}`;
@@ -172,7 +186,7 @@ function buildRpcUrl(rpcUrlTemplate: string, alchemyKey: string): string {
 
 // Function to get network config for a specific chain
 export function getNetworkConfig(chainId?: number | string, alchemyKey = "demo"): NetworkConfig {
-  const chain = chainId ? Number(chainId) : 84532; // Default to Base Sepolia
+  const chain = resolveChainId(chainId);
   const networkConfig = getNetworkConfigFromNetworksJson(chain);
   const deployment = getDeploymentConfig(chain);
 
@@ -190,6 +204,10 @@ export function getNetworkConfig(chainId?: number | string, alchemyKey = "demo")
         deployment.workApprovalResolver || "0x0000000000000000000000000000000000000000",
       deploymentRegistry:
         deployment.deploymentRegistry || "0x0000000000000000000000000000000000000000",
+      octantModule: deployment.octantModule || "0x0000000000000000000000000000000000000000",
+      octantFactory: deployment.octantFactory || "0x0000000000000000000000000000000000000000",
+      hatsModule: deployment.hatsModule || "0x0000000000000000000000000000000000000000",
+      karmaGAPModule: deployment.karmaGAPModule || "0x0000000000000000000000000000000000000000",
       // Add contracts from networks.json
       eas: networkConfig.contracts?.eas || "0x0000000000000000000000000000000000000000",
       easSchemaRegistry:
@@ -226,7 +244,7 @@ export function getIndexerUrl(env: { VITE_ENVIO_INDEXER_URL?: string }, isDev: b
 }
 
 // Default chain ID from environment variable
-export const DEFAULT_CHAIN_ID = Number((import.meta as any).env?.VITE_CHAIN_ID) || 84532;
+export const DEFAULT_CHAIN_ID = resolveChainId((import.meta as any).env?.VITE_CHAIN_ID);
 
 // Get default chain configuration
 export function getDefaultChain() {

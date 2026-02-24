@@ -1,7 +1,13 @@
-import { useOffline } from "@green-goods/shared/hooks";
-import { cn } from "@green-goods/shared/utils";
-import { RiArrowLeftFill, RiNotificationFill, RiNotificationLine } from "@remixicon/react";
+import { type Garden, type Work, cn, useOffline } from "@green-goods/shared";
+import {
+  RiArrowLeftFill,
+  RiBankLine,
+  RiGovernmentLine,
+  RiNotificationFill,
+  RiNotificationLine,
+} from "@remixicon/react";
 import { useId } from "react";
+import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
@@ -12,6 +18,11 @@ type TopNavProps = {
   overlay?: boolean;
   /** Whether the current user is an operator of this garden */
   isOperator?: boolean;
+  showEndowmentButton?: boolean;
+  hasEndowmentDeposits?: boolean;
+  onEndowmentClick?: () => void;
+  showGovernanceButton?: boolean;
+  onGovernanceClick?: () => void;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 type NotificationsProps = {
@@ -26,7 +37,6 @@ const Notifications: React.FC<NotificationsProps> = ({ garden, works, popoverId 
   return (
     <div
       id={popoverId}
-      // @ts-expect-error - popover is a valid HTML attribute but not in React types yet
       popover="auto"
       className="fixed inset-0 w-full h-full bg-transparent p-6 m-0 border-0"
       style={{
@@ -48,26 +58,27 @@ Notifications.displayName = "Notifications";
 // Styling configuration for different button states
 const BUTTON_VARIANTS = {
   work: {
-    focus: "focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",
-    icon: "focus:text-emerald-700 active:text-emerald-700",
+    focus:
+      "focus-visible:ring-emerald-200 focus-visible:border-emerald-600 active:border-emerald-600",
+    icon: "focus-visible:text-emerald-700 active:text-emerald-700",
   },
   sync: {
-    focus: "focus:ring-blue-200 focus:border-blue-600 active:border-blue-600",
-    icon: "focus:text-blue-700 active:text-blue-700",
+    focus: "focus-visible:ring-blue-200 focus-visible:border-blue-600 active:border-blue-600",
+    icon: "focus-visible:text-blue-700 active:text-blue-700",
   },
   offline: {
-    focus: "focus:ring-orange-200 focus:border-orange-600 active:border-orange-600",
-    icon: "focus:text-orange-700 active:text-orange-700",
+    focus: "focus-visible:ring-orange-200 focus-visible:border-orange-600 active:border-orange-600",
+    icon: "focus-visible:text-orange-700 active:text-orange-700",
   },
 } as const;
 
 // Base styling for navigation buttons
 const NAV_BUTTON_BASE = [
-  "relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border",
+  "relative flex items-center justify-center w-11 h-11 p-1 rounded-lg border",
   "bg-bg-white-0 border-stroke-soft-200 text-text-sub-600",
   "transition-all duration-200 tap-feedback",
   "active:scale-95",
-  "focus:outline-none focus:ring-2",
+  "focus-visible:outline-none focus-visible:ring-2",
 ] as const;
 
 // Create complete button styles for a given variant
@@ -107,7 +118,7 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
     <>
       <button
         type="button"
-        popovertarget={popoverId}
+        popoverTarget={popoverId}
         className={cn(styles.button, "dropdown dropdown-bottom dropdown-end tap-target-lg")}
         aria-label="View notifications"
       >
@@ -116,6 +127,48 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
       </button>
       <Notifications {...props} works={works} popoverId={popoverId} />
     </>
+  );
+};
+
+const EndowmentButton: React.FC<{
+  hasDeposits: boolean;
+  onClick: () => void;
+  ariaLabel: string;
+}> = ({ hasDeposits, onClick, ariaLabel }) => {
+  const styles = createButtonStyles("work");
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={styles.button}
+      aria-label={ariaLabel}
+      title={ariaLabel}
+    >
+      {hasDeposits && (
+        <span className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 border border-white" />
+      )}
+      <RiBankLine className={styles.icon} />
+    </button>
+  );
+};
+
+const GovernanceButton: React.FC<{
+  onClick: () => void;
+  ariaLabel: string;
+}> = ({ onClick, ariaLabel }) => {
+  const styles = createButtonStyles("work");
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={styles.button}
+      aria-label={ariaLabel}
+      title={ariaLabel}
+    >
+      <RiGovernmentLine className={styles.icon} />
+    </button>
   );
 };
 
@@ -132,8 +185,14 @@ export const TopNav: React.FC<TopNavProps> = ({
   garden,
   overlay,
   isOperator = false,
+  showEndowmentButton = false,
+  hasEndowmentDeposits = false,
+  onEndowmentClick,
+  showGovernanceButton = false,
+  onGovernanceClick,
   ...props
 }: TopNavProps) => {
+  const { formatMessage } = useIntl();
   const { syncStatus, isOnline } = useOffline();
   const hasOfflineIssues = !navigator.onLine;
 
@@ -150,12 +209,18 @@ export const TopNav: React.FC<TopNavProps> = ({
 
   const backButtonClasses = cn(
     "p-0 px-2 z-1 transition-all duration-200 tap-target-lg tap-feedback",
-    "focus:outline-none focus:ring-2 active:scale-95",
+    "focus-visible:outline-none focus-visible:ring-2 active:scale-95",
     backButtonStyles.focusStyles
   );
 
   return (
     <div className={containerClasses} {...props}>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary-base focus:text-white focus:rounded-lg focus:text-sm focus:font-medium"
+      >
+        Skip to content
+      </a>
       {onBackClick && (
         <Button
           variant="neutral"
@@ -178,6 +243,19 @@ export const TopNav: React.FC<TopNavProps> = ({
       </div>
 
       <div className="flex grow" />
+      {garden && showGovernanceButton && onGovernanceClick && (
+        <GovernanceButton
+          onClick={onGovernanceClick}
+          ariaLabel={formatMessage({ id: "app.signal.governance" })}
+        />
+      )}
+      {garden && showEndowmentButton && onEndowmentClick && (
+        <EndowmentButton
+          hasDeposits={hasEndowmentDeposits}
+          onClick={onEndowmentClick}
+          ariaLabel={formatMessage({ id: "app.treasury.open" })}
+        />
+      )}
       {/* Only show notifications for operators - they need to review pending work */}
       {garden && isOperator && <NotificationCenter {...props} garden={garden} />}
     </div>

@@ -15,8 +15,11 @@ abstract contract DeployHelper is Script {
 
     /// @notice Error thrown when deployment address doesn't match predicted address
     error DeploymentAddressMismatch();
+    error SchemaGenerationFallbackFailed(string schemaName);
 
     using stdJson for string;
+
+    uint256 private constant MAX_SCHEMA_FIELDS = 64;
 
     struct NetworkConfig {
         address eas;
@@ -31,6 +34,8 @@ abstract contract DeployHelper is Script {
         address multisig;
         address ensRegistry;
         address ensResolver;
+        address ccipRouter;
+        uint64 ccipChainSelector;
     }
 
     struct DeploymentResult {
@@ -43,8 +48,20 @@ abstract contract DeployHelper is Script {
         address assessmentResolver;
         address workResolver;
         address workApprovalResolver;
-        address gardenerAccountLogic; // GardenerAccount implementation for user smart accounts
-        address gardenerRegistry; // Gardener Registry (mainnet only, address(0) on L2s)
+        address hatsModule;
+        address karmaGAPModule;
+        address octantModule;
+        address octantFactory;
+        address gardensModule;
+        address unifiedPowerRegistry;
+        address yieldSplitter;
+        address cookieJarModule;
+        address hypercertsModule;
+        address marketplaceAdapter;
+        address greenGoodsENS;
+        address ensReceiver;
+        address gardenerAccountLogic; // DEPRECATED: kept for JSON backward compatibility
+        address gardenerRegistry; // DEPRECATED: replaced by GreenGoodsENS (CCIP), kept for JSON compat
         bytes32 assessmentSchemaUID;
         bytes32 workSchemaUID;
         bytes32 workApprovalSchemaUID;
@@ -77,7 +94,14 @@ abstract contract DeployHelper is Script {
         NetworkConfig memory config;
         config.eas = json.readAddress(string.concat(basePath, ".contracts.eas"));
         config.easSchemaRegistry = json.readAddress(string.concat(basePath, ".contracts.easSchemaRegistry"));
-        config.communityToken = json.readAddress(string.concat(basePath, ".contracts.communityToken"));
+        // communityToken is required for L2 protocol deployments but optional on mainnet ENS-only mode
+        // solhint-disable-next-line no-empty-blocks
+        try vm.parseJson(json, string.concat(basePath, ".contracts.communityToken")) returns (bytes memory data) {
+            config.communityToken = abi.decode(data, (address));
+            // solhint-disable-next-line no-empty-blocks
+        } catch {
+            // Optional on mainnet ENS-only deployments; defaults to address(0)
+        }
         config.erc4337EntryPoint = json.readAddress(string.concat(basePath, ".contracts.erc4337EntryPoint"));
         config.multicallForwarder = json.readAddress(string.concat(basePath, ".contracts.multicallForwarder"));
 
@@ -98,6 +122,23 @@ abstract contract DeployHelper is Script {
             // ENS not configured for this network (L2 chains) - defaults to address(0)
         }
 
+        // CCIP router (for ENS cross-chain registration)
+        // solhint-disable-next-line no-empty-blocks
+        try vm.parseJson(json, string.concat(basePath, ".contracts.ccipRouter")) returns (bytes memory data) {
+            config.ccipRouter = abi.decode(data, (address));
+            // solhint-disable-next-line no-empty-blocks
+        } catch {
+            // CCIP not configured for this network - defaults to address(0)
+        }
+
+        // solhint-disable-next-line no-empty-blocks
+        try vm.parseJson(json, string.concat(basePath, ".ccipChainSelector")) returns (bytes memory data) {
+            config.ccipChainSelector = uint64(abi.decode(data, (uint256)));
+            // solhint-disable-next-line no-empty-blocks
+        } catch {
+            // CCIP chain selector not configured - defaults to 0
+        }
+
         // Get deployment defaults
         config.safe = json.readAddress(".deploymentDefaults.safe");
         config.safeFactory = json.readAddress(".deploymentDefaults.safeFactory");
@@ -111,6 +152,9 @@ abstract contract DeployHelper is Script {
             console.log("ENS Registry:", config.ensRegistry);
             console.log("ENS Resolver:", config.ensResolver);
         }
+        if (config.ccipRouter != address(0)) {
+            console.log("CCIP Router:", config.ccipRouter);
+        }
 
         return config;
     }
@@ -121,7 +165,6 @@ abstract contract DeployHelper is Script {
         if (chainId == 11_155_111) return "sepolia";
         if (chainId == 31_337) return "localhost";
         if (chainId == 42_161) return "arbitrum";
-        if (chainId == 84_532) return "baseSepolia";
         if (chainId == 42_220) return "celo";
 
         // Default to localhost for unknown chains
@@ -134,9 +177,15 @@ abstract contract DeployHelper is Script {
         string memory path = string.concat(root, "/deployments/networks.json");
         string memory json = vm.readFile(path);
 
-        // Generate salt from string for fresh deployment
-        // Increment this number for complete redeployment to new addresses
-        salt = keccak256(bytes("greenGoodsCleanDeploy2025:13"));
+        // Generate salt from configurable string for deterministic CREATE2 deployments.
+        // Override with DEPLOYMENT_SALT env var when a fresh address set is required.
+        string memory saltInput = "greenGoodsCleanDeploy2025:14";
+        try vm.envString("DEPLOYMENT_SALT") returns (string memory overrideSalt) {
+            if (bytes(overrideSalt).length > 0) {
+                saltInput = overrideSalt;
+            }
+        } catch { }
+        salt = keccak256(bytes(saltInput));
         factory = json.readAddress(".deploymentDefaults.factory");
         tokenboundRegistry = json.readAddress(".deploymentDefaults.tokenboundRegistry");
     }
@@ -187,12 +236,19 @@ abstract contract DeployHelper is Script {
     /// @notice Save deployment result to JSON with schema configuration
     function _saveDeployment(DeploymentResult memory result) internal {
         console.log("\n=== Saving Deployment ===");
-        console.log("DeploymentRegistry:", result.deploymentRegistry);
+        console.log("Deployment:", result.deploymentRegistry);
         console.log("Guardian:", result.guardian);
         console.log("GardenAccountImpl:", result.gardenAccountImpl);
-        console.log("GardenerAccountLogic:", result.gardenerAccountLogic);
+        console.log("GardenerAccountLogic (deprecated):", result.gardenerAccountLogic);
         console.log("GardenToken:", result.gardenToken);
         console.log("ActionRegistry:", result.actionRegistry);
+        console.log("OctantModule:", result.octantModule);
+        console.log("OctantFactory:", result.octantFactory);
+        console.log("GardensModule:", result.gardensModule);
+        console.log("CookieJarModule:", result.cookieJarModule);
+        console.log("YieldResolver:", result.yieldSplitter);
+        console.log("GreenGoodsENS:", result.greenGoodsENS);
+        console.log("ENSReceiver:", result.ensReceiver);
 
         string memory obj = "deployment";
         vm.serializeAddress(obj, "deploymentRegistry", result.deploymentRegistry);
@@ -204,6 +260,18 @@ abstract contract DeployHelper is Script {
         vm.serializeAddress(obj, "assessmentResolver", result.assessmentResolver);
         vm.serializeAddress(obj, "workResolver", result.workResolver);
         vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
+        vm.serializeAddress(obj, "hatsModule", result.hatsModule);
+        vm.serializeAddress(obj, "karmaGAPModule", result.karmaGAPModule);
+        vm.serializeAddress(obj, "octantModule", result.octantModule);
+        vm.serializeAddress(obj, "octantFactory", result.octantFactory);
+        vm.serializeAddress(obj, "gardensModule", result.gardensModule);
+        vm.serializeAddress(obj, "unifiedPowerRegistry", result.unifiedPowerRegistry);
+        vm.serializeAddress(obj, "yieldSplitter", result.yieldSplitter);
+        vm.serializeAddress(obj, "cookieJarModule", result.cookieJarModule);
+        vm.serializeAddress(obj, "hypercertsModule", result.hypercertsModule);
+        vm.serializeAddress(obj, "marketplaceAdapter", result.marketplaceAdapter);
+        vm.serializeAddress(obj, "greenGoodsENS", result.greenGoodsENS);
+        vm.serializeAddress(obj, "ensReceiver", result.ensReceiver);
         vm.serializeAddress(obj, "gardenerAccountLogic", result.gardenerAccountLogic);
         vm.serializeAddress(obj, "gardenerRegistry", result.gardenerRegistry);
 
@@ -307,24 +375,54 @@ abstract contract DeployHelper is Script {
 
     /// @notice Generate schema string from fields array using JavaScript utility
     function _generateSchemaString(string memory schemaName) internal virtual returns (string memory) {
-        string[] memory inputs = new string[](3);
+        string[] memory inputs = new string[](4);
         inputs[0] = "bun";
-        inputs[1] = "script/utils/generate-schemas.ts";
-        inputs[2] = schemaName;
+        inputs[1] = "run";
+        inputs[2] = "script/utils/generate-schemas.ts";
+        inputs[3] = schemaName;
 
-        bytes memory result = vm.ffi(inputs);
-        return string(result);
+        try vm.ffi(inputs) returns (bytes memory result) {
+            if (result.length > 0) {
+                return string(result);
+            }
+        } catch { }
+
+        // Fallback when bun/ffi is unavailable in the runner environment.
+        string memory json = _loadSchemaConfigForFallback();
+        string memory basePath = string.concat(".schemas.", schemaName, ".fields");
+        string memory schema;
+
+        for (uint256 i = 0; i < MAX_SCHEMA_FIELDS; i++) {
+            string memory fieldPath = string.concat(basePath, "[", vm.toString(i), "]");
+            bytes memory fieldData;
+            try vm.parseJson(json, fieldPath) returns (bytes memory parsedField) {
+                fieldData = parsedField;
+            } catch {
+                if (i == 0) revert SchemaGenerationFallbackFailed(schemaName);
+                break;
+            }
+            if (fieldData.length == 0) {
+                if (i == 0) revert SchemaGenerationFallbackFailed(schemaName);
+                break;
+            }
+
+            string memory fieldName = abi.decode(vm.parseJson(json, string.concat(fieldPath, ".name")), (string));
+            string memory fieldType = abi.decode(vm.parseJson(json, string.concat(fieldPath, ".type")), (string));
+            string memory fieldSchema = string.concat(fieldType, " ", fieldName);
+
+            if (bytes(schema).length == 0) {
+                schema = fieldSchema;
+            } else {
+                schema = string.concat(schema, ",", fieldSchema);
+            }
+        }
+
+        if (bytes(schema).length == 0) revert SchemaGenerationFallbackFailed(schemaName);
+        return schema;
     }
 
-    /// @notice Print deployment summary
-    // solhint-disable-next-line no-empty-blocks
-    function _printDeploymentSummary(DeploymentResult memory /* result */ ) internal view {
-        // TODO: Implement deployment summary logging
-    }
-
-    /// @notice Generate verification commands
-    // solhint-disable-next-line no-empty-blocks
-    function _generateVerificationCommands(DeploymentResult memory /* result */ ) internal view {
-        // TODO: Generate verification commands for deployment
+    /// @notice Load schema config for schema-string fallback path.
+    function _loadSchemaConfigForFallback() internal view returns (string memory) {
+        return vm.readFile(string.concat(vm.projectRoot(), "/config/schemas.json"));
     }
 }

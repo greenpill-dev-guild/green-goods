@@ -1,7 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { cn } from "@green-goods/shared/utils";
+import { cn } from "@green-goods/shared";
 import { RiCloseLine } from "@remixicon/react";
 import type React from "react";
+import { useIntl } from "react-intl";
 
 export interface ModalDrawerTab {
   id: string;
@@ -46,6 +47,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
   contentClassName,
   maxHeight = "95vh",
 }) => {
+  const { formatMessage } = useIntl();
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
@@ -60,7 +62,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
             "focus:outline-none",
             className
           )}
-          style={{ maxHeight }}
+          style={{ height: maxHeight, maxHeight }}
           data-testid="modal-drawer"
         >
           {/* Header */}
@@ -79,7 +81,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
                 <button
                   className="btn-icon"
                   data-testid="modal-drawer-close"
-                  aria-label="Close modal"
+                  aria-label={formatMessage({ id: "app.common.close" })}
                 >
                   <RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-primary active:text-primary" />
                 </button>
@@ -93,6 +95,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
+                  id={`tab-btn-${tab.id}`}
                   onClick={() => onTabChange?.(tab.id)}
                   role="tab"
                   aria-selected={activeTab === tab.id}
@@ -120,7 +123,11 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
           )}
 
           {/* Content */}
-          <div className={cn("flex-1 min-h-0", contentClassName || "p-4")} role="tabpanel">
+          <div
+            className={cn("flex-1 min-h-0", contentClassName || "p-4")}
+            role={tabs.length > 0 ? "tabpanel" : undefined}
+            aria-labelledby={tabs.length > 0 && activeTab ? `tab-btn-${activeTab}` : undefined}
+          >
             {children}
           </div>
         </Dialog.Content>

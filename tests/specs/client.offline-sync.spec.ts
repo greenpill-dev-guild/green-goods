@@ -20,6 +20,7 @@ const CLIENT_URL = TEST_URLS.client;
 
 // Skip entire file - these tests require real auth infrastructure
 test.describe("Offline Sync Flows", () => {
+  // SKIP: #338 owner:afo expiry:2026-08-17 — needs real auth infrastructure
   test.skip(
     () => true,
     "Offline sync e2e tests skipped: require real auth infrastructure. " +
@@ -39,7 +40,7 @@ test.describe("Offline Sync Flows", () => {
   test.describe("Offline Detection", () => {
     test("shows offline indicator when network disconnects", async ({ page, context }) => {
       await page.goto("/home");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1000);
 
       // Go offline
@@ -69,7 +70,7 @@ test.describe("Offline Sync Flows", () => {
 
     test("hides offline indicator when network reconnects", async ({ page, context }) => {
       await page.goto("/home");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1000);
 
       // Go offline first
@@ -130,7 +131,7 @@ test.describe("Offline Sync Flows", () => {
 
     test("persists offline state across page reloads", async ({ page, context }) => {
       await page.goto("/home");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1000);
 
       // Go offline
@@ -139,7 +140,7 @@ test.describe("Offline Sync Flows", () => {
 
       // Reload page while offline
       await page.reload();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(2000);
 
       // Should still show offline indicator
@@ -170,6 +171,7 @@ test.describe("Offline Sync Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
+      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Navigate to work submission
@@ -214,7 +216,7 @@ test.describe("Offline Sync Flows", () => {
 
     test("shows pending count in offline indicator", async ({ page, context }) => {
       await page.goto("/home");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1000);
 
       // Go offline
@@ -283,6 +285,7 @@ test.describe("Offline Sync Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
+      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Queue work offline
@@ -340,6 +343,7 @@ test.describe("Offline Sync Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
+      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Queue work offline
@@ -432,6 +436,7 @@ test.describe("Offline Sync Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
+      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Queue work offline
@@ -515,6 +520,7 @@ test.describe("Offline Sync Flows", () => {
   test.describe("Conflict Resolution", () => {
     test("detects duplicate submission conflict", async ({ page }) => {
       // This test requires a complex setup - skip for now with explanation
+      // SKIP: #338 owner:afo expiry:2026-08-17 — needs pre-existing duplicate work
       test.skip(
         true,
         "Conflict detection requires pre-existing duplicate work - manual testing recommended"
@@ -525,6 +531,7 @@ test.describe("Offline Sync Flows", () => {
 
     test("shows conflict resolution UI", async ({ page }) => {
       // This test requires triggering a conflict state
+      // SKIP: #338 owner:afo expiry:2026-08-17 — needs simulated duplicate
       test.skip(true, "Conflict UI requires simulated duplicate - manual testing recommended");
       await page.goto("/home");
       await page.waitForLoadState("domcontentloaded");
@@ -532,6 +539,7 @@ test.describe("Offline Sync Flows", () => {
 
     test("resolves conflict by skipping duplicate", async ({ page }) => {
       // This test requires a conflict to be present
+      // SKIP: #338 owner:afo expiry:2026-08-17 — needs active conflict state
       test.skip(true, "Conflict resolution requires active conflict - manual testing recommended");
       await page.goto("/home");
       await page.waitForLoadState("domcontentloaded");
@@ -566,6 +574,7 @@ test.describe("Offline Sync Flows", () => {
 
     test("warns when storage is nearly full", async ({ page }) => {
       // Storage warning requires filling storage - hard to test in E2E
+      // SKIP: #338 owner:afo expiry:2026-08-17 — needs filled local storage
       test.skip(
         true,
         "Storage warning requires filling local storage - manual testing recommended"

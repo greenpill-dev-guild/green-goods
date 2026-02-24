@@ -14,6 +14,7 @@ interface JobQueueEventMap {
   "job:failed": { jobId: string; job: Job; error: string };
   "queue:sync-completed": { result: { processed: number; failed: number; skipped: number } };
   "offline:status-changed": { isOnline: boolean };
+  "background:sync-requested": { source: "service-worker"; timestamp: number };
 }
 
 type JobQueueEventType = keyof JobQueueEventMap;
@@ -124,11 +125,17 @@ export function useJobQueueEvent<T extends JobQueueEventType>(
   listener: JobQueueEventListener<T>,
   deps: React.DependencyList = []
 ): void {
+  // Store latest listener in ref to avoid re-subscribing when callback identity changes
+  const listenerRef = React.useRef(listener);
   React.useEffect(() => {
-    const unsubscribe = jobQueueEventBus.on(type, listener);
+    listenerRef.current = listener;
+  });
+
+  React.useEffect(() => {
+    const unsubscribe = jobQueueEventBus.on(type, (data) => listenerRef.current(data));
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, listener, ...deps]);
+  }, [type, ...deps]);
 }
 
 // React hook for using multiple events
@@ -137,12 +144,18 @@ export function useJobQueueEvents<T extends JobQueueEventType>(
   listener: (type: T, data: JobQueueEventData<T>) => void,
   deps: React.DependencyList = []
 ): void {
+  // Store latest listener in ref to avoid re-subscribing when callback identity changes
+  const listenerRef = React.useRef(listener);
+  React.useEffect(() => {
+    listenerRef.current = listener;
+  });
+
   // Memoize types array to prevent unnecessary re-subscriptions
   // Using JSON.stringify creates a stable dependency
   const typesKey = JSON.stringify(types);
 
   React.useEffect(() => {
-    const unsubscribe = jobQueueEventBus.onMultiple(types, listener);
+    const unsubscribe = jobQueueEventBus.onMultiple(types, (t, d) => listenerRef.current(t, d));
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typesKey, ...deps]);

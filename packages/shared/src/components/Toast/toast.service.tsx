@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { ReactNode } from "react";
 import toast, { type Toast as HotToast, type ToastOptions } from "react-hot-toast";
+import { logger } from "../../modules/app/logger";
 import { useUIStore } from "../../stores/useUIStore";
 import { capitalize } from "../../utils/app/text";
 import { cn } from "../../utils/styles/cn";
@@ -360,14 +361,13 @@ function logDiagnostics(resolved: ResolvedToastDescriptor) {
   const diagnostic = getDiagnostics(resolved.error, resolved.devMessage);
 
   if (resolved.error) {
-    console.error(
-      `[toast:error] ${resolved.context ?? resolved.title ?? "operation failed"}`,
-      resolved.error
-    );
+    logger.error(`[toast:error] ${resolved.context ?? resolved.title ?? "operation failed"}`, {
+      error: resolved.error,
+    });
   }
 
   if (diagnostic) {
-    console.error(`[toast:detail] ${diagnostic}`);
+    logger.error(`[toast:detail] ${diagnostic}`);
   }
 }
 
@@ -403,28 +403,39 @@ function ToastMessage({
   const ariaLabel = title ? `${title}: ${message}` : undefined;
 
   const containerClassName = cn(
-    "flex w-full flex-col gap-1 text-[color:var(--color-text-strong-950)] text-left",
+    "flex w-full flex-col gap-1 text-[color:var(--color-text-strong-950)] text-left rounded",
     status === "loading" && "animate-pulse",
-    dismissible && "cursor-pointer"
+    dismissible && "cursor-pointer",
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-base)] focus-visible:ring-offset-2"
   );
 
-  // Use div with role="button" for dismissible toasts to avoid nested buttons (invalid HTML)
-  // Inner action buttons remain as real <button> elements for proper semantics
+  // Dismissible toasts use a clickable container.
+  // We avoid role="button" since there are nested <button> elements inside (invalid HTML).
+  // Instead, we make the container focusable and handle keyboard events directly.
+  // The inner action buttons remain as real <button> elements for proper semantics.
   if (dismissible) {
     const handleKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
+      // Only handle keyboard dismiss if the target is the container itself (not nested buttons)
+      if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
         e.preventDefault();
+        handleDismiss();
+      }
+    };
+
+    const handleContainerClick = (e: React.MouseEvent) => {
+      // Only dismiss if clicking the container, not nested buttons
+      if (e.target === e.currentTarget || !(e.target as HTMLElement).closest("button")) {
         handleDismiss();
       }
     };
 
     return (
       <div
-        role="button"
+        role="status"
         tabIndex={0}
         className={containerClassName}
         aria-label={ariaLabel}
-        onClick={handleDismiss}
+        onClick={handleContainerClick}
         onKeyDown={handleKeyDown}
       >
         {title ? <p className="text-sm font-semibold leading-tight">{title}</p> : null}

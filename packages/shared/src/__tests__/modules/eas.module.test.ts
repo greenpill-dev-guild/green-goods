@@ -18,14 +18,19 @@ vi.mock("../../modules/data/graphql-client", () => ({
   GQLClient: vi.fn(),
 }));
 
-// Mock config
+// Mock config (barrel and direct import path — eas.ts imports from config/blockchain)
+const mockEASConfig = {
+  ASSESSMENT: { uid: "0xAssessmentSchemaUID" },
+  WORK: { uid: "0xWorkSchemaUID" },
+  WORK_APPROVAL: { uid: "0xApprovalSchemaUID" },
+};
 vi.mock("../../config", () => ({
-  getEASConfig: vi.fn(() => ({
-    ASSESSMENT: { uid: "0xAssessmentSchemaUID" },
-    WORK: { uid: "0xWorkSchemaUID" },
-    WORK_APPROVAL: { uid: "0xApprovalSchemaUID" },
-  })),
-  DEFAULT_CHAIN_ID: 84532,
+  getEASConfig: vi.fn(() => mockEASConfig),
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+vi.mock("../../config/blockchain", () => ({
+  getEASConfig: vi.fn(() => mockEASConfig),
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 // Mock IPFS (Storacha)
@@ -57,10 +62,11 @@ describe("modules/data/eas", () => {
           decodedDataJson: JSON.stringify([
             { name: "title", value: { value: "Test Assessment" } },
             { name: "description", value: { value: "Test Description" } },
-            { name: "assessmentType", value: { value: "impact" } },
-            { name: "capitals", value: { value: ["social", "living"] } },
-            { name: "evidenceMedia", value: { value: ["QmHash1"] } },
-            { name: "tags", value: { value: ["community", "green"] } },
+            { name: "assessmentConfigCID", value: { value: "bafyConfigCID123" } },
+            { name: "domain", value: { value: { hex: "0x03" } } },
+            { name: "startDate", value: { value: { hex: "0x65B8D800" } } },
+            { name: "endDate", value: { value: { hex: "0x660D5800" } } },
+            { name: "location", value: { value: "Austin TX" } },
           ]),
         },
       ];
@@ -117,7 +123,7 @@ describe("modules/data/eas", () => {
         data: { attestations: mockAttestations },
       });
 
-      const result = await getWorks(gardenAddress, 84532);
+      const result = await getWorks(gardenAddress, 11155111);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -128,7 +134,7 @@ describe("modules/data/eas", () => {
         error: { message: "Query failed" },
       });
 
-      await expect(getWorks("0xGarden", 84532)).rejects.toThrow(
+      await expect(getWorks("0xGarden", 11155111)).rejects.toThrow(
         "Failed to fetch works: Query failed"
       );
     });
@@ -155,7 +161,7 @@ describe("modules/data/eas", () => {
         data: { attestations: mockAttestations },
       });
 
-      const result = await getWorkApprovals("0xGarden", 84532);
+      const result = await getWorkApprovals("0xGarden", 11155111);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -166,7 +172,7 @@ describe("modules/data/eas", () => {
         data: { attestations: [] },
       });
 
-      const result = await getWorkApprovals("0xGarden", 84532);
+      const result = await getWorkApprovals("0xGarden", 11155111);
 
       expect(result).toEqual([]);
     });

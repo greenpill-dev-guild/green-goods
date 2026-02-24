@@ -40,8 +40,10 @@ describe("stores/useWorkFlowStore", () => {
       expect(state.gardenAddress).toBeNull();
       expect(state.actionUID).toBeNull();
       expect(state.feedback).toBe("");
-      expect(state.plantSelection).toEqual([]);
-      expect(state.plantCount).toBeUndefined();
+      expect(state.details).toEqual({});
+      expect(state.tags).toEqual([]);
+      expect(state.audioNotes).toEqual([]);
+      expect(state.selectedDomain).toBeNull();
       expect(state.images).toEqual([]);
       expect(state.imageObjectUrls).toEqual([]);
     });
@@ -90,24 +92,34 @@ describe("stores/useWorkFlowStore", () => {
       expect(result.current.feedback).toBe("Great work!");
     });
 
-    it("sets plant selection", () => {
+    it("sets details", () => {
       const { result } = renderHook(() => useWorkFlowStore());
 
       act(() => {
-        result.current.setPlantSelection(["Rose", "Tulip"]);
+        result.current.setDetails({ species: "Oak", count: 5 });
       });
 
-      expect(result.current.plantSelection).toEqual(["Rose", "Tulip"]);
+      expect(result.current.details).toEqual({ species: "Oak", count: 5 });
     });
 
-    it("sets plant count", () => {
+    it("sets tags", () => {
       const { result } = renderHook(() => useWorkFlowStore());
 
       act(() => {
-        result.current.setPlantCount(5);
+        result.current.setTags(["agroforestry", "native-species"]);
       });
 
-      expect(result.current.plantCount).toBe(5);
+      expect(result.current.tags).toEqual(["agroforestry", "native-species"]);
+    });
+
+    it("sets selected domain", () => {
+      const { result } = renderHook(() => useWorkFlowStore());
+
+      act(() => {
+        result.current.setSelectedDomain(1); // Domain.AGRO
+      });
+
+      expect(result.current.selectedDomain).toBe(1);
     });
 
     it("sets images", () => {
@@ -324,7 +336,7 @@ describe("stores/useAdminStore", () => {
   beforeEach(() => {
     // Reset store to initial state
     useAdminStore.setState({
-      selectedChainId: 84532,
+      selectedChainId: 11155111,
       selectedGarden: null,
       pendingTransactions: {},
       lastAttestationId: null,
@@ -348,7 +360,7 @@ describe("stores/useAdminStore", () => {
       const { result } = renderHook(() => useAdminStore());
       const mockGarden = {
         id: "0x123",
-        chainId: 84532,
+        chainId: 11155111,
         tokenAddress: "0x456",
         tokenID: 1n,
         name: "Test Garden",
@@ -373,7 +385,7 @@ describe("stores/useAdminStore", () => {
       act(() => {
         result.current.setSelectedGarden({
           id: "0x123",
-          chainId: 84532,
+          chainId: 11155111,
           tokenAddress: "0x456",
           tokenID: 1n,
           name: "Test",

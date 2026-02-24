@@ -99,7 +99,7 @@ jobs:
             echo "dnslink_name=${{ matrix.prod_dnslink_name }}" >> $GITHUB_OUTPUT
           else
             echo "env=staging" >> $GITHUB_OUTPUT
-            echo "chain_id=84532" >> $GITHUB_OUTPUT
+            echo "chain_id=11155111" >> $GITHUB_OUTPUT
             echo "app_url=${{ matrix.staging_app_url }}" >> $GITHUB_OUTPUT
             echo "domain=${{ matrix.staging_domain }}" >> $GITHUB_OUTPUT
             echo "dnslink_name=${{ matrix.staging_dnslink_name }}" >> $GITHUB_OUTPUT

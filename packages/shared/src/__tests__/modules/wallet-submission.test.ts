@@ -46,6 +46,11 @@ vi.mock("../../utils/eas/transaction-builder", () => ({
 
 vi.mock("../../utils/blockchain/polling", () => ({
   pollQueriesAfterTransaction: vi.fn(),
+  TX_RECEIPT_TIMEOUT_MS: 120_000,
+}));
+
+vi.mock("../../modules/work/simulate", () => ({
+  simulateWorkSubmission: vi.fn(),
 }));
 
 vi.mock("../../utils/debug", () => ({
@@ -98,11 +103,11 @@ import { mock } from "../test-utils";
 describe("wallet-submission", () => {
   const mockWalletClient: Partial<WalletClient> = {
     sendTransaction: vi.fn(),
-    chain: { id: 84532 } as any,
+    chain: { id: 11155111 } as any,
     account: { address: "0xUserAddress" } as any,
   };
 
-  const mockChainId = 84532;
+  const mockChainId = 11155111;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -279,6 +284,8 @@ describe("wallet-submission", () => {
       actionUID: 456,
       approved: true,
       feedback: "Great work!",
+      confidence: 2,
+      verificationMethod: 1,
     };
 
     it("should successfully submit approval when wallet is connected", async () => {

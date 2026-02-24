@@ -11,11 +11,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { Garden } from "../../types/domain";
 import { readContract } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
-import { useCallback, useState } from "react";
-import { encodeFunctionData, type Hex } from "viem";
+import { useCallback, useRef, useState } from "react";
+import { useIntl } from "react-intl";
+import { type Address, encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
+import { logger } from "../../modules/app/logger";
 import {
   trackGardenJoinAlreadyMember,
   trackGardenJoinFailed,
@@ -43,11 +45,12 @@ import { simulateJoinGarden } from "../../utils/blockchain/simulation";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";
+import { useDelayedInvalidation } from "../utils/useTimeout";
 
 /**
  * Check if a garden has openJoining enabled on-chain
  */
-export async function checkGardenOpenJoining(gardenAddress: string): Promise<boolean> {
+export async function checkGardenOpenJoining(gardenAddress: Address): Promise<boolean> {
   try {
     const isOpen = await readContract(wagmiConfig, {
       address: gardenAddress as `0x${string}`,
@@ -56,7 +59,11 @@ export async function checkGardenOpenJoining(gardenAddress: string): Promise<boo
     });
     return Boolean(isOpen);
   } catch (error) {
-    console.warn(`Failed to check openJoining for ${gardenAddress}:`, error);
+    logger.warn("Failed to check openJoining", {
+      source: "checkGardenOpenJoining",
+      gardenAddress,
+      error,
+    });
     trackNetworkError(error, {
       source: "checkGardenOpenJoining",
       userAction: "checking if garden allows open joining",
@@ -73,7 +80,7 @@ export async function checkGardenOpenJoining(gardenAddress: string): Promise<boo
 
 // Pending joins storage for optimistic UI
 const PENDING_JOINS_KEY = "greengoods:pending-joins";
-const PENDING_JOIN_TTL = 5 * 60 * 1000; // 5 minutes
+const PENDING_JOIN_TTL = 15 * 60 * 1000; // 15 minutes — generous to avoid UI flash during indexer lag
 
 function getPendingJoins(): Record<string, { address: string; timestamp: number }> {
   if (typeof window === "undefined") return {};
@@ -150,6 +157,7 @@ interface JoinGardenState {
  * @returns Join function and state
  */
 export function useJoinGarden() {
+  const { formatMessage } = useIntl();
   const { smartAccountAddress, smartAccountClient, eoa } = useUser();
   const walletAddress = eoa?.address;
   const primaryAddress = smartAccountAddress || walletAddress;
@@ -165,6 +173,17 @@ export function useJoinGarden() {
     joiningGardenId: null,
     error: null,
   });
+  const isJoiningRef = useRef(false);
+
+  // Memoized invalidation callback for gardens
+  const invalidateGardens = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) }),
+    [queryClient, chainId]
+  );
+
+  // Use delayed invalidation with automatic cleanup on unmount
+  // 10 seconds for indexer to process
+  const { start: scheduleGardenSync } = useDelayedInvalidation(invalidateGardens, 10000);
 
   /**
    * Join a garden by its address/ID
@@ -175,11 +194,18 @@ export function useJoinGarden() {
    */
   const joinGarden = useCallback(
     async (gardenAddress: string, sessionOverride?: PasskeySession): Promise<string> => {
+      // Prevent concurrent join calls (double-tap guard)
+      if (isJoiningRef.current) {
+        return "already-joining";
+      }
+      isJoiningRef.current = true;
+
       const targetAddress = sessionOverride?.address ?? primaryAddress;
       const client = sessionOverride?.client ?? smartAccountClient;
 
       if (!gardenAddress || !targetAddress) {
-        throw new Error("Missing garden address or user address");
+        isJoiningRef.current = false;
+        throw new Error(formatMessage({ id: "app.garden.joinMissingInfo" }));
       }
 
       // Track join started
@@ -196,6 +222,11 @@ export function useJoinGarden() {
         joiningGardenId: gardenAddress,
         error: null,
       }));
+
+      // Snapshot for rollback on error (before the try so it's visible in catch)
+      const previousGardens = queryClient.getQueryData<Garden[]>(
+        queryKeys.gardens.byChain(chainId)
+      );
 
       try {
         let txHash: string;
@@ -262,9 +293,8 @@ export function useJoinGarden() {
         );
 
         // Delayed sync - give indexer time to process the event
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) });
-        }, 10000);
+        // Uses useDelayedInvalidation for automatic cleanup on unmount
+        scheduleGardenSync();
 
         // Track successful join
         trackGardenJoinSuccess({
@@ -273,6 +303,7 @@ export function useJoinGarden() {
           authMode,
         });
 
+        isJoiningRef.current = false;
         setState((prev) => ({
           ...prev,
           isJoining: false,
@@ -284,6 +315,7 @@ export function useJoinGarden() {
       } catch (error) {
         // Special handling for AlreadyGardener error - not actually an error
         if (isAlreadyGardenerError(error)) {
+          isJoiningRef.current = false;
           trackGardenJoinAlreadyMember({ gardenAddress });
           addPendingJoin(gardenAddress, targetAddress);
           setState((prev) => ({
@@ -294,6 +326,12 @@ export function useJoinGarden() {
           }));
           return "already-member";
         }
+
+        // Rollback optimistic update
+        if (previousGardens) {
+          queryClient.setQueryData(queryKeys.gardens.byChain(chainId), previousGardens);
+        }
+        removePendingJoin(gardenAddress);
 
         // Track failed join - send both funnel event and structured exception
         trackGardenJoinFailed({
@@ -310,6 +348,7 @@ export function useJoinGarden() {
           userAction: "joining garden",
         });
 
+        isJoiningRef.current = false;
         setState((prev) => ({
           ...prev,
           isJoining: false,
@@ -320,7 +359,15 @@ export function useJoinGarden() {
         throw error;
       }
     },
-    [primaryAddress, smartAccountClient, writeContractAsync, chainId, queryClient]
+    [
+      primaryAddress,
+      smartAccountClient,
+      writeContractAsync,
+      chainId,
+      queryClient,
+      scheduleGardenSync,
+      formatMessage,
+    ]
   );
 
   return {

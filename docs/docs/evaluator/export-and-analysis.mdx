@@ -1,0 +1,73 @@
+---
+title: Export and Analysis
+sidebar_position: 6
+slug: /evaluator/export-and-analysis
+audience: evaluator
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Complete Export and Analysis with clear, role-specific next actions."
+difficulty: "standard"
+estimated_time: "20-60 minutes."
+prereqs: "Completed indexer and EAS query packs."
+next_steps: "./troubleshooting"
+persona_context: "Evaluators validating attestations and translating impact data into analysis outputs."
+source_of_truth:
+  - packages/shared/src/modules/data/eas.ts
+  - packages/indexer/config.yaml
+keywords:
+  - export
+  - analytics
+  - evaluator pipeline
+---
+
+import {AtAGlanceCard, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+
+# Export and Analysis
+
+<StatusBadge status="Live" />
+
+<AtAGlanceCard
+  goal="Complete Export and Analysis with clear, role-specific next actions."
+  difficulty="standard"
+  estimatedTime="20-60 minutes."
+  prereqs="Completed indexer and EAS query packs."
+  outcome="Analysis-ready dataset with lineage and reproducibility."
+  personaContext="Evaluators validating attestations and translating impact data into analysis outputs."
+  lastVerified="2026-02-18"
+/>
+
+## Recommended export flow
+
+<StepFlow
+  steps={[
+    {title: "Extract raw", detail: "Export JSON from both indexer and EAS queries."},
+    {title: "Normalize", detail: "Flatten decoded attestation payloads and standardize timestamps."},
+    {title: "Join", detail: "Join datasets by chain + garden + action/work references."},
+    {title: "Publish", detail: "Store CSV/Parquet outputs with schema + query version metadata."},
+  ]}
+/>
+
+## Dataset minimum columns
+
+- `chain_id`, `garden_address`, `action_uid`
+- `work_attestation_uid`, `approval_attestation_uid`
+- `approved`, `submitted_at`, `approved_at`
+- `framework_tags`, `source_query_version`
+
+## Reproducibility checklist
+
+1. Save exact GraphQL query text.
+2. Save variables used for each run.
+3. Save deployment artifact commit hash.
+4. Save transform script version.
+
+<NextBestAction
+  title="Next best action"
+  why="If outputs look inconsistent, use troubleshooting flow with query and deployment context."
+  actionLabel="Evaluator troubleshooting"
+  actionHref="./troubleshooting"
+  alternatives={[
+    {label: "API index", href: "/developers/reference/api-index"},
+  ]}
+/>

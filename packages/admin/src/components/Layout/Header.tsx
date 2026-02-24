@@ -1,11 +1,16 @@
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
-import { getChainName } from "@green-goods/shared/config/chains";
-import { useUIStore } from "@green-goods/shared/stores";
+import { DEFAULT_CHAIN_ID, getChainName, useAuth, useUIStore } from "@green-goods/shared";
 import { RiMenuLine } from "@remixicon/react";
+import { useIntl } from "react-intl";
+import { ConnectButton } from "@/components/ConnectButton";
+import { Breadcrumbs } from "./Breadcrumbs";
+import { CommandPalette } from "./CommandPalette";
 import { UserProfile } from "./UserProfile";
 
 export function Header() {
-  const { setSidebarOpen } = useUIStore();
+  const intl = useIntl();
+  const { isAuthenticated, eoaAddress } = useAuth();
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+  const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
   const chainLabel = getChainName(DEFAULT_CHAIN_ID);
 
   return (
@@ -14,7 +19,12 @@ export function Header() {
         {/* Mobile menu button */}
         <button
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden p-2 rounded-md text-text-soft hover:text-text-sub"
+          aria-label={intl.formatMessage({
+            id: "app.admin.header.openNavMenu",
+            defaultMessage: "Open navigation menu",
+          })}
+          aria-expanded={sidebarOpen}
+          className="lg:hidden min-h-11 min-w-11 p-2 rounded-md text-text-soft hover:text-text-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
         >
           <RiMenuLine className="h-6 w-6" />
         </button>
@@ -24,16 +34,27 @@ export function Header() {
           <h1 className="text-xl font-semibold text-text-strong">Green Goods</h1>
         </div> */}
 
-        {/* Spacer */}
-        <div className="flex-1" />
+        {/* Breadcrumbs */}
+        <div className="flex-1 min-w-0 hidden lg:block">
+          <Breadcrumbs />
+        </div>
 
-        {/* Right side - Chain selector and User profile */}
-        <div className="flex items-center gap-4">
+        {/* Spacer for mobile (breadcrumbs hidden) */}
+        <div className="flex-1 lg:hidden" />
+
+        {/* Right side - Search, Chain badge, User profile */}
+        <div className="flex items-center gap-2">
+          <CommandPalette />
+
           <div className="px-3 py-2 rounded-md border border-stroke-sub bg-bg-white text-sm text-text-strong">
             {chainLabel}
           </div>
 
-          <UserProfile />
+          {isAuthenticated && eoaAddress ? (
+            <UserProfile />
+          ) : (
+            <ConnectButton variant="primary" size="sm" />
+          )}
         </div>
       </div>
     </header>

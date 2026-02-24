@@ -1,12 +1,12 @@
 import {
+  formatAddress,
+  resolveAvatarUrl,
   useAuth,
   useEnsAvatar,
   useEnsName,
   useGardenerProfile,
   useUser,
-} from "@green-goods/shared/hooks";
-import { resolveAvatarUrl } from "@green-goods/shared/modules";
-import { formatAddress } from "@green-goods/shared/utils";
+} from "@green-goods/shared";
 import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";

@@ -2,16 +2,16 @@
 pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
-import { DeploymentRegistry } from "../../src/DeploymentRegistry.sol";
+import { Deployment } from "../../src/registries/Deployment.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-contract DeploymentRegistryTest is Test {
-    DeploymentRegistry public registry;
+contract DeploymentTest is Test {
+    Deployment public registry;
     address public owner;
     address public allowedUser;
     address public unauthorizedUser;
 
-    event NetworkConfigUpdated(uint256 indexed chainId, DeploymentRegistry.NetworkConfig config);
+    event NetworkConfigUpdated(uint256 indexed chainId, Deployment.NetworkConfig config);
     event AllowlistAdded(address indexed account);
     event AllowlistRemoved(address indexed account);
 
@@ -21,12 +21,12 @@ contract DeploymentRegistryTest is Test {
         unauthorizedUser = address(0x2);
 
         // Deploy implementation
-        DeploymentRegistry impl = new DeploymentRegistry();
+        Deployment impl = new Deployment();
 
         // Deploy with proxy pattern
-        bytes memory initData = abi.encodeWithSelector(DeploymentRegistry.initialize.selector, owner);
+        bytes memory initData = abi.encodeWithSelector(Deployment.initialize.selector, owner);
         address proxyAddr = address(new ERC1967Proxy(address(impl), initData));
-        registry = DeploymentRegistry(proxyAddr);
+        registry = Deployment(proxyAddr);
     }
 
     function testInitialization() public {
@@ -35,21 +35,21 @@ contract DeploymentRegistryTest is Test {
 
     function testSetNetworkConfig() public {
         uint256 chainId = 1;
-        DeploymentRegistry.NetworkConfig memory config = _createTestConfig(0x10);
+        Deployment.NetworkConfig memory config = _createTestConfig(0x10);
 
         vm.expectEmit(true, true, true, true);
         emit NetworkConfigUpdated(chainId, config);
 
         registry.setNetworkConfig(chainId, config);
 
-        DeploymentRegistry.NetworkConfig memory retrieved = registry.getNetworkConfigForChain(chainId);
+        Deployment.NetworkConfig memory retrieved = registry.getNetworkConfigForChain(chainId);
         assertEq(retrieved.eas, config.eas, "EAS address should match");
         assertEq(retrieved.actionRegistry, config.actionRegistry, "ActionRegistry should match");
     }
 
     /// @notice Helper to create test config with all fields
-    function _createTestConfig(uint160 baseAddr) internal pure returns (DeploymentRegistry.NetworkConfig memory) {
-        return DeploymentRegistry.NetworkConfig({
+    function _createTestConfig(uint160 baseAddr) internal pure returns (Deployment.NetworkConfig memory) {
+        return Deployment.NetworkConfig({
             eas: address(baseAddr),
             easSchemaRegistry: address(baseAddr + 1),
             communityToken: address(baseAddr + 2),
@@ -92,7 +92,7 @@ contract DeploymentRegistryTest is Test {
 
     function test_RevertWhen_UnauthorizedSetNetworkConfig() public {
         uint256 chainId = 1;
-        DeploymentRegistry.NetworkConfig memory config = _createTestConfig(0x10);
+        Deployment.NetworkConfig memory config = _createTestConfig(0x10);
 
         vm.prank(unauthorizedUser);
         vm.expectRevert();
@@ -107,23 +107,23 @@ contract DeploymentRegistryTest is Test {
 
     function testGetNetworkConfigForCurrentChain() public {
         uint256 currentChain = block.chainid;
-        DeploymentRegistry.NetworkConfig memory config = _createTestConfig(0x20);
+        Deployment.NetworkConfig memory config = _createTestConfig(0x20);
 
         registry.setNetworkConfig(currentChain, config);
 
-        DeploymentRegistry.NetworkConfig memory retrieved = registry.getNetworkConfig();
+        Deployment.NetworkConfig memory retrieved = registry.getNetworkConfig();
         assertEq(retrieved.eas, config.eas, "Should get config for current chain");
     }
 
     function testMultipleChainConfigurations() public {
-        DeploymentRegistry.NetworkConfig memory config1 = _createTestConfig(0x30);
-        DeploymentRegistry.NetworkConfig memory config2 = _createTestConfig(0x40);
+        Deployment.NetworkConfig memory config1 = _createTestConfig(0x30);
+        Deployment.NetworkConfig memory config2 = _createTestConfig(0x40);
 
         registry.setNetworkConfig(1, config1);
         registry.setNetworkConfig(137, config2);
 
-        DeploymentRegistry.NetworkConfig memory retrieved1 = registry.getNetworkConfigForChain(1);
-        DeploymentRegistry.NetworkConfig memory retrieved2 = registry.getNetworkConfigForChain(137);
+        Deployment.NetworkConfig memory retrieved1 = registry.getNetworkConfigForChain(1);
+        Deployment.NetworkConfig memory retrieved2 = registry.getNetworkConfigForChain(137);
 
         assertEq(retrieved1.eas, config1.eas, "Chain 1 config should match");
         assertEq(retrieved2.eas, config2.eas, "Chain 137 config should match");
@@ -133,12 +133,12 @@ contract DeploymentRegistryTest is Test {
         registry.addToAllowlist(allowedUser);
 
         uint256 chainId = 1;
-        DeploymentRegistry.NetworkConfig memory config = _createTestConfig(0x50);
+        Deployment.NetworkConfig memory config = _createTestConfig(0x50);
 
         vm.prank(allowedUser);
         registry.setNetworkConfig(chainId, config);
 
-        DeploymentRegistry.NetworkConfig memory retrieved = registry.getNetworkConfigForChain(chainId);
+        Deployment.NetworkConfig memory retrieved = registry.getNetworkConfigForChain(chainId);
         assertEq(retrieved.eas, config.eas, "Allowlisted user should be able to set config");
     }
 
@@ -194,7 +194,7 @@ contract DeploymentRegistryTest is Test {
     function testEmergencyPause() public {
         // Setup a network config first
         uint256 chainId = 1;
-        DeploymentRegistry.NetworkConfig memory config = _createTestConfig(0x10);
+        Deployment.NetworkConfig memory config = _createTestConfig(0x10);
         registry.setNetworkConfig(chainId, config);
 
         // Activate emergency pause
@@ -215,7 +215,7 @@ contract DeploymentRegistryTest is Test {
 
     function testGetIndividualAddresses() public {
         uint256 chainId = block.chainid;
-        DeploymentRegistry.NetworkConfig memory config = _createTestConfig(0x10);
+        Deployment.NetworkConfig memory config = _createTestConfig(0x10);
         registry.setNetworkConfig(chainId, config);
 
         assertEq(registry.getEAS(), address(0x10), "EAS address should match");
@@ -231,7 +231,7 @@ contract DeploymentRegistryTest is Test {
 
     function testUpdateIndividualAddresses() public {
         uint256 chainId = block.chainid;
-        DeploymentRegistry.NetworkConfig memory config = _createTestConfig(0x10);
+        Deployment.NetworkConfig memory config = _createTestConfig(0x10);
         registry.setNetworkConfig(chainId, config);
 
         // Update action registry
@@ -253,7 +253,7 @@ contract DeploymentRegistryTest is Test {
 
     function testUpdateIntegrationAddresses() public {
         uint256 chainId = block.chainid;
-        DeploymentRegistry.NetworkConfig memory config = _createTestConfig(0x10);
+        Deployment.NetworkConfig memory config = _createTestConfig(0x10);
         registry.setNetworkConfig(chainId, config);
 
         // Update hats access control

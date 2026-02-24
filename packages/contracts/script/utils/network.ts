@@ -13,8 +13,20 @@ export interface NetworkConfig {
   name?: string;
 }
 
+export interface DeploymentDefaults {
+  factory: string;
+  tokenboundRegistry: string;
+  safe: string;
+  safeFactory: string;
+  safe4337Module: string;
+  greenGoodsSafe: string;
+  multisig: string;
+  [key: string]: string;
+}
+
 export interface NetworksFile {
   networks: Record<string, NetworkConfig>;
+  deploymentDefaults?: DeploymentDefaults;
 }
 
 export interface VerifierConfig {
@@ -22,11 +34,23 @@ export interface VerifierConfig {
   apiKey?: string;
 }
 
-const CHAIN_ID_MAP: Record<string, string> = {
+/** Canonical network name → chain ID string mapping. Single source of truth. */
+export const CHAIN_ID_MAP: Record<string, string> = {
   localhost: "31337",
+  mainnet: "1",
   arbitrum: "42161",
-  baseSepolia: "84532",
+  sepolia: "11155111",
   celo: "42220",
+};
+
+/**
+ * Networks supported by Alchemy URL auto-derivation.
+ * Intentionally excludes Celo, which often uses dedicated RPC infra.
+ */
+const ALCHEMY_NETWORK_PATHS: Record<string, string> = {
+  mainnet: "eth-mainnet",
+  sepolia: "eth-sepolia",
+  arbitrum: "arb-mainnet",
 };
 
 /**
@@ -91,18 +115,67 @@ export class NetworkManager {
   getRpcUrl(networkName: string): string {
     const network = this.getNetwork(networkName);
     let rpcUrl = network.rpcUrl;
+    const derivedAlchemyRpc = this._deriveAlchemyRpcUrl(networkName);
 
     // Handle environment variable substitution (e.g., ${ARBITRUM_RPC_URL})
     if (rpcUrl.startsWith("${") && rpcUrl.endsWith("}")) {
       const envVar = rpcUrl.slice(2, -1);
       rpcUrl = process.env[envVar] || "";
 
+      // Prefer Alchemy on supported networks when the configured RPC is a
+      // default public endpoint (for example publicnode) or missing.
+      if (derivedAlchemyRpc && this._shouldPreferAlchemyRpc(rpcUrl)) {
+        return derivedAlchemyRpc;
+      }
+
       if (!rpcUrl) {
-        throw new Error(`Environment variable ${envVar} not set for network ${networkName}`);
+        throw new Error(
+          `Environment variable ${envVar} not set for network ${networkName}. ` +
+            `Set ${envVar} or provide ALCHEMY_API_KEY/ALCHEMY_KEY/VITE_ALCHEMY_API_KEY for supported networks.`,
+        );
       }
     }
 
+    if (derivedAlchemyRpc && this._shouldPreferAlchemyRpc(rpcUrl)) {
+      return derivedAlchemyRpc;
+    }
+
     return rpcUrl;
+  }
+
+  /**
+   * Derive provider URL from a shared Alchemy key for supported networks.
+   * Returns null when key/network is unsupported so explicit RPC env vars still work.
+   */
+  private _deriveAlchemyRpcUrl(networkName: string): string | null {
+    const apiKey = process.env.ALCHEMY_API_KEY || process.env.ALCHEMY_KEY || process.env.VITE_ALCHEMY_API_KEY;
+    if (!apiKey) {
+      return null;
+    }
+
+    const networkPath = ALCHEMY_NETWORK_PATHS[networkName];
+    if (!networkPath) {
+      return null;
+    }
+
+    return `https://${networkPath}.g.alchemy.com/v2/${apiKey}`;
+  }
+
+  private _shouldPreferAlchemyRpc(rpcUrl: string): boolean {
+    if (!rpcUrl) {
+      return true;
+    }
+
+    try {
+      const { hostname } = new URL(rpcUrl);
+      // Extract the registrable domain (last two parts) to match publicnode.com
+      // and all its subdomains (e.g. ethereum-sepolia.publicnode.com)
+      const parts = hostname.toLowerCase().split(".");
+      const domain = parts.length >= 2 ? parts.slice(-2).join(".") : hostname;
+      return domain === "publicnode.com";
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -178,5 +251,14 @@ export class NetworkManager {
    */
   getChainIdString(networkName: string): string {
     return CHAIN_ID_MAP[networkName] || this.getChainId(networkName).toString();
+  }
+
+  /**
+   * Get a deployment default value from networks.json
+   * @param key - The default key (e.g., 'multisig', 'greenGoodsSafe')
+   * @returns The address string, or undefined if not set
+   */
+  getDeploymentDefault(key: string): string | undefined {
+    return this.networksConfig.deploymentDefaults?.[key];
   }
 }

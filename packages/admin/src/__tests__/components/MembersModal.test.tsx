@@ -90,11 +90,12 @@ describe("components/Garden/MembersModal", () => {
 
       render(createElement(MembersModal, { ...defaultProps, onClose }));
 
-      await user.click(screen.getByLabelText("Close modal"));
+      await user.click(screen.getByLabelText("Close"));
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    // Skip: Radix UI backdrop click events not properly simulated in jsdom
+    // SKIP: #312 — Radix UI backdrop click events not properly simulated in jsdom
+    // Owner: admin / Expiry: 2026-03-17
     it.skip("calls onClose when backdrop is clicked", async () => {
       const onClose = vi.fn();
       const user = userEvent.setup();
@@ -177,42 +178,43 @@ describe("components/Garden/MembersModal", () => {
   });
 
   describe("color schemes", () => {
-    // Skip: CSS class detection unreliable in jsdom with Radix UI portals
-    it.skip("applies blue color scheme by default", () => {
-      const { container } = render(createElement(MembersModal, defaultProps));
+    it("applies info color scheme by default", () => {
+      render(createElement(MembersModal, defaultProps));
 
-      // Check for blue-related classes
-      expect(container.querySelector(".bg-information-lighter")).toBeInTheDocument();
+      // Radix Portal renders outside the container, so query the full document
+      const infoElements = document.querySelectorAll(".bg-information-lighter");
+      expect(infoElements.length).toBeGreaterThan(0);
     });
 
-    // Skip: CSS class detection unreliable in jsdom with Radix UI portals
-    it.skip("applies green color scheme when specified", () => {
-      const { container } = render(
-        createElement(MembersModal, { ...defaultProps, colorScheme: "green" })
-      );
+    it("applies success color scheme when specified", () => {
+      render(createElement(MembersModal, { ...defaultProps, colorScheme: "success" }));
 
-      expect(container.querySelector(".bg-success-lighter")).toBeInTheDocument();
+      const successElements = document.querySelectorAll(".bg-success-lighter");
+      expect(successElements.length).toBeGreaterThan(0);
     });
   });
 
   describe("accessibility", () => {
-    // Skip: Radix UI dialog ARIA attributes not fully rendered in jsdom
-    it.skip("has proper ARIA attributes", () => {
+    it("has proper ARIA attributes", () => {
       render(createElement(MembersModal, defaultProps));
 
       const dialog = screen.getByRole("dialog");
-      expect(dialog).toHaveAttribute("aria-modal", "true");
-      expect(dialog).toHaveAttribute("aria-labelledby", "members-modal-title");
+      expect(dialog).toBeInTheDocument();
+      // Radix Dialog renders aria-describedby and aria-labelledby with auto-generated IDs
+      expect(dialog).toHaveAttribute("aria-describedby");
+      expect(dialog).toHaveAttribute("aria-labelledby");
     });
 
-    // Skip: Radix UI scroll lock doesn't work in jsdom
+    // SKIP: #312 — Radix UI scroll lock relies on CSS side effects that jsdom does not implement
+    // Owner: admin | Expiry: 2026-03-17
     it.skip("prevents body scroll when open", () => {
       render(createElement(MembersModal, defaultProps));
 
       expect(document.body.style.overflow).toBe("hidden");
     });
 
-    // Skip: Radix UI scroll lock doesn't work in jsdom
+    // SKIP: #312 — Radix UI scroll lock relies on CSS side effects that jsdom does not implement
+    // Owner: admin | Expiry: 2026-03-17
     it.skip("restores body scroll when closed", () => {
       const { rerender } = render(createElement(MembersModal, defaultProps));
 

@@ -4,7 +4,7 @@
  * Tests for the sliding window rate limiting implementation.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { RateLimiter, formatRateLimitWait, RATE_LIMITS } from "../services/rate-limiter";
 
 describe("RateLimiter", () => {

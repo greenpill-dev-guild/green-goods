@@ -1,5 +1,4 @@
-import { trackErrorBoundary } from "@green-goods/shared/modules";
-import { en, es, pt } from "@green-goods/shared/i18n";
+import { en, es, logger, pt, trackErrorBoundary } from "@green-goods/shared";
 import {
   RiBugLine,
   RiErrorWarningLine,
@@ -7,7 +6,7 @@ import {
   RiRefreshLine,
   RiWifiOffLine,
 } from "@remixicon/react";
-import { Component, ErrorInfo, ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button } from "../Actions";
 
 type Messages = typeof en;
@@ -53,12 +52,12 @@ export class AppErrorBoundary extends Component<Props, State> {
     return messages[this.state.locale][key];
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error, errorInfo: null };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("App Error Boundary caught an error:", error, errorInfo);
+    logger.error("App Error Boundary caught an error", { error, errorInfo });
 
     this.setState({
       error,

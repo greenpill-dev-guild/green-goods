@@ -1,0 +1,87 @@
+name: User Story
+description: High-level feature from PRD - describes user value and done state
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## User Story Template
+
+        User stories capture **what** we're building and **why** - not implementation details.
+        Stories are derived from the PRD and link back to it for full context.
+
+        > Implementation details belong in Task issues, which link to specs in `docs/`.
+
+  - type: input
+    id: title-suggestion
+    attributes:
+      label: Story Title
+      description: "Format: As a [user type], I want [capability]"
+      placeholder: "As a gardener, I want to submit work offline"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: High-level context - why this matters, what problem it solves
+      placeholder: |
+        Gardeners often work in areas with poor connectivity. Currently,
+        they lose work if the app can't reach the server. This story enables
+        them to continue working regardless of network status.
+    validations:
+      required: true
+
+  - type: textarea
+    id: done-state
+    attributes:
+      label: Done State
+      description: Clear, testable criteria that define when this story is complete
+      placeholder: |
+        - [ ] User can submit work actions while offline
+        - [ ] Work syncs automatically when connectivity returns
+        - [ ] User sees clear sync status indicator
+        - [ ] No data is lost during offline/online transitions
+    validations:
+      required: true
+
+  - type: textarea
+    id: prd-links
+    attributes:
+      label: PRD & Documentation Links
+      description: Link to the PRD section and any relevant workspace docs
+      placeholder: |
+        **PRD Section**: [Offline-First Architecture](link-to-workspace-prd)
+        **Related Docs**:
+        - [User Research - Connectivity Issues](link)
+        - [Technical Constraints](link)
+    validations:
+      required: true
+
+  - type: textarea
+    id: relevant-details
+    attributes:
+      label: Relevant Details
+      description: Any additional context, constraints, or considerations (not implementation details)
+      placeholder: |
+        - Must work on low-end Android devices
+        - Target: 95% of work sessions should complete successfully
+        - Consider: What happens if user is offline for days?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Primary Scope
+      description: Which area does this primarily affect?
+      options:
+        - client
+        - admin
+        - contracts
+        - indexer
+        - shared
+        - cross-package
+    validations:
+      required: true

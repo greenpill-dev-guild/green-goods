@@ -7,15 +7,14 @@
 
 import { getDefaultChain } from "@green-goods/shared";
 import type { Chain } from "viem";
-import { arbitrum, base, baseSepolia, celo, optimism } from "viem/chains";
+import { arbitrum, celo, optimism, sepolia } from "viem/chains";
 import { logger } from "./services/logger";
 
 // Map chain IDs to viem Chain objects
 const CHAIN_MAP: Record<number, Chain> = {
-  [baseSepolia.id]: baseSepolia,
+  [sepolia.id]: sepolia,
   [arbitrum.id]: arbitrum,
   [celo.id]: celo,
-  [base.id]: base,
   [optimism.id]: optimism,
 };
 
@@ -58,7 +57,7 @@ export interface Config {
 export function loadConfig(): Config {
   const nodeEnv = process.env.NODE_ENV || "development";
   const networkConfig = getDefaultChain();
-  const chain = CHAIN_MAP[networkConfig.chainId] || baseSepolia;
+  const chain = CHAIN_MAP[networkConfig.chainId] || sepolia;
 
   // Required: Telegram bot token
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -112,27 +111,58 @@ export function loadConfig(): Config {
 
 /**
  * Validate configuration and log warnings
+ *
+ * SECURITY: Enforces critical security requirements in production:
+ * - ENCRYPTION_SECRET is required
+ * - TELEGRAM_WEBHOOK_SECRET is required in webhook mode
  */
 export function validateConfig(config: Config): void {
   const warnings: string[] = [];
+  const errors: string[] = [];
 
-  // Check encryption secret
+  // Check encryption secret - REQUIRED in production
   if (!config.encryptionSecret) {
-    warnings.push("ENCRYPTION_SECRET not set. Using derived key from TELEGRAM_BOT_TOKEN.");
+    if (config.isProduction) {
+      errors.push(
+        "ENCRYPTION_SECRET is required in production. " +
+          "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+      );
+    } else {
+      warnings.push("ENCRYPTION_SECRET not set. Using derived key from TELEGRAM_BOT_TOKEN.");
+    }
   } else if (config.encryptionSecret.length < 32) {
-    warnings.push("ENCRYPTION_SECRET should be at least 32 characters.");
+    if (config.isProduction) {
+      errors.push("ENCRYPTION_SECRET must be at least 32 characters in production.");
+    } else {
+      warnings.push("ENCRYPTION_SECRET should be at least 32 characters.");
+    }
   }
 
-  // Check webhook mode requirements
+  // Check webhook mode requirements - REQUIRED in production
   if (config.mode === "webhook") {
     if (!config.telegramWebhookSecret) {
-      warnings.push("TELEGRAM_WEBHOOK_SECRET not set. Webhook requests won't be verified.");
+      if (config.isProduction) {
+        errors.push(
+          "TELEGRAM_WEBHOOK_SECRET is required in production webhook mode. " +
+            "Without it, anyone can send fake webhook requests and impersonate users."
+        );
+      } else {
+        warnings.push("TELEGRAM_WEBHOOK_SECRET not set. Webhook requests won't be verified.");
+      }
     }
   }
 
   // Check analytics configuration
   if (config.isProduction && !config.posthogApiKey) {
     warnings.push("POSTHOG_AGENT_KEY not set. Analytics will be disabled.");
+  }
+
+  // Throw on critical errors in production
+  if (errors.length > 0) {
+    for (const error of errors) {
+      logger.error({ error }, "Configuration error");
+    }
+    throw new Error(`Configuration errors:\n- ${errors.join("\n- ")}`);
   }
 
   // Log warnings

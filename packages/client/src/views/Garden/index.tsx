@@ -1,19 +1,27 @@
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
+  DEFAULT_CHAIN_ID,
+  findActionByUID,
+  logger,
   useActionTranslation,
   useDraftAutoSave,
   useDraftResume,
   useGardenTranslation,
-} from "@green-goods/shared/hooks";
-import { useWork, WorkTab } from "@green-goods/shared/providers";
-import { useWorkFlowStore } from "@green-goods/shared/stores/useWorkFlowStore";
-import { findActionByUID } from "@green-goods/shared/utils";
+  useOffline,
+  useTimeout,
+  useWork,
+  useWorkFlowStore,
+  useWorkSelection,
+  WorkTab,
+  type Action,
+  type Garden,
+} from "@green-goods/shared";
 import {
   RiArrowRightSLine,
   RiCameraFill,
   RiHammerFill,
   RiImageFill,
   RiPlantFill,
+  RiVideoFill,
 } from "@remixicon/react";
 import React, { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
@@ -81,13 +89,20 @@ const Work: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const chainId = DEFAULT_CHAIN_ID;
   const { form, activeTab, setActiveTab, actions, gardens, isLoading, workMutation } = useWork();
+  const { selectedDomain, setSelectedDomain } = useWorkSelection();
 
   const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
   const submissionCompleted = useWorkFlowStore((s) => s.submissionCompleted);
+  const setGardenAddressStable = useWorkFlowStore((s) => s.setGardenAddress);
+  const audioNotes = useWorkFlowStore((s) => s.audioNotes);
+  const setAudioNotes = useWorkFlowStore((s) => s.setAudioNotes);
+  const { isOnline, pendingCount, syncStatus } = useOffline();
+  const { set: scheduleNavigation } = useTimeout();
 
   // Media upload click handlers (exposed by WorkMedia for PostHog tracking)
   const galleryClickRef = useRef<(() => void) | null>(null);
   const cameraClickRef = useRef<(() => void) | null>(null);
+  const videoClickRef = useRef<(() => void) | null>(null);
 
   if (!form) {
     return null;
@@ -103,16 +118,16 @@ const Work: React.FC = () => {
     setGardenAddress,
     register,
     control,
+    setValue,
     uploadWork,
     feedback,
-    plantSelection,
-    plantCount,
     timeSpentMinutes,
+    values,
   } = form;
 
   // Draft save on exit (only saves when user navigates away, not automatically)
   const { saveOnExit } = useDraftAutoSave(
-    { gardenAddress, actionUID, feedback, plantSelection, plantCount, timeSpentMinutes },
+    { gardenAddress, actionUID, feedback, timeSpentMinutes },
     images
   );
 
@@ -128,8 +143,6 @@ const Work: React.FC = () => {
       gardenAddress,
       actionUID,
       feedback,
-      plantSelection,
-      plantCount,
       timeSpentMinutes,
     },
     isOnIntroTab: activeTab === WorkTab.Intro,
@@ -141,9 +154,9 @@ const Work: React.FC = () => {
   useEffect(() => {
     const navigationState = location.state as { gardenId?: string } | null;
     if (navigationState?.gardenId && gardens.length > 0) {
-      setGardenAddress(navigationState.gardenId);
+      setGardenAddressStable(navigationState.gardenId);
     }
-  }, [location.state, gardens.length, setGardenAddress]);
+  }, [location.state, gardens.length, setGardenAddressStable]);
 
   const handleStartFresh = async () => {
     await clearDraft();
@@ -157,10 +170,10 @@ const Work: React.FC = () => {
 
     // Clear the draft on successful submission
     clearActiveDraft().catch((error) => {
-      console.error("[Garden] Failed to clear draft after submission:", error);
+      logger.error("Failed to clear draft after submission", { error, source: "Garden" });
     });
 
-    const timer = setTimeout(() => {
+    const cancelNavigation = scheduleNavigation(() => {
       navigate("/home", { replace: true, viewTransition: true });
       requestAnimationFrame(() => {
         useWorkFlowStore.getState().reset();
@@ -168,8 +181,41 @@ const Work: React.FC = () => {
       });
     }, 800);
 
-    return () => clearTimeout(timer);
-  }, [submissionCompleted, navigate, form, clearActiveDraft]);
+    return cancelNavigation;
+  }, [submissionCompleted, navigate, form, clearActiveDraft, scheduleNavigation]);
+
+  const queueStatusMessage = useMemo(() => {
+    if (activeTab !== WorkTab.Review) return null;
+
+    if (!isOnline) {
+      return intl.formatMessage({
+        id: "app.offline.status.went.offline",
+        defaultMessage: "You're offline. Your work will sync when you're back online.",
+      });
+    }
+
+    if (syncStatus === "syncing" || workMutation.isPending) {
+      return intl.formatMessage(
+        {
+          id: "app.syncBar.syncing",
+          defaultMessage: "Syncing {count} items...",
+        },
+        { count: Math.max(pendingCount, 1) }
+      );
+    }
+
+    if (pendingCount > 0) {
+      return intl.formatMessage(
+        {
+          id: "app.syncBar.pendingOnline",
+          defaultMessage: "{count} items waiting to sync",
+        },
+        { count: pendingCount }
+      );
+    }
+
+    return null;
+  }, [activeTab, isOnline, intl, pendingCount, syncStatus, workMutation.isPending]);
 
   // Selected action and garden with translations
   const selectedAction = useMemo(() => {
@@ -257,7 +303,7 @@ const Work: React.FC = () => {
   const getReviewData = () => {
     const garden: Garden = translatedGarden || {
       id: gardenAddress || "",
-      chainId: 84532,
+      chainId,
       tokenAddress: "",
       tokenID: BigInt(0),
       name: intl.formatMessage({ id: "app.garden.unknown", defaultMessage: "Unknown Garden" }),
@@ -273,6 +319,8 @@ const Work: React.FC = () => {
 
     const action: Action = translatedAction || {
       id: `${chainId}-${actionUID ?? 0}`,
+      slug: "",
+      domain: selectedDomain ?? 0,
       startTime: Date.now(),
       endTime: Date.now(),
       title: intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected Action" }),
@@ -297,7 +345,7 @@ const Work: React.FC = () => {
     try {
       return Boolean(await uploadWork());
     } catch (error) {
-      console.error("[GardenFlow] Work submission failed:", error);
+      logger.error("Work submission failed", { error, source: "GardenFlow" });
       return false;
     }
   };
@@ -366,6 +414,22 @@ const Work: React.FC = () => {
             mode="stroke"
             leadingIcon={<RiCameraFill className="text-primary w-5 h-5" />}
           />
+          <Button
+            onClick={() => {
+              if (videoClickRef.current) {
+                videoClickRef.current();
+              } else {
+                document.getElementById("work-media-video")?.click();
+              }
+            }}
+            label=""
+            className="w-12 px-0 shrink-0"
+            variant="neutral"
+            type="button"
+            shape="pilled"
+            mode="stroke"
+            leadingIcon={<RiVideoFill className="text-primary w-5 h-5" />}
+          />
         </>
       ),
       backButton: () => changeTab(WorkTab.Intro),
@@ -405,8 +469,10 @@ const Work: React.FC = () => {
             gardens={gardens}
             selectedActionUID={actionUID}
             selectedGardenAddress={gardenAddress}
+            selectedDomain={selectedDomain}
             setActionUID={setActionUID}
             setGardenAddress={setGardenAddress}
+            setSelectedDomain={setSelectedDomain}
           />
         );
       case WorkTab.Media:
@@ -415,9 +481,12 @@ const Work: React.FC = () => {
             config={mediaConfig}
             images={images}
             setImages={setImages}
+            audioNotes={audioNotes}
+            setAudioNotes={setAudioNotes}
             minRequired={minRequired}
             onGalleryClickRef={galleryClickRef}
             onCameraClickRef={cameraClickRef}
+            onVideoClickRef={videoClickRef}
           />
         );
       case WorkTab.Details:
@@ -427,6 +496,7 @@ const Work: React.FC = () => {
             inputs={detailInputs}
             register={register}
             control={control}
+            setValue={setValue}
           />
         );
       case WorkTab.Review: {
@@ -444,10 +514,9 @@ const Work: React.FC = () => {
             garden={garden}
             action={action}
             images={images}
-            values={form.values}
+            audioNotes={audioNotes}
+            values={values}
             feedback={feedback}
-            plantCount={plantCount ?? 0}
-            plantSelection={plantSelection}
             timeSpentMinutes={timeSpentMinutes}
           />
         );
@@ -477,20 +546,27 @@ const Work: React.FC = () => {
       >
         <div className="padded relative flex flex-col gap-4 flex-1">{renderTabContent()}</div>
         <div className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] w-full z-[10000] bg-bg-white-0 border-t border-stroke-soft-200">
-          <div className="flex flex-row gap-4 w-full padded">
-            {currentTab.customSecondary}
-            <Button
-              onClick={currentTab.primary}
-              label={currentTab.primaryLabel}
-              disabled={currentTab.primaryDisabled}
-              className="w-full"
-              variant="primary"
-              mode="filled"
-              size="medium"
-              type="button"
-              shape="pilled"
-              trailingIcon={<RiArrowRightSLine className="w-5 h-5" />}
-            />
+          <div className="flex flex-col gap-2 w-full padded">
+            {queueStatusMessage && (
+              <p className="text-xs text-text-sub-600 px-1" role="status" aria-live="polite">
+                {queueStatusMessage}
+              </p>
+            )}
+            <div className="flex flex-row gap-4 w-full">
+              {currentTab.customSecondary}
+              <Button
+                onClick={currentTab.primary}
+                label={currentTab.primaryLabel}
+                disabled={currentTab.primaryDisabled}
+                className="w-full"
+                variant="primary"
+                mode="filled"
+                size="medium"
+                type="button"
+                shape="pilled"
+                trailingIcon={<RiArrowRightSLine className="w-5 h-5" />}
+              />
+            </div>
           </div>
         </div>
       </form>

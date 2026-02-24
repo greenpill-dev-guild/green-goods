@@ -12,8 +12,13 @@ export { createAssessmentMachine } from "./createAssessment";
 export type {
   CreateGardenContext,
   CreateGardenEvent,
+  CreateGardenFormStatus,
 } from "./createGarden";
 export { createGardenMachine } from "./createGarden";
+
+// Hypercert Mint Workflow
+export type { MintHypercertContext, MintHypercertEvent } from "./mintHypercert";
+export { mintHypercertMachine } from "./mintHypercert";
 
 // Auth Workflow (XState Machine)
 export type {
@@ -32,7 +37,6 @@ export {
   restoreSessionService,
   registerPasskeyService,
   authenticatePasskeyService,
-  claimENSService,
 } from "./authServices";
 
 // Auth Actor (Singleton)

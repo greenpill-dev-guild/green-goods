@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared/utils";
+import { cn } from "@green-goods/shared";
 import { RiArrowLeftLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
@@ -13,6 +13,11 @@ type PageHeaderProps = {
   description?: ReactNode;
   metadata?: ReactNode;
   actions?: ReactNode;
+  /**
+   * Filter bar (search, sort, tags) rendered between the title row and children.
+   * Use this for list-view toolbars so `children` stays free for tabs.
+   */
+  toolbar?: ReactNode;
   backLink?: BackLinkConfig;
   sticky?: boolean;
   className?: string;
@@ -28,6 +33,7 @@ export function PageHeader({
   description,
   metadata,
   actions,
+  toolbar,
   backLink,
   sticky,
   className,
@@ -55,7 +61,9 @@ export function PageHeader({
           ) : null}
 
           <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1">
-            <h1 className="truncate text-lg font-semibold text-text-strong sm:text-2xl">{title}</h1>
+            <h1 className="truncate font-heading text-lg font-semibold text-text-strong sm:text-2xl">
+              {title}
+            </h1>
             {description ? (
               <p className="line-clamp-2 text-xs text-text-sub sm:text-sm">{description}</p>
             ) : null}
@@ -67,6 +75,8 @@ export function PageHeader({
           <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">{actions}</div>
         ) : null}
       </div>
+
+      {toolbar ? <div className="mt-3 sm:mt-4">{toolbar}</div> : null}
 
       {children ? <div className="mt-3 sm:mt-4">{children}</div> : null}
     </header>

@@ -1,78 +1,125 @@
 {
-  "$schema": "https://claude.ai/schemas/hooks.json",
-  "version": "1.0",
-  "description": "Green Goods Claude Code hooks for consistency enforcement",
-
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": {
-          "tool_name": "Write|Edit",
-          "file_pattern": "packages/client/src/hooks/**|packages/admin/src/hooks/**"
-        },
-        "command": "echo '🚫 BLOCKED: All hooks must be created in packages/shared/src/hooks/ - see AGENTS.md' >&2 && exit 2",
-        "blocking": true,
-        "description": "Enforce hook centralization in shared package"
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'packages/(client|admin)/src/hooks/'; then echo 'BLOCKED: All hooks must be in packages/shared/src/hooks/' >&2; exit 2; fi",
+            "statusMessage": "Checking hook location..."
+          }
+        ]
       },
       {
-        "matcher": {
-          "tool_name": "Write",
-          "file_pattern": "packages/**/.env|packages/**/.env.*"
-        },
-        "command": "echo '🚫 BLOCKED: Package-level .env files are not allowed. Use root .env only.' >&2 && exit 2",
-        "blocking": true,
-        "description": "Prevent package-level environment files"
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'packages/[^/]+/\\.env'; then echo 'BLOCKED: Package-level .env files not allowed. Use root .env only.' >&2; exit 2; fi",
+            "statusMessage": "Checking env file location..."
+          }
+        ]
       },
       {
-        "matcher": {
-          "tool_name": "Edit",
-          "file_pattern": "packages/contracts/config/schemas.json"
-        },
-        "command": "echo '⚠️ WARNING: schemas.json is read-only. Use --update-schemas via deploy.ts or create schemas.test.json'",
-        "blocking": false,
-        "description": "Warn about schema immutability"
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE '(^|[;&|] *)bun test( |$)' && ! echo \"$TOOL_INPUT\" | grep -qE 'bun run test'; then echo 'BLOCKED: Use `bun run test` not `bun test` — bun test uses the built-in runner which ignores vitest config.' >&2; exit 2; fi",
+            "statusMessage": "Checking test runner..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qiE 'deploy.*mainnet|upgrade.*mainnet|vercel.*--prod'; then echo 'PRODUCTION DEPLOYMENT — Requires explicit user confirmation before proceeding'; fi",
+            "statusMessage": "Checking deployment target..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'git.*push.*--force.*(main|master)'; then echo 'BLOCKED: Never force push to main/master' >&2; exit 2; fi",
+            "statusMessage": "Checking git push..."
+          }
+        ]
+      }
+    ],
+
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /plan /debug /review /audit /teams' '  Agents: oracle | cracked-coder | code-reviewer | migration | triage'",
+            "once": true
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '## Post-Compaction Reminders\\n- Use `bun run test` (NEVER `bun test`) — bun test ignores vitest config\\n- Never use `forge build`/`forge test` directly — always use bun wrappers\\n- ALL hooks MUST live in packages/shared/src/hooks/ (not client or admin)\\n- Single .env at root only — never create package-specific .env files\\n- Import from `@green-goods/shared` barrel only — never deep paths\\n- Use `Address` type (not string) for Ethereum addresses\\n- Use `logger` from shared (not console.log)\\n- Use `parseContractError()` + `USER_FRIENDLY_ERRORS` for contract errors'"
+          }
+        ]
+      }
+    ],
+
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/teammate-idle-gate.sh",
+            "statusMessage": "Validating teammate idle..."
+          }
+        ]
+      }
+    ],
+
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/task-completion-gate.sh",
+            "statusMessage": "Validating task completion..."
+          }
+        ]
       }
     ],
 
     "PostToolUse": [
       {
-        "matcher": {
-          "tool_name": "Write|Edit",
-          "file_pattern": "**/*.tsx"
-        },
-        "command": ".claude/scripts/check-ui-strings.sh \"$FILE_PATH\"",
-        "blocking": false,
-        "description": "Remind about i18n for UI components"
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE '\\.(ts|tsx|js|jsx|json)$' && ! echo \"$FILE\" | grep -q 'packages/contracts/out/'; then npx @biomejs/biome format --write \"$FILE\" 2>/dev/null; fi; exit 0"
+          }
+        ]
       }
     ],
 
     "Notification": [
       {
-        "matcher": {
-          "event": "session_start"
-        },
-        "command": "echo '🌿 Welcome, fellow cultivator of the Greenpill Dev Guild. The garden awaits your tending.'",
-        "description": "Guild welcome message"
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"Claude Code needs your attention\" with title \"Green Goods\"'"
+          }
+        ]
       }
     ]
-  },
-
-  "reminders": {
-    "ui_strings": {
-      "trigger_patterns": ["component", "modal", "button", "form", "text", "label", "message"],
-      "message": "Remember: Any new user-facing strings require translations in en.json, es.json, and pt.json"
-    },
-    "hooks": {
-      "trigger_patterns": ["hook", "useQuery", "useMutation", "use[A-Z]"],
-      "message": "Remember: All hooks must be created in packages/shared/src/hooks/"
-    },
-    "contracts": {
-      "trigger_patterns": ["deploy", "upgrade", "contract", "forge"],
-      "message": "Remember: Use bun --filter contracts deploy:* wrappers. Never raw forge script --broadcast unless debugging."
-    },
-    "chain": {
-      "trigger_patterns": ["chainId", "chain", "network"],
-      "message": "Remember: Use DEFAULT_CHAIN_ID from shared config. Never use wallet chainId for contract interactions."
-    }
   }
 }

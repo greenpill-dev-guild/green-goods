@@ -8,8 +8,9 @@
  */
 
 import { get as idbGet, set as idbSet } from "idb-keyval";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
+import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { useWorkFlowStore, type WorkFlowState } from "../../stores/useWorkFlowStore";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
@@ -32,9 +33,11 @@ export function useWorkImages() {
 
   // Load images from IndexedDB on mount
   useEffect(() => {
+    let isMounted = true;
     const loadImages = async () => {
       try {
         const storedImages = (await idbGet(WORK_IMAGES_KEY)) as File[] | undefined;
+        if (!isMounted) return;
         if (storedImages && Array.isArray(storedImages) && storedImages.length > 0) {
           if (DEBUG_ENABLED) {
             debugLog("[useWorkImages] Restored images from IDB", {
@@ -44,7 +47,8 @@ export function useWorkImages() {
           _setImages(storedImages);
         }
       } catch (error) {
-        console.error("[useWorkImages] Failed to load images from IDB", error);
+        if (!isMounted) return;
+        logger.error("Failed to load images from IDB", { source: "useWorkImages", error });
         trackStorageError(error, {
           source: "useWorkImages.loadImages",
           userAction: "loading draft images from IndexedDB",
@@ -54,6 +58,9 @@ export function useWorkImages() {
       }
     };
     loadImages();
+    return () => {
+      isMounted = false;
+    };
   }, [_setImages]);
 
   // Save images to IndexedDB on change
@@ -64,7 +71,7 @@ export function useWorkImages() {
         // This handles the reset case as well
         await idbSet(WORK_IMAGES_KEY, images);
       } catch (error) {
-        console.error("[useWorkImages] Failed to save images to IDB", error);
+        logger.error("Failed to save images to IDB", { source: "useWorkImages", error });
         trackStorageError(error, {
           source: "useWorkImages.saveImages",
           userAction: "saving images to IndexedDB",
@@ -75,6 +82,24 @@ export function useWorkImages() {
     };
     saveImages();
   }, [images]);
+
+  // Track latest images via ref so the unmount cleanup sees the current array
+  // without causing the effect to re-run on every image change.
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
+
+  // Revoke blob preview URLs only on unmount (not on every images change,
+  // which would break displayed thumbnails mid-session).
+  useEffect(() => {
+    return () => {
+      imagesRef.current.forEach((image) => {
+        const maybePreviewUrl = (image as File & { preview?: string }).preview;
+        if (typeof maybePreviewUrl === "string" && maybePreviewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(maybePreviewUrl);
+        }
+      });
+    };
+  }, []);
 
   return {
     images,

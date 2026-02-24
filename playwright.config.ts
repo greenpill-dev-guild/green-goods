@@ -20,7 +20,7 @@ const environments = {
     client: `${protocol}://localhost:3001`,
     admin: `${protocol}://localhost:3002`,
     indexer: "http://localhost:8080/v1/graphql",
-    chain: "base-sepolia",
+    chain: "sepolia",
   },
 };
 
@@ -86,6 +86,14 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
 
+    // Desktop Chrome - critical path CI tests (work submission, approval, offline sync)
+    // Lightweight mock-based tests that validate core UI flows without real infrastructure
+    {
+      name: "critical-path",
+      testMatch: /\.ci\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+
     // Performance tests - separate project for load time and resource checks
     {
       name: "performance",
@@ -124,6 +132,39 @@ export default defineConfig({
         viewport: { width: 390, height: 844 },
       },
     },
+
+    // ========================================================================
+    // INTEGRATION TESTING PROJECTS
+    // ========================================================================
+
+    // Anvil Fork - Tests with local Anvil fork of Sepolia
+    // Run with: bun test:e2e:fork
+    // Requires Anvil running: bun anvil:start
+    {
+      name: "anvil-fork",
+      testMatch: /.*\.fork\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
+      timeout: 60000, // Longer timeout for blockchain interactions
+    },
+
+    // Passkey Mock - Tests with mocked Pimlico bundler/paymaster
+    // Enables full passkey E2E tests without real infrastructure
+    // Run with: bun test:e2e:passkey
+    {
+      name: "passkey-mock",
+      testMatch: /.*\.passkey\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+
+    // Testnet - Tests against real Sepolia (manual only)
+    // Run with: bun test:e2e:testnet
+    // Requires: TEST_WALLET_PRIVATE_KEY env var
+    {
+      name: "testnet",
+      testMatch: /.*\.testnet\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
+      timeout: 120000, // Extra long timeout for real transactions
+    },
   ],
 
   // WebServer configuration - starts services if not running
@@ -146,7 +187,7 @@ export default defineConfig({
           timeout: 120000,
           env: {
             NODE_ENV: "test",
-            VITE_CHAIN_ID: "84532",
+            VITE_CHAIN_ID: "11155111",
             VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
           },
         },
@@ -158,7 +199,7 @@ export default defineConfig({
           timeout: 120000,
           env: {
             NODE_ENV: "test",
-            VITE_CHAIN_ID: "84532",
+            VITE_CHAIN_ID: "11155111",
             VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
           },
         },

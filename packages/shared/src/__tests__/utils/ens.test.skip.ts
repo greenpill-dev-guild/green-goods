@@ -1,3 +1,5 @@
+// SKIP: #312 — createPublicClientForChain mock doesn't intercept real Pimlico config import
+// Owner: shared / Expiry: 2026-03-17
 import { describe, expect, it, vi } from "vitest";
 import { resolveEnsName, resolveEnsAddress } from "../../utils";
 

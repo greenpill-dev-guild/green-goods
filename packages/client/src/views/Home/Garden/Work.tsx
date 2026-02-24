@@ -1,29 +1,37 @@
-import { toastService } from "@green-goods/shared";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/blockchain";
 import {
+  cn,
+  Confidence,
+  ConfidenceSelector,
+  debugWarn,
+  DEFAULT_CHAIN_ID,
+  downloadWorkData,
+  downloadWorkMedia,
+  getFileByHash,
+  isAddressInList,
+  isUserAddress as sharedIsUserAddress,
+  isValidAttestationId,
+  jobQueue,
+  openEASExplorer,
   queryKeys,
+  shareWork,
+  toastService,
   useActions,
+  useAsyncEffect,
   useGardens,
+  useHasRole,
+  useJobQueueEvents,
   useNavigateToTop,
+  useTimeout,
   useUser,
   useWorkApproval,
   useWorks,
-} from "@green-goods/shared/hooks";
-import { getFileByHash, useJobQueueEvents } from "@green-goods/shared/modules";
-import { jobQueue } from "@green-goods/shared/modules/job-queue";
-import {
-  cn,
-  isAddressInList,
-  isUserAddress as sharedIsUserAddress,
-} from "@green-goods/shared/utils";
-import { debugWarn } from "@green-goods/shared/utils/debug";
-import { isValidAttestationId, openEASExplorer } from "@green-goods/shared/utils/eas/explorers";
-import {
-  downloadWorkData,
-  downloadWorkMedia,
-  shareWork,
+  VerificationMethod,
+  type Address,
+  type ApprovalJobPayload,
+  type WorkApprovalDraft,
   type WorkData,
-} from "@green-goods/shared/utils/work/workActions";
+  type WorkMetadata,
+} from "@green-goods/shared";
 import {
   RiCheckLine,
   RiCloseLine,
@@ -35,6 +43,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useOutletContext, useParams } from "react-router-dom";
+
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
@@ -51,8 +60,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     "loading"
   );
   const [metadataError, setMetadataError] = useState<string | null>(null);
+  const [metadataRetryKey, setMetadataRetryKey] = useState(0);
   const [feedbackMode, setFeedbackMode] = useState<"approve" | "reject" | null>(null);
   const [inlineFeedback, setInlineFeedback] = useState<string>("");
+  const [confidence, setConfidence] = useState<Confidence>(Confidence.NONE);
   const [optimisticStatus, setOptimisticStatus] = useState<"approved" | "rejected" | null>(null);
   const navigateToTop = useNavigateToTop();
   const location = useLocation();
@@ -61,7 +72,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const gardenId = (gardenIdFromContext || gardenIdParam) as string;
   const garden = gardens.find((g) => g.id === gardenId);
   const { data: actions = [] } = useActions(chainId);
-  const { works: mergedWorks } = useWorks(gardenId || "");
+  const { works: mergedWorks } = useWorks(gardenId || "", { offline: true });
   const work = mergedWorks.find((w) => w.id === (workId || ""));
 
   // Derive effective status (optimistic takes precedence over fetched data)
@@ -78,6 +89,12 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const { user, smartAccountClient } = useUser();
   const activeAddress = user?.id;
   const [isRetrying, setIsRetrying] = useState(false);
+  const { set: scheduleTimeout } = useTimeout();
+  const { hasRole: canReviewOnChain } = useHasRole(
+    garden?.id as Address | undefined,
+    activeAddress as Address | undefined,
+    "evaluator"
+  );
 
   // Determine user role and viewing mode
   const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
@@ -85,14 +102,15 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
     // Check if user is garden operator
     const isOperator = isAddressInList(activeAddress, garden.operators);
+    const canReview = isOperator || canReviewOnChain;
 
     // Check if user is the gardener who submitted the work
     const isGardener = sharedIsUserAddress(work.gardenerAddress, activeAddress);
 
-    if (isOperator) return "operator";
+    if (canReview) return "operator";
     if (isGardener) return "gardener";
     return "viewer";
-  }, [garden, work, activeAddress]);
+  }, [garden, work, activeAddress, canReviewOnChain]);
 
   // Detect if this is offline work
   const isOfflineWork =
@@ -224,8 +242,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const handleApprovePress = () => {
     if (navigator.vibrate) navigator.vibrate([50]);
     setFeedbackMode("approve");
-    // Focus feedback input after animation
-    setTimeout(() => {
+    // Default confidence to MEDIUM for approvals
+    setConfidence(Confidence.MEDIUM);
+    // Focus feedback input after animation (auto-cleared on unmount)
+    scheduleTimeout(() => {
       document.getElementById("approval-feedback-input")?.focus();
     }, 300);
   };
@@ -233,7 +253,9 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const handleRejectPress = () => {
     if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
     setFeedbackMode("reject");
-    setTimeout(() => {
+    // Confidence defaults to NONE for rejections (per decision #31)
+    setConfidence(Confidence.NONE);
+    scheduleTimeout(() => {
       document.getElementById("approval-feedback-input")?.focus();
     }, 300);
   };
@@ -241,6 +263,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const handleCancelFeedback = () => {
     setFeedbackMode(null);
     setInlineFeedback("");
+    setConfidence(Confidence.NONE);
   };
 
   const handleSubmitApproval = () => {
@@ -261,17 +284,37 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       return;
     }
 
+    // Confidence validation: must be LOW or higher for approvals (decision #21)
+    if (feedbackMode === "approve" && confidence < Confidence.LOW) {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.home.workApproval.confidenceRequired",
+          defaultMessage: "Confidence required",
+        }),
+        message: intl.formatMessage({
+          id: "app.home.workApproval.confidenceRequiredMessage",
+          defaultMessage: "Please select a confidence level (Low or higher) when approving.",
+        }),
+        context: "work approval",
+      });
+      return;
+    }
+
     const draft: WorkApprovalDraft = {
       actionUID: work.actionUID,
       workUID: work.id,
       approved: feedbackMode === "approve",
       feedback: inlineFeedback,
+      confidence: feedbackMode === "approve" ? confidence : Confidence.NONE,
+      // Client PWA hardcodes HUMAN verification method (decision #33)
+      verificationMethod: VerificationMethod.HUMAN,
     };
 
     // Optimistic status is set AFTER transaction confirms (in job:completed handler)
     workApprovalMutation.mutate({ draft, work });
     setFeedbackMode(null);
     setInlineFeedback("");
+    setConfidence(Confidence.NONE);
   };
 
   const workApprovalMutation = useWorkApproval();
@@ -300,8 +343,8 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           suppressLogging: true,
         });
 
-        // Delay navigation to show success state (2.5s instead of 500ms)
-        setTimeout(() => {
+        // Delay navigation to show success state (auto-cleared on unmount)
+        scheduleTimeout(() => {
           setOptimisticStatus(null); // Clear before navigating
           navigateToTop(`/home/${garden?.id ?? ""}`);
         }, 2500);
@@ -341,19 +384,15 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     }
   }, [work?.status, optimisticStatus]);
 
-  // using shared ConfirmDrawer component
-
-  useEffect(() => {
-    let mounted = true;
-    const loadMetadata = async () => {
-      if (mounted) {
-        setMetadataStatus("loading");
-        setMetadataError(null);
-        setWorkMetadata(null);
-      }
+  // Load work metadata with proper async cleanup (Rule 3: Async Cleanup)
+  useAsyncEffect(
+    async ({ signal, isMounted }) => {
+      setMetadataStatus("loading");
+      setMetadataError(null);
+      setWorkMetadata(null);
 
       if (!work) {
-        if (mounted) {
+        if (isMounted()) {
           setMetadataStatus("idle");
         }
         return;
@@ -361,7 +400,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
       const raw = work.metadata;
       if (!raw || typeof raw !== "string") {
-        if (mounted) {
+        if (isMounted()) {
           setWorkMetadata(null);
           setMetadataStatus("success");
         }
@@ -370,30 +409,30 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
       const trimmed = raw.trim();
 
+      // Try parsing as inline JSON first
       if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
         try {
           const parsed = JSON.parse(trimmed) as unknown;
-          if (mounted) {
+          if (isMounted()) {
             setWorkMetadata(parsed as WorkMetadata);
             setMetadataStatus("success");
           }
           return;
         } catch (error) {
-          if (mounted) {
-            debugWarn(
-              `[GardenWork] Failed to parse inline metadata for work ${work.id}: ${
-                error instanceof Error ? error.message : String(error)
-              }`
-            );
-          }
+          debugWarn(
+            `[GardenWork] Failed to parse inline metadata for work ${work.id}: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
           // Continue to gateway fetch fallback
         }
       }
 
+      // Fetch from IPFS gateway
       try {
-        const file = await getFileByHash(trimmed);
+        const file = await getFileByHash(trimmed, { signal, timeoutMs: 30_000 });
         const data = file.data as unknown as WorkMetadata | null | undefined;
-        if (!mounted) return;
+        if (!isMounted()) return;
 
         if (data) {
           setWorkMetadata(data);
@@ -407,20 +446,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           );
         }
       } catch (error) {
-        if (!mounted) return;
+        if (!isMounted()) return;
         const message = error instanceof Error ? error.message : String(error);
         setWorkMetadata(null);
         setMetadataStatus("error");
         setMetadataError(message);
         debugWarn(`[GardenWork] Failed to fetch metadata for work ${work.id}: ${message}`);
       }
-    };
-
-    void loadMetadata();
-    return () => {
-      mounted = false;
-    };
-  }, [work]);
+    },
+    [work?.id, work?.metadata, metadataRetryKey]
+  );
 
   const handleBack = () => {
     const from = (location.state as { from?: string } | null | undefined)?.from;
@@ -523,12 +558,18 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
               feedbackMode ? "translate-y-0" : "translate-y-full"
             )}
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-            role="presentation"
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Escape") handleCancelFeedback();
+            }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="feedback-drawer-title"
+            aria-describedby="feedback-drawer-description"
           >
-            <div className="p-4 space-y-3 max-w-screen-sm mx-auto">
+            <div className="p-4 space-y-3 max-w-screen-sm mx-auto overflow-y-auto max-h-[60vh]">
               <div className="flex items-center justify-between">
-                <h6 className="text-sm font-medium text-text-strong-950">
+                <h2 id="feedback-drawer-title" className="text-sm font-medium text-text-strong-950">
                   {feedbackMode === "approve"
                     ? intl.formatMessage({
                         id: "app.home.workApproval.addFeedbackOptional",
@@ -538,9 +579,46 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                         id: "app.home.workApproval.addFeedbackRequired",
                         defaultMessage: "Add Feedback (Required)",
                       })}
-                </h6>
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleCancelFeedback}
+                  className="p-1 rounded-md text-text-soft-400 hover:text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary"
+                  aria-label={intl.formatMessage({
+                    id: "app.home.workApproval.closeFeedback",
+                    defaultMessage: "Close feedback",
+                  })}
+                >
+                  <RiCloseLine className="w-5 h-5" />
+                </button>
               </div>
 
+              <p id="feedback-drawer-description" className="sr-only">
+                {intl.formatMessage({
+                  id: "app.home.workApproval.feedbackDescription",
+                  defaultMessage: "Enter your feedback for this work submission.",
+                })}
+              </p>
+
+              {/* Confidence selector — above feedback, required for approvals */}
+              {feedbackMode === "approve" && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-text-sub-600 uppercase tracking-wide">
+                    {intl.formatMessage({
+                      id: "app.home.workApproval.confidence",
+                      defaultMessage: "Confidence",
+                    })}
+                  </label>
+                  <ConfidenceSelector value={confidence} onChange={setConfidence} required />
+                </div>
+              )}
+
+              <label htmlFor="approval-feedback-input" className="sr-only">
+                {intl.formatMessage({
+                  id: "app.home.workApproval.feedbackLabel",
+                  defaultMessage: "Feedback",
+                })}
+              </label>
               <textarea
                 id="approval-feedback-input"
                 value={inlineFeedback}
@@ -689,6 +767,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         )
       : null;
 
+  const handleRetryMetadataFetch = () => {
+    setMetadataRetryKey((prev) => prev + 1);
+  };
+
   return (
     <article>
       <TopNav onBackClick={handleBack} overlay />
@@ -729,6 +811,16 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
               {metadataErrorDetail && (
                 <p className="mt-1 text-xs text-error-base">{metadataErrorDetail}</p>
               )}
+              <button
+                type="button"
+                onClick={handleRetryMetadataFetch}
+                className="mt-2 text-xs font-medium text-error-dark underline underline-offset-2 hover:text-error-base"
+              >
+                {intl.formatMessage({
+                  id: "app.home.work.retryMetadataLoad",
+                  defaultMessage: "Retry loading details",
+                })}
+              </button>
             </div>
           </div>
         )}

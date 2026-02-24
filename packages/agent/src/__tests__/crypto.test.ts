@@ -1,11 +1,4 @@
-/**
- * Cryptographic Service Tests
- *
- * Tests for encryption, key generation, and validation functions.
- */
-
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-
+import { describe, it, expect } from "vitest";
 import {
   encryptPrivateKey,
   decryptPrivateKey,
@@ -16,212 +9,140 @@ import {
   generateSecureId,
   isValidPrivateKey,
   isValidAddress,
-  type EncryptedData,
 } from "../services/crypto";
 
-// Set up encryption secret for tests
-const originalSecret = process.env.ENCRYPTION_SECRET;
-const originalToken = process.env.TELEGRAM_BOT_TOKEN;
+describe("Crypto Service", () => {
+  const testPrivateKey = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
-beforeAll(() => {
-  process.env.ENCRYPTION_SECRET = "test-secret-key-for-encryption-32chars!";
-  process.env.TELEGRAM_BOT_TOKEN = "test-token-for-fallback";
-});
+  describe("encryptPrivateKey / decryptPrivateKey", () => {
+    it("should encrypt and decrypt correctly with real crypto", () => {
+      const encrypted = encryptPrivateKey(testPrivateKey);
+      const decrypted = decryptPrivateKey(encrypted);
 
-afterAll(() => {
-  if (originalSecret) {
-    process.env.ENCRYPTION_SECRET = originalSecret;
-  } else {
-    delete process.env.ENCRYPTION_SECRET;
-  }
-  if (originalToken) {
-    process.env.TELEGRAM_BOT_TOKEN = originalToken;
-  } else {
-    delete process.env.TELEGRAM_BOT_TOKEN;
-  }
-});
+      expect(decrypted).toBe(testPrivateKey);
+      expect(encrypted.version).toBe(1);
+      expect(encrypted.ciphertext).toBeDefined();
+      expect(encrypted.iv).toHaveLength(32); // 16 bytes hex
+      expect(encrypted.authTag).toHaveLength(32); // 16 bytes hex
+      expect(encrypted.salt).toHaveLength(64); // 32 bytes hex
+    });
 
-describe("encryptPrivateKey / decryptPrivateKey", () => {
-  const testKey = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+    it("should produce different ciphertext for same input (unique IV/salt)", () => {
+      const encrypted1 = encryptPrivateKey(testPrivateKey);
+      const encrypted2 = encryptPrivateKey(testPrivateKey);
 
-  it("encrypts and decrypts a private key correctly", () => {
-    const encrypted = encryptPrivateKey(testKey);
-    const decrypted = decryptPrivateKey(encrypted);
+      expect(encrypted1.ciphertext).not.toBe(encrypted2.ciphertext);
+      expect(encrypted1.iv).not.toBe(encrypted2.iv);
+      expect(encrypted1.salt).not.toBe(encrypted2.salt);
+    });
 
-    expect(decrypted).toBe(testKey);
+    it("should fail decryption with tampered data", () => {
+      const encrypted = encryptPrivateKey(testPrivateKey);
+
+      // Tamper with ciphertext
+      const tampered = {
+        ...encrypted,
+        ciphertext: "0000" + encrypted.ciphertext.slice(4),
+      };
+
+      expect(() => decryptPrivateKey(tampered)).toThrow("Decryption failed");
+    });
+
+    it("should fail with incorrect auth tag", () => {
+      const encrypted = encryptPrivateKey(testPrivateKey);
+      const tampered = {
+        ...encrypted,
+        authTag: "0".repeat(32),
+      };
+
+      expect(() => decryptPrivateKey(tampered)).toThrow("Decryption failed");
+    });
+
+    it("should handle different key lengths", () => {
+      const shortKey = "0x" + "a".repeat(32); // 16 bytes
+      const longKey = "0x" + "b".repeat(128); // 64 bytes
+
+      const encryptedShort = encryptPrivateKey(shortKey);
+      const encryptedLong = encryptPrivateKey(longKey);
+
+      expect(decryptPrivateKey(encryptedShort)).toBe(shortKey);
+      expect(decryptPrivateKey(encryptedLong)).toBe(longKey);
+    });
   });
 
-  it("produces different ciphertext each time (unique IV)", () => {
-    const encrypted1 = encryptPrivateKey(testKey);
-    const encrypted2 = encryptPrivateKey(testKey);
+  describe("Key Validation", () => {
+    it("should validate Ethereum private keys", () => {
+      expect(isValidPrivateKey(testPrivateKey)).toBe(true);
+      expect(isValidPrivateKey("0x" + "f".repeat(64))).toBe(true);
 
-    expect(encrypted1.ciphertext).not.toBe(encrypted2.ciphertext);
-    expect(encrypted1.iv).not.toBe(encrypted2.iv);
-    expect(encrypted1.salt).not.toBe(encrypted2.salt);
+      // Invalid cases
+      expect(isValidPrivateKey("not-a-key")).toBe(false);
+      expect(isValidPrivateKey("0x" + "g".repeat(64))).toBe(false); // Invalid hex
+      expect(isValidPrivateKey("0x" + "a".repeat(63))).toBe(false); // Too short
+      expect(isValidPrivateKey("0x" + "a".repeat(65))).toBe(false); // Too long
+      expect(isValidPrivateKey("a".repeat(64))).toBe(false); // Missing 0x
+    });
+
+    it("should validate Ethereum addresses", () => {
+      expect(isValidAddress("0x" + "0".repeat(40))).toBe(true);
+      expect(isValidAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")).toBe(true);
+
+      // Invalid cases
+      expect(isValidAddress("0x" + "0".repeat(39))).toBe(false);
+      expect(isValidAddress("0x" + "0".repeat(41))).toBe(false);
+      expect(isValidAddress("not-an-address")).toBe(false);
+    });
   });
 
-  it("includes version number in encrypted data", () => {
-    const encrypted = encryptPrivateKey(testKey);
-    expect(encrypted.version).toBe(1);
+  describe("Key Generation", () => {
+    it("should generate cryptographically secure private keys", () => {
+      const keys = new Set<string>();
+
+      // Generate 100 keys
+      for (let i = 0; i < 100; i++) {
+        const key = generateSecurePrivateKey();
+        expect(isValidPrivateKey(key)).toBe(true);
+        keys.add(key);
+      }
+
+      // All should be unique
+      expect(keys.size).toBe(100);
+    });
+
+    it("should generate secure random IDs", () => {
+      const id1 = generateSecureId();
+      const id2 = generateSecureId();
+
+      expect(id1).toHaveLength(16); // Default 8 bytes = 16 hex chars
+      expect(id2).toHaveLength(16);
+      expect(id1).not.toBe(id2);
+      expect(/^[a-f0-9]+$/.test(id1)).toBe(true);
+    });
   });
 
-  it("includes all required fields", () => {
-    const encrypted = encryptPrivateKey(testKey);
+  describe("Legacy Key Migration", () => {
+    it("should detect encrypted vs plain keys", () => {
+      const encrypted = prepareKeyForStorage(testPrivateKey);
 
-    expect(encrypted).toHaveProperty("ciphertext");
-    expect(encrypted).toHaveProperty("iv");
-    expect(encrypted).toHaveProperty("authTag");
-    expect(encrypted).toHaveProperty("salt");
-    expect(encrypted).toHaveProperty("version");
-  });
+      expect(isEncryptedKey(encrypted)).toBe(true);
+      expect(isEncryptedKey(testPrivateKey)).toBe(false);
+      expect(isEncryptedKey("invalid-json")).toBe(false);
+      expect(isEncryptedKey("{}")).toBe(false);
+    });
 
-  it("throws error on tampered ciphertext", () => {
-    const encrypted = encryptPrivateKey(testKey);
-    encrypted.ciphertext = "0000" + encrypted.ciphertext.slice(4);
+    it("should handle legacy plain keys", () => {
+      const result = getPrivateKey(testPrivateKey);
 
-    expect(() => decryptPrivateKey(encrypted)).toThrow("Decryption failed");
-  });
+      expect(result.privateKey).toBe(testPrivateKey);
+      expect(result.needsMigration).toBe(true);
+    });
 
-  it("throws error on tampered auth tag", () => {
-    const encrypted = encryptPrivateKey(testKey);
-    encrypted.authTag = "0000" + encrypted.authTag.slice(4);
+    it("should handle encrypted keys", () => {
+      const encrypted = prepareKeyForStorage(testPrivateKey);
+      const result = getPrivateKey(encrypted);
 
-    expect(() => decryptPrivateKey(encrypted)).toThrow("Decryption failed");
-  });
-});
-
-describe("isEncryptedKey", () => {
-  it("returns true for valid encrypted data JSON", () => {
-    const encrypted = encryptPrivateKey("0x1234");
-    const json = JSON.stringify(encrypted);
-
-    expect(isEncryptedKey(json)).toBe(true);
-  });
-
-  it("returns false for plain private key", () => {
-    const plainKey = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
-    expect(isEncryptedKey(plainKey)).toBe(false);
-  });
-
-  it("returns false for invalid JSON", () => {
-    expect(isEncryptedKey("not json")).toBe(false);
-  });
-
-  it("returns false for JSON missing required fields", () => {
-    expect(isEncryptedKey(JSON.stringify({ foo: "bar" }))).toBe(false);
-    expect(isEncryptedKey(JSON.stringify({ version: 1 }))).toBe(false);
-  });
-});
-
-describe("getPrivateKey", () => {
-  it("decrypts encrypted key and returns needsMigration: false", () => {
-    const original = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
-    const encrypted = prepareKeyForStorage(original);
-
-    const result = getPrivateKey(encrypted);
-
-    expect(result.privateKey).toBe(original);
-    expect(result.needsMigration).toBe(false);
-  });
-
-  it("returns plain key and needsMigration: true for legacy keys", () => {
-    const legacyKey = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
-
-    const result = getPrivateKey(legacyKey);
-
-    expect(result.privateKey).toBe(legacyKey);
-    expect(result.needsMigration).toBe(true);
-  });
-});
-
-describe("prepareKeyForStorage", () => {
-  it("returns JSON string of encrypted data", () => {
-    const key = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
-    const prepared = prepareKeyForStorage(key);
-
-    expect(() => JSON.parse(prepared)).not.toThrow();
-
-    const parsed = JSON.parse(prepared) as EncryptedData;
-    expect(parsed.version).toBe(1);
-    expect(parsed.ciphertext).toBeDefined();
-  });
-});
-
-describe("generateSecurePrivateKey", () => {
-  it("generates a valid 32-byte hex key with 0x prefix", () => {
-    const key = generateSecurePrivateKey();
-
-    expect(key).toMatch(/^0x[a-f0-9]{64}$/);
-  });
-
-  it("generates different keys each time", () => {
-    const keys = new Set<string>();
-    for (let i = 0; i < 100; i++) {
-      keys.add(generateSecurePrivateKey());
-    }
-    expect(keys.size).toBe(100);
-  });
-});
-
-describe("generateSecureId", () => {
-  it("generates a hex string of correct length", () => {
-    const id = generateSecureId(8);
-    expect(id).toMatch(/^[a-f0-9]{16}$/);
-  });
-
-  it("uses default length of 8 bytes (16 hex chars)", () => {
-    const id = generateSecureId();
-    expect(id).toHaveLength(16);
-  });
-
-  it("generates unique IDs", () => {
-    const ids = new Set<string>();
-    for (let i = 0; i < 100; i++) {
-      ids.add(generateSecureId());
-    }
-    expect(ids.size).toBe(100);
-  });
-});
-
-describe("isValidPrivateKey", () => {
-  it("returns true for valid private key", () => {
-    expect(
-      isValidPrivateKey("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
-    ).toBe(true);
-  });
-
-  it("returns false for key without 0x prefix", () => {
-    expect(
-      isValidPrivateKey("1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
-    ).toBe(false);
-  });
-
-  it("returns false for key with wrong length", () => {
-    expect(isValidPrivateKey("0x1234")).toBe(false);
-    expect(isValidPrivateKey("0x" + "a".repeat(63))).toBe(false);
-    expect(isValidPrivateKey("0x" + "a".repeat(65))).toBe(false);
-  });
-
-  it("returns false for key with invalid characters", () => {
-    expect(
-      isValidPrivateKey("0xgggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg")
-    ).toBe(false);
-  });
-});
-
-describe("isValidAddress", () => {
-  it("returns true for valid address", () => {
-    expect(isValidAddress("0x1234567890abcdef1234567890abcdef12345678")).toBe(true);
-    expect(isValidAddress("0xABCDEF1234567890ABCDEF1234567890ABCDEF12")).toBe(true);
-  });
-
-  it("returns false for address without 0x prefix", () => {
-    expect(isValidAddress("1234567890abcdef1234567890abcdef12345678")).toBe(false);
-  });
-
-  it("returns false for address with wrong length", () => {
-    expect(isValidAddress("0x1234")).toBe(false);
-    expect(isValidAddress("0x" + "a".repeat(39))).toBe(false);
-    expect(isValidAddress("0x" + "a".repeat(41))).toBe(false);
+      expect(result.privateKey).toBe(testPrivateKey);
+      expect(result.needsMigration).toBe(false);
+    });
   });
 });

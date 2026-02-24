@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { useDrafts } from "./useDrafts";
 
@@ -17,8 +18,6 @@ interface DraftFormState {
   gardenAddress: string | null;
   actionUID: number | null;
   feedback: string;
-  plantSelection: string[];
-  plantCount: number | null;
 }
 
 interface UseDraftResumeOptions {
@@ -45,7 +44,7 @@ interface UseDraftResumeOptions {
  *   handleContinueDraft,
  *   handleStartFresh,
  * } = useDraftResume({
- *   formState: { images, gardenAddress, actionUID, feedback, plantSelection, plantCount },
+ *   formState: { images, gardenAddress, actionUID, feedback },
  *   isOnIntroTab: activeTab === WorkTab.Intro,
  *   searchParams,
  *   setSearchParams,
@@ -61,37 +60,53 @@ export function useDraftResume(options: UseDraftResumeOptions) {
   const hasCheckedDraft = useRef(false);
   const hasResumedDraft = useRef(false);
 
+  // Extract draftId as a primitive to avoid re-running the effect
+  // when the searchParams object reference changes but draftId hasn't
+  const draftIdFromUrl = searchParams.get("draftId");
+
   /**
    * Resume draft from URL parameter
+   * Uses AbortController for proper cancellation on unmount
    */
   useEffect(() => {
     if (hasResumedDraft.current) return;
+    if (!draftIdFromUrl) return;
 
-    const draftIdFromUrl = searchParams.get("draftId");
-    if (draftIdFromUrl) {
-      hasResumedDraft.current = true;
-      resumeDraft(draftIdFromUrl)
-        .then(() => {
-          // Clear draftId from URL after resuming
-          const newParams = new URLSearchParams(searchParams);
-          newParams.delete("draftId");
-          setSearchParams(newParams, { replace: true });
-        })
-        .catch((error) => {
-          console.error("[useDraftResume] Failed to resume draft:", error);
-          trackStorageError(error, {
-            source: "useDraftResume.resumeFromUrl",
-            userAction: "resuming draft from URL parameter",
-            recoverable: true,
-            metadata: { draft_id: draftIdFromUrl, operation: "resume_draft" },
-          });
-          // Clear invalid draftId from URL
-          const newParams = new URLSearchParams(searchParams);
-          newParams.delete("draftId");
-          setSearchParams(newParams, { replace: true });
+    const controller = new AbortController();
+    hasResumedDraft.current = true;
+
+    resumeDraft(draftIdFromUrl, { signal: controller.signal })
+      .then(() => {
+        // Check if aborted before updating state
+        if (controller.signal.aborted) return;
+
+        const currentParams = new URLSearchParams(searchParams.toString());
+        currentParams.delete("draftId");
+        setSearchParams(currentParams, { replace: true });
+      })
+      .catch((error) => {
+        // Ignore abort errors
+        if (error.name === "AbortError") return;
+        // Check if aborted before handling error
+        if (controller.signal.aborted) return;
+
+        logger.error("Failed to resume draft", { source: "useDraftResume", error });
+        trackStorageError(error, {
+          source: "useDraftResume.resumeFromUrl",
+          userAction: "resuming draft from URL parameter",
+          recoverable: true,
+          metadata: { draft_id: draftIdFromUrl, operation: "resume_draft" },
         });
-    }
-  }, [searchParams, setSearchParams, resumeDraft]);
+
+        const currentParams = new URLSearchParams(searchParams.toString());
+        currentParams.delete("draftId");
+        setSearchParams(currentParams, { replace: true });
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [draftIdFromUrl, setSearchParams, resumeDraft]);
 
   /**
    * Check for meaningful draft progress to show dialog
@@ -101,7 +116,6 @@ export function useDraftResume(options: UseDraftResumeOptions) {
     hasCheckedDraft.current = true;
 
     // Don't show dialog if resuming a draft from URL
-    const draftIdFromUrl = searchParams.get("draftId");
     if (draftIdFromUrl) return;
 
     // Images are the strongest indicator of draft progress
@@ -109,10 +123,7 @@ export function useDraftResume(options: UseDraftResumeOptions) {
 
     // Having both selections + some form input indicates progress
     const hasBothSelections = formState.gardenAddress !== null && formState.actionUID !== null;
-    const hasFormInput =
-      formState.feedback.length > 0 ||
-      formState.plantSelection.length > 0 ||
-      (formState.plantCount ?? 0) > 0;
+    const hasFormInput = formState.feedback.length > 0;
     const hasProgressWithSelections = hasBothSelections && hasFormInput;
 
     const hasMeaningfulDraft = hasImages || hasProgressWithSelections;
@@ -120,7 +131,7 @@ export function useDraftResume(options: UseDraftResumeOptions) {
     if (hasMeaningfulDraft && isOnIntroTab) {
       setShowDraftDialog(true);
     }
-  }, [formState, isOnIntroTab, searchParams]);
+  }, [formState, isOnIntroTab, draftIdFromUrl]);
 
   /**
    * Continue with the existing draft
@@ -139,7 +150,7 @@ export function useDraftResume(options: UseDraftResumeOptions) {
       try {
         await clearActiveDraft();
       } catch (error) {
-        console.error("[useDraftResume] Failed to clear draft:", error);
+        logger.error("Failed to clear draft", { source: "useDraftResume", error });
         trackStorageError(error, {
           source: "useDraftResume.handleStartFresh",
           userAction: "clearing active draft to start fresh",

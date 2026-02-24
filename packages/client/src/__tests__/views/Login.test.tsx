@@ -8,6 +8,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { HelmetProvider } from "react-helmet-async";
+import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -15,36 +16,29 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mockLoginWithPasskey = vi.fn();
 const mockCreateAccount = vi.fn();
 const mockLoginWithWallet = vi.fn();
-
-vi.mock("@green-goods/shared/providers", () => ({
-  useApp: () => ({
-    platform: "unknown" as const,
-    isMobile: false,
-    isInstalled: false,
-    wasInstalled: false,
-    deferredPrompt: null,
-  }),
-}));
+let mockHasStoredCredential = false;
 
 vi.mock("@green-goods/shared", () => ({
   toastService: {
     info: vi.fn(),
     success: vi.fn(),
     error: vi.fn(),
+    show: vi.fn(),
   },
   copyToClipboard: vi.fn(),
   useInstallGuidance: () => ({
     showInstallPrompt: false,
+    scenario: null,
     installAction: null,
     dismissInstallPrompt: vi.fn(),
+    openInBrowserUrl: null,
   }),
-}));
-
-vi.mock("@green-goods/shared/hooks", () => ({
-  checkMembership: vi.fn().mockResolvedValue({ isGardener: false, hasBeenOnboarded: false }),
-  useAutoJoinRootGarden: () => ({
-    joinGarden: vi.fn().mockResolvedValue(undefined),
-    isLoading: false,
+  useApp: () => ({
+    platform: "unknown" as const,
+    isMobile: false,
+    isInstalled: false,
+    wasInstalled: false,
+    deferredPrompt: null,
   }),
   useAuth: () => ({
     loginWithPasskey: mockLoginWithPasskey,
@@ -54,21 +48,12 @@ vi.mock("@green-goods/shared/hooks", () => ({
     isAuthenticated: false,
     isReady: true,
     smartAccountAddress: null,
-    hasStoredCredential: false,
+    hasStoredCredential: mockHasStoredCredential,
     error: null,
   }),
-}));
-
-vi.mock("@green-goods/shared/modules", () => ({
-  hasStoredUsername: () => false,
-  getStoredUsername: () => null,
-  trackAuthError: vi.fn(),
-}));
-
-vi.mock("@green-goods/shared/utils", () => ({
   debugError: vi.fn(),
-  debugWarn: vi.fn(),
-  debugLog: vi.fn(),
+  trackAuthError: vi.fn(),
+  APP_NAME: "Green Goods",
 }));
 
 // Mock Splash component to simplify testing
@@ -116,16 +101,23 @@ import { Login } from "../../views/Login";
 const renderWithRouter = (initialRoute = "/login") => {
   return render(
     createElement(
-      HelmetProvider,
-      null,
+      IntlProvider,
+      { locale: "en", messages: {} },
       createElement(
-        MemoryRouter,
-        { initialEntries: [initialRoute] },
+        HelmetProvider,
+        null,
         createElement(
-          Routes,
-          null,
-          createElement(Route, { path: "/login/*", element: createElement(Login) }),
-          createElement(Route, { path: "/home", element: createElement("div", null, "Home Page") })
+          MemoryRouter,
+          { initialEntries: [initialRoute] },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/login/*", element: createElement(Login) }),
+            createElement(Route, {
+              path: "/home",
+              element: createElement("div", null, "Home Page"),
+            })
+          )
         )
       )
     )
@@ -172,46 +164,26 @@ describe("Login View", () => {
 describe("Login View - Existing User", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Override mock for existing user
-    vi.mocked(vi.importActual("@green-goods/shared/modules")).then(() => {
-      // Will be handled by re-mock below
-    });
+    mockHasStoredCredential = true;
   });
 
   afterEach(() => {
+    mockHasStoredCredential = false;
     cleanup();
   });
 
-  it("shows auto-login button when user has stored credentials", async () => {
-    // Re-mock with stored credential
-    vi.doMock("@green-goods/shared/hooks", () => ({
-      checkMembership: vi.fn().mockResolvedValue({ isGardener: false, hasBeenOnboarded: false }),
-      useAutoJoinRootGarden: () => ({
-        joinGarden: vi.fn().mockResolvedValue(undefined),
-        isLoading: false,
-      }),
-      useAuth: () => ({
-        loginWithPasskey: mockLoginWithPasskey,
-        createAccount: mockCreateAccount,
-        loginWithWallet: mockLoginWithWallet,
-        isAuthenticating: false,
-        isAuthenticated: false,
-        isReady: true,
-        smartAccountAddress: null,
-        hasStoredCredential: true, // Has stored credential
-        error: null,
-      }),
-    }));
+  it("shows Login with Passkey button when user has stored credentials", () => {
+    renderWithRouter();
 
-    vi.doMock("@green-goods/shared/modules", () => ({
-      hasStoredUsername: () => true,
-      getStoredUsername: () => "testuser",
-      trackAuthError: vi.fn(),
-    }));
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Login with Passkey");
+  });
 
-    // Re-import with new mocks - this is tricky in vitest
-    // For now, we'll trust the component logic works based on the unit tests
-    expect(true).toBe(true);
+  it("calls loginWithPasskey when primary button clicked for existing user", async () => {
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(mockLoginWithPasskey).toHaveBeenCalled();
   });
 });

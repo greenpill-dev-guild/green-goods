@@ -1,6 +1,10 @@
 // Utilities — EXPLICIT EXPORTS for tree-shaking
 
 // ============================================================================
+// DOMAIN BITMASK
+// ============================================================================
+export { expandDomainMask, hasDomain } from "./domain";
+// ============================================================================
 // ACTION
 // ============================================================================
 export {
@@ -83,9 +87,20 @@ export {
   isAddressInList,
   isUserAddress,
   isValidAddressFormat,
+  isZeroAddress,
   normalizeAddress,
   truncateAddress,
 } from "./blockchain/address";
+export {
+  GARDEN_ROLE_COLORS,
+  GARDEN_ROLE_FUNCTIONS,
+  GARDEN_ROLE_I18N_KEYS,
+  GARDEN_ROLE_IDS,
+  GARDEN_ROLE_ORDER,
+  getRoleColorClasses,
+  ROLE_COLOR_CLASSES,
+} from "./blockchain/garden-roles";
+export type { GardenRole, RoleColorScheme } from "./blockchain/garden-roles";
 // ============================================================================
 // CHAIN REGISTRY
 // ============================================================================
@@ -100,6 +115,17 @@ export {
   getRpcUrl,
   isChainSupported,
 } from "./blockchain/chain-registry";
+export {
+  formatTokenAmount,
+  getNetDeposited,
+  getVaultAssetDecimals,
+  getVaultAssetSymbol,
+  hasVaultAssetDecimals,
+  isZeroAddressValue,
+  isZeroBytes32,
+  validateDecimalInput,
+  ZERO_ADDRESS,
+} from "./blockchain/vaults";
 // ============================================================================
 // CONTRACTS (ABIs & clients)
 // ============================================================================
@@ -108,10 +134,14 @@ export {
   createClients,
   GardenAccountABI,
   GardenTokenABI,
+  GreenGoodsENSABI,
+  HatsABI,
   getNetworkContracts,
 } from "./blockchain/contracts";
+export { GARDEN_ACCOUNT_ROLE_ABI, OCTANT_MODULE_ABI } from "./blockchain/abis";
 export type { ResolveEnsAddressOptions, ResolveEnsOptions } from "./blockchain/ens";
-export { resolveEnsAddress, resolveEnsName } from "./blockchain/ens";
+export { resolveEnsAddress, resolveEnsName, suggestSlug, validateSlug } from "./blockchain/ens";
+export type { SlugValidationResult } from "./blockchain/ens";
 // ============================================================================
 // BLOCKCHAIN POLLING
 // ============================================================================
@@ -153,7 +183,11 @@ export {
   openBlockExplorerTx,
   openEASExplorer,
 } from "./eas/explorers";
-export { buildApprovalAttestTx, buildWorkAttestTx } from "./eas/transaction-builder";
+export {
+  buildApprovalAttestTx,
+  buildBatchWorkAttestTx,
+  buildWorkAttestTx,
+} from "./eas/transaction-builder";
 // ============================================================================
 // ERRORS
 // ============================================================================
@@ -161,11 +195,15 @@ export type { ParsedContractError } from "./errors/contract-errors";
 export {
   formatErrorForToast,
   isAlreadyGardenerError,
-  isNotGardenerError, // @deprecated - use isNotGardenMemberError
   isNotGardenMemberError,
   parseAndFormatError,
   parseContractError,
 } from "./errors/contract-errors";
+export type {
+  CategorizedError,
+  ErrorCategory as CategorizedErrorCategory,
+} from "./errors/categorize-error";
+export { categorizeError } from "./errors/categorize-error";
 export { extractErrorMessage, extractErrorMessageOr } from "./errors/extract-message";
 export {
   formatJobError,
@@ -173,10 +211,20 @@ export {
   formatWalletError,
   USER_FRIENDLY_ERRORS,
 } from "./errors/user-messages";
+export { ValidationError } from "./errors/validation-error";
+export type { BlockchainErrorInfo, BlockchainErrorType } from "./errors/blockchain-errors";
 export {
+  detectBlockchainError,
+  getBlockchainErrorAction,
+  getBlockchainErrorI18nKey,
+  isRecoverableBlockchainError,
+} from "./errors/blockchain-errors";
+export {
+  formatTimeSpent,
   normalizeFeedback,
   normalizePlantCount,
   normalizePlantSelection,
+  normalizeTimeSpentMinutes,
 } from "./form/normalizers";
 // ============================================================================
 // QUERY INVALIDATION
@@ -251,9 +299,11 @@ export {
   // Core utilities (backward compatible)
   filterByTimeRange,
   formatDate,
+  formatDateRange,
   formatDateTime,
   formatDuration,
   formatRelativeTime,
+  fromDateInputValue,
   fromDateTimeLocalValue,
   getCurrentTimezone,
   getDurationMs,
@@ -262,6 +312,7 @@ export {
   isTemporalSupported,
   normalizeTimestamp,
   sortByCreatedAt,
+  toDateInputValue,
   toDateTimeLocalValue,
   toSafeDate,
   toSafeInstant,

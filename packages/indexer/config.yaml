@@ -1,19 +1,23 @@
 name: Green Goods
 description: Green Goods Indexer
+field_selection:
+  transaction_fields:
+    - hash
 contracts:
   - name: ActionRegistry
     handler: src/EventHandlers.ts
     events:
-      - event: ActionRegistered(address owner, uint256 indexed actionUID, uint256 indexed startTime, uint256 indexed endTime, string title, string instructions, uint8[] capitals, string[] media)
+      - event: ActionRegistered(address owner, uint256 indexed actionUID, uint256 indexed startTime, uint256 indexed endTime, string title, string slug, string instructions, uint8[] capitals, string[] media, uint8 domain)
+      - event: GardenDomainsUpdated(address indexed garden, uint8 indexed domainMask)
       - event: ActionStartTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed startTime)
       - event: ActionEndTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed endTime)
-      - event: ActionTitleUpdated(address indexed owner, uint256 indexed actionUID, string indexed title)
-      - event: ActionInstructionsUpdated(address indexed owner, uint256 indexed actionUID, string indexed instructions)
-      - event: ActionMediaUpdated(address indexed owner, uint256 indexed actionUID, string[] indexed media)
+      - event: ActionTitleUpdated(address indexed owner, uint256 indexed actionUID, string title)
+      - event: ActionInstructionsUpdated(address indexed owner, uint256 indexed actionUID, string instructions)
+      - event: ActionMediaUpdated(address indexed owner, uint256 indexed actionUID, string[] media)
   - name: GardenToken
     handler: src/EventHandlers.ts
     events:
-      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, bool openJoining, address[] gardeners, address[] operators)
+      - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, bool openJoining)
   - name: GardenAccount
     handler: src/EventHandlers.ts
     events:
@@ -21,37 +25,118 @@ contracts:
       - event: DescriptionUpdated(address indexed updater, string newDescription)
       - event: LocationUpdated(address indexed updater, string newLocation)
       - event: BannerImageUpdated(address indexed updater, string newBannerImage)
-      - event: GardenerAdded(address indexed updater, address indexed gardener)
-      - event: GardenerRemoved(address indexed updater, address indexed gardener)
-      - event: GardenOperatorAdded(address indexed updater, address indexed operator)
-      - event: GardenOperatorRemoved(address indexed updater, address indexed operator)
       - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
       - event: OpenJoiningUpdated(address indexed updater, bool openJoining)
+  - name: HatsModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: RoleGranted(address indexed garden, address indexed account, uint8 role)
+      - event: RoleRevoked(address indexed garden, address indexed account, uint8 role)
+  - name: OctantModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: VaultCreated(address indexed garden, address indexed vault, address indexed asset)
+      - event: HarvestTriggered(address indexed garden, address indexed asset, address indexed caller)
+      - event: EmergencyPaused(address indexed garden, address indexed asset, address indexed caller)
+      - event: DonationAddressUpdated(address indexed garden, address indexed oldAddress, address indexed newAddress)
+  - name: OctantVault
+    handler: src/EventHandlers.ts
+    events:
+      - event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
+      - event: Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
+  - name: GardensModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: CommunityCreated(address indexed garden, address indexed community, uint8 weightScheme, address goodsToken)
+      - event: SignalPoolCreated(address indexed garden, address indexed pool, uint8 poolType, address indexed community)
+      - event: GardenPowerRegistered(address indexed garden, uint8 weightScheme, uint256 sourceCount)
+      - event: GoodsAirdropped(address indexed garden, uint256 totalAmount)
+      - event: GardenTreasurySeeded(address indexed garden, uint256 amount)
+  - name: YieldSplitter
+    handler: src/EventHandlers.ts
+    events:
+      - event: YieldSplit(address indexed garden, address indexed asset, uint256 cookieJarAmount, uint256 fractionsAmount, uint256 juiceboxAmount, uint256 totalYield)
+  - name: CookieJarModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: JarCreated(address indexed garden, address indexed asset, address jar)
+  - name: HypercertMinter
+    handler: src/EventHandlers.ts
+    events:
+      - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
+      - event: ClaimStored(uint256 indexed claimID, string uri, uint256 totalUnits)
+  - name: HypercertMarketplaceAdapter
+    handler: src/EventHandlers.ts
+    events:
+      - event: OrderRegistered(uint256 indexed orderId, uint256 indexed hypercertId, address indexed seller, address currency, uint256 pricePerUnit, uint256 endTime)
+      - event: OrderDeactivated(uint256 indexed orderId, address indexed deactivatedBy)
+      - event: FractionPurchased(uint256 indexed orderId, uint256 indexed hypercertId, address indexed recipient, uint256 units, uint256 payment)
+  - name: UnifiedPowerRegistry
+    handler: src/EventHandlers.ts
+    events:
+      - event: ConfigUpdated(string indexed key, address indexed oldValue, address indexed newValue)
+      - event: GardenDeregistered(address indexed garden, uint256 poolsCleared)
+  - name: GreenGoodsENS
+    handler: src/EventHandlers.ts
+    events:
+      - event: NameRegistrationSent(bytes32 indexed messageId, string slug, address indexed owner, uint8 nameType, uint256 ccipFee)
+      - event: NameReleaseSent(bytes32 indexed messageId, string slug, address indexed previousOwner)
 networks:
   - id: 42161
-    start_block: 422901795
+    start_block: 433713812
     contracts:
       - name: ActionRegistry
-        address: "0x042D2b082Cdd4DCBc0aD9dD7c631BC2e45B05cB1"
+        address: "0xA514eA2730b9eD401875693793BEfA9e2D51C0b4"
       - name: GardenToken
-        address: "0x0a7Ca3203f25c1c028D54C19789e83b401383F92"
+        address: "0xe1Da335110b1ed48e7df63209f5D424d02276593"
       - name: GardenAccount
-        address: "0x7de23111804b374E3a8d79932C4068d378F6843f"
-  - id: 84532
-    start_block: 32407622
+        address: "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692"
+      - name: HatsModule
+        address: "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266"
+      - name: OctantModule
+        address: "0x70b25a2bAAA4f2Ae477bab315a87A03cfe89CEe9"
+      - name: OctantVault
+        address: "0x0000000000000000000000000000000000000000"
+      - name: GardensModule
+        address: "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183"
+      - name: YieldSplitter
+        address: "0x90896C86108528abB600Da3C48a1aa054958bDeb"
+      - name: CookieJarModule
+        address: "0x726bfbd0B7449C8f4aBfbcc2FBC5a89eB18fF157"
+      - name: HypercertMinter
+        address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+      - name: HypercertMarketplaceAdapter
+        address: "0xE396137ef12c30075fd0B8509C6e389750f36159"
+      - name: UnifiedPowerRegistry
+        address: "0xD36004307c136FFed0Fe425f699FB1569BFabCBa"
+      - name: GreenGoodsENS
+        address: "0x4fAD8Db8e04005884D484eC730aDae10d7A2e491"
+  - id: 11155111
+    start_block: 10291992
     contracts:
       - name: ActionRegistry
-        address: "0x9685E9E5430C13AFF7ef32D9E8fc93d516e121E0"
+        address: "0xB768203B1A3e3d6FaE0e788d0f9b99381ecB3Bae"
       - name: GardenToken
-        address: "0x0B0EA0FfB996B0b04335507Ef1523124480f7310"
+        address: "0x3e0DE15Ad3D9fd0299b6811247f14449eb866A39"
       - name: GardenAccount
-        address: "0xa624FDdBdfA1E13C739791fB65E2D174b7316519"
-  - id: 42220
-    start_block: 48697725
-    contracts:
-      - name: ActionRegistry
-        address: "0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92"
-      - name: GardenToken
-        address: "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B"
-      - name: GardenAccount
-        address: "0x710cBFB9a29920B4577692eD495972fcd27286b4"
+        address: "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692"
+      - name: HatsModule
+        address: "0x8dF31575A30765d7cca6D788644fD0d4FE33a433"
+      - name: OctantModule
+        address: "0xF70970DD1CC26d073A647DAfd1761D9E6d66c187"
+      - name: OctantVault
+        address: "0x0000000000000000000000000000000000000000"
+      - name: GardensModule
+        address: "0xa3938322bCc723Ff89fA8b34873ac046A7B8C837"
+      - name: YieldSplitter
+        address: "0x7b97F5Fce2C28483d76144DA63dDA2Eb51DB07F1"
+      - name: CookieJarModule
+        address: "0x18512876A845c626f67f88C757357C61aBd5D877"
+      - name: HypercertMinter
+        address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+      - name: HypercertMarketplaceAdapter
+        address: "0xB3b2e8AEA8bEDec3c5d4d7D9f74679a5BD1F271F"
+      - name: UnifiedPowerRegistry
+        address: "0x99BB8bAA32c9FdDD152d9A7971cd8fBc87E40B11"
+      - name: GreenGoodsENS
+        address: "0xa33856C756B07A8Ac5472aE25d9fdaCF126C2636"

@@ -13,13 +13,14 @@
  */
 
 import { track } from "./posthog";
+import type { GardenRole } from "../../utils/blockchain/garden-roles";
 
 // ============================================================================
 // TRACKER FACTORY
 // ============================================================================
 
 type AuthMode = "passkey" | "wallet" | null;
-type MemberType = "gardener" | "operator";
+type MemberType = GardenRole;
 
 /**
  * Converts camelCase object keys to snake_case for PostHog
@@ -85,6 +86,9 @@ export const ANALYTICS_EVENTS = {
   ADMIN_GARDEN_CREATE_SUCCESS: "admin_garden_create_success",
   ADMIN_GARDEN_CREATE_FAILED: "admin_garden_create_failed",
   ADMIN_GARDEN_UPDATE_SUCCESS: "admin_garden_update_success",
+  ADMIN_ASSESSMENT_CREATE_STARTED: "admin_assessment_create_started",
+  ADMIN_ASSESSMENT_CREATE_SUCCESS: "admin_assessment_create_success",
+  ADMIN_ASSESSMENT_CREATE_FAILED: "admin_assessment_create_failed",
 
   // Admin: Member Management
   ADMIN_MEMBER_ADD_STARTED: "admin_member_add_started",
@@ -320,6 +324,26 @@ export const trackAdminGardenCreateFailed = createTracker<{
   chainId: number;
   error: string;
 }>(ANALYTICS_EVENTS.ADMIN_GARDEN_CREATE_FAILED);
+
+export const trackAdminAssessmentCreateStarted = createTracker<{
+  gardenId: string;
+  assessmentType: string;
+  chainId: number;
+}>(ANALYTICS_EVENTS.ADMIN_ASSESSMENT_CREATE_STARTED);
+
+export const trackAdminAssessmentCreateSuccess = createTracker<{
+  gardenId: string;
+  assessmentType: string;
+  chainId: number;
+  attestationUid: string;
+}>(ANALYTICS_EVENTS.ADMIN_ASSESSMENT_CREATE_SUCCESS);
+
+export const trackAdminAssessmentCreateFailed = createTracker<{
+  gardenId: string;
+  assessmentType: string;
+  chainId: number;
+  error: string;
+}>(ANALYTICS_EVENTS.ADMIN_ASSESSMENT_CREATE_FAILED);
 
 // ============================================================================
 // ADMIN: MEMBER MANAGEMENT

@@ -15,6 +15,8 @@
 
 import type { P256Credential } from "viem/account-abstraction";
 
+import { logger } from "../app/logger";
+
 // ============================================================================
 // STORAGE KEYS
 // ============================================================================
@@ -132,12 +134,18 @@ export function clearAllAuth(): void {
 // DEBUG UTILITIES
 // ============================================================================
 
+function isPasskeyDebugEnabled(): boolean {
+  return Boolean(import.meta.env.DEV) || import.meta.env.VITE_DEBUG_MODE === "true";
+}
+
 /**
  * Debug function to check passkey configuration.
  * Call this from browser console to diagnose Android passkey issues:
  *   window.__debugPasskey() (in dev mode)
  */
 export function debugPasskeyConfig(): void {
+  if (!isPasskeyDebugEnabled()) return;
+
   const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;
   const storedRpId = localStorage.getItem(RP_ID_STORAGE_KEY);
   const storedUsername = localStorage.getItem(USERNAME_STORAGE_KEY);
@@ -147,15 +155,6 @@ export function debugPasskeyConfig(): void {
   // Import the hardcoded value for display
   const hardcodedRpId = "greengoods.app";
 
-  console.group("[Passkey Debug] Configuration");
-  console.log("Hardcoded RP ID:", hardcodedRpId);
-  console.log("Environment VITE_PASSKEY_RP_ID:", envRpId || "(not set, will use hardcoded)");
-  console.log("Stored RP ID (localStorage):", storedRpId || "(not set)");
-  console.log("Current hostname:", hostname);
-  console.log("Current origin:", origin);
-  console.log("Stored username:", storedUsername || "(not set)");
-  console.log("---");
-
   // Determine effective RP ID (matching logic in getPasskeyRpId)
   let effectiveRpId = hardcodedRpId;
   if (envRpId) {
@@ -164,19 +163,23 @@ export function debugPasskeyConfig(): void {
     effectiveRpId = "localhost";
   }
 
-  console.log("Effective RP ID for auth:", effectiveRpId);
+  logger.debug("[Passkey Debug] Configuration", {
+    hardcodedRpId,
+    envRpId: envRpId || "(not set, will use hardcoded)",
+    storedRpId: storedRpId || "(not set)",
+    hostname,
+    origin,
+    storedUsername: storedUsername || "(not set)",
+    effectiveRpId,
+  });
 
   if (storedRpId && storedRpId !== effectiveRpId) {
-    console.warn(
-      "⚠️ WARNING: Stored RP ID differs from effective RP ID!",
-      "\n  Stored:",
+    logger.warn("[Passkey Debug] Stored RP ID differs from effective RP ID", {
       storedRpId,
-      "\n  Effective:",
       effectiveRpId,
-      "\n  This may cause Android passkey issues."
-    );
+      hint: "This may cause Android passkey issues.",
+    });
   }
-  console.groupEnd();
 }
 
 // Expose debug function globally in development
@@ -226,7 +229,7 @@ export function getStoredCredential(): P256Credential | null {
       raw: undefined as unknown as PublicKeyCredential,
     };
   } catch {
-    console.warn("[Session] Failed to parse stored credential, clearing...");
+    logger.warn("[Session] Failed to parse stored credential, clearing...");
     localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
     return null;
   }

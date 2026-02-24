@@ -1,0 +1,91 @@
+---
+title: Deployment and Indexer Status
+slug: /developers/reference/deployment-indexer-status
+audience: developer
+owner: docs
+last_verified: 2026-02-19
+feature_status: Live
+source_of_truth:
+  - docs/src/data/protocol-status.generated.json
+  - docs/scripts/generate-protocol-status.mjs
+goal: Confirm chain-by-chain feature activation state before release communications.
+difficulty: standard
+estimated_time: 10-15 minutes
+prereqs: Latest deployment artifacts and indexer config are available in the repo.
+next_steps: /developers/reference/api-index
+persona_context: Engineers and operators validating what is actually active on chain and indexed.
+---
+
+import statusData from "@site/src/data/protocol-status.generated.json";
+import {StatusBadge, QuickAnswer, NextBestAction} from "@site/src/components/docs";
+
+# Deployment and Indexer Status
+
+This page is generated from deployment artifacts plus indexer config so status claims stay synchronized.
+
+Generated at: `{statusData.generated_at}`
+
+## Source files
+
+<ul>
+  {statusData.source_files.map((sourceFile) => (
+    <li key={sourceFile}>
+      <code>{sourceFile}</code>
+    </li>
+  ))}
+</ul>
+
+{statusData.chains.map((chain) => (
+  <section key={chain.chainId}>
+    <h2>{chain.chainName} ({chain.chainId})</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Module / surface</th>
+          <th>Data source</th>
+          <th>Status</th>
+          <th>Deployment ready</th>
+          <th>Indexer ready</th>
+        </tr>
+      </thead>
+      <tbody>
+        {chain.modules.map((module) => (
+          <tr key={`${chain.chainId}-${module.id}`}>
+            <td>{module.label}</td>
+            <td>{module.data_source}</td>
+            <td><StatusBadge status={module.effective_status} /></td>
+            <td>{module.deployment_ready ? "Yes" : "No"}</td>
+            <td>{module.indexer_ready === null ? "N/A" : module.indexer_ready ? "Yes" : "No"}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+))}
+
+<QuickAnswer question="How should we label features in user docs?" openByDefault>
+  Use these labels only:
+  <ul>
+    <li><code>Live</code>: deployed and indexed in the target chain context.</li>
+    <li><code>Live (external source)</code>: data intentionally comes from external SDKs/APIs/RPC, not Envio.</li>
+    <li><code>Implemented (activation pending indexing)</code>: deployed but indexer is not active yet.</li>
+    <li><code>Implemented (activation pending deployment)</code>: code exists but deployment is not active yet.</li>
+    <li><code>Planned</code>: not implemented in code.</li>
+  </ul>
+</QuickAnswer>
+
+<QuickAnswer question="How do I refresh this page after deployment changes?">
+  Run:
+  <pre><code className="language-bash">node docs/scripts/generate-protocol-status.mjs</code></pre>
+</QuickAnswer>
+
+<NextBestAction
+  title="Next best action"
+  why="After checking activation state, verify that docs and release notes use matching status labels."
+  actionLabel="Open API index"
+  actionHref="/developers/reference/api-index"
+  alternatives={[
+    {label: "Check agent/MCP guide", href: "/developers/reference/agent-mcp-guide"},
+    {label: "Back to developer reference", href: "/developers/reference"},
+  ]}
+/>

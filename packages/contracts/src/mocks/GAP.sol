@@ -65,6 +65,12 @@ contract MockGAP is IGap, IProjectResolver {
     /// @notice Custom revert message
     string public revertMessage;
 
+    /// @notice Number of attest calls to allow before reverting (0 = disabled)
+    uint256 public revertAfterCallsThreshold;
+
+    /// @notice Counter for calls made since setRevertAfterCalls was called
+    uint256 public revertAfterCallsCount;
+
     // ═══════════════════════════════════════════════════════════════════════════
     // IGap Implementation
     // ═══════════════════════════════════════════════════════════════════════════
@@ -76,6 +82,14 @@ contract MockGAP is IGap, IProjectResolver {
                 revert(revertMessage);
             }
             revert("MockGAP: attestation failed");
+        }
+
+        // Check revertAfterCalls: allow N calls then revert
+        if (revertAfterCallsThreshold > 0) {
+            revertAfterCallsCount++;
+            if (revertAfterCallsCount > revertAfterCallsThreshold) {
+                revert("MockGAP: attestation failed");
+            }
         }
 
         attestationCount++;
@@ -250,6 +264,13 @@ contract MockGAP is IGap, IProjectResolver {
     /// @param _shouldRevert Whether to revert
     function setShouldRevert(bool _shouldRevert) external {
         shouldRevert = _shouldRevert;
+    }
+
+    /// @notice Set number of attest calls to allow before reverting
+    /// @param _calls Number of successful calls to allow (0 disables)
+    function setRevertAfterCalls(uint256 _calls) external {
+        revertAfterCallsThreshold = _calls;
+        revertAfterCallsCount = 0;
     }
 
     /// @notice Set custom revert message

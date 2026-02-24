@@ -92,12 +92,12 @@ describe("modules/job-queue", () => {
         actionUID: 42,
         gardenAddress: "0x123",
         feedback: "ok",
-        plantSelection: ["Rose"],
-        plantCount: 1,
+        details: { species: ["Rose"] },
+        timeSpentMinutes: 30,
         media: [file],
       },
       TEST_USER_ADDRESS,
-      { chainId: 84532 }
+      { chainId: 11155111 }
     );
 
     expect(jobId).toBeDefined();
@@ -125,7 +125,7 @@ describe("modules/job-queue", () => {
         gardenerAddress: "0xgardener",
       },
       TEST_USER_ADDRESS,
-      { chainId: 84532 }
+      { chainId: 11155111 }
     );
 
     const result = await jobQueue.flush({
@@ -150,12 +150,12 @@ describe("modules/job-queue", () => {
         actionUID: 99,
         gardenAddress: "0x123",
         feedback: "ok",
-        plantSelection: ["Rose"],
-        plantCount: 1,
+        details: { species: ["Rose"] },
+        timeSpentMinutes: 30,
         media: [createMockFile("content", "x.jpg", "image/jpeg")],
       },
       TEST_USER_ADDRESS,
-      { chainId: 84532 }
+      { chainId: 11155111 }
     );
 
     const smartAccountClient = {

@@ -1,6 +1,4 @@
-import { useOffline } from "@green-goods/shared/hooks";
-import { useUIStore } from "@green-goods/shared/stores";
-import { cn } from "@green-goods/shared/utils";
+import { cn, useOffline, useUIStore } from "@green-goods/shared";
 import { RiCloudOffLine, RiLoader4Line, RiTaskLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -13,7 +11,9 @@ interface WorkDashboardIconProps {
 export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className }) => {
   const intl = useIntl();
   const { isOnline, pendingCount, syncStatus } = useOffline();
-  const { isWorkDashboardOpen, openWorkDashboard, closeWorkDashboard } = useUIStore();
+  const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
+  const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+  const closeWorkDashboard = useUIStore((s) => s.closeWorkDashboard);
 
   // Only show notifications for actual pending work items
   const isSyncing = syncStatus === "syncing";
@@ -23,8 +23,8 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
   // Determine primary icon and styling based on status priority
   let primaryIcon: React.ReactNode;
   let iconColor = "text-text-sub-600";
-  let bgColor = "bg-bg-white-0";
-  let borderColor = "border-stroke-soft-200";
+  const bgColor = "bg-bg-white-0";
+  const borderColor = "border-stroke-soft-200";
 
   if (isSyncing) {
     primaryIcon = (

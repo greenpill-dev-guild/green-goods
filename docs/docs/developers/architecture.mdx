@@ -1,0 +1,497 @@
+---
+title: Architecture
+sidebar_position: 2
+slug: /developers/architecture
+audience: developer
+owner: docs
+last_verified: 2026-02-19
+feature_status: Live
+goal: "Complete Architecture with clear, role-specific next actions."
+difficulty: "standard"
+estimated_time: "15-30 minutes."
+prereqs: "Familiarity with monorepo workspace and TypeScript/Solidity flows."
+next_steps: "./reference/deployment-indexer-status"
+persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
+source_of_truth:
+  - AGENTS.md
+  - CLAUDE.md
+  - .claude/context/shared.md
+keywords:
+  - architecture
+  - package boundaries
+---
+
+import {AtAGlanceCard, NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Architecture
+
+<StatusBadge status="Live" />
+
+<AtAGlanceCard
+  goal="Complete Architecture with clear, role-specific next actions."
+  difficulty="standard"
+  estimatedTime="15-30 minutes."
+  prereqs="Familiarity with monorepo workspace and TypeScript/Solidity flows."
+  outcome="Correct boundaries between UI, shared logic, contracts, indexer, and agent runtime."
+  personaContext="Developers and maintainers building, operating, and validating Green Goods systems."
+  lastVerified="2026-02-19"
+/>
+
+## Package boundaries
+
+| Package | Responsibility |
+| --- | --- |
+| `packages/client` | Gardener-facing PWA UI |
+| `packages/admin` | Operator-facing dashboard UI |
+| `packages/shared` | Hooks, providers, stores, business logic |
+| `packages/contracts` | Solidity modules + deployment scripts |
+| `packages/indexer` | Envio event indexing and GraphQL surface |
+| `packages/agent` | Automation/bot workflows |
+
+## Architecture principles
+
+- DRY for shared hooks/query keys/deployment addresses.
+- KISS for chain/environment model.
+- YAGNI for config surface and feature toggles.
+- Separation of concerns across packages.
+
+---
+
+## System context
+
+How all packages connect end-to-end: contracts emit events, the indexer materializes them into GraphQL, and frontends read through shared hooks.
+
+```mermaid
+graph TB
+    subgraph Clients["Frontend Apps"]
+        PWA["Client PWA<br/><small>Gardeners</small>"]
+        Admin["Admin Dashboard<br/><small>Operators / Deployers</small>"]
+    end
+
+    subgraph Shared["@green-goods/shared"]
+        Hooks["React Hooks<br/><small>useGardens, useWorks, useVaults…</small>"]
+        GQL["GraphQL Clients"]
+        JQ["Job Queue<br/><small>IndexedDB</small>"]
+        Mutations["Mutation Hooks<br/><small>useWorkMutation, useGardenOperations…</small>"]
+    end
+
+    subgraph Data["Data Sources"]
+        Envio["Envio Indexer<br/><small>gardens, roles, actions, vaults, yield, hypercerts</small>"]
+        EAS_GQL["EAS GraphQL<br/><small>works, approvals, assessments</small>"]
+        RPC["On-chain reads<br/><small>cookie jars, ENS, Gardens V2</small>"]
+    end
+
+    subgraph Chain["On-Chain Contracts"]
+        GT["GardenToken"]
+        Hats["HatsModule"]
+        AR["ActionRegistry"]
+        EAS["EAS Contract"]
+        Octant["OctantModule"]
+        Resolvers["Resolvers<br/><small>Work · Approval · Assessment</small>"]
+        GA["GardenAccount<br/><small>TBA</small>"]
+        Other["CookieJar · Gardens · ENS<br/>Hypercerts · Yield"]
+    end
+
+    PWA --> Hooks
+    Admin --> Hooks
+    Hooks --> GQL
+    PWA --> JQ
+    GQL --> Envio
+    GQL --> EAS_GQL
+    Hooks --> RPC
+    Mutations --> Chain
+    JQ -.->|flush when online| Mutations
+
+    Envio -.->|watches events| GT
+    Envio -.->|watches events| Hats
+    Envio -.->|watches events| AR
+    Envio -.->|watches events| Octant
+    Envio -.->|watches events| GA
+
+    EAS --> Resolvers
+    Resolvers --> Hats
+    Resolvers --> AR
+    GT --> Hats
+    GT --> Octant
+    GT --> Other
+
+    style Clients fill:#e8f5e9,stroke:#388e3c
+    style Shared fill:#e3f2fd,stroke:#1565c0
+    style Data fill:#fff3e0,stroke:#ef6c00
+    style Chain fill:#fce4ec,stroke:#c62828
+```
+
+---
+
+## Contract module system
+
+GardenToken uses a **hub-and-spoke pattern** with typed module slots. Each module is a UUPS-upgradeable proxy deployed via CREATE2. Optional modules degrade gracefully — every call is wrapped in `if (address != 0)` + `try/catch`.
+
+```mermaid
+graph LR
+    GT["GardenToken<br/><small>Hub</small>"]
+
+    GT --- |"REQUIRED"| HM["HatsModule<br/><small>RBAC via Hats Protocol</small>"]
+    GT --- |"REQUIRED"| CT["communityToken<br/><small>Shared ERC-20</small>"]
+    GT -.- |"optional"| KG["KarmaGAPModule<br/><small>Impact attestations</small>"]
+    GT -.- |"optional"| OCT["OctantModule<br/><small>Yield vaults</small>"]
+    GT -.- |"optional"| GM["GardensModule<br/><small>V2 communities</small>"]
+    GT -.- |"optional"| CJ["CookieJarModule<br/><small>Petty cash jars</small>"]
+    GT -.- |"optional"| AR["ActionRegistry<br/><small>Action domain config</small>"]
+    GT -.- |"optional"| ENS["GreenGoodsENS<br/><small>ENS subdomains via CCIP</small>"]
+
+    style GT fill:#fff9c4,stroke:#f9a825
+    style HM fill:#c8e6c9,stroke:#388e3c
+    style CT fill:#c8e6c9,stroke:#388e3c
+    style KG fill:#e3f2fd,stroke:#1565c0
+    style OCT fill:#e3f2fd,stroke:#1565c0
+    style GM fill:#e3f2fd,stroke:#1565c0
+    style CJ fill:#e3f2fd,stroke:#1565c0
+    style AR fill:#e3f2fd,stroke:#1565c0
+    style ENS fill:#e3f2fd,stroke:#1565c0
+```
+
+Adding a new module type requires a GardenToken UUPS upgrade (one new storage slot from the `uint256[37] __gap`), a setter function, and wiring in `DeploymentBase`.
+
+---
+
+## Hats Protocol role tree
+
+Each garden gets a 6-role hat tree created by `HatsModule.createGardenHatTree()` during minting. Roles are hierarchical — each parent hat is admin of its children.
+
+```mermaid
+graph TD
+    TH["Top Hat<br/><small>Protocol root</small>"]
+    CH["Community Hat<br/><small>Protocol-wide</small>"]
+    GH["Gardens Hat<br/><small>All gardens</small>"]
+    PG["Protocol Gardeners Hat<br/><small>Cross-garden members</small>"]
+
+    subgraph GardenTree["Per-Garden Tree"]
+        Admin["Garden Admin Hat<br/><small>parent of all roles</small>"]
+        Owner["Owner<br/><small>Full control</small>"]
+        Operator["Operator<br/><small>Approvals, management</small>"]
+        Evaluator["Evaluator<br/><small>Assessments</small>"]
+        Gardener["Gardener<br/><small>Work submission</small>"]
+        Funder["Funder<br/><small>ERC-20 eligibility</small>"]
+        Community["Community<br/><small>Token-gated access</small>"]
+    end
+
+    TH --> CH
+    CH --> GH
+    CH --> PG
+    GH --> Admin
+    Admin --> Owner
+    Admin --> Operator
+    Admin --> Evaluator
+    Admin --> Gardener
+    Admin --> Funder
+    Admin --> Community
+
+    style TH fill:#fff9c4,stroke:#f9a825
+    style CH fill:#e8f5e9,stroke:#388e3c
+    style GH fill:#e8f5e9,stroke:#388e3c
+    style PG fill:#e8f5e9,stroke:#388e3c
+    style GardenTree fill:#f3e5f5,stroke:#7b1fa2
+    style Admin fill:#e1bee7,stroke:#7b1fa2
+```
+
+---
+
+## Contract-to-indexer event mapping
+
+The Envio indexer watches specific contract events and materializes them into GraphQL entities. EAS attestations (works, approvals, assessments) are **not** re-indexed — they're queried directly from easscan.org.
+
+```mermaid
+graph LR
+    subgraph Contracts["Contract Events"]
+        E1["GardenToken<br/><code>GardenMinted</code>"]
+        E2["HatsModule<br/><code>RoleGranted</code><br/><code>RoleRevoked</code>"]
+        E3["ActionRegistry<br/><code>ActionRegistered</code><br/><code>GardenDomainsUpdated</code>"]
+        E4["GardenAccount<br/><code>NameUpdated</code><br/><code>DescriptionUpdated</code><br/><code>…</code>"]
+        E5["OctantModule<br/><code>VaultCreated</code><br/><code>HarvestTriggered</code>"]
+        E6["OctantVault<br/><code>Deposit</code><br/><code>Withdraw</code>"]
+        E7["YieldSplitter<br/><code>YieldSplit</code>"]
+        E8["HypercertMinter<br/><code>TransferSingle</code><br/><code>ClaimStored</code>"]
+    end
+
+    subgraph Entities["Indexed Entities"]
+        G["Garden"]
+        Gd["Gardener"]
+        A["Action"]
+        DD["GardenDomains"]
+        GV["GardenVault"]
+        VD["VaultDeposit"]
+        VE["VaultEvent"]
+        YA["YieldAllocation"]
+        HC["Hypercert"]
+        HCC["HypercertClaim"]
+    end
+
+    E1 --> G
+    E2 --> G
+    E2 --> Gd
+    E3 --> A
+    E3 --> DD
+    E4 --> G
+    E5 --> GV
+    E6 --> VD
+    E6 --> VE
+    E6 --> GV
+    E7 --> YA
+    E8 --> HC
+    E8 --> HCC
+
+    style Contracts fill:#fce4ec,stroke:#c62828
+    style Entities fill:#e3f2fd,stroke:#1565c0
+```
+
+**Dynamic contract registration**: When a garden is minted, its TBA address is registered for `GardenAccount` events. When a vault is created, its address is registered for `Deposit`/`Withdraw` events.
+
+---
+
+## Two-indexer read path
+
+The frontend queries **two separate data sources** — this is a key architectural decision that avoids re-indexing standard EAS attestations.
+
+```mermaid
+graph TD
+    subgraph Frontend["Frontend (shared hooks)"]
+        UG["useGardens()"]
+        UA["useActions()"]
+        UGV["useGardenVaults()"]
+        UW["useWorks()"]
+        UWA["useWorkApprovals()"]
+        UGA["useGardenAssessments()"]
+        UCJ["useCookieJars()"]
+    end
+
+    subgraph Envio["Envio Indexer (GraphQL)"]
+        EG["Gardens, Roles, Actions<br/>Vaults, Yield, Hypercerts"]
+    end
+
+    subgraph EAS["EAS GraphQL (easscan.org)"]
+        EW["Work attestations<br/>Approval attestations<br/>Assessment attestations"]
+    end
+
+    subgraph RPC["On-chain Reads (RPC)"]
+        RC["Cookie jars, ENS status<br/>Gardens V2 pools, Marketplace"]
+    end
+
+    UG --> Envio
+    UA --> Envio
+    UGV --> Envio
+    UW --> EAS
+    UWA --> EAS
+    UGA --> EAS
+    UCJ --> RPC
+
+    style Frontend fill:#e8f5e9,stroke:#388e3c
+    style Envio fill:#e3f2fd,stroke:#1565c0
+    style EAS fill:#fff3e0,stroke:#ef6c00
+    style RPC fill:#f3e5f5,stroke:#7b1fa2
+```
+
+---
+
+## Offline-first job queue lifecycle
+
+The client PWA supports offline work submission via an IndexedDB-backed job queue. Jobs are queued instantly, then flushed when connectivity returns.
+
+```mermaid
+sequenceDiagram
+    actor User as Gardener (PWA)
+    participant UI as React UI
+    participant JQ as Job Queue (IndexedDB)
+    participant SW as Service Worker
+    participant IPFS as IPFS (Storacha)
+    participant Chain as EAS Contract
+
+    User->>UI: Submit work (photos + details)
+    UI->>JQ: submitWorkToQueue()
+    JQ-->>UI: 0xoffline_... (instant placeholder)
+    UI-->>User: "Submitted" (optimistic)
+
+    Note over JQ,SW: When online + smart account ready
+
+    alt Online immediately
+        JQ->>JQ: processJob()
+        JQ->>IPFS: Upload media
+        IPFS-->>JQ: CIDs
+        JQ->>Chain: EAS.attest() via UserOperation
+        Chain-->>JQ: tx receipt
+        JQ-->>UI: job:completed event
+        UI->>UI: Invalidate query cache
+    else Comes online later
+        SW->>JQ: BACKGROUND_SYNC event
+        JQ->>JQ: flush() — process all pending
+        loop For each queued job
+            JQ->>IPFS: Upload media
+            JQ->>Chain: EAS.attest()
+        end
+        JQ-->>UI: job:completed events
+    end
+
+    Note over UI: 2s delayed invalidation for indexer lag
+```
+
+**Retry policy**: exponential backoff (1s base, doubling, max 60s), max 5 retries before permanent failure. Mutex prevents concurrent flush operations.
+
+---
+
+## Vault and yield flow
+
+When gardens receive deposits, the yield is harvested and split three ways by the `YieldSplitter`.
+
+```mermaid
+graph TD
+    subgraph Deposit["Deposit Flow"]
+        D1["Funder deposits ERC-20"]
+        D2["OctantVault<br/><small>ERC-4626 vault</small>"]
+        D3["Strategy<br/><small>Yearn-style yield</small>"]
+    end
+
+    subgraph Harvest["Harvest Flow"]
+        H1["Operator calls harvest()"]
+        H2["OctantModule"]
+        H3["YieldSplitter"]
+    end
+
+    subgraph Split["Three-Way Split"]
+        S1["CookieJar<br/><small>Petty cash for gardeners</small>"]
+        S2["Hypercert Fractions<br/><small>Buy impact fractions</small>"]
+        S3["Juicebox<br/><small>Community endowment</small>"]
+    end
+
+    subgraph Governance["Conviction Voting"]
+        CV["Signal Pool<br/><small>Gardens V2</small>"]
+        HP["Registered Hypercerts"]
+    end
+
+    D1 --> D2
+    D2 --> D3
+    D3 -.->|yield accrues| D2
+
+    H1 --> H2
+    H2 --> D2
+    D2 -->|harvested yield| H3
+
+    H3 -->|cookieJarBps| S1
+    H3 -->|fractionsBps| S2
+    H3 -->|juiceboxBps| S3
+
+    S2 -.->|listed for yield| CV
+    CV --> HP
+
+    style Deposit fill:#e8f5e9,stroke:#388e3c
+    style Harvest fill:#fff3e0,stroke:#ef6c00
+    style Split fill:#e3f2fd,stroke:#1565c0
+    style Governance fill:#f3e5f5,stroke:#7b1fa2
+```
+
+---
+
+## Garden minting sequence
+
+When an operator mints a garden, GardenToken fans out to all configured modules in two phases.
+
+```mermaid
+sequenceDiagram
+    actor Op as Operator
+    participant GT as GardenToken
+    participant TBA as GardenAccount (TBA)
+    participant HM as HatsModule
+    participant KG as KarmaGAPModule
+    participant OCT as OctantModule
+    participant GM as GardensModule
+    participant CJ as CookieJarModule
+    participant ENS as GreenGoodsENS
+
+    Op->>GT: mintGarden(name, desc, location, …)
+    GT->>GT: _safeMint(tokenId)
+    GT->>TBA: Deploy tokenbound account (ERC-6551)
+
+    rect rgb(232, 245, 233)
+        Note over GT,GM: Phase 1 — Role & Governance
+        GT->>HM: createGardenHatTree(garden, roles)
+        HM-->>HM: Create 6-role hat tree
+        GT->>KG: createProject(garden) [try/catch]
+        GT->>OCT: onGardenMinted(garden) [try/catch]
+        Note over OCT: Creates vault per supported asset
+        GT->>GM: onGardenMinted(garden) [try/catch]
+        Note over GM: Creates community + signal pools
+    end
+
+    rect rgb(255, 243, 224)
+        Note over GT,ENS: Phase 2 — Integrations
+        GT->>CJ: onGardenMinted(garden) [try/catch]
+        Note over CJ: Deploys per-asset cookie jars
+        GT->>ENS: registerGarden(slug) [try/catch]
+        Note over ENS: CCIP message to L1
+    end
+
+    GT->>TBA: initialize(name, desc, location, …)
+    GT-->>Op: GardenMinted event
+```
+
+---
+
+## Work submission and approval
+
+The core user flow: a gardener submits work, an operator reviews it, and the attestation chain is anchored on EAS.
+
+```mermaid
+sequenceDiagram
+    actor G as Gardener
+    actor Op as Operator
+    participant EAS as EAS Contract
+    participant WR as WorkResolver
+    participant WAR as WorkApprovalResolver
+    participant HM as HatsModule
+    participant AR as ActionRegistry
+    participant KG as KarmaGAPModule
+
+    G->>EAS: attest(WorkSchema)
+    EAS->>WR: onAttest() validation
+    WR->>HM: isGardener(attester)?
+    HM-->>WR: true
+    WR->>AR: getAction(actionUID) valid + active?
+    AR-->>WR: true
+    WR-->>EAS: allow
+    EAS-->>G: workUID
+
+    Note over G,Op: Later — operator reviews
+
+    Op->>EAS: attest(WorkApprovalSchema)
+    EAS->>WAR: onAttest() validation
+    WAR->>WAR: Verify workUID matches garden
+    WAR->>HM: isOperator(attester)?
+    HM-->>WAR: true
+    WAR->>WAR: Validate confidence + method
+
+    alt approved == true
+        WAR->>KG: createImpact() [try/catch]
+        KG-->>WAR: impact attestation
+    end
+
+    WAR-->>EAS: allow
+    EAS-->>Op: approvalUID
+```
+
+---
+
+## Further reading
+
+- [Deployment/indexer status model](./reference/deployment-indexer-status)
+- [Build patterns](./build-patterns)
+- [Integrations](./integrations)
+
+<NextBestAction
+  title="Next best action"
+  why="Move from static architecture context into implementation conventions."
+  actionLabel="Open build patterns"
+  actionHref="./build-patterns"
+  alternatives={[
+    {label: "Integrations", href: "./integrations"},
+    {label: "Deployment/indexer status", href: "./reference/deployment-indexer-status"},
+  ]}
+/>

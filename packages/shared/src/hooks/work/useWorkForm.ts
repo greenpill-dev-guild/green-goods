@@ -2,83 +2,131 @@
  * Work Form Hook
  *
  * Manages the work submission form with react-hook-form and Zod validation.
- * Provides form state, validation, and field watchers.
+ * Supports dynamic schema generation from WorkInput[] config.
  *
  * @module hooks/work/useWorkForm
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useMemo } from "react";
+import { type Resolver, useForm } from "react-hook-form";
 import { z } from "zod";
-import {
-  normalizePlantCount,
-  normalizePlantSelection,
-  normalizeTimeSpentMinutes,
-} from "../../utils/form/normalizers";
+import type { WorkInput } from "../../types/domain";
+import { normalizeTimeSpentMinutes } from "../../utils/form/normalizers";
 
 /**
- * Zod schema for work submission form validation
- * Note: Only validating form fields (feedback, plantSelection, plantCount, timeSpentMinutes)
- * actionUID, title, and media are managed outside the form
- *
- * Uses shared normalizers from utils/form/normalizers.ts for consistency
- * between Zod validation and watch() value normalization.
+ * Builds a Zod validator for a single WorkInput field.
  */
-export const workFormSchema = z.object({
-  feedback: z.string().optional().default(""),
-  plantSelection: z.preprocess(normalizePlantSelection, z.array(z.string())),
-  plantCount: z.preprocess(normalizePlantCount, z.number().nonnegative().optional()),
-  /** Time spent in minutes (user inputs hours, normalized to minutes) */
-  timeSpentMinutes: z.preprocess(normalizeTimeSpentMinutes, z.number().nonnegative().optional()),
-});
+function buildFieldValidator(input: WorkInput): z.ZodTypeAny {
+  switch (input.type) {
+    case "number": {
+      const base = z.preprocess(Number, z.number().min(0));
+      return input.required ? base : base.optional();
+    }
+    case "select":
+    case "band": {
+      const base = z.string().min(1);
+      return input.required ? base : z.string().optional();
+    }
+    case "multi-select": {
+      const base = z.array(z.string());
+      return input.required ? base.min(1) : base.optional();
+    }
+    case "repeater": {
+      const rowShape: Record<string, z.ZodTypeAny> = {};
+      for (const field of input.repeaterFields ?? []) {
+        rowShape[field.key] = buildFieldValidator(field);
+      }
+      return z.array(z.object(rowShape)).optional();
+    }
+    default: {
+      // text, textarea
+      const base = z.string();
+      return input.required ? base.min(1) : base.optional();
+    }
+  }
+}
+
+/**
+ * Builds a dynamic Zod schema from an action's WorkInput[] config.
+ *
+ * Fixed fields (always present):
+ * - feedback (optional string)
+ * - timeSpentMinutes (required, user inputs hours, normalized to minutes)
+ *
+ * Dynamic fields from action config:
+ * - number, select, multi-select, band, text, textarea, repeater
+ */
+export function buildWorkFormSchema(inputs: WorkInput[]) {
+  const shape: Record<string, z.ZodTypeAny> = {
+    feedback: z.string().optional().default(""),
+    timeSpentMinutes: z.preprocess(normalizeTimeSpentMinutes, z.number().nonnegative().optional()),
+  };
+
+  for (const input of inputs) {
+    shape[input.key] = buildFieldValidator(input);
+  }
+
+  return z.object(shape);
+}
+
+/**
+ * Static schema for backward compatibility (no dynamic inputs).
+ * Used when no action-specific inputs are provided.
+ */
+export const workFormSchema = buildWorkFormSchema([]);
 
 // Infer base form type from Zod schema
 type WorkFormDataBase = z.infer<typeof workFormSchema>;
 
 // Extend with index signature for dynamic action-specific fields
 export type WorkFormData = WorkFormDataBase & {
-  [key: string]: string | number | string[] | undefined;
+  [key: string]: string | number | string[] | Record<string, unknown>[] | undefined;
 };
 
 /**
  * Hook to manage the work submission form
  *
+ * @param inputs - Optional WorkInput[] from the selected action's config.
+ *   When provided, the form schema is dynamically generated.
  * @returns Form instance with control, register, watch, etc.
  */
-export function useWorkForm() {
+export function useWorkForm(inputs?: WorkInput[]) {
+  // Memoize schema to avoid rebuilding on every render.
+  // JSON.stringify stabilizes the dependency since inputs may be a new array reference each render.
+  const inputsKey = inputs ? JSON.stringify(inputs) : "";
+  const schema = useMemo(
+    () => (inputs ? buildWorkFormSchema(inputs) : workFormSchema),
+    [inputsKey]
+  );
+  const resolver = useMemo(() => zodResolver(schema) as Resolver<WorkFormData>, [schema]);
+
   const form = useForm<WorkFormData>({
     defaultValues: {
       feedback: "",
-      plantSelection: [],
-      // plantCount is optional
     },
     // Native validation disabled to prevent jarring auto-focus behavior
     shouldUseNativeValidation: false,
     mode: "onChange",
-    // Compatibility note: older @hookform/resolvers versions had a signature mismatch with Zod.
-    // Current versions compile cleanly; keeping the context here for future regressions.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(workFormSchema as any),
+    resolver,
   });
 
-  const { watch } = form;
+  const { watch, getValues } = form;
 
-  // Watch form values and normalize using shared utilities
-  // This ensures consistency between watched values and Zod validation
+  // Watch only specific fields that need reactive updates
   const feedback = watch("feedback") ?? "";
-  const plantSelection = normalizePlantSelection(watch("plantSelection"));
-  const plantCount = normalizePlantCount(watch("plantCount"));
   const timeSpentMinutes = normalizeTimeSpentMinutes(watch("timeSpentMinutes"));
-  const values = watch() as unknown as Record<string, unknown>;
 
   return {
     ...form,
     // Normalized watch values
     feedback,
-    plantSelection,
-    plantCount,
     timeSpentMinutes,
-    values,
+    // Use getValues() instead of watch() to read all form values on demand
+    // without subscribing to every field change (avoids unnecessary re-renders)
+    get values() {
+      return getValues() as unknown as Record<string, unknown>;
+    },
   };
 }
 

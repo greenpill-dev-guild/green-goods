@@ -1,15 +1,15 @@
-import { NO_EXPIRATION, ZERO_BYTES32 } from "../../utils/eas/constants";
-import { getPublicClient } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 
-import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
-import { EASABI } from "../../utils/blockchain/contracts";
 import { debugError, debugLog } from "../../utils/debug";
-import { encodeWorkApprovalData, encodeWorkData, simulateWorkData } from "../../utils/eas/encoders";
-import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";
-import { parseContractError } from "../../utils/errors/contract-errors";
+import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
+import {
+  buildApprovalAttestTx,
+  buildBatchApprovalAttestTx,
+  buildWorkAttestTx,
+} from "../../utils/eas/transaction-builder";
+import { simulateWorkSubmission } from "./simulate";
 
 function assertSmartAccount(
   client: SmartAccountClient | null
@@ -52,68 +52,28 @@ export async function submitWorkWithPasskey({
 
   // TypeScript doesn't understand that client is now guaranteed to be non-null after assertion
   const smartClient = client as SmartAccountClient;
+  const smartAccount = smartClient.account;
+  if (!smartAccount) {
+    throw new Error("Passkey session is not ready. Please re-authenticate and try again.");
+  }
 
   const easConfig = getEASConfig(chainId);
 
-  // Simulate contract interaction before uploading
-  const publicClient = getPublicClient(wagmiConfig, { chainId });
-  if (publicClient) {
-    try {
-      debugLog("[PasskeySubmission] Simulating transaction before upload...");
-
-      // Prepare simulation data (dummy CIDs)
-      const simulationData = simulateWorkData(
-        {
-          ...draft,
-          title: `${actionTitle} - ${new Date().toISOString()}`,
-          actionUID,
-          media: images,
-        },
-        chainId
-      );
-
-      // Simulate the attest call using the smart account address as the sender
-      // This verifies that the smart account is a gardener and the action is valid
-      await publicClient.simulateContract({
-        address: easConfig.EAS.address as `0x${string}`,
-        abi: EASABI,
-        functionName: "attest",
-        args: [
-          {
-            schema: easConfig.WORK.uid,
-            data: {
-              recipient: gardenAddress as `0x${string}`,
-              expirationTime: NO_EXPIRATION,
-              revocable: true,
-              refUID: ZERO_BYTES32,
-              data: simulationData,
-              value: 0n,
-            },
-          },
-        ],
-        account: smartClient.account!.address, // Use address for simulation
-      });
-      debugLog("[PasskeySubmission] Simulation successful - proceeding to upload");
-    } catch (err: any) {
-      debugError("[PasskeySubmission] Simulation failed", err);
-
-      const parsed = parseContractError(err);
-      if (parsed.isKnown) {
-        // Include error name so the UI provider can recognize it as a known error
-        throw new Error(
-          `[${parsed.name}] ${parsed.message}${parsed.action ? ` ${parsed.action}` : ""}`
-        );
-      }
-
-      // Fallback to cause reason if available
-      if (err.cause?.reason) {
-        throw new Error(`Validation failed: ${err.cause.reason}`);
-      }
-
-      throw new Error(
-        `Validation failed: ${parsed.message || err.message || "Unknown error during simulation"}`
-      );
-    }
+  try {
+    debugLog("[PasskeySubmission] Simulating transaction before upload...");
+    await simulateWorkSubmission({
+      draft,
+      gardenAddress,
+      actionUID,
+      actionTitle,
+      chainId,
+      images,
+      accountAddress: smartAccount.address as `0x${string}`,
+    });
+    debugLog("[PasskeySubmission] Simulation successful - proceeding to upload");
+  } catch (error) {
+    debugError("[PasskeySubmission] Simulation failed", error);
+    throw error;
   }
 
   const attestationData = await encodeWorkData(
@@ -133,7 +93,7 @@ export async function submitWorkWithPasskey({
   const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);
 
   const hash = await smartClient.sendTransaction({
-    account: smartClient.account!,
+    account: smartAccount,
     chain: smartClient.chain,
     ...txParams,
   });
@@ -183,6 +143,85 @@ export async function submitApprovalWithPasskey({
   });
 
   debugLog("[PasskeySubmission] Passkey approval submission sent", { hash });
+
+  return hash;
+}
+
+export interface PasskeyBatchApprovalParams {
+  client: SmartAccountClient | null;
+  approvals: Array<{
+    draft: WorkApprovalDraft;
+    gardenAddress: string;
+  }>;
+  chainId: number;
+  /** Optional AbortSignal for cancellation support */
+  signal?: AbortSignal;
+}
+
+/**
+ * Submit multiple work approvals in a single transaction using EAS multiAttest.
+ * This dramatically improves UX when operators need to approve/reject multiple works.
+ *
+ * @param params - Batch approval parameters
+ * @returns Transaction hash
+ * @throws Error if approvals array is empty
+ */
+export async function submitBatchApprovalsWithPasskey({
+  client,
+  approvals,
+  chainId,
+  signal,
+}: PasskeyBatchApprovalParams): Promise<`0x${string}`> {
+  // Check for abort before starting
+  if (signal?.aborted) {
+    throw new DOMException("Batch approval aborted", "AbortError");
+  }
+
+  // Guard against empty approvals array
+  if (approvals.length === 0) {
+    debugLog("[PasskeySubmission] Empty approvals array - rejecting");
+    throw new Error("No approvals provided. At least one approval is required.");
+  }
+
+  debugLog("[PasskeySubmission] Submitting batch approvals via passkey", {
+    count: approvals.length,
+    chainId,
+  });
+
+  assertSmartAccount(client);
+
+  const smartClient = client as SmartAccountClient;
+  const easConfig = getEASConfig(chainId);
+
+  // Check abort again before encoding (could be expensive for large batches)
+  if (signal?.aborted) {
+    throw new DOMException("Batch approval aborted", "AbortError");
+  }
+
+  // Encode all approvals
+  const encodedApprovals = approvals.map(({ draft, gardenAddress }) => ({
+    gardenAddress: gardenAddress as `0x${string}`,
+    attestationData: encodeWorkApprovalData(draft, chainId),
+  }));
+
+  // Build batch transaction
+  const txParams = buildBatchApprovalAttestTx(easConfig, encodedApprovals);
+
+  // Check abort before sending transaction
+  if (signal?.aborted) {
+    throw new DOMException("Batch approval aborted", "AbortError");
+  }
+
+  const hash = await smartClient.sendTransaction({
+    account: smartClient.account!,
+    chain: smartClient.chain,
+    ...txParams,
+  });
+
+  debugLog("[PasskeySubmission] Passkey batch approval sent", {
+    hash,
+    count: approvals.length,
+  });
 
   return hash;
 }

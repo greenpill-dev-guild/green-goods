@@ -1,68 +1,77 @@
-import type {ReactNode} from 'react';
-import clsx from 'clsx';
-import Heading from '@theme/Heading';
-import styles from './styles.module.css';
+import type {ReactNode} from "react";
+import Link from "@docusaurus/Link";
+import Heading from "@theme/Heading";
+import styles from "./styles.module.css";
 
-type FeatureItem = {
+type Pathway = {
   title: string;
-  Svg: React.ComponentType<React.ComponentProps<'svg'>>;
-  description: ReactNode;
+  href: string;
+  body: string;
+  cta: string;
+  progress: string;
+  popularStart: string;
 };
 
-const FeatureList: FeatureItem[] = [
+const pathways: Pathway[] = [
   {
-    title: 'Easy to Use',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
-    description: (
-      <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
-      </>
-    ),
+    title: "Gardener",
+    href: "/gardener/get-started",
+    body: "Document work in the field, submit with MDR, and track approvals and attestations.",
+    cta: "Start gardener path",
+    progress: "5 pages",
+    popularStart: "Most started: Submit Work with MDR",
   },
   {
-    title: 'Focus on What Matters',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
-    description: (
-      <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
-      </>
-    ),
+    title: "Operator",
+    href: "/operator/get-started-and-roles",
+    body: "Manage gardens, review work, run assessments, and operate endowment and governance tools.",
+    cta: "Start operator path",
+    progress: "11 pages",
+    popularStart: "Most started: Review Work",
   },
   {
-    title: 'Powered by React',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
-    description: (
-      <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
-      </>
-    ),
+    title: "Evaluator",
+    href: "/evaluator/get-started",
+    body: "Query indexer and EAS data, verify attestation chains, and export analysis-ready datasets.",
+    cta: "Start evaluator path",
+    progress: "7 pages",
+    popularStart: "Most started: Query EAS",
+  },
+  {
+    title: "Developers",
+    href: "/developers/getting-started",
+    body: "Use architecture, patterns, integrations, and operations docs to build and ship safely.",
+    cta: "Open developer hub",
+    progress: "5 core guides",
+    popularStart: "Most started: Developer Getting Started",
   },
 ];
-
-function Feature({title, Svg, description}: FeatureItem) {
-  return (
-    <div className={clsx('col col--4')}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
-      <div className="text--center padding-horiz--md">
-        <Heading as="h3">{title}</Heading>
-        <p>{description}</p>
-      </div>
-    </div>
-  );
-}
 
 export default function HomepageFeatures(): ReactNode {
   return (
     <section className={styles.features}>
       <div className="container">
-        <div className="row">
-          {FeatureList.map((props, idx) => (
-            <Feature key={idx} {...props} />
+        <Heading as="h2" className={styles.heading}>
+          Explore Your Path
+        </Heading>
+        <p className={styles.subhead}>
+          Choose a role, start with the most-used entrypoint, and follow a guided journey.
+        </p>
+        <div className={styles.grid}>
+          {pathways.map((pathway, index) => (
+            <article key={pathway.title} className={styles.card} style={{animationDelay: `${index * 80}ms`}}>
+              <header className={styles.cardHeader}>
+                <Heading as="h3" className={styles.cardTitle}>
+                  {pathway.title}
+                </Heading>
+                <span className={styles.progressBadge}>{pathway.progress}</span>
+              </header>
+              <p className={styles.cardBody}>{pathway.body}</p>
+              <p className={styles.popularStart}>{pathway.popularStart}</p>
+              <Link className={styles.cardLink} to={pathway.href}>
+                {pathway.cta}
+              </Link>
+            </article>
           ))}
         </div>
       </div>

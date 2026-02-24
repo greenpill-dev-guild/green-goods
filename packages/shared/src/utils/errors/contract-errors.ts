@@ -74,6 +74,13 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     recoverable: false,
     suggestedAction: "contact-support",
   },
+  "0xafbbf251": {
+    name: "HatsEnabled",
+    message: "Open joining is not available for this garden",
+    action: "Contact a garden operator to request access",
+    recoverable: false,
+    suggestedAction: "contact-support",
+  },
   "0x04f102a3": {
     name: "GAPProjectNotInitialized",
     message: "Karma GAP project not initialized for this garden",
@@ -118,6 +125,12 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   "0x7862e959": {
     name: "InvalidBatchSize",
     message: "Invalid batch size for minting operation",
+    recoverable: false,
+    suggestedAction: "contact-support",
+  },
+  "0x7862dfc0": {
+    name: "NoOperatorsProvided",
+    message: "At least one operator is required to create a garden",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -227,7 +240,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   },
 
   // ============================================================================
-  // GardenerRegistry.sol errors (ENS)
+  // GreenGoodsENS.sol errors (ENS registration)
   // ============================================================================
   "0xa18ea0b6": {
     name: "NameNotAvailable",
@@ -472,13 +485,6 @@ export function isNotGardenMemberError(error: unknown): boolean {
   const parsed = parseContractError(error);
   // Check for both old (NotGardenerAccount) and new (NotGardenMember) error names
   return parsed.name === "NotGardenMember" || parsed.name === "NotGardenerAccount";
-}
-
-/**
- * @deprecated Use isNotGardenMemberError instead
- */
-export function isNotGardenerError(error: unknown): boolean {
-  return isNotGardenMemberError(error);
 }
 
 /**

@@ -1,4 +1,4 @@
-import { getTag } from "@green-goods/shared/utils";
+import { getTag, type GardenAssessment } from "@green-goods/shared";
 import {
   RiCalendarLine,
   RiExternalLinkLine,
@@ -16,13 +16,13 @@ import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
 
 interface GardenAssessmentsProps {
   assessments: GardenAssessment[];
-  asessmentFetchStatus: "pending" | "success" | "error";
+  assessmentFetchStatus: "pending" | "success" | "error";
   description?: string | null;
 }
 
 interface AssessmentListProps {
   assessments: GardenAssessment[];
-  asessmentFetchStatus: "pending" | "success" | "error";
+  assessmentFetchStatus: "pending" | "success" | "error";
 }
 
 const AssessmentCard = memo(function AssessmentCard({
@@ -132,9 +132,9 @@ const AssessmentCard = memo(function AssessmentCard({
   );
 });
 
-const AssessmentList = ({ assessments, asessmentFetchStatus }: AssessmentListProps) => {
+const AssessmentList = ({ assessments, assessmentFetchStatus }: AssessmentListProps) => {
   const intl = useIntl();
-  switch (asessmentFetchStatus) {
+  switch (assessmentFetchStatus) {
     case "pending":
       return (
         <Carousel opts={{ align: "start", loop: false }}>
@@ -223,7 +223,7 @@ const ReportCard = memo(function ReportCard({ report, index }: { report: string;
 });
 
 export const GardenAssessments = forwardRef<HTMLDivElement, GardenAssessmentsProps>(
-  ({ assessments, asessmentFetchStatus, description }, ref) => {
+  ({ assessments, assessmentFetchStatus, description }, ref) => {
     const intl = useIntl();
     const hasDescription = Boolean(description && description.trim().length > 0);
 
@@ -266,7 +266,7 @@ export const GardenAssessments = forwardRef<HTMLDivElement, GardenAssessmentsPro
 
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-text-strong-950">{assessmentsTitle}</h2>
-          <AssessmentList assessments={assessments} asessmentFetchStatus={asessmentFetchStatus} />
+          <AssessmentList assessments={assessments} assessmentFetchStatus={assessmentFetchStatus} />
         </section>
 
         {allReports.length > 0 && (

@@ -19,7 +19,7 @@ vi.mock("../../modules/data/graphql-client", () => ({
 
 // Mock config
 vi.mock("../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 // Mock IPFS (Storacha)
@@ -53,8 +53,8 @@ describe("modules/data/greengoods", () => {
     it("returns parsed garden list on success", async () => {
       const mockGardens = [
         {
-          id: "84532-1",
-          chainId: 84532,
+          id: "11155111-1",
+          chainId: 11155111,
           tokenAddress: "0xGarden123",
           tokenID: "1",
           name: "Test Garden",
@@ -63,6 +63,10 @@ describe("modules/data/greengoods", () => {
           bannerImage: "QmBanner",
           gardeners: ["0xGardener1"],
           operators: ["0xOperator1"],
+          evaluators: [],
+          owners: [],
+          funders: [],
+          communities: [],
           openJoining: true,
           createdAt: "1700000000",
         },
@@ -82,8 +86,8 @@ describe("modules/data/greengoods", () => {
     it("includes openJoining field from indexer", async () => {
       const mockGardens = [
         {
-          id: "84532-1",
-          chainId: 84532,
+          id: "11155111-1",
+          chainId: 11155111,
           tokenAddress: "0xGarden123",
           tokenID: "1",
           name: "Open Garden",
@@ -92,12 +96,16 @@ describe("modules/data/greengoods", () => {
           bannerImage: "QmBanner",
           gardeners: [],
           operators: [],
+          evaluators: [],
+          owners: [],
+          funders: [],
+          communities: [],
           openJoining: true,
           createdAt: "1700000000",
         },
         {
-          id: "84532-2",
-          chainId: 84532,
+          id: "11155111-2",
+          chainId: 11155111,
           tokenAddress: "0xGarden456",
           tokenID: "2",
           name: "Closed Garden",
@@ -106,6 +114,10 @@ describe("modules/data/greengoods", () => {
           bannerImage: "QmBanner",
           gardeners: [],
           operators: [],
+          evaluators: [],
+          owners: [],
+          funders: [],
+          communities: [],
           openJoining: false,
           createdAt: "1700000000",
         },
@@ -125,8 +137,8 @@ describe("modules/data/greengoods", () => {
     it("defaults openJoining to false when missing", async () => {
       const mockGardens = [
         {
-          id: "84532-1",
-          chainId: 84532,
+          id: "11155111-1",
+          chainId: 11155111,
           tokenAddress: "0xGarden123",
           tokenID: "1",
           name: "Legacy Garden",
@@ -135,6 +147,10 @@ describe("modules/data/greengoods", () => {
           bannerImage: "QmBanner",
           gardeners: [],
           operators: [],
+          evaluators: [],
+          owners: [],
+          funders: [],
+          communities: [],
           // openJoining missing - should default to false
           createdAt: "1700000000",
         },
@@ -175,14 +191,16 @@ describe("modules/data/greengoods", () => {
     it("returns parsed action list on success", async () => {
       const mockActions = [
         {
-          id: "84532-1",
-          chainId: 84532,
+          id: "11155111-1",
+          chainId: 11155111,
           startTime: "1700000000",
           endTime: "1800000000",
           title: "Planting Trees",
+          slug: "agro.planting_trees",
           instructions: "QmInstructions",
           capitals: [0, 3], // SOCIAL, LIVING
           media: ["QmMedia1"],
+          domain: "AGRO",
           createdAt: "1700000000",
         },
       ];
@@ -212,14 +230,16 @@ describe("modules/data/greengoods", () => {
     it("handles action without instructions gracefully", async () => {
       const mockActions = [
         {
-          id: "84532-2",
-          chainId: 84532,
+          id: "11155111-2",
+          chainId: 11155111,
           startTime: "1700000000",
           endTime: "1800000000",
           title: "Simple Action",
+          slug: "solar.simple_action",
           instructions: null, // No instructions CID
           capitals: [],
           media: [],
+          domain: "SOLAR",
           createdAt: "1700000000",
         },
       ];

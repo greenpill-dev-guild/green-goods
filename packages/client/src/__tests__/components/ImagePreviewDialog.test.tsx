@@ -16,7 +16,7 @@ vi.mock("@/components/Display", () => ({
   ),
 }));
 
-vi.mock("@green-goods/shared/utils", () => ({
+vi.mock("@green-goods/shared", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
 }));
 
@@ -86,14 +86,17 @@ describe("ImagePreviewDialog", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("calls onClose when overlay is clicked", () => {
+  it("does not close when overlay is clicked (prevented by onPointerDownOutside)", () => {
     const onClose = vi.fn();
 
     render(<ImagePreviewDialog isOpen onClose={onClose} images={IMAGES} initialIndex={0} />);
 
     fireEvent.click(screen.getByTestId("image-preview-dialog"));
 
-    expect(onClose).toHaveBeenCalledTimes(1);
+    // The component uses onPointerDownOutside={(e) => e.preventDefault()} on Content,
+    // which prevents Radix Dialog from dismissing on outside/overlay clicks.
+    // Close is only available via the close button or Escape key.
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("navigates to next image with arrow button", async () => {

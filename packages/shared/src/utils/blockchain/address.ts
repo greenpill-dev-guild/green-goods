@@ -86,7 +86,17 @@ export function truncateAddress(
  *
  * @param address - Address to normalize
  * @returns Lowercase address or empty string if invalid
+ *
+ * @example
+ * // Preserves Address type when given Address input
+ * const addr: Address = "0xABC...";
+ * const normalized: Address = normalizeAddress(addr); // typed as Address
+ *
+ * // Returns string for string | undefined | null input
+ * const raw: string = normalizeAddress(someString); // typed as string
  */
+export function normalizeAddress(address: `0x${string}`): `0x${string}`;
+export function normalizeAddress(address: string | undefined | null): string;
 export function normalizeAddress(address: string | undefined | null): string {
   if (!address) return "";
   return address.toLowerCase();
@@ -101,4 +111,12 @@ export function normalizeAddress(address: string | undefined | null): string {
 export function isValidAddressFormat(address: string | undefined | null): boolean {
   if (!address) return false;
   return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+/**
+ * Check if an address is the zero address.
+ */
+export function isZeroAddress(address: string | undefined | null): boolean {
+  if (!address) return true;
+  return address.toLowerCase() === "0x0000000000000000000000000000000000000000";
 }

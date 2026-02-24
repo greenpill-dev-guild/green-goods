@@ -62,13 +62,18 @@ describe("modules/work-submission", () => {
   });
 
   describe("validateWorkSubmissionContext with minRequired", () => {
-    it("passes when images meet default minRequired of 1", () => {
+    it("passes with no images when default minRequired is 0", () => {
+      const errors = validateWorkSubmissionContext("0xGarden", 1, []);
+      expect(errors).toEqual([]);
+    });
+
+    it("passes when images are present with default minRequired of 0", () => {
       const errors = validateWorkSubmissionContext("0xGarden", 1, [createMockFile("img1.jpg")]);
       expect(errors).toEqual([]);
     });
 
-    it("fails when images below default minRequired of 1", () => {
-      const errors = validateWorkSubmissionContext("0xGarden", 1, []);
+    it("fails when images are below explicit minRequired of 1", () => {
+      const errors = validateWorkSubmissionContext("0xGarden", 1, [], { minRequired: 1 });
       expect(errors).toContain("At least one image is required");
     });
 
@@ -137,8 +142,8 @@ describe("modules/work-submission", () => {
       draft,
       "0x123",
       1,
-      [{ id: "84532-1", title: "Act" }] as any,
-      84532,
+      [{ id: "11155111-1", title: "Act" }] as any,
+      11155111,
       [],
       TEST_USER_ADDRESS
     );
@@ -152,9 +157,11 @@ describe("modules/work-submission", () => {
         workUID: "0xwork",
         actionUID: 1,
         approved: true,
+        confidence: 2,
+        verificationMethod: 1,
       },
       { gardenerAddress: "0xabc" } as any,
-      84532,
+      11155111,
       TEST_USER_ADDRESS
     );
     expect(result.jobId).toBe("job-1");

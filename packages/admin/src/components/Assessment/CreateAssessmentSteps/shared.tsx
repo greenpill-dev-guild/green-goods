@@ -1,130 +1,207 @@
-import { cn } from "@green-goods/shared/utils";
-import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
-import { type ReactNode, useState } from "react";
-import {
-  type Control,
-  type FieldError,
-  type FieldErrorsImpl,
-  useFieldArray,
-  useWatch,
-} from "react-hook-form";
+import { cn, CynefinPhase, Domain } from "@green-goods/shared";
+import { type ReactNode } from "react";
+import { type FieldError, type FieldErrorsImpl } from "react-hook-form";
+import { useIntl, type IntlShape } from "react-intl";
 import { z } from "zod";
 
-// Schema and types
-const stringListSchema = z
-  .array(z.string().trim())
-  .optional()
-  .default([])
-  .transform((values) => values.filter((value) => value.trim().length > 0));
+// ─── Schema ──────────────────────────────────────────────
 
+const smartOutcomeSchema = z.object({
+  description: z.string().trim().min(1, "Description is required"),
+  metric: z.string().trim().min(1, "Select a metric"),
+  target: z
+    .number({ invalid_type_error: "Target must be a number" })
+    .min(0, "Target must be positive"),
+});
+
+/**
+ * Base schema for type inference (no superRefine so z.infer works cleanly).
+ * The runtime schema returned by `createAssessmentSchema()` adds cross-field
+ * validation on top of this.
+ */
 const baseAssessmentSchema = z.object({
-  title: z.string().trim().min(1, "Title is required"),
-  description: z
-    .string()
-    .trim()
-    .min(1, "Describe what was evaluated or the key findings for this assessment"),
-  assessmentType: z.string().trim().min(1, "Assessment type is required"),
-  capitals: z.array(z.string().trim()).default([]),
-  metrics: z
-    .string()
-    .trim()
-    .min(2, "Provide assessment metrics")
-    .refine((value) => {
-      try {
-        JSON.parse(value);
-        return true;
-      } catch {
-        return false;
-      }
-    }, "Metrics must be valid JSON"),
-  reportDocuments: stringListSchema,
-  impactAttestations: stringListSchema,
-  startDate: z.string().trim().min(1, "Start date is required"),
-  endDate: z.string().trim().min(1, "End date is required"),
-  location: z.string().trim().min(1, "Location is required"),
-  tags: stringListSchema,
-  evidenceMedia: z.array(z.instanceof(File)).optional().default([]),
+  title: z.string(),
+  description: z.string(),
+  location: z.string(),
+  diagnosis: z.string(),
+  smartOutcomes: z.array(smartOutcomeSchema),
+  cynefinPhase: z.nativeEnum(CynefinPhase),
+  domain: z.nativeEnum(Domain),
+  selectedActionUIDs: z.array(z.string()),
+  sdgTargets: z.array(z.number()),
+  reportingPeriodStart: z.string(),
+  reportingPeriodEnd: z.string(),
+  attachments: z.array(z.instanceof(File)).optional().default([]),
 });
 
-export const createAssessmentSchema = baseAssessmentSchema.superRefine((data, ctx) => {
-  if (data.capitals.length === 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Select at least one form of capital",
-      path: ["capitals"],
-    });
-  }
-
-  // Normalize dates to midnight UTC to avoid timezone comparison issues
-  const startDate = new Date(data.startDate);
-  startDate.setUTCHours(0, 0, 0, 0);
-  const startTimestamp = startDate.getTime();
-
-  if (Number.isNaN(startTimestamp)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Start date is invalid",
-      path: ["startDate"],
-    });
-  }
-
-  const endDate = new Date(data.endDate);
-  endDate.setUTCHours(0, 0, 0, 0);
-  const endTimestamp = endDate.getTime();
-
-  if (Number.isNaN(endTimestamp)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "End date is invalid",
-      path: ["endDate"],
-    });
-  }
-
-  if (
-    !Number.isNaN(startTimestamp) &&
-    !Number.isNaN(endTimestamp) &&
-    endTimestamp < startTimestamp
-  ) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "End date must be after start date",
-      path: ["endDate"],
-    });
-  }
-
-  const invalidAttestations = data.impactAttestations.filter(
-    (value) => !/^0x[a-fA-F0-9]{64}$/.test(value)
-  );
-  if (invalidAttestations.length > 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Each impact attestation must be a 32-byte hex string (0x...)",
-      path: ["impactAttestations"],
-    });
-  }
-});
-
-// Use the base schema for type inference to avoid superRefine complexity
 export type CreateAssessmentForm = z.infer<typeof baseAssessmentSchema>;
+
+/**
+ * Factory that builds the full Zod schema with i18n validation messages.
+ * Called as `createAssessmentSchema(intl)` from the view component.
+ */
+export function createAssessmentSchema(intl: IntlShape) {
+  return z
+    .object({
+      title: z
+        .string()
+        .trim()
+        .min(
+          1,
+          intl.formatMessage({
+            id: "app.admin.assessment.validation.titleRequired",
+            defaultMessage: "Title is required",
+          })
+        ),
+      description: z
+        .string()
+        .trim()
+        .min(
+          1,
+          intl.formatMessage({
+            id: "app.admin.assessment.validation.descriptionRequired",
+            defaultMessage: "Description is required",
+          })
+        ),
+      location: z
+        .string()
+        .trim()
+        .min(
+          1,
+          intl.formatMessage({
+            id: "app.admin.assessment.validation.locationRequired",
+            defaultMessage: "Location is required",
+          })
+        ),
+      diagnosis: z
+        .string()
+        .trim()
+        .min(
+          1,
+          intl.formatMessage({
+            id: "app.admin.assessment.validation.diagnosisRequired",
+            defaultMessage: "Diagnosis is required",
+          })
+        ),
+      smartOutcomes: z.array(smartOutcomeSchema).min(
+        1,
+        intl.formatMessage({
+          id: "app.admin.assessment.validation.smartOutcomesRequired",
+          defaultMessage: "At least one SMART outcome is required",
+        })
+      ),
+      cynefinPhase: z.nativeEnum(CynefinPhase),
+      domain: z.nativeEnum(Domain),
+      selectedActionUIDs: z.array(z.string()),
+      sdgTargets: z.array(z.number()).min(
+        1,
+        intl.formatMessage({
+          id: "app.admin.assessment.validation.sdgRequired",
+          defaultMessage: "Select at least one SDG target",
+        })
+      ),
+      reportingPeriodStart: z
+        .string()
+        .trim()
+        .min(
+          1,
+          intl.formatMessage({
+            id: "app.admin.assessment.validation.reportingStartRequired",
+            defaultMessage: "Start date is required",
+          })
+        ),
+      reportingPeriodEnd: z
+        .string()
+        .trim()
+        .min(
+          1,
+          intl.formatMessage({
+            id: "app.admin.assessment.validation.reportingEndRequired",
+            defaultMessage: "End date is required",
+          })
+        ),
+      attachments: z.array(z.instanceof(File)).optional().default([]),
+    })
+    .superRefine((data, ctx) => {
+      // Normalize dates to midnight UTC to avoid timezone comparison issues
+      const startDate = new Date(data.reportingPeriodStart);
+      startDate.setUTCHours(0, 0, 0, 0);
+      const startTimestamp = startDate.getTime();
+
+      if (Number.isNaN(startTimestamp)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: intl.formatMessage({
+            id: "app.admin.assessment.validation.startDateInvalid",
+            defaultMessage: "Start date is invalid",
+          }),
+          path: ["reportingPeriodStart"],
+        });
+      }
+
+      const endDate = new Date(data.reportingPeriodEnd);
+      endDate.setUTCHours(0, 0, 0, 0);
+      const endTimestamp = endDate.getTime();
+
+      if (Number.isNaN(endTimestamp)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: intl.formatMessage({
+            id: "app.admin.assessment.validation.endDateInvalid",
+            defaultMessage: "End date is invalid",
+          }),
+          path: ["reportingPeriodEnd"],
+        });
+      }
+
+      if (
+        !Number.isNaN(startTimestamp) &&
+        !Number.isNaN(endTimestamp) &&
+        endTimestamp < startTimestamp
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: intl.formatMessage({
+            id: "app.admin.assessment.validation.endBeforeStart",
+            defaultMessage: "End date must be after start date",
+          }),
+          path: ["reportingPeriodEnd"],
+        });
+      }
+    });
+}
 
 export function createDefaultAssessmentForm(): CreateAssessmentForm {
   return {
     title: "",
     description: "",
-    assessmentType: "",
-    capitals: [],
-    metrics: '{\n  "indicators": []\n}',
-    reportDocuments: [],
-    impactAttestations: [],
-    startDate: "",
-    endDate: "",
     location: "",
-    tags: [],
-    evidenceMedia: [],
+    diagnosis: "",
+    smartOutcomes: [{ description: "", metric: "", target: 0 }],
+    cynefinPhase: CynefinPhase.CLEAR,
+    domain: Domain.SOLAR,
+    selectedActionUIDs: [],
+    sdgTargets: [],
+    reportingPeriodStart: "",
+    reportingPeriodEnd: "",
+    attachments: [],
   };
 }
 
-// Helper components
+// ─── Step Field Mapping ──────────────────────────────────
+
+/**
+ * Maps wizard step IDs to their form field names.
+ * Used by FormWizard's per-step validation trigger.
+ */
+export const STEP_FIELDS: Record<string, readonly (keyof CreateAssessmentForm)[]> = {
+  strategy: ["title", "description", "location", "diagnosis", "smartOutcomes", "cynefinPhase"],
+  domain: ["domain", "selectedActionUIDs"],
+  sdgHarvest: ["sdgTargets", "reportingPeriodStart", "reportingPeriodEnd"],
+};
+
+// ─── Helper Components ───────────────────────────────────
+
 interface LabeledFieldProps {
   label: string;
   required?: boolean;
@@ -159,118 +236,6 @@ export const textareaClassName = (error?: FieldError) =>
     "mt-1 w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
     error && "border-red-300 focus:border-red-400 focus:ring-red-100/60"
   );
-
-/** String array field names in CreateAssessmentForm */
-type StringArrayFieldName = "tags" | "reportDocuments" | "impactAttestations" | "capitals";
-
-interface ArrayInputProps {
-  control: Control<CreateAssessmentForm>;
-  name: StringArrayFieldName;
-  label: string;
-  placeholder?: string;
-  helper?: string;
-  emptyHint?: string;
-  addLabel?: string;
-  required?: boolean;
-  disabled?: boolean;
-  error?: string;
-  transformValue?: (value: string) => string;
-}
-
-export function ArrayInput({
-  control,
-  name,
-  label,
-  placeholder,
-  helper,
-  emptyHint,
-  addLabel = "Add entry",
-  required,
-  disabled,
-  error,
-  transformValue,
-}: ArrayInputProps) {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name,
-  });
-  const values = useWatch({ control, name }) ?? [];
-  const [inputValue, setInputValue] = useState("");
-
-  const handleAdd = () => {
-    const trimmed = inputValue.trim();
-    if (!trimmed) {
-      return;
-    }
-    append(transformValue ? transformValue(trimmed) : trimmed);
-    setInputValue("");
-  };
-
-  return (
-    <div className="space-y-2">
-      <div className="space-y-1 text-sm">
-        <span className="font-medium text-text-sub">
-          {label}
-          {required ? <span className="ml-1 text-red-500">*</span> : null}
-        </span>
-        {helper ? <span className="block text-xs text-text-soft">{helper}</span> : null}
-      </div>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          type="text"
-          value={inputValue}
-          placeholder={placeholder}
-          disabled={disabled}
-          onChange={(event) => setInputValue(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              handleAdd();
-            }
-          }}
-          className={cn(
-            "flex-1 rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200/80",
-            error && "border-red-300 focus:border-red-400 focus:ring-red-100/60"
-          )}
-          aria-invalid={Boolean(error)}
-        />
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={disabled || inputValue.trim().length === 0}
-          className="inline-flex items-center justify-center gap-1 rounded-md border border-stroke-soft px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <RiAddLine className="h-4 w-4" />
-          {addLabel}
-        </button>
-      </div>
-      {/* Always render to reserve space and prevent layout shift */}
-      <span className="block min-h-[1.25rem] text-xs text-red-600">{error || "\u00A0"}</span>
-      <div className="space-y-1.5">
-        {fields.length === 0
-          ? emptyHint && <p className="text-xs text-text-soft">{emptyHint}</p>
-          : fields.map((field, index) => (
-              <div
-                key={field.id}
-                className="flex items-center justify-between gap-2.5 rounded-md border border-gray-100 bg-bg-weak px-3 py-2 text-sm text-text-sub/60"
-              >
-                <span className="break-all">{values[index] ?? ""}</span>
-                <button
-                  type="button"
-                  onClick={() => remove(index)}
-                  disabled={disabled}
-                  className="rounded-md p-1 text-red-500 transition hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-                  // eslint-disable-next-line jsx-a11y/aria-proptypes
-                  aria-label={`Remove ${label.toLowerCase()} entry`}
-                >
-                  <RiDeleteBinLine className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-      </div>
-    </div>
-  );
-}
 
 export function extractErrorMessage(error?: FieldError | FieldErrorsImpl<any>): string | undefined {
   if (!error) {
@@ -310,6 +275,7 @@ export function ReviewRow({
   value?: string | null;
   multiline?: boolean;
 }) {
+  const intl = useIntl();
   return (
     <div>
       <p className="text-xs font-semibold uppercase text-text-soft">{label}</p>
@@ -319,7 +285,12 @@ export function ReviewRow({
           multiline ? "whitespace-pre-wrap break-words" : "truncate"
         )}
       >
-        {value && value.trim().length > 0 ? value : "Not provided"}
+        {value && value.trim().length > 0
+          ? value
+          : intl.formatMessage({
+              id: "admin.assessment.review.notProvided",
+              defaultMessage: "Not provided",
+            })}
       </p>
     </div>
   );

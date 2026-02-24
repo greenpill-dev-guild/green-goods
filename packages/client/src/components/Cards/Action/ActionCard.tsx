@@ -1,9 +1,9 @@
+import { cn, type Action } from "@green-goods/shared";
 import { RiCamera3Line } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@green-goods/shared/utils";
-import { Card, type CardRootProps } from "../Base/Card";
 import { ImageWithFallback } from "../../Display";
+import { Card, type CardRootProps } from "../Base/Card";
 
 export const cardVariants = tv({
   base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0 h-max-content", // Fixed height to match garden cards

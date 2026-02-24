@@ -1,6 +1,6 @@
-import { useNavigateToTop } from "@green-goods/shared/hooks";
+import { useNavigateToTop, type Action, type Work } from "@green-goods/shared";
 import { RiLoader4Line } from "@remixicon/react";
-import React, { forwardRef, memo, UIEvent, useCallback, useMemo } from "react";
+import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { FixedSizeList as List } from "react-window";
 import { MinimalWorkCard } from "@/components/Cards";
@@ -21,10 +21,43 @@ interface WorkListProps {
   workFetchStatus: "pending" | "success" | "error";
 }
 
+interface WorkListItemProps {
+  index: number;
+  style: React.CSSProperties;
+  sorted: Work[];
+  actionById: Map<string, Action>;
+  navigate: (path: string) => void;
+}
+
+const WorkListItem = memo(function WorkListItem({
+  index,
+  style,
+  sorted,
+  actionById,
+  navigate,
+}: WorkListItemProps) {
+  const work = sorted[index];
+  const action = actionById.get(String(work.actionUID));
+  const title = action?.title ?? `Action ${work.actionUID}`;
+  const onOpen = useCallback(
+    () => navigate(`/home/${work.gardenAddress}/work/${work.id}`),
+    [navigate, work.gardenAddress, work.id]
+  );
+  return (
+    <li style={style}>
+      <MinimalWorkCard
+        onClick={onOpen}
+        work={work as unknown as Work}
+        actionTitle={title}
+        variant="detailed"
+      />
+    </li>
+  );
+});
+
 const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
   const intl = useIntl();
   const navigate = useNavigateToTop();
-  // const chainId = useCurrentChain();
 
   const actionById = useMemo(() => {
     const map = new Map<string, Action>();
@@ -68,32 +101,6 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
         );
       }
 
-      const WorkListItem = memo(function WorkListItem({
-        index,
-        style,
-      }: {
-        index: number;
-        style: React.CSSProperties;
-      }) {
-        const work = sorted[index];
-        const action = actionById.get(String(work.actionUID));
-        const title = action?.title ?? `Action ${work.actionUID}`;
-        const onOpen = useCallback(
-          () => navigate(`/home/${work.gardenAddress}/work/${work.id}`),
-          [work.gardenAddress, work.id]
-        );
-        return (
-          <li style={style}>
-            <MinimalWorkCard
-              onClick={onOpen}
-              work={work as unknown as Work}
-              actionTitle={title}
-              variant="detailed"
-            />
-          </li>
-        );
-      });
-
       const shouldVirtualize = sorted.length > 30;
       return shouldVirtualize ? (
         <List
@@ -104,13 +111,26 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
           className="w-full"
         >
           {({ index, style }: { index: number; style: React.CSSProperties }) => (
-            <WorkListItem index={index} style={style} />
+            <WorkListItem
+              index={index}
+              style={style}
+              sorted={sorted}
+              actionById={actionById}
+              navigate={navigate}
+            />
           )}
         </List>
       ) : (
         <>
           {sorted.map((_, i) => (
-            <WorkListItem key={sorted[i].id} index={i} style={{}} />
+            <WorkListItem
+              key={sorted[i].id}
+              index={i}
+              style={{}}
+              sorted={sorted}
+              actionById={actionById}
+              navigate={navigate}
+            />
           ))}
         </>
       );

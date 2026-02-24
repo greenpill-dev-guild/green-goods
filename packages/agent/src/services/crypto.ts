@@ -56,16 +56,28 @@ function deriveKey(secret: string, salt: Buffer): Buffer {
 
 /**
  * Gets the encryption secret from environment.
- * Generates a warning if using a weak/default secret.
+ *
+ * SECURITY: In production, ENCRYPTION_SECRET is REQUIRED.
+ * Fallback to bot token is only allowed in development.
  */
 function getEncryptionSecret(): string {
   const secret = process.env.ENCRYPTION_SECRET;
+  const isProduction = process.env.NODE_ENV === "production";
 
   if (!secret) {
+    // SECURITY: In production, we MUST have a dedicated encryption secret
+    if (isProduction) {
+      throw new Error(
+        "ENCRYPTION_SECRET is required in production. " +
+          "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+      );
+    }
+
     log.warn(
-      "ENCRYPTION_SECRET not set - using derived key from TELEGRAM_BOT_TOKEN. Set ENCRYPTION_SECRET for production."
+      "ENCRYPTION_SECRET not set - using derived key from TELEGRAM_BOT_TOKEN. " +
+        "This is only acceptable in development."
     );
-    // Fall back to bot token as secret (better than nothing, but not ideal)
+    // Fall back to bot token as secret (development only)
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     if (!botToken) {
       throw new Error("Neither ENCRYPTION_SECRET nor TELEGRAM_BOT_TOKEN is set");
@@ -75,6 +87,9 @@ function getEncryptionSecret(): string {
 
   // Warn if secret seems weak
   if (secret.length < 32) {
+    if (isProduction) {
+      throw new Error("ENCRYPTION_SECRET must be at least 32 characters in production");
+    }
     log.warn("ENCRYPTION_SECRET should be at least 32 characters");
   }
 

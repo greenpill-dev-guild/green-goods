@@ -8,21 +8,19 @@ import { initializeIpfsFromEnv } from "@green-goods/shared";
 // Initialize Storacha IPFS from environment
 void initializeIpfsFromEnv(import.meta.env);
 
-// Re-export shared configs (use relative path within monorepo)
+// Re-export shared configs from barrel
 export {
   DEFAULT_CHAIN_ID,
   getDefaultChain,
   getEASConfig,
   getIndexerUrl,
   getNetworkConfig,
-} from "../../shared/src/config/blockchain";
-export {
   getChain,
   getChainName,
   isChainSupported,
   SUPPORTED_CHAINS,
   type SupportedChainId,
-} from "../../shared/src/config/chains";
+} from "@green-goods/shared";
 
 // Client-specific config
 export const CLIENT_NAME = "Green Goods";

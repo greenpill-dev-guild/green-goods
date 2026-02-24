@@ -4,9 +4,8 @@
  * Tests for joining gardens with openJoining enabled.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock wagmi
@@ -33,15 +32,20 @@ vi.mock("../../hooks/blockchain/useBaseLists", () => ({
   useGardens: () => mockUseGardens(),
 }));
 
+const mockFetchHatsModuleAddress = vi.fn();
+vi.mock("../../utils/blockchain/garden-hats", () => ({
+  fetchHatsModuleAddress: (...args: unknown[]) => mockFetchHatsModuleAddress(...args),
+}));
+
 // Mock config
 vi.mock("../../config/appkit", () => ({
   wagmiConfig: {},
 }));
 
 vi.mock("../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
   getDefaultChain: () => ({
-    chainId: 84532,
+    chainId: 11155111,
     rootGarden: { address: "0xRootGarden" },
   }),
 }));
@@ -89,15 +93,17 @@ vi.mock("../../utils/errors/contract-errors", () => ({
 
 import { readContract } from "@wagmi/core";
 import { checkGardenOpenJoining, useJoinGarden } from "../../hooks/garden/useJoinGarden";
-import { createMockSmartAccountClient, MOCK_ADDRESSES, MOCK_TX_HASH } from "../test-utils";
+import {
+  createMockSmartAccountClient,
+  createTestWrapper,
+  MOCK_ADDRESSES,
+  MOCK_TX_HASH,
+} from "../test-utils";
 
 describe("hooks/garden/useJoinGarden", () => {
   let queryClient: QueryClient;
 
-  const createWrapper = () => {
-    return ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children);
-  };
+  const createWrapper = () => createTestWrapper(queryClient);
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -107,6 +113,7 @@ describe("hooks/garden/useJoinGarden", () => {
       },
     });
     vi.clearAllMocks();
+    mockFetchHatsModuleAddress.mockResolvedValue(undefined);
 
     // Default mocks
     mockUseUser.mockReturnValue({
@@ -150,6 +157,15 @@ describe("hooks/garden/useJoinGarden", () => {
       expect(result).toBe(false);
     });
 
+    it("returns true when garden uses Hats and openJoining is enabled", async () => {
+      mockFetchHatsModuleAddress.mockResolvedValue(MOCK_ADDRESSES.garden);
+      vi.mocked(readContract).mockResolvedValue(true);
+
+      const result = await checkGardenOpenJoining(MOCK_ADDRESSES.garden);
+
+      expect(result).toBe(true);
+    });
+
     it("returns false on error", async () => {
       vi.mocked(readContract).mockRejectedValue(new Error("Network error"));
 
@@ -160,6 +176,26 @@ describe("hooks/garden/useJoinGarden", () => {
   });
 
   describe("joinGarden", () => {
+    it("joins garden when Hats is enabled", async () => {
+      mockFetchHatsModuleAddress.mockResolvedValue(MOCK_ADDRESSES.garden);
+      const mockClient = createMockSmartAccountClient();
+      mockClient.sendTransaction.mockResolvedValue(MOCK_TX_HASH);
+
+      mockUseUser.mockReturnValue({
+        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        smartAccountClient: mockClient,
+        eoa: null,
+      });
+
+      const { result } = renderHook(() => useJoinGarden(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await expect(result.current.joinGarden(MOCK_ADDRESSES.garden)).resolves.toBe(MOCK_TX_HASH);
+      });
+    });
+
     it("joins garden successfully with smart account", async () => {
       const mockClient = createMockSmartAccountClient();
       mockClient.sendTransaction.mockResolvedValue(MOCK_TX_HASH);

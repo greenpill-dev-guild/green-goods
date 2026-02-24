@@ -1,413 +1,82 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with this repository.
 
-## Common Development Commands
+## Commands
 
-### Quick Start
 ```bash
-# Initial setup (checks dependencies, installs packages, creates .env)
-bun setup
-
-# Start all services via PM2 (client, admin, indexer)
-bun dev
-
-# Stop all services
-bun dev:stop
-
-# Stream logs for a specific service
-bun exec pm2 logs client
-bun exec pm2 logs admin
-bun exec pm2 logs indexer
+bun setup                    # Initial setup (deps, packages, .env)
+bun dev                      # Start all services via PM2
+bun dev:stop                 # Stop all services
+bun format && bun lint       # Format and lint workspace
+bun run test                 # Run all tests (CRITICAL: not `bun test`)
+bun build                    # Build everything (respects dependency order)
 ```
 
-### Code Quality
-```bash
-# Format and lint entire workspace
-bun format && bun lint
+> **`bun test` vs `bun run test`**: `bun test` uses bun's built-in runner (ignores vitest config). `bun run test` runs the package.json script (vitest with proper environment). Always use `bun run test`.
 
-# Run all tests across workspace
-bun test
+Per-package: `bun run test`, `bun build`, `bun lint` (check each package.json for available scripts).
 
-# Build everything (respects dependency order)
-bun build
+**Contracts** (never use raw `forge` commands): `bun build` (~2s cached), `bun build:full` (CI/deploy only, >180s), `bun run test:fork` (needs RPC URLs).
 
-# Full validation before committing
-bun format && bun lint && bun test && bun build
-```
+## Architecture
 
-### Package-Specific Commands
+Green Goods is an **offline-first, single-chain** platform for documenting conservation work on-chain. Bun monorepo.
 
-**Client (PWA):**
-```bash
-cd packages/client
-bun test              # Run tests
-bun build            # Build (includes TypeScript check)
-bun lint             # Lint with oxlint
-```
-
-**Admin Dashboard:**
-```bash
-cd packages/admin
-bun test              # Run tests  
-bun build            # Build (includes TypeScript check)
-bun lint             # Lint with oxlint
-```
-
-**Smart Contracts:**
-```bash
-cd packages/contracts
-bun test              # Run unit tests (skips E2E)
-bun build            # Compile contracts
-bun lint             # Format & lint with forge fmt + solhint
-bun deploy:testnet   # Deploy to Base Sepolia (default)
-```
-
-**Indexer:**
-```bash
-cd packages/indexer
-bun test              # Run tests
-bun build            # Build indexer
-bun dev              # Start local indexer
-```
-
-**Shared Package:**
-```bash
-cd packages/shared
-npx tsc --noEmit     # Type check
-bun test             # Run tests
-bun lint             # Lint with oxlint
-```
-
-## High-Level Architecture
-
-Green Goods is an **offline-first, single-chain** platform for documenting conservation work on-chain. Built as a Bun monorepo with these key principles:
-
+### Key Principles
 1. **Offline-First**: Client PWA works without internet, syncs when connected
-2. **Single Environment**: All packages share root `.env` file (never create package-specific .env)
-3. **Single Chain**: Apps target one chain set by `VITE_CHAIN_ID` at build time
-4. **Shared Logic**: All React hooks and business logic in `@green-goods/shared` package
+2. **Single Environment**: All packages share root `.env` (never create package-specific .env)
+3. **Single Chain**: Target chain set by `VITE_CHAIN_ID` at build time
+4. **Shared Logic**: ALL React hooks MUST live in `@green-goods/shared`
 
-### Package Structure
-```
-packages/
-├── client/       # Offline-first React PWA for gardeners (port 3001)
-├── admin/        # React dashboard for operators (port 3002)  
-├── shared/       # Common hooks, providers, stores, modules
-├── indexer/      # Envio GraphQL API indexing blockchain events (port 8080)
-├── contracts/    # Solidity smart contracts (Foundry framework)
-└── agent/        # Multi-platform bot (Telegram primary)
-```
+### Build Order
+1. **contracts** -> ABIs for other packages
+2. **shared** -> hooks/modules for frontends
+3. **indexer** -> needs contract ABIs
+4. **client/admin/agent** -> need shared package
 
-### Key Architectural Patterns
+## Key Patterns
 
-**Hook Boundary**: ALL React hooks MUST live in `@green-goods/shared`. Client/admin packages only contain components and views.
-
+**Hook Boundary**: ALL hooks in `@green-goods/shared`. Client/admin only have components and views.
 ```typescript
-// ✅ Correct - import hooks from shared
-import { useAuth, useGardens, useRole } from '@green-goods/shared';
-
-// ❌ Wrong - never define hooks in client/admin
-export function useLocalHook() { ... }  // DON'T DO THIS
+import { useAuth, useGardens } from '@green-goods/shared'; // correct
 ```
 
 **Contract Integration**: Import deployment artifacts, never hardcode addresses.
-
 ```typescript
-// ✅ Correct
-import deployment from '../../../contracts/deployments/84532-latest.json';
-const gardenToken = deployment.gardenToken;
-
-// ❌ Wrong  
-const GARDEN_TOKEN = '0x1234...';  // Never hardcode
+import deployment from '../../../contracts/deployments/11155111-latest.json';
 ```
 
-**Offline Sync**: Client uses IndexedDB + Service Workers for offline operation with job queue for background sync.
+**Barrel Imports**: Always `import { x } from "@green-goods/shared"`, never deep paths.
 
-```typescript
-// Job queue handles offline work submission
-import { useJobQueue, JobType } from '@green-goods/shared';
-const { addJob } = useJobQueue();
+**Type System**: Domain types (`Garden`, `Work`, `Action`, `Address`) live in `@green-goods/shared`. Use `Address` type (not `string`) for Ethereum addresses.
 
-// Queue work for sync when online
-await addJob({
-  type: JobType.SUBMIT_WORK,
-  data: { gardenAddress, workData },
-  retries: 3
-});
-```
+**Error Handling**: Never swallow errors. Use `parseContractError()` + `USER_FRIENDLY_ERRORS` for contract errors. Use `createMutationErrorHandler()` in shared mutation hooks. Use `logger` from shared (not `console.log`).
 
-**Authentication**: Dual auth system - Reown AppKit for wallets, Pimlico for passkey accounts.
+**Query Keys**: Use `queryKeys.*` helpers from shared. Serialize objects in query keys.
 
-```typescript
-import { useAuth } from '@green-goods/shared';
-const { user, isPasskeyUser, loginWithPasskey, loginWithWallet } = useAuth();
-```
+**Indexer Boundary**: Envio indexes only Green Goods core state (actions, gardens, hats role membership, vault history, yield split history, minimal hypercert linkage/claims). Do not re-index EAS attestations, Gardens V2 community/pools, marketplace, ENS lifecycle, cookie jars, or Hypercert display metadata.
 
-### Critical Dependencies
-
-- **React 19** + TypeScript (strict mode)
-- **Vite** for bundling  
-- **TailwindCSS v4** + Radix UI
-- **TanStack Query** for data fetching (with graphql-request for GraphQL)
-- **Wagmi + Viem** for Web3
-- **Foundry** for smart contracts
-- **Envio** for blockchain indexing
-- **Zustand** for state management
-- **Biome** for formatting (35x faster than Prettier)
-- **oxlint** for linting
-
-### Build Order
-
-Packages have dependencies that require building in order:
-
-1. **contracts** → Generates ABIs needed by other packages
-2. **shared** → Needs contract artifacts, provides hooks/modules  
-3. **indexer** → Needs contract ABIs
-4. **client/admin/agent** → Need shared package
-
-The root `bun build` command handles this automatically.
-
-### Environment Configuration
-
-Single `.env` file at root - key variables:
-
-- `VITE_CHAIN_ID`: Target blockchain (84532=Base Sepolia, 42161=Arbitrum, 42220=Celo)
-- `VITE_PIMLICO_API_KEY`: For passkey authentication
-- `VITE_WALLETCONNECT_PROJECT_ID`: For wallet connections
-- `VITE_STORACHA_KEY` & `VITE_STORACHA_PROOF`: IPFS storage
-
-See `.env.example` for all variables with setup instructions.
-
-### Testing Philosophy
-
-- **Client/Admin**: 70%+ coverage, 100% for auth/encryption paths
-- **Contracts**: 100% coverage for mainnet, comprehensive gas tests
-- **Shared**: 80%+ coverage, all hooks must have tests
-- **E2E Tests**: Playwright tests in `tests/` directory
-
-### Development Workflow
-
-1. Make changes following existing patterns (check neighboring files)
-2. Run validation: `bun format && bun lint && bun test`
-3. Build affected packages to verify: `bun --filter [package] build`
-4. Use conventional commits: `feat(client): add feature` or `fix(contracts): resolve issue`
-5. Never commit without running lint/test/build
-6. **Always run `bun install`** after adding new packages or updating dependency versions in package.json
-
-### Key Design Decisions
-
-- **No package-specific .env files** - everything uses root `.env`
-- **No runtime chain switching** - single chain per deployment
-- **All hooks in shared package** - maintains clean architecture
-- **Offline-first with job queue** - handles poor connectivity
-- **UUPS upgradeable contracts** - allows fixing bugs post-deployment
-- **EAS for attestations** - leverages existing infrastructure
-
-For detailed patterns and rules, see the `.cursor/rules/` directories throughout the codebase.
-
-## Claude Code Integration
-
-This project has extensive Claude Code tooling configured in `.claude/`.
-
-### Available Commands
-
-| Command | Purpose |
-|---------|---------|
-| `/pr` | Create PR with issue linking and conventional commits |
-| `/review` | Review changes against implementation plan |
-| `/audit` | Run comprehensive codebase audit |
-| `/delphi` | Launch parallel oracle analysis (e.g., `delphi x6`) |
-| `/plan` | Create detailed implementation plan |
-| `/execute` | Execute plan in batches with checkpoints |
-| `/fix-lint` | Auto-fix linting issues |
-| `/scope` | Check for scope creep |
-| `/shitshow` | Emergency troubleshooting mode |
-
-### Available Skills (24)
-
-**Development Workflow:**
-- `create-plan`, `check-plan`, `executing-plans` - Planning lifecycle
-- `create-pr`, `code-review`, `requesting-code-review`, `receiving-code-review` - PR workflow
-- `test-driven-development` - TDD methodology
-- `verification-before-completion` - Evidence-based completion
-
-**Analysis & Research:**
-- `audit`, `architectural-analysis` - Codebase health
-- `delphi`, `the-oracle` - Deep research and parallel analysis
-- `systematic-debugging` - Root cause analysis
-
-**Specialized:**
-- `contract-deploy-validator` - UUPS validation, gas reports
-- `hook-generator` - Generate hooks in shared package
-- `i18n-sync` - Translation completeness
-- `offline-sync-debugger` - Job queue and IndexedDB debugging
-- `superpower-zustand` - Zustand store patterns
-- `design-spec-extraction` - Extract Figma design tokens
-- `chrome-devtools` - Browser debugging
-- `gh-ticket` - AI-powered issue creation with context
-- `the-archivist` - Decision documentation
-- `4-step-program` - Fix-review-iterate workflow
-
-### GitHub Issue Creation
-
-Use `/ticket` or the `gh-ticket` skill to create context-rich GitHub issues. The skill auto-detects issue type and populates AI context sections.
-
-**Quick Commands:**
-```bash
-/ticket bug "Description"              # Bug report with triage label
-/ticket feature "Description"          # Simple feature (1-2 packages)
-/ticket feature --complete "Desc"      # AI-buildable spec (3+ packages)
-/ticket task "Description"             # Engineering task
-/ticket contract "Description"         # Smart contract work
-/ticket hook "Description"             # New shared hook
-/ticket spike "Description"            # Research/investigation
-```
-
-**Two-Tier Feature Templates:**
-
-| Template | Flag | Use For |
-|----------|------|---------|
-| Feature Simple | `/ticket feature` | Quick features, 1-2 packages, human implementation |
-| **Feature Complete** | `/ticket feature --complete` | **AI-buildable specs**: 3+ packages, offline support, AI agent assignment |
-
-Use `--complete` when the feature spans multiple packages or will be assigned to an AI agent. It includes:
-- Testable acceptance criteria (Given/When/Then)
-- TypeScript API contracts for hooks/stores
-- GraphQL schema additions
-- Test specifications with fixtures
-- Error handling matrix
-- Offline implementation patterns
-- AI self-verification checklist
-
-**All Issue Templates:**
-
-| Template | Labels | Use For |
-|----------|--------|---------|
-| 🐛 Bug Report | `bug`, `triage` | Bugs with reproduction steps |
-| ✨ Feature (Simple) | `enhancement` | Quick features, human implementation |
-| ✨ Feature (Complete) | `enhancement` | AI-buildable specs, complex features |
-| 🔧 Engineering Task | `task` | Specific engineering work |
-| 📜 Smart Contract | `contract` | Contract creation/modification |
-| 🪝 Shared Hook | `component` | New hooks in shared package |
-| 🔬 Spike | `spike` | Research with timebox |
-
-**Package Labels** (auto-detected from file paths):
-- `client` - Client PWA package
-- `admin` - Admin dashboard package
-- `shared` - Shared package (hooks, utils)
-- `contract` - Smart contracts
-- `indexer` - Envio indexer
-- `agent` - Telegram/Discord bot agent
-
-Issues are automatically added to the **Green Goods** project board.
-
-**Full Guide:** `.claude/docs/gh-ticket-guide.md`
-
-### Available Agents (5)
-
-| Agent | Purpose |
-|-------|---------|
-| `code-reviewer` | 6-pass ultra-critical review, auto-posts to GitHub |
-| `cracked-coder` | Elite implementation specialist |
-| `engineering-lead` | Strategic coordinator |
-| `infrastructure-architect` | System design guidance |
-| `oracle` | Deep research agent |
-
-### Enabled Plugins (13)
-
-- `typescript-lsp` - TypeScript language server
-- `github` - GitHub integration
-- `figma` - Figma design extraction
-- `vercel` - Vercel deployment
-- `playwright` - E2E testing
-- `code-review` - PR review workflow
-- `security-guidance` - Security scanning
-- `feature-dev` - Feature development
-- `frontend-design` - UI/UX guidance
-- `context7` - Context management
-- `serena` - Code navigation
-- `pr-review-toolkit` - 6-dimension PR analysis
-- `hookify` - Custom hooks creation
-
-### MCP Servers (6)
-
-| Server | Purpose |
-|--------|---------|
-| `figma` | Design context extraction |
-| `vercel` | Deployment management |
-| `miro` | Whiteboard collaboration |
-| `railway` | Railway deployment |
-| `foundry` | Contract development (forge, cast, anvil) |
-| `storacha` | IPFS/Filecoin storage |
-
-## Secure Autonomous Execution
-
-### Recommended: Sandbox Mode
-
-Enable sandboxing for autonomous execution with security boundaries:
+## Contract Deployment
 
 ```bash
-/sandbox
+bun script/deploy.ts core --network sepolia              # Dry run
+bun script/deploy.ts core --network sepolia --broadcast   # Deploy
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # Deploy + schemas
 ```
 
-This provides:
-- **Filesystem isolation** - Only access project directories
-- **Network isolation** - Only approved domains
-- **84% fewer permission prompts** while maintaining security
+**Deployment artifacts**: `deployments/{chainId}-latest.json` is the source of truth for all addresses. Zero addresses mean the module hasn't been deployed yet (not a blocker for optional modules).
 
-### Sandbox Configuration
+## Environment
 
-In `.claude/settings.local.json`:
+Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets target chain at build time. See `.env.example`.
 
-```json
-{
-  "permissions": {
-    "allow": [
-      "Bash(bun:*)",
-      "Bash(forge:*)",
-      "Bash(cast:*)",
-      "Bash(git:*)"
-    ],
-    "deny": [
-      "Bash(curl:*)",
-      "Bash(wget:*)",
-      "Bash(sudo:*)"
-    ]
-  },
-  "sandbox": {
-    "filesystem": {
-      "allow": ["packages/**", "scripts/**"],
-      "deny": ["~/.ssh", "~/.aws", "~/.env*"]
-    },
-    "network": {
-      "mode": "auto-allow",
-      "allowedDomains": [
-        "github.com",
-        "api.github.com",
-        "registry.npmjs.org",
-        "sepolia.base.org",
-        "mcp.figma.com",
-        "mcp.vercel.com"
-      ]
-    }
-  }
-}
-```
+## Git Workflow
 
-### Permission Modes
+**Branches**: `type/description` (e.g., `feature/hats-v2`, `bug/admin-fix`)
 
-| Mode | Use Case |
-|------|----------|
-| `plan` | Safe analysis, no modifications |
-| `acceptEdits` | Auto-approve edits, manual command approval |
-| `sandbox auto-allow` | Autonomous within boundaries (recommended) |
-| `bypassPermissions` | Full autonomy (only in isolated environments) |
+**Commits**: Conventional Commits with scope: `type(scope): description`
+- Types: feat, fix, refactor, chore, docs, test, perf, ci
+- Scopes: contracts, indexer, shared, client, admin, agent, claude
 
-### Security Best Practices
-
-1. **Never commit secrets** - Use `.env` (gitignored)
-2. **Review contract changes** - Always verify before deployment
-3. **Use sandbox for automation** - OS-level isolation
-4. **Audit permissions** - Run `/permissions` to review
-5. **Verify MCP servers** - Only use trusted servers
+**Validation before committing**: `bun format && bun lint && bun run test && bun build`

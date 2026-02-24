@@ -49,6 +49,7 @@
         "efficient-animated-content": "off",
         "unused-css-rules": "off",
         "offscreen-images": "off",
+        "image-delivery-insight": "off",
         "uses-optimized-images": "off",
         "uses-webp-images": "off",
         "uses-responsive-images": "off",

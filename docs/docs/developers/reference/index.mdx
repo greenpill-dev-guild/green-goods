@@ -1,0 +1,55 @@
+---
+title: Developer Reference
+sidebar_position: 1
+slug: /developers/reference
+audience: developer
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Find canonical technical sources fast."
+difficulty: "advanced"
+estimated_time: "10-20 minutes"
+prereqs: "Repo access and chain context."
+next_steps: "/developers/reference/api-index"
+persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
+source_of_truth:
+  - docs/sidebars.ts
+  - docs/docusaurus.config.ts
+---
+
+import {NextBestAction} from "@site/src/components/docs";
+
+# Developer Reference
+
+Canonical technical references for Green Goods v1 docs.
+
+## Contents
+
+- [API Index](/developers/reference/api-index)
+- [Deployment and Indexer Status](/developers/reference/deployment-indexer-status)
+- [Agent and MCP Guide](/developers/reference/agent-mcp-guide)
+- [Docs Frontmatter Contract](/developers/reference/docs-frontmatter-contract)
+- [Docs Writing Guide](/developers/reference/docs-writing-guide)
+
+## Documentation contract for AI and humans
+
+All non-reference docs in this IA use required frontmatter metadata:
+
+- `audience`
+- `owner`
+- `last_verified`
+- `feature_status`
+- `source_of_truth`
+
+Use these fields as the machine-readable context layer for retrieval and automation.
+
+<NextBestAction
+  title="Next best action"
+  why="Start from canonical endpoints before diving into implementation details."
+  actionLabel="Open API Index"
+  actionHref="/developers/reference/api-index"
+  alternatives={[
+    {label: "Check deployment/indexer status", href: "/developers/reference/deployment-indexer-status"},
+    {label: "Read docs writing guide", href: "/developers/reference/docs-writing-guide"},
+  ]}
+/>

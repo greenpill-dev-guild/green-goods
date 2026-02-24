@@ -1,5 +1,7 @@
-import { cn } from "@green-goods/shared/utils";
+import { cn } from "@green-goods/shared";
+import { RiLoader4Line, RiWallet3Line } from "@remixicon/react";
 import { useAppKit } from "@reown/appkit/react";
+import { useIntl } from "react-intl";
 import { useAccount } from "wagmi";
 
 interface ConnectButtonProps {
@@ -15,6 +17,7 @@ export function ConnectButton({
   variant = "primary",
   size = "md",
 }: ConnectButtonProps) {
+  const { formatMessage } = useIntl();
   const { isConnecting } = useAccount();
   const { open } = useAppKit();
 
@@ -38,40 +41,21 @@ export function ConnectButton({
     <button
       onClick={() => open()}
       disabled={isConnecting}
+      aria-busy={isConnecting}
       data-testid="connect-wallet-button"
       className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)}
     >
       <div className="flex items-center">
         {isConnecting ? (
           <>
-            <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
+            <RiLoader4Line className="animate-spin -ml-1 mr-2 h-4 w-4" aria-hidden="true" />
             Connecting...
           </>
         ) : (
           <>
             {children || (
               <>
-                <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <RiWallet3Line className="mr-2 h-4 w-4" aria-hidden="true" />
                 Connect Wallet
               </>
             )}

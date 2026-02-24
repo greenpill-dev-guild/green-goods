@@ -109,6 +109,7 @@ test.describe("Admin Authentication", () => {
         // Auth injection didn't work (expected in CI without real wallet)
         // Skip remainder of test - this is a known limitation
         console.log("Auth injection not supported in this environment (no real wallet)");
+        // SKIP: #338 owner:afo expiry:2026-08-17 — CI lacks real wallet for auth injection
         test.skip();
         return;
       }
@@ -197,6 +198,7 @@ test.describe("Admin Authentication", () => {
       if (!isAuthenticated) {
         // Auth injection didn't work - skip test
         console.log("Auth injection not supported in this environment (no real wallet)");
+        // SKIP: #338 owner:afo expiry:2026-08-17 — CI lacks real wallet for auth injection
         test.skip();
         return;
       }
@@ -242,7 +244,7 @@ test.describe("Admin Authentication", () => {
             state: {
               connections: {
                 __type: "Map",
-                value: [["mock", { accounts: [address], chainId: 1 }]], // Mainnet instead of Base Sepolia
+                value: [["mock", { accounts: [address], chainId: 1 }]], // Mainnet instead of Sepolia
               },
               current: "mock",
             },
@@ -297,7 +299,7 @@ test.describe("Admin Authentication", () => {
 
       // Login in first tab
       await page1.goto("/dashboard");
-      await page1.waitForLoadState("networkidle");
+      await page1.waitForLoadState("domcontentloaded");
 
       // Wait for auth to settle
       const isAuthenticated = await helper1.waitForAuthSettled({ timeout: 15000 });
@@ -306,6 +308,7 @@ test.describe("Admin Authentication", () => {
         // Auth injection didn't work (expected in CI without real wallet)
         console.log("Auth injection not supported in this environment (no real wallet)");
         await page1.close();
+        // SKIP: #338 owner:afo expiry:2026-08-17 — CI lacks real wallet for auth injection
         test.skip();
         return;
       }
@@ -315,7 +318,7 @@ test.describe("Admin Authentication", () => {
       // Open second tab - init script should apply via context
       const page2 = await context.newPage();
       await page2.goto("/dashboard");
-      await page2.waitForLoadState("networkidle");
+      await page2.waitForLoadState("domcontentloaded");
 
       // Create helper for page2 to use waitForAuthSettled
       const helper2 = new AdminTestHelper(page2);

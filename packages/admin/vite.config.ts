@@ -64,6 +64,8 @@ export default defineConfig(({ mode }) => {
         "@green-goods/shared/i18n": resolve(__dirname, "../shared/src/i18n"),
         "@green-goods/shared/workflows": resolve(__dirname, "../shared/src/workflows"),
         "@green-goods/shared/constants": resolve(__dirname, "../shared/src/constants"),
+        "@green-goods/contracts/deployments": resolve(__dirname, "../contracts/deployments"),
+        "@green-goods/contracts/abis": resolve(__dirname, "../contracts/abis"),
       }
     },
     // Optimize dependency pre-bundling
@@ -84,6 +86,7 @@ export default defineConfig(({ mode }) => {
       port: 3002,
       strictPort: true,
       host: true,
+      open: true,
       hmr: { overlay: true },
       watch: { usePolling: true, interval: 100 },
       proxy: {

@@ -1,141 +1,263 @@
-# Codebase Audit Skill
+---
+name: audit
+description: Codebase Audit - quality analysis, dead code detection. Use for health checks and anti-pattern detection.
+argument-hint: "[package-name]"
+context: fork
+version: "1.0.0"
+status: active
+packages: ["all"]
+dependencies: ["review", "security"]
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
+---
 
-Systematic codebase analysis to identify quality issues, technical debt, and architectural problems.
+# Audit Skill
+
+Systematic codebase analysis: quality audit, dead code detection, architectural review.
+
+**References**: See `CLAUDE.md` for codebase patterns. Use `oracle` for deep investigation.
+
+---
 
 ## Activation
 
-Use when:
-- Starting a new feature to understand codebase health
-- Before major refactoring
-- Periodic quality assessment
-- User requests `/audit`
+| Trigger | Action |
+|---------|--------|
+| `/audit` | Full codebase audit |
+| `/audit [package]` | Targeted package audit |
+| Before refactoring | Identify tech debt |
+| Periodic assessment | Codebase health check |
 
-## Process
+## Progress Tracking (REQUIRED)
 
-### Phase 1: Discovery & Planning
+Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
 
-1. Establish audit scope (package or full monorepo)
-2. Map file structure using Glob
-3. Create tracking in memory for findings
-4. Initialize markdown report at `.plans/audits/[date]-audit.md`
+---
 
-### Phase 2: Automated Analysis
-
-Run these checks (Green Goods adapted):
+## Part 1: Automated Analysis
 
 ```bash
 # Type checking
-cd /Users/afo/Code/greenpill/green-goods && bun run --filter [package] tsc --noEmit
+bun run --filter [package] tsc --noEmit
 
-# Linting with oxlint
+# Linting
 bun lint
 
-# Contract-specific (if auditing contracts)
-cd packages/contracts && forge build && solhint 'src/**/*.sol'
+# Hook location
+bash .claude/scripts/validate-hook-location.sh
 
-# Find TODO/FIXME markers
-grep -rn "TODO\|FIXME\|HACK\|XXX" --include="*.ts" --include="*.tsx" --include="*.sol" packages/
+# i18n completeness
+node .claude/scripts/check-i18n-completeness.js
+
+# TODO/FIXME markers
+grep -rn "TODO\|FIXME\|HACK" --include="*.ts" packages/
 ```
 
-### Phase 3: Systematic File Review
+---
 
-For each file, check:
+## Part 2: File-by-File Review
 
-1. **Deprecations** - Outdated patterns, old APIs
-2. **Unfinished work** - TODO comments, incomplete implementations
-3. **Architectural violations**:
+For each file check:
+1. **Deprecations** — outdated patterns, old APIs
+2. **Unfinished work** — TODO comments
+3. **Architectural violations** (see CLAUDE.md):
    - Hooks in client/admin (must be in shared)
-   - Package-level .env files (forbidden)
-   - Hardcoded contract addresses (use deployment artifacts)
-   - Runtime chain switching (single chain only)
-4. **Type problems** - `any`, `unknown`, type assertions
-5. **Code smells** - Long functions, deep nesting, magic numbers
+   - Package-level .env files
+   - Hardcoded contract addresses
+4. **Type problems** — `any`, `unknown`, type assertions
+5. **Code smells** — long functions, deep nesting
 
-Assign severity:
+### Severity Levels
+
 - **CRITICAL**: Security issues, data loss risk
 - **HIGH**: Bugs, broken functionality
 - **MEDIUM**: Tech debt, maintainability
 - **LOW**: Style, minor improvements
 
-### Phase 4: Cross-File Analysis
+---
 
-1. **Dependency cycles** - Check for circular imports
-2. **Dead code** - Unused exports, unreachable code
-3. **Duplicate logic** - Similar implementations across packages
-4. **Hook boundary violations** - Ensure all hooks in shared package
+## Part 3: Dead Code Detection
 
-### Phase 5: Green Goods Specific Checks
+### Automated Tooling (REQUIRED — always run before manual review)
 
-1. **Contract artifacts**:
-   ```bash
-   # Verify deployments match compiled ABIs
-   diff packages/contracts/out/ packages/contracts/deployments/
-   ```
+> **IMPORTANT**: Always use `knip` for dead code detection.
+> It understands TypeScript's module resolution and monorepo workspace relationships.
+> **NEVER rely on grep-based scanning** for unused export detection — it has ~80% false-positive
+> rate in this monorepo due to barrel exports, re-exports, and aliased imports.
 
-2. **i18n completeness**:
-   ```bash
-   node .claude/scripts/check-i18n-completeness.js
-   ```
+```bash
+# knip — PREFERRED: monorepo-aware unused files, exports, deps, types
+# Installed at root as devDependency. Understands workspace cross-package imports.
+bunx knip                          # Full analysis (files, exports, deps, types)
+bunx knip --reporter compact       # Condensed output
+bunx knip --include files          # Only unused files
+bunx knip --include exports        # Only unused exports
+bunx knip --include dependencies   # Only unused deps
 
-3. **Hook location validation**:
-   ```bash
-   bash .claude/scripts/validate-hook-location.sh
-   ```
+# IMPORTANT: knip will flag files in packages/contracts/lib/ (Foundry deps).
+# Filter these out — they are git submodules managed by Foundry, not dead code:
+bunx knip --reporter compact 2>&1 | grep -v 'packages/contracts/lib/'
 
-4. **Schema immutability** - Ensure schemas.json unchanged
+# madge — Detect circular dependencies
+# Install: bun add -D madge
+bunx madge --circular packages/shared/src/index.ts
+bunx madge --circular packages/client/src/main.tsx
+bunx madge --image graph.svg packages/shared/src/  # Visual dep graph
 
-### Phase 6: Report Generation
+# bundlesize — Enforce bundle budgets (CI integration)
+# Configure in package.json or bundlesize.config.json
+# Green Goods budgets: main <150KB, per-route <50KB, total <400KB gzipped
+```
 
-Create structured report at `.plans/audits/[date]-audit.md`:
+| Tool | Purpose | Status |
+|------|---------|--------|
+| **knip** | Unused files, exports, deps, types (monorepo-aware) | **Installed** — primary tool for dead code audits |
+| **madge** | Circular dependency detection | `bun add -D madge` |
+| **bundlesize** | Bundle budget enforcement | `bun add -D bundlesize` |
+
+### Manual Detection (fallback only — prefer knip)
+
+Only use grep-based detection when automated tools cannot run (e.g., non-TypeScript files, Solidity contracts):
+
+1. **Identify exports**: `grep -n "export " [file]`
+2. **Search for usage**: `grep -rn "[export-name]" packages/`
+3. **Categorize**:
+   - **Dead**: No usage
+   - **Possibly Dead**: Only test usage
+   - **Active**: Used across codebase
+
+---
+
+## Part 4: Architectural Anti-Patterns
+
+| Anti-Pattern | Detection |
+|--------------|-----------|
+| God Objects | Files > 500 lines |
+| Circular Deps | Import cycles |
+| Layer Violations | Wrong import direction |
+
+### Green Goods Violations
+
+```bash
+# Hooks outside shared
+grep -rn "^export.*use[A-Z]" packages/client packages/admin
+
+# Package .env files
+find packages -name ".env*" -not -path "*/node_modules/*"
+
+# Hardcoded addresses (exclude tests)
+grep -rn "0x[a-fA-F0-9]\{40\}" packages/ --include="*.ts" | grep -v __tests__
+```
+
+---
+
+## Part 5: Report Generation
+
+Create at `.plans/audits/[date]-audit.md`:
 
 ```markdown
 # Audit Report - [Date]
 
 ## Executive Summary
 - Files analyzed: N
-- Critical issues: N
-- High issues: N
-- Medium issues: N
-- Low issues: N
+- Critical: N | High: N | Medium: N | Low: N
 
 ## Critical Findings
 [List with file:line references]
 
-## High Priority
-[List with file:line references]
+## Dead Code
+| File | Export | Recommendation |
 
-## Medium Priority
-[List with file:line references]
+## Anti-Patterns
+| Issue | Location | Severity |
 
-## Low Priority
-[List with file:line references]
-
-## Automated Tool Results
-### TypeScript
-[tsc output]
-
-### Linting
-[oxlint output]
-
-### Contract Analysis
-[forge/solhint output]
+## Green Goods Violations
+| Rule | Violation | Location |
 
 ## Recommendations
-[Prioritized action items]
+1. [Priority 1]
+2. [Priority 2]
+```
+
+---
+
+## Part 6: Skill & Configuration Drift Detection
+
+Skills, hooks, and architectural rules reference specific hooks, utilities, types, and patterns. When the codebase evolves, these references can become stale. Include this check in every full audit.
+
+### Automated Drift Checks
+
+```bash
+# Check that hooks referenced in skills actually exist
+for hook in useTimeout useDelayedInvalidation useEventListener useWindowEvent \
+  useDocumentEvent useAsyncEffect useAsyncSetup useOffline \
+  useServiceWorkerUpdate useDraftAutoSave useDraftResume useJobQueue; do
+  count=$(grep -rn "export.*$hook" packages/shared/src/ | wc -l)
+  if [ "$count" -eq 0 ]; then
+    echo "DRIFT: $hook referenced in skills but not exported from shared"
+  fi
+done
+
+# Check that utility functions referenced in skills exist
+for util in parseContractError createMutationErrorHandler mediaResourceManager \
+  getStorageQuota jobQueue eventBus logger toastService; do
+  count=$(grep -rn "export.*$util" packages/shared/src/ | wc -l)
+  if [ "$count" -eq 0 ]; then
+    echo "DRIFT: $util referenced in skills but not exported from shared"
+  fi
+done
+
+# Check that types referenced in skills exist
+for type in Address Garden Work Action WorkApproval GardenAssessment \
+  Job JobKind WorkDraft OfflineStatus; do
+  count=$(grep -rn "export.*type.*$type\b\|export.*interface.*$type\b" packages/shared/src/ | wc -l)
+  if [ "$count" -eq 0 ]; then
+    echo "DRIFT: Type $type referenced in skills but not found in shared"
+  fi
+done
+```
+
+### Manual Drift Checks
+
+| Check | How | Severity |
+|-------|-----|----------|
+| **Hook names changed** | Compare skill references against `packages/shared/src/hooks/` exports | HIGH |
+| **Import paths changed** | Verify barrel exports in `packages/shared/src/index.ts` | HIGH |
+| **Provider order changed** | Compare Rule #13 against actual provider nesting in client/admin | MEDIUM |
+| **Environment variables renamed** | Compare `.env.example` against skill references | MEDIUM |
+| **Commands changed** | Verify `bun dev`, `bun test`, etc. still work as documented | LOW |
+| **Port numbers changed** | Verify dev ports (3001, 3002, 6006, 8080) | LOW |
+
+### Drift Report Section
+
+Add to audit report:
+
+```markdown
+## Skill & Configuration Drift
+
+| Reference | Location | Status |
+|-----------|----------|--------|
+| `useDelayedInvalidation` | data-layer SKILL.md, architectural-rules.md | ✅ Exists |
+| `parseContractError` | error-handling SKILL.md | ⚠️ Renamed to `decodeContractError` |
+| `Address` type | web3 SKILL.md, contracts SKILL.md | ✅ Exists |
+| Provider order (Rule #13) | architectural-rules.md | ⚠️ `JobQueueProvider` moved above `AppProvider` |
+
+### Recommendations
+- Update error-handling SKILL.md: `parseContractError` → `decodeContractError`
+- Update architectural-rules.md: Fix provider nesting order
 ```
 
 ## Key Principles
 
-- **Complete all files** - Never skip files in scope
-- **Read-only mode** - Do not edit during audit
-- **Evidence-based** - Every finding needs file:line reference
-- **Severity consistency** - Apply same standards across codebase
-- **Green Goods conventions** - Check against CLAUDE.md rules
+- **Complete all files** — never skip
+- **Read-only mode** — don't edit during audit
+- **Evidence-based** — every finding needs file:line
+- **Prompt before issues** — ask user before creating GitHub issues
+- **Check for drift** — verify skill references match actual codebase
 
-## Output
+## Related Skills
 
-Present findings to user with:
-1. Summary statistics
-2. Top 5 critical/high findings
-3. Link to full report
-4. Recommended next steps
+- `architecture` — Clean Architecture patterns for structural review
+- `performance` — Bundle analysis and optimization findings
+- `security` — Security-specific audit patterns for contracts
+- `testing` — Coverage analysis and test gap identification

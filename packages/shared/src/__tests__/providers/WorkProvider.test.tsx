@@ -58,15 +58,18 @@ vi.mock("../../hooks/work/useWorkImages", () => ({
   useWorkImages: () => mockUseWorkImages(),
 }));
 
-vi.mock("../../stores/useWorkFlowStore", () => ({
-  useWorkFlowStore: (selector: (state: typeof mockWorkFlowStore) => unknown) => {
+vi.mock("../../stores/useWorkFlowStore", () => {
+  const storeFn = (selector: (state: typeof mockWorkFlowStore) => unknown) => {
     // Handle useShallow - just call selector directly
     if (typeof selector === "function") {
       return selector(mockWorkFlowStore);
     }
     return mockWorkFlowStore;
-  },
-}));
+  };
+  // Zustand stores expose getState() for non-reactive access
+  storeFn.getState = () => ({ ...mockWorkFlowStore, audioNotes: [] });
+  return { useWorkFlowStore: storeFn };
+});
 
 vi.mock("../../components/toast", () => ({
   validationToasts: {
@@ -75,7 +78,7 @@ vi.mock("../../components/toast", () => ({
 }));
 
 vi.mock("../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 84532,
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 vi.mock("../../modules/work/work-submission", () => ({
@@ -165,7 +168,7 @@ describe("providers/WorkProvider", () => {
 
     // Default mock: one action
     mockUseActions.mockReturnValue({
-      data: [createMockAction({ id: "84532-1" })],
+      data: [createMockAction({ id: "11155111-1" })],
       isLoading: false,
     });
 
@@ -233,7 +236,7 @@ describe("providers/WorkProvider", () => {
       });
 
       expect(result.current.actions).toHaveLength(1);
-      expect(result.current.actions[0].id).toBe("84532-1");
+      expect(result.current.actions[0].id).toBe("11155111-1");
     });
   });
 

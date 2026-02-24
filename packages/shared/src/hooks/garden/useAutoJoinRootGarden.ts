@@ -17,6 +17,7 @@ import { toastService } from "../../components/toast";
 import { ONBOARDED_STORAGE_KEY } from "../../config/app";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
+import { logger } from "../../modules/app/logger";
 import { trackNetworkError } from "../../modules/app/error-tracking";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
@@ -61,7 +62,7 @@ export async function checkMembership(address: string): Promise<{
     const isGardener = await readContract(wagmiConfig, {
       address: rootGarden.address,
       abi: GardenAccountABI,
-      functionName: "gardeners",
+      functionName: "isGardener",
       args: [address as `0x${string}`],
     });
 
@@ -74,7 +75,7 @@ export async function checkMembership(address: string): Promise<{
       hasBeenOnboarded: Boolean(isGardener) || hasBeenOnboarded,
     };
   } catch (error) {
-    console.warn("Failed to check on-chain membership:", error);
+    logger.warn("Failed to check on-chain membership", { source: "checkMembership", error });
     trackNetworkError(error, {
       source: "checkMembership",
       userAction: "checking root garden membership status",
@@ -205,6 +206,7 @@ export function useAutoJoinRootGarden() {
         throw new Error("Root garden not configured for this network");
       }
 
+      setIsLoading(true);
       try {
         await executeJoin(sessionOverride);
         markOnboarded(targetAddress);

@@ -226,7 +226,11 @@ interface StorachaClient {
 }
 
 /**
- * Initialize Storacha client
+ * Initialize Storacha client with proper principal identity.
+ *
+ * IMPORTANT: Must pass the ed25519 principal derived from VITE_STORACHA_KEY.
+ * Without it, Client.create() generates a random DID and UCAN delegation fails,
+ * causing uploads to go to the wrong space (content becomes inaccessible).
  */
 async function initStoracha(): Promise<StorachaClient> {
   const storachaKey = process.env.VITE_STORACHA_KEY;
@@ -239,8 +243,12 @@ async function initStoracha(): Promise<StorachaClient> {
   // Dynamic imports for ES modules
   const Client = await import("@storacha/client");
   const Proof = await import("@storacha/client/proof");
+  const { Signer } = await import("@storacha/client/principal/ed25519");
+  const { StoreMemory } = await import("@storacha/client/stores/memory");
 
-  const client = await Client.create();
+  // Parse principal from the ed25519 key — this ensures uploads go to the correct space
+  const principal = Signer.parse(storachaKey);
+  const client = await Client.create({ principal, store: new StoreMemory() });
 
   // Parse the proof and add space to the client
   const proof = await Proof.parse(storachaProof);
