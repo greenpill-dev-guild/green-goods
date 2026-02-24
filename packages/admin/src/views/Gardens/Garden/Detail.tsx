@@ -8,8 +8,10 @@ import {
   toastService,
 } from "@green-goods/shared";
 import {
+  RiAddLine,
   RiCheckboxCircleLine,
   RiErrorWarningLine,
+  RiFileList3Line,
   RiMedalLine,
   RiShieldCheckLine,
   RiUserLine,
@@ -25,12 +27,14 @@ import { AddMemberModal } from "@/components/Garden/AddMemberModal";
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
 import { GardenHeroSection } from "@/components/Garden/GardenHeroSection";
+import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
 import { GardenMetadata } from "@/components/Garden/GardenMetadata";
 import { GardenRolesPanel } from "@/components/Garden/GardenRolesPanel";
 import { GardenStatsGrid } from "@/components/Garden/GardenStatsGrid";
 import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
 import { MembersModal } from "@/components/Garden/MembersModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { CookieJarPayoutPanel } from "@/components/Work/CookieJarPayoutPanel";
 import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
 import { useGardenDetailData } from "./useGardenDetailData";
 import "./GardenDetailLayout.css";
@@ -50,6 +54,7 @@ export default function GardenDetail() {
     canManage,
     canReview,
     canManageRoles,
+    isOwner,
     assessments,
     fetchingAssessments,
     assessmentsError,
@@ -70,7 +75,8 @@ export default function GardenDetail() {
     allocations,
     allocationsLoading,
     works,
-    cookieJarCount,
+    hypercerts,
+    hypercertsLoading,
     convictionStrategyCount,
     scheduleBackgroundRefetch,
   } = useGardenDetailData(id);
@@ -171,16 +177,39 @@ export default function GardenDetail() {
 
   return (
     <Tabs.Root defaultValue="overview" className="garden-detail-container pb-6">
-      <PageHeader title={garden.name} {...baseHeaderProps}>
+      <PageHeader
+        title={garden.name}
+        {...baseHeaderProps}
+        actions={
+          <>
+            {canReview && (
+              <Button size="sm" asChild>
+                <Link to={`/gardens/${gardenId}/assessments/create`}>
+                  <RiFileList3Line className="mr-1.5 h-4 w-4" />
+                  {formatMessage({ id: "app.garden.admin.newAssessment" })}
+                </Link>
+              </Button>
+            )}
+            {canManage && (
+              <Button size="sm" asChild>
+                <Link to={`/gardens/${gardenId}/hypercerts/create`}>
+                  <RiAddLine className="mr-1.5 h-4 w-4" />
+                  {formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
+                </Link>
+              </Button>
+            )}
+          </>
+        }
+      >
         <Tabs.List className="-mb-[1px] flex">
           <Tabs.Trigger value="overview" className={TAB_TRIGGER_BASE}>
             {formatMessage({ id: "app.garden.admin.tab.overview" })}
           </Tabs.Trigger>
+          <Tabs.Trigger value="impact" className={TAB_TRIGGER_BASE}>
+            {formatMessage({ id: "app.garden.admin.tab.impact" })}
+          </Tabs.Trigger>
           <Tabs.Trigger value="work" className={TAB_TRIGGER_BASE}>
             {formatMessage({ id: "app.garden.admin.tab.work" })}
-          </Tabs.Trigger>
-          <Tabs.Trigger value="roles" className={TAB_TRIGGER_BASE}>
-            {formatMessage({ id: "app.garden.admin.tab.roles" })}
           </Tabs.Trigger>
           <Tabs.Trigger value="community" className={TAB_TRIGGER_BASE}>
             {formatMessage({ id: "app.garden.admin.tab.community" })}
@@ -196,9 +225,6 @@ export default function GardenDetail() {
         >
           <GardenHeroSection
             garden={garden}
-            gardenId={gardenId}
-            canManage={canManage}
-            canReview={canReview}
             gardenerCount={garden.gardeners.length}
             operatorCount={garden.operators.length}
             workCount={works.length}
@@ -223,13 +249,26 @@ export default function GardenDetail() {
             tokenId={garden.tokenID}
             chainId={garden.chainId}
           />
+        </Tabs.Content>
 
+        <Tabs.Content
+          value="impact"
+          className="garden-tab-content"
+          aria-label={formatMessage({ id: "app.garden.admin.tab.impact" })}
+        >
           <GardenAssessmentsPanel
             assessments={assessments}
             isLoading={fetchingAssessments}
             error={assessmentsError}
             gardenId={gardenId}
             chainId={garden.chainId}
+          />
+          <GardenHypercertsPanel
+            gardenId={gardenId}
+            gardenAddress={garden.id as Address}
+            hypercerts={hypercerts}
+            isLoading={hypercertsLoading}
+            canManage={canManage}
           />
         </Tabs.Content>
 
@@ -238,13 +277,18 @@ export default function GardenDetail() {
           className="garden-tab-content"
           aria-label={formatMessage({ id: "app.garden.admin.tab.work" })}
         >
+          <CookieJarPayoutPanel
+            gardenAddress={garden.id as Address}
+            canManage={canManage}
+            isOwner={isOwner}
+          />
           <WorkSubmissionsView gardenId={garden.id} canManage={canReview} />
         </Tabs.Content>
 
         <Tabs.Content
-          value="roles"
+          value="community"
           className="garden-tab-content"
-          aria-label={formatMessage({ id: "app.garden.admin.tab.roles" })}
+          aria-label={formatMessage({ id: "app.garden.admin.tab.community" })}
         >
           <GardenRolesPanel
             roleMembers={roleMembers}
@@ -254,13 +298,6 @@ export default function GardenDetail() {
             onOpenMembersModal={openMembersModal}
             onRemoveMember={(address, role) => setMemberToRemove({ address, role })}
           />
-        </Tabs.Content>
-
-        <Tabs.Content
-          value="community"
-          className="garden-tab-content"
-          aria-label={formatMessage({ id: "app.garden.admin.tab.community" })}
-        >
           <ErrorBoundary context="GardenDetail.YieldCommunity">
             <GardenCommunityCard
               community={community}
@@ -268,7 +305,6 @@ export default function GardenDetail() {
               pools={pools}
               gardenId={gardenId}
               canManage={canManage}
-              cookieJarCount={cookieJarCount}
               gardenName={garden.name}
               convictionStrategyCount={convictionStrategyCount}
               vaultsLoading={vaultsLoading}

@@ -92,7 +92,7 @@ export function MintingDialog({
                 <button
                   type="button"
                   onClick={onRetry}
-                  className="flex-1 rounded-full bg-primary-base px-4 py-3 text-sm font-medium text-white transition hover:bg-primary-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light"
+                  className="flex-1 rounded-full bg-primary-base px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light"
                 >
                   {formatMessage({ id: "app.hypercerts.mint.retry" })}
                 </button>

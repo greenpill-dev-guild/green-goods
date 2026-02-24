@@ -158,6 +158,9 @@ export type {
   UseCopyToClipboardReturn,
   UseDepositFormResult,
   UserRole,
+  ActionFiltersState,
+  ActionSortOrder,
+  UseFilteredActionsResult,
   GardenFilterScope,
   GardenFiltersState,
   GardenSortOrder,
@@ -310,6 +313,7 @@ export {
   useDraftAutoSave,
   useDraftResume,
   useDrafts,
+  useFilteredActions,
   useFilteredGardens,
   useLoadingWithMinDuration,
   usePrimaryAddress,
@@ -586,6 +590,7 @@ export {
   Confidence,
   CynefinPhase,
   Domain,
+  DOMAIN_COLORS,
   VerificationMethod,
 } from "./types/index";
 export {

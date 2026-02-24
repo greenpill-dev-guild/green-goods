@@ -89,7 +89,7 @@ export const Gallery: Story = {
             <AddressDisplay address={SAMPLE_ADDRESSES.deployer} />
           </div>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm text-text-sub">Treasury</span>
+            <span className="text-sm text-text-sub">Endowments</span>
             <AddressDisplay address={SAMPLE_ADDRESSES.short} />
           </div>
         </div>

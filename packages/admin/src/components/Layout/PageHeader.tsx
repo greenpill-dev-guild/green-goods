@@ -13,6 +13,11 @@ type PageHeaderProps = {
   description?: ReactNode;
   metadata?: ReactNode;
   actions?: ReactNode;
+  /**
+   * Filter bar (search, sort, tags) rendered between the title row and children.
+   * Use this for list-view toolbars so `children` stays free for tabs.
+   */
+  toolbar?: ReactNode;
   backLink?: BackLinkConfig;
   sticky?: boolean;
   className?: string;
@@ -28,6 +33,7 @@ export function PageHeader({
   description,
   metadata,
   actions,
+  toolbar,
   backLink,
   sticky,
   className,
@@ -69,6 +75,8 @@ export function PageHeader({
           <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">{actions}</div>
         ) : null}
       </div>
+
+      {toolbar ? <div className="mt-3 sm:mt-4">{toolbar}</div> : null}
 
       {children ? <div className="mt-3 sm:mt-4">{children}</div> : null}
     </header>

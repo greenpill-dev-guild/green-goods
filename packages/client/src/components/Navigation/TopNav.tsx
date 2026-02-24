@@ -18,9 +18,9 @@ type TopNavProps = {
   overlay?: boolean;
   /** Whether the current user is an operator of this garden */
   isOperator?: boolean;
-  showTreasuryButton?: boolean;
-  hasTreasuryDeposits?: boolean;
-  onTreasuryClick?: () => void;
+  showEndowmentButton?: boolean;
+  hasEndowmentDeposits?: boolean;
+  onEndowmentClick?: () => void;
   showGovernanceButton?: boolean;
   onGovernanceClick?: () => void;
 } & React.HTMLAttributes<HTMLDivElement>;
@@ -130,7 +130,7 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
   );
 };
 
-const TreasuryButton: React.FC<{
+const EndowmentButton: React.FC<{
   hasDeposits: boolean;
   onClick: () => void;
   ariaLabel: string;
@@ -185,9 +185,9 @@ export const TopNav: React.FC<TopNavProps> = ({
   garden,
   overlay,
   isOperator = false,
-  showTreasuryButton = false,
-  hasTreasuryDeposits = false,
-  onTreasuryClick,
+  showEndowmentButton = false,
+  hasEndowmentDeposits = false,
+  onEndowmentClick,
   showGovernanceButton = false,
   onGovernanceClick,
   ...props
@@ -249,10 +249,10 @@ export const TopNav: React.FC<TopNavProps> = ({
           ariaLabel={formatMessage({ id: "app.signal.governance" })}
         />
       )}
-      {garden && showTreasuryButton && onTreasuryClick && (
-        <TreasuryButton
-          hasDeposits={hasTreasuryDeposits}
-          onClick={onTreasuryClick}
+      {garden && showEndowmentButton && onEndowmentClick && (
+        <EndowmentButton
+          hasDeposits={hasEndowmentDeposits}
+          onClick={onEndowmentClick}
           ariaLabel={formatMessage({ id: "app.treasury.open" })}
         />
       )}

@@ -9,7 +9,6 @@ import {
   RiMenuLine,
   RiPlantLine,
   RiSearchLine,
-  RiSeedlingLine,
   RiSettings3Line,
   RiUploadLine,
 } from "@remixicon/react";
@@ -52,7 +51,7 @@ const generalNav: NavItem[] = [
     icon: RiPlantLine,
     roles: ["deployer", "operator", "user"],
   },
-  { label: "Treasury", href: "/treasury", icon: RiBankLine, roles: ["deployer", "operator"] },
+  { label: "Endowments", href: "/endowments", icon: RiBankLine, roles: ["deployer", "operator"] },
   { label: "Actions", href: "/actions", icon: RiHammerFill, roles: ["deployer", "operator"] },
 ];
 
@@ -99,7 +98,7 @@ function MockDashboardLayout({
       {/* Skip link */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary-base focus:text-white focus:rounded-lg focus:text-sm focus:font-medium"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary-base focus:text-primary-foreground focus:rounded-lg focus:text-sm focus:font-medium"
       >
         Skip to content
       </a>
@@ -107,7 +106,7 @@ function MockDashboardLayout({
       {/* Sidebar */}
       <div className="w-64 bg-bg-white shadow-lg flex flex-col">
         <div className="flex items-center gap-2 h-16 px-6 border-b border-stroke-soft shadow-sm">
-          <RiSeedlingLine className="h-5 w-5 text-primary-base" />
+          <img src="/green-goods-logo.png" alt="" className="h-5 w-auto" />
           <h1 className="font-heading text-lg font-semibold text-text-strong">Green Goods</h1>
         </div>
         <nav className="flex-1 px-4 py-6 space-y-1" aria-label="Main navigation">
@@ -263,7 +262,7 @@ const meta: Meta<typeof MockDashboardLayout> = {
     },
     activePath: {
       control: "select",
-      options: ["/dashboard", "/gardens", "/treasury", "/actions", "/contracts", "/deployment"],
+      options: ["/dashboard", "/gardens", "/endowments", "/actions", "/contracts", "/deployment"],
       description: "Active route path (highlights matching sidebar item)",
     },
     chainLabel: {
@@ -297,9 +296,9 @@ export const DashboardView: Story = {
 export const OperatorView: Story = {
   args: {
     role: "operator",
-    activePath: "/treasury",
-    breadcrumbs: [{ label: "Treasury", href: "/treasury" }],
-    children: <PlaceholderContent title="Treasury" />,
+    activePath: "/endowments",
+    breadcrumbs: [{ label: "Endowments", href: "/endowments" }],
+    children: <PlaceholderContent title="Endowments" />,
   },
 };
 

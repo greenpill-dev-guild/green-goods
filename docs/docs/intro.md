@@ -42,7 +42,7 @@ Role-first docs for Green Goods v1.
   <RolePathCard
     title="Operator"
     href="/operator/get-started-and-roles"
-    description="Run garden operations, review work, and manage v1 treasury/governance features with explicit activation status."
+    description="Run garden operations, review work, and manage v1 endowment/governance features with explicit activation status."
     audience="Garden operators"
     time="10-20 minutes"
     status="Live"

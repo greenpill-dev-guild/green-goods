@@ -15,7 +15,7 @@ const buttonVariants = tv({
   ],
   variants: {
     variant: {
-      primary: "bg-primary-base text-white hover:bg-primary-darker",
+      primary: "bg-primary-base text-primary-foreground hover:bg-primary-darker",
       secondary:
         "border border-stroke-soft bg-bg-white text-text-strong hover:bg-bg-soft hover:border-stroke-sub",
       ghost: "text-text-sub hover:bg-bg-soft hover:text-text-strong",

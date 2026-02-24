@@ -17,13 +17,13 @@ interface SearchResult {
   category: "pages" | "gardens" | "actions";
 }
 
-const STATIC_ROUTES: Omit<SearchResult, "category">[] = [
-  { id: "page-dashboard", label: "Dashboard", href: "/dashboard" },
-  { id: "page-gardens", label: "Gardens", href: "/gardens" },
-  { id: "page-treasury", label: "Treasury", href: "/treasury" },
-  { id: "page-actions", label: "Actions", href: "/actions" },
-  { id: "page-contracts", label: "Contracts", href: "/contracts" },
-  { id: "page-deployment", label: "Deployment", href: "/deployment" },
+const STATIC_ROUTES: { id: string; labelId: string; defaultLabel: string; href: string }[] = [
+  { id: "page-dashboard", labelId: "app.admin.nav.dashboard", defaultLabel: "Dashboard", href: "/dashboard" },
+  { id: "page-gardens", labelId: "app.admin.nav.gardens", defaultLabel: "Gardens", href: "/gardens" },
+  { id: "page-endowments", labelId: "app.admin.nav.treasury", defaultLabel: "Endowments", href: "/endowments" },
+  { id: "page-actions", labelId: "app.admin.nav.actions", defaultLabel: "Actions", href: "/actions" },
+  { id: "page-contracts", labelId: "app.admin.nav.contracts", defaultLabel: "Contracts", href: "/contracts" },
+  { id: "page-deployment", labelId: "app.admin.nav.deployment", defaultLabel: "Deployment", href: "/deployment" },
 ];
 
 export function CommandPalette() {
@@ -58,8 +58,9 @@ export function CommandPalette() {
 
     // Static pages
     for (const route of STATIC_ROUTES) {
-      if (!lowerQuery || route.label.toLowerCase().includes(lowerQuery)) {
-        items.push({ ...route, category: "pages" });
+      const label = formatMessage({ id: route.labelId, defaultMessage: route.defaultLabel });
+      if (!lowerQuery || label.toLowerCase().includes(lowerQuery)) {
+        items.push({ id: route.id, label, href: route.href, category: "pages" });
       }
     }
 
@@ -92,7 +93,7 @@ export function CommandPalette() {
     }
 
     return items;
-  }, [query, gardens, actions]);
+  }, [query, gardens, actions, formatMessage]);
 
   // Group results by category
   const grouped = useMemo(() => {

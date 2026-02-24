@@ -8,7 +8,6 @@ import {
   RiHammerFill,
   RiLogoutBoxLine,
   RiPlantLine,
-  RiSeedlingLine,
   RiSettings3Line,
   RiUploadLine,
 } from "@remixicon/react";
@@ -45,8 +44,8 @@ const generalNav: NavItem[] = [
   },
   {
     i18nKey: "app.admin.nav.treasury",
-    defaultMessage: "Treasury",
-    href: "/treasury",
+    defaultMessage: "Endowments",
+    href: "/endowments",
     icon: RiBankLine,
     roles: ["deployer", "operator"],
   },
@@ -147,7 +146,7 @@ function MockSidebar({ role, activePath, isOpen, onClose, onSignOut }: MockSideb
           {/* Header */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-stroke-soft shadow-sm">
             <div className="flex items-center gap-2">
-              <RiSeedlingLine className="h-5 w-5 text-primary-base" />
+              <img src="/green-goods-logo.png" alt="" className="h-5 w-auto" />
               <h1 className="font-heading text-lg font-semibold text-text-strong">Green Goods</h1>
             </div>
             <button
@@ -216,7 +215,7 @@ const meta: Meta<typeof MockSidebar> = {
     },
     activePath: {
       control: "select",
-      options: ["/dashboard", "/gardens", "/treasury", "/actions", "/contracts", "/deployment"],
+      options: ["/dashboard", "/gardens", "/endowments", "/actions", "/contracts", "/deployment"],
       description: "Currently active route (highlights the matching nav item)",
     },
     isOpen: {
@@ -245,7 +244,7 @@ export const Default: Story = {};
 export const OperatorRole: Story = {
   args: {
     role: "operator",
-    activePath: "/treasury",
+    activePath: "/endowments",
   },
 };
 
@@ -313,7 +312,7 @@ export const Interactive: Story = {
     // Verify navigation items are present
     await expect(canvas.getByText("Dashboard")).toBeVisible();
     await expect(canvas.getByText("Gardens")).toBeVisible();
-    await expect(canvas.getByText("Treasury")).toBeVisible();
+    await expect(canvas.getByText("Endowments")).toBeVisible();
     await expect(canvas.getByText("Actions")).toBeVisible();
 
     // Verify admin section is visible for deployer role

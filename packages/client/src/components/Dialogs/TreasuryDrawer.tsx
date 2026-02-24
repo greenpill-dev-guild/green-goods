@@ -27,7 +27,7 @@ import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
 import { type ModalDrawerTab, ModalDrawer } from "./ModalDrawer";
 
-interface TreasuryDrawerProps {
+interface EndowmentDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   gardenAddress: Address;
@@ -334,9 +334,22 @@ function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
   );
 }
 
-function CookieJarTabContent({ gardenAddress }: { gardenAddress: Address }) {
+interface CookieJarTabContentProps {
+  gardenAddress: Address;
+  jars: CookieJar[];
+  isLoading: boolean;
+  isError: boolean;
+  moduleConfigured: boolean;
+}
+
+function CookieJarTabContent({
+  gardenAddress,
+  jars,
+  isLoading,
+  isError,
+  moduleConfigured,
+}: CookieJarTabContentProps) {
   const { formatMessage } = useIntl();
-  const { jars, isLoading } = useGardenCookieJars(gardenAddress);
 
   if (isLoading) {
     return (
@@ -347,6 +360,25 @@ function CookieJarTabContent({ gardenAddress }: { gardenAddress: Address }) {
             <div className="h-3 w-16 rounded bg-bg-weak" />
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (!moduleConfigured) {
+    return (
+      <p className="p-4 text-sm text-text-soft">
+        {formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
+      </p>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div
+        role="alert"
+        className="m-4 rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark"
+      >
+        <p>{formatMessage({ id: "app.cookieJar.errorLoading" })}</p>
       </div>
     );
   }
@@ -366,12 +398,12 @@ function CookieJarTabContent({ gardenAddress }: { gardenAddress: Address }) {
   );
 }
 
-export function TreasuryDrawer({
+export function EndowmentDrawer({
   isOpen,
   onClose,
   gardenAddress,
   gardenName,
-}: TreasuryDrawerProps) {
+}: EndowmentDrawerProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
   const { isOnline } = useOffline();
@@ -384,6 +416,12 @@ export function TreasuryDrawer({
     isError: vaultsError,
     refetch: refetchVaults,
   } = useGardenVaults(gardenAddress, { enabled: isOpen });
+  const {
+    jars: cookieJars,
+    isLoading: jarsLoading,
+    error: jarsError,
+    moduleConfigured: jarsModuleConfigured,
+  } = useGardenCookieJars(gardenAddress, { enabled: isOpen });
   const { deposits } = useVaultDeposits(gardenAddress, {
     userAddress: primaryAddress ?? undefined,
     enabled: isOpen && Boolean(primaryAddress),
@@ -660,7 +698,15 @@ export function TreasuryDrawer({
         </div>
       )}
 
-      {activeTab === "cookie-jar" && <CookieJarTabContent gardenAddress={gardenAddress} />}
+      {activeTab === "cookie-jar" && (
+        <CookieJarTabContent
+          gardenAddress={gardenAddress}
+          jars={cookieJars}
+          isLoading={jarsLoading}
+          isError={Boolean(jarsError)}
+          moduleConfigured={jarsModuleConfigured}
+        />
+      )}
     </ModalDrawer>
   );
 }

@@ -7,10 +7,11 @@ import {
   initTheme,
   queryClient,
 } from "@green-goods/shared";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";
+import { persister, PERSIST_MAX_AGE, shouldDehydrateQuery } from "@/config/persister";
 
 import "@/index.css";
 import "@/config";
@@ -27,7 +28,14 @@ declare global {
 const cleanupTheme = initTheme();
 
 export const Root = () => (
-  <QueryClientProvider client={queryClient}>
+  <PersistQueryClientProvider
+    client={queryClient}
+    persistOptions={{
+      persister,
+      maxAge: PERSIST_MAX_AGE,
+      dehydrateOptions: { shouldDehydrateQuery },
+    }}
+  >
     <ErrorBoundary context="AdminApp">
       <AppKitProvider
         projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
@@ -47,7 +55,7 @@ export const Root = () => (
         </AuthProvider>
       </AppKitProvider>
     </ErrorBoundary>
-  </QueryClientProvider>
+  </PersistQueryClientProvider>
 );
 
 const container = document.getElementById("root");

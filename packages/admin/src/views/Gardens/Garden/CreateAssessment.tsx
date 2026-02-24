@@ -27,23 +27,26 @@ import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentStep
 import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
 
-const stepConfigs: Step[] = [
-  {
-    id: "strategy",
-    title: "Strategy Kernel",
-    description: "Diagnosis, outcomes, and complexity",
-  },
-  {
-    id: "domain",
-    title: "Domain & Actions",
-    description: "Domain selection and coherent actions",
-  },
-  {
-    id: "sdgHarvest",
-    title: "SDG & Harvest",
-    description: "SDG alignment and reporting period",
-  },
-];
+function useStepConfigs(): Step[] {
+  const { formatMessage } = useIntl();
+  return [
+    {
+      id: "strategy",
+      title: formatMessage({ id: "app.admin.assessment.create.stepStrategy.title", defaultMessage: "Strategy Kernel" }),
+      description: formatMessage({ id: "app.admin.assessment.create.stepStrategy.description", defaultMessage: "Diagnosis, outcomes, and complexity" }),
+    },
+    {
+      id: "domain",
+      title: formatMessage({ id: "app.admin.assessment.create.stepDomain.title", defaultMessage: "Domain & Actions" }),
+      description: formatMessage({ id: "app.admin.assessment.create.stepDomain.description", defaultMessage: "Domain selection and coherent actions" }),
+    },
+    {
+      id: "sdgHarvest",
+      title: formatMessage({ id: "app.admin.assessment.create.stepSdgHarvest.title", defaultMessage: "SDG & Harvest" }),
+      description: formatMessage({ id: "app.admin.assessment.create.stepSdgHarvest.description", defaultMessage: "SDG alignment and reporting period" }),
+    },
+  ];
+}
 
 function toInputDate(value: string | number | null | undefined): string {
   if (!value) return "";
@@ -120,7 +123,9 @@ function toAssessmentFormDraft(
 }
 
 export default function CreateAssessment() {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  const stepConfigs = useStepConfigs();
   const { id: gardenId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { address } = useAccount();
@@ -157,7 +162,7 @@ export default function CreateAssessment() {
     trigger,
     watch,
   } = useForm<CreateAssessmentForm>({
-    resolver: zodResolver(createAssessmentSchema),
+    resolver: zodResolver(createAssessmentSchema(intl)),
     defaultValues: createDefaultAssessmentForm(),
     mode: "onChange",
     shouldUnregister: false,

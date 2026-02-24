@@ -184,22 +184,22 @@ export const WorkCard: React.FC<WorkCardProps> = ({
         {/* Meta / Tags row */}
         <div className="mt-2 flex items-center gap-2 text-xs">
           {showMediaCount && mediaCount > 0 && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-information-lighter text-information-dark border border-information-light">
               <RiImageLine className="w-3 h-3" /> {mediaCount}
             </span>
           )}
           {showErrorBadge && hasError && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-error-lighter text-error-dark border border-error-light">
               {labels.error}
             </span>
           )}
           {showRetryBadge && work.retryCount && work.retryCount > 0 && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-warning-lighter text-warning-dark border border-warning-light">
               ↻ {work.retryCount}
             </span>
           )}
           {showFeedbackBadge && hasFeedback && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-feature-lighter text-feature-dark border border-feature-light">
               {labels.feedback}
             </span>
           )}

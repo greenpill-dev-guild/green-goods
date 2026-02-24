@@ -267,6 +267,8 @@ export const queryKeys = {
         address,
         JSON.stringify([...gardenIds].sort()),
       ] as const,
+    deploymentPermissions: (address?: string, chainId?: number) =>
+      ["greengoods", "role", "deploymentPermissions", address, chainId] as const,
   },
 
   // Draft related keys

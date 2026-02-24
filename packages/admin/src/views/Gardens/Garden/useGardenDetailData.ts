@@ -10,12 +10,12 @@ import {
   useDelayedInvalidation,
   useGardenAssessments,
   useGardenCommunity,
-  useGardenCookieJars,
   useGardenOperations,
   useGardenPermissions,
   useGardenPools,
   useGardens,
   useGardenVaults,
+  useHypercerts,
   useWorks,
   useYieldAllocations,
   WeightScheme,
@@ -63,12 +63,9 @@ export function useGardenDetailData(id: string | undefined) {
   const canManage = garden ? gardenPermissions.canManageGarden(garden) : false;
   const canReview = garden ? gardenPermissions.canReviewGarden(garden) : false;
   const canManageRoles = garden ? gardenPermissions.canAddMembers(garden) : false;
+  const isOwner = garden ? gardenPermissions.isOwnerOfGarden(garden) : false;
 
   const { vaults: gardenVaults = [], isLoading: vaultsLoading } = useGardenVaults(id, {
-    enabled: Boolean(id),
-  });
-
-  const { jarCount: cookieJarCount } = useGardenCookieJars(id, {
     enabled: Boolean(id),
   });
 
@@ -108,6 +105,7 @@ export function useGardenDetailData(id: string | undefined) {
   }, [gardenVaults]);
 
   const { works } = useWorks(gardenId);
+  const { hypercerts, isLoading: hypercertsLoading } = useHypercerts({ gardenId: id });
 
   const roleMembers: Record<GardenRole, Address[]> = {
     owner: garden?.owners ?? [],
@@ -141,6 +139,7 @@ export function useGardenDetailData(id: string | undefined) {
     canManage,
     canReview,
     canManageRoles,
+    isOwner,
     assessments,
     fetchingAssessments,
     assessmentsError,
@@ -161,7 +160,8 @@ export function useGardenDetailData(id: string | undefined) {
     allocations,
     allocationsLoading,
     works,
-    cookieJarCount,
+    hypercerts,
+    hypercertsLoading,
     convictionStrategyCount: convictionStrategies.length,
     scheduleBackgroundRefetch,
   };

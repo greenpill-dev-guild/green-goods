@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import React from "react";
+import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import RequireAuth from "@/routes/RequireAuth";
 
@@ -9,21 +10,21 @@ vi.mock("@green-goods/shared/hooks", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-const mockUseLocation = vi.fn();
-
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
   return {
     ...actual,
-    Navigate: ({ to }: { to: string }) =>
-      React.createElement("div", {
-        "data-testid": "navigate",
-        "data-to": to,
-      }),
     Outlet: () => React.createElement("div", { "data-testid": "outlet" }, "Protected Content"),
-    useLocation: () => mockUseLocation(),
   };
 });
+
+vi.mock("@/components/ConnectButton", () => ({
+  ConnectButton: ({ className }: { className?: string }) => (
+    <button className={className} type="button" data-testid="connect-wallet-button">
+      Connect Wallet
+    </button>
+  ),
+}));
 
 function buildAuthState(overrides: Partial<ReturnType<typeof mockUseAuth>> = {}) {
   return {
@@ -36,41 +37,45 @@ function buildAuthState(overrides: Partial<ReturnType<typeof mockUseAuth>> = {})
   };
 }
 
+function renderWithIntl(ui: React.ReactElement) {
+  return render(
+    <IntlProvider locale="en" messages={{}}>
+      {ui}
+    </IntlProvider>
+  );
+}
+
 describe("RequireAuth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseLocation.mockReturnValue({
-      pathname: "/dashboard",
-      search: "",
-      hash: "",
-    });
   });
 
-  it("renders the layout skeleton while auth state is resolving", () => {
+  it("renders a loading spinner while auth state is resolving", () => {
     mockUseAuth.mockReturnValue(
       buildAuthState({
         isReady: false,
       })
     );
 
-    render(<RequireAuth />);
+    renderWithIntl(<RequireAuth />);
 
-    expect(screen.getByTestId("dashboard-layout-skeleton")).toBeInTheDocument();
-    expect(screen.queryByTestId("navigate")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.queryByTestId("connect-prompt")).not.toBeInTheDocument();
     expect(screen.queryByTestId("outlet")).not.toBeInTheDocument();
   });
 
-  it("redirects to login when the user is not authenticated", () => {
+  it("shows an inline connect prompt when the user is not authenticated", () => {
     mockUseAuth.mockReturnValue(buildAuthState());
 
-    render(<RequireAuth />);
+    renderWithIntl(<RequireAuth />);
 
-    const navigate = screen.getByTestId("navigate");
-    expect(navigate).toBeInTheDocument();
-    expect(navigate).toHaveAttribute("data-to", "/login?redirectTo=%2Fdashboard");
+    expect(screen.getByTestId("connect-prompt")).toBeInTheDocument();
+    expect(screen.getByTestId("connect-wallet-button")).toBeInTheDocument();
+    expect(screen.getByText("Connect to continue")).toBeInTheDocument();
+    expect(screen.queryByTestId("outlet")).not.toBeInTheDocument();
   });
 
-  it("redirects to login when the user lacks an address", () => {
+  it("shows connect prompt when the user lacks an address", () => {
     mockUseAuth.mockReturnValue(
       buildAuthState({
         isAuthenticated: true,
@@ -78,11 +83,10 @@ describe("RequireAuth", () => {
       })
     );
 
-    render(<RequireAuth />);
+    renderWithIntl(<RequireAuth />);
 
-    const navigate = screen.getByTestId("navigate");
-    expect(navigate).toBeInTheDocument();
-    expect(navigate).toHaveAttribute("data-to", "/login?redirectTo=%2Fdashboard");
+    expect(screen.getByTestId("connect-prompt")).toBeInTheDocument();
+    expect(screen.queryByTestId("outlet")).not.toBeInTheDocument();
   });
 
   it("renders protected content when authenticated", () => {
@@ -93,26 +97,9 @@ describe("RequireAuth", () => {
       })
     );
 
-    render(<RequireAuth />);
+    renderWithIntl(<RequireAuth />);
 
     expect(screen.getByTestId("outlet")).toBeInTheDocument();
-    expect(screen.queryByTestId("navigate")).not.toBeInTheDocument();
-  });
-
-  it("preserves redirect path including search and hash", () => {
-    mockUseLocation.mockReturnValue({
-      pathname: "/gardens/123",
-      search: "?tab=details",
-      hash: "#section1",
-    });
-    mockUseAuth.mockReturnValue(buildAuthState());
-
-    render(<RequireAuth />);
-
-    const navigate = screen.getByTestId("navigate");
-    expect(navigate).toHaveAttribute(
-      "data-to",
-      "/login?redirectTo=%2Fgardens%2F123%3Ftab%3Ddetails%23section1"
-    );
+    expect(screen.queryByTestId("connect-prompt")).not.toBeInTheDocument();
   });
 });

@@ -9,6 +9,7 @@ export interface CookieJar {
   decimals: number;
   maxWithdrawal: bigint;
   withdrawalInterval: bigint;
+  minDeposit: bigint;
   isPaused: boolean;
   emergencyWithdrawalEnabled: boolean;
 }

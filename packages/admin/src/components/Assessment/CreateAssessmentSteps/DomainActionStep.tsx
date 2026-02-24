@@ -6,15 +6,28 @@ import {
   useController,
 } from "react-hook-form";
 import { useMemo } from "react";
+import { useIntl, type IntlShape } from "react-intl";
 import { type CreateAssessmentForm, Section, extractErrorMessage } from "./shared";
 
-/** Display config for domains, keyed by Domain enum value */
-const DOMAIN_CONFIG: Record<Domain, { label: string; icon: string; color: string }> = {
-  [Domain.SOLAR]: { label: "Solar", icon: "ri-sun-line", color: "amber" },
-  [Domain.AGRO]: { label: "Agroforestry", icon: "ri-plant-line", color: "green" },
-  [Domain.EDU]: { label: "Education", icon: "ri-book-open-line", color: "blue" },
-  [Domain.WASTE]: { label: "Waste", icon: "ri-recycle-line", color: "orange" },
+/** Domain icon and color (stable), labels resolved via i18n */
+const DOMAIN_ICON_CONFIG: Record<Domain, { icon: string; color: string; labelId: string }> = {
+  [Domain.SOLAR]: { icon: "ri-sun-line", color: "amber", labelId: "app.admin.assessment.domainAction.domain.solar" },
+  [Domain.AGRO]: { icon: "ri-plant-line", color: "green", labelId: "app.admin.assessment.domainAction.domain.agroforestry" },
+  [Domain.EDU]: { icon: "ri-book-open-line", color: "blue", labelId: "app.admin.assessment.domainAction.domain.education" },
+  [Domain.WASTE]: { icon: "ri-recycle-line", color: "orange", labelId: "app.admin.assessment.domainAction.domain.waste" },
 };
+
+const DOMAIN_LABEL_DEFAULTS: Record<string, string> = {
+  "app.admin.assessment.domainAction.domain.solar": "Solar",
+  "app.admin.assessment.domainAction.domain.agroforestry": "Agroforestry",
+  "app.admin.assessment.domainAction.domain.education": "Education",
+  "app.admin.assessment.domainAction.domain.waste": "Waste",
+};
+
+function resolveDomainLabel(intl: IntlShape, domain: Domain): string {
+  const config = DOMAIN_ICON_CONFIG[domain];
+  return intl.formatMessage({ id: config.labelId, defaultMessage: DOMAIN_LABEL_DEFAULTS[config.labelId] });
+}
 
 /** Expand a domain bitmask into an array of Domain enum values */
 function expandDomainMask(mask: number): Domain[] {
@@ -47,6 +60,8 @@ export function DomainActionStep({
   isSubmitting,
   gardenDomainMask,
 }: DomainActionStepProps) {
+  const intl = useIntl();
+
   // Available domains from garden bitmask (or all if not provided)
   const availableDomains = useMemo(
     () =>
@@ -98,10 +113,13 @@ export function DomainActionStep({
   return (
     <div className="space-y-6">
       {/* Domain Selector */}
-      <Section title="Domain" description="Select the primary action domain for this assessment.">
+      <Section
+        title={intl.formatMessage({ id: "app.admin.assessment.domainAction.domainTitle", defaultMessage: "Domain" })}
+        description={intl.formatMessage({ id: "app.admin.assessment.domainAction.domainDescription", defaultMessage: "Select the primary action domain for this assessment." })}
+      >
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {availableDomains.map((domain) => {
-            const config = DOMAIN_CONFIG[domain];
+            const config = DOMAIN_ICON_CONFIG[domain];
             const isSelected = selectedDomain === domain;
             return (
               <button
@@ -118,7 +136,7 @@ export function DomainActionStep({
                 )}
               >
                 <i className={cn(config.icon, "text-base")} aria-hidden="true" />
-                {config.label}
+                {resolveDomainLabel(intl, domain)}
               </button>
             );
           })}
@@ -128,20 +146,26 @@ export function DomainActionStep({
 
       {/* Action Multi-Select */}
       <Section
-        title="Coherent Actions"
-        description="Select the actions that will be tracked under this assessment."
+        title={intl.formatMessage({ id: "app.admin.assessment.domainAction.actionsTitle", defaultMessage: "Coherent Actions" })}
+        description={intl.formatMessage({ id: "app.admin.assessment.domainAction.actionsDescription", defaultMessage: "Select the actions that will be tracked under this assessment." })}
       >
         {domainActions.length === 0 ? (
           <div className="rounded-md border border-dashed border-stroke-soft p-6 text-center">
             <p className="text-sm text-text-soft">
-              No actions registered for {DOMAIN_CONFIG[selectedDomain].label}.
+              {intl.formatMessage(
+                { id: "app.admin.assessment.domainAction.noActions", defaultMessage: "No actions registered for {domain}." },
+                { domain: resolveDomainLabel(intl, selectedDomain) }
+              )}
             </p>
           </div>
         ) : (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs text-text-soft">
               <span>
-                {selectedUIDs.length} of {domainActions.length} actions selected
+                {intl.formatMessage(
+                  { id: "app.admin.assessment.domainAction.selectedCount", defaultMessage: "{count} of {total} actions selected" },
+                  { count: selectedUIDs.length, total: domainActions.length }
+                )}
               </span>
               <button
                 type="button"
@@ -155,7 +179,9 @@ export function DomainActionStep({
                 disabled={isSubmitting}
                 className="text-xs font-medium text-primary-dark hover:text-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {selectedUIDs.length === domainActions.length ? "Deselect all" : "Select all"}
+                {selectedUIDs.length === domainActions.length
+                  ? intl.formatMessage({ id: "app.admin.assessment.domainAction.deselectAll", defaultMessage: "Deselect all" })
+                  : intl.formatMessage({ id: "app.admin.assessment.domainAction.selectAll", defaultMessage: "Select all" })}
               </button>
             </div>
 

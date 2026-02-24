@@ -15,6 +15,17 @@ import { useDelayedInvalidation } from "../utils/useTimeout";
 import { COOKIE_JAR_ABI, ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis";
 import { wagmiConfig } from "../../config/appkit";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { logger } from "../../modules/app/logger";
+
+const ERC20_BALANCE_ABI = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;
 
 export function useCookieJarDeposit(gardenAddress: Address) {
   const { formatMessage } = useIntl();
@@ -54,6 +65,25 @@ export function useCookieJarDeposit(gardenAddress: Address) {
         throw new Error("Connected account required");
       }
 
+      // Pre-check: verify user has sufficient token balance
+      try {
+        const balanceResult = await readContract(wagmiConfig, {
+          address: params.assetAddress,
+          abi: ERC20_BALANCE_ABI,
+          functionName: "balanceOf",
+          args: [primaryAddress as Address],
+        });
+        const balance = typeof balanceResult === "bigint" ? balanceResult : 0n;
+        if (balance < params.amount) {
+          throw new Error("Insufficient token balance for deposit");
+        }
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("Insufficient token balance")) {
+          throw error;
+        }
+        logger.warn("[CookieJarDeposit] Balance check failed, proceeding anyway", { error });
+      }
+
       // Check ERC20 allowance and approve if needed
       let allowance: bigint;
       try {
@@ -75,6 +105,30 @@ export function useCookieJarDeposit(gardenAddress: Address) {
           functionName: "approve",
           args: [params.jarAddress, params.amount],
         });
+
+        // Poll until the RPC reflects the updated allowance.
+        // On L2s like Arbitrum, load-balanced RPCs may serve stale state
+        // briefly after a tx is confirmed, causing the deposit's gas
+        // estimation to revert with "insufficient-allowance".
+        for (let i = 0; i < ALLOWANCE_POLL_MAX_RETRIES; i++) {
+          await new Promise((resolve) => setTimeout(resolve, ALLOWANCE_POLL_DELAY_MS));
+          try {
+            const updatedAllowance = await readContract(wagmiConfig, {
+              address: params.assetAddress,
+              abi: ERC20_ALLOWANCE_ABI,
+              functionName: "allowance",
+              args: [primaryAddress as Address, params.jarAddress],
+            });
+            if (typeof updatedAllowance === "bigint" && updatedAllowance >= params.amount) {
+              break;
+            }
+          } catch {
+            // Retry on RPC error
+          }
+          if (i === ALLOWANCE_POLL_MAX_RETRIES - 1) {
+            logger.warn("[CookieJarDeposit] Allowance not reflected after polling, attempting deposit anyway");
+          }
+        }
       }
 
       // Update toast to reflect deposit phase

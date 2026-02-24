@@ -7,6 +7,7 @@ export type GardenSortOrder = "default" | "name" | "recent";
 export interface GardenFiltersState {
   scope: GardenFilterScope;
   sort: GardenSortOrder;
+  search?: string;
 }
 
 export interface UseFilteredGardensResult {
@@ -45,7 +46,7 @@ export function useFilteredGardens(
   filters: GardenFiltersState,
   userAddress: string | null
 ): UseFilteredGardensResult {
-  const { scope, sort } = filters;
+  const { scope, sort, search } = filters;
 
   // Count user's gardens
   const myGardensCount = userAddress
@@ -68,6 +69,16 @@ export function useFilteredGardens(
     }
   }
 
+  // Filter by search text
+  if (search) {
+    const term = search.toLowerCase();
+    working = working.filter(
+      (garden) =>
+        (garden.name || "").toLowerCase().includes(term) ||
+        (garden.location || "").toLowerCase().includes(term)
+    );
+  }
+
   // Sort
   let filteredGardens: Garden[];
   if (sort === "name") {
@@ -83,8 +94,10 @@ export function useFilteredGardens(
   // Compute filter state
   const isScopeFiltered = scope !== "all";
   const isSortFiltered = sort !== "default";
-  const isFilterActive = isScopeFiltered || isSortFiltered;
-  const activeFilterCount = (isScopeFiltered ? 1 : 0) + (isSortFiltered ? 1 : 0);
+  const isSearchActive = !!search;
+  const isFilterActive = isScopeFiltered || isSortFiltered || isSearchActive;
+  const activeFilterCount =
+    (isScopeFiltered ? 1 : 0) + (isSortFiltered ? 1 : 0) + (isSearchActive ? 1 : 0);
 
   return {
     filteredGardens,

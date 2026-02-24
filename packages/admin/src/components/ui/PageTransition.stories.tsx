@@ -121,7 +121,7 @@ export const Gallery: Story = {
               />
               <Route
                 path="/page-b"
-                element={<MockPage title="Page B - Treasury" color="bg-success-lighter" />}
+                element={<MockPage title="Page B - Endowments" color="bg-success-lighter" />}
               />
               <Route
                 path="/page-c"

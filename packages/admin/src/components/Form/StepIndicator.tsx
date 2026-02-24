@@ -5,7 +5,7 @@ import { useIntl } from "react-intl";
 export interface Step {
   id: string;
   title: string;
-  description: string;
+  description?: string;
 }
 
 interface StepIndicatorProps {
@@ -23,7 +23,7 @@ export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicator
       data-testid="step-indicator"
     >
       {/* Step progress indicators */}
-      <div className="relative bg-bg-weak">
+      <div className="overflow-hidden bg-bg-weak">
         <ol className="flex">
           {steps.map((step, index) => {
             const completed = index < currentStep;
@@ -35,8 +35,9 @@ export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicator
                 key={step.id}
                 aria-current={active ? "step" : undefined}
                 className={cn(
-                  "relative flex flex-1 items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4 sm:py-4",
-                  active && "bg-bg-white"
+                  "flex min-w-0 flex-1 items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4 sm:py-4",
+                  active && "bg-bg-white",
+                  !isLast && "border-r border-stroke-soft"
                 )}
               >
                 {/* Progress indicator dot/check */}
@@ -82,38 +83,22 @@ export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicator
                   </span>
                 )}
 
-                {/* Step title - mobile shows only active step title */}
-                <div className="min-w-0 flex-1">
+                {/* Step title + description */}
+                <div className={cn("min-w-0 flex-1", !active && "hidden sm:block")}>
                   <p
                     className={cn(
                       "truncate text-xs font-medium sm:text-sm",
-                      active ? "text-text-strong" : "text-text-soft",
-                      // On mobile, hide non-active step titles
-                      !active && "hidden sm:block"
+                      active ? "text-text-strong" : "text-text-soft"
                     )}
                   >
                     {step.title}
                   </p>
-                  <p
-                    className={cn(
-                      "hidden truncate text-xs text-text-soft sm:block",
-                      !active && "sm:hidden md:block"
-                    )}
-                  >
-                    {step.description}
-                  </p>
+                  {step.description && (
+                    <p className="hidden truncate text-xs text-text-soft sm:block">
+                      {step.description}
+                    </p>
+                  )}
                 </div>
-
-                {/* Connector line between steps */}
-                {!isLast && (
-                  <div
-                    className={cn(
-                      "absolute left-1/2 top-1/2 h-px w-full -translate-y-1/2",
-                      completed ? "bg-success-base" : "bg-bg-soft"
-                    )}
-                    style={{ zIndex: 0 }}
-                  />
-                )}
               </li>
             );
           })}

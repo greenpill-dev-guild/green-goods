@@ -50,7 +50,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Treasury & Governance',
+      label: 'Endowments & Governance',
       items: [
         'operator/vaults-and-treasury',
         'operator/cookie-jars',

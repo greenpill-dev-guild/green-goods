@@ -13,7 +13,7 @@ import type {
 import type { WorkApproval } from "../../types/domain";
 import { logger } from "../app/logger";
 
-const GATEWAY_BASE_URL = "https://w3s.link";
+const GATEWAY_BASE_URL = "https://storacha.link";
 
 /** Custom error for EAS fetch failures - allows React Query to properly retry/error */
 export class EASFetchError extends Error {

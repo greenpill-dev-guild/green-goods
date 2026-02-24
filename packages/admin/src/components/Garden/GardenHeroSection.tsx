@@ -1,14 +1,6 @@
-import { resolveIPFSUrl, type Address } from "@green-goods/shared";
-import {
-  RiAddLine,
-  RiCheckboxCircleLine,
-  RiFileList3Line,
-  RiMedalLine,
-  RiShieldCheckLine,
-  RiUserLine,
-} from "@remixicon/react";
+import { resolveIPFSUrl } from "@green-goods/shared";
+import { RiCheckboxCircleLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
 
 interface StatChipProps {
   icon: React.ReactNode;
@@ -43,14 +35,7 @@ interface GardenHeroSectionProps {
     description: string;
     location: string;
     bannerImage: string;
-    id: Address;
-    tokenAddress: Address;
-    tokenID: string;
-    chainId: number;
   };
-  gardenId: string;
-  canManage: boolean;
-  canReview: boolean;
   gardenerCount?: number;
   operatorCount?: number;
   workCount?: number;
@@ -58,9 +43,6 @@ interface GardenHeroSectionProps {
 
 export const GardenHeroSection: React.FC<GardenHeroSectionProps> = ({
   garden,
-  gardenId,
-  canManage,
-  canReview,
   gardenerCount = 0,
   operatorCount = 0,
   workCount = 0,
@@ -100,56 +82,6 @@ export const GardenHeroSection: React.FC<GardenHeroSectionProps> = ({
           <p className="mt-1 body-sm opacity-90">{garden.location}</p>
         </div>
 
-        <div className="flex flex-row flex-wrap gap-2 justify-end mt-3 sm:mt-0 sm:absolute sm:top-4 sm:right-4 sm:flex-col">
-          <Link
-            to={`/gardens/${gardenId}/assessments`}
-            className="flex h-11 w-11 touch-target items-center justify-center rounded-full border border-white/20 bg-bg-white/95 text-text-sub shadow-lg backdrop-blur transition hover:bg-bg-white active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
-            title={formatMessage({ id: "app.garden.admin.viewAssessments" })}
-            aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
-          >
-            <RiFileList3Line className="h-5 w-5" />
-            <span className="hidden label-sm sm:inline">
-              {formatMessage({ id: "app.garden.admin.viewAssessments" })}
-            </span>
-          </Link>
-          <Link
-            to={`/gardens/${gardenId}/hypercerts`}
-            className="flex h-11 w-11 touch-target items-center justify-center rounded-full border border-white/20 bg-bg-white/95 text-text-sub shadow-lg backdrop-blur transition hover:bg-bg-white active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
-            title={formatMessage({ id: "app.hypercerts.actions.viewHypercerts" })}
-            aria-label={formatMessage({ id: "app.hypercerts.actions.viewHypercerts" })}
-          >
-            <RiMedalLine className="h-5 w-5" />
-            <span className="hidden label-sm sm:inline">
-              {formatMessage({ id: "app.hypercerts.actions.viewHypercerts" })}
-            </span>
-          </Link>
-          {canReview && (
-            <Link
-              to={`/gardens/${gardenId}/assessments/create`}
-              className="flex h-11 w-11 touch-target items-center justify-center rounded-full bg-primary-base text-primary-foreground shadow-lg transition hover:bg-primary-darker active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
-              title={formatMessage({ id: "app.garden.admin.newAssessment" })}
-              aria-label={formatMessage({ id: "app.garden.admin.newAssessment" })}
-            >
-              <RiFileList3Line className="h-5 w-5" />
-              <span className="hidden label-sm sm:inline">
-                {formatMessage({ id: "app.garden.admin.newAssessment" })}
-              </span>
-            </Link>
-          )}
-          {canManage && (
-            <Link
-              to={`/gardens/${gardenId}/hypercerts/create`}
-              className="flex h-11 w-11 touch-target items-center justify-center rounded-full bg-primary-base text-primary-foreground shadow-lg transition hover:bg-primary-darker active:scale-95 sm:h-auto sm:w-auto sm:gap-2 sm:rounded-md sm:px-3 sm:py-2"
-              title={formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
-              aria-label={formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
-            >
-              <RiAddLine className="h-5 w-5" />
-              <span className="hidden label-sm sm:inline">
-                {formatMessage({ id: "app.hypercerts.actions.newHypercert" })}
-              </span>
-            </Link>
-          )}
-        </div>
       </div>
 
       {/* Overlapping stat chips */}

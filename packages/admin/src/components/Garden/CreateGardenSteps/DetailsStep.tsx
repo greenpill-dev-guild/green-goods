@@ -161,36 +161,33 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
   const showFieldError = (field: DetailField) => showValidation || touchedFields[field];
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-3">
-        <label className="space-y-0.5 text-sm">
-          <span className="font-medium text-text-sub">
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+        <label className="space-y-1.5 text-sm">
+          <span className="font-medium text-text-strong">
             {formatMessage({
               id: "app.garden.create.gardenNameLabel",
               defaultMessage: "Garden name *",
             })}
           </span>
-          <div className="rounded-lg bg-bg-weak p-2">
-            <input
-              value={form.name}
-              onChange={(event) => setField("name", event.target.value)}
-              onBlur={() => handleFieldBlur("name")}
-              placeholder={formatMessage({
-                id: "admin.details.namePlaceholder",
-                defaultMessage: "eg. Rio rainforest lab",
-              })}
-              aria-required="true"
-              aria-invalid={showFieldError("name") && !!detailsErrors.name}
-              aria-describedby="name-error"
-              className={cn(
-                "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-                showFieldError("name") &&
-                  detailsErrors.name &&
-                  "border-error-base focus:border-error-base focus:ring-error-lighter"
-              )}
-            />
-          </div>
-          {/* Always render to reserve space and prevent layout shift */}
+          <input
+            value={form.name}
+            onChange={(event) => setField("name", event.target.value)}
+            onBlur={() => handleFieldBlur("name")}
+            placeholder={formatMessage({
+              id: "admin.details.namePlaceholder",
+              defaultMessage: "eg. Rio rainforest lab",
+            })}
+            aria-required="true"
+            aria-invalid={showFieldError("name") && !!detailsErrors.name}
+            aria-describedby="name-error"
+            className={cn(
+              "w-full rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
+              showFieldError("name") &&
+                detailsErrors.name &&
+                "border-error-base focus:border-error-base focus:ring-error-lighter"
+            )}
+          />
           <span
             id="name-error"
             role="alert"
@@ -199,31 +196,28 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             {showFieldError("name") && detailsErrors.name ? detailsErrors.name : "\u00A0"}
           </span>
         </label>
-        <label className="space-y-0.5 text-sm">
-          <span className="font-medium text-text-sub">
+        <label className="space-y-1.5 text-sm">
+          <span className="font-medium text-text-strong">
             {formatMessage({ id: "app.garden.create.locationLabel", defaultMessage: "Location *" })}
           </span>
-          <div className="rounded-lg bg-bg-weak p-2">
-            <input
-              value={form.location}
-              onChange={(event) => setField("location", event.target.value)}
-              onBlur={() => handleFieldBlur("location")}
-              placeholder={formatMessage({
-                id: "admin.details.locationPlaceholder",
-                defaultMessage: "City, country or coordinates",
-              })}
-              aria-required="true"
-              aria-invalid={showFieldError("location") && !!detailsErrors.location}
-              aria-describedby="location-error"
-              className={cn(
-                "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-                showFieldError("location") &&
-                  detailsErrors.location &&
-                  "border-error-base focus:border-error-base focus:ring-error-lighter"
-              )}
-            />
-          </div>
-          {/* Always render to reserve space and prevent layout shift */}
+          <input
+            value={form.location}
+            onChange={(event) => setField("location", event.target.value)}
+            onBlur={() => handleFieldBlur("location")}
+            placeholder={formatMessage({
+              id: "admin.details.locationPlaceholder",
+              defaultMessage: "City, country or coordinates",
+            })}
+            aria-required="true"
+            aria-invalid={showFieldError("location") && !!detailsErrors.location}
+            aria-describedby="location-error"
+            className={cn(
+              "w-full rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
+              showFieldError("location") &&
+                detailsErrors.location &&
+                "border-error-base focus:border-error-base focus:ring-error-lighter"
+            )}
+          />
           <span
             id="location-error"
             role="alert"
@@ -235,60 +229,58 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           </span>
         </label>
       </div>
-      <label className="space-y-0.5 text-sm">
-        <span className="font-medium text-text-sub">
+      <label className="space-y-1.5 text-sm">
+        <span className="font-medium text-text-strong">
           {formatMessage({
             id: "app.garden.create.ensSubdomainLabel",
             defaultMessage: "ENS subdomain *",
           })}
         </span>
-        <div className="rounded-lg bg-bg-weak p-2">
-          <div className="relative">
-            <input
-              value={form.slug}
-              onChange={(event) => {
-                slugManuallyEdited.current = true;
-                setField("slug", event.target.value.toLowerCase());
-              }}
-              onBlur={() => handleFieldBlur("slug")}
-              placeholder={formatMessage({
-                id: "admin.details.slugPlaceholder",
-                defaultMessage: "eg. rio-rainforest-lab",
-              })}
-              inputMode="text"
-              autoCapitalize="none"
-              autoComplete="off"
-              spellCheck={false}
-              aria-required="true"
-              aria-invalid={showFieldError("slug") && !!detailsErrors.slug}
-              aria-describedby="slug-error"
-              className={cn(
-                "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 pr-10 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-                showFieldError("slug") &&
-                  detailsErrors.slug &&
-                  "border-error-base focus:border-error-base focus:ring-error-lighter",
-                slugValidation.valid &&
-                  isSlugAvailable === false &&
-                  !isCheckingSlug &&
-                  "border-error-base"
-              )}
-            />
-            {/* Availability indicator */}
-            {trimmedSlug.length > 0 && slugValidation.valid && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                {isCheckingSlug ? (
-                  <RiLoader4Line
-                    className="h-4 w-4 animate-spin text-text-soft"
-                    aria-label="Checking availability"
-                  />
-                ) : isSlugAvailable ? (
-                  <RiCheckLine className="h-4 w-4 text-primary-base" aria-label="Name available" />
-                ) : isSlugAvailable === false ? (
-                  <RiCloseLine className="h-4 w-4 text-error-base" aria-label="Name taken" />
-                ) : null}
-              </span>
+        <div className="relative">
+          <input
+            value={form.slug}
+            onChange={(event) => {
+              slugManuallyEdited.current = true;
+              setField("slug", event.target.value.toLowerCase());
+            }}
+            onBlur={() => handleFieldBlur("slug")}
+            placeholder={formatMessage({
+              id: "admin.details.slugPlaceholder",
+              defaultMessage: "eg. rio-rainforest-lab",
+            })}
+            inputMode="text"
+            autoCapitalize="none"
+            autoComplete="off"
+            spellCheck={false}
+            aria-required="true"
+            aria-invalid={showFieldError("slug") && !!detailsErrors.slug}
+            aria-describedby="slug-error"
+            className={cn(
+              "w-full rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 pr-10 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
+              showFieldError("slug") &&
+                detailsErrors.slug &&
+                "border-error-base focus:border-error-base focus:ring-error-lighter",
+              slugValidation.valid &&
+                isSlugAvailable === false &&
+                !isCheckingSlug &&
+                "border-error-base"
             )}
-          </div>
+          />
+          {/* Availability indicator */}
+          {trimmedSlug.length > 0 && slugValidation.valid && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2">
+              {isCheckingSlug ? (
+                <RiLoader4Line
+                  className="h-4 w-4 animate-spin text-text-soft"
+                  aria-label="Checking availability"
+                />
+              ) : isSlugAvailable ? (
+                <RiCheckLine className="h-4 w-4 text-primary-base" aria-label="Name available" />
+              ) : isSlugAvailable === false ? (
+                <RiCloseLine className="h-4 w-4 text-error-base" aria-label="Name taken" />
+              ) : null}
+            </span>
+          )}
         </div>
         <span className="text-xs text-text-soft">
           {trimmedSlug
@@ -306,7 +298,6 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             })}
           </span>
         )}
-        {/* Always render to reserve space and prevent layout shift */}
         <span
           id="slug-error"
           role="alert"
@@ -315,35 +306,32 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           {showFieldError("slug") && detailsErrors.slug ? detailsErrors.slug : "\u00A0"}
         </span>
       </label>
-      <label className="space-y-0.5 text-sm">
-        <span className="font-medium text-text-sub">
+      <label className="space-y-1.5 text-sm">
+        <span className="font-medium text-text-strong">
           {formatMessage({
             id: "app.garden.create.descriptionLabel",
             defaultMessage: "Description *",
           })}
         </span>
-        <div className="rounded-lg bg-bg-weak p-2">
-          <textarea
-            value={form.description}
-            onChange={(event) => setField("description", event.target.value)}
-            onBlur={() => handleFieldBlur("description")}
-            placeholder={formatMessage({
-              id: "admin.details.descriptionPlaceholder",
-              defaultMessage: "Share the story, mission and unique traits of the garden.",
-            })}
-            rows={3}
-            aria-required="true"
-            aria-invalid={showFieldError("description") && !!detailsErrors.description}
-            aria-describedby="description-error"
-            className={cn(
-              "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-              showFieldError("description") &&
-                detailsErrors.description &&
-                "border-error-base focus:border-error-base focus:ring-error-lighter"
-            )}
-          />
-        </div>
-        {/* Always render to reserve space and prevent layout shift */}
+        <textarea
+          value={form.description}
+          onChange={(event) => setField("description", event.target.value)}
+          onBlur={() => handleFieldBlur("description")}
+          placeholder={formatMessage({
+            id: "admin.details.descriptionPlaceholder",
+            defaultMessage: "Share the story, mission and unique traits of the garden.",
+          })}
+          rows={3}
+          aria-required="true"
+          aria-invalid={showFieldError("description") && !!detailsErrors.description}
+          aria-describedby="description-error"
+          className={cn(
+            "w-full rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
+            showFieldError("description") &&
+              detailsErrors.description &&
+              "border-error-base focus:border-error-base focus:ring-error-lighter"
+          )}
+        />
         <span
           id="description-error"
           role="alert"
@@ -354,7 +342,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             : "\u00A0"}
         </span>
       </label>
-      <div className="space-y-0.5 text-sm">
+      <div className="space-y-1.5 text-sm">
         <FileUploadField
           label={formatMessage({
             id: "app.garden.create.bannerImageLabel",
@@ -386,8 +374,11 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         )}
         {form.bannerImage && !bannerFile && (
           <div className="mt-2">
-            <p className="text-xs text-text-soft">Current URL:</p>
-            <p className="mt-1 break-all text-xs font-mono text-text-sub">{form.bannerImage}</p>
+            <img
+              src={form.bannerImage}
+              alt=""
+              className="h-24 w-full rounded-lg object-cover"
+            />
           </div>
         )}
       </div>

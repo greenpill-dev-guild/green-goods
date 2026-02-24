@@ -1,17 +1,17 @@
 ---
-title: Vault Deposit and Treasury Operations
+title: Vault Deposit and Endowment Operations
 sidebar_position: 7
 slug: /operator/vaults-and-treasury
 audience: operator
 owner: docs
 last_verified: 2026-02-19
 feature_status: Implemented (activation pending deployment)
-goal: "Complete Vault Deposit and Treasury Operations with clear, role-specific next actions."
+goal: "Complete Vault Deposit and Endowment Operations with clear, role-specific next actions."
 difficulty: "standard"
 estimated_time: "15-30 minutes per operation after activation."
-prereqs: "Treasury policy and signer permissions."
+prereqs: "Endowment policy and signer permissions."
 next_steps: "./cookie-jars"
-persona_context: "Operators coordinating gardens, approvals, and governance/treasury execution."
+persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
   - packages/admin/src/views/Gardens/Garden/Vault.tsx
   - packages/admin/src/views/Treasury/index.tsx
@@ -21,8 +21,8 @@ keywords:
   - vault
   - vault deposit
   - deposit to vault
-  - treasury
-  - treasury deposit
+  - endowment
+  - endowment deposit
   - octant
 ---
 
@@ -35,30 +35,30 @@ import {
   StepFlow,
 } from "@site/src/components/docs";
 
-# Vault Deposit and Treasury Operations
+# Vault Deposit and Endowment Operations
 
 <StatusBadge status="Implemented (activation pending deployment)" />
 
 <AtAGlanceCard
-  goal="Complete Vault Deposit and Treasury Operations with clear, role-specific next actions."
+  goal="Complete Vault Deposit and Endowment Operations with clear, role-specific next actions."
   difficulty="standard"
   estimatedTime="15-30 minutes per operation after activation."
-  prereqs="Treasury policy and signer permissions."
+  prereqs="Endowment policy and signer permissions."
   outcome="Operational guidance with explicit deployment-gating notes."
-  personaContext="Operators coordinating gardens, approvals, and governance/treasury execution."
+  personaContext="Operators coordinating gardens, approvals, and governance/endowment execution."
   lastVerified="2026-02-19"
 />
 
 ## When to use this page
 
-Use this guide when you need to deposit funds into a vault, monitor treasury yield, and run controlled treasury operations.
+Use this guide when you need to deposit funds into a vault, monitor endowment yield, and run controlled endowment operations.
 
 ## Feature-state notes
 
 <FeatureState
   title="Operator UI"
   status="Implemented (activation pending deployment)"
-  summary="Vault and treasury surfaces exist in admin routes."
+  summary="Vault and endowment surfaces exist in admin routes."
 />
 
 <FeatureState
@@ -72,18 +72,18 @@ Use this guide when you need to deposit funds into a vault, monitor treasury yie
 <StepFlow
   steps={[
     {title: "Create/select vault", detail: "Choose supported asset and verify strategy settings."},
-    {title: "Deposit assets", detail: "Execute treasury deposit with role controls."},
+    {title: "Deposit assets", detail: "Execute endowment deposit with role controls."},
     {title: "Monitor yield", detail: "Track harvest windows and pending allocations."},
     {title: "Withdraw/rebalance", detail: "Run controlled exits with full audit trail."},
   ]}
 />
 
 <DecisionGuide
-  title="When to use vaults vs other treasury paths"
+  title="When to use vaults vs other endowment paths"
   items={[
     {
       when: "You need managed deposit/harvest/withdraw strategy operations",
-      do: "Use Vaults and Treasury.",
+      do: "Use Vaults and Endowment.",
       next: "Track yield windows and rebalance policy in this workflow.",
     },
     {

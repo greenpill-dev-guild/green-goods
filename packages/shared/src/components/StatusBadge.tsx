@@ -115,9 +115,9 @@ function getStatusConfig(status: WorkStatus, variant: "semantic" | "default"): S
       return {
         icon: <RiTimeLine className={iconClass} />,
         label: "Pending",
-        bgColor: "bg-faded-lighter",
-        textColor: "text-text-sub-600",
-        borderColor: "border-faded-light",
+        bgColor: "bg-warning-lighter",
+        textColor: "text-warning-dark",
+        borderColor: "border-warning-light",
       };
     case "syncing":
       return {
@@ -147,9 +147,9 @@ function getStatusConfig(status: WorkStatus, variant: "semantic" | "default"): S
       return {
         icon: <RiTimeLine className={iconClass} />,
         label: status,
-        bgColor: "bg-faded-lighter",
-        textColor: "text-text-sub-600",
-        borderColor: "border-faded-light",
+        bgColor: "bg-warning-lighter",
+        textColor: "text-warning-dark",
+        borderColor: "border-warning-light",
       };
   }
 }

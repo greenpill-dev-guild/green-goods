@@ -3,11 +3,7 @@ import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/ui/Button";
 
-interface TeamStepProps {
-  showValidation: boolean;
-}
-
-export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
+export function TeamStep() {
   const form = useCreateGardenStore((s) => s.form);
   const addGardener = useCreateGardenStore((s) => s.addGardener);
   const removeGardener = useCreateGardenStore((s) => s.removeGardener);
@@ -20,8 +16,8 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
   const operatorInput = useAddressInput(addOperator, formatMessage);
 
   return (
-    <div className="space-y-2.5 sm:space-y-3">
-      <div className="rounded-lg border border-primary-light bg-primary-lighter/40 p-3 text-xs text-text-sub">
+    <div className="space-y-5">
+      <div className="rounded-lg border border-primary-light bg-primary-lighter/40 p-3.5 text-xs text-text-sub">
         <p className="font-semibold text-text-strong">
           {formatMessage({
             id: "app.admin.garden.create.teamAdvisory.title",
@@ -38,35 +34,33 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
       </div>
       <div>
         <label
-          className="mb-2 block text-sm font-medium text-text-sub"
+          className="mb-2 block text-sm font-medium text-text-strong"
           htmlFor="create-garden-gardener-address"
         >
           {formatMessage({ id: "app.roles.gardener.plural", defaultMessage: "Gardeners" })}
         </label>
-        <div className="rounded-lg bg-bg-weak p-2">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <input
-              id="create-garden-gardener-address"
-              value={gardenerInput.input}
-              onChange={(event) => gardenerInput.setInput(event.target.value)}
-              placeholder={formatMessage({
-                id: "admin.team.addressPlaceholder",
-                defaultMessage: "0x... or vitalik.eth",
-              })}
-              aria-invalid={!!gardenerInput.error}
-              aria-describedby="gardener-error"
-              className="flex-1 rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
-            />
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={gardenerInput.handleAdd}
-              disabled={gardenerInput.shouldResolveEns && gardenerInput.resolvingEns}
-            >
-              <RiAddLine className="h-4 w-4" />{" "}
-              {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
-            </Button>
-          </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            id="create-garden-gardener-address"
+            value={gardenerInput.input}
+            onChange={(event) => gardenerInput.setInput(event.target.value)}
+            placeholder={formatMessage({
+              id: "admin.team.addressPlaceholder",
+              defaultMessage: "0x... or vitalik.eth",
+            })}
+            aria-invalid={!!gardenerInput.error}
+            aria-describedby="gardener-error"
+            className="flex-1 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={gardenerInput.handleAdd}
+            disabled={gardenerInput.shouldResolveEns && gardenerInput.resolvingEns}
+          >
+            <RiAddLine className="h-4 w-4" />{" "}
+            {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
+          </Button>
         </div>
         {gardenerInput.shouldResolveEns && (
           <p className="mt-2 text-xs text-text-soft">
@@ -101,7 +95,7 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
           {form.gardeners.map((gardener) => (
             <li
               key={gardener}
-              className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-xs font-mono text-text-sub/60"
+              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
             >
               <span>{gardener}</span>
               <button
@@ -119,35 +113,33 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
 
       <div>
         <label
-          className="mb-2 block text-sm font-medium text-text-sub"
+          className="mb-2 block text-sm font-medium text-text-strong"
           htmlFor="create-garden-operator-address"
         >
           {formatMessage({ id: "app.roles.operator.plural", defaultMessage: "Garden operators" })}
         </label>
-        <div className="rounded-lg bg-bg-weak p-2">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <input
-              id="create-garden-operator-address"
-              value={operatorInput.input}
-              onChange={(event) => operatorInput.setInput(event.target.value)}
-              placeholder={formatMessage({
-                id: "admin.team.addressPlaceholder",
-                defaultMessage: "0x... or vitalik.eth",
-              })}
-              aria-invalid={!!operatorInput.error}
-              aria-describedby="operator-error"
-              className="flex-1 rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
-            />
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={operatorInput.handleAdd}
-              disabled={operatorInput.shouldResolveEns && operatorInput.resolvingEns}
-            >
-              <RiAddLine className="h-4 w-4" />{" "}
-              {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
-            </Button>
-          </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            id="create-garden-operator-address"
+            value={operatorInput.input}
+            onChange={(event) => operatorInput.setInput(event.target.value)}
+            placeholder={formatMessage({
+              id: "admin.team.addressPlaceholder",
+              defaultMessage: "0x... or vitalik.eth",
+            })}
+            aria-invalid={!!operatorInput.error}
+            aria-describedby="operator-error"
+            className="flex-1 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={operatorInput.handleAdd}
+            disabled={operatorInput.shouldResolveEns && operatorInput.resolvingEns}
+          >
+            <RiAddLine className="h-4 w-4" />{" "}
+            {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
+          </Button>
         </div>
         {operatorInput.shouldResolveEns && (
           <p className="mt-2 text-xs text-text-soft">
@@ -182,7 +174,7 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
           {form.operators.map((operator) => (
             <li
               key={operator}
-              className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-xs font-mono text-text-sub/60"
+              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
             >
               <span>{operator}</span>
               <button

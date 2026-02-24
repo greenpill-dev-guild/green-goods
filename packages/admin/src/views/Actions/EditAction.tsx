@@ -263,7 +263,7 @@ export default function EditAction() {
           <button
             type="submit"
             disabled={isLoading}
-            className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-white hover:bg-primary-darker disabled:opacity-50"
+            className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-darker disabled:opacity-50"
           >
             {isLoading
               ? formatMessage({ id: "app.actions.edit.saving" })

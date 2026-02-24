@@ -75,7 +75,7 @@ describe("RequireRole", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the layout skeleton while roles are loading", () => {
+  it("renders a loading spinner while roles are loading", () => {
     mockUseRole.mockReturnValue(
       buildRoleState({
         loading: true,
@@ -84,7 +84,7 @@ describe("RequireRole", () => {
 
     renderWithIntl(<RequireRole allowedRoles={["deployer"]} />);
 
-    expect(screen.getByTestId("dashboard-layout-skeleton")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeInTheDocument();
     expect(screen.queryByTestId("outlet")).not.toBeInTheDocument();
   });
 

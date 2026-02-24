@@ -60,9 +60,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
 
       <div className="mt-4 grid grid-cols-3 gap-3">
         <div className="rounded-lg bg-bg-weak p-3 text-center">
-          <p className="text-xs font-medium text-text-soft">
-            {formatMessage({ id: "app.yield.cookieJar" })}
-          </p>
+          <p className="label-xs text-text-soft">{formatMessage({ id: "app.yield.cookieJar" })}</p>
           <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
             {cookieJarPct}%
           </p>
@@ -71,9 +69,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           </p>
         </div>
         <div className="rounded-lg bg-bg-weak p-3 text-center">
-          <p className="text-xs font-medium text-text-soft">
-            {formatMessage({ id: "app.yield.fractions" })}
-          </p>
+          <p className="label-xs text-text-soft">{formatMessage({ id: "app.yield.fractions" })}</p>
           <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
             {fractionsPct}%
           </p>
@@ -82,9 +78,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           </p>
         </div>
         <div className="rounded-lg bg-bg-weak p-3 text-center">
-          <p className="text-xs font-medium text-text-soft">
-            {formatMessage({ id: "app.yield.juicebox" })}
-          </p>
+          <p className="label-xs text-text-soft">{formatMessage({ id: "app.yield.juicebox" })}</p>
           <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
             {juiceboxPct}%
           </p>
@@ -101,9 +95,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
       </div>
 
       <div className="mt-4 border-t border-stroke-soft pt-4">
-        <h4 className="text-sm font-medium text-text-strong">
-          {formatMessage({ id: "app.yield.history" })}
-        </h4>
+        <h4 className="label-sm text-text-strong">{formatMessage({ id: "app.yield.history" })}</h4>
         {allocationsLoading ? (
           <div className="mt-2 space-y-2" role="status" aria-live="polite">
             <span className="sr-only">{formatMessage({ id: "app.yield.history" })}</span>

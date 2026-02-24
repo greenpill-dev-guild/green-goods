@@ -15,6 +15,7 @@ import { FormWizard } from "@/components/Form/FormWizard";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
 import { ReviewStep } from "@/components/Garden/CreateGardenSteps/ReviewStep";
 import { TeamStep } from "@/components/Garden/CreateGardenSteps/TeamStep";
+import { Button } from "@/components/ui/Button";
 
 export default function CreateGarden() {
   const intl = useIntl();
@@ -23,6 +24,7 @@ export default function CreateGarden() {
   const currentStep = useCreateGardenStore((state) => state.currentStep);
   const form = useCreateGardenStore(useShallow((state) => state.form));
   const resetForm = useCreateGardenStore((state) => state.reset);
+  const goToStep = useCreateGardenStore((state) => state.goToStep);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -239,6 +241,11 @@ export default function CreateGarden() {
     navigate("/gardens");
   };
 
+  const handleStepClick = (stepIndex: number) => {
+    setShowValidation(false);
+    goToStep(stepIndex);
+  };
+
   const currentStepConfig = steps[currentStep];
   const isDetailsStep = currentStepConfig?.id === "details";
   const isTeamStep = currentStepConfig?.id === "team";
@@ -246,9 +253,26 @@ export default function CreateGarden() {
 
   return (
     <>
-      {hasError && (
-        <div className="fixed inset-x-0 top-[120px] z-20 mx-auto max-w-4xl px-4 sm:px-6">
-          <div className="flex items-start gap-3 rounded-lg border border-error-light bg-error-lighter p-4 text-sm text-error-dark shadow-lg">
+      <FormWizard
+        steps={steps}
+        currentStep={currentStep}
+        onNext={handleNext}
+        onBack={handleBack}
+        onCancel={handleCancel}
+        onSubmit={handleSubmit}
+        onStepClick={handleStepClick}
+        isSubmitting={isSubmitting}
+        nextLabel={intl.formatMessage({
+          id: "admin.garden.form.continue",
+          defaultMessage: "Continue",
+        })}
+        submitLabel={intl.formatMessage({
+          id: "admin.garden.form.deploy",
+          defaultMessage: "Deploy garden",
+        })}
+      >
+        {hasError && (
+          <div className="mb-4 flex items-start gap-3 rounded-lg border border-error-light bg-error-lighter p-4 text-sm text-error-dark">
             <RiErrorWarningLine className="mt-0.5 h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
               <p className="font-medium text-error-dark">
@@ -264,39 +288,22 @@ export default function CreateGarden() {
                     defaultMessage: "Please review the details and try again.",
                   })}
               </p>
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={retry}
-                className="mt-3 rounded-md border border-error-light px-3 py-1.5 text-xs font-medium text-error-dark transition hover:bg-error-lighter"
+                className="mt-3"
               >
                 {intl.formatMessage({
                   id: "admin.garden.deploy.retry",
                   defaultMessage: "Retry deployment",
                 })}
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      )}
-
-      <FormWizard
-        steps={steps}
-        currentStep={currentStep}
-        onNext={handleNext}
-        onBack={handleBack}
-        onCancel={handleCancel}
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-        nextLabel={intl.formatMessage({
-          id: "admin.garden.form.continue",
-          defaultMessage: "Continue",
-        })}
-        submitLabel={intl.formatMessage({
-          id: "admin.garden.form.deploy",
-          defaultMessage: "Deploy garden",
-        })}
-      >
+        )}
         {isDetailsStep && <DetailsStep showValidation={showValidation} />}
-        {isTeamStep && <TeamStep showValidation={showValidation} />}
+        {isTeamStep && <TeamStep />}
         {isReviewStepActive && <ReviewStep />}
       </FormWizard>
 
@@ -320,7 +327,13 @@ export default function CreateGarden() {
                 </Dialog.Description>
               </div>
               <Dialog.Close asChild>
-                <button className="rounded-md p-1 text-text-soft hover:bg-bg-weak">
+                <button
+                  className="rounded-md p-1 text-text-soft hover:bg-bg-weak"
+                  aria-label={intl.formatMessage({
+                    id: "app.common.close",
+                    defaultMessage: "Close",
+                  })}
+                >
                   <RiCloseLine className="h-5 w-5" />
                 </button>
               </Dialog.Close>
@@ -418,23 +431,22 @@ export default function CreateGarden() {
 
             <div className="mt-5 flex justify-end gap-2">
               <Dialog.Close asChild>
-                <button className="rounded-md border border-stroke-soft px-3 py-2 text-sm text-text-sub hover:bg-bg-weak">
+                <Button variant="secondary">
                   {intl.formatMessage({
                     id: "app.admin.garden.create.confirm.cancel",
                     defaultMessage: "Cancel",
                   })}
-                </button>
+                </Button>
               </Dialog.Close>
-              <button
+              <Button
                 onClick={handleConfirmDeploy}
                 disabled={isSubmitting || isEstimating || Boolean(estimateError)}
-                className="rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-white hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {intl.formatMessage({
                   id: "app.admin.garden.create.confirm.deploy",
                   defaultMessage: "Confirm and deploy",
                 })}
-              </button>
+              </Button>
             </div>
           </Dialog.Content>
         </Dialog.Portal>

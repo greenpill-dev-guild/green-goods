@@ -5,7 +5,7 @@ import {
   WEIGHT_SCHEME_VALUES,
   WeightScheme,
 } from "@green-goods/shared";
-import { RiAddLine, RiCupLine, RiGroupLine } from "@remixicon/react";
+import { RiAddLine, RiGroupLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AddressDisplay } from "@/components/AddressDisplay";
@@ -27,7 +27,6 @@ interface GardenCommunityCardProps {
   pools: GardenPool[];
   gardenId: string;
   canManage: boolean;
-  cookieJarCount: number;
   gardenName: string;
   convictionStrategyCount: number;
   vaultsLoading: boolean;
@@ -43,7 +42,6 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
   pools,
   gardenId,
   canManage,
-  cookieJarCount,
   gardenName,
   convictionStrategyCount,
   vaultsLoading,
@@ -126,31 +124,6 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
         </Card>
       )}
 
-      {cookieJarCount > 0 && (
-        <Card padding="compact" className="sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-lighter">
-                <RiCupLine className="h-5 w-5 text-warning-dark" />
-              </div>
-              <div>
-                <h3 className="label-md text-text-strong sm:text-lg">
-                  {formatMessage({ id: "app.cookieJar.title" })}
-                </h3>
-                <p className="mt-0.5 text-sm text-text-sub">
-                  {cookieJarCount} {formatMessage({ id: "app.cookieJar.active" })}
-                </p>
-              </div>
-            </div>
-            <Button variant="secondary" size="sm" asChild>
-              <Link to={`/gardens/${gardenId}/cookie-jars`}>
-                {formatMessage({ id: "app.actions.view" })}
-              </Link>
-            </Button>
-          </div>
-        </Card>
-      )}
-
       <Card padding="compact" className="sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -175,7 +148,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
         </div>
 
         <div className="mt-4 rounded-lg bg-bg-weak p-3">
-          <p className="text-xs font-medium text-text-soft">
+          <p className="label-xs text-text-soft">
             {formatMessage({ id: "app.community.weightScheme" })}
           </p>
           {communityLoading ? (
@@ -219,7 +192,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
         {pools.length > 0 ? (
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div className="rounded-lg bg-bg-weak p-3">
-              <p className="text-xs font-medium text-text-soft">
+              <p className="label-xs text-text-soft">
                 {formatMessage({ id: "app.community.poolType.hypercert" })}
               </p>
               <p className="mt-1 text-sm text-text-sub">
@@ -231,7 +204,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
               </p>
             </div>
             <div className="rounded-lg bg-bg-weak p-3">
-              <p className="text-xs font-medium text-text-soft">
+              <p className="label-xs text-text-soft">
                 {formatMessage({ id: "app.community.poolType.action" })}
               </p>
               <p className="mt-1 text-sm text-text-sub">

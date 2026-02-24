@@ -14,8 +14,8 @@
  * Flags:
  *   --dry-run         Show what would be updated, no IPFS uploads or on-chain changes
  *   --upload-only     Upload images to IPFS (cache them) but don't update on-chain
- *   --skip-images     Skip image upload, only update instructions CIDs
- *   --force           Re-upload all images (ignore media cache)
+ *   --skip-images     Skip image upload (load CIDs from cache instead)
+ *   --force           Re-upload all images (ignore media cache) and skip on-chain checks
  *
  * Environment:
  *   ARBITRUM_RPC_URL or VITE_ALCHEMY_API_KEY — Arbitrum RPC endpoint
@@ -347,9 +347,13 @@ function determineUpdates(
   mediaCids: Map<number, string>,
   actionRegistry: string,
   rpcUrl: string,
-  skipImages: boolean,
+  force: boolean,
 ): ActionUpdate[] {
   console.log("\n=== Phase 3: Check On-chain State ===\n");
+
+  if (force) {
+    console.log("  --force: Skipping on-chain checks, will update all actions\n");
+  }
 
   const updates: ActionUpdate[] = [];
 
@@ -362,13 +366,21 @@ function determineUpdates(
     let needsMedia = false;
 
     if (instrCid) {
-      const hasInstr = onChainHasCid(actionRegistry, i, instrCid, rpcUrl);
-      needsInstructions = !hasInstr;
+      if (force) {
+        needsInstructions = true;
+      } else {
+        const hasInstr = onChainHasCid(actionRegistry, i, instrCid, rpcUrl);
+        needsInstructions = !hasInstr;
+      }
     }
 
-    if (!skipImages && mediaCid) {
-      const hasMedia = onChainHasCid(actionRegistry, i, mediaCid, rpcUrl);
-      needsMedia = !hasMedia;
+    if (mediaCid) {
+      if (force) {
+        needsMedia = true;
+      } else {
+        const hasMedia = onChainHasCid(actionRegistry, i, mediaCid, rpcUrl);
+        needsMedia = !hasMedia;
+      }
     }
 
     const label = [];
@@ -530,12 +542,28 @@ async function main(): Promise<void> {
   const actionRegistry = deployment.actionRegistry as string;
   console.log(`  ActionRegistry: ${actionRegistry}`);
 
-  // Phase 1: Upload images
+  // Phase 1: Upload images (or load from cache if --skip-images)
   let mediaCids = new Map<number, string>();
   if (!skipImages) {
     mediaCids = await uploadImages(actions, { dryRun, force });
   } else {
-    console.log("\n=== Phase 1: Skipped (--skip-images) ===");
+    console.log("\n=== Phase 1: Skipped upload (--skip-images), loading from cache ===\n");
+    const mediaCache = loadJsonFile<Record<string, CacheEntry>>(MEDIA_CACHE, {});
+    for (let i = 0; i < actions.length; i++) {
+      const action = actions[i];
+      const filename = slugToImageFilename(action.slug);
+      const imagePath = path.join(IMAGES_DIR, filename);
+      if (!fs.existsSync(imagePath)) continue;
+      const imageBuffer = fs.readFileSync(imagePath);
+      const cacheKey = buildMediaCacheKey(action.slug, imageBuffer);
+      if (mediaCache[cacheKey]?.hash) {
+        mediaCids.set(i, mediaCache[cacheKey].hash);
+        console.log(`  [${i}] ${action.title} — cached: ${mediaCache[cacheKey].hash}`);
+      } else {
+        console.log(`  [${i}] ${action.title} — NOT in media cache`);
+      }
+    }
+    console.log(`\n  Loaded ${mediaCids.size}/${actions.length} media CIDs from cache`);
   }
 
   if (uploadOnly) {
@@ -548,7 +576,7 @@ async function main(): Promise<void> {
 
   // Phase 3: Determine updates
   const rpcUrl = getRpcUrl();
-  const updates = determineUpdates(actions, instructionCids, mediaCids, actionRegistry, rpcUrl, skipImages);
+  const updates = determineUpdates(actions, instructionCids, mediaCids, actionRegistry, rpcUrl, force);
 
   // Phase 4: Generate batch script
   const pending = updates.filter((u) => u.needsInstructions || u.needsMedia);

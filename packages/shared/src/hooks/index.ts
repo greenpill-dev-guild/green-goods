@@ -23,6 +23,12 @@ export type { ActionOperationResult } from "./action/useActionOperations";
 export { useActionOperations } from "./action/useActionOperations";
 export type { CreateActionFormData } from "./action/useActionForm";
 export { createActionSchema } from "./action/useActionForm";
+export type {
+  ActionFiltersState,
+  ActionSortOrder,
+  UseFilteredActionsResult,
+} from "./action/useFilteredActions";
+export { useFilteredActions } from "./action/useFilteredActions";
 
 // ============================================================================
 // ANALYTICS

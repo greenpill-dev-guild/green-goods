@@ -111,7 +111,7 @@ export const GardenRolesPanel: React.FC<GardenRolesPanelProps> = ({
                               <button
                                 onClick={() => onRemoveMember(member, role)}
                                 disabled={isLoading}
-                                className="flex h-9 w-9 min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20 sm:min-h-0 sm:min-w-0"
+                                className="ml-2 flex h-9 w-9 min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded border-l border-stroke-soft pl-3 text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50/20 sm:min-h-0 sm:min-w-0"
                                 aria-label={formatMessage(
                                   { id: "app.admin.roles.remove" },
                                   { role: roleLabel.singular }

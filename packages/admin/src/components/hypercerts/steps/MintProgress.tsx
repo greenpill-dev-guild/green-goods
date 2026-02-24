@@ -148,7 +148,7 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
                         isStepComplete && "border-success-base bg-success-base text-white",
                         isStepActive &&
                           !isStepFailed &&
-                          "border-primary-base bg-primary-base text-white",
+                          "border-primary-base bg-primary-base text-primary-foreground",
                         isStepFailed && "border-error-base bg-error-base text-white",
                         isStepPending && "border-stroke-sub bg-bg-white text-text-sub"
                       )}

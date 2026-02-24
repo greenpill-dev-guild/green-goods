@@ -49,7 +49,7 @@ export const WithAction: Story = {
     action: (
       <button
         type="button"
-        className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-white hover:bg-primary-darker transition-colors"
+        className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-darker transition-colors"
       >
         <RiAddLine className="h-4 w-4" />
         Add Member
@@ -60,7 +60,7 @@ export const WithAction: Story = {
 
 export const WithMultipleActions: Story = {
   args: {
-    title: "Treasury",
+    title: "Endowments",
     description: "Vault balances, deposits, and withdrawal history.",
     action: (
       <div className="flex gap-2">
@@ -91,7 +91,7 @@ export const LongContent: Story = {
     action: (
       <button
         type="button"
-        className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-white hover:bg-primary-darker transition-colors whitespace-nowrap"
+        className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-darker transition-colors whitespace-nowrap"
       >
         <RiAddLine className="h-4 w-4" />
         New Action
@@ -113,7 +113,7 @@ export const Gallery: Story = {
         action={
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-white"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground"
           >
             <RiAddLine className="h-4 w-4" />
             Action
@@ -126,7 +126,7 @@ export const Gallery: Story = {
         action={
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-white"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground"
           >
             <RiAddLine className="h-4 w-4" />
             Action
@@ -144,7 +144,7 @@ export const DarkMode: Story = {
     action: (
       <button
         type="button"
-        className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-white"
+        className="inline-flex items-center gap-2 rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground"
       >
         <RiAddLine className="h-4 w-4" />
         Add Member

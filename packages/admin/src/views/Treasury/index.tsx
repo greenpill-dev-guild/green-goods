@@ -2,6 +2,7 @@ import {
   formatTokenAmount,
   getNetDeposited,
   getVaultAssetSymbol,
+  useDebouncedValue,
   useGardenVaults,
   useGardens,
 } from "@green-goods/shared";
@@ -12,19 +13,27 @@ import {
   RiPlantLine,
   RiSafe2Line,
 } from "@remixicon/react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ListToolbar } from "@/components/ui/ListToolbar";
+import { SortSelect } from "@/components/ui/SortSelect";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { StatCard } from "@/components/StatCard";
+
+type TreasurySortOrder = "name" | "tvl";
 
 export default function TreasuryOverview() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const { vaults, isLoading: vaultsLoading } = useGardenVaults(undefined, { enabled: true });
+
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const [sortOrder, setSortOrder] = useState<TreasurySortOrder>("name");
 
   const grouped = useMemo(() => {
     const map = new Map<string, typeof vaults>();
@@ -49,9 +58,41 @@ export default function TreasuryOverview() {
           harvestCount: gardenVaults.reduce((sum, vault) => sum + vault.totalHarvestCount, 0),
         };
       })
-      .filter((item) => item.garden)
-      .sort((a, b) => (a.garden?.name ?? "").localeCompare(b.garden?.name ?? ""));
+      .filter((item) => item.garden);
   }, [gardens, vaults]);
+
+  const filteredGrouped = useMemo(() => {
+    let working = grouped;
+
+    // Filter by search text
+    if (debouncedSearch) {
+      const term = debouncedSearch.toLowerCase();
+      working = working.filter(
+        (item) =>
+          (item.garden?.name || "").toLowerCase().includes(term) ||
+          (item.garden?.location || "").toLowerCase().includes(term)
+      );
+    }
+
+    // Sort
+    if (sortOrder === "tvl") {
+      return [...working].sort((a, b) => {
+        if (b.netDeposited > a.netDeposited) return 1;
+        if (b.netDeposited < a.netDeposited) return -1;
+        return 0;
+      });
+    }
+    return [...working].sort((a, b) =>
+      (a.garden?.name ?? "").localeCompare(b.garden?.name ?? "")
+    );
+  }, [grouped, debouncedSearch, sortOrder]);
+
+  const isFilterActive = !!debouncedSearch || sortOrder !== "name";
+
+  const resetFilters = () => {
+    setSearch("");
+    setSortOrder("name");
+  };
 
   const totalTVL = useMemo(
     () => grouped.reduce((sum, item) => sum + item.netDeposited, 0n),
@@ -64,15 +105,36 @@ export default function TreasuryOverview() {
 
   const isLoading = gardensLoading || vaultsLoading;
 
+  const sortOptions: { value: TreasurySortOrder; label: string }[] = [
+    { value: "name", label: formatMessage({ id: "app.treasury.sort.name" }) },
+    { value: "tvl", label: formatMessage({ id: "app.treasury.sort.tvl" }) },
+  ];
+
   return (
     <div className="pb-6">
       <PageHeader
         title={formatMessage({ id: "app.treasury.title" })}
         description={formatMessage({ id: "app.treasury.overviewDescription" })}
         sticky
+        toolbar={
+          !isLoading && grouped.length > 0 ? (
+            <ListToolbar
+              search={search}
+              onSearchChange={setSearch}
+              searchPlaceholder={formatMessage({ id: "app.treasury.searchPlaceholder" })}
+            >
+              <SortSelect
+                value={sortOrder}
+                onChange={setSortOrder}
+                options={sortOptions}
+                aria-label={formatMessage({ id: "app.home.filters.sortTitle" })}
+              />
+            </ListToolbar>
+          ) : undefined
+        }
       />
 
-      <div className="mx-auto mt-6 max-w-6xl space-y-6 px-4 sm:px-6">
+      <div className="mt-6 space-y-6 px-4 sm:px-6">
         <section className="stagger-children grid grid-cols-1 gap-3 sm:grid-cols-3">
           <StatCard
             icon={<RiMoneyDollarCircleLine className="h-5 w-5" />}
@@ -149,9 +211,20 @@ export default function TreasuryOverview() {
           />
         )}
 
-        {!isLoading && grouped.length > 0 && (
+        {!isLoading && grouped.length > 0 && filteredGrouped.length === 0 && isFilterActive && (
+          <EmptyState
+            icon={<RiSafe2Line className="h-6 w-6" />}
+            title={formatMessage({ id: "app.treasury.noResults" })}
+            action={{
+              label: formatMessage({ id: "app.treasury.resetFilters" }),
+              onClick: resetFilters,
+            }}
+          />
+        )}
+
+        {!isLoading && filteredGrouped.length > 0 && (
           <section className="stagger-children grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {grouped.map((item) => (
+            {filteredGrouped.map((item) => (
               <Card
                 key={item.gardenAddress}
                 padding="compact"

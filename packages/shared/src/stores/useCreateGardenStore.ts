@@ -28,7 +28,7 @@ export interface CreateGardenFormState {
 export interface CreateGardenStep {
   id: "details" | "team" | "review";
   title: string;
-  description: string;
+  description?: string;
 }
 
 export interface CreateGardenStore {
@@ -56,21 +56,9 @@ export interface CreateGardenStore {
 }
 
 const defaultSteps: CreateGardenStep[] = [
-  {
-    id: "details",
-    title: "Garden details",
-    description: "Define the basics for your onchain garden.",
-  },
-  {
-    id: "team",
-    title: "Community",
-    description: "Invite gardeners and operators who can help steward the garden.",
-  },
-  {
-    id: "review",
-    title: "Review & deploy",
-    description: "Confirm the information before deploying the garden attestation.",
-  },
+  { id: "details", title: "Garden details", description: "Name, location & media" },
+  { id: "team", title: "Community", description: "Gardeners & operators" },
+  { id: "review", title: "Review & deploy", description: "Confirm your setup" },
 ];
 
 export function createEmptyGardenForm(): CreateGardenFormState {

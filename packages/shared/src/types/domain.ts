@@ -46,6 +46,19 @@ export enum Domain {
 }
 
 /**
+ * CSS color values for each action domain, referencing theme CSS variables.
+ * Matches the domainConfig in actions.json (solar=amber, agro=green, edu=blue, waste=orange).
+ *
+ * Use with inline styles: `style={{ borderLeftColor: DOMAIN_COLORS[domain] }}`
+ */
+export const DOMAIN_COLORS: Record<Domain, string> = {
+  [Domain.SOLAR]: "rgb(var(--yellow-500))",
+  [Domain.AGRO]: "rgb(var(--green-500))",
+  [Domain.EDU]: "rgb(var(--blue-500))",
+  [Domain.WASTE]: "rgb(var(--orange-500))",
+};
+
+/**
  * Cynefin complexity framework phase — classifies the operating environment
  * for a garden assessment's strategy kernel.
  *

@@ -538,6 +538,13 @@ export const COOKIE_JAR_ABI = [
     outputs: [],
   },
   {
+    name: "MIN_DEPOSIT",
+    type: "function",
+    stateMutability: "pure",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+  },
+  {
     name: "deposit",
     type: "function",
     stateMutability: "payable",

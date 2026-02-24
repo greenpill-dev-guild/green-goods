@@ -1,10 +1,14 @@
-import { DEFAULT_CHAIN_ID, getChainName, useUIStore } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, getChainName, useAuth, useUIStore } from "@green-goods/shared";
 import { RiMenuLine } from "@remixicon/react";
+import { useIntl } from "react-intl";
+import { ConnectButton } from "@/components/ConnectButton";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { CommandPalette } from "./CommandPalette";
 import { UserProfile } from "./UserProfile";
 
 export function Header() {
+  const intl = useIntl();
+  const { isAuthenticated, eoaAddress } = useAuth();
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
   const chainLabel = getChainName(DEFAULT_CHAIN_ID);
@@ -15,7 +19,7 @@ export function Header() {
         {/* Mobile menu button */}
         <button
           onClick={() => setSidebarOpen(true)}
-          aria-label="Open navigation menu"
+          aria-label={intl.formatMessage({ id: "app.admin.header.openNavMenu", defaultMessage: "Open navigation menu" })}
           aria-expanded={sidebarOpen}
           className="lg:hidden min-h-11 min-w-11 p-2 rounded-md text-text-soft hover:text-text-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
         >
@@ -43,7 +47,7 @@ export function Header() {
             {chainLabel}
           </div>
 
-          <UserProfile />
+          {isAuthenticated && eoaAddress ? <UserProfile /> : <ConnectButton variant="primary" size="sm" />}
         </div>
       </div>
     </header>

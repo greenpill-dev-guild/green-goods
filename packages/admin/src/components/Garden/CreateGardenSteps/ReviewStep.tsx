@@ -43,18 +43,43 @@ export function ReviewStep() {
             <dd className="mt-1 text-sm text-text-strong">{form.description}</dd>
           </div>
           {form.bannerImage && (
-            <div>
+            <div className="md:col-span-2">
               <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
                 {formatMessage({
                   id: "app.garden.create.bannerImage",
                   defaultMessage: "Banner image",
                 })}
               </dt>
-              <dd className="mt-1 break-words text-sm text-text-strong">{form.bannerImage}</dd>
+              <dd className="mt-2">
+                <img
+                  src={form.bannerImage}
+                  alt=""
+                  className="h-32 w-full rounded-lg object-cover"
+                />
+              </dd>
             </div>
           )}
         </dl>
         <dl className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
+              {formatMessage({
+                id: "app.garden.create.openJoining",
+                defaultMessage: "Open joining",
+              })}
+            </dt>
+            <dd className="mt-1 text-sm text-text-strong">
+              {form.openJoining
+                ? formatMessage({
+                    id: "app.garden.create.openJoining.enabled",
+                    defaultMessage: "Anyone can request to join",
+                  })
+                : formatMessage({
+                    id: "app.garden.create.openJoining.disabled",
+                    defaultMessage: "Invite only",
+                  })}
+            </dd>
+          </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
               {formatMessage({
@@ -108,7 +133,7 @@ export function ReviewStep() {
             </dd>
           </div>
         </dl>
-        <p className="rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-xs text-text-soft">
+        <p className="rounded-md border border-stroke-soft bg-bg-soft px-3 py-2.5 text-xs text-text-sub">
           {formatMessage({
             id: "app.garden.create.teamAssignmentNotice",
             defaultMessage:

@@ -88,7 +88,7 @@ export const GardenStatsGrid: React.FC<GardenStatsGridProps> = ({
       <StatCard
         icon={<RiGroupLine className="h-5 w-5" />}
         label={formatMessage({ id: "app.community.title" })}
-        colorScheme="success"
+        colorScheme="warning"
         titleText={
           communityLoading
             ? undefined

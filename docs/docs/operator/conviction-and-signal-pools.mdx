@@ -11,7 +11,7 @@ difficulty: "standard"
 estimated_time: "20-40 minutes once module deployment is active."
 prereqs: "Governance policy and role model."
 next_steps: "./reporting-and-gap"
-persona_context: "Operators coordinating gardens, approvals, and governance/treasury execution."
+persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
   - packages/admin/src/views/Gardens/Garden/Strategies.tsx
   - packages/admin/src/views/Gardens/Garden/SignalPool.tsx
@@ -42,7 +42,7 @@ import {
   estimatedTime="20-40 minutes once module deployment is active."
   prereqs="Governance policy and role model."
   outcome="Clear status and runbook for strategy + pool operations."
-  personaContext="Operators coordinating gardens, approvals, and governance/treasury execution."
+  personaContext="Operators coordinating gardens, approvals, and governance/endowment execution."
   lastVerified="2026-02-18"
 />
 
@@ -75,7 +75,7 @@ import {
   title="Pick a governance path"
   items={[
     {
-      when: "You need directional preference before treasury commitment",
+      when: "You need directional preference before endowment commitment",
       do: "Start with signal pools and monitor participation.",
       next: "Promote high-signal items to formal allocation decisions.",
     },
@@ -86,7 +86,7 @@ import {
     },
     {
       when: "You need immediate discretionary funding",
-      do: "Use cookie jars or operator-approved treasury actions.",
+      do: "Use cookie jars or operator-approved endowment actions.",
       next: "Reserve conviction for longer-horizon governance.",
     },
   ]}

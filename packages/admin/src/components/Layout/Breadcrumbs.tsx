@@ -8,7 +8,7 @@ import { Link, useLocation } from "react-router-dom";
 const ROUTE_LABELS: Record<string, { id: string; defaultMessage: string }> = {
   dashboard: { id: "app.admin.nav.dashboard", defaultMessage: "Dashboard" },
   gardens: { id: "app.admin.nav.gardens", defaultMessage: "Gardens" },
-  treasury: { id: "app.admin.nav.treasury", defaultMessage: "Treasury" },
+  endowments: { id: "app.admin.nav.treasury", defaultMessage: "Endowments" },
   actions: { id: "app.admin.nav.actions", defaultMessage: "Actions" },
   contracts: { id: "app.admin.nav.contracts", defaultMessage: "Contracts" },
   deployment: { id: "app.admin.nav.deployment", defaultMessage: "Deployment" },

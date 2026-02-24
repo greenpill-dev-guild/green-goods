@@ -16,7 +16,7 @@ interface IpfsConfig {
 }
 
 let storachaClient: Client | null = null;
-let gatewayUrl = "https://w3s.link";
+let gatewayUrl = "https://storacha.link";
 
 type IpfsInitStatus = "not_started" | "in_progress" | "success" | "failed" | "skipped_no_config";
 

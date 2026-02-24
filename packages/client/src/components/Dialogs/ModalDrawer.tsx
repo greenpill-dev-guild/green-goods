@@ -62,7 +62,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
             "focus:outline-none",
             className
           )}
-          style={{ maxHeight }}
+          style={{ height: maxHeight, maxHeight }}
           data-testid="modal-drawer"
         >
           {/* Header */}

@@ -32,7 +32,7 @@ import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
 import { Button } from "@/components/Actions";
-import { ConvictionDrawer, TreasuryDrawer } from "@/components/Dialogs";
+import { ConvictionDrawer, EndowmentDrawer } from "@/components/Dialogs";
 import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
@@ -47,7 +47,7 @@ type GardenProps = {};
 export const Garden: React.FC<GardenProps> = () => {
   const intl = useIntl();
   const { primaryAddress } = useUser();
-  const [isTreasuryOpen, setIsTreasuryOpen] = useState(false);
+  const [isEndowmentOpen, setIsEndowmentOpen] = useState(false);
   const [isGovernanceOpen, setIsGovernanceOpen] = useState(false);
 
   // Ensure proper re-rendering on browser navigation
@@ -138,7 +138,7 @@ export const Garden: React.FC<GardenProps> = () => {
     userAddress: primaryAddress ?? undefined,
     enabled: Boolean(garden?.id && primaryAddress),
   });
-  const hasTreasuryDeposits = useMemo(
+  const hasEndowmentDeposits = useMemo(
     () => myVaultDeposits.some((deposit) => deposit.shares > 0n),
     [myVaultDeposits]
   );
@@ -321,9 +321,9 @@ export const Garden: React.FC<GardenProps> = () => {
                     isOperator={canReview}
                     showGovernanceButton={hasGovernance}
                     onGovernanceClick={() => setIsGovernanceOpen(true)}
-                    showTreasuryButton={gardenVaults.length > 0}
-                    hasTreasuryDeposits={hasTreasuryDeposits}
-                    onTreasuryClick={() => setIsTreasuryOpen(true)}
+                    showEndowmentButton={gardenVaults.length > 0}
+                    hasEndowmentDeposits={hasEndowmentDeposits}
+                    onEndowmentClick={() => setIsEndowmentOpen(true)}
                   />
                 </div>
               </div>
@@ -389,9 +389,9 @@ export const Garden: React.FC<GardenProps> = () => {
           </>
         )}
         {garden && (
-          <TreasuryDrawer
-            isOpen={isTreasuryOpen}
-            onClose={() => setIsTreasuryOpen(false)}
+          <EndowmentDrawer
+            isOpen={isEndowmentOpen}
+            onClose={() => setIsEndowmentOpen(false)}
             gardenAddress={garden.id}
             gardenName={garden.name}
           />
