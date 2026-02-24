@@ -98,17 +98,17 @@ export function ConfirmDialog({
 
   const variantStyles = {
     default: {
-      confirmBtn: "bg-primary hover:bg-primary/90 text-white-0",
+      confirmBtn: "bg-primary hover:bg-primary/90 text-white",
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
     },
     warning: {
-      confirmBtn: "bg-warning-base hover:bg-warning-dark text-white-0",
+      confirmBtn: "bg-warning-base hover:bg-warning-dark text-white",
       iconBg: "bg-warning-lighter",
       iconColor: "text-warning-base",
     },
     danger: {
-      confirmBtn: "bg-error-base hover:bg-error-dark text-white-0",
+      confirmBtn: "bg-error-base hover:bg-error-dark text-white",
       iconBg: "bg-error-lighter",
       iconColor: "text-error-base",
     },
@@ -129,7 +129,7 @@ export function ConfirmDialog({
         />
         <Dialog.Content
           role={isDestructive ? "alertdialog" : undefined}
-          className="fixed z-50 w-full max-w-md overflow-hidden bg-bg-white-0 shadow-2xl focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-2xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300"
+          className="fixed z-50 w-full max-w-md overflow-hidden bg-bg-white shadow-2xl focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-2xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300"
           data-testid="confirm-dialog"
           onPointerDownOutside={(e: Event) => {
             if (isLoading) e.preventDefault();
@@ -139,7 +139,7 @@ export function ConfirmDialog({
           }}
         >
           {/* Header */}
-          <div className="flex items-start justify-between gap-3 border-b border-stroke-soft-200 p-4">
+          <div className="flex items-start justify-between gap-3 border-b border-stroke-soft p-4">
             <div className="flex min-w-0 flex-1 items-start gap-3">
               {(icon || defaultIcon) && (
                 <div
@@ -152,11 +152,11 @@ export function ConfirmDialog({
                 </div>
               )}
               <div className="min-w-0 flex-1 pt-1">
-                <Dialog.Title className="text-lg font-semibold text-text-strong-950">
+                <Dialog.Title className="text-lg font-semibold text-text-strong">
                   {title}
                 </Dialog.Title>
                 {description && (
-                  <Dialog.Description className="mt-1 text-sm text-text-sub-600">
+                  <Dialog.Description className="mt-1 text-sm text-text-sub">
                     {description}
                   </Dialog.Description>
                 )}
@@ -165,7 +165,7 @@ export function ConfirmDialog({
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-text-soft-400 transition hover:bg-bg-soft-200 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-text-soft transition hover:bg-bg-soft active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
                 data-testid="confirm-dialog-close"
                 aria-label={resolvedCloseLabel}
                 disabled={isLoading}
@@ -182,7 +182,7 @@ export function ConfirmDialog({
                 type="button"
                 disabled={isLoading}
                 onClick={handleCancel}
-                className="flex-1 rounded-full bg-bg-weak-50 px-4 py-3 text-sm font-medium text-text-strong-950 transition hover:bg-bg-soft-200 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                className="flex-1 rounded-lg bg-bg-weak px-4 py-3 text-sm font-medium text-text-strong transition hover:bg-bg-soft disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
               >
                 {resolvedCancelLabel}
               </button>
@@ -192,7 +192,7 @@ export function ConfirmDialog({
               onClick={handleConfirm}
               disabled={isLoading}
               className={cn(
-                "flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-medium transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
+                "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2",
                 styles.confirmBtn
               )}
             >
@@ -203,7 +203,7 @@ export function ConfirmDialog({
 
           {/* Mobile drag indicator */}
           <div className="flex justify-center pb-2 pt-1 sm:hidden">
-            <div className="h-1 w-12 rounded-full bg-stroke-sub-300" />
+            <div className="h-1 w-12 rounded-full bg-stroke-sub" />
           </div>
         </Dialog.Content>
       </Dialog.Portal>

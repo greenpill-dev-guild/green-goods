@@ -11,7 +11,7 @@
 
 import React, { useCallback, useContext, useMemo, useState } from "react";
 import type { Action, Domain, Garden, WorkDraft } from "../types/domain";
-import type { Control, FormState, UseFormRegister } from "react-hook-form";
+import type { Control, FormState, UseFormRegister, UseFormSetValue } from "react-hook-form";
 import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../components/toast";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
@@ -58,6 +58,7 @@ export interface WorkFormValue {
   state: FormState<WorkFormData>;
   control: Control<WorkFormData>;
   register: UseFormRegister<WorkFormData>;
+  setValue: UseFormSetValue<WorkFormData>;
   images: File[];
   setImages: React.Dispatch<React.SetStateAction<File[]>>;
   feedback: string;
@@ -84,6 +85,7 @@ export interface WorkDataProps {
     setImages: React.Dispatch<React.SetStateAction<File[]>>;
     setActionUID: (value: number | null) => void;
     register: UseFormRegister<WorkFormData>;
+    setValue: UseFormSetValue<WorkFormData>;
     control: Control<WorkFormData>;
     uploadWork: (e?: React.BaseSyntheticEvent) => Promise<void>;
     gardenAddress: string | null;
@@ -109,6 +111,7 @@ const WorkFormContext = React.createContext<WorkFormValue | null>(null);
 const WorkContext = React.createContext<WorkDataProps>({
   form: {
     register: () => ({}) as ReturnType<UseFormRegister<WorkFormData>>,
+    setValue: (() => {}) as UseFormSetValue<WorkFormData>,
     control: {} as Control<WorkFormData>,
     actionUID: null,
     setActionUID: () => {},
@@ -326,6 +329,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       state: workForm.formState,
       control: workForm.control,
       register: workForm.register,
+      setValue: workForm.setValue,
       images,
       setImages,
       feedback: workForm.feedback as string,
@@ -340,6 +344,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       workForm.formState,
       workForm.control,
       workForm.register,
+      workForm.setValue,
       images,
       setImages,
       workForm.feedback,
@@ -363,6 +368,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         state: workForm.formState,
         control: workForm.control,
         register: workForm.register,
+        setValue: workForm.setValue,
         actionUID,
         images,
         setImages,
@@ -387,6 +393,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
       workForm.formState,
       workForm.control,
       workForm.register,
+      workForm.setValue,
       actionUID,
       images,
       setImages,
