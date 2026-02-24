@@ -11,7 +11,7 @@ import {
 } from "./Select";
 
 const meta: Meta<typeof Select> = {
-  title: "Components/Form/Select",
+  title: "Form Controls/Select",
   component: Select,
   tags: ["autodocs"],
 };
@@ -122,4 +122,26 @@ export const FullWidth: Story = {
       </Select>
     </div>
   ),
+};
+
+export const DarkMode: Story = {
+  render: () => (
+    <Select>
+      <SelectTrigger className="w-[280px]">
+        <SelectValue placeholder="Select a fruit" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="apple">Apple</SelectItem>
+        <SelectItem value="banana">Banana</SelectItem>
+        <SelectItem value="orange">Orange</SelectItem>
+      </SelectContent>
+    </Select>
+  ),
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

@@ -9,7 +9,7 @@ import {
 } from "./CardBase";
 
 const meta: Meta<typeof CardBase> = {
-  title: "Components/Cards/CardBase",
+  title: "Cards/CardBase",
   component: CardBase,
   tags: ["autodocs"],
   argTypes: {
@@ -161,4 +161,28 @@ export const AllSizes: Story = {
       </CardBase>
     </div>
   ),
+};
+
+export const DarkMode: Story = {
+  args: {
+    size: "md",
+    children: (
+      <>
+        <CardHeader>
+          <CardTitle>Card Title</CardTitle>
+          <CardDescription>Card description goes here</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>This is the card content area.</p>
+        </CardContent>
+      </>
+    ),
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { CenteredSpinner, Spinner } from "./Spinner";
 
 const meta: Meta<typeof Spinner> = {
-  title: "Components/Spinner",
+  title: "Primitives/Spinner",
   component: Spinner,
   tags: ["autodocs"],
   argTypes: {
@@ -62,4 +62,18 @@ export const CenteredFullScreen: StoryObj<typeof CenteredSpinner> = {
   parameters: {
     layout: "fullscreen",
   },
+};
+
+export const DarkMode: Story = {
+  args: {
+    size: "md",
+    label: "Loading",
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

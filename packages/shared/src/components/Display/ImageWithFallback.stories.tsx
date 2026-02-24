@@ -3,7 +3,7 @@ import { RiUserLine } from "@remixicon/react";
 import { ImageWithFallback } from "./ImageWithFallback";
 
 const meta: Meta<typeof ImageWithFallback> = {
-  title: "Components/Display/ImageWithFallback",
+  title: "Media/ImageWithFallback",
   component: ImageWithFallback,
   tags: ["autodocs"],
   argTypes: {
@@ -91,4 +91,19 @@ export const AvatarStyle: Story = {
       />
     </div>
   ),
+};
+
+export const DarkMode: Story = {
+  args: {
+    src: "https://picsum.photos/200/200",
+    alt: "Sample image",
+    className: "w-32 h-32 rounded-lg object-cover",
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

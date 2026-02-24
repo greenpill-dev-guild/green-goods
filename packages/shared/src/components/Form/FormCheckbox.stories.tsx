@@ -3,7 +3,7 @@ import { useState } from "react";
 import { FormCheckbox, CheckboxGroup } from "./FormCheckbox";
 
 const meta: Meta<typeof FormCheckbox> = {
-  title: "Components/Form/FormCheckbox",
+  title: "Form Controls/FormCheckbox",
   component: FormCheckbox,
   tags: ["autodocs"],
   argTypes: {
@@ -132,4 +132,19 @@ export const GroupDisabled: StoryObj<typeof CheckboxGroup> = {
       disabled
     />
   ),
+};
+
+export const DarkMode: Story = {
+  args: {
+    label: "Accept terms",
+    description: "I agree to the terms and conditions",
+    checked: true,
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };
