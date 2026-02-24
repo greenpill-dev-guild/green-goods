@@ -34,9 +34,6 @@
     {
       "name": "gardens",
       "path": "../../gardens"
-    },
-    {
-      "path": "../../octant-v2-core"
     }
   ],
   "settings": {
