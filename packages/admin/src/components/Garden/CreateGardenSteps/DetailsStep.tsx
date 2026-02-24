@@ -179,6 +179,9 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
                 id: "admin.details.namePlaceholder",
                 defaultMessage: "eg. Rio rainforest lab",
               })}
+              aria-required="true"
+              aria-invalid={showFieldError("name") && !!detailsErrors.name}
+              aria-describedby="name-error"
               className={cn(
                 "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
                 showFieldError("name") &&
@@ -188,7 +191,11 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             />
           </div>
           {/* Always render to reserve space and prevent layout shift */}
-          <span className="block min-h-[1.25rem] text-xs text-error-base">
+          <span
+            id="name-error"
+            role="alert"
+            className="block min-h-[1.25rem] text-xs text-error-base"
+          >
             {showFieldError("name") && detailsErrors.name ? detailsErrors.name : "\u00A0"}
           </span>
         </label>
@@ -205,6 +212,9 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
                 id: "admin.details.locationPlaceholder",
                 defaultMessage: "City, country or coordinates",
               })}
+              aria-required="true"
+              aria-invalid={showFieldError("location") && !!detailsErrors.location}
+              aria-describedby="location-error"
               className={cn(
                 "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
                 showFieldError("location") &&
@@ -214,7 +224,11 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             />
           </div>
           {/* Always render to reserve space and prevent layout shift */}
-          <span className="block min-h-[1.25rem] text-xs text-error-base">
+          <span
+            id="location-error"
+            role="alert"
+            className="block min-h-[1.25rem] text-xs text-error-base"
+          >
             {showFieldError("location") && detailsErrors.location
               ? detailsErrors.location
               : "\u00A0"}
@@ -245,6 +259,9 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
               autoCapitalize="none"
               autoComplete="off"
               spellCheck={false}
+              aria-required="true"
+              aria-invalid={showFieldError("slug") && !!detailsErrors.slug}
+              aria-describedby="slug-error"
               className={cn(
                 "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 pr-10 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
                 showFieldError("slug") &&
@@ -290,7 +307,11 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           </span>
         )}
         {/* Always render to reserve space and prevent layout shift */}
-        <span className="block min-h-[1.25rem] text-xs text-error-base">
+        <span
+          id="slug-error"
+          role="alert"
+          className="block min-h-[1.25rem] text-xs text-error-base"
+        >
           {showFieldError("slug") && detailsErrors.slug ? detailsErrors.slug : "\u00A0"}
         </span>
       </label>
@@ -311,6 +332,9 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
               defaultMessage: "Share the story, mission and unique traits of the garden.",
             })}
             rows={3}
+            aria-required="true"
+            aria-invalid={showFieldError("description") && !!detailsErrors.description}
+            aria-describedby="description-error"
             className={cn(
               "w-full rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
               showFieldError("description") &&
@@ -320,7 +344,11 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           />
         </div>
         {/* Always render to reserve space and prevent layout shift */}
-        <span className="block min-h-[1.25rem] text-xs text-error-base">
+        <span
+          id="description-error"
+          role="alert"
+          className="block min-h-[1.25rem] text-xs text-error-base"
+        >
           {showFieldError("description") && detailsErrors.description
             ? detailsErrors.description
             : "\u00A0"}

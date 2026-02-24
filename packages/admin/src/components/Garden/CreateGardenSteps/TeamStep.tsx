@@ -53,6 +53,8 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
                 id: "admin.team.addressPlaceholder",
                 defaultMessage: "0x... or vitalik.eth",
               })}
+              aria-invalid={!!gardenerInput.error}
+              aria-describedby="gardener-error"
               className="flex-1 rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
             />
             <Button
@@ -88,7 +90,11 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
           </p>
         )}
         {/* Always render to reserve space and prevent layout shift */}
-        <p className="mt-1 block min-h-[1.25rem] text-xs text-error-dark">
+        <p
+          id="gardener-error"
+          role="alert"
+          className="mt-1 block min-h-[1.25rem] text-xs text-error-dark"
+        >
           {gardenerInput.error || "\u00A0"}
         </p>
         <ul className="mt-1.5 space-y-1.5">
@@ -101,7 +107,7 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
               <button
                 type="button"
                 onClick={() => removeGardener(form.gardeners.indexOf(gardener))}
-                className="rounded-md p-1 text-text-soft transition hover:bg-bg-white hover:text-error-dark"
+                className="min-h-11 min-w-11 flex items-center justify-center rounded-md text-text-soft transition hover:bg-bg-white hover:text-error-dark"
                 aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
               >
                 <RiDeleteBinLine className="h-4 w-4" />
@@ -128,6 +134,8 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
                 id: "admin.team.addressPlaceholder",
                 defaultMessage: "0x... or vitalik.eth",
               })}
+              aria-invalid={!!operatorInput.error}
+              aria-describedby="operator-error"
               className="flex-1 rounded-md border border-stroke-soft bg-inherit px-3 py-2 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
             />
             <Button
@@ -163,7 +171,11 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
           </p>
         )}
         {/* Always render to reserve space and prevent layout shift */}
-        <p className="mt-1 block min-h-[1.25rem] text-xs text-error-dark">
+        <p
+          id="operator-error"
+          role="alert"
+          className="mt-1 block min-h-[1.25rem] text-xs text-error-dark"
+        >
           {operatorInput.error || "\u00A0"}
         </p>
         <ul className="mt-1.5 space-y-1.5">
@@ -176,7 +188,7 @@ export function TeamStep({ showValidation: _showValidation }: TeamStepProps) {
               <button
                 type="button"
                 onClick={() => removeOperator(form.operators.indexOf(operator))}
-                className="rounded-md p-1 text-text-soft transition hover:bg-bg-white hover:text-error-dark"
+                className="min-h-11 min-w-11 flex items-center justify-center rounded-md text-text-soft transition hover:bg-bg-white hover:text-error-dark"
                 aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
               >
                 <RiDeleteBinLine className="h-4 w-4" />

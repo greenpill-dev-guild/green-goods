@@ -15,6 +15,7 @@ interface StatCardProps {
   icon: React.ReactNode;
   label: string;
   value: React.ReactNode;
+  titleText?: string;
   colorScheme?: ColorScheme;
   className?: string;
 }
@@ -23,6 +24,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   icon,
   label,
   value,
+  titleText,
   colorScheme = "success",
   className,
 }) => {
@@ -43,8 +45,11 @@ export const StatCard: React.FC<StatCardProps> = ({
           {icon}
         </div>
         <dl className="min-w-0 flex-1">
-          <dt className="truncate text-xs uppercase tracking-wide text-text-soft">{label}</dt>
-          <dd className="mt-1 truncate font-heading text-xl font-semibold tabular-nums text-text-strong sm:text-2xl">
+          <dt className="truncate subheading-xs text-text-soft">{label}</dt>
+          <dd
+            className="mt-1 line-clamp-2 font-heading text-xl font-semibold tabular-nums text-text-strong sm:text-2xl"
+            title={titleText}
+          >
             {value}
           </dd>
         </dl>

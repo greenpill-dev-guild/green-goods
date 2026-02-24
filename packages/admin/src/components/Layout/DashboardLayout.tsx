@@ -1,6 +1,6 @@
-import { Outlet } from "react-router-dom";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
+import { PageTransition } from "../ui/PageTransition";
 
 export function DashboardLayout() {
   return (
@@ -20,7 +20,7 @@ export function DashboardLayout() {
           className="flex-1 overflow-y-auto"
           style={{ overscrollBehaviorY: "contain", WebkitOverflowScrolling: "touch" }}
         >
-          <Outlet />
+          <PageTransition />
         </main>
       </div>
     </div>

@@ -1,11 +1,13 @@
-import { DEFAULT_CHAIN_ID, formatDate, useActions } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, toSafeDate, useActions } from "@green-goods/shared";
 import {
   RiAddLine,
   RiCalendarLine,
   RiEditLine,
   RiEyeLine,
   RiFileList3Line,
+  RiImageLine,
 } from "@remixicon/react";
+import { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
@@ -14,8 +16,14 @@ import { PageHeader } from "@/components/Layout/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function Actions() {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const { data: actions = [], isLoading } = useActions(DEFAULT_CHAIN_ID);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  const handleImageError = useCallback((actionId: string) => {
+    setImageErrors((prev) => ({ ...prev, [actionId]: true }));
+  }, []);
 
   const headerActions = (
     <Button asChild>
@@ -74,10 +82,19 @@ export default function Actions() {
             key={action.id}
             to={`/actions/${action.id}`}
             data-testid="action-card"
-            className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-primary-base hover:shadow-md active:scale-[0.98]"
+            className="group overflow-hidden rounded-lg border border-stroke-soft border-l-2 border-l-warning-base bg-bg-white transition hover:border-primary-base hover:shadow-md active:scale-[0.98]"
           >
-            {action.media[0] && (
-              <img src={action.media[0]} alt={action.title} className="w-full h-40 object-cover" />
+            {action.media[0] && !imageErrors[action.id] ? (
+              <img
+                src={action.media[0]}
+                alt={action.title}
+                className="w-full h-40 object-cover"
+                onError={() => handleImageError(action.id)}
+              />
+            ) : (
+              <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-bg-soft to-bg-sub">
+                <RiImageLine className="h-8 w-8 text-text-disabled" />
+              </div>
             )}
 
             <div className="p-6">
@@ -93,7 +110,17 @@ export default function Actions() {
                 <div className="flex items-center gap-1">
                   <RiCalendarLine className="h-4 w-4" />
                   <span>
-                    {formatDate(action.startTime)} - {formatDate(action.endTime)}
+                    {intl.formatDate(toSafeDate(action.startTime) ?? undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                    {" - "}
+                    {intl.formatDate(toSafeDate(action.endTime) ?? undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

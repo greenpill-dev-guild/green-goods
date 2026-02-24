@@ -1,4 +1,10 @@
-import { cn, getNetworkConfig, useCopyToClipboard, type Address } from "@green-goods/shared";
+import {
+  cn,
+  getNetworkConfig,
+  toastService,
+  useCopyToClipboard,
+  type Address,
+} from "@green-goods/shared";
 import {
   RiCheckLine,
   RiExternalLinkLine,
@@ -24,8 +30,24 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
   className,
 }) => {
   const { formatMessage } = useIntl();
-  const { copied: copiedGarden, copy: copyGarden } = useCopyToClipboard();
-  const { copied: copiedToken, copy: copyToken } = useCopyToClipboard();
+  const { copied: copiedGarden, copy: copyGarden } = useCopyToClipboard({
+    onSuccess: () =>
+      toastService.success({
+        title: formatMessage({
+          id: "app.common.addressCopied",
+          defaultMessage: "Address copied to clipboard",
+        }),
+      }),
+  });
+  const { copied: copiedToken, copy: copyToken } = useCopyToClipboard({
+    onSuccess: () =>
+      toastService.success({
+        title: formatMessage({
+          id: "app.common.addressCopied",
+          defaultMessage: "Address copied to clipboard",
+        }),
+      }),
+  });
 
   const networkConfig = getNetworkConfig(chainId);
   const blockExplorer = networkConfig.blockExplorer;
@@ -55,7 +77,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
   return (
     <div
       className={cn(
-        "grid gap-3 rounded-lg border border-stroke-soft bg-bg-white p-3 shadow-md transition-shadow duration-200 hover:shadow-md sm:p-4 md:grid-cols-2 lg:grid-cols-3",
+        "grid gap-3 rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-4 md:grid-cols-2 lg:grid-cols-3",
         className
       )}
     >
@@ -75,9 +97,10 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             <span className="inline sm:hidden">
               {gardenId.slice(0, 6)}...{gardenId.slice(-4)}
             </span>
-            <span className="hidden sm:inline">
+            <span className="hidden sm:inline md:hidden">
               {gardenId.slice(0, 10)}...{gardenId.slice(-8)}
             </span>
+            <span className="hidden md:inline">{gardenId}</span>
           </code>
           <button
             onClick={() => copyGarden(gardenId)}
@@ -132,8 +155,11 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             <span className="inline sm:hidden">
               {tokenAddress.slice(0, 6)}...{tokenAddress.slice(-4)} #{tokenId.toString()}
             </span>
-            <span className="hidden sm:inline">
+            <span className="hidden sm:inline md:hidden">
               {tokenAddress.slice(0, 10)}...{tokenAddress.slice(-8)} #{tokenId.toString()}
+            </span>
+            <span className="hidden md:inline">
+              {tokenAddress} #{tokenId.toString()}
             </span>
           </code>
           <button
@@ -190,7 +216,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
               href={getExplorerUrl(tokenAddress, "token") || "#"}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-stroke-sub bg-bg-white px-4 py-2.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-stroke-sub bg-bg-white px-4 py-2.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
             >
               <RiExternalLinkLine className="h-4 w-4 flex-shrink-0" />
               <span className="whitespace-nowrap">
@@ -205,7 +231,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             href={getOpenSeaUrl()}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-information-light bg-information-lighter px-4 py-2.5 text-xs font-medium text-information-dark transition hover:bg-information-light active:scale-95"
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-information-light bg-information-lighter px-4 py-2.5 text-xs font-medium text-information-dark transition hover:bg-information-light active:scale-95"
           >
             <RiNftLine className="h-4 w-4 flex-shrink-0" />
             <span className="whitespace-nowrap">OpenSea</span>

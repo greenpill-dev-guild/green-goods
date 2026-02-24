@@ -160,7 +160,11 @@ export function DepositModal({
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
-              <button type="button" className="rounded-md p-2 text-text-soft hover:text-text-sub">
+              <button
+                type="button"
+                className="min-h-11 min-w-11 rounded-md p-2 text-text-soft hover:text-text-sub"
+                aria-label={formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+              >
                 <RiCloseLine className="h-5 w-5" />
               </button>
             </Dialog.Close>
@@ -175,11 +179,12 @@ export function DepositModal({
             />
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-text-sub">
+              <label htmlFor="deposit-amount" className="text-sm font-medium text-text-sub">
                 {formatMessage({ id: "app.treasury.depositAmount" })}
               </label>
               <div className="flex items-center gap-2">
                 <input
+                  id="deposit-amount"
                   type="text"
                   inputMode="decimal"
                   {...amountField}
@@ -187,6 +192,7 @@ export function DepositModal({
                   onChange={(event) => amountField.onChange(event)}
                   placeholder="0.0"
                   disabled={!decimalsReady || depositMutation.isPending}
+                  aria-required="true"
                   aria-invalid={Boolean(amountError)}
                   aria-describedby={amountError ? "deposit-error" : undefined}
                   className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${

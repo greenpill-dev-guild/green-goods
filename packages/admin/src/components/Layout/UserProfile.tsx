@@ -8,9 +8,11 @@ import {
   RiSunLine,
   RiUserLine,
 } from "@remixicon/react";
+import { useIntl } from "react-intl";
 import { AddressDisplay } from "../AddressDisplay";
 
 export function UserProfile() {
+  const { formatMessage } = useIntl();
   const { signOut, eoaAddress } = useAuth();
   const { role } = useRole();
   const { theme, setTheme } = useTheme();
@@ -31,13 +33,16 @@ export function UserProfile() {
   const getThemeLabel = (mode: string) => {
     switch (mode) {
       case "light":
-        return "Light Mode";
+        return formatMessage({
+          id: "app.admin.userProfile.lightMode",
+          defaultMessage: "Light Mode",
+        });
       case "dark":
-        return "Dark Mode";
+        return formatMessage({ id: "app.admin.userProfile.darkMode", defaultMessage: "Dark Mode" });
       case "system":
-        return "System";
+        return formatMessage({ id: "app.admin.userProfile.system", defaultMessage: "System" });
       default:
-        return "System";
+        return formatMessage({ id: "app.admin.userProfile.system", defaultMessage: "System" });
     }
   };
 
@@ -79,7 +84,10 @@ export function UserProfile() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-text-strong capitalize">
-                  {role} Account
+                  {formatMessage(
+                    { id: "app.admin.userProfile.roleAccount", defaultMessage: "{role} Account" },
+                    { role }
+                  )}
                 </div>
                 <div className="text-xs">
                   {eoaAddress && <AddressDisplay address={eoaAddress} showCopyButton={true} />}
@@ -91,7 +99,7 @@ export function UserProfile() {
           {/* Theme Options */}
           <DropdownMenu.Group>
             <DropdownMenu.Label className="px-4 pt-3 pb-1 text-xs font-medium text-text-soft uppercase tracking-wider">
-              Theme
+              {formatMessage({ id: "app.admin.userProfile.theme", defaultMessage: "Theme" })}
             </DropdownMenu.Label>
             {(["light", "dark", "system"] as const).map((mode) => (
               <DropdownMenu.Item
@@ -118,7 +126,10 @@ export function UserProfile() {
             className="flex items-center w-full px-4 py-2 text-sm text-error-base hover:bg-error-lighter data-[highlighted]:bg-error-lighter transition-colors cursor-pointer outline-none"
           >
             <RiLogoutBoxLine className="mr-3 h-4 w-4" />
-            Disconnect
+            {formatMessage({
+              id: "app.admin.userProfile.disconnect",
+              defaultMessage: "Disconnect",
+            })}
           </DropdownMenu.Item>
 
           <div className="py-1" />

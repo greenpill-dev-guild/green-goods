@@ -5,7 +5,13 @@ import {
   useGardenVaults,
   useGardens,
 } from "@green-goods/shared";
-import { RiArrowRightLine, RiSafe2Line } from "@remixicon/react";
+import {
+  RiArrowRightLine,
+  RiLeafLine,
+  RiMoneyDollarCircleLine,
+  RiPlantLine,
+  RiSafe2Line,
+} from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -13,6 +19,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { StatCard } from "@/components/StatCard";
 
 export default function TreasuryOverview() {
   const { formatMessage } = useIntl();
@@ -67,30 +74,24 @@ export default function TreasuryOverview() {
 
       <div className="mx-auto mt-6 max-w-6xl space-y-6 px-4 sm:px-6">
         <section className="stagger-children grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Card padding="compact">
-            <p className="text-xs text-text-soft">
-              {formatMessage({ id: "app.treasury.totalValueLocked" })}
-            </p>
-            <p className="mt-1 font-heading text-xl font-semibold tabular-nums text-text-strong">
-              {formatTokenAmount(totalTVL)}
-            </p>
-          </Card>
-          <Card padding="compact">
-            <p className="text-xs text-text-soft">
-              {formatMessage({ id: "app.treasury.totalHarvests" })}
-            </p>
-            <p className="mt-1 font-heading text-xl font-semibold tabular-nums text-text-strong">
-              {totalHarvests}
-            </p>
-          </Card>
-          <Card padding="compact">
-            <p className="text-xs text-text-soft">
-              {formatMessage({ id: "app.treasury.gardensWithVaults" })}
-            </p>
-            <p className="mt-1 font-heading text-xl font-semibold tabular-nums text-text-strong">
-              {grouped.length}
-            </p>
-          </Card>
+          <StatCard
+            icon={<RiMoneyDollarCircleLine className="h-5 w-5" />}
+            label={formatMessage({ id: "app.treasury.totalValueLocked" })}
+            value={formatTokenAmount(totalTVL)}
+            colorScheme="info"
+          />
+          <StatCard
+            icon={<RiLeafLine className="h-5 w-5" />}
+            label={formatMessage({ id: "app.treasury.totalHarvests" })}
+            value={totalHarvests}
+            colorScheme="success"
+          />
+          <StatCard
+            icon={<RiPlantLine className="h-5 w-5" />}
+            label={formatMessage({ id: "app.treasury.gardensWithVaults" })}
+            value={grouped.length}
+            colorScheme="warning"
+          />
         </section>
 
         {isLoading && (
@@ -141,14 +142,22 @@ export default function TreasuryOverview() {
           <EmptyState
             icon={<RiSafe2Line className="h-6 w-6" />}
             title={formatMessage({ id: "app.treasury.noVault" })}
-            description={formatMessage({ id: "app.treasury.noVaultDescription" })}
+            description={formatMessage({
+              id: "app.treasury.noVaultDescription",
+              defaultMessage: "No gardens have configured vault strategies yet.",
+            })}
           />
         )}
 
         {!isLoading && grouped.length > 0 && (
           <section className="stagger-children grid grid-cols-1 gap-4 lg:grid-cols-2">
             {grouped.map((item) => (
-              <Card key={item.gardenAddress} padding="compact" className="sm:p-5">
+              <Card
+                key={item.gardenAddress}
+                padding="compact"
+                colorAccent="info"
+                className="sm:p-5"
+              >
                 <div className="mb-4">
                   <h2 className="font-heading text-base font-semibold text-text-strong sm:text-lg">
                     {item.garden?.name}

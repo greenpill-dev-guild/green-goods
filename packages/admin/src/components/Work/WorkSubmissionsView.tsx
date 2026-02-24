@@ -29,22 +29,28 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
   const filterButtons: Array<{ id: FilterType; label: string; icon: React.ReactNode }> = [
     {
       id: "all",
-      label: intl.formatMessage({ id: "admin.work.filter.all", defaultMessage: "All" }),
+      label: intl.formatMessage({ id: "app.admin.work.filter.all", defaultMessage: "All" }),
       icon: <RiFileList3Line className="h-4 w-4" />,
     },
     {
       id: "pending",
-      label: intl.formatMessage({ id: "admin.work.filter.pending", defaultMessage: "Pending" }),
+      label: intl.formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" }),
       icon: <RiTimeLine className="h-4 w-4" />,
     },
     {
       id: "approved",
-      label: intl.formatMessage({ id: "admin.work.filter.approved", defaultMessage: "Approved" }),
+      label: intl.formatMessage({
+        id: "app.admin.work.filter.approved",
+        defaultMessage: "Approved",
+      }),
       icon: <RiCheckboxCircleLine className="h-4 w-4" />,
     },
     {
       id: "rejected",
-      label: intl.formatMessage({ id: "admin.work.filter.rejected", defaultMessage: "Rejected" }),
+      label: intl.formatMessage({
+        id: "app.admin.work.filter.rejected",
+        defaultMessage: "Rejected",
+      }),
       icon: <RiCloseLine className="h-4 w-4" />,
     },
   ];
@@ -54,20 +60,33 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
       {/* Header */}
       <Card.Header className="flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h3 className="text-base font-medium text-text-strong sm:text-lg">
+          <h3 className="label-md text-text-strong sm:text-lg">
             {intl.formatMessage({
-              id: "admin.work.submissions.title",
+              id: "app.admin.work.submissions.title",
               defaultMessage: "Work Submissions",
             })}
           </h3>
           <p className="mt-1 text-sm text-text-soft">
-            {filteredWorks.length} {activeFilter !== "all" ? activeFilter : ""} submission
-            {filteredWorks.length !== 1 ? "s" : ""}
+            {filteredWorks.length} {activeFilter !== "all" ? activeFilter : ""}{" "}
+            {intl.formatMessage(
+              {
+                id: "app.admin.work.submissionCount",
+                defaultMessage: "{count, plural, one {submission} other {submissions}}",
+              },
+              { count: filteredWorks.length }
+            )}
           </p>
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label={intl.formatMessage({
+            id: "app.admin.work.filterGroup",
+            defaultMessage: "Filter work submissions",
+          })}
+        >
           {filterButtons.map((filter) => (
             <button
               key={filter.id}
@@ -78,8 +97,13 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
                   ? "bg-primary-alpha-16 text-primary-darker"
                   : "bg-bg-soft text-text-sub hover:bg-bg-sub"
               }`}
-              // eslint-disable-next-line jsx-a11y/aria-proptypes
-              aria-label={`Filter by ${filter.label}`}
+              aria-label={intl.formatMessage(
+                {
+                  id: "app.admin.work.filterBy",
+                  defaultMessage: "Filter by {filter}",
+                },
+                { filter: filter.label }
+              )}
               aria-pressed={activeFilter === filter.id}
             >
               <span className="flex-shrink-0">{filter.icon}</span>
@@ -95,7 +119,7 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2" role="status" aria-live="polite">
             <span className="sr-only">
               {intl.formatMessage({
-                id: "admin.work.submissions.title",
+                id: "app.admin.work.submissions.title",
                 defaultMessage: "Loading submissions",
               })}
             </span>
@@ -128,19 +152,19 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
           <EmptyState
             icon={<RiFileList3Line className="h-6 w-6" />}
             title={intl.formatMessage({
-              id: "admin.work.submissions.empty",
+              id: "app.admin.work.submissions.empty",
               defaultMessage: "No work submissions found",
             })}
             description={
               activeFilter === "all"
                 ? intl.formatMessage({
-                    id: "admin.work.submissions.empty.all",
+                    id: "app.admin.work.submissions.empty.all",
                     defaultMessage:
                       "Work submissions will appear here once gardeners start contributing.",
                   })
                 : intl.formatMessage(
                     {
-                      id: "admin.work.submissions.empty.filtered",
+                      id: "app.admin.work.submissions.empty.filtered",
                       defaultMessage: "No {filter} work submissions yet.",
                     },
                     { filter: activeFilter }

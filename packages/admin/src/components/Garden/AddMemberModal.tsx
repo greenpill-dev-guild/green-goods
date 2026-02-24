@@ -119,9 +119,9 @@ export function AddMemberModal({
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150" />
+        <Dialog.Overlay className="fixed inset-0 z-60 bg-black/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150" />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-[10000] -translate-x-1/2 -translate-y-1/2 bg-bg-white rounded-lg shadow-2xl ring-1 ring-black/5 max-w-md w-full p-6 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
+          className="fixed left-1/2 top-1/2 z-60 -translate-x-1/2 -translate-y-1/2 bg-bg-white rounded-lg shadow-2xl ring-1 ring-black/5 max-w-md w-full p-6 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
           onPointerDownOutside={(e) => {
             if (isLoading) e.preventDefault();
           }}
@@ -136,9 +136,10 @@ export function AddMemberModal({
             </Dialog.Title>
             <Dialog.Close asChild>
               <button
-                className="p-2 text-text-soft hover:text-text-sub rounded-md focus:outline-none focus:ring-2 focus:ring-primary-base/20"
+                className="min-h-11 min-w-11 p-2 text-text-soft hover:text-text-sub rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-base/20"
                 type="button"
                 disabled={isLoading}
+                aria-label={formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
               >
                 <RiCloseLine className="h-5 w-5" />
               </button>
@@ -163,18 +164,21 @@ export function AddMemberModal({
                     setAddress(e.target.value);
                     setError("");
                   }}
-                  className="w-full px-3 py-2 pr-10 border border-stroke-sub bg-bg-white text-text-strong rounded-md focus:outline-none focus:ring-2 focus:ring-primary-base focus:border-primary-base"
+                  className="w-full px-3 py-2 pr-10 border border-stroke-sub bg-bg-white text-text-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-base focus:border-primary-base"
                   placeholder={formatMessage({
                     id: "admin.addMember.placeholder",
                     defaultMessage: "0x... or name.eth",
                   })}
                   disabled={isLoading}
+                  aria-required="true"
+                  aria-invalid={!!error}
+                  aria-describedby={error ? "member-address-error" : undefined}
                 />
                 <button
                   type="button"
                   onClick={handlePaste}
                   disabled={isLoading}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-soft hover:text-text-sub disabled:opacity-50"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 min-h-11 min-w-11 flex items-center justify-center text-text-soft hover:text-text-sub disabled:opacity-50"
                   title={formatMessage({
                     id: "admin.addMember.paste",
                     defaultMessage: "Paste from clipboard",
@@ -204,7 +208,11 @@ export function AddMemberModal({
                         })}
                 </p>
               )}
-              {error && <p className="mt-1 text-sm text-error-dark">{error}</p>}
+              {error && (
+                <p id="member-address-error" role="alert" className="mt-1 text-sm text-error-dark">
+                  {error}
+                </p>
+              )}
             </div>
 
             {/* Buttons */}
@@ -213,7 +221,7 @@ export function AddMemberModal({
                 <button
                   type="button"
                   disabled={isLoading}
-                  className="px-4 py-2 border border-stroke-sub text-sm font-medium rounded-md text-text-sub bg-bg-white hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base disabled:opacity-50"
+                  className="px-4 py-2 border border-stroke-sub text-sm font-medium rounded-lg text-text-sub bg-bg-white hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base disabled:opacity-50"
                 >
                   {formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" })}
                 </button>
@@ -222,7 +230,7 @@ export function AddMemberModal({
                 type="submit"
                 disabled={isLoading || !trimmed || (shouldResolveEns && resolvingEns)}
                 className={cn(
-                  "px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base",
+                  "px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-primary-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base disabled:text-text-soft disabled:opacity-50",
                   isLoading || !trimmed || (shouldResolveEns && resolvingEns)
                     ? "bg-bg-surface cursor-not-allowed"
                     : "bg-primary-base hover:bg-primary-darker"

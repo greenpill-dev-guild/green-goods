@@ -10,6 +10,7 @@ import { RiCloseLine, RiErrorWarningLine, RiLoader4Line } from "@remixicon/react
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
 import { FormWizard } from "@/components/Form/FormWizard";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
 import { ReviewStep } from "@/components/Garden/CreateGardenSteps/ReviewStep";
@@ -20,7 +21,7 @@ export default function CreateGarden() {
   const navigate = useNavigate();
   const steps = useCreateGardenStore((state) => state.steps);
   const currentStep = useCreateGardenStore((state) => state.currentStep);
-  const form = useCreateGardenStore((state) => state.form);
+  const form = useCreateGardenStore(useShallow((state) => state.form));
   const resetForm = useCreateGardenStore((state) => state.reset);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -302,7 +303,7 @@ export default function CreateGarden() {
       <Dialog.Root open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-stroke-soft bg-bg-strong p-5 shadow-xl">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-stroke-soft bg-bg-white p-5 shadow-xl">
             <div className="mb-4 flex items-start justify-between gap-2">
               <div>
                 <Dialog.Title className="text-lg font-semibold text-text-strong">

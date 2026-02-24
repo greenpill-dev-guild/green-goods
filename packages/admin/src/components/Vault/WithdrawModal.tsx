@@ -143,7 +143,11 @@ export function WithdrawModal({
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
-              <button type="button" className="rounded-md p-2 text-text-soft hover:text-text-sub">
+              <button
+                type="button"
+                className="min-h-11 min-w-11 rounded-md p-2 text-text-soft hover:text-text-sub"
+                aria-label={formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+              >
                 <RiCloseLine className="h-5 w-5" />
               </button>
             </Dialog.Close>
@@ -209,16 +213,18 @@ export function WithdrawModal({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-text-sub">
+              <label htmlFor="withdraw-shares" className="text-sm font-medium text-text-sub">
                 {formatMessage({ id: "app.treasury.withdrawShares" })}
               </label>
               <div className="flex items-center gap-2">
                 <input
+                  id="withdraw-shares"
                   type="text"
                   inputMode="decimal"
                   value={sharesInput}
                   onChange={(event) => setSharesInput(event.target.value)}
                   placeholder="0.0"
+                  aria-required="true"
                   aria-invalid={Boolean(sharesError)}
                   aria-describedby={sharesError ? "withdraw-error" : undefined}
                   className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${

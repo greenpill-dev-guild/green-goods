@@ -59,12 +59,18 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
   const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
 
   return (
-    <>
+    <section
+      className="flex flex-col gap-4"
+      aria-label={formatMessage({
+        id: "app.garden.admin.tab.community",
+        defaultMessage: "Community",
+      })}
+    >
       {hasVaults && (
-        <Card padding="compact" className="mb-4 sm:p-6">
+        <Card padding="compact" className="sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+              <h3 className="label-md text-text-strong sm:text-lg">
                 {formatMessage({ id: "app.treasury.title" })}
               </h3>
               <p className="mt-1 text-sm text-text-sub">
@@ -86,10 +92,10 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
       )}
 
       {canManage && (
-        <Card padding="compact" className="mb-4 sm:p-6">
+        <Card padding="compact" className="sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+              <h3 className="label-md text-text-strong sm:text-lg">
                 {formatMessage({ id: "app.conviction.title" })}
               </h3>
               <p className="mt-1 text-sm text-text-sub">
@@ -121,14 +127,14 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
       )}
 
       {cookieJarCount > 0 && (
-        <Card padding="compact" className="mb-4 sm:p-6">
+        <Card padding="compact" className="sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-lighter">
                 <RiCupLine className="h-5 w-5 text-warning-dark" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+                <h3 className="label-md text-text-strong sm:text-lg">
                   {formatMessage({ id: "app.cookieJar.title" })}
                 </h3>
                 <p className="mt-0.5 text-sm text-text-sub">
@@ -145,14 +151,14 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
         </Card>
       )}
 
-      <Card padding="compact" className="mb-4 sm:p-6">
+      <Card padding="compact" className="sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-feature-lighter">
               <RiGroupLine className="h-5 w-5 text-feature-dark" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-text-strong sm:text-lg">
+              <h3 className="label-md text-text-strong sm:text-lg">
                 {formatMessage({ id: "app.community.title" })}
               </h3>
               <p className="mt-0.5 flex items-center gap-1.5 text-sm text-text-sub">
@@ -168,7 +174,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
           </div>
         </div>
 
-        <div className="mt-4 rounded-md bg-bg-weak p-3">
+        <div className="mt-4 rounded-lg bg-bg-weak p-3">
           <p className="text-xs font-medium text-text-soft">
             {formatMessage({ id: "app.community.weightScheme" })}
           </p>
@@ -212,7 +218,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
 
         {pools.length > 0 ? (
           <div className="mt-3 grid grid-cols-2 gap-3">
-            <div className="rounded-md bg-bg-weak p-3">
+            <div className="rounded-lg bg-bg-weak p-3">
               <p className="text-xs font-medium text-text-soft">
                 {formatMessage({ id: "app.community.poolType.hypercert" })}
               </p>
@@ -224,7 +230,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                 )}
               </p>
             </div>
-            <div className="rounded-md bg-bg-weak p-3">
+            <div className="rounded-lg bg-bg-weak p-3">
               <p className="text-xs font-medium text-text-soft">
                 {formatMessage({ id: "app.community.poolType.action" })}
               </p>
@@ -238,7 +244,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
             </div>
           </div>
         ) : (
-          <div className="mt-3 rounded-md border border-warning-light bg-warning-lighter p-3">
+          <div className="mt-3 rounded-lg border border-warning-light bg-warning-lighter p-3">
             <p className="text-sm text-warning-dark">
               {formatMessage({ id: "app.community.noPoolsYet" })}
             </p>
@@ -271,6 +277,6 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
           </div>
         )}
       </Card>
-    </>
+    </section>
   );
 };

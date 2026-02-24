@@ -43,8 +43,10 @@ export function FormWizard({
   submitLabel,
 }: FormWizardProps) {
   const { formatMessage } = useIntl();
-  const resolvedNextLabel = nextLabel ?? formatMessage({ id: "app.form.next" });
-  const resolvedSubmitLabel = submitLabel ?? formatMessage({ id: "app.form.submit" });
+  const resolvedNextLabel =
+    nextLabel ?? formatMessage({ id: "app.form.next", defaultMessage: "Next" });
+  const resolvedSubmitLabel =
+    submitLabel ?? formatMessage({ id: "app.form.submit", defaultMessage: "Submit" });
   const contentRef = useRef<HTMLDivElement>(null);
   const isLastStep = currentStep === steps.length - 1;
   const isFirstStep = currentStep === 0;
@@ -69,7 +71,7 @@ export function FormWizard({
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {currentStepInfo &&
           formatMessage(
-            { id: "app.form.stepAnnouncement" },
+            { id: "app.form.stepAnnouncement", defaultMessage: "Step {step} of {total}: {title}" },
             {
               step: currentStep + 1,
               total: steps.length,
@@ -99,7 +101,7 @@ export function FormWizard({
             {!isFirstStep && onBack && (
               <Button variant="secondary" onClick={onBack} disabled={isSubmitting}>
                 <RiArrowLeftLine className="h-4 w-4" />
-                {formatMessage({ id: "app.wizard.back" })}
+                {formatMessage({ id: "app.wizard.back", defaultMessage: "Back" })}
               </Button>
             )}
 
@@ -110,7 +112,7 @@ export function FormWizard({
                 disabled={isSubmitting}
                 className="flex-1 sm:flex-initial"
               >
-                {formatMessage({ id: "app.wizard.cancel" })}
+                {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
               </Button>
 
               {!isLastStep && onNext && (
@@ -131,7 +133,7 @@ export function FormWizard({
                   className="flex-1 sm:flex-initial"
                 >
                   {isSubmitting
-                    ? formatMessage({ id: "app.wizard.submitting" })
+                    ? formatMessage({ id: "app.wizard.submitting", defaultMessage: "Deploying..." })
                     : resolvedSubmitLabel}
                 </Button>
               )}

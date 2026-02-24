@@ -167,7 +167,7 @@ export default function Gardens() {
   } else {
     content = (
       <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-        {gardens.map((garden) => {
+        {gardens.map((garden, index) => {
           const canManage = gardenPermissions.canManageGarden(garden);
           const isOwner = gardenPermissions.isOwnerOfGarden(garden);
           const isOperator = gardenPermissions.isOperatorOfGarden(garden);
@@ -175,6 +175,7 @@ export default function Gardens() {
           const resolvedBannerImage = garden.bannerImage
             ? resolveIPFSUrl(garden.bannerImage)
             : null;
+          const isFeatured = index === 0 && gardens.length > 1;
 
           const roleBadge = (() => {
             if (isOwner) {
@@ -206,9 +207,10 @@ export default function Gardens() {
               key={garden.id}
               data-testid="garden-card"
               variant="interactive"
-              className="overflow-hidden active:scale-[0.98]"
+              colorAccent={isFeatured ? "primary" : "success"}
+              className={`overflow-hidden active:scale-[0.98] ${isFeatured ? "md:col-span-2" : ""}`}
             >
-              <div className="relative h-48">
+              <div className={`relative ${isFeatured ? "h-56" : "h-48"}`}>
                 {resolvedBannerImage ? (
                   <img
                     src={resolvedBannerImage}
@@ -230,25 +232,37 @@ export default function Gardens() {
                   style={{ display: resolvedBannerImage ? "none" : "flex" }}
                 >
                   <div className="text-center">
-                    <div className="text-2xl font-bold opacity-80">{garden.name.charAt(0)}</div>
+                    <div className={`font-bold opacity-80 ${isFeatured ? "text-3xl" : "text-2xl"}`}>
+                      {garden.name.charAt(0)}
+                    </div>
                   </div>
                 </div>
-                {roleBadge && (
-                  <div
-                    className={`absolute top-2 right-2 flex items-center rounded-full px-2 py-1 text-xs font-medium ${roleBadge.className}`}
-                  >
-                    <roleBadge.Icon className="mr-1 h-3 w-3" />
-                    {roleBadge.label}
-                  </div>
-                )}
+                <div className="absolute top-2 right-2 flex items-center gap-2">
+                  {isFeatured && (
+                    <span className="flex items-center rounded-full bg-primary-base px-2 py-1 text-xs font-medium text-primary-foreground shadow-sm">
+                      <RiPlantLine className="mr-1 h-3 w-3" />
+                      {formatMessage({ id: "admin.gardens.featured", defaultMessage: "Featured" })}
+                    </span>
+                  )}
+                  {roleBadge && (
+                    <div
+                      className={`flex items-center rounded-full px-2 py-1 text-xs font-medium ${roleBadge.className}`}
+                    >
+                      <roleBadge.Icon className="mr-1 h-3 w-3" />
+                      {roleBadge.label}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="p-6">
                 <div className="mb-2 flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="mb-1 font-heading text-lg font-medium text-text-strong">
+                    <h3
+                      className={`mb-1 font-heading font-medium text-text-strong ${isFeatured ? "text-xl" : "text-lg"}`}
+                    >
                       {garden.name}
                     </h3>
-                    <p className="text-sm text-text-soft">{garden.location}</p>
+                    <p className="body-sm text-text-soft">{garden.location}</p>
                   </div>
                   {!resolvedBannerImage && roleBadge && (
                     <div
@@ -259,12 +273,14 @@ export default function Gardens() {
                     </div>
                   )}
                 </div>
-                <p className="mb-4 line-clamp-2 text-sm text-text-sub">{garden.description}</p>
+                <p className={`mb-4 body-sm text-text-sub ${isFeatured ? "" : "line-clamp-2"}`}>
+                  {garden.description}
+                </p>
 
-                <div className="mb-4 flex items-center justify-between text-sm text-text-soft">
+                <div className="mb-4 flex items-center justify-between body-sm text-text-soft">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center">
-                      <RiUserLine className="mr-1 h-4 w-4" />
+                      <RiShieldCheckLine className="mr-1 h-4 w-4" />
                       <span>{garden.operators?.length ?? 0} operators</span>
                     </div>
                     <div className="flex items-center">

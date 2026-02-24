@@ -1,7 +1,6 @@
 import {
   ErrorBoundary,
   GARDEN_ROLE_ORDER,
-  GARDEN_ROLE_I18N_KEYS,
   getRoleColorClasses,
   type Address,
   type GardenRole,
@@ -9,6 +8,7 @@ import {
 import {
   RiCheckboxCircleLine,
   RiDeleteBinLine,
+  RiLoader4Line,
   RiMedalLine,
   RiShieldCheckLine,
   RiUserAddLine,
@@ -16,8 +16,10 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AddressDisplay } from "@/components/AddressDisplay";
+import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const roleIcons = {
   owner: RiShieldCheckLine,
@@ -47,10 +49,7 @@ export const GardenRolesPanel: React.FC<GardenRolesPanelProps> = ({
 }) => {
   const { formatMessage } = useIntl();
 
-  const getRoleLabel = (role: GardenRole) => ({
-    singular: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].singular }),
-    plural: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].plural }),
-  });
+  const getLabel = (role: GardenRole) => getRoleLabel(role, formatMessage);
 
   return (
     <section>
@@ -58,14 +57,14 @@ export const GardenRolesPanel: React.FC<GardenRolesPanelProps> = ({
         <div className="grid gap-4 sm:grid-cols-2">
           {GARDEN_ROLE_ORDER.map((role) => {
             const members = roleMembers[role];
-            const roleLabel = getRoleLabel(role);
+            const roleLabel = getLabel(role);
             const colors = getRoleColorClasses(role);
             const Icon = roleIcons[role];
 
             return (
               <Card key={role}>
                 <Card.Header>
-                  <h3 className="min-w-0 truncate text-base font-medium text-text-strong sm:text-lg">
+                  <h3 className="min-w-0 truncate label-md text-text-strong sm:text-lg">
                     {roleLabel.plural}
                   </h3>
                   {canManageRoles && (
@@ -85,16 +84,20 @@ export const GardenRolesPanel: React.FC<GardenRolesPanelProps> = ({
                 </Card.Header>
                 <Card.Body>
                   {members.length === 0 ? (
-                    <p className="py-4 text-center text-sm text-text-soft">
-                      {formatMessage({ id: "app.admin.roles.empty" }, { role: roleLabel.plural })}
-                    </p>
+                    <EmptyState
+                      icon={<Icon className="h-6 w-6" />}
+                      title={formatMessage(
+                        { id: "app.admin.roles.empty" },
+                        { role: roleLabel.plural }
+                      )}
+                    />
                   ) : (
                     <>
                       <div className="space-y-2 sm:space-y-3">
                         {members.slice(0, 3).map((member: string, index: number) => (
                           <div
                             key={`${member}-${index}`}
-                            className="flex items-center justify-between gap-2 rounded-md bg-bg-weak p-2.5 sm:p-3"
+                            className="flex items-center justify-between gap-3 rounded-lg bg-bg-weak p-2.5 sm:p-3"
                           >
                             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
                               <div
@@ -115,7 +118,11 @@ export const GardenRolesPanel: React.FC<GardenRolesPanelProps> = ({
                                 )}
                                 type="button"
                               >
-                                <RiDeleteBinLine className="h-4 w-4" />
+                                {isLoading ? (
+                                  <RiLoader4Line className="h-4 w-4 animate-spin text-error-base" />
+                                ) : (
+                                  <RiDeleteBinLine className="h-4 w-4" />
+                                )}
                               </button>
                             )}
                           </div>

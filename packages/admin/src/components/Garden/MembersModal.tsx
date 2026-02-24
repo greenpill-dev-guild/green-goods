@@ -67,8 +67,7 @@ export function MembersModal({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150" />
         <Dialog.Content
-          className="fixed z-50 w-full max-w-2xl overflow-hidden bg-bg-white shadow-2xl focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-2xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300"
-          style={{ maxHeight: "90vh" }}
+          className="fixed z-50 w-full max-w-2xl max-h-[90vh] overflow-hidden bg-bg-white shadow-2xl focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-2xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300"
           onPointerDownOutside={(e) => {
             if (isLoading) e.preventDefault();
           }}
@@ -107,7 +106,7 @@ export function MembersModal({
           </div>
 
           {/* Content */}
-          <div className="overflow-y-auto p-4 sm:p-6" style={{ maxHeight: "calc(90vh - 80px)" }}>
+          <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-4 sm:p-6">
             {members.length === 0 ? (
               <EmptyState
                 icon={icon || <RiUserLine className="h-6 w-6" />}
@@ -131,12 +130,6 @@ export function MembersModal({
                           address={member}
                           className="text-sm font-medium sm:text-base"
                         />
-                        <p className="text-xs text-text-soft">
-                          {formatMessage(
-                            { id: "app.admin.garden.members.index" },
-                            { index: index + 1 }
-                          )}
-                        </p>
                       </div>
                     </div>
                     {canManage && onRemove && (
@@ -159,7 +152,7 @@ export function MembersModal({
           </div>
 
           {/* Mobile drag indicator */}
-          <div className="flex justify-center pb-2 pt-1 sm:hidden">
+          <div className="flex justify-center pb-2 pt-1 sm:hidden" aria-hidden="true">
             <div className="h-1 w-12 rounded-full bg-stroke-sub" />
           </div>
         </Dialog.Content>

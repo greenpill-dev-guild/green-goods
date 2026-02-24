@@ -265,7 +265,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="stagger-children grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="stagger-children grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <StatCard
           icon={<RiPlantLine className="h-6 w-6" />}
           label={
@@ -310,7 +310,7 @@ export default function Dashboard() {
 
       {/* ENS Claim Card */}
       {showENSCard && (
-        <Card padding="feature" className="mb-8">
+        <Card padding="feature" colorAccent="info" className="mb-8">
           <div className="flex items-start gap-4">
             <div className="p-2 bg-primary-alpha-16 rounded-lg shrink-0">
               <RiGlobalLine className="h-6 w-6 text-primary-base" />
@@ -412,7 +412,7 @@ export default function Dashboard() {
       )}
 
       {/* Quick Actions */}
-      <Card padding="feature" className="mb-8 animate-fade-in-up">
+      <Card padding="feature" colorAccent="primary" className="mb-8 animate-fade-in-up">
         <h2 className="font-heading text-lg font-medium text-text-strong mb-4">
           {intl.formatMessage({
             id: "admin.dashboard.quickActions",
@@ -455,7 +455,7 @@ export default function Dashboard() {
       </Card>
 
       {/* Recent Gardens */}
-      <Card className="animate-fade-in-up">
+      <Card colorAccent="success" className="animate-fade-in-up">
         <Card.Header>
           <h2 className="font-heading text-lg font-medium text-text-strong">
             {intl.formatMessage({
@@ -478,13 +478,17 @@ export default function Dashboard() {
             <Link
               key={garden.id}
               to={`/gardens/${garden.id}`}
-              className="group flex items-center justify-between px-6 py-3 transition-colors hover:bg-bg-weak"
+              className="group flex items-center gap-3 px-6 py-3 transition-colors hover:bg-bg-weak"
             >
+              {/* Garden monogram */}
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary-dark to-primary-darker text-xs font-bold text-primary-foreground">
+                {garden.name.charAt(0)}
+              </div>
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-medium text-text-strong group-hover:text-primary-base transition-colors">
+                <h3 className="label-sm text-text-strong group-hover:text-primary-base transition-colors">
                   {garden.name}
                 </h3>
-                <p className="text-sm text-text-soft">
+                <p className="body-xs text-text-soft">
                   {garden.location ||
                     intl.formatMessage({
                       id: "admin.dashboard.noLocation",
@@ -493,10 +497,18 @@ export default function Dashboard() {
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <span className="text-xs tabular-nums text-text-soft hidden sm:block">
-                  {garden.operators?.length || 0} operators, {garden.gardeners?.length || 0}{" "}
-                  gardeners
-                </span>
+                <div className="hidden items-center gap-3 sm:flex">
+                  <span className="inline-flex items-center gap-1 body-xs tabular-nums text-text-soft">
+                    <RiUserLine className="h-3.5 w-3.5" />
+                    {garden.operators?.length || 0}
+                  </span>
+                  <span className="inline-flex items-center gap-1 body-xs tabular-nums text-text-soft">
+                    <RiPlantLine className="h-3.5 w-3.5" />
+                    {garden.gardeners?.length || 0}
+                  </span>
+                </div>
+                {/* Sparkline-ready slot */}
+                <div className="hidden w-16 lg:block" />
                 <RiArrowRightSLine className="h-4 w-4 text-text-disabled group-hover:text-primary-base transition-colors" />
               </div>
             </Link>

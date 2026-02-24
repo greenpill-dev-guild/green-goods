@@ -10,26 +10,59 @@ import {
   RiSettings3Line,
   RiUploadLine,
 } from "@remixicon/react";
+import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 
 const generalNav = [
   {
-    name: "Dashboard",
+    i18nKey: "app.admin.nav.dashboard",
+    defaultMessage: "Dashboard",
     href: "/dashboard",
     icon: RiDashboardLine,
     roles: ["deployer", "operator", "user"],
   },
-  { name: "Gardens", href: "/gardens", icon: RiPlantLine, roles: ["deployer", "operator", "user"] },
-  { name: "Treasury", href: "/treasury", icon: RiBankLine, roles: ["deployer", "operator"] },
-  { name: "Actions", href: "/actions", icon: RiHammerFill, roles: ["deployer", "operator"] },
+  {
+    i18nKey: "app.admin.nav.gardens",
+    defaultMessage: "Gardens",
+    href: "/gardens",
+    icon: RiPlantLine,
+    roles: ["deployer", "operator", "user"],
+  },
+  {
+    i18nKey: "app.admin.nav.treasury",
+    defaultMessage: "Treasury",
+    href: "/treasury",
+    icon: RiBankLine,
+    roles: ["deployer", "operator"],
+  },
+  {
+    i18nKey: "app.admin.nav.actions",
+    defaultMessage: "Actions",
+    href: "/actions",
+    icon: RiHammerFill,
+    roles: ["deployer", "operator"],
+  },
 ];
 
 const adminNav = [
-  { name: "Contracts", href: "/contracts", icon: RiSettings3Line, roles: ["deployer"] },
-  { name: "Deployment", href: "/deployment", icon: RiUploadLine, roles: ["deployer"] },
+  {
+    i18nKey: "app.admin.nav.contracts",
+    defaultMessage: "Contracts",
+    href: "/contracts",
+    icon: RiSettings3Line,
+    roles: ["deployer"],
+  },
+  {
+    i18nKey: "app.admin.nav.deployment",
+    defaultMessage: "Deployment",
+    href: "/deployment",
+    icon: RiUploadLine,
+    roles: ["deployer"],
+  },
 ];
 
 export function Sidebar() {
+  const { formatMessage } = useIntl();
   const location = useLocation();
   const { signOut } = useAuth();
   const { role } = useRole();
@@ -43,10 +76,11 @@ export function Sidebar() {
     const isActive =
       location.pathname === item.href ||
       (item.href !== "/dashboard" && location.pathname.startsWith(item.href));
+    const label = formatMessage({ id: item.i18nKey, defaultMessage: item.defaultMessage });
 
     return (
       <Link
-        key={item.name}
+        key={item.i18nKey}
         to={item.href}
         onClick={() => setSidebarOpen(false)}
         className={cn(
@@ -57,7 +91,7 @@ export function Sidebar() {
         )}
       >
         <item.icon className="mr-3 h-5 w-5" />
-        {item.name}
+        {label}
       </Link>
     );
   };
@@ -104,8 +138,8 @@ export function Sidebar() {
             {filteredAdmin.length > 0 && (
               <>
                 <div className="pt-4 pb-2">
-                  <span className="px-3 text-[10px] font-semibold uppercase tracking-widest text-text-soft">
-                    Admin
+                  <span className="px-3 subheading-xs text-text-soft">
+                    {formatMessage({ id: "app.admin.sidebar.admin", defaultMessage: "Admin" })}
                   </span>
                 </div>
                 {filteredAdmin.map(renderNavItem)}
@@ -120,7 +154,7 @@ export function Sidebar() {
               className="flex items-center w-full px-3 py-2 text-sm font-medium text-text-sub rounded-md hover:bg-bg-weak hover:text-text-strong transition-colors"
             >
               <RiLogoutBoxLine className="mr-3 h-5 w-5" />
-              Sign Out
+              {formatMessage({ id: "app.admin.sidebar.signOut", defaultMessage: "Sign Out" })}
             </button>
           </div>
         </div>
