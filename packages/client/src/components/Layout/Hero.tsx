@@ -22,9 +22,7 @@ import {
 import { FormattedMessage, useIntl } from "react-intl";
 
 function useIsDarkMode() {
-  const [isDark, setIsDark] = useState(
-    () => document.documentElement.classList.contains("dark")
-  );
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -53,7 +51,7 @@ export const Hero: FC<HeroProps> = () => {
   const [copyError, setCopyError] = useState(false);
 
   const isDark = useIsDarkMode();
-  
+
   // Get smart installation guidance based on current browser/platform
   const guidance = useInstallGuidance(
     platform,
@@ -177,9 +175,7 @@ export const Hero: FC<HeroProps> = () => {
               defaultMessage: "Open App",
             })}
           </a>
-        ) : guidance.scenario === "desktop" ? (
-          null
-        ) : (
+        ) : guidance.scenario === "desktop" ? null : (
           /* Mobile installation flow */
           <div className="space-y-3 w-full">
             {/* Browser Switch Warning */}
