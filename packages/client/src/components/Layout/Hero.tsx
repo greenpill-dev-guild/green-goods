@@ -359,7 +359,7 @@ export const Hero: FC<HeroProps> = () => {
           <div className="flex-1 w-full h-full grid place-items-center">
             <DeviceFrameset device="iPhone 8" color="black">
               <img
-                src="/images/app-mock.png"
+                src="/images/app-mock.webp"
                 alt="Green Goods App Mockup"
                 className="w-full h-full object-cover"
               />
