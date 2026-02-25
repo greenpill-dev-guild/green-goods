@@ -51,6 +51,10 @@ export interface CreateGardenParams {
   weightScheme: WeightScheme;
   /** Bitmask of ActionRegistry domains enabled for this garden (0x0F = all 4 domains) */
   domainMask: number;
+  /** Addresses to grant Gardener role atomically during mint */
+  gardeners: `0x${string}`[];
+  /** Addresses to grant Operator role atomically during mint */
+  operators: `0x${string}`[];
 }
 
 // Contract deployment parameters

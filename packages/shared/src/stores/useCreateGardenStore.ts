@@ -245,6 +245,8 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           openJoining: form.openJoining,
           weightScheme: WeightScheme.Linear,
           domainMask: 0x0f,
+          gardeners: form.gardeners as `0x${string}`[],
+          operators: form.operators as `0x${string}`[],
         } satisfies CreateGardenParams;
       },
     }),

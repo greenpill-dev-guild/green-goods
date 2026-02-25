@@ -1,8 +1,8 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# DEFAULT PROFILE — Full Build with Selective via_ir (Tests & Deployment)
+# DEFAULT PROFILE — Local Iteration (No via_ir)
 # ═══════════════════════════════════════════════════════════════════════════════
-# Most contracts compile with the fast pipeline.
-# Only known stack-too-deep files use via_ir via compilation_restrictions below.
+# Keep local builds on the fast pipeline (`via_ir = false`).
+# Deployment/CI profiles below keep `via_ir = true` for production realism.
 [profile.default]
 solc = "0.8.28"
 ffi = true
@@ -35,18 +35,8 @@ additional_compiler_profiles = [
   { name = "via-ir", via_ir = true }
 ]
 
-# NOTE: No custom optimizer_details — Solidity defaults handle stack depth correctly.
-# Custom yul_details (stack_allocation, optimizer_steps) interfered with via_ir
-# compilation of forge-std/StdStorage.sol.
-
-[[profile.default.compilation_restrictions]]
-paths = "src/accounts/Garden.sol"
-via_ir = true
-
-[[profile.default.compilation_restrictions]]
-paths = "src/tokens/Garden.sol"
-via_ir = true
-
+# Keep the local iteration profile mostly non-IR.
+# Only contracts that still hit stack-depth limits use via_ir here.
 [[profile.default.compilation_restrictions]]
 paths = "src/registries/Action.sol"
 via_ir = true
@@ -56,19 +46,15 @@ paths = "src/registries/Deployment.sol"
 via_ir = true
 
 [[profile.default.compilation_restrictions]]
-paths = "src/mocks/Hats.sol"
-via_ir = true
-
-[[profile.default.compilation_restrictions]]
 paths = "src/modules/Karma.sol"
 via_ir = true
 
 [[profile.default.compilation_restrictions]]
-paths = "src/mocks/Juicebox.sol"
+paths = "src/mocks/Hats.sol"
 via_ir = true
 
 [[profile.default.compilation_restrictions]]
-paths = "lib/tokenbound/lib/forge-std/src/StdStorage.sol"
+paths = "src/mocks/Juicebox.sol"
 via_ir = true
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -101,12 +87,10 @@ cache_path = "cache-core"
 # ═══════════════════════════════════════════════════════════════════════════════
 # LITE PROFILE — Fast Tests (Tests Without Account Instantiation)
 # ═══════════════════════════════════════════════════════════════════════════════
-# NOTE: via_ir=false does NOT work for the full source tree due to stack-too-deep
-# constraints in selected contracts.
-# See [profile.default.compilation_restrictions] for the authoritative list.
-# This profile only works for files that don't transitively import those contracts.
-# For general fast builds, use `forge build --skip test --skip script` with
-# the default profile (selective via_ir + optimizer_runs=200).
+# NOTE:
+# - This is for lightweight local tests (lower optimizer runs).
+# - Production and CI profiles keep `via_ir = true` and are the source of truth
+#   for deploy/testnet/mainnet equivalence.
 [profile.lite]
 solc = "0.8.28"
 ffi = true

@@ -8,6 +8,7 @@ import {
   RiPlantLine,
   RiSafe2Line,
   RiSettings3Line,
+  RiTerminalLine,
   RiUploadLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -16,15 +17,53 @@ import { Link, useLocation } from "react-router-dom";
 const navigation = [
   {
     name: "Dashboard",
+    nameId: "app.sidebar.dashboard",
     href: "/dashboard",
     icon: RiDashboardLine,
     roles: ["deployer", "operator", "user"],
   },
-  { name: "Gardens", href: "/gardens", icon: RiPlantLine, roles: ["deployer", "operator", "user"] },
-  { name: "Actions", href: "/actions", icon: RiHammerFill, roles: ["deployer", "operator"] },
-  { name: "Endowments", href: "/endowments", icon: RiSafe2Line, roles: ["deployer", "operator"] },
-  { name: "Contracts", href: "/contracts", icon: RiSettings3Line, roles: ["deployer"] },
-  { name: "Deployment", href: "/deployment", icon: RiUploadLine, roles: ["deployer"] },
+  {
+    name: "Gardens",
+    nameId: "app.sidebar.gardens",
+    href: "/gardens",
+    icon: RiPlantLine,
+    roles: ["deployer", "operator", "user"],
+  },
+  {
+    name: "Actions",
+    nameId: "app.sidebar.actions",
+    href: "/actions",
+    icon: RiHammerFill,
+    roles: ["deployer", "operator"],
+  },
+  {
+    name: "Endowments",
+    nameId: "app.sidebar.endowments",
+    href: "/endowments",
+    icon: RiSafe2Line,
+    roles: ["deployer", "operator"],
+  },
+  {
+    name: "Contracts",
+    nameId: "app.sidebar.contracts",
+    href: "/contracts",
+    icon: RiSettings3Line,
+    roles: ["deployer"],
+  },
+  {
+    name: "Deployment",
+    nameId: "app.sidebar.deployment",
+    href: "/deployment",
+    icon: RiUploadLine,
+    roles: ["deployer"],
+  },
+  {
+    name: "Ops",
+    nameId: "app.sidebar.ops",
+    href: "/ops",
+    icon: RiTerminalLine,
+    roles: ["deployer"],
+  },
 ];
 
 export function Sidebar() {
@@ -90,7 +129,9 @@ export function Sidebar() {
                 )}
               >
                 <item.icon className="mr-3 h-5 w-5" />
-                {item.name}
+                {item.nameId
+                  ? intl.formatMessage({ id: item.nameId, defaultMessage: item.name })
+                  : item.name}
               </Link>
             );
           })}

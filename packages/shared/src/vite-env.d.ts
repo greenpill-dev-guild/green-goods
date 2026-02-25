@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly VITE_PASSKEY_RP_ID?: string;
   readonly VITE_ENABLE_SW_DEV: string;
   readonly VITE_ENABLE_RPC_BG_SYNC: string;
+  readonly VITE_OPS_RUNNER_URL?: string;
   readonly NODE_ENV: string;
   // Add other env variables as needed
 }

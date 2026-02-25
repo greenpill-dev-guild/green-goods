@@ -71,6 +71,8 @@ Commands:
 Common Options:
   --network, -n <network>  Network to deploy to (default: localhost)
   --broadcast, -b          Broadcast transactions
+  --save-artifacts         Save forge broadcast artifacts without broadcasting
+  --sender <address>       Override tx sender address for simulation/broadcast
   --update-schemas         Only update schemas, skip existing contracts
   --force                  Force fresh deployment
   --dry-run                Run full deployment simulation against RPC (no broadcast)

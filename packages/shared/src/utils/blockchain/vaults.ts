@@ -4,6 +4,9 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 
 export const ZERO_ADDRESS: Address = "0x0000000000000000000000000000000000000000";
 
+/** Octant vault MAX_BPS (10000 = 100%). Used as maxLoss for permissive withdraw/redeem queries. */
+export const VAULT_MAX_BPS = 10000n;
+
 const ASSET_SYMBOLS_BY_CHAIN: Record<number, Record<string, string>> = {
   42161: {
     "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": "WETH",

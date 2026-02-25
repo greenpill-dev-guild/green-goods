@@ -84,7 +84,7 @@ export class GoodsDeployer {
       const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
       args.push("--account", keystoreName);
 
-      const senderAddress = process.env.SENDER_ADDRESS;
+      const senderAddress = options.sender ?? process.env.SENDER_ADDRESS;
       if (senderAddress) {
         args.push("--sender", senderAddress);
       }

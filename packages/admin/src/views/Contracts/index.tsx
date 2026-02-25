@@ -2,18 +2,51 @@ import {
   SUPPORTED_CHAINS,
   useAdminStore,
   getNetworkContracts,
+  toastService,
+  useOpsFinalizeUpgrade,
+  useOpsJobLogs,
+  useOpsRunnerAuth,
+  useOpsRunnerHealth,
+  useOpsRunnerJob,
+  useOpsRunnerJobs,
+  useOpsRunnerSession,
+  useOpsUpgradePlan,
   type Address,
 } from "@green-goods/shared";
 import * as Tabs from "@radix-ui/react-tabs";
-import { RiExternalLinkLine, RiRefreshLine, RiSettings3Line, RiUploadLine } from "@remixicon/react";
+import {
+  RiExternalLinkLine,
+  RiRefreshLine,
+  RiSettings3Line,
+  RiUploadLine,
+  RiToolsLine,
+} from "@remixicon/react";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { useAccount, useSignMessage } from "wagmi";
+import { Link } from "react-router-dom";
 import { AddressDisplay } from "@/components/AddressDisplay";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { chainIdToOpsNetwork, getOpsStatusBadge } from "@/utils/ops";
+
+const UPGRADE_CONTRACT_OPTIONS = [
+  "all",
+  "action-registry",
+  "garden-token",
+  "gardener-account",
+  "octant-module",
+  "work-resolver",
+  "work-approval-resolver",
+  "assessment-resolver",
+  "deployment-registry",
+] as const;
 
 export default function Contracts() {
   const { formatMessage } = useIntl();
   const selectedChainId = useAdminStore((s) => s.selectedChainId);
+  const network = chainIdToOpsNetwork(selectedChainId);
 
   const contracts = getNetworkContracts(selectedChainId);
   const chains = Object.values(SUPPORTED_CHAINS);
@@ -42,6 +75,112 @@ export default function Contracts() {
       });
     }
     return formatMessage({ id: "app.contracts.status.deployed", defaultMessage: "Deployed" });
+  };
+
+  const { address: walletAddress } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+  const { session, isAuthenticated, clearSession } = useOpsRunnerSession();
+  const auth = useOpsRunnerAuth();
+  const health = useOpsRunnerHealth();
+  const upgradePlanMutation = useOpsUpgradePlan();
+  const finalizeUpgradeMutation = useOpsFinalizeUpgrade();
+  const jobsQuery = useOpsRunnerJobs({ enabled: isAuthenticated, refetchIntervalMs: 3_000 });
+
+  const [sender, setSender] = useState("");
+  const [upgradeTarget, setUpgradeTarget] =
+    useState<(typeof UPGRADE_CONTRACT_OPTIONS)[number]>("all");
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+
+  const selectedJobQuery = useOpsRunnerJob(selectedJobId, {
+    enabled: !!selectedJobId && isAuthenticated,
+  });
+
+  const jobLogs = useOpsJobLogs(selectedJobId, {
+    enabled: !!selectedJobId && isAuthenticated,
+    maxLogs: 1_200,
+  });
+
+  useEffect(() => {
+    if (!walletAddress) return;
+    if (sender.trim()) return;
+    setSender(walletAddress);
+  }, [walletAddress, sender]);
+
+  const jobs = jobsQuery.data ?? [];
+  const currentJob = useMemo(() => {
+    if (selectedJobQuery.data) {
+      return selectedJobQuery.data;
+    }
+    return jobs.find((job) => job.id === selectedJobId) ?? null;
+  }, [jobs, selectedJobId, selectedJobQuery.data]);
+
+  const connectRunner = async () => {
+    if (!walletAddress) {
+      toastService.error({ title: formatMessage({ id: "app.deployment.ops.connectWalletFirst" }) });
+      return;
+    }
+
+    try {
+      const challenge = await auth.requestChallenge.mutateAsync({ address: walletAddress });
+      const signature = await signMessageAsync({ message: challenge.message });
+      await auth.verifySignature.mutateAsync({ address: walletAddress, signature });
+      toastService.success({ title: formatMessage({ id: "app.deployment.ops.authSuccess" }) });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" });
+      toastService.error({
+        title: formatMessage({ id: "app.deployment.ops.authFailed" }),
+        description: message,
+      });
+    }
+  };
+
+  const runUpgradePlan = async () => {
+    if (!isAuthenticated) {
+      toastService.error({ title: formatMessage({ id: "app.contracts.upgrade.authRequired" }) });
+      return;
+    }
+
+    try {
+      const job = await upgradePlanMutation.mutateAsync({
+        network,
+        contract: upgradeTarget,
+        sender: sender.trim() || undefined,
+      });
+      setSelectedJobId(job.id);
+      toastService.success({ title: formatMessage({ id: "app.contracts.upgrade.jobStarted" }) });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" });
+      toastService.error({
+        title: formatMessage({ id: "app.contracts.upgrade.submitFailed" }),
+        description: message,
+      });
+    }
+  };
+
+  const runUpgradeFinalize = async () => {
+    if (!isAuthenticated) {
+      toastService.error({ title: formatMessage({ id: "app.contracts.upgrade.authRequired" }) });
+      return;
+    }
+
+    try {
+      const job = await finalizeUpgradeMutation.mutateAsync({
+        network,
+        contract: upgradeTarget,
+        sender: sender.trim() || undefined,
+      });
+      setSelectedJobId(job.id);
+      toastService.success({ title: formatMessage({ id: "app.contracts.upgrade.jobStarted" }) });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" });
+      toastService.error({
+        title: formatMessage({ id: "app.contracts.upgrade.submitFailed" }),
+        description: message,
+      });
+    }
   };
 
   return (
@@ -266,20 +405,14 @@ export default function Contracts() {
               </p>
             </Card.Header>
             <Card.Body>
-              <div className="text-center py-12">
-                <RiUploadLine className="mx-auto h-12 w-12 text-text-soft" />
-                <h3 className="mt-2 text-sm font-medium text-text-strong">
-                  {formatMessage({
-                    id: "app.contracts.deploy.title",
-                    defaultMessage: "Deploy New Contracts",
-                  })}
-                </h3>
-                <p className="mt-1 text-sm text-text-soft">
-                  {formatMessage({
-                    id: "app.contracts.deploy.comingSoon",
-                    defaultMessage: "Coming soon",
-                  })}
+              <div className="text-center py-8 space-y-3">
+                <RiToolsLine className="mx-auto h-12 w-12 text-text-soft" />
+                <p className="text-sm text-text-soft">
+                  {formatMessage({ id: "app.contracts.deploy.openDeploymentPage" })}
                 </p>
+                <Button asChild>
+                  <Link to="/deployment">{formatMessage({ id: "app.deployment.title" })}</Link>
+                </Button>
               </div>
             </Card.Body>
           </Card>
@@ -305,21 +438,169 @@ export default function Contracts() {
                 )}
               </p>
             </Card.Header>
-            <Card.Body>
-              <div className="text-center py-12">
-                <RiRefreshLine className="mx-auto h-12 w-12 text-text-soft" />
-                <h3 className="mt-2 text-sm font-medium text-text-strong">
-                  {formatMessage({
-                    id: "app.contracts.upgrade.title",
-                    defaultMessage: "Upgrade Contracts",
-                  })}
-                </h3>
-                <p className="mt-1 text-sm text-text-soft">
-                  {formatMessage({
-                    id: "app.contracts.upgrade.comingSoon",
-                    defaultMessage: "Coming soon",
-                  })}
+            <Card.Body className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <span
+                  className={`text-sm font-medium ${
+                    health.data?.ok ? "text-success-base" : "text-error-base"
+                  }`}
+                >
+                  {health.data?.ok
+                    ? formatMessage({ id: "app.deployment.ops.runnerOnline" })
+                    : formatMessage({ id: "app.deployment.ops.runnerOffline" })}
+                </span>
+
+                {!isAuthenticated ? (
+                  <Button
+                    type="button"
+                    onClick={connectRunner}
+                    loading={auth.requestChallenge.isPending || auth.verifySignature.isPending}
+                  >
+                    {formatMessage({ id: "app.deployment.ops.authenticate" })}
+                  </Button>
+                ) : (
+                  <Button type="button" variant="secondary" onClick={clearSession}>
+                    {formatMessage({ id: "app.deployment.ops.disconnect" })}
+                  </Button>
+                )}
+
+                {session?.address && (
+                  <span className="text-xs text-text-soft">{session.address}</span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    className="block text-sm font-medium text-text-strong mb-1"
+                    htmlFor="upgradeTarget"
+                  >
+                    {formatMessage({ id: "app.contracts.upgrade.selectContract" })}
+                  </label>
+                  <select
+                    id="upgradeTarget"
+                    value={upgradeTarget}
+                    onChange={(event) =>
+                      setUpgradeTarget(
+                        event.target.value as (typeof UPGRADE_CONTRACT_OPTIONS)[number]
+                      )
+                    }
+                    className="w-full px-3 py-2 border border-stroke-sub bg-bg-white text-text-strong rounded-lg"
+                  >
+                    {UPGRADE_CONTRACT_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    className="block text-sm font-medium text-text-strong mb-1"
+                    htmlFor="upgradeSender"
+                  >
+                    {formatMessage({ id: "app.contracts.upgrade.senderLabel" })}
+                  </label>
+                  <input
+                    id="upgradeSender"
+                    type="text"
+                    value={sender}
+                    onChange={(event) => setSender(event.target.value)}
+                    className="w-full px-3 py-2 border border-stroke-sub bg-bg-white text-text-strong rounded-lg"
+                    placeholder="0x..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={runUpgradePlan}
+                  loading={upgradePlanMutation.isPending}
+                  disabled={!isAuthenticated}
+                >
+                  {formatMessage({ id: "app.contracts.upgrade.generatePlan" })}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={runUpgradeFinalize}
+                  loading={finalizeUpgradeMutation.isPending}
+                  disabled={!isAuthenticated}
+                >
+                  {formatMessage({ id: "app.contracts.upgrade.executeUpgrade" })}
+                </Button>
+              </div>
+
+              {!isAuthenticated && (
+                <p className="text-sm text-error-base">
+                  {formatMessage({ id: "app.contracts.upgrade.authRequired" })}
                 </p>
+              )}
+
+              <div className="space-y-3 border-t border-stroke-soft pt-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-text-strong">
+                    {formatMessage({ id: "app.contracts.upgrade.jobStatus" })}
+                  </h3>
+                  <select
+                    value={selectedJobId ?? ""}
+                    onChange={(event) => setSelectedJobId(event.target.value || null)}
+                    className="border border-stroke-sub rounded-lg px-2 py-1 text-sm bg-bg-white"
+                  >
+                    <option value="">
+                      {formatMessage({ id: "app.contracts.upgrade.selectJob" })}
+                    </option>
+                    {jobs.map((job) => (
+                      <option key={job.id} value={job.id}>
+                        {job.type} · {job.id.slice(0, 8)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {!selectedJobId ? (
+                  <p className="text-sm text-text-soft">
+                    {formatMessage({ id: "app.contracts.upgrade.noJobs" })}
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-sm">
+                      <span
+                        className={getOpsStatusBadge(
+                          currentJob?.status ?? jobLogs.status?.status ?? "queued"
+                        )}
+                      >
+                        {formatMessage({
+                          id: `app.deployment.ops.status.${currentJob?.status ?? jobLogs.status?.status ?? "queued"}`,
+                        })}
+                      </span>
+                    </p>
+
+                    <div>
+                      <p className="text-sm font-medium text-text-strong mb-2">
+                        {formatMessage({ id: "app.contracts.upgrade.logs" })}
+                      </p>
+                      <pre className="text-xs bg-bg-weak rounded-lg p-3 max-h-72 overflow-auto whitespace-pre-wrap">
+                        {jobLogs.logs
+                          .map((entry) => `${entry.at} [${entry.stream}] ${entry.message}`)
+                          .join("\n")}
+                      </pre>
+                    </div>
+
+                    {currentJob?.result && (
+                      <div>
+                        <p className="text-sm font-medium text-text-strong mb-2">
+                          {formatMessage({ id: "app.contracts.upgrade.result" })}
+                        </p>
+                        <pre className="text-xs bg-bg-weak rounded-lg p-3 max-h-72 overflow-auto whitespace-pre-wrap">
+                          {JSON.stringify(currentJob.result, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </Card.Body>
           </Card>

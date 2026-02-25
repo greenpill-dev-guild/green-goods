@@ -269,6 +269,7 @@ export const queryKeys = {
       ] as const,
     deploymentPermissions: (address?: string, chainId?: number) =>
       ["greengoods", "role", "deploymentPermissions", address, chainId] as const,
+    allowlist: (chainId?: number) => ["greengoods", "role", "allowlist", chainId] as const,
   },
 
   // Draft related keys
@@ -425,6 +426,12 @@ export const queryInvalidation = {
   onFractionPurchased: (hypercertId: string, chainId: number) => [
     queryKeys.marketplace.tradeHistory(hypercertId, chainId),
     queryKeys.marketplace.all,
+  ],
+
+  // Invalidate deployment allowlist (after add/remove)
+  invalidateAllowlist: (chainId: number) => [
+    queryKeys.role.allowlist(chainId),
+    queryKeys.role.deploymentPermissions(),
   ],
 
   // Invalidate gardener profile
@@ -656,7 +663,8 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.marketplace.sellerOrders>
   | ReturnType<typeof queryKeys.marketplace.preview>
   | ReturnType<typeof queryKeys.marketplace.tradeHistory>
-  | ReturnType<typeof queryKeys.marketplace.approvals>;
+  | ReturnType<typeof queryKeys.marketplace.approvals>
+  | ReturnType<typeof queryKeys.role.allowlist>;
 
 export type WorksQueryKey =
   | typeof queryKeys.works.all

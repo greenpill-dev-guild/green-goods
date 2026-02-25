@@ -40,7 +40,7 @@ function buildAttestationRequest(
     data: {
       recipient,
       expirationTime: NO_EXPIRATION,
-      revocable: true,
+      revocable: false,
       refUID: ZERO_BYTES32 as Hex,
       data: attestationData,
       value: 0n,
@@ -149,7 +149,7 @@ export function buildBatchApprovalAttestTx(
     data: approvals.map(({ gardenAddress, attestationData }) => ({
       recipient: gardenAddress,
       expirationTime: NO_EXPIRATION,
-      revocable: true,
+      revocable: false,
       refUID: ZERO_BYTES32 as Hex,
       data: attestationData,
       value: 0n,
@@ -191,7 +191,7 @@ export function buildBatchWorkAttestTx(
     data: works.map(({ gardenAddress, attestationData }) => ({
       recipient: gardenAddress,
       expirationTime: NO_EXPIRATION,
-      revocable: true,
+      revocable: false,
       refUID: ZERO_BYTES32 as Hex,
       data: attestationData,
       value: 0n,

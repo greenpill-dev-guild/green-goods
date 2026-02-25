@@ -92,7 +92,7 @@ export function createDefaultGardenForm(): CreateGardenFormInput {
 export function useCreateGardenForm() {
   return useForm<CreateGardenFormInput, unknown, CreateGardenFormOutput>({
     resolver: zodResolver(createGardenSchema),
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: createDefaultGardenForm(),
   });
 }

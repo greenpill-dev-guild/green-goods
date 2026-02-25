@@ -1,76 +1,20 @@
-import { cn, Domain } from "@green-goods/shared";
+import { cn, Domain, expandDomainMask, useCreateAssessmentStore } from "@green-goods/shared";
 import { useEffect, useMemo } from "react";
+import { useIntl } from "react-intl";
 import {
-  type Control,
-  type FieldErrors,
-  type UseFormRegister,
-  useController,
-} from "react-hook-form";
-import { type IntlShape, useIntl } from "react-intl";
-import {
-  type CreateAssessmentForm,
+  ALL_DOMAINS,
+  DOMAIN_GUIDANCE,
+  DOMAIN_ICON_CONFIG,
+  domainKey,
   inputClassName,
   LabeledField,
+  resolveDomainLabel,
   Section,
   textareaClassName,
 } from "./shared";
 
-/** Domain icon and color (stable), labels resolved via i18n */
-const DOMAIN_ICON_CONFIG: Record<Domain, { icon: string; color: string; labelId: string }> = {
-  [Domain.SOLAR]: {
-    icon: "ri-sun-line",
-    color: "amber",
-    labelId: "app.admin.assessment.domainAction.domain.solar",
-  },
-  [Domain.AGRO]: {
-    icon: "ri-plant-line",
-    color: "green",
-    labelId: "app.admin.assessment.domainAction.domain.agroforestry",
-  },
-  [Domain.EDU]: {
-    icon: "ri-book-open-line",
-    color: "blue",
-    labelId: "app.admin.assessment.domainAction.domain.education",
-  },
-  [Domain.WASTE]: {
-    icon: "ri-recycle-line",
-    color: "orange",
-    labelId: "app.admin.assessment.domainAction.domain.waste",
-  },
-};
-
-const DOMAIN_LABEL_DEFAULTS: Record<string, string> = {
-  "app.admin.assessment.domainAction.domain.solar": "Solar",
-  "app.admin.assessment.domainAction.domain.agroforestry": "Agroforestry",
-  "app.admin.assessment.domainAction.domain.education": "Education",
-  "app.admin.assessment.domainAction.domain.waste": "Waste",
-};
-
-function resolveDomainLabel(intl: IntlShape, domain: Domain): string {
-  const config = DOMAIN_ICON_CONFIG[domain];
-  return intl.formatMessage({
-    id: config.labelId,
-    defaultMessage: DOMAIN_LABEL_DEFAULTS[config.labelId],
-  });
-}
-
-/** Expand a domain bitmask into an array of Domain enum values */
-function expandDomainMask(mask: number): Domain[] {
-  const domains: Domain[] = [];
-  if (mask & 1) domains.push(Domain.SOLAR);
-  if (mask & 2) domains.push(Domain.AGRO);
-  if (mask & 4) domains.push(Domain.EDU);
-  if (mask & 8) domains.push(Domain.WASTE);
-  return domains;
-}
-
-/** All domains for when no mask is provided */
-const ALL_DOMAINS = [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE];
-
 interface DomainContextStepProps {
-  register: UseFormRegister<CreateAssessmentForm>;
-  errors: FieldErrors<CreateAssessmentForm>;
-  control: Control<CreateAssessmentForm>;
+  showValidation: boolean;
   isSubmitting: boolean;
   /** Garden domain bitmask (bit 0=Solar, 1=Agro, 2=Edu, 3=Waste). If omitted, all domains shown. */
   gardenDomainMask?: number;
@@ -82,13 +26,14 @@ interface DomainContextStepProps {
  * Auto-selects domain when garden mask has exactly 1 domain.
  */
 export function DomainContextStep({
-  register,
-  errors,
-  control,
+  showValidation,
   isSubmitting,
   gardenDomainMask,
 }: DomainContextStepProps) {
   const intl = useIntl();
+  const { formatMessage } = intl;
+  const form = useCreateAssessmentStore((s) => s.form);
+  const setField = useCreateAssessmentStore((s) => s.setField);
 
   // Available domains from garden bitmask (or all if not provided)
   const availableDomains = useMemo(
@@ -99,35 +44,58 @@ export function DomainContextStep({
     [gardenDomainMask]
   );
 
-  // Domain controller
-  const { field: domainField } = useController({
-    control,
-    name: "domain",
-  });
-
-  const selectedDomain = Number(domainField.value) as Domain;
+  const selectedDomain = form.domain;
+  const guidance = DOMAIN_GUIDANCE[selectedDomain];
 
   // Auto-select domain when garden mask has exactly 1 domain
   useEffect(() => {
     if (availableDomains.length === 1 && selectedDomain !== availableDomains[0]) {
-      domainField.onChange(availableDomains[0]);
+      setField("domain", availableDomains[0]);
     }
-  }, [availableDomains, selectedDomain, domainField]);
+  }, [availableDomains, selectedDomain, setField]);
 
   const handleDomainChange = (domain: Domain) => {
     if (isSubmitting) return;
-    domainField.onChange(domain);
+    setField("domain", domain);
   };
+
+  // Local validation errors, computed from store data
+  const fieldErrors = useMemo(
+    () => ({
+      title:
+        form.title.trim().length > 0
+          ? null
+          : formatMessage({
+              id: "app.admin.assessment.domainContext.titleRequired",
+              defaultMessage: "Title is required",
+            }),
+      description:
+        form.description.trim().length > 0
+          ? null
+          : formatMessage({
+              id: "app.admin.assessment.domainContext.descriptionRequired",
+              defaultMessage: "Description is required",
+            }),
+      location:
+        form.location.trim().length > 0
+          ? null
+          : formatMessage({
+              id: "app.admin.assessment.domainContext.locationRequired",
+              defaultMessage: "Location is required",
+            }),
+    }),
+    [form.title, form.description, form.location, formatMessage]
+  );
 
   return (
     <div className="space-y-6">
       {/* Domain Selector */}
       <Section
-        title={intl.formatMessage({
+        title={formatMessage({
           id: "app.admin.assessment.domainAction.domainTitle",
           defaultMessage: "Domain",
         })}
-        description={intl.formatMessage({
+        description={formatMessage({
           id: "app.admin.assessment.domainAction.domainDescription",
           defaultMessage: "Select the primary action domain for this assessment.",
         })}
@@ -156,29 +124,28 @@ export function DomainContextStep({
             );
           })}
         </div>
-        {errors.domain && <p className="text-xs text-error-dark">{errors.domain.message}</p>}
       </Section>
 
       {/* Context Fields */}
       <Section
-        title={intl.formatMessage({
+        title={formatMessage({
           id: "app.admin.assessment.domainContext.contextTitle",
           defaultMessage: "Assessment Context",
         })}
-        description={intl.formatMessage({
+        description={formatMessage({
           id: "app.admin.assessment.domainContext.contextDescription",
           defaultMessage: "Provide basic details about this assessment.",
         })}
       >
         <div className="grid gap-2.5 md:grid-cols-2 md:gap-3">
           <LabeledField
-            label={intl.formatMessage({
+            label={formatMessage({
               id: "app.admin.assessment.strategyKernel.titleLabel",
               defaultMessage: "Title",
             })}
             required
-            error={errors.title?.message}
-            helpText={intl.formatMessage({
+            error={showValidation ? fieldErrors.title : null}
+            helpText={formatMessage({
               id: "app.admin.assessment.strategyKernel.titleHelp",
               defaultMessage: "Summarise this assessment in a few words.",
             })}
@@ -186,18 +153,26 @@ export function DomainContextStep({
             <input
               type="text"
               disabled={isSubmitting}
-              className={inputClassName(errors.title)}
-              {...register("title")}
+              value={form.title}
+              onChange={(e) => setField("title", e.target.value)}
+              placeholder={formatMessage({
+                id: domainKey(
+                  "app.admin.assessment.domainContext.titlePlaceholder",
+                  selectedDomain
+                ),
+                defaultMessage: guidance.titlePlaceholder,
+              })}
+              className={inputClassName(showValidation && !!fieldErrors.title)}
             />
           </LabeledField>
           <LabeledField
-            label={intl.formatMessage({
+            label={formatMessage({
               id: "app.admin.assessment.strategyKernel.locationLabel",
               defaultMessage: "Location",
             })}
             required
-            error={errors.location?.message}
-            helpText={intl.formatMessage({
+            error={showValidation ? fieldErrors.location : null}
+            helpText={formatMessage({
               id: "app.admin.assessment.strategyKernel.locationHelp",
               defaultMessage: "Where this assessment applies.",
             })}
@@ -205,29 +180,45 @@ export function DomainContextStep({
             <input
               type="text"
               disabled={isSubmitting}
-              className={inputClassName(errors.location)}
-              {...register("location")}
+              value={form.location}
+              onChange={(e) => setField("location", e.target.value)}
+              placeholder={formatMessage({
+                id: domainKey(
+                  "app.admin.assessment.domainContext.locationPlaceholder",
+                  selectedDomain
+                ),
+                defaultMessage: guidance.locationPlaceholder,
+              })}
+              className={inputClassName(showValidation && !!fieldErrors.location)}
             />
           </LabeledField>
         </div>
 
         <LabeledField
-          label={intl.formatMessage({
+          label={formatMessage({
             id: "app.admin.assessment.strategyKernel.descriptionLabel",
             defaultMessage: "Description",
           })}
           required
-          error={errors.description?.message}
-          helpText={intl.formatMessage({
-            id: "app.admin.assessment.strategyKernel.descriptionHelp",
-            defaultMessage: "Provide context and goals for this assessment.",
+          error={showValidation ? fieldErrors.description : null}
+          helpText={formatMessage({
+            id: domainKey("app.admin.assessment.domainContext.descriptionHelp", selectedDomain),
+            defaultMessage: guidance.descriptionHelp,
           })}
         >
           <textarea
             rows={2}
             disabled={isSubmitting}
-            className={textareaClassName(errors.description)}
-            {...register("description")}
+            value={form.description}
+            onChange={(e) => setField("description", e.target.value)}
+            placeholder={formatMessage({
+              id: domainKey(
+                "app.admin.assessment.domainContext.descriptionPlaceholder",
+                selectedDomain
+              ),
+              defaultMessage: guidance.descriptionPlaceholder,
+            })}
+            className={textareaClassName(showValidation && !!fieldErrors.description)}
           />
         </LabeledField>
       </Section>

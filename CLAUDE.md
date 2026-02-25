@@ -17,7 +17,7 @@ bun build                    # Build everything (respects dependency order)
 
 Per-package: `bun run test`, `bun build`, `bun lint` (check each package.json for available scripts).
 
-**Contracts** (never use raw `forge` commands): `bun build` (~2s cached), `bun build:full` (CI/deploy only, >180s), `bun run test:fork` (needs RPC URLs).
+**Contracts** (never use raw `forge` commands): `bun build` (adaptive changed-target compile), `bun build:changed` (changed Solidity only), `bun build:target -- src/...` (single-target compile), `bun build:full` (CI/deploy only), `bun run test:fork` (needs RPC URLs).
 
 ## Architecture
 

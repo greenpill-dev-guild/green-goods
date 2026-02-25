@@ -47,6 +47,21 @@ module.exports = {
       kill_timeout: 5000,
     },
     {
+      name: "ops",
+      script: "sh",
+      args: '-c "cd packages/ops && bun run dev"',
+      cwd: ".",
+      env: {
+        NODE_ENV: "development",
+      },
+      merge_logs: true,
+      autorestart: true,
+      max_restarts: 3,
+      min_uptime: "10s",
+      restart_delay: 3000,
+      kill_timeout: 5000,
+    },
+    {
       name: "agent",
       script: "sh",
       args: '-c "cd packages/agent && bun run dev"',

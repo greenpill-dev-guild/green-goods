@@ -234,3 +234,24 @@ export type {
   SyncMetrics,
   WorkConflict,
 } from "./offline";
+// ============================================
+// Ops Runner Types
+// ============================================
+export type {
+  OpsDeployRequest,
+  OpsJob,
+  OpsJobLogEntry,
+  OpsJobLogsState,
+  OpsJobStatus,
+  OpsJobType,
+  OpsRunScriptRequest,
+  OpsRunnerChallengeResponse,
+  OpsRunnerHealth,
+  OpsRunnerJobResponse,
+  OpsRunnerJobsResponse,
+  OpsRunnerScriptDefinition,
+  OpsRunnerScriptsResponse,
+  OpsRunnerSession,
+  OpsRunnerVerifyResponse,
+  OpsUpgradeRequest,
+} from "./ops";

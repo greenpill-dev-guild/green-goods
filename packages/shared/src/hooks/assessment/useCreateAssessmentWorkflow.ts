@@ -300,7 +300,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                   data: {
                     recipient: params.gardenId,
                     expirationTime: 0n,
-                    revocable: true,
+                    revocable: false,
                     data: encodedData,
                   },
                 });

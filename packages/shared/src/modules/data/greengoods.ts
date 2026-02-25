@@ -14,7 +14,7 @@ import { greenGoodsGraphQL } from "./graphql";
 import { greenGoodsIndexer } from "./graphql-client";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs";
 
-const GATEWAY_BASE_URL = "https://storacha.link";
+const GATEWAY_BASE_URL = "https://w3s.link";
 
 // Re-export Capital for backward compatibility
 export { Capital };

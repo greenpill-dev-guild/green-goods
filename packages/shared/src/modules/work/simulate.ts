@@ -104,7 +104,7 @@ export async function simulateWorkSubmission({
           data: {
             recipient: gardenAddress as `0x${string}`,
             expirationTime: NO_EXPIRATION,
-            revocable: true,
+            revocable: false,
             refUID: ZERO_BYTES32,
             data: simulationData,
             value: 0n,

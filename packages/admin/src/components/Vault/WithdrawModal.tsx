@@ -40,12 +40,12 @@ export function WithdrawModal({
   const [selectedAsset, setSelectedAsset] = useState<string>(
     defaultAsset ?? vaults[0]?.asset ?? ""
   );
-  const [sharesInput, setSharesInput] = useState("");
+  const [amountInput, setAmountInput] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
     setSelectedAsset(defaultAsset ?? vaults[0]?.asset ?? "");
-    setSharesInput("");
+    setAmountInput("");
   }, [defaultAsset, isOpen, vaults]);
 
   const selectedVault = useMemo(
@@ -70,57 +70,53 @@ export function WithdrawModal({
     [deposits, selectedAsset]
   );
 
-  const maxShares = selectedDeposit?.shares ?? 0n;
-  const inputError = useMemo(() => validateDecimalInput(sharesInput, 18), [sharesInput]);
-
-  const shares = useMemo(() => {
-    if (!sharesInput.trim() || inputError) return 0n;
-    try {
-      return parseUnits(sharesInput, 18);
-    } catch {
-      return 0n;
-    }
-  }, [sharesInput, inputError]);
-
-  const exceedsBalanceError = useMemo(() => {
-    if (!sharesInput.trim() || inputError) return null;
-    return shares > maxShares ? "app.treasury.exceedsAvailableShares" : null;
-  }, [sharesInput, inputError, shares, maxShares]);
-
-  const sharesError = inputError ?? exceedsBalanceError;
-
   const assetDecimals = getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
   const assetSymbol = selectedVault
     ? getVaultAssetSymbol(selectedVault.asset, selectedVault.chainId)
     : "";
 
-  const debouncedShares = useDebouncedValue(shares, 300);
+  const inputError = useMemo(
+    () => validateDecimalInput(amountInput, assetDecimals),
+    [amountInput, assetDecimals]
+  );
+
+  const amount = useMemo(() => {
+    if (!amountInput.trim() || inputError) return 0n;
+    try {
+      return parseUnits(amountInput, assetDecimals);
+    } catch {
+      return 0n;
+    }
+  }, [amountInput, inputError, assetDecimals]);
+
+  const debouncedAmount = useDebouncedValue(amount, 300);
 
   const { preview } = useVaultPreview({
     vaultAddress: selectedVault?.vaultAddress as Address | undefined,
-    shares: debouncedShares,
+    amount: debouncedAmount,
     userAddress: primaryAddress as Address | undefined,
-    enabled: isOpen && Boolean(selectedVault && debouncedShares > 0n),
+    enabled: isOpen && Boolean(selectedVault && primaryAddress),
   });
 
-  const { preview: availablePreview } = useVaultPreview({
-    vaultAddress: selectedVault?.vaultAddress as Address | undefined,
-    shares: maxShares,
-    userAddress: primaryAddress as Address | undefined,
-    enabled: isOpen && Boolean(selectedVault && maxShares > 0n),
-  });
+  const maxWithdrawable = preview?.maxWithdraw ?? 0n;
+  const maxShares = selectedDeposit?.shares ?? 0n;
 
-  const availableAssets = availablePreview?.previewAssets ?? 0n;
+  const exceedsBalanceError = useMemo(() => {
+    if (!amountInput.trim() || inputError) return null;
+    return amount > maxWithdrawable ? "app.treasury.exceedsAvailableBalance" : null;
+  }, [amountInput, inputError, amount, maxWithdrawable]);
+
+  const amountError = inputError ?? exceedsBalanceError;
 
   const onSubmit = () => {
-    if (!selectedVault || !primaryAddress || shares <= 0n || sharesError) return;
+    if (!selectedVault || !primaryAddress || amount <= 0n || amountError) return;
 
     withdrawMutation.mutate(
       {
         gardenAddress,
         assetAddress: selectedVault.asset,
         vaultAddress: selectedVault.vaultAddress,
-        shares,
+        amount,
         owner: primaryAddress as Address,
         receiver: primaryAddress as Address,
       },
@@ -199,36 +195,37 @@ export function WithdrawModal({
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>
-                {formatMessage({ id: "app.treasury.myShares" })}:{" "}
+                {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {formatTokenAmount(maxShares, 18)} shares
+                  {formatTokenAmount(maxWithdrawable, assetDecimals)} {assetSymbol}
                 </span>
               </p>
               <p>
-                {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
+                {formatMessage({ id: "app.treasury.myShares" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {formatTokenAmount(availableAssets, assetDecimals)} {assetSymbol}
+                  {formatTokenAmount(maxShares, 18)}{" "}
+                  {formatMessage({ id: "app.treasury.shares", defaultMessage: "shares" })}
                 </span>
               </p>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="withdraw-shares" className="text-sm font-medium text-text-sub">
-                {formatMessage({ id: "app.treasury.withdrawShares" })}
+              <label htmlFor="withdraw-amount" className="text-sm font-medium text-text-sub">
+                {formatMessage({ id: "app.treasury.withdrawAmount" })}
               </label>
               <div className="flex items-center gap-2">
                 <input
-                  id="withdraw-shares"
+                  id="withdraw-amount"
                   type="text"
                   inputMode="decimal"
-                  value={sharesInput}
-                  onChange={(event) => setSharesInput(event.target.value)}
-                  placeholder="0.0"
+                  value={amountInput}
+                  onChange={(event) => setAmountInput(event.target.value)}
+                  placeholder={`0.0 ${assetSymbol}`}
                   aria-required="true"
-                  aria-invalid={Boolean(sharesError)}
-                  aria-describedby={sharesError ? "withdraw-error" : undefined}
+                  aria-invalid={Boolean(amountError)}
+                  aria-describedby={amountError ? "withdraw-error" : undefined}
                   className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
-                    sharesError
+                    amountError
                       ? "border-error-base focus:border-error-base"
                       : "border-stroke-sub bg-bg-white focus:border-primary-base"
                   }`}
@@ -236,24 +233,24 @@ export function WithdrawModal({
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setSharesInput(formatUnits(maxShares, 18))}
+                  onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
                 >
                   {formatMessage({ id: "app.treasury.max" })}
                 </Button>
               </div>
-              {sharesError && (
+              {amountError && (
                 <p id="withdraw-error" className="text-xs text-error-dark" role="alert">
-                  {formatMessage({ id: sharesError })}
+                  {formatMessage({ id: amountError })}
                 </p>
               )}
             </div>
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>
-                {formatMessage({ id: "app.treasury.estimatedAssets" })}:{" "}
+                {formatMessage({ id: "app.treasury.sharesToBurn" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {preview
-                    ? `${formatTokenAmount(preview.previewAssets, assetDecimals)} ${assetSymbol}`
+                  {preview && debouncedAmount > 0n
+                    ? `${formatTokenAmount(preview.previewWithdrawShares, 18)} ${formatMessage({ id: "app.treasury.shares", defaultMessage: "shares" })}`
                     : "--"}
                 </span>
               </p>
@@ -263,7 +260,7 @@ export function WithdrawModal({
               className="w-full"
               onClick={onSubmit}
               disabled={
-                Boolean(sharesError) || shares <= 0n || depositsError || withdrawMutation.isPending
+                Boolean(amountError) || amount <= 0n || depositsError || withdrawMutation.isPending
               }
               loading={withdrawMutation.isPending}
             >

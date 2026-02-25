@@ -2,7 +2,9 @@ import {
   DEFAULT_CHAIN_ID,
   findActionByUID,
   logger,
+  track,
   useActionTranslation,
+  useAudioRecording,
   useDraftAutoSave,
   useDraftResume,
   useGardenTranslation,
@@ -20,8 +22,9 @@ import {
   RiCameraFill,
   RiHammerFill,
   RiImageFill,
+  RiMicLine,
   RiPlantFill,
-  RiVideoFill,
+  RiStopFill,
 } from "@remixicon/react";
 import React, { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
@@ -100,9 +103,22 @@ const Work: React.FC = () => {
   const { set: scheduleNavigation } = useTimeout();
 
   // Media upload click handlers (exposed by WorkMedia for PostHog tracking)
-  const galleryClickRef = useRef<(() => void) | null>(null);
+  const mediaClickRef = useRef<(() => void) | null>(null);
   const cameraClickRef = useRef<(() => void) | null>(null);
-  const videoClickRef = useRef<(() => void) | null>(null);
+
+  // Audio recording from action bar (toggle button — no in-page recorder UI)
+  const {
+    isRecording,
+    elapsed: recordingElapsed,
+    toggle: toggleAudioRecording,
+  } = useAudioRecording({
+    onRecordingComplete: (file) => {
+      // Read current state directly — Zustand setters don't accept updater functions
+      const current = useWorkFlowStore.getState().audioNotes;
+      setAudioNotes([...current, file]);
+      track("audio_note_recorded", { duration: "unknown", noteIndex: current.length });
+    },
+  });
 
   if (!form) {
     return null;
@@ -384,8 +400,8 @@ const Work: React.FC = () => {
         <>
           <Button
             onClick={() => {
-              if (galleryClickRef.current) {
-                galleryClickRef.current();
+              if (mediaClickRef.current) {
+                mediaClickRef.current();
               } else {
                 document.getElementById("work-media-upload")?.click();
               }
@@ -415,20 +431,20 @@ const Work: React.FC = () => {
             leadingIcon={<RiCameraFill className="text-primary w-5 h-5" />}
           />
           <Button
-            onClick={() => {
-              if (videoClickRef.current) {
-                videoClickRef.current();
-              } else {
-                document.getElementById("work-media-video")?.click();
-              }
-            }}
+            onClick={toggleAudioRecording}
             label=""
             className="w-12 px-0 shrink-0"
-            variant="neutral"
+            variant={isRecording ? "error" : "neutral"}
             type="button"
             shape="pilled"
-            mode="stroke"
-            leadingIcon={<RiVideoFill className="text-primary w-5 h-5" />}
+            mode={isRecording ? "filled" : "stroke"}
+            leadingIcon={
+              isRecording ? (
+                <RiStopFill className="text-white w-5 h-5" />
+              ) : (
+                <RiMicLine className="text-primary w-5 h-5" />
+              )
+            }
           />
         </>
       ),
@@ -484,9 +500,10 @@ const Work: React.FC = () => {
             audioNotes={audioNotes}
             setAudioNotes={setAudioNotes}
             minRequired={minRequired}
-            onGalleryClickRef={galleryClickRef}
+            onMediaClickRef={mediaClickRef}
             onCameraClickRef={cameraClickRef}
-            onVideoClickRef={videoClickRef}
+            isRecording={isRecording}
+            recordingElapsed={recordingElapsed}
           />
         );
       case WorkTab.Details:

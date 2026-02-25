@@ -106,7 +106,6 @@
   /* Thin styled scrollbars - visible for accessibility */
   * {
     scrollbar-width: thin;
-    scrollbar-gutter: stable;
     scrollbar-color: rgb(var(--bg-sub-300)) transparent;
   }
 

@@ -2,7 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useCallback, useEffect, useState, type FC } from "react";
 import { useNavigate } from "react-router-dom";
 import { DeviceFrameset } from "react-device-frameset";
-import { QRCodeCanvas } from "qrcode.react";
+
 import "react-device-frameset/styles/marvel-devices.min.css";
 
 import { copyToClipboard, useApp, useInstallGuidance } from "@green-goods/shared";
@@ -16,26 +16,10 @@ import {
   RiExternalLinkLine,
   RiFileCopyLine,
   RiMore2Fill,
+  RiSmartphoneLine,
   RiUploadLine,
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
-
-function useIsDarkMode() {
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains("dark"));
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  return isDark;
-}
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -48,8 +32,6 @@ export const Hero: FC<HeroProps> = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyError, setCopyError] = useState(false);
-
-  const isDark = useIsDarkMode();
 
   // Get smart installation guidance based on current browser/platform
   const guidance = useInstallGuidance(
@@ -137,29 +119,13 @@ export const Hero: FC<HeroProps> = () => {
             defaultMessage:
               "Green Goods measures, tracks, and rewards the impact on local hubs with a simple progressive web app.",
           })}
-        </p>
-        <div className="hidden sm:flex flex-col items-center lg:items-start gap-4 mt-4">
-          <span className="font-bold text-2xl text-primary">
+          <span className="font-bold text-2xl hidden sm:flex text-primary">
             {intl.formatMessage({
               id: "app.hero.cta",
               defaultMessage: "Open the website on your phone to get started!",
             })}
           </span>
-
-          <div className="p-4 rounded-xl shadow-sm bg-white dark:bg-gray-800 transition-colors border border-transparent dark:border-gray-600">
-            <QRCodeCanvas
-              value={window.location.origin}
-              size={128}
-              fgColor={isDark ? "#ffffff" : "#000000"}
-              bgColor={isDark ? "#1a1a1a" : "#ffffff"}
-              aria-label={intl.formatMessage({
-                id: "app.hero.qr.ariaLabel",
-                defaultMessage: "QR code linking to Green Goods app",
-              })}
-              role="img"
-            />
-          </div>
-        </div>
+        </p>
 
         {/* Smart PWA Installation Flow based on browser/platform detection */}
         {guidance.scenario === "already-installed" ? (
@@ -174,7 +140,20 @@ export const Hero: FC<HeroProps> = () => {
               defaultMessage: "Open App",
             })}
           </a>
-        ) : guidance.scenario === "desktop" ? null : (
+        ) : guidance.scenario === "desktop" ? (
+          /* Desktop view - prompt to open on mobile */
+          <div className="text-center lg:text-left">
+            <div className="flex items-center gap-2 text-primary">
+              <RiSmartphoneLine className="w-5 h-5" />
+              <span className="font-bold">
+                {intl.formatMessage({
+                  id: "app.hero.desktop.prompt",
+                  defaultMessage: "Open on your phone to install",
+                })}
+              </span>
+            </div>
+          </div>
+        ) : (
           /* Mobile installation flow */
           <div className="space-y-3 w-full">
             {/* Browser Switch Warning */}
@@ -358,7 +337,7 @@ export const Hero: FC<HeroProps> = () => {
           <div className="flex-1 w-full h-full grid place-items-center">
             <DeviceFrameset device="iPhone 8" color="black">
               <img
-                src="/images/app-mock.webp"
+                src="/images/app-mock.png"
                 alt="Green Goods App Mockup"
                 className="w-full h-full object-cover"
               />

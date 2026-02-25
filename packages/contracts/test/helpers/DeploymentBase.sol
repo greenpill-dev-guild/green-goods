@@ -248,14 +248,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     }
 
     /// @notice Deploy extension modules: Karma, Octant, Power, Gardens, Yield, CookieJar, Hypercerts, ENS, Goods
-    function _deployCorePart2(
-        address owner,
-        bytes32 salt,
-        address factory
-    )
-        internal
-        virtual
-    {
+    function _deployCorePart2(address owner, bytes32 salt, address factory) internal virtual {
         // 8. Deploy KarmaGAPModule (after GardenToken exists)
         karmaGAPModule = KarmaGAPModule(
             _deployKarmaGAPModule(
@@ -857,8 +850,11 @@ abstract contract DeploymentBase is Test, DeployHelper {
             if (deployed != predicted) {
                 revert WorkResolverDeploymentAddressMismatch();
             }
-            UUPSUpgradeable(deployed).upgradeTo(address(implementation));
         }
+
+        // Always upgrade implementation — immutables (e.g. _eas) are baked into
+        // bytecode and won't update if the proxy already existed from a prior run
+        UUPSUpgradeable(predicted).upgradeTo(address(implementation));
 
         return predicted;
     }
@@ -897,8 +893,11 @@ abstract contract DeploymentBase is Test, DeployHelper {
             if (deployed != predicted) {
                 revert WorkApprovalResolverDeploymentAddressMismatch();
             }
-            UUPSUpgradeable(deployed).upgradeTo(address(implementation));
         }
+
+        // Always upgrade implementation — immutables (e.g. _eas) are baked into
+        // bytecode and won't update if the proxy already existed from a prior run
+        UUPSUpgradeable(predicted).upgradeTo(address(implementation));
 
         return predicted;
     }
@@ -936,8 +935,11 @@ abstract contract DeploymentBase is Test, DeployHelper {
             if (deployed != predicted) {
                 revert DeploymentAddressMismatch();
             }
-            UUPSUpgradeable(deployed).upgradeTo(address(implementation));
         }
+
+        // Always upgrade implementation — immutables (e.g. _eas) are baked into
+        // bytecode and won't update if the proxy already existed from a prior run
+        UUPSUpgradeable(predicted).upgradeTo(address(implementation));
 
         return predicted;
     }

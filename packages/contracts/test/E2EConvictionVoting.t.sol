@@ -148,7 +148,9 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
             metadata: "",
             openJoining: false,
             weightScheme: scheme,
-            domainMask: 0
+            domainMask: 0,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
         return gardenToken.mintGarden(config);
     }

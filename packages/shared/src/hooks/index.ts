@@ -15,6 +15,30 @@ export { useDebouncedValue } from "./utils/useDebouncedValue";
 export { useAddressInput } from "./utils/useAddressInput";
 export { useMutationLock } from "./utils/useMutationLock";
 export { useBeforeUnloadWhilePending } from "./utils/useBeforeUnloadWhilePending";
+export type {
+  UseAudioRecordingOptions,
+  UseAudioRecordingReturn,
+} from "./utils/useAudioRecording";
+export { useAudioRecording } from "./utils/useAudioRecording";
+
+// ============================================================================
+// OPS RUNNER (Local deploy/upgrade/script orchestration)
+// ============================================================================
+export {
+  getOpsRunnerBaseUrl,
+  useOpsRunnerSession,
+  useOpsRunnerHealth,
+  useOpsRunnerAuth,
+  useOpsRunnerScripts,
+  useOpsRunnerJobs,
+  useOpsRunnerJob,
+  useOpsDeployPlan,
+  useOpsFinalizeDeploy,
+  useOpsUpgradePlan,
+  useOpsFinalizeUpgrade,
+  useOpsRunScript,
+  useOpsJobLogs,
+} from "./ops/useOpsRunner";
 
 // ============================================================================
 // ACTION
@@ -81,6 +105,17 @@ export {
   useAssessmentForm,
   createDefaultAssessmentFormData,
 } from "./assessment/useAssessmentForm";
+export type {
+  CreateAssessmentFormData,
+  AssessmentStepId,
+  UseCreateAssessmentFormReturn,
+} from "./assessment/useCreateAssessmentForm";
+export {
+  assessmentStepFields,
+  createAssessmentFormSchema,
+  createDefaultAssessmentForm,
+  useCreateAssessmentForm,
+} from "./assessment/useCreateAssessmentForm";
 export { useCreateAssessmentWorkflow } from "./assessment/useCreateAssessmentWorkflow";
 export { useGardenAssessments } from "./assessment/useGardenAssessments";
 
@@ -114,8 +149,15 @@ export {
   useEASConfig,
   useNetworkConfig,
 } from "./blockchain/useChainConfig";
-export type { DeploymentRegistryPermissions } from "./blockchain/useDeploymentRegistry";
-export { useDeploymentRegistry } from "./blockchain/useDeploymentRegistry";
+export type {
+  DeploymentAllowlistResult,
+  DeploymentRegistryPermissions,
+} from "./blockchain/useDeploymentRegistry";
+export {
+  DEPLOYMENT_REGISTRY_ABI,
+  useDeploymentAllowlist,
+  useDeploymentRegistry,
+} from "./blockchain/useDeploymentRegistry";
 export { useEnsAddress } from "./blockchain/useEnsAddress";
 export { useEnsAvatar } from "./blockchain/useEnsAvatar";
 export { useEnsName } from "./blockchain/useEnsName";

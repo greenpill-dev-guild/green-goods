@@ -152,8 +152,10 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
             metadata: "ipfs://test",
             openJoining: true,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0x05 // Solar + Edu
-         });
+            domainMask: 0x05, // Solar + Edu
+            gardeners: new address[](0),
+            operators: new address[](0)
+        });
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -272,8 +274,10 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0x01 // Solar only
-         });
+            domainMask: 0x01, // Solar only
+            gardeners: new address[](0),
+            operators: new address[](0)
+        });
 
         configs[1] = GardenToken.GardenConfig({
             name: "Garden Beta",
@@ -284,8 +288,10 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
             metadata: "",
             openJoining: true,
             weightScheme: IGardensModule.WeightScheme.Exponential,
-            domainMask: 0x0A // Agro + Waste
-         });
+            domainMask: 0x0A, // Agro + Waste
+            gardeners: new address[](0),
+            operators: new address[](0)
+        });
 
         configs[2] = GardenToken.GardenConfig({
             name: "Garden Gamma",
@@ -296,8 +302,10 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Power,
-            domainMask: 0x0F // All domains
-         });
+            domainMask: 0x0F, // All domains
+            gardeners: new address[](0),
+            operators: new address[](0)
+        });
 
         vm.prank(multisig);
         address[] memory gardens = gardenToken.batchMintGardens(configs);

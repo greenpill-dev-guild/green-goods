@@ -7,11 +7,13 @@ on:
       - 'packages/client/**'
       - 'packages/admin/**'
       - 'packages/shared/**'
+      - 'packages/contracts/deployments/**'
   pull_request:
     paths:
       - 'packages/client/**'
       - 'packages/admin/**'
       - 'packages/shared/**'
+      - 'packages/contracts/deployments/**'
   workflow_dispatch:
     inputs:
       app:

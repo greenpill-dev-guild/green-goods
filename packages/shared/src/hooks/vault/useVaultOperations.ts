@@ -25,7 +25,7 @@ import {
 } from "../../utils/blockchain/abis";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
-import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
+import { VAULT_MAX_BPS, ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 
 function getOctantModuleAddress(chainId: number): Address {
   const moduleAddress = getNetworkContracts(chainId).octantModule;
@@ -427,27 +427,27 @@ export function useVaultWithdraw() {
       const receiver = (params.receiver ?? primaryAddress) as Address;
       const owner = (params.owner ?? primaryAddress) as Address;
 
-      // Pre-check: verify shares don't exceed redeemable limit
-      const maxRedeemResult = await readContract(wagmiConfig, {
+      // Pre-check: verify amount doesn't exceed withdrawable limit
+      const maxWithdrawResult = await readContract(wagmiConfig, {
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
-        functionName: "maxRedeem",
-        args: [owner],
+        functionName: "maxWithdraw",
+        args: [owner, VAULT_MAX_BPS, []],
       });
-      const maxRedeem = typeof maxRedeemResult === "bigint" ? maxRedeemResult : 0n;
+      const maxWithdrawable = typeof maxWithdrawResult === "bigint" ? maxWithdrawResult : 0n;
 
-      if (maxRedeem <= 0n) {
+      if (maxWithdrawable <= 0n) {
         throw new Error("Vault is not accepting withdrawals right now");
       }
-      if (params.shares > maxRedeem) {
-        throw new Error("Withdrawal amount exceeds the redeemable limit");
+      if (params.amount > maxWithdrawable) {
+        throw new Error("Withdrawal amount exceeds the available balance");
       }
 
       return sendContractTx({
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
-        functionName: "redeem",
-        args: [params.shares, receiver, owner],
+        functionName: "withdraw",
+        args: [params.amount, receiver, owner, VAULT_MAX_BPS, []],
       });
     },
     onMutate: () => {

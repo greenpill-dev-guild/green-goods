@@ -200,8 +200,8 @@ describe("hooks/vault/useVaultOperations", () => {
     );
   });
 
-  it("runs single-step withdraw flow using redeem", async () => {
-    // maxRedeem pre-check
+  it("runs single-step withdraw flow using withdraw", async () => {
+    // maxWithdraw pre-check
     mockReadContract.mockResolvedValueOnce(100n);
     mockWriteContractAsync.mockResolvedValue(
       "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
@@ -223,14 +223,14 @@ describe("hooks/vault/useVaultOperations", () => {
         gardenAddress: TEST_GARDEN as `0x${string}`,
         assetAddress: TEST_ASSET as `0x${string}`,
         vaultAddress: TEST_VAULT as `0x${string}`,
-        shares: 5n,
+        amount: 5n,
       });
     });
 
     expect(mockWriteContractAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         address: TEST_VAULT,
-        functionName: "redeem",
+        functionName: "withdraw",
       })
     );
   });

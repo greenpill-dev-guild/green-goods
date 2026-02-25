@@ -351,6 +351,7 @@ packages/contracts/cache/
 packages/contracts/cache-*/
 packages/contracts/out-*/
 packages/contracts/broadcast/
+.ops/
 
 # Indexer: generated directory (Envio codegen output, rebuilt on dev)
 packages/indexer/generated/

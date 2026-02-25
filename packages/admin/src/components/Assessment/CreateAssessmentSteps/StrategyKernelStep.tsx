@@ -1,22 +1,15 @@
-import { cn, CynefinPhase, Domain } from "@green-goods/shared";
+import { CynefinPhase, cn, Domain, useCreateAssessmentStore } from "@green-goods/shared";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
-import {
-  type Control,
-  type FieldErrors,
-  type UseFormRegister,
-  useController,
-  useFieldArray,
-  useWatch,
-} from "react-hook-form";
-import { useIntl, type IntlShape } from "react-intl";
-import {
-  type CreateAssessmentForm,
-  Section,
-  LabeledField,
-  inputClassName,
-  textareaClassName,
-  extractErrorMessage,
-} from "./shared";
+import { useMemo } from "react";
+import { type IntlShape, useIntl } from "react-intl";
+import { DOMAIN_GUIDANCE, domainKey, LabeledField, Section, textareaClassName } from "./shared";
+
+const CYNEFIN_SLUGS: Record<CynefinPhase, string> = {
+  [CynefinPhase.CLEAR]: "clear",
+  [CynefinPhase.COMPLICATED]: "complicated",
+  [CynefinPhase.COMPLEX]: "complex",
+  [CynefinPhase.CHAOTIC]: "chaotic",
+};
 
 /** Domain metric keys (stable identifiers) mapped to i18n label/unit keys */
 const DOMAIN_METRIC_KEYS: Record<Domain, { key: string; labelId: string; unitId: string }[]> = {
@@ -238,193 +231,175 @@ function resolveCynefinOptions(intl: IntlShape) {
 }
 
 interface StrategyKernelStepProps {
-  register: UseFormRegister<CreateAssessmentForm>;
-  errors: FieldErrors<CreateAssessmentForm>;
-  control: Control<CreateAssessmentForm>;
+  showValidation: boolean;
   isSubmitting: boolean;
 }
 
 /**
- * Step 1: Strategy Kernel
- * Fields: title, description, location, diagnosis (textarea),
- *         SMART outcomes (repeater), Cynefin phase (radio selector)
+ * Step 2: Strategy Kernel
+ * Fields: diagnosis (textarea), SMART outcomes (repeater), Cynefin phase (radio selector)
  */
-export function StrategyKernelStep({
-  register,
-  errors,
-  control,
-  isSubmitting,
-}: StrategyKernelStepProps) {
+export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKernelStepProps) {
   const intl = useIntl();
+  const { formatMessage } = intl;
 
-  // Watch the domain field to filter metrics (defaults to SOLAR)
-  const selectedDomain = useWatch({ control, name: "domain" }) ?? Domain.SOLAR;
-  const metrics = resolveDomainMetrics(intl, selectedDomain as Domain);
+  const form = useCreateAssessmentStore((s) => s.form);
+  const setField = useCreateAssessmentStore((s) => s.setField);
+  const addSmartOutcome = useCreateAssessmentStore((s) => s.addSmartOutcome);
+  const removeSmartOutcome = useCreateAssessmentStore((s) => s.removeSmartOutcome);
+  const updateSmartOutcome = useCreateAssessmentStore((s) => s.updateSmartOutcome);
+
+  const domainEnum = form.domain;
+  const guidance = DOMAIN_GUIDANCE[domainEnum];
+  const metrics = resolveDomainMetrics(intl, domainEnum);
   const cynefinOptions = resolveCynefinOptions(intl);
 
-  // SMART outcomes field array
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "smartOutcomes",
-  });
+  // Local validation errors
+  const fieldErrors = useMemo(
+    () => ({
+      diagnosis:
+        form.diagnosis.trim().length > 0
+          ? null
+          : formatMessage({
+              id: "app.admin.assessment.strategyKernel.diagnosisRequired",
+              defaultMessage: "Diagnosis is required",
+            }),
+      smartOutcomes:
+        form.smartOutcomes.length > 0 &&
+        form.smartOutcomes.every((o) => o.description.trim() && o.metric.trim())
+          ? null
+          : formatMessage({
+              id: "app.admin.assessment.strategyKernel.smartOutcomesRequired",
+              defaultMessage: "At least one complete outcome is required",
+            }),
+    }),
+    [form.diagnosis, form.smartOutcomes, formatMessage]
+  );
 
-  // Cynefin phase controller
-  const { field: cynefinField } = useController({
-    control,
-    name: "cynefinPhase",
-  });
+  // Per-item outcome errors
+  const outcomeErrors = form.smartOutcomes.map((o) => ({
+    description:
+      o.description.trim().length > 0
+        ? null
+        : formatMessage({
+            id: "app.admin.assessment.strategyKernel.outcomeDescriptionRequired",
+            defaultMessage: "Description is required",
+          }),
+    metric:
+      o.metric.trim().length > 0
+        ? null
+        : formatMessage({
+            id: "app.admin.assessment.strategyKernel.outcomeMetricRequired",
+            defaultMessage: "Select a metric",
+          }),
+    target:
+      o.target >= 0
+        ? null
+        : formatMessage({
+            id: "app.admin.assessment.strategyKernel.outcomeTargetPositive",
+            defaultMessage: "Target must be positive",
+          }),
+  }));
 
   return (
     <div className="space-y-6">
       <Section
-        title={intl.formatMessage({
+        title={formatMessage({
           id: "app.admin.assessment.strategyKernel.sectionTitle",
           defaultMessage: "Strategy Kernel",
         })}
-        description={intl.formatMessage({
+        description={formatMessage({
           id: "app.admin.assessment.strategyKernel.sectionDescription",
           defaultMessage:
             "Define the challenge, outcomes, and complexity context for this assessment.",
         })}
       >
-        <div className="grid gap-2.5 md:grid-cols-2 md:gap-3">
-          <LabeledField
-            label={intl.formatMessage({
-              id: "app.admin.assessment.strategyKernel.titleLabel",
-              defaultMessage: "Title",
-            })}
-            required
-            error={errors.title?.message}
-            helpText={intl.formatMessage({
-              id: "app.admin.assessment.strategyKernel.titleHelp",
-              defaultMessage: "Summarise this assessment in a few words.",
-            })}
-          >
-            <input
-              type="text"
-              disabled={isSubmitting}
-              className={inputClassName(errors.title)}
-              {...register("title")}
-            />
-          </LabeledField>
-          <LabeledField
-            label={intl.formatMessage({
-              id: "app.admin.assessment.strategyKernel.locationLabel",
-              defaultMessage: "Location",
-            })}
-            required
-            error={errors.location?.message}
-            helpText={intl.formatMessage({
-              id: "app.admin.assessment.strategyKernel.locationHelp",
-              defaultMessage: "Where this assessment applies.",
-            })}
-          >
-            <input
-              type="text"
-              disabled={isSubmitting}
-              className={inputClassName(errors.location)}
-              {...register("location")}
-            />
-          </LabeledField>
-        </div>
-
         <LabeledField
-          label={intl.formatMessage({
-            id: "app.admin.assessment.strategyKernel.descriptionLabel",
-            defaultMessage: "Description",
-          })}
-          required
-          error={errors.description?.message}
-          helpText={intl.formatMessage({
-            id: "app.admin.assessment.strategyKernel.descriptionHelp",
-            defaultMessage: "Provide context and goals for this assessment.",
-          })}
-        >
-          <textarea
-            rows={2}
-            disabled={isSubmitting}
-            className={textareaClassName(errors.description)}
-            {...register("description")}
-          />
-        </LabeledField>
-
-        <LabeledField
-          label={intl.formatMessage({
+          label={formatMessage({
             id: "app.admin.assessment.strategyKernel.diagnosisLabel",
             defaultMessage: "Diagnosis",
           })}
           required
-          error={errors.diagnosis?.message}
-          helpText={intl.formatMessage({
-            id: "app.admin.assessment.strategyKernel.diagnosisHelp",
-            defaultMessage: "Root-cause analysis of the challenge being addressed.",
+          error={showValidation ? fieldErrors.diagnosis : null}
+          helpText={formatMessage({
+            id: domainKey("app.admin.assessment.strategyKernel.diagnosisHelp", domainEnum),
+            defaultMessage: guidance.diagnosisHelp,
           })}
         >
           <textarea
             rows={4}
             disabled={isSubmitting}
-            className={textareaClassName(errors.diagnosis)}
-            placeholder={intl.formatMessage({
-              id: "app.admin.assessment.strategyKernel.diagnosisPlaceholder",
-              defaultMessage: "Describe the core challenge and its root causes...",
+            value={form.diagnosis}
+            onChange={(e) => setField("diagnosis", e.target.value)}
+            className={textareaClassName(showValidation && !!fieldErrors.diagnosis)}
+            placeholder={formatMessage({
+              id: domainKey("app.admin.assessment.strategyKernel.diagnosisPlaceholder", domainEnum),
+              defaultMessage: guidance.diagnosisPlaceholder,
             })}
-            {...register("diagnosis")}
           />
         </LabeledField>
       </Section>
 
       {/* SMART Outcomes Repeater */}
       <Section
-        title={intl.formatMessage({
+        title={formatMessage({
           id: "app.admin.assessment.strategyKernel.smartOutcomesTitle",
           defaultMessage: "SMART Outcomes",
         })}
-        description={intl.formatMessage({
+        description={formatMessage({
           id: "app.admin.assessment.strategyKernel.smartOutcomesDescription",
           defaultMessage:
             "Define measurable targets. Each outcome needs a description, metric, and target value.",
         })}
       >
+        <p className="text-xs text-text-soft">
+          {formatMessage({
+            id: domainKey("app.admin.assessment.strategyKernel.smartOutcomeExample", domainEnum),
+            defaultMessage: guidance.smartOutcomeExample,
+          })}
+        </p>
         <div className="space-y-3">
-          {fields.map((field, index) => (
+          {form.smartOutcomes.map((outcome, index) => (
             <div
-              key={field.id}
+              key={index}
               className="flex flex-col gap-2 rounded-lg border border-stroke-soft bg-bg-white p-3 sm:flex-row sm:items-start sm:gap-3"
             >
               <div className="flex-1 space-y-2">
                 <input
                   type="text"
-                  placeholder={intl.formatMessage({
+                  placeholder={formatMessage({
                     id: "app.admin.assessment.strategyKernel.outcomePlaceholder",
                     defaultMessage: "What this outcome achieves...",
                   })}
                   disabled={isSubmitting}
+                  value={outcome.description}
+                  onChange={(e) => updateSmartOutcome(index, "description", e.target.value)}
                   className={cn(
                     "w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-                    errors.smartOutcomes?.[index]?.description &&
+                    showValidation &&
+                      outcomeErrors[index]?.description &&
                       "border-error-light focus:border-error-base focus:ring-error-lighter"
                   )}
-                  {...register(`smartOutcomes.${index}.description`)}
                 />
-                {errors.smartOutcomes?.[index]?.description && (
-                  <p className="text-xs text-error-dark">
-                    {errors.smartOutcomes[index].description.message}
-                  </p>
+                {showValidation && outcomeErrors[index]?.description && (
+                  <p className="text-xs text-error-dark">{outcomeErrors[index].description}</p>
                 )}
               </div>
 
               <div className="w-full sm:w-48">
                 <select
                   disabled={isSubmitting}
+                  value={outcome.metric}
+                  onChange={(e) => updateSmartOutcome(index, "metric", e.target.value)}
                   className={cn(
                     "w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-                    errors.smartOutcomes?.[index]?.metric &&
+                    showValidation &&
+                      outcomeErrors[index]?.metric &&
                       "border-error-light focus:border-error-base focus:ring-error-lighter"
                   )}
-                  {...register(`smartOutcomes.${index}.metric`)}
                 >
                   <option value="">
-                    {intl.formatMessage({
+                    {formatMessage({
                       id: "app.admin.assessment.strategyKernel.selectMetric",
                       defaultMessage: "Select metric",
                     })}
@@ -435,10 +410,8 @@ export function StrategyKernelStep({
                     </option>
                   ))}
                 </select>
-                {errors.smartOutcomes?.[index]?.metric && (
-                  <p className="mt-0.5 text-xs text-error-dark">
-                    {errors.smartOutcomes[index].metric.message}
-                  </p>
+                {showValidation && outcomeErrors[index]?.metric && (
+                  <p className="mt-0.5 text-xs text-error-dark">{outcomeErrors[index].metric}</p>
                 )}
               </div>
 
@@ -448,32 +421,32 @@ export function StrategyKernelStep({
                     type="number"
                     min={0}
                     step="any"
-                    placeholder={intl.formatMessage({
+                    placeholder={formatMessage({
                       id: "app.admin.assessment.strategyKernel.targetPlaceholder",
                       defaultMessage: "Target",
                     })}
                     disabled={isSubmitting}
+                    value={outcome.target}
+                    onChange={(e) => updateSmartOutcome(index, "target", e.target.valueAsNumber)}
                     className={cn(
                       "w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-                      errors.smartOutcomes?.[index]?.target &&
+                      showValidation &&
+                        outcomeErrors[index]?.target &&
                         "border-error-light focus:border-error-base focus:ring-error-lighter"
                     )}
-                    {...register(`smartOutcomes.${index}.target`, { valueAsNumber: true })}
                   />
-                  {errors.smartOutcomes?.[index]?.target && (
-                    <p className="mt-0.5 text-xs text-error-dark">
-                      {errors.smartOutcomes[index].target.message}
-                    </p>
+                  {showValidation && outcomeErrors[index]?.target && (
+                    <p className="mt-0.5 text-xs text-error-dark">{outcomeErrors[index].target}</p>
                   )}
                 </div>
 
-                {fields.length > 1 && (
+                {form.smartOutcomes.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => remove(index)}
+                    onClick={() => removeSmartOutcome(index)}
                     disabled={isSubmitting}
                     className="mt-1 rounded-md p-1.5 text-error-base transition hover:bg-error-lighter hover:text-error-dark disabled:cursor-not-allowed disabled:opacity-60"
-                    aria-label={intl.formatMessage({
+                    aria-label={formatMessage({
                       id: "app.admin.assessment.strategyKernel.removeOutcome",
                       defaultMessage: "Remove outcome",
                     })}
@@ -486,18 +459,18 @@ export function StrategyKernelStep({
           ))}
 
           {/* Array-level error */}
-          {errors.smartOutcomes && !Array.isArray(errors.smartOutcomes) && (
-            <p className="text-xs text-error-dark">{extractErrorMessage(errors.smartOutcomes)}</p>
+          {showValidation && fieldErrors.smartOutcomes && (
+            <p className="text-xs text-error-dark">{fieldErrors.smartOutcomes}</p>
           )}
 
           <button
             type="button"
-            onClick={() => append({ description: "", metric: "", target: 0 })}
+            onClick={() => addSmartOutcome()}
             disabled={isSubmitting}
             className="inline-flex items-center gap-1.5 rounded-md border border-stroke-soft px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft disabled:cursor-not-allowed disabled:opacity-60"
           >
             <RiAddLine className="h-4 w-4" />
-            {intl.formatMessage({
+            {formatMessage({
               id: "app.admin.assessment.strategyKernel.addOutcome",
               defaultMessage: "Add outcome",
             })}
@@ -507,22 +480,22 @@ export function StrategyKernelStep({
 
       {/* Cynefin Phase Selector */}
       <Section
-        title={intl.formatMessage({
+        title={formatMessage({
           id: "app.admin.assessment.strategyKernel.cynefinTitle",
           defaultMessage: "Cynefin Phase",
         })}
-        description={intl.formatMessage({
+        description={formatMessage({
           id: "app.admin.assessment.strategyKernel.cynefinDescription",
           defaultMessage: "Classify the complexity of the operating environment.",
         })}
       >
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {cynefinOptions.map((option) => {
-            const isSelected = Number(cynefinField.value) === option.value;
+            const isSelected = form.cynefinPhase === option.value;
             return (
               <label
                 key={option.value}
-                aria-label={intl.formatMessage(
+                aria-label={formatMessage(
                   {
                     id: "app.admin.assessment.strategyKernel.cynefinAriaLabel",
                     defaultMessage: "Cynefin phase: {phase}",
@@ -542,21 +515,27 @@ export function StrategyKernelStep({
                   name="cynefinPhase"
                   value={option.value}
                   checked={isSelected}
-                  onChange={() => cynefinField.onChange(option.value)}
+                  onChange={() => setField("cynefinPhase", option.value)}
                   disabled={isSubmitting}
                   className="mt-0.5 h-4 w-4 border-stroke-sub text-primary-base focus:ring-2 focus:ring-primary-alpha-24 focus:ring-offset-0"
                 />
                 <div>
                   <span className="text-sm font-medium">{option.label}</span>
                   <p className="mt-0.5 text-xs text-text-soft">{option.description}</p>
+                  <p className="mt-0.5 text-xs italic text-text-soft/70">
+                    {formatMessage({
+                      id: domainKey(
+                        `app.admin.assessment.strategyKernel.cynefinExample.${CYNEFIN_SLUGS[option.value]}`,
+                        domainEnum
+                      ),
+                      defaultMessage: guidance.cynefinExamples[option.value],
+                    })}
+                  </p>
                 </div>
               </label>
             );
           })}
         </div>
-        {errors.cynefinPhase && (
-          <p className="text-xs text-error-dark">{errors.cynefinPhase.message}</p>
-        )}
       </Section>
     </div>
   );
