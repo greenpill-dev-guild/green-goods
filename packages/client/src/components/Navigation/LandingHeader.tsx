@@ -25,7 +25,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = () => {
   const filterLinks = isMobile ? links.filter(({ title }) => title === "twitter") : links;
 
   return (
-    <header className="w-full h-16 lg:h-24 flex justify-between items-center py-4 lg:py-6 text-[#367D42]">
+    <header className="w-full h-16 lg:h-24 flex justify-between items-center py-4 lg:py-6 text-primary">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary-base focus:text-white focus:rounded-lg focus:text-sm focus:font-medium"
@@ -47,7 +47,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = () => {
               { id: "app.landing.header.socialLink" },
               { platform: title }
             )}
-            className="text-[#367D42] hover:text-[#D2B48C] bg-bg-weak-50 hover:bg-bg-soft-200 p-2 rounded-full transition-colors grid place-items-center"
+            className="text-primary hover:text-text-sub-600 bg-bg-weak-50 hover:bg-bg-soft-200 p-2 rounded-full transition-colors grid place-items-center"
             onClick={action}
           >
             <Icon size={28} />
