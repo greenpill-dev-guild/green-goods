@@ -88,7 +88,12 @@ contract WorkResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
     function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal view override returns (bool) {
         if (schemaUID != bytes32(0) && attestation.schema != schemaUID) revert InvalidSchema();
 
-        WorkSchema memory schema = abi.decode(attestation.data, (WorkSchema));
+        // Decode as tuple — struct decode reverts because EAS stores data in flat-tuple
+        // ABI format (no outer offset pointer), while abi.decode(data, (Struct)) expects
+        // the wrapped struct format. See: test/debug/StructEncode.t.sol test_4.
+        WorkSchema memory schema;
+        (schema.actionUID, schema.title, schema.feedback, schema.metadata, schema.media) =
+            abi.decode(attestation.data, (uint256, string, string, string, string[]));
         IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);
 
         // IDENTITY CHECK: Verify gardener OR operator status FIRST

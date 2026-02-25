@@ -383,6 +383,8 @@ contract AssessmentResolverTest is Test {
         view
         returns (Attestation memory)
     {
+        // Encode as flat tuple to match how clients encode via encodeAbiParameters.
+        // See src/resolvers/Work.sol for details on struct vs tuple ABI encoding.
         return Attestation({
             uid: bytes32(uint256(1)),
             schema: bytes32(uint256(102)),
@@ -393,7 +395,15 @@ contract AssessmentResolverTest is Test {
             recipient: address(mockGarden), // Garden address = IGardenAccessControl
             attester: attester,
             revocable: true,
-            data: abi.encode(schema)
+            data: abi.encode(
+                schema.title,
+                schema.description,
+                schema.assessmentConfigCID,
+                schema.domain,
+                schema.startDate,
+                schema.endDate,
+                schema.location
+            )
         });
     }
 }
