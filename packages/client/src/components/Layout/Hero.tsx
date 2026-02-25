@@ -21,9 +21,7 @@ import {
 import { FormattedMessage, useIntl } from "react-intl";
 
 function useIsDarkMode() {
-  const [isDark, setIsDark] = useState(
-    () => document.documentElement.dataset.theme === "dark",
-  );
+  const [isDark, setIsDark] = useState(() => document.documentElement.dataset.theme === "dark");
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
