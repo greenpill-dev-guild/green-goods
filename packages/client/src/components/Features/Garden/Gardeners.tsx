@@ -67,7 +67,7 @@ const GardenMemberItem = memo(function GardenMemberItem({
 
   return (
     <button
-      className="relative flex items-center gap-3 border-stroke-soft-200 border rounded-lg p-2 bg-bg-white-0 cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm w-full text-left tap-feedback"
+      className="cv-member relative flex items-center gap-3 border-stroke-soft-200 border rounded-lg p-2 bg-bg-white-0 cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm w-full text-left tap-feedback"
       onClick={onClick}
       type="button"
     >

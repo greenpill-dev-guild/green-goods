@@ -44,7 +44,7 @@ const WorkListItem = memo(function WorkListItem({
     [navigate, work.gardenAddress, work.id]
   );
   return (
-    <li style={style}>
+    <li style={style} className="cv-work-card">
       <MinimalWorkCard
         onClick={onOpen}
         work={work as unknown as Work}
