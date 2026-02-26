@@ -1,4 +1,6 @@
 import {
+  Domain,
+  DOMAIN_COLORS,
   gardenStepFields,
   toastService,
   useCreateGardenForm,
@@ -16,6 +18,13 @@ import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
 import { ReviewStep } from "@/components/Garden/CreateGardenSteps/ReviewStep";
 import { TeamStep } from "@/components/Garden/CreateGardenSteps/TeamStep";
 import { Button } from "@/components/ui/Button";
+
+const DOMAIN_LABELS: Record<Domain, { id: string; defaultMessage: string }> = {
+  [Domain.SOLAR]: { id: "app.garden.create.domain.solar", defaultMessage: "Solar" },
+  [Domain.AGRO]: { id: "app.garden.create.domain.agro", defaultMessage: "Agroforestry" },
+  [Domain.EDU]: { id: "app.garden.create.domain.edu", defaultMessage: "Education" },
+  [Domain.WASTE]: { id: "app.garden.create.domain.waste", defaultMessage: "Waste" },
+};
 
 export default function CreateGarden() {
   const intl = useIntl();
@@ -353,6 +362,28 @@ export default function CreateGarden() {
                 </span>
                 <span className="font-mono text-xs text-text-strong">
                   {form.slug}.greengoods.eth
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-text-soft">
+                  {intl.formatMessage({
+                    id: "app.garden.create.confirm.domains",
+                    defaultMessage: "Domains",
+                  })}
+                </span>
+                <span className="flex flex-wrap gap-1">
+                  {form.domains.map((domain) => (
+                    <span
+                      key={domain}
+                      className="inline-flex items-center gap-1 rounded-full border border-stroke-soft px-2 py-0.5 text-xs text-text-strong"
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: DOMAIN_COLORS[domain] }}
+                      />
+                      {intl.formatMessage(DOMAIN_LABELS[domain])}
+                    </span>
+                  ))}
                 </span>
               </div>
               <div className="flex items-center justify-between">

@@ -201,13 +201,14 @@ export function WithdrawModal({
               <p>
                 {formatMessage({ id: "app.treasury.myShares" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {formatTokenAmount(maxShares, 18)} shares
+                  {formatTokenAmount(maxShares, 18, 6)} shares
                 </span>
               </p>
               <p>
                 {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {formatTokenAmount(availableAssets, assetDecimals)} {assetSymbol}
+                  {formatTokenAmount(availableAssets, assetDecimals, 6, undefined, true)}{" "}
+                  {assetSymbol}
                 </span>
               </p>
             </div>
@@ -253,7 +254,7 @@ export function WithdrawModal({
                 {formatMessage({ id: "app.treasury.estimatedAssets" })}:{" "}
                 <span className="font-medium text-text-strong">
                   {preview
-                    ? `${formatTokenAmount(preview.previewAssets, assetDecimals)} ${assetSymbol}`
+                    ? `${formatTokenAmount(preview.previewAssets, assetDecimals, 6)} ${assetSymbol}`
                     : "--"}
                 </span>
               </p>

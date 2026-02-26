@@ -105,7 +105,8 @@ export function formatTokenAmount(
   value: bigint,
   decimals = 18,
   maxFractionDigits = 4,
-  locale?: string
+  locale?: string,
+  showDustIndicator = false
 ): string {
   if (value === 0n) return "0";
 
@@ -114,6 +115,16 @@ export function formatTokenAmount(
   const base = 10n ** BigInt(decimals);
   const whole = absolute / base;
   const fraction = absolute % base;
+
+  // Dust indicator: when value is non-zero but too small to display
+  if (showDustIndicator && whole === 0n) {
+    const padded = fraction.toString().padStart(decimals, "0");
+    const visible = padded.slice(0, maxFractionDigits).replace(/0+$/, "");
+    if (!visible) {
+      const dustStr = `< 0.${"0".repeat(maxFractionDigits - 1)}1`;
+      return negative ? `< -0.${"0".repeat(maxFractionDigits - 1)}1` : dustStr;
+    }
+  }
 
   const resolvedLocale =
     locale ?? (typeof navigator !== "undefined" ? navigator.language : "en-US");

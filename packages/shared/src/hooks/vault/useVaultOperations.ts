@@ -439,15 +439,23 @@ export function useVaultWithdraw() {
       if (maxRedeem <= 0n) {
         throw new Error("Vault is not accepting withdrawals right now");
       }
-      if (params.shares > maxRedeem) {
-        throw new Error("Withdrawal amount exceeds the redeemable limit");
+
+      // Clamp shares to maxRedeem if within 0.01% tolerance (handles ERC4626 rounding drift)
+      let redeemShares = params.shares;
+      if (redeemShares > maxRedeem) {
+        const tolerance = maxRedeem / 10000n; // 0.01%
+        if (redeemShares <= maxRedeem + tolerance) {
+          redeemShares = maxRedeem;
+        } else {
+          throw new Error("Withdrawal amount exceeds the redeemable limit");
+        }
       }
 
       return sendContractTx({
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
         functionName: "redeem",
-        args: [params.shares, receiver, owner],
+        args: [redeemShares, receiver, owner],
       });
     },
     onMutate: () => {

@@ -173,8 +173,6 @@ export function useCreateGardenWorkflow() {
             if (!params) {
               throw new Error("Garden form is incomplete");
             }
-            const plannedGardeners = gardenStoreState.form.gardeners;
-            const plannedOperators = gardenStoreState.form.operators;
 
             const {
               walletClient: currentWalletClient,
@@ -195,15 +193,6 @@ export function useCreateGardenWorkflow() {
               chainId: currentChainId,
             });
 
-            if (plannedGardeners.length > 0 || plannedOperators.length > 0) {
-              logger.info("Garden created with planned members requiring post-deploy assignment", {
-                source: "useCreateGardenWorkflow.submitGarden",
-                plannedGardenerCount: plannedGardeners.length,
-                plannedOperatorCount: plannedOperators.length,
-                chainId: currentChainId,
-              });
-            }
-
             try {
               const contracts = getNetworkContracts(currentChainId);
               const config = {
@@ -216,6 +205,8 @@ export function useCreateGardenWorkflow() {
                 openJoining: params.openJoining ?? false,
                 weightScheme: params.weightScheme,
                 domainMask: params.domainMask,
+                gardeners: params.gardeners,
+                operators: params.operators,
               };
 
               // Estimate CCIP fee for ENS registration (if slug provided and ENS module configured)
@@ -408,6 +399,8 @@ export function useCreateGardenWorkflow() {
       openJoining: params.openJoining ?? false,
       weightScheme: params.weightScheme,
       domainMask: params.domainMask,
+      gardeners: params.gardeners,
+      operators: params.operators,
     };
 
     const { publicClient } = createClients(currentChainId);
