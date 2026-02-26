@@ -24,6 +24,7 @@ import { Link, useParams } from "react-router-dom";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
+import { GardenDomainEditor } from "@/components/Garden/GardenDomainEditor";
 import { GardenHeroSection } from "@/components/Garden/GardenHeroSection";
 import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
 import { GardenMetadata } from "@/components/Garden/GardenMetadata";
@@ -249,6 +250,8 @@ export default function GardenDetail() {
             tokenId={garden.tokenID}
             chainId={garden.chainId}
           />
+
+          <GardenDomainEditor gardenAddress={garden.id as Address} canManage={canManage} />
         </Tabs.Content>
 
         <Tabs.Content
