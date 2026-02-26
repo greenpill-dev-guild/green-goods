@@ -1,5 +1,7 @@
 import {
   cn,
+  Domain,
+  DOMAIN_COLORS,
   imageCompressor,
   logger,
   resolveIPFSUrl,
@@ -17,6 +19,13 @@ import { FileUploadField } from "../../FileUploadField";
 
 type DetailField = "name" | "slug" | "description" | "location";
 
+const DOMAIN_OPTIONS = [
+  { value: Domain.SOLAR, labelId: "app.garden.create.domain.solar", defaultLabel: "Solar" },
+  { value: Domain.AGRO, labelId: "app.garden.create.domain.agro", defaultLabel: "Agroforestry" },
+  { value: Domain.EDU, labelId: "app.garden.create.domain.edu", defaultLabel: "Education" },
+  { value: Domain.WASTE, labelId: "app.garden.create.domain.waste", defaultLabel: "Waste" },
+] as const;
+
 interface DetailsStepProps {
   showValidation: boolean;
 }
@@ -25,6 +34,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
   const { formatMessage } = useIntl();
   const form = useCreateGardenStore((s) => s.form);
   const setField = useCreateGardenStore((s) => s.setField);
+  const domains = useCreateGardenStore((s) => s.form.domains);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [bannerUploadProgress, setBannerUploadProgress] = useState(0);
@@ -159,6 +169,15 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
   };
 
   const showFieldError = (field: DetailField) => showValidation || touchedFields[field];
+
+  const toggleDomain = (domain: Domain) => {
+    const next = domains.includes(domain)
+      ? domains.filter((d) => d !== domain)
+      : [...domains, domain];
+    if (next.length > 0) {
+      setField("domains", next);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -376,6 +395,52 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           <div className="mt-2">
             <img src={form.bannerImage} alt="" className="h-24 w-full rounded-lg object-cover" />
           </div>
+        )}
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-text-sub">
+          {formatMessage({
+            id: "app.garden.create.domains.title",
+            defaultMessage: "Action domains",
+          })}
+        </label>
+        <p className="text-xs text-text-soft">
+          {formatMessage({
+            id: "app.garden.create.domains.description",
+            defaultMessage: "Select which conservation domains this garden will focus on",
+          })}
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {DOMAIN_OPTIONS.map(({ value, labelId, defaultLabel }) => {
+            const isSelected = domains.includes(value);
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => toggleDomain(value)}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors",
+                  isSelected
+                    ? "border-primary-base bg-primary-alpha-10 text-text-strong"
+                    : "border-stroke-soft bg-bg-white text-text-sub hover:border-stroke-strong"
+                )}
+              >
+                <span
+                  className="h-3 w-3 shrink-0 rounded-full"
+                  style={{ backgroundColor: DOMAIN_COLORS[value] }}
+                />
+                {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+              </button>
+            );
+          })}
+        </div>
+        {showValidation && domains.length === 0 && (
+          <p className="text-xs text-error-dark">
+            {formatMessage({
+              id: "app.garden.create.domains.required",
+              defaultMessage: "Select at least one domain",
+            })}
+          </p>
         )}
       </div>
     </div>

@@ -235,6 +235,74 @@ describe("hooks/vault/useVaultOperations", () => {
     );
   });
 
+  it("clamps withdraw shares to maxRedeem when within tolerance", async () => {
+    const maxRedeem = 1_000_000_000_000_000_000n;
+    const tolerance = maxRedeem / 10_000n;
+
+    mockReadContract.mockResolvedValueOnce(maxRedeem);
+    mockWriteContractAsync.mockResolvedValue(
+      "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    );
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useVaultWithdraw(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: TEST_GARDEN as `0x${string}`,
+        assetAddress: TEST_ASSET as `0x${string}`,
+        vaultAddress: TEST_VAULT as `0x${string}`,
+        shares: maxRedeem + tolerance,
+      });
+    });
+
+    expect(mockWriteContractAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        functionName: "redeem",
+        args: [maxRedeem, TEST_PRIMARY_ADDRESS, TEST_PRIMARY_ADDRESS],
+      })
+    );
+  });
+
+  it("rejects withdraw shares above maxRedeem tolerance", async () => {
+    const maxRedeem = 1_000_000_000_000_000_000n;
+    const tolerance = maxRedeem / 10_000n;
+
+    mockReadContract.mockResolvedValueOnce(maxRedeem);
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useVaultWithdraw(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          gardenAddress: TEST_GARDEN as `0x${string}`,
+          assetAddress: TEST_ASSET as `0x${string}`,
+          vaultAddress: TEST_VAULT as `0x${string}`,
+          shares: maxRedeem + tolerance + 1n,
+        })
+      ).rejects.toThrow("Withdrawal amount exceeds the redeemable limit");
+    });
+
+    expect(mockWriteContractAsync).not.toHaveBeenCalled();
+  });
+
   it("calls OctantModule.harvest for harvest mutation", async () => {
     mockWriteContractAsync.mockResolvedValue(
       "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
