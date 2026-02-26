@@ -280,7 +280,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
                   key={work.id}
                   work={work as unknown as Work}
                   onClick={() => onWorkClick(work)}
-                  className="stagger-item"
+                  className="stagger-item cv-work-card"
                   confirmed={confirmedIds.has(work.id)}
                   style={{ animationDelay: `${index * 30}ms` } as React.CSSProperties}
                   badges={badges}

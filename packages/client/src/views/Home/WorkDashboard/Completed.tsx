@@ -142,7 +142,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
                 work={work}
                 onClick={() => onWorkClick(work)}
                 badges={renderBadges?.(work)}
-                className="stagger-item"
+                className="stagger-item cv-work-card"
                 style={{ animationDelay: `${index * 30}ms` } as React.CSSProperties}
               />
             ))}
