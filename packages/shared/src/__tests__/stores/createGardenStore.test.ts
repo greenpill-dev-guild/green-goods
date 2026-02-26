@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { getAddress } from "viem";
 
 import {
   resetCreateGardenStore,
@@ -7,7 +8,7 @@ import {
 import { Domain } from "../../types/domain";
 
 const GARDENER = "0x1234567890123456789012345678901234567890";
-const OPERATOR = "0xAbCdEf0123456789AbCdEf0123456789AbCdEf01";
+const OPERATOR = "0xabcdef0123456789abcdef0123456789abcdef01";
 
 describe("stores/useCreateGardenStore", () => {
   beforeEach(() => {
@@ -33,7 +34,7 @@ describe("stores/useCreateGardenStore", () => {
     expect(params).not.toBeNull();
     expect(params?.domainMask).toBe((1 << Domain.SOLAR) | (1 << Domain.WASTE));
     expect(params?.gardeners).toEqual([GARDENER]);
-    expect(params?.operators).toEqual([OPERATOR]);
+    expect(params?.operators).toEqual([getAddress(OPERATOR)]);
   });
 
   it("treats details step as invalid when no domains are selected", () => {
