@@ -225,7 +225,7 @@ describe("Vault Utilities", () => {
     });
 
     it("respects maxFractionDigits in dust indicator", () => {
-      expect(formatTokenAmount(1n, 6, 6, EN, true)).toBe("< 0.000001");
+      expect(formatTokenAmount(1n, 6, 6, EN, true)).toBe("0.000001");
     });
   });
 });
