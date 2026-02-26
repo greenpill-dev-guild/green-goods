@@ -113,6 +113,16 @@
             "name": "domainMask",
             "type": "uint8",
             "internalType": "uint8"
+          },
+          {
+            "name": "gardeners",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "operators",
+            "type": "address[]",
+            "internalType": "address[]"
           }
         ]
       }
@@ -357,6 +367,16 @@
             "name": "domainMask",
             "type": "uint8",
             "internalType": "uint8"
+          },
+          {
+            "name": "gardeners",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "operators",
+            "type": "address[]",
+            "internalType": "address[]"
           }
         ]
       }
@@ -392,6 +412,19 @@
         "name": "",
         "type": "address",
         "internalType": "contract OctantModule"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "openMinting",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -629,6 +662,19 @@
         "name": "_octantModule",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setOpenMinting",
+    "inputs": [
+      {
+        "name": "_open",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "outputs": [],
@@ -1152,6 +1198,19 @@
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OpenMintingUpdated",
+    "inputs": [
+      {
+        "name": "open",
+        "type": "bool",
+        "indexed": true,
+        "internalType": "bool"
       }
     ],
     "anonymous": false
