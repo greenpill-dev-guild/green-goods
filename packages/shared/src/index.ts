@@ -259,6 +259,7 @@ export {
   useSlugAvailability,
   useGardenAssessments,
   useGardenDomains,
+  useSetGardenDomains,
   useGardenerProfile,
   useGardeners,
   useGardenInvites,
