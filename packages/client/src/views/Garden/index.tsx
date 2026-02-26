@@ -561,7 +561,9 @@ const Work: React.FC = () => {
         id="work-form"
         className="relative py-6 pt-20 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
       >
-        <div className="padded relative flex flex-col gap-4 flex-1">{renderTabContent()}</div>
+        <div className="padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+          {renderTabContent()}
+        </div>
         <div className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] w-full z-[10000] bg-bg-white-0 border-t border-stroke-soft-200">
           <div className="flex flex-col gap-2 w-full padded">
             {queueStatusMessage && (

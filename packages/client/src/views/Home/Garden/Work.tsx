@@ -42,7 +42,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { useLocation, useOutletContext, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
@@ -66,6 +66,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const [confidence, setConfidence] = useState<Confidence>(Confidence.NONE);
   const [optimisticStatus, setOptimisticStatus] = useState<"approved" | "rejected" | null>(null);
   const navigateToTop = useNavigateToTop();
+  const navigate = useNavigate();
   const location = useLocation();
   const chainId = DEFAULT_CHAIN_ID;
   const { data: gardens = [] } = useGardens();
@@ -458,12 +459,21 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   );
 
   const handleBack = () => {
-    const from = (location.state as { from?: string } | null | undefined)?.from;
+    const state = (location.state as { from?: string; returnTo?: string } | null | undefined) ?? {};
+    const from = state.from;
     if (from === "dashboard") {
       navigateToTop("/home");
       return;
     }
-    navigateToTop(`/home/${garden?.id ?? ""}`);
+    if (state.returnTo) {
+      navigateToTop(state.returnTo);
+      return;
+    }
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigateToTop(gardenId ? `/home/${gardenId}` : "/home");
   };
 
   if (!work || !garden)
@@ -627,7 +637,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                   id: "app.home.workApproval.feedbackPlaceholder",
                   defaultMessage: "Add your feedback here...",
                 })}
-                className="w-full min-h-[120px] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                className="w-full min-h-[120px] max-h-[40vh] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]"
               />
             </div>
 
