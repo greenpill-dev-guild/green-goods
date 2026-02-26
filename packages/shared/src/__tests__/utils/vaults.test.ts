@@ -215,5 +215,59 @@ describe("Vault Utilities", () => {
       // German uses comma as decimal separator
       expect(result).toBe("1,5");
     });
+
+    describe("dust display (showDustIndicator)", () => {
+      it("returns dust indicator for sub-display-threshold positive amounts", () => {
+        // 0.00005 ETH = 50000000000000 wei — below 0.0001 display threshold at maxFractionDigits=4
+        const dust = 50000000000000n;
+        expect(formatTokenAmount(dust, 18, 4, EN, true)).toBe("< 0.0001");
+      });
+
+      it("returns dust indicator for 1 wei", () => {
+        expect(formatTokenAmount(1n, 18, 4, EN, true)).toBe("< 0.0001");
+      });
+
+      it("does NOT return dust indicator when showDustIndicator is false (default)", () => {
+        const dust = 50000000000000n;
+        // Default behavior: returns "0" (whole part only, fraction truncated)
+        expect(formatTokenAmount(dust, 18, 4, EN)).toBe("0");
+      });
+
+      it("returns normal format when amount is above display threshold", () => {
+        const amount = 1000000000000000n; // 0.001 ETH — visible at 4 fraction digits
+        expect(formatTokenAmount(amount, 18, 4, EN, true)).toBe("0.001");
+      });
+
+      it("respects maxFractionDigits for dust threshold", () => {
+        // 0.00005 ETH — below 0.000001 threshold at maxFractionDigits=6
+        const dust = 50000000000000n; // 5e13
+        // At 6 fraction digits, 0.00005 = "000050" which is "00005" after trim — visible!
+        expect(formatTokenAmount(dust, 18, 6, EN, true)).toBe("0.00005");
+      });
+
+      it("returns dust indicator for very small amounts at higher precision", () => {
+        // 1 wei at maxFractionDigits=6 — still below threshold
+        expect(formatTokenAmount(1n, 18, 6, EN, true)).toBe("< 0.000001");
+      });
+
+      it("handles USDC-like 6-decimal tokens", () => {
+        // 1 unit of USDC (6 decimals) = 0.000001 USDC — below 4-digit display
+        expect(formatTokenAmount(1n, 6, 4, EN, true)).toBe("< 0.0001");
+      });
+
+      it("uses locale-appropriate decimal separator for dust indicator", () => {
+        const dust = 1n;
+        expect(formatTokenAmount(dust, 18, 4, "de-DE", true)).toBe("< 0,0001");
+      });
+
+      it("returns '0' for zero even with showDustIndicator", () => {
+        expect(formatTokenAmount(0n, 18, 4, EN, true)).toBe("0");
+      });
+
+      it("handles negative dust amounts", () => {
+        const negativeDust = -50000000000000n;
+        expect(formatTokenAmount(negativeDust, 18, 4, EN, true)).toBe("-0");
+      });
+    });
   });
 });

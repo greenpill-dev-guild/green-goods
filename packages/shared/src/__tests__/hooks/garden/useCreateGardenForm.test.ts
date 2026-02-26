@@ -14,6 +14,7 @@ import {
   createDefaultGardenForm,
   type CreateGardenFormData,
 } from "../../../hooks/garden/useCreateGardenForm";
+import { Domain } from "../../../types/domain";
 
 // ============================================
 // Test Helpers
@@ -30,6 +31,7 @@ function createValidForm(overrides: Partial<CreateGardenFormData> = {}): CreateG
     location: "Portland, Oregon",
     bannerImage: "",
     metadata: "",
+    domains: [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE],
     openJoining: false,
     gardeners: [VALID_ADDRESS],
     operators: [VALID_ADDRESS_2],
@@ -214,13 +216,14 @@ describe("createGardenSchema", () => {
 // ============================================
 
 describe("gardenStepFields", () => {
-  it("details step validates name, slug, description, location, bannerImage", () => {
+  it("details step validates name, slug, description, location, bannerImage, domains", () => {
     expect(gardenStepFields.details).toEqual([
       "name",
       "slug",
       "description",
       "location",
       "bannerImage",
+      "domains",
     ]);
   });
 
@@ -247,6 +250,7 @@ describe("createDefaultGardenForm", () => {
     expect(defaults.location).toBe("");
     expect(defaults.bannerImage).toBe("");
     expect(defaults.metadata).toBe("");
+    expect(defaults.domains).toEqual([Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE]);
     expect(defaults.openJoining).toBe(false);
     expect(defaults.gardeners).toEqual([]);
     expect(defaults.operators).toEqual([]);

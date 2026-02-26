@@ -197,7 +197,8 @@ export function WithdrawModal({
               <p>
                 {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {formatTokenAmount(maxWithdrawable, assetDecimals)} {assetSymbol}
+                  {formatTokenAmount(maxWithdrawable, assetDecimals, 6, undefined, true)}{" "}
+                  {assetSymbol}
                 </span>
               </p>
               <p>

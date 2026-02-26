@@ -7,7 +7,7 @@ import {
   gardenStepFields,
   type GardenStepId,
 } from "../hooks/garden/useCreateGardenForm";
-import type { Address } from "../types/domain";
+import { Domain, type Address } from "../types/domain";
 import { type CreateGardenParams, WeightScheme } from "../types/contracts";
 
 // Storage key for garden creation flow persistence
@@ -20,6 +20,7 @@ export interface CreateGardenFormState {
   location: string;
   bannerImage: string;
   metadata: string;
+  domains: Domain[];
   openJoining: boolean;
   gardeners: Address[];
   operators: Address[];
@@ -69,6 +70,7 @@ export function createEmptyGardenForm(): CreateGardenFormState {
     location: "",
     bannerImage: "",
     metadata: "",
+    domains: [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE],
     openJoining: false,
     gardeners: [],
     operators: [],
@@ -235,6 +237,9 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           return null;
         }
 
+        // Compute bitmask from selected domains (bit N = Domain with value N)
+        const domainMask = form.domains.reduce((mask, d) => mask | (1 << d), 0);
+
         return {
           name: form.name.trim(),
           slug: form.slug.trim(),
@@ -244,7 +249,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           metadata: form.metadata.trim(),
           openJoining: form.openJoining,
           weightScheme: WeightScheme.Linear,
-          domainMask: 0x0f,
+          domainMask,
           gardeners: form.gardeners as `0x${string}`[],
           operators: form.operators as `0x${string}`[],
         } satisfies CreateGardenParams;

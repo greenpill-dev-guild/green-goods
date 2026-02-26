@@ -531,7 +531,7 @@
       {
         "name": "instructions",
         "type": "string",
-        "indexed": true,
+        "indexed": false,
         "internalType": "string"
       }
     ],
@@ -556,7 +556,7 @@
       {
         "name": "media",
         "type": "string[]",
-        "indexed": true,
+        "indexed": false,
         "internalType": "string[]"
       }
     ],
@@ -673,7 +673,7 @@
       {
         "name": "title",
         "type": "string",
-        "indexed": true,
+        "indexed": false,
         "internalType": "string"
       }
     ],

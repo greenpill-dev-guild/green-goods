@@ -14,6 +14,7 @@ import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { FileUploadField } from "../../FileUploadField";
+import { DomainSelector } from "./DomainSelector";
 
 type DetailField = "name" | "slug" | "description" | "location";
 
@@ -342,6 +343,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             : "\u00A0"}
         </span>
       </label>
+      <DomainSelector showValidation={showValidation} />
       <div className="space-y-1.5 text-sm">
         <FileUploadField
           label={formatMessage({

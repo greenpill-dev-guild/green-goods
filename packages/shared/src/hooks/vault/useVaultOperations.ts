@@ -439,15 +439,25 @@ export function useVaultWithdraw() {
       if (maxWithdrawable <= 0n) {
         throw new Error("Vault is not accepting withdrawals right now");
       }
-      if (params.amount > maxWithdrawable) {
-        throw new Error("Withdrawal amount exceeds the available balance");
+
+      // Clamp to maxWithdrawable if amount exceeds by a small margin (< 0.01%).
+      // This handles timing drift between the UI's maxWithdraw read and this
+      // fresh pre-check — yield accrual or ERC4626 rounding can shift the value.
+      let withdrawAmount = params.amount;
+      if (withdrawAmount > maxWithdrawable) {
+        const tolerance = maxWithdrawable / 10000n; // 0.01%
+        if (withdrawAmount <= maxWithdrawable + tolerance) {
+          withdrawAmount = maxWithdrawable;
+        } else {
+          throw new Error("Withdrawal amount exceeds the available balance");
+        }
       }
 
       return sendContractTx({
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
         functionName: "withdraw",
-        args: [params.amount, receiver, owner, VAULT_MAX_BPS, []],
+        args: [withdrawAmount, receiver, owner, VAULT_MAX_BPS, []],
       });
     },
     onMutate: () => {

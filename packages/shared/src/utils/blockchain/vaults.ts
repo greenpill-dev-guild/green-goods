@@ -108,7 +108,8 @@ export function formatTokenAmount(
   value: bigint,
   decimals = 18,
   maxFractionDigits = 4,
-  locale?: string
+  locale?: string,
+  showDustIndicator = false
 ): string {
   if (value === 0n) return "0";
 
@@ -129,6 +130,12 @@ export function formatTokenAmount(
   const padded = fraction.toString().padStart(decimals, "0");
   const trimmed = padded.slice(0, maxFractionDigits).replace(/0+$/, "");
   if (!trimmed) {
+    // Fraction exists but is below display threshold
+    if (showDustIndicator && whole === 0n && !negative) {
+      const decimalSeparator = (0.1).toLocaleString(resolvedLocale).charAt(1);
+      const minDisplay = `0${decimalSeparator}${"0".repeat(maxFractionDigits - 1)}1`;
+      return `< ${minDisplay}`;
+    }
     return negative ? `-${wholeText}` : wholeText;
   }
 
