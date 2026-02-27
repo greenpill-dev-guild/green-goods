@@ -1,9 +1,11 @@
 import {
   type Address,
   assessmentStepFields,
+  classifyTxError,
   ConfirmDialog,
   type CreateAssessmentFormData,
   ErrorBoundary,
+  isMeaningfulTxErrorMessage,
   toastService,
   useCreateAssessmentForm,
   useCreateAssessmentStore,
@@ -11,8 +13,7 @@ import {
   useGardenDomains,
   type CreateAssessmentForm as WorkflowAssessmentForm,
 } from "@green-goods/shared";
-import { RiErrorWarningLine } from "@remixicon/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 import { isAddress } from "viem";
@@ -21,6 +22,7 @@ import { useShallow } from "zustand/react/shallow";
 import { ActionsHarvestStep } from "@/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep";
 import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps/DomainContextStep";
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
+import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
 
@@ -281,6 +283,25 @@ export default function CreateAssessment() {
   const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");
   const isSuccess = state.matches("success");
+  const txErrorView = useMemo(() => classifyTxError(state.context.error), [state.context.error]);
+  const errorTitle = formatMessage({
+    id: txErrorView.titleKey,
+    defaultMessage:
+      txErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+  });
+  const errorMessage =
+    txErrorView.kind === "cancelled"
+      ? formatMessage({
+          id: txErrorView.messageKey,
+          defaultMessage: "Transaction was cancelled. Please try again when ready.",
+        })
+      : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
+        ? txErrorView.rawMessage
+        :
+        formatMessage({
+          id: txErrorView.messageKey,
+          defaultMessage: "Please review the details and try again.",
+        });
 
   // Navigate on success
   useEffect(() => {
@@ -410,53 +431,6 @@ export default function CreateAssessment() {
 
   return (
     <ErrorBoundary context="CreateAssessment.Wizard">
-      {hasError && (
-        <div className="fixed inset-x-0 top-[120px] z-20 mx-auto max-w-4xl px-4 sm:px-6">
-          <div
-            role="alert"
-            className="flex items-start gap-3 rounded-lg border border-error-light bg-error-lighter p-4 text-sm text-error-dark shadow-lg"
-          >
-            <RiErrorWarningLine className="mt-0.5 h-5 w-5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="font-medium text-error-dark">
-                {formatMessage({
-                  id: "app.assessment.couldNotSubmit",
-                  defaultMessage: "We could not submit the assessment",
-                })}
-              </p>
-              <p className="mt-1 text-error-dark/80">
-                {state.context.error ??
-                  formatMessage({
-                    id: "app.assessment.reviewAndRetry",
-                    defaultMessage: "Please review the details and try again.",
-                  })}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  onClick={retry}
-                  disabled={!canRetry || isSubmitting}
-                  className="rounded-md border border-error-light px-3 py-1.5 text-xs font-medium text-error-dark transition hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {formatMessage({
-                    id: "app.assessment.retrySubmission",
-                    defaultMessage: "Retry submission",
-                  })}
-                </button>
-                <button
-                  onClick={() => resetWorkflow()}
-                  className="rounded-md border border-stroke-soft px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
-                >
-                  {formatMessage({
-                    id: "app.assessment.editDetails",
-                    defaultMessage: "Edit details",
-                  })}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <FormWizard
         steps={stepConfigs}
         currentStep={currentStep}
@@ -471,6 +445,39 @@ export default function CreateAssessment() {
           defaultMessage: "Submit assessment",
         })}
       >
+        <TxInlineFeedback
+          visible={hasError}
+          severity={txErrorView.severity}
+          title={errorTitle}
+          message={errorMessage}
+          reserveClassName="min-h-[8.5rem]"
+          className="mb-4"
+          action={
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={retry}
+                disabled={!canRetry || isSubmitting}
+                className="rounded-md border border-stroke-soft bg-bg-white px-3 py-1.5 text-xs font-medium text-text-strong transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {formatMessage({
+                  id: "app.assessment.retrySubmission",
+                  defaultMessage: "Retry submission",
+                })}
+              </button>
+              <button
+                type="button"
+                onClick={() => resetWorkflow()}
+                className="rounded-md border border-stroke-soft px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
+              >
+                {formatMessage({
+                  id: "app.assessment.editDetails",
+                  defaultMessage: "Edit details",
+                })}
+              </button>
+            </div>
+          }
+        />
         {stepConfigs[currentStep]?.id === "domainContext" && (
           <DomainContextStep
             showValidation={showValidation}

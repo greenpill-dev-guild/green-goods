@@ -53,6 +53,15 @@ type VaultDepositFailureReason =
   | "depositLimitReached"
   | "vaultUnavailable"
   | "slippage";
+type TxErrorMode = "toast" | "inline" | "auto";
+
+interface VaultMutationOptions {
+  errorMode?: TxErrorMode;
+}
+
+function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
+  return mode !== "inline";
+}
 
 class VaultDepositStageError extends Error {
   stage: VaultDepositStage;
@@ -67,11 +76,12 @@ class VaultDepositStageError extends Error {
   }
 }
 
-export function useVaultDeposit() {
+export function useVaultDeposit(options: VaultMutationOptions = {}) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
+  const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sendContractTx = useContractTxSender();
   const handleError = createMutationErrorHandler({
     source: "useVaultDeposit",
@@ -315,6 +325,11 @@ export function useVaultDeposit() {
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
+      const metadata = {
+        gardenAddress: params?.gardenAddress,
+        assetAddress: params?.assetAddress,
+        vaultAddress: params?.vaultAddress,
+      };
       if (error instanceof VaultDepositStageError) {
         let messageId: string;
 
@@ -343,27 +358,28 @@ export function useVaultDeposit() {
           ? ` [vault: ${error.diagnostics.vaultAddress?.slice(0, 10)}… | depositLimit: ${error.diagnostics.depositLimit} | totalAssets: ${error.diagnostics.totalAssets} | shutdown: ${error.diagnostics.isShutdown}]`
           : "";
 
-        toastService.error({
-          title: formatMessage({ id: "app.treasury.deposit" }),
-          message:
-            formatMessage({
-              id: messageId,
-              defaultMessage:
-                error.stage === "approval"
-                  ? "Approval failed. Please try again."
-                  : "Deposit failed. Please try again.",
-            }) + diagnosticsSuffix,
-          context: "vault deposit",
-          error,
-        });
+        if (showErrorToast) {
+          toastService.error({
+            title: formatMessage({ id: "app.treasury.deposit" }),
+            message:
+              formatMessage({
+                id: messageId,
+                defaultMessage:
+                  error.stage === "approval"
+                    ? "Approval failed. Please try again."
+                    : "Deposit failed. Please try again.",
+              }) + diagnosticsSuffix,
+            context: "vault deposit",
+            error,
+          });
+        } else {
+          handleError(error, { metadata, showToast: false });
+        }
         return;
       }
       handleError(error, {
-        metadata: {
-          gardenAddress: params?.gardenAddress,
-          assetAddress: params?.assetAddress,
-          vaultAddress: params?.vaultAddress,
-        },
+        metadata,
+        showToast: showErrorToast,
       });
     },
   });
@@ -387,11 +403,12 @@ export function useVaultDeposit() {
   return { ...mutation, mutate, mutateAsync, isPending };
 }
 
-export function useVaultWithdraw() {
+export function useVaultWithdraw(options: VaultMutationOptions = {}) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
+  const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sendContractTx = useContractTxSender();
   const handleError = createMutationErrorHandler({
     source: "useVaultWithdraw",
@@ -480,6 +497,7 @@ export function useVaultWithdraw() {
           assetAddress: params?.assetAddress,
           vaultAddress: params?.vaultAddress,
         },
+        showToast: showErrorToast,
       });
     },
   });

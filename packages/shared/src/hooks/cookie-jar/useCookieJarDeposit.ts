@@ -27,11 +27,25 @@ const ERC20_BALANCE_ABI = [
   },
 ] as const;
 
-export function useCookieJarDeposit(gardenAddress: Address) {
+type TxErrorMode = "toast" | "inline" | "auto";
+
+interface CookieJarMutationOptions {
+  errorMode?: TxErrorMode;
+}
+
+function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
+  return mode !== "inline";
+}
+
+export function useCookieJarDeposit(
+  gardenAddress: Address,
+  options: CookieJarMutationOptions = {}
+) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
+  const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sendContractTx = useContractTxSender();
   const handleError = createMutationErrorHandler({
     source: "useCookieJarDeposit",
@@ -155,6 +169,7 @@ export function useCookieJarDeposit(gardenAddress: Address) {
           jarAddress: params?.jarAddress,
           assetAddress: params?.assetAddress,
         },
+        showToast: showErrorToast,
       });
     },
   });

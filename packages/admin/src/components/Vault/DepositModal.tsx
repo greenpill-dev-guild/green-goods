@@ -2,10 +2,12 @@ import {
   type Address,
   type GardenVault,
   AssetSelector,
+  classifyTxError,
   formatTokenAmount,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   hasVaultAssetDecimals,
+  isMeaningfulTxErrorMessage,
   useDepositForm,
   useUser,
   useDebouncedValue,
@@ -17,6 +19,7 @@ import { RiCloseLine } from "@remixicon/react";
 import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 import { Button } from "@/components/ui/Button";
 import { encodeFunctionData, formatUnits } from "viem";
 
@@ -50,7 +53,8 @@ export function DepositModal({
 }: DepositModalProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  const depositMutation = useVaultDeposit();
+  const depositMutation = useVaultDeposit({ errorMode: "inline" });
+  const resetDepositMutation = depositMutation.reset;
   const [selectedAsset, setSelectedAsset] = useState<string>(
     defaultAsset ?? vaults[0]?.asset ?? ""
   );
@@ -87,7 +91,8 @@ export function DepositModal({
     if (!isOpen) return;
     setSelectedAsset(defaultAsset ?? vaults[0]?.asset ?? "");
     resetAmount();
-  }, [defaultAsset, isOpen, resetAmount, vaults]);
+    resetDepositMutation();
+  }, [defaultAsset, isOpen, resetAmount, resetDepositMutation, vaults]);
 
   const debouncedAmount = useDebouncedValue(amountBigInt, 300);
 
@@ -128,6 +133,25 @@ export function DepositModal({
     query: { enabled: isOpen && Boolean(estimatedGas) },
   });
   const estimatedGasCost = estimatedGas && gasPrice ? estimatedGas * gasPrice : undefined;
+  const txErrorView = useMemo(() => classifyTxError(depositMutation.error), [depositMutation.error]);
+  const txErrorTitle = formatMessage({
+    id: txErrorView.titleKey,
+    defaultMessage:
+      txErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+  });
+  const txErrorMessage =
+    txErrorView.kind === "cancelled"
+      ? formatMessage({
+          id: txErrorView.messageKey,
+          defaultMessage: "Transaction was cancelled. Please try again when ready.",
+        })
+      : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
+        ? txErrorView.rawMessage
+        :
+        formatMessage({
+          id: txErrorView.messageKey,
+          defaultMessage: "Something went wrong. Please try again.",
+        });
 
   const onSubmit = () => {
     if (!vaultAcceptingDeposits) return;
@@ -263,6 +287,13 @@ export function DepositModal({
                 {formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })}
               </p>
             )}
+            <TxInlineFeedback
+              visible={Boolean(depositMutation.error)}
+              severity={txErrorView.severity}
+              title={txErrorTitle}
+              message={txErrorMessage}
+              reserveClassName="min-h-[5.5rem]"
+            />
             <Button
               className="w-full"
               onClick={onSubmit}

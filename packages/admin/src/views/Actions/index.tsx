@@ -1,14 +1,23 @@
 import {
   DEFAULT_CHAIN_ID,
   Domain,
+  ImageWithFallback,
   formatDate,
   type ActionFiltersState,
   useFilteredActions,
 } from "@green-goods/shared";
 import { cn } from "@green-goods/shared/utils";
 import { useActions } from "@green-goods/shared/hooks";
-import { RiAddLine, RiCalendarLine, RiEditLine, RiEyeLine, RiFileListLine } from "@remixicon/react";
-import { useState } from "react";
+import {
+  RiAddLine,
+  RiCalendarLine,
+  RiEditLine,
+  RiEyeLine,
+  RiFileListLine,
+  RiImageLine,
+  RiRefreshLine,
+} from "@remixicon/react";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
@@ -16,6 +25,47 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SortSelect } from "@/components/ui/SortSelect";
+
+interface ActionCardMediaProps {
+  src?: string;
+  alt: string;
+  unavailableLabel: string;
+  unavailableDescription: string;
+}
+
+function ActionCardMedia({
+  src,
+  alt,
+  unavailableLabel,
+  unavailableDescription,
+}: ActionCardMediaProps) {
+  const [hasError, setHasError] = useState(!src);
+
+  useEffect(() => {
+    setHasError(!src);
+  }, [src]);
+
+  if (hasError) {
+    return (
+      <div className="h-40 w-full bg-bg-soft flex flex-col items-center justify-center px-4 text-center">
+        <RiImageLine className="h-6 w-6 text-text-soft mb-2" />
+        <p className="text-sm font-medium text-text-sub">{unavailableLabel}</p>
+        <p className="mt-1 text-xs text-text-soft">{unavailableDescription}</p>
+      </div>
+    );
+  }
+
+  return (
+    <ImageWithFallback
+      src={src || ""}
+      alt={alt}
+      className="w-full h-40 object-cover"
+      fallbackClassName="w-full h-40 bg-bg-soft text-text-soft"
+      fallbackIcon={RiImageLine}
+      onErrorCallback={() => setHasError(true)}
+    />
+  );
+}
 
 const DOMAIN_TAGS: { value: Domain; label: string; activeClass: string }[] = [
   {
@@ -38,8 +88,9 @@ const DOMAIN_TAGS: { value: Domain; label: string; activeClass: string }[] = [
 
 export default function Actions() {
   const intl = useIntl();
-  const { data: actions = [], isLoading } = useActions(DEFAULT_CHAIN_ID);
+  const { data: actions = [], isLoading, isFetching, refetch } = useActions(DEFAULT_CHAIN_ID);
   const [filters, setFilters] = useState<ActionFiltersState>({ sort: "default" });
+  const isRefreshing = isFetching && !isLoading;
 
   const { filteredActions } = useFilteredActions(actions, filters);
 
@@ -68,6 +119,14 @@ export default function Actions() {
   ];
 
   const showToolbar = !isLoading && actions.length > 0;
+  const imageUnavailableLabel = intl.formatMessage({
+    id: "admin.actions.imageUnavailable",
+    defaultMessage: "Image unavailable",
+  });
+  const imageUnavailableDescription = intl.formatMessage({
+    id: "admin.actions.imageUnavailableDescription",
+    defaultMessage: "This action does not currently have a valid image.",
+  });
 
   const description = isLoading
     ? intl.formatMessage({ id: "admin.actions.loading" })
@@ -86,12 +145,27 @@ export default function Actions() {
         description={description}
         sticky
         actions={
-          <Button size="sm" asChild>
-            <Link to="/actions/create">
-              <RiAddLine className="mr-1.5 h-4 w-4" />
-              Create Action
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={isRefreshing}
+              onClick={() => {
+                void refetch();
+              }}
+            >
+              {!isRefreshing && <RiRefreshLine className="h-4 w-4" />}
+              {intl.formatMessage({
+                id: isRefreshing ? "app.common.refreshing" : "app.common.refresh",
+              })}
+            </Button>
+            <Button size="sm" asChild>
+              <Link to="/actions/create">
+                <RiAddLine className="mr-1.5 h-4 w-4" />
+                Create Action
+              </Link>
+            </Button>
+          </div>
         }
         toolbar={
           showToolbar ? (
@@ -204,13 +278,12 @@ export default function Actions() {
                 data-testid="action-card"
                 className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-green-500 hover:shadow-md"
               >
-                {action.media[0] && (
-                  <img
-                    src={action.media[0]}
-                    alt={action.title}
-                    className="w-full h-40 object-cover"
-                  />
-                )}
+                <ActionCardMedia
+                  src={action.media[0]}
+                  alt={action.title}
+                  unavailableLabel={imageUnavailableLabel}
+                  unavailableDescription={imageUnavailableDescription}
+                />
 
                 <div className="p-6">
                   <h3 className="text-xl font-semibold text-text-strong mb-2 group-hover:text-green-600">

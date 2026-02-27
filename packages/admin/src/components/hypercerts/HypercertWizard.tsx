@@ -113,7 +113,7 @@ export function HypercertWizard({
   const { data: assessments } = useGardenAssessments(gardenId);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(null);
   const { hypercerts } = useHypercerts({ gardenId });
-  const { mint, retry, cancel } = useMintHypercert();
+  const { mint, retry, cancel } = useMintHypercert({ errorMode: "inline" });
 
   // Resolve the selected assessment object for prefill
   const selectedAssessment = useMemo(

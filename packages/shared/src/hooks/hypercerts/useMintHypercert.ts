@@ -36,6 +36,7 @@ import type {
 import type { Address } from "../../types/domain";
 import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
 import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
+import { classifyTxError, isMeaningfulTxErrorMessage } from "../../utils/errors/tx-error-classifier";
 import {
   mintHypercertMachine,
   type MintHypercertInput,
@@ -107,12 +108,23 @@ export interface UseMintHypercertResult {
   cancel: () => void;
 }
 
-export function useMintHypercert(): UseMintHypercertResult {
+type TxErrorMode = "toast" | "inline" | "auto";
+
+export interface UseMintHypercertOptions {
+  errorMode?: TxErrorMode;
+}
+
+function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
+  return mode !== "inline";
+}
+
+export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMintHypercertResult {
   const { smartAccountClient, authMode, smartAccountAddress, eoaAddress } = useAuth();
   const { data: walletClient } = useWalletClient();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const setMintingState = useHypercertWizardStore((state) => state.setMintingState);
   const { formatMessage } = useIntl();
+  const showErrorToast = shouldShowErrorToast(options.errorMode);
 
   // Store mutable dependencies in refs so the machine actor can read
   // current values without recreating the machine on every change.
@@ -455,16 +467,7 @@ export function useMintHypercert(): UseMintHypercertResult {
 
     // Log and toast when minting fails
     if (status === "failed" && state.context.error) {
-      const normalizedError = state.context.error.toLowerCase();
-      const errorMessageId = normalizedError.includes("user rejected")
-        ? "app.hypercerts.mint.error.userRejected"
-        : normalizedError.includes("insufficient")
-          ? "app.hypercerts.mint.error.insufficientFunds"
-          : normalizedError.includes("nonce")
-            ? "app.hypercerts.mint.error.nonce"
-            : normalizedError.includes("network")
-              ? "app.hypercerts.mint.error.network"
-              : "app.hypercerts.mint.error.generic.message";
+      const errorView = classifyTxError(state.context.error);
 
       logger.error("[useMintHypercert] Minting failed", {
         error: state.context.error,
@@ -480,17 +483,30 @@ export function useMintHypercert(): UseMintHypercertResult {
         chainId: chainIdRef.current,
         authMode: authModeRef.current,
       });
-      toastService.error({
-        title: formatMessage({ id: "app.hypercerts.mint.error.generic.title" }),
-        message: formatMessage(
-          {
-            id: errorMessageId,
-            defaultMessage: state.context.error,
-          },
-          { error: state.context.error }
-        ),
-        context: "hypercert minting",
-      });
+
+      if (showErrorToast) {
+        const fallbackMessage = formatMessage({
+          id: errorView.messageKey,
+          defaultMessage: "Something went wrong. Please try again.",
+        });
+        const displayMessage =
+          errorView.kind === "cancelled"
+            ? fallbackMessage
+            : isMeaningfulTxErrorMessage(state.context.error)
+              ? state.context.error
+              : fallbackMessage;
+
+        toastService.show({
+          status: errorView.severity === "warning" ? "info" : "error",
+          title: formatMessage({
+            id: errorView.titleKey,
+            defaultMessage:
+              errorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+          }),
+          message: displayMessage,
+          context: "hypercert minting",
+        });
+      }
     }
 
     // Build a fingerprint of the values we write to the store.
@@ -512,7 +528,7 @@ export function useMintHypercert(): UseMintHypercertResult {
         signalPoolAddress: state.context.signalPoolAddress,
       });
     }
-  }, [setMintingState, state]);
+  }, [formatMessage, setMintingState, showErrorToast, state]);
 
   const mint = useCallback(
     async (params: {

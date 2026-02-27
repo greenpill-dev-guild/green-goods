@@ -1,16 +1,19 @@
 import {
+  classifyTxError,
   gardenStepFields,
+  isMeaningfulTxErrorMessage,
   toastService,
   useCreateGardenForm,
   useCreateGardenStore,
   useCreateGardenWorkflow,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
-import { RiCloseLine, RiErrorWarningLine, RiLoader4Line } from "@remixicon/react";
-import { useEffect, useRef, useState } from "react";
+import { RiCloseLine, RiLoader4Line } from "@remixicon/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
+import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 import { FormWizard } from "@/components/Form/FormWizard";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
 import { ReviewStep } from "@/components/Garden/CreateGardenSteps/ReviewStep";
@@ -66,6 +69,7 @@ export default function CreateGarden() {
   const isSubmitting = state.value === "submitting";
   const hasError = state.value === "error";
   const isSuccess = state.value === "success";
+  const txErrorView = useMemo(() => classifyTxError(state.context.error), [state.context.error]);
   const plannedMemberCount = form.gardeners.length + form.operators.length;
   const initializedRef = useRef(false);
 
@@ -250,6 +254,24 @@ export default function CreateGarden() {
   const isDetailsStep = currentStepConfig?.id === "details";
   const isTeamStep = currentStepConfig?.id === "team";
   const isReviewStepActive = currentStepConfig?.id === "review";
+  const errorTitle = intl.formatMessage({
+    id: txErrorView.titleKey,
+    defaultMessage:
+      txErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+  });
+  const errorMessage =
+    txErrorView.kind === "cancelled"
+      ? intl.formatMessage({
+          id: txErrorView.messageKey,
+          defaultMessage: "Transaction was cancelled. Please try again when ready.",
+        })
+      : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
+        ? txErrorView.rawMessage
+        :
+        intl.formatMessage({
+          id: txErrorView.messageKey,
+          defaultMessage: "Please review the details and try again.",
+        });
 
   return (
     <>
@@ -271,32 +293,22 @@ export default function CreateGarden() {
           defaultMessage: "Deploy garden",
         })}
       >
-        {hasError && (
-          <div className="mb-4 flex items-start gap-3 rounded-lg border border-error-light bg-error-lighter p-4 text-sm text-error-dark">
-            <RiErrorWarningLine className="mt-0.5 h-5 w-5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="font-medium text-error-dark">
-                {intl.formatMessage({
-                  id: "admin.garden.deploy.error.title",
-                  defaultMessage: "We couldn't deploy the garden",
-                })}
-              </p>
-              <p className="mt-1 text-error-dark/80">
-                {state.context.error ??
-                  intl.formatMessage({
-                    id: "admin.garden.deploy.error.fallback",
-                    defaultMessage: "Please review the details and try again.",
-                  })}
-              </p>
-              <Button variant="secondary" size="sm" onClick={retry} className="mt-3">
-                {intl.formatMessage({
-                  id: "admin.garden.deploy.retry",
-                  defaultMessage: "Retry deployment",
-                })}
-              </Button>
-            </div>
-          </div>
-        )}
+        <TxInlineFeedback
+          visible={hasError}
+          severity={txErrorView.severity}
+          title={errorTitle}
+          message={errorMessage}
+          reserveClassName="min-h-[8.25rem]"
+          className="mb-4"
+          action={
+            <Button variant="secondary" size="sm" onClick={retry}>
+              {intl.formatMessage({
+                id: "admin.garden.deploy.retry",
+                defaultMessage: "Retry deployment",
+              })}
+            </Button>
+          }
+        />
         {isDetailsStep && <DetailsStep showValidation={showValidation} />}
         {isTeamStep && <TeamStep />}
         {isReviewStepActive && <ReviewStep />}

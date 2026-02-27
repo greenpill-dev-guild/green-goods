@@ -199,6 +199,12 @@ export {
   parseAndFormatError,
   parseContractError,
 } from "./errors/contract-errors";
+export type { TxErrorKind, TxErrorSeverity, TxErrorView } from "./errors/tx-error-classifier";
+export {
+  classifyTxError,
+  isCancelledTxError,
+  isMeaningfulTxErrorMessage,
+} from "./errors/tx-error-classifier";
 export type {
   CategorizedError,
   ErrorCategory as CategorizedErrorCategory,

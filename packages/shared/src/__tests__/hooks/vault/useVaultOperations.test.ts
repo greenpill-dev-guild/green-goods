@@ -371,4 +371,35 @@ describe("hooks/vault/useVaultOperations", () => {
 
     expect(mockErrorHandler).toHaveBeenCalled();
   });
+
+  it("passes showToast=false to error handler in inline mode", async () => {
+    mockReadContract.mockRejectedValueOnce(new Error("boom"));
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useVaultDeposit({ errorMode: "inline" }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          gardenAddress: TEST_GARDEN as `0x${string}`,
+          assetAddress: TEST_ASSET as `0x${string}`,
+          vaultAddress: TEST_VAULT as `0x${string}`,
+          amount: 10n,
+        })
+      ).rejects.toThrow("boom");
+    });
+
+    expect(mockErrorHandler).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ showToast: false })
+    );
+  });
 });

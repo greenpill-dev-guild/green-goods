@@ -85,7 +85,7 @@ export function useSuspenseActions(chainId: number = DEFAULT_CHAIN_ID) {
   return useSuspenseQuery({
     queryKey,
     queryFn: () => getActions(),
-    staleTime: STALE_TIMES.baseLists,
+    staleTime: STALE_TIMES.actions,
     gcTime: GC_TIMES.baseLists,
     initialData: () => queryClient.getQueryData<Action[]>(queryKey),
     initialDataUpdatedAt: () => queryClient.getQueryState(queryKey)?.dataUpdatedAt,

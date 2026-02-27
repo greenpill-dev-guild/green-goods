@@ -42,6 +42,8 @@ export interface MutationErrorContext {
   gardenAddress?: string | null;
   /** Additional metadata for tracking */
   metadata?: Record<string, unknown>;
+  /** When false, skip user-facing toasts but keep parsing + tracking */
+  showToast?: boolean;
 }
 
 /**
@@ -94,7 +96,7 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
   } = config;
 
   return (error: unknown, context: MutationErrorContext = {}): MutationErrorResult => {
-    const { authMode, gardenAddress, metadata = {} } = context;
+    const { authMode, gardenAddress, metadata = {}, showToast = true } = context;
 
     // Parse contract error for user-friendly message
     const { title, message, parsed } = parseAndFormatError(error);
@@ -134,23 +136,25 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
       : `${toastContext.charAt(0).toUpperCase() + toastContext.slice(1)} failed`;
 
     // Show error toast
-    if (useWalletProgressToast && authMode === "wallet") {
-      walletProgressToasts.error(displayMessage, parsed.recoverable ?? false);
-    } else {
-      const description = parsed.isKnown
-        ? parsed.action || undefined
-        : getFallbackDescription
-          ? getFallbackDescription(authMode ?? null)
-          : undefined;
+    if (showToast) {
+      if (useWalletProgressToast && authMode === "wallet") {
+        walletProgressToasts.error(displayMessage, parsed.recoverable ?? false);
+      } else {
+        const description = parsed.isKnown
+          ? parsed.action || undefined
+          : getFallbackDescription
+            ? getFallbackDescription(authMode ?? null)
+            : undefined;
 
-      toastService.error({
-        id: toastId,
-        title: displayTitle,
-        message: displayMessage,
-        context: toastContext,
-        description,
-        error,
-      });
+        toastService.error({
+          id: toastId,
+          title: displayTitle,
+          message: displayMessage,
+          context: toastContext,
+          description,
+          error,
+        });
+      }
     }
 
     // Debug logging

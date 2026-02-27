@@ -2,6 +2,8 @@ import {
   DEFAULT_CHAIN_ID,
   defaultTemplate,
   fromDateTimeLocalValue,
+  getFileByHash,
+  instructionTemplates,
   logger,
   toastService,
   toDateTimeLocalValue,
@@ -28,6 +30,52 @@ const editActionSchema = z.object({
 });
 
 type EditActionFormData = z.infer<typeof editActionSchema>;
+
+const INSTRUCTION_LOAD_TIMEOUT_MS = 8_000;
+
+function cloneInstructionConfig(config: ActionInstructionConfig): ActionInstructionConfig {
+  return {
+    description: config.description,
+    uiConfig: {
+      media: {
+        ...config.uiConfig.media,
+        needed: [...config.uiConfig.media.needed],
+        optional: [...config.uiConfig.media.optional],
+      },
+      details: {
+        ...config.uiConfig.details,
+        inputs: [...config.uiConfig.details.inputs],
+      },
+      review: { ...config.uiConfig.review },
+    },
+  };
+}
+
+async function parseInstructionConfig(
+  data: Blob | string
+): Promise<ActionInstructionConfig | null> {
+  const isInstructionConfig = (value: unknown): value is ActionInstructionConfig => {
+    if (!value || typeof value !== "object") return false;
+    const config = value as Partial<ActionInstructionConfig>;
+    return !!(
+      config.uiConfig &&
+      config.uiConfig.media &&
+      config.uiConfig.details &&
+      config.uiConfig.review
+    );
+  };
+
+  if (typeof data === "string") {
+    const parsed = JSON.parse(data) as unknown;
+    return isInstructionConfig(parsed) ? parsed : null;
+  }
+  if (data instanceof Blob) {
+    const text = await data.text();
+    const parsed = JSON.parse(text) as unknown;
+    return isInstructionConfig(parsed) ? parsed : null;
+  }
+  return null;
+}
 
 export default function EditAction() {
   const { id } = useParams<{ id: string }>();
@@ -61,21 +109,33 @@ export default function EditAction() {
   useAsyncEffect(
     async ({ isMounted }) => {
       if (!action) return;
+      const fallbackConfig = cloneInstructionConfig(
+        instructionTemplates[action.slug] ?? defaultTemplate
+      );
 
       form.reset({
         title: action.title || "",
         startTime: toSafeDate(action.startTime) ?? new Date(),
         endTime: toSafeDate(action.endTime) ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       });
+      if (isMounted()) {
+        setInstructionConfig(fallbackConfig);
+      }
 
       if (!action.instructions) return;
 
       setIsLoadingInstructions(true);
       try {
-        const response = await fetch(action.instructions);
-        const config = await response.json();
+        const file = await getFileByHash(action.instructions, {
+          timeoutMs: INSTRUCTION_LOAD_TIMEOUT_MS,
+        });
+        const config = await parseInstructionConfig(file.data);
         if (isMounted()) {
-          setInstructionConfig(config);
+          if (config) {
+            setInstructionConfig(config);
+          } else {
+            setInstructionConfig(fallbackConfig);
+          }
         }
       } catch (error) {
         if (isMounted()) {

@@ -12,11 +12,25 @@ import { useDelayedInvalidation } from "../utils/useTimeout";
 import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 
-export function useCookieJarWithdraw(gardenAddress: Address) {
+type TxErrorMode = "toast" | "inline" | "auto";
+
+interface CookieJarMutationOptions {
+  errorMode?: TxErrorMode;
+}
+
+function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
+  return mode !== "inline";
+}
+
+export function useCookieJarWithdraw(
+  gardenAddress: Address,
+  options: CookieJarMutationOptions = {}
+) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
+  const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sendContractTx = useContractTxSender();
   const handleError = createMutationErrorHandler({
     source: "useCookieJarWithdraw",
@@ -97,6 +111,7 @@ export function useCookieJarWithdraw(gardenAddress: Address) {
           gardenAddress,
           jarAddress: params?.jarAddress,
         },
+        showToast: showErrorToast,
       });
     },
   });

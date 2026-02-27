@@ -220,6 +220,19 @@ describe("createMutationErrorHandler", () => {
         })
       );
     });
+
+    it("does not show a toast when showToast is false", () => {
+      const handler = createMutationErrorHandler({
+        source: "useTestHook",
+        toastContext: "test operation",
+      });
+
+      handler(new Error("Something failed"), { showToast: false });
+
+      expect(toastService.error).not.toHaveBeenCalled();
+      expect(walletProgressToasts.error).not.toHaveBeenCalled();
+      expect(trackContractError).toHaveBeenCalled();
+    });
   });
 
   describe("context handling", () => {

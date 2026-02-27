@@ -20,7 +20,11 @@ import { queryKeys } from "../query-keys";
  */
 function createBaseListHook<T>(
   getQueryKey: (chainId: number) => QueryKey,
-  fetchFn: () => Promise<T[]>
+  fetchFn: () => Promise<T[]>,
+  options?: {
+    staleTime?: number;
+    gcTime?: number;
+  }
 ): (chainId?: number) => UseQueryResult<T[], Error> {
   return function useBaseList(chainId: number = DEFAULT_CHAIN_ID) {
     const queryClient = useQueryClient();
@@ -29,8 +33,8 @@ function createBaseListHook<T>(
     return useQuery({
       queryKey,
       queryFn: fetchFn,
-      staleTime: STALE_TIMES.baseLists,
-      gcTime: GC_TIMES.baseLists,
+      staleTime: options?.staleTime ?? STALE_TIMES.baseLists,
+      gcTime: options?.gcTime ?? GC_TIMES.baseLists,
       // Show cached data immediately if available (from IndexedDB persistence)
       initialData: () => queryClient.getQueryData<T[]>(queryKey),
       initialDataUpdatedAt: () => queryClient.getQueryState(queryKey)?.dataUpdatedAt,
@@ -42,7 +46,8 @@ function createBaseListHook<T>(
 /** Fetches and caches the catalog of actions for the active chain. */
 export const useActions = createBaseListHook<Action>(
   (chainId) => queryKeys.actions.byChain(chainId),
-  getActions
+  getActions,
+  { staleTime: STALE_TIMES.actions, gcTime: GC_TIMES.baseLists }
 );
 
 /** Retrieves gardens scoped to the active chain and keeps the list warm. */

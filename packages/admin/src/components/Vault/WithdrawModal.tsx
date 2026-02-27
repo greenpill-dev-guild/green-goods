@@ -2,9 +2,11 @@ import {
   type Address,
   type GardenVault,
   AssetSelector,
+  classifyTxError,
   formatTokenAmount,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
+  isMeaningfulTxErrorMessage,
   validateDecimalInput,
   useUser,
   useVaultDeposits,
@@ -16,6 +18,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 import { Button } from "@/components/ui/Button";
 import { formatUnits, parseUnits } from "viem";
 
@@ -36,7 +39,8 @@ export function WithdrawModal({
 }: WithdrawModalProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  const withdrawMutation = useVaultWithdraw();
+  const withdrawMutation = useVaultWithdraw({ errorMode: "inline" });
+  const resetWithdrawMutation = withdrawMutation.reset;
   const [selectedAsset, setSelectedAsset] = useState<string>(
     defaultAsset ?? vaults[0]?.asset ?? ""
   );
@@ -46,7 +50,8 @@ export function WithdrawModal({
     if (!isOpen) return;
     setSelectedAsset(defaultAsset ?? vaults[0]?.asset ?? "");
     setAmountInput("");
-  }, [defaultAsset, isOpen, vaults]);
+    resetWithdrawMutation();
+  }, [defaultAsset, isOpen, resetWithdrawMutation, vaults]);
 
   const selectedVault = useMemo(
     () => vaults.find((vault) => vault.asset.toLowerCase() === selectedAsset.toLowerCase()),
@@ -107,6 +112,28 @@ export function WithdrawModal({
   }, [amountInput, inputError, amount, maxWithdrawable]);
 
   const amountError = inputError ?? exceedsBalanceError;
+  const txErrorView = useMemo(
+    () => classifyTxError(withdrawMutation.error),
+    [withdrawMutation.error]
+  );
+  const txErrorTitle = formatMessage({
+    id: txErrorView.titleKey,
+    defaultMessage:
+      txErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+  });
+  const txErrorMessage =
+    txErrorView.kind === "cancelled"
+      ? formatMessage({
+          id: txErrorView.messageKey,
+          defaultMessage: "Transaction was cancelled. Please try again when ready.",
+        })
+      : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
+        ? txErrorView.rawMessage
+        :
+        formatMessage({
+          id: txErrorView.messageKey,
+          defaultMessage: "Something went wrong. Please try again.",
+        });
 
   const onSubmit = () => {
     if (!selectedVault || !primaryAddress || amount <= 0n || amountError) return;
@@ -255,6 +282,13 @@ export function WithdrawModal({
                 </span>
               </p>
             </div>
+            <TxInlineFeedback
+              visible={Boolean(withdrawMutation.error)}
+              severity={txErrorView.severity}
+              title={txErrorTitle}
+              message={txErrorMessage}
+              reserveClassName="min-h-[5.5rem]"
+            />
 
             <Button
               className="w-full"

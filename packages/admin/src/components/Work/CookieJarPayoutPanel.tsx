@@ -1,9 +1,11 @@
 import {
   type Address,
+  classifyTxError,
   type CookieJar,
   ConfirmDialog,
   formatTokenAmount,
   getVaultAssetSymbol,
+  isMeaningfulTxErrorMessage,
   useCookieJarDeposit,
   useCookieJarEmergencyWithdraw,
   useCookieJarPause,
@@ -19,6 +21,7 @@ import { RiArrowDownSLine, RiCupLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
+import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 import { Card } from "@/components/ui/Card";
 
 interface CookieJarPayoutPanelProps {
@@ -56,14 +59,16 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   });
 
   // Withdraw state (primary action)
-  const withdrawMutation = useCookieJarWithdraw(gardenAddress);
+  const withdrawMutation = useCookieJarWithdraw(gardenAddress, { errorMode: "inline" });
+  const resetWithdrawMutation = withdrawMutation.reset;
   const [withdrawJar, setWithdrawJar] = useState<string>("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPurpose, setWithdrawPurpose] = useState("");
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
 
   // Deposit state
-  const depositMutation = useCookieJarDeposit(gardenAddress);
+  const depositMutation = useCookieJarDeposit(gardenAddress, { errorMode: "inline" });
+  const resetDepositMutation = depositMutation.reset;
   const [depositJar, setDepositJar] = useState<string>("");
   const [depositAmount, setDepositAmount] = useState("");
 
@@ -117,6 +122,59 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
       return 0n;
     }
   }, [depositAmount, depositInputError, depositDecimals]);
+
+  useEffect(() => {
+    if (!withdrawMutation.error) return;
+    resetWithdrawMutation();
+  }, [withdrawAmount, withdrawJar, withdrawPurpose, withdrawMutation.error, resetWithdrawMutation]);
+
+  useEffect(() => {
+    if (!depositMutation.error) return;
+    resetDepositMutation();
+  }, [depositAmount, depositJar, depositMutation.error, resetDepositMutation]);
+
+  const withdrawTxErrorView = useMemo(
+    () => classifyTxError(withdrawMutation.error),
+    [withdrawMutation.error]
+  );
+  const withdrawTxTitle = formatMessage({
+    id: withdrawTxErrorView.titleKey,
+    defaultMessage:
+      withdrawTxErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+  });
+  const withdrawTxMessage =
+    withdrawTxErrorView.kind === "cancelled"
+      ? formatMessage({
+          id: withdrawTxErrorView.messageKey,
+          defaultMessage: "Transaction was cancelled. Please try again when ready.",
+        })
+      : isMeaningfulTxErrorMessage(withdrawTxErrorView.rawMessage)
+        ? withdrawTxErrorView.rawMessage
+        :
+        formatMessage({
+          id: withdrawTxErrorView.messageKey,
+          defaultMessage: "Something went wrong. Please try again.",
+        });
+
+  const depositTxErrorView = useMemo(() => classifyTxError(depositMutation.error), [depositMutation.error]);
+  const depositTxTitle = formatMessage({
+    id: depositTxErrorView.titleKey,
+    defaultMessage:
+      depositTxErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+  });
+  const depositTxMessage =
+    depositTxErrorView.kind === "cancelled"
+      ? formatMessage({
+          id: depositTxErrorView.messageKey,
+          defaultMessage: "Transaction was cancelled. Please try again when ready.",
+        })
+      : isMeaningfulTxErrorMessage(depositTxErrorView.rawMessage)
+        ? depositTxErrorView.rawMessage
+        :
+        formatMessage({
+          id: depositTxErrorView.messageKey,
+          defaultMessage: "Something went wrong. Please try again.",
+        });
 
   const cooldownDisplay = (seconds: bigint) => {
     const secs = Number(seconds);
@@ -253,6 +311,13 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                 ? formatMessage({ id: "app.cookieJar.withdrawing" })
                 : formatMessage({ id: "app.cookieJar.withdraw" })}
             </button>
+            <TxInlineFeedback
+              visible={Boolean(withdrawMutation.error)}
+              severity={withdrawTxErrorView.severity}
+              title={withdrawTxTitle}
+              message={withdrawTxMessage}
+              reserveClassName="min-h-[5.5rem]"
+            />
           </div>
 
           {/* Accordion sections for Fund and Manage */}
@@ -366,6 +431,13 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                       ? formatMessage({ id: "app.cookieJar.depositing" })
                       : formatMessage({ id: "app.cookieJar.deposit" })}
                   </button>
+                  <TxInlineFeedback
+                    visible={Boolean(depositMutation.error)}
+                    severity={depositTxErrorView.severity}
+                    title={depositTxTitle}
+                    message={depositTxMessage}
+                    reserveClassName="min-h-[5.5rem]"
+                  />
                 </div>
               </Accordion.Content>
             </Accordion.Item>

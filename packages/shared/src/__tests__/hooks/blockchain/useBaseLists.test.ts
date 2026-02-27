@@ -122,6 +122,23 @@ describe("useBaseLists", () => {
       expect(cached).toEqual([]);
     });
 
+    it("uses actions-specific stale time", async () => {
+      mockGetActions.mockResolvedValue([]);
+
+      renderHook(() => useActions(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(mockGetActions).toHaveBeenCalled();
+      });
+
+      const query = queryClient.getQueryCache().find({
+        queryKey: ["greengoods", "actions", 11155111],
+      });
+      expect(query?.options.staleTime).toBe(60_000);
+    });
+
     it("provides empty array as placeholder data", async () => {
       // Set up a fetch that doesn't resolve immediately
       let resolvePromise: (value: unknown[]) => void;
