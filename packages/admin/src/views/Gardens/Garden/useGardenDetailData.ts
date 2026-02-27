@@ -41,7 +41,7 @@ export function useGardenDetailData(id: string | undefined) {
     error: assessmentsError,
   } = useGardenAssessments(id);
 
-  const assessments = assessmentList.slice(0, 5);
+  const assessments = assessmentList;
   const gardenId = id ?? "";
 
   const {
@@ -104,7 +104,12 @@ export function useGardenDetailData(id: string | undefined) {
     };
   }, [gardenVaults]);
 
-  const { works } = useWorks(gardenId);
+  const {
+    works,
+    isLoading: worksLoading,
+    isFetching: worksFetching,
+    refetch: refreshWorks,
+  } = useWorks(gardenId);
   const { hypercerts, isLoading: hypercertsLoading } = useHypercerts({ gardenId: id });
 
   const roleMembers: Record<GardenRole, Address[]> = {
@@ -160,6 +165,9 @@ export function useGardenDetailData(id: string | undefined) {
     allocations,
     allocationsLoading,
     works,
+    worksLoading,
+    worksFetching,
+    refreshWorks,
     hypercerts,
     hypercertsLoading,
     convictionStrategyCount: convictionStrategies.length,

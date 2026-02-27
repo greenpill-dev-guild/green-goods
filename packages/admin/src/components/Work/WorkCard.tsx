@@ -40,6 +40,18 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work }) => {
       showGardener
       showMediaCount
       showFeedbackBadge
+      labels={{
+        untitledWork: intl.formatMessage({ id: "app.admin.work.untitledWork" }),
+        error: intl.formatMessage({ id: "app.workCard.error" }),
+        feedback: intl.formatMessage({ id: "app.workCard.feedback" }),
+        status: {
+          approved: intl.formatMessage({ id: "app.admin.work.filter.approved" }),
+          rejected: intl.formatMessage({ id: "app.admin.work.filter.rejected" }),
+          pending: intl.formatMessage({ id: "app.admin.work.filter.pending" }),
+        },
+        mediaPreviewAlt: intl.formatMessage({ id: "app.admin.work.mediaPreview" }),
+        closePreview: intl.formatMessage({ id: "app.admin.work.closePreview" }),
+      }}
       renderActions={() => (
         <Link
           to={`/gardens/${work.gardenAddress}/work/${work.id}`}
