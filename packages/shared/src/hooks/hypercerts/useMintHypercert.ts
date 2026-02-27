@@ -36,7 +36,10 @@ import type {
 import type { Address } from "../../types/domain";
 import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
 import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
-import { classifyTxError, isMeaningfulTxErrorMessage } from "../../utils/errors/tx-error-classifier";
+import {
+  classifyTxError,
+  isMeaningfulTxErrorMessage,
+} from "../../utils/errors/tx-error-classifier";
 import {
   mintHypercertMachine,
   type MintHypercertInput,

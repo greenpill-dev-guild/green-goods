@@ -8,6 +8,7 @@ import {
 } from "@green-goods/shared";
 import { cn } from "@green-goods/shared/utils";
 import { useActions } from "@green-goods/shared/hooks";
+import { useRole } from "@green-goods/shared";
 import {
   RiAddLine,
   RiCalendarLine,
@@ -88,7 +89,9 @@ const DOMAIN_TAGS: { value: Domain; label: string; activeClass: string }[] = [
 
 export default function Actions() {
   const intl = useIntl();
+  const { role } = useRole();
   const { data: actions = [], isLoading, isFetching, refetch } = useActions(DEFAULT_CHAIN_ID);
+  const canManageActions = role === "deployer" || role === "operator";
   const [filters, setFilters] = useState<ActionFiltersState>({ sort: "default" });
   const isRefreshing = isFetching && !isLoading;
 
@@ -159,12 +162,14 @@ export default function Actions() {
                 id: isRefreshing ? "app.common.refreshing" : "app.common.refresh",
               })}
             </Button>
-            <Button size="sm" asChild>
-              <Link to="/actions/create">
-                <RiAddLine className="mr-1.5 h-4 w-4" />
-                Create Action
-              </Link>
-            </Button>
+            {canManageActions && (
+              <Button size="sm" asChild>
+                <Link to="/actions/create">
+                  <RiAddLine className="mr-1.5 h-4 w-4" />
+                  Create Action
+                </Link>
+              </Button>
+            )}
           </div>
         }
         toolbar={
@@ -303,7 +308,7 @@ export default function Actions() {
                     </div>
                     <div className="flex items-center gap-2">
                       <RiEyeLine className="h-4 w-4" />
-                      <RiEditLine className="h-4 w-4" />
+                      {canManageActions && <RiEditLine className="h-4 w-4" />}
                     </div>
                   </div>
                 </div>

@@ -133,7 +133,10 @@ export function DepositModal({
     query: { enabled: isOpen && Boolean(estimatedGas) },
   });
   const estimatedGasCost = estimatedGas && gasPrice ? estimatedGas * gasPrice : undefined;
-  const txErrorView = useMemo(() => classifyTxError(depositMutation.error), [depositMutation.error]);
+  const txErrorView = useMemo(
+    () => classifyTxError(depositMutation.error),
+    [depositMutation.error]
+  );
   const txErrorTitle = formatMessage({
     id: txErrorView.titleKey,
     defaultMessage:
@@ -147,11 +150,10 @@ export function DepositModal({
         })
       : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
         ? txErrorView.rawMessage
-        :
-        formatMessage({
-          id: txErrorView.messageKey,
-          defaultMessage: "Something went wrong. Please try again.",
-        });
+        : formatMessage({
+            id: txErrorView.messageKey,
+            defaultMessage: "Something went wrong. Please try again.",
+          });
 
   const onSubmit = () => {
     if (!vaultAcceptingDeposits) return;

@@ -230,7 +230,9 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
             {formatMessage({
               id: txErrorView?.titleKey ?? "app.txFeedback.failed.title",
               defaultMessage:
-                txErrorView?.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+                txErrorView?.severity === "warning"
+                  ? "Transaction cancelled"
+                  : "Transaction failed",
             })}
           </p>
           <p className="mt-1 text-xs">

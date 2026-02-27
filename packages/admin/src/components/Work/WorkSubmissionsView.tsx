@@ -146,7 +146,10 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({
                   ? "bg-primary-alpha-16 text-primary-darker"
                   : "bg-bg-soft text-text-sub hover:bg-bg-sub"
               }`}
-              aria-label={intl.formatMessage({ id: "app.admin.work.filterBy" }, { filter: filter.label })}
+              aria-label={intl.formatMessage(
+                { id: "app.admin.work.filterBy" },
+                { filter: filter.label }
+              )}
               aria-pressed={activeFilter === filter.id}
             >
               <span className="flex-shrink-0">{filter.icon}</span>
@@ -159,7 +162,9 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({
       <Card.Body>
         {isLoading ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2" role="status" aria-live="polite">
-            <span className="sr-only">{intl.formatMessage({ id: "app.admin.work.submissions.title" })}</span>
+            <span className="sr-only">
+              {intl.formatMessage({ id: "app.admin.work.submissions.title" })}
+            </span>
             {[...Array(4)].map((_, i) => (
               <Card key={i} padding="compact">
                 <div className="space-y-2">

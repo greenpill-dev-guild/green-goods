@@ -149,13 +149,15 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
         })
       : isMeaningfulTxErrorMessage(withdrawTxErrorView.rawMessage)
         ? withdrawTxErrorView.rawMessage
-        :
-        formatMessage({
-          id: withdrawTxErrorView.messageKey,
-          defaultMessage: "Something went wrong. Please try again.",
-        });
+        : formatMessage({
+            id: withdrawTxErrorView.messageKey,
+            defaultMessage: "Something went wrong. Please try again.",
+          });
 
-  const depositTxErrorView = useMemo(() => classifyTxError(depositMutation.error), [depositMutation.error]);
+  const depositTxErrorView = useMemo(
+    () => classifyTxError(depositMutation.error),
+    [depositMutation.error]
+  );
   const depositTxTitle = formatMessage({
     id: depositTxErrorView.titleKey,
     defaultMessage:
@@ -169,11 +171,10 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
         })
       : isMeaningfulTxErrorMessage(depositTxErrorView.rawMessage)
         ? depositTxErrorView.rawMessage
-        :
-        formatMessage({
-          id: depositTxErrorView.messageKey,
-          defaultMessage: "Something went wrong. Please try again.",
-        });
+        : formatMessage({
+            id: depositTxErrorView.messageKey,
+            defaultMessage: "Something went wrong. Please try again.",
+          });
 
   const cooldownDisplay = (seconds: bigint) => {
     const secs = Number(seconds);

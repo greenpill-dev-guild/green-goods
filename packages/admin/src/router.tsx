@@ -140,14 +140,30 @@ export const router = createRouter([
               {
                 path: "actions/create",
                 lazy: async () => ({
-                  Component: (await import("@/views/Actions/CreateAction")).default,
+                  Component: (await import("@/routes/RequireActionManager")).default,
                 }),
+                children: [
+                  {
+                    index: true,
+                    lazy: async () => ({
+                      Component: (await import("@/views/Actions/CreateAction")).default,
+                    }),
+                  },
+                ],
               },
               {
                 path: "actions/:id/edit",
                 lazy: async () => ({
-                  Component: (await import("@/views/Actions/EditAction")).default,
+                  Component: (await import("@/routes/RequireActionManager")).default,
                 }),
+                children: [
+                  {
+                    index: true,
+                    lazy: async () => ({
+                      Component: (await import("@/views/Actions/EditAction")).default,
+                    }),
+                  },
+                ],
               },
               {
                 lazy: async () => ({

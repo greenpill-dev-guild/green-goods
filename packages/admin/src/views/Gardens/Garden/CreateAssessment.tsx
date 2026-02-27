@@ -294,11 +294,10 @@ export default function CreateAssessment() {
         })
       : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
         ? txErrorView.rawMessage
-        :
-        formatMessage({
-          id: txErrorView.messageKey,
-          defaultMessage: "Please review the details and try again.",
-        });
+        : formatMessage({
+            id: txErrorView.messageKey,
+            defaultMessage: "Please review the details and try again.",
+          });
 
   // Navigate on success
   useEffect(() => {

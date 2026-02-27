@@ -189,7 +189,13 @@ function TabBadge({ badge }: { badge: TabBadgeState }) {
   );
 }
 
-function ActionMenu({ actions, triggerAriaLabel }: { actions: TabAction[]; triggerAriaLabel: string }) {
+function ActionMenu({
+  actions,
+  triggerAriaLabel,
+}: {
+  actions: TabAction[];
+  triggerAriaLabel: string;
+}) {
   if (actions.length === 0) return null;
 
   return (
@@ -381,7 +387,7 @@ export default function GardenDetail() {
     requestedSection && TAB_SECTIONS[activeTab].includes(requestedSection)
       ? requestedSection
       : undefined;
-  const selectedItem = section ? searchParams.get("item") ?? undefined : undefined;
+  const selectedItem = section ? (searchParams.get("item") ?? undefined) : undefined;
 
   useEffect(() => {
     const normalized = new URLSearchParams(searchParams);
@@ -571,10 +577,16 @@ export default function GardenDetail() {
     .sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
   const approvedWorks = works.filter((work) => work.status === "approved");
 
-  const pendingWarningCount = pendingWorks.filter((work) => hoursSince(work.createdAt) >= 24).length;
-  const pendingCriticalCount = pendingWorks.filter((work) => hoursSince(work.createdAt) >= 72).length;
+  const pendingWarningCount = pendingWorks.filter(
+    (work) => hoursSince(work.createdAt) >= 24
+  ).length;
+  const pendingCriticalCount = pendingWorks.filter(
+    (work) => hoursSince(work.createdAt) >= 72
+  ).length;
 
-  const approvedInRangeCount = approvedWorks.filter((work) => toMs(work.createdAt) >= rangeStart).length;
+  const approvedInRangeCount = approvedWorks.filter(
+    (work) => toMs(work.createdAt) >= rangeStart
+  ).length;
   const approvedInPreviousRangeCount = approvedWorks.filter((work) => {
     const createdAtMs = toMs(work.createdAt);
     return createdAtMs >= previousRangeStart && createdAtMs < rangeStart;
@@ -630,7 +642,9 @@ export default function GardenDetail() {
   const gardenHealthSeverity: TabBadgeSeverity =
     workBadge.severity === "critical" || treasurySeverity === "critical"
       ? "critical"
-      : workBadge.severity === "warn" || treasurySeverity === "warn" || impactBadge.severity === "warn"
+      : workBadge.severity === "warn" ||
+          treasurySeverity === "warn" ||
+          impactBadge.severity === "warn"
         ? "warn"
         : "none";
 
@@ -722,8 +736,7 @@ export default function GardenDetail() {
     ...hypercerts.map((hypercert) => ({
       id: `hypercert-${hypercert.id}`,
       category: "impact" as const,
-      title:
-        hypercert.title?.trim() || formatMessage({ id: "app.hypercerts.list.fallbackTitle" }),
+      title: hypercert.title?.trim() || formatMessage({ id: "app.hypercerts.list.fallbackTitle" }),
       description: formatMessage(
         { id: "app.garden.detail.activity.hypercertMinted" },
         {
@@ -800,7 +813,8 @@ export default function GardenDetail() {
     });
   });
 
-  const visibleDirectory = section === "members" ? filteredDirectory : filteredDirectory.slice(0, 8);
+  const visibleDirectory =
+    section === "members" ? filteredDirectory : filteredDirectory.slice(0, 8);
 
   const overviewActionMenu: TabAction[] = [
     {
@@ -893,7 +907,9 @@ export default function GardenDetail() {
           {section ? (
             <SectionStateCard
               title={formatMessage({ id: `app.garden.detail.section.${section}.title` })}
-              description={formatMessage({ id: `app.garden.detail.section.${section}.description` })}
+              description={formatMessage({
+                id: `app.garden.detail.section.${section}.description`,
+              })}
               closeLabel={formatMessage({ id: "app.common.close" })}
               onClose={clearSection}
             />
@@ -1058,42 +1074,46 @@ export default function GardenDetail() {
                   />
                 ) : (
                   <div className="space-y-3">
-                    {filteredActivityEvents.slice(0, section === "activity" ? 14 : 8).map((event) => (
-                      <div
-                        key={event.id}
-                        className={`rounded-lg border border-stroke-soft bg-bg-weak p-3 ${
-                          selectedItem && event.itemId === selectedItem
-                            ? "ring-1 ring-primary-base"
-                            : ""
-                        }`}
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-text-strong">{event.title}</p>
-                            <p className="mt-1 text-xs text-text-soft">{event.description}</p>
+                    {filteredActivityEvents
+                      .slice(0, section === "activity" ? 14 : 8)
+                      .map((event) => (
+                        <div
+                          key={event.id}
+                          className={`rounded-lg border border-stroke-soft bg-bg-weak p-3 ${
+                            selectedItem && event.itemId === selectedItem
+                              ? "ring-1 ring-primary-base"
+                              : ""
+                          }`}
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-text-strong">
+                                {event.title}
+                              </p>
+                              <p className="mt-1 text-xs text-text-soft">{event.description}</p>
+                            </div>
+                            <span className="text-xs text-text-soft">
+                              {formatRelativeTime(event.timestamp)}
+                            </span>
                           </div>
-                          <span className="text-xs text-text-soft">
-                            {formatRelativeTime(event.timestamp)}
-                          </span>
+                          {event.href ? (
+                            <div className="mt-2">
+                              <Link
+                                to={event.href}
+                                onClick={() => {
+                                  if (event.category === "work") {
+                                    openSection("work", "queue", event.itemId);
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
+                              >
+                                {formatMessage({ id: "app.garden.detail.activity.view" })}
+                                <RiArrowRightSLine className="h-4 w-4" />
+                              </Link>
+                            </div>
+                          ) : null}
                         </div>
-                        {event.href ? (
-                          <div className="mt-2">
-                            <Link
-                              to={event.href}
-                              onClick={() => {
-                                if (event.category === "work") {
-                                  openSection("work", "queue", event.itemId);
-                                }
-                              }}
-                              className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
-                            >
-                              {formatMessage({ id: "app.garden.detail.activity.view" })}
-                              <RiArrowRightSLine className="h-4 w-4" />
-                            </Link>
-                          </div>
-                        ) : null}
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </Card.Body>
@@ -1193,17 +1213,19 @@ export default function GardenDetail() {
                 </Link>
               </Button>
             )
-        }
-        overflowActions={impactActionMenu}
-        menuAriaLabel={formatMessage({ id: "app.garden.detail.action.more" })}
-      />
+          }
+          overflowActions={impactActionMenu}
+          menuAriaLabel={formatMessage({ id: "app.garden.detail.action.more" })}
+        />
 
         <div className="garden-tab-layout">
           <div className="garden-tab-main">
             {section ? (
               <SectionStateCard
                 title={formatMessage({ id: `app.garden.detail.section.${section}.title` })}
-                description={formatMessage({ id: `app.garden.detail.section.${section}.description` })}
+                description={formatMessage({
+                  id: `app.garden.detail.section.${section}.description`,
+                })}
                 closeLabel={formatMessage({ id: "app.common.close" })}
                 onClose={clearSection}
               />
@@ -1217,7 +1239,9 @@ export default function GardenDetail() {
                       {formatMessage({ id: "app.garden.detail.impact.hypercertHighlights" })}
                     </h3>
                     <p className="mt-1 text-sm text-text-sub">
-                      {formatMessage({ id: "app.garden.detail.impact.hypercertHighlightsDescription" })}
+                      {formatMessage({
+                        id: "app.garden.detail.impact.hypercertHighlightsDescription",
+                      })}
                     </p>
                   </div>
                   <Button size="sm" variant="secondary" asChild>
@@ -1251,7 +1275,9 @@ export default function GardenDetail() {
                         <div
                           key={record.id}
                           className={`flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2.5 ${
-                            selectedItem && record.id === selectedItem ? "ring-1 ring-primary-base" : ""
+                            selectedItem && record.id === selectedItem
+                              ? "ring-1 ring-primary-base"
+                              : ""
                           }`}
                         >
                           <div className="min-w-0">
@@ -1291,7 +1317,11 @@ export default function GardenDetail() {
                       {formatMessage({ id: "app.garden.detail.impact.reportingDescription" })}
                     </p>
                   </div>
-                  <Button size="sm" variant="secondary" onClick={() => openSection("impact", "reporting")}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => openSection("impact", "reporting")}
+                  >
                     {formatMessage({ id: "app.garden.detail.action.openReporting" })}
                   </Button>
                 </Card.Header>
@@ -1454,7 +1484,9 @@ export default function GardenDetail() {
           {section ? (
             <SectionStateCard
               title={formatMessage({ id: `app.garden.detail.section.${section}.title` })}
-              description={formatMessage({ id: `app.garden.detail.section.${section}.description` })}
+              description={formatMessage({
+                id: `app.garden.detail.section.${section}.description`,
+              })}
               closeLabel={formatMessage({ id: "app.common.close" })}
               onClose={clearSection}
             />
@@ -1615,7 +1647,9 @@ export default function GardenDetail() {
           {section ? (
             <SectionStateCard
               title={formatMessage({ id: `app.garden.detail.section.${section}.title` })}
-              description={formatMessage({ id: `app.garden.detail.section.${section}.description` })}
+              description={formatMessage({
+                id: `app.garden.detail.section.${section}.description`,
+              })}
               closeLabel={formatMessage({ id: "app.common.close" })}
               onClose={clearSection}
             />
@@ -1657,7 +1691,11 @@ export default function GardenDetail() {
                   <h3 className="label-md text-text-strong sm:text-lg">
                     {formatMessage({ id: "app.garden.detail.community.rolesSummary" })}
                   </h3>
-                  <Button size="sm" variant="secondary" onClick={() => openSection("community", "roles")}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => openSection("community", "roles")}
+                  >
                     {formatMessage({ id: "app.garden.detail.action.manageRoles" })}
                   </Button>
                 </Card.Header>
@@ -1676,7 +1714,9 @@ export default function GardenDetail() {
                               <Icon className="h-4 w-4 text-text-soft" />
                               {roleLabel.plural}
                             </p>
-                            <span className="text-sm font-semibold text-text-strong">{entry.count}</span>
+                            <span className="text-sm font-semibold text-text-strong">
+                              {entry.count}
+                            </span>
                           </div>
                           {entry.firstMember ? (
                             <button
@@ -1688,7 +1728,10 @@ export default function GardenDetail() {
                             </button>
                           ) : (
                             <p className="mt-1 text-xs text-text-soft">
-                              {formatMessage({ id: "app.admin.roles.empty" }, { role: roleLabel.plural })}
+                              {formatMessage(
+                                { id: "app.admin.roles.empty" },
+                                { role: roleLabel.plural }
+                              )}
                             </p>
                           )}
                         </div>
@@ -1737,7 +1780,9 @@ export default function GardenDetail() {
                       type="search"
                       value={memberSearch}
                       onChange={(event) => setMemberSearch(event.target.value)}
-                      placeholder={formatMessage({ id: "app.garden.detail.community.memberSearch" })}
+                      placeholder={formatMessage({
+                        id: "app.garden.detail.community.memberSearch",
+                      })}
                       className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20"
                     />
                   </div>

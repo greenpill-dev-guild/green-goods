@@ -129,11 +129,10 @@ export function WithdrawModal({
         })
       : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
         ? txErrorView.rawMessage
-        :
-        formatMessage({
-          id: txErrorView.messageKey,
-          defaultMessage: "Something went wrong. Please try again.",
-        });
+        : formatMessage({
+            id: txErrorView.messageKey,
+            defaultMessage: "Something went wrong. Please try again.",
+          });
 
   const onSubmit = () => {
     if (!selectedVault || !primaryAddress || amount <= 0n || amountError) return;

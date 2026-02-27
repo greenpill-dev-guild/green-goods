@@ -1,4 +1,10 @@
-import { DEFAULT_CHAIN_ID, ImageWithFallback, formatDateTime, useActions } from "@green-goods/shared";
+import {
+  DEFAULT_CHAIN_ID,
+  ImageWithFallback,
+  formatDateTime,
+  useRole,
+  useActions,
+} from "@green-goods/shared";
 import { RiEditLine, RiImageLine } from "@remixicon/react";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
@@ -49,7 +55,9 @@ function ActionDetailMediaTile({
 export default function ActionDetail() {
   const { id } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
+  const { role } = useRole();
   const { data: actions = [], isLoading } = useActions(DEFAULT_CHAIN_ID);
+  const canManageActions = role === "deployer" || role === "operator";
   const action = actions.find((a) => a.id === id);
   const imageUnavailableLabel = formatMessage({
     id: "admin.actions.imageUnavailable",
@@ -140,13 +148,15 @@ export default function ActionDetail() {
         title={action.title}
         description={formatMessage({ id: "app.actions.detail.description" }, { id })}
         actions={
-          <Link
-            to={`/actions/${id}/edit`}
-            className="inline-flex items-center rounded-md border border-stroke-soft px-4 py-2 text-sm font-medium text-text-strong hover:bg-bg-soft"
-          >
-            <RiEditLine className="mr-2 h-4 w-4" />
-            {formatMessage({ id: "app.actions.edit" })}
-          </Link>
+          canManageActions ? (
+            <Link
+              to={`/actions/${id}/edit`}
+              className="inline-flex items-center rounded-md border border-stroke-soft px-4 py-2 text-sm font-medium text-text-strong hover:bg-bg-soft"
+            >
+              <RiEditLine className="mr-2 h-4 w-4" />
+              {formatMessage({ id: "app.actions.edit" })}
+            </Link>
+          ) : undefined
         }
       />
 

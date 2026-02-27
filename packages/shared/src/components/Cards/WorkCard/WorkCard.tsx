@@ -149,7 +149,10 @@ export const WorkCard: React.FC<WorkCardProps> = ({
 
   return (
     <>
-      <Wrapper className={cn(workCardVariants({ variant, interactive }), className)} {...wrapperProps}>
+      <Wrapper
+        className={cn(workCardVariants({ variant, interactive }), className)}
+        {...wrapperProps}
+      >
         <div className="relative w-full overflow-hidden bg-bg-weak-50 aspect-video sm:w-56 sm:flex-shrink-0">
           {thumbUrl ? (
             canOpenPreview ? (

@@ -40,17 +40,8 @@ export default function CreateGarden() {
   }, []);
   const { trigger, reset: resetValidationForm } = useCreateGardenForm();
 
-  const {
-    state,
-    openFlow,
-    closeFlow,
-    goNext,
-    goBack,
-    goToReview,
-    submitCreation,
-    retry,
-    draft,
-  } = useCreateGardenWorkflow();
+  const { state, openFlow, closeFlow, goNext, goBack, goToReview, submitCreation, retry, draft } =
+    useCreateGardenWorkflow();
   const { loadDraft } = draft;
 
   const [showValidation, setShowValidation] = useState(false);
@@ -231,11 +222,10 @@ export default function CreateGarden() {
         })
       : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
         ? txErrorView.rawMessage
-        :
-        intl.formatMessage({
-          id: txErrorView.messageKey,
-          defaultMessage: "Please review the details and try again.",
-        });
+        : intl.formatMessage({
+            id: txErrorView.messageKey,
+            defaultMessage: "Please review the details and try again.",
+          });
 
   return (
     <FormWizard

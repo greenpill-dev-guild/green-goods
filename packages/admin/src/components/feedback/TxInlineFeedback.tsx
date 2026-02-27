@@ -51,7 +51,10 @@ export function TxInlineFeedback({
       <div
         role={role}
         aria-live={live}
-        className={cn("flex items-start gap-3 rounded-lg border p-4 text-sm", severityStyles[severity])}
+        className={cn(
+          "flex items-start gap-3 rounded-lg border p-4 text-sm",
+          severityStyles[severity]
+        )}
       >
         <SeverityIcon severity={severity} />
         <div className="flex-1">

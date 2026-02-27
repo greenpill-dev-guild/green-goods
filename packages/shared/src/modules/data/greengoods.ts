@@ -209,9 +209,7 @@ export async function getActions(): Promise<Action[]> {
 
           // Resolve media CIDs to gateway URLs
           const resolvedMedia =
-            media && Array.isArray(media)
-              ? media.map((cid: string) => resolveIPFSUrl(cid))
-              : [];
+            media && Array.isArray(media) ? media.map((cid: string) => resolveIPFSUrl(cid)) : [];
 
           // Fetch action instructions from IPFS using Storacha module
           let actionConfig = fallbackConfig;
