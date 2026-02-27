@@ -215,5 +215,17 @@ describe("Vault Utilities", () => {
       // German uses comma as decimal separator
       expect(result).toBe("1,5");
     });
+
+    it("shows dust indicator when value is too small to display", () => {
+      expect(formatTokenAmount(1n, 18, 4, EN, true)).toBe("< 0.0001");
+    });
+
+    it("shows negative dust indicator for tiny negative values", () => {
+      expect(formatTokenAmount(-1n, 18, 4, EN, true)).toBe("< -0.0001");
+    });
+
+    it("respects maxFractionDigits in dust indicator", () => {
+      expect(formatTokenAmount(1n, 6, 6, EN, true)).toBe("0.000001");
+    });
   });
 });

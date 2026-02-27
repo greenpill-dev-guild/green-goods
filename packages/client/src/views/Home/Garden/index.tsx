@@ -149,6 +149,67 @@ export const Garden: React.FC<GardenProps> = () => {
   });
   const hasGovernance = convictionStrategies.length > 0;
 
+  // Check if current user is an operator (can approve/reject work)
+  const isOperator = useMemo(() => {
+    if (!primaryAddress || !garden?.operators) return false;
+    const normalizedUserAddress = primaryAddress.toLowerCase();
+    return garden.operators.some((addr) => addr.toLowerCase() === normalizedUserAddress);
+  }, [primaryAddress, garden?.operators]);
+
+  const { hasRole: canReviewOnChain } = useHasRole(
+    garden?.id as Address | undefined,
+    primaryAddress as Address | undefined,
+    "evaluator"
+  );
+  const canReview = isOperator || canReviewOnChain;
+
+  // Check if current user is already a member of this garden
+  const isMember = useMemo(() => {
+    if (!garden) return false;
+    return isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id);
+  }, [primaryAddress, garden]);
+
+  // Join garden functionality
+  const { joinGarden, isJoining } = useJoinGarden();
+
+  const handleJoinGarden = useCallback(async () => {
+    if (!garden?.id) return;
+
+    try {
+      const result = await joinGarden(garden.id);
+      if (result === "already-member") {
+        toastService.success({
+          title: intl.formatMessage({
+            id: "app.garden.alreadyMember",
+            defaultMessage: "You're already a member of this garden",
+          }),
+        });
+      } else {
+        toastService.success({
+          title: intl.formatMessage({
+            id: "app.garden.joinSuccess",
+            defaultMessage: "Successfully joined the garden!",
+          }),
+        });
+      }
+    } catch {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.garden.joinError",
+          defaultMessage: "Failed to join garden. Please try again.",
+        }),
+      });
+    }
+  }, [garden?.id, joinGarden, intl]);
+
+  // Determine if join button should be shown
+  const showJoinButton = useMemo(() => {
+    if (!primaryAddress) return false;
+    if (isMember) return false;
+    if (!garden?.openJoining) return false;
+    return true;
+  }, [primaryAddress, isMember, garden?.openJoining]);
+
   if (!garden) {
     if (gardensInitialLoading) {
       return (
@@ -179,68 +240,6 @@ export const Garden: React.FC<GardenProps> = () => {
   }
 
   const { name, bannerImage, location, createdAt, assessments, description } = garden;
-
-  // Check if current user is an operator (can approve/reject work)
-  const isOperator = useMemo(() => {
-    if (!primaryAddress || !garden.operators) return false;
-    const normalizedUserAddress = primaryAddress.toLowerCase();
-    return garden.operators.some((addr) => addr.toLowerCase() === normalizedUserAddress);
-  }, [primaryAddress, garden.operators]);
-  const { hasRole: canReviewOnChain } = useHasRole(
-    garden.id as Address | undefined,
-    primaryAddress as Address | undefined,
-    "evaluator"
-  );
-  const canReview = isOperator || canReviewOnChain;
-
-  // Check if current user is already a member of this garden
-  const isMember = useMemo(() => {
-    return isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id);
-  }, [primaryAddress, garden.gardeners, garden.operators, garden.id]);
-
-  // Join garden functionality
-  const { joinGarden, isJoining } = useJoinGarden();
-
-  const handleJoinGarden = useCallback(async () => {
-    if (!garden.id) return;
-
-    try {
-      const result = await joinGarden(garden.id);
-      if (result === "already-member") {
-        toastService.success({
-          title: intl.formatMessage({
-            id: "app.garden.alreadyMember",
-            defaultMessage: "You're already a member of this garden",
-          }),
-        });
-      } else {
-        toastService.success({
-          title: intl.formatMessage({
-            id: "app.garden.joinSuccess",
-            defaultMessage: "Successfully joined the garden!",
-          }),
-        });
-      }
-    } catch {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.garden.joinError",
-          defaultMessage: "Failed to join garden. Please try again.",
-        }),
-      });
-    }
-  }, [garden.id, joinGarden, intl]);
-
-  // Determine if join button should be shown
-  const showJoinButton = useMemo(() => {
-    // Must be authenticated
-    if (!primaryAddress) return false;
-    // Must not already be a member
-    if (isMember) return false;
-    // Garden must allow open joining
-    if (!garden.openJoining) return false;
-    return true;
-  }, [primaryAddress, isMember, garden.openJoining]);
 
   // Restore scroll position when switching tabs
 
