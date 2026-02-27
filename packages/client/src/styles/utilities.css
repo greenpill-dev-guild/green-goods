@@ -69,17 +69,11 @@
     border-radius: 1.25rem;
   }
 
-  /* Modal Scroll Lock Utilities */
+  /* Modal Scroll Lock Utilities — body is already position:fixed in index.css,
+     so .modal-open only needs to lock overflow on html. The real scroll
+     container (#app-scroll) is locked via JS in WorkDashboard. */
   .modal-open {
     overflow: hidden;
-    height: 100vh;
-  }
-  
-  .modal-open body {
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
-    height: 100%;
   }
 
   /* Universal Icon Button Class - Dark mode compatible */

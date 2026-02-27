@@ -409,6 +409,112 @@ function copyDirSync(src, dest) {
   }
 }
 
+function resolveToolEntrypoint(packageName, entrypoint) {
+  const rootDir = path.join(__dirname, "..");
+  const directPath = path.join(rootDir, "node_modules", packageName, entrypoint);
+  if (fs.existsSync(directPath)) {
+    return directPath;
+  }
+
+  const bunCache = path.join(rootDir, "node_modules", ".bun");
+  if (!fs.existsSync(bunCache)) {
+    return null;
+  }
+
+  const prefix = `${packageName}@`;
+  const candidates = fs
+    .readdirSync(bunCache)
+    .filter((name) => name === packageName || name.startsWith(prefix))
+    .sort()
+    .reverse();
+
+  for (const candidate of candidates) {
+    const candidatePath = path.join(
+      bunCache,
+      candidate,
+      "node_modules",
+      packageName,
+      entrypoint
+    );
+    if (fs.existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  return null;
+}
+
+function writeExecutableShim(filePath, content) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  try {
+    const stat = fs.lstatSync(filePath);
+    if (stat.isSymbolicLink()) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (err) {
+    if (err.code !== "ENOENT") {
+      throw err;
+    }
+  }
+  fs.writeFileSync(filePath, content, "utf8");
+  fs.chmodSync(filePath, 0o755);
+}
+
+function patchToolBinaryToNode20(tool) {
+  const rootDir = path.join(__dirname, "..");
+  const entrypointPath = resolveToolEntrypoint(tool.packageName, tool.entrypoint);
+
+  if (!entrypointPath) {
+    console.log(`⏭️  ${tool.binName} entrypoint not found, skipping binary shim`);
+    return;
+  }
+
+  const quotedEntrypoint = entrypointPath.replace(/"/g, '\\"');
+  const shimContent = `#!/usr/bin/env bash
+set -euo pipefail
+npm --prefix /tmp exec --yes --package=node@20 -- node "${quotedEntrypoint}" "$@"
+`;
+
+  const targets = [
+    path.join(rootDir, "node_modules", ".bin", tool.binName),
+    path.join(rootDir, "packages", "client", "node_modules", ".bin", tool.binName),
+    path.join(rootDir, "packages", "admin", "node_modules", ".bin", tool.binName),
+    path.join(rootDir, "packages", "shared", "node_modules", ".bin", tool.binName),
+    path.join(rootDir, "packages", "agent", "node_modules", ".bin", tool.binName),
+  ];
+
+  let patchedCount = 0;
+  for (const target of targets) {
+    if (!fs.existsSync(path.dirname(target))) {
+      continue;
+    }
+    writeExecutableShim(target, shimContent);
+    patchedCount++;
+  }
+
+  if (patchedCount > 0) {
+    console.log(
+      `✅ Patched ${tool.binName} binary shim(s) (${patchedCount}) to run with node@20`
+    );
+  } else {
+    console.log(`⏭️  No ${tool.binName} binary locations found to patch`);
+  }
+}
+
+function patchViteAndVitestBinaries() {
+  patchToolBinaryToNode20({
+    binName: "vite",
+    packageName: "vite",
+    entrypoint: path.join("bin", "vite.js"),
+  });
+
+  patchToolBinaryToNode20({
+    binName: "vitest",
+    packageName: "vitest",
+    entrypoint: "vitest.mjs",
+  });
+}
+
 // Main execution
 function main() {
   console.log("🔧 Applying multiformats compatibility fixes...");
@@ -417,6 +523,7 @@ function main() {
   const basicsPath = path.join(__dirname, "..", "node_modules", "multiformats", "basics.js");
   if (fs.existsSync(basicsPath) && process.env.CI) {
     console.log("✅ Multiformats already patched (found basics.js), skipping...");
+    patchViteAndVitestBinaries();
     return;
   }
 
@@ -426,6 +533,7 @@ function main() {
     patchWalletConnect();
     fixBunCacheSymlinks();
     synchronizeBunReactRuntime();
+    patchViteAndVitestBinaries();
     console.log("✅ All multiformats compatibility fixes applied successfully!");
   } catch (error) {
     console.error("❌ Error applying multiformats fixes:", error);

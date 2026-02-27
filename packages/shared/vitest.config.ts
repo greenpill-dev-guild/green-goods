@@ -1,12 +1,9 @@
-import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "path";
 import { defineConfig } from "vitest/config";
 
 const workspaceRoot = path.resolve(__dirname, "../..");
 const workspaceNodeModules = path.join(workspaceRoot, "node_modules");
-const rootReactPath = path.join(workspaceNodeModules, "react");
-const rootReactDomPath = path.join(workspaceNodeModules, "react-dom");
 
 function escapeRegex(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -23,10 +20,14 @@ const sharedReactSymlinkPath = path.join(__dirname, "node_modules/react");
 const sharedReactDomSymlinkPath = path.join(__dirname, "node_modules/react-dom");
 const sharedReactRealPath = fs.realpathSync(sharedReactSymlinkPath);
 const sharedReactDomRealPath = fs.realpathSync(sharedReactDomSymlinkPath);
+const rootReactPath = fs.existsSync(path.join(workspaceNodeModules, "react"))
+  ? path.join(workspaceNodeModules, "react")
+  : sharedReactRealPath;
+const rootReactDomPath = fs.existsSync(path.join(workspaceNodeModules, "react-dom"))
+  ? path.join(workspaceNodeModules, "react-dom")
+  : sharedReactDomRealPath;
 
 export default defineConfig({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  plugins: [react()],
   test: {
     environment: "jsdom",
     setupFiles: ["./src/__tests__/setupTests.ts"],

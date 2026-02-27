@@ -16,10 +16,42 @@ describe("hooks/work/useWorkForm", () => {
       const schema = buildWorkFormSchema([]);
       const result = schema.safeParse({
         feedback: "test",
-        timeSpentMinutes: 1.5, // hours, will be normalized to minutes
+        timeSpentMinutes: 1.5,
       });
 
       expect(result.success).toBe(true);
+    });
+
+    it("does NOT multiply timeSpentMinutes by 60 (bug #378 regression)", () => {
+      const schema = buildWorkFormSchema([]);
+
+      // Schema should coerce to number but NOT convert hours->minutes.
+      // The normalizeTimeSpentMinutes conversion must happen exactly once,
+      // in the hook (timeSpentMinutes property + values getter), not in Zod.
+      const result = schema.safeParse({
+        feedback: "",
+        timeSpentMinutes: 2,
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.timeSpentMinutes).toBe(2);
+      }
+    });
+
+    it("coerces string timeSpentMinutes without converting to minutes", () => {
+      const schema = buildWorkFormSchema([]);
+
+      // Strings come from HTML number inputs — schema should coerce to number only
+      const result = schema.safeParse({
+        feedback: "",
+        timeSpentMinutes: "1.5",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.timeSpentMinutes).toBe(1.5);
+      }
     });
 
     it("validates required number fields", () => {

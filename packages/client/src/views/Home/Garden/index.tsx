@@ -150,6 +150,16 @@ export const Garden: React.FC<GardenProps> = () => {
   const hasGovernance = convictionStrategies.length > 0;
 
   if (!garden) {
+    // If on a child route (work detail, assessment detail), render the child
+    // so it can handle its own loading/error states independently (bug #380)
+    if (pathname.includes("/work/") || pathname.includes("/assessments/")) {
+      return (
+        <GardenErrorBoundary>
+          <Outlet context={{ gardenId: gardenIdParam }} />
+        </GardenErrorBoundary>
+      );
+    }
+
     if (gardensInitialLoading) {
       return (
         <div className="h-full flex flex-col items-center justify-center gap-4 p-6">

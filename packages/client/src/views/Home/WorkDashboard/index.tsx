@@ -113,11 +113,17 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Ref for focus trap on the dialog panel
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Prevent background scrolling when modal is open
+  // Prevent background scrolling when modal is open — target #app-scroll
+  // directly since it's the real scroll container (body is already fixed)
   useEffect(() => {
-    document.documentElement.classList.add("modal-open");
+    const appScroll = document.getElementById("app-scroll");
+    if (appScroll) {
+      appScroll.style.overflow = "hidden";
+    }
     return () => {
-      document.documentElement.classList.remove("modal-open");
+      if (appScroll) {
+        appScroll.style.overflow = "";
+      }
     };
   }, []);
 
@@ -856,8 +862,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           triggerClassName="text-xs"
         />
 
-        {/* Content - overscroll-contain prevents scroll chaining to backdrop */}
-        <div className="flex-1 min-h-0 overflow-hidden overscroll-contain">
+        {/* Content - native-scroll enables iOS momentum; overscroll-contain prevents chaining */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain native-scroll">
           {renderTabContent()}
         </div>
       </div>

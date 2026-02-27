@@ -1,34 +1,46 @@
 /// <reference types="vitest" />
 
+import fs from "node:fs";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
+
+const rootReactPath = resolve(__dirname, "../../node_modules/react");
+const rootReactDomPath = resolve(__dirname, "../../node_modules/react-dom");
+const packageReactPath = resolve(__dirname, "./node_modules/react");
+const packageReactDomPath = resolve(__dirname, "./node_modules/react-dom");
+const resolvedReactPath = fs.existsSync(rootReactPath)
+  ? rootReactPath
+  : fs.realpathSync(packageReactPath);
+const resolvedReactDomPath = fs.existsSync(rootReactDomPath)
+  ? rootReactDomPath
+  : fs.realpathSync(packageReactDomPath);
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: [
       { find: "@", replacement: resolve(__dirname, "./src") },
-      // Force React to resolve to the root node_modules to prevent multiple instances
+      // Resolve React from workspace root when available, and otherwise use package-local install.
       {
         find: /^react$/,
-        replacement: resolve(__dirname, "../../node_modules/react"),
+        replacement: resolvedReactPath,
       },
       {
         find: /^react\/jsx-runtime$/,
-        replacement: resolve(__dirname, "../../node_modules/react/jsx-runtime.js"),
+        replacement: resolve(resolvedReactPath, "jsx-runtime.js"),
       },
       {
         find: /^react\/jsx-dev-runtime$/,
-        replacement: resolve(__dirname, "../../node_modules/react/jsx-dev-runtime.js"),
+        replacement: resolve(resolvedReactPath, "jsx-dev-runtime.js"),
       },
       {
         find: /^react-dom$/,
-        replacement: resolve(__dirname, "../../node_modules/react-dom"),
+        replacement: resolvedReactDomPath,
       },
       {
         find: /^react-dom\/client$/,
-        replacement: resolve(__dirname, "../../node_modules/react-dom/client.js"),
+        replacement: resolve(resolvedReactDomPath, "client.js"),
       },
       // Shared package aliases
       {

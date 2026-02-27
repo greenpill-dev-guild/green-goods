@@ -248,14 +248,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     }
 
     /// @notice Deploy extension modules: Karma, Octant, Power, Gardens, Yield, CookieJar, Hypercerts, ENS, Goods
-    function _deployCorePart2(
-        address owner,
-        bytes32 salt,
-        address factory
-    )
-        internal
-        virtual
-    {
+    function _deployCorePart2(address owner, bytes32 salt, address factory) internal virtual {
         // 8. Deploy KarmaGAPModule (after GardenToken exists)
         karmaGAPModule = KarmaGAPModule(
             _deployKarmaGAPModule(

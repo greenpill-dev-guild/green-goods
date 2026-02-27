@@ -1,10 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { getAddress } from "viem";
 
-import {
-  resetCreateGardenStore,
-  useCreateGardenStore,
-} from "../../stores/useCreateGardenStore";
+import { resetCreateGardenStore, useCreateGardenStore } from "../../stores/useCreateGardenStore";
 import { Domain } from "../../types/domain";
 
 const GARDENER = "0x1234567890123456789012345678901234567890";

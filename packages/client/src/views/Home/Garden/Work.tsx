@@ -42,7 +42,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { useLocation, useOutletContext, useParams } from "react-router-dom";
+import { useOutletContext, useParams } from "react-router-dom";
 
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
@@ -66,7 +66,6 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const [confidence, setConfidence] = useState<Confidence>(Confidence.NONE);
   const [optimisticStatus, setOptimisticStatus] = useState<"approved" | "rejected" | null>(null);
   const navigateToTop = useNavigateToTop();
-  const location = useLocation();
   const chainId = DEFAULT_CHAIN_ID;
   const { data: gardens = [] } = useGardens();
   const gardenId = (gardenIdFromContext || gardenIdParam) as string;
@@ -458,15 +457,15 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   );
 
   const handleBack = () => {
-    const from = (location.state as { from?: string } | null | undefined)?.from;
-    if (from === "dashboard") {
-      navigateToTop("/home");
-      return;
-    }
-    navigateToTop(`/home/${garden?.id ?? ""}`);
+    // Always navigate to the garden page; use URL param as fallback when
+    // garden object hasn't loaded yet (bug #381: was routing to /home)
+    const targetGardenId = garden?.id || gardenIdParam || "";
+    navigateToTop(`/home/${targetGardenId}`);
   };
 
-  if (!work || !garden)
+  // Only gate on work data — garden enriches the view but isn't required to
+  // render basic work details (bug #380: was blocking on garden load)
+  if (!work)
     return (
       <article>
         <TopNav onBackClick={handleBack} />
@@ -567,7 +566,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
             aria-labelledby="feedback-drawer-title"
             aria-describedby="feedback-drawer-description"
           >
-            <div className="p-4 space-y-3 max-w-screen-sm mx-auto overflow-y-auto max-h-[60vh]">
+            <div className="p-4 pb-2 space-y-3 max-w-screen-sm mx-auto overflow-y-auto max-h-[60vh] native-scroll">
               <div className="flex items-center justify-between">
                 <h2 id="feedback-drawer-title" className="text-sm font-medium text-text-strong-950">
                   {feedbackMode === "approve"
@@ -627,7 +626,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                   id: "app.home.workApproval.feedbackPlaceholder",
                   defaultMessage: "Add your feedback here...",
                 })}
-                className="w-full min-h-[120px] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                className="w-full min-h-[120px] max-h-[40vh] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none overflow-y-auto native-scroll"
               />
             </div>
 
@@ -775,7 +774,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     <article>
       <TopNav onBackClick={handleBack} overlay />
       <div className="padded pt-20">
-        {isMetadataLoading ? (
+        {isMetadataLoading || !garden ? (
           <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
         ) : (
           <>

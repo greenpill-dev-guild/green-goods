@@ -60,7 +60,9 @@ function buildFieldValidator(input: WorkInput): z.ZodTypeAny {
 export function buildWorkFormSchema(inputs: WorkInput[]) {
   const shape: Record<string, z.ZodTypeAny> = {
     feedback: z.string().optional().default(""),
-    timeSpentMinutes: z.preprocess(normalizeTimeSpentMinutes, z.number().nonnegative().optional()),
+    // Store raw hours — conversion to minutes happens once in the hook return
+    // and values getter (bug #378: was previously triple-normalized)
+    timeSpentMinutes: z.coerce.number().nonnegative().optional(),
   };
 
   for (const input of inputs) {
@@ -125,7 +127,12 @@ export function useWorkForm(inputs?: WorkInput[]) {
     // Use getValues() instead of watch() to read all form values on demand
     // without subscribing to every field change (avoids unnecessary re-renders)
     get values() {
-      return getValues() as unknown as Record<string, unknown>;
+      const raw = getValues() as unknown as Record<string, unknown>;
+      // Convert hours to minutes at the submission boundary (single conversion point)
+      if (raw.timeSpentMinutes != null) {
+        raw.timeSpentMinutes = normalizeTimeSpentMinutes(raw.timeSpentMinutes);
+      }
+      return raw;
     },
   };
 }
