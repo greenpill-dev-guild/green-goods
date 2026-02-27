@@ -66,3 +66,7 @@ Fast read-only classifier for deterministic routing.
 
 - Deep implementation guidance (triage is classification only)
 - Mixing triage severity into code-review output
+
+## Effort & Thinking
+
+Effort: low. Fast classification does not need deep reasoning. Skip thinking for P3/P4 issues.

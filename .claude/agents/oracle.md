@@ -106,3 +106,21 @@ Keep under 20 lines. List files in dependency order (contracts, indexer, shared,
 - Specific file:line citations
 - Confidence ratings on all findings
 - Don't settle for first answer — check for contradictions
+
+## Effort & Thinking
+
+Effort: max. Deep research requires maximum reasoning depth. Use extended thinking for synthesis (Step 4-5).
+
+### Thinking Guidance
+- Think deeply when synthesizing contradictory evidence
+- Think deeply when assessing confidence levels
+- Think less when collecting straightforward factual information
+- If a finding seems obvious, don't overthink — state it directly
+
+## Stop Criteria
+
+- Stop when 3+ independent sources agree on root cause
+- Stop when overall confidence reaches High on primary finding
+- Stop when all planned research paths are exhausted
+- If evidence remains contradictory after all research paths, report the conflict — do not force a conclusion
+- Hard stop at 25 turns. If unresolved, document gaps and escalate.

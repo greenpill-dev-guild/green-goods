@@ -116,3 +116,14 @@ Never bulk-remove without per-item grep confirmation.
 - Correctness over cleverness
 - Tests prove correctness
 - TDD is mandatory for features
+
+## Effort & Thinking
+
+Effort: max. Complex implementation with TDD cycles. Think deeply during PLAN phase, think less during routine IMPLEMENT cycles.
+
+### Thinking Guidance
+- Think deeply during PLAN phase (architecture decisions, edge case identification)
+- Think deeply when choosing between implementation approaches at IMPLEMENT step
+- Think less during routine TDD cycles (write test, run, fix, repeat)
+- Think less during VERIFY (just run the commands)
+- If a test failure is straightforward, fix without extended reasoning

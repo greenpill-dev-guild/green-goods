@@ -57,6 +57,10 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 **Indexer Boundary**: Envio indexes only Green Goods core state (actions, gardens, hats role membership, vault history, yield split history, minimal hypercert linkage/claims). Do not re-index EAS attestations, Gardens V2 community/pools, marketplace, ENS lifecycle, cookie jars, or Hypercert display metadata.
 
+**Investigate Before Answering**: Never speculate about code you have not opened. If referencing a specific file, you MUST read it before answering. Give grounded, hallucination-free answers based on actual file contents, not assumptions about what code might look like.
+
+**Subagent Discipline**: Spawn teammates when tasks can run in parallel, require isolated context, or involve independent workstreams. Work directly (no subagent) for single-file edits, sequential operations, tasks sharing state across steps, or any task needing fewer than 10 tool calls. Prefer the simplest approach that completes the task.
+
 ## Contract Deployment
 
 ```bash
@@ -80,3 +84,19 @@ Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets
 - Scopes: contracts, indexer, shared, client, admin, agent, claude
 
 **Validation before committing**: `bun format && bun lint && bun run test && bun build`
+
+## Session Continuity
+
+Before context compaction or ending a long session, write a `session-state.md` in the working directory:
+
+```markdown
+## Session State
+- **Current task**: [what you're working on]
+- **Progress**: [what's done, what's in progress]
+- **Files modified**: [list of changed files]
+- **Tests**: [passing/failing/not yet written]
+- **Next steps**: [immediate next actions]
+- **Blocked by**: [blockers, if any]
+```
+
+This is distinct from agent-memory (which stores learnings). Session state captures execution context for the next context window.

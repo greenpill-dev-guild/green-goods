@@ -1,0 +1,34 @@
+{
+  "known-bug-pr": {
+    "expected_findings": [
+      {
+        "severity": "Critical",
+        "rule": "Hook Boundary",
+        "file": "packages/client/src/hooks/useGardenFilters.ts",
+        "line_context": "export function useGardenFilters()",
+        "description": "Hook defined outside @green-goods/shared. All hooks MUST live in packages/shared/src/hooks/. This file creates a new hook in packages/client/src/hooks/ which violates the Hook Boundary rule (CLAUDE.md Key Principle #4, shared.md Hook Architecture). The filtering logic should be a pure function or moved to packages/shared/src/hooks/garden/."
+      },
+      {
+        "severity": "High",
+        "rule": "Error Handling",
+        "file": "packages/shared/src/hooks/garden/useUpdateGardenDomain.ts",
+        "line_context": "onError: (error) => { console.error(\"Failed to update garden domain:\", error);",
+        "description": "Mutation hook catches error but uses console.error instead of parseContractError() + createMutationErrorHandler(). This violates the Error Handling rule (CLAUDE.md Key Patterns, TypeScript Rule #4). Should use createMutationErrorHandler() like useWorkApproval and other mutation hooks in the codebase. Also violates Rule #12 (console.log cleanup) by using console.error instead of logger."
+      },
+      {
+        "severity": "Medium",
+        "rule": "Barrel Imports",
+        "file": "packages/admin/src/views/Gardens/GardenDomainFilter.tsx",
+        "line_context": "import { useAuth } from \"@green-goods/shared/hooks/auth/useAuth\";",
+        "description": "Deep import path bypassing barrel export. Should be: import { useAuth } from \"@green-goods/shared\". This violates Rule #11 (Barrel Import Enforcement) and the Barrel Imports key pattern in CLAUDE.md."
+      }
+    ],
+    "expected_false_positives": 0,
+    "expected_verdict": "REQUEST_CHANGES"
+  },
+  "clean-pr": {
+    "expected_findings": [],
+    "expected_false_positives": 0,
+    "expected_verdict": "APPROVE"
+  }
+}

@@ -99,3 +99,14 @@ Create migration notes at `.plans/migrations/[date]-[name].md`.
 - Never migrate all packages at once — validate incrementally
 - Never skip blast radius assessment
 - Never deploy partially migrated code
+
+## Effort & Thinking
+
+Effort: high. Think during blast radius assessment and Phase 2 planning. Execute phases procedurally.
+
+## Abort Criteria
+
+- Abort if blast radius assessment reveals Breaking impact in 4+ packages
+- Abort if no clear rollback path exists for any phase
+- Abort if incremental validation fails in 2+ consecutive packages (signals architectural incompatibility)
+- When aborting: document findings, save to `.plans/migrations/`, recommend alternative approach

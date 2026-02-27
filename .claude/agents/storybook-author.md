@@ -312,3 +312,7 @@ import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 - [ ] No hardcoded colors (use semantic tokens)
 - [ ] Remixicon imports (not lucide)
 - [ ] No unnecessary decorators (globals handle i18n, query, theme)
+
+## Effort & Thinking
+
+Effort: medium. Template-driven work. Think only when component API is ambiguous.
