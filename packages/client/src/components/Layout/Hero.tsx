@@ -120,33 +120,27 @@ export const Hero: FC<HeroProps> = () => {
   }, [guidance, promptInstall, handleCopyUrl, navigate]);
 
   return (
+    <>
     <main className="w-full min-h-[calc(100lvh-9rem)] lg:min-h-[calc(100lvh-6rem)] flex flex-col lg:flex-row lg:justify-center gap-16">
       <div
         // onSubmit={handleSubscribe}
-        className="flex-1 flex flex-col gap-2 items-center lg:items-start lg:justify-center pt-[10vh] lg:pt-0 text-center lg:text-left"
+        className="flex-1 flex flex-col gap-4 items-center lg:items-start lg:justify-center pt-[10vh] lg:pt-0 text-center lg:text-left"
       >
-        <h2 className="font-bold lg:text-7xl lg:tracking-wide text-primary mb-2">
+        <h2 className="font-bold lg:text-6xl lg:tracking-wide text-primary-dark capitalize">
           {intl.formatMessage({
             id: "app.hero.title",
-            defaultMessage: "Bringing Regenerative Actions Onchain",
+            defaultMessage: "From Good Intentions to Green\u00a0Outcomes",
           })}
         </h2>
         <p className="text-xl lg:text-2xl">
           {intl.formatMessage({
             id: "app.hero.description",
             defaultMessage:
-              "Green Goods measures, tracks, and rewards the impact on local hubs with a simple progressive web app.",
+              "A mobile first tool that helps local communities document, verify, and fund their positive impact.",
           })}
         </p>
         <div className="hidden sm:flex flex-col items-center lg:items-start gap-4 mt-4">
-          <span className="font-bold text-2xl text-primary">
-            {intl.formatMessage({
-              id: "app.hero.cta",
-              defaultMessage: "Open the website on your phone to get started!",
-            })}
-          </span>
-
-          <div className="p-4 rounded-xl shadow-sm bg-white dark:bg-gray-800 transition-colors border border-transparent dark:border-gray-600">
+          <div className="rounded-xl shadow-sm bg-white dark:bg-gray-800 transition-colors border border-transparent dark:border-gray-600">
             <QRCodeCanvas
               value={window.location.origin}
               size={128}
@@ -159,6 +153,12 @@ export const Hero: FC<HeroProps> = () => {
               role="img"
             />
           </div>
+          <span className="font-bold text-xl text-primary-dark">
+            {intl.formatMessage({
+              id: "app.hero.cta",
+              defaultMessage: "Open on your phone to get started!",
+            })}
+          </span>
         </div>
 
         {/* Smart PWA Installation Flow based on browser/platform detection */}
@@ -353,10 +353,10 @@ export const Hero: FC<HeroProps> = () => {
           </div>
         )}
       </div>
-      <div>
+      <div className="flex-1">
         {!isMobile && (
-          <div className="flex-1 w-full h-full grid place-items-center">
-            <DeviceFrameset device="iPhone 8" color="black">
+          <div className="w-full h-full flex items-center justify-center">
+            <DeviceFrameset device="Galaxy Note 8" zoom={0.58}>
               <img
                 src="/images/app-mock.png"
                 alt="Green Goods App Mockup"
@@ -367,6 +367,10 @@ export const Hero: FC<HeroProps> = () => {
         )}
       </div>
     </main>
+    <p className="fixed bottom-0 left-0 w-full text-center text-sm text-text-soft-400 py-4">
+      Built by <b className="text-primary-dark">Greenpill Dev Guild</b>
+    </p>
+    </>
   );
 };
 
