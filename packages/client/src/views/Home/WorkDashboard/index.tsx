@@ -854,9 +854,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         />
 
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-hidden">
-          {renderTabContent()}
-        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto">{renderTabContent()}</div>
       </div>
     </div>
   );

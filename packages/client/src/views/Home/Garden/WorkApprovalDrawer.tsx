@@ -11,7 +11,7 @@ import {
   type WorkApprovalDraft,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { Button } from "@/components/Actions";
@@ -32,7 +32,24 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
   const [inlineFeedback, setInlineFeedback] = useState("");
   const [confidence, setConfidence] = useState<Confidence>(Confidence.NONE);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { set: scheduleTimeout } = useTimeout();
+
+  // When the textarea is focused (e.g. on mobile with virtual keyboard), scroll it into view.
+  // visualViewport resize fires when the keyboard opens/closes on iOS and Android.
+  useLayoutEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      if (document.activeElement === textareaRef.current && textareaRef.current) {
+        textareaRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    };
+
+    vv.addEventListener("resize", handleResize);
+    return () => vv.removeEventListener("resize", handleResize);
+  }, []);
 
   const handleCancelFeedback = useCallback(() => {
     setFeedbackMode(null);
@@ -190,7 +207,7 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
           aria-labelledby="feedback-drawer-title"
           aria-describedby="feedback-drawer-description"
         >
-          <div className="p-4 space-y-3 max-w-screen-sm mx-auto overflow-y-auto max-h-[60vh]">
+          <div className="p-4 pb-6 space-y-3 max-w-screen-sm mx-auto overflow-y-auto max-h-[60dvh]">
             <div className="flex items-center justify-between">
               <h2 id="feedback-drawer-title" className="text-sm font-medium text-text-strong-950">
                 {feedbackMode === "approve"
@@ -232,6 +249,7 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
               })}
             </label>
             <textarea
+              ref={textareaRef}
               id="approval-feedback-input"
               value={inlineFeedback}
               onChange={(e) => setInlineFeedback(e.target.value)}
@@ -239,7 +257,7 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
                 id: "app.home.workApproval.feedbackPlaceholder",
                 defaultMessage: "Add your feedback here...",
               })}
-              className="w-full min-h-[120px] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              className="w-full min-h-[120px] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-y"
             />
           </div>
 

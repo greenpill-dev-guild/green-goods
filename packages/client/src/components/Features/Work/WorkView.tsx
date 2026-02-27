@@ -22,7 +22,7 @@ type IconComponent = React.ComponentType<{ className?: string }>;
 type WorkViewProps = {
   title: string;
   info: string;
-  garden: Garden;
+  garden?: Garden;
   actionTitle: string;
   media?: string[];
   details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
@@ -71,15 +71,19 @@ export const WorkView: React.FC<WorkViewProps> = ({
       <h6>
         {intl.formatMessage({ id: "app.home.workApproval.garden", defaultMessage: "Garden" })}
       </h6>
-      <GardenCard
-        garden={garden}
-        media="small"
-        height="default"
-        showOperators={true}
-        selected={false}
-        showDescription={false}
-        showBanner={false}
-      />
+      {garden ? (
+        <GardenCard
+          garden={garden}
+          media="small"
+          height="default"
+          showOperators={true}
+          selected={false}
+          showDescription={false}
+          showBanner={false}
+        />
+      ) : (
+        <GardenCardSkeleton media="small" height="default" showBanner={false} />
+      )}
 
       {hasMedia && (
         <>
