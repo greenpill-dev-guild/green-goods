@@ -1213,6 +1213,7 @@
   "app.home.work.metadataFallbackNotice": "Não conseguimos carregar todos os detalhes do trabalho do armazenamento. Alguns campos podem não estar disponíveis.",
   "app.home.work.metadataFallbackNotice.detail": "Detalhes: {message}",
   "app.home.work.notApproved": "Ainda não aprovado",
+  "app.home.work.notFound": "Envio de trabalho não encontrado.",
   "app.home.work.offlineNotice": "Você está offline. Conecte-se para enviar.",
   "app.home.work.pendingUpload": "Este trabalho está pendente de envio para a blockchain.",
   "app.home.work.retryMetadataLoad": "Tentar carregar detalhes novamente",

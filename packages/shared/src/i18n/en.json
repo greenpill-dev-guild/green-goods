@@ -1213,6 +1213,7 @@
   "app.home.work.metadataFallbackNotice": "We couldn't load all work details from storage. Some fields may be unavailable.",
   "app.home.work.metadataFallbackNotice.detail": "Details: {message}",
   "app.home.work.notApproved": "Not yet approved",
+  "app.home.work.notFound": "Work submission not found.",
   "app.home.work.offlineNotice": "You're offline. Connect to upload.",
   "app.home.work.pendingUpload": "This work is pending upload to the blockchain.",
   "app.home.work.retryMetadataLoad": "Retry loading details",

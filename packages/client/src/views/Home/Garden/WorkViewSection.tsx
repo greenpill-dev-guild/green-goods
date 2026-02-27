@@ -23,7 +23,7 @@ import { WorkView, type WorkViewAction } from "@/components/Features/Work";
 type ViewingMode = "operator" | "gardener" | "viewer";
 
 type WorkViewSectionProps = {
-  garden: Garden;
+  garden?: Garden;
   work: Work;
   workMetadata: WorkMetadata | null;
   viewingMode: ViewingMode;

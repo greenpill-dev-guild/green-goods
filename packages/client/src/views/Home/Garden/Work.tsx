@@ -68,7 +68,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const navigateToTop = useNavigateToTop();
   const location = useLocation();
   const chainId = DEFAULT_CHAIN_ID;
-  const { data: gardens = [] } = useGardens();
+  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const gardenId = (gardenIdFromContext || gardenIdParam) as string;
   const garden = gardens.find((g) => g.id === gardenId);
   const { data: actions = [] } = useActions(chainId);
@@ -346,7 +346,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         // Delay navigation to show success state (auto-cleared on unmount)
         scheduleTimeout(() => {
           setOptimisticStatus(null); // Clear before navigating
-          navigateToTop(`/home/${garden?.id ?? ""}`);
+          navigateToTop(`/home/${garden?.id || gardenIdParam || ""}`);
         }, 2500);
       }
       if (type === "job:failed") {
@@ -463,15 +463,26 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       navigateToTop("/home");
       return;
     }
-    navigateToTop(`/home/${garden?.id ?? ""}`);
+    navigateToTop(`/home/${garden?.id || gardenIdParam || ""}`);
   };
 
-  if (!work || !garden)
+  if (!work)
     return (
       <article>
         <TopNav onBackClick={handleBack} />
         <div className="padded">
-          <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
+          {gardensLoading ? (
+            <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+              <p className="text-sm text-text-sub-600">
+                {intl.formatMessage({
+                  id: "app.home.work.notFound",
+                  defaultMessage: "Work submission not found.",
+                })}
+              </p>
+            </div>
+          )}
         </div>
       </article>
     );

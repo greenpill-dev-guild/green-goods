@@ -1,9 +1,4 @@
-import {
-  normalizeTimeSpentMinutes,
-  type Action,
-  type WorkFormData,
-  type WorkInput,
-} from "@green-goods/shared";
+import { type Action, type WorkFormData, type WorkInput } from "@green-goods/shared";
 import { RiFileFill, RiMapPinLine } from "@remixicon/react";
 import React, { useCallback, useState } from "react";
 import type { Control, Path, UseFormRegister, UseFormSetValue } from "react-hook-form";
@@ -113,9 +108,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
 
       {/* Time Spent Input - Always shown as a default field */}
       <FormInput
-        {...register("timeSpentMinutes", {
-          setValueAs: normalizeTimeSpentMinutes,
-        })}
+        {...register("timeSpentMinutes")}
         label={intl.formatMessage({
           id: "app.garden.details.timeSpent",
           defaultMessage: "Time Spent (hours)",

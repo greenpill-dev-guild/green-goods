@@ -856,10 +856,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           triggerClassName="text-xs"
         />
 
-        {/* Content - overscroll-contain prevents scroll chaining to backdrop */}
-        <div className="flex-1 min-h-0 overflow-hidden overscroll-contain">
-          {renderTabContent()}
-        </div>
+        {/* Content */}
+        <div className="flex-1 min-h-0 overflow-y-auto">{renderTabContent()}</div>
       </div>
     </div>
   );

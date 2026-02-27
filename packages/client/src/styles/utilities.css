@@ -69,17 +69,13 @@
     border-radius: 1.25rem;
   }
 
-  /* Modal Scroll Lock Utilities */
+  /* Modal Scroll Lock Utilities
+     Note: body already has position:fixed + overflow:hidden in index.css,
+     so only the html element needs the lock. */
   .modal-open {
     overflow: hidden;
     height: 100vh;
-  }
-  
-  .modal-open body {
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
-    height: 100%;
+    height: 100dvh;
   }
 
   /* Universal Icon Button Class - Dark mode compatible */
