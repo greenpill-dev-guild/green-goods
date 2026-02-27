@@ -2,7 +2,6 @@ import {
   type Address,
   assessmentStepFields,
   classifyTxError,
-  ConfirmDialog,
   type CreateAssessmentFormData,
   ErrorBoundary,
   isMeaningfulTxErrorMessage,
@@ -108,8 +107,6 @@ export default function CreateAssessment() {
   const { trigger, reset: resetValidationForm } = useCreateAssessmentForm();
 
   const [showValidation, setShowValidation] = useState(false);
-  const [showGasConfirm, setShowGasConfirm] = useState(false);
-  const [pendingPayload, setPendingPayload] = useState<WorkflowAssessmentForm | null>(null);
 
   const { data: gardenDomainMask } = useGardenDomains(gardenId);
   const normalizedGardenDomainMask =
@@ -406,27 +403,27 @@ export default function CreateAssessment() {
         return;
       }
 
-      setPendingPayload(payload);
-      setShowGasConfirm(true);
+      const started = startCreation(payload);
+      if (!started) {
+        toastService.error({
+          title: formatMessage({
+            id: "app.assessment.couldNotSubmit",
+            defaultMessage: "We could not submit the assessment",
+          }),
+          message: formatMessage({
+            id: "app.assessment.submissionFailedMessage",
+            defaultMessage: "Something went wrong. Please try again.",
+          }),
+          context: "assessment submission",
+          suppressLogging: true,
+        });
+        return;
+      }
+
+      submitCreation();
     };
 
     void onValid();
-  };
-
-  const handleConfirmAssessment = () => {
-    if (pendingPayload) {
-      const started = startCreation(pendingPayload);
-      if (started) {
-        submitCreation();
-      }
-    }
-    setShowGasConfirm(false);
-    setPendingPayload(null);
-  };
-
-  const handleCancelAssessment = () => {
-    setShowGasConfirm(false);
-    setPendingPayload(null);
   };
 
   return (
@@ -492,21 +489,6 @@ export default function CreateAssessment() {
           <ActionsHarvestStep showValidation={showValidation} isSubmitting={isSubmitting} />
         )}
       </FormWizard>
-
-      <ConfirmDialog
-        isOpen={showGasConfirm}
-        onClose={handleCancelAssessment}
-        onConfirm={handleConfirmAssessment}
-        title={formatMessage({
-          id: "app.assessment.confirmSubmit.title",
-          defaultMessage: "Submit assessment?",
-        })}
-        description={formatMessage({
-          id: "app.assessment.confirmSubmit.description",
-          defaultMessage:
-            "This will create an on-chain attestation which costs gas. This action cannot be undone.",
-        })}
-      />
     </ErrorBoundary>
   );
 }

@@ -64,7 +64,6 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   const [withdrawJar, setWithdrawJar] = useState<string>("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPurpose, setWithdrawPurpose] = useState("");
-  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
 
   // Deposit state
   const depositMutation = useCookieJarDeposit(gardenAddress, { errorMode: "inline" });
@@ -298,7 +297,22 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
 
             <button
               type="button"
-              onClick={() => setShowWithdrawConfirm(true)}
+              onClick={() => {
+                if (!selectedWithdrawJar || parsedWithdrawAmount <= 0n) return;
+                withdrawMutation.mutate(
+                  {
+                    jarAddress: selectedWithdrawJar.jarAddress,
+                    amount: parsedWithdrawAmount,
+                    purpose: withdrawPurpose,
+                  },
+                  {
+                    onSuccess: () => {
+                      setWithdrawAmount("");
+                      setWithdrawPurpose("");
+                    },
+                  }
+                );
+              }}
               disabled={
                 !isOnline ||
                 !selectedWithdrawJar ||
@@ -516,42 +530,6 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
           </Accordion.Root>
         </Card.Body>
       </Card>
-
-      {/* Withdraw Confirm Dialog */}
-      <ConfirmDialog
-        isOpen={showWithdrawConfirm}
-        onClose={() => setShowWithdrawConfirm(false)}
-        title={formatMessage({ id: "app.cookieJar.confirmWithdrawTitle" })}
-        description={formatMessage(
-          { id: "app.cookieJar.confirmWithdrawDescription" },
-          {
-            amount: formatTokenAmount(parsedWithdrawAmount, withdrawDecimals),
-            asset: selectedWithdrawJar
-              ? getVaultAssetSymbol(selectedWithdrawJar.assetAddress, undefined)
-              : "",
-          }
-        )}
-        confirmLabel={formatMessage({ id: "app.cookieJar.withdraw" })}
-        variant="warning"
-        isLoading={withdrawMutation.isPending}
-        onConfirm={() => {
-          if (!selectedWithdrawJar) return;
-          setShowWithdrawConfirm(false);
-          withdrawMutation.mutate(
-            {
-              jarAddress: selectedWithdrawJar.jarAddress,
-              amount: parsedWithdrawAmount,
-              purpose: withdrawPurpose,
-            },
-            {
-              onSuccess: () => {
-                setWithdrawAmount("");
-                setWithdrawPurpose("");
-              },
-            }
-          );
-        }}
-      />
 
       {/* Emergency Withdraw Confirm Dialog */}
       <ConfirmDialog
