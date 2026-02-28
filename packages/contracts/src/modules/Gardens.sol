@@ -686,8 +686,9 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         // solhint-disable-next-line no-empty-blocks
         try IRegistryCommunity(community).stakeAndRegisterMember(garden) { } catch { }
 
-        // Newer string-based covenant signature path.
-        (bool ok,) = community.call(abi.encodeWithSelector(bytes4(0x9a1f46e2), ""));
+        // Newer string-based covenant signature path: stakeAndRegisterMember(string)
+        (bool ok,) = community.call(abi.encodeWithSelector(bytes4(0x9a1f46e2), "")); // 0x9a1f46e2 =
+            // keccak256("stakeAndRegisterMember(string)")[:4]
         ok; // silence compiler warning for ignored result
     }
 

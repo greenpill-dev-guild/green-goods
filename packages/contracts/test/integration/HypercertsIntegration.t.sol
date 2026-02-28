@@ -20,6 +20,7 @@ contract MockMarketplaceAdapter {
 
     RegisterCall[] public registerCalls;
     uint256[] public deactivatedOrders;
+    mapping(uint256 orderId => uint256 hypercertId) public orderHypercerts;
 
     function registerOrder(
         OrderStructs.Maker calldata,
@@ -31,6 +32,7 @@ contract MockMarketplaceAdapter {
     {
         orderId = _nextOrderId++;
         registerCalls.push(RegisterCall({ hypercertId: hypercertId, orderId: orderId }));
+        orderHypercerts[orderId] = hypercertId;
     }
 
     function batchRegisterOrders(
@@ -46,11 +48,16 @@ contract MockMarketplaceAdapter {
             uint256 orderId = _nextOrderId++;
             orderIds[i] = orderId;
             registerCalls.push(RegisterCall({ hypercertId: hypercertIds[i], orderId: orderId }));
+            orderHypercerts[orderId] = hypercertIds[i];
         }
     }
 
     function deactivateOrder(uint256 orderId) external {
         deactivatedOrders.push(orderId);
+    }
+
+    function getOrderInfo(uint256 orderId) external view returns (uint256, address, bool) {
+        return (orderHypercerts[orderId], address(0), true);
     }
 
     function getRegisterCallCount() external view returns (uint256) {

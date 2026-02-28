@@ -131,6 +131,20 @@ out = "out-production"
 cache_path = "cache-production"
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# TEST PROFILE — Local Testing (via_ir Required for Full Suite)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Use for: `bun run test` (compilation_restrictions can't cover transitive imports
+# in test files, so the full test suite requires via_ir = true)
+[profile.test]
+via_ir = true            # Required: test files transitively import via_ir contracts
+optimizer = true
+optimizer_runs = 200     # Same as default for consistent behavior
+fuzz = { runs = 1_000 }  # Keep local-friendly fuzz runs (CI uses 10_000)
+verbosity = 1            # Quiet output for local iteration
+out = "out-test"         # Separate artifacts to avoid stale non-via_ir cache
+cache_path = "cache-test"
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CI PROFILE — Thorough Testing
 # ═══════════════════════════════════════════════════════════════════════════════
 # Use for: GitHub Actions CI/CD

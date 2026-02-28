@@ -295,8 +295,6 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         return gardenAccount;
     }
 
-    // _mintGardenInternal removed as it is no longer needed
-
     /// @notice Batch mint multiple gardens (40% gas savings)
     /// @dev **ENS msg.value limitation**: In batch mode, the entire `msg.value` is forwarded to
     ///      the first garden with a non-empty slug for ENS registration. Subsequent gardens with

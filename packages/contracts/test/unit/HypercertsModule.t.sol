@@ -20,11 +20,14 @@ contract MockMarketplaceAdapter {
     bool public shouldRevert;
     uint256[] public deactivatedOrders;
     uint256 public registerCallCount;
+    mapping(uint256 orderId => uint256 hypercertId) public orderHypercerts;
 
-    function registerOrder(OrderStructs.Maker calldata, bytes calldata, uint256) external returns (uint256) {
+    function registerOrder(OrderStructs.Maker calldata, bytes calldata, uint256 hypercertId) external returns (uint256) {
         require(!shouldRevert, "mock revert");
         registerCallCount++;
-        return nextOrderId++;
+        uint256 orderId = nextOrderId++;
+        orderHypercerts[orderId] = hypercertId;
+        return orderId;
     }
 
     function batchRegisterOrders(
@@ -39,12 +42,17 @@ contract MockMarketplaceAdapter {
         orderIds = new uint256[](hypercertIds.length);
         for (uint256 i = 0; i < hypercertIds.length; i++) {
             orderIds[i] = nextOrderId++;
+            orderHypercerts[orderIds[i]] = hypercertIds[i];
         }
     }
 
     function deactivateOrder(uint256 orderId) external {
         require(!shouldRevert, "mock revert");
         deactivatedOrders.push(orderId);
+    }
+
+    function getOrderInfo(uint256 orderId) external view returns (uint256, address, bool) {
+        return (orderHypercerts[orderId], address(0), true);
     }
 
     function getDeactivatedCount() external view returns (uint256) {
