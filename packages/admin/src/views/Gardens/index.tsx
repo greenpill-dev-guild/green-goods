@@ -1,6 +1,11 @@
-import { type GardenFiltersState, useFilteredGardens } from "@green-goods/shared";
-import { useAuth, useGardenPermissions, useGardens } from "@green-goods/shared/hooks";
-import { resolveIPFSUrl } from "@green-goods/shared/modules";
+import {
+  type GardenFiltersState,
+  resolveIPFSUrl,
+  useAuth,
+  useFilteredGardens,
+  useGardenPermissions,
+  useGardens,
+} from "@green-goods/shared";
 import { RiAddLine, RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";

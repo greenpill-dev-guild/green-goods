@@ -1,4 +1,4 @@
-import { useGardens, useRole } from "@green-goods/shared/hooks";
+import { useGardens, useRole } from "@green-goods/shared";
 import { RiPlantLine, RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

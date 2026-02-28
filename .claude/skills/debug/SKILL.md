@@ -240,7 +240,7 @@ IndexedDB Draft → Job Queue → IPFS Upload → Contract Call → Indexer Even
 # Console: jobQueue.getStats(userAddress)
 
 # Monitor job events
-# Console: eventBus.subscribe("job:*", console.log)
+# Console: jobQueueEventBus.subscribe("job:*", console.log)
 ```
 
 | Symptom | Layer | Check |

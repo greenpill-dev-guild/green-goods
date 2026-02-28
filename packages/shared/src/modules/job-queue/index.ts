@@ -294,8 +294,7 @@ class JobQueue {
         const maybeMedia = (payload as unknown as Record<string, unknown>).media;
         mediaCount = Array.isArray(maybeMedia) ? maybeMedia.length : 0;
       }
-      // eslint-disable-next-line no-console
-      console.debug("[JobQueue] addJob", {
+      logger.debug("[JobQueue] addJob", {
         jobId,
         kind,
         chainId,
@@ -310,8 +309,7 @@ class JobQueue {
     try {
       navigator.serviceWorker?.controller?.postMessage({ type: "REGISTER_SYNC" });
     } catch (error) {
-      // Log service worker registration failures for debugging
-      console.debug("[JobQueue] Failed to register background sync:", error);
+      logger.debug("[JobQueue] Failed to register background sync", { error });
     }
 
     return jobId;

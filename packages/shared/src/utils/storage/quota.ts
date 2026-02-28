@@ -221,8 +221,7 @@ export async function trackStorageQuota(source: string = "unknown"): Promise<voi
       });
     }
   } catch (error) {
-    // Silently ignore tracking errors
-    console.debug("[StorageQuota] Failed to track quota:", error);
+    logger.debug("[StorageQuota] Failed to track quota", { error });
   }
 }
 

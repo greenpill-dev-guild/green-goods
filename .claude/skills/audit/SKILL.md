@@ -200,7 +200,7 @@ done
 
 # Check that utility functions referenced in skills exist
 for util in parseContractError createMutationErrorHandler mediaResourceManager \
-  getStorageQuota jobQueue eventBus logger toastService; do
+  getStorageQuota jobQueue jobQueueEventBus logger toastService; do
   count=$(grep -rn "export.*$util" packages/shared/src/ | wc -l)
   if [ "$count" -eq 0 ]; then
     echo "DRIFT: $util referenced in skills but not exported from shared"
