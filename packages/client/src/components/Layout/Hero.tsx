@@ -357,14 +357,15 @@ export const Hero: FC<HeroProps> = () => {
             </div>
           )}
         </div>
-        <div className="flex-1">
+        <div className="flex-1 overflow-hidden">
           {!isMobile && (
             <div className="w-full h-full flex items-center justify-center">
-              <DeviceFrameset device="Galaxy Note 8" zoom={0.58}>
+              <DeviceFrameset device="Galaxy Note 8" zoom={0.5}>
                 <img
                   src="/images/app-mock.png"
                   alt="Green Goods App Mockup"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover select-none pointer-events-none"
+                  draggable={false}
                 />
               </DeviceFrameset>
             </div>
