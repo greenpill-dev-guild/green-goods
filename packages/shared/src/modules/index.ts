@@ -116,17 +116,13 @@ export {
   type AuthMode,
   clearAllAuth,
   clearAuthMode,
-  // Legacy (deprecated - credentials now on Pimlico server)
-  clearStoredPasskey,
   clearStoredRpId,
   // Username (Pimlico server)
   clearStoredUsername,
   getAuthMode,
   getStoredRpId,
   getStoredUsername,
-  hasStoredPasskey,
   hasStoredUsername,
-  PASSKEY_STORAGE_KEY,
   // RP ID (Android passkey compatibility)
   RP_ID_STORAGE_KEY,
   setAuthMode,
@@ -159,8 +155,6 @@ export {
   GQLClient,
   GRAPHQL_TIMEOUT_MS,
   greenGoodsIndexer,
-  // Timeout utilities
-  INDEXER_TIMEOUT_MS,
   TimeoutError,
   withTimeout,
 } from "./data/graphql-client";
@@ -231,9 +225,6 @@ export {
   getIpfsInitStatus,
   initializeIpfs,
   initializeIpfsFromEnv,
-  // Deprecated aliases for backward compatibility
-  initializePinata,
-  initializePinataFromEnv,
   // Storacha aliases (preferred naming)
   initializeStoracha,
   initializeStorachaFromEnv,

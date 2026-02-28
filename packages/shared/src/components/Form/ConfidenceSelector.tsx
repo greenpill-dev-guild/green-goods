@@ -1,13 +1,7 @@
 import { useCallback, useId, type KeyboardEvent } from "react";
+import { useIntl } from "react-intl";
 import { Confidence } from "../../types/domain";
 import { cn } from "../../utils/styles/cn";
-
-const CONFIDENCE_OPTIONS = [
-  { value: Confidence.NONE, label: "None", hint: "No confidence in outcome" },
-  { value: Confidence.LOW, label: "Low", hint: "Uncertain about accuracy" },
-  { value: Confidence.MEDIUM, label: "Medium", hint: "Reasonably confident" },
-  { value: Confidence.HIGH, label: "High", hint: "Very confident in outcome" },
-] as const;
 
 export interface ConfidenceSelectorProps {
   value: Confidence;
@@ -30,7 +24,43 @@ export function ConfidenceSelector({
   required = false,
   className,
 }: ConfidenceSelectorProps) {
+  const { formatMessage } = useIntl();
   const groupId = useId();
+
+  const CONFIDENCE_OPTIONS = [
+    {
+      value: Confidence.NONE,
+      label: formatMessage({ id: "app.form.confidence.none", defaultMessage: "None" }),
+      hint: formatMessage({
+        id: "app.form.confidence.none.hint",
+        defaultMessage: "No confidence in outcome",
+      }),
+    },
+    {
+      value: Confidence.LOW,
+      label: formatMessage({ id: "app.form.confidence.low", defaultMessage: "Low" }),
+      hint: formatMessage({
+        id: "app.form.confidence.low.hint",
+        defaultMessage: "Uncertain about accuracy",
+      }),
+    },
+    {
+      value: Confidence.MEDIUM,
+      label: formatMessage({ id: "app.form.confidence.medium", defaultMessage: "Medium" }),
+      hint: formatMessage({
+        id: "app.form.confidence.medium.hint",
+        defaultMessage: "Reasonably confident",
+      }),
+    },
+    {
+      value: Confidence.HIGH,
+      label: formatMessage({ id: "app.form.confidence.high", defaultMessage: "High" }),
+      hint: formatMessage({
+        id: "app.form.confidence.high.hint",
+        defaultMessage: "Very confident in outcome",
+      }),
+    },
+  ];
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
@@ -64,7 +94,10 @@ export function ConfidenceSelector({
     <div className={className}>
       <div
         role="radiogroup"
-        aria-label="Confidence level"
+        aria-label={formatMessage({
+          id: "app.form.confidence.groupLabel",
+          defaultMessage: "Confidence level",
+        })}
         aria-required={required || undefined}
         onKeyDown={handleKeyDown}
         className="flex gap-1"
@@ -78,7 +111,10 @@ export function ConfidenceSelector({
               type="button"
               role="radio"
               aria-checked={isSelected}
-              aria-label={`${option.label} confidence`}
+              aria-label={formatMessage(
+                { id: "app.form.confidence.ariaLabel", defaultMessage: "{level} confidence" },
+                { level: option.label }
+              )}
               tabIndex={isSelected ? 0 : -1}
               disabled={disabled}
               onClick={() => onChange(option.value)}

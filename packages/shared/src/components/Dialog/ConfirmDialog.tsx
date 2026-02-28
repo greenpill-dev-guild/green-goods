@@ -210,5 +210,3 @@ export function ConfirmDialog({
     </Dialog.Root>
   );
 }
-
-export default ConfirmDialog;

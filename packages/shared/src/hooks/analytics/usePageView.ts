@@ -119,5 +119,3 @@ function sanitizeSearch(search: string): string | undefined {
     return undefined;
   }
 }
-
-export default usePageView;

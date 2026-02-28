@@ -475,9 +475,3 @@ export async function initializeIpfsFromEnv(
 // Storacha aliases (preferred naming)
 export const initializeStoracha = initializeIpfs;
 export const initializeStorachaFromEnv = initializeIpfsFromEnv;
-
-// Backward compatibility aliases (deprecated - will be removed in future version)
-/** @deprecated Use initializeIpfs or initializeStoracha instead */
-export const initializePinata = initializeIpfs;
-/** @deprecated Use initializeIpfsFromEnv or initializeStorachaFromEnv instead */
-export const initializePinataFromEnv = initializeIpfsFromEnv;

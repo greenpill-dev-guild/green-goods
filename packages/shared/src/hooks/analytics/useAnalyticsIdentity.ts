@@ -113,5 +113,3 @@ export function useAnalyticsIdentity(options: UseAnalyticsIdentityOptions) {
     prevStateRef.current = current;
   }, [isReady, isAuthenticated, primaryAddress, authMode, app, isPwa, locale]);
 }
-
-export default useAnalyticsIdentity;

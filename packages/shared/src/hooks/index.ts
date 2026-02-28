@@ -268,6 +268,7 @@ export type {
   UseFilteredGardensResult,
 } from "./garden/useFilteredGardens";
 export { useFilteredGardens } from "./garden/useFilteredGardens";
+export { useGardenDetailData } from "./garden/useGardenDetailData";
 
 // ============================================================================
 // GARDENER

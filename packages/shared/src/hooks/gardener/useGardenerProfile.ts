@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIntl } from "react-intl";
 import { encodeFunctionData } from "viem";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
@@ -122,6 +123,7 @@ export interface GardenerProfile {
 export function useGardenerProfile() {
   const { smartAccountClient, smartAccountAddress } = useAuth();
   const queryClient = useQueryClient();
+  const { formatMessage } = useIntl();
 
   // Query profile from indexer (GraphQL)
   // TODO: Replace with actual GraphQL query once indexer is updated
@@ -176,8 +178,14 @@ export function useGardenerProfile() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
       toastService.success({
-        title: "Profile updated",
-        message: "Your profile changes were saved.",
+        title: formatMessage({
+          id: "app.gardener.profile.update.success.title",
+          defaultMessage: "Profile updated",
+        }),
+        message: formatMessage({
+          id: "app.gardener.profile.update.success.message",
+          defaultMessage: "Your profile changes were saved.",
+        }),
         context: "profile update",
         suppressLogging: true,
       });
@@ -185,8 +193,14 @@ export function useGardenerProfile() {
     onError: (error) => {
       logger.error("Profile update failed", { source: "useGardenerProfile", error });
       toastService.error({
-        title: "Profile update failed",
-        message: "Please try again.",
+        title: formatMessage({
+          id: "app.gardener.profile.update.error.title",
+          defaultMessage: "Profile update failed",
+        }),
+        message: formatMessage({
+          id: "app.gardener.profile.update.error.message",
+          defaultMessage: "Please try again.",
+        }),
         context: "profile update",
         error,
       });
@@ -251,34 +265,82 @@ export function useGardenerProfile() {
   // Individual field update mutations (gas efficient)
   const updateNameMutation = createFieldMutation({
     functionName: "updateName",
-    successTitle: "Name updated",
-    successMessage: "Your profile name has been updated.",
-    errorTitle: "Name update failed",
-    errorMessage: "Could not update your profile name. Please try again.",
+    successTitle: formatMessage({
+      id: "app.gardener.profile.name.success.title",
+      defaultMessage: "Name updated",
+    }),
+    successMessage: formatMessage({
+      id: "app.gardener.profile.name.success.message",
+      defaultMessage: "Your profile name has been updated.",
+    }),
+    errorTitle: formatMessage({
+      id: "app.gardener.profile.name.error.title",
+      defaultMessage: "Name update failed",
+    }),
+    errorMessage: formatMessage({
+      id: "app.gardener.profile.name.error.message",
+      defaultMessage: "Could not update your profile name. Please try again.",
+    }),
   });
 
   const updateBioMutation = createFieldMutation({
     functionName: "updateBio",
-    successTitle: "Bio updated",
-    successMessage: "Your biography has been updated.",
-    errorTitle: "Bio update failed",
-    errorMessage: "Could not update your biography. Please try again.",
+    successTitle: formatMessage({
+      id: "app.gardener.profile.bio.success.title",
+      defaultMessage: "Bio updated",
+    }),
+    successMessage: formatMessage({
+      id: "app.gardener.profile.bio.success.message",
+      defaultMessage: "Your biography has been updated.",
+    }),
+    errorTitle: formatMessage({
+      id: "app.gardener.profile.bio.error.title",
+      defaultMessage: "Bio update failed",
+    }),
+    errorMessage: formatMessage({
+      id: "app.gardener.profile.bio.error.message",
+      defaultMessage: "Could not update your biography. Please try again.",
+    }),
   });
 
   const updateLocationMutation = createFieldMutation({
     functionName: "updateLocation",
-    successTitle: "Location updated",
-    successMessage: "Your location has been saved.",
-    errorTitle: "Location update failed",
-    errorMessage: "Could not update your location. Please try again.",
+    successTitle: formatMessage({
+      id: "app.gardener.profile.location.success.title",
+      defaultMessage: "Location updated",
+    }),
+    successMessage: formatMessage({
+      id: "app.gardener.profile.location.success.message",
+      defaultMessage: "Your location has been saved.",
+    }),
+    errorTitle: formatMessage({
+      id: "app.gardener.profile.location.error.title",
+      defaultMessage: "Location update failed",
+    }),
+    errorMessage: formatMessage({
+      id: "app.gardener.profile.location.error.message",
+      defaultMessage: "Could not update your location. Please try again.",
+    }),
   });
 
   const updateImageMutation = createFieldMutation({
     functionName: "updateImage",
-    successTitle: "Profile image updated",
-    successMessage: "Your new image is on the way.",
-    errorTitle: "Image update failed",
-    errorMessage: "Could not update your profile image. Please try again.",
+    successTitle: formatMessage({
+      id: "app.gardener.profile.image.success.title",
+      defaultMessage: "Profile image updated",
+    }),
+    successMessage: formatMessage({
+      id: "app.gardener.profile.image.success.message",
+      defaultMessage: "Your new image is on the way.",
+    }),
+    errorTitle: formatMessage({
+      id: "app.gardener.profile.image.error.title",
+      defaultMessage: "Image update failed",
+    }),
+    errorMessage: formatMessage({
+      id: "app.gardener.profile.image.error.message",
+      defaultMessage: "Could not update your profile image. Please try again.",
+    }),
   });
 
   return {

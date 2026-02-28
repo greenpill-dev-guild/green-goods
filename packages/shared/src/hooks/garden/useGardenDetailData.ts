@@ -1,25 +1,23 @@
-import {
-  type Address,
-  DEFAULT_CHAIN_ID,
-  type GardenOperationResult,
-  type GardenRole,
-  getNetDeposited,
-  queryInvalidation,
-  useConvictionStrategies,
-  useCreateGardenPools,
-  useDelayedInvalidation,
-  useGardenAssessments,
-  useGardenCommunity,
-  useGardenOperations,
-  useGardenPermissions,
-  useGardenPools,
-  useGardens,
-  useGardenVaults,
-  useHypercerts,
-  useWorks,
-  useYieldAllocations,
-  WeightScheme,
-} from "@green-goods/shared";
+import type { Address } from "../../types/domain";
+import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import type { GardenOperationResult } from "./createGardenOperation";
+import type { GardenRole } from "../../utils/blockchain/garden-roles";
+import { getNetDeposited } from "../../utils/blockchain/vaults";
+import { queryInvalidation } from "../query-keys";
+import { WeightScheme } from "../../types/gardens-community";
+import { useConvictionStrategies } from "../conviction/useConvictionStrategies";
+import { useCreateGardenPools } from "../conviction/useCreateGardenPools";
+import { useDelayedInvalidation } from "../utils/useTimeout";
+import { useGardenAssessments } from "../assessment/useGardenAssessments";
+import { useGardenCommunity } from "../conviction/useGardenCommunity";
+import { useGardenOperations } from "./useGardenOperations";
+import { useGardenPermissions } from "./useGardenPermissions";
+import { useGardenPools } from "../conviction/useGardenPools";
+import { useGardens } from "../blockchain/useBaseLists";
+import { useGardenVaults } from "../vault/useGardenVaults";
+import { useHypercerts } from "../hypercerts/useHypercerts";
+import { useWorks } from "../work/useWorks";
+import { useYieldAllocations } from "../yield/useYieldAllocations";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -78,7 +76,7 @@ export function useGardenDetailData(id: string | undefined) {
     enabled: Boolean(id),
   });
   const { pools } = useGardenPools(id as Address | undefined, { enabled: Boolean(id) });
-  const { createPools, isCreating: isCreatingPools } = useCreateGardenPools(
+  const { mutate: createPools, isPending: isCreatingPools } = useCreateGardenPools(
     id as Address | undefined
   );
   const { allocations, isLoading: allocationsLoading } = useYieldAllocations(

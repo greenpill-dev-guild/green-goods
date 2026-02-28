@@ -13,6 +13,7 @@ import {
   getStatusColors,
   type GardenRole,
   toastService,
+  useGardenDetailData,
 } from "@green-goods/shared";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
@@ -52,7 +53,6 @@ import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { useGardenDetailData } from "./useGardenDetailData";
 import "./GardenDetailLayout.css";
 
 type GardenTab = "overview" | "impact" | "work" | "community";
@@ -896,9 +896,11 @@ export default function GardenDetail() {
         title={formatMessage({ id: "app.garden.detail.overview.actionTitle" })}
         description={formatMessage({ id: "app.garden.detail.overview.actionDescription" })}
         primaryAction={
-          <Button size="sm" onClick={() => openSection("overview", "metadata")}>
-            {formatMessage({ id: "app.garden.detail.action.manageProfile" })}
-          </Button>
+          canManage ? (
+            <Button size="sm" onClick={() => openSection("overview", "metadata")}>
+              {formatMessage({ id: "app.garden.detail.action.manageProfile" })}
+            </Button>
+          ) : null
         }
         overflowActions={overviewActionMenu}
         menuAriaLabel={formatMessage({ id: "app.garden.detail.action.more" })}
@@ -917,12 +919,9 @@ export default function GardenDetail() {
             />
           ) : null}
 
-          <GardenDomainEditor
-            gardenAddress={garden.id as Address}
-            canManage={canManage}
-          />
+          <GardenDomainEditor gardenAddress={garden.id as Address} canManage={canManage} />
 
-          {section === "metadata" ? (
+          {canManage && section === "metadata" ? (
             <>
               <GardenSettingsEditor
                 gardenAddress={garden.id as Address}
@@ -1667,13 +1666,15 @@ export default function GardenDetail() {
                   <h3 className="label-md text-text-strong sm:text-lg">
                     {formatMessage({ id: "app.garden.detail.community.rolesSummary" })}
                   </h3>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => openSection("community", "roles")}
-                  >
-                    {formatMessage({ id: "app.garden.detail.action.manageRoles" })}
-                  </Button>
+                  {canManageRoles && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => openSection("community", "roles")}
+                    >
+                      {formatMessage({ id: "app.garden.detail.action.manageRoles" })}
+                    </Button>
+                  )}
                 </Card.Header>
                 <Card.Body>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
