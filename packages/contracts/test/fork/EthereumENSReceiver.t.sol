@@ -24,7 +24,7 @@ contract EthereumENSReceiverForkTest is Test {
 
     /// @notice namehash("greengoods.eth") — used as the base node for subdomain registration
     /// @dev keccak256(abi.encodePacked(namehash("eth"), keccak256("greengoods")))
-    bytes32 internal constant BASE_NODE = 0x0854ba3d72dfe3022a4d5a14f037c0d42e0be5f7eb16a4e0f4ceef06a16ef614;
+    bytes32 internal constant BASE_NODE = 0x15ee556e39afd119101712c5ac4f1519d9f2f32780d4e1cf42b27fdfa73db841;
 
     GreenGoodsENSReceiver public receiver;
 

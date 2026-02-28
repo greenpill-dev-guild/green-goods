@@ -251,6 +251,16 @@ export {
 } from "./garden/useJoinGarden";
 export { useGardenDomains } from "./garden/useGardenDomains";
 export { useSetGardenDomains } from "./garden/useSetGardenDomains";
+export {
+  useUpdateGardenName,
+  useUpdateGardenDescription,
+  useUpdateGardenLocation,
+  useUpdateGardenBannerImage,
+  useUpdateGardenMetadata,
+  useSetOpenJoining,
+  useSetMaxGardeners,
+} from "./garden/useUpdateGarden";
+export { useOpenMinting, useSetOpenMinting } from "./garden/useOpenMinting";
 export type {
   GardenFilterScope,
   GardenFiltersState,

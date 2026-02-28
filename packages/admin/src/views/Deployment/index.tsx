@@ -14,6 +14,8 @@ import {
   useDeploymentAllowlist,
   useDeploymentRegistry,
   useEnsAddress,
+  useOpenMinting,
+  useSetOpenMinting,
   useOpsDeployPlan,
   useOpsFinalizeDeploy,
   useOpsJobLogs,
@@ -370,6 +372,9 @@ export default function Deployment() {
       {/* Minter Allowlist - owner only */}
       {permissions.isOwner && <AllowlistCard chainId={selectedChainId} />}
 
+      {/* Open Minting Toggle - owner only */}
+      {permissions.isOwner && <OpenMintingCard />}
+
       {/* Deployment Actions */}
       <Card padding="feature">
         <div className="flex items-center mb-4">
@@ -566,6 +571,69 @@ export default function Deployment() {
         </div>
       </Card>
     </div>
+  );
+}
+
+// --- Open Minting Toggle (owner-only) ---
+
+function OpenMintingCard() {
+  const { formatMessage } = useIntl();
+  const { data: isOpen, isLoading } = useOpenMinting();
+  const { mutate: setOpenMinting, isPending } = useSetOpenMinting();
+
+  return (
+    <Card padding="feature">
+      <div className="flex items-center mb-4">
+        <RiShieldCheckLine className="h-5 w-5 text-primary-base mr-2" />
+        <h2 className="text-lg font-medium text-text-strong">
+          {formatMessage({
+            id: "app.deployment.openMinting.title",
+            defaultMessage: "Garden Minting Access",
+          })}
+        </h2>
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <p className="text-sm text-text-strong">
+            {formatMessage({
+              id: "app.deployment.openMinting.label",
+              defaultMessage: "Open minting",
+            })}
+          </p>
+          <p className="text-xs text-text-sub">
+            {isOpen
+              ? formatMessage({
+                  id: "app.deployment.openMinting.openDescription",
+                  defaultMessage: "Anyone can create a garden",
+                })
+              : formatMessage({
+                  id: "app.deployment.openMinting.restrictedDescription",
+                  defaultMessage: "Only allowlisted addresses and the owner can create gardens",
+                })}
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={isLoading || isPending}
+          onClick={() => setOpenMinting(!isOpen)}
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+            isOpen ? "bg-primary-base" : "bg-bg-strong"
+          }`}
+          role="switch"
+          aria-checked={!!isOpen}
+          aria-label={formatMessage({
+            id: "app.deployment.openMinting.toggle",
+            defaultMessage: "Toggle open minting",
+          })}
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+              isOpen ? "translate-x-5" : "translate-x-0"
+            }`}
+          />
+        </button>
+      </div>
+    </Card>
   );
 }
 

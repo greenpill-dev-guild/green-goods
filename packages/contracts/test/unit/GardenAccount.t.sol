@@ -105,7 +105,11 @@ contract MockGardensModuleForAccount is IGardensModule {
     }
 
     // IGardensModule interface implementations
-    function onGardenMinted(address, WeightScheme) external pure returns (address, address[] memory) {
+    function onGardenMinted(address, WeightScheme, string calldata, string calldata)
+        external
+        pure
+        returns (address, address[] memory)
+    {
         return (address(0), new address[](0));
     }
 

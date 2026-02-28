@@ -13,12 +13,8 @@ export const getChain = (chainId: number): Chain => {
 };
 
 export const getChainName = (chainId: number): string => {
-  const names = {
-    42161: "arbitrum",
-    11155111: "sepolia",
-    42220: "celo",
-  } as const;
-  return names[chainId as SupportedChainId] || "unknown";
+  const chain = SUPPORTED_CHAINS[chainId as SupportedChainId];
+  return chain?.name || "Unknown";
 };
 
 export const isChainSupported = (chainId: number): chainId is SupportedChainId => {

@@ -409,7 +409,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         // Gardens V2 community + signal pools (graceful degradation)
         if (address(gardensModule) != address(0)) {
             // solhint-disable-next-line no-empty-blocks
-            try gardensModule.onGardenMinted(gardenAccount, config.weightScheme) returns (address, address[] memory) {
+            try gardensModule.onGardenMinted(gardenAccount, config.weightScheme, config.name, config.description) returns (
+                address, address[] memory
+            ) {
                 // Success handled by module events
             } catch {
                 // Failure is non-blocking — garden mint MUST NOT revert

@@ -39,8 +39,10 @@ import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
+import { GardenDomainEditor } from "@/components/Garden/GardenDomainEditor";
 import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
 import { GardenMetadata } from "@/components/Garden/GardenMetadata";
+import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
 import { GardenRolesPanel } from "@/components/Garden/GardenRolesPanel";
 import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
 import { MembersModal } from "@/components/Garden/MembersModal";
@@ -915,52 +917,26 @@ export default function GardenDetail() {
             />
           ) : null}
 
-          <Card>
-            <Card.Body className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="label-xs uppercase tracking-wide text-text-soft">
-                  {formatMessage({ id: "app.garden.detail.domains" })}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {domainLabels.length > 0 ? (
-                    domainLabels.map((domainLabel) => (
-                      <span
-                        key={domainLabel}
-                        className="inline-flex items-center rounded-full bg-primary-lighter px-2.5 py-1 text-xs font-medium text-primary-dark"
-                      >
-                        {domainLabel}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-sm text-text-soft">
-                      {formatMessage({ id: "app.garden.detail.domainsNone" })}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-text-soft">
-                <span className="rounded-md bg-bg-weak px-2 py-1">
-                  {formatMessage({ id: "app.garden.detail.chain" }, { chainId: garden.chainId })}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => openSection("overview", "metadata")}
-                  className="inline-flex items-center gap-1 rounded-md border border-stroke-sub px-2.5 py-1 text-text-sub hover:bg-bg-weak"
-                >
-                  {formatMessage({ id: "app.garden.detail.action.viewMetadata" })}
-                  <RiArrowRightSLine className="h-4 w-4" />
-                </button>
-              </div>
-            </Card.Body>
-          </Card>
+          <GardenDomainEditor
+            gardenAddress={garden.id as Address}
+            canManage={canManage}
+          />
 
           {section === "metadata" ? (
-            <GardenMetadata
-              gardenId={garden.id}
-              tokenAddress={garden.tokenAddress}
-              tokenId={garden.tokenID}
-              chainId={garden.chainId}
-            />
+            <>
+              <GardenSettingsEditor
+                gardenAddress={garden.id as Address}
+                garden={garden}
+                canManage={canManage}
+                isOwner={isOwner}
+              />
+              <GardenMetadata
+                gardenId={garden.id}
+                tokenAddress={garden.tokenAddress}
+                tokenId={garden.tokenID}
+                chainId={garden.chainId}
+              />
+            </>
           ) : null}
 
           {(section === undefined || section === "health") && (
