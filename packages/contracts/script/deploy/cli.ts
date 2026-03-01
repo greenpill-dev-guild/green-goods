@@ -247,5 +247,8 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
 const isMain = import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("cli.ts");
 if (isMain) {
   const cli = new DeploymentCLI();
-  cli.run(process.argv).catch(console.error);
+  cli.run(process.argv).catch((error) => {
+    console.error("CLI failed:", error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
 }

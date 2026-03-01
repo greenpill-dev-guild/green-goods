@@ -53,6 +53,15 @@ A blast radius assessment is completed before any code changes. Packages are mig
 **Verification**: Report exists and is complete
 **Complexity**: S
 
+## Backward Compatibility Criteria
+
+When the migration plan (Step 2) calls for backward compatibility, apply these concrete criteria:
+
+1. **API signature stability**: No breaking changes to exported function signatures. Adding optional parameters is allowed; removing, reordering, or changing the type of existing parameters is breaking.
+2. **Data format versioning**: All persisted types (IndexedDB schemas, localStorage keys, query cache shapes) must include a schema version field. Increment the version on any structural change.
+3. **Deprecation protocol**: Mark deprecated exports with `@deprecated` JSDoc tag + specify the replacement. Allow at least 1 release cycle before removal. Barrel exports must re-export deprecated symbols during the transition period.
+4. **Type export stability**: Removing or renaming a type exported from `@green-goods/shared` is a breaking change. Add new types alongside old ones; alias if renaming.
+
 ## Edge Cases
 
 - **Contract storage layout**: UUPS upgrades require storage gap verification. New variables go at the end only. Gap size = 50 - (number of state variables). See upgrade safety checklist in `.claude/context/contracts.md`.

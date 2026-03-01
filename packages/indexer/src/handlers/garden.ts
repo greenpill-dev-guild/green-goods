@@ -51,6 +51,7 @@ GardenToken.GardenMinted.handler(
       location: event.params.location,
       bannerImage: event.params.bannerImage,
       openJoining: event.params.openJoining,
+      initialized: true,
       gardeners: [],
       operators: [],
       evaluators: [],

@@ -57,6 +57,55 @@ Green Goods is the verified impact operations layer for community-led regenerati
 | Dashboard with 24h data lag | Unverifiable or self-reported impact claims |
 | Export-ready reports requiring minor formatting | Raw attestation data requiring technical parsing |
 
+## Error Classification
+
+| Category | Example | UI Behavior |
+|----------|---------|-------------|
+| network | API timeout, no connectivity, DNS failure | Retry button + offline indicator (SyncStatusBar) |
+| validation | Invalid input, missing required field, format error | Inline field error via react-hook-form |
+| auth | Session expired, passkey rejected, wrong account | Redirect to login, clear session state |
+| contract | Revert, gas estimation failure, nonce conflict | Toast with `parseContractError()` message + retry option |
+| sync | Job queue failure, IndexedDB write error, quota exceeded | SyncStatusBar warning + auto-retry with exponential backoff |
+
+## Graceful Degradation
+
+When connectivity is lost or degraded, features degrade predictably:
+
+| Feature | Degradation Mode | User Sees |
+|---------|-----------------|-----------|
+| Work submission | Queued offline (IndexedDB job queue) | Toast: "Saved -- will upload when online" + SyncStatusBar |
+| Garden list | Cached data served (TanStack Query cache) | Stale data with staleness indicator |
+| Action list | Cached data served | Stale data with staleness indicator |
+| Work approvals | Blocked (requires on-chain transaction) | Disabled button + tooltip: "Requires internet connection" |
+| Assessments | Blocked (requires on-chain transaction) | Disabled button + tooltip: "Requires internet connection" |
+| Photo capture | Available offline (stored as blob in IndexedDB) | Normal UI, uploaded on sync |
+| Auth (passkey) | Works offline once authenticated | No change if session active |
+| Garden creation | Blocked (requires on-chain transactions) | Disabled with offline indicator |
+
+## Data Integrity Requirements
+
+1. **Attestation hash verification**: Every work/approval/assessment attestation must match its registered EAS schema UID. Schema UID mismatch = reject.
+2. **No fabricated data**: All works are traceable to a user submission event (job queue entry or direct transaction). No system-generated attestation data.
+3. **Audit trail**: Every state change has either an on-chain transaction hash or a queued job ID. No state transitions without provenance.
+4. **No self-attestation**: The submitter of a work cannot be the approver of that same work (`submitter ≠ approver`).
+5. **Idempotent sync**: Re-syncing the same job must not create duplicate attestations. Deduplicate via `clientWorkId` within a 5-minute window.
+
+## On-Chain vs Local State Boundary
+
+| Source | States | Storage | Authority |
+|--------|--------|---------|-----------|
+| On-chain (EAS attestations) | `approved`, `rejected`, `pending` | Indexer (Envio) → TanStack Query cache | Canonical -- source of truth |
+| Local (job queue) | `queued`, `syncing`, `synced`, `failed` | IndexedDB (`green-goods-job-queue` v5) | Transient -- until on-chain confirmation |
+
+State transitions:
+```
+Local:    queued → syncing → synced (then becomes on-chain "pending")
+                          → failed → retry → syncing
+On-chain: pending → approved | rejected
+```
+
+The `useMerged` hook combines both sources: local jobs overlay on-chain data until the job reaches `synced` status and an on-chain attestation appears.
+
 ## Product Trade-Off Hierarchy
 
 Resolve conflicts in this order (highest priority first):

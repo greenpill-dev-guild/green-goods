@@ -323,6 +323,28 @@ export interface WorkInput {
 }
 
 // ============================================
+// Work Display Status
+// ============================================
+
+/**
+ * Canonical display status for work items across the UI.
+ *
+ * On-chain statuses: "pending" | "approved" | "rejected"
+ * Offline/sync statuses: "syncing" | "uploading" | "sync_failed" | "offline"
+ *
+ * This is the single source of truth — all components (StatusBadge, WorkCard,
+ * SyncIndicator) should reference this type rather than defining their own.
+ */
+export type WorkDisplayStatus =
+  | "approved"
+  | "rejected"
+  | "pending"
+  | "syncing"
+  | "uploading"
+  | "sync_failed"
+  | "offline";
+
+// ============================================
 // Work Types
 // ============================================
 
@@ -386,9 +408,9 @@ export interface WorkCard {
   createdAt: number;
 }
 
-/** On-chain work record with approval status */
+/** On-chain work record with approval status and display state */
 export interface Work extends WorkCard {
-  status: "pending" | "approved" | "rejected";
+  status: WorkDisplayStatus;
 }
 
 /**

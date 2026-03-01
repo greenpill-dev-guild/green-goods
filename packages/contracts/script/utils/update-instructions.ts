@@ -112,7 +112,9 @@ function readOnChainCid(actionRegistry: string, uid: number, expectedCid: string
     // Hex-encode the expected CID and check if it appears in the raw ABI output
     const cidHex = Buffer.from(expectedCid, "utf8").toString("hex");
     return rawHex.includes(cidHex);
-  } catch {
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`  ⚠️  cast call failed for action ${uid}: ${reason}`);
     return false;
   }
 }

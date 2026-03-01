@@ -49,7 +49,11 @@ The hook lives in `packages/shared/src/hooks/{domain}/` and is exported from bot
 ### Step 6: Consumer Integration
 **Packages**: `client` and/or `admin`
 **Input**: Exported hook from Step 5
-**Output**: At least one consumer component imports `useNewHook` from `@green-goods/shared` (barrel import, never deep path). Component handles loading, error, and empty states. Admin consumers check role permissions if data is role-scoped
+**Output**: At least one consumer component imports `useNewHook` from `@green-goods/shared` (barrel import, never deep path). Component handles all query states with specific UI:
+- `isLoading` → `<Spinner />` component (never a blank screen)
+- `isError` → `<ErrorBoundary />` fallback or toast with categorized message (network → retry prompt, auth → redirect, contract → parsed error)
+- `data` is empty → `<EmptyState />` component with contextual message
+Admin consumers check role permissions if data is role-scoped
 **Verification**: `cd packages/{client,admin} && bun build`
 **Complexity**: S-M
 

@@ -89,6 +89,15 @@ These past cases illustrate when escalation was the correct action:
 - **Viem `client.call({ from })` silent ignore** (Feb 2026): Validation scripts reported false failures because viem silently ignores unknown properties. The correct behavior was ambiguous after reading docs — escalation avoided hours of chasing false positives.
 - **Hats Protocol authorization model** (Feb 2026): `isAdminOfHat(account, hatId)` checks transitive ancestry, not direct ownership. Security implications were unclear — escalation prevented deploying with wrong permission model.
 
+## Meaningful Impact: Minimum Evidence Standards
+
+When evaluating whether a work submission constitutes "meaningful impact":
+
+1. **Minimum evidence per submission**: At least 1 photo + text description. Submissions with no photo or no text are incomplete and must not be attested.
+2. **Attestation validity**: The attestation must match its registered EAS schema UID. Operator approval must have confidence level >= `LOW` (the minimum threshold; higher is better but LOW is acceptable).
+3. **No self-attestation**: The submitter of a work (`msg.sender` of the work attestation) must not be the same address as the approver (`msg.sender` of the approval attestation). This is enforced at the resolver level.
+4. **Traceability**: Every attested work must be traceable to a client-initiated submission (job queue entry with `clientWorkId` or direct transaction hash). No system-generated impact claims.
+
 ## Anti-Patterns
 
 - "Just ship it" -- never prioritize speed over the hierarchy above

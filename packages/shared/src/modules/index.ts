@@ -241,6 +241,7 @@ export {
 // ============================================================================
 export {
   createOfflineTxHash,
+  isOfflineTxHash,
   jobQueue,
   jobQueueDB,
   jobQueueEventBus,

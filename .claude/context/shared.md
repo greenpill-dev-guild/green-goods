@@ -106,27 +106,44 @@ queryClient.invalidateQueries({ queryKey: ["works", gardenId] });
 - `queryKeys.works.merged(gardenId, chainId)` — Online + offline works
 - `queryKeys.queue.stats()` — Job queue statistics
 
-### Provider Hierarchy (MANDATORY)
+### Provider Nesting Order (MANDATORY)
 
-Providers must nest in this exact order:
+Providers must nest in dependency order (outermost first). Wrong order causes runtime "context not found" crashes.
 
+**Client** (`packages/client/src/main.tsx`):
 ```tsx
-<WagmiProvider config={wagmiConfig}>
-  <QueryClientProvider client={queryClient}>
-    <AppKitProvider>
-      <AuthProvider>
-        <AppProvider>
-          <JobQueueProvider>
-            <WorkProvider>
-              {children}
-            </WorkProvider>
-          </JobQueueProvider>
+<HelmetProvider>
+  <AppErrorBoundary>
+    <AppKitProvider>      {/* Wallet connection (wraps Wagmi + QueryClient internally) */}
+      <AuthProvider>      {/* Auth state — depends on wallet context */}
+        <AppProvider>     {/* App context (i18n, analytics) — depends on auth */}
+          <App />
         </AppProvider>
       </AuthProvider>
     </AppKitProvider>
-  </QueryClientProvider>
-</WagmiProvider>
+  </AppErrorBoundary>
+</HelmetProvider>
 ```
+
+**Admin** (`packages/admin/src/main.tsx`):
+```tsx
+<PersistQueryClientProvider>  {/* Persisted query cache (admin-specific) */}
+  <ErrorBoundary>
+    <AppKitProvider>          {/* Wallet connection */}
+      <AuthProvider>          {/* Auth state — depends on wallet context */}
+        <AppProvider>         {/* App context — depends on auth */}
+          <App />
+        </AppProvider>
+      </AuthProvider>
+    </AppKitProvider>
+  </ErrorBoundary>
+</PersistQueryClientProvider>
+```
+
+**Dependency chain**: AppKitProvider (wallet) -> AuthProvider (auth) -> AppProvider (app)
+- AppKitProvider must be outermost because auth and app hooks depend on wallet context
+- AuthProvider must wrap AppProvider because app-level hooks (analytics, i18n) need auth state
+- JobQueueProvider and WorkProvider (used in client views) nest inside AppProvider
 
 ### State Tool Selection
 

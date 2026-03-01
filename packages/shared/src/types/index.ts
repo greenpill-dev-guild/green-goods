@@ -128,6 +128,7 @@ export type {
   WorkApproval,
   WorkApprovalDraft,
   WorkCard,
+  WorkDisplayStatus,
   WorkSubmission,
   WorkDraft, // @deprecated - use WorkSubmission
   WorkInput,

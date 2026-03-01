@@ -560,8 +560,9 @@ function validateEtherscanVerification(chainId: string, deployment: DeploymentRe
         stdio: ["pipe", "pipe", "pipe"],
       });
       console.log(`  ${entry.name}: verified`);
-    } catch {
-      failures.push(`Etherscan source not verified: ${entry.name} (${entry.address})`);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      failures.push(`Etherscan source not verified: ${entry.name} (${entry.address}): ${reason}`);
       console.log(`  ${entry.name}: NOT VERIFIED`);
     }
   }

@@ -210,6 +210,12 @@ export type {
   ErrorCategory as CategorizedErrorCategory,
 } from "./errors/categorize-error";
 export { categorizeError } from "./errors/categorize-error";
+export type {
+  MutationErrorHandlerConfig,
+  MutationErrorContext,
+  MutationErrorResult,
+} from "./errors/mutation-error-handler";
+export { createMutationErrorHandler, createDraftErrorHandler } from "./errors/mutation-error-handler";
 export { extractErrorMessage, extractErrorMessageOr } from "./errors/extract-message";
 export {
   formatJobError,

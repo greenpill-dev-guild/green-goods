@@ -8,6 +8,26 @@ A defect in the offline-first PWA: jobs fail to sync, data disappears after reco
 
 The bug is reproduced with a failing test that simulates offline conditions (`vi.spyOn(navigator, "onLine", "get")`). The fix addresses the root cause without breaking online behavior. Offline-to-online transition works correctly (jobs drain, queries invalidate, toasts update). No orphan blob URLs remain after component unmount. `bun run test && bun lint && bun build` passes.
 
+## Queue State Transitions
+
+All offline job queue operations follow this state machine:
+
+```
+queued ──→ syncing ──→ synced
+              │
+              └──→ failed ──→ retry ──→ syncing
+                     │
+                     └──→ (max 5 retries) ──→ permanently_failed
+```
+
+| Transition | Trigger | Side Effects |
+|-----------|---------|--------------|
+| `queued → syncing` | Online event or manual flush | Lock job, begin EAS attestation |
+| `syncing → synced` | Transaction confirmed | Invalidate query cache (`queryKeys.works.merged`), remove from queue |
+| `syncing → failed` | Tx revert, network error, gas estimation failure | Log error, increment retry count, exponential backoff (1s → 2s → 4s → 8s → 16s) |
+| `failed → retry` | Backoff timer expires | Reset to `syncing` entry point |
+| `failed → permanently_failed` | Retry count >= 5 | Toast error to user, keep in queue for manual retry |
+
 ## Decomposition
 
 ### Step 1: Reproduce Offline Conditions

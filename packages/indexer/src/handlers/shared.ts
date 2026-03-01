@@ -505,6 +505,7 @@ export function createDefaultGarden(gardenId: string, chainId: number, timestamp
     location: "",
     bannerImage: "",
     openJoining: false,
+    initialized: false,
     gardeners: [],
     operators: [],
     evaluators: [],

@@ -19,11 +19,40 @@ import { submitApprovalWithPasskey, submitWorkWithPasskey } from "../work/passke
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";
 
-// Helper to create offline transaction hash for UI compatibility
+/**
+ * Create a synthetic transaction hash for offline-queued jobs.
+ *
+ * The Completed.tsx view expects a `0x${string}` txHash for navigation
+ * and display. When a work is submitted offline (before chain sync),
+ * no real txHash exists yet. This function produces a deterministic
+ * placeholder that:
+ *
+ * 1. Satisfies the `0x${string}` type constraint
+ * 2. Embeds the job ID for traceability (UUIDs with dashes stripped)
+ * 3. Is distinguishable from real hashes via the "offline_" prefix
+ *
+ * **Consumers must never submit this hash to an RPC or block explorer.**
+ * Use {@link isOfflineTxHash} to guard against that.
+ *
+ * @param jobId - UUID from the job queue (e.g. "a1b2c3d4-e5f6-...")
+ * @returns A 0x-prefixed string like `0xoffline_00000000a1b2c3d4e5f6...`
+ */
 export function createOfflineTxHash(jobId: string): `0x${string}` {
-  // Create a 66-character hash that Completed.tsx expects
   const paddedId = jobId.replace(/-/g, "").substring(0, 56).padStart(56, "0");
   return `0xoffline_${paddedId}` as `0x${string}`;
+}
+
+/**
+ * Check whether a transaction hash is a synthetic offline placeholder.
+ *
+ * Use this guard before submitting a txHash to an RPC provider,
+ * block explorer link, or any on-chain verification flow.
+ *
+ * @param txHash - The transaction hash to check
+ * @returns `true` if the hash was created by {@link createOfflineTxHash}
+ */
+export function isOfflineTxHash(txHash: string): boolean {
+  return txHash.startsWith("0xoffline_");
 }
 
 interface ProcessJobContext {

@@ -437,8 +437,9 @@ export class EnvioIntegration {
       try {
         execSync("pkill -f 'envio dev' || true", { stdio: "pipe" });
         console.log("🛑 Stopped existing indexer processes");
-      } catch {
-        // Ignore errors if no process found
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        console.warn(`⚠️  pkill failed (non-critical): ${reason}`);
       }
 
       // Wait for processes to clean up

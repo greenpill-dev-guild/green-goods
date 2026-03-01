@@ -163,7 +163,7 @@ export async function getActions(): Promise<Action[]> {
     const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
       query Actions($chainId: Int!) {
-        Action(where: {chainId: {_eq: $chainId}}) {
+        Action(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 100) {
           id
           chainId
           startTime
@@ -271,7 +271,7 @@ export async function getGardens(): Promise<Garden[]> {
     const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
       query Gardens($chainId: Int!) {
-        Garden(where: {chainId: {_eq: $chainId}}) {
+        Garden(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 50) {
           id
           chainId
           tokenAddress
@@ -358,7 +358,7 @@ export async function getGardeners(): Promise<GardenerCard[]> {
     const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
       query Gardeners($chainId: Int!) {
-        Gardener(where: {chainId: {_eq: $chainId}}) {
+        Gardener(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 200) {
           id
           chainId
           createdAt

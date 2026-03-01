@@ -6,7 +6,7 @@ A new capability that originates in the smart contract layer and propagates thro
 
 ## Acceptance Criteria
 
-The feature has a Solidity implementation with storage gaps, custom errors, and explicit visibility. Unit tests (including fuzz for mainnet targets) pass at >=80% coverage. Gas benchmarks stay within targets (mint <500k, attest <150k, approve <100k). The indexer handles new events with composite IDs and chainId fields. A shared hook exposes the data via `queryKeys` factory. At least one consumer (client or admin) renders the new state. `bun run test && bun lint && bun build` passes across all affected packages.
+The feature has a Solidity implementation with storage gaps, custom errors, and explicit visibility. Unit tests (including fuzz for mainnet targets) pass at >=80% coverage. Gas benchmarks stay within measurable bounds: `< 50k gas` for view/pure functions, `< 200k gas` for single-write mutations, `< 500k gas` for batch operations or multi-step flows (mint, deploy). The indexer handles new events with composite IDs and chainId fields. A shared hook exposes the data via `queryKeys` factory. At least one consumer (client or admin) renders the new state. `bun run test && bun lint && bun build` passes across all affected packages.
 
 ## Decomposition
 

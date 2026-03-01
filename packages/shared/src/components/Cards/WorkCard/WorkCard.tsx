@@ -1,5 +1,6 @@
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
+import type { WorkDisplayStatus } from "../../../types/domain";
 import { cn } from "../../../utils/styles/cn";
 import { formatRelativeTime } from "../../../utils/time";
 import { getStatusColors } from "../../StatusBadge";
@@ -27,7 +28,8 @@ const workCardVariants = tv({
 
 export type WorkCardVariantProps = VariantProps<typeof workCardVariants>;
 
-export type WorkStatus = "approved" | "rejected" | "pending" | "syncing" | "failed";
+/** @deprecated Use `WorkDisplayStatus` from `@green-goods/shared` instead. */
+export type WorkStatus = WorkDisplayStatus;
 
 export interface WorkCardData {
   id: string;
@@ -60,7 +62,9 @@ export interface WorkCardLabels {
     rejected?: string;
     pending?: string;
     syncing?: string;
-    failed?: string;
+    sync_failed?: string;
+    uploading?: string;
+    offline?: string;
   };
   mediaPreviewAlt?: string;
   closePreview?: string;
@@ -76,7 +80,9 @@ const defaultLabels: Required<WorkCardLabels> = {
     rejected: "Rejected",
     pending: "Pending",
     syncing: "Syncing",
-    failed: "Failed",
+    sync_failed: "Sync Failed",
+    uploading: "Uploading",
+    offline: "Offline",
   },
   mediaPreviewAlt: "Work media preview",
   closePreview: "Close preview",

@@ -9,7 +9,7 @@ import { useMerged } from "../app/useMerged";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { queryKeys } from "../query-keys";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
-import type { Work, WorkCard } from "../../types/domain";
+import type { Work, WorkCard, WorkDisplayStatus } from "../../types/domain";
 
 /** Options for the useWorks hook */
 export interface UseWorksOptions {
@@ -37,11 +37,11 @@ export function jobToWork(job: Job<WorkJobPayload>): Work {
     }),
     media: [], // Media will be loaded separately for offline jobs
     createdAt: Math.floor(job.createdAt / 1000), // Convert ms (Date.now()) to seconds (EAS format)
-    status: job.synced
-      ? "pending" // Synced but awaiting approval
+    status: (job.synced
+      ? "pending" // Synced but awaiting on-chain approval
       : job.lastError
-        ? "rejected" // Failed to sync
-        : "pending", // Waiting to sync
+        ? "sync_failed" // Failed to sync to chain
+        : "syncing") as WorkDisplayStatus, // Waiting to sync
   };
 }
 

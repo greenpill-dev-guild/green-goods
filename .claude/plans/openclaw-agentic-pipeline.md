@@ -699,6 +699,26 @@ pass in quick proto icmp all
 
 ---
 
+## Pipeline Stage Retry & Timeout Bounds
+
+| Stage | Timeout | Max Retries | Backoff | On Exhaustion |
+|-------|---------|-------------|---------|---------------|
+| Transcript fetch (Fireflies webhook → n8n) | 30s | 3 | Exponential (2s, 4s, 8s) | Log error, notify Discord: "transcript fetch failed" |
+| LLM extraction (Sonnet/Opus) | 60s | 2 | Linear (5s, 10s) | Fall back to Sonnet if Opus timed out; if both fail, queue for manual processing |
+| Human approval gate | 24h | 0 (no retry) | N/A | Auto-expire with Discord reminder: "approval pending for 24h, expiring" |
+| GitHub issue creation (per issue) | 15s | 3 | Exponential (1s, 2s, 4s) | Skip failed issue, continue batch, report skipped items in summary |
+| Agent dispatch (Claude Code bridge) | 300s (5 min) | 1 | N/A | Mark issue as "needs-manual-fix", notify Discord |
+| Discord/Signal notification | 10s | 2 | Linear (2s, 4s) | Log warning, do not block pipeline on notification failure |
+
+## Malformed Transcript Handling
+
+When a Fireflies transcript is incomplete or malformed:
+
+1. **Segment-level parsing**: The LLM extraction step processes the transcript in segments. If a segment fails to parse (invalid JSON, missing speaker labels, garbled text), it is **skipped** and flagged.
+2. **Threshold**: If more than **30% of segments** are unparseable, the entire transcript is flagged for **human review** instead of proceeding to extraction. Discord notification: "Transcript quality too low for automated processing (X% unparseable)."
+3. **Partial extraction**: If <= 30% of segments fail, extraction proceeds on the valid segments. The summary includes a note: "N segments skipped due to poor quality."
+4. **Empty transcript**: If the transcript body is empty or contains only metadata headers, the pipeline stops immediately with a Discord notification: "Empty transcript received for meeting [ID]."
+
 ## Risk Register
 
 | Risk | Likelihood | Impact | Mitigation |
