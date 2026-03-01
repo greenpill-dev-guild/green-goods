@@ -30,5 +30,32 @@
     "expected_findings": [],
     "expected_false_positives": 0,
     "expected_verdict": "APPROVE"
+  },
+  "hook-boundary-violation": {
+    "expected_findings": [
+      {
+        "severity": "Critical",
+        "rule": "Hook Boundary",
+        "file": "packages/client/src/hooks/useDraftAutoSave.ts",
+        "line_context": "export function useDraftAutoSave(",
+        "description": "Hook created in packages/client/src/hooks/ instead of packages/shared/src/hooks/. All hooks MUST live in @green-goods/shared (CLAUDE.md Key Principle #4). The PR even deleted the placeholder file in shared that was meant to hold this hook. The hook should be at packages/shared/src/hooks/work/useDraftAutoSave.ts."
+      },
+      {
+        "severity": "High",
+        "rule": "Barrel Imports",
+        "file": "packages/client/src/hooks/useDraftAutoSave.ts",
+        "line_context": "import { jobQueueDB } from \"@green-goods/shared/modules/job-queue/db\";",
+        "description": "Deep import path bypassing barrel export. Should use barrel import from @green-goods/shared or, if the hook is moved to shared (as it should be), use relative imports. Violates Rule #11 (Barrel Import Enforcement)."
+      },
+      {
+        "severity": "Medium",
+        "rule": "Cleanup Safety",
+        "file": "packages/client/src/hooks/useDraftAutoSave.ts",
+        "line_context": "intervalRef.current = setInterval(saveDraft, interval);",
+        "description": "The isMountedRef is never set to false on unmount. The cleanup effect only clears the interval but does not update isMountedRef.current = false, so the saveDraft callback's isMountedRef guard is ineffective. This could lead to state updates after unmount if saveDraft is called from elsewhere."
+      }
+    ],
+    "expected_false_positives": 0,
+    "expected_verdict": "REQUEST_CHANGES"
   }
 }

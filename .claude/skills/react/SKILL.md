@@ -1,6 +1,6 @@
 ---
 name: react
-description: React patterns - state management (Zustand, Query), composition, performance. Use for components, state, hooks, optimization.
+description: React patterns - component architecture, state management (Zustand, TanStack Query), hook composition, and render performance. Use when building React components, managing state with Zustand, composing hooks, or diagnosing re-render performance issues.
 version: "1.0.0"
 status: active
 packages: ["shared", "client", "admin"]

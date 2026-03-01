@@ -66,6 +66,15 @@ Role-first docs for Green Goods v1.
     status="Live"
     ctaLabel="Open developer hub"
   />
+  <RolePathCard
+    title="Core Concepts"
+    href="/concepts/mission-and-values"
+    description="Understand the mission, impact model (CIDS), strategic goals, and real communities behind Green Goods."
+    audience="Anyone"
+    time="15-30 minutes"
+    status="Live"
+    ctaLabel="Explore core concepts"
+  />
 </div>
 
 ## Popular tasks

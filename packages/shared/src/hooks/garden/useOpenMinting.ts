@@ -65,7 +65,7 @@ export function useSetOpenMinting() {
             id: "app.deployment.openMinting.success",
             defaultMessage: "Minting is now {status}",
           },
-          { status: open ? "open" : "restricted" },
+          { status: open ? "open" : "restricted" }
         ),
       });
       queryClient.invalidateQueries({

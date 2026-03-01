@@ -1,0 +1,128 @@
+---
+title: Communities & Localization
+sidebar_label: Communities & Localization
+sidebar_position: 4
+slug: /concepts/communities
+audience: all
+owner: docs
+last_verified: 2026-02-28
+feature_status: Live
+goal: Understand the real communities using Green Goods and localization strategy
+difficulty: quickstart
+estimated_time: "5 minutes"
+keywords:
+  - communities
+  - gardens
+  - localization
+  - LATAM
+  - Africa
+  - i18n
+source_of_truth:
+  - docs/docs/concepts/communities.mdx
+---
+
+# Communities & Localization
+
+Green Goods is not an abstract platform — it serves **20+ active garden communities** across Latin America, Africa, and North America. Every feature decision should be evaluated against the real-world constraints these communities face.
+
+## Active Garden Communities
+
+### Geographic Distribution
+
+Green Goods communities are concentrated in three regions:
+
+| Region | Communities | Primary Languages |
+|--------|------------|-------------------|
+| **Latin America** | ~12 communities | Portuguese, Spanish |
+| **Africa** | ~5 communities | English, Swahili, French |
+| **North America** | ~3 communities | English, Spanish |
+
+### Community Characteristics
+
+Most garden communities share common traits:
+
+- **Team size:** 5–30 active gardeners per garden
+- **Connectivity:** Intermittent (2G/3G common, Wi-Fi rare in field)
+- **Devices:** Android smartphones (mid-range), some feature phones
+- **Technical literacy:** Low to moderate (operators are more technical)
+- **Reporting cadence:** Weekly to bi-weekly work submissions
+
+## Community Spotlights
+
+### University of Nigeria Nsukka — Solar Infrastructure
+
+A university-based community monitoring and maintaining solar panel installations. Power outages are common, making solar infrastructure critical for daily operations.
+
+**Key context for development:**
+- Offline-first is essential — power outages mean both connectivity and device charging are unreliable
+- Solar monitoring actions track panel health, energy output, and maintenance needs
+- Academic partnerships generate research data alongside operational impact
+
+### Cape Town — Waste Management with Sarafu
+
+A waste collection community integrating with the Sarafu community currency network. Waste collectors earn Sarafu credits for verified collection work.
+
+**Key context for development:**
+- Mutual credit integration means actions have immediate economic value for gardeners
+- Waste sorting categories must match local recycling infrastructure
+- Multi-language support (English + local languages) is critical
+
+### AgroforestryDAO Brasil — Agroforestry + DeSci
+
+A Brazilian agroforestry collective combining practical fieldwork with decentralized science (DeSci) data partnerships. Generates scientific datasets from tree observations and harvest tracking.
+
+**Key context for development:**
+- Portuguese is the primary language — English-only UX is a hard blocker
+- Scientific data quality matters — observation schemas need precision fields (species, DBH, canopy cover)
+- DeSci partnerships require data export in standardized formats
+
+### Uganda — School-Tree-Student Program
+
+A school-based program where students adopt and monitor trees as part of their curriculum. Each student is responsible for a specific tree and submits regular observations.
+
+**Key context for development:**
+- Mobile-first, low bandwidth — page weight and image compression matter
+- Education domain actions track student engagement alongside environmental outcomes
+- Batch operations are important (teachers manage submissions for entire classes)
+
+## Localization Strategy
+
+### Language Tiers
+
+| Tier | Languages | Status | Coverage |
+|------|-----------|--------|----------|
+| **Tier 1** | English, Portuguese, Spanish | Active | Full UI, all action schemas, documentation |
+| **Tier 2** | French, Swahili | Planned | Core UI, common action schemas |
+| **Tier 3** | Arabic, Hausa | Future | Core submission flow only |
+
+### Localization Principles
+
+1. **UI strings are externalized** — All user-facing text uses `react-intl` message descriptors, never hardcoded strings
+2. **Action schemas are localizable** — Action names, descriptions, and field labels support per-locale overrides
+3. **Right-to-left (RTL) support** — Tier 3 languages (Arabic) will require RTL layout support
+4. **Cultural sensitivity** — Impact framing varies by community (carbon language resonates in some contexts, food security in others)
+
+## Garden Operator Survey Insights
+
+Based on operator feedback from active communities:
+
+### Typical Workflows
+
+- Operators spend **2–4 hours/week** on garden management
+- Most time is spent on **work review** (approving/rejecting submissions)
+- Batch operations are the most requested feature improvement
+- Reporting to funders is the most painful manual process
+
+### Tools Currently Used
+
+- **WhatsApp groups** for gardener coordination (pre-Green Goods)
+- **Google Sheets** for tracking submissions (being replaced)
+- **Email** for funder reporting (target for automation)
+- **Green Goods admin** for on-chain operations
+
+### Pain Points
+
+- Reviewing work one-at-a-time is slow for gardens with 20+ gardeners
+- Explaining Hypercerts to funders requires too much blockchain context
+- No way to see "garden health" at a glance (are gardeners active? is the vault growing?)
+- Language barriers when the platform defaults to English

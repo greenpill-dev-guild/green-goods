@@ -37,7 +37,14 @@ interface EditableFieldProps {
   multiline?: boolean;
 }
 
-function EditableField({ label, value, onSave, isPending, canEdit, multiline }: EditableFieldProps) {
+function EditableField({
+  label,
+  value,
+  onSave,
+  isPending,
+  canEdit,
+  multiline,
+}: EditableFieldProps) {
   const { formatMessage } = useIntl();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -60,7 +67,8 @@ function EditableField({ label, value, onSave, isPending, canEdit, multiline }: 
         <div className="min-w-0 flex-1">
           <p className="label-xs text-text-soft">{label}</p>
           <p className={cn("mt-1 text-sm text-text-strong", !value && "italic text-text-sub")}>
-            {value || formatMessage({ id: "app.garden.settings.notSet", defaultMessage: "Not set" })}
+            {value ||
+              formatMessage({ id: "app.garden.settings.notSet", defaultMessage: "Not set" })}
           </p>
         </div>
         {canEdit && (
@@ -73,7 +81,7 @@ function EditableField({ label, value, onSave, isPending, canEdit, multiline }: 
             className="mt-4 shrink-0 rounded-md p-1.5 text-text-soft opacity-0 transition-opacity hover:bg-bg-weak hover:text-text-strong group-hover:opacity-100"
             aria-label={formatMessage(
               { id: "app.garden.settings.edit", defaultMessage: "Edit {field}" },
-              { field: label },
+              { field: label }
             )}
           >
             <RiEditLine className="h-4 w-4" />
@@ -165,7 +173,10 @@ export function GardenSettingsEditor({
         <div className="border-t border-stroke-soft" />
 
         <EditableField
-          label={formatMessage({ id: "app.garden.settings.description", defaultMessage: "Description" })}
+          label={formatMessage({
+            id: "app.garden.settings.description",
+            defaultMessage: "Description",
+          })}
           value={garden.description}
           onSave={(v) => updateDescription.mutate({ gardenAddress, value: v })}
           isPending={updateDescription.isPending}
@@ -217,13 +228,11 @@ export function GardenSettingsEditor({
           <button
             type="button"
             disabled={!canManage || setOpenJoining.isPending}
-            onClick={() =>
-              setOpenJoining.mutate({ gardenAddress, value: !garden.openJoining })
-            }
+            onClick={() => setOpenJoining.mutate({ gardenAddress, value: !garden.openJoining })}
             className={cn(
               "relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2",
               garden.openJoining ? "bg-primary-base" : "bg-bg-strong",
-              (!canManage || setOpenJoining.isPending) && "cursor-not-allowed opacity-50",
+              (!canManage || setOpenJoining.isPending) && "cursor-not-allowed opacity-50"
             )}
             role="switch"
             aria-checked={!!garden.openJoining}
@@ -231,7 +240,7 @@ export function GardenSettingsEditor({
             <span
               className={cn(
                 "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                garden.openJoining ? "translate-x-5" : "translate-x-0",
+                garden.openJoining ? "translate-x-5" : "translate-x-0"
               )}
             />
           </button>

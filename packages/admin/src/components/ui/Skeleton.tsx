@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-import { cn } from "./cn";
+import { cn } from "@green-goods/shared";
 
 interface SkeletonTextProps {
   lines?: number;

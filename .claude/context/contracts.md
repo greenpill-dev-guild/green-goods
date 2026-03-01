@@ -20,6 +20,15 @@ Loaded when working in `packages/contracts/`. Extends CLAUDE.md.
 
 > **Build modes:** Use `build`/`build:changed`/`build:target` for local iteration. Use `build:full` for deployment and CI.
 
+## Contents
+- [Architecture](#architecture)
+- [Critical Patterns](#critical-patterns)
+- [Testing](#testing)
+- [Anti-Patterns](#anti-patterns)
+- [Upgrade Safety Checklist](#upgrade-safety-checklist)
+- [Deployment Pre-Flight](#deployment-pre-flight)
+- [Reference Files](#reference-files)
+
 ## Architecture
 
 ```
@@ -292,3 +301,12 @@ bun script/deploy.ts core --network sepolia --broadcast
 - Core deployer: `script/deploy/core.ts`
 - Schemas: `config/schemas.json` (READ ONLY)
 - Deployments: `deployments/{chainId}-latest.json`
+
+## Documentation References (on-demand)
+
+Read these docs pages when you need deployment context or protocol details:
+
+- Deployment runbook (3-chain CLI commands): `docs/docs/developers/operations.mdx`
+- System architecture and contract relationships: `docs/docs/developers/architecture.mdx`
+- Cross-protocol entity matrix: `docs/docs/developers/reference/entity-matrix.mdx`
+- EAS schema reference: `docs/docs/developers/reference/eas-schemas.mdx`

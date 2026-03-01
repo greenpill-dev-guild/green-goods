@@ -1,7 +1,7 @@
 ---
 name: tanstack-query
 user-invocable: false
-description: TanStack Query v5 for server state. Use when setting up data fetching, fixing v4->v5 migration, or debugging hydration.
+description: TanStack Query v5 for server state - query key management, mutations, optimistic updates, cache invalidation, prefetching, and offline support. Use when setting up data fetching, managing query cache, writing mutations, or debugging stale data and hydration issues.
 version: "1.0.0"
 status: active
 packages: ["shared", "client", "admin"]

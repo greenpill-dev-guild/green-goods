@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Planning & Execution - create plans, check progress, execute in batches, manage lifecycle. Use for implementation planning.
+description: Planning & Execution - create structured implementation plans, check progress, execute in batches, manage lifecycle. Use when the user says 'plan this', asks to break down a feature into steps, or needs a phased implementation strategy before coding.
 argument-hint: "[feature-name]"
 version: "1.0.0"
 status: active
@@ -100,6 +100,37 @@ Use kebab-case: `[descriptive-name].todo.md` in `.plans/`
 - [ ] Tests pass
 - [ ] Build succeeds
 ```
+
+### Task Decomposition Rules
+
+Implementation steps must be granular enough for agents to execute reliably. Follow these heuristics:
+
+**Step sizing**:
+- Each step should be completable in a single agent session (~15-25 tool calls)
+- Each step should touch at most 3-4 files
+- If a step has more than 3 sub-bullets of changes, it's probably two steps
+- If you can't describe verification for a step in one sentence, it's too big
+
+**Independence**:
+- Each step should be independently verifiable (can run tests after just that step)
+- Each step should produce a committable checkpoint (no half-finished states)
+- Steps should have clear input/output boundaries — what exists before, what exists after
+
+**Ordering**:
+- Follow dependency order: contracts → indexer → shared → client/admin → agent
+- Within a package: types/interfaces first, then implementation, then tests, then wiring
+- Infrastructure steps (new files, new exports) before behavior steps (logic, handlers)
+
+**When to decompose further**:
+- A step requires changes across 3+ packages → split into per-package steps
+- A step has both "create new thing" and "integrate into existing thing" → split those apart
+- A step involves both contract changes and frontend changes → always separate steps
+- A plan exceeds 15 steps → consider splitting into multiple PRs or incremental plans
+
+**When NOT to decompose**:
+- A step is a single-file edit with clear intent → keep it atomic
+- Splitting would create steps that can't be independently tested → keep them together
+- The decomposition adds overhead without improving clarity
 
 ---
 

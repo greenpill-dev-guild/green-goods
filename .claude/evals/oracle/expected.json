@@ -55,5 +55,61 @@
       "explains_rationale": 15
     },
     "confidence_threshold": "High"
+  },
+  "job-queue-architecture": {
+    "expected_key_reasons": [
+      "Binary data / File objects cannot be stored in localStorage (strings only)",
+      "IndexedDB indexes enable efficient querying of jobs by kind, synced status, etc.",
+      "localStorage has ~5-10MB hard cap; IndexedDB has much larger quota for media files",
+      "IndexedDB supports transactions for atomic job + image saves",
+      "IndexedDB is accessible from service workers; localStorage is not"
+    ],
+    "expected_breakage_items": [
+      "Media file storage (base64 encoding would bloat and hit limits)",
+      "Query performance (full scan required without indexes)",
+      "Background sync / service worker access",
+      "Existing user data migration"
+    ],
+    "expected_sources_cited": [
+      "packages/shared/src/modules/job-queue/db.ts",
+      "packages/shared/src/modules/job-queue/index.ts",
+      "packages/shared/src/types/job-queue.ts"
+    ],
+    "scoring": {
+      "identifies_binary_data_reason": 25,
+      "identifies_quota_reason": 15,
+      "identifies_index_efficiency": 15,
+      "lists_breakage_items": 20,
+      "cites_source_files": 15,
+      "explains_tradeoffs_fairly": 10
+    },
+    "confidence_threshold": "High"
+  },
+  "media-upload-failure": {
+    "expected_root_cause": "Blob URL lifecycle invalidation on mobile when browser backgrounds the page",
+    "expected_files_identified": [
+      "packages/shared/src/modules/job-queue/media-resource-manager.ts",
+      "packages/shared/src/modules/job-queue/db.ts",
+      "packages/shared/src/modules/job-queue/index.ts",
+      "packages/shared/src/utils/storage/file-serialization.ts",
+      "packages/shared/src/hooks/work/useWorkImages.ts"
+    ],
+    "expected_explanation_contains": [
+      "blob URLs are revoked or garbage-collected when mobile browser backgrounds the page",
+      "File objects should be persisted to IndexedDB at selection time, not submission time",
+      "the job queue reads images from the job_images store via jobQueueDB.getImagesForJob()",
+      "file-serialization utilities (serializeFile/deserializeFile) already exist for this purpose"
+    ],
+    "expected_fix_type": "Eagerly persist File objects to IndexedDB on selection; never pass blob URLs across form -> job queue boundary",
+    "scoring": {
+      "identifies_blob_url_lifecycle": 30,
+      "identifies_mobile_backgrounding": 15,
+      "identifies_timing_boundary_issue": 15,
+      "identifies_affected_files": 15,
+      "provides_correct_fix_approach": 15,
+      "cites_existing_utilities": 10
+    },
+    "max_turns": 20,
+    "confidence_threshold": "High"
   }
 }

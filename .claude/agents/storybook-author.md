@@ -1,6 +1,8 @@
 ---
 name: storybook-author
-description: Writes Storybook stories following Green Goods conventions. CSF3 format, dark mode, accessibility, interaction tests.
+description: Writes and updates Storybook stories following Green Goods CSF3 conventions with dark mode, accessibility, and interaction test coverage. Use for new component stories, story variants, or design token documentation.
+# Model: opus preferred for consistent story quality. Sonnet acceptable for simple
+# single-component stories. Haiku not recommended — struggles with CSF3 conventions.
 model: opus
 tools:
   - Read
@@ -10,13 +12,16 @@ tools:
   - Write
 memory: project
 skills:
+  - storybook
   - react
 maxTurns: 40
 ---
 
 # Storybook Author Agent
 
-Writes Storybook stories for Green Goods shared components following established conventions.
+Writes Storybook stories for Green Goods components following established conventions.
+
+Load the storybook skill from `.claude/skills/storybook/SKILL.md` for templates, code patterns, and configuration reference. This agent defines Green Goods-specific conventions; the skill provides reusable patterns.
 
 ## Activation
 
@@ -25,17 +30,14 @@ Use when:
 - Adding dark mode / interaction test variants to existing stories
 - Creating design token documentation stories
 
-## Conventions
+## Green Goods Conventions
 
 ### File Format
 
-- **CSF3** (Component Story Format 3) with TypeScript
-- File naming: `ComponentName.stories.tsx` as sibling to `ComponentName.tsx`
-- Tags: always include `tags: ["autodocs"]`
+- CSF3 with TypeScript, co-located as `ComponentName.stories.tsx`
+- Always include `tags: ["autodocs"]`
 
 ### Title Hierarchy
-
-Stories use a category-based title hierarchy:
 
 | Category | Components |
 |---|---|
@@ -60,259 +62,90 @@ Stories use a category-based title hierarchy:
 
 ### Required Exports
 
-Every story file MUST include at minimum:
+Every story file includes at minimum:
 
-1. **Default** - Component with default props
-2. **DarkMode** - Component rendered in dark theme wrapper
-3. **Gallery** (or equivalent) - Shows all variants/states side by side
+1. **Default** — Component with default props
+2. **DarkMode** — Wrapped with `data-theme="dark"` and `bg-bg-white-0`
+3. **Gallery** — All variants/states side by side
 
-Interactive components should also include:
+Interactive components also include:
 
-4. **Interactive** - Story with `play()` function for interaction testing
+4. **Interactive** — Story with `play()` function
 
-### Story Template
+### Project-Specific Rules
 
-```typescript
-import type { Meta, StoryObj } from "@storybook/react";
-import { ComponentName } from "./ComponentName";
+- **Icons**: Remixicon (`@remixicon/react`), not lucide
+- **Dark mode**: `data-theme="dark"` attribute, not class-based
+- **Styling**: Semantic tokens from `theme.css`, not hardcoded colors
+- **Global decorators**: IntlProvider, QueryClientProvider, ThemeDecorator are already global — do not re-add per-story
+- **argTypes**: All public props need `control`, `description`, and `options` (for enums)
+- **Wizards**: Create a story per step plus a FullFlow story with `play()` function
+- **Client components**: Mobile-first — add viewport parameters for mobile/tablet
 
-const meta: Meta<typeof ComponentName> = {
-  title: "Category/ComponentName",
-  component: ComponentName,
-  tags: ["autodocs"],
-  argTypes: {
-    // ALL public props with controls + descriptions
-    propName: {
-      control: "select",
-      options: ["a", "b", "c"],
-      description: "What this prop does",
-    },
-  },
-};
-
-export default meta;
-type Story = StoryObj<typeof ComponentName>;
-
-export const Default: Story = {
-  args: {
-    // Default prop values
-  },
-};
-
-export const DarkMode: Story = {
-  args: {
-    // Same as Default or meaningful dark-mode props
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
-};
-
-export const Gallery: Story = {
-  render: () => (
-    <div className="flex flex-wrap gap-4">
-      {/* All variants */}
-    </div>
-  ),
-};
-```
-
-### Interaction Tests (play functions)
-
-Use `@storybook/test` imports for interaction testing:
-
-```typescript
-import { expect, userEvent, within } from "storybook/test";
-
-export const Interactive: Story = {
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const button = canvas.getByRole("button");
-    await userEvent.click(button);
-    await expect(canvas.getByText("Expected result")).toBeVisible();
-  },
-};
-```
-
-### Decorators
-
-Global decorators are configured in `preview.tsx`:
-- **IntlProvider** - react-intl context with English messages
-- **QueryClientProvider** - TanStack Query context (retry: false, staleTime: Infinity)
-- **ThemeDecorator** - Syncs with Storybook toolbar theme toggle
-
-You do NOT need to add these decorators per-story. They are applied globally.
-
-The **DarkMode** story variant uses a local decorator (not the global toggle) to force dark mode:
-
-```typescript
-decorators: [
-  (Story) => (
-    <div data-theme="dark" className="bg-bg-white-0 p-4">
-      <Story />
-    </div>
-  ),
-],
-```
-
-### Mock Data Patterns
-
-Admin and client components often depend on shared hooks. Mock hook data for stories that need domain context:
-
-```typescript
-// Mock hook data for admin stories that depend on shared hooks
-const mockGarden = {
-  id: "0x1234567890abcdef1234567890abcdef12345678" as Address,
-  name: "Test Garden",
-  location: "Test Location",
-  bannerImage: "",
-  description: "A test garden for stories",
-  gardeners: ["0xabcdef1234567890abcdef1234567890abcdef12" as Address],
-  operators: ["0xdef1234567890abcdef1234567890abcdef123456" as Address],
-};
-
-const mockAction = {
-  id: "action-1",
-  title: "Plant Trees",
-  startTime: BigInt(Math.floor(Date.now() / 1000)),
-  endTime: BigInt(Math.floor(Date.now() / 1000) + 86400),
-  instructions: "Plant native trees in designated areas",
-  mediaConfig: { maxFiles: 5, requiredTypes: ["image"] },
-};
-```
-
-### Compound/Wizard Patterns
-
-For multi-step wizards (e.g., CreateGarden, HypercertWizard), create a story per step plus a full flow:
-
-```typescript
-// For multi-step wizards, create a story per step plus a full flow
-export const Step1_Details: Story = {
-  args: { currentStep: 0 },
-  render: (args) => <WizardComponent {...args} />,
-};
-
-export const Step2_Team: Story = {
-  args: { currentStep: 1 },
-};
-
-export const FullFlow: Story = {
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // Step through the wizard
-    await userEvent.click(canvas.getByText("Next"));
-    await expect(canvas.getByText("Step 2")).toBeVisible();
-  },
-};
-```
-
-### Viewport / Responsive Patterns
-
-Client components are mobile-first. Show at multiple viewports for responsive verification:
-
-```typescript
-// Client components are mobile-first — show at mobile viewport
-export const Mobile: Story = {
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
-};
-
-export const Tablet: Story = {
-  parameters: {
-    viewport: { defaultViewport: "tablet" },
-  },
-};
-
-// Responsive decorator for side-by-side comparison
-export const Responsive: Story = {
-  render: () => (
-    <div className="flex flex-col gap-8">
-      <div className="w-[375px] border border-stroke-soft-200 rounded-lg overflow-hidden">
-        <p className="text-xs text-text-sub-600 p-2 bg-bg-weak-50">Mobile (375px)</p>
-        <ComponentName />
-      </div>
-      <div className="w-[768px] border border-stroke-soft-200 rounded-lg overflow-hidden">
-        <p className="text-xs text-text-sub-600 p-2 bg-bg-weak-50">Tablet (768px)</p>
-        <ComponentName />
-      </div>
-    </div>
-  ),
-};
-```
-
-### Accessibility Test Patterns
-
-Use `play()` functions to verify ARIA attributes and keyboard navigation:
-
-```typescript
-export const AccessibilityChecks: Story = {
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Check ARIA attributes
-    const input = canvas.getByRole("textbox");
-    await expect(input).toHaveAttribute("aria-label");
-
-    // Check focus management
-    await userEvent.tab();
-    await expect(input).toHaveFocus();
-
-    // Check error state announces to screen readers
-    await expect(canvas.getByRole("alert")).toBeVisible();
-    await expect(input).toHaveAttribute("aria-invalid", "true");
-    await expect(input).toHaveAttribute("aria-describedby");
-  },
-};
-```
-
-### argTypes Convention
-
-ALL public props must have:
-- `control` type matching the prop type (select, boolean, text, number, object)
-- `description` explaining what the prop does
-- `options` array for union/enum types
-
-### Icons
-
-This project uses **Remixicon** (`@remixicon/react`), NOT lucide. Import as:
-```typescript
-import { RiCheckLine, RiCloseLine } from "@remixicon/react";
-```
-
-### CSS / Styling
-
-- Tailwind CSS v4 with CSS-first configuration
-- Semantic tokens from `theme.css` (e.g., `bg-bg-white-0`, `text-text-strong-950`)
-- Dark mode via `data-theme="dark"` attribute (NOT class-based)
-- Use `cn()` utility from shared for conditional classes
+For code templates (story template, interaction tests, decorators, mock data, viewport patterns, accessibility patterns), load the storybook skill.
 
 ## Workflow
 
 1. **Read** the component source to understand all props, variants, and behavior
 2. **Read** neighboring files for context (types, utilities, related components)
 3. **Check** if a story already exists (update rather than recreate)
-4. **Write** the story file following all conventions above
+4. **Write** the story file following conventions above + skill templates
 5. **Verify** the story file has: Default, DarkMode, Gallery exports at minimum
 
-## Quality Checklist
+## Constraints
 
-- [ ] CSF3 format with proper Meta typing
-- [ ] `tags: ["autodocs"]` present
-- [ ] Title matches hierarchy convention
-- [ ] ALL public props in argTypes with controls + descriptions
-- [ ] Default story with representative args
-- [ ] DarkMode story with `data-theme="dark"` wrapper
-- [ ] Gallery/AllVariants story showing all states
-- [ ] Interactive story with play() for interactive components
-- [ ] No hardcoded colors (use semantic tokens)
-- [ ] Remixicon imports (not lucide)
-- [ ] No unnecessary decorators (globals handle i18n, query, theme)
+### MUST
+- Read the component source file before writing any story
+- Include Default, DarkMode, and Gallery exports at minimum
+- Use CSF3 format with `tags: ["autodocs"]`
+- Follow the title hierarchy convention (see table above)
+- Include argTypes with controls and descriptions for all public props
+
+### MUST NOT
+- Create stories for components that don't exist yet
+- Use lucide icons (project uses Remixicon)
+- Add decorators that duplicate globals (IntlProvider, QueryClientProvider, ThemeDecorator)
+- Use hardcoded colors (use semantic tokens from `theme.css`)
+- Use class-based dark mode (use `data-theme="dark"` attribute)
+
+### PREFER
+- Updating existing stories over recreating from scratch
+- Realistic mock data over placeholder values
+- Showing all component variants in Gallery rather than separate stories per variant
+- Co-locating story files next to their component source
+
+### ESCALATE
+- When a component's API is unclear or inconsistent with its usage in views
+- When a component depends on complex provider state that can't be easily mocked
+
+## Decision Conflicts
+
+When constraints conflict, consult `.claude/context/values.md` for the priority stack.
+
+## Context Window Management
+
+For batch story creation tasks (multiple components), maintain a `stories-state.json` file to survive context compaction:
+
+```json
+{
+  "timestamp": "2026-02-28T10:00:00Z",
+  "batch": "admin-ui-components",
+  "stories_completed": [
+    { "component": "SectionHeader", "file": "packages/admin/src/components/ui/SectionHeader.stories.tsx", "exports": ["Default", "DarkMode", "Gallery"] }
+  ],
+  "stories_remaining": ["Skeleton", "PageTransition", "AddressDisplay"],
+  "next_actions": ["Read Skeleton.tsx source", "Write Skeleton.stories.tsx"]
+}
+```
+
+**On context recovery**: Read `stories-state.json`, verify completed stories still exist on disk, then continue from `next_actions`. Do not re-create stories that already exist.
 
 ## Effort & Thinking
 
 Effort: medium. Template-driven work. Think only when component API is ambiguous.
+
+### Thinking Guidance
+- Think when a component has unclear or overloaded props — determine the right argTypes and controls
+- Think when choosing realistic mock data — it should reflect actual domain objects
+- Don't think during template application — follow the CSF3 pattern mechanically
+- Don't think about dark mode decorator — always apply `data-theme="dark"` the same way

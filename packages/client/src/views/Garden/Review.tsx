@@ -13,7 +13,6 @@ import { WorkView } from "@/components/Features/Work";
 /** Stable tracking ID for work draft media URLs (shared with Media.tsx) */
 const WORK_DRAFT_TRACKING_ID = "work-draft";
 const VIDEO_TRACKING_ID = "work-draft-video";
-const AUDIO_REVIEW_TRACKING_ID = "work-review-audio";
 
 interface WorkReviewProps {
   reviewConfig?: Action["review"];

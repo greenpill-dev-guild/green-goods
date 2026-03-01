@@ -1,6 +1,6 @@
 ---
 name: debug
-description: Debugging & Troubleshooting - root cause investigation. Use for systematic debugging and verification.
+description: Debugging & Troubleshooting - systematic root cause investigation with hypothesis testing and evidence collection. Use when the user reports a bug, encounters an error, sees unexpected behavior, or says 'debug this' or 'investigate this issue'.
 argument-hint: "[error-description]"
 version: "1.0.0"
 status: active

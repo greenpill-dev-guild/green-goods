@@ -42,9 +42,7 @@ import {
 } from "@/components/Features";
 import { type StandardTab, StandardTabs, TopNav } from "@/components/Navigation";
 
-type GardenProps = {};
-
-export const Garden: React.FC<GardenProps> = () => {
+export const Garden: React.FC = () => {
   const intl = useIntl();
   const { primaryAddress } = useUser();
   const [isEndowmentOpen, setIsEndowmentOpen] = useState(false);

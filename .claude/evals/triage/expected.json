@@ -70,5 +70,46 @@
       "expected_package": "shared",
       "rationale": "Dependency update with no breaking changes. Minor improvements. Can be bundled with other maintenance work."
     }
-  ]
+  ],
+  "p0-security": {
+    "expected_priority": "P0",
+    "expected_type": "security",
+    "expected_complexity": "medium",
+    "expected_packages": ["shared"],
+    "expected_route": "/debug --mode incident_hotfix",
+    "must_identify": [
+      "Cryptographic material exposure in logs",
+      "PostHog exfiltration vector",
+      "IndexedDB persistence of sensitive data"
+    ],
+    "scoring": {
+      "correct_severity": 30,
+      "correct_type": 15,
+      "identifies_affected_packages": 15,
+      "correct_routing": 15,
+      "identifies_posthog_vector": 15,
+      "recommends_log_purge": 10
+    }
+  },
+  "p3-enhancement": {
+    "expected_priority": "P4",
+    "expected_priority_acceptable": ["P3", "P4"],
+    "expected_type": "enhancement",
+    "expected_complexity": "high",
+    "expected_packages": ["client", "shared"],
+    "expected_route": "/plan",
+    "must_not_include": [
+      "Implementation guidance",
+      "Library selection decisions",
+      "Component code suggestions"
+    ],
+    "scoring": {
+      "correct_severity_range": 25,
+      "correct_type": 15,
+      "correct_complexity": 15,
+      "correct_routing_to_plan": 20,
+      "no_implementation_guidance": 15,
+      "identifies_bundle_concern": 10
+    }
+  }
 }

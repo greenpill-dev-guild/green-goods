@@ -1,6 +1,6 @@
 ---
 name: audit
-description: Codebase Audit - quality analysis, dead code detection. Use for health checks and anti-pattern detection.
+description: Codebase Audit - dead code detection, unused exports, architectural anti-patterns, and dependency health. Use when the user asks for a codebase health check, wants to find dead code, or says 'audit the codebase'.
 argument-hint: "[package-name]"
 context: fork
 version: "1.0.0"

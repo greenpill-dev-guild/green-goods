@@ -29,11 +29,6 @@ export function Header() {
           <RiMenuLine className="h-6 w-6" />
         </button>
 
-        {/* Page title - will be dynamic based on route */}
-        {/* <div className="flex-1 lg:ml-0">
-          <h1 className="text-xl font-semibold text-text-strong">Green Goods</h1>
-        </div> */}
-
         {/* Breadcrumbs */}
         <div className="flex-1 min-w-0 hidden lg:block">
           <Breadcrumbs />

@@ -11,6 +11,20 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
  * - referenceSidebar
  */
 const sidebars: SidebarsConfig = {
+  conceptsSidebar: [
+    {
+      type: 'category',
+      label: 'Core Concepts',
+      collapsed: false,
+      items: [
+        'concepts/mission-and-values',
+        'concepts/impact-model',
+        'concepts/strategy-and-goals',
+        'concepts/communities',
+      ],
+    },
+  ],
+
   gardenerSidebar: [
     {
       type: 'doc',
@@ -124,6 +138,7 @@ const sidebars: SidebarsConfig = {
         'developers/reference/agent-mcp-guide',
         'developers/reference/docs-frontmatter-contract',
         'developers/reference/docs-writing-guide',
+        'developers/reference/entity-matrix',
       ],
     },
   ],

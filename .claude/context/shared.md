@@ -11,6 +11,15 @@ Loaded when working in `packages/shared/`. Extends CLAUDE.md.
 | `bun run storybook` | Start Storybook (port 6006) |
 | `bun run build-storybook` | Build static Storybook |
 
+## Contents
+- [Architecture](#architecture)
+- [Critical Patterns](#critical-patterns)
+- [Anti-Patterns](#anti-patterns)
+- [Common Mistakes](#common-mistakes)
+- [Creating New Hooks](#creating-new-hooks)
+- [Storybook Component Development](#storybook-component-development)
+- [Reference Files](#reference-files)
+
 ## Architecture
 
 ```
@@ -355,3 +364,13 @@ The a11y addon runs automatically:
 - Providers: `src/providers/`
 - Stores: `src/stores/`
 - Storybook config: `packages/shared/.storybook/`
+
+## Documentation References (on-demand)
+
+Read these docs pages when you need domain context beyond code patterns:
+
+- System architecture with Mermaid diagrams: `docs/docs/developers/architecture.mdx`
+- Domain glossary (35+ terms): `docs/docs/glossary.md`
+- Impact model and CIDS framework: `docs/docs/concepts/impact-model.mdx`
+- Cross-protocol entity matrix: `docs/docs/developers/reference/entity-matrix.mdx`
+- Gardener common errors (error-to-fix table): `docs/docs/gardener/common-errors.mdx`

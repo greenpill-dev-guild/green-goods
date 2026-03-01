@@ -11,6 +11,13 @@ Loaded when working in `packages/admin/`. Extends CLAUDE.md.
 | `bun lint` | Lint with oxlint |
 | `bun dev` | Start dev server (via PM2 from root) |
 
+## Contents
+- [Architecture](#architecture)
+- [Critical Patterns](#critical-patterns)
+- [Anti-Patterns](#anti-patterns)
+- [Testing Coverage](#testing-coverage)
+- [Reference Files](#reference-files)
+
 ## Architecture
 
 ```
@@ -280,3 +287,14 @@ describe("Gardens View", () => {
 - Permission hooks: `@green-goods/shared` → `hooks/garden/useGardenPermissions.ts`
 - Route guards: `routes/RequireAuth.tsx`, `RequireDeployer.tsx`, `RequireOperatorOrDeployer.tsx`
 - Toast action: `@green-goods/shared` → `hooks/app/useToastAction.ts`
+
+## Documentation References (on-demand)
+
+Read these docs pages when you need operator workflow context or garden management details:
+
+- Garden setup guide: `docs/docs/operator/setup-garden.mdx`
+- Manage gardeners: `docs/docs/operator/manage-gardeners.mdx`
+- Review work submissions: `docs/docs/operator/review-work.mdx`
+- Configure actions: `docs/docs/operator/configure-actions.mdx`
+- Impact reporting: `docs/docs/operator/impact-reporting.mdx`
+- Operator getting started: `docs/docs/operator/getting-started.mdx`

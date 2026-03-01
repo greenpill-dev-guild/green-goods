@@ -1,0 +1,101 @@
+{
+  "new-shared-component": {
+    "checks": {
+      "file_exists": ["packages/shared/src/components/StatusBadge.stories.tsx"],
+      "pattern_present": {
+        "packages/shared/src/components/StatusBadge.stories.tsx": [
+          "satisfies Meta",
+          "tags: [\"autodocs\"]",
+          "Primitives/StatusBadge",
+          "data-theme",
+          "argTypes"
+        ]
+      },
+      "pattern_absent": {
+        "packages/shared/src/components/StatusBadge.stories.tsx": [
+          "lucide",
+          "IntlProvider",
+          "QueryClientProvider",
+          "ThemeDecorator",
+          "className=\"dark\""
+        ]
+      },
+      "exports_present": ["Default", "DarkMode", "Gallery"]
+    },
+    "scoring": {
+      "csf3_format_correct": 15,
+      "title_matches_hierarchy": 15,
+      "required_exports_present": 20,
+      "dark_mode_uses_data_attribute": 15,
+      "argtypes_with_controls": 15,
+      "no_redundant_decorators": 10,
+      "gallery_shows_all_variants": 10
+    }
+  },
+  "admin-compound-component": {
+    "checks": {
+      "file_exists": ["packages/admin/src/components/Vault/DepositModal.stories.tsx"],
+      "pattern_present": {
+        "packages/admin/src/components/Vault/DepositModal.stories.tsx": [
+          "satisfies Meta",
+          "tags: [\"autodocs\"]",
+          "Admin/Vault/DepositModal",
+          "data-theme",
+          "play"
+        ]
+      },
+      "pattern_absent": {
+        "packages/admin/src/components/Vault/DepositModal.stories.tsx": [
+          "lucide",
+          "IntlProvider",
+          "QueryClientProvider",
+          "ThemeDecorator",
+          "0x0000000000000000000000000000000000000000"
+        ]
+      },
+      "exports_present": ["Default", "DarkMode", "Gallery", "Interactive"]
+    },
+    "scoring": {
+      "csf3_format_correct": 10,
+      "title_matches_hierarchy": 10,
+      "required_exports_present": 15,
+      "interactive_story_with_play": 20,
+      "dark_mode_uses_data_attribute": 10,
+      "realistic_mock_data": 15,
+      "no_redundant_decorators": 10,
+      "argtypes_present": 10
+    }
+  },
+  "client-mobile-component": {
+    "checks": {
+      "file_exists": ["packages/client/src/components/ActionCard.stories.tsx"],
+      "pattern_present": {
+        "packages/client/src/components/ActionCard.stories.tsx": [
+          "satisfies Meta",
+          "tags: [\"autodocs\"]",
+          "Client/Cards/ActionCard",
+          "data-theme",
+          "viewport"
+        ]
+      },
+      "pattern_absent": {
+        "packages/client/src/components/ActionCard.stories.tsx": [
+          "lucide",
+          "IntlProvider",
+          "QueryClientProvider",
+          "ThemeDecorator"
+        ]
+      },
+      "exports_present": ["Default", "DarkMode", "Gallery"]
+    },
+    "scoring": {
+      "csf3_format_correct": 15,
+      "title_matches_hierarchy": 15,
+      "required_exports_present": 15,
+      "mobile_viewport_parameters": 20,
+      "dark_mode_uses_data_attribute": 10,
+      "realistic_domain_data": 15,
+      "no_redundant_decorators": 10
+    }
+  }
+}

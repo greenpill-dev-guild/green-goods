@@ -11,6 +11,16 @@ Loaded when working in `packages/client/`. Extends CLAUDE.md.
 | `bun lint` | Lint with oxlint |
 | `bun dev` | Start dev server (via PM2 from root) |
 
+## Contents
+- [Architecture](#architecture)
+- [Critical Patterns](#critical-patterns)
+- [Anti-Patterns](#anti-patterns)
+- [Common Mistakes](#common-mistakes)
+- [Sync Triggers](#sync-triggers)
+- [Form Accessibility](#form-accessibility-mandatory)
+- [Testing Coverage](#testing-coverage)
+- [Reference Files](#reference-files)
+
 ## Architecture
 
 ```
@@ -303,3 +313,13 @@ Jobs sync automatically on:
 - Work submission: `@green-goods/shared` → `modules/work/`
 - Auth Provider: `@green-goods/shared` → `providers/Auth.tsx`
 - Shared hooks: `@green-goods/shared` → `hooks/`
+
+## Documentation References (on-demand)
+
+Read these docs pages when you need user journey context or error diagnostics:
+
+- Gardener common errors (error-to-fix lookup): `docs/docs/gardener/common-errors.mdx`
+- Evidence capture workflow: `docs/docs/gardener/capture-evidence.mdx`
+- Work submission flow: `docs/docs/gardener/submit-work.mdx`
+- Gardener getting started: `docs/docs/gardener/getting-started.mdx`
+- Impact model and action domains: `docs/docs/concepts/impact-model.mdx`

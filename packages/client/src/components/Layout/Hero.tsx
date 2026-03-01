@@ -373,7 +373,15 @@ export const Hero: FC<HeroProps> = () => {
         </div>
       </main>
       <p className="fixed bottom-0 left-0 w-full text-center text-sm text-text-soft-400 py-4">
-        Built by <a href="https://discord.gg/ZJjft2EKz7" target="_blank" rel="noreferrer" className="font-bold text-primary-dark hover:text-primary-darker hover:underline no-underline transition-colors">Greenpill Dev Guild</a>
+        Built by{" "}
+        <a
+          href="https://discord.gg/ZJjft2EKz7"
+          target="_blank"
+          rel="noreferrer"
+          className="font-bold text-primary-dark hover:text-primary-darker hover:underline no-underline transition-colors"
+        >
+          Greenpill Dev Guild
+        </a>
       </p>
     </>
   );

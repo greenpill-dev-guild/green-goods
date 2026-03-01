@@ -1,6 +1,6 @@
 ---
 name: testing
-description: Testing patterns - TDD workflow, Vitest unit tests, Playwright E2E. Use for writing tests, implementing features, debugging.
+description: Testing patterns - TDD workflow, Vitest unit tests, Playwright E2E, mock strategies, and coverage targets. Use when writing tests, setting up test infrastructure, following TDD, or diagnosing test failures.
 version: "1.0.0"
 status: active
 packages: ["shared", "contracts", "client", "admin"]

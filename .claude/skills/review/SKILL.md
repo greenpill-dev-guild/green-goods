@@ -1,6 +1,6 @@
 ---
 name: review
-description: Code Review & PR Creation - 6-pass systematic review. Use for code reviews and PR feedback.
+description: Code Review & PR Creation - 6-pass systematic review covering correctness, security, performance, patterns, testing, and documentation. Use when reviewing a PR, auditing code changes, or the user asks for systematic code quality analysis.
 argument-hint: "[file-or-PR]"
 version: "1.0.0"
 status: active

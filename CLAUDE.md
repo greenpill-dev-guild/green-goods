@@ -35,6 +35,18 @@ Green Goods is an **offline-first, single-chain** platform for documenting conse
 3. **indexer** -> needs contract ABIs
 4. **client/admin/agent** -> need shared package
 
+## Documentation
+
+The `docs/` directory contains a Docusaurus site with product documentation, user guides, and developer references. When investigating domain questions, architecture decisions, or user-facing behavior, consult:
+
+- System architecture (diagrams): `docs/docs/developers/architecture.mdx`
+- Domain glossary: `docs/docs/glossary.md`
+- Impact model (CIDS): `docs/docs/concepts/impact-model.mdx`
+- Strategy and goals: `docs/docs/concepts/strategy-and-goals.mdx`
+- Entity matrix: `docs/docs/developers/reference/entity-matrix.mdx`
+
+Package-specific context files (`.claude/context/*.md`) include additional documentation references relevant to each package.
+
 ## Key Patterns
 
 **Hook Boundary**: ALL hooks in `@green-goods/shared`. Client/admin only have components and views.
@@ -100,3 +112,7 @@ Before context compaction or ending a long session, write a `session-state.md` i
 ```
 
 This is distinct from agent-memory (which stores learnings). Session state captures execution context for the next context window.
+
+## Cleanup
+
+If you create temporary files, scripts, or helpers during iteration, remove them before reporting task completion.

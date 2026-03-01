@@ -34,7 +34,7 @@ function useGardenStringMutation(
   source: string,
   toastContext: string,
   loadingMessageId: string,
-  successMessageId: string,
+  successMessageId: string
 ) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
@@ -81,7 +81,7 @@ export function useUpdateGardenName() {
     "useUpdateGardenName",
     "update garden name",
     "app.garden.update.name.loading",
-    "app.garden.update.name.success",
+    "app.garden.update.name.success"
   );
 }
 
@@ -95,7 +95,7 @@ export function useUpdateGardenDescription() {
     "useUpdateGardenDescription",
     "update garden description",
     "app.garden.update.description.loading",
-    "app.garden.update.description.success",
+    "app.garden.update.description.success"
   );
 }
 
@@ -109,7 +109,7 @@ export function useUpdateGardenLocation() {
     "useUpdateGardenLocation",
     "update garden location",
     "app.garden.update.location.loading",
-    "app.garden.update.location.success",
+    "app.garden.update.location.success"
   );
 }
 
@@ -123,7 +123,7 @@ export function useUpdateGardenBannerImage() {
     "useUpdateGardenBannerImage",
     "update garden banner image",
     "app.garden.update.bannerImage.loading",
-    "app.garden.update.bannerImage.success",
+    "app.garden.update.bannerImage.success"
   );
 }
 
@@ -137,7 +137,7 @@ export function useUpdateGardenMetadata() {
     "useUpdateGardenMetadata",
     "update garden metadata",
     "app.garden.update.metadata.loading",
-    "app.garden.update.metadata.success",
+    "app.garden.update.metadata.success"
   );
 }
 

@@ -40,51 +40,52 @@ const createSyncStoragePersister = ({ storage }: { storage: Storage }): Persiste
   } as Persister;
 };
 
+const createIDBPersister = ({
+  dbName,
+  storeName,
+}: {
+  dbName: string;
+  storeName: string;
+}): Persister | undefined => {
+  try {
+    const store = createStore(dbName, storeName);
+    return {
+      persistClient: async (client: PersistedClient) => {
+        try {
+          await idbSet("__rq_pc__", client, store);
+        } catch (error) {
+          debugWarn("[Persister] Failed to persist client to IndexedDB:", error);
+        }
+      },
+      restoreClient: async (): Promise<PersistedClient | undefined> => {
+        try {
+          return (await idbGet("__rq_pc__", store)) as PersistedClient | undefined;
+        } catch (error) {
+          debugWarn("[Persister] Failed to restore client from IndexedDB:", error);
+          return undefined;
+        }
+      },
+      removeClient: async (): Promise<void> => {
+        try {
+          await idbDel("__rq_pc__", store);
+        } catch (error) {
+          debugWarn("[Persister] Failed to remove client from IndexedDB:", error);
+        }
+      },
+    } as Persister;
+  } catch (e) {
+    debugWarn(
+      "[Persister] Failed to initialize IndexedDB persister, falling back to storage:",
+      e
+    );
+    return undefined;
+  }
+};
+
+const idbPersister = createIDBPersister({ dbName: "gg-react-query", storeName: "rq" });
+const persister = idbPersister ?? createSyncStoragePersister({ storage: window.localStorage });
+
 function App() {
-  // Prefer IndexedDB persister for larger caches; fall back to localStorage
-  const createIDBPersister = ({
-    dbName,
-    storeName,
-  }: {
-    dbName: string;
-    storeName: string;
-  }): Persister | undefined => {
-    try {
-      const store = createStore(dbName, storeName);
-      return {
-        persistClient: async (client: PersistedClient) => {
-          try {
-            await idbSet("__rq_pc__", client, store);
-          } catch (error) {
-            debugWarn("[Persister] Failed to persist client to IndexedDB:", error);
-          }
-        },
-        restoreClient: async (): Promise<PersistedClient | undefined> => {
-          try {
-            return (await idbGet("__rq_pc__", store)) as PersistedClient | undefined;
-          } catch (error) {
-            debugWarn("[Persister] Failed to restore client from IndexedDB:", error);
-            return undefined;
-          }
-        },
-        removeClient: async (): Promise<void> => {
-          try {
-            await idbDel("__rq_pc__", store);
-          } catch (error) {
-            debugWarn("[Persister] Failed to remove client from IndexedDB:", error);
-          }
-        },
-      } as Persister;
-    } catch (e) {
-      debugWarn(
-        "[Persister] Failed to initialize IndexedDB persister, falling back to storage:",
-        e
-      );
-      return undefined;
-    }
-  };
-  const idbPersister = createIDBPersister({ dbName: "gg-react-query", storeName: "rq" });
-  const persister = idbPersister ?? createSyncStoragePersister({ storage: window.localStorage });
 
   /**
    * Avoid persisting volatile or in-flight queries.

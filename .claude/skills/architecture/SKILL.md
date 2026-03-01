@@ -1,7 +1,7 @@
 ---
 name: architecture
 user-invocable: false
-description: Architecture patterns (Clean, Hexagonal, DDD) and entropy reduction. Use for system design, refactoring, deletion.
+description: Architecture patterns (Clean, Hexagonal, DDD), entropy reduction, and module boundary design. Use when restructuring modules, reducing codebase complexity, making cross-cutting architectural decisions, or the user asks about system design.
 version: "1.0.0"
 status: active
 packages: ["contracts", "shared", "client", "admin"]

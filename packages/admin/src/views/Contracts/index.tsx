@@ -23,6 +23,7 @@ import {
 } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { zeroAddress } from "viem";
 import { useAccount, useSignMessage } from "wagmi";
 import { Link } from "react-router-dom";
 import { AddressDisplay } from "@/components/AddressDisplay";
@@ -53,8 +54,7 @@ export default function Contracts() {
   const currentChain = chains.find((c) => c.id === selectedChainId);
 
   const explorerUrl = currentChain?.blockExplorers?.default?.url;
-  const isZeroAddress = (address: Address) =>
-    address === "0x0000000000000000000000000000000000000000";
+  const isZeroAddress = (address: Address) => address === zeroAddress;
 
   const contractList = [
     { name: "Garden Token", address: contracts.gardenToken, type: "core" },

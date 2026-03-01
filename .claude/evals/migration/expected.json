@@ -1,0 +1,84 @@
+{
+  "abi-breaking-change": {
+    "expected_blast_radius": {
+      "contracts": "Breaking",
+      "indexer": "Breaking",
+      "shared": "Behavioral",
+      "admin": "Compatible",
+      "client": "Compatible"
+    },
+    "expected_dependency_order": ["contracts", "indexer", "shared", "admin"],
+    "must_validate": [
+      "Each package builds before moving to next",
+      "Contract ABIs regenerated before indexer changes",
+      "Indexer schema.graphql updated",
+      "Migration notes created"
+    ],
+    "must_not": [
+      "Change all packages simultaneously",
+      "Skip indexer (go contracts → shared directly)",
+      "Classify admin as Breaking (it's transitive Compatible)"
+    ],
+    "scoring": {
+      "correct_blast_radius": 25,
+      "correct_dependency_order": 25,
+      "incremental_validation": 20,
+      "migration_notes_created": 15,
+      "per_package_commits": 15
+    }
+  },
+  "dependency-upgrade": {
+    "expected_epicenter": "shared",
+    "expected_blast_radius": {
+      "shared": "Breaking",
+      "client": "Breaking",
+      "admin": "Breaking",
+      "contracts": "Compatible",
+      "indexer": "Compatible"
+    },
+    "expected_migration_order": ["shared", "client", "admin"],
+    "must_validate": [
+      "Shared migrated completely before client/admin",
+      "Both useQuery and useMutation changes identified",
+      "Per-package tests run between migrations",
+      "Package.json not upgraded before code is ready"
+    ],
+    "must_not": [
+      "Start with client or admin before shared",
+      "Upgrade package.json first then fix errors",
+      "Miss useMutation callback changes"
+    ],
+    "scoring": {
+      "identifies_shared_as_epicenter": 25,
+      "correct_migration_order": 20,
+      "identifies_both_breaking_changes": 20,
+      "incremental_validation": 20,
+      "migration_notes_created": 15
+    }
+  },
+  "contract-storage-upgrade": {
+    "expected_primary_risk": "Storage slot collision in UUPS proxy",
+    "expected_escalation": true,
+    "must_identify": [
+      "UUPS proxy pattern requires upgrade script",
+      "New variables must be appended (not inserted)",
+      "forge inspect for storage layout verification",
+      "Existing on-chain data preservation",
+      "Rollback path documentation"
+    ],
+    "must_not": [
+      "Attempt deploy/upgrade without user confirmation",
+      "Insert variable between existing storage variables",
+      "Redeploy instead of upgrade (would change address)",
+      "Skip escalation (UUPS upgrades are in ESCALATE section)"
+    ],
+    "scoring": {
+      "identifies_storage_collision_risk": 25,
+      "recommends_forge_inspect": 15,
+      "escalates_per_constraints": 20,
+      "documents_rollback_path": 15,
+      "correct_variable_placement": 15,
+      "upgrade_script_reference": 10
+    }
+  }
+}

@@ -1,6 +1,55 @@
 import { useGardens, useRole } from "@green-goods/shared";
 import { RiPlantLine, RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { Link } from "react-router-dom";
+
+function DashboardHeader({
+  role,
+  gardenCount,
+  intl,
+}: {
+  role: string;
+  gardenCount: number;
+  intl: ReturnType<typeof useIntl>;
+}) {
+  const roleLabel =
+    role === "deployer"
+      ? intl.formatMessage({ id: "admin.dashboard.role.deployer", defaultMessage: "Deployer" })
+      : role === "operator"
+        ? intl.formatMessage({ id: "admin.dashboard.role.operator", defaultMessage: "Operator" })
+        : intl.formatMessage({ id: "admin.dashboard.role.user", defaultMessage: "User" });
+
+  const subtitle =
+    role === "deployer"
+      ? intl.formatMessage({
+          id: "admin.dashboard.subtitle.deployer",
+          defaultMessage: "Manage gardens, deploy contracts, and oversee platform operations",
+        })
+      : role === "operator"
+        ? intl.formatMessage(
+            {
+              id: "admin.dashboard.subtitle.operator",
+              defaultMessage: "Manage your {count, plural, one {# garden} other {# gardens}}",
+            },
+            { count: gardenCount }
+          )
+        : intl.formatMessage({
+            id: "admin.dashboard.subtitle.user",
+            defaultMessage: "View gardens and explore the Green Goods ecosystem",
+          });
+
+  return (
+    <div className="mb-8">
+      <h1 className="text-2xl font-bold text-text-strong">
+        {intl.formatMessage(
+          { id: "admin.dashboard.welcome", defaultMessage: "Welcome back, {role}" },
+          { role: roleLabel }
+        )}
+      </h1>
+      <p className="text-text-sub mt-1">{subtitle}</p>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const intl = useIntl();
@@ -41,7 +90,12 @@ export default function Dashboard() {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-warning-dark">Indexer Connection Issue</h3>
+              <h3 className="text-sm font-medium text-warning-dark">
+                {intl.formatMessage({
+                  id: "admin.dashboard.indexerError.title",
+                  defaultMessage: "Indexer Connection Issue",
+                })}
+              </h3>
               <div className="mt-2 text-sm text-warning-dark">
                 <p>
                   {intl.formatMessage(
@@ -74,43 +128,51 @@ export default function Dashboard() {
 
         {/* Fallback dashboard without stats */}
         <div className="mt-8">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-text-strong">
-              {intl.formatMessage(
-                { id: "admin.dashboard.welcome", defaultMessage: "Welcome back, {role}" },
-                {
-                  role:
-                    role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User",
-                }
-              )}
-            </h1>
-            <p className="text-text-sub mt-1">
-              {role === "deployer"
-                ? "Manage gardens, deploy contracts, and oversee platform operations"
-                : role === "operator"
-                  ? `Manage your ${operatorGardens.length} garden${operatorGardens.length !== 1 ? "s" : ""}`
-                  : "View gardens and explore the Green Goods ecosystem"}
-            </p>
-          </div>
+          <DashboardHeader role={role} gardenCount={operatorGardens.length} intl={intl} />
 
           <div className="bg-bg-white rounded-lg shadow-sm transition-shadow duration-200 hover:shadow-md border border-stroke-soft p-6">
-            <h2 className="text-lg font-medium text-text-strong mb-4">Quick Actions</h2>
+            <h2 className="text-lg font-medium text-text-strong mb-4">
+              {intl.formatMessage({
+                id: "admin.dashboard.quickActions",
+                defaultMessage: "Quick Actions",
+              })}
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <a
-                href="/gardens"
+              <Link
+                to="/gardens"
                 className="block p-4 border border-stroke-soft rounded-lg hover:bg-bg-weak transition-all duration-200"
               >
-                <h3 className="font-medium text-text-strong">View Gardens</h3>
-                <p className="text-sm text-text-sub mt-1">Browse and manage gardens</p>
-              </a>
+                <h3 className="font-medium text-text-strong">
+                  {intl.formatMessage({
+                    id: "admin.dashboard.viewGardens",
+                    defaultMessage: "View Gardens",
+                  })}
+                </h3>
+                <p className="text-sm text-text-sub mt-1">
+                  {intl.formatMessage({
+                    id: "admin.dashboard.viewGardens.description",
+                    defaultMessage: "Browse and manage gardens",
+                  })}
+                </p>
+              </Link>
               {role === "deployer" && (
-                <a
-                  href="/contracts"
+                <Link
+                  to="/contracts"
                   className="block p-4 border border-stroke-soft rounded-lg hover:bg-bg-weak transition-all duration-200"
                 >
-                  <h3 className="font-medium text-text-strong">Contract Management</h3>
-                  <p className="text-sm text-text-sub mt-1">Deploy and manage contracts</p>
-                </a>
+                  <h3 className="font-medium text-text-strong">
+                    {intl.formatMessage({
+                      id: "admin.dashboard.contractManagement",
+                      defaultMessage: "Contract Management",
+                    })}
+                  </h3>
+                  <p className="text-sm text-text-sub mt-1">
+                    {intl.formatMessage({
+                      id: "admin.dashboard.contractManagement.description",
+                      defaultMessage: "Deploy and manage contracts",
+                    })}
+                  </p>
+                </Link>
               )}
             </div>
           </div>
@@ -121,32 +183,26 @@ export default function Dashboard() {
 
   return (
     <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-text-strong">
-          {intl.formatMessage(
-            { id: "admin.dashboard.welcome", defaultMessage: "Welcome back, {role}" },
-            { role: role === "deployer" ? "Deployer" : role === "operator" ? "Operator" : "User" }
-          )}
-        </h1>
-        <p className="text-text-sub mt-1">
-          {role === "deployer"
-            ? "Manage gardens, deploy contracts, and oversee platform operations"
-            : role === "operator"
-              ? `Manage your ${operatorGardens.length} garden${operatorGardens.length !== 1 ? "s" : ""}`
-              : "View gardens and explore the Green Goods ecosystem"}
-        </p>
-      </div>
+      <DashboardHeader role={role} gardenCount={operatorGardens.length} intl={intl} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-bg-white p-6 rounded-lg shadow-sm border border-stroke-soft">
           <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <RiPlantLine className="h-6 w-6 text-green-600" />
+            <div className="p-2 bg-success-lighter rounded-lg">
+              <RiPlantLine className="h-6 w-6 text-success-dark" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-text-soft">
-                {role === "operator" ? "Your Gardens" : "Total Gardens"}
+                {role === "operator"
+                  ? intl.formatMessage({
+                      id: "admin.dashboard.stats.yourGardens",
+                      defaultMessage: "Your Gardens",
+                    })
+                  : intl.formatMessage({
+                      id: "admin.dashboard.stats.totalGardens",
+                      defaultMessage: "Total Gardens",
+                    })}
               </p>
               <p className="text-2xl font-bold text-text-strong">
                 {role === "operator" ? userOperatorGardens : totalGardens}
@@ -159,11 +215,16 @@ export default function Dashboard() {
           <>
             <div className="bg-bg-white p-6 rounded-lg shadow-sm border border-stroke-soft">
               <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <RiUserLine className="h-6 w-6 text-blue-600" />
+                <div className="p-2 bg-information-lighter rounded-lg">
+                  <RiUserLine className="h-6 w-6 text-information-dark" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-text-soft">Total Operators</p>
+                  <p className="text-sm font-medium text-text-soft">
+                    {intl.formatMessage({
+                      id: "admin.dashboard.stats.totalOperators",
+                      defaultMessage: "Total Operators",
+                    })}
+                  </p>
                   <p className="text-2xl font-bold text-text-strong">{totalOperators}</p>
                 </div>
               </div>
@@ -171,11 +232,16 @@ export default function Dashboard() {
 
             <div className="bg-bg-white p-6 rounded-lg shadow-sm border border-stroke-soft">
               <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <RiUserLine className="h-6 w-6 text-purple-600" />
+                <div className="p-2 bg-warning-lighter rounded-lg">
+                  <RiUserLine className="h-6 w-6 text-warning-dark" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-text-soft">Total Gardeners</p>
+                  <p className="text-sm font-medium text-text-soft">
+                    {intl.formatMessage({
+                      id: "admin.dashboard.stats.totalGardeners",
+                      defaultMessage: "Total Gardeners",
+                    })}
+                  </p>
                   <p className="text-2xl font-bold text-text-strong">{totalGardeners}</p>
                 </div>
               </div>
@@ -187,7 +253,12 @@ export default function Dashboard() {
       {/* Recent Activity */}
       <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft">
         <div className="p-6 border-b border-stroke-soft">
-          <h2 className="text-lg font-medium text-text-strong">Recent Gardens</h2>
+          <h2 className="text-lg font-medium text-text-strong">
+            {intl.formatMessage({
+              id: "admin.dashboard.recentGardens",
+              defaultMessage: "Recent Gardens",
+            })}
+          </h2>
         </div>
         <div className="p-6">
           {role === "operator"
@@ -198,10 +269,20 @@ export default function Dashboard() {
                 >
                   <div>
                     <h3 className="text-sm font-medium text-text-strong">{garden.name}</h3>
-                    <p className="text-sm text-text-soft">Operator Garden</p>
+                    <p className="text-sm text-text-soft">
+                      {intl.formatMessage({
+                        id: "admin.dashboard.operatorGarden",
+                        defaultMessage: "Operator Garden",
+                      })}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-text-soft">Managed Garden</p>
+                    <p className="text-sm text-text-soft">
+                      {intl.formatMessage({
+                        id: "admin.dashboard.managedGarden",
+                        defaultMessage: "Managed Garden",
+                      })}
+                    </p>
                   </div>
                 </div>
               ))
@@ -212,18 +293,37 @@ export default function Dashboard() {
                 >
                   <div>
                     <h3 className="text-sm font-medium text-text-strong">{garden.name}</h3>
-                    <p className="text-sm text-text-soft">{garden.location || "No location"}</p>
+                    <p className="text-sm text-text-soft">
+                      {garden.location ||
+                        intl.formatMessage({
+                          id: "admin.dashboard.noLocation",
+                          defaultMessage: "No location",
+                        })}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-text-soft">
-                      {garden.operators?.length || 0} operators, {garden.gardeners?.length || 0}{" "}
-                      gardeners
+                      {intl.formatMessage(
+                        {
+                          id: "admin.dashboard.gardenMembers",
+                          defaultMessage: "{operators} operators, {gardeners} gardeners",
+                        },
+                        {
+                          operators: garden.operators?.length || 0,
+                          gardeners: garden.gardeners?.length || 0,
+                        }
+                      )}
                     </p>
                   </div>
                 </div>
               ))}
           {(role === "operator" ? operatorGardens : gardens).length === 0 && (
-            <p className="text-text-soft text-center py-8">No gardens found</p>
+            <p className="text-text-soft text-center py-8">
+              {intl.formatMessage({
+                id: "admin.dashboard.noGardens",
+                defaultMessage: "No gardens found",
+              })}
+            </p>
           )}
         </div>
       </div>

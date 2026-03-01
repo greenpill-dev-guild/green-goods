@@ -49,14 +49,14 @@ export function ConnectButton({
         {isConnecting ? (
           <>
             <RiLoader4Line className="animate-spin -ml-1 mr-2 h-4 w-4" aria-hidden="true" />
-            Connecting...
+            {formatMessage({ id: "admin.connectButton.connecting", defaultMessage: "Connecting..." })}
           </>
         ) : (
           <>
             {children || (
               <>
                 <RiWallet3Line className="mr-2 h-4 w-4" aria-hidden="true" />
-                Connect Wallet
+                {formatMessage({ id: "admin.connectButton.connect", defaultMessage: "Connect Wallet" })}
               </>
             )}
           </>

@@ -49,9 +49,7 @@ import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
 import WorkViewSection from "./WorkViewSection";
 
-type GardenWorkProps = {};
-
-export const GardenWork: React.FC<GardenWorkProps> = () => {
+export const GardenWork: React.FC = () => {
   const intl = useIntl();
   const { id: gardenIdParam, workId } = useParams<{ id: string; workId: string }>();
   const { gardenId: gardenIdFromContext } = (useOutletContext() as { gardenId?: string }) || {};
@@ -128,21 +126,39 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
       if (result.success) {
         toastService.success({
-          title: "Work uploaded successfully",
-          message: "Your work is now on-chain",
+          title: intl.formatMessage({
+            id: "app.home.work.retrySuccess",
+            defaultMessage: "Work uploaded successfully",
+          }),
+          message: intl.formatMessage({
+            id: "app.home.work.retrySuccessMessage",
+            defaultMessage: "Your work is now on-chain",
+          }),
           context: "work upload",
         });
       } else {
         toastService.error({
-          title: "Upload failed",
-          message: result.error || "Please try again",
+          title: intl.formatMessage({
+            id: "app.home.work.retryFailed",
+            defaultMessage: "Upload failed",
+          }),
+          message: result.error || intl.formatMessage({
+            id: "app.home.work.retryFailedMessage",
+            defaultMessage: "Please try again",
+          }),
           context: "work upload",
         });
       }
     } catch (error) {
       toastService.error({
-        title: "Failed to retry upload",
-        message: error instanceof Error ? error.message : "Unknown error",
+        title: intl.formatMessage({
+          id: "app.home.work.retryError",
+          defaultMessage: "Failed to retry upload",
+        }),
+        message: error instanceof Error ? error.message : intl.formatMessage({
+          id: "app.home.work.unknownError",
+          defaultMessage: "Unknown error",
+        }),
         context: "work upload",
       });
     } finally {
@@ -150,21 +166,27 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     }
   };
 
+  // Build a WorkData object from the current work + metadata context
+  const buildWorkData = (): WorkData | null => {
+    if (!work) return null;
+    return {
+      id: work.id,
+      title: work.feedback || `Work ${work.id}`,
+      description: work.feedback,
+      status: work.status,
+      createdAt: work.createdAt,
+      media: work.media || [],
+      metadata: workMetadata,
+      feedback: work.feedback,
+      gardenId: garden?.id || "",
+    };
+  };
+
   // Helper functions for work actions
   const handleDownloadMedia = async () => {
-    if (!work) return;
+    const workData = buildWorkData();
+    if (!workData) return;
     try {
-      const workData: WorkData = {
-        id: work.id,
-        title: work.feedback || `Work ${work.id}`,
-        description: work.feedback,
-        status: work.status,
-        createdAt: work.createdAt,
-        media: work.media || [],
-        metadata: workMetadata,
-        feedback: work.feedback,
-        gardenId: garden?.id || "",
-      };
       await downloadWorkMedia(workData);
     } catch (error) {
       toastService.error({
@@ -179,19 +201,9 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   };
 
   const handleDownloadData = () => {
-    if (!work) return;
+    const workData = buildWorkData();
+    if (!workData) return;
     try {
-      const workData: WorkData = {
-        id: work.id,
-        title: work.feedback || `Work ${work.id}`,
-        description: work.feedback,
-        status: work.status,
-        createdAt: work.createdAt,
-        media: work.media || [],
-        metadata: workMetadata,
-        feedback: work.feedback,
-        gardenId: garden?.id || "",
-      };
       downloadWorkData(workData);
     } catch (error) {
       toastService.error({
@@ -206,19 +218,9 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   };
 
   const handleShare = async () => {
-    if (!work) return;
+    const workData = buildWorkData();
+    if (!workData) return;
     try {
-      const workData: WorkData = {
-        id: work.id,
-        title: work.feedback || `Work ${work.id}`,
-        description: work.feedback,
-        status: work.status,
-        createdAt: work.createdAt,
-        media: work.media || [],
-        metadata: workMetadata,
-        feedback: work.feedback,
-        gardenId: garden?.id || "",
-      };
       await shareWork(workData);
     } catch (error) {
       toastService.error({

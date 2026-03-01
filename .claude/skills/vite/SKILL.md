@@ -1,7 +1,7 @@
 ---
 name: vite
 user-invocable: false
-description: Vite 7.x build tool. Use when configuring Vite, adding plugins, working with dev server, or building.
+description: Vite 7.x build tool - plugin configuration, environment variable handling, build optimization, HMR, and dev server setup. Use when configuring Vite, adding plugins, debugging build issues, or optimizing bundle output.
 version: "1.0.0"
 status: active
 packages: ["client", "admin"]
