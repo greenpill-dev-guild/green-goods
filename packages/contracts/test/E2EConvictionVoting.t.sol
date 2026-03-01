@@ -610,7 +610,7 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
             actionUID: 0,
             workUID: workUID,
             approved: true,
-            feedback: "Excellent conservation work",
+            feedback: "Excellent regenerative work",
             confidence: 3,
             verificationMethod: 1,
             reviewNotesCID: ""

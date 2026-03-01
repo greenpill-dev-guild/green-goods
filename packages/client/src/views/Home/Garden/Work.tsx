@@ -142,10 +142,12 @@ export const GardenWork: React.FC = () => {
             id: "app.home.work.retryFailed",
             defaultMessage: "Upload failed",
           }),
-          message: result.error || intl.formatMessage({
-            id: "app.home.work.retryFailedMessage",
-            defaultMessage: "Please try again",
-          }),
+          message:
+            result.error ||
+            intl.formatMessage({
+              id: "app.home.work.retryFailedMessage",
+              defaultMessage: "Please try again",
+            }),
           context: "work upload",
         });
       }
@@ -155,10 +157,13 @@ export const GardenWork: React.FC = () => {
           id: "app.home.work.retryError",
           defaultMessage: "Failed to retry upload",
         }),
-        message: error instanceof Error ? error.message : intl.formatMessage({
-          id: "app.home.work.unknownError",
-          defaultMessage: "Unknown error",
-        }),
+        message:
+          error instanceof Error
+            ? error.message
+            : intl.formatMessage({
+                id: "app.home.work.unknownError",
+                defaultMessage: "Unknown error",
+              }),
         context: "work upload",
       });
     } finally {

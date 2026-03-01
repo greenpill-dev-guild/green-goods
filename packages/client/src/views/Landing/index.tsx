@@ -4,7 +4,6 @@ import { Hero } from "@/components/Layout";
 import { Header } from "@/components/Navigation";
 
 const Landing: React.FC = () => {
-
   function handleSubscribe(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 

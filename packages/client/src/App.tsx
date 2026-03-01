@@ -74,10 +74,7 @@ const createIDBPersister = ({
       },
     } as Persister;
   } catch (e) {
-    debugWarn(
-      "[Persister] Failed to initialize IndexedDB persister, falling back to storage:",
-      e
-    );
+    debugWarn("[Persister] Failed to initialize IndexedDB persister, falling back to storage:", e);
     return undefined;
   }
 };
@@ -86,7 +83,6 @@ const idbPersister = createIDBPersister({ dbName: "gg-react-query", storeName: "
 const persister = idbPersister ?? createSyncStoragePersister({ storage: window.localStorage });
 
 function App() {
-
   /**
    * Avoid persisting volatile or in-flight queries.
    * Only persist stable, successful query results.
