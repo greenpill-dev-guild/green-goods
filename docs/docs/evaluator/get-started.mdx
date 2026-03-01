@@ -1,15 +1,15 @@
 ---
-title: Evaluator Get Started
+title: Evaluator Guide
 sidebar_position: 1
 slug: /evaluator/get-started
 audience: evaluator
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-02-28
 feature_status: Live
-goal: "Complete Evaluator Get Started with clear, role-specific next actions."
+goal: "Get started verifying impact data with Green Goods."
 difficulty: "quickstart"
-estimated_time: "15-25 minutes."
-prereqs: "GraphQL client and chain-aware schema/deployment references."
+estimated_time: "15 minutes"
+prereqs: "Familiarity with data querying (we'll guide you through the tools)."
 next_steps: "./query-indexer"
 persona_context: "Evaluators validating attestations and translating impact data into analysis outputs."
 source_of_truth:
@@ -19,59 +19,64 @@ source_of_truth:
 keywords:
   - evaluator
   - impact analysis
-  - attestations
+  - data verification
 ---
 
-import {AtAGlanceCard, JourneyMap, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+import {AtAGlanceCard, JourneyMap, NextBestAction, StepFlow} from "@site/src/components/docs";
 
-# Evaluator Get Started
+# Evaluator Guide
 
-<StatusBadge status="Live" />
+You validate that impact claims are real. Query data, verify evidence chains, and produce analysis that funders trust.
 
 <AtAGlanceCard
-  goal="Complete Evaluator Get Started with clear, role-specific next actions."
+  goal="Get started verifying impact data with Green Goods."
   difficulty="quickstart"
-  estimatedTime="15-25 minutes."
-  prereqs="GraphQL client and chain-aware schema/deployment references."
-  outcome="You can run reliable cross-source queries and validate attestation chains."
-  personaContext="Evaluators validating attestations and translating impact data into analysis outputs."
-  lastVerified="2026-02-18"
+  estimatedTime="15 minutes"
+  prereqs="Familiarity with data querying (we'll guide you through the tools)."
+  outcome="You can query impact data and verify that impact claims are backed by evidence."
+  compact
 />
 
 <JourneyMap
   role="Evaluator"
   steps={[
-    {title: "Get started", href: "./get-started", state: "current", note: "Set chain context and data strategy."},
-    {title: "Query indexer", href: "./query-indexer", state: "upcoming"},
-    {title: "Query EAS", href: "./query-eas", state: "upcoming"},
-    {title: "Verify attestation chains", href: "./verify-attestation-chains", state: "upcoming"},
+    {title: "Get started", href: "./get-started", state: "current", note: "Understand the data landscape and your tools."},
+    {title: "Query the indexer", href: "./query-indexer", state: "upcoming"},
+    {title: "Query attestations", href: "./query-eas", state: "upcoming"},
+    {title: "Verify evidence chains", href: "./verify-attestation-chains", state: "upcoming"},
   ]}
 />
 
-## Data model in one view
+## How impact data flows
 
-1. Use Green Goods indexer for gardens/actions/membership metadata.
-2. Use EAS GraphQL for work/approval/assessment attestations.
-3. Join datasets by chain + garden address + attestation references.
+1. **Gardeners submit work** — photos, descriptions, and context about regenerative actions.
+2. **Operators review and approve** — verified work becomes part of the garden's impact record.
+3. **You analyze the data** — query across gardens, verify evidence chains, and produce reports.
 
-## First evaluator workflow
+## Your first evaluation
 
 <StepFlow
   steps={[
-    {title: "Set chain context", detail: "Pick 42161, 42220, or 11155111 and fetch deployment JSON."},
-    {title: "Query indexer", detail: "Pull gardens/actions for your scope."},
-    {title: "Query EAS", detail: "Fetch work and approval attestations with matching schema IDs."},
-    {title: "Verify chain", detail: "Trace work -> approval links and validate on EAS explorer."},
+    {title: "Choose a data source", detail: "Start with the Green Goods indexer for garden and action metadata."},
+    {title: "Query the data", detail: "Pull gardens, actions, and work submissions for your scope."},
+    {title: "Verify evidence", detail: "Follow the chain from submitted work to verified approvals."},
+    {title: "Export your analysis", detail: "Download datasets or connect to your analysis tools."},
   ]}
 />
 
 <NextBestAction
-  title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
-  actionLabel="Query Indexer"
+  title="Next step"
+  why="Start querying real impact data from Green Goods gardens."
+  actionLabel="Query the Indexer"
   actionHref="./query-indexer"
   alternatives={[
-    {label: "Query EAS", href: "./query-eas"},
-    {label: "Verify Attestation Chains", href: "./verify-attestation-chains"},
+    {label: "Query Attestations", href: "./query-eas"},
+    {label: "Verify Evidence Chains", href: "./verify-attestation-chains"},
   ]}
 />
+
+---
+
+## What's next?
+
+Want to build custom tools for impact analysis? Check out the [Developer hub](/developers/getting-started).

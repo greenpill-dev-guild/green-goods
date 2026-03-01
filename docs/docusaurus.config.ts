@@ -271,24 +271,13 @@ const config: Config = {
           label: 'Developers',
         },
         {
-          type: 'docSidebar',
-          sidebarId: 'referenceSidebar',
-          position: 'left',
-          label: 'Reference',
-        },
-        {
-          href: 'https://paragraph.com/@greenpilldevguild',
-          label: 'Blog',
-          position: 'left',
-        },
-        {
           href: 'https://greengoods.app',
           label: 'App',
           position: 'right',
         },
         {
-          href: 'https://github.com/greenpill-dev-guild/green-goods',
-          label: 'GitHub',
+          href: 'https://admin.greengoods.app',
+          label: 'Dashboard',
           position: 'right',
         },
       ],
@@ -297,71 +286,39 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Roles',
+          title: 'Learn',
           items: [
-            {
-              label: 'Gardener',
-              to: '/gardener/get-started',
-            },
-            {
-              label: 'Operator',
-              to: '/operator/get-started-and-roles',
-            },
-            {
-              label: 'Evaluator',
-              to: '/evaluator/get-started',
-            },
+            { label: 'About Green Goods', to: '/' },
+            { label: 'Gardener Guide', to: '/gardener/get-started' },
+            { label: 'Operator Guide', to: '/operator/get-started-and-roles' },
+            { label: 'Evaluator Guide', to: '/evaluator/get-started' },
           ],
         },
         {
-          title: 'Developers',
+          title: 'Build',
           items: [
-            {
-              label: 'Developer Quickstart',
-              to: '/developers/getting-started',
-            },
-            {
-              label: 'Architecture',
-              to: '/developers/architecture',
-            },
-            {
-              label: 'Integrations',
-              to: '/developers/integrations',
-            },
+            { label: 'Developer Quickstart', to: '/developers/getting-started' },
+            { label: 'Architecture', to: '/developers/architecture' },
+            { label: 'Integrations', to: '/developers/integrations' },
+            { label: 'API Reference', to: '/developers/reference/api-index' },
           ],
         },
         {
           title: 'Community',
           items: [
-            {
-              label: 'Telegram',
-              href: 'https://t.me/+N3o3_43iRec1Y2Jh',
-            },
-            {
-              label: 'X (Twitter)',
-              href: 'https://x.com/greengoodsapp',
-            },
-            {
-              label: 'GitHub',
-              href: 'https://github.com/greenpill-dev-guild/green-goods',
-            },
+            { label: 'Telegram', href: 'https://t.me/+N3o3_43iRec1Y2Jh' },
+            { label: 'X (Twitter)', href: 'https://x.com/greengoodsapp' },
+            { label: 'GitHub', href: 'https://github.com/greenpill-dev-guild/green-goods' },
+            { label: 'Blog', href: 'https://paragraph.com/@greenpilldevguild' },
           ],
         },
         {
-          title: 'More',
+          title: 'Resources',
           items: [
-            {
-              label: 'App',
-              href: 'https://greengoods.app',
-            },
-            {
-              label: 'Admin Dashboard',
-              href: 'https://admin.greengoods.app',
-            },
-            {
-              label: 'Dev Guild Blog',
-              href: 'https://paragraph.com/@greenpilldevguild',
-            },
+            { label: 'FAQ', to: '/reference/faq' },
+            { label: 'Glossary', to: '/glossary' },
+            { label: 'Changelog', to: '/reference/changelog' },
+            { label: 'Credits', to: '/reference/credits' },
           ],
         },
       ],

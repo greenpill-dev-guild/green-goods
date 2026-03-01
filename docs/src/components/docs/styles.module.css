@@ -8,8 +8,7 @@
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: 14px;
   padding: 1rem;
-  background: linear-gradient(180deg, var(--ifm-background-surface-color), rgba(30, 120, 90, 0.06));
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  background: var(--ifm-background-surface-color);
 }
 
 .roleCardHeader {
@@ -217,9 +216,7 @@
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: 14px;
   padding: 1rem;
-  background:
-    radial-gradient(circle at top right, rgba(35, 144, 101, 0.14), transparent 40%),
-    var(--ifm-background-surface-color);
+  background: var(--ifm-background-surface-color);
 }
 
 .atAGlanceHeader {
@@ -383,9 +380,7 @@
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: 14px;
   padding: 1rem;
-  background:
-    linear-gradient(145deg, color-mix(in srgb, var(--ifm-color-primary) 13%, transparent), transparent 45%),
-    var(--ifm-background-surface-color);
+  background: var(--ifm-background-surface-color);
 }
 
 .nextActionTitle {

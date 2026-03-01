@@ -151,9 +151,9 @@ Green Goods has been supported by:
 - **ReFi DAO** - Regenerative finance community
 - **Karma GAP** - Impact reporting standard
 
-### Conservation Partners
+### Community Partners
 
-- Local gardens and conservation organizations
+- Local gardens and regenerative organizations
 - Bioregional networks
 - Community coordinators
 - (Partners to be listed as they onboard)

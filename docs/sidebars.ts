@@ -3,43 +3,36 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 /**
  * Green Goods Documentation Sidebars
  *
- * Role-first information architecture:
- * - gardenerSidebar
- * - operatorSidebar
- * - evaluatorSidebar
- * - developersSidebar
- * - referenceSidebar
+ * Architecture:
+ * - Home page (intro.md) serves as the about flow and entry point
+ * - conceptsSidebar — linked from home, no navbar item, navigable between concept pages
+ * - gardenerSidebar, operatorSidebar, evaluatorSidebar — role-specific guides (navbar)
+ * - developersSidebar — developer reference (navbar)
  */
 const sidebars: SidebarsConfig = {
   conceptsSidebar: [
-    {
-      type: 'category',
-      label: 'Core Concepts',
-      collapsed: false,
-      items: [
-        'concepts/mission-and-values',
-        'concepts/impact-model',
-        'concepts/strategy-and-goals',
-        'concepts/communities',
-      ],
-    },
+    { type: 'doc', id: 'intro', label: 'What is Green Goods' },
+    'concepts/impact-model',
+    'concepts/mission-and-values',
+    { type: 'doc', id: 'concepts/strategy-and-goals', label: 'Strategy & Goals' },
+    { type: 'doc', id: 'concepts/communities', label: 'Communities' },
   ],
 
   gardenerSidebar: [
     {
       type: 'doc',
       id: 'gardener/get-started',
-      label: 'Get Started',
+      label: 'Gardener Guide',
     },
     {
       type: 'category',
       label: 'Journey',
       collapsed: false,
       items: [
-        'gardener/submit-work-mdr',
-        'gardener/offline-sync-and-drafts',
-        'gardener/track-status-and-attestations',
-        'gardener/common-errors',
+        { type: 'doc', id: 'gardener/submit-work-mdr', label: 'Document Your Work' },
+        { type: 'doc', id: 'gardener/offline-sync-and-drafts', label: 'Working Offline' },
+        { type: 'doc', id: 'gardener/track-status-and-attestations', label: 'Track Your Progress' },
+        { type: 'doc', id: 'gardener/common-errors', label: 'Troubleshooting' },
       ],
     },
   ],
@@ -48,7 +41,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'doc',
       id: 'operator/get-started-and-roles',
-      label: 'Get Started',
+      label: 'Operator Guide',
     },
     {
       type: 'category',
@@ -85,7 +78,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'doc',
       id: 'evaluator/get-started',
-      label: 'Get Started',
+      label: 'Evaluator Guide',
     },
     {
       type: 'category',
@@ -139,30 +132,8 @@ const sidebars: SidebarsConfig = {
         'developers/reference/docs-frontmatter-contract',
         'developers/reference/docs-writing-guide',
         'developers/reference/entity-matrix',
+        'reference/changelog',
       ],
-    },
-  ],
-
-  referenceSidebar: [
-    {
-      type: 'doc',
-      id: 'reference/faq',
-      label: 'FAQ',
-    },
-    {
-      type: 'doc',
-      id: 'reference/changelog',
-      label: 'Changelog',
-    },
-    {
-      type: 'doc',
-      id: 'glossary',
-      label: 'Glossary',
-    },
-    {
-      type: 'doc',
-      id: 'reference/credits',
-      label: 'Credits',
     },
   ],
 };

@@ -1,15 +1,15 @@
 ---
-title: Gardener Get Started
+title: Gardener Guide
 sidebar_position: 1
 slug: /gardener/get-started
 audience: gardener
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-02-28
 feature_status: Live
-goal: "Complete Gardener Get Started with clear, role-specific next actions."
+goal: "Get started documenting your regenerative work with Green Goods."
 difficulty: "quickstart"
-estimated_time: "5-10 minutes."
-prereqs: "Smartphone, camera access, first internet session for sign-in."
+estimated_time: "5 minutes"
+prereqs: "A smartphone with a camera."
 next_steps: "./submit-work-mdr"
 persona_context: "Gardeners documenting and syncing impact work in field conditions."
 source_of_truth:
@@ -18,63 +18,68 @@ source_of_truth:
 keywords:
   - gardener
   - submit work
-  - mdr
+  - document impact
   - offline
 ---
 
-import {AtAGlanceCard, JourneyMap, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+import {AtAGlanceCard, JourneyMap, NextBestAction, StepFlow} from "@site/src/components/docs";
 
-# Gardener Get Started
+# Gardener Guide
 
-<StatusBadge status="Live" />
+You're the person on the ground making change happen. This guide helps you document your regenerative work so it becomes verified, funded impact.
 
 <AtAGlanceCard
-  goal="Complete Gardener Get Started with clear, role-specific next actions."
+  goal="Get started documenting your regenerative work with Green Goods."
   difficulty="quickstart"
-  estimatedTime="5-10 minutes."
-  prereqs="Smartphone, camera access, first internet session for sign-in."
+  estimatedTime="5 minutes"
+  prereqs="A smartphone with a camera."
   outcome="You can submit and track your first work record."
-  personaContext="Gardeners documenting and syncing impact work in field conditions."
-  lastVerified="2026-02-18"
+  compact
 />
 
 <JourneyMap
   role="Gardener"
   steps={[
     {title: "Get started", href: "./get-started", state: "current", note: "Set up your first field-ready workflow."},
-    {title: "Submit work (MDR)", href: "./submit-work-mdr", state: "upcoming", note: "Capture evidence and submit quickly."},
-    {title: "Handle offline + drafts", href: "./offline-sync-and-drafts", state: "upcoming", note: "Keep progress when disconnected."},
-    {title: "Track approvals", href: "./track-status-and-attestations", state: "upcoming", note: "Follow status and verify attestations."},
+    {title: "Document your work", href: "./submit-work-mdr", state: "upcoming", note: "Capture photos and submit your regenerative work."},
+    {title: "Working offline", href: "./offline-sync-and-drafts", state: "upcoming", note: "Keep working even without internet."},
+    {title: "Track your progress", href: "./track-status-and-attestations", state: "upcoming", note: "See how your submissions are reviewed and verified."},
   ]}
 />
 
-## What you can do now
+## What you can do
 
-1. Sign in with passkey (Face ID / Touch ID / device biometrics).
-2. Open an action in a garden.
-3. Submit work through MDR (Media -> Details -> Review).
-4. Keep working offline and sync later.
-5. Track pending/approved/rejected work states.
+1. **Sign in** with Face ID, Touch ID, or your device biometrics — no passwords or seed phrases needed.
+2. **Open an action** in your garden to see what regenerative work is needed.
+3. **Document your work** by taking photos, adding details, and submitting in one flow.
+4. **Work offline** — your progress is saved and syncs automatically when you reconnect.
+5. **Track your submissions** as they move through review and verification.
 
-## First-session flow
+## Your first session
 
 <StepFlow
   steps={[
-    {title: "Sign in", detail: "Use passkey sign-in on greengoods.app. No seed phrase is required."},
-    {title: "Open an action", detail: "Pick an active action in your garden and review the task requirements."},
-    {title: "Document work", detail: "Capture media, enter details, review and submit in one flow."},
-    {title: "Track status", detail: "Watch your submission move through review and on-chain attestation."},
+    {title: "Sign in", detail: "Open greengoods.app and sign in with your device biometrics. No passwords required."},
+    {title: "Open an action", detail: "Browse your garden and pick an active regenerative action."},
+    {title: "Document your work", detail: "Take photos, add details about what you did, review, and submit."},
+    {title: "Track your progress", detail: "Watch your submission move through review and verification."},
   ]}
 />
 
 <NextBestAction
-  title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
-  actionLabel="Submit Work with MDR"
+  title="Next step"
+  why="Learn how to capture and submit your regenerative work."
+  actionLabel="Document Your Work"
   actionHref="./submit-work-mdr"
   alternatives={[
-    {label: "Offline Sync and Drafts", href: "./offline-sync-and-drafts"},
-    {label: "Track Status and Attestations", href: "./track-status-and-attestations"},
-    {label: "Common Errors", href: "./common-errors"},
+    {label: "Working Offline", href: "./offline-sync-and-drafts"},
+    {label: "Track Your Progress", href: "./track-status-and-attestations"},
+    {label: "Troubleshooting", href: "./common-errors"},
   ]}
 />
+
+---
+
+## What's next?
+
+Want to run your own garden? Learn about the [Operator role](/operator/get-started-and-roles).

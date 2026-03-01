@@ -1,31 +1,26 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
 :root {
-  --gg-forest-900: #0f3a2a;
-  --gg-forest-800: #15543a;
-  --gg-forest-700: #1e7a56;
-  --gg-forest-600: #239065;
-  --gg-forest-300: #8fd3b5;
-  --gg-sand-100: #f6f2e9;
-  --gg-sand-50: #fcfaf5;
-  --gg-ink-900: #10221c;
+  /* Primary green — matches shared theme green-500 */
+  --ifm-color-primary: #1a7544;
+  --ifm-color-primary-dark: #176539;
+  --ifm-color-primary-darker: #145a33;
+  --ifm-color-primary-darkest: #0f4b2a;
+  --ifm-color-primary-light: #1e8c4e;
+  --ifm-color-primary-lighter: #23a05a;
+  --ifm-color-primary-lightest: #2ebb6b;
 
-  --ifm-color-primary: var(--gg-forest-700);
-  --ifm-color-primary-dark: #1b6f4f;
-  --ifm-color-primary-darker: #176547;
-  --ifm-color-primary-darkest: #0f4b34;
-  --ifm-color-primary-light: #2e9f73;
-  --ifm-color-primary-lighter: #45b584;
-  --ifm-color-primary-lightest: #73ca9f;
-
-  --ifm-background-color: var(--gg-sand-50);
-  --ifm-background-surface-color: #ffffff;
-  --ifm-font-color-base: var(--gg-ink-900);
-  --ifm-font-color-secondary: #41534e;
-  --ifm-color-emphasis-200: #d7e2de;
-  --ifm-color-emphasis-100: #edf3ef;
-  --ifm-link-color: var(--gg-forest-700);
-  --ifm-link-hover-color: #165943;
+  /* Flat, neutral backgrounds — aligned with shared theme */
+  --ifm-background-color: #ffffff;
+  --ifm-background-surface-color: #f7f7f7;
+  --ifm-font-color-base: #171717;
+  --ifm-font-color-secondary: #5c5c5c;
+  --ifm-color-emphasis-200: #e5e5e5;
+  --ifm-color-emphasis-100: #f5f5f5;
+  --ifm-color-emphasis-300: #d1d1d1;
+  --ifm-color-emphasis-700: #5c5c5c;
+  --ifm-link-color: var(--ifm-color-primary);
+  --ifm-link-hover-color: #145a33;
   --ifm-code-font-size: 93%;
 
   --ifm-font-family-base: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
@@ -34,45 +29,36 @@
   --ifm-h1-font-size: 2.4rem;
   --ifm-h2-font-size: 1.85rem;
   --ifm-h3-font-size: 1.4rem;
-
-  --gg-page-gradient:
-    radial-gradient(circle at 5% 0%, rgba(36, 144, 101, 0.12), transparent 30%),
-    radial-gradient(circle at 95% 15%, rgba(109, 198, 162, 0.16), transparent 30%),
-    linear-gradient(180deg, var(--gg-sand-50), #ffffff 24rem);
 }
 
 [data-theme="dark"] {
-  --ifm-color-primary: #52c592;
-  --ifm-color-primary-dark: #3fba83;
-  --ifm-color-primary-darker: #33aa75;
-  --ifm-color-primary-darkest: #2b8f64;
-  --ifm-color-primary-light: #68ce9f;
-  --ifm-color-primary-lighter: #7ad6ab;
-  --ifm-color-primary-lightest: #8addb6;
+  --ifm-color-primary: #2ebb6b;
+  --ifm-color-primary-dark: #27a65e;
+  --ifm-color-primary-darker: #239957;
+  --ifm-color-primary-darkest: #1d8048;
+  --ifm-color-primary-light: #45c97e;
+  --ifm-color-primary-lighter: #57cf8b;
+  --ifm-color-primary-lightest: #7adaa5;
 
-  --ifm-background-color: #091611;
-  --ifm-background-surface-color: #0e2018;
-  --ifm-font-color-base: #e7f5ee;
-  --ifm-font-color-secondary: #bed6cb;
-  --ifm-color-emphasis-200: #315146;
-  --ifm-color-emphasis-100: #233a32;
-  --ifm-link-color: #73d3a8;
-  --ifm-link-hover-color: #8fe3bb;
-
-  --gg-page-gradient:
-    radial-gradient(circle at 5% 0%, rgba(82, 197, 146, 0.24), transparent 35%),
-    radial-gradient(circle at 95% 15%, rgba(45, 120, 88, 0.35), transparent 35%),
-    linear-gradient(180deg, #091611, #0d2119 24rem);
+  --ifm-background-color: #171717;
+  --ifm-background-surface-color: #232323;
+  --ifm-font-color-base: #f5f7fa;
+  --ifm-font-color-secondary: #cacfd8;
+  --ifm-color-emphasis-200: #333333;
+  --ifm-color-emphasis-100: #292929;
+  --ifm-color-emphasis-300: #3d3d3d;
+  --ifm-color-emphasis-700: #99a0ae;
+  --ifm-link-color: #45c97e;
+  --ifm-link-hover-color: #7adaa5;
 }
 
 html,
 body {
-  background: var(--gg-page-gradient);
+  background: var(--ifm-background-color);
 }
 
 .navbar {
-  backdrop-filter: blur(7px);
-  background: color-mix(in srgb, var(--ifm-background-surface-color) 88%, transparent);
+  background: var(--ifm-background-color);
   border-bottom: 1px solid var(--ifm-color-emphasis-200);
 }
 
@@ -112,7 +98,15 @@ table {
 
 .footer {
   border-top: 1px solid var(--ifm-color-emphasis-200);
-  background: color-mix(in srgb, var(--ifm-background-surface-color) 95%, transparent);
+  background: var(--ifm-background-surface-color);
+}
+
+/* Hide external link icon on all links */
+.footer__link-item svg,
+.navbar__item svg,
+a[target="_blank"] svg.iconExternalLink_node_modules,
+a svg[class*="iconExternalLink"] {
+  display: none;
 }
 
 .theme-doc-markdown header + p,

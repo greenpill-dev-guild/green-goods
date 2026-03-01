@@ -1,10 +1,11 @@
 ---
 sidebar_position: 1
 slug: /
-title: Green Goods Documentation
+title: What is Green Goods
+sidebar_label: What is Green Goods
 audience: all
 owner: docs
-last_verified: 2026-02-19
+last_verified: 2026-03-01
 feature_status: Live
 source_of_truth:
   - docs/docusaurus.config.ts
@@ -13,94 +14,81 @@ keywords:
   - green goods docs
   - submit work
   - review work
-  - mint hypercert
-  - vault deposit
-  - query attestations
+  - regenerative
+  - impact verification
+  - capital formation
 ---
 
-import {RolePathCard, StatusBadge} from "@site/src/components/docs";
+import {RolePathCard} from "@site/src/components/docs";
 import styles from "@site/src/components/docs/styles.module.css";
 
-# Green Goods Documentation
+# What is Green Goods
 
-Role-first docs for Green Goods v1.
+Green Goods is a mobile-first platform that helps local communities **document**, **verify**, and **fund** their regenerative work — from tree planting and waste collection to solar maintenance and agroforestry.
 
-<StatusBadge status="Live" />
+Built by the [Greenpill Dev Guild](https://paragraph.com/@greenpilldevguild), Green Goods connects field workers to the verification and capital systems that make regenerative action sustainable.
 
-## Choose your path
+## The Core Loop
+
+```
+Evidence Capture → Community Verification → Impact Certification → Capital Formation
+(Gardener)         (Operator)               (Evaluator)           (Funder)
+```
+
+A **Gardener** photographs their tree planting. An **Operator** reviews and approves the work. An **Evaluator** certifies the impact claim. Verified impact flows into yield-bearing vaults and tokenized impact certificates that attract further funding.
+
+Learn more about the framework behind this loop in [How It Works](/concepts/impact-model), or explore [Why We Build](/concepts/mission-and-values) Green Goods.
+
+---
+
+## Get Started
 
 <div className={styles.roleGrid}>
   <RolePathCard
     title="Gardener"
     href="/gardener/get-started"
-    description="Document work with MDR, work offline, and track approvals and attestations."
-    audience="Gardeners in the field"
-    time="5-10 minutes"
-    status="Live"
-    ctaLabel="Open gardener path"
+    description="Document your regenerative work and build a verified impact record."
+    audience="Field workers"
+    time="5 min"
+    ctaLabel="Start documenting"
   />
   <RolePathCard
     title="Operator"
     href="/operator/get-started-and-roles"
-    description="Run garden operations, review work, and manage v1 endowment/governance features with explicit activation status."
-    audience="Garden operators"
-    time="10-20 minutes"
-    status="Live"
-    ctaLabel="Open operator path"
+    description="Manage your garden community, review submissions, and connect verified work to funding."
+    audience="Garden managers"
+    time="10 min"
+    ctaLabel="Start managing"
   />
   <RolePathCard
     title="Evaluator"
     href="/evaluator/get-started"
-    description="Query indexer and EAS data, verify attestation chains, and export analysis-ready datasets."
-    audience="Funders, analysts, researchers"
-    time="15-25 minutes"
-    status="Live"
-    ctaLabel="Open evaluator path"
-  />
-  <RolePathCard
-    title="Developers"
-    href="/developers/getting-started"
-    description="Build with architecture, patterns, integration, and operational references designed for human and AI use."
-    audience="Engineers and contributors"
-    time="20-40 minutes"
-    status="Live"
-    ctaLabel="Open developer hub"
-  />
-  <RolePathCard
-    title="Core Concepts"
-    href="/concepts/mission-and-values"
-    description="Understand the mission, impact model (CIDS), strategic goals, and real communities behind Green Goods."
-    audience="Anyone"
-    time="15-30 minutes"
-    status="Live"
-    ctaLabel="Explore core concepts"
+    description="Verify impact claims, analyze data, and produce reports that funders trust."
+    audience="Analysts & researchers"
+    time="15 min"
+    ctaLabel="Start evaluating"
   />
 </div>
 
-## Popular tasks
+---
 
-Use these intent-first links for common searches:
+## Build
 
-- [Submit work](/gardener/submit-work-mdr)
-- [Review work](/operator/review-work)
-- [Mint hypercert](/operator/mint-and-list-hypercerts)
-- [Vault deposit](/operator/vaults-and-treasury)
-- [Query attestations](/evaluator/query-eas)
+<div className={styles.roleGrid}>
+  <RolePathCard
+    title="Developers"
+    href="/developers/getting-started"
+    description="Build on the protocol — architecture, integrations, and API reference for human and AI developers."
+    audience="Engineers & contributors"
+    time="20 min"
+    ctaLabel="Open developer hub"
+  />
+</div>
 
-## v1 status model
+---
 
-Green Goods docs now distinguish:
+## Quick Actions
 
-- `Live`: available in production workflows.
-- `Implemented (activation pending indexing)`: deployed on chain, but indexer coverage is not active yet.
-- `Implemented (activation pending deployment)`: built in code and often present in UI, but blocked by deployment activation.
-- `Planned`: not implemented.
-
-Use [Deployment and Indexer Status](/developers/reference/deployment-indexer-status) as canonical source for activation state.
-
-## Quick links
-
-- App: [greengoods.app](https://greengoods.app)
-- Admin: [admin.greengoods.app](https://admin.greengoods.app)
-- Developer reference: [/developers/reference](/developers/reference)
-- Changelog: [/reference/changelog](/reference/changelog)
+- [Submit work](/gardener/submit-work-mdr) — Document a regenerative action
+- [Review submissions](/operator/review-work) — Approve or request changes
+- [Explore impact data](/evaluator/query-indexer) — Query gardens and actions
