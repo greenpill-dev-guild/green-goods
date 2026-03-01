@@ -303,7 +303,7 @@ export function createMockHypercertDraft(overrides: Partial<HypercertDraft> = {}
     stepNumber: 1,
     attestationIds: [],
     title: "Test Hypercert",
-    description: "A test hypercert for conservation work",
+    description: "A test hypercert for regenerative work",
     workScopes: ["gardening", "planting"],
     impactScopes: ["environment"],
     workTimeframeStart: now - 86400 * 30, // 30 days ago

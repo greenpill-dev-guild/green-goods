@@ -301,7 +301,7 @@ export const Gallery: Story = {
       <DateRangePicker label="Required" required id="gallery-required" />
       <DateRangePicker
         label="With Helper"
-        helperText="Select the conservation work period"
+        helperText="Select the regenerative work period"
         id="gallery-helper"
       />
       <DateRangePicker

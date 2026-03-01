@@ -261,7 +261,7 @@ describe("useHypercertDraft", () => {
   describe("saveDraft", () => {
     it("saves meaningful draft to IDB", async () => {
       const draft = createMockHypercertDraft({
-        title: "My Conservation Hypercert",
+        title: "My Regenerative Hypercert",
         attestationIds: ["0xAtt1"],
       });
       mockToDraft.mockReturnValue(draft);

@@ -29,7 +29,7 @@ function createValidParams(overrides: Partial<CreateAssessmentForm> = {}): Creat
   return {
     gardenId: TEST_GARDEN_ADDRESS,
     title: "Urban Garden Assessment",
-    description: "Assessment of the urban garden conservation work",
+    description: "Assessment of the urban garden regenerative work",
     assessmentType: "biodiversity",
     capitals: ["natural", "social"],
     metrics: { biodiversityScore: 85 },
@@ -39,7 +39,7 @@ function createValidParams(overrides: Partial<CreateAssessmentForm> = {}): Creat
     startDate: BASE_TIMESTAMP,
     endDate: BASE_TIMESTAMP + 86400000, // +1 day
     location: "Portland, OR",
-    tags: ["urban", "conservation"],
+    tags: ["urban", "regenerative"],
     ...overrides,
   };
 }
@@ -52,7 +52,7 @@ function createV2FormPayload(): CreateAssessmentForm {
   return {
     gardenId: TEST_GARDEN_ADDRESS_2,
     title: "Solar Panel Installation Assessment",
-    description: "Assessment of solar panel conservation work in Portland",
+    description: "Assessment of solar panel regenerative work in Portland",
     assessmentType: "domain-0",
     capitals: [], // v2 form sends empty capitals
     metrics: {
