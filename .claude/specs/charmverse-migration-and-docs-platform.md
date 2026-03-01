@@ -459,7 +459,7 @@ The guild's "About" page — rich content for the docs landing page:
 **Mission:** Foster positive-sum actions where impact = profit.
 
 **Regenerative Stack (4 products):**
-1. **Green Goods** — Biodiversity conservation on-chain, mobile PWA, verifiable impact attestations
+1. **Green Goods** — Biodiversity regeneration on-chain, mobile PWA, verifiable impact attestations
 2. **GreenWill** — Verifiable credentials mini-app for regen leaders, reputation tracking
 3. **Allo Alliance** — On-chain capital allocation (QF, conviction voting, gamified grants)
 4. **Public Goods Staking Protocol** — Squad staking for collective Ethereum validation, public goods funding streams

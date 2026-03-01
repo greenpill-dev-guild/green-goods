@@ -97,23 +97,24 @@ Track results here after each eval run.
 | **Task** | Eval case name (e.g., `known-bug-pr`, `create-query-hook`) |
 | **Score** | Points earned / max possible (e.g., `85/100`) |
 | **Turns** | Number of agent turns consumed |
+| **Baseline** | Previous best score for this agent+task combination (for regression tracking) |
 | **Notes** | Key observations, regressions, or failure modes |
 
 **Results:**
 
-| Date | Model | Agent | Task | Score | Turns | Notes |
-|------|-------|-------|------|-------|-------|-------|
-| 2026-02-27 | haiku-4.5 | triage | p0-security | 100/100 | 5 | Perfect: correct P0/security, identified PostHog vector, recommended log purge |
-| 2026-02-27 | haiku-4.5 | triage | p3-enhancement | 100/100 | 5 | Perfect: correct P4/enhancement, routed to /plan, no implementation guidance |
-| 2026-02-27 | opus-4.6 | code-reviewer | known-bug-pr | 100/100 | 20 | Perfect: found all 3 expected bugs + 5 valid bonus findings, 0 false positives |
-| 2026-02-27 | opus-4.6 | code-reviewer | hook-boundary-violation | 100/100 | 20 | Perfect: found all 3 expected findings + 5 valid bonus, 0 false positives |
-| 2026-02-27 | opus-4.6 | code-reviewer | clean-pr | 100/100 | 42 | Perfect: APPROVE with 0 findings. Recognized synthetic diff conventions. Note: a parallel run (31 turns) scored 40/100 — flagged real missing imports as build errors. Variance in synthetic eval handling |
-| 2026-02-27 | opus-4.6 | oracle | architectural-question | 100/100 | 28 | Perfect: identified boundary, all indexed/external items, 11+ sources cited |
-| 2026-02-27 | opus-4.6 | oracle | known-root-cause | 100/100 | 28 | Perfect: identified struct vs tuple ABI encoding mismatch, all affected files, git diff evidence |
-| 2026-02-27 | opus-4.6 | oracle | job-queue-architecture | 100/100 | 16 | Perfect: all 5 expected reasons + all breakage items, cited localStorage comment as proof |
-| 2026-02-27 | opus-4.6 | oracle | media-upload-failure | 100/100 | 27 | Perfect: identified blob URL lifecycle gap, mobile backgrounding, eager serialization fix |
-| 2026-02-27 | opus-4.6 | cracked-coder | create-query-hook | 100/100 | 65 | Perfect: useGardenMemberStats with Address type, queryKeys, barrel export, tests |
-| 2026-02-27 | opus-4.6 | cracked-coder | fix-mutation-error-handling | 100/100 | 64 | Perfect: createMutationErrorHandler replaces console.error, behavior preserved, authMode forwarded |
-| 2026-02-27 | opus-4.6 | cracked-coder | add-utility-hook | 100/100 | 56 | Perfect: useInterval follows useTimeout pattern exactly — isMountedRef, cleanup, { set, clear, isActive } |
-| 2026-02-27 | opus-4.6 | cracked-coder | fix-offline-sync-bug | 100/100 | 63 | Perfect: isContractError classifier, job:failed event, synced:false + failedReason, network retry preserved |
-| 2026-02-27 | opus-4.6 | cracked-coder | add-admin-component | 75/100 | 79 | Hook perfect (role filtering, queryKeys, Address). Admin component NOT created — agent exhausted turns on hook TDD cycle. Missing: GardenActivityFeed.tsx, i18n, Remixicon |
+| Date | Model | Agent | Task | Score | Baseline | Turns | Notes |
+|------|-------|-------|------|-------|----------|-------|-------|
+| 2026-02-27 | haiku-4.5 | triage | p0-security | 100/100 | — | 5 | Perfect: correct P0/security, identified PostHog vector, recommended log purge |
+| 2026-02-27 | haiku-4.5 | triage | p3-enhancement | 100/100 | — | 5 | Perfect: correct P4/enhancement, routed to /plan, no implementation guidance |
+| 2026-02-27 | opus-4.6 | code-reviewer | known-bug-pr | 100/100 | — | 20 | Perfect: found all 3 expected bugs + 5 valid bonus findings, 0 false positives |
+| 2026-02-27 | opus-4.6 | code-reviewer | hook-boundary-violation | 100/100 | — | 20 | Perfect: found all 3 expected findings + 5 valid bonus, 0 false positives |
+| 2026-02-27 | opus-4.6 | code-reviewer | clean-pr | 100/100 | — | 42 | Perfect: APPROVE with 0 findings. Recognized synthetic diff conventions. Note: a parallel run (31 turns) scored 40/100 — flagged real missing imports as build errors. Variance in synthetic eval handling |
+| 2026-02-27 | opus-4.6 | oracle | architectural-question | 100/100 | — | 28 | Perfect: identified boundary, all indexed/external items, 11+ sources cited |
+| 2026-02-27 | opus-4.6 | oracle | known-root-cause | 100/100 | — | 28 | Perfect: identified struct vs tuple ABI encoding mismatch, all affected files, git diff evidence |
+| 2026-02-27 | opus-4.6 | oracle | job-queue-architecture | 100/100 | — | 16 | Perfect: all 5 expected reasons + all breakage items, cited localStorage comment as proof |
+| 2026-02-27 | opus-4.6 | oracle | media-upload-failure | 100/100 | — | 27 | Perfect: identified blob URL lifecycle gap, mobile backgrounding, eager serialization fix |
+| 2026-02-27 | opus-4.6 | cracked-coder | create-query-hook | 100/100 | — | 65 | Perfect: useGardenMemberStats with Address type, queryKeys, barrel export, tests |
+| 2026-02-27 | opus-4.6 | cracked-coder | fix-mutation-error-handling | 100/100 | — | 64 | Perfect: createMutationErrorHandler replaces console.error, behavior preserved, authMode forwarded |
+| 2026-02-27 | opus-4.6 | cracked-coder | add-utility-hook | 100/100 | — | 56 | Perfect: useInterval follows useTimeout pattern exactly — isMountedRef, cleanup, { set, clear, isActive } |
+| 2026-02-27 | opus-4.6 | cracked-coder | fix-offline-sync-bug | 100/100 | — | 63 | Perfect: isContractError classifier, job:failed event, synced:false + failedReason, network retry preserved |
+| 2026-02-27 | opus-4.6 | cracked-coder | add-admin-component | 75/100 | — | 79 | Hook perfect (role filtering, queryKeys, Address). Admin component NOT created — agent exhausted turns on hook TDD cycle. Missing: GardenActivityFeed.tsx, i18n, Remixicon |

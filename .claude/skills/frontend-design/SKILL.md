@@ -65,7 +65,7 @@ When implementing UI for Green Goods, this skill works alongside:
 ### Green Goods Aesthetic
 
 - **Color**: Primary green (#1FC16B) with earth-toned accents
-- **Feel**: Organic, trustworthy, action-oriented (conservation/nature)
+- **Feel**: Organic, trustworthy, action-oriented (regenerative/nature)
 - **Tokens**: Use semantic tokens from `packages/shared/src/styles/theme.css`
 - **Typography**: `packages/client/src/styles/typography.css` for existing hierarchy
 - **Animation**: `packages/client/src/styles/animation.css` for existing motions

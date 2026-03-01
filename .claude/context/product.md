@@ -4,7 +4,7 @@ Loaded for product-facing decisions: UX trade-offs, feature scoping, copy/messag
 
 ## Core Thesis
 
-Verified, low-friction impact capture + standardized reporting + funding primitives (yield-to-impact + tokenized certificates) reduce verification/reporting overhead enough to unlock consistent funding for grassroots conservation projects.
+Verified, low-friction impact capture + standardized reporting + funding primitives (yield-to-impact + tokenized certificates) reduce verification/reporting overhead enough to unlock consistent funding for grassroots regenerative projects.
 
 ## Positioning
 
@@ -118,7 +118,7 @@ Resolve conflicts in this order (highest priority first):
 
 - "Evidence capture and verification workflow"
 - "Verified impact reporting"
-- "Community-validated conservation work"
+- "Community-validated regenerative work"
 - "Cryptographic proof of impact"
 - "On-chain impact records"
 

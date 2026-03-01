@@ -32,7 +32,7 @@ When invoked:
 
 ### Core Concept
 
-Green Goods is **offline-first**: users can document conservation work without internet. All write operations go through the job queue, which persists to IndexedDB and syncs when online.
+Green Goods is **offline-first**: users can document regenerative work without internet. All write operations go through the job queue, which persists to IndexedDB and syncs when online.
 
 ```text
 +----------+     +-----------+     +-----------+     +------------+
@@ -50,7 +50,7 @@ Green Goods is **offline-first**: users can document conservation work without i
 
 | Kind | Payload | Description |
 |------|---------|-------------|
-| `"work"` | `WorkJobPayload` | Submit conservation work on-chain |
+| `"work"` | `WorkJobPayload` | Submit regenerative work on-chain |
 | `"approval"` | `ApprovalJobPayload` | Approve submitted work |
 
 ### Job Lifecycle

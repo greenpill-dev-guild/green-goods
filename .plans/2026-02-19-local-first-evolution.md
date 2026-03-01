@@ -319,7 +319,7 @@ export const STALE_TIMES = {
 
 **Goal**: Replace `sessionStorage`-based form persistence with IndexedDB-backed persistence that survives browser closes.
 
-**Why**: `form.ts` uses `sessionStorage` which clears when the browser tab closes. Conservation workers on mobile frequently close/reopen the PWA — losing mid-form progress is a significant UX pain point.
+**Why**: `form.ts` uses `sessionStorage` which clears when the browser tab closes. Field workers on mobile frequently close/reopen the PWA — losing mid-form progress is a significant UX pain point.
 
 ### Files to modify
 

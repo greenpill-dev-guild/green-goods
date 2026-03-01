@@ -21,7 +21,7 @@ Per-package: `bun run test`, `bun build`, `bun lint` (check each package.json fo
 
 ## Architecture
 
-Green Goods is an **offline-first, single-chain** platform for documenting conservation work on-chain. Bun monorepo.
+Green Goods is an **offline-first, single-chain** platform for documenting regenerative work on-chain. Bun monorepo.
 
 ### Key Principles
 1. **Offline-First**: Client PWA works without internet, syncs when connected

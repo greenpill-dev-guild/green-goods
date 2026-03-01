@@ -16,7 +16,7 @@ The traditional development career ladder (junior → mid → senior → lead) i
 
 ### What This Means for the Guild
 
-- **Every guild member operates as a "10x generalist"** — AI handles breadth, humans provide depth in domain expertise (regenerative finance, on-chain conservation, Hats Protocol governance)
+- **Every guild member operates as a "10x generalist"** — AI handles breadth, humans provide depth in domain expertise (regenerative finance, on-chain regeneration, Hats Protocol governance)
 - **Code is about to cost nothing; knowing what to build costs everything** — invest guild time in problem definition, user research, and protocol design, not implementation mechanics
 - **Small bets, rapid iteration** — ship experimental features in hours, not weeks. Validate with real users before investing in production hardening
 
@@ -342,7 +342,7 @@ GOOD: "Verify: bun run test in packages/shared passes,
 3. **Log everything** — lessons, decisions, gotchas. Your future self (and AI) will thank you
 4. **Templates compound** — every spec template saved is 15 minutes saved next time
 5. **Measure what matters** — time-to-merge, bug rate, spec accuracy
-6. **Stay high-agency** — AI handles breadth, you provide depth in what matters (regenerative finance, conservation impact, community governance)
+6. **Stay high-agency** — AI handles breadth, you provide depth in what matters (regenerative finance, regenerative impact, community governance)
 7. **Code costs nothing, knowing what to build costs everything** — invest guild time in problem definition and user research
 
 ---

@@ -425,7 +425,7 @@ steps:
   - id: extract
     command: >
       openclaw.invoke --tool llm-task --action json --args-json '{
-        "prompt": "You are a product manager for Green Goods, an offline-first conservation platform. Analyze this meeting transcript and extract ALL actionable items. Categorize each as: bug, polish, feature, or task. For bugs include severity and reproduction steps. For features include acceptance criteria. For all items include suggested GitHub labels from: bug, enhancement, ui/ux, contracts, indexer, client, admin, shared, agent.",
+        "prompt": "You are a product manager for Green Goods, an offline-first regenerative platform. Analyze this meeting transcript and extract ALL actionable items. Categorize each as: bug, polish, feature, or task. For bugs include severity and reproduction steps. For features include acceptance criteria. For all items include suggested GitHub labels from: bug, enhancement, ui/ux, contracts, indexer, client, admin, shared, agent.",
         "schema": {
           "type": "object",
           "properties": {

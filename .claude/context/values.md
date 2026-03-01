@@ -2,7 +2,7 @@
 
 ## Organizational Intent
 
-Green Goods exists to make verified conservation work fundable at scale. Every engineering decision serves this core loop:
+Green Goods exists to make verified regenerative work fundable at scale. Every engineering decision serves this core loop:
 
 ```
 Evidence Capture → Community Verification → Impact Certification → Capital Formation
