@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/Layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
+import { SkeletonGrid } from "@/components/ui/Skeleton";
 import { SortSelect } from "@/components/ui/SortSelect";
 
 export default function Gardens() {
@@ -122,23 +123,14 @@ export default function Gardens() {
 
       <div className="mt-6 space-y-6 px-4 sm:px-6">
         {isLoading && (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="animate-pulse overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm"
-              >
-                <div className="h-48 bg-bg-soft" />
-                <div className="space-y-4 p-6">
-                  <div className="space-y-2">
-                    <div className="h-6 rounded bg-bg-soft" />
-                    <div className="h-4 w-24 rounded bg-bg-soft" />
-                  </div>
-                  <div className="h-4 rounded bg-bg-soft" />
-                  <div className="h-4 w-3/4 rounded bg-bg-soft" />
-                </div>
-              </div>
-            ))}
+          <div role="status" aria-live="polite">
+            <span className="sr-only">
+              {intl.formatMessage({
+                id: "admin.gardens.loadingMessage",
+                defaultMessage: "Loading gardens...",
+              })}
+            </span>
+            <SkeletonGrid count={8} columns={4} />
           </div>
         )}
 
@@ -208,7 +200,7 @@ export default function Gardens() {
         )}
 
         {!isLoading && filteredGardens.length > 0 && (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+          <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {filteredGardens.map((garden) => {
               const canManage = gardenPermissions.canManageGarden(garden);
               const resolvedBannerImage = garden.bannerImage

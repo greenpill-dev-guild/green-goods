@@ -6,7 +6,6 @@ import {
   RiPlantLine,
   RiSafe2Line,
   RiSettings3Line,
-  RiTerminalLine,
   RiUploadLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -53,13 +52,6 @@ const navigation = [
     nameId: "app.sidebar.deployment",
     href: "/deployment",
     icon: RiUploadLine,
-    roles: ["deployer"],
-  },
-  {
-    name: "Ops",
-    nameId: "app.sidebar.ops",
-    href: "/ops",
-    icon: RiTerminalLine,
     roles: ["deployer"],
   },
 ];

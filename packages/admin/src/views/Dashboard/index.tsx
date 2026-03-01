@@ -1,7 +1,10 @@
-import { useGardens, useRole } from "@green-goods/shared";
-import { RiPlantLine, RiUserLine } from "@remixicon/react";
+import { resolveIPFSUrl, useGardens, useRole } from "@green-goods/shared";
+import { RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { StatCard } from "@/components/StatCard";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonGrid } from "@/components/ui/Skeleton";
 
 function DashboardHeader({
   role,
@@ -60,16 +63,19 @@ export default function Dashboard() {
   const totalOperators = new Set(gardens.flatMap((g) => g.operators)).size;
   const totalGardeners = new Set(gardens.flatMap((g) => g.gardeners)).size;
 
+  const displayGardens = role === "operator" ? operatorGardens : gardens;
+
   if (isLoading) {
     return (
       <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-bg-soft rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-bg-soft rounded"></div>
-            ))}
-          </div>
+        <div role="status" aria-live="polite">
+          <span className="sr-only">
+            {intl.formatMessage({
+              id: "admin.dashboard.loading",
+              defaultMessage: "Loading dashboard...",
+            })}
+          </span>
+          <SkeletonGrid count={6} columns={3} />
         </div>
       </div>
     );
@@ -186,147 +192,164 @@ export default function Dashboard() {
       <DashboardHeader role={role} gardenCount={operatorGardens.length} intl={intl} />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-bg-white p-6 rounded-lg shadow-sm border border-stroke-soft">
-          <div className="flex items-center">
-            <div className="p-2 bg-success-lighter rounded-lg">
-              <RiPlantLine className="h-6 w-6 text-success-dark" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-text-soft">
-                {role === "operator"
-                  ? intl.formatMessage({
-                      id: "admin.dashboard.stats.yourGardens",
-                      defaultMessage: "Your Gardens",
-                    })
-                  : intl.formatMessage({
-                      id: "admin.dashboard.stats.totalGardens",
-                      defaultMessage: "Total Gardens",
-                    })}
-              </p>
-              <p className="text-2xl font-bold text-text-strong">
-                {role === "operator" ? userOperatorGardens : totalGardens}
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="stagger-children grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatCard
+          icon={<RiPlantLine className="h-5 w-5" />}
+          label={
+            role === "operator"
+              ? intl.formatMessage({
+                  id: "admin.dashboard.stats.yourGardens",
+                  defaultMessage: "Your Gardens",
+                })
+              : intl.formatMessage({
+                  id: "admin.dashboard.stats.totalGardens",
+                  defaultMessage: "Total Gardens",
+                })
+          }
+          value={role === "operator" ? userOperatorGardens : totalGardens}
+          colorScheme="success"
+        />
 
         {(role === "deployer" || role === "operator") && (
           <>
-            <div className="bg-bg-white p-6 rounded-lg shadow-sm border border-stroke-soft">
-              <div className="flex items-center">
-                <div className="p-2 bg-information-lighter rounded-lg">
-                  <RiUserLine className="h-6 w-6 text-information-dark" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-text-soft">
-                    {intl.formatMessage({
-                      id: "admin.dashboard.stats.totalOperators",
-                      defaultMessage: "Total Operators",
-                    })}
-                  </p>
-                  <p className="text-2xl font-bold text-text-strong">{totalOperators}</p>
-                </div>
-              </div>
-            </div>
+            <StatCard
+              icon={<RiUserLine className="h-5 w-5" />}
+              label={intl.formatMessage({
+                id: "admin.dashboard.stats.totalOperators",
+                defaultMessage: "Total Operators",
+              })}
+              value={totalOperators}
+              colorScheme="info"
+            />
 
-            <div className="bg-bg-white p-6 rounded-lg shadow-sm border border-stroke-soft">
-              <div className="flex items-center">
-                <div className="p-2 bg-warning-lighter rounded-lg">
-                  <RiUserLine className="h-6 w-6 text-warning-dark" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-text-soft">
-                    {intl.formatMessage({
-                      id: "admin.dashboard.stats.totalGardeners",
-                      defaultMessage: "Total Gardeners",
-                    })}
-                  </p>
-                  <p className="text-2xl font-bold text-text-strong">{totalGardeners}</p>
-                </div>
-              </div>
-            </div>
+            <StatCard
+              icon={<RiUserLine className="h-5 w-5" />}
+              label={intl.formatMessage({
+                id: "admin.dashboard.stats.totalGardeners",
+                defaultMessage: "Total Gardeners",
+              })}
+              value={totalGardeners}
+              colorScheme="warning"
+            />
           </>
         )}
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-bg-white rounded-lg shadow-sm border border-stroke-soft">
-        <div className="p-6 border-b border-stroke-soft">
-          <h2 className="text-lg font-medium text-text-strong">
-            {intl.formatMessage({
-              id: "admin.dashboard.recentGardens",
-              defaultMessage: "Recent Gardens",
-            })}
-          </h2>
-        </div>
-        <div className="p-6">
-          {role === "operator"
-            ? operatorGardens.slice(0, 5).map((garden) => (
-                <div
-                  key={garden.id}
-                  className="flex items-center justify-between py-3 border-b border-stroke-soft last:border-b-0"
-                >
-                  <div>
-                    <h3 className="text-sm font-medium text-text-strong">{garden.name}</h3>
-                    <p className="text-sm text-text-soft">
-                      {intl.formatMessage({
-                        id: "admin.dashboard.operatorGarden",
-                        defaultMessage: "Operator Garden",
-                      })}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-text-soft">
-                      {intl.formatMessage({
-                        id: "admin.dashboard.managedGarden",
-                        defaultMessage: "Managed Garden",
-                      })}
-                    </p>
-                  </div>
-                </div>
-              ))
-            : gardens.slice(0, 5).map((garden) => (
-                <div
-                  key={garden.id}
-                  className="flex items-center justify-between py-3 border-b border-stroke-soft last:border-b-0"
-                >
-                  <div>
-                    <h3 className="text-sm font-medium text-text-strong">{garden.name}</h3>
-                    <p className="text-sm text-text-soft">
-                      {garden.location ||
-                        intl.formatMessage({
-                          id: "admin.dashboard.noLocation",
-                          defaultMessage: "No location",
-                        })}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-text-soft">
-                      {intl.formatMessage(
-                        {
-                          id: "admin.dashboard.gardenMembers",
-                          defaultMessage: "{operators} operators, {gardeners} gardeners",
-                        },
-                        {
-                          operators: garden.operators?.length || 0,
-                          gardeners: garden.gardeners?.length || 0,
-                        }
-                      )}
-                    </p>
-                  </div>
-                </div>
-              ))}
-          {(role === "operator" ? operatorGardens : gardens).length === 0 && (
-            <p className="text-text-soft text-center py-8">
-              {intl.formatMessage({
-                id: "admin.dashboard.noGardens",
-                defaultMessage: "No gardens found",
-              })}
-            </p>
-          )}
-        </div>
+      {/* Garden Cards */}
+      <div className="mb-4">
+        <h2 className="text-lg font-medium text-text-strong">
+          {intl.formatMessage({
+            id: "admin.dashboard.recentGardens",
+            defaultMessage: "Recent Gardens",
+          })}
+        </h2>
       </div>
+
+      {displayGardens.length === 0 && (
+        <EmptyState
+          icon={<RiPlantLine className="h-6 w-6" />}
+          title={intl.formatMessage({
+            id: "admin.dashboard.noGardens",
+            defaultMessage: "No gardens found",
+          })}
+          description={intl.formatMessage({
+            id: "admin.dashboard.noGardens.description",
+            defaultMessage: "Gardens will appear here once created.",
+          })}
+        />
+      )}
+
+      {displayGardens.length > 0 && (
+        <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {displayGardens.slice(0, 6).map((garden) => {
+            const resolvedBannerImage = garden.bannerImage
+              ? resolveIPFSUrl(garden.bannerImage)
+              : null;
+
+            return (
+              <Link
+                key={garden.id}
+                to={`/gardens/${garden.id}`}
+                className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md hover:border-primary-base"
+              >
+                <div className="relative h-36">
+                  {resolvedBannerImage ? (
+                    <img
+                      src={resolvedBannerImage}
+                      alt={garden.name}
+                      className="h-full w-full object-cover"
+                      onError={(event) => {
+                        const placeholder = event.currentTarget
+                          .nextElementSibling as HTMLElement | null;
+                        if (placeholder) {
+                          placeholder.style.display = "flex";
+                        }
+                        event.currentTarget.style.display = "none";
+                      }}
+                      loading="lazy"
+                    />
+                  ) : null}
+                  <div
+                    className={`absolute inset-0 items-center justify-center bg-gradient-to-br from-primary-dark via-primary-base to-primary-darker text-primary-foreground ${resolvedBannerImage ? "hidden" : "flex"}`}
+                    style={{ display: resolvedBannerImage ? "none" : "flex" }}
+                  >
+                    <div className="text-center">
+                      <div className="text-2xl font-bold opacity-80">{garden.name.charAt(0)}</div>
+                    </div>
+                  </div>
+                  {role === "operator" && (
+                    <div className="absolute top-2 right-2 flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark">
+                      <RiShieldCheckLine className="mr-1 h-3 w-3" />
+                      {intl.formatMessage({
+                        id: "admin.dashboard.operatorBadge",
+                        defaultMessage: "Operator",
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h3 className="text-sm font-medium text-text-strong group-hover:text-primary-dark line-clamp-1">
+                    {garden.name}
+                  </h3>
+                  <p className="text-xs text-text-soft mt-0.5 line-clamp-1">
+                    {garden.location ||
+                      intl.formatMessage({
+                        id: "admin.dashboard.noLocation",
+                        defaultMessage: "No location",
+                      })}
+                  </p>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-text-soft">
+                    <div className="flex items-center gap-1">
+                      <RiUserLine className="h-3 w-3" />
+                      <span>
+                        {intl.formatMessage(
+                          {
+                            id: "admin.dashboard.gardenOperators",
+                            defaultMessage: "{count, plural, one {# op} other {# ops}}",
+                          },
+                          { count: garden.operators?.length || 0 }
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <RiPlantLine className="h-3 w-3" />
+                      <span>
+                        {intl.formatMessage(
+                          {
+                            id: "admin.dashboard.gardenGardeners",
+                            defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}",
+                          },
+                          { count: garden.gardeners?.length || 0 }
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

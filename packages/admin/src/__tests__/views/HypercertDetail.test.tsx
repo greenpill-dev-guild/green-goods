@@ -89,7 +89,7 @@ const mockGarden = {
 
 const mockHypercert = {
   id: "hc-123",
-  title: "Conservation Hypercert",
+  title: "Regenerative Hypercert",
   description: "Documenting tree planting work",
   imageUri: "ipfs://QmImage123",
   mintedAt: 1700000000,
@@ -189,7 +189,7 @@ describe("HypercertDetail View", () => {
 
       renderWithIntl(<HypercertDetail />);
 
-      expect(screen.getByText("Conservation Hypercert")).toBeInTheDocument();
+      expect(screen.getByText("Regenerative Hypercert")).toBeInTheDocument();
       expect(screen.getByText("Documenting tree planting work")).toBeInTheDocument();
     });
 

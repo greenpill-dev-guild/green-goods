@@ -3,21 +3,18 @@ import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
-import { GardenDomainEditor } from "@/components/Garden/GardenDomainEditor";
 import { GardenMetadata } from "@/components/Garden/GardenMetadata";
 import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 
-import { AlertRow, SectionStateCard, TabActionCard } from "./GardenDetailHelpers";
+import { AlertRow, SectionStateCard } from "./GardenDetailHelpers";
 import { RANGE_OPTIONS, SECTION_CARD_MIN_HEIGHT } from "./gardenDetail.constants";
 import type {
   ActivityFilter,
   GardenActivityEvent,
   GardenRange,
   GardenTab,
-  TabAction,
   TabBadgeSeverity,
 } from "./gardenDetail.types";
 
@@ -40,10 +37,9 @@ export interface OverviewTabProps {
   openSection: (tab: GardenTab, section: string, itemId?: string) => void;
   updateQueryState: (
     updates: Partial<Record<"tab" | "range" | "section" | "item", string | undefined>>,
-    replace?: boolean,
+    replace?: boolean
   ) => void;
   setTab: (tab: GardenTab) => void;
-  overviewActionMenu: TabAction[];
   overviewAlerts: Array<{
     key: string;
     severity: Exclude<TabBadgeSeverity, "none">;
@@ -57,6 +53,10 @@ export interface OverviewTabProps {
   activityFilter: ActivityFilter;
   setActivityFilter: (filter: ActivityFilter) => void;
   filteredActivityEvents: GardenActivityEvent[];
+  pendingWorkCount: number;
+  assessmentCount30d: number;
+  gardenerCount: number;
+  treasuryBalance: string;
 }
 
 export function OverviewTab({
@@ -70,7 +70,6 @@ export function OverviewTab({
   openSection,
   updateQueryState,
   setTab,
-  overviewActionMenu,
   overviewAlerts,
   gardenHealthLabel,
   approvedInRangeCount,
@@ -79,25 +78,15 @@ export function OverviewTab({
   activityFilter,
   setActivityFilter,
   filteredActivityEvents,
+  pendingWorkCount,
+  assessmentCount30d,
+  gardenerCount,
+  treasuryBalance,
 }: OverviewTabProps) {
   const { formatMessage } = useIntl();
 
   return (
     <div className="garden-tab-shell">
-      <TabActionCard
-        title={formatMessage({ id: "app.garden.detail.overview.actionTitle" })}
-        description={formatMessage({ id: "app.garden.detail.overview.actionDescription" })}
-        primaryAction={
-          canManage ? (
-            <Button size="sm" onClick={() => openSection("overview", "metadata")}>
-              {formatMessage({ id: "app.garden.detail.action.manageProfile" })}
-            </Button>
-          ) : null
-        }
-        overflowActions={overviewActionMenu}
-        menuAriaLabel={formatMessage({ id: "app.garden.detail.action.more" })}
-      />
-
       <div className="garden-tab-layout">
         <div className="garden-tab-main">
           {section ? (
@@ -110,8 +99,6 @@ export function OverviewTab({
               onClose={clearSection}
             />
           ) : null}
-
-          <GardenDomainEditor gardenAddress={garden.id as Address} canManage={canManage} />
 
           {canManage && section === "metadata" ? (
             <>
@@ -183,7 +170,7 @@ export function OverviewTab({
                                   ? "app.garden.detail.metric.deltaUp"
                                   : "app.garden.detail.metric.deltaDown",
                             },
-                            { count: Math.abs(impactVelocityDelta) },
+                            { count: Math.abs(impactVelocityDelta) }
                           )}
                     </p>
                   </div>
@@ -195,7 +182,7 @@ export function OverviewTab({
                       {medianReviewAgeHours > 0
                         ? formatMessage(
                             { id: "app.garden.detail.metric.hoursValue" },
-                            { hours: Math.round(medianReviewAgeHours) },
+                            { hours: Math.round(medianReviewAgeHours) }
                           )
                         : formatMessage({ id: "app.garden.detail.metric.notAvailable" })}
                     </p>
@@ -320,33 +307,61 @@ export function OverviewTab({
             <Card>
               <Card.Header>
                 <h3 className="label-md text-text-strong">
-                  {formatMessage({ id: "app.garden.detail.quickLinks" })}
+                  {formatMessage({ id: "app.garden.detail.keyMetrics" })}
                 </h3>
               </Card.Header>
               <Card.Body className="space-y-2">
                 <button
                   type="button"
-                  onClick={() => setTab("impact")}
-                  className="flex w-full items-center justify-between rounded-md border border-stroke-soft px-3 py-2 text-sm text-text-sub hover:bg-bg-weak"
+                  onClick={() => setTab("work")}
+                  className="garden-stat-row w-full"
                 >
-                  <span>{formatMessage({ id: "app.garden.admin.tab.impact" })}</span>
-                  <RiArrowRightSLine className="h-4 w-4" />
+                  <span className="garden-stat-row-label">
+                    {formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="garden-stat-row-value">{pendingWorkCount}</span>
+                    <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
+                  </span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTab("work")}
-                  className="flex w-full items-center justify-between rounded-md border border-stroke-soft px-3 py-2 text-sm text-text-sub hover:bg-bg-weak"
+                  onClick={() => setTab("impact")}
+                  className="garden-stat-row w-full"
                 >
-                  <span>{formatMessage({ id: "app.garden.admin.tab.work" })}</span>
-                  <RiArrowRightSLine className="h-4 w-4" />
+                  <span className="garden-stat-row-label">
+                    {formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="garden-stat-row-value">{assessmentCount30d}</span>
+                    <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setTab("community")}
-                  className="flex w-full items-center justify-between rounded-md border border-stroke-soft px-3 py-2 text-sm text-text-sub hover:bg-bg-weak"
+                  className="garden-stat-row w-full"
                 >
-                  <span>{formatMessage({ id: "app.garden.admin.tab.community" })}</span>
-                  <RiArrowRightSLine className="h-4 w-4" />
+                  <span className="garden-stat-row-label">
+                    {formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="garden-stat-row-value">{gardenerCount}</span>
+                    <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openSection("community", "treasury")}
+                  className="garden-stat-row w-full"
+                >
+                  <span className="garden-stat-row-label">
+                    {formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="garden-stat-row-value">{treasuryBalance}</span>
+                    <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
+                  </span>
                 </button>
               </Card.Body>
             </Card>

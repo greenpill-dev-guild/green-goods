@@ -7,9 +7,9 @@ import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { SectionStateCard, TabActionCard } from "./GardenDetailHelpers";
+import { SectionStateCard } from "./GardenDetailHelpers";
 import { SECTION_CARD_MIN_HEIGHT } from "./gardenDetail.constants";
-import type { GardenTab, TabAction } from "./gardenDetail.types";
+import type { GardenTab } from "./gardenDetail.types";
 
 export interface ImpactTabProps {
   garden: { id: string; chainId: number };
@@ -20,7 +20,6 @@ export interface ImpactTabProps {
   selectedItem: string | undefined;
   clearSection: () => void;
   openSection: (tab: GardenTab, section: string, itemId?: string) => void;
-  impactActionMenu: TabAction[];
   assessments: Array<{ id: string; title?: string; assessmentType?: string; createdAt: number }>;
   fetchingAssessments: boolean;
   assessmentsError: Error | null;
@@ -39,7 +38,6 @@ export function ImpactTab({
   selectedItem,
   clearSection,
   openSection,
-  impactActionMenu,
   assessments,
   fetchingAssessments,
   assessmentsError,
@@ -55,29 +53,6 @@ export function ImpactTab({
 
   return (
     <div className="garden-tab-shell">
-      <TabActionCard
-        title={formatMessage({ id: "app.garden.detail.impact.actionTitle" })}
-        description={formatMessage({ id: "app.garden.detail.impact.actionDescription" })}
-        primaryAction={
-          canReview ? (
-            <Button size="sm" asChild>
-              <Link to={`/gardens/${gardenId}/assessments/create`}>
-                <RiFileList3Line className="h-4 w-4" />
-                {formatMessage({ id: "app.garden.admin.newAssessment" })}
-              </Link>
-            </Button>
-          ) : (
-            <Button size="sm" variant="secondary" asChild>
-              <Link to={`/gardens/${gardenId}/assessments`}>
-                {formatMessage({ id: "app.garden.admin.viewAssessments" })}
-              </Link>
-            </Button>
-          )
-        }
-        overflowActions={impactActionMenu}
-        menuAriaLabel={formatMessage({ id: "app.garden.detail.action.more" })}
-      />
-
       <div className="garden-tab-layout">
         <div className="garden-tab-main">
           {section ? (
@@ -166,56 +141,6 @@ export function ImpactTab({
             </Card>
           )}
 
-          {(section === undefined || section === "reporting") && (
-            <Card>
-              <Card.Header className="flex-wrap gap-3">
-                <div>
-                  <h3 className="label-md text-text-strong sm:text-lg">
-                    {formatMessage({ id: "app.garden.detail.impact.reportingTitle" })}
-                  </h3>
-                  <p className="mt-1 text-sm text-text-sub">
-                    {formatMessage({ id: "app.garden.detail.impact.reportingDescription" })}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => openSection("impact", "reporting")}
-                >
-                  {formatMessage({ id: "app.garden.detail.action.openReporting" })}
-                </Button>
-              </Card.Header>
-              <Card.Body>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <div className="rounded-lg border border-stroke-soft bg-bg-weak p-3">
-                    <p className="label-xs text-text-soft">
-                      {formatMessage({ id: "app.garden.detail.metric.assessments" })}
-                    </p>
-                    <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
-                      {assessments.length}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-stroke-soft bg-bg-weak p-3">
-                    <p className="label-xs text-text-soft">
-                      {formatMessage({ id: "app.garden.detail.metric.hypercerts" })}
-                    </p>
-                    <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
-                      {hypercerts.length}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-stroke-soft bg-bg-weak p-3">
-                    <p className="label-xs text-text-soft">
-                      {formatMessage({ id: "app.garden.detail.metric.approvedIn30d" })}
-                    </p>
-                    <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
-                      {approvedInLastThirtyDays}
-                    </p>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          )}
-
           {section === "assessments" ? (
             <GardenAssessmentsPanel
               assessments={assessments}
@@ -296,26 +221,47 @@ export function ImpactTab({
             <Card>
               <Card.Header>
                 <h3 className="label-md text-text-strong">
-                  {formatMessage({ id: "app.garden.detail.domains" })}
+                  {formatMessage({ id: "app.garden.detail.impactSummary" })}
                 </h3>
               </Card.Header>
-              <Card.Body>
-                <div className="flex flex-wrap gap-2">
-                  {domainLabels.length > 0 ? (
-                    domainLabels.map((domainLabel) => (
-                      <span
-                        key={domainLabel}
-                        className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-0.5 text-xs font-medium text-primary-dark"
-                      >
-                        {domainLabel}
-                      </span>
-                    ))
-                  ) : (
-                    <p className="text-sm text-text-soft">
-                      {formatMessage({ id: "app.garden.detail.domainsNone" })}
-                    </p>
-                  )}
+              <Card.Body className="space-y-3">
+                <div className="space-y-2">
+                  <div className="garden-stat-row">
+                    <span className="garden-stat-row-label">
+                      {formatMessage({ id: "app.garden.detail.impactSummary.totalAssessments" })}
+                    </span>
+                    <span className="garden-stat-row-value">{assessments.length}</span>
+                  </div>
+                  <div className="garden-stat-row">
+                    <span className="garden-stat-row-label">
+                      {formatMessage({ id: "app.garden.detail.impactSummary.totalHypercerts" })}
+                    </span>
+                    <span className="garden-stat-row-value">{hypercerts.length}</span>
+                  </div>
+                  <div className="garden-stat-row">
+                    <span className="garden-stat-row-label">
+                      {formatMessage({ id: "app.garden.detail.metric.approvedIn30d" })}
+                    </span>
+                    <span className="garden-stat-row-value">{approvedInLastThirtyDays}</span>
+                  </div>
                 </div>
+                {domainLabels.length > 0 ? (
+                  <div className="border-t border-stroke-soft pt-3">
+                    <p className="mb-2 text-xs font-medium text-text-soft">
+                      {formatMessage({ id: "app.garden.detail.domains" })}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {domainLabels.map((domainLabel) => (
+                        <span
+                          key={domainLabel}
+                          className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-0.5 text-xs font-medium text-primary-dark"
+                        >
+                          {domainLabel}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </Card.Body>
             </Card>
           </div>

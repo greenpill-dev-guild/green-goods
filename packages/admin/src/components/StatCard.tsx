@@ -1,6 +1,6 @@
 import type React from "react";
 
-import { cn } from "./ui/cn";
+import { cn } from "@green-goods/shared";
 
 type ColorScheme = "success" | "warning" | "error" | "info";
 
@@ -31,7 +31,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   return (
     <div
       className={cn(
-        "rounded-lg border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-4",
+        "rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-4",
         className
       )}
     >

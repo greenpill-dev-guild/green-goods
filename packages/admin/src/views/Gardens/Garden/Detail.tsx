@@ -2,6 +2,7 @@ import {
   type Address,
   ConfirmDialog,
   formatAddress,
+  formatTokenAmount,
   GARDEN_ROLE_COLORS,
   type GardenRole,
   toastService,
@@ -10,6 +11,7 @@ import {
 import {
   RiCheckboxCircleLine,
   RiErrorWarningLine,
+  RiFileList3Line,
   RiGroupLine,
   RiShieldCheckLine,
   RiUserLine,
@@ -19,13 +21,14 @@ import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
+import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
 import { MembersModal } from "@/components/Garden/MembersModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CommunityTab } from "./CommunityTab";
-import { TabBadge } from "./GardenDetailHelpers";
+import { GardenHeroBanner, TabBadge } from "./GardenDetailHelpers";
 import { TAB_SECTIONS, TAB_TRIGGER_BASE } from "./gardenDetail.constants";
 import type { ActivityFilter, GardenTab } from "./gardenDetail.types";
 import { parseGardenRange, parseGardenTab } from "./gardenDetail.utils";
@@ -83,6 +86,7 @@ export default function GardenDetail() {
     address: Address;
     role: GardenRole;
   } | null>(null);
+  const [domainModalOpen, setDomainModalOpen] = useState(false);
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
   const [memberSearch, setMemberSearch] = useState("");
   const [lastWorkRefreshAt, setLastWorkRefreshAt] = useState<number>(Date.now());
@@ -292,77 +296,51 @@ export default function GardenDetail() {
     openSection,
   });
 
-  const overviewActionMenu = [
-    {
-      key: "to-impact",
-      label: formatMessage({ id: "app.garden.detail.action.goToImpact" }),
-      onSelect: () => setTab("impact"),
-    },
-    {
-      key: "to-work",
-      label: formatMessage({ id: "app.garden.detail.action.goToWork" }),
-      onSelect: () => setTab("work"),
-    },
-    {
-      key: "to-community",
-      label: formatMessage({ id: "app.garden.detail.action.goToCommunity" }),
-      onSelect: () => setTab("community"),
-    },
-  ];
-
-  const impactActionMenu = [
-    {
-      key: "impact-view-assessments",
-      label: formatMessage({ id: "app.garden.detail.action.viewAssessments" }),
-      to: `/gardens/${gardenId}/assessments`,
-    },
-    {
-      key: "impact-view-hypercerts",
-      label: formatMessage({ id: "app.garden.detail.action.viewHypercerts" }),
-      to: `/gardens/${gardenId}/hypercerts`,
-    },
-    {
-      key: "impact-reporting",
-      label: formatMessage({ id: "app.garden.detail.action.openReporting" }),
-      onSelect: () => openSection("impact", "reporting"),
-    },
-  ];
-
-  const workActionMenu = [
-    {
-      key: "work-open-decisions",
-      label: formatMessage({ id: "app.garden.detail.action.openDecisions" }),
-      onSelect: () => openSection("work", "decisions"),
-    },
-    {
-      key: "work-open-history",
-      label: formatMessage({ id: "app.garden.detail.action.openHistory" }),
-      onSelect: () => openSection("work", "history"),
-    },
-    {
-      key: "work-go-community",
-      label: formatMessage({ id: "app.garden.detail.action.goToFunding" }),
-      onSelect: () => setTab("community"),
-    },
-  ];
-
-  const communityActionMenu = [
-    {
-      key: "community-manage-strategies",
-      label: formatMessage({ id: "app.garden.detail.action.manageStrategies" }),
-      to: `/gardens/${gardenId}/strategies`,
-    },
-    {
-      key: "community-open-roles",
-      label: formatMessage({ id: "app.garden.detail.action.manageRoles" }),
-      onSelect: () => openSection("community", "roles"),
-    },
-    {
-      key: "community-open-members",
-      label: formatMessage({ id: "app.garden.detail.action.viewMembers" }),
-      onSelect: () => openSection("community", "members"),
-    },
-  ];
+  const tabActions: Record<GardenTab, React.ReactNode> = {
+    overview: canManage ? (
+      <Button size="sm" onClick={() => openSection("overview", "metadata")}>
+        {formatMessage({ id: "app.garden.detail.action.manageProfile" })}
+      </Button>
+    ) : null,
+    impact: canReview ? (
+      <Button size="sm" asChild>
+        <Link to={`/gardens/${gardenId}/assessments/create`}>
+          <RiFileList3Line className="h-4 w-4" />
+          {formatMessage({ id: "app.garden.admin.newAssessment" })}
+        </Link>
+      </Button>
+    ) : (
+      <Button size="sm" variant="secondary" asChild>
+        <Link to={`/gardens/${gardenId}/assessments`}>
+          {formatMessage({ id: "app.garden.admin.viewAssessments" })}
+        </Link>
+      </Button>
+    ),
+    work: (
+      <div className="flex items-center gap-1.5">
+        <Button size="sm" onClick={() => openSection("work", "queue")}>
+          {formatMessage({ id: "app.garden.detail.action.reviewPending" })}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => openSection("work", "decisions")}>
+          {formatMessage({ id: "app.garden.detail.action.openDecisions" })}
+        </Button>
+      </div>
+    ),
+    community: (
+      <div className="flex items-center gap-1.5">
+        <Button size="sm" asChild>
+          <Link to={`/gardens/${gardenId}/vault`}>
+            {formatMessage({ id: "app.treasury.manageVault" })}
+          </Link>
+        </Button>
+        {canManageRoles ? (
+          <Button size="sm" variant="secondary" onClick={() => openSection("community", "roles")}>
+            {formatMessage({ id: "app.garden.detail.action.manageRoles" })}
+          </Button>
+        ) : null}
+      </div>
+    ),
+  };
 
   return (
     <Tabs.Root
@@ -372,28 +350,45 @@ export default function GardenDetail() {
       }}
       className="garden-detail-container pb-6"
     >
-      <PageHeader title={garden.name} description={garden.description} {...baseHeaderProps}>
-        <Tabs.List className="garden-tabs-list -mb-[1px] flex">
-          <Tabs.Trigger value="overview" className={TAB_TRIGGER_BASE}>
-            {formatMessage({ id: "app.garden.admin.tab.overview" })}
-            <TabBadge badge={derived.tabBadges.overview} />
-          </Tabs.Trigger>
-          <Tabs.Trigger value="impact" className={TAB_TRIGGER_BASE}>
-            {formatMessage({ id: "app.garden.admin.tab.impact" })}
-            <TabBadge badge={derived.tabBadges.impact} />
-          </Tabs.Trigger>
-          <Tabs.Trigger value="work" className={TAB_TRIGGER_BASE}>
-            {formatMessage({ id: "app.garden.admin.tab.work" })}
-            <TabBadge badge={derived.tabBadges.work} />
-          </Tabs.Trigger>
-          <Tabs.Trigger value="community" className={TAB_TRIGGER_BASE}>
-            {formatMessage({ id: "app.garden.admin.tab.community" })}
-            <TabBadge badge={derived.tabBadges.community} />
-          </Tabs.Trigger>
-        </Tabs.List>
-      </PageHeader>
+      <GardenHeroBanner
+        name={garden.name}
+        description={garden.description}
+        bannerImage={garden.bannerImage}
+        domainMask={garden.domainMask}
+        backTo="/gardens"
+        backLabel={formatMessage({ id: "app.garden.admin.backToGardens" })}
+        canManage={canManage}
+        onEditDomains={() => setDomainModalOpen(true)}
+      >
+        <div className="garden-tab-bar">
+          <Tabs.List className="garden-tabs-list -mb-[1px] flex">
+            <Tabs.Trigger value="overview" className={TAB_TRIGGER_BASE}>
+              {formatMessage({ id: "app.garden.admin.tab.overview" })}
+              <TabBadge badge={derived.tabBadges.overview} />
+            </Tabs.Trigger>
+            <Tabs.Trigger value="impact" className={TAB_TRIGGER_BASE}>
+              {formatMessage({ id: "app.garden.admin.tab.impact" })}
+              <TabBadge badge={derived.tabBadges.impact} />
+            </Tabs.Trigger>
+            <Tabs.Trigger value="work" className={TAB_TRIGGER_BASE}>
+              {formatMessage({ id: "app.garden.admin.tab.work" })}
+              <TabBadge badge={derived.tabBadges.work} />
+            </Tabs.Trigger>
+            <Tabs.Trigger value="community" className={TAB_TRIGGER_BASE}>
+              {formatMessage({ id: "app.garden.admin.tab.community" })}
+              <TabBadge badge={derived.tabBadges.community} />
+            </Tabs.Trigger>
+          </Tabs.List>
+          <div className="garden-tab-bar-actions hidden sm:flex">{tabActions[activeTab]}</div>
+        </div>
+      </GardenHeroBanner>
 
       <div className="px-4 sm:px-6">
+        {/* Mobile-only tab actions (below tab bar, visible on small screens) */}
+        {tabActions[activeTab] ? (
+          <div className="flex items-center gap-1.5 pt-3 sm:hidden">{tabActions[activeTab]}</div>
+        ) : null}
+
         <Tabs.Content
           value="overview"
           className="garden-tab-content"
@@ -410,7 +405,6 @@ export default function GardenDetail() {
             openSection={openSection}
             updateQueryState={updateQueryState}
             setTab={setTab}
-            overviewActionMenu={overviewActionMenu}
             overviewAlerts={derived.overviewAlerts}
             gardenHealthLabel={derived.gardenHealthLabel}
             approvedInRangeCount={derived.approvedInRangeCount}
@@ -419,6 +413,10 @@ export default function GardenDetail() {
             activityFilter={activityFilter}
             setActivityFilter={setActivityFilter}
             filteredActivityEvents={derived.filteredActivityEvents}
+            pendingWorkCount={derived.pendingWorks.length}
+            assessmentCount30d={derived.approvedInLastThirtyDays}
+            gardenerCount={roleMembers.gardener.length}
+            treasuryBalance={formatTokenAmount(vaultNetDeposited)}
           />
         </Tabs.Content>
 
@@ -436,7 +434,6 @@ export default function GardenDetail() {
             selectedItem={selectedItem}
             clearSection={clearSection}
             openSection={openSection}
-            impactActionMenu={impactActionMenu}
             assessments={assessments}
             fetchingAssessments={fetchingAssessments}
             assessmentsError={assessmentsError}
@@ -459,7 +456,6 @@ export default function GardenDetail() {
             selectedItem={selectedItem}
             clearSection={clearSection}
             openSection={openSection}
-            workActionMenu={workActionMenu}
             works={works}
             worksLoading={worksLoading}
             worksFetching={worksFetching}
@@ -469,6 +465,8 @@ export default function GardenDetail() {
             pendingWarningCount={derived.pendingWarningCount}
             pendingCriticalCount={derived.pendingCriticalCount}
             reviewedWorks={derived.reviewedWorks}
+            approvedWorks={derived.approvedWorks}
+            medianReviewAgeHours={derived.medianReviewAgeHours}
           />
         </Tabs.Content>
 
@@ -486,7 +484,6 @@ export default function GardenDetail() {
             section={section}
             clearSection={clearSection}
             openSection={openSection}
-            communityActionMenu={communityActionMenu}
             community={community}
             communityLoading={communityLoading}
             pools={pools}
@@ -514,6 +511,12 @@ export default function GardenDetail() {
           />
         </Tabs.Content>
       </div>
+
+      <GardenDomainModal
+        isOpen={domainModalOpen}
+        onClose={() => setDomainModalOpen(false)}
+        gardenAddress={garden.id as Address}
+      />
 
       <AddMemberModal
         isOpen={addMemberModalOpen}

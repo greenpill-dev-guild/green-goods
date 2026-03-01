@@ -38,7 +38,7 @@ export const Default: Story = {
 export const WithDescription: Story = {
   args: {
     title: "Active Actions",
-    description: "Manage conservation actions for your garden members.",
+    description: "Manage regenerative actions for your garden members.",
   },
 };
 
@@ -85,7 +85,7 @@ export const WithMultipleActions: Story = {
 
 export const LongContent: Story = {
   args: {
-    title: "Biodiversity Conservation Actions and Environmental Monitoring",
+    title: "Biodiversity Regeneration and Environmental Monitoring",
     description:
       "Track long-term environmental impact across all garden sites including carbon sequestration measurements, wildlife habitat restoration, and native species planting records.",
     action: (

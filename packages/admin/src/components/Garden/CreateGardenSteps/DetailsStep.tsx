@@ -407,7 +407,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         <p className="text-xs text-text-soft">
           {formatMessage({
             id: "app.garden.create.domains.description",
-            defaultMessage: "Select which conservation domains this garden will focus on",
+            defaultMessage: "Select which regenerative domains this garden will focus on",
           })}
         </p>
         <div className="grid grid-cols-2 gap-2">

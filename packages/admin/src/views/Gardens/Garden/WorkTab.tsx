@@ -1,11 +1,12 @@
 import { formatDate, formatRelativeTime, getStatusColors } from "@green-goods/shared";
-import { RiRefreshLine } from "@remixicon/react";
+import { RiInboxLine, RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { SectionStateCard, TabActionCard } from "./GardenDetailHelpers";
-import type { GardenTab, TabAction } from "./gardenDetail.types";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SectionStateCard } from "./GardenDetailHelpers";
+import type { GardenTab } from "./gardenDetail.types";
 
 export interface WorkTabProps {
   garden: { id: string };
@@ -14,7 +15,6 @@ export interface WorkTabProps {
   selectedItem: string | undefined;
   clearSection: () => void;
   openSection: (tab: GardenTab, section: string, itemId?: string) => void;
-  workActionMenu: TabAction[];
   works: Array<{ id: string; title?: string; status: string; createdAt: number }>;
   worksLoading: boolean;
   worksFetching: boolean;
@@ -24,6 +24,8 @@ export interface WorkTabProps {
   pendingWarningCount: number;
   pendingCriticalCount: number;
   reviewedWorks: Array<{ id: string; title?: string; status: string; createdAt: number }>;
+  approvedWorks: Array<{ id: string }>;
+  medianReviewAgeHours: number;
 }
 
 export function WorkTab({
@@ -33,7 +35,6 @@ export function WorkTab({
   selectedItem,
   clearSection,
   openSection,
-  workActionMenu,
   works,
   worksLoading,
   worksFetching,
@@ -43,23 +44,16 @@ export function WorkTab({
   pendingWarningCount,
   pendingCriticalCount,
   reviewedWorks,
+  approvedWorks,
+  medianReviewAgeHours,
 }: WorkTabProps) {
   const { formatMessage } = useIntl();
 
+  const approvalRate =
+    reviewedWorks.length > 0 ? Math.round((approvedWorks.length / reviewedWorks.length) * 100) : 0;
+
   return (
     <div className="garden-tab-shell">
-      <TabActionCard
-        title={formatMessage({ id: "app.garden.detail.work.actionTitle" })}
-        description={formatMessage({ id: "app.garden.detail.work.actionDescription" })}
-        primaryAction={
-          <Button size="sm" onClick={() => openSection("work", "queue")}>
-            {formatMessage({ id: "app.garden.detail.action.reviewPending" })}
-          </Button>
-        }
-        overflowActions={workActionMenu}
-        menuAriaLabel={formatMessage({ id: "app.garden.detail.action.more" })}
-      />
-
       <div className="garden-tab-layout">
         <div className="garden-tab-main">
           {section ? (
@@ -89,24 +83,22 @@ export function WorkTab({
               </Card.Header>
               <Card.Body>
                 {reviewedWorks.length === 0 ? (
-                  <p className="text-sm text-text-soft">
-                    {formatMessage({ id: "app.garden.detail.work.noDecisions" })}
-                  </p>
+                  <EmptyState
+                    icon={<RiInboxLine className="h-6 w-6" />}
+                    title={formatMessage({ id: "app.garden.detail.work.noDecisions" })}
+                  />
                 ) : (
                   <div className="space-y-2">
                     {reviewedWorks.slice(0, section === "decisions" ? 12 : 5).map((work) => (
                       <div
                         key={work.id}
                         className={`flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2 ${
-                          selectedItem && work.id === selectedItem
-                            ? "ring-1 ring-primary-base"
-                            : ""
+                          selectedItem && work.id === selectedItem ? "ring-1 ring-primary-base" : ""
                         }`}
                       >
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-text-strong">
-                            {work.title ||
-                              formatMessage({ id: "app.admin.work.untitledWork" })}
+                            {work.title || formatMessage({ id: "app.admin.work.untitledWork" })}
                           </p>
                           <p className="mt-0.5 text-xs text-text-soft">
                             {formatDate(work.createdAt, { dateStyle: "medium" })}
@@ -172,36 +164,24 @@ export function WorkTab({
                     onClick={() => openSection("work", "queue")}
                     className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm text-text-sub hover:bg-bg-soft"
                   >
-                    <span>
-                      {formatMessage({ id: "app.garden.detail.metric.pendingQueue" })}
-                    </span>
-                    <span className="font-semibold text-text-strong">
-                      {pendingWorks.length}
-                    </span>
+                    <span>{formatMessage({ id: "app.garden.detail.metric.pendingQueue" })}</span>
+                    <span className="font-semibold text-text-strong">{pendingWorks.length}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => openSection("work", "queue")}
                     className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm text-text-sub hover:bg-bg-soft"
                   >
-                    <span>
-                      {formatMessage({ id: "app.garden.detail.metric.pending24h" })}
-                    </span>
-                    <span className="font-semibold text-text-strong">
-                      {pendingWarningCount}
-                    </span>
+                    <span>{formatMessage({ id: "app.garden.detail.metric.pending24h" })}</span>
+                    <span className="font-semibold text-text-strong">{pendingWarningCount}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => openSection("work", "queue")}
                     className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm text-text-sub hover:bg-bg-soft"
                   >
-                    <span>
-                      {formatMessage({ id: "app.garden.detail.metric.pending72h" })}
-                    </span>
-                    <span className="font-semibold text-text-strong">
-                      {pendingCriticalCount}
-                    </span>
+                    <span>{formatMessage({ id: "app.garden.detail.metric.pending72h" })}</span>
+                    <span className="font-semibold text-text-strong">{pendingCriticalCount}</span>
                   </button>
                 </div>
               </Card.Body>
@@ -210,12 +190,35 @@ export function WorkTab({
             <Card>
               <Card.Header>
                 <h3 className="label-md text-text-strong">
-                  {formatMessage({ id: "app.garden.detail.work.thresholds" })}
+                  {formatMessage({ id: "app.garden.detail.reviewStats" })}
                 </h3>
               </Card.Header>
-              <Card.Body className="space-y-2 text-sm text-text-sub">
-                <p>{formatMessage({ id: "app.garden.detail.work.thresholdWarning" })}</p>
-                <p>{formatMessage({ id: "app.garden.detail.work.thresholdCritical" })}</p>
+              <Card.Body className="space-y-2">
+                <div className="garden-stat-row">
+                  <span className="garden-stat-row-label">
+                    {formatMessage({ id: "app.garden.detail.reviewStats.totalReviewed" })}
+                  </span>
+                  <span className="garden-stat-row-value">{reviewedWorks.length}</span>
+                </div>
+                <div className="garden-stat-row">
+                  <span className="garden-stat-row-label">
+                    {formatMessage({ id: "app.garden.detail.reviewStats.approvalRate" })}
+                  </span>
+                  <span className="garden-stat-row-value">{approvalRate}%</span>
+                </div>
+                <div className="garden-stat-row">
+                  <span className="garden-stat-row-label">
+                    {formatMessage({ id: "app.garden.detail.reviewStats.medianReviewTime" })}
+                  </span>
+                  <span className="garden-stat-row-value">
+                    {medianReviewAgeHours > 0
+                      ? formatMessage(
+                          { id: "app.garden.detail.metric.hoursValue" },
+                          { hours: Math.round(medianReviewAgeHours) }
+                        )
+                      : formatMessage({ id: "app.garden.detail.metric.notAvailable" })}
+                  </span>
+                </div>
               </Card.Body>
             </Card>
           </div>

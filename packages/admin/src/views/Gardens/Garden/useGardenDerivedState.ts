@@ -208,8 +208,14 @@ export function useGardenDerivedState({
           }
         : null,
   ].filter(
-    (entry): entry is { key: string; severity: "warn" | "critical"; label: string; onAction: () => void } =>
-      entry !== null
+    (
+      entry
+    ): entry is {
+      key: string;
+      severity: "warn" | "critical";
+      label: string;
+      onAction: () => void;
+    } => entry !== null
   );
 
   const activityEvents: GardenActivityEvent[] = [

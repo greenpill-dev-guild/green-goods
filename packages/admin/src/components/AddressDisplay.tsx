@@ -56,7 +56,7 @@ export function AddressDisplay({ address, className, showCopyButton = true }: Ad
         id={tooltipId}
         // @ts-expect-error - popover is a valid HTML attribute but not in React types yet
         popover="hint"
-        className="px-2 py-1 bg-bg-strong text-text-white text-xs rounded whitespace-nowrap m-0 border-0"
+        className="px-2 py-1 bg-neutral-800 text-neutral-50 text-xs rounded whitespace-nowrap m-0 border-0"
         style={{
           inset: "unset",
           margin: "unset",

@@ -1,10 +1,22 @@
-import { RiAlertLine, RiArrowRightSLine, RiCloseLine, RiMore2Line } from "@remixicon/react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { DOMAIN_COLORS, type Domain, expandDomainMask, resolveIPFSUrl } from "@green-goods/shared";
+import {
+  RiAlertLine,
+  RiArrowLeftLine,
+  RiArrowRightSLine,
+  RiCloseLine,
+  RiPencilLine,
+} from "@remixicon/react";
+import type { ReactNode } from "react";
+import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import type { TabAction, TabBadgeSeverity, TabBadgeState } from "./gardenDetail.types";
-import { ALERT_LABEL_CLASSES, BADGE_TONE_CLASSES } from "./gardenDetail.constants";
+import type { TabBadgeSeverity, TabBadgeState } from "./gardenDetail.types";
+import {
+  ALERT_LABEL_CLASSES,
+  BADGE_TONE_CLASSES,
+  DOMAIN_LABEL_IDS,
+} from "./gardenDetail.constants";
 
 export function TabBadge({ badge }: { badge: TabBadgeState }) {
   if (badge.severity === "none" || !badge.count) {
@@ -20,89 +32,99 @@ export function TabBadge({ badge }: { badge: TabBadgeState }) {
   );
 }
 
-export function ActionMenu({
-  actions,
-  triggerAriaLabel,
-}: {
-  actions: TabAction[];
-  triggerAriaLabel: string;
-}) {
-  if (actions.length === 0) return null;
-
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <Button size="sm" variant="secondary" aria-label={triggerAriaLabel}>
-          <RiMore2Line className="h-4 w-4" />
-        </Button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          align="end"
-          sideOffset={6}
-          className="z-50 min-w-52 rounded-lg border border-stroke-sub bg-bg-white p-1 shadow-xl"
-        >
-          {actions.map((action) => {
-            if (action.to) {
-              return (
-                <DropdownMenu.Item key={action.key} asChild>
-                  <Link
-                    to={action.to}
-                    className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm text-text-sub outline-none transition-colors hover:bg-bg-weak data-[highlighted]:bg-bg-weak"
-                  >
-                    {action.label}
-                  </Link>
-                </DropdownMenu.Item>
-              );
-            }
-
-            return (
-              <DropdownMenu.Item
-                key={action.key}
-                onSelect={(event) => {
-                  event.preventDefault();
-                  action.onSelect?.();
-                }}
-                className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm text-text-sub outline-none transition-colors hover:bg-bg-weak data-[highlighted]:bg-bg-weak"
-              >
-                {action.label}
-              </DropdownMenu.Item>
-            );
-          })}
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
-  );
+interface GardenHeroBannerProps {
+  name: string;
+  description?: string;
+  bannerImage?: string;
+  domainMask?: number;
+  backTo: string;
+  backLabel: string;
+  canManage: boolean;
+  onEditDomains?: () => void;
+  children?: ReactNode;
 }
 
-interface TabActionCardProps {
-  title: string;
-  description: string;
-  primaryAction: React.ReactNode;
-  overflowActions: TabAction[];
-  menuAriaLabel: string;
-}
-
-export function TabActionCard({
-  title,
+export function GardenHeroBanner({
+  name,
   description,
-  primaryAction,
-  overflowActions,
-  menuAriaLabel,
-}: TabActionCardProps) {
+  bannerImage,
+  domainMask,
+  backTo,
+  backLabel,
+  canManage,
+  onEditDomains,
+  children,
+}: GardenHeroBannerProps) {
+  const { formatMessage } = useIntl();
+  const bannerUrl = bannerImage ? resolveIPFSUrl(bannerImage) : "";
+  const domains: Domain[] = typeof domainMask === "number" ? expandDomainMask(domainMask) : [];
+
   return (
-    <Card className="garden-tab-action-card">
-      <Card.Body className="flex flex-wrap items-start justify-between gap-3 sm:items-center">
-        <div className="min-w-0 flex-1">
-          <h2 className="label-md text-text-strong sm:text-lg">{title}</h2>
-          <p className="mt-1 text-sm text-text-sub">{description}</p>
+    <div>
+      <div className="garden-hero-banner">
+        {bannerUrl ? (
+          <>
+            <img
+              src={bannerUrl}
+              alt={formatMessage({ id: "app.garden.detail.bannerAlt" }, { name })}
+              className="garden-hero-banner-image"
+            />
+            <div className="garden-hero-banner-gradient" />
+          </>
+        ) : (
+          <div className="garden-hero-banner-fallback bg-gradient-to-r from-primary-lighter to-primary-base">
+            <span className="select-none text-5xl font-bold text-white/30 sm:text-6xl">
+              {name.charAt(0).toUpperCase()}
+            </span>
+            <div className="garden-hero-banner-gradient" />
+          </div>
+        )}
+
+        <Link
+          to={backTo}
+          className="absolute left-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-lg bg-black/30 text-white/80 backdrop-blur-sm transition hover:bg-black/50 hover:text-white sm:h-10 sm:w-10"
+          aria-label={backLabel}
+        >
+          <RiArrowLeftLine className="h-5 w-5" />
+        </Link>
+
+        <div className="garden-hero-banner-content">
+          <h1 className="truncate font-heading text-lg font-semibold text-white sm:text-2xl">
+            {name}
+          </h1>
+          {description ? (
+            <p className="mt-0.5 line-clamp-2 text-xs text-white/80 sm:text-sm">{description}</p>
+          ) : null}
+          {domains.length > 0 ? (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {domains.map((domain) => (
+                <span
+                  key={domain}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm"
+                >
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: DOMAIN_COLORS[domain] }}
+                  />
+                  {formatMessage({ id: DOMAIN_LABEL_IDS[domain] })}
+                </span>
+              ))}
+              {canManage && onEditDomains ? (
+                <button
+                  type="button"
+                  onClick={onEditDomains}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-white/80 backdrop-blur-sm transition hover:bg-white/30 hover:text-white"
+                  aria-label={formatMessage({ id: "app.garden.detail.editDomains" })}
+                >
+                  <RiPencilLine className="h-3 w-3" />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
-        <div className="flex items-center gap-2">
-          {primaryAction}
-          <ActionMenu actions={overflowActions} triggerAriaLabel={menuAriaLabel} />
-        </div>
-      </Card.Body>
-    </Card>
+      </div>
+      {children}
+    </div>
   );
 }
 

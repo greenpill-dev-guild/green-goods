@@ -23,6 +23,8 @@ import {
   useOpsRunnerHealth,
   useOpsRunnerJob,
   useOpsRunnerJobs,
+  useOpsRunnerScripts,
+  useOpsRunScript,
   useOpsRunnerSession,
   USER_FRIENDLY_ERRORS,
   type Address,
@@ -33,6 +35,7 @@ import {
   RiDeleteBinLine,
   RiErrorWarningLine,
   RiGitBranchLine,
+  RiPlayCircleLine,
   RiSettings3Line,
   RiShieldCheckLine,
   RiUploadLine,
@@ -66,6 +69,8 @@ export default function Deployment() {
     refetchIntervalMs: 3_000,
   });
 
+  const scriptsQuery = useOpsRunnerScripts();
+  const runScriptMutation = useOpsRunScript();
   const deployPlanMutation = useOpsDeployPlan();
   const finalizeDeployMutation = useOpsFinalizeDeploy();
 
@@ -121,6 +126,26 @@ export default function Deployment() {
         error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" });
       toastService.error({
         title: formatMessage({ id: "app.deployment.ops.authFailed" }),
+        description: message,
+      });
+    }
+  };
+
+  const runScript = async (scriptId: string) => {
+    if (!isAuthenticated) {
+      toastService.error({ title: formatMessage({ id: "app.ops.authRequired" }) });
+      return;
+    }
+
+    try {
+      const job = await runScriptMutation.mutateAsync({ scriptId, network });
+      setSelectedJobId(job.id);
+      toastService.success({ title: formatMessage({ id: "app.ops.jobStarted" }) });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" });
+      toastService.error({
+        title: formatMessage({ id: "app.ops.runFailed" }),
         description: message,
       });
     }
@@ -291,6 +316,46 @@ export default function Deployment() {
             </span>
           )}
         </div>
+      </Card>
+
+      {/* Scripts Runner */}
+      <Card padding="feature">
+        <div className="flex items-center mb-4">
+          <RiPlayCircleLine className="h-5 w-5 text-feature-dark mr-2" />
+          <h2 className="text-lg font-medium text-text-strong">
+            {formatMessage({ id: "app.ops.scriptsTitle" })}
+          </h2>
+        </div>
+
+        {!isAuthenticated ? (
+          <p className="text-sm text-error-base">{formatMessage({ id: "app.ops.authRequired" })}</p>
+        ) : scriptsQuery.isLoading ? (
+          <p className="text-sm text-text-soft">
+            {formatMessage({ id: "app.ops.loadingScripts" })}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {(scriptsQuery.data ?? []).map((script) => (
+              <div
+                key={script.id}
+                className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between rounded-lg border border-stroke-soft p-3"
+              >
+                <div>
+                  <p className="text-sm font-medium text-text-strong">{script.id}</p>
+                  <p className="text-xs text-text-soft">{script.description}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => runScript(script.id)}
+                  loading={runScriptMutation.isPending}
+                >
+                  {formatMessage({ id: "app.ops.runScript" })}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Permissions Status */}
@@ -627,7 +692,7 @@ function OpenMintingCard() {
           })}
         >
           <span
-            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-bg-white shadow ring-0 transition duration-200 ease-in-out ${
               isOpen ? "translate-x-5" : "translate-x-0"
             }`}
           />

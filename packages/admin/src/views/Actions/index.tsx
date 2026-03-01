@@ -25,6 +25,7 @@ import { PageHeader } from "@/components/Layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
+import { SkeletonGrid } from "@/components/ui/Skeleton";
 import { SortSelect } from "@/components/ui/SortSelect";
 
 interface ActionCardMediaProps {
@@ -57,14 +58,16 @@ function ActionCardMedia({
   }
 
   return (
-    <ImageWithFallback
-      src={src || ""}
-      alt={alt}
-      className="w-full h-40 object-cover"
-      fallbackClassName="w-full h-40 bg-bg-soft text-text-soft"
-      fallbackIcon={RiImageLine}
-      onErrorCallback={() => setHasError(true)}
-    />
+    <div className="relative h-40 w-full overflow-hidden">
+      <ImageWithFallback
+        src={src || ""}
+        alt={alt}
+        className="w-full h-40 object-cover"
+        fallbackClassName="w-full h-40 bg-bg-soft text-text-soft"
+        fallbackIcon={RiImageLine}
+        onErrorCallback={() => setHasError(true)}
+      />
+    </div>
   );
 }
 
@@ -178,26 +181,23 @@ export default function Actions() {
         }
         toolbar={
           showToolbar ? (
-            <div className="space-y-3">
-              <ListToolbar
-                search={filters.search ?? ""}
-                onSearchChange={(value) =>
-                  setFilters((prev) => ({ ...prev, search: value || undefined }))
-                }
-                searchPlaceholder={intl.formatMessage({
-                  id: "admin.actions.searchPlaceholder",
-                  defaultMessage: "Search actions...",
-                })}
-              >
-                <SortSelect
-                  value={filters.sort}
-                  onChange={(value) => setFilters((prev) => ({ ...prev, sort: value }))}
-                  options={sortOptions}
-                />
-              </ListToolbar>
-
+            <ListToolbar
+              search={filters.search ?? ""}
+              onSearchChange={(value) =>
+                setFilters((prev) => ({ ...prev, search: value || undefined }))
+              }
+              searchPlaceholder={intl.formatMessage({
+                id: "admin.actions.searchPlaceholder",
+                defaultMessage: "Search actions...",
+              })}
+            >
+              <SortSelect
+                value={filters.sort}
+                onChange={(value) => setFilters((prev) => ({ ...prev, sort: value }))}
+                options={sortOptions}
+              />
               <div
-                className="flex flex-wrap items-center gap-2"
+                className="flex flex-wrap items-center gap-1.5"
                 role="group"
                 aria-label={intl.formatMessage({
                   id: "admin.actions.filterByDomain",
@@ -224,26 +224,21 @@ export default function Actions() {
                   );
                 })}
               </div>
-            </div>
+            </ListToolbar>
           ) : undefined
         }
       />
 
       <div className="mt-6 space-y-6 px-4 sm:px-6">
         {isLoading && (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="animate-pulse overflow-hidden rounded-lg border border-stroke-soft bg-bg-white"
-              >
-                <div className="h-40 bg-bg-soft" />
-                <div className="p-6">
-                  <div className="h-6 bg-bg-soft rounded mb-2" />
-                  <div className="h-4 bg-bg-soft rounded w-3/4" />
-                </div>
-              </div>
-            ))}
+          <div role="status" aria-live="polite">
+            <span className="sr-only">
+              {intl.formatMessage({
+                id: "admin.actions.loadingMessage",
+                defaultMessage: "Loading actions...",
+              })}
+            </span>
+            <SkeletonGrid count={6} columns={3} />
           </div>
         )}
 
@@ -279,7 +274,7 @@ export default function Actions() {
         )}
 
         {!isLoading && filteredActions.length > 0 && (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredActions.map((action) => (
               <Link
                 key={action.id}
@@ -295,7 +290,7 @@ export default function Actions() {
                 />
 
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold text-text-strong mb-2 group-hover:text-primary-dark">
+                  <h3 className="text-xl font-semibold text-text-strong mb-2 group-hover:text-primary-dark line-clamp-1">
                     {action.title}
                   </h3>
 

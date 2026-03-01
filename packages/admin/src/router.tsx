@@ -182,12 +182,6 @@ export const router = createRouter([
                       Component: (await import("@/views/Deployment")).default,
                     }),
                   },
-                  {
-                    path: "ops",
-                    lazy: async () => ({
-                      Component: (await import("@/views/Ops")).default,
-                    }),
-                  },
                 ],
               },
             ],
