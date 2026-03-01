@@ -68,22 +68,26 @@ function ActionCardMedia({
   );
 }
 
-const DOMAIN_TAGS: { value: Domain; label: string; activeClass: string }[] = [
+const DOMAIN_TAGS: { value: Domain; labelId: string; activeClass: string }[] = [
   {
     value: Domain.SOLAR,
-    label: "Solar",
-    activeClass: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    labelId: "app.domain.tab.solar",
+    activeClass: "bg-away-lighter text-away-dark border-away-light",
   },
   {
     value: Domain.AGRO,
-    label: "Agro",
-    activeClass: "bg-green-100 text-green-800 border-green-300",
+    labelId: "app.domain.tab.agro",
+    activeClass: "bg-success-lighter text-success-dark border-success-light",
   },
-  { value: Domain.EDU, label: "Edu", activeClass: "bg-blue-100 text-blue-800 border-blue-300" },
+  {
+    value: Domain.EDU,
+    labelId: "app.domain.tab.education",
+    activeClass: "bg-information-lighter text-information-dark border-information-light",
+  },
   {
     value: Domain.WASTE,
-    label: "Waste",
-    activeClass: "bg-orange-100 text-orange-800 border-orange-300",
+    labelId: "app.domain.tab.waste",
+    activeClass: "bg-warning-lighter text-warning-dark border-warning-light",
   },
 ];
 
@@ -215,7 +219,7 @@ export default function Actions() {
                       )}
                       aria-pressed={isActive}
                     >
-                      {tag.label}
+                      {intl.formatMessage({ id: tag.labelId })}
                     </button>
                   );
                 })}
@@ -281,7 +285,7 @@ export default function Actions() {
                 key={action.id}
                 to={`/actions/${action.id}`}
                 data-testid="action-card"
-                className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-green-500 hover:shadow-md"
+                className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-primary-base hover:shadow-md"
               >
                 <ActionCardMedia
                   src={action.media[0]}
@@ -291,7 +295,7 @@ export default function Actions() {
                 />
 
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold text-text-strong mb-2 group-hover:text-green-600">
+                  <h3 className="text-xl font-semibold text-text-strong mb-2 group-hover:text-primary-dark">
                     {action.title}
                   </h3>
 
