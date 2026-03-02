@@ -26,6 +26,14 @@ vi.mock("@green-goods/shared", () => ({
     blockExplorer: "https://sepolia.etherscan.io",
   }),
   getBlockchainErrorI18nKey: (error: string) => `app.errors.blockchain.${error}`,
+  classifyTxError: (error: unknown) => ({
+    kind: "unknown" as const,
+    severity: "error" as const,
+    titleKey: "app.txFeedback.failed.title",
+    messageKey: "app.errors.blockchain.unknown.message",
+    rawMessage: String(error),
+  }),
+  isMeaningfulTxErrorMessage: (msg: string | null | undefined) => Boolean(msg?.trim()),
 }));
 
 import { MintProgress } from "../../../components/hypercerts/steps/MintProgress";
