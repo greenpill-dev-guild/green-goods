@@ -1,0 +1,6 @@
+# Dependabot disabled — repo uses bun.lock as primary lockfile.
+# Dependabot targets pnpm-lock.yaml and regenerates it entirely on each PR,
+# sneaking in unintended major version bumps. Dependency upgrades are handled
+# manually via controlled PRs.
+version: 2
+updates: []
