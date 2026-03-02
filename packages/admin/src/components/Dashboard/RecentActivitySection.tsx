@@ -1,5 +1,4 @@
-import { formatRelativeTime, type Garden } from "@green-goods/shared";
-import type { EASGardenAssessment, EASWork } from "@green-goods/shared";
+import { formatRelativeTime, type EASGardenAssessment, type EASWork, type Garden } from "@green-goods/shared";
 import { RiAwardLine, RiCheckDoubleLine, RiFileListLine, RiPlantLine } from "@remixicon/react";
 import { type ComponentType, useMemo } from "react";
 import { useIntl } from "react-intl";
