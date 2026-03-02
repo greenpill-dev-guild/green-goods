@@ -7,7 +7,7 @@
  * @module hooks/hypercerts/hypercert-utils
  */
 
-import { decodeEventLog, type Address, type Hex, zeroAddress } from "viem";
+import { type Address, decodeEventLog, type Hex, zeroAddress } from "viem";
 
 import { generateMerkleTree } from "../../lib/hypercerts";
 import { ERC1155_TRANSFER_SINGLE_ABI } from "./hypercert-abis";

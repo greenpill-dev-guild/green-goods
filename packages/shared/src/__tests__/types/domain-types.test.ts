@@ -9,19 +9,19 @@
 import { describe, expect, it } from "vitest";
 
 import type {
+  ActionCard,
   AssessmentAttachment,
   AssessmentDraft,
   GardenAssessment,
   SmartOutcome,
-  WorkSubmission,
+  WorkApprovalDraft,
+  WorkInput,
   WorkMetadata,
   WorkMetadataV1,
-  ActionCard,
-  WorkInput,
-  WorkApprovalDraft,
+  WorkSubmission,
 } from "../../types/domain";
 
-import { CynefinPhase, Domain, Confidence, VerificationMethod } from "../../types/domain";
+import { Confidence, CynefinPhase, Domain, VerificationMethod } from "../../types/domain";
 
 describe("types/domain generalized types", () => {
   describe("GardenAssessment v2", () => {

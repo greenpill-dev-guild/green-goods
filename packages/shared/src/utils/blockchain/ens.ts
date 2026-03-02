@@ -1,6 +1,6 @@
-import { isAddress, type Address, type PublicClient } from "viem";
-import { createPublicClientForChain } from "../../config/pimlico";
+import { type Address, isAddress, type PublicClient } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { createPublicClientForChain } from "../../config/pimlico";
 import { logger } from "../../modules/app/logger";
 
 // ============================================

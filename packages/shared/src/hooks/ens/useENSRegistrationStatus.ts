@@ -21,12 +21,12 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { logger } from "../../modules/app/logger";
 import type { ENSRegistrationData } from "../../types/domain";
 import { getRpcUrl } from "../../utils/blockchain/chain-registry";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 import {
   createClients,
   GreenGoodsENSABI,
   getNetworkContracts,
 } from "../../utils/blockchain/contracts";
+import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 
 /**
  * Minimal ABI for querying the L1 ENSReceiver's getRegistration view.

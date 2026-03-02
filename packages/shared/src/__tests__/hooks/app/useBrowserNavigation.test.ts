@@ -5,8 +5,8 @@
  * and React Router location changes.
  */
 
-import { renderHook, act } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock react-router-dom
 const mockLocation = { pathname: "/", search: "", hash: "" };
@@ -14,8 +14,8 @@ vi.mock("react-router-dom", () => ({
   useLocation: vi.fn(() => mockLocation),
 }));
 
-import { useBrowserNavigation } from "../../../hooks/app/useBrowserNavigation";
 import { useLocation } from "react-router-dom";
+import { useBrowserNavigation } from "../../../hooks/app/useBrowserNavigation";
 
 const mockUseLocation = vi.mocked(useLocation);
 

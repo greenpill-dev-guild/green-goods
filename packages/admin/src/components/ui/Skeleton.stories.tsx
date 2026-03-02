@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { SkeletonText, SkeletonCard, SkeletonGrid } from "./Skeleton";
+import { SkeletonCard, SkeletonGrid, SkeletonText } from "./Skeleton";
 
 // --- SkeletonText ---
 

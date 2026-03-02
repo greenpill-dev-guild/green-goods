@@ -369,7 +369,11 @@ describe("components/Cards/WorkCard", () => {
     });
 
     it("shows error badge when error present", () => {
-      const errorWork = { ...mockWorkItem, status: "sync_failed" as const, error: "Network timeout" };
+      const errorWork = {
+        ...mockWorkItem,
+        status: "sync_failed" as const,
+        error: "Network timeout",
+      };
       render(createElement(Wrapper, null, createElement(WorkCard, { work: errorWork })));
 
       expect(screen.getByText("Error")).toBeInTheDocument();

@@ -7,7 +7,7 @@
  * 3. Releasing the lock after the first completes (success or error)
  */
 
-import { renderHook, act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useMutationLock } from "../../../hooks/utils/useMutationLock";
 

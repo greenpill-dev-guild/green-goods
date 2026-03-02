@@ -7,7 +7,6 @@
  */
 
 import type { Abi, WalletClient } from "viem";
-import type { Address } from "../../types/domain";
 import { toastService } from "../../components/toast";
 import {
   trackAdminMemberAddFailed,
@@ -17,6 +16,7 @@ import {
   trackAdminMemberRemoveStarted,
   trackAdminMemberRemoveSuccess,
 } from "../../modules/app/analytics-events";
+import type { Address } from "../../types/domain";
 import { HATS_MODULE_ABI } from "../../utils/blockchain/abis";
 import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";

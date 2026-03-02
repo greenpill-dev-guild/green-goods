@@ -6,9 +6,9 @@
  * and ref management for garden view tabs.
  */
 
-import { renderHook, act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { useGardenTabs, GardenTab } from "../../../hooks/garden/useGardenTabs";
+import { GardenTab, useGardenTabs } from "../../../hooks/garden/useGardenTabs";
 
 describe("useGardenTabs", () => {
   // ------------------------------------------

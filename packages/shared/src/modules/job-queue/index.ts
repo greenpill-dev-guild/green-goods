@@ -11,10 +11,10 @@ import type {
 } from "../../types/job-queue";
 import { scheduleTask, yieldToMain } from "../../utils/scheduler";
 import { getStorageQuota } from "../../utils/storage/quota";
-import { trackSyncError, addBreadcrumb, getBreadcrumbs } from "../app/error-tracking";
-import { getIpfsInitStatus } from "../data/ipfs";
+import { addBreadcrumb, getBreadcrumbs, trackSyncError } from "../app/error-tracking";
 import { logger } from "../app/logger";
 import { track } from "../app/posthog";
+import { getIpfsInitStatus } from "../data/ipfs";
 import { submitApprovalWithPasskey, submitWorkWithPasskey } from "../work/passkey-submission";
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";

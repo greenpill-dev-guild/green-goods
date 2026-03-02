@@ -3,14 +3,14 @@
  *
  * Tests for the GraphQL client wrapper class.
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  GQLClient,
   createEasClient,
   createIndexerClient,
+  GQLClient,
+  GRAPHQL_TIMEOUT_MS,
   greenGoodsIndexer,
   TimeoutError,
-  GRAPHQL_TIMEOUT_MS,
 } from "../../modules/data/graphql-client";
 
 describe("GQLClient", () => {

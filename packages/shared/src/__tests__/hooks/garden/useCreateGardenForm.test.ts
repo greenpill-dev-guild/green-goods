@@ -9,10 +9,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  type CreateGardenFormData,
+  createDefaultGardenForm,
   createGardenSchema,
   gardenStepFields,
-  createDefaultGardenForm,
-  type CreateGardenFormData,
 } from "../../../hooks/garden/useCreateGardenForm";
 import { Domain } from "../../../types/domain";
 

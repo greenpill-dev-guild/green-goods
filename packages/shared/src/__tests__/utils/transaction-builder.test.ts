@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { decodeFunctionData } from "viem";
+import { describe, expect, it } from "vitest";
 import type { EASConfig } from "../../config/blockchain";
 import { EASABI } from "../../utils/blockchain/contracts";
 import {

@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
 import { getAddress } from "viem";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { resetCreateGardenStore, useCreateGardenStore } from "../../stores/useCreateGardenStore";
 import { Domain } from "../../types/domain";

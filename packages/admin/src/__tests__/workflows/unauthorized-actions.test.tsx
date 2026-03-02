@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react";
 import React from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import enMessages from "../../../../shared/src/i18n/en.json";
 import Gardens from "@/views/Gardens";
+import enMessages from "../../../../shared/src/i18n/en.json";
 
 // Mock the shared barrel — Gardens imports from @green-goods/shared directly
 const mockUseGardens = vi.fn();

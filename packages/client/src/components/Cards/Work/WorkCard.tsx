@@ -320,6 +320,6 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   );
 };
 
+export type { StatusBadgeProps } from "@green-goods/shared";
 // Re-export StatusBadge from shared for convenience
 export { StatusBadge } from "@green-goods/shared";
-export type { StatusBadgeProps } from "@green-goods/shared";

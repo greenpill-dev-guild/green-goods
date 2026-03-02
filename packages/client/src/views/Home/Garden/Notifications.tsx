@@ -1,8 +1,8 @@
 import {
   formatAddress,
+  type Garden,
   useEnsName,
   useNavigateToTop,
-  type Garden,
   type Work,
 } from "@green-goods/shared";
 import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";

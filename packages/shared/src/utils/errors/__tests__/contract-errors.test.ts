@@ -2,13 +2,13 @@
  * Contract Error Parsing Tests
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  parseContractError,
-  isNotGardenMemberError,
-  isAlreadyGardenerError,
   formatErrorForToast,
+  isAlreadyGardenerError,
+  isNotGardenMemberError,
   parseAndFormatError,
+  parseContractError,
 } from "../contract-errors";
 
 describe("parseContractError", () => {

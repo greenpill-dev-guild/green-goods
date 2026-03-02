@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
-import { useIntl } from "react-intl";
 import { useCallback, useRef } from "react";
+import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
+import { wagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import type {
   DepositParams,
@@ -10,22 +11,21 @@ import type {
   HarvestParams,
   WithdrawParams,
 } from "../../types/vaults";
-import { useCurrentChain } from "../blockchain/useChainConfig";
-import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { useUser } from "../auth/useUser";
-import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
-import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
-import { useMutationLock } from "../utils/useMutationLock";
-import { useDelayedInvalidation } from "../utils/useTimeout";
-import { wagmiConfig } from "../../config/appkit";
 import {
   ERC20_ALLOWANCE_ABI,
   OCTANT_MODULE_ABI,
   OCTANT_VAULT_ABI,
 } from "../../utils/blockchain/abis";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
-import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { VAULT_MAX_BPS, ZERO_ADDRESS } from "../../utils/blockchain/vaults";
+import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { useUser } from "../auth/useUser";
+import { useCurrentChain } from "../blockchain/useChainConfig";
+import { useContractTxSender } from "../blockchain/useContractTxSender";
+import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
+import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
+import { useMutationLock } from "../utils/useMutationLock";
+import { useDelayedInvalidation } from "../utils/useTimeout";
 
 function getOctantModuleAddress(chainId: number): Address {
   const moduleAddress = getNetworkContracts(chainId).octantModule;

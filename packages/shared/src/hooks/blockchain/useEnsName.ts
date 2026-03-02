@@ -9,7 +9,7 @@
 import { type Address, isAddress } from "viem";
 import { resolveEnsName } from "../../utils/blockchain/ens";
 import { queryKeys } from "../query-keys";
-import { useEnsQuery, type UseEnsQueryOptions, type UseEnsQueryResult } from "./useEnsQuery";
+import { type UseEnsQueryOptions, type UseEnsQueryResult, useEnsQuery } from "./useEnsQuery";
 
 /**
  * React Query wrapper around resolveEnsName with sensible caching defaults.

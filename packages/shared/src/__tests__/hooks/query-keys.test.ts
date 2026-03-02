@@ -9,15 +9,15 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  queryKeys,
-  queryInvalidation,
-  STALE_TIME_FAST,
-  STALE_TIME_MEDIUM,
-  STALE_TIME_SLOW,
-  STALE_TIME_RARE,
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
   INDEXER_LAG_FOLLOWUP_MS,
+  queryInvalidation,
+  queryKeys,
+  STALE_TIME_FAST,
+  STALE_TIME_MEDIUM,
+  STALE_TIME_RARE,
+  STALE_TIME_SLOW,
 } from "../../hooks/query-keys";
 import type { Address } from "../../types/domain";
 

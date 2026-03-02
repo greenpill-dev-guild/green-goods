@@ -1,10 +1,9 @@
-import { useMutation, useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
+import { type UseQueryResult, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import type {
   OpsDeployRequest,
   OpsJob,
   OpsJobLogsState,
-  OpsRunScriptRequest,
   OpsRunnerChallengeResponse,
   OpsRunnerHealth,
   OpsRunnerJobResponse,
@@ -13,6 +12,7 @@ import type {
   OpsRunnerScriptsResponse,
   OpsRunnerSession,
   OpsRunnerVerifyResponse,
+  OpsRunScriptRequest,
   OpsUpgradeRequest,
 } from "../../types/ops";
 

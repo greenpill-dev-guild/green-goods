@@ -11,11 +11,11 @@ import { useMemo } from "react";
 
 import {
   type BrowserInfo,
-  type MobileBrowser,
   canTriggerInstallPrompt,
   detectMobileBrowser,
   getOpenInBrowserUrl,
   getRecommendedBrowser,
+  type MobileBrowser,
 } from "../../utils/app/browser";
 import type { Platform } from "../../utils/app/pwa";
 

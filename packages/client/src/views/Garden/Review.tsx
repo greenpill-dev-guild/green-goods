@@ -1,9 +1,9 @@
 import {
+  type Action,
   AudioPlayer,
   formatTimeSpent,
-  mediaResourceManager,
-  type Action,
   type Garden,
+  mediaResourceManager,
 } from "@green-goods/shared";
 import { RiFileFill, RiPencilFill, RiTimeFill } from "@remixicon/react";
 import { useMemo } from "react";

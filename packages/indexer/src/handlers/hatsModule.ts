@@ -3,13 +3,13 @@ import { HatsModule } from "../../generated";
 import type { HandlerTypes_handlerArgs } from "../../generated/src/Types.gen";
 
 import {
-  normalizeAddress,
   addUniqueAddress,
-  removeAddress,
   createDefaultGarden,
   GARDEN_ROLE,
   type HatsModule_RoleGranted_eventArgs,
   type HatsModule_RoleRevoked_eventArgs,
+  normalizeAddress,
+  removeAddress,
 } from "./shared";
 
 // ============================================================================

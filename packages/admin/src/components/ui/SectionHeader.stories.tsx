@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/react";
 import { RiAddLine, RiDownloadLine, RiSettings3Line } from "@remixicon/react";
+import type { Meta, StoryObj } from "@storybook/react";
 import { SectionHeader } from "./SectionHeader";
 
 const meta: Meta<typeof SectionHeader> = {

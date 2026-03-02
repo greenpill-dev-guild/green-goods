@@ -1,4 +1,7 @@
 #!/usr/bin/env bun
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 /**
  * EAS Immutable Address Validator
  *
@@ -11,11 +14,8 @@
  *   bun packages/contracts/script/validate-eas-immutables.mjs                # defaults to Arbitrum
  *   bun packages/contracts/script/validate-eas-immutables.mjs --chain 11155111  # Sepolia
  */
-import { createPublicClient, http, encodeFunctionData } from "viem";
-import { arbitrum, sepolia, celo } from "viem/chains";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { createPublicClient, encodeFunctionData, http } from "viem";
+import { arbitrum, celo, sepolia } from "viem/chains";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const IMPL_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
@@ -71,7 +71,7 @@ function parseArgs() {
   let chainId = 42161; // default Arbitrum
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--chain" && args[i + 1]) {
-      chainId = parseInt(args[i + 1], 10);
+      chainId = Number.parseInt(args[i + 1], 10);
     }
   }
   return { chainId };
@@ -247,7 +247,7 @@ async function main() {
   if (onChainIssues > 0) {
     console.log(`  ⚠  ${onChainIssues} resolver(s) have stale _eas immutable\n`);
   } else {
-    console.log(`  ✓  All resolvers have correct EAS configuration\n`);
+    console.log("  ✓  All resolvers have correct EAS configuration\n");
   }
 
   // ── Part 2: Check deploy script fix ──
@@ -268,9 +268,9 @@ async function main() {
 
     if (scriptIssues > 0) {
       console.log(`  ⚠  ${scriptIssues} resolver deploy function(s) still have upgradeTo inside _isDeployed guard`);
-      console.log(`     Fix: move UUPSUpgradeable(predicted).upgradeTo(address(implementation)) outside the if block\n`);
+      console.log("     Fix: move UUPSUpgradeable(predicted).upgradeTo(address(implementation)) outside the if block\n");
     } else {
-      console.log(`  ✓  All resolver deploy functions have upgradeTo outside _isDeployed guard\n`);
+      console.log("  ✓  All resolver deploy functions have upgradeTo outside _isDeployed guard\n");
     }
   }
 

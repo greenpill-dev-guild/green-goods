@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react";
 import React from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import enMessages from "../../../../shared/src/i18n/en.json";
 import ActionDetail from "@/views/Actions/ActionDetail";
+import enMessages from "../../../../shared/src/i18n/en.json";
 
 const mockUseActions = vi.fn();
 

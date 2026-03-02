@@ -7,10 +7,10 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createActor, fromPromise, type AnyActorRef } from "xstate";
+import { type AnyActorRef, createActor, fromPromise } from "xstate";
 
 import { authMachine, type PasskeySessionResult } from "../../workflows/authMachine";
-import { MOCK_ADDRESSES, createMockP256Credential } from "../test-utils";
+import { createMockP256Credential, MOCK_ADDRESSES } from "../test-utils";
 
 // ============================================================================
 // MOCK SETUP (before imports that use localStorage)

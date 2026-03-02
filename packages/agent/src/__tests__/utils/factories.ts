@@ -1,5 +1,5 @@
-import type { InboundMessage, User, Session, WorkDraftData } from "../../types";
 import { faker } from "@faker-js/faker";
+import type { InboundMessage, Session, User, WorkDraftData } from "../../types";
 
 // Set seed for reproducible tests
 faker.seed(12345);

@@ -3,12 +3,12 @@ import { createPublicClient, http } from "viem";
 import { useAccount } from "wagmi";
 import { DEFAULT_CHAIN_ID, getNetworkConfig } from "../../config/blockchain";
 import { STALE_TIMES } from "../../config/react-query";
+import { logger } from "../../modules/app/logger";
 import { useAuthContext } from "../../providers/Auth";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
 import { compareAddresses } from "../../utils/blockchain/address";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { logger } from "../../modules/app/logger";
 import { queryKeys } from "../query-keys";
 
 // DeploymentRegistry ABI - read + write functions needed by hooks and views

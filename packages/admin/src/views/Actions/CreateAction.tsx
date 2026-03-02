@@ -1,4 +1,5 @@
 import {
+  type CreateActionFormData,
   cn,
   createActionSchema,
   DEFAULT_CHAIN_ID,
@@ -8,7 +9,6 @@ import {
   toastService,
   uploadFileToIPFS,
   useActionOperations,
-  type CreateActionFormData,
 } from "@green-goods/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
@@ -16,9 +16,10 @@ import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
+import { FileUploadField } from "@/components/FileUploadField";
 import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
-import { FileUploadField } from "@/components/FileUploadField";
+import { FormField } from "@/components/ui/FormField";
 
 export default function CreateAction() {
   const navigate = useNavigate();
@@ -142,16 +143,14 @@ export default function CreateAction() {
       case 0:
         return (
           <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="create-action-title"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                {formatMessage({
-                  id: "app.admin.actions.create.titleLabel",
-                  defaultMessage: "Title",
-                })}
-              </label>
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.titleLabel",
+                defaultMessage: "Title",
+              })}
+              htmlFor="create-action-title"
+              error={form.formState.errors.title?.message}
+            >
               <input
                 id="create-action-title"
                 {...form.register("title")}
@@ -162,58 +161,39 @@ export default function CreateAction() {
                   defaultMessage: "Action title",
                 })}
               />
-              {form.formState.errors.title && (
-                <p className="text-error-base text-sm mt-1">
-                  {form.formState.errors.title.message}
-                </p>
-              )}
-            </div>
+            </FormField>
 
-            <div>
-              <label
-                htmlFor="create-action-starttime"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                {formatMessage({
-                  id: "app.admin.actions.create.startDateLabel",
-                  defaultMessage: "Start Date",
-                })}
-              </label>
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.startDateLabel",
+                defaultMessage: "Start Date",
+              })}
+              htmlFor="create-action-starttime"
+              error={form.formState.errors.startTime?.message}
+            >
               <input
                 id="create-action-starttime"
                 {...form.register("startTime", { valueAsDate: true })}
                 type="date"
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
               />
-              {form.formState.errors.startTime && (
-                <p className="text-error-base text-sm mt-1">
-                  {form.formState.errors.startTime.message}
-                </p>
-              )}
-            </div>
+            </FormField>
 
-            <div>
-              <label
-                htmlFor="create-action-endtime"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                {formatMessage({
-                  id: "app.admin.actions.create.endDateLabel",
-                  defaultMessage: "End Date",
-                })}
-              </label>
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.endDateLabel",
+                defaultMessage: "End Date",
+              })}
+              htmlFor="create-action-endtime"
+              error={form.formState.errors.endTime?.message}
+            >
               <input
                 id="create-action-endtime"
                 {...form.register("endTime", { valueAsDate: true })}
                 type="date"
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
               />
-              {form.formState.errors.endTime && (
-                <p className="text-error-base text-sm mt-1">
-                  {form.formState.errors.endTime.message}
-                </p>
-              )}
-            </div>
+            </FormField>
           </div>
         );
 
@@ -280,23 +260,18 @@ export default function CreateAction() {
 
         return (
           <div className="space-y-6">
-            <div>
-              <label
-                htmlFor="create-action-capitals"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                {formatMessage({
-                  id: "app.admin.actions.create.capitalsLabel",
-                  defaultMessage: "Forms of Capital",
-                })}{" "}
-                <span className="text-error-base">*</span>
-              </label>
-              <p className="text-xs text-text-soft mb-3">
-                {formatMessage({
-                  id: "app.admin.actions.create.capitalsDescription",
-                  defaultMessage: "Select the forms of capital associated with this action",
-                })}
-              </p>
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.capitalsLabel",
+                defaultMessage: "Forms of Capital",
+              })}
+              required
+              hint={formatMessage({
+                id: "app.admin.actions.create.capitalsDescription",
+                defaultMessage: "Select the forms of capital associated with this action",
+              })}
+              error={form.formState.errors.capitals?.message}
+            >
               <fieldset
                 id="create-action-capitals"
                 className="grid grid-cols-2 gap-2 sm:grid-cols-4"
@@ -329,23 +304,15 @@ export default function CreateAction() {
                   );
                 })}
               </fieldset>
-              {form.formState.errors.capitals && (
-                <p className="text-error-base text-sm mt-1">
-                  {form.formState.errors.capitals.message}
-                </p>
-              )}
-            </div>
+            </FormField>
 
-            <div>
-              <label
-                htmlFor="create-action-media"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                {formatMessage({
-                  id: "app.admin.actions.create.mediaLabel",
-                  defaultMessage: "Media (Images)",
-                })}
-              </label>
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.mediaLabel",
+                defaultMessage: "Media (Images)",
+              })}
+              error={form.formState.errors.media?.message}
+            >
               <FileUploadField
                 id="create-action-media"
                 currentFiles={form.watch("media")}
@@ -362,12 +329,7 @@ export default function CreateAction() {
                 showPreview
                 compress
               />
-              {form.formState.errors.media && (
-                <p className="text-error-base text-sm mt-1">
-                  {form.formState.errors.media.message}
-                </p>
-              )}
-            </div>
+            </FormField>
           </div>
         );
       }
@@ -375,16 +337,14 @@ export default function CreateAction() {
       case 2:
         return (
           <div>
-            <div className="mb-4">
-              <label
-                htmlFor="create-action-template"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                {formatMessage({
-                  id: "app.admin.actions.create.templateLabel",
-                  defaultMessage: "Start from a template (optional)",
-                })}
-              </label>
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.templateLabel",
+                defaultMessage: "Start from a template (optional)",
+              })}
+              htmlFor="create-action-template"
+              className="mb-4"
+            >
               <select
                 id="create-action-template"
                 onChange={(e) => {
@@ -561,7 +521,7 @@ export default function CreateAction() {
                   </option>
                 </optgroup>
               </select>
-            </div>
+            </FormField>
             <InstructionsBuilder
               value={form.watch("instructionConfig")}
               onChange={(config) => form.setValue("instructionConfig", config)}

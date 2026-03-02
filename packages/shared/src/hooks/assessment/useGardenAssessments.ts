@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { getGardenAssessments } from "../../modules/data/eas";
-import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
+import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 
 export function useGardenAssessments(gardenAddress?: string) {

@@ -11,56 +11,55 @@ import { validateAllowlist as sdkValidateAllowlist } from "@hypercerts-org/sdk";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-import { type Hex, encodeFunctionData, isAddress } from "viem";
+import { encodeFunctionData, type Hex, isAddress } from "viem";
 import { useWalletClient } from "wagmi";
 import { fromPromise } from "xstate";
 
 import { toastService } from "../../components/toast";
-import { DEFAULT_CHAIN_ID, createPublicClientForChain } from "../../config";
+import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
 import {
-  TOTAL_UNITS,
-  TransferRestrictions,
   encodeCreateAllowlist,
   generateMerkleTree,
+  TOTAL_UNITS,
+  TransferRestrictions,
   validateAllowlist as validateAllowlistEntries,
   validateMetadata,
 } from "../../lib/hypercerts";
+import { getIpfsInitStatus, uploadJSONToIPFS } from "../../modules";
 import { logger } from "../../modules/app/logger";
-import { uploadJSONToIPFS, getIpfsInitStatus } from "../../modules";
+import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
+import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
+import type { Address } from "../../types/domain";
 import type {
   AllowlistEntry,
   HypercertAttestation,
   HypercertDraft,
   HypercertMetadata,
 } from "../../types/hypercerts";
-import type { Address } from "../../types/domain";
-import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
-import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
+import { GARDENS_MODULE_ABI, HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis";
+import { GardenAccountABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import {
   classifyTxError,
   isMeaningfulTxErrorMessage,
 } from "../../utils/errors/tx-error-classifier";
 import {
-  mintHypercertMachine,
   type MintHypercertInput,
-  type MintHypercertSigningInput,
   type MintHypercertReceiptInput,
+  type MintHypercertSigningInput,
+  mintHypercertMachine,
   type RegisterInSignalPoolInput,
 } from "../../workflows/mintHypercert";
 import { useAuth } from "../auth/useAuth";
-
 // Import from extracted modules
 import { CREATE_ALLOWLIST_ABI } from "./hypercert-abis";
-import { GARDENS_MODULE_ABI, HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis";
 import { resolveHypercertContracts } from "./hypercert-contracts";
-import { GardenAccountABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import {
-  TimeoutError,
-  withTimeout,
   extractHypercertIdFromLogs,
   isZeroAddress,
-  serializeAllowlistTree,
   RECEIPT_POLLING_TIMEOUT_MS,
+  serializeAllowlistTree,
+  TimeoutError,
+  withTimeout,
 } from "./hypercert-utils";
 
 // Re-export TimeoutError for consumers

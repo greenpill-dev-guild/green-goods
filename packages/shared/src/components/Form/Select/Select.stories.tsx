@@ -5,9 +5,9 @@ import {
   SelectGroup,
   SelectItem,
   SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
-  SelectSeparator,
 } from "./Select";
 
 const meta: Meta<typeof Select> = {

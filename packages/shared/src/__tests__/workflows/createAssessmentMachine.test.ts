@@ -8,14 +8,13 @@
  * tests provide mock actors via machine.provide() to control outcomes.
  */
 
-import { createActor, fromPromise } from "xstate";
 import { describe, expect, it } from "vitest";
-
-import {
-  createAssessmentMachine,
-  type CreateAssessmentForm,
-} from "../../workflows/createAssessment";
+import { createActor, fromPromise } from "xstate";
 import type { Address } from "../../types/domain";
+import {
+  type CreateAssessmentForm,
+  createAssessmentMachine,
+} from "../../workflows/createAssessment";
 
 // ============================================
 // Test Helpers

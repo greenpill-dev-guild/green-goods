@@ -1,9 +1,9 @@
 import {
   DEFAULT_CHAIN_ID,
-  ImageWithFallback,
   formatDateTime,
-  useRole,
+  ImageWithFallback,
   useActions,
+  useRole,
 } from "@green-goods/shared";
 import { RiEditLine, RiImageLine } from "@remixicon/react";
 import { useEffect, useState } from "react";
@@ -147,6 +147,13 @@ export default function ActionDetail() {
       <PageHeader
         title={action.title}
         description={formatMessage({ id: "app.actions.detail.description" }, { id })}
+        backLink={{
+          to: "/actions",
+          label: formatMessage({
+            id: "app.actions.backToActions",
+            defaultMessage: "Back to actions",
+          }),
+        }}
         actions={
           canManageActions ? (
             <Link

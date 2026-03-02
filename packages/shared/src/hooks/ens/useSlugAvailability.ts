@@ -15,12 +15,12 @@ import { type Address, zeroAddress } from "viem";
 
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { logger } from "../../modules/app/logger";
-import { queryKeys, STALE_TIME_FAST } from "../query-keys";
 import {
   createClients,
   GreenGoodsENSABI,
   getNetworkContracts,
 } from "../../utils/blockchain/contracts";
+import { queryKeys, STALE_TIME_FAST } from "../query-keys";
 import { useDebouncedValue } from "../utils/useDebouncedValue";
 import { slugSchema } from "./useSlugForm";
 

@@ -1,4 +1,7 @@
-import { queryClient, debugWarn } from "@green-goods/shared";
+import { debugWarn, queryClient } from "@green-goods/shared";
+// Note: Service worker is registered by vite-plugin-pwa (registerType: "autoUpdate")
+// Auto-update logic (foreground checks + controllerchange reload) is in main.tsx
+import type { Query } from "@tanstack/react-query";
 import {
   type PersistedClient,
   type Persister,
@@ -7,9 +10,6 @@ import {
 import { createStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import { RouterProvider } from "react-router-dom";
 import { AppErrorBoundary } from "@/components/Errors";
-// Note: Service worker is registered by vite-plugin-pwa (registerType: "autoUpdate")
-// Auto-update logic (foreground checks + controllerchange reload) is in main.tsx
-import type { Query } from "@tanstack/react-query";
 import { router } from "@/router";
 
 const createSyncStoragePersister = ({ storage }: { storage: Storage }): Persister => {

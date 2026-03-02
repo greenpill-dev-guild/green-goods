@@ -1,4 +1,4 @@
-import { useNavigateToTop, type Action, type Work } from "@green-goods/shared";
+import { type Action, useNavigateToTop, type Work } from "@green-goods/shared";
 import { RiLoader4Line } from "@remixicon/react";
 import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";

@@ -1,11 +1,11 @@
 import {
+  type Address,
   cn,
-  Domain,
   DOMAIN_COLORS,
+  Domain,
   expandDomainMask,
   useGardenDomains,
   useSetGardenDomains,
-  type Address,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiLoader4Line } from "@remixicon/react";

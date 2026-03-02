@@ -1,4 +1,4 @@
-import { useCallback, type KeyboardEvent } from "react";
+import { type KeyboardEvent, useCallback } from "react";
 import { useIntl } from "react-intl";
 import { VerificationMethod } from "../../types/domain";
 import { cn } from "../../utils/styles/cn";

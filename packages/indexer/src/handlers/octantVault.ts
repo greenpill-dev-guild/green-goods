@@ -1,31 +1,31 @@
 import { OctantModule, OctantVault, VaultEventType } from "../../generated";
 
 import type {
+  contractRegistrations,
   GardenVault,
   GardenVaultIndex,
+  HandlerTypes_contractRegisterArgs,
+  OctantModule_DonationAddressUpdated_handlerArgs,
+  OctantModule_EmergencyPaused_handlerArgs,
+  OctantModule_HarvestTriggered_handlerArgs,
+  OctantModule_VaultCreated_eventArgs,
+  OctantModule_VaultCreated_handlerArgs,
+  OctantVault_Deposit_handlerArgs,
+  OctantVault_Withdraw_handlerArgs,
   VaultAddressIndex,
   VaultDeposit,
   VaultEvent,
-  OctantModule_VaultCreated_handlerArgs,
-  OctantModule_HarvestTriggered_handlerArgs,
-  OctantModule_EmergencyPaused_handlerArgs,
-  OctantModule_DonationAddressUpdated_handlerArgs,
-  OctantVault_Deposit_handlerArgs,
-  OctantVault_Withdraw_handlerArgs,
-  OctantModule_VaultCreated_eventArgs,
-  HandlerTypes_contractRegisterArgs,
-  contractRegistrations,
 } from "../../generated/src/Types.gen";
 
 import {
-  normalizeAddress,
   createDefaultGardenVault,
   getGardenVaultId,
   getGardenVaultIndexId,
+  getTxHash,
   getVaultAddressIndexId,
   getVaultDepositId,
   getVaultEventId,
-  getTxHash,
+  normalizeAddress,
   ZERO_ADDRESS,
 } from "./shared";
 

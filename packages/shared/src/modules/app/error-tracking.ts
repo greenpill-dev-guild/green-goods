@@ -15,9 +15,9 @@
  */
 
 import { posthog } from "posthog-js";
-import { getAppContext, track } from "./posthog";
+import { type ParsedContractError, parseContractError } from "../../utils/errors/contract-errors";
 import { logger } from "./logger";
-import { parseContractError, type ParsedContractError } from "../../utils/errors/contract-errors";
+import { getAppContext, track } from "./posthog";
 
 const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";

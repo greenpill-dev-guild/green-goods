@@ -1,6 +1,6 @@
+import { waitForTransactionReceipt } from "@wagmi/core";
 import { type Abi, encodeFunctionData } from "viem";
 import { useConfig, useWriteContract } from "wagmi";
-import { waitForTransactionReceipt } from "@wagmi/core";
 import type { Address } from "../../types/domain";
 import { useUser } from "../auth/useUser";
 

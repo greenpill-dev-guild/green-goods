@@ -1,4 +1,5 @@
 import {
+  type Address,
   DEPLOYMENT_REGISTRY_ABI,
   formatAddress,
   getChain,
@@ -10,12 +11,12 @@ import {
   trackAdminDeployFailed,
   trackAdminDeployStarted,
   trackAdminDeploySuccess,
+  USER_FRIENDLY_ERRORS,
   useAdminStore,
   useDeploymentAllowlist,
   useDeploymentRegistry,
   useEnsAddress,
   useOpenMinting,
-  useSetOpenMinting,
   useOpsDeployPlan,
   useOpsFinalizeDeploy,
   useOpsJobLogs,
@@ -24,10 +25,9 @@ import {
   useOpsRunnerJob,
   useOpsRunnerJobs,
   useOpsRunnerScripts,
-  useOpsRunScript,
   useOpsRunnerSession,
-  USER_FRIENDLY_ERRORS,
-  type Address,
+  useOpsRunScript,
+  useSetOpenMinting,
 } from "@green-goods/shared";
 import {
   RiClipboardLine,
@@ -47,6 +47,7 @@ import { useIntl } from "react-intl";
 import { isAddress } from "viem";
 import { useAccount, useConfig, useSignMessage, useWriteContract } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
+import { PageHeader } from "@/components/Layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { chainIdToOpsNetwork, getOpsStatusBadge } from "@/utils/ops";
@@ -260,381 +261,387 @@ export default function Deployment() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-text-strong">
-          {formatMessage({ id: "app.deployment.title" })}
-        </h1>
-        <p className="text-text-sub">
-          {formatMessage({ id: "app.deployment.description" }, { chain: chain.name })}
-        </p>
-      </div>
+    <div>
+      <PageHeader
+        title={formatMessage({ id: "app.deployment.title" })}
+        description={formatMessage({ id: "app.deployment.description" }, { chain: chain.name })}
+        sticky
+      />
 
-      <Card padding="feature">
-        <div className="flex items-center mb-4">
-          <RiCodeBoxLine className="h-5 w-5 text-information-base mr-2" />
-          <h2 className="text-lg font-medium text-text-strong">
-            {formatMessage({ id: "app.deployment.ops.runnerTitle" })}
-          </h2>
-        </div>
+      <div className="p-6 space-y-6">
+        <Card padding="feature">
+          <div className="flex items-center mb-4">
+            <RiCodeBoxLine className="h-5 w-5 text-information-base mr-2" />
+            <h2 className="text-lg font-medium text-text-strong">
+              {formatMessage({ id: "app.deployment.ops.runnerTitle" })}
+            </h2>
+          </div>
 
-        <p className="text-sm text-text-sub mb-4">
-          {formatMessage({ id: "app.deployment.ops.runnerDescription" })}
-        </p>
+          <p className="text-sm text-text-sub mb-4">
+            {formatMessage({ id: "app.deployment.ops.runnerDescription" })}
+          </p>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <span
-            className={`text-sm font-medium ${
-              opsHealth.data?.ok ? "text-success-base" : "text-error-base"
-            }`}
-          >
-            {opsHealth.data?.ok
-              ? formatMessage({ id: "app.deployment.ops.runnerOnline" })
-              : formatMessage({ id: "app.deployment.ops.runnerOffline" })}
-          </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <span
+              className={`text-sm font-medium ${
+                opsHealth.data?.ok ? "text-success-base" : "text-error-base"
+              }`}
+            >
+              {opsHealth.data?.ok
+                ? formatMessage({ id: "app.deployment.ops.runnerOnline" })
+                : formatMessage({ id: "app.deployment.ops.runnerOffline" })}
+            </span>
+
+            {!isAuthenticated ? (
+              <Button
+                type="button"
+                onClick={handleConnectRunner}
+                loading={opsAuth.requestChallenge.isPending || opsAuth.verifySignature.isPending}
+              >
+                {formatMessage({ id: "app.deployment.ops.authenticate" })}
+              </Button>
+            ) : (
+              <Button type="button" variant="secondary" onClick={clearSession}>
+                {formatMessage({ id: "app.deployment.ops.disconnect" })}
+              </Button>
+            )}
+
+            {session?.address && (
+              <span className="text-xs text-text-soft">
+                {formatMessage(
+                  { id: "app.deployment.ops.connectedAs" },
+                  { address: formatAddress(session.address as Address) }
+                )}
+              </span>
+            )}
+          </div>
+        </Card>
+
+        {/* Scripts Runner */}
+        <Card padding="feature">
+          <div className="flex items-center mb-4">
+            <RiPlayCircleLine className="h-5 w-5 text-feature-dark mr-2" />
+            <h2 className="text-lg font-medium text-text-strong">
+              {formatMessage({ id: "app.ops.scriptsTitle" })}
+            </h2>
+          </div>
 
           {!isAuthenticated ? (
-            <Button
-              type="button"
-              onClick={handleConnectRunner}
-              loading={opsAuth.requestChallenge.isPending || opsAuth.verifySignature.isPending}
-            >
-              {formatMessage({ id: "app.deployment.ops.authenticate" })}
-            </Button>
+            <p className="text-sm text-error-base">
+              {formatMessage({ id: "app.ops.authRequired" })}
+            </p>
+          ) : scriptsQuery.isLoading ? (
+            <p className="text-sm text-text-soft">
+              {formatMessage({ id: "app.ops.loadingScripts" })}
+            </p>
           ) : (
-            <Button type="button" variant="secondary" onClick={clearSession}>
-              {formatMessage({ id: "app.deployment.ops.disconnect" })}
-            </Button>
-          )}
-
-          {session?.address && (
-            <span className="text-xs text-text-soft">
-              {formatMessage(
-                { id: "app.deployment.ops.connectedAs" },
-                { address: formatAddress(session.address as Address) }
-              )}
-            </span>
-          )}
-        </div>
-      </Card>
-
-      {/* Scripts Runner */}
-      <Card padding="feature">
-        <div className="flex items-center mb-4">
-          <RiPlayCircleLine className="h-5 w-5 text-feature-dark mr-2" />
-          <h2 className="text-lg font-medium text-text-strong">
-            {formatMessage({ id: "app.ops.scriptsTitle" })}
-          </h2>
-        </div>
-
-        {!isAuthenticated ? (
-          <p className="text-sm text-error-base">{formatMessage({ id: "app.ops.authRequired" })}</p>
-        ) : scriptsQuery.isLoading ? (
-          <p className="text-sm text-text-soft">
-            {formatMessage({ id: "app.ops.loadingScripts" })}
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {(scriptsQuery.data ?? []).map((script) => (
-              <div
-                key={script.id}
-                className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between rounded-lg border border-stroke-soft p-3"
-              >
-                <div>
-                  <p className="text-sm font-medium text-text-strong">{script.id}</p>
-                  <p className="text-xs text-text-soft">{script.description}</p>
+            <div className="space-y-3">
+              {(scriptsQuery.data ?? []).map((script) => (
+                <div
+                  key={script.id}
+                  className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between rounded-lg border border-stroke-soft p-3"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-text-strong">{script.id}</p>
+                    <p className="text-xs text-text-soft">{script.description}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => runScript(script.id)}
+                    loading={runScriptMutation.isPending}
+                  >
+                    {formatMessage({ id: "app.ops.runScript" })}
+                  </Button>
                 </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Permissions Status */}
+        <Card padding="feature">
+          <div className="flex items-center mb-4">
+            <RiShieldCheckLine className="h-5 w-5 text-information-base mr-2" />
+            <h2 className="text-lg font-medium text-text-strong">
+              {formatMessage({ id: "app.deployment.permissions" })}
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <div
+                className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-2 ${
+                  permissions.isOwner
+                    ? "bg-success-lighter text-success-base"
+                    : "bg-bg-weak text-text-disabled"
+                }`}
+              >
+                <RiSettings3Line className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-medium text-text-strong">
+                {formatMessage({ id: "app.deployment.role.owner" })}
+              </p>
+              <p
+                className={`text-xs ${permissions.isOwner ? "text-success-base" : "text-text-soft"}`}
+              >
+                {permissions.isOwner
+                  ? formatMessage({ id: "app.deployment.enabled" })
+                  : formatMessage({ id: "app.deployment.notAuthorized" })}
+              </p>
+            </div>
+            <div className="text-center">
+              <div
+                className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-2 ${
+                  permissions.isInAllowlist
+                    ? "bg-information-lighter text-information-base"
+                    : "bg-bg-weak text-text-disabled"
+                }`}
+              >
+                <RiCodeBoxLine className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-medium text-text-strong">
+                {formatMessage({ id: "app.deployment.role.allowlisted" })}
+              </p>
+              <p
+                className={`text-xs ${permissions.isInAllowlist ? "text-information-base" : "text-text-soft"}`}
+              >
+                {permissions.isInAllowlist
+                  ? formatMessage({ id: "app.deployment.enabled" })
+                  : formatMessage({ id: "app.deployment.notAuthorized" })}
+              </p>
+            </div>
+            <div className="text-center">
+              <div
+                className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-2 ${
+                  permissions.canDeploy
+                    ? "bg-feature-lighter text-feature-dark"
+                    : "bg-bg-weak text-text-disabled"
+                }`}
+              >
+                <RiGitBranchLine className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-medium text-text-strong">
+                {formatMessage({ id: "app.deployment.role.canDeploy" })}
+              </p>
+              <p
+                className={`text-xs ${permissions.canDeploy ? "text-feature-dark" : "text-text-soft"}`}
+              >
+                {permissions.canDeploy
+                  ? formatMessage({ id: "app.deployment.authorized" })
+                  : formatMessage({ id: "app.deployment.notAuthorized" })}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Minter Allowlist - owner only */}
+        {permissions.isOwner && <AllowlistCard chainId={selectedChainId} />}
+
+        {/* Open Minting Toggle - owner only */}
+        {permissions.isOwner && <OpenMintingCard />}
+
+        {/* Deployment Actions */}
+        <Card padding="feature">
+          <div className="flex items-center mb-4">
+            <RiUploadLine className="h-5 w-5 text-success-base mr-2" />
+            <h2 className="text-lg font-medium text-text-strong">
+              {formatMessage({ id: "app.deployment.actions" })}
+            </h2>
+          </div>
+
+          {permissions.canDeploy ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    className="block text-sm font-medium text-text-strong mb-1"
+                    htmlFor="sender"
+                  >
+                    {formatMessage({ id: "app.deployment.ops.senderLabel" })}
+                  </label>
+                  <input
+                    id="sender"
+                    type="text"
+                    value={sender}
+                    onChange={(event) => setSender(event.target.value)}
+                    className="w-full px-3 py-2 border border-stroke-sub bg-bg-white text-text-strong rounded-lg"
+                    placeholder="0x..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-strong mb-1" htmlFor="salt">
+                    {formatMessage({ id: "app.deployment.ops.saltLabel" })}
+                  </label>
+                  <input
+                    id="salt"
+                    type="text"
+                    value={deploymentSalt}
+                    onChange={(event) => setDeploymentSalt(event.target.value)}
+                    className="w-full px-3 py-2 border border-stroke-sub bg-bg-white text-text-strong rounded-lg"
+                    placeholder="greenGoodsCleanDeploy2025:14"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-text-sub">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={updateSchemasOnly}
+                    onChange={(event) => setUpdateSchemasOnly(event.target.checked)}
+                  />
+                  {formatMessage({ id: "app.deployment.ops.updateSchemasOnly" })}
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={forceRedeploy}
+                    onChange={(event) => setForceRedeploy(event.target.checked)}
+                  />
+                  {formatMessage({ id: "app.deployment.ops.forceRedeploy" })}
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={syncEnvio}
+                    onChange={(event) => setSyncEnvio(event.target.checked)}
+                  />
+                  {formatMessage({ id: "app.deployment.ops.syncEnvio" })}
+                </label>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => runScript(script.id)}
-                  loading={runScriptMutation.isPending}
+                  onClick={runDeployPlan}
+                  loading={deployPlanMutation.isPending}
+                  disabled={!isAuthenticated}
                 >
-                  {formatMessage({ id: "app.ops.runScript" })}
+                  {formatMessage({ id: "app.deployment.ops.generatePlan" })}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={runDeployFinalize}
+                  loading={finalizeDeployMutation.isPending}
+                  disabled={!isAuthenticated}
+                >
+                  {formatMessage({ id: "app.deployment.ops.executeDeploy" })}
                 </Button>
               </div>
-            ))}
-          </div>
-        )}
-      </Card>
 
-      {/* Permissions Status */}
-      <Card padding="feature">
-        <div className="flex items-center mb-4">
-          <RiShieldCheckLine className="h-5 w-5 text-information-base mr-2" />
-          <h2 className="text-lg font-medium text-text-strong">
-            {formatMessage({ id: "app.deployment.permissions" })}
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center">
-            <div
-              className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-2 ${
-                permissions.isOwner
-                  ? "bg-success-lighter text-success-base"
-                  : "bg-bg-weak text-text-disabled"
-              }`}
-            >
-              <RiSettings3Line className="w-6 h-6" />
+              {!isAuthenticated && (
+                <p className="text-sm text-error-base">
+                  {formatMessage({ id: "app.deployment.ops.authRequired" })}
+                </p>
+              )}
             </div>
-            <p className="text-sm font-medium text-text-strong">
-              {formatMessage({ id: "app.deployment.role.owner" })}
-            </p>
-            <p
-              className={`text-xs ${permissions.isOwner ? "text-success-base" : "text-text-soft"}`}
-            >
-              {permissions.isOwner
-                ? formatMessage({ id: "app.deployment.enabled" })
-                : formatMessage({ id: "app.deployment.notAuthorized" })}
-            </p>
-          </div>
-          <div className="text-center">
-            <div
-              className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-2 ${
-                permissions.isInAllowlist
-                  ? "bg-information-lighter text-information-base"
-                  : "bg-bg-weak text-text-disabled"
-              }`}
-            >
-              <RiCodeBoxLine className="w-6 h-6" />
+          ) : (
+            <div className="text-center py-8">
+              <RiErrorWarningLine className="mx-auto h-12 w-12 text-text-disabled" />
+              <h3 className="mt-2 text-sm font-medium text-text-strong">
+                {formatMessage({ id: "app.deployment.notAvailable" })}
+              </h3>
+              <p className="mt-1 text-sm text-text-soft">
+                {formatMessage({ id: "app.deployment.notAvailableDescription" })}
+              </p>
             </div>
-            <p className="text-sm font-medium text-text-strong">
-              {formatMessage({ id: "app.deployment.role.allowlisted" })}
-            </p>
-            <p
-              className={`text-xs ${permissions.isInAllowlist ? "text-information-base" : "text-text-soft"}`}
+          )}
+        </Card>
+
+        <Card padding="feature">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-text-strong">
+              {formatMessage({ id: "app.deployment.ops.statusTitle" })}
+            </h2>
+            <select
+              value={selectedJobId ?? ""}
+              onChange={(event) => setSelectedJobId(event.target.value || null)}
+              className="border border-stroke-sub rounded-lg px-2 py-1 text-sm bg-bg-white"
             >
-              {permissions.isInAllowlist
-                ? formatMessage({ id: "app.deployment.enabled" })
-                : formatMessage({ id: "app.deployment.notAuthorized" })}
-            </p>
+              <option value="">{formatMessage({ id: "app.deployment.ops.selectJob" })}</option>
+              {recentJobs.map((job) => (
+                <option key={job.id} value={job.id}>
+                  {job.type} · {job.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="text-center">
-            <div
-              className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-2 ${
-                permissions.canDeploy
-                  ? "bg-feature-lighter text-feature-dark"
-                  : "bg-bg-weak text-text-disabled"
-              }`}
-            >
-              <RiGitBranchLine className="w-6 h-6" />
-            </div>
-            <p className="text-sm font-medium text-text-strong">
-              {formatMessage({ id: "app.deployment.role.canDeploy" })}
+
+          {!selectedJobId ? (
+            <p className="text-sm text-text-soft">
+              {formatMessage({ id: "app.deployment.ops.noJobs" })}
             </p>
-            <p
-              className={`text-xs ${permissions.canDeploy ? "text-feature-dark" : "text-text-soft"}`}
-            >
-              {permissions.canDeploy
-                ? formatMessage({ id: "app.deployment.authorized" })
-                : formatMessage({ id: "app.deployment.notAuthorized" })}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Minter Allowlist - owner only */}
-      {permissions.isOwner && <AllowlistCard chainId={selectedChainId} />}
-
-      {/* Open Minting Toggle - owner only */}
-      {permissions.isOwner && <OpenMintingCard />}
-
-      {/* Deployment Actions */}
-      <Card padding="feature">
-        <div className="flex items-center mb-4">
-          <RiUploadLine className="h-5 w-5 text-success-base mr-2" />
-          <h2 className="text-lg font-medium text-text-strong">
-            {formatMessage({ id: "app.deployment.actions" })}
-          </h2>
-        </div>
-
-        {permissions.canDeploy ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text-strong mb-1" htmlFor="sender">
-                  {formatMessage({ id: "app.deployment.ops.senderLabel" })}
-                </label>
-                <input
-                  id="sender"
-                  type="text"
-                  value={sender}
-                  onChange={(event) => setSender(event.target.value)}
-                  className="w-full px-3 py-2 border border-stroke-sub bg-bg-white text-text-strong rounded-lg"
-                  placeholder="0x..."
-                />
+          ) : (
+            <div className="space-y-3">
+              <div className="text-sm text-text-sub">
+                <span className="mr-2">
+                  {formatMessage({ id: "app.deployment.ops.jobLabel" })}:
+                </span>
+                <code>{selectedJobId}</code>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-text-strong mb-1" htmlFor="salt">
-                  {formatMessage({ id: "app.deployment.ops.saltLabel" })}
-                </label>
-                <input
-                  id="salt"
-                  type="text"
-                  value={deploymentSalt}
-                  onChange={(event) => setDeploymentSalt(event.target.value)}
-                  className="w-full px-3 py-2 border border-stroke-sub bg-bg-white text-text-strong rounded-lg"
-                  placeholder="greenGoodsCleanDeploy2025:14"
-                />
+              <div className="text-sm">
+                <span className="text-text-sub mr-2">
+                  {formatMessage({ id: "app.deployment.statusLabel" })}:
+                </span>
+                <span
+                  className={getOpsStatusBadge(
+                    currentJob?.status ?? jobLogs.status?.status ?? "queued"
+                  )}
+                >
+                  {formatMessage({
+                    id: `app.deployment.ops.status.${currentJob?.status ?? jobLogs.status?.status ?? "queued"}`,
+                  })}
+                </span>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-text-sub">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={updateSchemasOnly}
-                  onChange={(event) => setUpdateSchemasOnly(event.target.checked)}
-                />
-                {formatMessage({ id: "app.deployment.ops.updateSchemasOnly" })}
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={forceRedeploy}
-                  onChange={(event) => setForceRedeploy(event.target.checked)}
-                />
-                {formatMessage({ id: "app.deployment.ops.forceRedeploy" })}
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={syncEnvio}
-                  onChange={(event) => setSyncEnvio(event.target.checked)}
-                />
-                {formatMessage({ id: "app.deployment.ops.syncEnvio" })}
-              </label>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={runDeployPlan}
-                loading={deployPlanMutation.isPending}
-                disabled={!isAuthenticated}
-              >
-                {formatMessage({ id: "app.deployment.ops.generatePlan" })}
-              </Button>
-              <Button
-                type="button"
-                onClick={runDeployFinalize}
-                loading={finalizeDeployMutation.isPending}
-                disabled={!isAuthenticated}
-              >
-                {formatMessage({ id: "app.deployment.ops.executeDeploy" })}
-              </Button>
-            </div>
-
-            {!isAuthenticated && (
-              <p className="text-sm text-error-base">
-                {formatMessage({ id: "app.deployment.ops.authRequired" })}
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <RiErrorWarningLine className="mx-auto h-12 w-12 text-text-disabled" />
-            <h3 className="mt-2 text-sm font-medium text-text-strong">
-              {formatMessage({ id: "app.deployment.notAvailable" })}
-            </h3>
-            <p className="mt-1 text-sm text-text-soft">
-              {formatMessage({ id: "app.deployment.notAvailableDescription" })}
-            </p>
-          </div>
-        )}
-      </Card>
-
-      <Card padding="feature">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium text-text-strong">
-            {formatMessage({ id: "app.deployment.ops.statusTitle" })}
-          </h2>
-          <select
-            value={selectedJobId ?? ""}
-            onChange={(event) => setSelectedJobId(event.target.value || null)}
-            className="border border-stroke-sub rounded-lg px-2 py-1 text-sm bg-bg-white"
-          >
-            <option value="">{formatMessage({ id: "app.deployment.ops.selectJob" })}</option>
-            {recentJobs.map((job) => (
-              <option key={job.id} value={job.id}>
-                {job.type} · {job.id.slice(0, 8)}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {!selectedJobId ? (
-          <p className="text-sm text-text-soft">
-            {formatMessage({ id: "app.deployment.ops.noJobs" })}
-          </p>
-        ) : (
-          <div className="space-y-3">
-            <div className="text-sm text-text-sub">
-              <span className="mr-2">{formatMessage({ id: "app.deployment.ops.jobLabel" })}:</span>
-              <code>{selectedJobId}</code>
-            </div>
-
-            <div className="text-sm">
-              <span className="text-text-sub mr-2">
-                {formatMessage({ id: "app.deployment.statusLabel" })}:
-              </span>
-              <span
-                className={getOpsStatusBadge(
-                  currentJob?.status ?? jobLogs.status?.status ?? "queued"
-                )}
-              >
-                {formatMessage({
-                  id: `app.deployment.ops.status.${currentJob?.status ?? jobLogs.status?.status ?? "queued"}`,
-                })}
-              </span>
-            </div>
-
-            <div>
-              <p className="text-sm font-medium text-text-strong mb-2">
-                {formatMessage({ id: "app.deployment.ops.liveLogs" })}
-              </p>
-              <pre className="text-xs bg-bg-weak rounded-lg p-3 max-h-80 overflow-auto whitespace-pre-wrap">
-                {jobLogs.logs
-                  .map((entry) => `${entry.at} [${entry.stream}] ${entry.message}`)
-                  .join("\n")}
-              </pre>
-              {jobLogs.error && <p className="text-xs text-error-base mt-2">{jobLogs.error}</p>}
-            </div>
-
-            {currentJob?.result && (
               <div>
                 <p className="text-sm font-medium text-text-strong mb-2">
-                  {formatMessage({ id: "app.deployment.ops.result" })}
+                  {formatMessage({ id: "app.deployment.ops.liveLogs" })}
                 </p>
                 <pre className="text-xs bg-bg-weak rounded-lg p-3 max-h-80 overflow-auto whitespace-pre-wrap">
-                  {JSON.stringify(currentJob.result, null, 2)}
+                  {jobLogs.logs
+                    .map((entry) => `${entry.at} [${entry.stream}] ${entry.message}`)
+                    .join("\n")}
                 </pre>
+                {jobLogs.error && <p className="text-xs text-error-base mt-2">{jobLogs.error}</p>}
               </div>
-            )}
-          </div>
-        )}
-      </Card>
 
-      {/* Documentation */}
-      <Card padding="feature">
-        <div className="flex items-center mb-4">
-          <RiCodeBoxLine className="h-5 w-5 text-text-soft mr-2" />
-          <h2 className="text-lg font-medium text-text-strong">
-            {formatMessage({ id: "app.deployment.manual.title" })}
-          </h2>
-        </div>
-        <div className="bg-bg-weak rounded-lg p-4">
-          <p className="text-sm text-text-sub mb-3">
-            {formatMessage({ id: "app.deployment.manual.description" })}
-          </p>
-          <code className="text-sm bg-bg-soft px-2 py-1 rounded block">
-            bun script/deploy.ts core --network {network} --broadcast
-          </code>
-        </div>
-      </Card>
+              {currentJob?.result && (
+                <div>
+                  <p className="text-sm font-medium text-text-strong mb-2">
+                    {formatMessage({ id: "app.deployment.ops.result" })}
+                  </p>
+                  <pre className="text-xs bg-bg-weak rounded-lg p-3 max-h-80 overflow-auto whitespace-pre-wrap">
+                    {JSON.stringify(currentJob.result, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
+
+        {/* Documentation */}
+        <Card padding="feature">
+          <div className="flex items-center mb-4">
+            <RiCodeBoxLine className="h-5 w-5 text-text-soft mr-2" />
+            <h2 className="text-lg font-medium text-text-strong">
+              {formatMessage({ id: "app.deployment.manual.title" })}
+            </h2>
+          </div>
+          <div className="bg-bg-weak rounded-lg p-4">
+            <p className="text-sm text-text-sub mb-3">
+              {formatMessage({ id: "app.deployment.manual.description" })}
+            </p>
+            <code className="text-sm bg-bg-soft px-2 py-1 rounded block">
+              bun script/deploy.ts core --network {network} --broadcast
+            </code>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

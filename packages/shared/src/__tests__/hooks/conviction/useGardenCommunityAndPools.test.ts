@@ -69,8 +69,8 @@ vi.mock("../../../config/appkit", () => ({
 
 import { useGardenCommunity } from "../../../hooks/conviction/useGardenCommunity";
 import { useGardenPools } from "../../../hooks/conviction/useGardenPools";
-import { PoolType, WeightScheme } from "../../../types/gardens-community";
 import type { Address } from "../../../types/domain";
+import { PoolType, WeightScheme } from "../../../types/gardens-community";
 
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {

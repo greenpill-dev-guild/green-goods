@@ -1,6 +1,8 @@
 import {
+  type Action,
   DEFAULT_CHAIN_ID,
   findActionByUID,
+  type Garden,
   logger,
   track,
   useActionTranslation,
@@ -14,8 +16,6 @@ import {
   useWorkFlowStore,
   useWorkSelection,
   WorkTab,
-  type Action,
-  type Garden,
 } from "@green-goods/shared";
 import {
   RiArrowRightSLine,

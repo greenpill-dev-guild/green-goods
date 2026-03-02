@@ -1,6 +1,6 @@
+import type { Address, DraftWithImages } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
-import type { Address, DraftWithImages } from "@green-goods/shared";
 import { DraftCard } from "./DraftCard";
 
 const now = Date.now();

@@ -10,27 +10,26 @@
  * @module components/Toast/presets
  */
 
+export { approvalToasts, createApprovalToasts } from "./presets/approval";
+export { createQueueToasts, queueToasts } from "./presets/queue";
 export type { FormatMessageFn } from "./presets/types";
 export { toastMessageIds, toastMessageIdsUpdate } from "./presets/types";
-
-export { workToasts, createWorkToasts } from "./presets/work";
-export { approvalToasts, createApprovalToasts } from "./presets/approval";
-export { queueToasts, createQueueToasts } from "./presets/queue";
-export { validationToasts, createValidationToasts } from "./presets/validation";
+export { createUpdateToasts, updateToasts } from "./presets/update";
+export { createValidationToasts, validationToasts } from "./presets/validation";
 export {
-  walletProgressToasts,
   createWalletProgressToasts,
   showWalletProgress,
+  walletProgressToasts,
 } from "./presets/wallet";
-export { updateToasts, createUpdateToasts } from "./presets/update";
+export { createWorkToasts, workToasts } from "./presets/work";
 
-import type { FormatMessageFn } from "./presets/types";
-import { createWorkToasts } from "./presets/work";
 import { createApprovalToasts } from "./presets/approval";
 import { createQueueToasts } from "./presets/queue";
+import type { FormatMessageFn } from "./presets/types";
+import { createUpdateToasts } from "./presets/update";
 import { createValidationToasts } from "./presets/validation";
 import { createWalletProgressToasts } from "./presets/wallet";
-import { createUpdateToasts } from "./presets/update";
+import { createWorkToasts } from "./presets/work";
 
 /**
  * Create all i18n-aware toast presets at once

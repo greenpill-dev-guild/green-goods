@@ -1,11 +1,11 @@
 import {
   capitalize,
   hapticLight,
+  type Locale,
   logger,
   toastService,
   useApp,
   useTheme,
-  type Locale,
 } from "@green-goods/shared";
 import {
   RiComputerLine,

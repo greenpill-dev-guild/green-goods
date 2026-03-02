@@ -36,16 +36,16 @@ vi.mock("../../../config/blockchain", () => ({
   }),
 }));
 
+import { getEASConfig, getNetworkConfig } from "../../../config/blockchain";
 import {
   getCurrentChain,
   getEASConfigForChain,
   getNetworkConfigForChain,
+  useChainConfig,
   useCurrentChain,
   useEASConfig,
   useNetworkConfig,
-  useChainConfig,
 } from "../../../hooks/blockchain/useChainConfig";
-import { getEASConfig, getNetworkConfig } from "../../../config/blockchain";
 
 // Reference values obtained from the mocked functions (safe to call after imports)
 const EXPECTED_CHAIN_ID = 11155111;

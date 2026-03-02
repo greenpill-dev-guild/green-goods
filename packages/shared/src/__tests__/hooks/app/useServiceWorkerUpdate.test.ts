@@ -5,8 +5,8 @@
  * waiting workers and provides user-controlled update application.
  */
 
-import { renderHook, act } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock logger and posthog
 vi.mock("../../../modules/app/logger", () => ({

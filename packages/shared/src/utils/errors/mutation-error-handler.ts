@@ -10,7 +10,7 @@
 import { toastService, walletProgressToasts } from "../../components/toast";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { DEBUG_ENABLED, debugError } from "../../utils/debug";
-import { parseAndFormatError, type ParsedContractError } from "./contract-errors";
+import { type ParsedContractError, parseAndFormatError } from "./contract-errors";
 
 /**
  * Configuration for creating a mutation error handler

@@ -11,13 +11,13 @@ import { type IDBPDatabase, openDB } from "idb";
 import type {
   DraftImage,
   DraftStep,
-  WorkDraftRecord,
   SerializedFileData,
+  WorkDraftRecord,
 } from "../../types/job-queue";
 import {
-  serializeFile,
-  deserializeFile,
   buildFileMetadata,
+  deserializeFile,
+  serializeFile,
 } from "../../utils/storage/file-serialization";
 import { trackStorageError } from "../app/error-tracking";
 import { mediaResourceManager } from "./media-resource-manager";

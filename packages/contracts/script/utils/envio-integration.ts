@@ -1,6 +1,6 @@
+import { type ChildProcess, execSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { execSync, spawn, type ChildProcess } from "node:child_process";
 import * as yaml from "js-yaml";
 
 interface EnvioContract {

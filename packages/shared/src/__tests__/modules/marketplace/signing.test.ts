@@ -6,8 +6,8 @@
  * @vitest-environment node
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Address, Hex, WalletClient } from "viem";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildMakerAsk, signMakerAsk, validateOrder } from "../../../modules/marketplace/signing";
 import type { CreateListingParams } from "../../../types/hypercerts";
 

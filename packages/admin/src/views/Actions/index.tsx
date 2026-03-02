@@ -1,13 +1,13 @@
 import {
+  type ActionFiltersState,
+  cn,
   DEFAULT_CHAIN_ID,
   Domain,
-  ImageWithFallback,
-  cn,
   formatDate,
+  ImageWithFallback,
   useActions,
   useFilteredActions,
   useRole,
-  type ActionFiltersState,
 } from "@green-goods/shared";
 import {
   RiAddLine,
@@ -290,11 +290,17 @@ export default function Actions() {
                 />
 
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold text-text-strong mb-2 group-hover:text-primary-dark line-clamp-1">
+                  <h3
+                    className="text-xl font-semibold text-text-strong mb-2 group-hover:text-primary-dark line-clamp-1"
+                    title={action.title}
+                  >
                     {action.title}
                   </h3>
 
-                  <p className="text-sm text-text-sub mb-4 line-clamp-2">
+                  <p
+                    className="text-sm text-text-sub mb-4 line-clamp-2"
+                    title={action.description || undefined}
+                  >
                     {action.description || "No description"}
                   </p>
 

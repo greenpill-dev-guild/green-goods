@@ -1,8 +1,8 @@
-import * as path from "node:path";
 import { execSync } from "node:child_process";
-import { NetworkManager } from "../utils/network";
-import { DeploymentAddresses } from "../utils/deployment-addresses";
+import * as path from "node:path";
 import type { ParsedOptions } from "../utils/cli-parser";
+import { DeploymentAddresses } from "../utils/deployment-addresses";
+import { NetworkManager } from "../utils/network";
 
 /**
  * HatsTreeDeployer - Sets up the Green Goods Hats protocol tree

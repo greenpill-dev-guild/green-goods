@@ -25,7 +25,6 @@ import {
 import { fromPromise } from "xstate";
 
 import { getChain } from "../config/chains";
-import { logger } from "../modules/app/logger";
 import { createPasskey, getPasskeyRpId } from "../config/passkeyServer";
 import {
   createPimlicoClientForChain,
@@ -41,6 +40,7 @@ import {
   trackAuthPasskeyRegisterSuccess,
   trackAuthSessionRestored,
 } from "../modules/app/analytics-events";
+import { logger } from "../modules/app/logger";
 import {
   getAuthMode,
   getStoredCredential,

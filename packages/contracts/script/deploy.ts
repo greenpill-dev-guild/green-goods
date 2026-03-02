@@ -17,8 +17,8 @@
  * This wrapper maintains backward compatibility with existing scripts.
  */
 
-import dotenv from "dotenv";
 import path from "node:path";
+import dotenv from "dotenv";
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, "../../../", ".env") });

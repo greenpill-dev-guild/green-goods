@@ -1,4 +1,7 @@
 #!/usr/bin/env bun
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 /**
  * Validates whether EAS resolver proxies on Arbitrum have the correct _eas immutable.
  *
@@ -8,11 +11,8 @@
  *
  * Usage: bun packages/contracts/script/validate-resolver-eas.mjs
  */
-import { createPublicClient, http, encodeFunctionData } from "viem";
+import { createPublicClient, encodeFunctionData, http } from "viem";
 import { arbitrum } from "viem/chains";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEPLOYMENT_PATH = path.join(__dirname, "../deployments/42161-latest.json");

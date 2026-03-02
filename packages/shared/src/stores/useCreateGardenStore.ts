@@ -4,11 +4,11 @@ import { persist } from "zustand/middleware";
 
 import {
   createGardenSchema,
-  gardenStepFields,
   type GardenStepId,
+  gardenStepFields,
 } from "../hooks/garden/useCreateGardenForm";
-import { type Address, Domain } from "../types/domain";
 import { type CreateGardenParams, WeightScheme } from "../types/contracts";
+import { type Address, Domain } from "../types/domain";
 
 // Storage key for garden creation flow persistence
 const CREATE_GARDEN_STORAGE_KEY = "green-goods:create-garden";

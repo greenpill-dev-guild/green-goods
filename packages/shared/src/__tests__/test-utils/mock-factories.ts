@@ -6,10 +6,10 @@
  */
 
 import { vi } from "vitest";
-
+import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
 import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types";
-import type { CookieJar } from "../../types/cookie-jar";
 import { Confidence, Domain, VerificationMethod } from "../../types";
+import type { CookieJar } from "../../types/cookie-jar";
 import type {
   AllowlistEntry,
   HypercertAttestation,
@@ -17,7 +17,6 @@ import type {
   HypercertRecord,
   OutcomeMetrics,
 } from "../../types/hypercerts";
-import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
 
 // ============================================
 // Address Constants

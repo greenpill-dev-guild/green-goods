@@ -7,8 +7,8 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  useFilteredGardens,
   type GardenFiltersState,
+  useFilteredGardens,
 } from "../../../hooks/garden/useFilteredGardens";
 import type { Garden } from "../../../types";
 

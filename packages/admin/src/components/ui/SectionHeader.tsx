@@ -1,6 +1,5 @@
-import type { ReactNode } from "react";
-
 import { cn } from "@green-goods/shared";
+import type { ReactNode } from "react";
 
 interface SectionHeaderProps {
   title: string;

@@ -1,9 +1,9 @@
-import { useAuth, type Address } from "@green-goods/shared";
-import { InstallCta } from "./InstallCta";
-import { AppSettings } from "./AppSettings";
-import { GardensList } from "./GardensList";
-import { ENSSection } from "./ENSSection";
+import { type Address, useAuth } from "@green-goods/shared";
 import { AccountInfo } from "./AccountInfo";
+import { AppSettings } from "./AppSettings";
+import { ENSSection } from "./ENSSection";
+import { GardensList } from "./GardensList";
+import { InstallCta } from "./InstallCta";
 
 export const ProfileAccount: React.FC = () => {
   const { smartAccountAddress, walletAddress } = useAuth();

@@ -1,8 +1,5 @@
 import { getEASConfig } from "../../config/blockchain";
-import { isZeroBytes32 } from "../../utils/blockchain/vaults";
-import { easGraphQL } from "./graphql";
-import { createEasClient } from "./graphql-client";
-import { resolveIPFSUrl } from "./ipfs";
+import type { WorkApproval } from "../../types/domain";
 import type {
   EASAttestationRaw,
   EASDecodedField,
@@ -10,8 +7,11 @@ import type {
   EASWork,
   EASWorkApproval,
 } from "../../types/eas-responses";
-import type { WorkApproval } from "../../types/domain";
+import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { logger } from "../app/logger";
+import { easGraphQL } from "./graphql";
+import { createEasClient } from "./graphql-client";
+import { resolveIPFSUrl } from "./ipfs";
 
 const GATEWAY_BASE_URL = "https://storacha.link";
 

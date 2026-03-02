@@ -1,13 +1,13 @@
-import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ActionsConfig, ActionConfig } from "../utils/validation";
+import type { ParsedOptions } from "../utils/cli-parser";
 import type { DeploymentAddresses } from "../utils/deployment-addresses";
 import type { NetworkManager } from "../utils/network";
-import { GardenDeployer } from "./gardens";
+import type { ActionConfig, ActionsConfig } from "../utils/validation";
 import type { AnvilManager } from "./anvil";
-import type { ParsedOptions } from "../utils/cli-parser";
+import { GardenDeployer } from "./gardens";
 
 interface IpfsCacheEntry {
   hash: string;
@@ -102,7 +102,7 @@ export class ActionDeployer extends GardenDeployer {
     // Log action deployment details for verification
     console.log("\n📋 Actions to be deployed:");
     console.log("─".repeat(60));
-    console.log(`  Using dynamic timestamps (ignoring config values):`);
+    console.log("  Using dynamic timestamps (ignoring config values):");
     console.log(`  Start: ${now.toISOString()} → ${startTime}`);
     console.log(`  End:   ${threeMonthsLater.toISOString()} → ${endTime}`);
     console.log("─".repeat(60));

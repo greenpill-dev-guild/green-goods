@@ -43,7 +43,7 @@ vi.mock("../../config/blockchain", () => ({
 }));
 
 import { useWorks } from "../../hooks/work/useWorks";
-import { getWorks, getWorkApprovals } from "../../modules/data/eas";
+import { getWorkApprovals, getWorks } from "../../modules/data/eas";
 
 describe("useWorks - Status Computation", () => {
   beforeEach(() => {

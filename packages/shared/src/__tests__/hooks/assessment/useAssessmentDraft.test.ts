@@ -11,8 +11,8 @@
  * @vitest-environment jsdom
  */
 
-import { renderHook, act } from "@testing-library/react";
-import { del as idbDel, get as idbGet, set as idbSet, clear as idbClear } from "idb-keyval";
+import { act, renderHook } from "@testing-library/react";
+import { clear as idbClear, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAssessmentDraft } from "../../../hooks/assessment/useAssessmentDraft";

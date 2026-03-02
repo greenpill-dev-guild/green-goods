@@ -1,9 +1,9 @@
 import {
+  type EASWork,
+  formatAddress,
+  resolveIPFSUrl,
   WorkCardComponent as SharedWorkCard,
   type WorkCardData,
-  type EASWork,
-  resolveIPFSUrl,
-  formatAddress,
 } from "@green-goods/shared";
 import type React from "react";
 import { useIntl } from "react-intl";

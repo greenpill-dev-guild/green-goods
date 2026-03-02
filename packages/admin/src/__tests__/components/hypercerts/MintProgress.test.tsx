@@ -7,11 +7,11 @@
  * @vitest-environment jsdom
  */
 
-import { screen } from "@testing-library/react";
-import { renderWithProviders as render } from "../../test-utils";
-import { createElement } from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { MintingState } from "@green-goods/shared";
+import { screen } from "@testing-library/react";
+import { createElement } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render } from "../../test-utils";
 
 // Mock cn utility
 vi.mock("@green-goods/shared/utils", () => ({

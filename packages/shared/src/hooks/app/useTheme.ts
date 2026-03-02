@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
+import { updateAppKitTheme } from "../../config/appkit";
 import {
   getResolvedTheme,
   getTheme,
   setTheme as setThemeAPI,
   type Theme,
 } from "../../utils/styles/theme";
-import { updateAppKitTheme } from "../../config/appkit";
 
 /**
  * React hook for theme management

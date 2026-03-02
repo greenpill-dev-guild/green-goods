@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockCapture, mockIdentify, mockReset } = vi.hoisted(() => ({
   mockCapture: vi.fn(),
@@ -21,14 +21,14 @@ vi.mock("posthog-js", () => ({
 }));
 
 import {
-  track,
+  getDistinctId,
   identify,
   identifyWithProperties,
   reset,
-  getDistinctId,
+  track,
+  trackAppLifecycle,
   trackOfflineEvent,
   trackSyncPerformance,
-  trackAppLifecycle,
 } from "../../modules/app/posthog";
 
 describe("modules/posthog", () => {

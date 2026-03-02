@@ -88,6 +88,11 @@ export {
   type UploadErrorContext,
 } from "./app/error-tracking";
 // ============================================================================
+// LOGGING
+// ============================================================================
+export type { LogContext, Logger } from "./app/logger";
+export { createLogger, logger } from "./app/logger";
+// ============================================================================
 // APP / ANALYTICS
 // ============================================================================
 export {
@@ -100,12 +105,10 @@ export {
   trackOfflineEvent,
   trackSyncPerformance,
 } from "./app/posthog";
-
 // ============================================================================
 // APP / SERVICE WORKER
 // ============================================================================
 export { serviceWorkerManager } from "./app/service-worker";
-
 // ============================================================================
 // AUTH / SESSION
 // ============================================================================
@@ -130,7 +133,6 @@ export {
   setStoredUsername,
   USERNAME_STORAGE_KEY,
 } from "./auth/session";
-
 // ============================================================================
 // DATA / EAS
 // ============================================================================
@@ -140,7 +142,17 @@ export {
   getWorks,
   getWorksByGardener,
 } from "./data/eas";
-
+// ============================================================================
+// DATA / GARDENS (Gardens V2 Subgraph)
+// ============================================================================
+export {
+  getConvictionStrategiesFromSubgraph,
+  getConvictionWeightsFromSubgraph,
+  getGardenCommunityFromSubgraph,
+  getGardenPoolsFromSubgraph,
+  getMemberPowerFromSubgraph,
+  getRegisteredHypercertsFromSubgraph,
+} from "./data/gardens";
 // ============================================================================
 // DATA / GRAPHQL
 // ============================================================================
@@ -159,18 +171,6 @@ export {
   withTimeout,
 } from "./data/graphql-client";
 // ============================================================================
-// DATA / GARDENS (Gardens V2 Subgraph)
-// ============================================================================
-export {
-  getConvictionStrategiesFromSubgraph,
-  getConvictionWeightsFromSubgraph,
-  getGardenCommunityFromSubgraph,
-  getGardenPoolsFromSubgraph,
-  getMemberPowerFromSubgraph,
-  getRegisteredHypercertsFromSubgraph,
-} from "./data/gardens";
-
-// ============================================================================
 // DATA / GREENGOODS
 // ============================================================================
 export {
@@ -180,7 +180,6 @@ export {
   getGardens,
   updateUserProfile,
 } from "./data/greengoods";
-
 // ============================================================================
 // DATA / HYPERCERTS
 // ============================================================================
@@ -194,27 +193,6 @@ export {
   getHypercertById,
   prefillMetadataFromAssessment,
 } from "./data/hypercerts";
-// ============================================================================
-// DATA / MARKETPLACE (On-chain reads & event queries)
-// ============================================================================
-export {
-  getRegisteredOrders,
-  getActiveOrder,
-  previewPurchase,
-  getMinPrice,
-  getSellerOrders,
-  getTradeHistory,
-  getListingHistory,
-} from "./data/marketplace";
-// ============================================================================
-// DATA / VAULTS
-// ============================================================================
-export {
-  getAllGardenVaults,
-  getGardenVaults,
-  getVaultDeposits,
-  getVaultEvents,
-} from "./data/vaults";
 // ============================================================================
 // DATA / IPFS (Storacha)
 // ============================================================================
@@ -235,7 +213,27 @@ export {
   uploadFileToIPFS,
   uploadJSONToIPFS,
 } from "./data/ipfs";
-
+// ============================================================================
+// DATA / MARKETPLACE (On-chain reads & event queries)
+// ============================================================================
+export {
+  getActiveOrder,
+  getListingHistory,
+  getMinPrice,
+  getRegisteredOrders,
+  getSellerOrders,
+  getTradeHistory,
+  previewPurchase,
+} from "./data/marketplace";
+// ============================================================================
+// DATA / VAULTS
+// ============================================================================
+export {
+  getAllGardenVaults,
+  getGardenVaults,
+  getVaultDeposits,
+  getVaultEvents,
+} from "./data/vaults";
 // ============================================================================
 // JOB QUEUE
 // ============================================================================
@@ -248,25 +246,37 @@ export {
   mediaResourceManager,
   useJobQueueEvents,
 } from "./job-queue";
-
+// ============================================================================
+// MARKETPLACE (HypercertExchange SDK integration)
+// ============================================================================
+export {
+  buildApprovalTransactions,
+  buildMakerAsk,
+  checkMarketplaceApprovals,
+  type EncodedApprovalCall,
+  getMarketplaceAddresses,
+  // Client
+  getMarketplaceClient,
+  isMarketplaceSupported,
+  // Signing
+  type MakerAskOrder,
+  // Approvals
+  type MarketplaceApprovals,
+  resetMarketplaceClients,
+  signMakerAsk,
+  type ValidationResult,
+  validateOrder,
+} from "./marketplace";
 // ============================================================================
 // TRANSLATION
 // ============================================================================
 export { browserTranslator } from "./translation/browser-translator";
 export { translationCache } from "./translation/db";
 export { runTranslationDiagnostics } from "./translation/diagnostics";
-
-// ============================================================================
-// LOGGING
-// ============================================================================
-export type { LogContext, Logger } from "./app/logger";
-export { createLogger, logger } from "./app/logger";
-
 // ============================================================================
 // WORK / BOT SUBMISSION
 // ============================================================================
 export { submitApprovalBot, submitWorkBot } from "./work/bot-submission";
-
 // ============================================================================
 // WORK / PASSKEY SUBMISSION
 // ============================================================================
@@ -278,7 +288,6 @@ export {
   submitApprovalWithPasskey,
   submitWorkWithPasskey,
 } from "./work/passkey-submission";
-
 // ============================================================================
 // WORK / WORK SUBMISSION
 // ============================================================================
@@ -288,25 +297,3 @@ export {
   validateApprovalDraft,
   validateWorkDraft,
 } from "./work/work-submission";
-
-// ============================================================================
-// MARKETPLACE (HypercertExchange SDK integration)
-// ============================================================================
-export {
-  // Client
-  getMarketplaceClient,
-  getMarketplaceAddresses,
-  isMarketplaceSupported,
-  resetMarketplaceClients,
-  // Signing
-  type MakerAskOrder,
-  type ValidationResult,
-  buildMakerAsk,
-  signMakerAsk,
-  validateOrder,
-  // Approvals
-  type MarketplaceApprovals,
-  type EncodedApprovalCall,
-  checkMarketplaceApprovals,
-  buildApprovalTransactions,
-} from "./marketplace";

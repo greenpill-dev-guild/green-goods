@@ -1,8 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { useCallback, useEffect, useState, type FC } from "react";
-import { useNavigate } from "react-router-dom";
-import { DeviceFrameset } from "react-device-frameset";
 import { QRCodeCanvas } from "qrcode.react";
+import { type FC, useCallback, useEffect, useState } from "react";
+import { DeviceFrameset } from "react-device-frameset";
+import { useNavigate } from "react-router-dom";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
 import { copyToClipboard, useApp, useInstallGuidance } from "@green-goods/shared";

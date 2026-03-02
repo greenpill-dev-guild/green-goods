@@ -10,7 +10,7 @@
  */
 
 import { renderHook } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the auth context
 const mockUseAuthContext = vi.fn();

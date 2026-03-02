@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { Capital, CynefinPhase, Domain, Confidence, VerificationMethod } from "../../types/domain";
+import { Capital, Confidence, CynefinPhase, Domain, VerificationMethod } from "../../types/domain";
 
 describe("types/domain enums", () => {
   describe("Domain enum", () => {

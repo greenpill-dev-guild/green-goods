@@ -1,9 +1,8 @@
+import { cn } from "@green-goods/shared";
 import { Slot } from "@radix-ui/react-slot";
 import { RiLoader4Line } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-
-import { cn } from "@green-goods/shared";
 
 const buttonVariants = tv({
   base: [

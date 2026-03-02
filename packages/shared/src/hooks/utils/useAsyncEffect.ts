@@ -7,7 +7,7 @@
  * @module hooks/utils/useAsyncEffect
  */
 
-import { useEffect, useRef, type DependencyList } from "react";
+import { type DependencyList, useEffect, useRef } from "react";
 import { logger } from "../../modules/app/logger";
 
 interface AsyncEffectCallbacks {

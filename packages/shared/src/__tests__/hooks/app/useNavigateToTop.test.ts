@@ -5,8 +5,8 @@
  * with view transition support.
  */
 
-import { renderHook, act } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock react-router-dom
 const mockNavigate = vi.fn();

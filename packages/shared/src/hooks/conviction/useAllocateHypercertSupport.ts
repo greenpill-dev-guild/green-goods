@@ -6,9 +6,9 @@ import type { AllocateHypercertSupportParams } from "../../types/conviction";
 import { HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { useUser } from "../auth/useUser";
 import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 

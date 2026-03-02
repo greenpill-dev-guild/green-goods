@@ -6,11 +6,11 @@
  * This hook is self-contained (pure React state) with no external dependencies.
  */
 
-import { renderHook, act } from "@testing-library/react";
-import { describe, expect, it, beforeEach } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
-  useSubmissionProgress,
   type SubmissionStage,
+  useSubmissionProgress,
 } from "../../../hooks/work/useSubmissionProgress";
 
 describe("useSubmissionProgress", () => {

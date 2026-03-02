@@ -1,5 +1,5 @@
+import { type ChildProcess, spawn } from "node:child_process";
 import * as http from "node:http";
-import { spawn, type ChildProcess } from "node:child_process";
 import { NetworkManager } from "../utils/network";
 
 /**

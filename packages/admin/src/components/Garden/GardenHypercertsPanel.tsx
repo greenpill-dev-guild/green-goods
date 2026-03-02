@@ -2,9 +2,9 @@ import { type Address, formatDate, type HypercertRecord } from "@green-goods/sha
 import { RiAwardLine, RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { ActiveListingsTable } from "@/components/hypercerts/ActiveListingsTable";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { ActiveListingsTable } from "@/components/hypercerts/ActiveListingsTable";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
 
@@ -81,7 +81,10 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
                         <RiAwardLine className="h-4 w-4 text-primary-dark" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-text-strong">
+                        <p
+                          className="truncate text-sm font-medium text-text-strong"
+                          title={record.title?.trim() || undefined}
+                        >
                           {record.title?.trim() ||
                             formatMessage({ id: "app.hypercerts.list.fallbackTitle" })}
                         </p>

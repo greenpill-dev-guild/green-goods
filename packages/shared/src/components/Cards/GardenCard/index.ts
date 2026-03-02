@@ -1,8 +1,8 @@
 export {
   GardenCard,
-  gardenCardVariants,
-  type GardenCardProps,
   type GardenCardData,
   type GardenCardLabels,
+  type GardenCardProps,
   type GardenCardVariantProps,
+  gardenCardVariants,
 } from "./GardenCard";

@@ -11,9 +11,9 @@
  * @module utils/storage/quota
  */
 
+import { trackStorageError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
-import { trackStorageError } from "../../modules/app/error-tracking";
 
 // ============================================================================
 // TYPES

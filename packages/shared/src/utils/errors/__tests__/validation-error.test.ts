@@ -2,7 +2,7 @@
  * ValidationError Tests
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ValidationError } from "../validation-error";
 
 describe("ValidationError", () => {

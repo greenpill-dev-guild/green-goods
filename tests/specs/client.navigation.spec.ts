@@ -8,8 +8,8 @@
  */
 
 import { expect, test } from "@playwright/test";
-import { ClientTestHelper, TEST_URLS } from "../helpers/test-utils";
 import { TIMEOUTS } from "../helpers/test-config";
+import { ClientTestHelper, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
 

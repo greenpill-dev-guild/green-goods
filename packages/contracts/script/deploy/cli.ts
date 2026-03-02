@@ -1,14 +1,14 @@
 #!/usr/bin/env bun
 
 import { CliParser } from "../utils/cli-parser";
-import { NetworkManager } from "../utils/network";
 import { DeploymentAddresses } from "../utils/deployment-addresses";
-import { CoreDeployer } from "./core";
-import { GardenDeployer } from "./gardens";
+import { NetworkManager } from "../utils/network";
 import { ActionDeployer } from "./actions";
 import { AnvilManager } from "./anvil";
-import { HatsTreeDeployer } from "./hats";
+import { CoreDeployer } from "./core";
+import { GardenDeployer } from "./gardens";
 import { GoodsDeployer } from "./goods";
+import { HatsTreeDeployer } from "./hats";
 import { OctantFactoryDeployer } from "./octant-factory";
 
 /**

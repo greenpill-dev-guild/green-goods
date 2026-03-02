@@ -5,8 +5,8 @@
  * persists to localStorage, and syncs with system preference changes.
  */
 
-import { renderHook, act } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock theme utilities
 const mockGetTheme = vi.fn();

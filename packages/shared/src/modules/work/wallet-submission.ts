@@ -12,18 +12,17 @@
  * @module modules/work/wallet-submission
  */
 
-import type { Address } from "viem";
-import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
+import type { Address } from "viem";
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
 import { queryClient } from "../../config/react-query";
 import { queryKeys } from "../../hooks/query-keys";
-import type { EASWork, EASWorkApproval } from "../../types/eas-responses";
 import { ANALYTICS_EVENTS, trackWalletSubmissionTiming } from "../../modules/app/analytics-events";
 import { track } from "../../modules/app/posthog";
+import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
+import type { EASWork, EASWorkApproval } from "../../types/eas-responses";
 import { pollQueriesAfterTransaction, TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
-import { logger } from "../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import {
@@ -32,6 +31,7 @@ import {
   buildWorkAttestTx,
 } from "../../utils/eas/transaction-builder";
 import { formatWalletError } from "../../utils/errors/user-messages";
+import { logger } from "../app/logger";
 import { simulateWorkSubmission } from "./simulate";
 
 // ============================================================================

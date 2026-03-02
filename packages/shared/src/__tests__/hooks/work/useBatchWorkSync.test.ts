@@ -8,7 +8,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -95,9 +95,9 @@ vi.mock("../../../modules/app/error-tracking", () => ({
   trackContractError: vi.fn(),
 }));
 
+import { queueToasts } from "../../../components/toast";
 import { useBatchWorkSync } from "../../../hooks/work/useBatchWorkSync";
 import { jobQueueDB, jobQueueEventBus } from "../../../modules/job-queue";
-import { queueToasts } from "../../../components/toast";
 
 // ============================================
 // Test helpers

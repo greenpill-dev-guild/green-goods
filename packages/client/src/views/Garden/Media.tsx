@@ -1,9 +1,9 @@
 import {
+  type Action,
   AudioPlayer,
   imageCompressor,
   mediaResourceManager,
   track,
-  type Action,
 } from "@green-goods/shared";
 import {
   RiCloseLine,

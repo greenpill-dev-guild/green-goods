@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
-import type { Address } from "../../types/domain";
-import { PoolType, type GardenSignalPool } from "../../types/gardens-community";
 import { wagmiConfig } from "../../config/appkit";
-import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis";
-import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules";
 import { getGardenPoolsFromSubgraph } from "../../modules/data/gardens";
+import type { Address } from "../../types/domain";
+import { type GardenSignalPool, PoolType } from "../../types/gardens-community";
+import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis";
 import { normalizeAddress } from "../../utils/blockchain/address";
+import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { queryKeys, STALE_TIME_SLOW } from "../query-keys";
 

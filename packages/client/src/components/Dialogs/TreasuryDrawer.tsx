@@ -1,31 +1,31 @@
 import {
   type Address,
-  type CookieJar,
-  type GardenVault,
-  type VaultDeposit,
   AssetSelector,
   ConfirmDialog,
+  type CookieJar,
   formatTokenAmount,
+  type GardenVault,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  validateDecimalInput,
   useCookieJarWithdraw,
+  useDebouncedValue,
   useGardenCookieJars,
   useGardenVaults,
   useOffline,
   useUser,
   useVaultDeposit,
   useVaultDeposits,
-  useDebouncedValue,
   useVaultPreview,
   useVaultWithdraw,
+  type VaultDeposit,
+  validateDecimalInput,
 } from "@green-goods/shared";
-import { useBalance } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import { type ModalDrawerTab, ModalDrawer } from "./ModalDrawer";
+import { useBalance } from "wagmi";
+import { ModalDrawer, type ModalDrawerTab } from "./ModalDrawer";
 
 interface EndowmentDrawerProps {
   isOpen: boolean;

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useForm, FormProvider } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import { FormSelect, type FormSelectOption } from "./FormSelect";
 
 const sampleOptions: FormSelectOption[] = [

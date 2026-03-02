@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { type WorkApproval } from "../../types/domain";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
+import { logger } from "../../modules/app/logger";
 import { parseWorkApprovalAttestation } from "../../modules/data/eas";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
-import { logger } from "../../modules/app/logger";
+import { type WorkApproval } from "../../types/domain";
 import { queryKeys, STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../query-keys";
 
 // Enhanced work approval interface for UI

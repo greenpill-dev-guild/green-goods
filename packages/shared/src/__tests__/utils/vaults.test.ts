@@ -1,12 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  ZERO_ADDRESS,
-  isZeroAddressValue,
-  getVaultAssetSymbol,
-  getVaultAssetDecimals,
-  validateDecimalInput,
-  getNetDeposited,
   formatTokenAmount,
+  getNetDeposited,
+  getVaultAssetDecimals,
+  getVaultAssetSymbol,
+  isZeroAddressValue,
+  validateDecimalInput,
+  ZERO_ADDRESS,
 } from "../../utils/blockchain/vaults";
 
 describe("Vault Utilities", () => {

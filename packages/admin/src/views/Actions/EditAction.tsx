@@ -1,4 +1,5 @@
 import {
+  type ActionInstructionConfig,
   DEFAULT_CHAIN_ID,
   defaultTemplate,
   fromDateTimeLocalValue,
@@ -12,7 +13,6 @@ import {
   useActionOperations,
   useActions,
   useAsyncEffect,
-  type ActionInstructionConfig,
 } from "@green-goods/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
@@ -22,6 +22,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { FormField } from "@/components/ui/FormField";
 
 const editActionSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -219,6 +220,13 @@ export default function EditAction() {
       <PageHeader
         title={formatMessage({ id: "app.actions.edit.title" }, { name: action.title })}
         description={formatMessage({ id: "app.actions.edit.description" })}
+        backLink={{
+          to: `/actions/${id}`,
+          label: formatMessage({
+            id: "app.actions.backToAction",
+            defaultMessage: "Back to action",
+          }),
+        }}
       />
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 max-w-4xl space-y-6">
@@ -228,34 +236,24 @@ export default function EditAction() {
             {formatMessage({ id: "app.actions.edit.basicInfo" })}
           </h3>
           <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="action-title"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                {formatMessage({ id: "app.assessment.table.title" })}
-              </label>
+            <FormField
+              label={formatMessage({ id: "app.assessment.table.title" })}
+              htmlFor="action-title"
+              error={form.formState.errors.title?.message}
+            >
               <input
                 id="action-title"
                 type="text"
                 {...form.register("title")}
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
               />
-              {form.formState.errors.title && (
-                <p className="mt-1 text-xs text-error-base">
-                  {form.formState.errors.title.message}
-                </p>
-              )}
-            </div>
+            </FormField>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="action-start-time"
-                  className="block text-sm font-medium text-text-strong mb-2"
-                >
-                  {formatMessage({ id: "app.actions.detail.startTime" })}
-                </label>
+              <FormField
+                label={formatMessage({ id: "app.actions.detail.startTime" })}
+                htmlFor="action-start-time"
+              >
                 <input
                   id="action-start-time"
                   type="datetime-local"
@@ -265,15 +263,12 @@ export default function EditAction() {
                   }
                   className="w-full rounded-md border border-stroke-soft px-3 py-2"
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label
-                  htmlFor="action-end-time"
-                  className="block text-sm font-medium text-text-strong mb-2"
-                >
-                  {formatMessage({ id: "app.actions.detail.endTime" })}
-                </label>
+              <FormField
+                label={formatMessage({ id: "app.actions.detail.endTime" })}
+                htmlFor="action-end-time"
+              >
                 <input
                   id="action-end-time"
                   type="datetime-local"
@@ -281,7 +276,7 @@ export default function EditAction() {
                   onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
                   className="w-full rounded-md border border-stroke-soft px-3 py-2"
                 />
-              </div>
+              </FormField>
             </div>
           </div>
         </div>

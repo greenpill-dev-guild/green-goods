@@ -1,4 +1,8 @@
 // Radix Select primitives
+
+// React-select based FormSelect
+export type { FormSelectOption, FormSelectProps } from "./FormSelect";
+export { FormSelect } from "./FormSelect";
 export {
   Select,
   SelectContent,
@@ -11,7 +15,3 @@ export {
   SelectTrigger,
   SelectValue,
 } from "./Select";
-
-// React-select based FormSelect
-export type { FormSelectOption, FormSelectProps } from "./FormSelect";
-export { FormSelect } from "./FormSelect";

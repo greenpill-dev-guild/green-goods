@@ -24,8 +24,8 @@
  *   VITE_STORACHA_PROOF — UCAN delegation proof for Storacha uploads
  */
 
-import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -305,7 +305,9 @@ async function uploadImages(
 
   // Save cache
   fs.writeFileSync(MEDIA_CACHE, JSON.stringify(mediaCache, null, 2));
-  console.log(`\n  Uploaded: ${uploaded}/${toUpload.length} (${failed} failed), Total cached: ${mediaCids.size}/${actions.length}`);
+  console.log(
+    `\n  Uploaded: ${uploaded}/${toUpload.length} (${failed} failed), Total cached: ${mediaCids.size}/${actions.length}`,
+  );
 
   return mediaCids;
 }
@@ -432,12 +434,12 @@ function generateBatchScript(updates: ActionUpdate[], actionRegistry: string): s
       }
 
       if (u.needsMedia && u.mediaCid) {
-        lines.push(`        {`);
-        lines.push(`            string[] memory media = new string[](1);`);
+        lines.push("        {");
+        lines.push("            string[] memory media = new string[](1);");
         lines.push(`            media[0] = "${u.mediaCid}";`);
         lines.push(`            registry.updateActionMedia(${u.uid}, media);`);
         lines.push(`            console.log("Updated media for action ${u.uid}");`);
-        lines.push(`        }`);
+        lines.push("        }");
       }
 
       return lines.join("\n");
@@ -490,7 +492,7 @@ function executeBatchScript(solidity: string, rpcUrl: string): void {
   console.log(`  Keystore: ${keystoreName}`);
   console.log(`  RPC: ${rpcUrl.replace(/\/v2\/.*/, "/v2/***")}`);
   console.log(`  Script: ${scriptPath}`);
-  console.log(`\n  Executing forge script (enter keystore password once)...\n`);
+  console.log("\n  Executing forge script (enter keystore password once)...\n");
 
   try {
     execFileSync("forge", args, {

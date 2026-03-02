@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useReadContract } from "wagmi";
 import { useIntl } from "react-intl";
+import { useReadContract } from "wagmi";
 import { toastService } from "../../components/toast";
 import type { Address } from "../../types/domain";
 import { GardenTokenABI, getNetworkContracts } from "../../utils/blockchain/contracts";

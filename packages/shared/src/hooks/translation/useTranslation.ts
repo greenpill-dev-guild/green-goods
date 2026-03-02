@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
-import { browserTranslator } from "../../modules/translation/browser-translator";
 import { logger } from "../../modules/app/logger";
+import { browserTranslator } from "../../modules/translation/browser-translator";
 import { AppContext } from "../../providers/App";
 
 type TranslatableValue =

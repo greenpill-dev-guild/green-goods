@@ -5,9 +5,9 @@
  * Tests state transitions, guards, actions, and error handling.
  */
 
-import { createActor, fromPromise } from "xstate";
-import { describe, expect, it, vi } from "vitest";
 import type { Address, Hex } from "viem";
+import { describe, expect, it, vi } from "vitest";
+import { createActor, fromPromise } from "xstate";
 
 // Custom waitFor that doesn't require DOM (for pure XState tests)
 async function waitFor(
@@ -30,8 +30,8 @@ async function waitFor(
   }
 }
 
-import { mintHypercertMachine, type MintHypercertInput } from "../../workflows/mintHypercert";
 import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
+import { type MintHypercertInput, mintHypercertMachine } from "../../workflows/mintHypercert";
 
 // ============================================
 // Test Fixtures

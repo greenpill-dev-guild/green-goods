@@ -1,21 +1,21 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
-import { useIntl } from "react-intl";
 import { useCallback, useRef } from "react";
+import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
-import type { Address } from "../../types/domain";
+import { wagmiConfig } from "../../config/appkit";
+import { logger } from "../../modules/app/logger";
 import type { CookieJarDepositParams } from "../../types/cookie-jar";
+import type { Address } from "../../types/domain";
+import { COOKIE_JAR_ABI, ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis";
+import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { useUser } from "../auth/useUser";
 import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
 import { useDelayedInvalidation } from "../utils/useTimeout";
-import { COOKIE_JAR_ABI, ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis";
-import { wagmiConfig } from "../../config/appkit";
-import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
-import { logger } from "../../modules/app/logger";
 
 const ERC20_BALANCE_ABI = [
   {

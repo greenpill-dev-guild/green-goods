@@ -1,6 +1,6 @@
 import {
-  type CookieJar,
   ConfirmDialog,
+  type CookieJar,
   formatTokenAmount,
   getVaultAssetSymbol,
   useCookieJarWithdraw,

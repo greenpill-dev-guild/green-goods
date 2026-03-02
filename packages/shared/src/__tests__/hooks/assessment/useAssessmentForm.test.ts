@@ -9,9 +9,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  type AssessmentFormData,
   assessmentFormSchema,
   createDefaultAssessmentFormData,
-  type AssessmentFormData,
 } from "../../../hooks/assessment/useAssessmentForm";
 
 // ============================================

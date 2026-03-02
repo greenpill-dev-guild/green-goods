@@ -1,7 +1,7 @@
 import {
+  RiAlertLine,
   RiCheckLine,
   RiCloseLine,
-  RiErrorWarningLine,
   RiLoader4Line,
   RiTimeLine,
   RiUploadCloud2Line,
@@ -79,7 +79,7 @@ function getStatusConfig(status: WorkDisplayStatus, variant: "semantic" | "defau
         };
       case "sync_failed":
         return {
-          icon: <RiErrorWarningLine className={iconClass} />,
+          icon: <RiAlertLine className={iconClass} />,
           label: "Sync Failed",
           bgColor: "bg-error-lighter",
           textColor: "text-error-dark",
@@ -148,7 +148,7 @@ function getStatusConfig(status: WorkDisplayStatus, variant: "semantic" | "defau
       };
     case "sync_failed":
       return {
-        icon: <RiErrorWarningLine className={iconClass} />,
+        icon: <RiAlertLine className={iconClass} />,
         label: "Sync Failed",
         bgColor: "bg-error-lighter",
         textColor: "text-error-dark",
@@ -181,12 +181,16 @@ export function getStatusColors(
   variant: "semantic" | "default" = "default"
 ) {
   const validStatuses: WorkDisplayStatus[] = [
-    "approved", "rejected", "pending", "syncing", "uploading", "sync_failed", "offline",
+    "approved",
+    "rejected",
+    "pending",
+    "syncing",
+    "uploading",
+    "sync_failed",
+    "offline",
   ];
   const normalizedStatus = (
-    validStatuses.includes(status as WorkDisplayStatus)
-      ? status
-      : "pending"
+    validStatuses.includes(status as WorkDisplayStatus) ? status : "pending"
   ) as WorkDisplayStatus;
   const config = getStatusConfig(normalizedStatus, variant);
   return {

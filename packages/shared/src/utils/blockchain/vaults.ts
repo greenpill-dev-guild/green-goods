@@ -1,6 +1,6 @@
+import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
 import { formatAddress } from "../app/text";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 
 export const ZERO_ADDRESS: Address = "0x0000000000000000000000000000000000000000";
 

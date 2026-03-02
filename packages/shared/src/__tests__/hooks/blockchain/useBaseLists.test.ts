@@ -39,7 +39,7 @@ vi.mock("../../../config/appkit", () => ({
   wagmiConfig: {},
 }));
 
-import { useActions, useGardens, useGardeners } from "../../../hooks/blockchain/useBaseLists";
+import { useActions, useGardeners, useGardens } from "../../../hooks/blockchain/useBaseLists";
 
 // ============================================
 // Test helpers

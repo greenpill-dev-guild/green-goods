@@ -1,10 +1,10 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
-  Capital,
-  Domain,
   type Action,
   type ActionInstructionConfig,
   type Address,
+  Capital,
+  Domain,
   type Garden,
   type GardenerCard,
   type WorkInput,

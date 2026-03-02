@@ -4,12 +4,11 @@
  * Tests for the SQLite storage with real database operations.
  */
 
-import { describe, it, expect, afterAll, beforeAll } from "vitest";
-import type { CreateUserInput, WorkDraftData, Session } from "../types";
 import fs from "fs";
-
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 // We'll use direct DB access instead of the adapter pattern
-import { initDB, getDB } from "../services/db";
+import { getDB, initDB } from "../services/db";
+import type { CreateUserInput, Session, WorkDraftData } from "../types";
 
 // Test database path
 const TEST_DB_DIR = "data/test";

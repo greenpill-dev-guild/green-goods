@@ -1,12 +1,12 @@
 import * as Popover from "@radix-ui/react-popover";
 import {
-  RiCalendarLine,
   RiArrowLeftSLine,
-  RiArrowRightSLine,
   RiArrowRightLine,
+  RiArrowRightSLine,
+  RiCalendarLine,
 } from "@remixicon/react";
-import { useState, useCallback, useMemo, forwardRef } from "react";
-import { DayPicker, type DateRange, type DateBefore, type DateAfter } from "react-day-picker";
+import { forwardRef, useCallback, useMemo, useState } from "react";
+import { type DateAfter, type DateBefore, type DateRange, DayPicker } from "react-day-picker";
 import { cn } from "../../utils/styles/cn";
 
 export interface DateRangePickerProps {

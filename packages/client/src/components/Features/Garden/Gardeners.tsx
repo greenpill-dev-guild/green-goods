@@ -1,11 +1,11 @@
 import {
   copyToClipboard,
   formatAddress,
+  type Garden,
+  type GardenerCard,
   toastService,
   useEnsAvatar,
   useEnsName,
-  type Garden,
-  type GardenerCard,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import {

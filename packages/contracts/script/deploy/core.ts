@@ -1,12 +1,12 @@
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { execFileSync } from "node:child_process";
-import { NetworkManager } from "../utils/network";
-import { AnvilManager } from "./anvil";
-import { EnvioIntegration } from "../utils/envio-integration";
-import { DocsUpdater } from "../utils/docs-updater";
 import { type ParsedOptions, redactSensitiveArgs } from "../utils/cli-parser";
+import { DocsUpdater } from "../utils/docs-updater";
+import { EnvioIntegration } from "../utils/envio-integration";
+import { NetworkManager } from "../utils/network";
 import { assertSepoliaGate } from "../utils/release-gate";
+import { AnvilManager } from "./anvil";
 
 /**
  * CoreDeployer - Handles core contract deployment

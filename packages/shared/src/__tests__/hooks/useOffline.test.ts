@@ -4,10 +4,10 @@
  * Tests for offline detection, sync status, and queue metrics.
  */
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock dependencies - use vi.hoisted to ensure mocks are available at hoist time
 const { mockFlush, mockJobQueueEventBus } = vi.hoisted(() => ({

@@ -1,4 +1,4 @@
-import { vi, beforeAll, afterAll } from "vitest";
+import { afterAll, beforeAll, vi } from "vitest";
 import { mockLogger } from "./utils/mocks";
 
 // ============================================================================

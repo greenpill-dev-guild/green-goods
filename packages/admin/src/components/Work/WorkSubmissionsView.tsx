@@ -1,4 +1,4 @@
-import { cn, formatRelativeTime, type Work, useWorks } from "@green-goods/shared";
+import { cn, formatRelativeTime, useWorks, type Work } from "@green-goods/shared";
 import {
   RiCheckboxCircleLine,
   RiCloseLine,
@@ -95,7 +95,7 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({
 
   return (
     <Card className="overflow-hidden min-h-[20rem]">
-      <Card.Header className="flex-col gap-3 sm:gap-4">
+      <Card.Header className="flex-col items-start gap-3 sm:gap-4">
         <div className="flex w-full flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <h3 className="label-md text-text-strong sm:text-lg">

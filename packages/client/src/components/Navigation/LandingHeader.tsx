@@ -1,4 +1,4 @@
-import { APP_NAME, useApp, type Link } from "@green-goods/shared";
+import { APP_NAME, type Link, useApp } from "@green-goods/shared";
 import { type RemixiconComponentType, RiGithubLine, RiTwitterLine } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
