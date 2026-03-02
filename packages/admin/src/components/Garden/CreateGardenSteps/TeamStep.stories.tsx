@@ -1,6 +1,6 @@
+import { type Address, useCreateGardenStore } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
-import { useCreateGardenStore, type Address } from "@green-goods/shared";
 import { TeamStep } from "./TeamStep";
 
 const MOCK_ADDRESSES: Address[] = [

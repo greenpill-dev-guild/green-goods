@@ -1,6 +1,6 @@
 import { type UserRole, useRole } from "@green-goods/shared";
-import { Outlet } from "react-router-dom";
 import { useIntl } from "react-intl";
+import { Outlet } from "react-router-dom";
 
 interface RequireRoleProps {
   allowedRoles: UserRole[];

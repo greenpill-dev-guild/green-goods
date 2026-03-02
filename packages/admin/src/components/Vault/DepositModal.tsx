@@ -1,27 +1,28 @@
 import {
   type Address,
-  type GardenVault,
   AssetSelector,
   classifyTxError,
   formatTokenAmount,
+  type GardenVault,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   hasVaultAssetDecimals,
   isMeaningfulTxErrorMessage,
+  useDebouncedValue,
   useDepositForm,
   useUser,
-  useDebouncedValue,
   useVaultDeposit,
   useVaultPreview,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
-import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { encodeFunctionData, formatUnits } from "viem";
+import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
 import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 import { Button } from "@/components/ui/Button";
-import { encodeFunctionData, formatUnits } from "viem";
+import { FormField } from "@/components/ui/FormField";
 
 const VAULT_DEPOSIT_ABI = [
   {
@@ -175,7 +176,7 @@ export function DepositModal({
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-[calc(100vw-2rem)] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <Dialog.Title className="text-lg font-semibold text-text-strong">
@@ -204,10 +205,16 @@ export function DepositModal({
               ariaLabel={formatMessage({ id: "app.treasury.asset" })}
             />
 
-            <div className="space-y-2">
-              <label htmlFor="deposit-amount" className="text-sm font-medium text-text-sub">
-                {formatMessage({ id: "app.treasury.depositAmount" })}
-              </label>
+            <FormField
+              label={formatMessage({ id: "app.treasury.depositAmount" })}
+              htmlFor="deposit-amount"
+              error={amountError ? formatMessage({ id: amountError }) : undefined}
+              hint={`${formatMessage({ id: "app.treasury.walletBalance" })}: ${
+                balance
+                  ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
+                  : "--"
+              }`}
+            >
               <div className="flex items-center gap-2">
                 <input
                   id="deposit-amount"
@@ -220,8 +227,7 @@ export function DepositModal({
                   disabled={!decimalsReady || depositMutation.isPending}
                   aria-required="true"
                   aria-invalid={Boolean(amountError)}
-                  aria-describedby={amountError ? "deposit-error" : undefined}
-                  className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+                  className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/40 ${
                     amountError
                       ? "border-error-base focus:border-error-base"
                       : "border-stroke-sub bg-bg-white focus:border-primary-base"
@@ -242,17 +248,6 @@ export function DepositModal({
                   {formatMessage({ id: "app.treasury.max" })}
                 </Button>
               </div>
-              {amountError && (
-                <p id="deposit-error" className="text-xs text-error-dark" role="alert">
-                  {formatMessage({ id: amountError })}
-                </p>
-              )}
-              <p className="text-xs text-text-soft">
-                {formatMessage({ id: "app.treasury.walletBalance" })}:{" "}
-                {balance
-                  ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
-                  : "--"}
-              </p>
               {!decimalsReady && selectedVault && (
                 <p className="text-xs text-warning-base" role="alert">
                   {formatMessage({
@@ -261,7 +256,7 @@ export function DepositModal({
                   })}
                 </p>
               )}
-            </div>
+            </FormField>
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>

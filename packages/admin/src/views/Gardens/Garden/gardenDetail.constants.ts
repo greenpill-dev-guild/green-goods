@@ -13,10 +13,10 @@ export const RANGE_TO_MS: Record<GardenRange, number> = {
 };
 
 export const TAB_SECTIONS: Record<GardenTab, string[]> = {
-  overview: ["metadata", "health", "activity"],
+  overview: ["health", "activity"],
   impact: ["hypercerts", "assessments", "reporting"],
   work: ["queue", "decisions", "history"],
-  community: ["treasury", "yield", "cookie-jars", "pools", "roles", "members"],
+  community: ["treasury", "yield", "cookie-jars", "pools", "members"],
 };
 
 export const DOMAIN_LABEL_IDS: Record<Domain, string> = {
@@ -36,4 +36,4 @@ export const ALERT_LABEL_CLASSES: Record<Exclude<TabBadgeSeverity, "none">, stri
   critical: "text-error-dark",
 };
 
-export const SECTION_CARD_MIN_HEIGHT = "min-h-[18rem]";
+export const SECTION_CARD_MIN_HEIGHT = "min-h-[18rem] flex-1";

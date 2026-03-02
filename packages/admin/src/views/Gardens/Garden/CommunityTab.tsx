@@ -8,14 +8,13 @@ import {
 import { RiArrowRightSLine, RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AddressDisplay } from "@/components/AddressDisplay";
-import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
-import { GardenRolesPanel } from "@/components/Garden/GardenRolesPanel";
 import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
-import { CookieJarPayoutPanel } from "@/components/Work/CookieJarPayoutPanel";
+import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { CookieJarPayoutPanel } from "@/components/Work/CookieJarPayoutPanel";
 import { SectionStateCard } from "./GardenDetailHelpers";
 import type { GardenTab, RoleDirectoryEntry, TabBadgeSeverity } from "./gardenDetail.types";
 
@@ -23,7 +22,6 @@ export interface CommunityTabProps {
   garden: { id: string; name: string };
   gardenId: string;
   canManage: boolean;
-  canManageRoles: boolean;
   isOwner: boolean;
   section: string | undefined;
   clearSection: () => void;
@@ -33,7 +31,6 @@ export interface CommunityTabProps {
   pools: unknown;
   createPools: () => void;
   isCreatingPools: boolean;
-  convictionStrategyCount: number;
   vaultsLoading: boolean;
   hasVaults: boolean;
   vaultNetDeposited: bigint;
@@ -46,17 +43,13 @@ export interface CommunityTabProps {
     juiceboxAmount: bigint;
   }>;
   allocationsLoading: boolean;
-  roleMembers: Record<GardenRole, Address[]>;
-  isOperationLoading: boolean;
   roleSummary: Array<{ role: GardenRole; count: number; firstMember?: Address }>;
   roleIcons: Record<GardenRole, React.ComponentType<{ className?: string }>>;
   filteredDirectory: RoleDirectoryEntry[];
   visibleDirectory: RoleDirectoryEntry[];
   memberSearch: string;
   setMemberSearch: (search: string) => void;
-  openAddMemberModal: (type: GardenRole) => void;
   openMembersModal: (type: GardenRole) => void;
-  setMemberToRemove: (member: { address: Address; role: GardenRole } | null) => void;
   scheduleBackgroundRefetch: () => void;
 }
 
@@ -64,7 +57,6 @@ export function CommunityTab({
   garden,
   gardenId,
   canManage,
-  canManageRoles,
   isOwner,
   section,
   clearSection,
@@ -74,24 +66,19 @@ export function CommunityTab({
   pools,
   createPools,
   isCreatingPools,
-  convictionStrategyCount,
   vaultsLoading,
   hasVaults,
   vaultNetDeposited,
   treasurySeverity,
   allocations,
   allocationsLoading,
-  roleMembers,
-  isOperationLoading,
   roleSummary,
   roleIcons,
   filteredDirectory,
   visibleDirectory,
   memberSearch,
   setMemberSearch,
-  openAddMemberModal,
   openMembersModal,
-  setMemberToRemove,
   scheduleBackgroundRefetch,
 }: CommunityTabProps) {
   const { formatMessage } = useIntl();
@@ -168,43 +155,18 @@ export function CommunityTab({
                 pools={pools}
                 gardenId={gardenId}
                 canManage={canManage}
-                gardenName={garden.name}
-                convictionStrategyCount={convictionStrategyCount}
-                vaultsLoading={vaultsLoading}
-                hasVaults={hasVaults}
                 isCreatingPools={isCreatingPools}
                 onCreatePools={createPools}
                 onScheduleRefetch={scheduleBackgroundRefetch}
               />
             )}
 
-            {(section === undefined || section === "yield") && (
-              <GardenYieldCard allocations={allocations} allocationsLoading={allocationsLoading} />
-            )}
-
-            {(section === undefined || section === "cookie-jars") && (
-              <CookieJarPayoutPanel
-                gardenAddress={garden.id as Address}
-                canManage={canManage}
-                isOwner={isOwner}
-              />
-            )}
-
-            {(section === undefined || section === "roles") && (
+            {section === undefined && (
               <Card>
-                <Card.Header className="flex-wrap gap-3">
+                <Card.Header>
                   <h3 className="label-md text-text-strong sm:text-lg">
                     {formatMessage({ id: "app.garden.detail.community.rolesSummary" })}
                   </h3>
-                  {canManageRoles && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => openSection("community", "roles")}
-                    >
-                      {formatMessage({ id: "app.garden.detail.action.manageRoles" })}
-                    </Button>
-                  )}
                 </Card.Header>
                 <Card.Body>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -249,17 +211,6 @@ export function CommunityTab({
               </Card>
             )}
 
-            {section === "roles" ? (
-              <GardenRolesPanel
-                roleMembers={roleMembers}
-                canManageRoles={canManageRoles}
-                isLoading={isOperationLoading}
-                onOpenAddMember={openAddMemberModal}
-                onOpenMembersModal={openMembersModal}
-                onRemoveMember={(address, role) => setMemberToRemove({ address, role })}
-              />
-            ) : null}
-
             {(section === undefined || section === "members") && (
               <Card>
                 <Card.Header className="flex-wrap gap-3">
@@ -290,7 +241,7 @@ export function CommunityTab({
                       placeholder={formatMessage({
                         id: "app.garden.detail.community.memberSearch",
                       })}
-                      className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20"
+                      className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
                     />
                   </div>
 
@@ -330,6 +281,18 @@ export function CommunityTab({
                   )}
                 </Card.Body>
               </Card>
+            )}
+
+            {(section === undefined || section === "cookie-jars") && (
+              <CookieJarPayoutPanel
+                gardenAddress={garden.id as Address}
+                canManage={canManage}
+                isOwner={isOwner}
+              />
+            )}
+
+            {(section === undefined || section === "yield") && (
+              <GardenYieldCard allocations={allocations} allocationsLoading={allocationsLoading} />
             )}
           </ErrorBoundary>
         </div>

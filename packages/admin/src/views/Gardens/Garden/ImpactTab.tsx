@@ -116,7 +116,10 @@ export function ImpactTab({
                         }`}
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-text-strong">
+                          <p
+                            className="truncate text-sm font-medium text-text-strong"
+                            title={record.title?.trim() || undefined}
+                          >
                             {record.title?.trim() ||
                               formatMessage({ id: "app.hypercerts.list.fallbackTitle" })}
                           </p>
@@ -203,7 +206,10 @@ export function ImpactTab({
                             : ""
                         }`}
                       >
-                        <p className="truncate text-sm font-medium text-text-strong">
+                        <p
+                          className="truncate text-sm font-medium text-text-strong"
+                          title={assessment.title || assessment.assessmentType || undefined}
+                        >
                           {assessment.title ||
                             assessment.assessmentType ||
                             formatMessage({ id: "app.garden.admin.assessmentFallback" })}

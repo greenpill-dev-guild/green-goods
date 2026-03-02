@@ -29,13 +29,10 @@ export function Header() {
           <RiMenuLine className="h-6 w-6" />
         </button>
 
-        {/* Breadcrumbs */}
-        <div className="flex-1 min-w-0 hidden lg:block">
+        {/* Breadcrumbs — compact (last 2 segments) on mobile, full on lg+ */}
+        <div className="flex-1 min-w-0">
           <Breadcrumbs />
         </div>
-
-        {/* Spacer for mobile (breadcrumbs hidden) */}
-        <div className="flex-1 lg:hidden" />
 
         {/* Right side - Search, Chain badge, User profile */}
         <div className="flex items-center gap-2">

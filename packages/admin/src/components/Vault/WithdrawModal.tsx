@@ -1,26 +1,28 @@
 import {
   type Address,
-  type GardenVault,
   AssetSelector,
   classifyTxError,
   formatTokenAmount,
+  type GardenVault,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   isMeaningfulTxErrorMessage,
-  validateDecimalInput,
+  useDebouncedValue,
   useUser,
   useVaultDeposits,
-  useDebouncedValue,
   useVaultPreview,
   useVaultWithdraw,
+  validateDecimalInput,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
-import { Button } from "@/components/ui/Button";
 import { formatUnits, parseUnits } from "viem";
+import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { FormField } from "@/components/ui/FormField";
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -154,7 +156,7 @@ export function WithdrawModal({
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-[calc(100vw-2rem)] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <Dialog.Title className="text-lg font-semibold text-text-strong">
@@ -195,28 +197,27 @@ export function WithdrawModal({
               }}
             />
             {depositsError && (
-              <div
-                role="alert"
-                className="rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark"
+              <Alert
+                variant="error"
+                action={
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void refetchDeposits();
+                    }}
+                    disabled={depositsFetching}
+                    className="rounded-md border border-error-light px-2 py-1 text-xs font-medium text-error-dark hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {depositsFetching
+                      ? formatMessage({ id: "app.common.refreshing" })
+                      : formatMessage({ id: "app.common.tryAgain" })}
+                  </button>
+                }
               >
-                <p>
-                  {depositsQueryError instanceof Error
-                    ? depositsQueryError.message
-                    : formatMessage({ id: "app.treasury.errorLoading" })}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void refetchDeposits();
-                  }}
-                  disabled={depositsFetching}
-                  className="mt-2 rounded-md border border-error-light px-2 py-1 text-xs font-medium text-error-dark hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {depositsFetching
-                    ? formatMessage({ id: "app.common.refreshing" })
-                    : formatMessage({ id: "app.common.tryAgain" })}
-                </button>
-              </div>
+                {depositsQueryError instanceof Error
+                  ? depositsQueryError.message
+                  : formatMessage({ id: "app.treasury.errorLoading" })}
+              </Alert>
             )}
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
@@ -235,10 +236,11 @@ export function WithdrawModal({
               </p>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="withdraw-amount" className="text-sm font-medium text-text-sub">
-                {formatMessage({ id: "app.treasury.withdrawAmount" })}
-              </label>
+            <FormField
+              label={formatMessage({ id: "app.treasury.withdrawAmount" })}
+              htmlFor="withdraw-amount"
+              error={amountError ? formatMessage({ id: amountError }) : undefined}
+            >
               <div className="flex items-center gap-2">
                 <input
                   id="withdraw-amount"
@@ -249,8 +251,7 @@ export function WithdrawModal({
                   placeholder={`0.0 ${assetSymbol}`}
                   aria-required="true"
                   aria-invalid={Boolean(amountError)}
-                  aria-describedby={amountError ? "withdraw-error" : undefined}
-                  className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+                  className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/40 ${
                     amountError
                       ? "border-error-base focus:border-error-base"
                       : "border-stroke-sub bg-bg-white focus:border-primary-base"
@@ -264,12 +265,7 @@ export function WithdrawModal({
                   {formatMessage({ id: "app.treasury.max" })}
                 </Button>
               </div>
-              {amountError && (
-                <p id="withdraw-error" className="text-xs text-error-dark" role="alert">
-                  {formatMessage({ id: amountError })}
-                </p>
-              )}
-            </div>
+            </FormField>
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>

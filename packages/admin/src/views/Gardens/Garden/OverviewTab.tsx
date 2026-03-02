@@ -1,10 +1,8 @@
-import { type Address, formatRelativeTime } from "@green-goods/shared";
+import { formatRelativeTime } from "@green-goods/shared";
 import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
-import { GardenMetadata } from "@/components/Garden/GardenMetadata";
-import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -19,17 +17,6 @@ import type {
 } from "./gardenDetail.types";
 
 export interface OverviewTabProps {
-  garden: {
-    id: string;
-    name: string;
-    description?: string;
-    tokenAddress: string;
-    tokenID: string;
-    chainId: number;
-    domainMask?: number;
-  };
-  canManage: boolean;
-  isOwner: boolean;
   section: string | undefined;
   selectedItem: string | undefined;
   selectedRange: GardenRange;
@@ -53,6 +40,7 @@ export interface OverviewTabProps {
   activityFilter: ActivityFilter;
   setActivityFilter: (filter: ActivityFilter) => void;
   filteredActivityEvents: GardenActivityEvent[];
+  isLoading?: boolean;
   pendingWorkCount: number;
   assessmentCount30d: number;
   gardenerCount: number;
@@ -60,9 +48,6 @@ export interface OverviewTabProps {
 }
 
 export function OverviewTab({
-  garden,
-  canManage,
-  isOwner,
   section,
   selectedItem,
   selectedRange,
@@ -78,12 +63,44 @@ export function OverviewTab({
   activityFilter,
   setActivityFilter,
   filteredActivityEvents,
+  isLoading,
   pendingWorkCount,
   assessmentCount30d,
   gardenerCount,
   treasuryBalance,
 }: OverviewTabProps) {
   const { formatMessage } = useIntl();
+
+  if (isLoading) {
+    return (
+      <div className="garden-tab-shell" role="status" aria-live="polite">
+        <span className="sr-only">
+          {formatMessage({
+            id: "app.garden.detail.overview.loading",
+            defaultMessage: "Loading overview data...",
+          })}
+        </span>
+        <div className="garden-tab-layout">
+          <div className="garden-tab-main space-y-4">
+            <div className="h-52 rounded-lg skeleton-shimmer" />
+            <div className="h-64 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.1s" }} />
+          </div>
+          <aside className="garden-tab-rail">
+            <div className="garden-tab-rail-sticky space-y-4">
+              <div
+                className="h-28 rounded-lg skeleton-shimmer"
+                style={{ animationDelay: "0.15s" }}
+              />
+              <div
+                className="h-40 rounded-lg skeleton-shimmer"
+                style={{ animationDelay: "0.2s" }}
+              />
+            </div>
+          </aside>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="garden-tab-shell">
@@ -98,23 +115,6 @@ export function OverviewTab({
               closeLabel={formatMessage({ id: "app.common.close" })}
               onClose={clearSection}
             />
-          ) : null}
-
-          {canManage && section === "metadata" ? (
-            <>
-              <GardenSettingsEditor
-                gardenAddress={garden.id as Address}
-                garden={garden}
-                canManage={canManage}
-                isOwner={isOwner}
-              />
-              <GardenMetadata
-                gardenId={garden.id}
-                tokenAddress={garden.tokenAddress}
-                tokenId={garden.tokenID}
-                chainId={garden.chainId}
-              />
-            </>
           ) : null}
 
           {(section === undefined || section === "health") && (
@@ -144,13 +144,21 @@ export function OverviewTab({
                 </div>
               </Card.Header>
               <Card.Body>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3" aria-live="polite">
                   <div className="rounded-lg border border-stroke-soft bg-bg-weak p-3">
                     <p className="label-xs text-text-soft">
-                      {formatMessage({ id: "app.garden.detail.metric.gardenHealth" })}
+                      {formatMessage({
+                        id: "app.garden.detail.metric.lastActivity",
+                        defaultMessage: "Last Activity",
+                      })}
                     </p>
                     <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
-                      {gardenHealthLabel}
+                      {filteredActivityEvents.length > 0
+                        ? formatRelativeTime(filteredActivityEvents[0].timestamp)
+                        : formatMessage({
+                            id: "app.garden.detail.metric.noActivity",
+                            defaultMessage: "No activity yet",
+                          })}
                     </p>
                   </div>
                   <div className="rounded-lg border border-stroke-soft bg-bg-weak p-3">
@@ -241,10 +249,15 @@ export function OverviewTab({
                         >
                           <div className="flex flex-wrap items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-text-strong">
+                              <p
+                                className="truncate text-sm font-medium text-text-strong"
+                                title={event.title}
+                              >
                                 {event.title}
                               </p>
-                              <p className="mt-1 text-xs text-text-soft">{event.description}</p>
+                              <p className="mt-1 max-w-prose text-xs text-text-soft">
+                                {event.description}
+                              </p>
                             </div>
                             <span className="text-xs text-text-soft">
                               {formatRelativeTime(event.timestamp)}

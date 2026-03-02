@@ -1,10 +1,10 @@
 import { formatDate, formatRelativeTime, getStatusColors } from "@green-goods/shared";
-import { RiInboxLine, RiRefreshLine } from "@remixicon/react";
+import { RiCloseLine, RiInboxLine, RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
 import { SectionStateCard } from "./GardenDetailHelpers";
 import type { GardenTab } from "./gardenDetail.types";
 
@@ -67,6 +67,33 @@ export function WorkTab({
             />
           ) : null}
 
+          {selectedItem?.startsWith("age-") && (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-alpha-16 px-3 py-1 text-xs font-medium text-primary-darker">
+                {selectedItem === "age-24h"
+                  ? formatMessage({
+                      id: "app.garden.detail.work.filterAge24h",
+                      defaultMessage: "Pending 24h+",
+                    })
+                  : formatMessage({
+                      id: "app.garden.detail.work.filterAge72h",
+                      defaultMessage: "Pending 72h+",
+                    })}
+                <button
+                  type="button"
+                  onClick={() => clearSection()}
+                  className="ml-1 rounded-full p-0.5 hover:bg-primary-alpha-16"
+                  aria-label={formatMessage({
+                    id: "app.garden.detail.work.clearFilter",
+                    defaultMessage: "Clear filter",
+                  })}
+                >
+                  <RiCloseLine className="h-3 w-3" />
+                </button>
+              </span>
+            </div>
+          )}
+
           {(section === undefined || section === "decisions") && (
             <Card>
               <Card.Header className="flex-wrap gap-3">
@@ -97,7 +124,10 @@ export function WorkTab({
                         }`}
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-text-strong">
+                          <p
+                            className="truncate text-sm font-medium text-text-strong"
+                            title={work.title || undefined}
+                          >
                             {work.title || formatMessage({ id: "app.admin.work.untitledWork" })}
                           </p>
                           <p className="mt-0.5 text-xs text-text-soft">
@@ -169,7 +199,7 @@ export function WorkTab({
                   </button>
                   <button
                     type="button"
-                    onClick={() => openSection("work", "queue")}
+                    onClick={() => openSection("work", "queue", "age-24h")}
                     className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm text-text-sub hover:bg-bg-soft"
                   >
                     <span>{formatMessage({ id: "app.garden.detail.metric.pending24h" })}</span>
@@ -177,7 +207,7 @@ export function WorkTab({
                   </button>
                   <button
                     type="button"
-                    onClick={() => openSection("work", "queue")}
+                    onClick={() => openSection("work", "queue", "age-72h")}
                     className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm text-text-sub hover:bg-bg-soft"
                   >
                     <span>{formatMessage({ id: "app.garden.detail.metric.pending72h" })}</span>

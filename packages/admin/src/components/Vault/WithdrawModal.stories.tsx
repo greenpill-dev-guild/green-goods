@@ -1,6 +1,6 @@
+import type { Address, GardenVault } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
-import type { Address, GardenVault } from "@green-goods/shared";
 import { WithdrawModal } from "./WithdrawModal";
 
 const MOCK_GARDEN_ADDRESS = "0x1234567890AbcdEF1234567890aBcdef12345678" as Address;

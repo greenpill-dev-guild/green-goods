@@ -6,8 +6,8 @@ import {
   GARDEN_ROLE_ORDER,
   type GardenRole,
 } from "@green-goods/shared";
-import type { IntlShape } from "react-intl";
 import { useMemo } from "react";
+import type { IntlShape } from "react-intl";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { DOMAIN_LABEL_IDS, RANGE_TO_MS } from "./gardenDetail.constants";
 import type {

@@ -1,8 +1,8 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { expect, within } from "storybook/test";
-import { cn, type Address } from "@green-goods/shared";
+import { type Address, cn } from "@green-goods/shared";
 import { RiArrowRightSLine, RiMenuLine, RiSearchLine } from "@remixicon/react";
+import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
+import { expect, within } from "storybook/test";
 
 // ─── Mock Header ─────────────────────────────────────────────────────
 // The real Header uses useUIStore, getChainName, DEFAULT_CHAIN_ID, and

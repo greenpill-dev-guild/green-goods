@@ -5,10 +5,10 @@ import {
   RiArrowUpLine,
   RiCloseLine,
   RiDeleteBinLine,
-  RiDraggable,
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { FormField } from "@/components/ui/FormField";
 
 interface DetailsConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["details"];
@@ -59,13 +59,13 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
   return (
     <div className="space-y-6">
       {/* Section Settings */}
-      <div>
-        <label htmlFor="section-title" className="block text-sm font-medium text-text-strong mb-2">
-          {formatMessage({
-            id: "app.admin.actions.detailsConfig.sectionTitle",
-            defaultMessage: "Section Title",
-          })}
-        </label>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.detailsConfig.sectionTitle",
+          defaultMessage: "Section Title",
+        })}
+        htmlFor="section-title"
+      >
         <input
           id="section-title"
           type="text"
@@ -77,18 +77,15 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
             defaultMessage: "e.g., Enter Details",
           })}
         />
-      </div>
+      </FormField>
 
-      <div>
-        <label
-          htmlFor="section-description"
-          className="block text-sm font-medium text-text-strong mb-2"
-        >
-          {formatMessage({
-            id: "app.admin.actions.detailsConfig.description",
-            defaultMessage: "Description",
-          })}
-        </label>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.detailsConfig.description",
+          defaultMessage: "Description",
+        })}
+        htmlFor="section-description"
+      >
         <textarea
           id="section-description"
           value={config.description}
@@ -100,18 +97,15 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
             defaultMessage: "Instructions for this section...",
           })}
         />
-      </div>
+      </FormField>
 
-      <div>
-        <label
-          htmlFor="feedback-placeholder"
-          className="block text-sm font-medium text-text-strong mb-2"
-        >
-          {formatMessage({
-            id: "app.admin.actions.detailsConfig.feedbackPlaceholder",
-            defaultMessage: "Feedback Placeholder",
-          })}
-        </label>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.detailsConfig.feedbackPlaceholder",
+          defaultMessage: "Feedback Placeholder",
+        })}
+        htmlFor="feedback-placeholder"
+      >
         <input
           id="feedback-placeholder"
           type="text"
@@ -123,7 +117,7 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
             defaultMessage: "e.g., Provide feedback or observations...",
           })}
         />
-      </div>
+      </FormField>
 
       {/* Dynamic Form Inputs */}
       <div>
@@ -220,7 +214,6 @@ function InputFieldEditor({
     <div className="border border-stroke-soft rounded-lg p-4 bg-bg-soft">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <RiDraggable className="h-5 w-5 text-text-soft" />
           <span className="text-sm font-medium text-text-strong">
             {formatMessage(
               {
@@ -271,16 +264,13 @@ function InputFieldEditor({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label
-            htmlFor={`field-key-${input.key}`}
-            className="block text-xs font-medium text-text-sub mb-1"
-          >
-            {formatMessage({
-              id: "app.admin.actions.detailsConfig.fieldKey",
-              defaultMessage: "Field Key",
-            })}
-          </label>
+        <FormField
+          label={formatMessage({
+            id: "app.admin.actions.detailsConfig.fieldKey",
+            defaultMessage: "Field Key",
+          })}
+          htmlFor={`field-key-${input.key}`}
+        >
           <input
             id={`field-key-${input.key}`}
             type="text"
@@ -292,18 +282,15 @@ function InputFieldEditor({
               defaultMessage: "e.g., plantCount",
             })}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label
-            htmlFor={`field-type-${input.key}`}
-            className="block text-xs font-medium text-text-sub mb-1"
-          >
-            {formatMessage({
-              id: "app.admin.actions.detailsConfig.fieldType",
-              defaultMessage: "Field Type",
-            })}
-          </label>
+        <FormField
+          label={formatMessage({
+            id: "app.admin.actions.detailsConfig.fieldType",
+            defaultMessage: "Field Type",
+          })}
+          htmlFor={`field-type-${input.key}`}
+        >
           <select
             id={`field-type-${input.key}`}
             value={input.type}
@@ -335,18 +322,15 @@ function InputFieldEditor({
               })}
             </option>
           </select>
-        </div>
+        </FormField>
 
-        <div>
-          <label
-            htmlFor={`field-label-${input.key}`}
-            className="block text-xs font-medium text-text-sub mb-1"
-          >
-            {formatMessage({
-              id: "app.admin.actions.detailsConfig.label",
-              defaultMessage: "Label",
-            })}
-          </label>
+        <FormField
+          label={formatMessage({
+            id: "app.admin.actions.detailsConfig.label",
+            defaultMessage: "Label",
+          })}
+          htmlFor={`field-label-${input.key}`}
+        >
           <input
             id={`field-label-${input.key}`}
             type="text"
@@ -358,18 +342,15 @@ function InputFieldEditor({
               defaultMessage: "e.g., Number of Plants",
             })}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label
-            htmlFor={`field-placeholder-${input.key}`}
-            className="block text-xs font-medium text-text-sub mb-1"
-          >
-            {formatMessage({
-              id: "app.admin.actions.detailsConfig.placeholder",
-              defaultMessage: "Placeholder",
-            })}
-          </label>
+        <FormField
+          label={formatMessage({
+            id: "app.admin.actions.detailsConfig.placeholder",
+            defaultMessage: "Placeholder",
+          })}
+          htmlFor={`field-placeholder-${input.key}`}
+        >
           <input
             id={`field-placeholder-${input.key}`}
             type="text"
@@ -381,7 +362,7 @@ function InputFieldEditor({
               defaultMessage: "e.g., Enter count",
             })}
           />
-        </div>
+        </FormField>
       </div>
 
       <div className="mt-3 flex items-center gap-2">
@@ -403,63 +384,61 @@ function InputFieldEditor({
       {/* Options for Select type */}
       {input.type === "select" && (
         <div className="mt-3 pt-3 border-t border-stroke-soft">
-          <label
-            htmlFor={`field-options-${input.key}`}
-            className="block text-xs font-medium text-text-sub mb-2"
-          >
-            {formatMessage({
+          <FormField
+            label={formatMessage({
               id: "app.admin.actions.detailsConfig.options",
               defaultMessage: "Options",
             })}
-          </label>
-          <div id={`field-options-${input.key}`} className="space-y-1.5">
-            {input.options.map((option, optIndex) => (
-              <div key={optIndex} className="flex items-center gap-2">
+          >
+            <div id={`field-options-${input.key}`} className="space-y-1.5">
+              {input.options.map((option, optIndex) => (
+                <div key={optIndex} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={option}
+                    onChange={(e) => {
+                      const updated = [...input.options];
+                      updated[optIndex] = e.target.value;
+                      onUpdate({ options: updated });
+                    }}
+                    className="flex-1 rounded-md border border-stroke-soft px-2 py-1 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeOption(optIndex)}
+                    className="p-1 text-error-base hover:bg-error-lighter rounded"
+                  >
+                    <RiCloseLine className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-2">
                 <input
                   type="text"
-                  value={option}
-                  onChange={(e) => {
-                    const updated = [...input.options];
-                    updated[optIndex] = e.target.value;
-                    onUpdate({ options: updated });
+                  value={newOption}
+                  onChange={(e) => setNewOption(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addOption();
+                    }
                   }}
+                  placeholder={formatMessage({
+                    id: "app.admin.actions.detailsConfig.addOptionPlaceholder",
+                    defaultMessage: "Add option...",
+                  })}
                   className="flex-1 rounded-md border border-stroke-soft px-2 py-1 text-sm"
                 />
                 <button
                   type="button"
-                  onClick={() => removeOption(optIndex)}
-                  className="p-1 text-error-base hover:bg-error-lighter rounded"
+                  onClick={addOption}
+                  className="px-2 py-1 bg-primary-base text-primary-foreground rounded-md hover:bg-primary-darker text-xs"
                 >
-                  <RiCloseLine className="h-4 w-4" />
+                  <RiAddLine className="h-3.5 w-3.5" />
                 </button>
               </div>
-            ))}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newOption}
-                onChange={(e) => setNewOption(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addOption();
-                  }
-                }}
-                placeholder={formatMessage({
-                  id: "app.admin.actions.detailsConfig.addOptionPlaceholder",
-                  defaultMessage: "Add option...",
-                })}
-                className="flex-1 rounded-md border border-stroke-soft px-2 py-1 text-sm"
-              />
-              <button
-                type="button"
-                onClick={addOption}
-                className="px-2 py-1 bg-primary-base text-primary-foreground rounded-md hover:bg-primary-darker text-xs"
-              >
-                <RiAddLine className="h-3.5 w-3.5" />
-              </button>
             </div>
-          </div>
+          </FormField>
         </div>
       )}
     </div>

@@ -1,18 +1,13 @@
 import {
   type Address,
-  useHypercertListings,
-  useCancelListing,
   type RegisteredOrderView,
+  useCancelListing,
+  useHypercertListings,
 } from "@green-goods/shared";
-import {
-  RiLoader4Line,
-  RiCloseLine,
-  RiExchangeDollarLine,
-  RiTimeLine,
-  RiAlertLine,
-} from "@remixicon/react";
+import { RiCloseLine, RiExchangeDollarLine, RiLoader4Line, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEther } from "viem";
+import { Alert } from "@/components/ui/Alert";
 
 interface ActiveListingsTableProps {
   gardenAddress: Address;
@@ -76,15 +71,12 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
 
   if (error) {
     return (
-      <div className="flex items-center gap-2 rounded-md bg-error-lighter p-4">
-        <RiAlertLine className="h-4 w-4 text-error-base" />
-        <span className="text-sm text-error-dark">
-          {intl.formatMessage({
-            id: "app.admin.listings.loadError",
-            defaultMessage: "Failed to load listings",
-          })}
-        </span>
-      </div>
+      <Alert variant="error">
+        {intl.formatMessage({
+          id: "app.admin.listings.loadError",
+          defaultMessage: "Failed to load listings",
+        })}
+      </Alert>
     );
   }
 

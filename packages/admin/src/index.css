@@ -199,7 +199,7 @@
   input:not([type="checkbox"]):not([type="radio"]):disabled,
   select:disabled,
   textarea:disabled {
-    opacity: 0.6;
+    color: rgb(var(--text-sub-600));
     cursor: not-allowed;
     background: rgb(var(--bg-soft-200));
   }

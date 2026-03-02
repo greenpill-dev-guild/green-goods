@@ -6,17 +6,17 @@ import {
   RiCloseLine,
   RiPencilLine,
 } from "@remixicon/react";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import type { TabBadgeSeverity, TabBadgeState } from "./gardenDetail.types";
 import {
   ALERT_LABEL_CLASSES,
   BADGE_TONE_CLASSES,
   DOMAIN_LABEL_IDS,
 } from "./gardenDetail.constants";
+import type { TabBadgeSeverity, TabBadgeState } from "./gardenDetail.types";
 
 export function TabBadge({ badge }: { badge: TabBadgeState }) {
   if (badge.severity === "none" || !badge.count) {
@@ -56,8 +56,10 @@ export function GardenHeroBanner({
   children,
 }: GardenHeroBannerProps) {
   const { formatMessage } = useIntl();
+  const [descExpanded, setDescExpanded] = useState(false);
   const bannerUrl = bannerImage ? resolveIPFSUrl(bannerImage) : "";
   const domains: Domain[] = typeof domainMask === "number" ? expandDomainMask(domainMask) : [];
+  const isLongDescription = Boolean(description && description.length > 100);
 
   return (
     <div>
@@ -89,11 +91,34 @@ export function GardenHeroBanner({
         </Link>
 
         <div className="garden-hero-banner-content">
-          <h1 className="truncate font-heading text-lg font-semibold text-white sm:text-2xl">
+          <h1
+            className="truncate font-heading text-lg font-semibold text-white sm:text-2xl"
+            title={name}
+          >
             {name}
           </h1>
           {description ? (
-            <p className="mt-0.5 line-clamp-2 text-xs text-white/80 sm:text-sm">{description}</p>
+            <div className="mt-0.5 max-w-xl">
+              <p
+                className={`text-xs text-white/80 sm:text-sm ${
+                  !descExpanded && isLongDescription ? "line-clamp-2" : ""
+                }`}
+                title={description}
+              >
+                {description}
+              </p>
+              {isLongDescription ? (
+                <button
+                  type="button"
+                  onClick={() => setDescExpanded((prev) => !prev)}
+                  className="mt-1 text-xs text-white/70 hover:text-white/90 transition-colors"
+                >
+                  {descExpanded
+                    ? formatMessage({ id: "app.common.showLess", defaultMessage: "Show less" })
+                    : formatMessage({ id: "app.common.showMore", defaultMessage: "Show more" })}
+                </button>
+              ) : null}
+            </div>
           ) : null}
           {domains.length > 0 ? (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">

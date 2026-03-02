@@ -2,17 +2,18 @@ import {
   type Address,
   ConfirmDialog,
   useConvictionStrategies,
-  useSetConvictionStrategies,
   useGardenPermissions,
   useGardens,
+  useSetConvictionStrategies,
 } from "@green-goods/shared";
+import { RiDeleteBinLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import { isAddress } from "viem";
-import { PageHeader } from "@/components/Layout/PageHeader";
 import { AddressDisplay } from "@/components/AddressDisplay";
-import { RiDeleteBinLine } from "@remixicon/react";
+import { PageHeader } from "@/components/Layout/PageHeader";
+import { Alert } from "@/components/ui/Alert";
 
 export default function GardenStrategiesView() {
   const { id } = useParams<{ id: string }>();
@@ -116,16 +117,14 @@ export default function GardenStrategiesView() {
         </section>
 
         {strategiesError && (
-          <div className="rounded-md border border-error-light bg-error-lighter px-4 py-3 text-sm text-error-dark">
+          <Alert variant="error">
             {formatMessage({ id: "app.conviction.errorLoadingFailed" })}
-          </div>
+          </Alert>
         )}
 
         {/* Info banner — only show when no strategies configured */}
         {strategies.length === 0 && !strategiesLoading && (
-          <div className="rounded-md border border-information-light bg-information-lighter px-4 py-3 text-sm text-information-dark">
-            {formatMessage({ id: "app.conviction.notDeployed" })}
-          </div>
+          <Alert variant="info">{formatMessage({ id: "app.conviction.notDeployed" })}</Alert>
         )}
 
         {/* Strategy list */}
@@ -184,7 +183,7 @@ export default function GardenStrategiesView() {
                       setAddressError("");
                     }}
                     placeholder={formatMessage({ id: "app.conviction.strategyAddressPlaceholder" })}
-                    className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 font-mono text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20"
+                    className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 font-mono text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
                     aria-label={formatMessage({ id: "app.conviction.strategyAddress" })}
                   />
                   {addressError && <p className="mt-1 text-xs text-error-base">{addressError}</p>}

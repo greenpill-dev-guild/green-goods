@@ -8,6 +8,7 @@ import {
   toastService,
   useGardenDetailData,
 } from "@green-goods/shared";
+import * as Tabs from "@radix-ui/react-tabs";
 import {
   RiCheckboxCircleLine,
   RiErrorWarningLine,
@@ -16,13 +17,14 @@ import {
   RiShieldCheckLine,
   RiUserLine,
 } from "@remixicon/react";
-import * as Tabs from "@radix-ui/react-tabs";
 import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { getRoleLabel } from "@/components/Garden/gardenUtils";
-import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
+import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
+import { GardenProfileModal } from "@/components/Garden/GardenProfileModal";
+import { getRoleLabel } from "@/components/Garden/gardenUtils";
+import { ManageRolesModal } from "@/components/Garden/ManageRolesModal";
 import { MembersModal } from "@/components/Garden/MembersModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -74,10 +76,11 @@ export default function GardenDetail() {
     refreshWorks,
     hypercerts,
     hypercertsLoading,
-    convictionStrategyCount,
     scheduleBackgroundRefetch,
   } = useGardenDetailData(id);
 
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [rolesModalOpen, setRolesModalOpen] = useState(false);
   const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
   const [memberType, setMemberType] = useState<GardenRole>("gardener");
   const [membersModalOpen, setMembersModalOpen] = useState(false);
@@ -298,7 +301,7 @@ export default function GardenDetail() {
 
   const tabActions: Record<GardenTab, React.ReactNode> = {
     overview: canManage ? (
-      <Button size="sm" onClick={() => openSection("overview", "metadata")}>
+      <Button size="sm" onClick={() => setProfileModalOpen(true)}>
         {formatMessage({ id: "app.garden.detail.action.manageProfile" })}
       </Button>
     ) : null,
@@ -334,7 +337,7 @@ export default function GardenDetail() {
           </Link>
         </Button>
         {canManageRoles ? (
-          <Button size="sm" variant="secondary" onClick={() => openSection("community", "roles")}>
+          <Button size="sm" variant="secondary" onClick={() => setRolesModalOpen(true)}>
             {formatMessage({ id: "app.garden.detail.action.manageRoles" })}
           </Button>
         ) : null}
@@ -385,9 +388,9 @@ export default function GardenDetail() {
 
       <div className="px-4 sm:px-6">
         {/* Mobile-only tab actions (below tab bar, visible on small screens) */}
-        {tabActions[activeTab] ? (
-          <div className="flex items-center gap-1.5 pt-3 sm:hidden">{tabActions[activeTab]}</div>
-        ) : null}
+        <div className="flex items-center gap-1.5 pt-3 empty:hidden sm:hidden">
+          {tabActions[activeTab]}
+        </div>
 
         <Tabs.Content
           value="overview"
@@ -395,9 +398,6 @@ export default function GardenDetail() {
           aria-label={formatMessage({ id: "app.garden.admin.tab.overview" })}
         >
           <OverviewTab
-            garden={garden}
-            canManage={canManage}
-            isOwner={isOwner}
             section={section}
             selectedItem={selectedItem}
             selectedRange={selectedRange}
@@ -413,6 +413,7 @@ export default function GardenDetail() {
             activityFilter={activityFilter}
             setActivityFilter={setActivityFilter}
             filteredActivityEvents={derived.filteredActivityEvents}
+            isLoading={worksLoading || fetchingAssessments}
             pendingWorkCount={derived.pendingWorks.length}
             assessmentCount30d={derived.approvedInLastThirtyDays}
             gardenerCount={roleMembers.gardener.length}
@@ -479,7 +480,6 @@ export default function GardenDetail() {
             garden={garden}
             gardenId={gardenId}
             canManage={canManage}
-            canManageRoles={canManageRoles}
             isOwner={isOwner}
             section={section}
             clearSection={clearSection}
@@ -489,28 +489,43 @@ export default function GardenDetail() {
             pools={pools}
             createPools={createPools}
             isCreatingPools={isCreatingPools}
-            convictionStrategyCount={convictionStrategyCount}
             vaultsLoading={vaultsLoading}
             hasVaults={derived.hasVaults}
             vaultNetDeposited={vaultNetDeposited}
             treasurySeverity={derived.treasurySeverity}
             allocations={allocations}
             allocationsLoading={allocationsLoading}
-            roleMembers={roleMembers}
-            isOperationLoading={isOperationLoading}
             roleSummary={derived.roleSummary}
             roleIcons={roleIcons}
             filteredDirectory={derived.filteredDirectory}
             visibleDirectory={derived.visibleDirectory}
             memberSearch={memberSearch}
             setMemberSearch={setMemberSearch}
-            openAddMemberModal={openAddMemberModal}
             openMembersModal={openMembersModal}
-            setMemberToRemove={setMemberToRemove}
             scheduleBackgroundRefetch={scheduleBackgroundRefetch}
           />
         </Tabs.Content>
       </div>
+
+      <GardenProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        gardenAddress={garden.id as Address}
+        garden={garden}
+        canManage={canManage}
+        isOwner={isOwner}
+      />
+
+      <ManageRolesModal
+        isOpen={rolesModalOpen}
+        onClose={() => setRolesModalOpen(false)}
+        roleMembers={roleMembers}
+        canManageRoles={canManageRoles}
+        isLoading={isOperationLoading}
+        onOpenAddMember={openAddMemberModal}
+        onOpenMembersModal={openMembersModal}
+        onRemoveMember={(address, role) => setMemberToRemove({ address, role })}
+      />
 
       <GardenDomainModal
         isOpen={domainModalOpen}

@@ -187,9 +187,13 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                       className="mt-0.5 h-4 w-4 rounded border-stroke-sub text-primary-base focus:ring-2 focus:ring-primary-alpha-24 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60"
                     />
                     <div className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{action.title}</span>
+                      <span className="block truncate font-medium" title={action.title}>
+                        {action.title}
+                      </span>
                       {action.slug && (
-                        <span className="block truncate text-xs text-text-soft">{action.slug}</span>
+                        <span className="block truncate text-xs text-text-soft" title={action.slug}>
+                          {action.slug}
+                        </span>
                       )}
                     </div>
                   </label>

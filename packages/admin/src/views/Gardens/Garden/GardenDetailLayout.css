@@ -103,11 +103,11 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  order: 2;
+  order: 1;
 }
 
 .garden-tab-rail {
-  order: 1;
+  order: 2;
 }
 
 .garden-tab-rail-sticky {

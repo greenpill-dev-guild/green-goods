@@ -1,4 +1,4 @@
-import { Domain, DOMAIN_COLORS, useCreateGardenStore } from "@green-goods/shared";
+import { DOMAIN_COLORS, Domain, useCreateGardenStore } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 
 const DOMAIN_LABELS: Record<Domain, { id: string; defaultMessage: string }> = {

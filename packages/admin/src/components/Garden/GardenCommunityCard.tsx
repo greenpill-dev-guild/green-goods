@@ -27,10 +27,6 @@ interface GardenCommunityCardProps {
   pools: GardenPool[];
   gardenId: string;
   canManage: boolean;
-  gardenName: string;
-  convictionStrategyCount: number;
-  vaultsLoading: boolean;
-  hasVaults: boolean;
   isCreatingPools: boolean;
   onCreatePools: () => Promise<void>;
   onScheduleRefetch: () => void;
@@ -42,10 +38,6 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
   pools,
   gardenId,
   canManage,
-  gardenName,
-  convictionStrategyCount,
-  vaultsLoading,
-  hasVaults,
   isCreatingPools,
   onCreatePools,
   onScheduleRefetch,
@@ -64,66 +56,6 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
         defaultMessage: "Community",
       })}
     >
-      {hasVaults && (
-        <Card padding="compact" className="sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="label-md text-text-strong sm:text-lg">
-                {formatMessage({ id: "app.treasury.title" })}
-              </h3>
-              <p className="mt-1 text-sm text-text-sub">
-                {formatMessage({ id: "app.treasury.gardenTreasuryDescription" }, { gardenName })}
-              </p>
-            </div>
-            <Button variant="secondary" size="sm" asChild>
-              <Link to={`/gardens/${gardenId}/vault`}>
-                {formatMessage({ id: "app.treasury.manageVault" })}
-              </Link>
-            </Button>
-          </div>
-          {vaultsLoading && (
-            <p className="mt-3 text-sm text-text-soft">
-              {formatMessage({ id: "app.treasury.loadingVaults" })}
-            </p>
-          )}
-        </Card>
-      )}
-
-      {canManage && (
-        <Card padding="compact" className="sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="label-md text-text-strong sm:text-lg">
-                {formatMessage({ id: "app.conviction.title" })}
-              </h3>
-              <p className="mt-1 text-sm text-text-sub">
-                {formatMessage(
-                  { id: "app.conviction.strategyCount" },
-                  { count: convictionStrategyCount }
-                )}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm" asChild>
-                <Link to={`/gardens/${gardenId}/signal-pool/hypercert`}>
-                  {formatMessage({ id: "app.signal.viewHypercertPool" })}
-                </Link>
-              </Button>
-              <Button variant="secondary" size="sm" asChild>
-                <Link to={`/gardens/${gardenId}/signal-pool/action`}>
-                  {formatMessage({ id: "app.signal.viewActionPool" })}
-                </Link>
-              </Button>
-              <Button variant="secondary" size="sm" asChild>
-                <Link to={`/gardens/${gardenId}/strategies`}>
-                  {formatMessage({ id: "app.conviction.manageStrategies" })}
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
-
       <Card padding="compact" className="sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -190,32 +122,62 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
         </div>
 
         {pools.length > 0 ? (
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div className="rounded-lg bg-bg-weak p-3">
-              <p className="label-xs text-text-soft">
-                {formatMessage({ id: "app.community.poolType.hypercert" })}
-              </p>
-              <p className="mt-1 text-sm text-text-sub">
-                {hypercertPool ? (
-                  <AddressDisplay address={hypercertPool.poolAddress} className="text-sm" />
-                ) : (
-                  <>&mdash;</>
-                )}
-              </p>
+          <>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-bg-weak p-3">
+                <p className="label-xs text-text-soft">
+                  {formatMessage({ id: "app.community.poolType.hypercert" })}
+                </p>
+                <p className="mt-1 text-sm text-text-sub">
+                  {hypercertPool ? (
+                    <AddressDisplay address={hypercertPool.poolAddress} className="text-sm" />
+                  ) : (
+                    <>&mdash;</>
+                  )}
+                </p>
+              </div>
+              <div className="rounded-lg bg-bg-weak p-3">
+                <p className="label-xs text-text-soft">
+                  {formatMessage({ id: "app.community.poolType.action" })}
+                </p>
+                <p className="mt-1 text-sm text-text-sub">
+                  {actionPool ? (
+                    <AddressDisplay address={actionPool.poolAddress} className="text-sm" />
+                  ) : (
+                    <>&mdash;</>
+                  )}
+                </p>
+              </div>
             </div>
-            <div className="rounded-lg bg-bg-weak p-3">
-              <p className="label-xs text-text-soft">
-                {formatMessage({ id: "app.community.poolType.action" })}
-              </p>
-              <p className="mt-1 text-sm text-text-sub">
-                {actionPool ? (
-                  <AddressDisplay address={actionPool.poolAddress} className="text-sm" />
-                ) : (
-                  <>&mdash;</>
-                )}
-              </p>
-            </div>
-          </div>
+            {canManage && (
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <Link
+                  to={`/gardens/${gardenId}/signal-pool/hypercert`}
+                  className="text-xs font-medium text-primary-base hover:text-primary-darker"
+                >
+                  {formatMessage({ id: "app.signal.viewHypercertPool" })}
+                </Link>
+                <span className="text-text-soft" aria-hidden="true">
+                  &middot;
+                </span>
+                <Link
+                  to={`/gardens/${gardenId}/signal-pool/action`}
+                  className="text-xs font-medium text-primary-base hover:text-primary-darker"
+                >
+                  {formatMessage({ id: "app.signal.viewActionPool" })}
+                </Link>
+                <span className="text-text-soft" aria-hidden="true">
+                  &middot;
+                </span>
+                <Link
+                  to={`/gardens/${gardenId}/strategies`}
+                  className="text-xs font-medium text-primary-base hover:text-primary-darker"
+                >
+                  {formatMessage({ id: "app.conviction.manageStrategies" })}
+                </Link>
+              </div>
+            )}
+          </>
         ) : (
           <div className="mt-3 rounded-lg border border-warning-light bg-warning-lighter p-3">
             <p className="text-sm text-warning-dark">

@@ -1,19 +1,20 @@
-import * as Dialog from "@radix-ui/react-dialog";
 import {
-  useEnsAddress,
+  type Address,
   cn,
   formatAddress,
+  type GardenRole,
   logger,
   parseContractError,
   resolveEnsAddress,
   USER_FRIENDLY_ERRORS,
-  type Address,
-  type GardenRole,
+  useEnsAddress,
 } from "@green-goods/shared";
+import * as Dialog from "@radix-ui/react-dialog";
 import { RiClipboardLine, RiCloseLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
+import { FormField } from "@/components/ui/FormField";
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -121,7 +122,7 @@ export function AddMemberModal({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-60 bg-black/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150" />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-60 -translate-x-1/2 -translate-y-1/2 bg-bg-white rounded-lg shadow-2xl ring-1 ring-black/5 max-w-md w-full p-6 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
+          className="fixed left-1/2 top-1/2 z-60 -translate-x-1/2 -translate-y-1/2 bg-bg-white rounded-lg shadow-2xl ring-1 ring-black/5 max-w-[calc(100vw-2rem)] sm:max-w-md w-full p-6 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
           onPointerDownOutside={(e) => {
             if (isLoading) e.preventDefault();
           }}
@@ -136,7 +137,7 @@ export function AddMemberModal({
             </Dialog.Title>
             <Dialog.Close asChild>
               <button
-                className="min-h-11 min-w-11 p-2 text-text-soft hover:text-text-sub rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-base/20"
+                className="min-h-11 min-w-11 p-2 text-text-soft hover:text-text-sub rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-base/40"
                 type="button"
                 disabled={isLoading}
                 aria-label={formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
@@ -148,13 +149,11 @@ export function AddMemberModal({
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="member-address"
-                className="block text-sm font-medium text-text-sub mb-2"
-              >
-                {formatMessage({ id: "app.admin.roles.addressLabel" })}
-              </label>
+            <FormField
+              label={formatMessage({ id: "app.admin.roles.addressLabel" })}
+              htmlFor="member-address"
+              error={error || undefined}
+            >
               <div className="relative">
                 <input
                   id="member-address"
@@ -172,7 +171,6 @@ export function AddMemberModal({
                   disabled={isLoading}
                   aria-required="true"
                   aria-invalid={!!error}
-                  aria-describedby={error ? "member-address-error" : undefined}
                 />
                 <button
                   type="button"
@@ -208,12 +206,7 @@ export function AddMemberModal({
                         })}
                 </p>
               )}
-              {error && (
-                <p id="member-address-error" role="alert" className="mt-1 text-sm text-error-dark">
-                  {error}
-                </p>
-              )}
-            </div>
+            </FormField>
 
             {/* Buttons */}
             <div className="flex items-center justify-end space-x-3 pt-6 border-t border-stroke-soft">

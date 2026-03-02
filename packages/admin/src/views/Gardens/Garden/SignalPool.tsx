@@ -8,14 +8,15 @@ import {
   useGardenPools,
   useGardens,
   useHypercertConviction,
-  useRegisterHypercert,
   useRegisteredHypercerts,
+  useRegisterHypercert,
 } from "@green-goods/shared";
+import { RiDeleteBinLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { RiDeleteBinLine } from "@remixicon/react";
+import { Alert } from "@/components/ui/Alert";
 
 /**
  * Unified signal pool management view.
@@ -207,18 +208,13 @@ export default function GardenSignalPoolView() {
 
         {/* Pool not deployed */}
         {!poolAddress && (
-          <div className="rounded-md border border-information-light bg-information-lighter px-4 py-3 text-sm text-information-dark">
-            {formatMessage({ id: "app.signal.poolNotFound" })}
-          </div>
+          <Alert variant="info">{formatMessage({ id: "app.signal.poolNotFound" })}</Alert>
         )}
 
         {(itemsError || weightsError) && (
-          <div
-            className="rounded-md border border-error-light bg-error-lighter px-4 py-3 text-sm text-error-dark"
-            role="alert"
-          >
+          <Alert variant="error">
             {formatMessage({ id: "app.conviction.errorLoadingFailed" })}
-          </div>
+          </Alert>
         )}
 
         {poolAddress && (
@@ -343,7 +339,7 @@ export default function GardenSignalPoolView() {
                             ? "app.signal.actionPool.actionIdPlaceholder"
                             : "app.signal.hypercertPool.hypercertIdPlaceholder",
                         })}
-                        className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 font-mono text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20"
+                        className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 font-mono text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
                         aria-label={formatMessage({
                           id: isActionPool
                             ? "app.signal.actionPool.actionIdPlaceholder"

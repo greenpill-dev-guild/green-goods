@@ -7,8 +7,9 @@ import {
   type MintingState,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
-import { useMemo, useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
+import { Alert } from "@/components/ui/Alert";
 
 interface MintStep {
   id: string;

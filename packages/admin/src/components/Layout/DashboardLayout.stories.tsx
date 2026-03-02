@@ -1,5 +1,3 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { expect, within } from "storybook/test";
 import { cn } from "@green-goods/shared";
 import {
   RiArrowRightSLine,
@@ -12,7 +10,9 @@ import {
   RiSettings3Line,
   RiUploadLine,
 } from "@remixicon/react";
+import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
+import { expect, within } from "storybook/test";
 
 // ─── Mock DashboardLayout ────────────────────────────────────────────
 // Composes inline sidebar + header + content area without requiring

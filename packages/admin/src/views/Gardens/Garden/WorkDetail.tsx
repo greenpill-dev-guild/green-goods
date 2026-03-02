@@ -1,17 +1,17 @@
 import {
   AudioRecorder,
   Confidence,
-  ErrorBoundary,
   ConfidenceSelector,
   DEFAULT_CHAIN_ID,
+  ErrorBoundary,
   formatDate,
   logger,
   MethodSelector,
   parseContractError,
   toastService,
+  USER_FRIENDLY_ERRORS,
   uploadFileToIPFS,
   uploadJSONToIPFS,
-  USER_FRIENDLY_ERRORS,
   useActions,
   useGardenPermissions,
   useGardens,
@@ -37,6 +37,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { Alert } from "@/components/ui/Alert";
 import { MediaEvidence } from "@/components/Work/MediaEvidence";
 
 // ─────────────────────────────────────────────────────────────
@@ -293,11 +294,7 @@ export default function WorkDetail() {
           {...baseHeaderProps}
         />
         <div className="mt-6 px-4 sm:px-6">
-          <div className="rounded-md border border-error-light bg-error-lighter p-4" role="alert">
-            <p className="text-sm text-error-dark">
-              {formatMessage({ id: "app.work.detail.notFound" })}
-            </p>
-          </div>
+          <Alert variant="error">{formatMessage({ id: "app.work.detail.notFound" })}</Alert>
         </div>
       </div>
     );
@@ -517,7 +514,10 @@ export default function WorkDetail() {
                         </span>
                         {reviewAudioFile ? (
                           <div className="flex items-center gap-2">
-                            <span className="flex-1 truncate text-sm text-text-sub">
+                            <span
+                              className="flex-1 truncate text-sm text-text-sub"
+                              title={reviewAudioFile.name}
+                            >
                               {reviewAudioFile.name}
                             </span>
                             <button

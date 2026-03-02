@@ -1,12 +1,12 @@
 import {
+  type Address,
   cn,
-  useUpdateGardenName,
+  useSetMaxGardeners,
+  useSetOpenJoining,
+  useUpdateGardenBannerImage,
   useUpdateGardenDescription,
   useUpdateGardenLocation,
-  useUpdateGardenBannerImage,
-  useSetOpenJoining,
-  useSetMaxGardeners,
-  type Address,
+  useUpdateGardenName,
 } from "@green-goods/shared";
 import { RiEditLine, RiLoader4Line, RiSaveLine } from "@remixicon/react";
 import { useState } from "react";
@@ -66,7 +66,14 @@ function EditableField({
       <div className="group flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="label-xs text-text-soft">{label}</p>
-          <p className={cn("mt-1 text-sm text-text-strong", !value && "italic text-text-sub")}>
+          <p
+            className={cn(
+              "mt-1 max-w-prose text-sm text-text-strong",
+              !value && "italic text-text-sub",
+              multiline && "line-clamp-3"
+            )}
+            title={value || undefined}
+          >
             {value ||
               formatMessage({ id: "app.garden.settings.notSet", defaultMessage: "Not set" })}
           </p>

@@ -2,9 +2,10 @@ import {
   formatTokenAmount,
   getNetDeposited,
   getVaultAssetSymbol,
+  ImageWithFallback,
   useDebouncedValue,
-  useGardenVaults,
   useGardens,
+  useGardenVaults,
 } from "@green-goods/shared";
 import {
   RiArrowRightLine,
@@ -16,13 +17,13 @@ import {
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { PageHeader } from "@/components/Layout/PageHeader";
+import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SortSelect } from "@/components/ui/SortSelect";
-import { PageHeader } from "@/components/Layout/PageHeader";
-import { StatCard } from "@/components/StatCard";
 
 type TreasurySortOrder = "name" | "tvl";
 
@@ -163,15 +164,21 @@ export default function TreasuryOverview() {
             <span className="sr-only">{formatMessage({ id: "app.treasury.loadingVaults" })}</span>
             {[0, 1, 2, 3].map((i) => (
               <Card key={i} padding="compact" className="sm:p-5">
-                <div className="mb-4 space-y-2">
+                <div className="mb-4 flex items-center gap-3">
                   <div
-                    className="h-5 w-32 rounded skeleton-shimmer"
+                    className="h-10 w-10 shrink-0 rounded-lg skeleton-shimmer"
                     style={{ animationDelay: `${i * 0.1}s` }}
                   />
-                  <div
-                    className="h-3 w-20 rounded skeleton-shimmer"
-                    style={{ animationDelay: `${i * 0.1 + 0.05}s` }}
-                  />
+                  <div className="space-y-2">
+                    <div
+                      className="h-5 w-32 rounded skeleton-shimmer"
+                      style={{ animationDelay: `${i * 0.1}s` }}
+                    />
+                    <div
+                      className="h-3 w-20 rounded skeleton-shimmer"
+                      style={{ animationDelay: `${i * 0.1 + 0.05}s` }}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <div
@@ -229,11 +236,35 @@ export default function TreasuryOverview() {
                 colorAccent="info"
                 className="sm:p-5"
               >
-                <div className="mb-4">
-                  <h2 className="font-heading text-base font-semibold text-text-strong sm:text-lg">
-                    {item.garden?.name}
-                  </h2>
-                  <p className="text-xs text-text-sub">{item.garden?.location}</p>
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
+                    {item.garden?.bannerImage ? (
+                      <ImageWithFallback
+                        src={item.garden.bannerImage}
+                        alt={item.garden.name || "Garden"}
+                        className="h-10 w-10 object-cover rounded-lg"
+                        fallbackClassName="h-10 w-10 rounded-lg"
+                        fallbackIcon={RiPlantLine}
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bg-soft text-text-sub">
+                        <span className="text-sm font-semibold">
+                          {(item.garden?.name ?? "G").charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h2
+                      className="truncate font-heading text-base font-semibold text-text-strong sm:text-lg"
+                      title={item.garden?.name}
+                    >
+                      {item.garden?.name}
+                    </h2>
+                    <p className="truncate text-xs text-text-sub" title={item.garden?.location}>
+                      {item.garden?.location}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="space-y-2">

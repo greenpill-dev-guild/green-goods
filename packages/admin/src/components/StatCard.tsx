@@ -1,6 +1,5 @@
-import type React from "react";
-
 import { cn } from "@green-goods/shared";
+import type React from "react";
 
 type ColorScheme = "success" | "warning" | "error" | "info";
 

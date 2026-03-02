@@ -1,8 +1,8 @@
 import {
   type Address,
   assessmentStepFields,
-  classifyTxError,
   type CreateAssessmentFormData,
+  classifyTxError,
   ErrorBoundary,
   isMeaningfulTxErrorMessage,
   toastService,
@@ -21,9 +21,9 @@ import { useShallow } from "zustand/react/shallow";
 import { ActionsHarvestStep } from "@/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep";
 import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps/DomainContextStep";
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
-import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
+import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 
 function useStepConfigs(): Step[] {
   const { formatMessage } = useIntl();

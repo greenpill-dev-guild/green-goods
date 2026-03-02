@@ -252,7 +252,9 @@ export function FileUploadField({
                   />
                 )}
                 <div className="flex-1 truncate">
-                  <p className="truncate text-sm font-medium text-text-sub">{safeFileName}</p>
+                  <p className="truncate text-sm font-medium text-text-sub" title={safeFileName}>
+                    {safeFileName}
+                  </p>
                   <p className="text-xs text-text-soft">{(file.size / 1024).toFixed(1)} KB</p>
                 </div>
                 {onRemoveFile && (

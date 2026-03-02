@@ -72,7 +72,10 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
                     <RiFileList3Line className="h-4 w-4 text-feature-dark" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-text-strong">
+                    <p
+                      className="truncate text-sm font-medium text-text-strong"
+                      title={assessment.title || assessment.assessmentType || undefined}
+                    >
                       {assessment.title ||
                         assessment.assessmentType ||
                         formatMessage({ id: "app.garden.admin.assessmentFallback" })}

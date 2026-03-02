@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "storybook/test";
 import { useState } from "react";
-import type { Step } from "./StepIndicator";
+import { expect, userEvent, within } from "storybook/test";
 import { FormWizard } from "./FormWizard";
+import type { Step } from "./StepIndicator";
 
 const mockSteps: Step[] = [
   { id: "details", title: "Details", description: "Garden name, location, and description" },

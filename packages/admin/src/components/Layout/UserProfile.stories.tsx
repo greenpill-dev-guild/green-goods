@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within, waitFor } from "storybook/test";
+import { type Address, cn } from "@green-goods/shared";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   RiArrowDownSLine,
   RiComputerLine,
@@ -8,9 +8,9 @@ import {
   RiSunLine,
   RiUserLine,
 } from "@remixicon/react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
-import { cn, type Address } from "@green-goods/shared";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { AddressDisplay } from "../AddressDisplay";
 
 // ─── Mock UserProfile ────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import {
   cn,
-  Domain,
   DOMAIN_COLORS,
+  Domain,
   imageCompressor,
   logger,
   resolveIPFSUrl,
