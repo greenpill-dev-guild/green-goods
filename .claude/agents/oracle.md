@@ -187,11 +187,11 @@ When investigating data flow, attestation, or domain questions, consult these do
 
 | Source | Path | Use For |
 |--------|------|---------|
-| Entity matrix | `docs/docs/developers/reference/entity-matrix.mdx` | Cross-protocol entity relationships |
-| EAS query patterns | `docs/docs/evaluator/query-eas.mdx` | Attestation query templates |
-| Envio query patterns | `docs/docs/evaluator/query-indexer.mdx` | GraphQL query templates |
+| Entity matrix | `docs/docs/developers/integrations.mdx` | Cross-protocol entity relationships |
+| EAS query patterns | `docs/docs/evaluator/verify-attestation-chains.mdx` | Attestation query templates |
+| Envio query patterns | `docs/docs/evaluator/verify-attestation-chains.mdx` | GraphQL query templates |
 | System architecture | `docs/docs/developers/architecture.mdx` | Data flow diagrams (7 Mermaid charts) |
-| Error lookup | `docs/docs/gardener/common-errors.mdx` | User-facing error-to-fix mapping |
+| Error lookup | `docs/docs/gardener/submit-work-mdr.mdx` | User-facing error-to-fix mapping |
 | Domain glossary | `docs/docs/glossary.md` | Term definitions (35+ entries) |
 | Impact model | `docs/docs/concepts/impact-model.mdx` | CIDS framework, action domains |
 | Strategy & goals | `docs/docs/concepts/strategy-and-goals.mdx` | Success metrics, feature scope |
