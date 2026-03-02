@@ -208,6 +208,12 @@ export const queryKeys = {
       ["greengoods", "yield", "pending", gardenAddress, assetAddress, chainId] as const,
   },
 
+  // Platform-wide stats (dashboard)
+  platform: {
+    all: ["greengoods", "platform"] as const,
+    stats: (chainId: number) => ["greengoods", "platform", "stats", chainId] as const,
+  },
+
   // Action related keys
   actions: {
     all: ["greengoods", "actions"] as const,
@@ -630,6 +636,8 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.vaults.myDeposits>
   | ReturnType<typeof queryKeys.vaults.events>
   | ReturnType<typeof queryKeys.vaults.preview>
+  | typeof queryKeys.platform.all
+  | ReturnType<typeof queryKeys.platform.stats>
   | typeof queryKeys.assessments.all
   | ReturnType<typeof queryKeys.assessments.byGarden>
   | typeof queryKeys.conviction.all

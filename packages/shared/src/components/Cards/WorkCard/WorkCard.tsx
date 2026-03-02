@@ -1,14 +1,14 @@
+import { RiCloseLine, RiImageLine } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 import type { WorkDisplayStatus } from "../../../types/domain";
 import { cn } from "../../../utils/styles/cn";
 import { formatRelativeTime } from "../../../utils/time";
-import { getStatusColors } from "../../StatusBadge";
 import { ImageWithFallback } from "../../Display/ImageWithFallback";
-import { RiCloseLine, RiImageLine } from "@remixicon/react";
+import { getStatusColors } from "../../StatusBadge";
 
 const workCardVariants = tv({
-  base: "@container flex w-full flex-col overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-300 sm:flex-row",
+  base: "@container flex w-full flex-col overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-300 @[480px]:flex-row",
   variants: {
     variant: {
       compact: "",
@@ -159,7 +159,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
         className={cn(workCardVariants({ variant, interactive }), className)}
         {...wrapperProps}
       >
-        <div className="relative w-full overflow-hidden bg-bg-weak-50 aspect-video sm:w-56 sm:flex-shrink-0">
+        <div className="relative w-full overflow-hidden bg-bg-weak-50 aspect-video @[480px]:w-56 @[480px]:flex-shrink-0">
           {thumbUrl ? (
             canOpenPreview ? (
               <button
