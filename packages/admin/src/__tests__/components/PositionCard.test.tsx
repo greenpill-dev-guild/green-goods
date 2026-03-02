@@ -16,6 +16,11 @@ const mockPauseMutate = vi.fn();
 const mockConfigureVaultRolesMutate = vi.fn();
 const mockUseVaultPreview = vi.fn().mockReturnValue({ preview: null });
 
+vi.mock("@remixicon/react", () => {
+  const Icon = (props: unknown) => createElement("span", props as object);
+  return new Proxy({}, { get: () => Icon });
+});
+
 vi.mock("@green-goods/shared", () => ({
   formatTokenAmount: (value: bigint, decimals?: number) => {
     if (value === 0n) return "0";

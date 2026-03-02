@@ -40,13 +40,7 @@ vi.mock("react-router-dom", () => ({
 
 vi.mock("@remixicon/react", () => {
   const Icon = (props: any) => React.createElement("span", props);
-  return {
-    RiExternalLinkLine: Icon,
-    RiLoader4Line: Icon,
-    RiCheckLine: Icon,
-    RiExchangeDollarLine: Icon,
-    RiArrowLeftLine: Icon,
-  };
+  return new Proxy({}, { get: () => Icon });
 });
 
 vi.mock("@/components/Layout/PageHeader", () => ({

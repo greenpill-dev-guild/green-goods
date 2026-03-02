@@ -18,15 +18,7 @@ vi.mock("@green-goods/shared", () => ({
 // Mock @remixicon/react icons used by Gardens and PageHeader
 vi.mock("@remixicon/react", () => {
   const Icon = (props: any) => React.createElement("span", props);
-  return {
-    RiAddLine: Icon,
-    RiEyeLine: Icon,
-    RiPlantLine: Icon,
-    RiShieldCheckLine: Icon,
-    RiUserLine: Icon,
-    RiVipCrownLine: Icon,
-    RiArrowLeftLine: Icon,
-  };
+  return new Proxy({}, { get: () => Icon });
 });
 
 // Mock react-router-dom

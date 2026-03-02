@@ -17,10 +17,7 @@ vi.mock("@green-goods/shared", () => ({
 
 vi.mock("@remixicon/react", () => {
   const Icon = (props: unknown) => React.createElement("span", props as object);
-  return {
-    RiEditLine: Icon,
-    RiImageLine: Icon,
-  };
+  return new Proxy({}, { get: () => Icon });
 });
 
 vi.mock("react-router-dom", async () => {

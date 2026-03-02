@@ -67,15 +67,7 @@ vi.mock("@/components/ui/SortSelect", () => ({
 
 vi.mock("@remixicon/react", () => {
   const Icon = (props: unknown) => React.createElement("span", props as object);
-  return {
-    RiAddLine: Icon,
-    RiCalendarLine: Icon,
-    RiEditLine: Icon,
-    RiEyeLine: Icon,
-    RiFileListLine: Icon,
-    RiImageLine: Icon,
-    RiRefreshLine: Icon,
-  };
+  return new Proxy({}, { get: () => Icon });
 });
 
 vi.mock("react-router-dom", async () => {

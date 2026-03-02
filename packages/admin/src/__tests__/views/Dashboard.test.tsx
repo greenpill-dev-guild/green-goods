@@ -51,29 +51,7 @@ vi.mock("wagmi", () => ({
 
 vi.mock("@remixicon/react", () => {
   const Icon = (props: any) => React.createElement("span", props);
-  return {
-    RiAlertLine: Icon,
-    RiArrowRightLine: Icon,
-    RiAwardLine: Icon,
-    RiCheckboxCircleLine: Icon,
-    RiCheckDoubleLine: Icon,
-    RiCheckLine: Icon,
-    RiCloseLine: Icon,
-    RiEditLine: Icon,
-    RiErrorWarningLine: Icon,
-    RiFileListLine: Icon,
-    RiFlashlightLine: Icon,
-    RiGlobalLine: Icon,
-    RiInformationLine: Icon,
-    RiLoader4Line: Icon,
-    RiPlantLine: Icon,
-    RiShieldCheckLine: Icon,
-    RiTeamLine: Icon,
-    RiTimeLine: Icon,
-    RiUserAddLine: Icon,
-    RiUserLine: Icon,
-    RiWifiOffLine: Icon,
-  };
+  return new Proxy({}, { get: () => Icon });
 });
 
 vi.mock("react-router-dom", async () => {
