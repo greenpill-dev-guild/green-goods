@@ -1,0 +1,112 @@
+---
+title: EAS (Attestation Service)
+sidebar_label: EAS
+slug: /builders/integrations/eas
+audience: developer
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+---
+
+# EAS (Ethereum Attestation Service)
+
+On-chain attestation layer for Green Goods. Every work submission, approval, and assessment is stored as an EAS attestation, creating permanent, verifiable records of regenerative work. Each attestation type has a dedicated resolver contract that enforces validation rules before the attestation is committed.
+
+## How We Use It
+
+Green Goods registers **three attestation schemas** on EAS, each backed by a resolver contract:
+
+| Schema | Resolver | Purpose |
+|--------|----------|---------|
+| **Work** | `WorkResolver` | Gardener submits evidence of completed work (title, feedback, media CIDs, metadata CID) |
+| **WorkApproval** | `WorkApprovalResolver` | Operator reviews and approves/rejects submitted work (confidence score, verification method) |
+| **Assessment** | `AssessmentResolver` | Evaluator creates an assessment of a garden's impact (strategy kernel, domain, reporting period) |
+
+The attestation flow:
+1. Client encodes attestation data using `SchemaEncoder` from `@ethereum-attestation-service/eas-sdk`
+2. Data is submitted to the EAS contract via `EAS.attest()`
+3. EAS calls the resolver's `onAttest()` hook, which validates role membership (via HatsModule) and action validity (via ActionRegistry)
+4. If validation passes, the attestation is stored permanently on-chain
+
+**Two data paths** exist for querying attestations:
+- **EAS GraphQL** (easscan.org) -- the frontend queries work, approval, and assessment attestations directly from EAS's hosted indexer
+- **Envio indexer** -- indexes core protocol state (gardens, roles, actions, vaults) but does NOT re-index EAS attestations
+
+## Configuration
+
+EAS addresses and schema UIDs are stored in deployment artifacts per chain:
+
+```typescript
+import { getEASConfig } from '@green-goods/shared';
+
+const easConfig = getEASConfig(chainId);
+// easConfig.WORK.uid        -- Schema UID for Work attestations
+// easConfig.WORK.schema     -- Schema string (field types)
+// easConfig.WORK_APPROVAL.uid / .schema
+// easConfig.ASSESSMENT.uid  / .schema
+// easConfig.EAS.address     -- EAS contract address
+// easConfig.SCHEMA_REGISTRY.address
+```
+
+**EAS GraphQL endpoints** per chain:
+- Arbitrum: `https://arbitrum.easscan.org/graphql`
+- Celo: `https://celo.easscan.org/graphql`
+- Sepolia: `https://sepolia.easscan.org/graphql`
+
+## Key Patterns
+
+### Encoding attestation data
+
+The client uses `encodeAbiParameters` / `SchemaEncoder` to encode attestation payloads. The Work schema includes:
+
+```typescript
+// Work attestation fields
+{ name: "actionUID",  type: "uint256"  }
+{ name: "title",      type: "string"   }
+{ name: "feedback",   type: "string"   }
+{ name: "metadata",   type: "string"   }  // IPFS CID to metadata JSON
+{ name: "media",      type: "string[]" }  // IPFS CIDs for photos/videos
+```
+
+Media files and metadata JSON are uploaded to IPFS (Storacha) before encoding. The encoder produces the hex-encoded `bytes` payload that EAS stores on-chain.
+
+### Struct vs tuple encoding (critical)
+
+This is the most important encoding detail in the codebase:
+
+- **`abi.encode(struct)`** and **`abi.encode(field1, field2, ...)`** produce **different bytes** when the struct contains dynamic types (string, bytes, arrays)
+- Struct encoding wraps data with an outer 32-byte offset pointer; tuple encoding is flat
+- EAS stores attestation data as **flat tuples** (the client uses `encodeAbiParameters`)
+- **All resolver contracts MUST use tuple decode**: `(f1, f2) = abi.decode(data, (type1, type2))`
+- **All tests MUST use tuple encode**: `abi.encode(val1, val2)` not `abi.encode(struct)`
+
+Getting this wrong causes silent reverts in resolver validation.
+
+### Submission paths
+
+Two submission paths exist depending on the user's authentication mode:
+
+- **Wallet submission** -- direct `EAS.attest()` call from the connected wallet
+- **Passkey submission** -- bundled as a UserOperation via smart account (ERC-4337), submitted through a bundler
+
+Both paths use the same encoding logic (`encodeWorkData`, `encodeWorkApprovalData`, `encodeAssessmentData` in `packages/shared/src/utils/eas/encoders.ts`).
+
+### Querying attestations
+
+The shared package provides typed fetch functions that query the EAS GraphQL API:
+
+```typescript
+// packages/shared/src/modules/data/eas.ts
+getWorks(gardenAddress, chainId)           // Work attestations for a garden
+getWorksByGardener(gardenerAddress, chainId) // Works by a specific gardener
+getWorkApprovals(gardenerAddress, chainId)  // Approval attestations
+getGardenAssessments(gardenAddress, chainId) // Assessment attestations
+```
+
+Each function handles schema UID lookup, GraphQL query construction, and response parsing into typed domain objects (`EASWork`, `EASWorkApproval`, `EASGardenAssessment`).
+
+## References
+
+- [EAS Documentation](https://docs.attest.org/) -- official EAS docs
+- [Contracts Package](/builders/packages/contracts) -- resolver contract source and deployment
+- [Architecture](/developers/architecture) -- system diagrams showing EAS data flow

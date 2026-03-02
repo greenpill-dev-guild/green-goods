@@ -4,7 +4,7 @@ sidebar_position: 1
 slug: /evaluator/get-started
 audience: evaluator
 owner: docs
-last_verified: 2026-02-28
+last_verified: 2026-03-01
 feature_status: Live
 goal: "Get started verifying impact data with Green Goods."
 difficulty: "quickstart"
@@ -22,20 +22,11 @@ keywords:
   - data verification
 ---
 
-import {AtAGlanceCard, JourneyMap, NextBestAction, StepFlow} from "@site/src/components/docs";
+import {JourneyMap, NextBestAction, StepFlow} from "@site/src/components/docs";
 
 # Evaluator Guide
 
 You validate that impact claims are real. Query data, verify evidence chains, and produce analysis that funders trust.
-
-<AtAGlanceCard
-  goal="Get started verifying impact data with Green Goods."
-  difficulty="quickstart"
-  estimatedTime="15 minutes"
-  prereqs="Familiarity with data querying (we'll guide you through the tools)."
-  outcome="You can query impact data and verify that impact claims are backed by evidence."
-  compact
-/>
 
 <JourneyMap
   role="Evaluator"
@@ -47,22 +38,38 @@ You validate that impact claims are real. Query data, verify evidence chains, an
   ]}
 />
 
-## How impact data flows
+## Overview
+
+Evaluators are the trust layer of Green Goods. Your role is to verify that the impact claims made by gardens and gardeners are backed by real evidence. You query on-chain data, follow attestation chains from work submissions to approvals, and produce analysis reports that funders and other stakeholders can rely on.
+
+{/* IMAGE PLACEHOLDER */}
+
+**How impact data flows:**
 
 1. **Gardeners submit work** — photos, descriptions, and context about regenerative actions.
-2. **Operators review and approve** — verified work becomes part of the garden's impact record.
+2. **Operators review and approve** — verified work becomes part of the garden's impact record via EAS attestations.
 3. **You analyze the data** — query across gardens, verify evidence chains, and produce reports.
 
-## Your first evaluation
+## How It Works
 
 <StepFlow
   steps={[
-    {title: "Choose a data source", detail: "Start with the Green Goods indexer for garden and action metadata."},
-    {title: "Query the data", detail: "Pull gardens, actions, and work submissions for your scope."},
-    {title: "Verify evidence", detail: "Follow the chain from submitted work to verified approvals."},
-    {title: "Export your analysis", detail: "Download datasets or connect to your analysis tools."},
+    {title: "Choose a data source", detail: "Start with the Green Goods indexer (Envio) for garden and action metadata, or the EAS GraphQL API for attestation details."},
+    {title: "Query the data", detail: "Pull gardens, actions, and work submissions for your evaluation scope. Filter by chain, garden, time range, or action type."},
+    {title: "Verify evidence", detail: "Follow the attestation chain: work submission UID to approval refUID. Check that schemas, timestamps, and attester roles are consistent."},
+    {title: "Export your analysis", detail: "Download datasets or connect to your analysis tools. Map impact data to frameworks like the Eight Forms of Capital."},
   ]}
 />
+
+## Best Practices
+
+- Always verify attestation chains end-to-end: work UID exists, approval refUID matches, attester is an authorized operator
+- Cross-reference indexer data with EAS explorer to catch any indexing delays or inconsistencies
+- Document your evaluation methodology so results are reproducible by other evaluators
+- Start with a small sample set to validate your queries before running analysis at scale
+- When evaluating across multiple chains, confirm you are using the correct EAS endpoint for each chain
+
+## What's Next
 
 <NextBestAction
   title="Next step"
@@ -74,9 +81,5 @@ You validate that impact claims are real. Query data, verify evidence chains, an
     {label: "Verify Evidence Chains", href: "./verify-attestation-chains"},
   ]}
 />
-
----
-
-## What's next?
 
 Want to build custom tools for impact analysis? Check out the [Developer hub](/developers/getting-started).

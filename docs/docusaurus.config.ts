@@ -72,28 +72,28 @@ const config: Config = {
           },
           {
             from: ['/gardeners/tracking-contributions'],
-            to: '/gardener/track-status-and-attestations',
+            to: '/community/gardener-guide/earning-badges',
           },
-          {from: ['/gardeners/best-practices'], to: '/gardener/common-errors'},
+          {from: ['/gardeners/best-practices'], to: '/gardener/submit-work-mdr'},
           {
             from: ['/welcome/quickstart-operator', '/operators/managing-gardens'],
             to: '/operator/get-started-and-roles',
           },
-          {from: ['/operators/managing-actions'], to: '/operator/manage-actions'},
+          {from: ['/operators/managing-actions'], to: '/operator/create-garden'},
           {from: ['/operators/reviewing-work'], to: '/operator/review-work'},
-          {from: ['/operators/reporting-impact'], to: '/operator/reporting-and-gap'},
+          {from: ['/operators/reporting-impact'], to: '/community/evaluator-guide/reporting-analytics'},
           {
             from: ['/welcome/quickstart-evaluator', '/evaluators/accessing-data'],
             to: '/evaluator/get-started',
           },
-          {from: ['/evaluators/exploring-gardens'], to: '/evaluator/export-and-analysis'},
+          {from: ['/evaluators/exploring-gardens'], to: '/evaluator/verify-attestation-chains'},
           {
             from: ['/evaluators/using-attestation-data'],
             to: '/evaluator/verify-attestation-chains',
           },
           {
             from: ['/evaluators/external-frameworks'],
-            to: '/evaluator/cross-framework-mapping',
+            to: '/evaluator/verify-attestation-chains',
           },
           {
             from: [
@@ -117,7 +117,7 @@ const config: Config = {
               '/developer/gardener-accounts',
               '/developer/theming',
             ],
-            to: '/developers/build-patterns',
+            to: '/developers/getting-started',
           },
           {
             from: [
@@ -142,7 +142,7 @@ const config: Config = {
               '/developer/monitoring',
               '/developer/contracts-handbook',
             ],
-            to: '/developers/operations',
+            to: '/builders/deployments/status',
           },
           {from: ['/developer/api-reference'], to: '/developers/reference/api-index'},
           {
@@ -171,6 +171,40 @@ const config: Config = {
           {
             from: ['/features/overview', '/features/core-features'],
             to: '/',
+          },
+          {
+            from: ['/community/welcome'],
+            to: '/',
+          },
+          {
+            from: [
+              '/community/what-is-a-garden',
+              '/community/making-assessments',
+              '/community/taking-action',
+              '/community/work-submissions',
+              '/community/documenting-impact',
+              '/community/impact-to-funding',
+            ],
+            to: '/',
+          },
+          {
+            from: [
+              '/community/how-it-works/mdr-workflow',
+              '/community/how-it-works/frictionless-onboarding',
+              '/community/how-it-works/pwa-experience',
+              '/community/how-it-works/work-logging',
+              '/community/how-it-works/automated-reporting',
+              '/community/how-it-works/onchain-verification',
+              '/community/how-it-works/localization',
+            ],
+            to: '/community/how-it-works',
+          },
+          {
+            from: [
+              '/community/why-we-build/vision-and-goals',
+              '/community/why-we-build/regen-stack',
+            ],
+            to: '/community/why-we-build',
           },
           {
             from: ['/features/architecture'],
@@ -248,27 +282,9 @@ const config: Config = {
       items: [
         {
           type: 'docSidebar',
-          sidebarId: 'gardenerSidebar',
+          sidebarId: 'buildersSidebar',
           position: 'left',
-          label: 'Gardener',
-        },
-        {
-          type: 'docSidebar',
-          sidebarId: 'operatorSidebar',
-          position: 'left',
-          label: 'Operator',
-        },
-        {
-          type: 'docSidebar',
-          sidebarId: 'evaluatorSidebar',
-          position: 'left',
-          label: 'Evaluator',
-        },
-        {
-          type: 'docSidebar',
-          sidebarId: 'developersSidebar',
-          position: 'left',
-          label: 'Developers',
+          label: 'Builders',
         },
         {
           href: 'https://greengoods.app',
@@ -286,25 +302,25 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Learn',
+          title: 'Community',
           items: [
-            { label: 'About Green Goods', to: '/' },
-            { label: 'Gardener Guide', to: '/gardener/get-started' },
-            { label: 'Operator Guide', to: '/operator/get-started-and-roles' },
-            { label: 'Evaluator Guide', to: '/evaluator/get-started' },
+            { label: 'Welcome to Green Goods', to: '/' },
+            { label: 'How It Works', to: '/community/how-it-works' },
+            { label: 'Why We Build', to: '/community/why-we-build' },
+            { label: 'Gardener Guide', to: '/community/gardener-guide/joining-a-garden' },
           ],
         },
         {
-          title: 'Build',
+          title: 'Builders',
           items: [
-            { label: 'Developer Quickstart', to: '/developers/getting-started' },
+            { label: 'Getting Started', to: '/developers/getting-started' },
             { label: 'Architecture', to: '/developers/architecture' },
             { label: 'Integrations', to: '/developers/integrations' },
-            { label: 'API Reference', to: '/developers/reference/api-index' },
+            { label: 'How To Contribute', to: '/builders/how-to-contribute' },
           ],
         },
         {
-          title: 'Community',
+          title: 'Connect',
           items: [
             { label: 'Telegram', href: 'https://t.me/+N3o3_43iRec1Y2Jh' },
             { label: 'X (Twitter)', href: 'https://x.com/greengoodsapp' },

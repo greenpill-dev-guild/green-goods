@@ -4,7 +4,7 @@ sidebar_position: 1
 slug: /operator/get-started-and-roles
 audience: operator
 owner: docs
-last_verified: 2026-02-28
+last_verified: 2026-03-01
 feature_status: Live
 goal: "Get started managing your garden community on Green Goods."
 difficulty: "quickstart"
@@ -23,7 +23,6 @@ keywords:
 ---
 
 import {
-  AtAGlanceCard,
   FeatureState,
   JourneyMap,
   NextBestAction,
@@ -33,15 +32,6 @@ import {
 # Operator Guide
 
 You keep the garden running. Review submissions, manage your community, and help turn regenerative work into lasting impact.
-
-<AtAGlanceCard
-  goal="Get started managing your garden community on Green Goods."
-  difficulty="quickstart"
-  estimatedTime="10 minutes"
-  prereqs="Access to the Green Goods admin dashboard."
-  outcome="You can navigate the admin dashboard and understand your available workflows."
-  compact
-/>
 
 <JourneyMap
   role="Operator"
@@ -54,18 +44,30 @@ You keep the garden running. Review submissions, manage your community, and help
   ]}
 />
 
-## Your first session
+## Overview
+
+Operators are the trusted coordinators who manage gardens and validate gardener submissions. You use the admin dashboard to review work, manage membership, create assessments, and oversee garden finances.
+
+{/* IMAGE PLACEHOLDER */}
+
+| What you can do | Where to find it | Status |
+| --- | --- | --- |
+| Manage gardens | Gardens section | Live |
+| Review work | Individual garden > Work tab | Live |
+| Create assessments | Individual garden > Assessments | Live |
+| Mint impact certificates | Individual garden > Hypercerts | Coming soon |
+| Manage endowments | Individual garden > Vault | Coming soon |
+
+## How It Works
 
 <StepFlow
   steps={[
-    {title: "Sign in to admin", detail: "Open admin.greengoods.app and sign in."},
-    {title: "Explore the dashboard", detail: "Browse your gardens, actions, and submissions."},
+    {title: "Sign in to admin", detail: "Open admin.greengoods.app and connect your wallet."},
+    {title: "Explore the dashboard", detail: "Browse your gardens, actions, and pending submissions."},
     {title: "Open a garden", detail: "Check the work queue, assessments, and garden settings."},
     {title: "Review a submission", detail: "Approve or request changes on a gardener's work."},
   ]}
 />
-
-## What's available
 
 <FeatureState
   title="Garden and action management"
@@ -85,15 +87,14 @@ You keep the garden running. Review submissions, manage your community, and help
   summary="Vault deposits, cookie jars, and signal pools — available once modules are deployed."
 />
 
-## Admin dashboard overview
+## Best Practices
 
-| What you can do | Where to find it | Status |
-| --- | --- | --- |
-| Manage gardens | Gardens section | Live |
-| Review work | Individual garden > Work tab | Live |
-| Create assessments | Individual garden > Assessments | Live |
-| Mint impact certificates | Individual garden > Hypercerts | Coming soon |
-| Manage endowments | Individual garden > Vault | Coming soon |
+- Review submissions promptly — gardeners depend on timely feedback to stay engaged
+- When rejecting work, provide specific, actionable feedback so the gardener knows exactly what to fix
+- Keep your garden actions up to date with clear instructions and current time windows
+- Document your garden's review standards so other operators can maintain consistency
+
+## What's Next
 
 <NextBestAction
   title="Next step"
@@ -106,9 +107,5 @@ You keep the garden running. Review submissions, manage your community, and help
     {label: "Troubleshooting", href: "./troubleshooting"},
   ]}
 />
-
----
-
-## What's next?
 
 Interested in verifying impact at scale? Explore the [Evaluator path](/evaluator/get-started).

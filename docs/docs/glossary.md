@@ -3,7 +3,7 @@ title: Glossary
 slug: /glossary
 audience: all
 owner: docs
-last_verified: 2026-02-19
+last_verified: 2026-03-01
 feature_status: Live
 source_of_truth:
   - docs/docs/developers/reference/deployment-indexer-status.mdx
@@ -53,14 +53,11 @@ The three-step workflow for submitting work in the Green Goods PWA:
 
 This pattern ensures high-quality documentation and reduces submission errors.
 
-## TBA (Tokenbound Account)
-A smart contract account bound to an NFT, following the ERC-6551 standard. Each Green Goods garden is a Tokenbound Account, allowing gardens to own assets, sign transactions, and interact with other contracts as autonomous entities. Learn more at [tokenbound.org](https://tokenbound.org).
-
 ## Hypercert
-A semi-fungible token representing a claim of impact work. Hypercerts enable retroactive funding by allowing impact to be certified, tracked, and fractionally owned. In Green Goods, hypercert mint/list workflows are implemented but may be activation-pending depending on deployment and indexing status. Learn more at [hypercerts.org](https://hypercerts.org) and [Mint and List Hypercerts](/operator/mint-and-list-hypercerts).
+A semi-fungible token representing a claim of impact work. Hypercerts enable retroactive funding by allowing impact to be certified, tracked, and fractionally owned. In Green Goods, hypercert mint/list workflows are implemented but may be activation-pending depending on deployment and indexing status. Note: "Impact Tokens" are the broader concept (verified impact work tokenized via Karma GAP attestations), while Hypercerts are the specific tokenized certificates that represent fractional ownership of those impact claims. Learn more at [hypercerts.org](https://hypercerts.org) and [Mint and List Hypercerts](/operator/mint-and-list-hypercerts).
 
 ## Impact Token
-A token representing verified impact work that can be traded, funded, or used to unlock benefits. Green Goods uses Karma GAP attestations as the foundation for impact tokenization.
+A token representing verified impact work that can be traded, funded, or used to unlock benefits. Green Goods uses Karma GAP attestations as the foundation for impact tokenization. Impact Tokens are the broader concept; see [Hypercert](#hypercert) for the specific tokenized certificate implementation.
 
 ## Karma GAP (Grantee Accountability Protocol)
 A standardized protocol for on-chain impact reporting across multiple chains. When operators approve work in Green Goods, the system automatically creates GAP project and impact attestations, enabling transparent impact tracking. Gardens become GAP projects automatically upon creation.
@@ -73,9 +70,6 @@ A smart contract-based wallet that enables gasless transactions, social recovery
 
 ## PWA (Progressive Web App)
 A web application that can be installed on mobile devices and work offline. The Green Goods client is a PWA, enabling gardeners to document work in the field even without internet connectivity. Work is queued locally and synced when back online.
-
-## Indexer
-A service that listens to blockchain events and indexes them into a queryable database. Green Goods uses [Envio](https://envio.dev) to index garden creation, work submissions, approvals, and attestations, exposing this data via a GraphQL API for fast queries.
 
 ## Eight Forms of Capital
 A holistic framework for measuring wealth and impact beyond money:
@@ -96,88 +90,7 @@ Data or transactions permanently recorded on a blockchain. Green Goods stores at
 ## IPFS (InterPlanetary File System)
 A distributed file storage system. Green Goods stores work photos, metadata, and action instructions in IPFS via Storacha, with content identifiers (CIDs) referenced in on-chain attestations.
 
-## Sepolia
-The default testnet for Green Goods development. Sepolia is an Ethereum testnet offering low-cost transactions for testing.
-
-## Arbitrum One
-A production Ethereum Layer 2 network where Green Goods is deployed. Arbitrum offers lower gas fees and faster transactions than Ethereum mainnet while maintaining security.
-
-## Celo
-A carbon-negative blockchain focused on mobile-first financial tools and regenerative finance. Green Goods is deployed on Celo mainnet, aligning with the network's environmental mission.
-
 ## Community Garden
 The root garden created automatically on deployment, open to all users. New gardeners are automatically added to the Community Garden upon signup, providing immediate access to actions and the ability to start documenting work.
 
-## Merkle Tree
-A cryptographic data structure used to efficiently verify set membership. In the context of Hypercerts, Merkle trees store allowlists of addresses entitled to claim fractions of a Hypercert. The Merkle root is stored on-chain, while the full tree data is stored on IPFS, allowing efficient verification without storing all addresses on-chain.
-
-## UserOperation (UserOp)
-A pseudo-transaction object in ERC-4337 account abstraction that represents an intended action by a smart account. Unlike regular transactions, UserOperations are sent to a bundler (not directly to the blockchain), enabling features like gas sponsorship, batched transactions, and custom signature schemes.
-
-## Bundler
-A node in the ERC-4337 account abstraction system that collects UserOperations from multiple users, bundles them into a single transaction, and submits them to the blockchain. Green Goods uses Pimlico as its bundler service, enabling gasless transactions for gardeners.
-
-## Paymaster
-A smart contract in ERC-4337 that sponsors gas fees for UserOperations. Green Goods uses Pimlico's verifying paymaster to enable gasless transactions, allowing gardeners to submit work without holding native tokens for gas.
-
-## gql.tada
-A TypeScript library that provides type-safe GraphQL queries by inferring types directly from GraphQL schemas. Green Goods uses gql.tada with graphql-request for fully typed GraphQL operations, catching query errors at compile time rather than runtime.
-
-## Transfer Restrictions
-Hypercert configurations that control whether and how fractions can be transferred after minting. Options include: unrestricted (freely transferable), restricted to original recipients, or disallowed entirely. Green Goods Hypercerts typically use transfer restrictions to ensure impact claims remain with verified contributors.
-
-## Allowlist
-A list of Ethereum addresses entitled to claim fractions of a Hypercert or access certain features. Allowlists are stored as Merkle trees, enabling gas-efficient verification. In Green Goods, the allowlist for a Hypercert is generated from approved gardeners who contributed to the bundled work.
-
----
-
-## CREATE2
-A Solidity opcode that deploys contracts to deterministic addresses based on the deployer address, salt, and bytecode hash. Green Goods uses CREATE2 for predictable contract deployments across different networks, ensuring consistent addresses for core infrastructure.
-
-## Envio
-A blockchain event indexer that listens to on-chain events and exposes indexed data via GraphQL API. Green Goods uses Envio HyperIndex to track garden creation, work submissions, approvals, and membership changes, enabling fast queries without direct blockchain calls.
-
-## ERC-721
-The Ethereum standard for non-fungible tokens (NFTs). Green Goods uses ERC-721 for Garden tokens, where each garden is a unique NFT that can be owned, transferred, and linked to a Tokenbound Account (ERC-6551).
-
-## ERC-4337
-The Ethereum standard for Account Abstraction, enabling smart contract wallets with features like gasless transactions, social recovery, and custom authentication. Green Goods uses ERC-4337 via Pimlico to provide gardeners with passkey-based accounts that don't require managing private keys or paying gas.
-
-## Foundry
-A fast, portable Solidity development framework written in Rust. Includes `forge` (build and test), `anvil` (local blockchain), and `cast` (CLI for interacting with contracts). Green Goods uses Foundry for all smart contract development and testing.
-
-## Gas
-The unit of computational effort required to execute transactions on Ethereum-compatible blockchains. Gas fees (paid in native tokens like ETH) compensate network validators. Green Goods uses Pimlico paymasters to sponsor gas for gardeners, enabling gasless work submissions.
-
-## GraphQL
-A query language for APIs that allows clients to request exactly the data they need. Green Goods exposes garden and work data via GraphQL through the Envio indexer, and queries EAS attestations via the EAS GraphQL API.
-
-## IndexedDB
-A browser-based NoSQL database for storing structured data client-side. The Green Goods PWA uses IndexedDB for the offline job queue, persisting pending work submissions until network connectivity is restored.
-
-## Kernel
-A modular smart account implementation (v3) from ZeroDev that powers Green Goods gardener accounts. Kernel accounts support passkey authentication, gas sponsorship, and can be upgraded without changing addresses.
-
-## Pimlico
-An ERC-4337 infrastructure provider offering bundler and paymaster services. Green Goods uses Pimlico to enable gasless passkey authentication and work submissions for gardeners, abstracting away blockchain complexity.
-
-## Reown AppKit
-A wallet connection SDK (formerly WalletConnect) for web3 applications. Green Goods uses Reown AppKit in the Admin dashboard to connect operator wallets like MetaMask for signing transactions.
-
-## Service Worker
-A background script that enables Progressive Web Apps (PWAs) to work offline and receive push notifications. The Green Goods client uses a service worker to cache assets and handle background sync of work submissions.
-
-## Storacha
-An IPFS/Filecoin storage service for decentralized file hosting. Green Goods uses Storacha (formerly web3.storage) to store work photos, metadata, and action instructions, with content identifiers (CIDs) referenced in on-chain attestations.
-
-## UUPS (Universal Upgradeable Proxy Standard)
-An OpenZeppelin pattern for upgradeable smart contracts where the upgrade logic lives in the implementation contract rather than the proxy. Green Goods uses UUPS for core contracts, allowing bug fixes and feature additions while preserving contract state and addresses.
-
-## XState
-A JavaScript/TypeScript library for state machines and statecharts. Green Goods uses XState for complex multi-step workflows like authentication and Hypercert minting, where explicit state transitions and side effects need careful orchestration.
-
-## ZeroDev
-An account abstraction platform that provides Kernel smart account implementations and developer tools. Green Goods uses ZeroDev's Kernel v3 for gardener smart accounts, enabling passkey authentication and gasless transactions.
-
-## Zustand
-A lightweight state management library for React. Green Goods uses Zustand for global UI state (selected garden, wizard steps, theme) that needs to persist across component re-renders but doesn't require the complexity of XState.
+Looking for technical terms like CREATE2, Envio, ERC-4337, Foundry, or Zustand? See the [Builder Glossary](/builders/glossary).

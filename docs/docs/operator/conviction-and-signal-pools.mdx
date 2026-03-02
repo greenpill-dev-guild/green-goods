@@ -4,7 +4,7 @@ sidebar_position: 9
 slug: /operator/conviction-and-signal-pools
 audience: operator
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-03-01
 feature_status: Implemented (activation pending deployment)
 goal: "Complete Conviction and Signal Pools with clear, role-specific next actions."
 difficulty: "standard"
@@ -24,7 +24,6 @@ keywords:
 ---
 
 import {
-  AtAGlanceCard,
   DecisionGuide,
   FeatureState,
   NextBestAction,
@@ -36,17 +35,11 @@ import {
 
 <StatusBadge status="Implemented (activation pending deployment)" />
 
-<AtAGlanceCard
-  goal="Complete Conviction and Signal Pools with clear, role-specific next actions."
-  difficulty="standard"
-  estimatedTime="20-40 minutes once module deployment is active."
-  prereqs="Governance policy and role model."
-  outcome="Clear status and runbook for strategy + pool operations."
-  personaContext="Operators coordinating gardens, approvals, and governance/endowment execution."
-  lastVerified="2026-02-18"
-/>
+## Overview
 
-## Current state
+Conviction voting and signal pools give your garden community a voice in resource allocation. Signal pools let members express preferences on which hypercerts or initiatives should receive funding, while conviction strategies apply time-weighted voting mechanics to turn signals into binding decisions.
+
+{/* IMAGE PLACEHOLDER */}
 
 <FeatureState
   title="Routes and hooks"
@@ -57,17 +50,17 @@ import {
 <FeatureState
   title="On-chain modules"
   status="Implemented (activation pending deployment)"
-  summary="`gardensModule` and `unifiedPowerRegistry` addresses are zero in latest deployment artifacts."
+  summary="gardensModule and unifiedPowerRegistry addresses are zero in latest deployment artifacts."
 />
 
-## Target flow after activation
+## How It Works
 
 <StepFlow
   steps={[
-    {title: "Configure strategy", detail: "Set conviction strategy addresses and role hat IDs."},
-    {title: "Create pools", detail: "Create signal pools for selected weight schemes."},
-    {title: "Register hypercerts", detail: "Register/deregister eligible claims for signaling."},
-    {title: "Allocate support", detail: "Track voting power and conviction changes over time."},
+    {title: "Configure strategy", detail: "Set conviction strategy addresses and role hat IDs in the Strategies tab. Define how voting power is calculated and distributed."},
+    {title: "Create pools", detail: "Create signal pools for selected weight schemes. Each pool can target different allocation decisions."},
+    {title: "Register hypercerts", detail: "Register or deregister eligible hypercert claims for signaling. Only registered claims can receive votes."},
+    {title: "Allocate support", detail: "Community members stake their voting power on preferred claims. Track conviction changes over time as support accumulates or shifts."},
   ]}
 />
 
@@ -92,9 +85,19 @@ import {
   ]}
 />
 
+## Best Practices
+
+- Start with signal pools to gauge community preferences before committing to full conviction voting
+- Clearly communicate to your community how voting power is calculated (role-based, stake-based, or equal)
+- Review role mappings and anti-capture controls carefully before launching conviction strategies
+- Monitor participation rates — low participation can lead to outcomes that don't reflect broad community preferences
+- Use signal pools for advisory governance and conviction voting for binding allocation decisions
+
+## What's Next
+
 <NextBestAction
   title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
+  why="With governance configured, track and report your garden's impact."
   actionLabel="Reporting and GAP"
   actionHref="./reporting-and-gap"
   alternatives={[

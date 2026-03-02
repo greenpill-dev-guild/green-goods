@@ -1,0 +1,103 @@
+---
+title: Client PWA Deployment
+sidebar_label: Client PWA
+slug: /builders/deployments/client-deploy
+audience: developer
+owner: docs
+last_verified: 2026-03-01
+---
+
+# Client PWA Deployment
+
+{/* IMAGE PLACEHOLDER: PWA deployment — build, service worker registration, CDN distribution (800x400) */}
+
+The client is an offline-first Progressive Web App built with Vite and React. Deployment produces a static build with service worker support for offline functionality.
+
+## Build Process
+
+```bash
+# Build for production
+VITE_CHAIN_ID=42161 bun run build:client
+```
+
+The build is single-chain: `VITE_CHAIN_ID` determines which deployment artifact and chain configuration is baked in at build time.
+
+### Build Dependencies
+
+The client depends on packages built earlier in the dependency chain:
+
+1. `packages/contracts` -- ABI JSON files and deployment artifacts
+2. `packages/shared` -- React hooks, modules, types, and components
+
+Both must be built before the client. The monorepo's `bun build` command handles this order automatically.
+
+### Environment Variables
+
+All environment variables come from the root `.env` file (never package-specific). Key variables for the client build:
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_CHAIN_ID` | Target chain (e.g., `11155111` for Sepolia, `42161` for Arbitrum) |
+| `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect authentication |
+| `VITE_PIMLICO_API_KEY` | Pimlico bundler/paymaster for account abstraction |
+| `VITE_ENVIO_INDEXER_URL` | Envio GraphQL endpoint |
+
+## Service Worker
+
+The PWA service worker enables offline functionality -- the core differentiator of the client app. Key behaviors:
+
+- **Precaching** -- Static assets are cached at install time
+- **Runtime caching** -- API responses are cached with stale-while-revalidate
+- **Background sync** -- Work submissions queue when offline and sync when connectivity returns
+- **Update detection** -- The `useServiceWorkerUpdate` hook detects new versions and prompts users
+
+### Service Worker Update Flow
+
+The shared hook `useServiceWorkerUpdate` handles the update lifecycle:
+
+1. Detect waiting service worker
+2. Show update prompt to user
+3. On accept, send `SKIP_WAITING` message
+4. Reload the page with the new version
+
+## Deployment Pipeline
+
+### Static Hosting
+
+The client build outputs to `packages/client/dist/`. This is a fully static site deployable to any CDN or static hosting provider.
+
+### CI Build
+
+The E2E workflow builds the client with test configuration:
+
+```yaml
+- name: Build client for E2E
+  run: bun run build:client
+  env:
+    VITE_USE_HASH_ROUTER: "true"
+    VITE_CHAIN_ID: "11155111"
+```
+
+`VITE_USE_HASH_ROUTER` enables hash-based routing for environments where server-side routing is not available (e.g., IPFS hosting).
+
+## Offline-First Architecture
+
+The client is designed to work without internet connectivity:
+
+- **IndexedDB** stores drafts, work submissions, and cached garden data via the job queue system
+- **Draft auto-save** persists form state every few seconds
+- **Background sync** processes queued mutations when connectivity returns
+- **Optimistic updates** show pending changes immediately in the UI
+
+This architecture means the deployment must ensure the service worker and precached assets are delivered correctly. Cache-busting headers should be set for `index.html` but long-lived caching for hashed static assets.
+
+## Performance Monitoring
+
+The `lighthouse-ci.yml` workflow runs Lighthouse audits against deployed sites, checking:
+
+- Performance score
+- Accessibility compliance
+- PWA readiness
+- SEO basics
+
+Source maps are uploaded separately via `upload-sourcemaps.yml` for error tracking in production.

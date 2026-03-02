@@ -4,7 +4,7 @@ sidebar_position: 1
 slug: /gardener/get-started
 audience: gardener
 owner: docs
-last_verified: 2026-02-28
+last_verified: 2026-03-01
 feature_status: Live
 goal: "Get started documenting your regenerative work with Green Goods."
 difficulty: "quickstart"
@@ -22,20 +22,11 @@ keywords:
   - offline
 ---
 
-import {AtAGlanceCard, JourneyMap, NextBestAction, StepFlow} from "@site/src/components/docs";
+import {JourneyMap, NextBestAction, StepFlow} from "@site/src/components/docs";
 
 # Gardener Guide
 
 You're the person on the ground making change happen. This guide helps you document your regenerative work so it becomes verified, funded impact.
-
-<AtAGlanceCard
-  goal="Get started documenting your regenerative work with Green Goods."
-  difficulty="quickstart"
-  estimatedTime="5 minutes"
-  prereqs="A smartphone with a camera."
-  outcome="You can submit and track your first work record."
-  compact
-/>
 
 <JourneyMap
   role="Gardener"
@@ -47,7 +38,9 @@ You're the person on the ground making change happen. This guide helps you docum
   ]}
 />
 
-## What you can do
+## Overview
+
+Green Goods is a mobile-first app for documenting regenerative work. As a gardener, you can:
 
 1. **Sign in** with Face ID, Touch ID, or your device biometrics — no passwords or seed phrases needed.
 2. **Open an action** in your garden to see what regenerative work is needed.
@@ -55,16 +48,27 @@ You're the person on the ground making change happen. This guide helps you docum
 4. **Work offline** — your progress is saved and syncs automatically when you reconnect.
 5. **Track your submissions** as they move through review and verification.
 
-## Your first session
+{/* IMAGE PLACEHOLDER */}
+
+## How It Works
 
 <StepFlow
   steps={[
-    {title: "Sign in", detail: "Open greengoods.app and sign in with your device biometrics. No passwords required."},
-    {title: "Open an action", detail: "Browse your garden and pick an active regenerative action."},
-    {title: "Document your work", detail: "Take photos, add details about what you did, review, and submit."},
-    {title: "Track your progress", detail: "Watch your submission move through review and verification."},
+    {title: "Sign in", detail: "Open greengoods.app and sign in with your device biometrics. No passwords required — your account is secured by a passkey stored on your device."},
+    {title: "Open an action", detail: "Browse your garden and pick an active regenerative action. Each action describes what needs to be done, what evidence to capture, and any time windows."},
+    {title: "Document your work", detail: "Follow the MDR workflow: capture photos (Media), add details about what you did (Details), then preview and confirm (Review)."},
+    {title: "Track your progress", detail: "Watch your submission move through review. Once approved, it becomes a permanent on-chain attestation — a verifiable record of your impact."},
   ]}
 />
+
+## Best Practices
+
+- Take clear, well-lit photos that show the before and after of your work
+- Fill in all details while the work is fresh — accuracy matters for approval
+- If you lose connectivity, keep working — drafts are saved locally and sync when you reconnect
+- Check your work dashboard regularly to catch any rejections early and resubmit with corrections
+
+## What's Next
 
 <NextBestAction
   title="Next step"
@@ -77,9 +81,5 @@ You're the person on the ground making change happen. This guide helps you docum
     {label: "Troubleshooting", href: "./common-errors"},
   ]}
 />
-
----
-
-## What's next?
 
 Want to run your own garden? Learn about the [Operator role](/operator/get-started-and-roles).

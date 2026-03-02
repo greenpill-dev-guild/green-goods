@@ -4,7 +4,7 @@ sidebar_position: 6
 slug: /operator/mint-and-list-hypercerts
 audience: operator
 owner: docs
-last_verified: 2026-02-19
+last_verified: 2026-03-01
 feature_status: Implemented (activation pending deployment)
 goal: "Complete Mint Hypercerts and List on Marketplace with clear, role-specific next actions."
 difficulty: "standard"
@@ -27,27 +27,17 @@ keywords:
   - marketplace
 ---
 
-import {AtAGlanceCard, FeatureState, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+import {FeatureState, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
 
 # Mint Hypercerts and List on Marketplace
 
 <StatusBadge status="Implemented (activation pending deployment)" />
 
-<AtAGlanceCard
-  goal="Complete Mint Hypercerts and List on Marketplace with clear, role-specific next actions."
-  difficulty="standard"
-  estimatedTime="20-40 minutes once activation is complete."
-  prereqs="Assessment/work history prepared; deployment status reviewed."
-  outcome="Clear runbook for mint/list flow plus current activation constraints."
-  personaContext="Operators coordinating gardens, approvals, and governance/endowment execution."
-  lastVerified="2026-02-19"
-/>
+## Overview
 
-## When to use this page
+Hypercerts are semi-fungible tokens representing claims of verified impact work. Minting a hypercert bundles your garden's approved work and assessments into a tradeable on-chain certificate. Once minted, you can list hypercerts on the marketplace for retroactive funding.
 
-Use this guide when you need to mint hypercert claims from verified work and prepare marketplace listing steps.
-
-## Current state
+{/* IMAGE PLACEHOLDER */}
 
 <FeatureState
   title="UI and hooks"
@@ -58,30 +48,40 @@ Use this guide when you need to mint hypercert claims from verified work and pre
 <FeatureState
   title="Marketplace activation"
   status="Implemented (activation pending deployment)"
-  summary="`marketplaceAdapter` remains zero-address in latest deployment artifacts, so public listing is not fully active."
+  summary="marketplaceAdapter remains zero-address in latest deployment artifacts, so public listing is not fully active."
 />
 
-## Activation-gated operator flow
+## How It Works
 
 <StepFlow
   steps={[
-    {title: "Prepare claim", detail: "Aggregate verified work/assessment scope for the hypercert claim."},
-    {title: "Mint hypercert", detail: "Use create/mint flow and confirm token data."},
-    {title: "Approve marketplace", detail: "Grant adapter permissions for listing."},
-    {title: "Create listing", detail: "Set pricing, units, and expiration strategy."},
+    {title: "Prepare claim", detail: "Aggregate verified work and assessment scope for the hypercert claim. Select which approved work to include and define the impact scope."},
+    {title: "Mint hypercert", detail: "Use the create/mint flow in your garden's Hypercerts tab. Configure metadata, allowlist of contributor addresses, and transfer restrictions. Confirm and sign the minting transaction."},
+    {title: "Approve marketplace", detail: "Grant the marketplace adapter permissions to manage your hypercert for listing."},
+    {title: "Create listing", detail: "Set pricing, number of units, and expiration strategy. Publish the listing."},
   ]}
 />
 
-## Activation checklist
+## Best Practices
 
-1. Non-zero module/adapter addresses in `deployments/*-latest.json`.
-2. Indexer config updated with those addresses.
-3. End-to-end mint/list test passes on target chain.
+- Verify all included work is approved and attestation chains are intact before minting
+- Set clear contributor allowlists so that fractions go to the gardeners who did the work
+- Review transfer restriction settings carefully — they cannot be changed after minting
+- Confirm non-zero module/adapter addresses in `deployments/*-latest.json` before attempting marketplace operations
+- Run an end-to-end mint/list test on a testnet before going live on production chains
+
+**Activation checklist:**
+
+1. Non-zero module/adapter addresses in `deployments/*-latest.json`
+2. Indexer config updated with those addresses
+3. End-to-end mint/list test passes on target chain
+
+## What's Next
 
 <NextBestAction
   title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
-  actionLabel="Vault deposit and endowment operations"
+  why="With impact certificates minted, manage your garden's financial infrastructure."
+  actionLabel="Vaults and Treasury"
   actionHref="./vaults-and-treasury"
   alternatives={[
     {label: "Conviction and Signal Pools", href: "./conviction-and-signal-pools"},

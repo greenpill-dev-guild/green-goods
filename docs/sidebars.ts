@@ -4,98 +4,98 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
  * Green Goods Documentation Sidebars
  *
  * Architecture:
- * - Home page (intro.md) serves as the about flow and entry point
- * - conceptsSidebar — linked from home, no navbar item, navigable between concept pages
- * - gardenerSidebar, operatorSidebar, evaluatorSidebar — role-specific guides (navbar)
- * - developersSidebar — developer reference (navbar)
+ * - Two audience-based sidebars: Community (all users) and Builders (developers)
+ * - Existing docs are referenced by their original IDs (no file moves needed)
+ * - New pages live in community/ and builders/ directories
+ * - Home page (community/welcome) serves as the root `/` page
+ *
+ * Sidebar counts:
+ * - Gardener Guide: 5 items
+ * - Operator Guide: 9 items
+ * - Evaluator Guide: 5 items
+ * - Community Member Guide: 2 items
+ * - Funder Guide: 2 items
  */
 const sidebars: SidebarsConfig = {
-  conceptsSidebar: [
-    { type: 'doc', id: 'intro', label: 'What is Green Goods' },
-    'concepts/impact-model',
-    'concepts/mission-and-values',
-    { type: 'doc', id: 'concepts/strategy-and-goals', label: 'Strategy & Goals' },
-    { type: 'doc', id: 'concepts/communities', label: 'Communities' },
-  ],
-
-  gardenerSidebar: [
+  communitySidebar: [
     {
       type: 'doc',
-      id: 'gardener/get-started',
+      id: 'community/welcome',
+      label: 'Welcome to Green Goods',
+    },
+    {
+      type: 'doc',
+      id: 'community/how-it-works',
+      label: 'How It Works',
+    },
+    {
+      type: 'doc',
+      id: 'community/why-we-build',
+      label: 'Why We Build',
+    },
+    {
+      type: 'doc',
+      id: 'community/where-were-headed',
+      label: 'Where We\'re Headed',
+    },
+    {
+      type: 'category',
       label: 'Gardener Guide',
+      items: [
+        {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Joining A Garden'},
+        {type: 'doc', id: 'gardener/submit-work-mdr', label: 'Uploading Your Work'},
+        {type: 'doc', id: 'community/gardener-guide/garden-payouts', label: 'Garden Payouts'},
+        {type: 'doc', id: 'community/gardener-guide/voting-governance', label: 'Voting & Governance'},
+        {type: 'doc', id: 'community/gardener-guide/earning-badges', label: 'Earning Badges & Rewards'},
+      ],
     },
     {
       type: 'category',
-      label: 'Journey',
-      collapsed: false,
-      items: [
-        { type: 'doc', id: 'gardener/submit-work-mdr', label: 'Document Your Work' },
-        { type: 'doc', id: 'gardener/offline-sync-and-drafts', label: 'Working Offline' },
-        { type: 'doc', id: 'gardener/track-status-and-attestations', label: 'Track Your Progress' },
-        { type: 'doc', id: 'gardener/common-errors', label: 'Troubleshooting' },
-      ],
-    },
-  ],
-
-  operatorSidebar: [
-    {
-      type: 'doc',
-      id: 'operator/get-started-and-roles',
       label: 'Operator Guide',
-    },
-    {
-      type: 'category',
-      label: 'Core Workflows',
-      collapsed: false,
       items: [
-        'operator/create-garden',
-        'operator/manage-actions',
-        'operator/review-work',
-        'operator/create-assessments',
-        'operator/mint-and-list-hypercerts',
+        {type: 'doc', id: 'operator/create-garden', label: 'Creating A Garden'},
+        {type: 'doc', id: 'operator/create-assessments', label: 'Making An Assessment'},
+        {type: 'doc', id: 'operator/review-work', label: 'Reviewing Work'},
+        {type: 'doc', id: 'operator/mint-and-list-hypercerts', label: 'Creating Impact Certificates'},
+        {type: 'doc', id: 'community/operator-guide/managing-certificates', label: 'Managing Certificates'},
+        {type: 'doc', id: 'operator/vaults-and-treasury', label: 'Managing Endowments'},
+        {type: 'doc', id: 'community/operator-guide/managing-payouts', label: 'Managing Payouts'},
+        {type: 'doc', id: 'operator/conviction-and-signal-pools', label: 'Managing Governance'},
+        {type: 'doc', id: 'community/operator-guide/earning-recognition', label: 'Earning Recognition'},
       ],
     },
     {
       type: 'category',
-      label: 'Endowments & Governance',
-      items: [
-        'operator/vaults-and-treasury',
-        'operator/cookie-jars',
-        'operator/conviction-and-signal-pools',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Reporting',
-      items: [
-        'operator/reporting-and-gap',
-        'operator/troubleshooting',
-      ],
-    },
-  ],
-
-  evaluatorSidebar: [
-    {
-      type: 'doc',
-      id: 'evaluator/get-started',
       label: 'Evaluator Guide',
+      items: [
+        {type: 'doc', id: 'community/evaluator-guide/joining-a-garden', label: 'Joining A Garden'},
+        {type: 'doc', id: 'evaluator/verify-attestation-chains', label: 'Making Assessments'},
+        {type: 'doc', id: 'community/evaluator-guide/evaluating-certificates', label: 'Evaluating Impact Certificates'},
+        {type: 'doc', id: 'community/evaluator-guide/reporting-analytics', label: 'Reporting & Analytics'},
+        {type: 'doc', id: 'community/evaluator-guide/earning-badges', label: 'Earning Badges'},
+      ],
     },
     {
       type: 'category',
-      label: 'Data Access',
-      collapsed: false,
+      label: 'Community Member Guide',
       items: [
-        'evaluator/query-indexer',
-        'evaluator/query-eas',
-        'evaluator/verify-attestation-chains',
-        'evaluator/cross-framework-mapping',
-        'evaluator/export-and-analysis',
-        'evaluator/troubleshooting',
+        {type: 'doc', id: 'community/community-member-guide/getting-involved', label: 'Getting Involved'},
+        {type: 'doc', id: 'community/community-member-guide/conviction-voting', label: 'Conviction Voting'},
       ],
     },
+    {
+      type: 'category',
+      label: 'Funder Guide',
+      items: [
+        {type: 'doc', id: 'community/funder-guide/getting-started', label: 'Getting Started'},
+        {type: 'doc', id: 'community/funder-guide/vaults-and-hypercerts', label: 'Vaults & Hypercerts'},
+      ],
+    },
+    {type: 'doc', id: 'reference/faq', label: 'FAQ'},
+    {type: 'doc', id: 'glossary', label: 'Glossary'},
   ],
 
-  developersSidebar: [
+  buildersSidebar: [
     {
       type: 'doc',
       id: 'developers/getting-started',
@@ -103,38 +103,116 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'doc',
+      id: 'builders/how-to-contribute',
+      label: 'How To Contribute',
+    },
+    {
+      type: 'doc',
       id: 'developers/architecture',
-      label: 'Architecture',
-    },
-    {
-      type: 'doc',
-      id: 'developers/build-patterns',
-      label: 'Build Patterns',
-    },
-    {
-      type: 'doc',
-      id: 'developers/integrations',
-      label: 'Integrations',
-    },
-    {
-      type: 'doc',
-      id: 'developers/operations',
-      label: 'Operations',
+      label: 'Green Goods Architecture',
     },
     {
       type: 'category',
-      label: 'Reference',
+      label: 'Green Goods Packages',
       items: [
-        'developers/reference/index',
-        'developers/reference/api-index',
-        'developers/reference/deployment-indexer-status',
-        'developers/reference/agent-mcp-guide',
-        'developers/reference/docs-frontmatter-contract',
-        'developers/reference/docs-writing-guide',
-        'developers/reference/entity-matrix',
-        'reference/changelog',
+        {type: 'doc', id: 'builders/packages/contracts', label: 'Contracts'},
+        {type: 'doc', id: 'builders/packages/indexer', label: 'Indexer'},
+        {type: 'doc', id: 'builders/packages/agent', label: 'Agent'},
+        {type: 'doc', id: 'builders/packages/ops', label: 'Ops'},
+        {type: 'doc', id: 'builders/packages/admin', label: 'Admin'},
+        {type: 'doc', id: 'builders/packages/client', label: 'Client'},
+        {type: 'doc', id: 'builders/packages/shared', label: 'Shared'},
       ],
     },
+    {
+      type: 'category',
+      label: 'Product Specifications',
+      items: [
+        {type: 'doc', id: 'builders/specs/v0-1', label: 'v0.1'},
+        {type: 'doc', id: 'builders/specs/v0-4', label: 'v0.4'},
+        {type: 'doc', id: 'builders/specs/v1-0', label: 'v1.0'},
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Integrations',
+      items: [
+        {type: 'doc', id: 'developers/integrations', label: 'Overview'},
+        {type: 'doc', id: 'builders/integrations/eas', label: 'EAS'},
+        {type: 'doc', id: 'builders/integrations/tokenbound', label: 'Tokenbound Accounts'},
+        {type: 'doc', id: 'builders/integrations/passkey', label: 'Passkey'},
+        {type: 'doc', id: 'builders/integrations/karma', label: 'Karma'},
+        {type: 'doc', id: 'builders/integrations/ens', label: 'ENS'},
+        {type: 'doc', id: 'builders/integrations/hats', label: 'Hats Protocol'},
+        {type: 'doc', id: 'builders/integrations/hypercerts', label: 'Hypercerts'},
+        {type: 'doc', id: 'builders/integrations/octant', label: 'Octant Vaults'},
+        {type: 'doc', id: 'builders/integrations/gardens', label: 'Gardens Conviction Voting'},
+        {type: 'doc', id: 'builders/integrations/cookie-jar', label: 'Cookie Jar'},
+        {type: 'doc', id: 'builders/integrations/greenwill', label: 'GreenWill (Coming Soon)'},
+        {type: 'doc', id: 'builders/integrations/unlock', label: 'Unlock Protocol (Coming Soon)'},
+        {type: 'doc', id: 'builders/integrations/silvi', label: 'Silvi (Coming Soon)'},
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Agentic Development',
+      items: [
+        {type: 'doc', id: 'builders/agentic/core-philosophies', label: 'Core Philosophies'},
+        {type: 'doc', id: 'builders/agentic/prompt-engineering', label: 'Prompt Engineering'},
+        {type: 'doc', id: 'builders/agentic/context-engineering', label: 'Context Engineering'},
+        {type: 'doc', id: 'builders/agentic/intent-engineering', label: 'Intent Engineering'},
+        {type: 'doc', id: 'builders/agentic/spec-engineering', label: 'Specification Engineering'},
+        {
+          type: 'category',
+          label: 'Agent-Based Tools',
+          items: [
+            {type: 'doc', id: 'builders/agentic/claude-code', label: 'Claude Code'},
+            {type: 'doc', id: 'builders/agentic/codex', label: 'Codex'},
+            {type: 'doc', id: 'builders/agentic/openclaw', label: 'OpenClaw'},
+            {type: 'doc', id: 'builders/agentic/gemini', label: 'Gemini'},
+          ],
+        },
+        {type: 'doc', id: 'developers/reference/agent-mcp-guide', label: 'MCP Guide'},
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Testing',
+      items: [
+        {type: 'doc', id: 'builders/testing/forge', label: 'Forge Contract Testing'},
+        {type: 'doc', id: 'builders/testing/playwright', label: 'Playwright E2E'},
+        {type: 'doc', id: 'builders/testing/vitest', label: 'Vitest'},
+        {type: 'doc', id: 'builders/testing/rtl', label: 'React Testing Library'},
+        {type: 'doc', id: 'builders/testing/storybook', label: 'Storybook'},
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Quality Assurance',
+      items: [
+        {type: 'doc', id: 'builders/quality/test-cases', label: 'Test Cases'},
+        {type: 'doc', id: 'builders/quality/regression', label: 'Regression Testing'},
+        {type: 'doc', id: 'builders/quality/agentic-eval', label: 'Agentic Evaluation'},
+        {type: 'doc', id: 'builders/quality/husky', label: 'Husky'},
+        {type: 'doc', id: 'builders/quality/gh-actions', label: 'GitHub Actions'},
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Build & Deployments',
+      items: [
+        {type: 'doc', id: 'builders/deployments/status', label: 'Deployment Status'},
+        {type: 'doc', id: 'builders/deployments/contracts-deploy', label: 'Contracts'},
+        {type: 'doc', id: 'builders/deployments/indexer-deploy', label: 'Indexer'},
+        {type: 'doc', id: 'builders/deployments/client-deploy', label: 'Client PWA'},
+        {type: 'doc', id: 'builders/deployments/admin-deploy', label: 'Admin Dashboard'},
+        {type: 'doc', id: 'builders/deployments/agent-deploy', label: 'Agent'},
+      ],
+    },
+    {type: 'doc', id: 'reference/changelog', label: 'Changelog'},
+    {type: 'doc', id: 'reference/design-research', label: 'Design & Research'},
+    {type: 'doc', id: 'reference/credits', label: 'Credits & Licenses'},
+    {type: 'doc', id: 'builders/glossary', label: 'Builder Glossary'},
   ],
 };
 

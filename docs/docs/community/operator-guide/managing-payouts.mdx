@@ -1,0 +1,123 @@
+---
+title: "Managing Payouts"
+sidebar_label: "Managing Payouts"
+slug: /community/operator-guide/managing-payouts
+audience: operator
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+goal: "Help operators manage vault deposits, withdrawals, cookie jar payouts, and gardener compensation."
+difficulty: "standard"
+estimated_time: "15-25 minutes for setup."
+prereqs: "Active garden with endowment policy and role assignments."
+next_steps: "/operator/conviction-and-signal-pools"
+persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
+source_of_truth:
+  - packages/admin/src/views/Gardens/Garden/Vault.tsx
+  - packages/admin/src/views/Gardens/Garden/CookieJars.tsx
+  - packages/shared/src/hooks/cookie-jar/useGardenCookieJars.ts
+  - packages/shared/src/hooks/cookie-jar/useCookieJarAdmin.ts
+  - packages/shared/src/hooks/vault/useVaultOperations.ts
+keywords:
+  - payouts
+  - vault
+  - deposits
+  - withdrawals
+  - cookie jar
+  - endowment
+  - treasury
+---
+
+import {
+  DecisionGuide,
+  FeatureState,
+  NextBestAction,
+  StatusBadge,
+  StepFlow,
+} from "@site/src/components/docs";
+
+# Managing Payouts
+
+<StatusBadge status="Live" />
+
+## Overview
+
+Operators manage the financial flows within their garden — from vault deposits and yield tracking to direct gardener payouts through cookie jars. This page covers both the primary vault system and the cookie jar mechanism for recurring, low-overhead distributions.
+
+{/* IMAGE PLACEHOLDER: Operator payout dashboard showing vault balances and cookie jar status (800x400) */}
+
+## How It Works
+
+### Vault-Based Payouts
+
+Garden vaults hold deposited assets in yield-bearing positions (powered by Octant). Operators control how vault funds are distributed:
+
+<StepFlow
+  steps={[
+    {title: "Receive deposits", detail: "Funders deposit supported assets into the garden vault. Track deposits through the vault dashboard."},
+    {title: "Monitor yield", detail: "Vault positions generate yield over time. Review yield accrual and current balances."},
+    {title: "Distribute funds", detail: "Withdraw from the vault to fund garden operations, gardener compensation, or community initiatives."},
+    {title: "Report usage", detail: "Maintain transparency by documenting how vault funds support garden operations."},
+  ]}
+/>
+
+### Cookie Jars
+
+Cookie jars provide a lightweight mechanism for small, recurring payouts to garden members without full governance overhead.
+
+<FeatureState
+  title="Cookie Jar system"
+  status="Implemented (activation pending deployment)"
+  summary="Creation/admin/deposit/withdraw hooks are implemented. Deployment activation is pending non-zero cookieJarModule address."
+/>
+
+<StepFlow
+  steps={[
+    {title: "Create jar", detail: "Define interval, max withdrawal amount, and eligible members."},
+    {title: "Fund jar", detail: "Deposit supported assets from the garden endowment."},
+    {title: "Operate", detail: "Pause/unpause or update limits as governance decides."},
+    {title: "Audit", detail: "Review withdrawal events and policy adherence."},
+  ]}
+/>
+
+<DecisionGuide
+  title="Choose the right payout approach"
+  items={[
+    {
+      when: "You want small recurring payouts with low governance overhead",
+      do: "Set up a cookie jar with short intervals and conservative withdrawal caps.",
+      next: "Review usage monthly and tune limits based on actual withdrawal patterns.",
+    },
+    {
+      when: "You need strict control over endowment outflows",
+      do: "Start with a paused cookie jar + explicit operator approvals for each payout.",
+      next: "Unpause only after policy and monitoring checks are complete.",
+    },
+    {
+      when: "You need larger strategic allocations",
+      do: "Use vault withdrawals or conviction voting flows instead of cookie jars.",
+      next: "Route to the vault dashboard or signal pools based on governance intent.",
+    },
+  ]}
+/>
+
+## Best Practices
+
+- Set clear payout policies before activating cookie jars — document who can withdraw, how much, and how often
+- Monitor vault health regularly: check deposit/withdrawal ratios and yield performance
+- Use cookie jars for operational expenses (gas sponsorship, small incentives) and vaults for strategic allocations
+- Maintain transparent records of all payouts for community accountability
+- Review withdrawal patterns monthly to detect unusual activity early
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="With payouts configured, set up governance mechanisms for community resource allocation."
+  actionLabel="Managing Governance"
+  actionHref="/operator/conviction-and-signal-pools"
+  alternatives={[
+    {label: "Managing Endowments", href: "/operator/vaults-and-treasury"},
+    {label: "Earning Recognition", href: "/community/operator-guide/earning-recognition"},
+  ]}
+/>

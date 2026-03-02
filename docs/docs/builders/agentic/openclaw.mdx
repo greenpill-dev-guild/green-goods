@@ -1,0 +1,97 @@
+---
+title: OpenClaw
+sidebar_label: OpenClaw
+slug: /builders/agentic/openclaw
+audience: developer
+owner: docs
+last_verified: 2026-03-01
+---
+
+# OpenClaw
+
+{/* IMAGE PLACEHOLDER: OpenClaw pipeline — meeting transcript to on-chain action flow (800x400) */}
+
+OpenClaw is an agentic pipeline that converts meeting transcripts into structured action items, tasks, and follow-ups. It runs on a dedicated M4 Mac Mini node and integrates with the team's communication channels.
+
+## Pipeline Architecture
+
+The meeting-to-action flow:
+
+```
+Meeting Recording
+  -> Fireflies.ai (transcription)
+    -> n8n (workflow automation)
+      -> OpenClaw webhook (processing)
+        -> Discord / Signal (output)
+```
+
+### Processing Stages
+
+1. **Transcript ingestion** -- Fireflies.ai captures meeting audio and produces timestamped transcripts
+2. **Webhook delivery** -- n8n workflow triggers on new transcript, sends to OpenClaw endpoint
+3. **AI processing** -- Cloud Claude APIs (Sonnet for extraction, Opus for complex reasoning) parse the transcript into structured data
+4. **Action generation** -- Extracted items are formatted as actionable tasks with owners and deadlines
+5. **Channel delivery** -- Results posted to Discord and Signal channels
+
+### Model Selection
+
+The pipeline uses a tiered model approach to balance cost and quality:
+
+| Task | Model | Why |
+|------|-------|-----|
+| Heartbeat/health checks | Ollama llama3.2:3b (local) | Zero cost, no API dependency |
+| Action extraction | Claude Sonnet | Good structured extraction at lower cost |
+| Complex reasoning | Claude Opus | Required for ambiguous context resolution |
+| Classification | Claude Sonnet | Sufficient for categorization tasks |
+
+Monthly API cost estimate: ~$35-90 depending on meeting volume.
+
+## Communication Channels
+
+### Discord
+
+Primary output channel for the development team. Actions are posted as structured embeds with:
+- Task description
+- Assigned owner
+- Priority level
+- Meeting source and timestamp
+
+### Signal
+
+Operates in allowlist mode for sensitive discussions. Only pre-approved numbers receive action items. Used for community-facing coordination where Discord is not appropriate.
+
+## Infrastructure
+
+### Hardware
+
+A dedicated M4 Mac Mini serves as the OpenClaw node:
+- Local Ollama instance for zero-cost heartbeat checks
+- n8n workflow engine for automation orchestration
+- Persistent storage for transcript history and action tracking
+
+### API Configuration
+
+Cloud Claude APIs require API keys (not OAuth subscriptions -- Anthropic restricts subscription OAuth in third-party tools). The pipeline uses direct API key authentication.
+
+Key environment requirements:
+- `ANTHROPIC_API_KEY` -- For Claude Sonnet/Opus processing
+- `FIREFLIES_API_KEY` -- For transcript retrieval
+- `DISCORD_BOT_TOKEN` -- For channel posting
+- `SIGNAL_CLI_PATH` -- For Signal message delivery
+
+## Integration with Green Goods
+
+OpenClaw generates action items that feed into the Green Goods development workflow:
+
+- Meeting decisions become GitHub issues or plan files
+- Sprint commitments are tracked against grant deliverables
+- Community feedback from meetings is routed to the appropriate agent workflow
+
+The pipeline does not directly create code changes. Its output is structured input for human review and agent task assignment.
+
+## Operational Notes
+
+- Transcripts are stored locally on the Mac Mini, not in cloud storage
+- The pipeline is designed for the team's meeting cadence (weekly syncs, ad-hoc standups)
+- Action items include confidence scores -- low-confidence items are flagged for human review
+- The system runs independently of the main Green Goods infrastructure
