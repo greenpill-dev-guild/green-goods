@@ -301,6 +301,7 @@ export {
   useMemberVotingPower,
   useMintHypercert,
   useMutationLock,
+  useMyVaultDeposits,
   useMyOnlineWorks,
   useMyWorks,
   useNavigateToTop,

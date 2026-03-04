@@ -393,6 +393,16 @@ describe("queryKeys", () => {
       ]);
     });
 
+    it("generates myDepositsByUser key", () => {
+      expect(queryKeys.vaults.myDepositsByUser(TEST_USER, TEST_CHAIN_ID)).toEqual([
+        "greengoods",
+        "vaults",
+        "myDepositsByUser",
+        TEST_USER,
+        TEST_CHAIN_ID,
+      ]);
+    });
+
     it("generates eventsBase and events keys", () => {
       expect(queryKeys.vaults.eventsBase(TEST_GARDEN, TEST_CHAIN_ID)).toEqual([
         "greengoods",
@@ -1463,10 +1473,11 @@ describe("queryInvalidation", () => {
 
     it("includes myDeposits when userAddress is provided", () => {
       const result = queryInvalidation.onVaultDeposit(TEST_GARDEN, TEST_USER, TEST_CHAIN_ID);
-      expect(result).toHaveLength(4);
+      expect(result).toHaveLength(5);
       expect(result).toContainEqual(
         queryKeys.vaults.myDeposits(TEST_GARDEN, TEST_USER, TEST_CHAIN_ID)
       );
+      expect(result).toContainEqual(queryKeys.vaults.myDepositsByUser(TEST_USER, TEST_CHAIN_ID));
     });
   });
 

@@ -1,4 +1,6 @@
 import {
+  type Address,
+  formatAddress,
   formatTokenAmount,
   getNetDeposited,
   getVaultAssetSymbol,
@@ -6,6 +8,9 @@ import {
   useDebouncedValue,
   useGardens,
   useGardenVaults,
+  useMyVaultDeposits,
+  useUser,
+  useVaultPreview,
 } from "@green-goods/shared";
 import {
   RiArrowRightLine,
@@ -26,11 +31,108 @@ import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SortSelect } from "@/components/ui/SortSelect";
 
 type EndowmentsSortOrder = "name" | "tvl";
+type TrackedAsset = "WETH" | "DAI";
+
+interface MyTrackedPosition {
+  id: string;
+  assetSymbol: TrackedAsset;
+  gardenAddress: Address;
+  gardenName: string;
+  gardenLocation: string;
+  vaultAddress: Address;
+  shares: bigint;
+  netDeposited: bigint;
+}
+
+function MyTrackedPositionCard({
+  position,
+  userAddress,
+}: {
+  position: MyTrackedPosition;
+  userAddress: Address;
+}) {
+  const { formatMessage } = useIntl();
+  const { preview, isLoading } = useVaultPreview({
+    vaultAddress: position.vaultAddress,
+    shares: position.shares,
+    userAddress,
+    enabled: Boolean(userAddress),
+  });
+
+  const currentValue = preview?.previewAssets;
+  const yieldGenerated = typeof currentValue === "bigint" ? currentValue - position.netDeposited : null;
+  const yieldToneClass =
+    yieldGenerated === null
+      ? "text-text-soft"
+      : yieldGenerated > 0n
+        ? "text-success-dark"
+        : yieldGenerated < 0n
+          ? "text-error-dark"
+          : "text-text-strong";
+  const yieldDisplay =
+    yieldGenerated === null
+      ? "--"
+      : `${yieldGenerated > 0n ? "+" : yieldGenerated < 0n ? "-" : ""}${formatTokenAmount(
+          yieldGenerated < 0n ? -yieldGenerated : yieldGenerated
+        )} ${position.assetSymbol}`;
+
+  return (
+    <Card padding="compact" className="sm:p-4">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-heading text-base font-semibold text-text-strong">
+            {position.gardenName}
+          </p>
+          <p className="truncate text-xs text-text-sub">{position.gardenLocation}</p>
+          <p className="mt-1 text-xs text-text-soft">
+            {formatMessage({ id: "app.endowments.myPositions.vault" })}:{" "}
+            {formatAddress(position.vaultAddress, { variant: "card" })}
+          </p>
+        </div>
+        <span className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-1 text-xs font-semibold text-primary-dark">
+          {position.assetSymbol}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+        <div className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
+          <p className="text-xs text-text-soft">
+            {formatMessage({ id: "app.endowments.myPositions.netDeposited" })}
+          </p>
+          <p className="mt-1 font-medium text-text-strong">
+            {formatTokenAmount(position.netDeposited)} {position.assetSymbol}
+          </p>
+        </div>
+        <div className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
+          <p className="text-xs text-text-soft">
+            {formatMessage({ id: "app.endowments.myPositions.currentValue" })}
+          </p>
+          <p className="mt-1 font-medium text-text-strong">
+            {isLoading
+              ? "--"
+              : `${formatTokenAmount(currentValue ?? 0n)} ${position.assetSymbol}`}
+          </p>
+        </div>
+        <div className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
+          <p className="text-xs text-text-soft">
+            {formatMessage({ id: "app.endowments.myPositions.yieldGenerated" })}
+          </p>
+          <p className={`mt-1 font-medium ${yieldToneClass}`}>{yieldDisplay}</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 export default function EndowmentsOverview() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const { vaults, isLoading: vaultsLoading } = useGardenVaults(undefined, { enabled: true });
+  const { primaryAddress } = useUser();
+  const userAddress = (primaryAddress ?? undefined) as Address | undefined;
+  const { deposits: myDeposits, isLoading: myDepositsLoading } = useMyVaultDeposits(userAddress, {
+    enabled: Boolean(userAddress),
+  });
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -118,6 +220,58 @@ export default function EndowmentsOverview() {
   );
 
   const isLoading = gardensLoading || vaultsLoading;
+  const isMyPositionsLoading = isLoading || myDepositsLoading;
+  const gardenByAddress = useMemo(
+    () =>
+      new Map(
+        gardens.map((garden) => [garden.id.toLowerCase(), garden] as const)
+      ),
+    [gardens]
+  );
+  const vaultByPositionKey = useMemo(() => {
+    const map = new Map<string, (typeof vaults)[number]>();
+    for (const vault of vaults) {
+      map.set(`${vault.garden}:${vault.asset}:${vault.vaultAddress}`.toLowerCase(), vault);
+    }
+    return map;
+  }, [vaults]);
+
+  const myTrackedPositions = useMemo(() => {
+    const positions: MyTrackedPosition[] = [];
+
+    for (const deposit of myDeposits) {
+      const symbol = getVaultAssetSymbol(deposit.asset, deposit.chainId).toUpperCase();
+      const trackedSymbol: TrackedAsset | null =
+        symbol === "WETH" || symbol === "ETH" ? "WETH" : symbol === "DAI" ? "DAI" : null;
+
+      if (!trackedSymbol) continue;
+
+      const key = `${deposit.garden}:${deposit.asset}:${deposit.vaultAddress}`.toLowerCase();
+      const matchedVault = vaultByPositionKey.get(key);
+      const netDeposited = getNetDeposited(deposit.totalDeposited, deposit.totalWithdrawn);
+
+      if (!matchedVault && netDeposited <= 0n && deposit.shares <= 0n) continue;
+
+      const garden = gardenByAddress.get(deposit.garden.toLowerCase());
+      positions.push({
+        id: deposit.id,
+        assetSymbol: trackedSymbol,
+        gardenAddress: deposit.garden,
+        gardenName: garden?.name || formatAddress(deposit.garden, { variant: "card" }),
+        gardenLocation: garden?.location || formatMessage({ id: "app.treasury.none" }),
+        vaultAddress: deposit.vaultAddress,
+        shares: deposit.shares,
+        netDeposited,
+      });
+    }
+
+    return positions.sort((a, b) => {
+      if (a.assetSymbol !== b.assetSymbol) return a.assetSymbol.localeCompare(b.assetSymbol);
+      if (b.netDeposited > a.netDeposited) return 1;
+      if (b.netDeposited < a.netDeposited) return -1;
+      return a.gardenName.localeCompare(b.gardenName);
+    });
+  }, [myDeposits, vaultByPositionKey, gardenByAddress, formatMessage]);
 
   const sortOptions: { value: EndowmentsSortOrder; label: string }[] = [
     { value: "name", label: formatMessage({ id: "app.treasury.sort.name" }) },
@@ -170,6 +324,55 @@ export default function EndowmentsOverview() {
             value={grouped.length}
             colorScheme="warning"
           />
+        </section>
+
+        <section className="space-y-3 rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="font-heading text-lg font-semibold text-text-strong">
+                {formatMessage({ id: "app.endowments.myPositions.title" })}
+              </h2>
+              <p className="text-sm text-text-sub">
+                {formatMessage({ id: "app.endowments.myPositions.description" })}
+              </p>
+            </div>
+          </div>
+
+          {!userAddress && (
+            <p className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm text-text-sub">
+              {formatMessage({ id: "app.endowments.myPositions.connectWallet" })}
+            </p>
+          )}
+
+          {userAddress && isMyPositionsLoading && (
+            <div className="space-y-2">
+              {[0, 1].map((i) => (
+                <div
+                  key={i}
+                  className="h-20 rounded-md border border-stroke-soft skeleton-shimmer"
+                  style={{ animationDelay: `${i * 0.08}s` }}
+                />
+              ))}
+            </div>
+          )}
+
+          {userAddress && !isMyPositionsLoading && myTrackedPositions.length === 0 && (
+            <p className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm text-text-sub">
+              {formatMessage({ id: "app.endowments.myPositions.empty" })}
+            </p>
+          )}
+
+          {userAddress && !isMyPositionsLoading && myTrackedPositions.length > 0 && (
+            <div className="space-y-3">
+              {myTrackedPositions.map((position) => (
+                <MyTrackedPositionCard
+                  key={position.id}
+                  position={position}
+                  userAddress={userAddress}
+                />
+              ))}
+            </div>
+          )}
         </section>
 
         {isLoading && (

@@ -59,7 +59,7 @@ export function TxInlineFeedback({
         <SeverityIcon severity={severity} />
         <div className="flex-1">
           <p className="font-medium">{title}</p>
-          <p className="mt-1 opacity-90">{message}</p>
+          <p className="mt-1 opacity-90 break-words [overflow-wrap:anywhere]">{message}</p>
           {action ? <div className="mt-3">{action}</div> : null}
         </div>
       </div>

@@ -339,6 +339,7 @@ export { useDepositForm } from "./vault/useDepositForm";
 // VAULT / TREASURY
 // ============================================================================
 export { useGardenVaults } from "./vault/useGardenVaults";
+export { useMyVaultDeposits } from "./vault/useMyVaultDeposits";
 export { useVaultDeposits } from "./vault/useVaultDeposits";
 export { useVaultEvents } from "./vault/useVaultEvents";
 export {

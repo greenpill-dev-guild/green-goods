@@ -134,6 +134,8 @@ export const queryKeys = {
       ["greengoods", "vaults", "deposits", gardenAddress, chainId] as const,
     myDeposits: (gardenAddress: string, userAddress: string, chainId: number) =>
       ["greengoods", "vaults", "myDeposits", gardenAddress, userAddress, chainId] as const,
+    myDepositsByUser: (userAddress: string, chainId: number) =>
+      ["greengoods", "vaults", "myDepositsByUser", userAddress, chainId] as const,
     eventsBase: (gardenAddress: string, chainId: number) =>
       ["greengoods", "vaults", "events", gardenAddress, chainId] as const,
     events: (gardenAddress: string, chainId: number, limit?: number) =>
@@ -546,6 +548,7 @@ export const queryInvalidation = {
       | ReturnType<typeof queryKeys.vaults.deposits>
       | ReturnType<typeof queryKeys.vaults.eventsBase>
       | ReturnType<typeof queryKeys.vaults.myDeposits>
+      | ReturnType<typeof queryKeys.vaults.myDepositsByUser>
     > = [
       queryKeys.vaults.byGarden(gardenAddress, chainId),
       queryKeys.vaults.deposits(gardenAddress, chainId),
@@ -554,6 +557,7 @@ export const queryInvalidation = {
 
     if (userAddress) {
       keys.push(queryKeys.vaults.myDeposits(gardenAddress, userAddress, chainId));
+      keys.push(queryKeys.vaults.myDepositsByUser(userAddress, chainId));
     }
 
     return keys;
