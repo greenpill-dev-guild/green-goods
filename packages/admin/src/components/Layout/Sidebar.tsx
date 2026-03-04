@@ -38,7 +38,7 @@ const navigation = [
     nameId: "app.sidebar.endowments",
     href: "/endowments",
     icon: RiSafe2Line,
-    roles: ["deployer", "operator"],
+    roles: ["deployer", "operator", "user"],
   },
   {
     name: "Contracts",
