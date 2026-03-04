@@ -60,7 +60,8 @@ function MyTrackedPositionCard({
   });
 
   const currentValue = preview?.previewAssets;
-  const yieldGenerated = typeof currentValue === "bigint" ? currentValue - position.netDeposited : null;
+  const yieldGenerated =
+    typeof currentValue === "bigint" ? currentValue - position.netDeposited : null;
   const yieldToneClass =
     yieldGenerated === null
       ? "text-text-soft"
@@ -108,9 +109,7 @@ function MyTrackedPositionCard({
             {formatMessage({ id: "app.endowments.myPositions.currentValue" })}
           </p>
           <p className="mt-1 font-medium text-text-strong">
-            {isLoading
-              ? "--"
-              : `${formatTokenAmount(currentValue ?? 0n)} ${position.assetSymbol}`}
+            {isLoading ? "--" : `${formatTokenAmount(currentValue ?? 0n)} ${position.assetSymbol}`}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
@@ -222,10 +221,7 @@ export default function EndowmentsOverview() {
   const isLoading = gardensLoading || vaultsLoading;
   const isMyPositionsLoading = isLoading || myDepositsLoading;
   const gardenByAddress = useMemo(
-    () =>
-      new Map(
-        gardens.map((garden) => [garden.id.toLowerCase(), garden] as const)
-      ),
+    () => new Map(gardens.map((garden) => [garden.id.toLowerCase(), garden] as const)),
     [gardens]
   );
   const vaultByPositionKey = useMemo(() => {

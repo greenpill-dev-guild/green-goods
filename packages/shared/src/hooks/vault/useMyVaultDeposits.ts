@@ -11,10 +11,7 @@ interface UseMyVaultDepositsOptions {
   refetchInterval?: number | false;
 }
 
-export function useMyVaultDeposits(
-  userAddress?: Address,
-  options: UseMyVaultDepositsOptions = {}
-) {
+export function useMyVaultDeposits(userAddress?: Address, options: UseMyVaultDepositsOptions = {}) {
   const chainId = options.chainId ?? DEFAULT_CHAIN_ID;
   const enabled = options.enabled ?? true;
   const refetchInterval = options.refetchInterval ?? false;
