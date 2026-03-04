@@ -989,7 +989,7 @@
   "app.garden.detail.keyMetrics.pendingWork": "Pending Work",
   "app.garden.detail.keyMetrics.assessments30d": "Assessments (30d)",
   "app.garden.detail.keyMetrics.activeGardeners": "Active Gardeners",
-  "app.garden.detail.keyMetrics.treasury": "Treasury",
+  "app.garden.detail.keyMetrics.treasury": "Endowments",
   "app.garden.detail.health.status.attention": "Needs attention",
   "app.garden.detail.health.status.critical": "Critical",
   "app.garden.detail.health.status.healthy": "Healthy",

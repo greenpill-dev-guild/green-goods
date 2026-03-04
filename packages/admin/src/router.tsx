@@ -102,7 +102,7 @@ export const router = createRouter([
           },
           {
             path: "endowments",
-            lazy: async () => ({ Component: (await import("@/views/Treasury")).default }),
+            lazy: async () => ({ Component: (await import("@/views/Endowments")).default }),
           },
           {
             path: "actions",

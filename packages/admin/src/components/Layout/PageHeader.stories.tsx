@@ -148,7 +148,7 @@ export const WithTabs: Story = {
           type="button"
           className="border-b-2 border-transparent px-1 pb-2 text-sm font-medium text-text-soft hover:text-text-sub"
         >
-          Treasury
+          Endowments
         </button>
       </div>
     ),

@@ -25,16 +25,16 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SortSelect } from "@/components/ui/SortSelect";
 
-type TreasurySortOrder = "name" | "tvl";
+type EndowmentsSortOrder = "name" | "tvl";
 
-export default function TreasuryOverview() {
+export default function EndowmentsOverview() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const { vaults, isLoading: vaultsLoading } = useGardenVaults(undefined, { enabled: true });
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
-  const [sortOrder, setSortOrder] = useState<TreasurySortOrder>("name");
+  const [sortOrder, setSortOrder] = useState<EndowmentsSortOrder>("name");
 
   const grouped = useMemo(() => {
     const map = new Map<string, typeof vaults>();
@@ -93,10 +93,25 @@ export default function TreasuryOverview() {
     setSortOrder("name");
   };
 
-  const totalTVL = useMemo(
-    () => grouped.reduce((sum, item) => sum + item.netDeposited, 0n),
-    [grouped]
-  );
+  const tvlByAsset = useMemo(() => {
+    let totalEth = 0n;
+    let totalDai = 0n;
+
+    for (const vault of vaults) {
+      const netDeposited = getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
+      const assetSymbol = getVaultAssetSymbol(vault.asset, vault.chainId).toUpperCase();
+
+      if (assetSymbol === "ETH" || assetSymbol === "WETH") {
+        totalEth += netDeposited;
+      }
+
+      if (assetSymbol === "DAI") {
+        totalDai += netDeposited;
+      }
+    }
+
+    return { totalEth, totalDai };
+  }, [vaults]);
   const totalHarvests = useMemo(
     () => grouped.reduce((sum, item) => sum + item.harvestCount, 0),
     [grouped]
@@ -104,7 +119,7 @@ export default function TreasuryOverview() {
 
   const isLoading = gardensLoading || vaultsLoading;
 
-  const sortOptions: { value: TreasurySortOrder; label: string }[] = [
+  const sortOptions: { value: EndowmentsSortOrder; label: string }[] = [
     { value: "name", label: formatMessage({ id: "app.treasury.sort.name" }) },
     { value: "tvl", label: formatMessage({ id: "app.treasury.sort.tvl" }) },
   ];
@@ -138,7 +153,9 @@ export default function TreasuryOverview() {
           <StatCard
             icon={<RiMoneyDollarCircleLine className="h-5 w-5" />}
             label={formatMessage({ id: "app.treasury.totalValueLocked" })}
-            value={formatTokenAmount(totalTVL)}
+            value={`${formatTokenAmount(tvlByAsset.totalEth)} ETH / ${formatTokenAmount(
+              tvlByAsset.totalDai
+            )} DAI`}
             colorScheme="info"
           />
           <StatCard

@@ -992,7 +992,7 @@
   "app.garden.detail.keyMetrics.pendingWork": "Trabalho pendente",
   "app.garden.detail.keyMetrics.assessments30d": "Avaliações (30d)",
   "app.garden.detail.keyMetrics.activeGardeners": "Jardineiros ativos",
-  "app.garden.detail.keyMetrics.treasury": "Tesouraria",
+  "app.garden.detail.keyMetrics.treasury": "Dotações",
   "app.garden.detail.health.status.attention": "Precisa de atenção",
   "app.garden.detail.health.status.critical": "Crítico",
   "app.garden.detail.health.status.healthy": "Saudável",
