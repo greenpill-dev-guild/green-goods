@@ -2,6 +2,7 @@ import {
   formatTimeSpent,
   type Garden,
   type Work,
+  type WorkDisplayStatus,
   type WorkMetadata,
   type WorkMetadataV1,
 } from "@green-goods/shared";
@@ -28,7 +29,7 @@ type WorkViewSectionProps = {
   workMetadata: WorkMetadata | null;
   viewingMode: ViewingMode;
   actionTitle: string;
-  effectiveStatus: "approved" | "rejected" | "pending";
+  effectiveStatus: WorkDisplayStatus;
   onDownloadData: () => void;
   onDownloadMedia?: () => void;
   onShare: () => void;
@@ -168,8 +169,27 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
   const { feedback: workFeedback, media } = work;
 
+  const isOfflineStatus =
+    effectiveStatus === "syncing" ||
+    effectiveStatus === "uploading" ||
+    effectiveStatus === "sync_failed" ||
+    effectiveStatus === "offline";
+
   // Dynamic title based on status and viewing mode
   const getTitle = () => {
+    if (isOfflineStatus) {
+      if (effectiveStatus === "sync_failed") {
+        return intl.formatMessage({
+          id: "app.home.work.syncFailed",
+          defaultMessage: "Upload Failed",
+        });
+      }
+      return intl.formatMessage({
+        id: "app.home.work.pendingUploadTitle",
+        defaultMessage: "Pending Upload",
+      });
+    }
+
     if (viewingMode === "operator") {
       if (effectiveStatus === "approved") {
         return intl.formatMessage({
@@ -210,6 +230,25 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
   // Dynamic info text based on status and viewing mode
   const getInfo = () => {
+    if (isOfflineStatus) {
+      if (effectiveStatus === "sync_failed") {
+        return intl.formatMessage({
+          id: "app.home.work.syncFailedInfo",
+          defaultMessage: "This work could not be uploaded. Please retry when connected.",
+        });
+      }
+      if (effectiveStatus === "syncing" || effectiveStatus === "uploading") {
+        return intl.formatMessage({
+          id: "app.home.work.syncingInfo",
+          defaultMessage: "This work is being uploaded to the blockchain.",
+        });
+      }
+      return intl.formatMessage({
+        id: "app.home.work.offlineInfo",
+        defaultMessage: "This work is saved locally and will be uploaded when connected.",
+      });
+    }
+
     if (viewingMode === "operator") {
       if (effectiveStatus === "approved") {
         return intl.formatMessage({
