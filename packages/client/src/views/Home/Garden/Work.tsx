@@ -78,12 +78,13 @@ export const GardenWork: React.FC = () => {
   const effectiveStatus = optimisticStatus ?? work?.status ?? "pending";
 
   const queryClient = useQueryClient();
-  const actionTitle = useMemo(() => {
+  const matchedAction = useMemo(() => {
     if (!work) return null;
     const compositeId = `${chainId}-${work.actionUID}`;
-    const match = actions.find((a) => a.id === compositeId);
-    return match?.title ?? null;
+    return actions.find((a) => a.id === compositeId) ?? null;
   }, [actions, chainId, work]);
+  const actionTitle = matchedAction?.title ?? null;
+  const isActionExpired = matchedAction ? matchedAction.endTime <= Date.now() / 1000 : false;
 
   const { user, smartAccountClient } = useUser();
   const activeAddress = user?.id;
@@ -666,6 +667,16 @@ export const GardenWork: React.FC = () => {
           {/* Action Bar - Always visible */}
           <div className="bg-bg-white-0 border-t border-stroke-soft-200 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative">
             <div className="max-w-screen-sm mx-auto">
+              {/* Action expiry notice */}
+              {isActionExpired && (
+                <p className="text-xs text-warning-dark mb-2 text-center">
+                  {intl.formatMessage({
+                    id: "app.home.workApproval.actionExpired",
+                    defaultMessage:
+                      "This action has ended. Approval may fail on-chain.",
+                  })}
+                </p>
+              )}
               {/* Button Group - changes based on mode */}
               <div className="flex gap-3">
                 {!feedbackMode ? (
@@ -684,7 +695,7 @@ export const GardenWork: React.FC = () => {
                       mode="stroke"
                       size="medium"
                       leadingIcon={<RiCloseLine className="w-5 h-5" />}
-                      disabled={workApprovalMutation.isPending}
+                      disabled={workApprovalMutation.isPending || isActionExpired}
                     />
                     <Button
                       onClick={handleApprovePress}
@@ -699,7 +710,7 @@ export const GardenWork: React.FC = () => {
                       size="medium"
                       shape="pilled"
                       leadingIcon={<RiCheckLine className="w-5 h-5" />}
-                      disabled={workApprovalMutation.isPending}
+                      disabled={workApprovalMutation.isPending || isActionExpired}
                     />
                   </>
                 ) : (
@@ -752,9 +763,10 @@ export const GardenWork: React.FC = () => {
       </>
     ) : null;
 
-  // Success footer shows when work has been approved/rejected
+  // Success footer shows when work has been approved/rejected (on-chain resolved only)
+  const isResolved = effectiveStatus === "approved" || effectiveStatus === "rejected";
   const successFooter =
-    viewingMode === "operator" && effectiveStatus !== "pending" ? (
+    viewingMode === "operator" && isResolved ? (
       <div className="fixed left-0 right-0 bottom-0 z-[200]">
         <div className="bg-bg-white-0 border-t border-stroke-soft-200 p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           <div className="max-w-screen-sm mx-auto flex items-center justify-center gap-2">
