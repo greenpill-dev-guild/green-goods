@@ -13,8 +13,6 @@ import { easGraphQL } from "./graphql";
 import { createEasClient } from "./graphql-client";
 import { resolveIPFSUrl } from "./ipfs";
 
-const GATEWAY_BASE_URL = "https://storacha.link";
-
 /** Custom error for EAS fetch failures - allows React Query to properly retry/error */
 export class EASFetchError extends Error {
   constructor(
@@ -135,7 +133,7 @@ const parseDataToWork = (
   const mediaCIDs: string[] = (mediaData?.value?.value as string[]) || [];
 
   // Resolve IPFS CIDs to gateway URLs
-  const media = mediaCIDs.map((cid: string) => resolveIPFSUrl(cid, GATEWAY_BASE_URL));
+  const media = mediaCIDs.map((cid: string) => resolveIPFSUrl(cid));
 
   // Safely extract optional fields with null handling
   const feedbackData = data.find((d) => d.name === "feedback");
