@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useIntl } from "react-intl";
 import { useCallback, useRef } from "react";
+import { useIntl } from "react-intl";
 import type { Address } from "viem";
 import { toastService } from "../../components/toast";
 import type {
@@ -9,12 +9,12 @@ import type {
   CookieJarUpdateIntervalParams,
   CookieJarUpdateMaxWithdrawalParams,
 } from "../../types/cookie-jar";
+import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis";
+import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
 import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
 import { useDelayedInvalidation } from "../utils/useTimeout";
-import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis";
-import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 
 export function useCookieJarPause(gardenAddress: Address) {
   const { formatMessage } = useIntl();

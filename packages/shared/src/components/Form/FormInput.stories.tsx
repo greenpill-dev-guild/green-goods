@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { FormInput } from "./FormInput";
 
 const meta: Meta<typeof FormInput> = {
-  title: "Components/Form/FormInput",
+  title: "Form Controls/FormInput",
   component: FormInput,
   tags: ["autodocs"],
   argTypes: {
@@ -108,4 +108,19 @@ export const AllStates: Story = {
       />
     </div>
   ),
+};
+
+export const DarkMode: Story = {
+  args: {
+    label: "Email",
+    placeholder: "Enter your email",
+    id: "dark-mode-input",
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

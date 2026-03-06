@@ -1,14 +1,14 @@
 import {
+  type Address,
   ConfirmDialog,
   DEFAULT_CHAIN_ID,
+  type DraftWithImages,
   findActionByUID,
   logger,
   toastService,
   useActions,
   useDrafts,
   useGardens,
-  type Address,
-  type DraftWithImages,
 } from "@green-goods/shared";
 import { RiAlertLine, RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import React, { useState } from "react";
@@ -178,7 +178,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto overscroll-contain p-4">
+      <div className="flex-1 overflow-y-auto p-4">
         <ul className="flex flex-col gap-3">
           {drafts.map((draft) => (
             <li key={draft.id} className="cv-draft-card">

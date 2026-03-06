@@ -1,18 +1,20 @@
 import {
-  cn,
+  type Address,
+  type ApprovalJobPayload,
   Confidence,
   ConfidenceSelector,
-  debugWarn,
+  cn,
   DEFAULT_CHAIN_ID,
+  debugWarn,
   downloadWorkData,
   downloadWorkMedia,
   getFileByHash,
   isAddressInList,
-  isUserAddress as sharedIsUserAddress,
   isValidAttestationId,
   jobQueue,
   openEASExplorer,
   queryKeys,
+  isUserAddress as sharedIsUserAddress,
   shareWork,
   toastService,
   useActions,
@@ -26,8 +28,6 @@ import {
   useWorkApproval,
   useWorks,
   VerificationMethod,
-  type Address,
-  type ApprovalJobPayload,
   type WorkApprovalDraft,
   type WorkData,
   type WorkMetadata,
@@ -42,16 +42,14 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { useLocation, useOutletContext, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
 import WorkViewSection from "./WorkViewSection";
 
-type GardenWorkProps = {};
-
-export const GardenWork: React.FC<GardenWorkProps> = () => {
+export const GardenWork: React.FC = () => {
   const intl = useIntl();
   const { id: gardenIdParam, workId } = useParams<{ id: string; workId: string }>();
   const { gardenId: gardenIdFromContext } = (useOutletContext() as { gardenId?: string }) || {};
@@ -66,9 +64,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const [confidence, setConfidence] = useState<Confidence>(Confidence.NONE);
   const [optimisticStatus, setOptimisticStatus] = useState<"approved" | "rejected" | null>(null);
   const navigateToTop = useNavigateToTop();
+  const navigate = useNavigate();
   const location = useLocation();
   const chainId = DEFAULT_CHAIN_ID;
-  const { data: gardens = [] } = useGardens();
+  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const gardenId = (gardenIdFromContext || gardenIdParam) as string;
   const garden = gardens.find((g) => g.id === gardenId);
   const { data: actions = [] } = useActions(chainId);
@@ -79,12 +78,13 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   const effectiveStatus = optimisticStatus ?? work?.status ?? "pending";
 
   const queryClient = useQueryClient();
-  const actionTitle = useMemo(() => {
+  const matchedAction = useMemo(() => {
     if (!work) return null;
     const compositeId = `${chainId}-${work.actionUID}`;
-    const match = actions.find((a) => a.id === compositeId);
-    return match?.title ?? null;
+    return actions.find((a) => a.id === compositeId) ?? null;
   }, [actions, chainId, work]);
+  const actionTitle = matchedAction?.title ?? null;
+  const isActionExpired = matchedAction ? matchedAction.endTime <= Date.now() / 1000 : false;
 
   const { user, smartAccountClient } = useUser();
   const activeAddress = user?.id;
@@ -127,21 +127,44 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
 
       if (result.success) {
         toastService.success({
-          title: "Work uploaded successfully",
-          message: "Your work is now on-chain",
+          title: intl.formatMessage({
+            id: "app.home.work.retrySuccess",
+            defaultMessage: "Work uploaded successfully",
+          }),
+          message: intl.formatMessage({
+            id: "app.home.work.retrySuccessMessage",
+            defaultMessage: "Your work is now on-chain",
+          }),
           context: "work upload",
         });
       } else {
         toastService.error({
-          title: "Upload failed",
-          message: result.error || "Please try again",
+          title: intl.formatMessage({
+            id: "app.home.work.retryFailed",
+            defaultMessage: "Upload failed",
+          }),
+          message:
+            result.error ||
+            intl.formatMessage({
+              id: "app.home.work.retryFailedMessage",
+              defaultMessage: "Please try again",
+            }),
           context: "work upload",
         });
       }
     } catch (error) {
       toastService.error({
-        title: "Failed to retry upload",
-        message: error instanceof Error ? error.message : "Unknown error",
+        title: intl.formatMessage({
+          id: "app.home.work.retryError",
+          defaultMessage: "Failed to retry upload",
+        }),
+        message:
+          error instanceof Error
+            ? error.message
+            : intl.formatMessage({
+                id: "app.home.work.unknownError",
+                defaultMessage: "Unknown error",
+              }),
         context: "work upload",
       });
     } finally {
@@ -149,21 +172,27 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
     }
   };
 
+  // Build a WorkData object from the current work + metadata context
+  const buildWorkData = (): WorkData | null => {
+    if (!work) return null;
+    return {
+      id: work.id,
+      title: work.feedback || `Work ${work.id}`,
+      description: work.feedback,
+      status: work.status,
+      createdAt: work.createdAt,
+      media: work.media || [],
+      metadata: workMetadata,
+      feedback: work.feedback,
+      gardenId: garden?.id || "",
+    };
+  };
+
   // Helper functions for work actions
   const handleDownloadMedia = async () => {
-    if (!work) return;
+    const workData = buildWorkData();
+    if (!workData) return;
     try {
-      const workData: WorkData = {
-        id: work.id,
-        title: work.feedback || `Work ${work.id}`,
-        description: work.feedback,
-        status: work.status,
-        createdAt: work.createdAt,
-        media: work.media || [],
-        metadata: workMetadata,
-        feedback: work.feedback,
-        gardenId: garden?.id || "",
-      };
       await downloadWorkMedia(workData);
     } catch (error) {
       toastService.error({
@@ -178,19 +207,9 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   };
 
   const handleDownloadData = () => {
-    if (!work) return;
+    const workData = buildWorkData();
+    if (!workData) return;
     try {
-      const workData: WorkData = {
-        id: work.id,
-        title: work.feedback || `Work ${work.id}`,
-        description: work.feedback,
-        status: work.status,
-        createdAt: work.createdAt,
-        media: work.media || [],
-        metadata: workMetadata,
-        feedback: work.feedback,
-        gardenId: garden?.id || "",
-      };
       downloadWorkData(workData);
     } catch (error) {
       toastService.error({
@@ -205,19 +224,9 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   };
 
   const handleShare = async () => {
-    if (!work) return;
+    const workData = buildWorkData();
+    if (!workData) return;
     try {
-      const workData: WorkData = {
-        id: work.id,
-        title: work.feedback || `Work ${work.id}`,
-        description: work.feedback,
-        status: work.status,
-        createdAt: work.createdAt,
-        media: work.media || [],
-        metadata: workMetadata,
-        feedback: work.feedback,
-        gardenId: garden?.id || "",
-      };
       await shareWork(workData);
     } catch (error) {
       toastService.error({
@@ -346,7 +355,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
         // Delay navigation to show success state (auto-cleared on unmount)
         scheduleTimeout(() => {
           setOptimisticStatus(null); // Clear before navigating
-          navigateToTop(`/home/${garden?.id ?? ""}`);
+          navigateToTop(`/home/${garden?.id || gardenIdParam || ""}`);
         }, 2500);
       }
       if (type === "job:failed") {
@@ -458,20 +467,40 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
   );
 
   const handleBack = () => {
-    const from = (location.state as { from?: string } | null | undefined)?.from;
+    const state = (location.state as { from?: string; returnTo?: string } | null | undefined) ?? {};
+    const from = state.from;
     if (from === "dashboard") {
       navigateToTop("/home");
       return;
     }
-    navigateToTop(`/home/${garden?.id ?? ""}`);
+    if (state.returnTo) {
+      navigateToTop(state.returnTo);
+      return;
+    }
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigateToTop(gardenId ? `/home/${gardenId}` : "/home");
   };
 
-  if (!work || !garden)
+  if (!work)
     return (
       <article>
         <TopNav onBackClick={handleBack} />
         <div className="padded">
-          <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
+          {gardensLoading ? (
+            <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+              <p className="text-sm text-text-sub-600">
+                {intl.formatMessage({
+                  id: "app.home.work.notFound",
+                  defaultMessage: "Work submission not found.",
+                })}
+              </p>
+            </div>
+          )}
         </div>
       </article>
     );
@@ -627,7 +656,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                   id: "app.home.workApproval.feedbackPlaceholder",
                   defaultMessage: "Add your feedback here...",
                 })}
-                className="w-full min-h-[120px] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                className="w-full min-h-[120px] max-h-[40vh] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]"
               />
             </div>
 
@@ -638,6 +667,15 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
           {/* Action Bar - Always visible */}
           <div className="bg-bg-white-0 border-t border-stroke-soft-200 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative">
             <div className="max-w-screen-sm mx-auto">
+              {/* Action expiry notice */}
+              {isActionExpired && (
+                <p className="text-xs text-warning-dark mb-2 text-center">
+                  {intl.formatMessage({
+                    id: "app.home.workApproval.actionExpired",
+                    defaultMessage: "This action has ended. Approval may fail on-chain.",
+                  })}
+                </p>
+              )}
               {/* Button Group - changes based on mode */}
               <div className="flex gap-3">
                 {!feedbackMode ? (
@@ -656,7 +694,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                       mode="stroke"
                       size="medium"
                       leadingIcon={<RiCloseLine className="w-5 h-5" />}
-                      disabled={workApprovalMutation.isPending}
+                      disabled={workApprovalMutation.isPending || isActionExpired}
                     />
                     <Button
                       onClick={handleApprovePress}
@@ -671,7 +709,7 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
                       size="medium"
                       shape="pilled"
                       leadingIcon={<RiCheckLine className="w-5 h-5" />}
-                      disabled={workApprovalMutation.isPending}
+                      disabled={workApprovalMutation.isPending || isActionExpired}
                     />
                   </>
                 ) : (
@@ -724,9 +762,10 @@ export const GardenWork: React.FC<GardenWorkProps> = () => {
       </>
     ) : null;
 
-  // Success footer shows when work has been approved/rejected
+  // Success footer shows when work has been approved/rejected (on-chain resolved only)
+  const isResolved = effectiveStatus === "approved" || effectiveStatus === "rejected";
   const successFooter =
-    viewingMode === "operator" && effectiveStatus !== "pending" ? (
+    viewingMode === "operator" && isResolved ? (
       <div className="fixed left-0 right-0 bottom-0 z-[200]">
         <div className="bg-bg-white-0 border-t border-stroke-soft-200 p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           <div className="max-w-screen-sm mx-auto flex items-center justify-center gap-2">

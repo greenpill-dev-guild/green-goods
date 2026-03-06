@@ -4,8 +4,8 @@
  * Tests for the sliding window rate limiting implementation.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { RateLimiter, formatRateLimitWait, RATE_LIMITS } from "../services/rate-limiter";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { formatRateLimitWait, RATE_LIMITS, RateLimiter } from "../services/rate-limiter";
 
 describe("RateLimiter", () => {
   let limiter: RateLimiter;

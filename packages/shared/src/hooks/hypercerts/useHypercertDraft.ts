@@ -1,10 +1,9 @@
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-import type { HypercertDraft } from "../../types/hypercerts";
-import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
+import { logger } from "../../modules/app/logger";
 import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
+import type { HypercertDraft } from "../../types/hypercerts";
 import { useTimeout } from "../utils/useTimeout";
 
 export interface UseHypercertDraftResult {

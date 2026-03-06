@@ -1,6 +1,12 @@
 ---
 name: cross-package-verify
-description: Cross-package verification wrapper. Use for deterministic multi-package validation before optional fix mode.
+description: Cross-package verification - runs type checks, lint, and tests across all packages to verify cross-boundary consistency. Use when changes span multiple packages and you need to verify nothing is broken, or after migrations and dependency upgrades.
+version: "1.0.0"
+status: active
+packages: ["all"]
+dependencies: ["review"]
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Cross-Package Verify Skill

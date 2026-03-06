@@ -3,7 +3,7 @@
  * @vitest-environment jsdom
  */
 
-import { renderHook, act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockAddress = vi.fn();
@@ -39,8 +39,8 @@ vi.mock("../../../hooks/app/useToastAction", () => ({
   }),
 }));
 
-import { useGardenInvites } from "../../../hooks/garden/useGardenInvites";
 import type { Address } from "viem";
+import { useGardenInvites } from "../../../hooks/garden/useGardenInvites";
 
 describe("useGardenInvites", () => {
   const GARDEN_ADDRESS = "0x1234567890123456789012345678901234567890" as Address;

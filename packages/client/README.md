@@ -351,7 +351,7 @@ Green Goods supports two distinct authentication modes with optimized submission
 - Job queue submission: `src/modules/work/work-submission.ts`
 - Unified hooks: `src/hooks/work/useWorkApproval.ts`
 - Provider branching: `src/providers/work.tsx`
-- Future integration path: `docs/WALLET_QUEUE_INTEGRATION.md`
+- Architecture docs: [docs.greengoods.app/developers/architecture](https://docs.greengoods.app/developers/architecture)
 
 The system automatically branches based on `authMode` from the authentication provider, ensuring each user type gets an optimized experience.
 
@@ -383,7 +383,7 @@ encodeWorkData([
 - Version detection for proper decoding
 - Support for gradual V1 → V2 migration
 
-See `docs/UPGRADES.md` for schema versioning strategy.
+See [docs.greengoods.app](https://docs.greengoods.app) for schema versioning strategy.
 
 ## Project Structure Highlights
 

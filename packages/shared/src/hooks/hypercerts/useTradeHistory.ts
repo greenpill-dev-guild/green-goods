@@ -6,8 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config";
 import { logger } from "../../modules/app/logger";
 import { getTradeHistory } from "../../modules/data/marketplace";
+import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { FractionTrade } from "../../types/hypercerts";
-import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
 import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 
 export interface UseTradeHistoryResult {

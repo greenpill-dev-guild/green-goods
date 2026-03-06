@@ -1,6 +1,6 @@
-import { resolveEnsAddress } from "../../utils/blockchain/ens";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isAddress } from "viem";
+import { resolveEnsAddress } from "../../utils/blockchain/ens";
 
 import { useEnsAddress } from "../blockchain/useEnsAddress";
 

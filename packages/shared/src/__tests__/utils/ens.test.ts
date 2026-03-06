@@ -20,7 +20,7 @@ vi.mock("../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
-import { validateSlug, suggestSlug } from "../../utils/blockchain/ens";
+import { suggestSlug, validateSlug } from "../../utils/blockchain/ens";
 
 // ============================================================================
 // VALIDATE SLUG

@@ -6,8 +6,10 @@ type AtAGlanceCardProps = {
   estimatedTime: string;
   prereqs: string;
   outcome: string;
-  personaContext: string;
-  lastVerified: string;
+  /** Hide Persona and Last Verified fields for user-facing pages */
+  compact?: boolean;
+  personaContext?: string;
+  lastVerified?: string;
 };
 
 const difficultyLabel: Record<AtAGlanceCardProps["difficulty"], string> = {
@@ -22,6 +24,7 @@ export function AtAGlanceCard({
   estimatedTime,
   prereqs,
   outcome,
+  compact = false,
   personaContext,
   lastVerified,
 }: AtAGlanceCardProps) {
@@ -48,14 +51,18 @@ export function AtAGlanceCard({
           <dt>Outcome</dt>
           <dd>{outcome}</dd>
         </div>
-        <div>
-          <dt>Persona</dt>
-          <dd>{personaContext}</dd>
-        </div>
-        <div>
-          <dt>Last verified</dt>
-          <dd>{lastVerified}</dd>
-        </div>
+        {!compact && personaContext && (
+          <div>
+            <dt>Persona</dt>
+            <dd>{personaContext}</dd>
+          </div>
+        )}
+        {!compact && lastVerified && (
+          <div>
+            <dt>Last verified</dt>
+            <dd>{lastVerified}</dd>
+          </div>
+        )}
       </dl>
     </section>
   );

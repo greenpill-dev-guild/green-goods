@@ -4,14 +4,14 @@ sidebar_position: 4
 slug: /operator/review-work
 audience: operator
 owner: docs
-last_verified: 2026-02-19
+last_verified: 2026-03-01
 feature_status: Live
 goal: "Complete Review Work Submissions with clear, role-specific next actions."
 difficulty: "standard"
 estimated_time: "2-10 minutes per submission."
 prereqs: "Pending work queue and review policy."
 next_steps: "./create-assessments"
-persona_context: "Operators coordinating gardens, approvals, and governance/treasury execution."
+persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
   - packages/admin/src/views/Gardens/Garden/WorkDetail.tsx
   - packages/shared/src/hooks/work/useWorkApproval.ts
@@ -25,7 +25,6 @@ keywords:
 ---
 
 import {
-  AtAGlanceCard,
   DecisionGuide,
   JourneyMap,
   NextBestAction,
@@ -36,20 +35,6 @@ import {
 # Review Work Submissions
 
 <StatusBadge status="Live" />
-
-<AtAGlanceCard
-  goal="Complete Review Work Submissions with clear, role-specific next actions."
-  difficulty="standard"
-  estimatedTime="2-10 minutes per submission."
-  prereqs="Pending work queue and review policy."
-  outcome="Submission gets approved/rejected with durable attestation trail."
-  personaContext="Operators coordinating gardens, approvals, and governance/treasury execution."
-  lastVerified="2026-02-19"
-/>
-
-## When to use this page
-
-Use this guide when you need to review work submissions, approve valid evidence, and reject with actionable feedback.
 
 <JourneyMap
   role="Operator"
@@ -62,18 +47,22 @@ Use this guide when you need to review work submissions, approve valid evidence,
   ]}
 />
 
-## Review flow
+## Overview
+
+When gardeners submit work through the MDR workflow, it enters your review queue. As an operator, you validate the evidence, approve or reject submissions, and provide feedback. Approved work creates permanent on-chain attestations via EAS and triggers Karma GAP impact attestations automatically.
+
+{/* IMAGE PLACEHOLDER */}
+
+## How It Works
 
 <StepFlow
   steps={[
-    {title: "Open submission", detail: "Check media, notes, and action alignment."},
-    {title: "Validate evidence", detail: "Confirm task completion quality and timing."},
-    {title: "Approve or reject", detail: "Submit decision with concise feedback."},
-    {title: "Verify status", detail: "Ensure state updates to approved/rejected and appears in dashboard."},
+    {title: "Open submission", detail: "Navigate to the Work tab of your garden and select a pending submission. Check media, notes, and action alignment."},
+    {title: "Validate evidence", detail: "Confirm that the photos and details match the action requirements, that work quality meets your standards, and timing is within any action windows."},
+    {title: "Approve or reject", detail: "Submit your decision with concise feedback. Approvals create an on-chain attestation. Rejections should include specific correction steps."},
+    {title: "Verify status", detail: "Confirm the submission status updates to approved/rejected in the dashboard and that attestation linkage is correct."},
   ]}
 />
-
-## Decision guidance
 
 <DecisionGuide
   title="Make review decisions consistently"
@@ -96,9 +85,19 @@ Use this guide when you need to review work submissions, approve valid evidence,
   ]}
 />
 
+## Best Practices
+
+- Review submissions within 24-48 hours to keep gardeners engaged and motivated
+- Be specific in rejection feedback — "photo is too dark to verify tree planting" is better than "insufficient evidence"
+- Use batch approval when multiple submissions clearly meet the same action's standards
+- Keep notes on edge cases so you maintain consistent review standards over time
+- Check that attestation linkage is correct after approving — the work UID and approval refUID should match
+
+## What's Next
+
 <NextBestAction
   title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
+  why="With work reviewed, assess your garden's overall impact."
   actionLabel="Create Assessments"
   actionHref="./create-assessments"
   alternatives={[

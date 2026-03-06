@@ -2,6 +2,12 @@
 name: docker
 user-invocable: false
 description: Docker and Docker Compose patterns - containerized services, volume management, networking, health checks, dev vs prod configs. Use for indexer Docker workflow, container debugging, and service orchestration.
+version: "1.0.0"
+status: active
+packages: ["indexer"]
+dependencies: []
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Docker Skill

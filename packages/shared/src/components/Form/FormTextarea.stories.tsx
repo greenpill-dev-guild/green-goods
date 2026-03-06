@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { FormTextarea } from "./FormTextarea";
 
 const meta: Meta<typeof FormTextarea> = {
-  title: "Components/Form/FormTextarea",
+  title: "Form Controls/FormTextarea",
   component: FormTextarea,
   tags: ["autodocs"],
   argTypes: {
@@ -110,4 +110,20 @@ export const AllStates: Story = {
       />
     </div>
   ),
+};
+
+export const DarkMode: Story = {
+  args: {
+    label: "Description",
+    placeholder: "Enter a description",
+    id: "dark-mode-textarea",
+    rows: 4,
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

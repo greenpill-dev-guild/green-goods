@@ -2,6 +2,12 @@
 name: i18n
 user-invocable: false
 description: Internationalization - react-intl, Browser Translation API, locale detection, RTL support. Use for translation workflows, multi-language UI, and locale-aware formatting.
+version: "1.0.0"
+status: active
+packages: ["shared", "client", "admin"]
+dependencies: []
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # i18n Skill

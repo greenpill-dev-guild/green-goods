@@ -37,10 +37,12 @@ vi.mock("wagmi", () => ({
   useWriteContract: () => ({
     writeContractAsync: mockWriteContractAsync,
   }),
+  useConfig: () => ({}),
 }));
 
 vi.mock("@wagmi/core", () => ({
   readContract: (...args: unknown[]) => mockReadContract(...args),
+  waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
 }));
 
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
@@ -70,7 +72,6 @@ const messages = {
   "app.treasury.withdraw": "Withdraw",
   "app.treasury.harvest": "Harvest",
   "app.treasury.emergencyPause": "Emergency Pause",
-  "app.treasury.donationAddress": "Donation Address",
   "app.treasury.depositSuccess": "Deposit successful",
   "app.treasury.withdrawSuccess": "Withdraw successful",
   "app.treasury.harvestSuccess": "Harvest successful",
@@ -88,8 +89,7 @@ function createWrapper(queryClient: QueryClient) {
 }
 
 const operationsModule = await import("../../../hooks/vault/useVaultOperations");
-const { useVaultDeposit, useVaultWithdraw, useHarvest, useEmergencyPause, useSetDonationAddress } =
-  operationsModule;
+const { useVaultDeposit, useVaultWithdraw, useHarvest, useEmergencyPause } = operationsModule;
 
 describe("hooks/vault/useVaultOperations", () => {
   beforeEach(() => {
@@ -101,10 +101,10 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("runs two-step deposit flow (approve -> deposit) when allowance is insufficient", async () => {
-    // First call: allowance check (returns 0n = insufficient)
-    // Second call: post-approval allowance re-check (returns 10n = sufficient)
-    // Third call: previewDeposit for slippage check (returns 10n shares)
+    // Read sequence (no minSharesOut → early slippage check skipped):
+    // 1) maxDeposit, 2) allowance, 3) refreshed allowance, 4) post-approval previewDeposit
     mockReadContract
+      .mockResolvedValueOnce(100n)
       .mockResolvedValueOnce(0n)
       .mockResolvedValueOnce(10n)
       .mockResolvedValueOnce(10n);
@@ -133,8 +133,8 @@ describe("hooks/vault/useVaultOperations", () => {
       });
     });
 
-    // readContract called three times: allowance + refreshed allowance + previewDeposit
-    expect(mockReadContract).toHaveBeenCalledTimes(3);
+    // readContract: maxDeposit + allowance + refreshed allowance + post-approval previewDeposit
+    expect(mockReadContract).toHaveBeenCalledTimes(4);
     expect(mockReadContract).toHaveBeenNthCalledWith(
       2,
       expect.anything(),
@@ -162,9 +162,12 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("skips approve when allowance is already sufficient", async () => {
-    // First call: allowance check (returns 100n = sufficient for amount 10n)
-    // Second call: previewDeposit for slippage check (returns 10n shares)
-    mockReadContract.mockResolvedValueOnce(100n).mockResolvedValueOnce(10n);
+    // Read sequence (no minSharesOut → early slippage check skipped):
+    // maxDeposit, allowance (sufficient → skip approval), post-approval previewDeposit
+    mockReadContract
+      .mockResolvedValueOnce(100n)
+      .mockResolvedValueOnce(100n)
+      .mockResolvedValueOnce(10n);
     mockWriteContractAsync.mockResolvedValue(
       "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     );
@@ -197,7 +200,9 @@ describe("hooks/vault/useVaultOperations", () => {
     );
   });
 
-  it("runs single-step withdraw flow using redeem", async () => {
+  it("runs single-step withdraw flow using withdraw", async () => {
+    // maxWithdraw pre-check
+    mockReadContract.mockResolvedValueOnce(100n);
     mockWriteContractAsync.mockResolvedValue(
       "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     );
@@ -218,16 +223,84 @@ describe("hooks/vault/useVaultOperations", () => {
         gardenAddress: TEST_GARDEN as `0x${string}`,
         assetAddress: TEST_ASSET as `0x${string}`,
         vaultAddress: TEST_VAULT as `0x${string}`,
-        shares: 5n,
+        amount: 5n,
       });
     });
 
     expect(mockWriteContractAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         address: TEST_VAULT,
-        functionName: "redeem",
+        functionName: "withdraw",
       })
     );
+  });
+
+  it("clamps withdraw shares to maxRedeem when within tolerance", async () => {
+    const maxRedeem = 1_000_000_000_000_000_000n;
+    const tolerance = maxRedeem / 10_000n;
+
+    mockReadContract.mockResolvedValueOnce(maxRedeem);
+    mockWriteContractAsync.mockResolvedValue(
+      "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    );
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useVaultWithdraw(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: TEST_GARDEN as `0x${string}`,
+        assetAddress: TEST_ASSET as `0x${string}`,
+        vaultAddress: TEST_VAULT as `0x${string}`,
+        shares: maxRedeem + tolerance,
+      });
+    });
+
+    expect(mockWriteContractAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        functionName: "redeem",
+        args: [maxRedeem, TEST_PRIMARY_ADDRESS, TEST_PRIMARY_ADDRESS],
+      })
+    );
+  });
+
+  it("rejects withdraw shares above maxRedeem tolerance", async () => {
+    const maxRedeem = 1_000_000_000_000_000_000n;
+    const tolerance = maxRedeem / 10_000n;
+
+    mockReadContract.mockResolvedValueOnce(maxRedeem);
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useVaultWithdraw(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          gardenAddress: TEST_GARDEN as `0x${string}`,
+          assetAddress: TEST_ASSET as `0x${string}`,
+          vaultAddress: TEST_VAULT as `0x${string}`,
+          shares: maxRedeem + tolerance + 1n,
+        })
+      ).rejects.toThrow("Withdrawal amount exceeds the redeemable limit");
+    });
+
+    expect(mockWriteContractAsync).not.toHaveBeenCalled();
   });
 
   it("calls OctantModule.harvest for harvest mutation", async () => {
@@ -292,37 +365,6 @@ describe("hooks/vault/useVaultOperations", () => {
     );
   });
 
-  it("calls OctantModule.setDonationAddress for donation updates", async () => {
-    mockWriteContractAsync.mockResolvedValue(
-      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-    );
-
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
-
-    const { result } = renderHook(() => useSetDonationAddress(), {
-      wrapper: createWrapper(queryClient),
-    });
-
-    await act(async () => {
-      await result.current.mutateAsync({
-        gardenAddress: TEST_GARDEN as `0x${string}`,
-        donationAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
-      });
-    });
-
-    expect(mockWriteContractAsync).toHaveBeenCalledWith(
-      expect.objectContaining({
-        address: TEST_OCTANT_MODULE,
-        functionName: "setDonationAddress",
-      })
-    );
-  });
-
   it("routes through smartAccountClient when authMode is passkey", async () => {
     const mockSendTransaction = vi
       .fn()
@@ -334,9 +376,12 @@ describe("hooks/vault/useVaultOperations", () => {
       sendTransaction: mockSendTransaction,
     };
 
-    // First call: allowance check (returns 100n = sufficient)
-    // Second call: previewDeposit for slippage check (returns 10n shares)
-    mockReadContract.mockResolvedValueOnce(100n).mockResolvedValueOnce(10n);
+    // Read sequence (no minSharesOut → early slippage check skipped):
+    // maxDeposit, allowance (sufficient), post-approval previewDeposit
+    mockReadContract
+      .mockResolvedValueOnce(100n)
+      .mockResolvedValueOnce(100n)
+      .mockResolvedValueOnce(10n);
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -368,10 +413,7 @@ describe("hooks/vault/useVaultOperations", () => {
   });
 
   it("uses createMutationErrorHandler when a mutation fails", async () => {
-    // First call: allowance check (returns 0n = insufficient)
-    // Second call: previewDeposit for slippage check (returns 10n shares)
-    mockReadContract.mockResolvedValueOnce(0n).mockResolvedValueOnce(10n);
-    mockWriteContractAsync.mockRejectedValue(new Error("boom"));
+    mockReadContract.mockRejectedValueOnce(new Error("boom"));
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -396,5 +438,36 @@ describe("hooks/vault/useVaultOperations", () => {
     });
 
     expect(mockErrorHandler).toHaveBeenCalled();
+  });
+
+  it("passes showToast=false to error handler in inline mode", async () => {
+    mockReadContract.mockRejectedValueOnce(new Error("boom"));
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useVaultDeposit({ errorMode: "inline" }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          gardenAddress: TEST_GARDEN as `0x${string}`,
+          assetAddress: TEST_ASSET as `0x${string}`,
+          vaultAddress: TEST_VAULT as `0x${string}`,
+          amount: 10n,
+        })
+      ).rejects.toThrow("boom");
+    });
+
+    expect(mockErrorHandler).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ showToast: false })
+    );
   });
 });

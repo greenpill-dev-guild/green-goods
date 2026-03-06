@@ -10,4 +10,9 @@ source /app/scripts/fix-rescript-paths.sh /app/generated
 cd /app
 
 echo "🚀 Starting indexer..."
+
+# Work around Envio EE806/EE807: Hasura table tracking fails on fresh instances.
+# Background a script that retries tracking after the indexer creates tables.
+/app/scripts/track-hasura-tables.sh &
+
 exec "$@"

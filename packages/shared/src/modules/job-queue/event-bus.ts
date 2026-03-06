@@ -1,5 +1,6 @@
 import React from "react";
 import type { Job } from "../../types/job-queue";
+import { logger } from "../app/logger";
 
 /**
  * Event Bus for Job Queue
@@ -33,8 +34,7 @@ class JobQueueEventBus extends EventTarget {
    */
   emit<T extends JobQueueEventType>(type: T, data: JobQueueEventData<T>): void {
     if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
-      // eslint-disable-next-line no-console
-      console.debug("[JobQueueEventBus] emit", type, data);
+      logger.debug("[JobQueueEventBus] emit", { type, data });
     }
     this.dispatchEvent(new CustomEvent(type, { detail: data }));
   }

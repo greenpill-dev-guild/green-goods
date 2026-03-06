@@ -27,13 +27,13 @@ export function useGardenInvites(gardenAddress: Address) {
   const { data: walletClient } = useWalletClient();
 
   /**
-   * Generates a unique invite code
+   * Generates a unique invite code using cryptographically secure randomness
    */
   const generateInviteCode = (): Hex => {
-    const random = Math.random().toString(36).substring(2, 15);
-    const timestamp = Date.now().toString();
-    const combined = `${random}-${timestamp}-${gardenAddress}`;
-    return keccak256(toHex(combined));
+    const randomBytes = new Uint8Array(32);
+    crypto.getRandomValues(randomBytes);
+    const hexString = Array.from(randomBytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    return keccak256(`0x${hexString}` as Hex);
   };
 
   /**

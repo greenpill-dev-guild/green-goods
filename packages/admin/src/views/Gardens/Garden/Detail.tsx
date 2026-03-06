@@ -1,54 +1,86 @@
 import {
   type Address,
   ConfirmDialog,
-  DEFAULT_CHAIN_ID,
-  ErrorBoundary,
+  formatAddress,
+  formatTokenAmount,
   GARDEN_ROLE_COLORS,
-  GARDEN_ROLE_I18N_KEYS,
-  type GardenOperationResult,
   type GardenRole,
-  getNetDeposited,
-  isZeroAddressValue,
-  queryInvalidation,
   toastService,
-  useConvictionStrategies,
-  useCreateGardenPools,
-  useDelayedInvalidation,
-  useGardenAssessments,
-  useGardenCommunity,
-  useGardenOperations,
-  useGardenPermissions,
-  useGardenPools,
-  useGardens,
-  useGardenCookieJars,
-  useGardenVaults,
-  useWorks,
-  useYieldAllocations,
-  WeightScheme,
+  useGardenDetailData,
 } from "@green-goods/shared";
-import { RiCheckboxCircleLine, RiMedalLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import * as Tabs from "@radix-ui/react-tabs";
+import {
+  RiCheckboxCircleLine,
+  RiErrorWarningLine,
+  RiFileList3Line,
+  RiGroupLine,
+  RiShieldCheckLine,
+  RiUserLine,
+} from "@remixicon/react";
+import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-import { useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
-import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
-import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
-import { GardenHeroSection } from "@/components/Garden/GardenHeroSection";
-import { GardenMetadata } from "@/components/Garden/GardenMetadata";
-import { GardenRolesPanel } from "@/components/Garden/GardenRolesPanel";
-import { GardenStatsGrid } from "@/components/Garden/GardenStatsGrid";
-import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
+import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
+import { GardenProfileModal } from "@/components/Garden/GardenProfileModal";
+import { getRoleLabel } from "@/components/Garden/gardenUtils";
+import { ManageRolesModal } from "@/components/Garden/ManageRolesModal";
 import { MembersModal } from "@/components/Garden/MembersModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { CommunityTab } from "./CommunityTab";
+import { GardenHeroBanner, TabBadge } from "./GardenDetailHelpers";
+import { TAB_SECTIONS, TAB_TRIGGER_BASE } from "./gardenDetail.constants";
+import type { ActivityFilter, GardenTab } from "./gardenDetail.types";
+import { parseGardenRange, parseGardenTab } from "./gardenDetail.utils";
+import { ImpactTab } from "./ImpactTab";
+import { OverviewTab } from "./OverviewTab";
+import { useGardenDerivedState } from "./useGardenDerivedState";
+import { WorkTab } from "./WorkTab";
 import "./GardenDetailLayout.css";
 
 export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
-  const queryClient = useQueryClient();
-  const gardenPermissions = useGardenPermissions();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const {
+    garden,
+    fetching,
+    error,
+    gardenId,
+    canManage,
+    canReview,
+    canManageRoles,
+    isOwner,
+    assessments,
+    fetchingAssessments,
+    assessmentsError,
+    roleMembers,
+    roleActions,
+    isOperationLoading,
+    community,
+    communityLoading,
+    pools,
+    createPools,
+    isCreatingPools,
+    gardenVaults,
+    vaultsLoading,
+    vaultNetDeposited,
+    allocations,
+    allocationsLoading,
+    works,
+    worksLoading,
+    worksFetching,
+    refreshWorks,
+    hypercerts,
+    hypercertsLoading,
+    scheduleBackgroundRefetch,
+  } = useGardenDetailData(id);
+
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [rolesModalOpen, setRolesModalOpen] = useState(false);
   const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
   const [memberType, setMemberType] = useState<GardenRole>("gardener");
   const [membersModalOpen, setMembersModalOpen] = useState(false);
@@ -57,6 +89,113 @@ export default function GardenDetail() {
     address: Address;
     role: GardenRole;
   } | null>(null);
+  const [domainModalOpen, setDomainModalOpen] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
+  const [memberSearch, setMemberSearch] = useState("");
+  const [lastWorkRefreshAt, setLastWorkRefreshAt] = useState<number>(Date.now());
+
+  const searchKey = searchParams.toString();
+  const activeTab = parseGardenTab(searchParams.get("tab"));
+  const selectedRange = parseGardenRange(searchParams.get("range"));
+  const requestedSection = searchParams.get("section");
+  const section =
+    requestedSection && TAB_SECTIONS[activeTab].includes(requestedSection)
+      ? requestedSection
+      : undefined;
+  const selectedItem = section ? (searchParams.get("item") ?? undefined) : undefined;
+
+  useEffect(() => {
+    const normalized = new URLSearchParams(searchParams);
+    let changed = false;
+
+    if (searchParams.get("tab") !== activeTab) {
+      normalized.set("tab", activeTab);
+      changed = true;
+    }
+
+    if (searchParams.get("range") !== selectedRange) {
+      normalized.set("range", selectedRange);
+      changed = true;
+    }
+
+    const activeSection = normalized.get("section");
+    if (activeSection && !TAB_SECTIONS[activeTab].includes(activeSection)) {
+      normalized.delete("section");
+      normalized.delete("item");
+      changed = true;
+    }
+
+    if (!activeSection && normalized.has("item")) {
+      normalized.delete("item");
+      changed = true;
+    }
+
+    if (changed) {
+      setSearchParams(normalized, { replace: true });
+    }
+  }, [activeTab, searchKey, searchParams, selectedRange, setSearchParams]);
+
+  const updateQueryState = useCallback(
+    (
+      updates: Partial<Record<"tab" | "range" | "section" | "item", string | undefined>>,
+      replace = false
+    ) => {
+      const next = new URLSearchParams(searchParams);
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === undefined || value === "") {
+          next.delete(key);
+        } else {
+          next.set(key, value);
+        }
+      }
+
+      setSearchParams(next, { replace });
+    },
+    [searchParams, setSearchParams]
+  );
+
+  const openSection = useCallback(
+    (tab: GardenTab, nextSection: string, itemId?: string) => {
+      updateQueryState({ tab, section: nextSection, item: itemId }, false);
+    },
+    [updateQueryState]
+  );
+
+  const clearSection = useCallback(() => {
+    updateQueryState({ section: undefined, item: undefined }, false);
+  }, [updateQueryState]);
+
+  const setTab = useCallback(
+    (tab: GardenTab) => {
+      updateQueryState({ tab, section: undefined, item: undefined }, false);
+    },
+    [updateQueryState]
+  );
+
+  const refreshWorkData = useCallback(() => {
+    void refreshWorks().finally(() => {
+      setLastWorkRefreshAt(Date.now());
+    });
+  }, [refreshWorks]);
+
+  useEffect(() => {
+    if (worksLoading) return;
+    setLastWorkRefreshAt(Date.now());
+  }, [works.length, worksLoading]);
+
+  useEffect(() => {
+    if (activeTab !== "work") return;
+    if (typeof window === "undefined") return;
+
+    const interval = window.setInterval(() => {
+      refreshWorkData();
+    }, 60_000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [activeTab, refreshWorkData]);
 
   const openAddMemberModal = (type: GardenRole) => {
     setMemberType(type);
@@ -68,132 +207,14 @@ export default function GardenDetail() {
     setMembersModalOpen(true);
   };
 
-  const { data: gardens = [], isLoading: fetching, error } = useGardens();
-  const garden = gardens.find((g) => g.id === id);
-
-  const { start: scheduleBackgroundRefetch } = useDelayedInvalidation(() => {
-    const keysToInvalidate = queryInvalidation.invalidateGardens(DEFAULT_CHAIN_ID);
-    keysToInvalidate.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
-  }, 5000);
-
-  const {
-    data: assessmentList = [],
-    isLoading: fetchingAssessments,
-    error: assessmentsError,
-  } = useGardenAssessments(id);
-
-  const assessments = assessmentList.slice(0, 5);
-  const gardenId = id ?? "";
-
-  const {
-    addGardener,
-    removeGardener,
-    addOperator,
-    removeOperator,
-    addEvaluator,
-    removeEvaluator,
-    addOwner,
-    removeOwner,
-    addFunder,
-    removeFunder,
-    addCommunity,
-    removeCommunity,
-    isLoading,
-  } = useGardenOperations(gardenId);
-
-  const canManage = garden ? gardenPermissions.canManageGarden(garden) : false;
-  const canReview = garden ? gardenPermissions.canReviewGarden(garden) : false;
-  const canManageRoles = garden ? gardenPermissions.canAddMembers(garden) : false;
-
-  const { vaults: gardenVaults = [], isLoading: vaultsLoading } = useGardenVaults(id, {
-    enabled: Boolean(id),
-  });
-
-  const { jarCount: cookieJarCount } = useGardenCookieJars(id, {
-    enabled: Boolean(id),
-  });
-
-  const { strategies: convictionStrategies } = useConvictionStrategies(
-    (id as `0x${string}`) ?? undefined,
-    { enabled: Boolean(id) && canManage }
-  );
-
-  const { community, isLoading: communityLoading } = useGardenCommunity(id as Address | undefined, {
-    enabled: Boolean(id),
-  });
-  const { pools } = useGardenPools(id as Address | undefined, { enabled: Boolean(id) });
-  const { createPools, isCreating: isCreatingPools } = useCreateGardenPools(
-    id as Address | undefined
-  );
-  const { allocations, isLoading: allocationsLoading } = useYieldAllocations(
-    id as Address | undefined,
-    { enabled: Boolean(id) }
-  );
-
-  const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
-
-  const { vaultNetDeposited, vaultHarvestCount, vaultDepositorCount } = useMemo(() => {
-    let netDeposited = 0n;
-    let harvestCount = 0;
-    let depositorCount = 0;
-    for (const vault of gardenVaults) {
-      netDeposited += getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
-      harvestCount += vault.totalHarvestCount;
-      depositorCount += vault.depositorCount;
-    }
-    return {
-      vaultNetDeposited: netDeposited,
-      vaultHarvestCount: harvestCount,
-      vaultDepositorCount: depositorCount,
-    };
-  }, [gardenVaults]);
-
-  const donationAddressUnset = useMemo(
-    () =>
-      gardenVaults.length > 0 &&
-      gardenVaults.some((vault) => isZeroAddressValue(vault.donationAddress)),
-    [gardenVaults]
-  );
-
-  const { works } = useWorks(gardenId);
-
-  const roleMembers: Record<GardenRole, Address[]> = {
-    owner: garden?.owners ?? [],
-    operator: garden?.operators ?? [],
-    evaluator: garden?.evaluators ?? [],
-    gardener: garden?.gardeners ?? [],
-    funder: garden?.funders ?? [],
-    community: garden?.communities ?? [],
-  };
-
-  const roleActions = {
-    owner: { add: addOwner, remove: removeOwner },
-    operator: { add: addOperator, remove: removeOperator },
-    evaluator: { add: addEvaluator, remove: removeEvaluator },
-    gardener: { add: addGardener, remove: removeGardener },
-    funder: { add: addFunder, remove: removeFunder },
-    community: { add: addCommunity, remove: removeCommunity },
-  } satisfies Record<
-    GardenRole,
-    {
-      add: (address: Address) => Promise<GardenOperationResult>;
-      remove: (address: Address) => Promise<GardenOperationResult>;
-    }
-  >;
-
   const roleIcons = {
     owner: RiShieldCheckLine,
     operator: RiUserLine,
     evaluator: RiCheckboxCircleLine,
     gardener: RiUserLine,
-    funder: RiMedalLine,
-    community: RiUserLine,
+    funder: RiUserLine,
+    community: RiGroupLine,
   } as const;
-
-  const getRoleLabel = (role: GardenRole) => ({
-    singular: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].singular }),
-    plural: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].plural }),
-  });
 
   const activeRole = membersModalType;
   const ActiveRoleIcon = roleIcons[activeRole];
@@ -211,10 +232,20 @@ export default function GardenDetail() {
           description={formatMessage({ id: "app.garden.admin.loadingDescription" })}
           {...baseHeaderProps}
         />
-        <div className="mt-6 px-6">
+        <div className="mt-6 px-6" role="status" aria-live="polite">
+          <span className="sr-only">{formatMessage({ id: "app.garden.admin.loadingGarden" })}</span>
           <div className="space-y-4 rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
-            <div className="h-8 w-1/4 animate-pulse rounded bg-bg-soft" />
-            <div className="h-64 animate-pulse rounded bg-bg-soft" />
+            <div className="h-8 w-1/4 rounded skeleton-shimmer" />
+            <div className="h-44 rounded skeleton-shimmer" style={{ animationDelay: "0.1s" }} />
+            <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 md:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-20 rounded-lg skeleton-shimmer"
+                  style={{ animationDelay: `${0.15 + i * 0.05}s` }}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -230,89 +261,277 @@ export default function GardenDetail() {
           {...baseHeaderProps}
         />
         <div className="mt-6 px-6">
-          <div className="rounded-md border border-error-light bg-error-lighter p-4" role="alert">
-            <p className="text-sm text-error-dark">
-              {error?.message ?? formatMessage({ id: "app.garden.admin.notFound" })}
-            </p>
-          </div>
+          <Card className="mx-auto max-w-lg" role="alert">
+            <Card.Body className="flex flex-col items-center py-10 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-error-lighter">
+                <RiErrorWarningLine className="h-6 w-6 text-error-base" />
+              </div>
+              <h2 className="mt-4 font-heading text-lg font-semibold text-text-strong">
+                {formatMessage({ id: "app.garden.admin.notFound" })}
+              </h2>
+              <p className="mt-2 text-sm text-text-sub">
+                {error?.message ?? formatMessage({ id: "app.garden.admin.unableToLoad" })}
+              </p>
+              <Button variant="secondary" className="mt-6" asChild>
+                <Link to="/gardens">{formatMessage({ id: "app.garden.admin.backToGardens" })}</Link>
+              </Button>
+            </Card.Body>
+          </Card>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="garden-detail-container pb-6">
-      <PageHeader title={garden.name} {...baseHeaderProps} />
+  const derived = useGardenDerivedState({
+    garden,
+    works,
+    assessments,
+    hypercerts,
+    allocations,
+    gardenVaults,
+    vaultNetDeposited,
+    roleMembers,
+    selectedRange,
+    activityFilter,
+    memberSearch,
+    section,
+    formatMessage,
+    openSection,
+  });
 
-      <div className="garden-detail-grid mt-6 px-4 sm:px-6">
-        <GardenHeroSection
-          garden={garden}
-          gardenId={gardenId}
-          canManage={canManage}
-          canReview={canReview}
-        />
-
-        <section className="grid-area-metadata">
-          <GardenMetadata
-            gardenId={garden.id}
-            tokenAddress={garden.tokenAddress}
-            tokenId={garden.tokenID}
-            chainId={garden.chainId}
-          />
-        </section>
-
-        <GardenStatsGrid
-          gardenerCount={garden.gardeners.length}
-          operatorCount={garden.operators.length}
-          workCount={works.length}
-          assessmentCount={assessments.length}
-          hasVaults={gardenVaults.length > 0}
-          vaultNetDeposited={vaultNetDeposited}
-          vaultHarvestCount={vaultHarvestCount}
-          vaultDepositorCount={vaultDepositorCount}
-          communityLoading={communityLoading}
-          communityLabel={weightSchemeLabel}
-        />
-
-        <section className="grid-area-work">
-          <ErrorBoundary context="GardenDetail.YieldCommunity">
-            <GardenCommunityCard
-              community={community}
-              communityLoading={communityLoading}
-              pools={pools}
-              gardenId={gardenId}
-              canManage={canManage}
-              cookieJarCount={cookieJarCount}
-              gardenName={garden.name}
-              convictionStrategyCount={convictionStrategies.length}
-              donationAddressUnset={donationAddressUnset}
-              vaultsLoading={vaultsLoading}
-              hasVaults={gardenVaults.length > 0}
-              isCreatingPools={isCreatingPools}
-              onCreatePools={createPools}
-              onScheduleRefetch={scheduleBackgroundRefetch}
-            />
-            <GardenYieldCard allocations={allocations} allocationsLoading={allocationsLoading} />
-          </ErrorBoundary>
-          <WorkSubmissionsView gardenId={garden.id} canManage={canReview} />
-        </section>
-
-        <GardenRolesPanel
-          roleMembers={roleMembers}
-          canManageRoles={canManageRoles}
-          isLoading={isLoading}
-          onOpenAddMember={openAddMemberModal}
-          onOpenMembersModal={openMembersModal}
-          onRemoveMember={(address, role) => setMemberToRemove({ address, role })}
-        />
-
-        <GardenAssessmentsPanel
-          assessments={assessments}
-          isLoading={fetchingAssessments}
-          error={assessmentsError}
-          gardenId={gardenId}
-        />
+  const tabActions: Record<GardenTab, React.ReactNode> = {
+    overview: canManage ? (
+      <Button size="sm" onClick={() => setProfileModalOpen(true)}>
+        {formatMessage({ id: "app.garden.detail.action.manageProfile" })}
+      </Button>
+    ) : null,
+    impact: canReview ? (
+      <Button size="sm" asChild>
+        <Link to={`/gardens/${gardenId}/assessments/create`}>
+          <RiFileList3Line className="h-4 w-4" />
+          {formatMessage({ id: "app.garden.admin.newAssessment" })}
+        </Link>
+      </Button>
+    ) : (
+      <Button size="sm" variant="secondary" asChild>
+        <Link to={`/gardens/${gardenId}/assessments`}>
+          {formatMessage({ id: "app.garden.admin.viewAssessments" })}
+        </Link>
+      </Button>
+    ),
+    work: (
+      <div className="flex items-center gap-1.5">
+        <Button size="sm" onClick={() => openSection("work", "queue")}>
+          {formatMessage({ id: "app.garden.detail.action.reviewPending" })}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => openSection("work", "decisions")}>
+          {formatMessage({ id: "app.garden.detail.action.openDecisions" })}
+        </Button>
       </div>
+    ),
+    community: (
+      <div className="flex items-center gap-1.5">
+        <Button size="sm" asChild>
+          <Link to={`/gardens/${gardenId}/vault`}>
+            {formatMessage({ id: "app.treasury.manageVault" })}
+          </Link>
+        </Button>
+        {canManageRoles ? (
+          <Button size="sm" variant="secondary" onClick={() => setRolesModalOpen(true)}>
+            {formatMessage({ id: "app.garden.detail.action.manageRoles" })}
+          </Button>
+        ) : null}
+      </div>
+    ),
+  };
+
+  return (
+    <Tabs.Root
+      value={activeTab}
+      onValueChange={(value) => {
+        setTab(parseGardenTab(value));
+      }}
+      className="garden-detail-container pb-6"
+    >
+      <GardenHeroBanner
+        name={garden.name}
+        description={garden.description}
+        bannerImage={garden.bannerImage}
+        domainMask={garden.domainMask}
+        backTo="/gardens"
+        backLabel={formatMessage({ id: "app.garden.admin.backToGardens" })}
+        canManage={canManage}
+        onEditDomains={() => setDomainModalOpen(true)}
+      >
+        <div className="garden-tab-bar">
+          <Tabs.List className="garden-tabs-list -mb-[1px] flex">
+            <Tabs.Trigger value="overview" className={TAB_TRIGGER_BASE}>
+              {formatMessage({ id: "app.garden.admin.tab.overview" })}
+              <TabBadge badge={derived.tabBadges.overview} />
+            </Tabs.Trigger>
+            <Tabs.Trigger value="impact" className={TAB_TRIGGER_BASE}>
+              {formatMessage({ id: "app.garden.admin.tab.impact" })}
+              <TabBadge badge={derived.tabBadges.impact} />
+            </Tabs.Trigger>
+            <Tabs.Trigger value="work" className={TAB_TRIGGER_BASE}>
+              {formatMessage({ id: "app.garden.admin.tab.work" })}
+              <TabBadge badge={derived.tabBadges.work} />
+            </Tabs.Trigger>
+            <Tabs.Trigger value="community" className={TAB_TRIGGER_BASE}>
+              {formatMessage({ id: "app.garden.admin.tab.community" })}
+              <TabBadge badge={derived.tabBadges.community} />
+            </Tabs.Trigger>
+          </Tabs.List>
+          <div className="garden-tab-bar-actions hidden sm:flex">{tabActions[activeTab]}</div>
+        </div>
+      </GardenHeroBanner>
+
+      <div className="px-4 sm:px-6">
+        {/* Mobile-only tab actions (below tab bar, visible on small screens) */}
+        <div className="flex items-center gap-1.5 pt-3 empty:hidden sm:hidden">
+          {tabActions[activeTab]}
+        </div>
+
+        <Tabs.Content
+          value="overview"
+          className="garden-tab-content"
+          aria-label={formatMessage({ id: "app.garden.admin.tab.overview" })}
+        >
+          <OverviewTab
+            section={section}
+            selectedItem={selectedItem}
+            selectedRange={selectedRange}
+            clearSection={clearSection}
+            openSection={openSection}
+            updateQueryState={updateQueryState}
+            setTab={setTab}
+            overviewAlerts={derived.overviewAlerts}
+            gardenHealthLabel={derived.gardenHealthLabel}
+            approvedInRangeCount={derived.approvedInRangeCount}
+            impactVelocityDelta={derived.impactVelocityDelta}
+            medianReviewAgeHours={derived.medianReviewAgeHours}
+            activityFilter={activityFilter}
+            setActivityFilter={setActivityFilter}
+            filteredActivityEvents={derived.filteredActivityEvents}
+            isLoading={worksLoading || fetchingAssessments}
+            pendingWorkCount={derived.pendingWorks.length}
+            assessmentCount30d={derived.approvedInLastThirtyDays}
+            gardenerCount={roleMembers.gardener.length}
+            treasuryBalance={formatTokenAmount(vaultNetDeposited)}
+          />
+        </Tabs.Content>
+
+        <Tabs.Content
+          value="impact"
+          className="garden-tab-content"
+          aria-label={formatMessage({ id: "app.garden.admin.tab.impact" })}
+        >
+          <ImpactTab
+            garden={garden}
+            gardenId={gardenId}
+            canManage={canManage}
+            canReview={canReview}
+            section={section}
+            selectedItem={selectedItem}
+            clearSection={clearSection}
+            openSection={openSection}
+            assessments={assessments}
+            fetchingAssessments={fetchingAssessments}
+            assessmentsError={assessmentsError}
+            hypercerts={hypercerts}
+            hypercertsLoading={hypercertsLoading}
+            domainLabels={derived.domainLabels}
+            approvedInLastThirtyDays={derived.approvedInLastThirtyDays}
+          />
+        </Tabs.Content>
+
+        <Tabs.Content
+          value="work"
+          className="garden-tab-content"
+          aria-label={formatMessage({ id: "app.garden.admin.tab.work" })}
+        >
+          <WorkTab
+            garden={garden}
+            canReview={canReview}
+            section={section}
+            selectedItem={selectedItem}
+            clearSection={clearSection}
+            openSection={openSection}
+            works={works}
+            worksLoading={worksLoading}
+            worksFetching={worksFetching}
+            refreshWorkData={refreshWorkData}
+            lastWorkRefreshAt={lastWorkRefreshAt}
+            pendingWorks={derived.pendingWorks}
+            pendingWarningCount={derived.pendingWarningCount}
+            pendingCriticalCount={derived.pendingCriticalCount}
+            reviewedWorks={derived.reviewedWorks}
+            approvedWorks={derived.approvedWorks}
+            medianReviewAgeHours={derived.medianReviewAgeHours}
+          />
+        </Tabs.Content>
+
+        <Tabs.Content
+          value="community"
+          className="garden-tab-content"
+          aria-label={formatMessage({ id: "app.garden.admin.tab.community" })}
+        >
+          <CommunityTab
+            garden={garden}
+            gardenId={gardenId}
+            canManage={canManage}
+            isOwner={isOwner}
+            section={section}
+            clearSection={clearSection}
+            openSection={openSection}
+            community={community}
+            communityLoading={communityLoading}
+            pools={pools}
+            createPools={createPools}
+            isCreatingPools={isCreatingPools}
+            vaultsLoading={vaultsLoading}
+            hasVaults={derived.hasVaults}
+            vaultNetDeposited={vaultNetDeposited}
+            treasurySeverity={derived.treasurySeverity}
+            allocations={allocations}
+            allocationsLoading={allocationsLoading}
+            roleSummary={derived.roleSummary}
+            roleIcons={roleIcons}
+            filteredDirectory={derived.filteredDirectory}
+            visibleDirectory={derived.visibleDirectory}
+            memberSearch={memberSearch}
+            setMemberSearch={setMemberSearch}
+            openMembersModal={openMembersModal}
+            scheduleBackgroundRefetch={scheduleBackgroundRefetch}
+          />
+        </Tabs.Content>
+      </div>
+
+      <GardenProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        gardenAddress={garden.id as Address}
+        garden={garden}
+        canManage={canManage}
+        isOwner={isOwner}
+      />
+
+      <ManageRolesModal
+        isOpen={rolesModalOpen}
+        onClose={() => setRolesModalOpen(false)}
+        roleMembers={roleMembers}
+        canManageRoles={canManageRoles}
+        isLoading={isOperationLoading}
+        onOpenAddMember={openAddMemberModal}
+        onOpenMembersModal={openMembersModal}
+        onRemoveMember={(address, role) => setMemberToRemove({ address, role })}
+      />
+
+      <GardenDomainModal
+        isOpen={domainModalOpen}
+        onClose={() => setDomainModalOpen(false)}
+        gardenAddress={garden.id as Address}
+      />
 
       <AddMemberModal
         isOpen={addMemberModalOpen}
@@ -324,7 +543,7 @@ export default function GardenDetail() {
             scheduleBackgroundRefetch();
           }
         }}
-        isLoading={isLoading}
+        isLoading={isOperationLoading}
       />
 
       <MembersModal
@@ -332,7 +551,7 @@ export default function GardenDetail() {
         onClose={() => setMembersModalOpen(false)}
         title={formatMessage(
           { id: "app.admin.roles.all" },
-          { role: getRoleLabel(activeRole).plural }
+          { role: getRoleLabel(activeRole, formatMessage).plural }
         )}
         members={roleMembers[activeRole]}
         canManage={canManageRoles}
@@ -344,18 +563,18 @@ export default function GardenDetail() {
             toastService.error({
               title: formatMessage(
                 { id: "app.admin.roles.removeFailed" },
-                { role: getRoleLabel(activeRole).singular }
+                { role: getRoleLabel(activeRole, formatMessage).singular }
               ),
               message:
                 result.error?.message ??
                 formatMessage(
                   { id: "app.admin.roles.removeFailed" },
-                  { role: getRoleLabel(activeRole).singular }
+                  { role: getRoleLabel(activeRole, formatMessage).singular }
                 ),
             });
           }
         }}
-        isLoading={isLoading}
+        isLoading={isOperationLoading}
         icon={<ActiveRoleIcon className="h-5 w-5" />}
         colorScheme={GARDEN_ROLE_COLORS[activeRole]}
       />
@@ -367,18 +586,18 @@ export default function GardenDetail() {
         description={formatMessage(
           { id: "app.admin.roles.confirmRemoveDescription" },
           {
-            address: memberToRemove?.address ?? "",
-            role: memberToRemove ? getRoleLabel(memberToRemove.role).singular : "",
+            address: formatAddress(memberToRemove?.address),
+            role: memberToRemove ? getRoleLabel(memberToRemove.role, formatMessage).singular : "",
           }
         )}
         confirmLabel={formatMessage({ id: "app.admin.roles.confirmRemoveAction" })}
         variant="danger"
-        isLoading={isLoading}
+        isLoading={isOperationLoading}
         onConfirm={async () => {
           if (!memberToRemove) return;
           const removeMemberRole = memberToRemove.role;
           const removeMemberAddress = memberToRemove.address;
-          const roleLabel = getRoleLabel(removeMemberRole);
+          const roleLabel = getRoleLabel(removeMemberRole, formatMessage);
           setMemberToRemove(null);
 
           const result = await roleActions[removeMemberRole].remove(removeMemberAddress);
@@ -397,6 +616,6 @@ export default function GardenDetail() {
           }
         }}
       />
-    </div>
+    </Tabs.Root>
   );
 }

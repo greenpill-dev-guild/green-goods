@@ -1,4 +1,6 @@
 import type { ActionInstructionConfig } from "@green-goods/shared";
+import { useIntl } from "react-intl";
+import { FormField } from "@/components/ui/FormField";
 
 interface ReviewConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["review"];
@@ -6,38 +8,49 @@ interface ReviewConfigSectionProps {
 }
 
 export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionProps) {
+  const { formatMessage } = useIntl();
+
   return (
     <div className="space-y-4">
-      <div>
-        <label htmlFor="review-title" className="block text-sm font-medium text-text-strong mb-2">
-          Section Title
-        </label>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.reviewConfig.sectionTitle",
+          defaultMessage: "Section Title",
+        })}
+        htmlFor="review-title"
+      >
         <input
           id="review-title"
           type="text"
           value={config.title}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
-          placeholder="e.g., Review & Submit"
+          placeholder={formatMessage({
+            id: "app.admin.actions.reviewConfig.sectionTitlePlaceholder",
+            defaultMessage: "e.g., Review & Submit",
+          })}
         />
-      </div>
+      </FormField>
 
-      <div>
-        <label
-          htmlFor="review-description"
-          className="block text-sm font-medium text-text-strong mb-2"
-        >
-          Description
-        </label>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.reviewConfig.description",
+          defaultMessage: "Description",
+        })}
+        htmlFor="review-description"
+      >
         <textarea
           id="review-description"
           value={config.description}
           onChange={(e) => onChange({ ...config, description: e.target.value })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
           rows={3}
-          placeholder="Instructions for the review screen..."
+          placeholder={formatMessage({
+            id: "app.admin.actions.reviewConfig.descriptionPlaceholder",
+            defaultMessage: "Instructions for the review screen...",
+          })}
         />
-      </div>
+      </FormField>
     </div>
   );
 }

@@ -1,12 +1,12 @@
-import type { Address } from "viem";
 import { getPublicClient } from "@wagmi/core";
-import type { WorkDraft } from "../../types/domain";
+import type { Address } from "viem";
 import { wagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
+import type { WorkDraft } from "../../types/domain";
 import { EASABI } from "../../utils/blockchain/contracts";
+import { debugError, debugLog } from "../../utils/debug";
 import { NO_EXPIRATION, ZERO_BYTES32 } from "../../utils/eas/constants";
 import { simulateWorkData } from "../../utils/eas/encoders";
-import { debugError, debugLog } from "../../utils/debug";
 import { parseContractError } from "../../utils/errors/contract-errors";
 
 export interface SimulateWorkSubmissionParams {
@@ -104,7 +104,7 @@ export async function simulateWorkSubmission({
           data: {
             recipient: gardenAddress as `0x${string}`,
             expirationTime: NO_EXPIRATION,
-            revocable: true,
+            revocable: false,
             refUID: ZERO_BYTES32,
             data: simulationData,
             value: 0n,

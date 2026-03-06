@@ -4,11 +4,11 @@ import { persist } from "zustand/middleware";
 
 import {
   createGardenSchema,
-  gardenStepFields,
   type GardenStepId,
+  gardenStepFields,
 } from "../hooks/garden/useCreateGardenForm";
-import type { Address } from "../types/domain";
 import { type CreateGardenParams, WeightScheme } from "../types/contracts";
+import { type Address, Domain } from "../types/domain";
 
 // Storage key for garden creation flow persistence
 const CREATE_GARDEN_STORAGE_KEY = "green-goods:create-garden";
@@ -21,6 +21,7 @@ export interface CreateGardenFormState {
   bannerImage: string;
   metadata: string;
   openJoining: boolean;
+  domains: Domain[];
   gardeners: Address[];
   operators: Address[];
 }
@@ -28,7 +29,7 @@ export interface CreateGardenFormState {
 export interface CreateGardenStep {
   id: "details" | "team" | "review";
   title: string;
-  description: string;
+  description?: string;
 }
 
 export interface CreateGardenStore {
@@ -55,24 +56,10 @@ export interface CreateGardenStore {
   getParams: () => CreateGardenParams | null;
 }
 
-export const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
-
 const defaultSteps: CreateGardenStep[] = [
-  {
-    id: "details",
-    title: "Garden details",
-    description: "Define the basics for your onchain garden.",
-  },
-  {
-    id: "team",
-    title: "Community",
-    description: "Invite gardeners and operators who can help steward the garden.",
-  },
-  {
-    id: "review",
-    title: "Review & deploy",
-    description: "Confirm the information before deploying the garden attestation.",
-  },
+  { id: "details", title: "Garden details", description: "Name, location & media" },
+  { id: "team", title: "Community", description: "Gardeners & operators" },
+  { id: "review", title: "Review & deploy", description: "Confirm your setup" },
 ];
 
 export function createEmptyGardenForm(): CreateGardenFormState {
@@ -84,6 +71,7 @@ export function createEmptyGardenForm(): CreateGardenFormState {
     bannerImage: "",
     metadata: "",
     openJoining: false,
+    domains: [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE],
     gardeners: [],
     operators: [],
   };
@@ -258,7 +246,9 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           metadata: form.metadata.trim(),
           openJoining: form.openJoining,
           weightScheme: WeightScheme.Linear,
-          domainMask: 0x0f,
+          domainMask: form.domains.reduce((mask, d) => mask | (1 << d), 0),
+          gardeners: form.gardeners,
+          operators: form.operators,
         } satisfies CreateGardenParams;
       },
     }),

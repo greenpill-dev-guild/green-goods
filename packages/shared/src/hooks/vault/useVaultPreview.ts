@@ -3,7 +3,7 @@ import { useReadContracts } from "wagmi";
 import type { Address } from "../../types/domain";
 import type { VaultPreview } from "../../types/vaults";
 import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
-import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
+import { VAULT_MAX_BPS, ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 
 interface UseVaultPreviewOptions {
   vaultAddress?: Address;
@@ -30,6 +30,8 @@ export function useVaultPreview(options: UseVaultPreviewOptions = {}) {
       { ...base, functionName: "maxDeposit", args: [userAddress] },
       { ...base, functionName: "balanceOf", args: [userAddress] },
       { ...base, functionName: "totalAssets", args: [] },
+      { ...base, functionName: "maxWithdraw", args: [userAddress, VAULT_MAX_BPS, []] },
+      { ...base, functionName: "previewWithdraw", args: [amount] },
     ] as const;
   }, [vaultAddress, amount, shares, userAddress]);
 
@@ -43,7 +45,15 @@ export function useVaultPreview(options: UseVaultPreviewOptions = {}) {
   const preview = useMemo((): VaultPreview | undefined => {
     if (!query.data) return undefined;
 
-    const [previewShares, previewAssets, maxDeposit, shareBalance, totalAssets] = query.data;
+    const [
+      previewShares,
+      previewAssets,
+      maxDeposit,
+      shareBalance,
+      totalAssets,
+      maxWithdrawResult,
+      previewWithdrawShares,
+    ] = query.data;
 
     return {
       previewShares: previewShares.status === "success" ? (previewShares.result as bigint) : 0n,
@@ -51,6 +61,10 @@ export function useVaultPreview(options: UseVaultPreviewOptions = {}) {
       maxDeposit: maxDeposit.status === "success" ? (maxDeposit.result as bigint) : 0n,
       shareBalance: shareBalance.status === "success" ? (shareBalance.result as bigint) : 0n,
       totalAssets: totalAssets.status === "success" ? (totalAssets.result as bigint) : 0n,
+      maxWithdraw:
+        maxWithdrawResult.status === "success" ? (maxWithdrawResult.result as bigint) : 0n,
+      previewWithdrawShares:
+        previewWithdrawShares.status === "success" ? (previewWithdrawShares.result as bigint) : 0n,
     };
   }, [query.data]);
 

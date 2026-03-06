@@ -1,9 +1,9 @@
 import {
+  type Action,
   AudioPlayer,
   formatTimeSpent,
-  mediaResourceManager,
-  type Action,
   type Garden,
+  mediaResourceManager,
 } from "@green-goods/shared";
 import { RiFileFill, RiPencilFill, RiTimeFill } from "@remixicon/react";
 import { useMemo } from "react";
@@ -13,7 +13,6 @@ import { WorkView } from "@/components/Features/Work";
 /** Stable tracking ID for work draft media URLs (shared with Media.tsx) */
 const WORK_DRAFT_TRACKING_ID = "work-draft";
 const VIDEO_TRACKING_ID = "work-draft-video";
-const AUDIO_REVIEW_TRACKING_ID = "work-review-audio";
 
 interface WorkReviewProps {
   reviewConfig?: Action["review"];
@@ -105,11 +104,11 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
       : []),
   ];
 
-  // Separate photos from video
-  const { photoFiles, videoFile } = useMemo(() => {
-    const video = images.find((f) => f.type.startsWith("video/"));
+  // Separate photos from videos (both can coexist)
+  const { photoFiles, videoFiles } = useMemo(() => {
+    const videos = images.filter((f) => f.type.startsWith("video/"));
     const photos = images.filter((f) => !f.type.startsWith("video/"));
-    return { photoFiles: photos, videoFile: video ?? null };
+    return { photoFiles: photos, videoFiles: videos };
   }, [images]);
 
   // Stable URLs for photos (same tracking ID as Media.tsx)
@@ -119,13 +118,11 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
     [photoFiles]
   );
 
-  // Stable URL for video
-  const videoUrl = useMemo(
-    () => (videoFile ? mediaResourceManager.getOrCreateUrl(videoFile, VIDEO_TRACKING_ID) : null),
-    [videoFile]
+  // Stable URLs for videos
+  const videoUrls = useMemo(
+    () => videoFiles.map((file) => mediaResourceManager.getOrCreateUrl(file, VIDEO_TRACKING_ID)),
+    [videoFiles]
   );
-
-  const hasVideo = videoFile !== null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -135,25 +132,27 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
         garden={garden}
         actionTitle={action.title}
         media={photoUrls}
-        showMedia={!hasVideo && photoUrls.length > 0}
+        showMedia={photoUrls.length > 0}
         details={details}
         headerIcon={RiFileFill}
         primaryActions={[]}
       />
 
-      {/* Video preview (mutually exclusive with photo gallery in WorkView) */}
-      {hasVideo && videoUrl && (
-        <div className="padded">
+      {/* Video previews (shown alongside photos, not mutually exclusive) */}
+      {videoUrls.length > 0 && (
+        <div className="padded flex flex-col gap-2">
           <p className="text-xs tracking-tight mb-1 uppercase text-text-sub">
             {intl.formatMessage({
               id: "app.garden.review.video",
               defaultMessage: "Video",
             })}
           </p>
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated content */}
-          <video src={videoUrl} controls className="w-full rounded-lg">
-            <track kind="captions" />
-          </video>
+          {videoUrls.map((url, index) => (
+            /* eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated content */
+            <video key={`review-video-${index}`} src={url} controls className="w-full rounded-lg">
+              <track kind="captions" />
+            </video>
+          ))}
         </div>
       )}
 

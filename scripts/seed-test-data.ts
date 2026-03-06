@@ -120,7 +120,7 @@ async function seedTestData(context: AnvilForkContext): Promise<SeedDataResult> 
   const wateringAction = await registerAction(context, {
     startTime: timestamps.startTime,
     endTime: timestamps.endTime,
-    title: "Water Conservation",
+    title: "Water Stewardship",
     instructions: "Document water-saving practices in the garden",
     mediaTypes: ["image/jpeg"],
   });

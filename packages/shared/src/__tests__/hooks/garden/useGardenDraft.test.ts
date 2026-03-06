@@ -11,8 +11,8 @@
  * @vitest-environment jsdom
  */
 
-import { renderHook, act } from "@testing-library/react";
-import { get as idbGet, clear as idbClear } from "idb-keyval";
+import { act, renderHook } from "@testing-library/react";
+import { clear as idbClear, get as idbGet } from "idb-keyval";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
@@ -341,6 +341,39 @@ describe("useGardenDraft", () => {
     it("description alone counts as meaningful", async () => {
       mockStoreState = {
         form: { ...mockFormState, description: "A garden" },
+        currentStep: 0,
+      };
+
+      const { result } = renderHook(() => useGardenDraft(OPERATOR_ADDR));
+
+      let saved: any;
+      await act(async () => {
+        saved = await result.current.saveDraft();
+      });
+      expect(saved).not.toBeNull();
+    });
+
+    it("location alone counts as meaningful", async () => {
+      mockStoreState = {
+        form: { ...mockFormState, location: "Bogota, CO" },
+        currentStep: 0,
+      };
+
+      const { result } = renderHook(() => useGardenDraft(OPERATOR_ADDR));
+
+      let saved: any;
+      await act(async () => {
+        saved = await result.current.saveDraft();
+      });
+      expect(saved).not.toBeNull();
+    });
+
+    it("planned members count as meaningful", async () => {
+      mockStoreState = {
+        form: {
+          ...mockFormState,
+          gardeners: ["0x1111111111111111111111111111111111111111"] as string[],
+        },
         currentStep: 0,
       };
 

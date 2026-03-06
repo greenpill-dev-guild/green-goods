@@ -105,7 +105,7 @@ Thank you to everyone who has contributed to Green Goods!
 
 ### Infrastructure & Services
 
-- **[IPFS](https://ipfs.tech)** via **[Pinata](https://pinata.cloud)** - Decentralized storage
+- **[IPFS](https://ipfs.tech)** via **[Storacha](https://storacha.network)** & **[Pinata](https://pinata.cloud)** - Decentralized storage
 - **[Vercel](https://vercel.com)** - Hosting & CDN
 - **[Docker](https://docker.com)** - Containerization
 - **[PostgreSQL](https://postgresql.org)** - Database
@@ -115,7 +115,7 @@ Thank you to everyone who has contributed to Green Goods!
 
 - **[Arbitrum](https://arbitrum.io)** - Layer 2 scaling
 - **[Celo](https://celo.org)** - Carbon-negative blockchain
-- **[Base](https://base.org)** - Coinbase L2
+- **[Sepolia](https://sepolia.dev)** - Ethereum testnet
 
 ### Open Source Libraries
 
@@ -151,9 +151,9 @@ Green Goods has been supported by:
 - **ReFi DAO** - Regenerative finance community
 - **Karma GAP** - Impact reporting standard
 
-### Conservation Partners
+### Community Partners
 
-- Local gardens and conservation organizations
+- Local gardens and regenerative organizations
 - Bioregional networks
 - Community coordinators
 - (Partners to be listed as they onboard)

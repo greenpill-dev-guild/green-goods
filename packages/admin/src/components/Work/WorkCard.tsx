@@ -1,9 +1,12 @@
 import {
+  type EASWork,
+  formatAddress,
+  resolveIPFSUrl,
   WorkCardComponent as SharedWorkCard,
   type WorkCardData,
-  resolveIPFSUrl,
-  formatAddress,
 } from "@green-goods/shared";
+import type React from "react";
+import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
 interface WorkCardProps {
@@ -11,10 +14,14 @@ interface WorkCardProps {
 }
 
 export const WorkCard: React.FC<WorkCardProps> = ({ work }) => {
+  const intl = useIntl();
+
   // Transform EASWork to WorkCardData for the shared component
   const workData: WorkCardData = {
     id: work.id,
-    title: work.title || "Untitled Work",
+    title:
+      work.title ||
+      intl.formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" }),
     status: work.status || "pending",
     createdAt: work.createdAt,
     mediaPreview: work.media?.map((m) => resolveIPFSUrl(m)),
@@ -33,12 +40,24 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work }) => {
       showGardener
       showMediaCount
       showFeedbackBadge
+      labels={{
+        untitledWork: intl.formatMessage({ id: "app.admin.work.untitledWork" }),
+        error: intl.formatMessage({ id: "app.workCard.error" }),
+        feedback: intl.formatMessage({ id: "app.workCard.feedback" }),
+        status: {
+          approved: intl.formatMessage({ id: "app.admin.work.filter.approved" }),
+          rejected: intl.formatMessage({ id: "app.admin.work.filter.rejected" }),
+          pending: intl.formatMessage({ id: "app.admin.work.filter.pending" }),
+        },
+        mediaPreviewAlt: intl.formatMessage({ id: "app.admin.work.mediaPreview" }),
+        closePreview: intl.formatMessage({ id: "app.admin.work.closePreview" }),
+      }}
       renderActions={() => (
         <Link
           to={`/gardens/${work.gardenAddress}/work/${work.id}`}
-          className="inline-flex items-center text-xs font-medium text-green-600 hover:text-green-700 transition-colors ml-auto"
+          className="inline-flex items-center text-xs font-medium text-primary-base hover:text-primary-darker transition-colors ml-auto"
         >
-          View Details
+          {intl.formatMessage({ id: "app.admin.work.viewDetails", defaultMessage: "View Details" })}
           <span className="ml-1" aria-hidden="true">
             →
           </span>

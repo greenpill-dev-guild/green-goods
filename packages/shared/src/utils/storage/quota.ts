@@ -11,9 +11,9 @@
  * @module utils/storage/quota
  */
 
+import { trackStorageError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
-import { trackStorageError } from "../../modules/app/error-tracking";
 
 // ============================================================================
 // TYPES
@@ -221,8 +221,7 @@ export async function trackStorageQuota(source: string = "unknown"): Promise<voi
       });
     }
   } catch (error) {
-    // Silently ignore tracking errors
-    console.debug("[StorageQuota] Failed to track quota:", error);
+    logger.debug("[StorageQuota] Failed to track quota", { error });
   }
 }
 

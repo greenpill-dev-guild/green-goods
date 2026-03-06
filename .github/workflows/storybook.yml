@@ -1,0 +1,43 @@
+name: Storybook
+
+on:
+  pull_request:
+    paths:
+      - "packages/shared/src/components/**"
+      - "packages/shared/.storybook/**"
+      - "packages/admin/src/components/**"
+      - "packages/client/src/components/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check story coverage
+        run: bun run --filter @green-goods/shared check:stories
+
+      - name: Build Storybook
+        run: bun run --filter @green-goods/shared build-storybook
+
+      - name: Upload Storybook artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook-static
+          path: packages/shared/storybook-static

@@ -1,11 +1,11 @@
 import {
-  Domain,
   type Action,
   type Address,
-  type Garden,
+  Domain,
   expandDomainMask,
-  hasDomain,
+  type Garden,
   hapticSelection,
+  hasDomain,
 } from "@green-goods/shared";
 import { RiHammerFill, RiPlantFill } from "@remixicon/react";
 import React, { useMemo } from "react";
@@ -20,12 +20,20 @@ import {
 import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
 
-/** Domain display config keyed by Domain enum value */
-const DOMAIN_TABS: Record<Domain, { label: string; icon: string }> = {
-  [Domain.SOLAR]: { label: "Solar", icon: "ri-sun-line" },
-  [Domain.AGRO]: { label: "Agroforestry", icon: "ri-plant-line" },
-  [Domain.EDU]: { label: "Education", icon: "ri-book-open-line" },
-  [Domain.WASTE]: { label: "Waste", icon: "ri-recycle-line" },
+/** Domain icon + i18n label ID (stable); labels resolved via intl at render time */
+const DOMAIN_TAB_CONFIG: Record<Domain, { labelId: string; defaultLabel: string; icon: string }> = {
+  [Domain.SOLAR]: { labelId: "app.domain.tab.solar", defaultLabel: "Solar", icon: "ri-sun-line" },
+  [Domain.AGRO]: { labelId: "app.domain.tab.agro", defaultLabel: "Agro", icon: "ri-plant-line" },
+  [Domain.EDU]: {
+    labelId: "app.domain.tab.education",
+    defaultLabel: "Education",
+    icon: "ri-book-open-line",
+  },
+  [Domain.WASTE]: {
+    labelId: "app.domain.tab.waste",
+    defaultLabel: "Waste",
+    icon: "ri-recycle-line",
+  },
 };
 
 interface WorkIntroProps {
@@ -99,15 +107,20 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
     };
   }, [actions, gardens, selectedDomain]);
 
-  // Build tab items from available domains
+  // Build tab items from available domains (resolved via intl)
   const domainTabItems: StandardTab[] = useMemo(
     () =>
-      availableDomains.map((d) => ({
-        id: String(d),
-        label: DOMAIN_TABS[d]?.label ?? `Domain ${d}`,
-        icon: <i className={DOMAIN_TABS[d]?.icon ?? "ri-question-line"} aria-hidden="true" />,
-      })),
-    [availableDomains]
+      availableDomains.map((d) => {
+        const config = DOMAIN_TAB_CONFIG[d];
+        return {
+          id: String(d),
+          label: config
+            ? intl.formatMessage({ id: config.labelId, defaultMessage: config.defaultLabel })
+            : `Domain ${d}`,
+          icon: <i className={config?.icon ?? "ri-question-line"} aria-hidden="true" />,
+        };
+      }),
+    [availableDomains, intl]
   );
 
   const showDomainTabs = availableDomains.length > 1;

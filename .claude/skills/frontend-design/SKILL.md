@@ -1,6 +1,12 @@
 ---
 name: frontend-design
 description: Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, or applications. Generates creative, polished code that avoids generic AI aesthetics.
+version: "1.0.0"
+status: active
+packages: ["shared", "client", "admin"]
+dependencies: ["tailwindcss", "radix-ui"]
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 This skill guides creation of distinctive, production-grade frontend interfaces that avoid generic "AI slop" aesthetics. Implement real working code with exceptional attention to aesthetic details and creative choices.
@@ -59,7 +65,7 @@ When implementing UI for Green Goods, this skill works alongside:
 ### Green Goods Aesthetic
 
 - **Color**: Primary green (#1FC16B) with earth-toned accents
-- **Feel**: Organic, trustworthy, action-oriented (conservation/nature)
+- **Feel**: Organic, trustworthy, action-oriented (regenerative/nature)
 - **Tokens**: Use semantic tokens from `packages/shared/src/styles/theme.css`
 - **Typography**: `packages/client/src/styles/typography.css` for existing hierarchy
 - **Animation**: `packages/client/src/styles/animation.css` for existing motions

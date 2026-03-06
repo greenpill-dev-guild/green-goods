@@ -2,6 +2,12 @@
 name: security
 user-invocable: false
 description: Smart contract security auditing - vulnerability detection, access control review, static analysis tooling, and Hats Protocol patterns. Use for security reviews, pre-deployment audits, and threat modeling.
+version: "1.0.0"
+status: active
+packages: ["contracts"]
+dependencies: ["contracts"]
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Security Skill

@@ -1,4 +1,5 @@
 import { type IDBPDatabase, openDB } from "idb";
+import { logger } from "../app/logger";
 
 const DB_NAME = "green-goods-translations";
 const DB_VERSION = 1;
@@ -59,7 +60,7 @@ class TranslationCache {
       return null;
     }
 
-    console.debug(`💾 [Translation] Cache hit: "${text.substring(0, 30)}..." → ${target}`);
+    logger.debug("[Translation] Cache hit", { text: text.substring(0, 30), target });
     return cached.translated;
   }
 
@@ -77,7 +78,7 @@ class TranslationCache {
       expiresAt: now + CACHE_TTL_DAYS * 24 * 60 * 60 * 1000,
     });
 
-    console.debug(`✨ [Translation] Cached: "${text.substring(0, 30)}..." → ${target}`);
+    logger.debug("[Translation] Cached", { text: text.substring(0, 30), target });
   }
 
   private async cleanup(): Promise<void> {

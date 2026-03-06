@@ -5,10 +5,10 @@
  * retry logic, error recovery, and context management.
  */
 
-import { createActor, fromPromise } from "xstate";
 import { describe, expect, it, vi } from "vitest";
+import { createActor, fromPromise } from "xstate";
 
-import { createGardenMachine, type CreateGardenFormStatus } from "../../workflows/createGarden";
+import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
 
 // ============================================
 // Test Helpers
@@ -432,7 +432,8 @@ describe("workflows/createGardenMachine", () => {
         expect(actor.getSnapshot().value).toBe("error");
       });
 
-      expect(actor.getSnapshot().context.error).toBe("Gas estimation failed");
+      // formatUserError maps "Gas estimation failed" → USER_FRIENDLY_ERRORS["failed"]
+      expect(actor.getSnapshot().context.error).toBe("Operation failed - please try again");
       expect(actor.getSnapshot().context.retryCount).toBe(1);
 
       actor.stop();
@@ -465,13 +466,15 @@ describe("workflows/createGardenMachine", () => {
       actor.stop();
     });
 
-    it("returns to idle on CLOSE during submission", () => {
+    it("ignores CLOSE during submission (tx cannot be cancelled on-chain)", () => {
       const actor = goToSubmitting();
       expect(actor.getSnapshot().value).toBe("submitting");
 
       actor.send({ type: "CLOSE" });
 
-      expect(actor.getSnapshot().value).toBe("idle");
+      // CLOSE is intentionally not handled during submitting — the machine
+      // stays in submitting until the actor resolves or rejects.
+      expect(actor.getSnapshot().value).toBe("submitting");
       actor.stop();
     });
   });

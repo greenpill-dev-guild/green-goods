@@ -1,7 +1,6 @@
 import type { SmartAccountClient } from "permissionless";
-import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
-
 import { getEASConfig } from "../../config/blockchain";
+import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { debugError, debugLog } from "../../utils/debug";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import {

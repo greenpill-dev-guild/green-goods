@@ -1,5 +1,6 @@
 import type { ActionInstructionConfig } from "@green-goods/shared";
 import { useState } from "react";
+import { useIntl } from "react-intl";
 import { DetailsConfigSection } from "./DetailsConfigSection";
 import { MediaConfigSection } from "./MediaConfigSection";
 import { ReviewConfigSection } from "./ReviewConfigSection";
@@ -12,6 +13,7 @@ interface InstructionsBuilderProps {
 type UIConfigKey = keyof ActionInstructionConfig["uiConfig"];
 
 export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProps) {
+  const { formatMessage } = useIntl();
   const [activeTab, setActiveTab] = useState<"media" | "details" | "review">("media");
 
   const updateUIConfig = <K extends UIConfigKey>(
@@ -36,33 +38,42 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
           onClick={() => setActiveTab("media")}
           className={`px-4 py-3 text-sm font-medium ${
             activeTab === "media"
-              ? "border-b-2 border-green-500 text-green-600"
+              ? "border-b-2 border-primary-base text-primary-base"
               : "text-text-sub hover:text-text-strong"
           }`}
         >
-          Media Configuration
+          {formatMessage({
+            id: "app.admin.actions.instructions.tabMedia",
+            defaultMessage: "Media Configuration",
+          })}
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("details")}
           className={`px-4 py-3 text-sm font-medium ${
             activeTab === "details"
-              ? "border-b-2 border-green-500 text-green-600"
+              ? "border-b-2 border-primary-base text-primary-base"
               : "text-text-sub hover:text-text-strong"
           }`}
         >
-          Form Inputs
+          {formatMessage({
+            id: "app.admin.actions.instructions.tabFormInputs",
+            defaultMessage: "Form Inputs",
+          })}
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("review")}
           className={`px-4 py-3 text-sm font-medium ${
             activeTab === "review"
-              ? "border-b-2 border-green-500 text-green-600"
+              ? "border-b-2 border-primary-base text-primary-base"
               : "text-text-sub hover:text-text-strong"
           }`}
         >
-          Review Screen
+          {formatMessage({
+            id: "app.admin.actions.instructions.tabReview",
+            defaultMessage: "Review Screen",
+          })}
         </button>
       </div>
 
@@ -94,7 +105,10 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
       <div className="border-t border-stroke-soft p-4 bg-bg-soft">
         <details>
           <summary className="text-sm font-medium text-text-strong cursor-pointer mb-2">
-            JSON Preview
+            {formatMessage({
+              id: "app.admin.actions.instructions.jsonPreview",
+              defaultMessage: "JSON Preview",
+            })}
           </summary>
           <pre className="text-xs bg-bg-white p-3 rounded border border-stroke-soft overflow-x-auto">
             {JSON.stringify(value, null, 2)}

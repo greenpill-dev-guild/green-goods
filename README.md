@@ -30,4 +30,4 @@ bun dev      # Starts all services via PM2
 
 ## Contributing
 
-Run `bun format && bun lint && bun test` before opening PRs.
+Run `bun format && bun lint && bun run test` before opening PRs.

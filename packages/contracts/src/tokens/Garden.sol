@@ -49,12 +49,15 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Current transfer restriction mode
     TransferRestriction public transferRestriction;
 
+    /// @notice Whether minting is open to anyone (true) or restricted to owner/allowlist (false)
+    bool public openMinting;
+
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 37 slots (50 total - 13 used: _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule,
-     * octantModule, gardensModule, actionRegistry, cookieJarModule, ensModule, communityToken,
-     * failedENSRefunds, totalPendingENSRefunds, transferRestriction)
-     * Allows adding new state variables without breaking storage layout in upgrades
+     * Reserves 37 slots (50 total - 13 used slots: _nextTokenId, deploymentRegistry, hatsModule,
+     * karmaGAPModule, octantModule, gardensModule, actionRegistry, cookieJarModule, ensModule,
+     * communityToken, failedENSRefunds, totalPendingENSRefunds, transferRestriction+openMinting)
+     * Note: transferRestriction (enum, 1 byte) and openMinting (bool, 1 byte) pack into one slot.
      */
     uint256[37] private __gap;
 
@@ -95,6 +98,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Emitted when the community token address is updated.
     event CommunityTokenUpdated(address indexed oldToken, address indexed newToken);
 
+    /// @notice Emitted when the open minting mode is changed.
+    event OpenMintingUpdated(bool indexed open);
+
     /// @notice Emitted when an ENS registration refund is queued for manual claim
     event ENSRegistrationRefundQueued(address indexed minter, uint256 amount);
 
@@ -112,6 +118,8 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         bool openJoining;
         IGardensModule.WeightScheme weightScheme;
         uint8 domainMask;
+        address[] gardeners;
+        address[] operators;
     }
 
     /// @notice Emitted for batch operations (Gas Optimized)
@@ -233,23 +241,35 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         transferRestriction = _restriction;
     }
 
-    /// @notice Modifier to check if caller is authorized to mint gardens.
-    /// @dev Checks if caller is owner or in deployment registry allowlist.
-    modifier onlyAuthorizedMinter() {
-        if (owner() != msg.sender) {
-            if (deploymentRegistry == address(0)) {
-                revert DeploymentNotConfigured();
-            }
+    /// @notice Enable or disable open minting (owner only)
+    function setOpenMinting(bool _open) external onlyOwner {
+        openMinting = _open;
+        emit OpenMintingUpdated(_open);
+    }
 
-            try Deployment(deploymentRegistry).isInAllowlist(msg.sender) returns (bool isAllowed) {
-                if (!isAllowed) {
-                    revert UnauthorizedMinter();
-                }
-            } catch {
+    /// @notice Modifier to check if caller is authorized to mint gardens.
+    /// @dev Delegates to _checkMintAuthorization() to avoid modifier inlining stack depth issues.
+    modifier onlyAuthorizedMinter() {
+        _checkMintAuthorization();
+        _;
+    }
+
+    /// @dev When openMinting is true, anyone can mint. Otherwise checks owner or deployment registry allowlist.
+    function _checkMintAuthorization() private view {
+        if (openMinting) return;
+        if (owner() == msg.sender) return;
+
+        if (deploymentRegistry == address(0)) {
+            revert DeploymentNotConfigured();
+        }
+
+        try Deployment(deploymentRegistry).isInAllowlist(msg.sender) returns (bool isAllowed) {
+            if (!isAllowed) {
                 revert UnauthorizedMinter();
             }
+        } catch {
+            revert UnauthorizedMinter();
         }
-        _;
     }
 
     /// @notice Mints a new Garden token and creates the associated Garden account.
@@ -274,8 +294,6 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
         return gardenAccount;
     }
-
-    // _mintGardenInternal removed as it is no longer needed
 
     /// @notice Batch mint multiple gardens (40% gas savings)
     /// @dev **ENS msg.value limitation**: In batch mode, the entire `msg.value` is forwarded to
@@ -353,6 +371,19 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         hatsModule.createGardenHatTree(gardenAccount, config.name, communityToken);
         hatsModule.grantRole(gardenAccount, _msgSender(), IHatsModule.GardenRole.Owner);
 
+        // Grant Gardener role to configured gardeners (best-effort)
+        for (uint256 i = 0; i < config.gardeners.length; i++) {
+            if (config.gardeners[i] != address(0)) {
+                try hatsModule.grantRole(gardenAccount, config.gardeners[i], IHatsModule.GardenRole.Gardener) { } catch { }
+            }
+        }
+        // Grant Operator role to configured operators (best-effort)
+        for (uint256 i = 0; i < config.operators.length; i++) {
+            if (config.operators[i] != address(0)) {
+                try hatsModule.grantRole(gardenAccount, config.operators[i], IHatsModule.GardenRole.Operator) { } catch { }
+            }
+        }
+
         // Karma GAP: create project (graceful degradation)
         if (address(karmaGAPModule) != address(0)) {
             try karmaGAPModule.createProject(
@@ -376,7 +407,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         // Gardens V2 community + signal pools (graceful degradation)
         if (address(gardensModule) != address(0)) {
             // solhint-disable-next-line no-empty-blocks
-            try gardensModule.onGardenMinted(gardenAccount, config.weightScheme) returns (address, address[] memory) {
+            try gardensModule.onGardenMinted(gardenAccount, config.weightScheme, config.name, config.description) returns (
+                address, address[] memory
+            ) {
                 // Success handled by module events
             } catch {
                 // Failure is non-blocking — garden mint MUST NOT revert

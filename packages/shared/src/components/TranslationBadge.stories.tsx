@@ -5,7 +5,7 @@ import type { Meta, StoryObj } from "@storybook/react";
  * These stories show the visual appearance of the badge component.
  */
 const meta: Meta = {
-  title: "Components/TranslationBadge",
+  title: "Primitives/TranslationBadge",
   tags: ["autodocs"],
 };
 
@@ -61,4 +61,20 @@ export const InContext: StoryObj = {
       </div>
     </div>
   ),
+};
+
+export const DarkMode: StoryObj = {
+  render: () => (
+    <div className="inline-flex items-center gap-1 rounded-md bg-bg-soft px-2 py-1 text-xs text-text-soft">
+      <span>🌐</span>
+      <span>Auto-translated</span>
+    </div>
+  ),
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

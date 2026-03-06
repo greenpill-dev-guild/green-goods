@@ -13,7 +13,7 @@ const mockWork: WorkCardData = {
 };
 
 const meta: Meta<typeof WorkCard> = {
-  title: "Components/Cards/WorkCard",
+  title: "Cards/WorkCard",
   component: WorkCard,
   tags: ["autodocs"],
   argTypes: {
@@ -130,4 +130,17 @@ export const NonInteractive: Story = {
     work: mockWork,
     interactive: false,
   },
+};
+
+export const DarkMode: Story = {
+  args: {
+    work: mockWork,
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

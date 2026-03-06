@@ -30,6 +30,13 @@ interface IGoodsToken {
     function mint(address to, uint256 amount) external;
 }
 
+/// @notice Minimal interface for reading garden account metadata
+/// @dev Used by retryCreateCommunity to fetch name/description on-chain
+interface IGardenAccountMetadata {
+    function name() external view returns (string memory);
+    function description() external view returns (string memory);
+}
+
 /// @title GardensModule
 /// @notice Orchestrates Gardens V2 community + signal pool creation on garden mint
 /// @dev Implements IGardensModule. UUPS upgradeable with Hats-gated admin.
@@ -180,7 +187,9 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     // solhint-disable-next-line code-complexity
     function onGardenMinted(
         address garden,
-        WeightScheme scheme
+        WeightScheme scheme,
+        string calldata name,
+        string calldata description
     )
         external
         override
@@ -202,7 +211,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         gardenInitialized[garden] = true;
 
         // Step 1: Create community (independent, no deps on registry/pools)
-        community = _createCommunity(garden);
+        community = _createCommunity(garden, name, description);
         if (community != address(0)) {
             gardenCommunities[garden] = community;
         }
@@ -437,11 +446,15 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     }
 
     /// @notice Retry community creation for a garden that had a partial failure
-    /// @dev Garden must be initialized but have no community set
+    /// @dev Garden must be initialized but have no community set.
+    ///      Reads name and description from the GardenAccount on-chain.
     function retryCreateCommunity(address garden) external onlyOwner returns (address community) {
         if (!gardenInitialized[garden]) revert GardenNotInitialized(garden);
         if (gardenCommunities[garden] != address(0)) revert GardenAlreadyInitialized(garden);
-        community = _createCommunity(garden);
+
+        string memory name = IGardenAccountMetadata(garden).name();
+        string memory description = IGardenAccountMetadata(garden).description();
+        community = _createCommunity(garden, name, description);
         if (community != address(0)) {
             gardenCommunities[garden] = community;
             _seedGardenTreasury(garden, community);
@@ -550,7 +563,17 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     ///      via partial initialization flow.
     ///      Uses createRegistry() with RegistryCommunityInitializeParamsV2 matching the real
     ///      Gardens V2 RegistryFactory signature. _nonce and _registryFactory are set by the factory.
-    function _createCommunity(address garden) internal returns (address community) {
+    /// @param garden The garden account address
+    /// @param name The garden name (used as community name)
+    /// @param description The garden description (used as covenant text)
+    function _createCommunity(
+        address garden,
+        string memory name,
+        string memory description
+    )
+        internal
+        returns (address community)
+    {
         if (address(registryFactory) == address(0)) return address(0);
         address councilSafe = communityCouncilSafe == address(0) ? garden : communityCouncilSafe;
 
@@ -564,9 +587,9 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
             _feeReceiver: address(0),
             _metadata: Metadata({ protocol: 1, pointer: "" }),
             _councilSafe: payable(councilSafe),
-            _communityName: "Green Goods Community",
+            _communityName: name,
             _isKickEnabled: false,
-            covenantIpfsHash: ""
+            covenantIpfsHash: description
         });
 
         // solhint-disable-next-line no-empty-blocks
@@ -663,8 +686,9 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         // solhint-disable-next-line no-empty-blocks
         try IRegistryCommunity(community).stakeAndRegisterMember(garden) { } catch { }
 
-        // Newer string-based covenant signature path.
-        (bool ok,) = community.call(abi.encodeWithSelector(bytes4(0x9a1f46e2), ""));
+        // Newer string-based covenant signature path: stakeAndRegisterMember(string)
+        (bool ok,) = community.call(abi.encodeWithSelector(bytes4(0x9a1f46e2), "")); // 0x9a1f46e2 =
+            // keccak256("stakeAndRegisterMember(string)")[:4]
         ok; // silence compiler warning for ignored result
     }
 

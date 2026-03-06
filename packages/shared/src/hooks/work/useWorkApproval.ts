@@ -14,7 +14,6 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
@@ -26,6 +25,7 @@ import {
 import { jobQueue } from "../../modules/job-queue";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
+import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
@@ -84,9 +84,11 @@ export function useWorkApproval() {
   const { authMode, smartAccountClient, smartAccountAddress } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
-  const { runWithLock, isPending: isLockPending } = useMutationLock();
+  const { runWithLock, isPending: isLockPending } = useMutationLock("approval");
 
-  // Use managed timeout for query invalidation to ensure cleanup on unmount
+  // Separate timeouts: one for auto-clearing stale pending flags, another for indexer lag follow-up.
+  // Using a single useTimeout caused the indexer lag timer to cancel the auto-clear timer.
+  const { set: scheduleAutoClear } = useTimeout();
   const { set: scheduleInvalidation } = useTimeout();
 
   const mutation = useMutation({
@@ -250,7 +252,8 @@ export function useWorkApproval() {
       );
 
       // Auto-clear stale pending flags if no completion signal is observed.
-      scheduleInvalidation(() => {
+      // Uses dedicated timer so it isn't cancelled by the indexer lag follow-up.
+      scheduleAutoClear(() => {
         queryClient.setQueryData(
           queryKeys.works.merged(work.gardenAddress, chainId),
           (old: PendingWork[] = []) =>

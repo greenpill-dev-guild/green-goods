@@ -1,9 +1,8 @@
-import { setup, assign, fromPromise } from "xstate";
+import { assign, fromPromise, setup } from "xstate";
 import type { Address, AssessmentWorkflowParams } from "../types/domain";
 
 // Re-export from canonical location for backwards compatibility
-export type { AssessmentWorkflowParams } from "../types/domain";
-export type { CreateAssessmentForm } from "../types/domain";
+export type { AssessmentWorkflowParams, CreateAssessmentForm } from "../types/domain";
 
 export interface CreateAssessmentContext {
   assessmentParams?: AssessmentWorkflowParams;
@@ -155,6 +154,9 @@ export const createAssessmentMachine = createAssessmentSetup.createMachine({
       },
     },
     submitting: {
+      // CLOSE intentionally omitted: once a transaction is in-flight it cannot
+      // be cancelled on-chain. Allowing CLOSE here would hide the real outcome
+      // from the user. (Matches createGarden pattern.)
       entry: "clearError",
       invoke: {
         src: "submitAssessment",

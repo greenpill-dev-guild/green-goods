@@ -9,21 +9,21 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type Address, type Hex, decodeEventLog, encodeFunctionData, zeroAddress } from "viem";
+import { type Address, decodeEventLog, encodeFunctionData, type Hex, zeroAddress } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { useAuth } from "../auth/useAuth";
-import { queryKeys } from "../query-keys";
 import { logger } from "../../modules/app/logger";
-import { parseContractError } from "../../utils/errors/contract-errors";
-import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import {
   createClients,
   GreenGoodsENSABI,
   getNetworkContracts,
 } from "../../utils/blockchain/contracts";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
+import { parseContractError } from "../../utils/errors/contract-errors";
+import { useAuth } from "../auth/useAuth";
+import { queryKeys } from "../query-keys";
 
 // Contract error -> user-friendly message mapping
 const ENS_ERROR_MESSAGES: Record<string, string> = {

@@ -27,6 +27,7 @@ vi.mock("../../modules/work/passkey-submission", () => ({
   submitApprovalWithPasskey: vi.fn(async () => "0xtestapproval"),
 }));
 
+import { jobQueue } from "../../modules/job-queue";
 import {
   formatJobError,
   submitApprovalToQueue,
@@ -34,7 +35,6 @@ import {
   validateWorkDraft,
   validateWorkSubmissionContext,
 } from "../../modules/work/work-submission";
-import { jobQueue } from "../../modules/job-queue";
 
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
@@ -62,13 +62,18 @@ describe("modules/work-submission", () => {
   });
 
   describe("validateWorkSubmissionContext with minRequired", () => {
-    it("passes when images meet default minRequired of 1", () => {
+    it("passes with no images when default minRequired is 0", () => {
+      const errors = validateWorkSubmissionContext("0xGarden", 1, []);
+      expect(errors).toEqual([]);
+    });
+
+    it("passes when images are present with default minRequired of 0", () => {
       const errors = validateWorkSubmissionContext("0xGarden", 1, [createMockFile("img1.jpg")]);
       expect(errors).toEqual([]);
     });
 
-    it("fails when images below default minRequired of 1", () => {
-      const errors = validateWorkSubmissionContext("0xGarden", 1, []);
+    it("fails when images are below explicit minRequired of 1", () => {
+      const errors = validateWorkSubmissionContext("0xGarden", 1, [], { minRequired: 1 });
       expect(errors).toContain("At least one image is required");
     });
 

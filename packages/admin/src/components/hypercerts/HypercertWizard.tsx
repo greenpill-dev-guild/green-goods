@@ -1,41 +1,41 @@
 import {
-  categorizeError,
+  type CategorizedError,
   ConfirmDialog,
+  categorizeError,
   DEFAULT_CHAIN_ID,
   ErrorBoundary,
-  logger,
-  TOTAL_UNITS,
+  type ErrorCategory,
   formatHypercertMetadata,
   getSDGLabel,
+  type HypercertAttestation,
+  logger,
   prefillMetadataFromAssessment,
+  TOTAL_UNITS,
   toastService,
   useAdminStore,
-  useHypercertAttestations,
   useAuth,
   useCreateHypercertWorkflow,
+  useGardenAssessments,
   useHypercertAllowlist,
+  useHypercertAttestations,
+  useHypercertContributorWeights,
   useHypercertDraft,
   useHypercerts,
-  useHypercertContributorWeights,
+  useHypercertWizardStore,
   useMintHypercert,
   useWindowEvent,
-  useGardenAssessments,
-  useHypercertWizardStore,
-  type HypercertAttestation,
-  type CategorizedError,
-  type ErrorCategory,
 } from "@green-goods/shared";
-import { zeroAddress } from "viem";
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { useBlocker, type Blocker } from "react-router-dom";
+import { type Blocker, useBlocker } from "react-router-dom";
+import { zeroAddress } from "viem";
 import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
+import { MintingDialog } from "@/components/hypercerts/MintingDialog";
 import { AttestationSelector } from "@/components/hypercerts/steps/AttestationSelector";
 import { DistributionConfig } from "@/components/hypercerts/steps/DistributionConfig";
 import { HypercertPreview } from "@/components/hypercerts/steps/HypercertPreview";
 import { MetadataEditor } from "@/components/hypercerts/steps/MetadataEditor";
-import { MintingDialog } from "@/components/hypercerts/MintingDialog";
 
 /** Maps error categories to i18n message keys for user-facing error display */
 const ERROR_CATEGORY_KEYS: Record<ErrorCategory, string> = {
@@ -113,7 +113,7 @@ export function HypercertWizard({
   const { data: assessments } = useGardenAssessments(gardenId);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(null);
   const { hypercerts } = useHypercerts({ gardenId });
-  const { mint, retry, cancel } = useMintHypercert();
+  const { mint, retry, cancel } = useMintHypercert({ errorMode: "inline" });
 
   // Resolve the selected assessment object for prefill
   const selectedAssessment = useMemo(

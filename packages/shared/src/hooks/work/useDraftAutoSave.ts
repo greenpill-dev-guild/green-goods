@@ -9,17 +9,14 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-
-import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
+import { logger } from "../../modules/app/logger";
 import { useDrafts } from "./useDrafts";
 
 interface DraftFormData {
   gardenAddress: string | null;
   actionUID: number | null;
   feedback: string;
-  plantSelection: string[];
-  plantCount: number | null | undefined;
   timeSpentMinutes?: number;
 }
 
@@ -35,12 +32,8 @@ function hasMeaningfulProgress(formData: DraftFormData, imageCount: number): boo
   // Images are the strongest indicator of progress
   if (imageCount > 0) return true;
 
-  // Having form input (feedback, plant selection, plant count, or time spent) indicates progress
-  const hasFormInput =
-    formData.feedback.trim().length > 0 ||
-    formData.plantSelection.length > 0 ||
-    (formData.plantCount ?? 0) > 0 ||
-    (formData.timeSpentMinutes ?? 0) > 0;
+  // Having form input (feedback or time spent) indicates progress
+  const hasFormInput = formData.feedback.trim().length > 0 || (formData.timeSpentMinutes ?? 0) > 0;
 
   return hasFormInput;
 }
@@ -55,7 +48,7 @@ function hasMeaningfulProgress(formData: DraftFormData, imageCount: number): boo
  * @example
  * ```tsx
  * const { saveOnExit, hasMeaningfulProgress } = useDraftAutoSave(
- *   { gardenAddress, actionUID, feedback, plantSelection, plantCount },
+ *   { gardenAddress, actionUID, feedback },
  *   images
  * );
  *
@@ -120,8 +113,6 @@ export function useDraftAutoSave(
           gardenAddress: currentFormData.gardenAddress,
           actionUID: currentFormData.actionUID,
           feedback: currentFormData.feedback,
-          plantSelection: currentFormData.plantSelection,
-          plantCount: currentFormData.plantCount ?? undefined,
           timeSpentMinutes: currentFormData.timeSpentMinutes,
           currentStep: "intro",
           firstIncompleteStep: "intro",
@@ -134,8 +125,6 @@ export function useDraftAutoSave(
             gardenAddress: currentFormData.gardenAddress,
             actionUID: currentFormData.actionUID,
             feedback: currentFormData.feedback,
-            plantSelection: currentFormData.plantSelection,
-            plantCount: currentFormData.plantCount ?? undefined,
             timeSpentMinutes: currentFormData.timeSpentMinutes,
           },
         });

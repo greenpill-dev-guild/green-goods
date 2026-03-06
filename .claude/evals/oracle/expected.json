@@ -1,0 +1,115 @@
+{
+  "known-root-cause": {
+    "expected_root_cause": "ABI encoding format mismatch: struct decode vs tuple decode",
+    "expected_files_identified": [
+      "packages/contracts/src/resolvers/WorkApproval.sol",
+      "packages/contracts/src/resolvers/Work.sol",
+      "packages/contracts/src/resolvers/Assessment.sol",
+      "packages/contracts/src/Schemas.sol"
+    ],
+    "expected_explanation_contains": [
+      "abi.encode(struct) produces different bytes than abi.encode(field1, field2, ...) with dynamic types",
+      "EAS/client uses flat tuple encoding (encodeAbiParameters)",
+      "resolver was using struct decode which expects offset pointer wrapping",
+      "fix is to decode as individual fields (flat tuple) instead of struct type"
+    ],
+    "expected_fix_type": "Change abi.decode to use flat tuple types instead of struct type parameter",
+    "scoring": {
+      "identifies_encoding_mismatch": 30,
+      "identifies_affected_files": 20,
+      "explains_dynamic_type_relevance": 20,
+      "provides_correct_fix": 20,
+      "cites_actual_code": 10
+    },
+    "max_turns": 15,
+    "confidence_threshold": "High"
+  },
+  "architectural-question": {
+    "expected_boundary_rule": "Envio indexes Green Goods core state only; EAS attestations queried from easscan.org",
+    "expected_indexed_items": [
+      "actions",
+      "gardens",
+      "hats role membership",
+      "vault history",
+      "yield split history",
+      "minimal hypercert linkage"
+    ],
+    "expected_external_items": [
+      "EAS attestations (work, work approvals, assessments)",
+      "Gardens V2 community/pools",
+      "marketplace",
+      "ENS lifecycle",
+      "cookie jars",
+      "Hypercert display metadata"
+    ],
+    "expected_sources_cited": [
+      "CLAUDE.md (Indexer Boundary rule)",
+      "packages/shared/src/modules/data/eas.ts",
+      ".claude/context/shared.md (EAS Data Layer section)"
+    ],
+    "scoring": {
+      "correctly_identifies_boundary": 25,
+      "lists_indexed_items": 20,
+      "lists_external_items": 20,
+      "cites_source_files": 20,
+      "explains_rationale": 15
+    },
+    "confidence_threshold": "High"
+  },
+  "job-queue-architecture": {
+    "expected_key_reasons": [
+      "Binary data / File objects cannot be stored in localStorage (strings only)",
+      "IndexedDB indexes enable efficient querying of jobs by kind, synced status, etc.",
+      "localStorage has ~5-10MB hard cap; IndexedDB has much larger quota for media files",
+      "IndexedDB supports transactions for atomic job + image saves",
+      "IndexedDB is accessible from service workers; localStorage is not"
+    ],
+    "expected_breakage_items": [
+      "Media file storage (base64 encoding would bloat and hit limits)",
+      "Query performance (full scan required without indexes)",
+      "Background sync / service worker access",
+      "Existing user data migration"
+    ],
+    "expected_sources_cited": [
+      "packages/shared/src/modules/job-queue/db.ts",
+      "packages/shared/src/modules/job-queue/index.ts",
+      "packages/shared/src/types/job-queue.ts"
+    ],
+    "scoring": {
+      "identifies_binary_data_reason": 25,
+      "identifies_quota_reason": 15,
+      "identifies_index_efficiency": 15,
+      "lists_breakage_items": 20,
+      "cites_source_files": 15,
+      "explains_tradeoffs_fairly": 10
+    },
+    "confidence_threshold": "High"
+  },
+  "media-upload-failure": {
+    "expected_root_cause": "Blob URL lifecycle invalidation on mobile when browser backgrounds the page",
+    "expected_files_identified": [
+      "packages/shared/src/modules/job-queue/media-resource-manager.ts",
+      "packages/shared/src/modules/job-queue/db.ts",
+      "packages/shared/src/modules/job-queue/index.ts",
+      "packages/shared/src/utils/storage/file-serialization.ts",
+      "packages/shared/src/hooks/work/useWorkImages.ts"
+    ],
+    "expected_explanation_contains": [
+      "blob URLs are revoked or garbage-collected when mobile browser backgrounds the page",
+      "File objects should be persisted to IndexedDB at selection time, not submission time",
+      "the job queue reads images from the job_images store via jobQueueDB.getImagesForJob()",
+      "file-serialization utilities (serializeFile/deserializeFile) already exist for this purpose"
+    ],
+    "expected_fix_type": "Eagerly persist File objects to IndexedDB on selection; never pass blob URLs across form -> job queue boundary",
+    "scoring": {
+      "identifies_blob_url_lifecycle": 30,
+      "identifies_mobile_backgrounding": 15,
+      "identifies_timing_boundary_issue": 15,
+      "identifies_affected_files": 15,
+      "provides_correct_fix_approach": 15,
+      "cites_existing_utilities": 10
+    },
+    "max_turns": 20,
+    "confidence_threshold": "High"
+  }
+}

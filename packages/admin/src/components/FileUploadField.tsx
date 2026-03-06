@@ -7,6 +7,7 @@ import {
 } from "@green-goods/shared";
 import { RiCloseLine, RiLoader4Line, RiUploadCloudLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 
 const PREVIEWABLE_IMAGE_TYPES = new Set([
   "image/avif",
@@ -42,6 +43,7 @@ export function FileUploadField({
   currentFiles = [],
   onRemoveFile,
 }: FileUploadFieldProps) {
+  const { formatMessage } = useIntl();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -94,8 +96,14 @@ export function FileUploadField({
       const shortError =
         errorText.length > 120 ? `${errorText.slice(0, 117).trimEnd()}...` : errorText;
       toastService.error({
-        title: "File processing failed",
-        message: `Please try again. ${shortError}`,
+        title: formatMessage({
+          id: "admin.fileUpload.error.title",
+          defaultMessage: "File processing failed",
+        }),
+        message: formatMessage(
+          { id: "admin.fileUpload.error.message", defaultMessage: "Please try again. {error}" },
+          { error: shortError }
+        ),
         context: "file upload",
         error,
       });
@@ -193,19 +201,34 @@ export function FileUploadField({
         onClick={handleButtonClick}
         disabled={disabled || isProcessing}
         className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-stroke-sub bg-bg-white px-4 py-3 text-sm font-medium text-text-sub transition hover:border-green-500 hover:bg-bg-weak/80",
+          "flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-stroke-sub bg-bg-white px-4 py-3 text-sm font-medium text-text-sub transition hover:border-primary-base hover:bg-bg-weak/80",
           (disabled || isProcessing) && "cursor-not-allowed opacity-60"
         )}
       >
         {isProcessing ? (
           <>
             <RiLoader4Line className="h-5 w-5 animate-spin" />
-            <span>Processing... {Math.round(progress)}%</span>
+            <span>
+              {formatMessage(
+                { id: "admin.fileUpload.processing", defaultMessage: "Processing... {progress}%" },
+                { progress: Math.round(progress) }
+              )}
+            </span>
           </>
         ) : (
           <>
             <RiUploadCloudLine className="h-5 w-5" />
-            <span>{multiple ? "Choose files" : "Choose file"}</span>
+            <span>
+              {multiple
+                ? formatMessage({
+                    id: "admin.fileUpload.chooseFiles",
+                    defaultMessage: "Choose files",
+                  })
+                : formatMessage({
+                    id: "admin.fileUpload.chooseFile",
+                    defaultMessage: "Choose file",
+                  })}
+            </span>
           </>
         )}
       </button>
@@ -219,7 +242,7 @@ export function FileUploadField({
             return (
               <div
                 key={`${safeFileName}-${index}`}
-                className="flex items-center gap-3 rounded-md border border-gray-100 bg-bg-weak p-3"
+                className="flex items-center gap-3 rounded-md border border-stroke-soft bg-bg-weak p-3"
               >
                 {safePreviewUrl && (
                   <img
@@ -229,16 +252,20 @@ export function FileUploadField({
                   />
                 )}
                 <div className="flex-1 truncate">
-                  <p className="truncate text-sm font-medium text-text-sub">{safeFileName}</p>
+                  <p className="truncate text-sm font-medium text-text-sub" title={safeFileName}>
+                    {safeFileName}
+                  </p>
                   <p className="text-xs text-text-soft">{(file.size / 1024).toFixed(1)} KB</p>
                 </div>
                 {onRemoveFile && (
                   <button
                     type="button"
                     onClick={() => handleRemove(index)}
-                    className="rounded-md p-1 text-red-500 transition hover:bg-red-100/20"
-                    // eslint-disable-next-line jsx-a11y/aria-proptypes
-                    aria-label={`Remove ${safeFileName}`}
+                    className="rounded-md p-1 text-error-base transition hover:bg-error-lighter"
+                    aria-label={formatMessage(
+                      { id: "admin.fileUpload.remove", defaultMessage: "Remove {filename}" },
+                      { filename: safeFileName }
+                    )}
                   >
                     <RiCloseLine className="h-5 w-5" />
                   </button>

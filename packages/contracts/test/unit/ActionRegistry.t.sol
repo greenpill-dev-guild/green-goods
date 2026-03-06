@@ -40,9 +40,9 @@ contract ActionRegistryTest is Test {
     );
     event ActionStartTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed startTime);
     event ActionEndTimeUpdated(address indexed owner, uint256 indexed actionUID, uint256 indexed endTime);
-    event ActionTitleUpdated(address indexed owner, uint256 indexed actionUID, string indexed title);
-    event ActionInstructionsUpdated(address indexed owner, uint256 indexed actionUID, string indexed instructions);
-    event ActionMediaUpdated(address indexed owner, uint256 indexed actionUID, string[] indexed media);
+    event ActionTitleUpdated(address indexed owner, uint256 indexed actionUID, string title);
+    event ActionInstructionsUpdated(address indexed owner, uint256 indexed actionUID, string instructions);
+    event ActionMediaUpdated(address indexed owner, uint256 indexed actionUID, string[] media);
     event GardenDomainsUpdated(address indexed garden, uint8 indexed domainMask);
     event HatsModuleUpdated(address indexed oldModule, address indexed newModule);
     event GardenTokenUpdated(address indexed oldToken, address indexed newToken);

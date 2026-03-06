@@ -1,6 +1,8 @@
 import type { ActionInstructionConfig } from "@green-goods/shared";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
+import { useIntl } from "react-intl";
+import { FormField } from "@/components/ui/FormField";
 
 interface MediaConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["media"];
@@ -8,6 +10,7 @@ interface MediaConfigSectionProps {
 }
 
 export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps) {
+  const { formatMessage } = useIntl();
   const [newNeeded, setNewNeeded] = useState("");
   const [newOptional, setNewOptional] = useState("");
 
@@ -48,43 +51,55 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
   return (
     <div className="space-y-6">
       {/* Basic Settings */}
-      <div>
-        <label htmlFor="media-title" className="block text-sm font-medium text-text-strong mb-2">
-          Section Title
-        </label>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.mediaConfig.sectionTitle",
+          defaultMessage: "Section Title",
+        })}
+        htmlFor="media-title"
+      >
         <input
           id="media-title"
           type="text"
           value={config.title}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
-          placeholder="e.g., Capture Media"
+          placeholder={formatMessage({
+            id: "app.admin.actions.mediaConfig.sectionTitlePlaceholder",
+            defaultMessage: "e.g., Capture Media",
+          })}
         />
-      </div>
+      </FormField>
 
-      <div>
-        <label
-          htmlFor="media-description"
-          className="block text-sm font-medium text-text-strong mb-2"
-        >
-          Description
-        </label>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.mediaConfig.description",
+          defaultMessage: "Description",
+        })}
+        htmlFor="media-description"
+      >
         <textarea
           id="media-description"
           value={config.description}
           onChange={(e) => onChange({ ...config, description: e.target.value })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
           rows={3}
-          placeholder="Provide instructions for media capture..."
+          placeholder={formatMessage({
+            id: "app.admin.actions.mediaConfig.descriptionPlaceholder",
+            defaultMessage: "Provide instructions for media capture...",
+          })}
         />
-      </div>
+      </FormField>
 
       {/* Image Count */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="media-min" className="block text-sm font-medium text-text-strong mb-2">
-            Min Images
-          </label>
+        <FormField
+          label={formatMessage({
+            id: "app.admin.actions.mediaConfig.minImages",
+            defaultMessage: "Min Images",
+          })}
+          htmlFor="media-min"
+        >
           <input
             id="media-min"
             type="number"
@@ -93,11 +108,14 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             onChange={(e) => onChange({ ...config, minImageCount: parseInt(e.target.value) || 0 })}
             className="w-full rounded-md border border-stroke-soft px-3 py-2"
           />
-        </div>
-        <div>
-          <label htmlFor="media-max" className="block text-sm font-medium text-text-strong mb-2">
-            Max Images
-          </label>
+        </FormField>
+        <FormField
+          label={formatMessage({
+            id: "app.admin.actions.mediaConfig.maxImages",
+            defaultMessage: "Max Images",
+          })}
+          htmlFor="media-max"
+        >
           <input
             id="media-max"
             type="number"
@@ -106,7 +124,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             onChange={(e) => onChange({ ...config, maxImageCount: parseInt(e.target.value) || 1 })}
             className="w-full rounded-md border border-stroke-soft px-3 py-2"
           />
-        </div>
+        </FormField>
       </div>
 
       {/* Required Toggle */}
@@ -119,18 +137,24 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
           className="rounded border-stroke-soft"
         />
         <label htmlFor="media-required" className="text-sm text-text-strong">
-          Media is required
+          {formatMessage({
+            id: "app.admin.actions.mediaConfig.required",
+            defaultMessage: "Media is required",
+          })}
         </label>
       </div>
 
       {/* Needed Shot Types */}
-      <div>
-        <label htmlFor="media-needed" className="block text-sm font-medium text-text-strong mb-2">
-          Required Shot Types
-        </label>
-        <p className="text-xs text-text-sub mb-3">
-          Specify what types of photos users must capture
-        </p>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.mediaConfig.requiredShots",
+          defaultMessage: "Required Shot Types",
+        })}
+        hint={formatMessage({
+          id: "app.admin.actions.mediaConfig.requiredShotsDescription",
+          defaultMessage: "Specify what types of photos users must capture",
+        })}
+      >
         <fieldset id="media-needed" className="space-y-2">
           {config.needed.map((shot, index) => (
             <div key={index} className="flex items-center gap-2">
@@ -164,29 +188,35 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
                   addNeeded();
                 }
               }}
-              placeholder="e.g., Front view, Side view"
+              placeholder={formatMessage({
+                id: "app.admin.actions.mediaConfig.requiredShotsPlaceholder",
+                defaultMessage: "e.g., Front view, Side view",
+              })}
               className="flex-1 rounded-md border border-stroke-soft px-3 py-2 text-sm"
             />
             <button
               type="button"
               onClick={addNeeded}
-              className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center gap-1"
+              className="px-3 py-2 bg-primary-base text-primary-foreground rounded-md hover:bg-primary-darker text-sm flex items-center gap-1"
             >
               <RiAddLine className="h-4 w-4" />
-              Add
+              {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
             </button>
           </div>
         </fieldset>
-      </div>
+      </FormField>
 
       {/* Optional Shot Types */}
-      <div>
-        <label htmlFor="media-optional" className="block text-sm font-medium text-text-strong mb-2">
-          Optional Shot Types
-        </label>
-        <p className="text-xs text-text-sub mb-3">
-          Suggest additional photos users can optionally include
-        </p>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.mediaConfig.optionalShots",
+          defaultMessage: "Optional Shot Types",
+        })}
+        hint={formatMessage({
+          id: "app.admin.actions.mediaConfig.optionalShotsDescription",
+          defaultMessage: "Suggest additional photos users can optionally include",
+        })}
+      >
         <fieldset id="media-optional" className="space-y-2">
           {config.optional.map((shot, index) => (
             <div key={index} className="flex items-center gap-2">
@@ -220,20 +250,23 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
                   addOptional();
                 }
               }}
-              placeholder="e.g., Close-up, Detail shot"
+              placeholder={formatMessage({
+                id: "app.admin.actions.mediaConfig.optionalShotsPlaceholder",
+                defaultMessage: "e.g., Close-up, Detail shot",
+              })}
               className="flex-1 rounded-md border border-stroke-soft px-3 py-2 text-sm"
             />
             <button
               type="button"
               onClick={addOptional}
-              className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center gap-1"
+              className="px-3 py-2 bg-primary-base text-primary-foreground rounded-md hover:bg-primary-darker text-sm flex items-center gap-1"
             >
               <RiAddLine className="h-4 w-4" />
-              Add
+              {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
             </button>
           </div>
         </fieldset>
-      </div>
+      </FormField>
     </div>
   );
 }

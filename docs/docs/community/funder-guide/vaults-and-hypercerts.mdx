@@ -1,0 +1,132 @@
+---
+title: "Vaults & Hypercerts"
+sidebar_label: "Vaults & Hypercerts"
+slug: /community/funder-guide/vaults-and-hypercerts
+audience: all
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+goal: "Guide funders through vault deposits and Hypercert purchases."
+difficulty: "standard"
+estimated_time: "15-30 minutes for first deposit or purchase."
+prereqs: "Connected wallet with supported assets."
+next_steps: "/community/community-member-guide/conviction-voting"
+persona_context: "Funders depositing into vaults and purchasing Hypercerts to support verified impact."
+keywords:
+  - vaults
+  - hypercerts
+  - deposit
+  - yield
+  - impact certificates
+  - octant
+---
+
+import {
+  DecisionGuide,
+  FeatureState,
+  NextBestAction,
+  StatusBadge,
+  StepFlow,
+} from "@site/src/components/docs";
+
+# Vaults & Hypercerts
+
+<StatusBadge status="Live" />
+
+## Overview
+
+Green Goods offers two primary funding mechanisms: **yield-bearing vaults** powered by Octant infrastructure, and **Hypercerts** — tokenized impact certificates that represent verified regenerative work. Both are backed by on-chain attestation chains that provide transparent accountability.
+
+{/* IMAGE PLACEHOLDER: Split view — vault deposit flow on left, Hypercert marketplace on right (800x400) */}
+
+## How It Works
+
+### Vault Deposits
+
+<FeatureState
+  title="Octant Vault deposits"
+  status="Live"
+  summary="Funders can deposit supported assets into garden vaults. Yield accrues and funds garden operations."
+/>
+
+<StepFlow
+  steps={[
+    {title: "Select a garden vault", detail: "Browse gardens and their vault configurations. Each vault shows current deposits, yield rates, and supported assets."},
+    {title: "Deposit assets", detail: "Connect your wallet, choose the deposit amount, and approve the transaction. Your deposit enters the yield-generating pool."},
+    {title: "Track yield", detail: "Monitor your position through the vault dashboard. Yield accrues continuously and funds garden operations."},
+    {title: "Withdraw", detail: "Request withdrawal when ready. Processing time depends on the vault's configuration and current liquidity."},
+  ]}
+/>
+
+Vault yield flows back to the garden community, funding:
+- Gas sponsorship for gardener submissions
+- Operator and evaluator incentives
+- Community governance allocations
+- Infrastructure maintenance
+
+### Hypercert Purchases
+
+<FeatureState
+  title="Hypercert marketplace"
+  status="Live"
+  summary="Funders can purchase fractions of Hypercerts representing verified impact work."
+/>
+
+<StepFlow
+  steps={[
+    {title: "Browse available Hypercerts", detail: "View impact certificates with their attestation backing, contributor lists, and Eight Forms of Capital assessments."},
+    {title: "Verify the attestation chain", detail: "Check that the Hypercert is backed by real EAS attestations: work submissions → operator approvals → evaluator assessments."},
+    {title: "Purchase fractions", detail: "Buy fractional ownership of a Hypercert through the marketplace. Each fraction represents a share of the verified impact."},
+    {title: "Hold or trade", detail: "Hypercert fractions can be held as impact proof or traded on supported marketplaces, subject to transfer restrictions."},
+  ]}
+/>
+
+### Understanding Hypercert Value
+
+A Hypercert's value comes from its attestation chain:
+
+- **Work attestations** — Proof that physical regenerative work was performed
+- **Approval attestations** — Community operator verification of work quality
+- **Assessment attestations** — Evaluator analysis across Eight Forms of Capital
+- **Contributor weights** — Fair distribution among verified gardeners
+
+## Best Practices
+
+<DecisionGuide
+  title="Vaults vs. Hypercerts"
+  items={[
+    {
+      when: "You want ongoing, passive support with yield",
+      do: "Deposit into a vault. Capital works while you hold it.",
+      next: "Monitor garden activity to ensure your funded community is active.",
+    },
+    {
+      when: "You want provable ownership of specific impact",
+      do: "Purchase Hypercerts with strong attestation chains.",
+      next: "Use your Hypercert holdings for impact reporting to your own stakeholders.",
+    },
+    {
+      when: "You want maximum community influence",
+      do: "Combine vault deposits with conviction voting participation.",
+      next: "Engage in garden governance to help direct where resources flow.",
+    },
+  ]}
+/>
+
+- Verify attestation chains independently on [EAS Explorer](https://attest.sh) before large purchases
+- Understand transfer restrictions on Hypercerts — some may be non-transferable
+- Review the garden's assessment history for consistent, quality-backed impact claims
+- Consider the garden's operational track record (approval rates, active gardeners, submission frequency)
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="Learn how conviction voting lets you influence which community priorities get funded."
+  actionLabel="Conviction Voting"
+  actionHref="/community/community-member-guide/conviction-voting"
+  alternatives={[
+    {label: "Getting Started as a Funder", href: "/community/funder-guide/getting-started"},
+    {label: "Glossary", href: "/glossary"},
+  ]}
+/>

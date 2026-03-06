@@ -146,4 +146,18 @@ describe("useGardenVaults", () => {
 
     expect(mockGetGardenVaults).toHaveBeenCalledWith(TEST_GARDEN.toLowerCase(), 42161);
   });
+
+  it("exposes query errors when vault loading fails", async () => {
+    const queryError = new Error("Indexer unavailable");
+    mockGetGardenVaults.mockRejectedValue(queryError);
+
+    const { result } = renderHook(() => useGardenVaults(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.error).toBe(queryError);
+    expect(result.current.vaults).toEqual([]);
+  });
 });

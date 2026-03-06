@@ -1,19 +1,132 @@
-import { DEFAULT_CHAIN_ID, formatDateTime, useActions } from "@green-goods/shared";
-import { RiEditLine } from "@remixicon/react";
+import {
+  DEFAULT_CHAIN_ID,
+  formatDateTime,
+  ImageWithFallback,
+  useActions,
+  useRole,
+} from "@green-goods/shared";
+import { RiEditLine, RiImageLine } from "@remixicon/react";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
+interface ActionDetailMediaTileProps {
+  src?: string;
+  alt: string;
+  unavailableLabel: string;
+  unavailableDescription: string;
+}
+
+function ActionDetailMediaTile({
+  src,
+  alt,
+  unavailableLabel,
+  unavailableDescription,
+}: ActionDetailMediaTileProps) {
+  const [hasError, setHasError] = useState(!src);
+
+  useEffect(() => {
+    setHasError(!src);
+  }, [src]);
+
+  if (hasError) {
+    return (
+      <div className="w-full h-48 rounded bg-bg-soft flex flex-col items-center justify-center px-4 text-center">
+        <RiImageLine className="h-6 w-6 text-text-soft mb-2" />
+        <p className="text-sm font-medium text-text-sub">{unavailableLabel}</p>
+        <p className="mt-1 text-xs text-text-soft">{unavailableDescription}</p>
+      </div>
+    );
+  }
+
+  return (
+    <ImageWithFallback
+      src={src || ""}
+      alt={alt}
+      className="w-full h-48 object-cover rounded"
+      fallbackClassName="w-full h-48 rounded bg-bg-soft text-text-soft"
+      fallbackIcon={RiImageLine}
+      onErrorCallback={() => setHasError(true)}
+    />
+  );
+}
+
 export default function ActionDetail() {
   const { id } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
+  const { role } = useRole();
   const { data: actions = [], isLoading } = useActions(DEFAULT_CHAIN_ID);
+  const canManageActions = role === "deployer" || role === "operator";
   const action = actions.find((a) => a.id === id);
+  const imageUnavailableLabel = formatMessage({
+    id: "admin.actions.imageUnavailable",
+    defaultMessage: "Image unavailable",
+  });
+  const imageUnavailableDescription = formatMessage({
+    id: "admin.actions.imageUnavailableDescription",
+    defaultMessage: "This action does not currently have a valid image.",
+  });
 
   if (isLoading) {
     return (
-      <div className="text-center py-12">
-        <p className="text-text-sub">{formatMessage({ id: "app.actions.loading" })}</p>
+      <div role="status" aria-live="polite">
+        <span className="sr-only">{formatMessage({ id: "app.actions.loading" })}</span>
+        <div className="border-b border-stroke-soft bg-bg-white px-4 py-3 sm:px-6 sm:py-4">
+          <div className="h-7 w-48 rounded skeleton-shimmer" />
+          <div
+            className="mt-2 h-4 w-32 rounded skeleton-shimmer"
+            style={{ animationDelay: "0.05s" }}
+          />
+        </div>
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6 px-4 sm:px-6">
+          <div className="lg:col-span-2">
+            <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
+              <div
+                className="h-6 w-24 rounded skeleton-shimmer mb-4"
+                style={{ animationDelay: "0.1s" }}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-48 rounded skeleton-shimmer"
+                    style={{ animationDelay: `${0.1 + i * 0.05}s` }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-6">
+            <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
+              <div
+                className="h-6 w-20 rounded skeleton-shimmer mb-4"
+                style={{ animationDelay: "0.15s" }}
+              />
+              <div className="space-y-3">
+                <div
+                  className="h-4 w-full rounded skeleton-shimmer"
+                  style={{ animationDelay: "0.2s" }}
+                />
+                <div
+                  className="h-4 w-full rounded skeleton-shimmer"
+                  style={{ animationDelay: "0.25s" }}
+                />
+                <div
+                  className="h-4 w-2/3 rounded skeleton-shimmer"
+                  style={{ animationDelay: "0.3s" }}
+                />
+              </div>
+            </div>
+            <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
+              <div
+                className="h-6 w-28 rounded skeleton-shimmer mb-4"
+                style={{ animationDelay: "0.2s" }}
+              />
+              <div className="h-16 rounded skeleton-shimmer" style={{ animationDelay: "0.25s" }} />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -22,7 +135,7 @@ export default function ActionDetail() {
     return (
       <div className="text-center py-12">
         <p className="text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
-        <Link to="/actions" className="text-green-600 hover:underline mt-2 inline-block">
+        <Link to="/actions" className="text-primary-base hover:underline mt-2 inline-block">
           {formatMessage({ id: "app.actions.backToActions" })}
         </Link>
       </div>
@@ -34,14 +147,23 @@ export default function ActionDetail() {
       <PageHeader
         title={action.title}
         description={formatMessage({ id: "app.actions.detail.description" }, { id })}
+        backLink={{
+          to: "/actions",
+          label: formatMessage({
+            id: "app.actions.backToActions",
+            defaultMessage: "Back to actions",
+          }),
+        }}
         actions={
-          <Link
-            to={`/actions/${id}/edit`}
-            className="inline-flex items-center rounded-md border border-stroke-soft px-4 py-2 text-sm font-medium text-text-strong hover:bg-bg-soft"
-          >
-            <RiEditLine className="mr-2 h-4 w-4" />
-            {formatMessage({ id: "app.actions.edit" })}
-          </Link>
+          canManageActions ? (
+            <Link
+              to={`/actions/${id}/edit`}
+              className="inline-flex items-center rounded-md border border-stroke-soft px-4 py-2 text-sm font-medium text-text-strong hover:bg-bg-soft"
+            >
+              <RiEditLine className="mr-2 h-4 w-4" />
+              {formatMessage({ id: "app.actions.edit" })}
+            </Link>
+          ) : undefined
         }
       />
 
@@ -53,14 +175,25 @@ export default function ActionDetail() {
               {formatMessage({ id: "app.actions.detail.media" })}
             </h3>
             <div className="grid grid-cols-2 gap-4">
-              {action.media.map((url, i) => (
-                <img
-                  key={i}
-                  src={url}
-                  alt={formatMessage({ id: "app.actions.detail.mediaAlt" }, { index: i + 1 })}
-                  className="w-full h-48 object-cover rounded"
-                />
-              ))}
+              {action.media.length === 0 ? (
+                <div className="col-span-2">
+                  <ActionDetailMediaTile
+                    unavailableLabel={imageUnavailableLabel}
+                    unavailableDescription={imageUnavailableDescription}
+                    alt={imageUnavailableLabel}
+                  />
+                </div>
+              ) : (
+                action.media.map((url, i) => (
+                  <ActionDetailMediaTile
+                    key={i}
+                    src={url}
+                    alt={formatMessage({ id: "app.actions.detail.mediaAlt" }, { index: i + 1 })}
+                    unavailableLabel={imageUnavailableLabel}
+                    unavailableDescription={imageUnavailableDescription}
+                  />
+                ))
+              )}
             </div>
           </div>
         </div>

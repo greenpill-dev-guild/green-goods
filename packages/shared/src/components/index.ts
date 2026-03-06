@@ -9,52 +9,64 @@
  * that are used across both client and admin packages.
  */
 
+// Progress Components
+export type { SubmissionProgressState, SubmissionStage } from "../hooks/work/useSubmissionProgress";
 // Audio Components
-export { AudioPlayer, type AudioPlayerProps } from "./Audio";
-export { AudioRecorder, type AudioRecorderProps } from "./Audio";
-
-// DatePicker Components
-export { DatePicker, type DatePickerProps } from "./DatePicker";
-export { DateRangePicker, type DateRangePickerProps } from "./DatePicker";
-
-// Dialog Components
-export { ConfirmDialog, type ConfirmDialogProps } from "./Dialog";
-
-// Error Boundary
-export { ErrorBoundary, type ErrorBoundaryProps } from "./ErrorBoundary";
-
-// Display Components
-export { ImageWithFallback, type ImageWithFallbackProps } from "./Display";
-
+export {
+  AudioPlayer,
+  type AudioPlayerProps,
+  AudioRecorder,
+  type AudioRecorderProps,
+} from "./Audio";
 // Badge Component
-export { Badge, badgeVariants, type BadgeProps, type BadgeVariantProps } from "./Badge";
-
+export { Badge, type BadgeProps, type BadgeVariantProps, badgeVariants } from "./Badge";
 // Card Components
 export {
   CardBase,
-  CardHeader,
-  CardFooter,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  cardVariants,
   type CardBaseProps,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
   type CardVariantProps,
-  WorkCard,
-  workCardVariants,
-  type WorkCardProps,
-  type WorkCardData,
-  type WorkCardLabels,
-  type WorkCardVariantProps,
-  type WorkStatus,
+  cardVariants,
   GardenCard,
-  gardenCardVariants,
-  type GardenCardProps,
   type GardenCardData,
   type GardenCardLabels,
+  type GardenCardProps,
   type GardenCardVariantProps,
+  gardenCardVariants,
+  WorkCard,
+  type WorkCardData,
+  type WorkCardLabels,
+  type WorkCardProps,
+  type WorkCardVariantProps,
+  type WorkStatus,
+  workCardVariants,
 } from "./Cards";
-
+// DatePicker Components
+export {
+  DatePicker,
+  type DatePickerProps,
+  DateRangePicker,
+  type DateRangePickerProps,
+} from "./DatePicker";
+// Dialog Components
+export { ConfirmDialog, type ConfirmDialogProps } from "./Dialog";
+// Display Components
+export { ImageWithFallback, type ImageWithFallbackProps } from "./Display";
+// Error Boundary
+export { ErrorBoundary, type ErrorBoundaryProps } from "./ErrorBoundary";
+// Confidence & Verification Selectors
+export type { ConfidenceSelectorProps } from "./Form/ConfidenceSelector";
+export { ConfidenceSelector } from "./Form/ConfidenceSelector";
+export type {
+  CheckboxGroupOption,
+  CheckboxGroupProps,
+  FormCheckboxProps,
+} from "./Form/FormCheckbox";
+export { CheckboxGroup, FormCheckbox } from "./Form/FormCheckbox";
 // Form Components
 export type { FormFieldWrapperProps } from "./Form/FormFieldWrapper";
 export { FormFieldWrapper } from "./Form/FormFieldWrapper";
@@ -64,15 +76,6 @@ export type { FormLayoutProps } from "./Form/FormLayout";
 export { FormLayout } from "./Form/FormLayout";
 export type { FormTextareaProps } from "./Form/FormTextarea";
 export { FormTextarea } from "./Form/FormTextarea";
-export type {
-  CheckboxGroupOption,
-  CheckboxGroupProps,
-  FormCheckboxProps,
-} from "./Form/FormCheckbox";
-export { CheckboxGroup, FormCheckbox } from "./Form/FormCheckbox";
-// Confidence & Verification Selectors
-export type { ConfidenceSelectorProps } from "./Form/ConfidenceSelector";
-export { ConfidenceSelector } from "./Form/ConfidenceSelector";
 export type { MethodSelectorProps } from "./Form/MethodSelector";
 export { MethodSelector } from "./Form/MethodSelector";
 // Select Components
@@ -93,12 +96,17 @@ export {
 // Utility Components
 export type { HydrationFallbackProps } from "./HydrationFallback";
 export { HydrationFallback } from "./HydrationFallback";
+export { ENSProgressTimeline } from "./Progress/ENSProgressTimeline";
+export { SubmissionProgress } from "./Progress/SubmissionProgress";
+export type { SyncStatus } from "./Progress/SyncIndicator";
+export { SyncIndicator } from "./Progress/SyncIndicator";
 // Spinner
 export type { CenteredSpinnerProps, SpinnerProps } from "./Spinner";
 export { CenteredSpinner, Spinner } from "./Spinner";
 // Status Badge
 export type { StatusBadgeProps } from "./StatusBadge";
 export { getStatusColors, StatusBadge } from "./StatusBadge";
+export { SyncStatusBar } from "./SyncStatusBar";
 // Toast Preset i18n Factory Functions
 export type { FormatMessageFn } from "./Toast/presets";
 // Toast Presets (default English)
@@ -132,15 +140,6 @@ export type {
 } from "./Toast/toast.service";
 export { setToastTranslator, toastService } from "./Toast/toast.service";
 export { TranslationBadge } from "./TranslationBadge";
-export { SyncStatusBar } from "./SyncStatusBar";
-
 // Vault Components
 export type { AssetSelectorProps } from "./Vault/AssetSelector";
 export { AssetSelector } from "./Vault/AssetSelector";
-
-// Progress Components
-export type { SubmissionProgressState, SubmissionStage } from "../hooks/work/useSubmissionProgress";
-export { SubmissionProgress } from "./Progress/SubmissionProgress";
-export type { SyncStatus } from "./Progress/SyncIndicator";
-export { SyncIndicator } from "./Progress/SyncIndicator";
-export { ENSProgressTimeline } from "./Progress/ENSProgressTimeline";

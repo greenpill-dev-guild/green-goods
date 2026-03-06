@@ -99,8 +99,18 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal override returns (bool) {
         if (schemaUID != bytes32(0) && attestation.schema != schemaUID) revert InvalidSchema();
 
-        // Decode the assessment v2 schema
-        AssessmentSchema memory schema = abi.decode(attestation.data, (AssessmentSchema));
+        // Decode as tuple — struct decode reverts because EAS stores data in flat-tuple
+        // ABI format. See Work.sol for detailed explanation.
+        AssessmentSchema memory schema;
+        (
+            schema.title,
+            schema.description,
+            schema.assessmentConfigCID,
+            schema.domain,
+            schema.startDate,
+            schema.endDate,
+            schema.location
+        ) = abi.decode(attestation.data, (string, string, string, uint8, uint256, uint256, string));
 
         // Use IGardenAccessControl interface for role verification
         IGardenAccessControl accessControl = IGardenAccessControl(attestation.recipient);

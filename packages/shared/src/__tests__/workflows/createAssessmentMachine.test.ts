@@ -8,14 +8,13 @@
  * tests provide mock actors via machine.provide() to control outcomes.
  */
 
-import { createActor, fromPromise } from "xstate";
 import { describe, expect, it } from "vitest";
-
-import {
-  createAssessmentMachine,
-  type CreateAssessmentForm,
-} from "../../workflows/createAssessment";
+import { createActor, fromPromise } from "xstate";
 import type { Address } from "../../types/domain";
+import {
+  type CreateAssessmentForm,
+  createAssessmentMachine,
+} from "../../workflows/createAssessment";
 
 // ============================================
 // Test Helpers
@@ -29,7 +28,7 @@ function createValidParams(overrides: Partial<CreateAssessmentForm> = {}): Creat
   return {
     gardenId: TEST_GARDEN_ADDRESS,
     title: "Urban Garden Assessment",
-    description: "Assessment of the urban garden conservation work",
+    description: "Assessment of the urban garden regenerative work",
     assessmentType: "biodiversity",
     capitals: ["natural", "social"],
     metrics: { biodiversityScore: 85 },
@@ -39,7 +38,7 @@ function createValidParams(overrides: Partial<CreateAssessmentForm> = {}): Creat
     startDate: BASE_TIMESTAMP,
     endDate: BASE_TIMESTAMP + 86400000, // +1 day
     location: "Portland, OR",
-    tags: ["urban", "conservation"],
+    tags: ["urban", "regenerative"],
     ...overrides,
   };
 }
@@ -52,7 +51,7 @@ function createV2FormPayload(): CreateAssessmentForm {
   return {
     gardenId: TEST_GARDEN_ADDRESS_2,
     title: "Solar Panel Installation Assessment",
-    description: "Assessment of solar panel conservation work in Portland",
+    description: "Assessment of solar panel regenerative work in Portland",
     assessmentType: "domain-0",
     capitals: [], // v2 form sends empty capitals
     metrics: {
@@ -386,6 +385,34 @@ describe("workflows/createAssessmentMachine", () => {
   // ------------------------------------------
 
   describe("submitting state", () => {
+    it("ignores CLOSE while submitting (in-flight tx cannot be cancelled)", () => {
+      const machine = createAssessmentMachine.provide({
+        actors: {
+          submitAssessment: fromPromise<string, CreateAssessmentForm>(
+            async () =>
+              await new Promise<string>((resolve) => {
+                setTimeout(() => resolve("0xDelayedSuccess"), 1000);
+              })
+          ),
+        },
+      });
+      const actor = createActor(machine);
+      actor.start();
+
+      actor.send({ type: "START", params: createValidParams() });
+      actor.send({ type: "SUBMIT" });
+      expect(actor.getSnapshot().value).toBe("submitting");
+
+      // CLOSE is intentionally ignored during submitting — once a transaction
+      // is in-flight it cannot be cancelled on-chain. The machine stays in
+      // submitting to prevent hiding the real outcome from the user.
+      actor.send({ type: "CLOSE" });
+
+      expect(actor.getSnapshot().value).toBe("submitting");
+
+      actor.stop();
+    });
+
     it("transitions to success when actor resolves", async () => {
       const machine = createMachineWithSuccessActor("0xSuccessTxHash");
       const actor = createActor(machine);

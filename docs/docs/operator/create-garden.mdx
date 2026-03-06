@@ -4,14 +4,14 @@ sidebar_position: 2
 slug: /operator/create-garden
 audience: operator
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-03-01
 feature_status: Live
 goal: "Complete Create Garden with clear, role-specific next actions."
 difficulty: "standard"
 estimated_time: "10-25 minutes."
 prereqs: "Operator/deployer permissions and clear garden metadata."
 next_steps: "./manage-actions"
-persona_context: "Operators coordinating gardens, approvals, and governance/treasury execution."
+persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
   - packages/admin/src/views/Gardens/CreateGarden.tsx
   - packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts
@@ -21,21 +21,11 @@ keywords:
   - operator workflow
 ---
 
-import {AtAGlanceCard, JourneyMap, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+import {JourneyMap, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
 
 # Create Garden
 
 <StatusBadge status="Live" />
-
-<AtAGlanceCard
-  goal="Complete Create Garden with clear, role-specific next actions."
-  difficulty="standard"
-  estimatedTime="10-25 minutes."
-  prereqs="Operator/deployer permissions and clear garden metadata."
-  outcome="New garden created with baseline metadata and membership model."
-  personaContext="Operators coordinating gardens, approvals, and governance/treasury execution."
-  lastVerified="2026-02-18"
-/>
 
 <JourneyMap
   role="Operator"
@@ -47,33 +37,43 @@ import {AtAGlanceCard, JourneyMap, NextBestAction, StatusBadge, StepFlow} from "
   ]}
 />
 
-## Required inputs
+## Overview
 
-- Garden name and short description.
-- Location and banner/media assets.
-- Joining policy (open vs restricted).
-- Initial member/role setup plan.
+A garden is your community hub for regenerative work. Creating one sets up an on-chain identity (ERC-6551 Tokenbound Account) that can hold assets, manage members, and coordinate impact. You will need a garden name, description, location, and a plan for your initial membership.
 
-## Creation flow
+{/* IMAGE PLACEHOLDER */}
+
+## How It Works
 
 <StepFlow
   steps={[
-    {title: "Open Create Garden", detail: "Use `/gardens/create` in admin."},
-    {title: "Complete form", detail: "Enter metadata and joining settings."},
-    {title: "Review transaction", detail: "Confirm chain/network and sign the transaction."},
-    {title: "Verify visibility", detail: "Confirm new garden appears in list and detail page."},
+    {title: "Open Create Garden", detail: "Navigate to /gardens/create in the admin dashboard."},
+    {title: "Complete the form", detail: "Enter your garden name, description, location, banner image, and joining policy (open or restricted)."},
+    {title: "Review and sign", detail: "Confirm the chain/network and sign the creation transaction with your wallet."},
+    {title: "Verify visibility", detail: "Confirm the new garden appears in the gardens list and detail page."},
   ]}
 />
 
-## Quality checks before sharing
+**Required inputs:**
 
-1. Garden metadata renders correctly in admin and client.
-2. Correct operator/admin permissions are present.
-3. Action creation works in the new garden.
+- Garden name and short description
+- Location and banner/media assets
+- Joining policy (open vs restricted)
+- Initial member/role setup plan
+
+## Best Practices
+
+- Choose a clear, descriptive garden name that reflects the bioregion or community focus
+- Set your joining policy thoughtfully — open gardens grow faster, restricted gardens maintain tighter quality control
+- Verify that garden metadata renders correctly in both admin and client before sharing with your community
+- Create your first action immediately after garden creation to give gardeners something to work on
+- Confirm that correct operator/admin permissions are in place before inviting members
+
+## What's Next
 
 <NextBestAction
   title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
+  why="Your garden is live — now define the regenerative actions your community can work on."
   actionLabel="Manage Actions"
   actionHref="./manage-actions"
   alternatives={[

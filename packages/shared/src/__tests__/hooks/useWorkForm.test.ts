@@ -22,6 +22,19 @@ describe("hooks/work/useWorkForm", () => {
       expect(result.success).toBe(true);
     });
 
+    it("converts hour input to minutes exactly once", () => {
+      const schema = buildWorkFormSchema([]);
+      const result = schema.safeParse({
+        feedback: "test",
+        timeSpentMinutes: "60",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.timeSpentMinutes).toBe(3600);
+      }
+    });
+
     it("validates required number fields", () => {
       const inputs: WorkInput[] = [
         {

@@ -9,8 +9,8 @@ import {
   useServiceWorkerUpdate,
 } from "@green-goods/shared";
 import { StrictMode, useEffect } from "react";
-import { HelmetProvider } from "react-helmet-async";
 import { createRoot } from "react-dom/client";
+import { HelmetProvider } from "react-helmet-async";
 import App from "@/App.tsx";
 import { AppErrorBoundary } from "@/components/Errors";
 

@@ -10,7 +10,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { SmartAccountClient } from "permissionless";
 import { useCallback } from "react";
-import type { Action, Address, Work, WorkDraft } from "../../types/domain";
 import {
   showWalletProgress,
   toastService,
@@ -23,21 +22,22 @@ import {
   trackWorkSubmissionStarted,
   trackWorkSubmissionSuccess,
 } from "../../modules/app/analytics-events";
-import { trackContractError, addBreadcrumb } from "../../modules/app/error-tracking";
+import { addBreadcrumb, trackContractError } from "../../modules/app/error-tracking";
 import { jobQueue } from "../../modules/job-queue";
 import { simulateWorkSubmission } from "../../modules/work/simulate";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
 import { useUIStore } from "../../stores/useUIStore";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
+import type { Action, Address, Work, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
-import { queryKeys } from "../query-keys";
-import { useTimeout } from "../utils/useTimeout";
+import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
+import { useTimeout } from "../utils/useTimeout";
 
 interface UseWorkMutationOptions {
   authMode: "wallet" | "passkey" | null;
@@ -83,6 +83,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
   // Use managed timeout for toast dismissal to ensure cleanup on unmount
   const { set: scheduleToastDismiss } = useTimeout();
+  // Separate timeout for indexer lag follow-up invalidation
+  const { set: scheduleInvalidation } = useTimeout();
 
   const mutation = useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
@@ -282,7 +284,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       });
 
       // --- Optimistic cache insertion ---
-      // Cancel outgoing refetches to avoid overwriting the optimistic entry
+      // Skip for online wallet users — submitWorkDirectly handles its own optimistic insert.
+      // Only insert here for passkey users and offline wallet users (queue path).
+      const isWalletOnline = authMode === "wallet" && navigator.onLine;
       let previousMerged: Work[] | undefined;
       if (gardenAddress) {
         await queryClient.cancelQueries({
@@ -293,33 +297,35 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           queryKeys.works.merged(gardenAddress, chainId)
         );
 
-        // Insert an optimistic Work entry so it appears instantly in lists
-        const optimisticWork: Work = {
-          id: `0xoffline_optimistic_${Date.now()}`,
-          title: actionTitle || "",
-          actionUID: actionUID ?? 0,
-          gardenerAddress: userAddress ?? "",
-          gardenAddress,
-          feedback: variables.draft.feedback || "",
-          metadata: JSON.stringify({
-            details: variables.draft.details ?? {},
-            timeSpentMinutes: variables.draft.timeSpentMinutes,
-          }),
-          media: [],
-          createdAt: Math.floor(Date.now() / 1000),
-          status: "pending",
-        };
-
-        queryClient.setQueryData(
-          queryKeys.works.merged(gardenAddress, chainId),
-          (old: Work[] = []) => [optimisticWork, ...old]
-        );
-
-        if (DEBUG_ENABLED) {
-          debugLog("[WorkMutation] Inserted optimistic work entry", {
-            optimisticId: optimisticWork.id,
+        if (!isWalletOnline) {
+          // Insert an optimistic Work entry so it appears instantly in lists
+          const optimisticWork: Work = {
+            id: `0xoffline_optimistic_${Date.now()}`,
+            title: actionTitle || "",
+            actionUID: actionUID ?? 0,
+            gardenerAddress: userAddress ?? "",
             gardenAddress,
-          });
+            feedback: variables.draft.feedback || "",
+            metadata: JSON.stringify({
+              details: variables.draft.details ?? {},
+              timeSpentMinutes: variables.draft.timeSpentMinutes,
+            }),
+            media: [],
+            createdAt: Math.floor(Date.now() / 1000),
+            status: "pending",
+          };
+
+          queryClient.setQueryData(
+            queryKeys.works.merged(gardenAddress, chainId),
+            (old: Work[] = []) => [optimisticWork, ...old]
+          );
+
+          if (DEBUG_ENABLED) {
+            debugLog("[WorkMutation] Inserted optimistic work entry", {
+              optimisticId: optimisticWork.id,
+              gardenAddress,
+            });
+          }
         }
       }
 
@@ -370,6 +376,26 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         // Passkey mode with inline processing: dismiss loading toast
         // Success will be shown by job queue event handler
         workToasts.dismiss();
+      }
+
+      // Invalidate work queries so lists reflect the new submission
+      if (gardenAddress) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.works.online(gardenAddress, chainId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.works.merged(gardenAddress, chainId),
+        });
+
+        // Schedule a follow-up invalidation for indexer lag
+        scheduleInvalidation(() => {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.works.online(gardenAddress, chainId),
+          });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.works.merged(gardenAddress, chainId),
+          });
+        }, INDEXER_LAG_FOLLOWUP_MS);
       }
 
       // Open work dashboard immediately - navigation will follow from Garden view

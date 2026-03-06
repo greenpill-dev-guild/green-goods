@@ -1,8 +1,6 @@
-import type { Domain_t } from "../../generated/src/db/Enums.gen";
-
-import type { Garden, GardenVault, Hypercert } from "../../generated/src/Types.gen";
-
 import { Capital, HypercertStatus, PoolType, VaultEventType, WeightScheme } from "../../generated";
+import type { Domain_t } from "../../generated/src/db/Enums.gen";
+import type { Garden, GardenVault, Hypercert } from "../../generated/src/Types.gen";
 
 // ============================================================================
 // TYPE HELPERS
@@ -418,7 +416,7 @@ export const ENS_NAME_TYPE_MAP: Record<number, string> = {
   1: "Garden",
 } as const;
 
-export const DEFAULT_IPFS_GATEWAY = "https://w3s.link/ipfs/";
+export const DEFAULT_IPFS_GATEWAY = "https://storacha.link/ipfs/";
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -505,6 +503,7 @@ export function createDefaultGarden(gardenId: string, chainId: number, timestamp
     location: "",
     bannerImage: "",
     openJoining: false,
+    initialized: false,
     gardeners: [],
     operators: [],
     evaluators: [],

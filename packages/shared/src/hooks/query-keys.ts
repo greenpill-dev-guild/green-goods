@@ -134,6 +134,8 @@ export const queryKeys = {
       ["greengoods", "vaults", "deposits", gardenAddress, chainId] as const,
     myDeposits: (gardenAddress: string, userAddress: string, chainId: number) =>
       ["greengoods", "vaults", "myDeposits", gardenAddress, userAddress, chainId] as const,
+    myDepositsByUser: (userAddress: string, chainId: number) =>
+      ["greengoods", "vaults", "myDepositsByUser", userAddress, chainId] as const,
     eventsBase: (gardenAddress: string, chainId: number) =>
       ["greengoods", "vaults", "events", gardenAddress, chainId] as const,
     events: (gardenAddress: string, chainId: number, limit?: number) =>
@@ -208,6 +210,12 @@ export const queryKeys = {
       ["greengoods", "yield", "pending", gardenAddress, assetAddress, chainId] as const,
   },
 
+  // Platform-wide stats (dashboard)
+  platform: {
+    all: ["greengoods", "platform"] as const,
+    stats: (chainId: number) => ["greengoods", "platform", "stats", chainId] as const,
+  },
+
   // Action related keys
   actions: {
     all: ["greengoods", "actions"] as const,
@@ -267,6 +275,9 @@ export const queryKeys = {
         address,
         JSON.stringify([...gardenIds].sort()),
       ] as const,
+    deploymentPermissions: (address?: string, chainId?: number) =>
+      ["greengoods", "role", "deploymentPermissions", address, chainId] as const,
+    allowlist: (chainId?: number) => ["greengoods", "role", "allowlist", chainId] as const,
   },
 
   // Draft related keys
@@ -344,14 +355,32 @@ export const queryInvalidation = {
   ],
 
   // Get queries to invalidate when a job is completed
-  onJobCompleted: (gardenId: string, chainId: number) => [
-    queryKeys.queue.stats(),
-    queryKeys.queue.pendingCount(),
-    queryKeys.works.all,
-    queryKeys.works.online(gardenId, chainId),
-    queryKeys.works.merged(gardenId, chainId),
-    queryKeys.works.approvals(),
-  ],
+  onJobCompleted: (gardenId: string, chainId: number, userAddress?: string) => {
+    const keys: Array<
+      | ReturnType<typeof queryKeys.queue.stats>
+      | ReturnType<typeof queryKeys.queue.pendingCount>
+      | typeof queryKeys.works.all
+      | ReturnType<typeof queryKeys.works.online>
+      | ReturnType<typeof queryKeys.works.merged>
+      | ReturnType<typeof queryKeys.works.approvals>
+    > = [
+      queryKeys.queue.stats(),
+      queryKeys.queue.pendingCount(),
+      queryKeys.works.all,
+      queryKeys.works.online(gardenId, chainId),
+      queryKeys.works.merged(gardenId, chainId),
+      // Keep legacy broad invalidation for callers using omitted params.
+      queryKeys.works.approvals(),
+      // Invalidate chain-scoped approvals (most callers pass chainId).
+      queryKeys.works.approvals(undefined, chainId),
+    ];
+
+    if (userAddress) {
+      keys.push(queryKeys.works.approvals(userAddress, chainId));
+    }
+
+    return keys;
+  },
 
   // Get queries to invalidate when sync is completed
   onSyncCompleted: () => [queryKeys.queue.all, queryKeys.works.all, queryKeys.offline.sync()],
@@ -405,6 +434,12 @@ export const queryInvalidation = {
   onFractionPurchased: (hypercertId: string, chainId: number) => [
     queryKeys.marketplace.tradeHistory(hypercertId, chainId),
     queryKeys.marketplace.all,
+  ],
+
+  // Invalidate deployment allowlist (after add/remove)
+  invalidateAllowlist: (chainId: number) => [
+    queryKeys.role.allowlist(chainId),
+    queryKeys.role.deploymentPermissions(),
   ],
 
   // Invalidate gardener profile
@@ -513,6 +548,7 @@ export const queryInvalidation = {
       | ReturnType<typeof queryKeys.vaults.deposits>
       | ReturnType<typeof queryKeys.vaults.eventsBase>
       | ReturnType<typeof queryKeys.vaults.myDeposits>
+      | ReturnType<typeof queryKeys.vaults.myDepositsByUser>
     > = [
       queryKeys.vaults.byGarden(gardenAddress, chainId),
       queryKeys.vaults.deposits(gardenAddress, chainId),
@@ -521,6 +557,7 @@ export const queryInvalidation = {
 
     if (userAddress) {
       keys.push(queryKeys.vaults.myDeposits(gardenAddress, userAddress, chainId));
+      keys.push(queryKeys.vaults.myDepositsByUser(userAddress, chainId));
     }
 
     return keys;
@@ -603,6 +640,8 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.vaults.myDeposits>
   | ReturnType<typeof queryKeys.vaults.events>
   | ReturnType<typeof queryKeys.vaults.preview>
+  | typeof queryKeys.platform.all
+  | ReturnType<typeof queryKeys.platform.stats>
   | typeof queryKeys.assessments.all
   | ReturnType<typeof queryKeys.assessments.byGarden>
   | typeof queryKeys.conviction.all
@@ -636,7 +675,8 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.marketplace.sellerOrders>
   | ReturnType<typeof queryKeys.marketplace.preview>
   | ReturnType<typeof queryKeys.marketplace.tradeHistory>
-  | ReturnType<typeof queryKeys.marketplace.approvals>;
+  | ReturnType<typeof queryKeys.marketplace.approvals>
+  | ReturnType<typeof queryKeys.role.allowlist>;
 
 export type WorksQueryKey =
   | typeof queryKeys.works.all

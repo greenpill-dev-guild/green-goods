@@ -9,19 +9,17 @@
  * @module modules/marketplace
  */
 
+// Approvals
+export type { EncodedApprovalCall, MarketplaceApprovals } from "./approvals";
+export { buildApprovalTransactions, checkMarketplaceApprovals } from "./approvals";
 // Client
 export {
-  getMarketplaceClient,
   getMarketplaceAddresses,
+  getMarketplaceClient,
   getOrderNonces,
   isMarketplaceSupported,
   resetMarketplaceClients,
 } from "./client";
-
 // Signing
 export type { MakerAskOrder, ValidationResult } from "./signing";
 export { buildMakerAsk, signMakerAsk, validateOrder } from "./signing";
-
-// Approvals
-export type { MarketplaceApprovals, EncodedApprovalCall } from "./approvals";
-export { checkMarketplaceApprovals, buildApprovalTransactions } from "./approvals";

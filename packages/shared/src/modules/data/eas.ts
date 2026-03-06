@@ -1,8 +1,5 @@
 import { getEASConfig } from "../../config/blockchain";
-import { isZeroBytes32 } from "../../utils/blockchain/vaults";
-import { easGraphQL } from "./graphql";
-import { createEasClient } from "./graphql-client";
-import { resolveIPFSUrl } from "./ipfs";
+import type { WorkApproval } from "../../types/domain";
 import type {
   EASAttestationRaw,
   EASDecodedField,
@@ -10,10 +7,11 @@ import type {
   EASWork,
   EASWorkApproval,
 } from "../../types/eas-responses";
-import type { WorkApproval } from "../../types/domain";
+import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { logger } from "../app/logger";
-
-const GATEWAY_BASE_URL = "https://w3s.link";
+import { easGraphQL } from "./graphql";
+import { createEasClient } from "./graphql-client";
+import { resolveIPFSUrl } from "./ipfs";
 
 /** Custom error for EAS fetch failures - allows React Query to properly retry/error */
 export class EASFetchError extends Error {
@@ -135,7 +133,7 @@ const parseDataToWork = (
   const mediaCIDs: string[] = (mediaData?.value?.value as string[]) || [];
 
   // Resolve IPFS CIDs to gateway URLs
-  const media = mediaCIDs.map((cid: string) => resolveIPFSUrl(cid, GATEWAY_BASE_URL));
+  const media = mediaCIDs.map((cid: string) => resolveIPFSUrl(cid));
 
   // Safely extract optional fields with null handling
   const feedbackData = data.find((d) => d.name === "feedback");

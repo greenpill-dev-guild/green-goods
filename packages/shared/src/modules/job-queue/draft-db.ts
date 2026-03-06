@@ -11,13 +11,13 @@ import { type IDBPDatabase, openDB } from "idb";
 import type {
   DraftImage,
   DraftStep,
-  WorkDraftRecord,
   SerializedFileData,
+  WorkDraftRecord,
 } from "../../types/job-queue";
 import {
-  serializeFile,
-  deserializeFile,
   buildFileMetadata,
+  deserializeFile,
+  serializeFile,
 } from "../../utils/storage/file-serialization";
 import { trackStorageError } from "../app/error-tracking";
 import { mediaResourceManager } from "./media-resource-manager";
@@ -48,7 +48,7 @@ export function computeFirstIncompleteStep(
     return "media";
   }
 
-  // Step 3: Details - needs feedback (plantSelection is optional)
+  // Step 3: Details - needs feedback
   if (!draft.feedback || draft.feedback.trim() === "") {
     return "details";
   }
@@ -113,8 +113,6 @@ class DraftDatabase {
       gardenAddress: data.gardenAddress ?? null,
       actionUID: data.actionUID ?? null,
       feedback: data.feedback ?? "",
-      plantSelection: data.plantSelection ?? [],
-      plantCount: data.plantCount,
       currentStep: data.currentStep ?? "intro",
       firstIncompleteStep: data.firstIncompleteStep ?? "intro",
       createdAt: now,

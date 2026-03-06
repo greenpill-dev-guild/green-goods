@@ -12,7 +12,7 @@
 
 import type { SmartAccountClient } from "permissionless";
 
-import type { Address } from "./domain";
+import type { Address, WorkDisplayStatus } from "./domain";
 
 // ============================================
 // Core Job Types
@@ -155,7 +155,7 @@ export interface CachedWork {
   metadata: string;
   media: string[];
   createdAt: number;
-  status?: "pending" | "approved" | "rejected";
+  status?: WorkDisplayStatus;
 }
 
 // ============================================
@@ -181,8 +181,6 @@ export type DraftStep = "intro" | "media" | "details" | "review";
  *   gardenAddress: "0x...",
  *   actionUID: 1,
  *   feedback: "In progress...",
- *   plantSelection: ["tomato"],
- *   plantCount: 5,
  *   currentStep: "details",
  *   firstIncompleteStep: "details",
  *   createdAt: 1704067200000,
@@ -200,8 +198,6 @@ export interface WorkDraftRecord {
   gardenAddress: Address | null;
   actionUID: number | null;
   feedback: string;
-  plantSelection: string[];
-  plantCount: number | undefined;
   /** Time spent on the work in minutes */
   timeSpentMinutes?: number;
   /** Current step in the flow (for resume) */

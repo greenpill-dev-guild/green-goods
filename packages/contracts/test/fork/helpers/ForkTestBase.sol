@@ -305,7 +305,9 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: domainMask
+            domainMask: domainMask,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
         return gardenToken.mintGarden(config);
     }
@@ -316,6 +318,14 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
     /// @param role The GardenRole to grant
     function _grantGardenRole(address garden, address user, IHatsModule.GardenRole role) internal {
         hatsModule.grantRole(garden, user, role);
+    }
+
+    /// @notice Revoke a garden role from a user via HatsModule
+    /// @param garden The garden account address
+    /// @param user The user to revoke the role from
+    /// @param role The GardenRole to revoke
+    function _revokeGardenRole(address garden, address user, IHatsModule.GardenRole role) internal {
+        hatsModule.revokeRole(garden, user, role);
     }
 
     /// @notice Track next expected action UID (mirrors ActionRegistry._nextActionUID)

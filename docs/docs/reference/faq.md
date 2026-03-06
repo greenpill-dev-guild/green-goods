@@ -71,11 +71,11 @@ Operator permissions are assigned by admins or existing operator governance in a
 
 Use [Create Garden](../operator/create-garden). Availability depends on your current permissions.
 
-### Where are treasury and governance workflows documented?
+### Where are endowment and governance workflows documented?
 
-Use the operator treasury/governance pages:
+Use the operator endowment/governance pages:
 
-- [Vaults and Treasury](../operator/vaults-and-treasury)
+- [Vaults and Endowments](../operator/vaults-and-treasury)
 - [Cookie Jars](../operator/cookie-jars)
 - [Conviction and Signal Pools](../operator/conviction-and-signal-pools)
 

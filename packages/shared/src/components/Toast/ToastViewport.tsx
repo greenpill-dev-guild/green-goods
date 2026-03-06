@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties } from "react";
+import { type CSSProperties, useEffect } from "react";
 import { Toaster, type ToastOptions, type ToastPosition } from "react-hot-toast";
 import { useIntl } from "react-intl";
 import { setToastTranslator, type ToastStatus, type ToastTranslator } from "./toast.service";

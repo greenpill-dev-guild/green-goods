@@ -1,24 +1,70 @@
-import { useWorks } from "@green-goods/shared";
-import { RiCheckboxCircleLine, RiCloseLine, RiFileList3Line, RiTimeLine } from "@remixicon/react";
-import { useState } from "react";
+import { cn, formatRelativeTime, useWorks, type Work } from "@green-goods/shared";
+import {
+  RiCheckboxCircleLine,
+  RiCloseLine,
+  RiFileList3Line,
+  RiRefreshLine,
+  RiTimeLine,
+} from "@remixicon/react";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { WorkCard } from "./WorkCard";
 
 interface WorkSubmissionsViewProps {
   gardenId: string;
   canManage?: boolean;
+  works?: Work[];
+  isLoading?: boolean;
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
+  lastUpdatedAt?: number;
+  initialFilter?: FilterType;
+  highlightWorkId?: string;
 }
 
 type FilterType = "all" | "pending" | "approved" | "rejected";
 
-export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ gardenId }) => {
+export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({
+  gardenId,
+  canManage,
+  works: worksProp,
+  isLoading: isLoadingProp,
+  isRefreshing: isRefreshingProp,
+  onRefresh,
+  lastUpdatedAt,
+  initialFilter = "pending",
+  highlightWorkId,
+}) => {
   const intl = useIntl();
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [activeFilter, setActiveFilter] = useState<FilterType>(initialFilter);
+  const hasExternalDataControl =
+    worksProp !== undefined ||
+    isLoadingProp !== undefined ||
+    isRefreshingProp !== undefined ||
+    onRefresh !== undefined;
 
-  const { works, isLoading } = useWorks(gardenId);
+  const worksQuery = useWorks(hasExternalDataControl ? "" : gardenId);
+  const works = worksProp ?? worksQuery.works;
+  const isLoading = isLoadingProp ?? worksQuery.isLoading;
+  const isRefreshing = isRefreshingProp ?? worksQuery.isFetching;
 
-  // Filter works based on active filter
-  // Status is now computed by useWorks hook from approvals
+  useEffect(() => {
+    setActiveFilter(initialFilter);
+  }, [initialFilter]);
+
+  const refreshSubmissions = () => {
+    if (onRefresh) {
+      onRefresh();
+      return;
+    }
+
+    if (!hasExternalDataControl) {
+      void worksQuery.refetch();
+    }
+  };
+
   const filteredWorks = works.filter((work) => {
     if (activeFilter === "all") return true;
     return work.status === activeFilter;
@@ -27,45 +73,69 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
   const filterButtons: Array<{ id: FilterType; label: string; icon: React.ReactNode }> = [
     {
       id: "all",
-      label: intl.formatMessage({ id: "admin.work.filter.all", defaultMessage: "All" }),
+      label: intl.formatMessage({ id: "app.admin.work.filter.all" }),
       icon: <RiFileList3Line className="h-4 w-4" />,
     },
     {
       id: "pending",
-      label: intl.formatMessage({ id: "admin.work.filter.pending", defaultMessage: "Pending" }),
+      label: intl.formatMessage({ id: "app.admin.work.filter.pending" }),
       icon: <RiTimeLine className="h-4 w-4" />,
     },
     {
       id: "approved",
-      label: intl.formatMessage({ id: "admin.work.filter.approved", defaultMessage: "Approved" }),
+      label: intl.formatMessage({ id: "app.admin.work.filter.approved" }),
       icon: <RiCheckboxCircleLine className="h-4 w-4" />,
     },
     {
       id: "rejected",
-      label: intl.formatMessage({ id: "admin.work.filter.rejected", defaultMessage: "Rejected" }),
+      label: intl.formatMessage({ id: "app.admin.work.filter.rejected" }),
       icon: <RiCloseLine className="h-4 w-4" />,
     },
   ];
 
   return (
-    <div className="overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-      {/* Header */}
-      <div className="flex flex-col gap-3 border-b border-stroke-soft p-4 sm:gap-4 sm:p-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h3 className="text-base font-medium text-text-strong sm:text-lg">
-            {intl.formatMessage({
-              id: "admin.work.submissions.title",
-              defaultMessage: "Work Submissions",
-            })}
-          </h3>
-          <p className="mt-1 text-sm text-text-soft">
-            {filteredWorks.length} {activeFilter !== "all" ? activeFilter : ""} submission
-            {filteredWorks.length !== 1 ? "s" : ""}
-          </p>
+    <Card className="overflow-hidden min-h-[20rem]">
+      <Card.Header className="flex-col items-start gap-3 sm:gap-4">
+        <div className="flex w-full flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="label-md text-text-strong sm:text-lg">
+              {intl.formatMessage({ id: "app.admin.work.submissions.title" })}
+            </h3>
+            <p className="mt-1 text-sm text-text-soft">
+              {intl.formatMessage(
+                { id: "app.admin.work.submissions.summary" },
+                {
+                  count: filteredWorks.length,
+                  status:
+                    activeFilter === "all"
+                      ? intl.formatMessage({ id: "app.admin.work.filter.all" })
+                      : intl.formatMessage({ id: `app.admin.work.filter.${activeFilter}` }),
+                }
+              )}
+            </p>
+            {lastUpdatedAt ? (
+              <p className="mt-1 text-xs text-text-soft">
+                {intl.formatMessage(
+                  { id: "app.admin.work.submissions.lastUpdated" },
+                  { when: formatRelativeTime(lastUpdatedAt) }
+                )}
+              </p>
+            ) : null}
+          </div>
+
+          <ButtonRefresh
+            canManage={canManage}
+            isRefreshing={isRefreshing}
+            onRefresh={refreshSubmissions}
+            label={intl.formatMessage({ id: "app.garden.detail.action.refresh" })}
+          />
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label={intl.formatMessage({ id: "app.admin.work.filterGroup" })}
+        >
           {filterButtons.map((filter) => (
             <button
               key={filter.id}
@@ -73,11 +143,13 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
               onClick={() => setActiveFilter(filter.id)}
               className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition active:scale-95 sm:min-h-0 sm:px-3 sm:py-1.5 ${
                 activeFilter === filter.id
-                  ? "bg-green-100 text-green-700"
+                  ? "bg-primary-alpha-16 text-primary-darker"
                   : "bg-bg-soft text-text-sub hover:bg-bg-sub"
               }`}
-              // eslint-disable-next-line jsx-a11y/aria-proptypes
-              aria-label={`Filter by ${filter.label}`}
+              aria-label={intl.formatMessage(
+                { id: "app.admin.work.filterBy" },
+                { filter: filter.label }
+              )}
               aria-pressed={activeFilter === filter.id}
             >
               <span className="flex-shrink-0">{filter.icon}</span>
@@ -85,49 +157,89 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({ garden
             </button>
           ))}
         </div>
-      </div>
+      </Card.Header>
 
-      {/* Work Grid */}
-      <div className="p-4 sm:p-6">
+      <Card.Body>
         {isLoading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2" role="status" aria-live="polite">
+            <span className="sr-only">
+              {intl.formatMessage({ id: "app.admin.work.submissions.title" })}
+            </span>
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 animate-pulse rounded-lg bg-bg-soft" />
+              <Card key={i} padding="compact">
+                <div className="space-y-2">
+                  <div
+                    className="h-24 rounded-lg skeleton-shimmer"
+                    style={{ animationDelay: `${i * 0.08}s` }}
+                  />
+                  <div className="space-y-2">
+                    <div
+                      className="h-4 w-3/4 rounded skeleton-shimmer"
+                      style={{ animationDelay: `${i * 0.08 + 0.04}s` }}
+                    />
+                    <div
+                      className="h-3 w-1/2 rounded skeleton-shimmer"
+                      style={{ animationDelay: `${i * 0.08 + 0.08}s` }}
+                    />
+                  </div>
+                </div>
+              </Card>
             ))}
           </div>
         ) : filteredWorks.length === 0 ? (
-          <div className="py-12 text-center">
-            <RiFileList3Line className="mx-auto h-12 w-12 text-text-soft" />
-            <h4 className="mt-4 text-sm font-medium text-text-strong">
-              {intl.formatMessage({
-                id: "admin.work.submissions.empty",
-                defaultMessage: "No work submissions found",
-              })}
-            </h4>
-            <p className="mt-1 text-sm text-text-soft">
-              {activeFilter === "all"
-                ? intl.formatMessage({
-                    id: "admin.work.submissions.empty.all",
-                    defaultMessage:
-                      "Work submissions will appear here once gardeners start contributing.",
-                  })
+          <EmptyState
+            icon={<RiFileList3Line className="h-6 w-6" />}
+            title={intl.formatMessage({ id: "app.admin.work.submissions.empty" })}
+            description={
+              activeFilter === "all"
+                ? intl.formatMessage({ id: "app.admin.work.submissions.empty.all" })
                 : intl.formatMessage(
-                    {
-                      id: "admin.work.submissions.empty.filtered",
-                      defaultMessage: "No {filter} work submissions yet.",
-                    },
-                    { filter: activeFilter }
-                  )}
-            </p>
-          </div>
+                    { id: "app.admin.work.submissions.empty.filtered" },
+                    { filter: intl.formatMessage({ id: `app.admin.work.filter.${activeFilter}` }) }
+                  )
+            }
+          />
         ) : (
           <div className="work-cards-grid grid grid-cols-1 gap-4 md:grid-cols-2">
             {filteredWorks.map((work) => (
-              <WorkCard key={work.id} work={work} />
+              <div
+                key={work.id}
+                className={cn(
+                  "rounded-lg transition-shadow",
+                  highlightWorkId === work.id && "ring-1 ring-primary-base shadow-sm"
+                )}
+              >
+                <WorkCard work={work} />
+              </div>
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </Card.Body>
+    </Card>
   );
 };
+
+interface ButtonRefreshProps {
+  canManage?: boolean;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+  label: string;
+}
+
+function ButtonRefresh({ canManage, isRefreshing, onRefresh, label }: ButtonRefreshProps) {
+  if (canManage === false) {
+    return null;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onRefresh}
+      disabled={isRefreshing}
+      className="inline-flex items-center gap-1.5 rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-xs font-medium text-text-sub transition hover:bg-bg-weak disabled:opacity-60"
+    >
+      <RiRefreshLine className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+      {label}
+    </button>
+  );
+}

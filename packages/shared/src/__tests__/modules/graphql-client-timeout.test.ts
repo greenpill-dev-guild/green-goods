@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { withTimeout, TimeoutError, GRAPHQL_TIMEOUT_MS } from "../../modules/data/graphql-client";
+import { describe, expect, it, vi } from "vitest";
+import { GRAPHQL_TIMEOUT_MS, TimeoutError, withTimeout } from "../../modules/data/graphql-client";
 
 describe("withTimeout", () => {
   it("resolves when promise completes before timeout", async () => {

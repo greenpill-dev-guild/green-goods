@@ -6,9 +6,10 @@
  */
 
 import { vi } from "vitest";
-
+import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
 import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types";
 import { Confidence, Domain, VerificationMethod } from "../../types";
+import type { CookieJar } from "../../types/cookie-jar";
 import type {
   AllowlistEntry,
   HypercertAttestation,
@@ -16,7 +17,6 @@ import type {
   HypercertRecord,
   OutcomeMetrics,
 } from "../../types/hypercerts";
-import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
 
 // ============================================
 // Address Constants
@@ -129,6 +129,26 @@ export function createMockAction(overrides?: Partial<Action>): Action {
     domain: Domain.AGRO,
     createdAt: Date.now(),
     inputs: [],
+    ...overrides,
+  };
+}
+
+// ============================================
+// CookieJar Factory
+// ============================================
+
+export function createMockCookieJar(overrides?: Partial<CookieJar>): CookieJar {
+  return {
+    jarAddress: "0xJar123456789012345678901234567890123456",
+    gardenAddress: MOCK_ADDRESSES.garden,
+    assetAddress: "0xAsset12345678901234567890123456789012345",
+    balance: 1000000000000000000n, // 1e18
+    currency: "0xAsset12345678901234567890123456789012345",
+    decimals: 18,
+    maxWithdrawal: 500000000000000000n, // 0.5e18
+    withdrawalInterval: 86400n, // 1 day in seconds
+    isPaused: false,
+    emergencyWithdrawalEnabled: false,
     ...overrides,
   };
 }
@@ -282,7 +302,7 @@ export function createMockHypercertDraft(overrides: Partial<HypercertDraft> = {}
     stepNumber: 1,
     attestationIds: [],
     title: "Test Hypercert",
-    description: "A test hypercert for conservation work",
+    description: "A test hypercert for regenerative work",
     workScopes: ["gardening", "planting"],
     impactScopes: ["environment"],
     workTimeframeStart: now - 86400 * 30, // 30 days ago

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useReadContracts } from "wagmi";
-import type { Address } from "../../types/domain";
 import type { CookieJar } from "../../types/cookie-jar";
+import type { Address } from "../../types/domain";
 import {
   COOKIE_JAR_ABI,
   COOKIE_JAR_MODULE_ABI,
@@ -9,8 +9,8 @@ import {
 } from "../../utils/blockchain/abis";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
-import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useGardens } from "../blockchain/useBaseLists";
+import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useRole } from "../gardener/useRole";
 import { STALE_TIME_MEDIUM } from "../query-keys";
 
@@ -87,6 +87,7 @@ export function useUserCookieJars() {
           abi: COOKIE_JAR_ABI,
           functionName: "EMERGENCY_WITHDRAWAL_ENABLED" as const,
         },
+        { address: jarAddress, abi: COOKIE_JAR_ABI, functionName: "MIN_DEPOSIT" as const },
       ]),
     [jarGardenPairs]
   );
@@ -102,7 +103,7 @@ export function useUserCookieJars() {
   // Step 3: Read decimals for each jar's currency (depends on step 2 results)
   const currencyAddresses = useMemo(() => {
     if (!detailResults) return [];
-    const FIELDS_PER_JAR = 6;
+    const FIELDS_PER_JAR = 7;
     return jarGardenPairs.map((_, i) => {
       const currency = detailResults[i * FIELDS_PER_JAR]?.result as Address | undefined;
       return currency;
@@ -133,7 +134,7 @@ export function useUserCookieJars() {
   const jars = useMemo<CookieJar[]>(() => {
     if (!detailResults) return [];
 
-    const FIELDS_PER_JAR = 6;
+    const FIELDS_PER_JAR = 7;
     let decimalsIdx = 0;
     return jarGardenPairs
       .map(({ jarAddress, gardenAddress }, i) => {
@@ -144,6 +145,7 @@ export function useUserCookieJars() {
         const withdrawalInterval = detailResults[offset + 3]?.result as bigint | undefined;
         const isPaused = detailResults[offset + 4]?.result as boolean | undefined;
         const emergencyEnabled = detailResults[offset + 5]?.result as boolean | undefined;
+        const minDeposit = detailResults[offset + 6]?.result as bigint | undefined;
 
         if (currency === undefined || balance === undefined) return null;
 
@@ -159,6 +161,7 @@ export function useUserCookieJars() {
           decimals: tokenDecimals,
           maxWithdrawal: maxWithdrawal ?? 0n,
           withdrawalInterval: withdrawalInterval ?? 0n,
+          minDeposit: minDeposit ?? 0n,
           isPaused: isPaused ?? false,
           emergencyWithdrawalEnabled: emergencyEnabled ?? false,
         } satisfies CookieJar;

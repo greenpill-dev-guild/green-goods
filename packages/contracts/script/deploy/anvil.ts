@@ -1,5 +1,5 @@
+import { type ChildProcess, spawn } from "node:child_process";
 import * as http from "node:http";
-import { spawn, type ChildProcess } from "node:child_process";
 import { NetworkManager } from "../utils/network";
 
 /**
@@ -179,7 +179,11 @@ export class AnvilManager {
 
     if (!background) {
       console.log("\nStarting Anvil with command:");
-      console.log("anvil", anvilArgs.join(" "));
+      // Mask the fork-url value to avoid leaking RPC API keys
+      const safeArgs = anvilArgs.map((arg, i) =>
+        anvilArgs[i - 1] === "--fork-url" ? arg.replace(/(\/v\d+\/)[^\s/]+/g, "$1***") : arg,
+      );
+      console.log("anvil", safeArgs.join(" "));
       console.log("\nPress Ctrl+C to stop the fork\n");
     }
 

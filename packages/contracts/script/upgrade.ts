@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { execSync } from "node:child_process";
 import * as dotenv from "dotenv";
 import { NetworkManager } from "./utils/network";
 import { assertSepoliaGate } from "./utils/release-gate";
@@ -14,6 +14,7 @@ type ContractName =
   | "action-registry"
   | "garden-token"
   | "gardener-account"
+  | "octant-module"
   | "work-resolver"
   | "work-approval-resolver"
   | "assessment-resolver"
@@ -24,6 +25,7 @@ const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "action-registry": "upgradeActionRegistry()",
   "garden-token": "upgradeGardenToken()",
   "gardener-account": "upgradeGardenerAccount()",
+  "octant-module": "upgradeOctantModule()",
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
   "assessment-resolver": "upgradeAssessmentResolver()",
@@ -38,20 +40,64 @@ const ALL_CONTRACTS_FOR_UPGRADE_ALL: readonly ContractName[] = [
   "work-approval-resolver",
   "assessment-resolver",
   "deployment-registry",
+  "octant-module",
 ];
 
 const DEPLOYMENT_KEYS: Record<Exclude<ContractName, "all">, string> = {
   "action-registry": "actionRegistry",
   "garden-token": "gardenToken",
   "gardener-account": "accountProxy",
+  "octant-module": "octantModule",
   "work-resolver": "workResolver",
   "work-approval-resolver": "workApprovalResolver",
   "assessment-resolver": "assessmentResolver",
   "deployment-registry": "deploymentRegistry",
 };
 
+const CONTRACTS_ROOT = path.join(__dirname, "..");
+
+interface UpgradeOptions {
+  contract: ContractName;
+  network: string;
+  broadcast: boolean;
+  dryRun: boolean;
+  pureSimulation: boolean;
+  txPlan: boolean;
+  overrideSepoliaGate: boolean;
+  sender?: string;
+}
+
+interface ForgeBroadcastTransaction {
+  transactionType?: string;
+  contractName?: string | null;
+  function?: string | null;
+  transaction?: {
+    from?: string;
+    to?: string;
+    gas?: string;
+    value?: string;
+    input?: string;
+    nonce?: string;
+    chainId?: string;
+  };
+}
+
+interface ForgeBroadcastArtifact {
+  transactions?: ForgeBroadcastTransaction[];
+}
+
 function isAddress(value: unknown): value is string {
   return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value) && !/^0x0+$/i.test(value);
+}
+
+function resolveDeploymentOutputDir(): string {
+  const configured = process.env.DEPLOYMENT_OUTPUT_DIR?.trim();
+  const outputDir = configured && configured.length > 0 ? configured : "deployments";
+  return path.isAbsolute(outputDir) ? outputDir : path.join(CONTRACTS_ROOT, outputDir);
+}
+
+function resolveDeploymentArtifactPath(fileName: string): string {
+  return path.join(resolveDeploymentOutputDir(), fileName);
 }
 
 function resolveUpgradeTargets(contract: ContractName, deployment: Record<string, unknown>) {
@@ -83,7 +129,7 @@ function resolveUpgradeTargets(contract: ContractName, deployment: Record<string
 
 function runPureSimulation(contract: ContractName, network: string, networkManager: NetworkManager): void {
   const chainId = networkManager.getChainIdString(network);
-  const deploymentPath = path.join(__dirname, "..", "deployments", `${chainId}-latest.json`);
+  const deploymentPath = resolveDeploymentArtifactPath(`${chainId}-latest.json`);
 
   if (!fs.existsSync(deploymentPath)) {
     throw new Error(`Deployment artifact not found: ${deploymentPath}`);
@@ -108,9 +154,9 @@ function runPureSimulation(contract: ContractName, network: string, networkManag
   }
 
   console.log("\n🔨 Running forge build preflight...");
-  execSync("forge build --skip test", {
+  execFileSync("forge", ["build", "--skip", "test"], {
     stdio: "inherit",
-    cwd: path.join(__dirname, ".."),
+    cwd: CONTRACTS_ROOT,
     env: {
       ...process.env,
       FOUNDRY_PROFILE: "production",
@@ -122,7 +168,7 @@ function runPureSimulation(contract: ContractName, network: string, networkManag
     "script",
     "script/Upgrade.s.sol:Upgrade",
     "--sig",
-    `"${CONTRACT_FUNCTIONS[contract]}"`,
+    CONTRACT_FUNCTIONS[contract],
     "--rpc-url",
     "<resolved at runtime>",
     "--chain-id",
@@ -148,6 +194,7 @@ Contracts:
   action-registry          Upgrade ActionRegistry
   garden-token            Upgrade GardenToken
   gardener-account        Upgrade GardenerAccount (user smart account logic)
+  octant-module           Upgrade OctantModule (vault treasury module)
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver
   assessment-resolver     Upgrade AssessmentResolver
@@ -156,11 +203,13 @@ Contracts:
 
 Options:
   --network <name>        Network to upgrade on (default: localhost)
-  --dry-run              Run preflight checks without RPC calls
-  --pure-simulation      Run compile + deployment preflight only (no RPC calls)
-  --broadcast            Execute upgrade (default for non-localhost)
+  --sender <address>      Override tx sender address for simulation/broadcast
+  --dry-run               Run preflight checks without RPC calls
+  --pure-simulation       Run compile + deployment preflight only (no RPC calls)
+  --tx-plan               Simulate upgrade and persist a transaction plan artifact
+  --broadcast             Execute upgrade
   --override-sepolia-gate  Bypass Sepolia gate for Arbitrum/Celo broadcast
-  --help                 Show this help
+  --help                  Show this help
 
 Available networks: ${networkManager.getAvailableNetworks().join(", ")}
 
@@ -178,12 +227,133 @@ Examples:
   # Dry run on Sepolia
   bun script/upgrade.ts action-registry --network sepolia --dry-run
   
+  # Generate transaction plan
+  bun script/upgrade.ts action-registry --network sepolia --tx-plan --sender 0x1234...
+
   # Execute upgrade
   bun script/upgrade.ts action-registry --network sepolia --broadcast
-  
+
   # Upgrade all contracts
   bun script/upgrade.ts all --network sepolia --broadcast
   `);
+}
+
+function parseOptions(args: string[]): UpgradeOptions {
+  const contract = args[0] as ContractName;
+  let network = "localhost";
+  let sender: string | undefined;
+  let broadcast = false;
+  let dryRun = false;
+  let pureSimulation = false;
+  let txPlan = false;
+  let overrideSepoliaGate = false;
+
+  for (let i = 1; i < args.length; i++) {
+    const arg = args[i];
+
+    switch (arg) {
+      case "--network": {
+        const value = args[i + 1];
+        if (!value || value.startsWith("-")) {
+          throw new Error("--network requires a value");
+        }
+        network = value;
+        i++;
+        break;
+      }
+      case "--sender": {
+        const value = args[i + 1];
+        if (!value || value.startsWith("-")) {
+          throw new Error("--sender requires an address value");
+        }
+        sender = value;
+        i++;
+        break;
+      }
+      case "--broadcast":
+        broadcast = true;
+        break;
+      case "--dry-run":
+        dryRun = true;
+        break;
+      case "--pure-simulation":
+        pureSimulation = true;
+        break;
+      case "--tx-plan":
+        txPlan = true;
+        break;
+      case "--override-sepolia-gate":
+        overrideSepoliaGate = true;
+        break;
+      default:
+        if (arg.startsWith("-")) {
+          throw new Error(`Unknown option: ${arg}`);
+        }
+        throw new Error(`Unexpected positional argument: ${arg}`);
+    }
+  }
+
+  return {
+    contract,
+    network,
+    broadcast,
+    dryRun,
+    pureSimulation: pureSimulation || dryRun,
+    txPlan,
+    overrideSepoliaGate,
+    sender,
+  };
+}
+
+function findLatestUpgradeArtifact(chainId: number): string {
+  const baseDir = path.join(CONTRACTS_ROOT, "broadcast", "Upgrade.s.sol", chainId.toString());
+  const candidates = [path.join(baseDir, "dry-run", "run-latest.json"), path.join(baseDir, "run-latest.json")];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  throw new Error(`Upgrade artifact not found under ${baseDir}`);
+}
+
+function persistTxPlan(options: UpgradeOptions, chainId: number): string {
+  const artifactPath = findLatestUpgradeArtifact(chainId);
+  const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8")) as ForgeBroadcastArtifact;
+  const transactions = (artifact.transactions ?? []).map((entry, index) => ({
+    index,
+    transactionType: entry.transactionType ?? null,
+    contractName: entry.contractName ?? null,
+    function: entry.function ?? null,
+    from: entry.transaction?.from ?? null,
+    to: entry.transaction?.to ?? null,
+    value: entry.transaction?.value ?? "0x0",
+    gas: entry.transaction?.gas ?? null,
+    nonce: entry.transaction?.nonce ?? null,
+    data: entry.transaction?.input ?? null,
+  }));
+
+  const plansDir = path.join(resolveDeploymentOutputDir(), "tx-plans");
+  fs.mkdirSync(plansDir, { recursive: true });
+
+  const plan = {
+    generatedAt: new Date().toISOString(),
+    network: options.network,
+    chainId,
+    contract: options.contract,
+    functionSignature: CONTRACT_FUNCTIONS[options.contract],
+    sender: options.sender ?? process.env.SENDER_ADDRESS ?? null,
+    sourceArtifact: artifactPath,
+    transactionCount: transactions.length,
+    transactions,
+  };
+
+  const fileName = `${chainId}-${options.contract}-${Date.now()}-plan.json`;
+  const planPath = path.join(plansDir, fileName);
+  fs.writeFileSync(planPath, `${JSON.stringify(plan, null, 2)}\n`, "utf8");
+
+  return planPath;
 }
 
 function main(): void {
@@ -194,45 +364,62 @@ function main(): void {
     process.exit(0);
   }
 
-  const contract = args[0] as ContractName;
-  const networkIndex = args.indexOf("--network");
-  const network = networkIndex !== -1 ? args[networkIndex + 1] : "localhost";
-  // Only broadcast if explicitly requested - don't auto-enable for non-localhost
-  const broadcast = args.includes("--broadcast");
-  const dryRun = args.includes("--dry-run");
-  const pureSimulation = args.includes("--pure-simulation") || dryRun;
-  const overrideSepoliaGate = args.includes("--override-sepolia-gate");
+  let options: UpgradeOptions;
+  try {
+    options = parseOptions(args);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`❌ ${message}`);
+    showHelp();
+    process.exit(1);
+  }
 
-  if (!CONTRACT_FUNCTIONS[contract]) {
-    console.error(`Unknown contract: ${contract}`);
+  if (!CONTRACT_FUNCTIONS[options.contract]) {
+    console.error(`Unknown contract: ${options.contract}`);
     console.error("Run with --help to see available contracts");
     process.exit(1);
   }
 
-  if (broadcast && pureSimulation) {
+  if (options.broadcast && options.pureSimulation) {
     console.error("Cannot use --broadcast with --dry-run/--pure-simulation");
     process.exit(1);
   }
 
-  // Resolve RPC URL from network config
+  if (options.broadcast && options.txPlan) {
+    console.error("Cannot use --broadcast with --tx-plan");
+    process.exit(1);
+  }
+
+  if (options.txPlan && options.pureSimulation) {
+    console.error("Cannot use --tx-plan with --dry-run/--pure-simulation");
+    process.exit(1);
+  }
+
   const networkManager = new NetworkManager();
+
+  if (options.pureSimulation) {
+    try {
+      runPureSimulation(options.contract, options.network, networkManager);
+      process.exit(0);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`❌ ${errorMsg}`);
+      process.exit(1);
+    }
+  }
+
   let rpcUrl: string;
   let chainId: number;
 
   try {
-    if (pureSimulation) {
-      runPureSimulation(contract, network, networkManager);
-      process.exit(0);
-    }
-
     assertSepoliaGate({
-      network,
-      broadcast,
-      overrideSepoliaGate,
+      network: options.network,
+      broadcast: options.broadcast,
+      overrideSepoliaGate: options.overrideSepoliaGate,
     });
 
-    rpcUrl = networkManager.getRpcUrl(network);
-    chainId = networkManager.getChainId(network);
+    rpcUrl = networkManager.getRpcUrl(options.network);
+    chainId = networkManager.getChainId(options.network);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`❌ Failed to get network config: ${errorMsg}`);
@@ -243,14 +430,20 @@ function main(): void {
     "script",
     "script/Upgrade.s.sol:Upgrade",
     "--sig",
-    `"${CONTRACT_FUNCTIONS[contract]}"`,
+    CONTRACT_FUNCTIONS[options.contract],
     "--rpc-url",
     rpcUrl,
     "--chain-id",
     chainId.toString(),
   ];
 
-  if (broadcast) {
+  if (options.sender) {
+    forgeArgs.push("--sender", options.sender);
+  } else if (process.env.SENDER_ADDRESS) {
+    forgeArgs.push("--sender", process.env.SENDER_ADDRESS);
+  }
+
+  if (options.broadcast) {
     forgeArgs.push("--broadcast");
 
     const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
@@ -258,21 +451,31 @@ function main(): void {
 
     console.log(`🔐 Using Foundry keystore: ${keystoreName}`);
     console.log("💡 Password will be prompted interactively\n");
+  } else if (options.txPlan) {
+    console.log("🗂️ Transaction plan mode enabled (no broadcast, artifacts persisted)\n");
   } else {
-    console.log("🔍 Dry run mode - no transactions will be broadcast\n");
+    console.log("🔍 Simulation mode - no transactions will be broadcast\n");
   }
 
-  const command = `forge ${forgeArgs.join(" ")}`;
-  console.log(`Executing: ${command}\n`);
+  console.log(`Executing: forge ${forgeArgs.join(" ")}\n`);
 
   try {
-    execSync(command, {
+    execFileSync("forge", forgeArgs, {
       stdio: "inherit",
-      cwd: path.join(__dirname, ".."),
-      env: { ...process.env, FOUNDRY_PROFILE: "production" },
+      cwd: CONTRACTS_ROOT,
+      env: {
+        ...process.env,
+        FOUNDRY_PROFILE: "production",
+        FORGE_BROADCAST: options.broadcast || options.txPlan ? "true" : "false",
+      },
     });
 
-    console.log("\n✅ Upgrade completed successfully");
+    if (options.txPlan) {
+      const planPath = persistTxPlan(options, chainId);
+      console.log(`\n✅ Upgrade transaction plan saved to ${planPath}`);
+    } else {
+      console.log("\n✅ Upgrade completed successfully");
+    }
   } catch (error) {
     console.error("\n❌ Upgrade failed", error);
     process.exit(1);

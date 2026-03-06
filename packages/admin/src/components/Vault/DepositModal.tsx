@@ -1,22 +1,28 @@
 import {
   type Address,
-  type GardenVault,
   AssetSelector,
+  classifyTxError,
   formatTokenAmount,
+  type GardenVault,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
+  hasVaultAssetDecimals,
+  isMeaningfulTxErrorMessage,
+  useDebouncedValue,
   useDepositForm,
   useUser,
-  useDebouncedValue,
   useVaultDeposit,
   useVaultPreview,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
-import { RiCloseLine, RiLoader4Line } from "@remixicon/react";
-import { useBalance, useEstimateGas } from "wagmi";
+import { RiCloseLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { encodeFunctionData, formatUnits } from "viem";
+import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
+import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
+import { Button } from "@/components/ui/Button";
+import { FormField } from "@/components/ui/FormField";
 
 const VAULT_DEPOSIT_ABI = [
   {
@@ -48,7 +54,8 @@ export function DepositModal({
 }: DepositModalProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  const depositMutation = useVaultDeposit();
+  const depositMutation = useVaultDeposit({ errorMode: "inline" });
+  const resetDepositMutation = depositMutation.reset;
   const [selectedAsset, setSelectedAsset] = useState<string>(
     defaultAsset ?? vaults[0]?.asset ?? ""
   );
@@ -67,8 +74,12 @@ export function DepositModal({
     },
   });
 
-  const decimals =
-    balance?.decimals ?? getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
+  const hasStaticDecimals = selectedVault
+    ? hasVaultAssetDecimals(selectedVault.asset, selectedVault.chainId)
+    : false;
+  const fallbackDecimals = getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
+  const decimals = balance?.decimals ?? fallbackDecimals;
+  const decimalsReady = typeof balance?.decimals === "number" || hasStaticDecimals;
   const { form, amount, amountBigInt, amountErrorKey, hasBlockingError, resetAmount } =
     useDepositForm({
       decimals,
@@ -81,10 +92,20 @@ export function DepositModal({
     if (!isOpen) return;
     setSelectedAsset(defaultAsset ?? vaults[0]?.asset ?? "");
     resetAmount();
-  }, [defaultAsset, isOpen, resetAmount, vaults]);
+    resetDepositMutation();
+  }, [defaultAsset, isOpen, resetAmount, resetDepositMutation, vaults]);
 
   const debouncedAmount = useDebouncedValue(amountBigInt, 300);
 
+  // Health check: always read maxDeposit when modal is open (independent of amount)
+  const { preview: healthCheck } = useVaultPreview({
+    vaultAddress: selectedVault?.vaultAddress as Address | undefined,
+    userAddress: primaryAddress as Address | undefined,
+    enabled: isOpen && Boolean(selectedVault),
+  });
+  const vaultAcceptingDeposits = healthCheck ? healthCheck.maxDeposit > 0n : true;
+
+  // Amount-dependent preview for estimated shares
   const { preview } = useVaultPreview({
     vaultAddress: selectedVault?.vaultAddress as Address | undefined,
     amount: debouncedAmount,
@@ -109,9 +130,34 @@ export function DepositModal({
     data: depositData,
     query: { enabled: isOpen && Boolean(selectedVault && depositData) },
   });
+  const { data: gasPrice } = useGasPrice({
+    query: { enabled: isOpen && Boolean(estimatedGas) },
+  });
+  const estimatedGasCost = estimatedGas && gasPrice ? estimatedGas * gasPrice : undefined;
+  const txErrorView = useMemo(
+    () => classifyTxError(depositMutation.error),
+    [depositMutation.error]
+  );
+  const txErrorTitle = formatMessage({
+    id: txErrorView.titleKey,
+    defaultMessage:
+      txErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+  });
+  const txErrorMessage =
+    txErrorView.kind === "cancelled"
+      ? formatMessage({
+          id: txErrorView.messageKey,
+          defaultMessage: "Transaction was cancelled. Please try again when ready.",
+        })
+      : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
+        ? txErrorView.rawMessage
+        : formatMessage({
+            id: txErrorView.messageKey,
+            defaultMessage: "Something went wrong. Please try again.",
+          });
 
   const onSubmit = () => {
-    if (selectedVault?.paused) return;
+    if (!vaultAcceptingDeposits) return;
     if (!selectedVault || !primaryAddress || amountBigInt <= 0n || hasBlockingError) return;
 
     depositMutation.mutate(
@@ -130,7 +176,7 @@ export function DepositModal({
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-[calc(100vw-2rem)] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <Dialog.Title className="text-lg font-semibold text-text-strong">
@@ -141,7 +187,11 @@ export function DepositModal({
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
-              <button type="button" className="rounded-md p-2 text-text-soft hover:text-text-sub">
+              <button
+                type="button"
+                className="min-h-11 min-w-11 rounded-md p-2 text-text-soft hover:text-text-sub"
+                aria-label={formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+              >
                 <RiCloseLine className="h-5 w-5" />
               </button>
             </Dialog.Close>
@@ -155,28 +205,37 @@ export function DepositModal({
               ariaLabel={formatMessage({ id: "app.treasury.asset" })}
             />
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-sub">
-                {formatMessage({ id: "app.treasury.depositAmount" })}
-              </label>
+            <FormField
+              label={formatMessage({ id: "app.treasury.depositAmount" })}
+              htmlFor="deposit-amount"
+              error={amountError ? formatMessage({ id: amountError }) : undefined}
+              hint={`${formatMessage({ id: "app.treasury.walletBalance" })}: ${
+                balance
+                  ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
+                  : "--"
+              }`}
+            >
               <div className="flex items-center gap-2">
                 <input
+                  id="deposit-amount"
                   type="text"
                   inputMode="decimal"
                   {...amountField}
                   value={amount}
                   onChange={(event) => amountField.onChange(event)}
                   placeholder="0.0"
+                  disabled={!decimalsReady || depositMutation.isPending}
+                  aria-required="true"
                   aria-invalid={Boolean(amountError)}
-                  aria-describedby={amountError ? "deposit-error" : undefined}
-                  className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+                  className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/40 ${
                     amountError
                       ? "border-error-base focus:border-error-base"
                       : "border-stroke-sub bg-bg-white focus:border-primary-base"
                   }`}
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => {
                     if (!balance) return;
                     form.setValue("amount", formatUnits(balance.value, balance.decimals), {
@@ -184,23 +243,20 @@ export function DepositModal({
                       shouldValidate: true,
                     });
                   }}
-                  className="rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub hover:bg-bg-weak"
+                  disabled={!decimalsReady || depositMutation.isPending}
                 >
                   {formatMessage({ id: "app.treasury.max" })}
-                </button>
+                </Button>
               </div>
-              {amountError && (
-                <p id="deposit-error" className="text-xs text-error-dark" role="alert">
-                  {formatMessage({ id: amountError })}
+              {!decimalsReady && selectedVault && (
+                <p className="text-xs text-warning-base" role="alert">
+                  {formatMessage({
+                    id: "app.treasury.decimalsUnavailable",
+                    defaultMessage: "Token metadata is still loading. Try again in a moment.",
+                  })}
                 </p>
               )}
-              <p className="text-xs text-text-soft">
-                {formatMessage({ id: "app.treasury.walletBalance" })}:{" "}
-                {balance
-                  ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
-                  : "--"}
-              </p>
-            </div>
+            </FormField>
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>
@@ -212,7 +268,7 @@ export function DepositModal({
               <p>
                 {formatMessage({ id: "app.treasury.estimatedGas" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {estimatedGas ? formatTokenAmount(estimatedGas, 0, 0) : "--"}
+                  {estimatedGasCost ? `~${formatUnits(estimatedGasCost, 18)} ETH` : "--"}
                 </span>
               </p>
               {assetSymbol && (
@@ -223,29 +279,36 @@ export function DepositModal({
               )}
             </div>
 
-            {selectedVault?.paused && (
-              <p className="text-xs text-warning-base" role="alert">
-                {formatMessage({ id: "app.treasury.vaultPaused" })}
+            {!vaultAcceptingDeposits && (
+              <p className="text-xs text-error-dark" role="alert">
+                {formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })}
               </p>
             )}
-            <button
-              type="button"
+            <TxInlineFeedback
+              visible={Boolean(depositMutation.error)}
+              severity={txErrorView.severity}
+              title={txErrorTitle}
+              message={txErrorMessage}
+              reserveClassName="min-h-[5.5rem]"
+            />
+            <Button
+              className="w-full"
               onClick={onSubmit}
               disabled={
                 !selectedVault ||
                 !primaryAddress ||
                 amountBigInt <= 0n ||
                 hasBlockingError ||
-                selectedVault?.paused ||
+                !decimalsReady ||
+                !vaultAcceptingDeposits ||
                 depositMutation.isPending
               }
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
+              loading={depositMutation.isPending}
             >
-              {depositMutation.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
               {depositMutation.isPending
                 ? formatMessage({ id: "app.treasury.depositing" })
                 : formatMessage({ id: "app.treasury.deposit" })}
-            </button>
+            </Button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

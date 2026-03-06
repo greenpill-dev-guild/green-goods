@@ -118,13 +118,13 @@ export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/we
  * Options for validating work submission context
  */
 export interface ValidateWorkContextOptions {
-  /** Minimum required images (from action config). Defaults to 1 if not provided. */
+  /** Minimum required images (from action config). Defaults to 0 if not provided. */
   minRequired?: number;
 }
 
 /**
  * Validate submission context before work submission.
- * Note: Form field validation (feedback, plantSelection, plantCount) is handled
+ * Note: Form field validation (feedback) is handled
  * by the Zod schema in useWorkForm.ts. This function only validates context.
  *
  * @param gardenAddress - Selected garden address
@@ -141,8 +141,8 @@ export function validateWorkSubmissionContext(
 ): string[] {
   const errors: string[] = [];
 
-  // Default to 1 if not specified (backward compatibility)
-  const minRequired = options.minRequired ?? 1;
+  // Default to 0 so direct callers don't accidentally require media.
+  const minRequired = options.minRequired ?? 0;
 
   if (!gardenAddress) {
     errors.push("Garden must be selected");
@@ -223,6 +223,14 @@ export function validateApprovalDraft(draft: WorkApprovalDraft): string[] {
   // Confidence validation (decision #31: approvals require >= LOW, rejections use NONE)
   if (draft.approved && typeof draft.confidence === "number" && draft.confidence < 1) {
     errors.push("Confidence must be at least LOW for approvals");
+  }
+
+  // Verification method must be a valid 4-bit bitmask (0-15)
+  if (
+    typeof draft.verificationMethod === "number" &&
+    (draft.verificationMethod < 0 || draft.verificationMethod > 15)
+  ) {
+    errors.push("Verification method must be between 0 and 15");
   }
 
   // Verification method must be set for approvals

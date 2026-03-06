@@ -7,8 +7,8 @@ import { readContract } from "@wagmi/core";
 import type { Address } from "viem";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { GARDEN_ACCOUNT_ROLE_ABI } from "../../utils/blockchain/abis";
 import { isZeroAddress } from "../../utils/blockchain/address";
+import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { GARDEN_ROLE_FUNCTIONS, type GardenRole } from "../../utils/blockchain/garden-roles";
 import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 
@@ -28,7 +28,7 @@ async function fetchHasRole(
   try {
     const result = await readContract(wagmiConfig, {
       address: gardenAddress,
-      abi: GARDEN_ACCOUNT_ROLE_ABI,
+      abi: GardenAccountABI,
       functionName,
       args: [userAddress],
       chainId,

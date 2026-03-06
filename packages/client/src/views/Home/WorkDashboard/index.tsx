@@ -509,7 +509,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       }
 
       navigate(`/home/${gardenId}/work/${workId}`, {
-        state: { from: "dashboard" },
+        state: { from: "dashboard", returnTo: "/home" },
         viewTransition: true,
       });
     } catch (err) {
@@ -808,9 +808,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           className
         )}
         onClick={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
-        onTouchEnd={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           e.stopPropagation();
         }}
@@ -856,10 +853,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           triggerClassName="text-xs"
         />
 
-        {/* Content - overscroll-contain prevents scroll chaining to backdrop */}
-        <div className="flex-1 min-h-0 overflow-hidden overscroll-contain">
-          {renderTabContent()}
-        </div>
+        {/* Content */}
+        <div className="flex-1 min-h-0 overflow-y-auto">{renderTabContent()}</div>
       </div>
     </div>
   );

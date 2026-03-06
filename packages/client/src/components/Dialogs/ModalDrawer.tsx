@@ -1,5 +1,5 @@
-import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@green-goods/shared";
+import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
@@ -62,7 +62,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
             "focus:outline-none",
             className
           )}
-          style={{ maxHeight }}
+          style={{ height: maxHeight, maxHeight }}
           data-testid="modal-drawer"
         >
           {/* Header */}

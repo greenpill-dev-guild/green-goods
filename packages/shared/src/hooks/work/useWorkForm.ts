@@ -9,7 +9,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { type Resolver, useForm } from "react-hook-form";
 import { z } from "zod";
 import type { WorkInput } from "../../types/domain";
 import { normalizeTimeSpentMinutes } from "../../utils/form/normalizers";
@@ -99,6 +99,7 @@ export function useWorkForm(inputs?: WorkInput[]) {
     () => (inputs ? buildWorkFormSchema(inputs) : workFormSchema),
     [inputsKey]
   );
+  const resolver = useMemo(() => zodResolver(schema) as Resolver<WorkFormData>, [schema]);
 
   const form = useForm<WorkFormData>({
     defaultValues: {
@@ -107,25 +108,25 @@ export function useWorkForm(inputs?: WorkInput[]) {
     // Native validation disabled to prevent jarring auto-focus behavior
     shouldUseNativeValidation: false,
     mode: "onChange",
-    // Compatibility note: older @hookform/resolvers versions had a signature mismatch with Zod.
-    // Current versions compile cleanly; keeping the context here for future regressions.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(schema as any),
+    resolver,
   });
 
-  const { watch } = form;
+  const { watch, getValues } = form;
 
-  // Watch form values
+  // Watch only specific fields that need reactive updates
   const feedback = watch("feedback") ?? "";
   const timeSpentMinutes = normalizeTimeSpentMinutes(watch("timeSpentMinutes"));
-  const values = watch() as unknown as Record<string, unknown>;
 
   return {
     ...form,
     // Normalized watch values
     feedback,
     timeSpentMinutes,
-    values,
+    // Use getValues() instead of watch() to read all form values on demand
+    // without subscribing to every field change (avoids unnecessary re-renders)
+    get values() {
+      return getValues() as unknown as Record<string, unknown>;
+    },
   };
 }
 

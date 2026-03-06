@@ -43,7 +43,7 @@ This release updates documentation IA and workflows to reflect current Green Goo
 
 **First Official Release**
 
-This is the first official release of Green Goods — an offline-first platform for documenting conservation work and proving impact on-chain.
+This is the first official release of Green Goods — an offline-first platform for documenting regenerative work and proving impact on-chain.
 
 **Release Stats:**
 - 765 files changed
@@ -351,18 +351,17 @@ This is the first official release of Green Goods — an offline-first platform 
 - ✅ Advanced search and filtering
 - ✅ Enhanced impact reports
 - ✅ Garden templates
-- 🚧 Hypercert integration (in progress)
-- 🚧 Map view for gardens (in progress)
-- 🚧 Batch operations (in progress)
 
 ### Q4 2024 - Impact Markets 💰
 
-**Planned**:
-- 🔮 Impact token minting
-- 🔮 Marketplace integration
-- 🔮 Retroactive funding tools
-- 🔮 DAO governance features
-- 🔮 Native mobile apps
+**Delivered**:
+- ✅ Hypercert minting and marketplace integration
+- ✅ Batch garden minting operations
+- ✅ Octant yield vaults with harvest and donation flows
+- ✅ Cookie Jar petty cash module
+- ✅ Gardens V2 conviction voting and signal pools
+- ✅ YieldSplitter (CookieJar / Fractions / Juicebox split)
+- ✅ HypercertExchange marketplace adapter
 
 ---
 

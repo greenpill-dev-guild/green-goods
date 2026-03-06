@@ -46,7 +46,6 @@ Use this guide when creating or editing canonical pages under `/gardener`, `/ope
 
 ## Component usage pattern
 
-- `AtAGlanceCard`: standardized goal/prereqs/time/outcome.
 - `JourneyMap`: orientation for role paths and progress state.
 - `DecisionGuide`: intent-based branching for complex workflows.
 - `QuickAnswer`: fast in-page answers without long prose.
@@ -61,7 +60,7 @@ Use this guide when creating or editing canonical pages under `/gardener`, `/ope
       next: "Link to top 2 follow-up pages in NextBestAction.",
     },
     {
-      when: "The page has multiple paths (for example treasury or query choices)",
+      when: "The page has multiple paths (for example endowment or query choices)",
       do: "Use DecisionGuide with explicit if/do/then branching.",
       next: "Move edge-case details into QuickAnswer blocks.",
     },

@@ -1,8 +1,14 @@
 ---
 name: agent-teams
-description: Coordinate multiple Claude Code sessions as a team with shared tasks and inter-agent messaging.
+description: Coordinate multiple Claude Code sessions as a team with shared tasks and inter-agent messaging. Use when parallelizing work across agents, the user says 'create a team' or 'swarm', or a task benefits from concurrent independent workstreams.
 argument-hint: "[build|review|investigate] [target]"
 disable-model-invocation: true
+version: "1.0.0"
+status: active
+packages: ["all"]
+dependencies: ["plan"]
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Agent Teams Skill

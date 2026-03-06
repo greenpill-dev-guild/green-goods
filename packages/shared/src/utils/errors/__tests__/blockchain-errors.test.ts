@@ -2,12 +2,12 @@
  * Blockchain Error Detection Tests
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   detectBlockchainError,
+  getBlockchainErrorAction,
   getBlockchainErrorI18nKey,
   isRecoverableBlockchainError,
-  getBlockchainErrorAction,
 } from "../blockchain-errors";
 
 describe("detectBlockchainError", () => {

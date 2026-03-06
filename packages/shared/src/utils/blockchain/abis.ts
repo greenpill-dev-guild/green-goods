@@ -113,6 +113,17 @@ export const HATS_MODULE_ABI = [
   },
   {
     type: "function",
+    name: "grantRoles",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "accounts", type: "address[]" },
+      { name: "roles", type: "uint8[]" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "isConfigured",
     stateMutability: "view",
     inputs: [{ name: "garden", type: "address" }],
@@ -538,6 +549,13 @@ export const COOKIE_JAR_ABI = [
     outputs: [],
   },
   {
+    name: "MIN_DEPOSIT",
+    type: "function",
+    stateMutability: "pure",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+  },
+  {
     name: "deposit",
     type: "function",
     stateMutability: "payable",
@@ -677,6 +695,23 @@ export const OCTANT_MODULE_ABI = [
     inputs: [],
     outputs: [{ name: "", type: "address[]" }],
   },
+  {
+    type: "function",
+    name: "configureVaultRoles",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "asset", type: "address" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "owner",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
 ] as const;
 
 export const OCTANT_VAULT_ABI = [
@@ -745,9 +780,26 @@ export const OCTANT_VAULT_ABI = [
   },
   {
     type: "function",
+    name: "withdraw",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "assets", type: "uint256" },
+      { name: "receiver", type: "address" },
+      { name: "owner", type: "address" },
+      { name: "maxLoss", type: "uint256" },
+      { name: "strategies", type: "address[]" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
     name: "maxWithdraw",
     stateMutability: "view",
-    inputs: [{ name: "owner", type: "address" }],
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "maxLoss", type: "uint256" },
+      { name: "strategies", type: "address[]" },
+    ],
     outputs: [{ name: "", type: "uint256" }],
   },
   {
@@ -755,6 +807,31 @@ export const OCTANT_VAULT_ABI = [
     name: "totalAssets",
     stateMutability: "view",
     inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "depositLimit",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "isShutdown",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "maxRedeem",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "maxLoss", type: "uint256" },
+      { name: "strategies", type: "address[]" },
+    ],
     outputs: [{ name: "", type: "uint256" }],
   },
   {

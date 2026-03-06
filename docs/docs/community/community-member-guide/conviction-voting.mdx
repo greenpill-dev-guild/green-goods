@@ -1,0 +1,118 @@
+---
+title: "Conviction Voting"
+sidebar_label: "Conviction Voting"
+slug: /community/community-member-guide/conviction-voting
+audience: all
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+goal: "Help community members understand and participate in conviction voting and signal pools."
+difficulty: "standard"
+estimated_time: "10 minutes."
+prereqs: "Community membership in at least one garden."
+next_steps: "/community/gardener-guide/joining-a-garden"
+persona_context: "Community members participating in garden governance through conviction voting."
+keywords:
+  - conviction voting
+  - signal pools
+  - governance
+  - voting power
+  - community decisions
+---
+
+import {
+  DecisionGuide,
+  FeatureState,
+  NextBestAction,
+  StatusBadge,
+  StepFlow,
+} from "@site/src/components/docs";
+
+# Conviction Voting
+
+<StatusBadge status="Live" />
+
+## Overview
+
+Conviction voting is how Green Goods communities make collective decisions about priorities and resource allocation. Unlike traditional voting (one person, one vote, one moment), conviction voting lets you **continuously signal** what matters to you — and the longer you signal, the stronger your voice becomes.
+
+{/* IMAGE PLACEHOLDER: Conviction voting UI showing signal pool with gardener allocations (800x400) */}
+
+Signal pools are the governance mechanism built on [Gardens V2](https://gardens.fund/) conviction voting. Each garden can create pools where community members allocate their voting power to support specific proposals, actions, or Hypercerts.
+
+## How It Works
+
+<FeatureState
+  title="Gardens V2 conviction voting"
+  status="Live"
+  summary="Community members can allocate voting power in signal pools to express support for proposals."
+/>
+
+<StepFlow
+  steps={[
+    {title: "Browse signal pools", detail: "Navigate to your garden's governance tab to see active signal pools and their current allocations."},
+    {title: "Allocate conviction", detail: "Move your voting power slider to support proposals you believe in. Your conviction grows over time the longer you maintain your allocation."},
+    {title: "Monitor outcomes", detail: "Watch as community consensus emerges. Proposals that reach the conviction threshold get funded or prioritized."},
+    {title: "Adjust as needed", detail: "You can reallocate your conviction at any time. Moving to a new proposal resets your conviction timer on the old one."},
+  ]}
+/>
+
+### How Conviction Builds
+
+Conviction voting uses a time-weighted mechanism:
+
+- **Immediate allocation** gives you a starting signal
+- **Sustained allocation** increases your conviction over time (like compound interest for governance)
+- **Moving your allocation** resets the conviction timer for the proposal you left
+- **The threshold** is the conviction level a proposal needs to pass — it's proportional to the amount requested
+
+This design prevents snap decisions and rewards thoughtful, sustained support.
+
+### Voting Power
+
+Your voting power in a garden comes from your membership and role:
+
+- All community members receive base voting power upon joining
+- Active gardeners with verified work history may receive additional weight
+- Voting power is specific to each garden — it doesn't transfer between gardens
+
+## Best Practices
+
+<DecisionGuide
+  title="Conviction voting strategies"
+  items={[
+    {
+      when: "You feel strongly about one proposal",
+      do: "Concentrate your conviction on that proposal and maintain it over time.",
+      next: "Monitor the conviction threshold — sustained support is more effective than spreading thin.",
+    },
+    {
+      when: "You support multiple proposals equally",
+      do: "Split your allocation across proposals, knowing each will build conviction more slowly.",
+      next: "Prioritize time-sensitive proposals that need to reach threshold sooner.",
+    },
+    {
+      when: "You're new and unsure what to support",
+      do: "Browse the garden's approved work history and active actions to understand community priorities.",
+      next: "Start with a small allocation and adjust as you learn more about the garden's needs.",
+    },
+  ]}
+/>
+
+- Review the proposals' attestation backing — verified impact claims are stronger than promises
+- Consider the garden's strategic goals when allocating conviction
+- Don't frequently switch allocations — conviction voting rewards sustained commitment
+- Engage with other community members to understand different perspectives before voting
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="Ready to do more than vote? Start contributing directly by joining a garden as a gardener."
+  actionLabel="Joining a Garden"
+  actionHref="/community/gardener-guide/joining-a-garden"
+  alternatives={[
+    {label: "Getting Involved", href: "/community/community-member-guide/getting-involved"},
+    {label: "Glossary", href: "/glossary"},
+  ]}
+/>

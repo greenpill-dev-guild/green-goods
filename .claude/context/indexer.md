@@ -19,6 +19,16 @@ Loaded when working in `packages/indexer/`. Extends CLAUDE.md.
 
 > **macOS Note:** Use Docker-based commands (`dev:docker`) to avoid Rust `system-configuration` crate panic. PM2 uses Docker automatically when running `bun dev` from monorepo root.
 
+## Contents
+- [Architecture](#architecture)
+- [EAS Architecture Boundary](#eas-architecture-boundary)
+- [Critical Patterns](#critical-patterns)
+- [Development Workflow](#development-workflow)
+- [Troubleshooting](#troubleshooting)
+- [Testing](#testing)
+- [GraphQL Playground](#graphql-playground)
+- [Reference Files](#reference-files)
+
 ## Architecture
 
 ```
@@ -347,3 +357,12 @@ it("example test", async () => {
 - Handlers: `src/EventHandlers.ts`
 - Config: `config.yaml`
 - Tests: `test/test.ts`
+
+## Documentation References (on-demand)
+
+Read these docs pages when you need query patterns or data flow context:
+
+- Querying the Envio indexer (copy-paste GraphQL): `docs/docs/evaluator/query-indexer.mdx`
+- Querying EAS attestations (parameterized queries): `docs/docs/evaluator/query-eas.mdx`
+- Cross-protocol entity matrix: `docs/docs/developers/reference/entity-matrix.mdx`
+- System architecture (data flow diagrams): `docs/docs/developers/architecture.mdx`

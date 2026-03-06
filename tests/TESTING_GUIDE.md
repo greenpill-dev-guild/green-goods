@@ -89,7 +89,6 @@ npx pm2 delete all
 
 ```bash
 # Run from project root
-cd /Users/afo/Code/greenpill/green-goods
 bun test:e2e:smoke
 ```
 

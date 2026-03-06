@@ -1,17 +1,18 @@
+import {
+  type Address,
+  type CreateListingParams,
+  DEFAULT_CHAIN_ID,
+  LISTING_DEFAULTS,
+  type ListingStep,
+  useCreateListing,
+} from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
-import { RiCloseLine, RiLoader4Line, RiCheckLine, RiExchangeDollarLine } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiExchangeDollarLine, RiLoader4Line } from "@remixicon/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
-import {
-  type Address,
-  useCreateListing,
-  LISTING_DEFAULTS,
-  type CreateListingParams,
-  type ListingStep,
-  DEFAULT_CHAIN_ID,
-} from "@green-goods/shared";
 import { parseEther, zeroAddress } from "viem";
+import { Alert } from "@/components/ui/Alert";
 
 interface CreateListingDialogProps {
   open: boolean;
@@ -252,21 +253,15 @@ export function CreateListingDialog({
               <div className="space-y-4">
                 <ListingProgress step={step} />
 
-                {error && (
-                  <div className="rounded-md bg-error-lighter p-3">
-                    <p className="text-sm text-error-dark">{error.message}</p>
-                  </div>
-                )}
+                {error && <Alert variant="error">{error.message}</Alert>}
 
                 {step === "done" && (
-                  <div className="rounded-md bg-success-lighter p-3 text-center">
-                    <p className="text-sm font-medium text-success-dark">
-                      {formatMessage({
-                        id: "app.listing.createdSuccessfully",
-                        defaultMessage: "Listing created successfully!",
-                      })}
-                    </p>
-                  </div>
+                  <Alert variant="success">
+                    {formatMessage({
+                      id: "app.listing.createdSuccessfully",
+                      defaultMessage: "Listing created successfully!",
+                    })}
+                  </Alert>
                 )}
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">

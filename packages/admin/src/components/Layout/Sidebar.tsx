@@ -1,35 +1,67 @@
-import { useAuth, useRole, useUIStore, cn } from "@green-goods/shared";
+import { cn, useAuth, useRole, useUIStore } from "@green-goods/shared";
 import {
-  RiBankLine,
   RiDashboardLine,
   RiHammerFill,
   RiLogoutBoxLine,
   RiPlantLine,
+  RiSafe2Line,
   RiSettings3Line,
   RiUploadLine,
 } from "@remixicon/react";
+import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 
 const navigation = [
   {
     name: "Dashboard",
+    nameId: "app.sidebar.dashboard",
     href: "/dashboard",
     icon: RiDashboardLine,
     roles: ["deployer", "operator", "user"],
   },
-  { name: "Gardens", href: "/gardens", icon: RiPlantLine, roles: ["deployer", "operator", "user"] },
-  { name: "Treasury", href: "/treasury", icon: RiBankLine, roles: ["deployer", "operator"] },
-  { name: "Actions", href: "/actions", icon: RiHammerFill, roles: ["deployer", "operator"] },
-  { name: "Contracts", href: "/contracts", icon: RiSettings3Line, roles: ["deployer"] },
-  { name: "Deployment", href: "/deployment", icon: RiUploadLine, roles: ["deployer"] },
+  {
+    name: "Gardens",
+    nameId: "app.sidebar.gardens",
+    href: "/gardens",
+    icon: RiPlantLine,
+    roles: ["deployer", "operator", "user"],
+  },
+  {
+    name: "Actions",
+    nameId: "app.sidebar.actions",
+    href: "/actions",
+    icon: RiHammerFill,
+    roles: ["deployer", "operator", "user"],
+  },
+  {
+    name: "Endowments",
+    nameId: "app.sidebar.endowments",
+    href: "/endowments",
+    icon: RiSafe2Line,
+    roles: ["deployer", "operator", "user"],
+  },
+  {
+    name: "Contracts",
+    nameId: "app.sidebar.contracts",
+    href: "/contracts",
+    icon: RiSettings3Line,
+    roles: ["deployer"],
+  },
+  {
+    name: "Deployment",
+    nameId: "app.sidebar.deployment",
+    href: "/deployment",
+    icon: RiUploadLine,
+    roles: ["deployer"],
+  },
 ];
 
 export function Sidebar() {
+  const intl = useIntl();
   const location = useLocation();
   const { signOut } = useAuth();
   const { role } = useRole();
-  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
-  const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
+  const { sidebarOpen, setSidebarOpen } = useUIStore();
 
   const filteredNavigation = navigation.filter((item) => item.roles.includes(role));
 
@@ -37,7 +69,7 @@ export function Sidebar() {
     <div
       data-testid="sidebar"
       className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-bg-white shadow-lg transform transition-transform duration-300 ease-in-out",
+        "fixed inset-y-0 left-0 z-50 w-56 bg-bg-white shadow-lg transform transition-transform duration-300 ease-in-out",
         sidebarOpen ? "translate-x-0" : "-translate-x-full",
         "lg:translate-x-0 lg:static lg:inset-0"
       )}
@@ -45,9 +77,16 @@ export function Sidebar() {
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-stroke-soft shadow-sm">
-          <h1 className="text-lg font-semibold text-text-strong">Green Goods</h1>
+          <div className="flex items-center gap-2">
+            <img src="/green-goods-logo.png" alt="" className="h-7 w-auto" />
+            <h1 className="text-lg font-semibold text-text-strong">Green Goods</h1>
+          </div>
           <button
             onClick={() => setSidebarOpen(false)}
+            aria-label={intl.formatMessage({
+              id: "admin.sidebar.closeMenu",
+              defaultMessage: "Close navigation menu",
+            })}
             className="lg:hidden p-2 rounded-md text-text-soft hover:text-text-sub"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -75,12 +114,14 @@ export function Sidebar() {
                 className={cn(
                   "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
                   isActive
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-primary-alpha-10 text-primary-dark"
                     : "text-text-sub hover:bg-bg-weak hover:text-text-strong"
                 )}
               >
                 <item.icon className="mr-3 h-5 w-5" />
-                {item.name}
+                {item.nameId
+                  ? intl.formatMessage({ id: item.nameId, defaultMessage: item.name })
+                  : item.name}
               </Link>
             );
           })}

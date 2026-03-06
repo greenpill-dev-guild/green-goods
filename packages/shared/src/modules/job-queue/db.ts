@@ -1,14 +1,14 @@
 import { type IDBPDatabase, openDB } from "idb";
+import type { CachedWork, Job, JobQueueDBImage, SerializedFileData } from "../../types/job-queue";
 import { normalizeToFile } from "../../utils/app/normalizeToFile";
 import {
-  serializeFile,
-  deserializeFile,
   buildFileMetadata,
+  deserializeFile,
+  serializeFile,
 } from "../../utils/storage/file-serialization";
-import { trackStorageError, addBreadcrumb } from "../app/error-tracking";
+import { addBreadcrumb, trackStorageError } from "../app/error-tracking";
 import { createLogger } from "../app/logger";
 import { mediaResourceManager } from "./media-resource-manager";
-import type { Job, JobQueueDBImage, CachedWork, SerializedFileData } from "../../types/job-queue";
 
 const log = createLogger({ source: "job-queue/db" });
 
@@ -85,8 +85,9 @@ class JobQueueDatabase {
       },
     });
 
-    // Clean up stale URLs on init
-    this.cleanupStaleUrls();
+    // Clean up stale URLs after init completes (awaited to prevent
+    // concurrent transactions on iOS Safari which can deadlock).
+    await this.cleanupStaleUrls();
 
     return this.db;
   }

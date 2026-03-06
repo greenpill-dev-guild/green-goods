@@ -57,7 +57,7 @@ export interface WithdrawParams {
   gardenAddress: Address;
   assetAddress: Address;
   vaultAddress: Address;
-  shares: bigint;
+  amount: bigint;
   receiver?: Address;
   owner?: Address;
 }
@@ -72,15 +72,12 @@ export interface EmergencyPauseParams {
   assetAddress: Address;
 }
 
-export interface SetDonationAddressParams {
-  gardenAddress: Address;
-  donationAddress: Address;
-}
-
 export interface VaultPreview {
   previewShares: bigint;
   previewAssets: bigint;
   maxDeposit: bigint;
   shareBalance: bigint;
   totalAssets: bigint;
+  maxWithdraw: bigint;
+  previewWithdrawShares: bigint;
 }

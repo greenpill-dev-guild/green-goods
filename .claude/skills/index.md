@@ -323,3 +323,19 @@ Which skills apply to which packages:
 | radix-ui | | | x | x | x | |
 | ui-compliance | | | x | x | x | |
 | storybook | | | x | | | |
+
+## Documentation Sources
+
+The `docs/` directory contains agent-readable specification pages. When skills need domain context beyond code patterns, reference these docs:
+
+| Topic | Path | Use For |
+|-------|------|---------|
+| System architecture | `docs/docs/developers/architecture.mdx` | Data flow diagrams, component relationships |
+| Domain glossary | `docs/docs/glossary.md` | Term definitions for domain vocabulary |
+| Entity matrix | `docs/docs/developers/integrations.mdx` | Cross-protocol entity mapping |
+| EAS queries | `docs/docs/evaluator/verify-attestation-chains.mdx` | Attestation query templates |
+| Envio queries | `docs/docs/evaluator/verify-attestation-chains.mdx` | GraphQL query templates |
+| Error lookup | `docs/docs/gardener/submit-work-mdr.mdx` | User-facing error-to-fix mapping |
+| Impact model | `docs/docs/concepts/impact-model.mdx` | CIDS framework, action domains |
+| Deployment ops | `docs/docs/builders/deployments/status.mdx` | Multi-chain deployment runbook |
+| Strategy | `docs/docs/concepts/strategy-and-goals.mdx` | Feature scope, success metrics |

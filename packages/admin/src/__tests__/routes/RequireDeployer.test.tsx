@@ -4,12 +4,12 @@
  * Tests for the deployer-only route guard.
  */
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { createElement } from "react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { IntlProvider } from "react-intl";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the useRole hook
 const mockUseRole = vi.fn();
@@ -22,9 +22,14 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
-// Mock the DashboardLayoutSkeleton
+// Mock the DashboardLayoutSkeleton (used by RequireRole default fallback)
 vi.mock("@/components/Layout/DashboardLayoutSkeleton", () => ({
   DashboardLayoutSkeleton: () => createElement("div", { "data-testid": "skeleton" }, "Loading..."),
+}));
+
+// Mock the Skeleton components (used by RequireDeployer content-only fallback)
+vi.mock("@/components/ui/Skeleton", () => ({
+  SkeletonGrid: () => createElement("div", { "data-testid": "skeleton-grid" }, "Loading grid..."),
 }));
 
 import RequireDeployer from "../../routes/RequireDeployer";
@@ -77,7 +82,7 @@ describe("routes/RequireDeployer", () => {
   });
 
   describe("loading state", () => {
-    it("shows skeleton while loading", () => {
+    it("shows content-only skeleton while loading (no sidebar)", () => {
       mockUseRole.mockReturnValue({
         role: "user",
         loading: true,
@@ -85,7 +90,8 @@ describe("routes/RequireDeployer", () => {
 
       renderWithProviders();
 
-      expect(screen.getByTestId("skeleton")).toBeInTheDocument();
+      expect(screen.getByTestId("content-skeleton")).toBeInTheDocument();
+      expect(screen.queryByTestId("skeleton")).not.toBeInTheDocument();
     });
   });
 

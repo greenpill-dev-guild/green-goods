@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { type WorkApproval } from "../../types/domain";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
+import { logger } from "../../modules/app/logger";
 import { parseWorkApprovalAttestation } from "../../modules/data/eas";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
-import { logger } from "../../modules/app/logger";
+import { type WorkApproval } from "../../types/domain";
 import { queryKeys, STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../query-keys";
 
 // Enhanced work approval interface for UI
@@ -19,74 +19,66 @@ export interface EnhancedWorkApproval extends WorkApproval {
   gardenId: string;
 }
 
-// Function to get work approvals by attester address
+// Function to get work approvals by attester address.
+// Throws on network/server errors so React Query can surface them.
+// Individual attestation parse failures are logged and skipped gracefully.
 async function getWorkApprovalsByAttester(
   attesterAddress: string,
   chainId: number
 ): Promise<WorkApproval[]> {
-  try {
-    const QUERY = easGraphQL(/* GraphQL */ `
-      query Attestations($where: AttestationWhereInput) {
-        attestations(where: $where) {
-          id
-          attester
-          recipient
-          timeCreated
-          decodedDataJson
-        }
+  const QUERY = easGraphQL(/* GraphQL */ `
+    query Attestations($where: AttestationWhereInput) {
+      attestations(where: $where) {
+        id
+        attester
+        recipient
+        timeCreated
+        decodedDataJson
       }
-    `);
+    }
+  `);
 
-    const easConfig = getEASConfig(chainId);
-    const client = createEasClient(chainId);
+  const easConfig = getEASConfig(chainId);
+  const client = createEasClient(chainId);
 
-    const { data, error } = await client.query(
-      QUERY,
-      {
-        where: {
-          schemaId: { equals: easConfig.WORK_APPROVAL.uid },
-          attester: { equals: attesterAddress }, // Filter by attester (reviewer)
-        },
+  const { data, error } = await client.query(
+    QUERY,
+    {
+      where: {
+        schemaId: { equals: easConfig.WORK_APPROVAL.uid },
+        attester: { equals: attesterAddress }, // Filter by attester (reviewer)
       },
-      "getWorkApprovalsByAttester"
-    );
+    },
+    "getWorkApprovalsByAttester"
+  );
 
-    if (error) {
-      return []; // Return empty array instead of throwing
-    }
-    if (!data) {
-      return [];
-    }
-
-    return (data.attestations as unknown[]).flatMap((attestation: unknown) => {
-      try {
-        const att = attestation as {
-          id: string;
-          attester: string;
-          recipient: string;
-          timeCreated: number;
-          decodedDataJson: string;
-        };
-        const approval: WorkApproval = parseWorkApprovalAttestation(att);
-        return [approval];
-      } catch (error) {
-        logger.warn("Failed to parse attestation data", {
-          source: "useWorkApprovals",
-          attestationId: (attestation as { id?: string }).id,
-          error,
-        });
-        return [];
-      }
-    });
-  } catch (error) {
-    logger.warn("Failed to fetch work approvals", {
-      source: "useWorkApprovals",
-      attesterAddress,
-      chainId,
-      error,
-    });
+  if (error) {
+    throw new Error(`Failed to fetch work approvals: ${error.message}`);
+  }
+  if (!data) {
     return [];
   }
+
+  return (data.attestations as unknown[]).flatMap((attestation: unknown) => {
+    try {
+      const att = attestation as {
+        id: string;
+        attester: string;
+        recipient: string;
+        timeCreated: number;
+        decodedDataJson: string;
+      };
+      const approval: WorkApproval = parseWorkApprovalAttestation(att);
+      return [approval];
+    } catch (parseError) {
+      logger.warn("Failed to parse attestation data", {
+        source: "useWorkApprovals",
+        attestationId: (attestation as { id?: string }).id,
+        error: parseError,
+      });
+      return [];
+    }
+  });
 }
 
 /**
@@ -98,24 +90,12 @@ export function useWorkApprovals(attesterAddress?: string) {
 
   // Online work approvals query (where user is attester)
   const onlineApprovalsQuery = useQuery({
-    queryKey: queryKeys.workApprovals?.byAttester?.(attesterAddress, chainId) || [
-      "workApprovals",
-      "byAttester",
-      attesterAddress,
-      chainId,
-    ],
-    queryFn: async () => {
-      try {
-        return await getWorkApprovalsByAttester(attesterAddress!, chainId);
-      } catch (error) {
-        logger.warn("Error in online approvals query", { source: "useWorkApprovals", error });
-        return []; // Return empty array on error
-      }
-    },
+    queryKey: queryKeys.workApprovals.byAttester(attesterAddress, chainId),
+    queryFn: () => getWorkApprovalsByAttester(attesterAddress!, chainId),
     enabled: !!attesterAddress,
     staleTime: STALE_TIME_MEDIUM, // 30 seconds for approval updates
     gcTime: STALE_TIME_RARE, // 5 minutes garbage collection
-    throwOnError: false, // Don't throw errors
+    throwOnError: false, // Don't throw — surface via onlineApprovalsQuery.error
   });
 
   // Convert to enhanced format for UI

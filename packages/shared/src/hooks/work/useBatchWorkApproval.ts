@@ -12,16 +12,16 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { track } from "../../modules/app/posthog";
 import { trackContractError } from "../../modules/app/error-tracking";
-import { parseAndFormatError } from "../../utils/errors/contract-errors";
-import { submitBatchApprovalsDirectly } from "../../modules/work/wallet-submission";
+import { track } from "../../modules/app/posthog";
 import { submitBatchApprovalsWithPasskey } from "../../modules/work/passkey-submission";
+import { submitBatchApprovalsDirectly } from "../../modules/work/wallet-submission";
+import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
+import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
 import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
@@ -84,7 +84,7 @@ export function useBatchWorkApproval() {
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const { set: scheduleInvalidation } = useTimeout();
-  const { runWithLock, isPending: isLockPending } = useMutationLock();
+  const { runWithLock, isPending: isLockPending } = useMutationLock("approval");
 
   const mutation = useMutation({
     mutationFn: async (items: BatchApprovalItem[]): Promise<BatchApprovalResult> => {

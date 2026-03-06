@@ -225,7 +225,9 @@ contract ArbitrumGardenAccountForkTest is ForkTestBase {
             metadata: "",
             openJoining: true,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0x01
+            domainMask: 0x01,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         address garden = gardenToken.mintGarden(config);
@@ -295,7 +297,9 @@ contract ArbitrumGardenAccountForkTest is ForkTestBase {
             metadata: "",
             openJoining: true,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0x01
+            domainMask: 0x01,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         address garden = gardenToken.mintGarden(config);

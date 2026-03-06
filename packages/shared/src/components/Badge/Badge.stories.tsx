@@ -1,9 +1,9 @@
-import type { Meta, StoryObj } from "@storybook/react";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
+import type { Meta, StoryObj } from "@storybook/react";
 import { Badge } from "./Badge";
 
 const meta: Meta<typeof Badge> = {
-  title: "Components/Badge",
+  title: "Primitives/Badge",
   component: Badge,
   tags: ["autodocs"],
   argTypes: {
@@ -111,4 +111,19 @@ export const AllVariants: Story = {
       <Badge variant="outline">Outline</Badge>
     </div>
   ),
+};
+
+export const DarkMode: Story = {
+  args: {
+    children: "Badge",
+    variant: "pill",
+    tint: "primary",
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

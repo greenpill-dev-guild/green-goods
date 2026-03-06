@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { HydrationFallback } from "./HydrationFallback";
 
 const meta: Meta<typeof HydrationFallback> = {
-  title: "Components/HydrationFallback",
+  title: "Primitives/HydrationFallback",
   component: HydrationFallback,
   tags: ["autodocs"],
   argTypes: {
@@ -68,4 +68,19 @@ export const AdminStyle: Story = {
     showIcon: true,
     message: "Loading administrative tools...",
   },
+};
+
+export const DarkMode: Story = {
+  args: {
+    appName: "Green Goods",
+    showIcon: true,
+    message: "Loading your dashboard...",
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

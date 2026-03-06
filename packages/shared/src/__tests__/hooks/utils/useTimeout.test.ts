@@ -6,9 +6,9 @@
  * and the delayed invalidation pattern.
  */
 
-import { renderHook, act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useTimeout, useDelayedInvalidation } from "../../../hooks/utils/useTimeout";
+import { useDelayedInvalidation, useTimeout } from "../../../hooks/utils/useTimeout";
 
 describe("useTimeout", () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { type BrowserContext, expect, type Page } from "@playwright/test";
-import { TIMEOUTS, SELECTORS, TestHelpers } from "./test-config";
+import { SELECTORS, TestHelpers, TIMEOUTS } from "./test-config";
 
 // ============================================================================
 // TYPES

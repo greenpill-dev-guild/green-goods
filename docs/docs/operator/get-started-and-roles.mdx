@@ -1,17 +1,17 @@
 ---
-title: Operator Get Started and Roles
+title: Operator Guide
 sidebar_position: 1
 slug: /operator/get-started-and-roles
 audience: operator
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-03-01
 feature_status: Live
-goal: "Complete Operator Get Started and Roles with clear, role-specific next actions."
+goal: "Get started managing your garden community on Green Goods."
 difficulty: "quickstart"
-estimated_time: "10-20 minutes."
-prereqs: "Operator role in at least one garden, admin login access."
+estimated_time: "10 minutes"
+prereqs: "Access to the Green Goods admin dashboard."
 next_steps: "./create-garden"
-persona_context: "Operators coordinating gardens, approvals, and governance/treasury execution."
+persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
   - packages/admin/src/router.tsx
   - packages/shared/src/hooks/roles/useRolePermissions.ts
@@ -19,90 +19,87 @@ source_of_truth:
 keywords:
   - operator
   - admin dashboard
-  - garden roles
+  - garden management
 ---
 
 import {
-  AtAGlanceCard,
   FeatureState,
   JourneyMap,
   NextBestAction,
-  StatusBadge,
   StepFlow,
 } from "@site/src/components/docs";
 
-# Operator Get Started and Roles
+# Operator Guide
 
-<StatusBadge status="Live" />
-
-<AtAGlanceCard
-  goal="Complete Operator Get Started and Roles with clear, role-specific next actions."
-  difficulty="quickstart"
-  estimatedTime="10-20 minutes."
-  prereqs="Operator role in at least one garden, admin login access."
-  outcome="You can navigate operator flows and understand which v1 surfaces are live versus activation-pending."
-  personaContext="Operators coordinating gardens, approvals, and governance/treasury execution."
-  lastVerified="2026-02-18"
-/>
+You keep the garden running. Review submissions, manage your community, and help turn regenerative work into lasting impact.
 
 <JourneyMap
   role="Operator"
   steps={[
-    {title: "Get started + roles", href: "./get-started-and-roles", state: "current", note: "Validate route access and role scope."},
-    {title: "Create garden", href: "./create-garden", state: "upcoming"},
+    {title: "Get started", href: "./get-started-and-roles", state: "current", note: "Learn what you can do as an operator."},
+    {title: "Create a garden", href: "./create-garden", state: "upcoming"},
     {title: "Manage actions", href: "./manage-actions", state: "upcoming"},
-    {title: "Review work", href: "./review-work", state: "upcoming"},
-    {title: "Treasury and governance", href: "./vaults-and-treasury", state: "upcoming"},
+    {title: "Review submissions", href: "./review-work", state: "upcoming"},
+    {title: "Endowments & governance", href: "./vaults-and-treasury", state: "upcoming"},
   ]}
 />
 
-## First session checklist
+## Overview
+
+Operators are the trusted coordinators who manage gardens and validate gardener submissions. You use the admin dashboard to review work, manage membership, create assessments, and oversee garden finances.
+
+{/* IMAGE PLACEHOLDER */}
+
+| What you can do | Where to find it | Status |
+| --- | --- | --- |
+| Manage gardens | Gardens section | Live |
+| Review work | Individual garden > Work tab | Live |
+| Create assessments | Individual garden > Assessments | Live |
+| Mint impact certificates | Individual garden > Hypercerts | Coming soon |
+| Manage endowments | Individual garden > Vault | Coming soon |
+
+## How It Works
 
 <StepFlow
   steps={[
-    {title: "Sign in to admin", detail: "Open admin.greengoods.app and complete authentication."},
-    {title: "Validate role access", detail: "Confirm you can open dashboard, gardens, and actions pages."},
-    {title: "Open one garden", detail: "Check work, assessments, and governance tabs for your garden."},
-    {title: "Review feature status", detail: "Use status badges in this guide before announcing a workflow as live."},
+    {title: "Sign in to admin", detail: "Open admin.greengoods.app and connect your wallet."},
+    {title: "Explore the dashboard", detail: "Browse your gardens, actions, and pending submissions."},
+    {title: "Open a garden", detail: "Check the work queue, assessments, and garden settings."},
+    {title: "Review a submission", detail: "Approve or request changes on a gardener's work."},
   ]}
 />
 
-## Feature-state snapshot
-
 <FeatureState
-  title="Garden and action operations"
+  title="Garden and action management"
   status="Live"
-  summary="Garden creation, action management, and work review are active operator workflows."
+  summary="Create gardens, manage actions, and review work submissions."
 />
 
 <FeatureState
-  title="Hypercert mint/list routes"
+  title="Hypercert minting"
   status="Implemented (activation pending deployment)"
-  summary="UI and hooks are present, but marketplace and module addresses are still zero in latest deployment artifacts."
+  summary="Mint and list impact certificates — coming soon as deployment completes."
 />
 
 <FeatureState
-  title="Vault, cookie jar, conviction, signal pool routes"
+  title="Endowments and governance"
   status="Implemented (activation pending deployment)"
-  summary="Routes exist in admin; activation depends on module deployment + indexer address updates."
+  summary="Vault deposits, cookie jars, and signal pools — available once modules are deployed."
 />
 
-## Route coverage in admin
+## Best Practices
 
-| Capability | Route | Status |
-| --- | --- | --- |
-| Garden management | `/gardens`, `/gardens/create`, `/gardens/:id` | Live |
-| Work review | `/gardens/:id/work/:workId` | Live |
-| Assessments | `/gardens/:id/assessments`, `/create` | Live |
-| Hypercerts | `/gardens/:id/hypercerts` | Implemented (activation pending deployment) |
-| Vault | `/gardens/:id/vault` | Implemented (activation pending deployment) |
-| Cookie jars | `/gardens/:id/cookie-jars` | Implemented (activation pending deployment) |
-| Conviction/signal | `/gardens/:id/strategies`, `/signal-pool` | Implemented (activation pending deployment) |
+- Review submissions promptly — gardeners depend on timely feedback to stay engaged
+- When rejecting work, provide specific, actionable feedback so the gardener knows exactly what to fix
+- Keep your garden actions up to date with clear instructions and current time windows
+- Document your garden's review standards so other operators can maintain consistency
+
+## What's Next
 
 <NextBestAction
-  title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
-  actionLabel="Create Garden"
+  title="Next step"
+  why="Set up your first garden and start managing regenerative work."
+  actionLabel="Create a Garden"
   actionHref="./create-garden"
   alternatives={[
     {label: "Manage Actions", href: "./manage-actions"},
@@ -110,3 +107,5 @@ import {
     {label: "Troubleshooting", href: "./troubleshooting"},
   ]}
 />
+
+Interested in verifying impact at scale? Explore the [Evaluator path](/evaluator/get-started).

@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 
 import type { Address } from "viem";
-import type { AttestationFilters, HypercertAttestation } from "../../types/hypercerts";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { getWorkApprovals, getWorks } from "../../modules/data/eas";
-import { extractWorkMetadata, applyAttestationFilters } from "../../modules/data/hypercerts";
 import { logger } from "../../modules/app/logger";
+import { getWorkApprovals, getWorks } from "../../modules/data/eas";
+import { applyAttestationFilters, extractWorkMetadata } from "../../modules/data/hypercerts";
+import type { AttestationFilters, HypercertAttestation } from "../../types/hypercerts";
 import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 
 export interface UseAttestationsResult {

@@ -1,11 +1,11 @@
 import {
-  cn,
-  getSDGLabel,
-  ImageWithFallback,
   type Address,
   type AllowlistEntry,
+  cn,
   type GardenAssessment,
+  getSDGLabel,
   type HypercertMetadata,
+  ImageWithFallback,
   type MintingState,
   useCopyToClipboard,
 } from "@green-goods/shared";
@@ -275,7 +275,7 @@ export function HypercertPreview({
                       key={sdgId}
                       className="inline-flex items-center gap-1 rounded-full border border-primary-light bg-primary-lighter/40 px-2 py-0.5 text-xs font-medium text-primary-dark"
                     >
-                      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-primary-base text-[9px] font-bold text-white">
+                      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-primary-base text-[9px] font-bold text-primary-foreground">
                         {sdgId}
                       </span>
                       {label}

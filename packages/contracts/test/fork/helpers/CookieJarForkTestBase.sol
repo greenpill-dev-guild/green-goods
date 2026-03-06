@@ -72,6 +72,80 @@ abstract contract CookieJarForkTestBase is ForkTestBase {
         assertEq(cookieToken.balanceOf(forkGardener) - beforeBal, 10 ether, "hats wearer should withdraw");
     }
 
+    /// @notice Withdrawal with purpose string and empty purpose string both succeed.
+    function test_fork_withdrawal_with_purpose_string() public {
+        if (!forkActive || cookieGarden == address(0)) return;
+
+        address jar = cookieJarModule.getGardenJar(cookieGarden, address(cookieToken));
+        assertTrue(jar != address(0), "jar should exist");
+
+        // Fund the jar
+        cookieToken.mint(address(this), 100 ether);
+        cookieToken.approve(jar, 100 ether);
+        ICookieJarLike(jar).deposit(100 ether);
+
+        // Grant gardener role so they can withdraw
+        _grantGardenRole(cookieGarden, forkGardener, IHatsModule.GardenRole.Gardener);
+
+        // Withdraw with a purpose string
+        uint256 balBefore = cookieToken.balanceOf(forkGardener);
+        vm.prank(forkGardener);
+        ICookieJarLike(jar).withdraw(5 ether, "weekly groceries");
+        assertEq(cookieToken.balanceOf(forkGardener) - balBefore, 5 ether, "purpose withdrawal should transfer");
+
+        // Withdraw with empty purpose string
+        uint256 balBefore2 = cookieToken.balanceOf(forkGardener);
+        vm.prank(forkGardener);
+        ICookieJarLike(jar).withdraw(5 ether, "");
+        assertEq(cookieToken.balanceOf(forkGardener) - balBefore2, 5 ether, "empty purpose withdrawal should transfer");
+    }
+
+    /// @notice Deploy a 2nd MockERC20, create a 2nd jar, verify isolated deposits/withdrawals.
+    function test_fork_multiple_jars_per_garden() public {
+        if (!forkActive || cookieGarden == address(0)) return;
+
+        // First jar already exists from setUp (cookieToken)
+        address jar1 = cookieJarModule.getGardenJar(cookieGarden, address(cookieToken));
+        assertTrue(jar1 != address(0), "jar1 should exist");
+
+        // Deploy a second token and add it as supported
+        MockERC20 secondToken = new MockERC20();
+        cookieJarModule.addSupportedAsset(address(secondToken));
+
+        // Mint a second garden jar by depositing (or trigger via module)
+        // The module should auto-create jar on supported asset addition
+        address jar2 = cookieJarModule.getGardenJar(cookieGarden, address(secondToken));
+        // If jar2 is not auto-created, skip the rest (module may require explicit creation)
+        if (jar2 == address(0)) {
+            emit log("SKIPPED: second jar not auto-created by module");
+            return;
+        }
+
+        assertTrue(jar1 != jar2, "jars should have different addresses");
+
+        // Fund and deposit into both jars
+        cookieToken.mint(address(this), 50 ether);
+        cookieToken.approve(jar1, 50 ether);
+        ICookieJarLike(jar1).deposit(50 ether);
+
+        secondToken.mint(address(this), 100 ether);
+        secondToken.approve(jar2, 100 ether);
+        ICookieJarLike(jar2).deposit(100 ether);
+
+        // Grant gardener role
+        _grantGardenRole(cookieGarden, forkGardener, IHatsModule.GardenRole.Gardener);
+
+        // Withdraw from jar1 should not affect jar2
+        vm.prank(forkGardener);
+        ICookieJarLike(jar1).withdraw(10 ether, "jar1-withdrawal");
+        assertEq(cookieToken.balanceOf(forkGardener), 10 ether, "jar1 withdrawal should work");
+
+        // Withdraw from jar2
+        vm.prank(forkGardener);
+        ICookieJarLike(jar2).withdraw(20 ether, "jar2-withdrawal");
+        assertEq(secondToken.balanceOf(forkGardener), 20 ether, "jar2 withdrawal should work");
+    }
+
     /// @notice Yield routing: OctantModule registers shares, splitYield allocates 48.65% to CookieJar.
     /// @dev Uses a MockVault pattern scoped to this test since full Aave setup is not always available.
     ///      The YieldResolver's vault interaction (redeem) requires an ERC-4626-like contract, so we

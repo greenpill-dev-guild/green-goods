@@ -114,7 +114,18 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal override returns (bool) {
         if (schemaUID != bytes32(0) && attestation.schema != schemaUID) revert InvalidSchema();
 
-        WorkApprovalSchema memory schema = abi.decode(attestation.data, (WorkApprovalSchema));
+        // Decode as tuple — struct decode reverts because EAS stores data in flat-tuple
+        // ABI format. See Work.sol for detailed explanation.
+        WorkApprovalSchema memory schema;
+        (
+            schema.actionUID,
+            schema.workUID,
+            schema.approved,
+            schema.feedback,
+            schema.confidence,
+            schema.verificationMethod,
+            schema.reviewNotesCID
+        ) = abi.decode(attestation.data, (uint256, bytes32, bool, string, uint8, uint8, string));
         Attestation memory workAttestation = _eas.getAttestation(schema.workUID);
 
         // WORK RELATIONSHIP: Verify work was submitted to this garden
@@ -123,7 +134,10 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         }
 
         // ACTION CROSS-VALIDATION: Verify approval references same action as work
-        WorkSchema memory workSchema = abi.decode(workAttestation.data, (WorkSchema));
+        // Tuple decode — same reason as above
+        WorkSchema memory workSchema;
+        (workSchema.actionUID, workSchema.title, workSchema.feedback, workSchema.metadata, workSchema.media) =
+            abi.decode(workAttestation.data, (uint256, string, string, string, string[]));
         if (schema.actionUID != workSchema.actionUID) revert ActionMismatch();
 
         // Use IGardenAccessControl interface for role verification

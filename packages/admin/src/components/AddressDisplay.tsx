@@ -1,13 +1,14 @@
 import {
+  type Address,
   cn,
   copyToClipboard,
   formatAddress,
   logger,
   useTimeout,
-  type Address,
 } from "@green-goods/shared";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import { useId, useState } from "react";
+import { useIntl } from "react-intl";
 
 interface AddressDisplayProps {
   address: Address;
@@ -16,6 +17,7 @@ interface AddressDisplayProps {
 }
 
 export function AddressDisplay({ address, className, showCopyButton = true }: AddressDisplayProps) {
+  const intl = useIntl();
   const [copied, setCopied] = useState(false);
   const tooltipId = useId();
   // ENS temporarily disabled to fix QueryClient initialization
@@ -44,7 +46,7 @@ export function AddressDisplay({ address, className, showCopyButton = true }: Ad
       <button
         type="button"
         popovertarget={tooltipId}
-        className="text-sm font-mono text-text-strong hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/20 rounded"
+        className="text-sm font-mono text-text-strong hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/40 rounded"
         style={{ background: "none", border: "none", padding: 0 }}
       >
         {display}
@@ -54,7 +56,7 @@ export function AddressDisplay({ address, className, showCopyButton = true }: Ad
         id={tooltipId}
         // @ts-expect-error - popover is a valid HTML attribute but not in React types yet
         popover="hint"
-        className="px-2 py-1 bg-bg-strong text-static-white text-xs rounded whitespace-nowrap m-0 border-0"
+        className="px-2 py-1 bg-bg-sub text-text-strong text-xs rounded whitespace-nowrap m-0 border-0"
         style={{
           inset: "unset",
           margin: "unset",
@@ -74,8 +76,11 @@ export function AddressDisplay({ address, className, showCopyButton = true }: Ad
         <button
           type="button"
           onClick={handleCopy}
-          className="p-1 text-text-soft hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/20 rounded"
-          title="Copy address"
+          className="p-1 text-text-soft hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/40 rounded"
+          title={intl.formatMessage({
+            id: "app.common.copyAddress",
+            defaultMessage: "Copy address",
+          })}
         >
           {copied ? (
             <RiCheckLine className="h-3 w-3 text-success-dark" />

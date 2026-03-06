@@ -1,13 +1,12 @@
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-import type { Address } from "../../types/domain";
-import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
+import { logger } from "../../modules/app/logger";
 import {
   type CreateGardenFormState,
   useCreateGardenStore,
 } from "../../stores/useCreateGardenStore";
+import type { Address } from "../../types/domain";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,7 +60,15 @@ function buildDraftKey(operatorAddress?: string) {
 
 function hasMeaningfulProgress(form: CreateGardenFormState): boolean {
   return (
-    form.name.trim().length > 0 || form.slug.trim().length > 0 || form.description.trim().length > 0
+    form.name.trim().length > 0 ||
+    form.slug.trim().length > 0 ||
+    form.description.trim().length > 0 ||
+    form.location.trim().length > 0 ||
+    form.bannerImage.trim().length > 0 ||
+    form.metadata.trim().length > 0 ||
+    form.openJoining ||
+    form.gardeners.length > 0 ||
+    form.operators.length > 0
   );
 }
 
@@ -257,13 +264,16 @@ export function useGardenDraft(
     };
   }, [enabled, draftKey, autoSaveDebounceMs, autoSaveIntervalMs, saveDraft]);
 
-  return {
-    draftKey,
-    isLoading,
-    lastSavedAt,
-    peekDraft,
-    loadDraft,
-    saveDraft,
-    clearDraft,
-  };
+  return useMemo(
+    () => ({
+      draftKey,
+      isLoading,
+      lastSavedAt,
+      peekDraft,
+      loadDraft,
+      saveDraft,
+      clearDraft,
+    }),
+    [draftKey, isLoading, lastSavedAt, peekDraft, loadDraft, saveDraft, clearDraft]
+  );
 }

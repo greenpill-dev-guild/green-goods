@@ -1,7 +1,7 @@
+import { DEFAULT_CHAIN_ID, type MintingState } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { type MintingState, DEFAULT_CHAIN_ID } from "@green-goods/shared";
 import { MintProgress } from "./steps/MintProgress";
 
 interface MintingDialogProps {
@@ -92,7 +92,7 @@ export function MintingDialog({
                 <button
                   type="button"
                   onClick={onRetry}
-                  className="flex-1 rounded-full bg-primary-base px-4 py-3 text-sm font-medium text-white transition hover:bg-primary-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light"
+                  className="flex-1 rounded-full bg-primary-base px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light"
                 >
                   {formatMessage({ id: "app.hypercerts.mint.retry" })}
                 </button>

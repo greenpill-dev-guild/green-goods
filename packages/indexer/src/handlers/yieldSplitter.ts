@@ -1,11 +1,11 @@
 import { YieldSplitter } from "../../generated";
 
-import type { YieldAllocation, HandlerTypes_handlerArgs } from "../../generated/src/Types.gen";
+import type { HandlerTypes_handlerArgs, YieldAllocation } from "../../generated/src/Types.gen";
 
 import {
-  normalizeAddress,
   getTxHash,
   getYieldAllocationId,
+  normalizeAddress,
   type YieldSplitter_YieldSplit_eventArgs,
 } from "./shared";
 

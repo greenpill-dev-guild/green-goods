@@ -1,35 +1,33 @@
 import {
   type Address,
-  type CookieJar,
-  type GardenVault,
-  type VaultDeposit,
   AssetSelector,
   ConfirmDialog,
-  formatAddress,
+  type CookieJar,
   formatTokenAmount,
+  type GardenVault,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  isZeroAddressValue,
-  validateDecimalInput,
   useCookieJarWithdraw,
+  useDebouncedValue,
   useGardenCookieJars,
   useGardenVaults,
   useOffline,
   useUser,
   useVaultDeposit,
   useVaultDeposits,
-  useDebouncedValue,
   useVaultPreview,
   useVaultWithdraw,
+  type VaultDeposit,
+  validateDecimalInput,
 } from "@green-goods/shared";
-import { useBalance } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import { type ModalDrawerTab, ModalDrawer } from "./ModalDrawer";
+import { useBalance } from "wagmi";
+import { ModalDrawer, type ModalDrawerTab } from "./ModalDrawer";
 
-interface TreasuryDrawerProps {
+interface EndowmentDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   gardenAddress: Address;
@@ -47,45 +45,49 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
   const { primaryAddress } = useUser();
   const { isOnline } = useOffline();
   const withdrawMutation = useVaultWithdraw();
-  const [sharesInput, setSharesInput] = useState("");
+  const [amountInput, setAmountInput] = useState("");
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
-
-  const maxShares = deposit.shares;
-  const inputError = useMemo(() => validateDecimalInput(sharesInput, 18), [sharesInput]);
-
-  const parsedShares = useMemo(() => {
-    if (!sharesInput.trim() || inputError) return 0n;
-    try {
-      return parseUnits(sharesInput, 18);
-    } catch {
-      return 0n;
-    }
-  }, [sharesInput, inputError]);
 
   const assetDecimals = getVaultAssetDecimals(vault.asset, vault.chainId);
   const assetSymbol = getVaultAssetSymbol(vault.asset, vault.chainId);
-  const debouncedShares = useDebouncedValue(parsedShares, 300);
+  const inputError = useMemo(
+    () => validateDecimalInput(amountInput, assetDecimals),
+    [amountInput, assetDecimals]
+  );
+
+  const parsedAmount = useMemo(() => {
+    if (!amountInput.trim() || inputError) return 0n;
+    try {
+      return parseUnits(amountInput, assetDecimals);
+    } catch {
+      return 0n;
+    }
+  }, [amountInput, inputError, assetDecimals]);
+
+  const debouncedAmount = useDebouncedValue(parsedAmount, 300);
 
   const { preview } = useVaultPreview({
     vaultAddress: vault.vaultAddress,
-    shares: debouncedShares,
+    amount: debouncedAmount,
     userAddress: primaryAddress as Address | undefined,
-    enabled: Boolean(primaryAddress && debouncedShares > 0n),
+    enabled: Boolean(primaryAddress),
   });
 
+  const maxWithdrawable = preview?.maxWithdraw ?? 0n;
+
   const executeWithdraw = () => {
-    if (!primaryAddress || parsedShares <= 0n || parsedShares > maxShares) return;
+    if (!primaryAddress || parsedAmount <= 0n || parsedAmount > maxWithdrawable) return;
 
     withdrawMutation.mutate(
       {
         gardenAddress,
         assetAddress: vault.asset,
         vaultAddress: vault.vaultAddress,
-        shares: parsedShares,
+        amount: parsedAmount,
         owner: primaryAddress as Address,
         receiver: primaryAddress as Address,
       },
-      { onSuccess: () => setSharesInput("") }
+      { onSuccess: () => setAmountInput("") }
     );
   };
 
@@ -94,23 +96,23 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-sm font-medium text-text-strong">{assetSymbol}</p>
         <p className="text-xs text-text-sub">
-          {formatMessage({ id: "app.treasury.myShares" })}: {formatTokenAmount(maxShares, 18)}
+          {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
+          {formatTokenAmount(maxWithdrawable, assetDecimals)} {assetSymbol}
         </p>
       </div>
 
       <p className="mb-2 text-xs text-text-soft">
-        {formatMessage({ id: "app.treasury.shareValue" })}:{" "}
-        {preview ? formatTokenAmount(preview.previewAssets, assetDecimals) : "--"}
+        {formatMessage({ id: "app.treasury.myShares" })}: {formatTokenAmount(deposit.shares, 18)}
       </p>
 
       <div className="flex items-center gap-2">
         <input
           type="text"
           inputMode="decimal"
-          value={sharesInput}
-          onChange={(event) => setSharesInput(event.target.value)}
-          placeholder={formatMessage({ id: "app.treasury.withdrawShares" })}
-          aria-label={formatMessage({ id: "app.treasury.withdrawShares" })}
+          value={amountInput}
+          onChange={(event) => setAmountInput(event.target.value)}
+          placeholder={`0.0 ${assetSymbol}`}
+          aria-label={formatMessage({ id: "app.treasury.withdrawAmount" })}
           aria-invalid={Boolean(inputError)}
           className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
             inputError
@@ -120,7 +122,7 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
         />
         <button
           type="button"
-          onClick={() => setSharesInput(formatUnits(maxShares, 18))}
+          onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
           className="min-h-11 min-w-11 rounded-md border border-stroke-sub bg-bg-white px-3 py-2.5 text-xs font-medium text-text-sub hover:bg-bg-weak"
         >
           {formatMessage({ id: "app.treasury.max" })}
@@ -136,7 +138,10 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
         type="button"
         onClick={() => setShowWithdrawConfirm(true)}
         disabled={
-          !isOnline || parsedShares <= 0n || parsedShares > maxShares || withdrawMutation.isPending
+          !isOnline ||
+          parsedAmount <= 0n ||
+          parsedAmount > maxWithdrawable ||
+          withdrawMutation.isPending
         }
         className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60"
       >
@@ -152,11 +157,8 @@ function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProps) {
         description={formatMessage(
           { id: "app.treasury.confirmWithdrawDescription" },
           {
-            shares: formatTokenAmount(parsedShares, 18),
+            amount: formatTokenAmount(parsedAmount, assetDecimals),
             asset: assetSymbol,
-            estimatedValue: preview
-              ? formatTokenAmount(preview.previewAssets, assetDecimals)
-              : "--",
           }
         )}
         confirmLabel={formatMessage({ id: "app.treasury.confirmWithdrawAction" })}
@@ -336,9 +338,22 @@ function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
   );
 }
 
-function CookieJarTabContent({ gardenAddress }: { gardenAddress: Address }) {
+interface CookieJarTabContentProps {
+  gardenAddress: Address;
+  jars: CookieJar[];
+  isLoading: boolean;
+  isError: boolean;
+  moduleConfigured: boolean;
+}
+
+function CookieJarTabContent({
+  gardenAddress,
+  jars,
+  isLoading,
+  isError,
+  moduleConfigured,
+}: CookieJarTabContentProps) {
   const { formatMessage } = useIntl();
-  const { jars, isLoading } = useGardenCookieJars(gardenAddress);
 
   if (isLoading) {
     return (
@@ -349,6 +364,25 @@ function CookieJarTabContent({ gardenAddress }: { gardenAddress: Address }) {
             <div className="h-3 w-16 rounded bg-bg-weak" />
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (!moduleConfigured) {
+    return (
+      <p className="p-4 text-sm text-text-soft">
+        {formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
+      </p>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div
+        role="alert"
+        className="m-4 rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark"
+      >
+        <p>{formatMessage({ id: "app.cookieJar.errorLoading" })}</p>
       </div>
     );
   }
@@ -368,12 +402,12 @@ function CookieJarTabContent({ gardenAddress }: { gardenAddress: Address }) {
   );
 }
 
-export function TreasuryDrawer({
+export function EndowmentDrawer({
   isOpen,
   onClose,
   gardenAddress,
   gardenName,
-}: TreasuryDrawerProps) {
+}: EndowmentDrawerProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
   const { isOnline } = useOffline();
@@ -386,6 +420,12 @@ export function TreasuryDrawer({
     isError: vaultsError,
     refetch: refetchVaults,
   } = useGardenVaults(gardenAddress, { enabled: isOpen });
+  const {
+    jars: cookieJars,
+    isLoading: jarsLoading,
+    error: jarsError,
+    moduleConfigured: jarsModuleConfigured,
+  } = useGardenCookieJars(gardenAddress, { enabled: isOpen });
   const { deposits } = useVaultDeposits(gardenAddress, {
     userAddress: primaryAddress ?? undefined,
     enabled: isOpen && Boolean(primaryAddress),
@@ -541,12 +581,6 @@ export function TreasuryDrawer({
                           assetDecimals
                         )}
                       </p>
-                      <p className="mt-1 text-xs text-text-sub">
-                        {formatMessage({ id: "app.treasury.donationAddress" })}:{" "}
-                        {isZeroAddressValue(vault.donationAddress)
-                          ? formatMessage({ id: "app.treasury.notSet" })
-                          : formatAddress(vault.donationAddress, { variant: "card" })}
-                      </p>
                     </div>
                   );
                 })}
@@ -668,7 +702,15 @@ export function TreasuryDrawer({
         </div>
       )}
 
-      {activeTab === "cookie-jar" && <CookieJarTabContent gardenAddress={gardenAddress} />}
+      {activeTab === "cookie-jar" && (
+        <CookieJarTabContent
+          gardenAddress={gardenAddress}
+          jars={cookieJars}
+          isLoading={jarsLoading}
+          isError={Boolean(jarsError)}
+          moduleConfigured={jarsModuleConfigured}
+        />
+      )}
     </ModalDrawer>
   );
 }

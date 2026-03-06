@@ -12,3 +12,5 @@ ds-test=./lib/tokenbound/lib/forge-std/lib/ds-test/src/
 @openzeppelin/contracts@4.8.3/=node_modules/@openzeppelin/contracts-4.8.3/
 @gardens/=./src/vendor/gardens/
 @octant/=./src/vendor/octant/
+openzeppelin-contracts/=./lib/tokenbound/lib/openzeppelin-contracts/
+openzeppelin/=./lib/tokenbound/lib/openzeppelin-contracts/contracts/

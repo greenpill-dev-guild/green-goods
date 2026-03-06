@@ -1,35 +1,72 @@
 import {
+  type CreateActionFormData,
   cn,
   createActionSchema,
-  debugError,
   DEFAULT_CHAIN_ID,
   defaultTemplate,
   instructionTemplates,
+  logger,
   toastService,
   uploadFileToIPFS,
   useActionOperations,
-  type CreateActionFormData,
 } from "@green-goods/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
+import { FileUploadField } from "@/components/FileUploadField";
 import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
-import { FileUploadField } from "@/components/FileUploadField";
-
-const stepConfigs: Step[] = [
-  { id: "basics", title: "Basics", description: "Title and timeline" },
-  { id: "capitals", title: "Capitals & Media", description: "Forms of capital and images" },
-  { id: "instructions", title: "Instructions", description: "Define work submission form" },
-  { id: "review", title: "Review", description: "Confirm and submit" },
-];
+import { FormField } from "@/components/ui/FormField";
 
 export default function CreateAction() {
   const navigate = useNavigate();
+  const { formatMessage } = useIntl();
   const { registerAction, isLoading } = useActionOperations(DEFAULT_CHAIN_ID);
   const [currentStep, setCurrentStep] = useState(0);
+
+  const stepConfigs: Step[] = [
+    {
+      id: "basics",
+      title: formatMessage({ id: "app.admin.actions.create.stepBasics", defaultMessage: "Basics" }),
+      description: formatMessage({
+        id: "app.admin.actions.create.stepBasicsDesc",
+        defaultMessage: "Title and timeline",
+      }),
+    },
+    {
+      id: "capitals",
+      title: formatMessage({
+        id: "app.admin.actions.create.stepCapitals",
+        defaultMessage: "Capitals & Media",
+      }),
+      description: formatMessage({
+        id: "app.admin.actions.create.stepCapitalsDesc",
+        defaultMessage: "Forms of capital and images",
+      }),
+    },
+    {
+      id: "instructions",
+      title: formatMessage({
+        id: "app.admin.actions.create.stepInstructions",
+        defaultMessage: "Instructions",
+      }),
+      description: formatMessage({
+        id: "app.admin.actions.create.stepInstructionsDesc",
+        defaultMessage: "Define work submission form",
+      }),
+    },
+    {
+      id: "review",
+      title: formatMessage({ id: "app.admin.actions.create.stepReview", defaultMessage: "Review" }),
+      description: formatMessage({
+        id: "app.admin.actions.create.stepReviewDesc",
+        defaultMessage: "Confirm and submit",
+      }),
+    },
+  ];
 
   const form = useForm<CreateActionFormData>({
     resolver: zodResolver(createActionSchema),
@@ -46,7 +83,12 @@ export default function CreateAction() {
   const onSubmit = async (data: CreateActionFormData) => {
     try {
       // Upload media to IPFS
-      toastService.loading({ title: "Uploading media to IPFS..." });
+      toastService.loading({
+        title: formatMessage({
+          id: "app.admin.actions.create.uploadingMedia",
+          defaultMessage: "Uploading media to IPFS...",
+        }),
+      });
       const mediaUploads = await Promise.all(
         data.media.map((file: File) => uploadFileToIPFS(file))
       );
@@ -76,8 +118,23 @@ export default function CreateAction() {
 
       navigate("/actions");
     } catch (error) {
-      debugError("Failed to create action:", error);
-      toastService.error({ title: "Failed to create action" });
+      logger.error("Failed to create action", {
+        source: "CreateAction.onSubmit",
+        error: error instanceof Error ? error.message : String(error),
+        title: data.title,
+        mediaCount: data.media.length,
+      });
+      toastService.error({
+        title: formatMessage({
+          id: "app.admin.actions.create.errorTitle",
+          defaultMessage: "Failed to create action",
+        }),
+        context: formatMessage({
+          id: "app.admin.actions.create.errorContext",
+          defaultMessage: "action creation",
+        }),
+        error,
+      });
     }
   };
 
@@ -86,94 +143,135 @@ export default function CreateAction() {
       case 0:
         return (
           <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="create-action-title"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                Title
-              </label>
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.titleLabel",
+                defaultMessage: "Title",
+              })}
+              htmlFor="create-action-title"
+              error={form.formState.errors.title?.message}
+            >
               <input
                 id="create-action-title"
                 {...form.register("title")}
                 type="text"
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
-                placeholder="Action title"
+                placeholder={formatMessage({
+                  id: "app.admin.actions.create.titlePlaceholder",
+                  defaultMessage: "Action title",
+                })}
               />
-              {form.formState.errors.title && (
-                <p className="text-error-base text-sm mt-1">
-                  {form.formState.errors.title.message}
-                </p>
-              )}
-            </div>
+            </FormField>
 
-            <div>
-              <label
-                htmlFor="create-action-starttime"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                Start Date
-              </label>
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.startDateLabel",
+                defaultMessage: "Start Date",
+              })}
+              htmlFor="create-action-starttime"
+              error={form.formState.errors.startTime?.message}
+            >
               <input
                 id="create-action-starttime"
                 {...form.register("startTime", { valueAsDate: true })}
                 type="date"
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
               />
-              {form.formState.errors.startTime && (
-                <p className="text-error-base text-sm mt-1">
-                  {form.formState.errors.startTime.message}
-                </p>
-              )}
-            </div>
+            </FormField>
 
-            <div>
-              <label
-                htmlFor="create-action-endtime"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                End Date
-              </label>
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.endDateLabel",
+                defaultMessage: "End Date",
+              })}
+              htmlFor="create-action-endtime"
+              error={form.formState.errors.endTime?.message}
+            >
               <input
                 id="create-action-endtime"
                 {...form.register("endTime", { valueAsDate: true })}
                 type="date"
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
               />
-              {form.formState.errors.endTime && (
-                <p className="text-error-base text-sm mt-1">
-                  {form.formState.errors.endTime.message}
-                </p>
-              )}
-            </div>
+            </FormField>
           </div>
         );
 
-      case 1:
+      case 1: {
         const capitals = form.watch("capitals");
         const CAPITALS_OPTIONS = [
-          { value: 0, label: "Social" },
-          { value: 1, label: "Material" },
-          { value: 2, label: "Financial" },
-          { value: 3, label: "Living" },
-          { value: 4, label: "Intellectual" },
-          { value: 5, label: "Experiential" },
-          { value: 6, label: "Spiritual" },
-          { value: 7, label: "Cultural" },
+          {
+            value: 0,
+            label: formatMessage({
+              id: "app.admin.actions.create.capitalSocial",
+              defaultMessage: "Social",
+            }),
+          },
+          {
+            value: 1,
+            label: formatMessage({
+              id: "app.admin.actions.create.capitalMaterial",
+              defaultMessage: "Material",
+            }),
+          },
+          {
+            value: 2,
+            label: formatMessage({
+              id: "app.admin.actions.create.capitalFinancial",
+              defaultMessage: "Financial",
+            }),
+          },
+          {
+            value: 3,
+            label: formatMessage({
+              id: "app.admin.actions.create.capitalLiving",
+              defaultMessage: "Living",
+            }),
+          },
+          {
+            value: 4,
+            label: formatMessage({
+              id: "app.admin.actions.create.capitalIntellectual",
+              defaultMessage: "Intellectual",
+            }),
+          },
+          {
+            value: 5,
+            label: formatMessage({
+              id: "app.admin.actions.create.capitalExperiential",
+              defaultMessage: "Experiential",
+            }),
+          },
+          {
+            value: 6,
+            label: formatMessage({
+              id: "app.admin.actions.create.capitalSpiritual",
+              defaultMessage: "Spiritual",
+            }),
+          },
+          {
+            value: 7,
+            label: formatMessage({
+              id: "app.admin.actions.create.capitalCultural",
+              defaultMessage: "Cultural",
+            }),
+          },
         ];
 
         return (
           <div className="space-y-6">
-            <div>
-              <label
-                htmlFor="create-action-capitals"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                Forms of Capital <span className="text-error-base">*</span>
-              </label>
-              <p className="text-xs text-text-soft mb-3">
-                Select the forms of capital associated with this action
-              </p>
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.capitalsLabel",
+                defaultMessage: "Forms of Capital",
+              })}
+              required
+              hint={formatMessage({
+                id: "app.admin.actions.create.capitalsDescription",
+                defaultMessage: "Select the forms of capital associated with this action",
+              })}
+              error={form.formState.errors.capitals?.message}
+            >
               <fieldset
                 id="create-action-capitals"
                 className="grid grid-cols-2 gap-2 sm:grid-cols-4"
@@ -206,20 +304,15 @@ export default function CreateAction() {
                   );
                 })}
               </fieldset>
-              {form.formState.errors.capitals && (
-                <p className="text-error-base text-sm mt-1">
-                  {form.formState.errors.capitals.message}
-                </p>
-              )}
-            </div>
+            </FormField>
 
-            <div>
-              <label
-                htmlFor="create-action-media"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                Media (Images)
-              </label>
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.mediaLabel",
+                defaultMessage: "Media (Images)",
+              })}
+              error={form.formState.errors.media?.message}
+            >
               <FileUploadField
                 id="create-action-media"
                 currentFiles={form.watch("media")}
@@ -236,25 +329,22 @@ export default function CreateAction() {
                 showPreview
                 compress
               />
-              {form.formState.errors.media && (
-                <p className="text-error-base text-sm mt-1">
-                  {form.formState.errors.media.message}
-                </p>
-              )}
-            </div>
+            </FormField>
           </div>
         );
+      }
 
       case 2:
         return (
           <div>
-            <div className="mb-4">
-              <label
-                htmlFor="create-action-template"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                Start from a template (optional)
-              </label>
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.templateLabel",
+                defaultMessage: "Start from a template (optional)",
+              })}
+              htmlFor="create-action-template"
+              className="mb-4"
+            >
               <select
                 id="create-action-template"
                 onChange={(e) => {
@@ -264,39 +354,174 @@ export default function CreateAction() {
                 }}
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
               >
-                <option value="">Keep current configuration</option>
-                <optgroup label="Solar">
-                  <option value="solar.site_setup">Site & Readiness Setup</option>
-                  <option value="solar.install_milestone">Infrastructure Milestone</option>
-                  <option value="solar.service_session">Hub Service Session</option>
-                  <option value="solar.energy_uptime_check">Energy & Uptime Check</option>
-                  <option value="solar.node_ops">Node Operation Log</option>
+                <option value="">
+                  {formatMessage({
+                    id: "app.admin.actions.create.templateKeepCurrent",
+                    defaultMessage: "Keep current configuration",
+                  })}
+                </option>
+                <optgroup
+                  label={formatMessage({
+                    id: "app.admin.actions.create.templateGroupSolar",
+                    defaultMessage: "Solar",
+                  })}
+                >
+                  <option value="solar.site_setup">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateSolarSiteSetup",
+                      defaultMessage: "Site & Readiness Setup",
+                    })}
+                  </option>
+                  <option value="solar.install_milestone">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateSolarInstallMilestone",
+                      defaultMessage: "Infrastructure Milestone",
+                    })}
+                  </option>
+                  <option value="solar.service_session">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateSolarServiceSession",
+                      defaultMessage: "Hub Service Session",
+                    })}
+                  </option>
+                  <option value="solar.energy_uptime_check">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateSolarEnergyCheck",
+                      defaultMessage: "Energy & Uptime Check",
+                    })}
+                  </option>
+                  <option value="solar.node_ops">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateSolarNodeOps",
+                      defaultMessage: "Node Operation Log",
+                    })}
+                  </option>
                 </optgroup>
-                <optgroup label="Agroforestry">
-                  <option value="agro.site_species_plan">Site Assessment & Species Plan</option>
-                  <option value="agro.planting_event">Planting Event</option>
-                  <option value="agro.survival_check">Survival Check</option>
-                  <option value="agro.maintenance_activity">Maintenance Activity</option>
-                  <option value="agro.learning_reflection">Learning Reflection</option>
-                  <option value="agro.harvest_yield">Harvest & Yield Record</option>
+                <optgroup
+                  label={formatMessage({
+                    id: "app.admin.actions.create.templateGroupAgro",
+                    defaultMessage: "Agroforestry",
+                  })}
+                >
+                  <option value="agro.site_species_plan">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateAgroSitePlan",
+                      defaultMessage: "Site Assessment & Species Plan",
+                    })}
+                  </option>
+                  <option value="agro.planting_event">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateAgroPlanting",
+                      defaultMessage: "Planting Event",
+                    })}
+                  </option>
+                  <option value="agro.survival_check">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateAgroSurvival",
+                      defaultMessage: "Survival Check",
+                    })}
+                  </option>
+                  <option value="agro.maintenance_activity">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateAgroMaintenance",
+                      defaultMessage: "Maintenance Activity",
+                    })}
+                  </option>
+                  <option value="agro.learning_reflection">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateAgroLearning",
+                      defaultMessage: "Learning Reflection",
+                    })}
+                  </option>
+                  <option value="agro.harvest_yield">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateAgroHarvest",
+                      defaultMessage: "Harvest & Yield Record",
+                    })}
+                  </option>
                 </optgroup>
-                <optgroup label="Education">
-                  <option value="edu.publish_session">Publish Session & Open Roster</option>
-                  <option value="edu.deliver_session">Workshop Delivered</option>
-                  <option value="edu.verify_attendance">Attendance Verified</option>
-                  <option value="edu.followup_action">Follow-up Action Logged</option>
-                  <option value="edu.learning_assessment">Learning Assessment</option>
+                <optgroup
+                  label={formatMessage({
+                    id: "app.admin.actions.create.templateGroupEdu",
+                    defaultMessage: "Education",
+                  })}
+                >
+                  <option value="edu.publish_session">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateEduPublish",
+                      defaultMessage: "Publish Session & Open Roster",
+                    })}
+                  </option>
+                  <option value="edu.deliver_session">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateEduDeliver",
+                      defaultMessage: "Workshop Delivered",
+                    })}
+                  </option>
+                  <option value="edu.verify_attendance">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateEduAttendance",
+                      defaultMessage: "Attendance Verified",
+                    })}
+                  </option>
+                  <option value="edu.followup_action">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateEduFollowup",
+                      defaultMessage: "Follow-up Action Logged",
+                    })}
+                  </option>
+                  <option value="edu.learning_assessment">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateEduAssessment",
+                      defaultMessage: "Learning Assessment",
+                    })}
+                  </option>
                 </optgroup>
-                <optgroup label="Waste Management">
-                  <option value="waste.site_assessment">Site Assessment (Before)</option>
-                  <option value="waste.cleanup_event">Cleanup Event</option>
-                  <option value="waste.sorting_breakdown">Sorting & Breakdown</option>
-                  <option value="waste.transfer_receipt">Recycler/Disposal Transfer</option>
-                  <option value="waste.upcycle_batch">Compost/Upcycle Batch</option>
-                  <option value="waste.maintenance_check">Recurring Maintenance Check</option>
+                <optgroup
+                  label={formatMessage({
+                    id: "app.admin.actions.create.templateGroupWaste",
+                    defaultMessage: "Waste Management",
+                  })}
+                >
+                  <option value="waste.site_assessment">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateWasteAssessment",
+                      defaultMessage: "Site Assessment (Before)",
+                    })}
+                  </option>
+                  <option value="waste.cleanup_event">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateWasteCleanup",
+                      defaultMessage: "Cleanup Event",
+                    })}
+                  </option>
+                  <option value="waste.sorting_breakdown">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateWasteSorting",
+                      defaultMessage: "Sorting & Breakdown",
+                    })}
+                  </option>
+                  <option value="waste.transfer_receipt">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateWasteTransfer",
+                      defaultMessage: "Recycler/Disposal Transfer",
+                    })}
+                  </option>
+                  <option value="waste.upcycle_batch">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateWasteUpcycle",
+                      defaultMessage: "Compost/Upcycle Batch",
+                    })}
+                  </option>
+                  <option value="waste.maintenance_check">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateWasteMaintenance",
+                      defaultMessage: "Recurring Maintenance Check",
+                    })}
+                  </option>
                 </optgroup>
               </select>
-            </div>
+            </FormField>
             <InstructionsBuilder
               value={form.watch("instructionConfig")}
               onChange={(config) => form.setValue("instructionConfig", config)}
@@ -304,36 +529,84 @@ export default function CreateAction() {
           </div>
         );
 
-      case 3:
+      case 3: {
         const data = form.getValues();
         return (
           <div className="space-y-4">
             <div>
-              <h3 className="font-semibold text-text-strong">Title</h3>
+              <h3 className="font-semibold text-text-strong">
+                {formatMessage({
+                  id: "app.admin.actions.create.reviewTitle",
+                  defaultMessage: "Title",
+                })}
+              </h3>
               <p className="text-text-sub">{data.title}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-text-strong">Timeline</h3>
+              <h3 className="font-semibold text-text-strong">
+                {formatMessage({
+                  id: "app.admin.actions.create.reviewTimeline",
+                  defaultMessage: "Timeline",
+                })}
+              </h3>
               <p className="text-text-sub">
                 {data.startTime.toLocaleDateString()} - {data.endTime.toLocaleDateString()}
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-text-strong">Capitals</h3>
-              <p className="text-text-sub">{data.capitals.length} selected</p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-text-strong">Media</h3>
-              <p className="text-text-sub">{data.media.length} files</p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-text-strong">Form Inputs</h3>
+              <h3 className="font-semibold text-text-strong">
+                {formatMessage({
+                  id: "app.admin.actions.create.reviewCapitals",
+                  defaultMessage: "Capitals",
+                })}
+              </h3>
               <p className="text-text-sub">
-                {data.instructionConfig.uiConfig.details.inputs.length} custom fields
+                {formatMessage(
+                  {
+                    id: "app.admin.actions.create.reviewCapitalsCount",
+                    defaultMessage: "{count} selected",
+                  },
+                  { count: data.capitals.length }
+                )}
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-text-strong">
+                {formatMessage({
+                  id: "app.admin.actions.create.reviewMedia",
+                  defaultMessage: "Media",
+                })}
+              </h3>
+              <p className="text-text-sub">
+                {formatMessage(
+                  {
+                    id: "app.admin.actions.create.reviewMediaCount",
+                    defaultMessage: "{count} files",
+                  },
+                  { count: data.media.length }
+                )}
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-text-strong">
+                {formatMessage({
+                  id: "app.admin.actions.create.reviewFormInputs",
+                  defaultMessage: "Form Inputs",
+                })}
+              </h3>
+              <p className="text-text-sub">
+                {formatMessage(
+                  {
+                    id: "app.admin.actions.create.reviewFieldsCount",
+                    defaultMessage: "{count} custom fields",
+                  },
+                  { count: data.instructionConfig.uiConfig.details.inputs.length }
+                )}
               </p>
             </div>
           </div>
         );
+      }
 
       default:
         return null;

@@ -7,16 +7,16 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Work } from "../../../types/domain";
 import {
   createMockWork,
   createMockWorkApprovalDraft,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
 } from "../../test-utils/mock-factories";
-import type { Work } from "../../../types/domain";
 
 // ============================================
 // Mocks
@@ -93,8 +93,8 @@ vi.mock("../../../config/appkit", () => ({
   wagmiConfig: {},
 }));
 
-import { useBatchWorkApproval } from "../../../hooks/work/useBatchWorkApproval";
 import { queryKeys } from "../../../hooks/query-keys";
+import { useBatchWorkApproval } from "../../../hooks/work/useBatchWorkApproval";
 
 // ============================================
 // Test helpers

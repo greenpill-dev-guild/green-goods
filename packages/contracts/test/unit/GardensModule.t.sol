@@ -301,22 +301,22 @@ contract GardensModuleTest is Test {
     function test_onGardenMinted_revertsIfNotGardenToken() public {
         vm.prank(address(0x999));
         vm.expectRevert(abi.encodeWithSelector(GardensModule.NotGardenToken.selector, address(0x999)));
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
     }
 
     function test_onGardenMinted_revertsIfZeroGarden() public {
         vm.prank(gardenToken);
         vm.expectRevert(GardensModule.ZeroAddress.selector);
-        gardensModule.onGardenMinted(address(0), IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(address(0), IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
     }
 
     function test_onGardenMinted_revertsIfAlreadyInitialized() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         vm.prank(gardenToken);
         vm.expectRevert(abi.encodeWithSelector(GardensModule.GardenAlreadyInitialized.selector, garden1));
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -326,7 +326,7 @@ contract GardensModuleTest is Test {
     function test_onGardenMinted_createsCommunityAndPools() public {
         vm.prank(gardenToken);
         (address community, address[] memory pools) =
-            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         assertTrue(community != address(0), "Community should be created");
         assertEq(pools.length, 2, "Both signal pools should be auto-created during mint");
@@ -349,8 +349,9 @@ contract GardensModuleTest is Test {
 
     function test_onGardenMinted_exponentialScheme() public {
         vm.prank(gardenToken);
-        (address community, address[] memory pools) =
-            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Exponential);
+        (address community, address[] memory pools) = gardensModule.onGardenMinted(
+            garden1, IGardensModule.WeightScheme.Exponential, "Test Garden", "Test Description"
+        );
 
         assertTrue(community != address(0), "Community should be created");
         assertEq(pools.length, 2, "Both pools should be auto-created");
@@ -364,7 +365,7 @@ contract GardensModuleTest is Test {
     function test_onGardenMinted_powerScheme() public {
         vm.prank(gardenToken);
         (address community, address[] memory pools) =
-            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Power);
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Power, "Test Garden", "Test Description");
 
         assertTrue(community != address(0), "Community should be created");
         assertEq(pools.length, 2, "Both pools should be auto-created");
@@ -377,7 +378,8 @@ contract GardensModuleTest is Test {
 
     function test_onGardenMinted_poolsRegisteredInHatsModule() public {
         vm.prank(gardenToken);
-        (, address[] memory pools) = gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        (, address[] memory pools) =
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         // Pools should be auto-registered in HatsModule during mint
         address[] memory strategies = hatsModule.getConvictionStrategies(garden1);
@@ -393,7 +395,7 @@ contract GardensModuleTest is Test {
 
         vm.prank(gardenToken);
         (address community, address[] memory pools) =
-            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         // Community created successfully, but pools failed
         assertTrue(community != address(0), "Community should still be created");
@@ -411,7 +413,7 @@ contract GardensModuleTest is Test {
         emit IGardensModule.GardenPartiallyInitialized(garden1, true, false);
 
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -423,7 +425,7 @@ contract GardensModuleTest is Test {
         uint256 balanceBefore = goodsToken.balanceOf(garden1);
 
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         uint256 balanceAfter = goodsToken.balanceOf(garden1);
         assertEq(balanceAfter - balanceBefore, expectedAmount, "Garden should receive GOODS treasury");
@@ -436,7 +438,7 @@ contract GardensModuleTest is Test {
         emit IGardensModule.GardenTreasurySeeded(garden1, expectedAmount);
 
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
     }
 
     function test_onGardenMinted_treasurySeedingUsesConfigurableStake() public {
@@ -447,7 +449,7 @@ contract GardensModuleTest is Test {
         uint256 expectedAmount = 2e18 * 100; // new stake * INITIAL_MEMBER_SLOTS
 
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         assertEq(goodsToken.balanceOf(garden1), expectedAmount, "Should use configured stake amount");
     }
@@ -471,7 +473,7 @@ contract GardensModuleTest is Test {
         module2.setGardenToken(gardenToken);
 
         vm.prank(gardenToken);
-        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         // No GOODS should be minted (no community = no treasury seeding)
         assertEq(goodsToken.balanceOf(garden1), 0, "No GOODS when no community");
@@ -485,7 +487,7 @@ contract GardensModuleTest is Test {
         // Auto pool creation fails during mint
         registryFactory.setCreateFailingCommunities(true);
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
         assertEq(gardensModule.getGardenSignalPools(garden1).length, 0, "No pools after failed auto-creation");
 
         // Fix the community so pool creation works
@@ -507,7 +509,7 @@ contract GardensModuleTest is Test {
     function test_createGardenPools_ownerCanCreatePoolsAfterAutoFail() public {
         registryFactory.setCreateFailingCommunities(true);
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         MockRegistryCommunity(gardensModule.getGardenCommunity(garden1)).setShouldRevertPoolCreation(false);
 
@@ -520,7 +522,7 @@ contract GardensModuleTest is Test {
     function test_createGardenPools_revertsForNonOperator() public {
         registryFactory.setCreateFailingCommunities(true);
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         vm.prank(address(0x999)); // not an operator
         vm.expectRevert(GardensModule.NotGardenOperator.selector);
@@ -552,7 +554,7 @@ contract GardensModuleTest is Test {
         module2.setGardenToken(gardenToken);
 
         vm.prank(gardenToken);
-        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         vm.prank(owner);
         vm.expectRevert(GardensModule.ZeroAddress.selector);
@@ -562,7 +564,7 @@ contract GardensModuleTest is Test {
     function test_createGardenPools_revertsIfPoolsAlreadyExist() public {
         // Pools auto-created during mint
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
         assertEq(gardensModule.getGardenSignalPools(garden1).length, 2, "Pools should be auto-created");
 
         // Manual call should revert since pools already exist
@@ -575,7 +577,7 @@ contract GardensModuleTest is Test {
         // Auto pool creation fails
         registryFactory.setCreateFailingCommunities(true);
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         // Fix and manually create
         MockRegistryCommunity(gardensModule.getGardenCommunity(garden1)).setShouldRevertPoolCreation(false);
@@ -597,7 +599,7 @@ contract GardensModuleTest is Test {
 
     function test_onGardenMinted_deploysPowerRegistry() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         address registry = gardensModule.getGardenPowerRegistry(garden1);
         assertTrue(registry != address(0), "Power registry should be deployed");
@@ -605,7 +607,7 @@ contract GardensModuleTest is Test {
 
     function test_onGardenMinted_powerRegistryHas3Sources() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         assertTrue(mockPowerRegistry.isGardenRegistered(garden1), "Garden should be registered in power registry");
         assertEq(mockPowerRegistry.getGardenSourceCount(garden1), 3, "Power registry should have 3 sources for garden");
@@ -617,7 +619,8 @@ contract GardensModuleTest is Test {
 
     function test_onGardenMinted_createsCommunity() public {
         vm.prank(gardenToken);
-        (address community,) = gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        (address community,) =
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         assertTrue(community != address(0), "Community should be created");
         assertEq(registryFactory.getCreatedCount(), 1, "Factory should have created 1 community");
@@ -625,7 +628,8 @@ contract GardensModuleTest is Test {
 
     function test_onGardenMinted_communityUsesOwnerAsDefaultCouncilSafe() public {
         vm.prank(gardenToken);
-        (address community,) = gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        (address community,) =
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         MockRegistryCommunity mockCommunity = MockRegistryCommunity(community);
         assertEq(mockCommunity.councilSafe(), owner, "Council Safe should default to protocol owner");
@@ -633,7 +637,8 @@ contract GardensModuleTest is Test {
 
     function test_onGardenMinted_communityUsesGoodsToken() public {
         vm.prank(gardenToken);
-        (address community,) = gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        (address community,) =
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         MockRegistryCommunity mockCommunity = MockRegistryCommunity(community);
         assertEq(mockCommunity.gardenToken(), address(goodsToken), "Community garden token should be GOODS");
@@ -658,7 +663,7 @@ contract GardensModuleTest is Test {
 
     function test_isGardenInitialized_trueAfterMint() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         assertTrue(gardensModule.isGardenInitialized(garden1), "Should be initialized after mint");
     }
@@ -735,9 +740,9 @@ contract GardensModuleTest is Test {
         vm.startPrank(gardenToken);
 
         (address community1, address[] memory pools1) =
-            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
         (address community2, address[] memory pools2) =
-            gardensModule.onGardenMinted(garden2, IGardensModule.WeightScheme.Power);
+            gardensModule.onGardenMinted(garden2, IGardensModule.WeightScheme.Power, "Test Garden 2", "Test Description 2");
 
         vm.stopPrank();
 
@@ -787,7 +792,8 @@ contract GardensModuleTest is Test {
         module2.setGardenToken(gardenToken);
 
         vm.prank(gardenToken);
-        (address community, address[] memory pools) = module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        (address community, address[] memory pools) =
+            module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         // Community should still be created
         assertTrue(community != address(0), "Community should still be created");
@@ -817,7 +823,8 @@ contract GardensModuleTest is Test {
         module2.setGardenToken(gardenToken);
 
         vm.prank(gardenToken);
-        (address community, address[] memory pools) = module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        (address community, address[] memory pools) =
+            module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         // Community should be zero
         assertEq(community, address(0), "Community should be zero when factory absent");
@@ -861,12 +868,12 @@ contract GardensModuleTest is Test {
         vm.expectEmit(true, false, false, false);
         emit IGardensModule.CommunityCreated(garden1, address(0), IGardensModule.WeightScheme.Linear, address(0));
 
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
     }
 
     function test_onGardenMinted_communityCreatedHasCorrectGoodsToken() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         address community = gardensModule.getGardenCommunity(garden1);
         MockRegistryCommunity mockCommunity = MockRegistryCommunity(community);
@@ -879,7 +886,7 @@ contract GardensModuleTest is Test {
 
     function test_resetGardenInitialization_clearsState() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
         assertTrue(gardensModule.isGardenInitialized(garden1), "Should be initialized");
 
         vm.prank(owner);
@@ -894,14 +901,14 @@ contract GardensModuleTest is Test {
 
     function test_resetGardenInitialization_allowsReinit() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         vm.prank(owner);
         gardensModule.resetGardenInitialization(garden1);
 
         vm.prank(gardenToken);
         (address community, address[] memory pools) =
-            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Power);
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Power, "Test Garden", "Test Description");
 
         assertTrue(community != address(0), "Community should be created on re-init");
         assertEq(pools.length, 2, "Pools should be auto-created on re-init");
@@ -914,7 +921,7 @@ contract GardensModuleTest is Test {
 
     function test_resetGardenInitialization_emitsEvent() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         vm.expectEmit(true, false, false, false);
         emit IGardensModule.GardenInitializationReset(garden1);
@@ -941,7 +948,7 @@ contract GardensModuleTest is Test {
 
     function test_retryCreateCommunity_revertsIfCommunityAlreadyExists() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         vm.prank(owner);
         vm.expectRevert(abi.encodeWithSelector(GardensModule.GardenAlreadyInitialized.selector, garden1));
@@ -966,12 +973,18 @@ contract GardensModuleTest is Test {
         module2.setGardenToken(gardenToken);
 
         vm.prank(gardenToken);
-        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         assertEq(module2.getGardenCommunity(garden1), address(0), "Community should be zero");
 
         vm.prank(owner);
         module2.setRegistryFactory(address(registryFactory));
+
+        // retryCreateCommunity reads name/description from the garden account on-chain,
+        // so we need a contract at garden1 that implements IGardenAccountMetadata
+        vm.etch(garden1, hex"00");
+        vm.mockCall(garden1, abi.encodeWithSignature("name()"), abi.encode("Test Garden"));
+        vm.mockCall(garden1, abi.encodeWithSignature("description()"), abi.encode("Test Description"));
 
         vm.prank(owner);
         address community = module2.retryCreateCommunity(garden1);
@@ -991,7 +1004,7 @@ contract GardensModuleTest is Test {
 
     function test_onGardenMinted_linearWeightsAre10000_20000_30000() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         assertTrue(mockPowerRegistry.isGardenRegistered(garden1), "Garden should be registered");
         NFTPowerSource[] memory sources = mockPowerRegistry.getGardenSources(garden1);
@@ -1004,7 +1017,7 @@ contract GardensModuleTest is Test {
 
     function test_onGardenMinted_exponentialWeightsAre20000_40000_160000() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Exponential);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Exponential, "Test Garden", "Test Description");
 
         NFTPowerSource[] memory sources = mockPowerRegistry.getGardenSources(garden1);
 
@@ -1015,7 +1028,7 @@ contract GardensModuleTest is Test {
 
     function test_onGardenMinted_powerWeightsAre30000_90000_810000() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Power);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Power, "Test Garden", "Test Description");
 
         NFTPowerSource[] memory sources = mockPowerRegistry.getGardenSources(garden1);
 
@@ -1172,7 +1185,7 @@ contract GardensModuleTest is Test {
     function test_resetGardenInitialization_clearsWeightScheme() public {
         // Initialize with Power scheme
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Power);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Power, "Test Garden", "Test Description");
 
         assertEq(
             uint256(gardensModule.getGardenWeightScheme(garden1)),
@@ -1195,7 +1208,7 @@ contract GardensModuleTest is Test {
         // Init with Linear
         vm.prank(gardenToken);
         (address community1, address[] memory pools1) =
-            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
         address registry1 = gardensModule.getGardenPowerRegistry(garden1);
         assertEq(pools1.length, 2, "Should have pools after first mint");
 
@@ -1205,8 +1218,9 @@ contract GardensModuleTest is Test {
 
         // Re-init with Exponential
         vm.prank(gardenToken);
-        (address community2, address[] memory pools2) =
-            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Exponential);
+        (address community2, address[] memory pools2) = gardensModule.onGardenMinted(
+            garden1, IGardensModule.WeightScheme.Exponential, "Test Garden", "Test Description"
+        );
         address registry2 = gardensModule.getGardenPowerRegistry(garden1);
 
         // Should have new community and pools; registry is the same singleton
@@ -1228,7 +1242,7 @@ contract GardensModuleTest is Test {
     function test_resetGardenInitialization_clearsPools() public {
         // Init (pools auto-created)
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
         assertEq(gardensModule.getGardenSignalPools(garden1).length, 2, "Should have 2 pools before reset");
 
         // Reset
@@ -1240,14 +1254,16 @@ contract GardensModuleTest is Test {
     function test_resetAndReinit_createsNewPools() public {
         // Full lifecycle: init (auto-pools) → reset → re-init (new auto-pools)
         vm.prank(gardenToken);
-        (, address[] memory oldPools) = gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        (, address[] memory oldPools) =
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
         assertEq(oldPools.length, 2, "Should have auto-pools");
 
         vm.prank(owner);
         gardensModule.resetGardenInitialization(garden1);
 
         vm.prank(gardenToken);
-        (, address[] memory newPools) = gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Power);
+        (, address[] memory newPools) =
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Power, "Test Garden", "Test Description");
 
         assertEq(newPools.length, 2, "Should create 2 new pools after re-init");
         assertEq(gardensModule.getGardenSignalPools(garden1).length, 2, "Stored pools should be 2");
@@ -1264,7 +1280,7 @@ contract GardensModuleTest is Test {
         uint256 balanceBefore = goodsToken.balanceOf(garden1);
 
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         // stakeAmountPerMember=0 → treasuryAmount = 0*100 = 0, no mint attempted
         assertEq(goodsToken.balanceOf(garden1), balanceBefore, "No GOODS should be minted when stake=0");
@@ -1277,9 +1293,11 @@ contract GardensModuleTest is Test {
     function test_sequentialMints_stateIsIsolated() public {
         vm.startPrank(gardenToken);
 
-        (address com1, address[] memory pools1) = gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
-        (address com2, address[] memory pools2) =
-            gardensModule.onGardenMinted(garden2, IGardensModule.WeightScheme.Exponential);
+        (address com1, address[] memory pools1) =
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
+        (address com2, address[] memory pools2) = gardensModule.onGardenMinted(
+            garden2, IGardensModule.WeightScheme.Exponential, "Test Garden 2", "Test Description 2"
+        );
 
         vm.stopPrank();
 
@@ -1350,7 +1368,7 @@ contract GardensModuleTest is Test {
         // Auto pool creation fails during mint
         registryFactory.setCreateFailingCommunities(true);
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
         assertEq(gardensModule.getGardenSignalPools(garden1).length, 0, "No pools after failed auto-creation");
 
         // Fix the community
@@ -1366,7 +1384,7 @@ contract GardensModuleTest is Test {
 
     function test_retryCreatePools_onlyOwner() public {
         vm.prank(gardenToken);
-        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         vm.prank(address(0x999));
         vm.expectRevert("Ownable: caller is not the owner");
@@ -1414,7 +1432,7 @@ contract GardensModuleTest is Test {
         emit IGardensModule.GardenPartiallyInitialized(garden1, false, false);
 
         vm.prank(gardenToken);
-        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1459,7 +1477,7 @@ contract GardensModuleTest is Test {
 
         vm.prank(gardenToken);
         vm.expectRevert(abi.encodeWithSelector(GardensModule.FactoriesNotConfigured.selector, "registryFactory"));
-        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
     }
 
     function test_requireFullSetup_revertsWhenPowerRegistryMissing() public {
@@ -1484,7 +1502,7 @@ contract GardensModuleTest is Test {
 
         vm.prank(gardenToken);
         vm.expectRevert(abi.encodeWithSelector(GardensModule.FactoriesNotConfigured.selector, "powerRegistry"));
-        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
     }
 
     function test_requireFullSetup_allowsMintWhenFullyConfigured() public {
@@ -1494,7 +1512,7 @@ contract GardensModuleTest is Test {
 
         vm.prank(gardenToken);
         (address community, address[] memory pools) =
-            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         assertTrue(community != address(0), "Community should be created");
         assertEq(pools.length, 2, "Pools should be auto-created during mint");
@@ -1521,7 +1539,8 @@ contract GardensModuleTest is Test {
         // requireFullSetup is false by default
 
         vm.prank(gardenToken);
-        (address community, address[] memory pools) = module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        (address community, address[] memory pools) =
+            module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         // Should succeed with partial initialization (graceful degradation)
         assertEq(community, address(0), "Community should be zero when factory absent");
@@ -1566,7 +1585,7 @@ contract GardensModuleTest is Test {
         uint256 expectedAmount = 1e18 * 100; // stakeAmountPerMember(1e18) * INITIAL_MEMBER_SLOTS(100)
 
         vm.prank(gardenToken);
-        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         assertEq(realGoods.balanceOf(garden1), expectedAmount, "Garden should receive GOODS from real token");
         assertEq(realGoods.totalSupply(), expectedAmount, "Total supply should match minted amount");
@@ -1597,7 +1616,7 @@ contract GardensModuleTest is Test {
 
         // Mint should succeed (try/catch in onGardenMinted catches the mint failure)
         vm.prank(gardenToken);
-        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         // But treasury is NOT seeded
         assertEq(realGoods.balanceOf(garden1), 0, "No GOODS minted without ownership");
@@ -1632,7 +1651,9 @@ contract GardensModuleTest is Test {
         // Initialize the garden (onGardenMinted will attempt pool registration,
         // which may fail on the reverting registry but that's a separate path)
         vm.prank(gardenToken);
-        moduleWithRevertingRegistry.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        moduleWithRevertingRegistry.onGardenMinted(
+            garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description"
+        );
         assertTrue(moduleWithRevertingRegistry.isGardenInitialized(garden1), "Garden should be initialized");
 
         // Reset should complete despite deregisterGarden reverting
@@ -1678,7 +1699,9 @@ contract GardensModuleTest is Test {
         vm.recordLogs();
 
         vm.prank(gardenToken);
-        (, address[] memory pools) = moduleWithRevertPool.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear);
+        (, address[] memory pools) = moduleWithRevertPool.onGardenMinted(
+            garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description"
+        );
 
         assertTrue(pools.length >= 2, "Should create 2 signal pools");
 

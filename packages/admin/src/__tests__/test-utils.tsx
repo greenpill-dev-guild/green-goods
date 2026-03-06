@@ -6,13 +6,13 @@
 
 // Re-export everything from shared testing utilities
 export {
-  mock,
+  createMockSmartAccountClient,
   createTestQueryClient,
-  QueryTestWrapper as TestWrapper,
-  renderWithQuery as renderWithProviders,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
-  createMockSmartAccountClient,
+  mock,
+  QueryTestWrapper as TestWrapper,
+  renderWithQuery as renderWithProviders,
 } from "@green-goods/shared/testing";
 
 // Re-export testing library

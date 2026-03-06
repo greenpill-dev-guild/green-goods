@@ -255,6 +255,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [actor, snapshot, isConnected, wagmiWalletAddress]);
 
   // ============================================================
+  // WALLET_CONNECTING SAFETY NET
+  // ============================================================
+  // If the machine enters wallet_connecting but the wallet is not connected
+  // (e.g. user closed the modal, or wallet disconnected), recover gracefully.
+  useEffect(() => {
+    if (!actor || !snapshot) return;
+    if (!snapshot.matches("wallet_connecting")) return;
+
+    // Wallet isn't connected and isn't in the process of connecting — stuck
+    if (!isConnected && !isConnecting) {
+      logger.debug("[AuthProvider] wallet_connecting with no wallet, sending MODAL_CLOSED");
+      actor.send({ type: "MODAL_CLOSED" });
+    }
+  }, [actor, snapshot, isConnected, isConnecting]);
+
+  // ============================================================
   // HELPER: Disconnect wallet
   // ============================================================
   const disconnectWallet = useCallback(async () => {

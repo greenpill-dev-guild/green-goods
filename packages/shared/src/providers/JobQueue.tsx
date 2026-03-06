@@ -8,13 +8,13 @@ import { useUser } from "../hooks/auth/useUser";
 import { queryInvalidation, queryKeys } from "../hooks/query-keys";
 import { jobQueue, jobQueueEventBus } from "../modules/job-queue";
 import { useUIStore } from "../stores/useUIStore";
-import { trackStorageQuota } from "../utils/storage/quota";
 import type {
-  QueueStats,
-  QueueEvent,
-  WorkJobPayload,
   ApprovalJobPayload,
+  QueueEvent,
+  QueueStats,
+  WorkJobPayload,
 } from "../types/job-queue";
+import { trackStorageQuota } from "../utils/storage/quota";
 
 interface JobQueueContextValue {
   stats: QueueStats;
@@ -146,7 +146,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
 
         // Use DRY helper instead of inline invalidation
-        invalidateKeys(queryInvalidation.onJobCompleted(gardenId, chainId));
+        invalidateKeys(
+          queryInvalidation.onJobCompleted(gardenId, chainId, currentUserAddress ?? undefined)
+        );
       } else if (event.job.kind === "approval") {
         queueToasts.jobCompleted("approval");
         const approvalPayload = event.job.payload as ApprovalJobPayload;

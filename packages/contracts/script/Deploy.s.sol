@@ -44,8 +44,6 @@ contract Deploy is Script, DeploymentBase {
     error MissingArbitrumL1Receiver();
     error ENSRegistrationSendFailed();
     error ENSRegistrationVerificationFailed();
-    error InvalidSeedRoleAddress(address garden, uint8 role, uint256 index);
-    error SeedRoleGrantFailed(address garden, address account, uint8 role);
     error RootGardenCommunityNotCreated();
     error RootGardenPoolNotCreated();
     error RootGardenVaultMissing(address asset);
@@ -118,7 +116,7 @@ contract Deploy is Script, DeploymentBase {
         } else {
             // Schema-only update mode - load existing deployment
             string memory chainIdStr = vm.toString(block.chainid);
-            string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-latest.json");
+            string memory deploymentPath = _chainDeploymentPath(chainIdStr, "-latest.json");
             string memory json = vm.readFile(deploymentPath);
 
             // Load existing resolver addresses
@@ -773,7 +771,7 @@ contract Deploy is Script, DeploymentBase {
 
         for (uint256 i = 0; i < gardensCount; i++) {
             string memory basePath = string.concat(".gardens[", vm.toString(i), "]");
-            (GardenToken.GardenConfig memory gardenConfig, address[] memory operators, address[] memory gardeners) =
+            GardenToken.GardenConfig memory gardenConfig =
                 _parseGardenConfigFromJson(gardensJson, basePath, i, communitySlug);
 
             uint256 ensFee = _estimateENSFee(gardenConfig.slug);
@@ -782,8 +780,6 @@ contract Deploy is Script, DeploymentBase {
             gardenAddresses.push(gardenAddress);
             uint256 tokenId = i + 1;
             gardenTokenIds.push(tokenId);
-
-            _grantSeedRoles(gardenAddress, operators, gardeners);
 
             if (_slugMatches(gardenConfig.slug, communitySlug)) {
                 rootGardenAddress = gardenAddress;
@@ -820,7 +816,7 @@ contract Deploy is Script, DeploymentBase {
     )
         internal
         view
-        returns (GardenToken.GardenConfig memory gardenConfig, address[] memory operators, address[] memory gardeners)
+        returns (GardenToken.GardenConfig memory gardenConfig)
     {
         string memory name = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".name")), (string));
         string memory description = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".description")), (string));
@@ -840,8 +836,8 @@ contract Deploy is Script, DeploymentBase {
             domainMask = uint8(parsedDomainMask);
         } catch { }
 
-        operators = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".operators"));
-        gardeners = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".gardeners"));
+        address[] memory operators = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".operators"));
+        address[] memory gardeners = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".gardeners"));
 
         gardenConfig = GardenToken.GardenConfig({
             name: name,
@@ -852,45 +848,18 @@ contract Deploy is Script, DeploymentBase {
             metadata: metadata,
             openJoining: openJoining,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: domainMask
+            domainMask: domainMask,
+            gardeners: gardeners,
+            operators: operators
         });
-    }
-
-    /// @notice Grant configured seed roles and verify each grant result.
-    function _grantSeedRoles(address garden, address[] memory operators, address[] memory gardeners) internal {
-        _grantSeedRoleBatch(garden, operators, IHatsModule.GardenRole.Operator);
-        _grantSeedRoleBatch(garden, gardeners, IHatsModule.GardenRole.Gardener);
-    }
-
-    /// @notice Grant a role batch for one role type and verify each account.
-    function _grantSeedRoleBatch(address garden, address[] memory accounts, IHatsModule.GardenRole role) internal {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            address account = accounts[i];
-            if (account == address(0)) {
-                revert InvalidSeedRoleAddress(garden, uint8(role), i);
-            }
-
-            bool alreadyGranted = role == IHatsModule.GardenRole.Operator
-                ? hatsModule.isOperatorOf(garden, account)
-                : hatsModule.isGardenerOf(garden, account);
-            if (alreadyGranted) {
-                continue;
-            }
-
-            hatsModule.grantRole(garden, account, role);
-            bool granted = role == IHatsModule.GardenRole.Operator
-                ? hatsModule.isOperatorOf(garden, account)
-                : hatsModule.isGardenerOf(garden, account);
-            if (!granted) revert SeedRoleGrantFailed(garden, account, uint8(role));
-        }
     }
 
     /// @notice Upload actions to IPFS and return hashes
     // solhint-disable-next-line code-complexity
     function _uploadActionsToIPFS(uint256 expectedCount) internal returns (string[] memory) {
         string[] memory inputs = new string[](3);
-        inputs[0] = "bun";
-        inputs[1] = "run";
+        inputs[0] = "npx";
+        inputs[1] = "tsx";
         inputs[2] = "script/utils/ipfs-uploader.ts";
 
         try vm.ffi(inputs) returns (bytes memory result) {
@@ -1210,7 +1179,7 @@ contract Deploy is Script, DeploymentBase {
     /// @notice Update only schema UIDs in existing deployment file (schema-only mode)
     function _updateSchemaUIDsOnly() internal {
         string memory chainIdStr = vm.toString(block.chainid);
-        string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-latest.json");
+        string memory deploymentPath = _chainDeploymentPath(chainIdStr, "-latest.json");
 
         // Update only the schema UID fields within the schemas object
         vm.writeJson(vm.toString(workSchemaUID), deploymentPath, ".schemas.workSchemaUID");
@@ -1283,7 +1252,7 @@ contract Deploy is Script, DeploymentBase {
         // Also save all garden addresses and token IDs to a separate file for reference
         if (gardenAddresses.length > 0) {
             string memory chainIdStr = vm.toString(block.chainid);
-            string memory gardensPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-gardens.json");
+            string memory gardensPath = _chainDeploymentPath(chainIdStr, "-gardens.json");
 
             // Build JSON manually for array of gardens
             string memory gardensJson = "{\"gardens\":[";
@@ -1310,10 +1279,36 @@ contract Deploy is Script, DeploymentBase {
         console.log("\n=== Verification Commands ===");
         console.log("Run these if auto-verification failed:\n");
         string memory cid = vm.toString(block.chainid);
-        string memory gt = vm.toString(address(gardenToken));
-        string memory ar = vm.toString(address(actionRegistry));
-        console.log(string.concat("forge verify-contract ", gt, " src/tokens/Garden.sol:GardenToken --chain ", cid));
-        console.log(string.concat("forge verify-contract ", ar, " src/registries/Action.sol:ActionRegistry --chain ", cid));
+
+        // Core contracts (always deployed)
+        _verifyCmd(address(deploymentRegistry), "src/registries/Deployment.sol:Deployment", cid);
+        _verifyCmd(address(gardenAccountImpl), "src/accounts/Garden.sol:GardenAccount", cid);
+        _verifyCmd(address(gardenToken), "src/tokens/Garden.sol:GardenToken", cid);
+        _verifyCmd(address(actionRegistry), "src/registries/Action.sol:ActionRegistry", cid);
+        _verifyCmd(address(workResolver), "src/resolvers/Work.sol:WorkResolver", cid);
+        _verifyCmd(address(workApprovalResolver), "src/resolvers/WorkApproval.sol:WorkApprovalResolver", cid);
+        _verifyCmd(address(assessmentResolver), "src/resolvers/Assessment.sol:AssessmentResolver", cid);
+        _verifyCmd(address(hatsModule), "src/modules/Hats.sol:HatsModule", cid);
+
+        // Optional modules (may be zero on some chains)
+        _verifyCmd(address(karmaGAPModule), "src/modules/Karma.sol:KarmaGAPModule", cid);
+        _verifyCmd(address(octantModule), "src/modules/Octant.sol:OctantModule", cid);
+        _verifyCmd(address(gardensModule), "src/modules/Gardens.sol:GardensModule", cid);
+        _verifyCmd(address(unifiedPowerRegistry), "src/registries/Power.sol:UnifiedPowerRegistry", cid);
+        _verifyCmd(address(yieldSplitter), "src/resolvers/Yield.sol:YieldResolver", cid);
+        _verifyCmd(address(cookieJarModule), "src/modules/CookieJar.sol:CookieJarModule", cid);
+        _verifyCmd(address(hypercertsModule), "src/modules/Hypercerts.sol:HypercertsModule", cid);
+        _verifyCmd(
+            address(marketplaceAdapter), "src/markets/HypercertMarketplaceAdapter.sol:HypercertMarketplaceAdapter", cid
+        );
+        _verifyCmd(address(greenGoodsENS), "src/registries/ENS.sol:GreenGoodsENS", cid);
+
         console.log("=============================\n");
+    }
+
+    /// @notice Emit a single forge verify-contract command, skipping zero addresses
+    function _verifyCmd(address addr, string memory sourcePath, string memory chainId) internal view {
+        if (addr == address(0)) return;
+        console.log(string.concat("forge verify-contract ", vm.toString(addr), " ", sourcePath, " --chain ", chainId));
     }
 }

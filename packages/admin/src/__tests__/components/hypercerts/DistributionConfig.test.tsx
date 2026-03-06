@@ -5,12 +5,12 @@
  * Covers mode selection, allowlist editing, validation, and accessibility.
  */
 
+import type { AllowlistEntry, DistributionMode } from "@green-goods/shared";
 import { screen } from "@testing-library/react";
-import { renderWithProviders as render } from "../../test-utils";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import type { AllowlistEntry, DistributionMode } from "@green-goods/shared";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render } from "../../test-utils";
 
 // Mock dependencies — use importOriginal to preserve `cn` and other utilities
 vi.mock("@green-goods/shared", async (importOriginal) => {

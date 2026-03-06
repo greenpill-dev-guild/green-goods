@@ -7,10 +7,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  withTimeout,
   isZeroAddress,
-  TimeoutError,
   RECEIPT_POLLING_TIMEOUT_MS,
+  TimeoutError,
+  withTimeout,
 } from "../../../hooks/hypercerts/hypercert-utils";
 
 // ============================================

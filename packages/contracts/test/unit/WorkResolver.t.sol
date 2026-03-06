@@ -496,9 +496,9 @@ contract WorkResolverTest is Test {
         view
         returns (Attestation memory)
     {
-        WorkSchema memory schema =
-            WorkSchema({ actionUID: actionUID, title: title, feedback: "", metadata: metadata, media: new string[](0) });
-
+        // Encode as flat tuple to match how clients encode via encodeAbiParameters.
+        // Using abi.encode(struct) produces a different (wrapped) format that doesn't
+        // match production behavior. See src/resolvers/Work.sol for details.
         return Attestation({
             uid: bytes32(uint256(1)),
             schema: bytes32(uint256(100)),
@@ -509,7 +509,7 @@ contract WorkResolverTest is Test {
             recipient: address(mockGarden), // Garden address = IGardenAccessControl
             attester: attester,
             revocable: false,
-            data: abi.encode(schema)
+            data: abi.encode(actionUID, title, "", metadata, new string[](0))
         });
     }
 }

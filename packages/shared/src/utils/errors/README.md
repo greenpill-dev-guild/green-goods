@@ -117,16 +117,15 @@ Errors are registered with:
 
 ### Adding Custom Errors
 
-```typescript
-import { registerErrorSignature } from "@green-goods/shared/utils/errors";
+Add new entries to the `ERROR_SIGNATURES` map in `contract-errors.ts`:
 
-// Register a new error
-registerErrorSignature(
-  "0xabcd1234",
-  "CustomError",
-  "Something custom went wrong",
-  "Try this specific action"
-);
+```typescript
+// In packages/shared/src/utils/errors/contract-errors.ts
+ERROR_SIGNATURES.set("0xabcd1234", {
+  name: "CustomError",
+  message: "Something custom went wrong",
+  action: "Try this specific action",
+});
 ```
 
 ## Integration Examples
@@ -252,15 +251,14 @@ describe("Error Parsing", () => {
    });
    ```
 
-4. **Register app-specific errors early**
+4. **Add app-specific errors to the registry**
    ```typescript
-   // In app initialization
-   registerErrorSignature(
-     "0x12345678",
-     "MyCustomError",
-     "Custom error message",
-     "Custom action"
-   );
+   // In contract-errors.ts ERROR_SIGNATURES map
+   ERROR_SIGNATURES.set("0x12345678", {
+     name: "MyCustomError",
+     message: "Custom error message",
+     action: "Custom action",
+   });
    ```
 
 ## Future Improvements

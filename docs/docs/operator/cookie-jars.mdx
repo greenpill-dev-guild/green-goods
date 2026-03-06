@@ -9,9 +9,9 @@ feature_status: Implemented (activation pending deployment)
 goal: "Complete Cookie Jars with clear, role-specific next actions."
 difficulty: "standard"
 estimated_time: "15-25 minutes once activated."
-prereqs: "Treasury policy and role assignments."
+prereqs: "Endowment policy and role assignments."
 next_steps: "./conviction-and-signal-pools"
-persona_context: "Operators coordinating gardens, approvals, and governance/treasury execution."
+persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
   - packages/admin/src/views/Gardens/Garden/CookieJars.tsx
   - packages/shared/src/hooks/cookie-jar/useGardenCookieJars.ts
@@ -20,11 +20,10 @@ source_of_truth:
 keywords:
   - cookie jar
   - withdrawals
-  - treasury policy
+  - endowment policy
 ---
 
 import {
-  AtAGlanceCard,
   DecisionGuide,
   FeatureState,
   NextBestAction,
@@ -35,16 +34,6 @@ import {
 # Cookie Jars
 
 <StatusBadge status="Implemented (activation pending deployment)" />
-
-<AtAGlanceCard
-  goal="Complete Cookie Jars with clear, role-specific next actions."
-  difficulty="standard"
-  estimatedTime="15-25 minutes once activated."
-  prereqs="Treasury policy and role assignments."
-  outcome="Cookie-jar governance playbook and deployment readiness checklist."
-  personaContext="Operators coordinating gardens, approvals, and governance/treasury execution."
-  lastVerified="2026-02-18"
-/>
 
 ## Current state
 
@@ -65,7 +54,7 @@ import {
 <StepFlow
   steps={[
     {title: "Create jar", detail: "Define interval, max withdrawal, and eligible members."},
-    {title: "Fund jar", detail: "Deposit supported asset from treasury."},
+    {title: "Fund jar", detail: "Deposit supported asset from endowment."},
     {title: "Operate", detail: "Pause/unpause or update limits as governance decides."},
     {title: "Audit", detail: "Review withdraw events and policy adherence."},
   ]}
@@ -80,14 +69,14 @@ import {
       next: "Review usage monthly and tune limits.",
     },
     {
-      when: "You need strict control over treasury outflows",
+      when: "You need strict control over endowment outflows",
       do: "Start with paused jar + explicit operator approvals.",
       next: "Unpause only after policy and monitoring checks are complete.",
     },
     {
       when: "You need larger strategic allocations",
       do: "Use vault or conviction flows instead of cookie jars.",
-      next: "Route to Vaults/Treasury or Signal Pools based on governance intent.",
+      next: "Route to Vaults/Endowments or Signal Pools based on governance intent.",
     },
   ]}
 />

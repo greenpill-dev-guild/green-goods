@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  scheduleTask,
-  yieldToMain,
-  processBatched,
-  runWhenIdle,
   debounceWithScheduler,
   isSchedulerSupported,
+  processBatched,
+  runWhenIdle,
+  scheduleTask,
+  yieldToMain,
 } from "../../utils/scheduler";
 
 describe("Scheduler Utilities", () => {

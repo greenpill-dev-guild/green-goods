@@ -19,14 +19,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Mocks (must be before imports)
 // ============================================
 
-const mockWagmiAddress = vi.fn();
-vi.mock("wagmi", () => ({
-  useAccount: () => ({ address: mockWagmiAddress() }),
-}));
-
-const mockAuthContext = vi.fn();
-vi.mock("../../../providers/Auth", () => ({
-  useAuthContext: () => mockAuthContext(),
+const mockPrimaryAddress = vi.fn();
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mockPrimaryAddress(),
 }));
 
 // ============================================
@@ -73,8 +68,7 @@ function createGarden(overrides: Partial<Garden> = {}): Garden {
 describe("useGardenPermissions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockWagmiAddress.mockReturnValue(USER_ADDRESS);
-    mockAuthContext.mockReturnValue({ smartAccountAddress: null });
+    mockPrimaryAddress.mockReturnValue(USER_ADDRESS);
   });
 
   // ------------------------------------------
@@ -116,9 +110,8 @@ describe("useGardenPermissions", () => {
   // ------------------------------------------
 
   describe("passkey mode", () => {
-    it("uses smart account address when wagmi address is unavailable", () => {
-      mockWagmiAddress.mockReturnValue(undefined);
-      mockAuthContext.mockReturnValue({ smartAccountAddress: SMART_ACCOUNT });
+    it("uses smart account address for passkey users", () => {
+      mockPrimaryAddress.mockReturnValue(SMART_ACCOUNT);
 
       const garden = createGarden({ operators: [SMART_ACCOUNT] as any[] });
       const { result } = renderHook(() => useGardenPermissions());
@@ -126,11 +119,11 @@ describe("useGardenPermissions", () => {
       expect(result.current.isOperatorOfGarden(garden)).toBe(true);
     });
 
-    it("prioritizes wagmi address over smart account", () => {
-      mockWagmiAddress.mockReturnValue(USER_ADDRESS);
-      mockAuthContext.mockReturnValue({ smartAccountAddress: SMART_ACCOUNT });
+    it("uses primary address from usePrimaryAddress (single source of truth)", () => {
+      // usePrimaryAddress resolves the correct address based on authMode
+      mockPrimaryAddress.mockReturnValue(SMART_ACCOUNT);
 
-      const garden = createGarden({ operators: [USER_ADDRESS] as any[] });
+      const garden = createGarden({ operators: [SMART_ACCOUNT] as any[] });
       const { result } = renderHook(() => useGardenPermissions());
 
       expect(result.current.isOperatorOfGarden(garden)).toBe(true);
@@ -211,8 +204,7 @@ describe("useGardenPermissions", () => {
     });
 
     it("returns true even when user has no address", () => {
-      mockWagmiAddress.mockReturnValue(undefined);
-      mockAuthContext.mockReturnValue({ smartAccountAddress: null });
+      mockPrimaryAddress.mockReturnValue(null);
 
       const garden = createGarden();
       const { result } = renderHook(() => useGardenPermissions());
@@ -254,8 +246,7 @@ describe("useGardenPermissions", () => {
 
   describe("no user connected", () => {
     it("all role checks return false", () => {
-      mockWagmiAddress.mockReturnValue(undefined);
-      mockAuthContext.mockReturnValue({ smartAccountAddress: null });
+      mockPrimaryAddress.mockReturnValue(null);
 
       const garden = createGarden({
         operators: [OTHER_ADDRESS] as any[],

@@ -1,4 +1,7 @@
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import { getEASConfig } from "../../config/blockchain";
+import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
 import type {
   AssessmentDraft,
   Domain,
@@ -6,10 +9,6 @@ import type {
   WorkDraft,
   WorkMetadata,
 } from "../../types/domain";
-
-import { getEASConfig } from "../../config/blockchain";
-import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
-import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
 
 /**
  * Maps MIME types to file extensions.

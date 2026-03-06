@@ -502,6 +502,45 @@ contract ArbitrumConvictionVotingForkTest is Test {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // Test: Explicit pool registration write with auth checks
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_forkCV_registerPoolExplicitWriteTest() public {
+        if (!_tryFork()) {
+            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
+            return;
+        }
+
+        _deployStack();
+
+        // Deploy a fresh strategy
+        MockCVStrategy freshStrategy = new MockCVStrategy(
+            address(powerRegistry),
+            address(0),
+            DEFAULT_DECAY,
+            DEFAULT_MAX_RATIO,
+            DEFAULT_WEIGHT,
+            DEFAULT_MIN_THRESHOLD_POINTS
+        );
+
+        // Non-authorized caller should fail to register pool
+        vm.prank(address(0xDEAD));
+        vm.expectRevert();
+        powerRegistry.registerPool(address(freshStrategy), garden);
+
+        // Authorized gardensModule should succeed
+        vm.prank(gardensModule);
+        powerRegistry.registerPool(address(freshStrategy), garden);
+
+        // Verify the pool mapping was written correctly
+        assertEq(powerRegistry.getPoolGarden(address(freshStrategy)), garden, "fresh pool should map to garden");
+
+        // Power resolution should work through the new pool
+        uint256 opPower = powerRegistry.getMemberPowerInStrategy(operator, address(freshStrategy));
+        assertEq(opPower, 3, "operator power should resolve through new pool");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // Test: Deallocate support reduces conviction
     // ═══════════════════════════════════════════════════════════════════════════
 

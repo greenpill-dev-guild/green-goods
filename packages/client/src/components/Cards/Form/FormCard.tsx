@@ -1,5 +1,5 @@
-import type { RemixiconComponentType } from "@remixicon/react";
 import { cn } from "@green-goods/shared";
+import type { RemixiconComponentType } from "@remixicon/react";
 import { Card, type CardRootProps } from "../Base/Card";
 
 interface FormCardProps {

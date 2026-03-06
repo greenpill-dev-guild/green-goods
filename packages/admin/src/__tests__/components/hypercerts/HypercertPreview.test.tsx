@@ -5,12 +5,12 @@
  * Covers metadata display, minting states, and navigation.
  */
 
+import type { AllowlistEntry, HypercertMetadata, MintingState } from "@green-goods/shared";
 import { screen } from "@testing-library/react";
-import { renderWithProviders as render } from "../../test-utils";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import type { AllowlistEntry, HypercertMetadata, MintingState } from "@green-goods/shared";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render } from "../../test-utils";
 
 // Mock dependencies
 vi.mock("@green-goods/shared/utils", () => ({
@@ -59,8 +59,8 @@ const TOTAL_UNITS = 100000000n;
 function createMockMetadata(): HypercertMetadata {
   const now = Math.floor(Date.now() / 1000);
   return {
-    name: "Conservation Impact Q4 2025",
-    description: "Documenting conservation work across community gardens.",
+    name: "Regenerative Impact Q4 2025",
+    description: "Documenting regenerative work across community gardens.",
     image: "ipfs://QmTestImage123456",
     hypercert: {
       work_scope: {
@@ -154,14 +154,14 @@ describe("components/hypercerts/HypercertPreview", () => {
     it("renders hypercert title", () => {
       render(createElement(HypercertPreview, defaultProps));
 
-      expect(screen.getByText("Conservation Impact Q4 2025")).toBeInTheDocument();
+      expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
     });
 
     it("renders hypercert description", () => {
       render(createElement(HypercertPreview, defaultProps));
 
       expect(
-        screen.getByText("Documenting conservation work across community gardens.")
+        screen.getByText("Documenting regenerative work across community gardens.")
       ).toBeInTheDocument();
     });
 
@@ -312,7 +312,7 @@ describe("components/hypercerts/HypercertPreview", () => {
         })
       );
 
-      expect(screen.queryByText("Conservation Impact Q4 2025")).not.toBeInTheDocument();
+      expect(screen.queryByText("Regenerative Impact Q4 2025")).not.toBeInTheDocument();
       expect(screen.queryByTestId("hypercert-image")).not.toBeInTheDocument();
     });
   });
@@ -331,7 +331,7 @@ describe("components/hypercerts/HypercertPreview", () => {
       );
 
       // Preview content remains visible
-      expect(screen.getByText("Conservation Impact Q4 2025")).toBeInTheDocument();
+      expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
       // Container has opacity class indicating dimming
       expect(container.querySelector(".opacity-60")).toBeInTheDocument();
     });
@@ -344,7 +344,7 @@ describe("components/hypercerts/HypercertPreview", () => {
         })
       );
 
-      expect(screen.getByText("Conservation Impact Q4 2025")).toBeInTheDocument();
+      expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
       expect(container.querySelector(".opacity-60")).toBeInTheDocument();
     });
 
@@ -356,7 +356,7 @@ describe("components/hypercerts/HypercertPreview", () => {
         })
       );
 
-      expect(screen.getByText("Conservation Impact Q4 2025")).toBeInTheDocument();
+      expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
       expect(container.querySelector(".opacity-60")).toBeInTheDocument();
     });
 
@@ -372,7 +372,7 @@ describe("components/hypercerts/HypercertPreview", () => {
         })
       );
 
-      expect(screen.getByText("Conservation Impact Q4 2025")).toBeInTheDocument();
+      expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
       // Not dimmed when confirmed
       expect(container.querySelector(".opacity-60")).not.toBeInTheDocument();
     });
@@ -388,7 +388,7 @@ describe("components/hypercerts/HypercertPreview", () => {
         })
       );
 
-      expect(screen.getByText("Conservation Impact Q4 2025")).toBeInTheDocument();
+      expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
       // Not dimmed when failed (user needs to see and interact)
       expect(container.querySelector(".opacity-60")).not.toBeInTheDocument();
     });
@@ -401,7 +401,7 @@ describe("components/hypercerts/HypercertPreview", () => {
         })
       );
 
-      expect(screen.getByText("Conservation Impact Q4 2025")).toBeInTheDocument();
+      expect(screen.getByText("Regenerative Impact Q4 2025")).toBeInTheDocument();
       expect(container.querySelector(".opacity-60")).not.toBeInTheDocument();
     });
   });

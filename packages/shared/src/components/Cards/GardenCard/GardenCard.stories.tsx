@@ -13,7 +13,7 @@ const mockGarden: GardenCardData = {
 };
 
 const meta: Meta<typeof GardenCard> = {
-  title: "Components/Cards/GardenCard",
+  title: "Cards/GardenCard",
   component: GardenCard,
   tags: ["autodocs"],
   argTypes: {
@@ -170,4 +170,17 @@ export const SelectionList: Story = {
       />
     </div>
   ),
+};
+
+export const DarkMode: Story = {
+  args: {
+    garden: mockGarden,
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

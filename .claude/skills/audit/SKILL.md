@@ -1,8 +1,14 @@
 ---
 name: audit
-description: Codebase Audit - quality analysis, dead code detection. Use for health checks and anti-pattern detection.
+description: Codebase Audit - dead code detection, unused exports, architectural anti-patterns, and dependency health. Use when the user asks for a codebase health check, wants to find dead code, or says 'audit the codebase'.
 argument-hint: "[package-name]"
 context: fork
+version: "1.0.0"
+status: active
+packages: ["all"]
+dependencies: ["review", "security"]
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Audit Skill
@@ -194,7 +200,7 @@ done
 
 # Check that utility functions referenced in skills exist
 for util in parseContractError createMutationErrorHandler mediaResourceManager \
-  getStorageQuota jobQueue eventBus logger toastService; do
+  getStorageQuota jobQueue jobQueueEventBus logger toastService; do
   count=$(grep -rn "export.*$util" packages/shared/src/ | wc -l)
   if [ "$count" -eq 0 ]; then
     echo "DRIFT: $util referenced in skills but not exported from shared"

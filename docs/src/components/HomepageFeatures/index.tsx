@@ -24,7 +24,7 @@ const pathways: Pathway[] = [
   {
     title: "Operator",
     href: "/operator/get-started-and-roles",
-    body: "Manage gardens, review work, run assessments, and operate treasury and governance tools.",
+    body: "Manage gardens, review work, run assessments, and operate endowment and governance tools.",
     cta: "Start operator path",
     progress: "11 pages",
     popularStart: "Most started: Review Work",

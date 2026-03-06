@@ -12,13 +12,13 @@ import { useQuery } from "@tanstack/react-query";
 import { type Address, zeroAddress } from "viem";
 
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys, STALE_TIME_RARE } from "../query-keys";
 import {
   createClients,
   GreenGoodsENSABI,
-  HatsABI,
   getNetworkContracts,
+  HatsABI,
 } from "../../utils/blockchain/contracts";
+import { queryKeys, STALE_TIME_RARE } from "../query-keys";
 
 export function useProtocolMemberStatus(address: Address | undefined) {
   const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);

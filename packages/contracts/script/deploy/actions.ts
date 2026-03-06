@@ -1,11 +1,19 @@
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ActionsConfig, ActionConfig } from "../utils/validation";
+import type { ParsedOptions } from "../utils/cli-parser";
 import type { DeploymentAddresses } from "../utils/deployment-addresses";
 import type { NetworkManager } from "../utils/network";
-import { GardenDeployer } from "./gardens";
+import type { ActionConfig, ActionsConfig } from "../utils/validation";
 import type { AnvilManager } from "./anvil";
-import type { ParsedOptions } from "../utils/cli-parser";
+import { GardenDeployer } from "./gardens";
+
+interface IpfsCacheEntry {
+  hash: string;
+  title: string;
+  uploadedAt: string;
+}
 
 /**
  * ActionDeployer - Handles action deployment
@@ -50,8 +58,11 @@ export class ActionDeployer extends GardenDeployer {
       process.exit(1);
     }
 
+    // Upload instructions to IPFS (same as Deploy.s.sol FFI path)
+    const ipfsHashes = this._uploadActionsToIPFS(config.actions);
+
     // Generate and execute actions deployment script
-    const solidity = this._generateActionScript(config.actions, contractAddresses.actionRegistry);
+    const solidity = this._generateActionScript(config.actions, contractAddresses.actionRegistry, ipfsHashes);
     const scriptPath = path.join(__dirname, "../temp", "DeployActionsGenerated.s.sol");
 
     fs.mkdirSync(path.dirname(scriptPath), { recursive: true });
@@ -80,7 +91,7 @@ export class ActionDeployer extends GardenDeployer {
    * @param actionRegistryAddress - ActionRegistry contract address
    * @returns Solidity script code
    */
-  private _generateActionScript(actions: ActionConfig[], actionRegistryAddress: string): string {
+  private _generateActionScript(actions: ActionConfig[], actionRegistryAddress: string, ipfsHashes: string[]): string {
     // Calculate dynamic timestamps: start = now, end = now + 3 months
     const now = new Date();
     const startTime = Math.floor(now.getTime() / 1000);
@@ -91,7 +102,7 @@ export class ActionDeployer extends GardenDeployer {
     // Log action deployment details for verification
     console.log("\n📋 Actions to be deployed:");
     console.log("─".repeat(60));
-    console.log(`  Using dynamic timestamps (ignoring config values):`);
+    console.log("  Using dynamic timestamps (ignoring config values):");
     console.log(`  Start: ${now.toISOString()} → ${startTime}`);
     console.log(`  End:   ${threeMonthsLater.toISOString()} → ${endTime}`);
     console.log("─".repeat(60));
@@ -119,7 +130,7 @@ export class ActionDeployer extends GardenDeployer {
                 ${endTime},
                 "${action.title}",
                 "${action.slug}",
-                "${action.description}",
+                "${ipfsHashes[index]}",
                 capitals${index},
                 media${index},
                 Domain.${action.domain}
@@ -147,6 +158,61 @@ contract DeployActionsGenerated is Script {
         console.log("All actions deployed successfully!");
     }
 }`;
+  }
+
+  /**
+   * Upload action instructions to IPFS via ipfs-uploader.ts.
+   * Uses npx tsx (NOT bun) — @storacha/client has Bun compat issues.
+   * Falls back to .ipfs-cache.json if uploader was run separately.
+   */
+  private _uploadActionsToIPFS(actions: ActionConfig[]): string[] {
+    const cacheFile = path.join(process.cwd(), ".ipfs-cache.json");
+
+    // Try running the uploader script
+    try {
+      console.log("\n📤 Uploading instructions to IPFS...");
+      const result = execFileSync("npx", ["tsx", "script/utils/ipfs-uploader.ts"], {
+        cwd: process.cwd(),
+        stdio: ["pipe", "pipe", "inherit"], // stderr shown to user
+        timeout: 120_000,
+      });
+      const hashes = JSON.parse(result.toString().trim()) as string[];
+      if (hashes.length === actions.length) {
+        console.log(`✅ IPFS upload complete: ${hashes.length} instruction documents`);
+        return hashes;
+      }
+      console.error(`⚠️ IPFS upload returned ${hashes.length} hashes for ${actions.length} actions`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`⚠️ IPFS uploader failed: ${msg}`);
+    }
+
+    // Fallback: read from cache
+    console.log("📋 Falling back to IPFS cache...");
+    if (!fs.existsSync(cacheFile)) {
+      console.error("❌ No IPFS cache found. Run: npx tsx script/utils/ipfs-uploader.ts");
+      process.exit(1);
+    }
+
+    const cache = JSON.parse(fs.readFileSync(cacheFile, "utf8")) as Record<string, IpfsCacheEntry>;
+    const hashes: string[] = [];
+
+    for (let i = 0; i < actions.length; i++) {
+      const serialized = JSON.stringify(actions[i]);
+      const hash = createHash("sha256").update(serialized).digest("hex");
+      const cacheKey = `${i}-${hash}`;
+      const entry = cache[cacheKey];
+
+      if (!entry?.hash) {
+        console.error(`❌ Missing IPFS cache for action ${i} (${actions[i].title})`);
+        console.error("Run: npx tsx script/utils/ipfs-uploader.ts");
+        process.exit(1);
+      }
+      hashes.push(entry.hash);
+    }
+
+    console.log(`✅ Loaded ${hashes.length} CIDs from cache`);
+    return hashes;
   }
 
   /**

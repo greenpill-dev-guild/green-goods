@@ -1,0 +1,11 @@
+# Dependabot effectively disabled — repo uses bun.lock as primary lockfile.
+# Dependabot targets pnpm-lock.yaml and regenerates it entirely on each PR,
+# sneaking in unintended major version bumps. Dependency upgrades are handled
+# manually via controlled PRs. open-pull-requests-limit: 0 prevents new PRs.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0

@@ -1,0 +1,82 @@
+# Codex cloud environment for Green Goods
+# Runs once per container creation; cached for up to 12 hours.
+# Setup scripts have internet access; agent execution does not (see config.toml).
+#
+# IMPORTANT: `export` does not persist into the agent phase — use ~/.bashrc
+# and ~/.profile instead. Both Bun and Foundry installers already modify
+# ~/.bashrc, so we just need ~/.profile as a fallback for login shells.
+version = 1
+name = "green-goods"
+
+[setup]
+script = """
+#!/bin/bash
+set -euo pipefail
+
+# Install Bun (primary runtime — NOT npm/yarn)
+# The installer adds ~/.bun/bin to ~/.bashrc automatically.
+curl -fsSL https://bun.sh/install | bash
+export PATH="$HOME/.bun/bin:$PATH"
+
+# Install Foundry (Solidity toolchain — forge, cast, anvil)
+# The installer adds ~/.foundry/bin to ~/.bashrc automatically.
+curl -L https://foundry.paradigm.xyz | bash
+export PATH="$HOME/.foundry/bin:$PATH"
+foundryup
+
+# Ensure PATH persists for login shells (agent phase may not source .bashrc)
+echo 'export PATH="$HOME/.bun/bin:$HOME/.foundry/bin:$PATH"' >> ~/.profile
+
+# Initialize git submodules first (Foundry lib dependencies needed for build)
+git submodule update --init --recursive
+
+# Install npm dependencies
+bun install
+
+# Build foundation packages (dependency order: contracts → shared)
+VITE_CHAIN_ID=${VITE_CHAIN_ID:-11155111} bun run build:contracts
+VITE_CHAIN_ID=${VITE_CHAIN_ID:-11155111} bun run build:shared
+
+# Create skills symlink for Codex discovery (idempotent)
+mkdir -p .agents
+[ -L .agents/skills ] || ln -s ../.claude/skills .agents/skills
+
+echo "Environment ready: bun $(bun --version), forge $(forge --version)"
+"""
+
+[maintenance]
+script = """
+#!/bin/bash
+set -euo pipefail
+export PATH="$HOME/.bun/bin:$HOME/.foundry/bin:$PATH"
+
+# Update submodules and dependencies, rebuild foundation
+git submodule update --init --recursive
+bun install
+VITE_CHAIN_ID=${VITE_CHAIN_ID:-11155111} bun run build:contracts
+VITE_CHAIN_ID=${VITE_CHAIN_ID:-11155111} bun run build:shared
+"""
+
+[[actions]]
+name = "Test"
+icon = "run"
+command = """
+export PATH="$HOME/.bun/bin:$HOME/.foundry/bin:$PATH"
+bun run test
+"""
+
+[[actions]]
+name = "Lint"
+icon = "check"
+command = """
+export PATH="$HOME/.bun/bin:$HOME/.foundry/bin:$PATH"
+bun format && bun lint
+"""
+
+[[actions]]
+name = "Build"
+icon = "build"
+command = """
+export PATH="$HOME/.bun/bin:$HOME/.foundry/bin:$PATH"
+VITE_CHAIN_ID=${VITE_CHAIN_ID:-11155111} bun run build
+"""

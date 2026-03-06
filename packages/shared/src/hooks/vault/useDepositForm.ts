@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { parseUnits } from "viem";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { parseUnits } from "viem";
 import { z } from "zod";
 
 import { validateDecimalInput } from "../../utils/blockchain/vaults";
@@ -84,9 +84,9 @@ export function useDepositForm({ decimals, balance }: UseDepositFormOptions) {
 
   const amountErrorKey = form.formState.errors.amount?.message ?? null;
 
-  const resetAmount = () => {
+  const resetAmount = useCallback(() => {
     form.reset({ amount: "" });
-  };
+  }, [form]);
 
   return {
     form,

@@ -3,6 +3,32 @@ import type { ComponentType } from "react";
 import "./storybook.css";
 import type { Preview } from "@storybook/react";
 import { useGlobals } from "storybook/preview-api";
+import { IntlProvider } from "react-intl";
+import messages from "../src/i18n/en.json";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      staleTime: Infinity,
+    },
+  },
+});
+
+// I18n decorator - provides react-intl context for all stories
+const I18nDecorator = (Story: ComponentType) => (
+  <IntlProvider locale="en" messages={messages}>
+    <Story />
+  </IntlProvider>
+);
+
+// React Query decorator - provides query context for all stories
+const QueryDecorator = (Story: ComponentType) => (
+  <QueryClientProvider client={queryClient}>
+    <Story />
+  </QueryClientProvider>
+);
 
 // Theme toggle decorator - syncs with Storybook toolbar
 const ThemeDecorator = (Story: ComponentType) => {
@@ -42,7 +68,7 @@ const preview: Preview = {
     controls: { expanded: true },
     backgrounds: { disable: true }, // Handled by theme decorator
   },
-  decorators: [ThemeDecorator],
+  decorators: [QueryDecorator, I18nDecorator, ThemeDecorator],
 };
 
 export default preview;

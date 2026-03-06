@@ -1,0 +1,24 @@
+# Codex project configuration for Green Goods
+# See: https://developers.openai.com/codex/config-advanced/
+
+# When no AGENTS.md exists at a directory level, read CLAUDE.md as fallback.
+# This ensures Codex gets full project context without duplicating files.
+project_doc_fallback_filenames = ["CLAUDE.md"]
+
+# Slightly larger limit to accommodate CLAUDE.md (~4KB) + AGENTS.md (~2KB)
+project_doc_max_bytes = 40960
+
+# Default model — gpt-5.3-codex is the most capable agentic coding model.
+# Use for judgment tasks (audits, security, test quality). For simple mechanical
+# transforms, individual automations can override with `-m gpt-5.2` if needed.
+model = "gpt-5.3-codex"
+
+# Agent sandbox: no network access during execution (safer for automated tasks).
+# Setup scripts still get network access for dependency installation.
+[sandbox_workspace_write]
+network_access = false
+
+# Environment variable policy: inherit most vars, exclude sensitive patterns
+[shell_environment_policy]
+inherit = "all"
+exclude = ["AWS_*", "AZURE_*", "ANTHROPIC_*", "OPENAI_API_KEY"]

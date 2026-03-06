@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { StatusBadge } from "./StatusBadge";
 
 const meta: Meta<typeof StatusBadge> = {
-  title: "Components/StatusBadge",
+  title: "Primitives/StatusBadge",
   component: StatusBadge,
   tags: ["autodocs"],
   argTypes: {
@@ -111,4 +111,23 @@ export const SemanticVariant: Story = {
       <StatusBadge status="pending" variant="semantic" />
     </div>
   ),
+};
+
+export const DarkMode: Story = {
+  render: () => (
+    <div className="flex flex-wrap gap-2">
+      <StatusBadge status="approved" />
+      <StatusBadge status="rejected" />
+      <StatusBadge status="pending" />
+      <StatusBadge status="syncing" />
+      <StatusBadge status="failed" />
+    </div>
+  ),
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

@@ -2,7 +2,7 @@
  * Error Categorization Tests
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { categorizeError, type ErrorCategory } from "../categorize-error";
 
 describe("categorizeError", () => {

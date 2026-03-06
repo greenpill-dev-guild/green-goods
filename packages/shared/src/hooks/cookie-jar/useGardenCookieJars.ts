@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useReadContract, useReadContracts } from "wagmi";
-import type { Address } from "../../types/domain";
 import type { CookieJar } from "../../types/cookie-jar";
+import type { Address } from "../../types/domain";
 import {
   COOKIE_JAR_ABI,
   COOKIE_JAR_MODULE_ABI,
@@ -10,7 +10,7 @@ import {
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import { STALE_TIME_MEDIUM } from "../query-keys";
 
 interface UseGardenCookieJarsOptions {
   enabled?: boolean;
@@ -66,6 +66,7 @@ export function useGardenCookieJars(
           abi: COOKIE_JAR_ABI,
           functionName: "EMERGENCY_WITHDRAWAL_ENABLED" as const,
         },
+        { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "MIN_DEPOSIT" as const },
       ]),
     [validJarAddresses]
   );
@@ -85,7 +86,7 @@ export function useGardenCookieJars(
   // Step 3: Read decimals for each jar's currency (depends on step 2 results)
   const currencyAddresses = useMemo(() => {
     if (!multicallResults) return [];
-    const FIELDS_PER_JAR = 6;
+    const FIELDS_PER_JAR = 7;
     return validJarAddresses.map((_, i) => {
       const currency = multicallResults[i * FIELDS_PER_JAR]?.result as Address | undefined;
       return currency;
@@ -116,7 +117,7 @@ export function useGardenCookieJars(
   const jars = useMemo<CookieJar[]>(() => {
     if (!multicallResults || !normalizedGarden) return [];
 
-    const FIELDS_PER_JAR = 6;
+    const FIELDS_PER_JAR = 7;
     let decimalsIdx = 0;
     return validJarAddresses
       .map((jarAddr, i) => {
@@ -127,6 +128,7 @@ export function useGardenCookieJars(
         const withdrawalInterval = multicallResults[offset + 3]?.result as bigint | undefined;
         const isPaused = multicallResults[offset + 4]?.result as boolean | undefined;
         const emergencyEnabled = multicallResults[offset + 5]?.result as boolean | undefined;
+        const minDeposit = multicallResults[offset + 6]?.result as bigint | undefined;
 
         // Skip jars where critical data failed to load
         if (currency === undefined || balance === undefined) return null;
@@ -143,6 +145,7 @@ export function useGardenCookieJars(
           decimals: tokenDecimals,
           maxWithdrawal: maxWithdrawal ?? 0n,
           withdrawalInterval: withdrawalInterval ?? 0n,
+          minDeposit: minDeposit ?? 0n,
           isPaused: isPaused ?? false,
           emergencyWithdrawalEnabled: emergencyEnabled ?? false,
         } satisfies CookieJar;

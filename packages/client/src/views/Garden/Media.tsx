@@ -1,12 +1,17 @@
 import {
+  type Action,
   AudioPlayer,
-  AudioRecorder,
   imageCompressor,
   mediaResourceManager,
   track,
-  type Action,
 } from "@green-goods/shared";
-import { RiCloseLine, RiImageFill, RiLoader4Line, RiMicLine, RiZoomInLine } from "@remixicon/react";
+import {
+  RiCloseLine,
+  RiImageFill,
+  RiLoader4Line,
+  RiPlayFill,
+  RiZoomInLine,
+} from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
@@ -26,11 +31,12 @@ interface WorkMediaProps {
   images: File[];
   setImages: React.Dispatch<React.SetStateAction<File[]>>;
   audioNotes: File[];
-  setAudioNotes: React.Dispatch<React.SetStateAction<File[]>>;
+  setAudioNotes: (files: File[]) => void;
   minRequired?: number;
-  onGalleryClickRef?: React.MutableRefObject<(() => void) | null>;
+  onMediaClickRef?: React.MutableRefObject<(() => void) | null>;
   onCameraClickRef?: React.MutableRefObject<(() => void) | null>;
-  onVideoClickRef?: React.MutableRefObject<(() => void) | null>;
+  isRecording?: boolean;
+  recordingElapsed?: number;
 }
 
 /** Get platform context for analytics */
@@ -89,6 +95,13 @@ function isVideoFile(file: File): boolean {
   return file.type.startsWith("video/");
 }
 
+/** Format seconds as m:ss */
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 export const WorkMedia: React.FC<WorkMediaProps> = ({
   config,
   images,
@@ -96,35 +109,42 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   audioNotes,
   setAudioNotes,
   minRequired = 0,
-  onGalleryClickRef,
+  onMediaClickRef,
   onCameraClickRef,
-  onVideoClickRef,
+  isRecording = false,
+  recordingElapsed = 0,
 }) => {
   const intl = useIntl();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState(0);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [playingVideoIndex, setPlayingVideoIndex] = useState<number | null>(null);
 
-  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
   const uploadSourceRef = useRef<"gallery" | "camera" | null>(null);
 
-  // Stable blob URLs for images
-  const imageUrls = useMemo(
-    () => images.map((file) => mediaResourceManager.getOrCreateUrl(file, WORK_DRAFT_TRACKING_ID)),
+  // Stable blob URLs for all media items
+  const mediaUrls = useMemo(
+    () =>
+      images.map((file) => {
+        const trackingId = isVideoFile(file) ? VIDEO_TRACKING_ID : WORK_DRAFT_TRACKING_ID;
+        return mediaResourceManager.getOrCreateUrl(file, trackingId);
+      }),
     [images]
   );
 
-  // Derive whether current media contains a video
-  const hasVideo = useMemo(() => images.some(isVideoFile), [images]);
-
-  // Stable blob URL for video preview
-  const videoUrl = useMemo(() => {
-    const videoFile = images.find(isVideoFile);
-    return videoFile ? mediaResourceManager.getOrCreateUrl(videoFile, VIDEO_TRACKING_ID) : null;
-  }, [images]);
+  // Photo-only URLs for the image preview dialog
+  const photoOnlyData = useMemo(() => {
+    const entries: Array<{ url: string; originalIndex: number }> = [];
+    images.forEach((file, index) => {
+      if (!isVideoFile(file)) {
+        entries.push({ url: mediaUrls[index], originalIndex: index });
+      }
+    });
+    return entries;
+  }, [images, mediaUrls]);
 
   useEffect(() => {
     return () => {
@@ -137,23 +157,21 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   const handleUploadClick = useCallback((source: "gallery" | "camera") => {
     uploadSourceRef.current = source;
     track("media_upload_clicked", { source, ...getPlatformContext() });
-    (source === "gallery" ? galleryInputRef : cameraInputRef).current?.click();
-  }, []);
-
-  const handleVideoClick = useCallback(() => {
-    setVideoError(null);
-    track("media_upload_clicked", { source: "video", ...getPlatformContext() });
-    videoInputRef.current?.click();
+    (source === "gallery" ? mediaInputRef : cameraInputRef).current?.click();
   }, []);
 
   // Expose handlers to parent
   useEffect(() => {
-    if (onGalleryClickRef) onGalleryClickRef.current = () => handleUploadClick("gallery");
+    if (onMediaClickRef) onMediaClickRef.current = () => handleUploadClick("gallery");
     if (onCameraClickRef) onCameraClickRef.current = () => handleUploadClick("camera");
-    if (onVideoClickRef) onVideoClickRef.current = handleVideoClick;
-  }, [handleUploadClick, handleVideoClick, onGalleryClickRef, onCameraClickRef, onVideoClickRef]);
+  }, [handleUploadClick, onMediaClickRef, onCameraClickRef]);
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  /**
+   * Unified media upload handler for both the media picker and camera.
+   * Handles mixed image+video selections: validates videos, compresses images,
+   * and appends everything to the existing images[] array.
+   */
+  const handleMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     const source = uploadSourceRef.current;
     const context = getPlatformContext();
@@ -175,14 +193,48 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       ...context,
     });
 
+    // Split into images and videos
+    const imageFiles = fileArray.filter((f) => !isVideoFile(f));
+    const videoFiles = fileArray.filter(isVideoFile);
+
     setIsCompressing(true);
     setCompressionProgress(0);
 
     try {
-      const toCompress = fileArray.filter((f) => imageCompressor.shouldCompress(f, 1024));
-      const noCompress = fileArray.filter((f) => !imageCompressor.shouldCompress(f, 1024));
+      // --- Process videos: validate duration ---
+      const validVideos: File[] = [];
+      for (const vf of videoFiles) {
+        const { valid, duration } = await validateVideoDuration(vf);
+        if (valid) {
+          validVideos.push(vf);
+        } else {
+          const errorMsg =
+            duration === 0
+              ? intl.formatMessage({
+                  id: "app.garden.upload.videoCorrupt",
+                  defaultMessage: "This video could not be loaded. Please try a different file.",
+                })
+              : intl.formatMessage(
+                  {
+                    id: "app.garden.upload.videoTooLong",
+                    defaultMessage: "Video must be {max} seconds or shorter (yours is {actual}s)",
+                  },
+                  { max: MAX_VIDEO_DURATION_SECONDS, actual: Math.round(duration) }
+                );
+          setVideoError(errorMsg);
+          track("media_upload_failed", {
+            error: duration === 0 ? "video_corrupt" : "video_too_long",
+            duration,
+            ...context,
+          });
+        }
+      }
 
-      const finalFiles = [...noCompress];
+      // --- Process images: compress ---
+      const toCompress = imageFiles.filter((f) => imageCompressor.shouldCompress(f, 1024));
+      const noCompress = imageFiles.filter((f) => !imageCompressor.shouldCompress(f, 1024));
+
+      const processedImages = [...noCompress];
 
       if (toCompress.length > 0) {
         const results = await imageCompressor.compressImages(
@@ -190,27 +242,32 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           { maxSizeMB: 0.8, maxWidthOrHeight: 2048, initialQuality: 0.8, useWebWorker: true },
           (progress) => setCompressionProgress(progress)
         );
-        finalFiles.push(...results.map((r) => r.file));
+        processedImages.push(...results.map((r) => r.file));
 
         const stats = imageCompressor.getCompressionStats(results);
         track("media_compression_complete", { ...stats, ...context });
       }
 
+      // --- Combine and append (no mutual exclusivity) ---
+      const newFiles = [...processedImages, ...validVideos];
       const maxCount =
         config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
-      // Mutual exclusivity: adding photos clears any existing video
-      setImages((prev) =>
-        [...prev.filter((f) => !isVideoFile(f)), ...finalFiles].slice(0, maxCount)
-      );
-      mediaResourceManager.cleanupUrls(VIDEO_TRACKING_ID);
 
-      track("media_upload_complete", { count: finalFiles.length, ...context });
+      setImages((prev) => [...prev, ...newFiles].slice(0, maxCount));
+
+      track("media_upload_complete", {
+        count: newFiles.length,
+        imageCount: processedImages.length,
+        videoCount: validVideos.length,
+        ...context,
+      });
     } catch (error) {
       track("media_upload_failed", {
         error: error instanceof Error ? error.message : "Unknown",
         ...context,
       });
-      setImages((prev) => [...prev.filter((f) => !isVideoFile(f)), ...fileArray]); // Fallback to uncompressed
+      // Fallback: add uncompressed
+      setImages((prev) => [...prev, ...fileArray]);
     } finally {
       setIsCompressing(false);
       setCompressionProgress(0);
@@ -219,63 +276,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     }
   };
 
-  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    const context = getPlatformContext();
-    setVideoError(null);
-
-    if (!files?.length) {
-      track("media_upload_cancelled", { source: "video", ...context });
-      return;
-    }
-
-    const file = files[0];
-    track("media_upload_started", {
-      source: "video",
-      count: 1,
-      totalSizeKB: Math.round(file.size / 1024),
-      ...context,
-    });
-
-    // Validate duration
-    const { valid, duration } = await validateVideoDuration(file);
-    if (!valid) {
-      const errorMsg =
-        duration === 0
-          ? intl.formatMessage({
-              id: "app.garden.upload.videoCorrupt",
-              defaultMessage: "This video could not be loaded. Please try a different file.",
-            })
-          : intl.formatMessage(
-              {
-                id: "app.garden.upload.videoTooLong",
-                defaultMessage: "Video must be {max} seconds or shorter (yours is {actual}s)",
-              },
-              { max: MAX_VIDEO_DURATION_SECONDS, actual: Math.round(duration) }
-            );
-      setVideoError(errorMsg);
-      track("media_upload_failed", {
-        error: duration === 0 ? "video_corrupt" : "video_too_long",
-        duration,
-        ...context,
-      });
-      event.target.value = "";
-      return;
-    }
-
-    // Mutual exclusivity: video replaces all photos
-    mediaResourceManager.cleanupUrls(WORK_DRAFT_TRACKING_ID);
-    setImages([file]);
-    track("media_upload_complete", {
-      source: "video",
-      count: 1,
-      durationSeconds: duration,
-      ...context,
-    });
-    event.target.value = "";
-  };
-
-  const removeImage = (index: number) => setImages((prev) => prev.filter((_, i) => i !== index));
+  const removeMedia = (index: number) => setImages((prev) => prev.filter((_, i) => i !== index));
 
   // Config values with defaults
   const title =
@@ -296,23 +297,22 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     <div className="flex flex-col gap-4">
       <FormInfo title={title} info={description} Icon={RiImageFill} />
 
-      {/* Progress badge */}
+      {/* Progress badge (shortened) */}
       {minRequired > 0 && (
         <Badge
-          className={`self-start ${images.length >= minRequired ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}
+          className={`self-start ${images.length >= minRequired ? "bg-success-base/15 text-success-base" : "bg-warning-base/15 text-warning-base"}`}
           variant="pill"
           tint="none"
         >
           {intl.formatMessage(
             {
-              id: "app.garden.upload.progress",
-              defaultMessage: "{current} of {required} photos uploaded",
+              id: "app.garden.upload.mediaBadge",
+              defaultMessage: "{current}/{required} media",
             },
             { current: images.length, required: minRequired }
           )}
-          {maxImageCount > 0 &&
-            ` (${intl.formatMessage({ id: "app.garden.upload.maxAllowed", defaultMessage: "max {max}" }, { max: maxImageCount })})`}
-          {images.length >= minRequired && " ✓"}
+          {maxImageCount > 0 && ` (max ${maxImageCount})`}
+          {images.length >= minRequired && " \u2713"}
         </Badge>
       )}
 
@@ -348,14 +348,14 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         </div>
       )}
 
-      {/* Hidden file inputs */}
+      {/* Hidden file inputs (2: media + camera) */}
       <div className="hidden">
         <input
-          ref={galleryInputRef}
+          ref={mediaInputRef}
           id="work-media-upload"
           type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
+          accept="image/*,video/*"
+          onChange={handleMediaUpload}
           multiple
           disabled={isCompressing}
         />
@@ -365,38 +365,30 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           type="file"
           accept="image/*"
           capture="environment"
-          onChange={handleImageUpload}
-          disabled={isCompressing}
-        />
-        <input
-          ref={videoInputRef}
-          id="work-media-video"
-          type="file"
-          accept="video/*"
-          onChange={handleVideoUpload}
+          onChange={handleMediaUpload}
           disabled={isCompressing}
         />
       </div>
 
       {/* Compression progress */}
       {isCompressing && (
-        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <RiLoader4Line className="w-5 h-5 text-blue-600 animate-spin" />
+        <div className="flex items-center gap-3 p-4 bg-primary-base/10 border border-primary-base/30 rounded-lg">
+          <RiLoader4Line className="w-5 h-5 text-primary-base animate-spin" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-blue-900">
+            <p className="text-sm font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "app.garden.upload.compressing",
                 defaultMessage: "Compressing images...",
               })}
             </p>
-            <div className="mt-2 bg-blue-200 rounded-full h-2">
+            <div className="mt-2 bg-bg-soft-200 rounded-full h-2">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                className="bg-primary-base h-2 rounded-full transition-all duration-300"
                 style={{ width: `${compressionProgress}%` }}
               />
             </div>
           </div>
-          <span className="text-sm text-blue-700 font-medium">
+          <span className="text-sm text-primary-base font-medium">
             {Math.round(compressionProgress)}%
           </span>
         </div>
@@ -404,122 +396,137 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
       {/* Video duration error */}
       {videoError && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-700">{videoError}</p>
+        <div className="p-3 bg-error-base/10 border border-error-base/30 rounded-lg">
+          <p className="text-sm text-error-base">{videoError}</p>
         </div>
       )}
 
-      {/* Media gallery (photos or video — mutually exclusive) */}
-      <div className="flex flex-col gap-4">
-        {hasVideo && videoUrl ? (
-          /* Video preview */
-          <div className="relative w-full">
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated content, no captions available */}
-            <video
-              src={videoUrl}
-              controls
-              className="w-full rounded-lg"
-              aria-label={intl.formatMessage({
-                id: "app.garden.upload.videoPreview",
-                defaultMessage: "Video preview",
-              })}
-            >
-              <track kind="captions" />
-            </video>
-            <button
-              type="button"
-              className="flex items-center justify-center w-8 h-8 p-1 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
-              onClick={() => {
-                mediaResourceManager.cleanupUrls(VIDEO_TRACKING_ID);
-                setImages([]);
-              }}
-            >
-              <RiCloseLine className="w-8 h-8" />
-            </button>
-          </div>
-        ) : images.length > 0 ? (
-          /* Photo gallery */
-          images.map((file, index) => (
-            <div key={`${file.name}-${index}`} className="carousel-item relative w-full">
-              <button
-                type="button"
-                className="relative group cursor-pointer w-full"
-                onClick={() => setPreviewIndex(index)}
-              >
-                <img
-                  src={imageUrls[index]}
-                  alt={`${intl.formatMessage({ id: "app.garden.upload.uploaded", defaultMessage: "Uploaded" })} ${index + 1}`}
-                  className="w-full aspect-square object-cover rounded-lg"
-                />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center">
-                  <RiZoomInLine className="w-12 h-12 text-white" />
+      {/* Recording indicator (from action bar audio toggle) */}
+      {isRecording && (
+        <div className="flex items-center gap-2 p-3 bg-error-base/10 border border-error-base/30 rounded-lg">
+          <div className="w-3 h-3 rounded-full bg-error-base animate-pulse" />
+          <span className="text-sm font-medium text-error-base">
+            Recording {formatTime(recordingElapsed)}
+          </span>
+        </div>
+      )}
+
+      {/* Unified media grid: list on mobile, 2-col grid on tablet+ */}
+      {images.length > 0 || audioNotes.length > 0 ? (
+        <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-2">
+          {/* Photo and video cards */}
+          {images.map((file, index) => {
+            const isVideo = isVideoFile(file);
+            const url = mediaUrls[index];
+
+            if (isVideo) {
+              const isPlaying = playingVideoIndex === index;
+              return (
+                <div key={`media-${file.name}-${index}`} className="relative">
+                  {/* eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated content */}
+                  <video
+                    src={url}
+                    controls={isPlaying}
+                    className="w-full aspect-4/3 md:aspect-square object-cover rounded-lg"
+                    aria-label={intl.formatMessage({
+                      id: "app.garden.upload.videoPreview",
+                      defaultMessage: "Video preview",
+                    })}
+                  >
+                    <track kind="captions" />
+                  </video>
+                  {/* Play overlay (shown when not in playback mode) */}
+                  {!isPlaying && (
+                    <button
+                      type="button"
+                      className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg"
+                      onClick={() => setPlayingVideoIndex(index)}
+                    >
+                      <RiPlayFill className="w-12 h-12 text-white" />
+                    </button>
+                  )}
+                  {/* Remove button */}
+                  <button
+                    type="button"
+                    aria-label={intl.formatMessage(
+                      {
+                        id: "app.garden.upload.removeMedia",
+                        defaultMessage: "Remove media {index}",
+                      },
+                      { index: index + 1 }
+                    )}
+                    className="flex items-center justify-center w-8 h-8 p-1 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
+                    onClick={() => {
+                      if (playingVideoIndex === index) setPlayingVideoIndex(null);
+                      removeMedia(index);
+                    }}
+                  >
+                    <RiCloseLine className="w-8 h-8" />
+                  </button>
                 </div>
-              </button>
-              <button
-                type="button"
-                aria-label={intl.formatMessage(
-                  { id: "app.garden.upload.removeImage", defaultMessage: "Remove image {index}" },
-                  { index: index + 1 }
-                )}
-                className="flex items-center justify-center w-8 h-8 p-1 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeImage(index);
+              );
+            }
+
+            // Photo card
+            const photoIndex = photoOnlyData.findIndex((p) => p.originalIndex === index);
+            return (
+              <div key={`media-${file.name}-${index}`} className="relative">
+                <button
+                  type="button"
+                  className="relative group cursor-pointer w-full"
+                  onClick={() => {
+                    if (photoIndex >= 0) setPreviewIndex(photoIndex);
+                  }}
+                >
+                  <img
+                    src={url}
+                    alt={`${intl.formatMessage({ id: "app.garden.upload.uploaded", defaultMessage: "Uploaded" })} ${index + 1}`}
+                    className="w-full aspect-4/3 md:aspect-square object-cover rounded-lg"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center">
+                    <RiZoomInLine className="w-12 h-12 text-white" />
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  aria-label={intl.formatMessage(
+                    { id: "app.garden.upload.removeMedia", defaultMessage: "Remove media {index}" },
+                    { index: index + 1 }
+                  )}
+                  className="flex items-center justify-center w-8 h-8 p-1 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeMedia(index);
+                  }}
+                >
+                  <RiCloseLine className="w-8 h-8" />
+                </button>
+              </div>
+            );
+          })}
+
+          {/* Audio note cards (span full width in grid) */}
+          {audioNotes.map((file, index) => (
+            <div key={`audio-${file.name}-${index}`} className="md:col-span-2">
+              <AudioPlayer
+                file={file}
+                onDelete={() => {
+                  setAudioNotes(audioNotes.filter((_, i) => i !== index));
                 }}
-              >
-                <RiCloseLine className="w-8 h-8" />
-              </button>
+              />
             </div>
-          ))
-        ) : (
-          <div className="pt-8 px-4 grid place-items-center">
-            <Books />
-          </div>
-        )}
-      </div>
-
-      {/* Audio notes section */}
-      <div className="flex flex-col gap-3">
-        <FormInfo
-          title={intl.formatMessage({
-            id: "app.garden.upload.audioTitle",
-            defaultMessage: "Audio Notes",
-          })}
-          info={intl.formatMessage({
-            id: "app.garden.upload.audioDescription",
-            defaultMessage: "Record an optional audio note (max 4:20)",
-          })}
-          Icon={RiMicLine}
-        />
-
-        {/* List existing audio notes with player + delete */}
-        {audioNotes.map((file, index) => (
-          <AudioPlayer
-            key={`audio-${file.name}-${index}`}
-            file={file}
-            onDelete={() => {
-              setAudioNotes((prev) => prev.filter((_, i) => i !== index));
-            }}
-          />
-        ))}
-
-        {/* Audio recorder (captures 1 live note at a time) */}
-        <AudioRecorder
-          onRecordingComplete={(file) => {
-            setAudioNotes((prev) => [...prev, file]);
-            track("audio_note_recorded", {
-              duration: "unknown",
-              noteIndex: audioNotes.length,
-              ...getPlatformContext(),
-            });
-          }}
-        />
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="pt-8 px-4 grid place-items-center">
+          <Books />
+        </div>
+      )}
 
       <ImagePreviewDialog
         isOpen={previewIndex !== null}
         onClose={() => setPreviewIndex(null)}
-        images={imageUrls}
+        images={photoOnlyData.map((p) => p.url)}
         initialIndex={previewIndex ?? 0}
       />
     </div>

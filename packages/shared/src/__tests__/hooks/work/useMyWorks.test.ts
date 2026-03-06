@@ -11,7 +11,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MOCK_ADDRESSES, createMockWork } from "../../test-utils/mock-factories";
+import { createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
 
 // ============================================
 // Mocks
@@ -61,7 +61,7 @@ vi.mock("../../../hooks/auth/useUser", () => ({
   }),
 }));
 
-import { useMyWorks, useMyOnlineWorks } from "../../../hooks/work/useMyWorks";
+import { useMyOnlineWorks, useMyWorks } from "../../../hooks/work/useMyWorks";
 
 // ============================================
 // Test helpers

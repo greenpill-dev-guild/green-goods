@@ -1,15 +1,18 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { createPublicClient, http } from "viem";
 import { useAccount } from "wagmi";
 import { DEFAULT_CHAIN_ID, getNetworkConfig } from "../../config/blockchain";
+import { STALE_TIMES } from "../../config/react-query";
+import { logger } from "../../modules/app/logger";
 import { useAuthContext } from "../../providers/Auth";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
+import type { Address } from "../../types/domain";
 import { compareAddresses } from "../../utils/blockchain/address";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { logger } from "../../modules/app/logger";
+import { queryKeys } from "../query-keys";
 
-// DeploymentRegistry ABI - only the functions we need
-const DEPLOYMENT_REGISTRY_ABI = [
+// DeploymentRegistry ABI - read + write functions needed by hooks and views
+export const DEPLOYMENT_REGISTRY_ABI = [
   {
     inputs: [{ name: "account", type: "address" }],
     name: "isInAllowlist",
@@ -24,7 +27,87 @@ const DEPLOYMENT_REGISTRY_ABI = [
     stateMutability: "view",
     type: "function",
   },
+  {
+    inputs: [],
+    name: "getAllowlist",
+    outputs: [{ name: "", type: "address[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "allowlistLength",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "addToAllowlist",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "removeFromAllowlist",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
 ] as const;
+
+interface DeploymentRegistryData {
+  isOwner: boolean;
+  isInAllowlist: boolean;
+  canDeploy: boolean;
+}
+
+async function fetchDeploymentPermissions(
+  address: string,
+  chainId: number
+): Promise<DeploymentRegistryData> {
+  const contracts = getNetworkContracts(chainId);
+  const chain = getChain(chainId);
+  const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
+  const networkConfig = getNetworkConfig(chainId, alchemyKey);
+
+  logger.debug("RPC config", {
+    source: "useDeploymentRegistry",
+    hasAlchemyKey: alchemyKey !== "demo",
+    rpcHost: new URL(networkConfig.rpcUrl).hostname,
+  });
+
+  // If deployment registry is not configured, return false
+  if (contracts.deploymentRegistry === "0x0000000000000000000000000000000000000000") {
+    return { isOwner: false, isInAllowlist: false, canDeploy: false };
+  }
+
+  const publicClient = createPublicClient({
+    chain,
+    transport: http(networkConfig.rpcUrl),
+  });
+
+  // Check if user is owner
+  const owner = await publicClient.readContract({
+    address: contracts.deploymentRegistry as `0x${string}`,
+    abi: DEPLOYMENT_REGISTRY_ABI,
+    functionName: "owner",
+  });
+
+  // Check if user is in allowlist
+  const isInAllowlist = await publicClient.readContract({
+    address: contracts.deploymentRegistry as `0x${string}`,
+    abi: DEPLOYMENT_REGISTRY_ABI,
+    functionName: "isInAllowlist",
+    args: [address as `0x${string}`],
+  });
+
+  const isOwner = compareAddresses(owner, address);
+  const canDeploy = isOwner || isInAllowlist;
+
+  return { isOwner, isInAllowlist, canDeploy };
+}
 
 export interface DeploymentRegistryPermissions {
   isOwner: boolean;
@@ -40,105 +123,78 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
 
   // Get address - prioritize wagmi for wallet mode, then auth context (wallet or passkey)
   const address = wagmiAddress ?? auth.walletAddress ?? auth.smartAccountAddress ?? null;
+  const normalizedAddress = address?.toLowerCase();
 
   // Ready when either wagmi is connected OR auth context is authenticated
   const ready = isConnected || (auth.isReady && auth.isAuthenticated);
 
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
   const chainId = selectedChainId || DEFAULT_CHAIN_ID;
-  const [permissions, setPermissions] = useState<DeploymentRegistryPermissions>({
-    isOwner: false,
-    isInAllowlist: false,
-    canDeploy: false,
-    loading: true,
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKeys.role.deploymentPermissions(normalizedAddress ?? undefined, chainId),
+    queryFn: () => fetchDeploymentPermissions(normalizedAddress!, chainId),
+    enabled: !!normalizedAddress && ready,
+    staleTime: STALE_TIMES.baseLists,
+    networkMode: "offlineFirst",
   });
 
-  useEffect(() => {
-    async function checkPermissions() {
-      // Keep loading=true when not ready - signals we haven't actually checked yet
-      // This prevents race conditions where useRole sees loading=false before wagmi reconnects
-      if (!address || !ready) {
-        setPermissions({
-          isOwner: false,
-          isInAllowlist: false,
-          canDeploy: false,
-          loading: true,
-        });
-        return;
-      }
+  return {
+    isOwner: data?.isOwner ?? false,
+    isInAllowlist: data?.isInAllowlist ?? false,
+    canDeploy: data?.canDeploy ?? false,
+    loading: !ready || isLoading,
+    ...(error ? { error: error instanceof Error ? error.message : "Unknown error" } : {}),
+  };
+}
 
-      setPermissions((prev) => ({ ...prev, loading: true, error: undefined }));
+// --- Allowlist query (gated by isOwner) ---
 
-      try {
-        const contracts = getNetworkContracts(chainId);
-        const chain = getChain(chainId);
-        // Get Alchemy API key from environment to avoid CORS issues with demo endpoint
-        const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
-        const networkConfig = getNetworkConfig(chainId, alchemyKey);
+async function fetchDeploymentAllowlist(chainId: number): Promise<Address[]> {
+  const contracts = getNetworkContracts(chainId);
+  const chain = getChain(chainId);
+  const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
+  const networkConfig = getNetworkConfig(chainId, alchemyKey);
 
-        logger.debug("RPC config", {
-          source: "useDeploymentRegistry",
-          hasAlchemyKey: alchemyKey !== "demo",
-          rpcHost: new URL(networkConfig.rpcUrl).hostname,
-        });
+  if (contracts.deploymentRegistry === "0x0000000000000000000000000000000000000000") {
+    return [];
+  }
 
-        // If deployment registry is not configured, return false
-        if (contracts.deploymentRegistry === "0x0000000000000000000000000000000000000000") {
-          setPermissions({
-            isOwner: false,
-            isInAllowlist: false,
-            canDeploy: false,
-            loading: false,
-          });
-          return;
-        }
+  const publicClient = createPublicClient({
+    chain,
+    transport: http(networkConfig.rpcUrl),
+  });
 
-        const publicClient = createPublicClient({
-          chain,
-          transport: http(networkConfig.rpcUrl),
-        });
+  const allowlist = await publicClient.readContract({
+    address: contracts.deploymentRegistry as `0x${string}`,
+    abi: DEPLOYMENT_REGISTRY_ABI,
+    functionName: "getAllowlist",
+  });
 
-        // Check if user is owner
-        const owner = await publicClient.readContract({
-          address: contracts.deploymentRegistry as `0x${string}`,
-          abi: DEPLOYMENT_REGISTRY_ABI,
-          functionName: "owner",
-        });
+  return allowlist as Address[];
+}
 
-        // Check if user is in allowlist
-        const isInAllowlist = await publicClient.readContract({
-          address: contracts.deploymentRegistry as `0x${string}`,
-          abi: DEPLOYMENT_REGISTRY_ABI,
-          functionName: "isInAllowlist",
-          args: [address as `0x${string}`],
-        });
+export interface DeploymentAllowlistResult {
+  allowlist: Address[];
+  loading: boolean;
+  error?: string;
+}
 
-        const isOwner = compareAddresses(owner, address);
-        const canDeploy = isOwner || isInAllowlist;
+export function useDeploymentAllowlist(enabled: boolean): DeploymentAllowlistResult {
+  const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
+  const chainId = selectedChainId || DEFAULT_CHAIN_ID;
 
-        setPermissions({
-          isOwner,
-          isInAllowlist,
-          canDeploy,
-          loading: false,
-        });
-      } catch (error) {
-        logger.error("Error checking deployment registry permissions", {
-          source: "useDeploymentRegistry",
-          error,
-        });
-        setPermissions({
-          isOwner: false,
-          isInAllowlist: false,
-          canDeploy: false,
-          loading: false,
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    }
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKeys.role.allowlist(chainId),
+    queryFn: () => fetchDeploymentAllowlist(chainId),
+    enabled,
+    staleTime: STALE_TIMES.baseLists,
+    networkMode: "offlineFirst",
+  });
 
-    checkPermissions();
-  }, [address, ready, chainId]);
-
-  return permissions;
+  return {
+    allowlist: data ?? [],
+    loading: isLoading,
+    ...(error ? { error: error instanceof Error ? error.message : "Unknown error" } : {}),
+  };
 }

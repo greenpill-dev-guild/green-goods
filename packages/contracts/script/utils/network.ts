@@ -37,6 +37,7 @@ export interface VerifierConfig {
 /** Canonical network name → chain ID string mapping. Single source of truth. */
 export const CHAIN_ID_MAP: Record<string, string> = {
   localhost: "31337",
+  mainnet: "1",
   arbitrum: "42161",
   sepolia: "11155111",
   celo: "42220",
@@ -165,7 +166,16 @@ export class NetworkManager {
       return true;
     }
 
-    return rpcUrl.toLowerCase().includes("publicnode.com");
+    try {
+      const { hostname } = new URL(rpcUrl);
+      // Extract the registrable domain (last two parts) to match publicnode.com
+      // and all its subdomains (e.g. ethereum-sepolia.publicnode.com)
+      const parts = hostname.toLowerCase().split(".");
+      const domain = parts.length >= 2 ? parts.slice(-2).join(".") : hostname;
+      return domain === "publicnode.com";
+    } catch {
+      return false;
+    }
   }
 
   /**

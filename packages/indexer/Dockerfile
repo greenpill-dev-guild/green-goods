@@ -43,9 +43,9 @@ WORKDIR /app
 # 9898: Envio dev server
 EXPOSE 9898
 
-# Health check with longer start period for ReScript fixes
-HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=5 \
-    CMD curl -f http://localhost:9898/health || exit 1
+# Health check — Envio exposes /healthz (not /health)
+HEALTHCHECK --interval=15s --timeout=10s --start-period=60s --retries=10 \
+    CMD curl -f http://localhost:9898/healthz || exit 1
 
 # Use entrypoint to fix ReScript module paths at runtime
 ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]

@@ -7,20 +7,21 @@
  * @module hooks/garden/useCreateGardenWorkflow
  */
 
-import { useMachine } from "@xstate/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { waitForTransactionReceipt } from "@wagmi/core";
-import { formatEther, isAddress } from "viem";
-import { fromPromise } from "xstate";
+import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { formatEther, isAddress } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
+import { fromPromise } from "xstate";
+import { wagmiConfig } from "../../config/appkit";
+import { getChain } from "../../config/chains";
 import {
   trackAdminGardenCreateFailed,
   trackAdminGardenCreateStarted,
   trackAdminGardenCreateSuccess,
 } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
-import { wagmiConfig } from "../../config/appkit";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useCreateGardenStore } from "../../stores/useCreateGardenStore";
 import {
@@ -29,14 +30,14 @@ import {
   GreenGoodsENSABI,
   getNetworkContracts,
 } from "../../utils/blockchain/contracts";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
-import { createGardenMachine, type CreateGardenFormStatus } from "../../workflows/createGarden";
+import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
 import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 import { useGardenDraft } from "./useGardenDraft";
-import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 
 export type { GardenDraft } from "./useGardenDraft";
 
@@ -111,72 +112,76 @@ export function useCreateGardenWorkflow() {
   const queryClient = useQueryClient();
   const { runWithLock, isPending: isLockPending } = useMutationLock();
 
-  // Store mutable dependencies in refs so the machine actor can read
-  // current values without recreating the machine on every change
-  const walletClientRef = useRef(walletClient);
-  const addressRef = useRef(address);
-  const chainIdRef = useRef(selectedChainId);
-  const addPendingTxRef = useRef(addPendingTransaction);
-  const queryClientRef = useRef(queryClient);
-  const storeNextStepRef = useRef(storeNextStep);
-  const storePreviousStepRef = useRef(storePreviousStep);
-  const storeGoToReviewRef = useRef(storeGoToReview);
-  const storeGoToFirstIncompleteRef = useRef(storeGoToFirstIncomplete);
-
-  useEffect(() => {
-    walletClientRef.current = walletClient;
-  }, [walletClient]);
-  useEffect(() => {
-    addressRef.current = address;
-  }, [address]);
-  useEffect(() => {
-    chainIdRef.current = selectedChainId;
-  }, [selectedChainId]);
-  useEffect(() => {
-    addPendingTxRef.current = addPendingTransaction;
-  }, [addPendingTransaction]);
-  useEffect(() => {
-    queryClientRef.current = queryClient;
-  }, [queryClient]);
-  useEffect(() => {
-    storeNextStepRef.current = storeNextStep;
-  }, [storeNextStep]);
-  useEffect(() => {
-    storePreviousStepRef.current = storePreviousStep;
-  }, [storePreviousStep]);
-  useEffect(() => {
-    storeGoToReviewRef.current = storeGoToReview;
-  }, [storeGoToReview]);
-  useEffect(() => {
-    storeGoToFirstIncompleteRef.current = storeGoToFirstIncomplete;
-  }, [storeGoToFirstIncomplete]);
+  // Keep mutable dependencies current for the long-lived machine actor/actions.
+  const dependenciesRef = useRef({
+    walletClient,
+    address,
+    chainId: selectedChainId,
+    addPendingTransaction,
+    queryClient,
+    storeNextStep,
+    storePreviousStep,
+    storeGoToReview,
+    storeGoToFirstIncomplete,
+    scheduleGardenRefresh: () => {},
+  });
 
   const { start: scheduleGardenRefresh } = useDelayedInvalidation(
     useCallback(() => {
+      const { chainId, queryClient: latestQueryClient } = dependenciesRef.current;
       queryInvalidation
-        .invalidateGardens(chainIdRef.current)
-        .forEach((queryKey) => queryClientRef.current.invalidateQueries({ queryKey }));
+        .invalidateGardens(chainId)
+        .forEach((queryKey) => latestQueryClient.invalidateQueries({ queryKey }));
     }, []),
     INDEXER_LAG_FOLLOWUP_MS
   );
-  const scheduleGardenRefreshRef = useRef(scheduleGardenRefresh);
+
   useEffect(() => {
-    scheduleGardenRefreshRef.current = scheduleGardenRefresh;
-  }, [scheduleGardenRefresh]);
+    dependenciesRef.current = {
+      ...dependenciesRef.current,
+      walletClient,
+      address,
+      chainId: selectedChainId,
+      addPendingTransaction,
+      queryClient,
+      storeNextStep,
+      storePreviousStep,
+      storeGoToReview,
+      storeGoToFirstIncomplete,
+      scheduleGardenRefresh,
+    };
+  }, [
+    walletClient,
+    address,
+    selectedChainId,
+    addPendingTransaction,
+    queryClient,
+    storeNextStep,
+    storePreviousStep,
+    storeGoToReview,
+    storeGoToFirstIncomplete,
+    scheduleGardenRefresh,
+  ]);
 
   const machine = useMemo(
     () =>
       createGardenMachine.provide({
         actors: {
           submitGarden: fromPromise<string, void>(async () => {
-            const params = useCreateGardenStore.getState().getParams();
+            const gardenStoreState = useCreateGardenStore.getState();
+            const params = gardenStoreState.getParams();
             if (!params) {
               throw new Error("Garden form is incomplete");
             }
 
-            const currentWalletClient = walletClientRef.current;
-            const currentAddress = addressRef.current;
-            const currentChainId = chainIdRef.current;
+            const {
+              walletClient: currentWalletClient,
+              address: currentAddress,
+              chainId: currentChainId,
+              addPendingTransaction: addPendingTx,
+              queryClient: latestQueryClient,
+              scheduleGardenRefresh: scheduleRefresh,
+            } = dependenciesRef.current;
 
             if (!currentWalletClient || !currentAddress || !isAddress(currentAddress)) {
               throw new Error("Connect a wallet to deploy the garden");
@@ -200,6 +205,8 @@ export function useCreateGardenWorkflow() {
                 openJoining: params.openJoining ?? false,
                 weightScheme: params.weightScheme,
                 domainMask: params.domainMask,
+                gardeners: params.gardeners,
+                operators: params.operators,
               };
 
               // Estimate CCIP fee for ENS registration (if slug provided and ENS module configured)
@@ -216,7 +223,8 @@ export function useCreateGardenWorkflow() {
                 GardenTokenABI,
                 "mintGarden",
                 [config],
-                accountAddress
+                accountAddress,
+                currentChainId
               );
 
               if (!simulation.success) {
@@ -231,9 +239,10 @@ export function useCreateGardenWorkflow() {
                 account: accountAddress,
                 args: [config],
                 value: ccipFee,
+                chain: getChain(currentChainId),
               });
 
-              addPendingTxRef.current(txHash, "garden:create");
+              addPendingTx(txHash, "garden:create");
 
               // Wait for on-chain confirmation before declaring success
               await waitForTransactionReceipt(wagmiConfig, {
@@ -252,9 +261,9 @@ export function useCreateGardenWorkflow() {
               // Invalidate garden queries so the list updates immediately
               queryInvalidation
                 .invalidateGardens(currentChainId)
-                .forEach((queryKey) => queryClientRef.current.invalidateQueries({ queryKey }));
+                .forEach((queryKey) => latestQueryClient.invalidateQueries({ queryKey }));
               // Schedule follow-up for indexer lag
-              scheduleGardenRefreshRef.current();
+              scheduleRefresh();
 
               return txHash;
             } catch (error) {
@@ -269,16 +278,16 @@ export function useCreateGardenWorkflow() {
         },
         actions: {
           goToNextStep: () => {
-            storeNextStepRef.current();
+            dependenciesRef.current.storeNextStep();
           },
           goToPreviousStep: () => {
-            storePreviousStepRef.current();
+            dependenciesRef.current.storePreviousStep();
           },
           goToReviewStep: () => {
-            storeGoToReviewRef.current();
+            dependenciesRef.current.storeGoToReview();
           },
           goToFirstIncompleteStep: () => {
-            storeGoToFirstIncompleteRef.current();
+            dependenciesRef.current.storeGoToFirstIncomplete();
           },
         },
       }),
@@ -299,9 +308,8 @@ export function useCreateGardenWorkflow() {
 
   // Navigation handlers that bridge store and machine
   const openFlow = useCallback(() => {
-    storeReset();
     send({ type: "OPEN" });
-  }, [send, storeReset]);
+  }, [send]);
 
   const closeFlow = useCallback(() => {
     storeReset();
@@ -324,14 +332,46 @@ export function useCreateGardenWorkflow() {
     send({ type: "REVIEW", formStatus });
   }, [send]);
 
-  const submitCreation = useCallback(() => {
+  const submitCreation = useCallback((): boolean => {
+    const machineState = state.value;
     if (state.matches("submitting")) {
-      return;
+      logger.warn("submitCreation called while already submitting", {
+        source: "useCreateGardenWorkflow.submitCreation",
+        machineState,
+      });
+      return false;
     }
+
+    const formStatus = getFormStatus();
+
+    // Pre-flight check: catch guard failures before XState silently drops the event
+    if (machineState !== "review") {
+      logger.error("Cannot submit: machine not in review state", {
+        source: "useCreateGardenWorkflow.submitCreation",
+        machineState,
+        formStatus,
+      });
+      return false;
+    }
+    if (!formStatus.isReviewReady) {
+      logger.error("Cannot submit: form not review-ready", {
+        source: "useCreateGardenWorkflow.submitCreation",
+        machineState,
+        formStatus,
+      });
+      return false;
+    }
+
+    logger.info("Submitting garden creation", {
+      source: "useCreateGardenWorkflow.submitCreation",
+      machineState,
+      formStatus,
+    });
+
     void runWithLock(async () => {
-      const formStatus = getFormStatus();
       send({ type: "SUBMIT", formStatus });
     });
+    return true;
   }, [send, state, runWithLock]);
 
   const estimateCreationCost = useCallback(async () => {
@@ -340,8 +380,8 @@ export function useCreateGardenWorkflow() {
       throw new Error("Garden form is incomplete");
     }
 
-    const currentAddress = addressRef.current;
-    const currentChainId = chainIdRef.current;
+    const currentAddress = dependenciesRef.current.address;
+    const currentChainId = dependenciesRef.current.chainId;
 
     if (!currentAddress || !isAddress(currentAddress)) {
       throw new Error("Connect a wallet to estimate deployment cost");
@@ -359,6 +399,8 @@ export function useCreateGardenWorkflow() {
       openJoining: params.openJoining ?? false,
       weightScheme: params.weightScheme,
       domainMask: params.domainMask,
+      gardeners: params.gardeners,
+      operators: params.operators,
     };
 
     const { publicClient } = createClients(currentChainId);

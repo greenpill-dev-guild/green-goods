@@ -142,11 +142,11 @@ export function GardenList({
         <GardenCard
           key={garden.id}
           garden={garden}
+          className="cv-garden-card"
           media="large"
           height="home"
           showOperators={true}
           selected={garden.id === selectedGardenId}
-          {...garden}
           onClick={() => onCardClick(garden.id)}
         />
       ))}

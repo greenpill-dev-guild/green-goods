@@ -11,6 +11,15 @@ Loaded when working in `packages/shared/`. Extends CLAUDE.md.
 | `bun run storybook` | Start Storybook (port 6006) |
 | `bun run build-storybook` | Build static Storybook |
 
+## Contents
+- [Architecture](#architecture)
+- [Critical Patterns](#critical-patterns)
+- [Anti-Patterns](#anti-patterns)
+- [Common Mistakes](#common-mistakes)
+- [Creating New Hooks](#creating-new-hooks)
+- [Storybook Component Development](#storybook-component-development)
+- [Reference Files](#reference-files)
+
 ## Architecture
 
 ```
@@ -97,27 +106,44 @@ queryClient.invalidateQueries({ queryKey: ["works", gardenId] });
 - `queryKeys.works.merged(gardenId, chainId)` — Online + offline works
 - `queryKeys.queue.stats()` — Job queue statistics
 
-### Provider Hierarchy (MANDATORY)
+### Provider Nesting Order (MANDATORY)
 
-Providers must nest in this exact order:
+Providers must nest in dependency order (outermost first). Wrong order causes runtime "context not found" crashes.
 
+**Client** (`packages/client/src/main.tsx`):
 ```tsx
-<WagmiProvider config={wagmiConfig}>
-  <QueryClientProvider client={queryClient}>
-    <AppKitProvider>
-      <AuthProvider>
-        <AppProvider>
-          <JobQueueProvider>
-            <WorkProvider>
-              {children}
-            </WorkProvider>
-          </JobQueueProvider>
+<HelmetProvider>
+  <AppErrorBoundary>
+    <AppKitProvider>      {/* Wallet connection (wraps Wagmi + QueryClient internally) */}
+      <AuthProvider>      {/* Auth state — depends on wallet context */}
+        <AppProvider>     {/* App context (i18n, analytics) — depends on auth */}
+          <App />
         </AppProvider>
       </AuthProvider>
     </AppKitProvider>
-  </QueryClientProvider>
-</WagmiProvider>
+  </AppErrorBoundary>
+</HelmetProvider>
 ```
+
+**Admin** (`packages/admin/src/main.tsx`):
+```tsx
+<PersistQueryClientProvider>  {/* Persisted query cache (admin-specific) */}
+  <ErrorBoundary>
+    <AppKitProvider>          {/* Wallet connection */}
+      <AuthProvider>          {/* Auth state — depends on wallet context */}
+        <AppProvider>         {/* App context — depends on auth */}
+          <App />
+        </AppProvider>
+      </AuthProvider>
+    </AppKitProvider>
+  </ErrorBoundary>
+</PersistQueryClientProvider>
+```
+
+**Dependency chain**: AppKitProvider (wallet) -> AuthProvider (auth) -> AppProvider (app)
+- AppKitProvider must be outermost because auth and app hooks depend on wallet context
+- AuthProvider must wrap AppProvider because app-level hooks (analytics, i18n) need auth state
+- JobQueueProvider and WorkProvider (used in client views) nest inside AppProvider
 
 ### State Tool Selection
 
@@ -355,3 +381,13 @@ The a11y addon runs automatically:
 - Providers: `src/providers/`
 - Stores: `src/stores/`
 - Storybook config: `packages/shared/.storybook/`
+
+## Documentation References (on-demand)
+
+Read these docs pages when you need domain context beyond code patterns:
+
+- System architecture with Mermaid diagrams: `docs/docs/developers/architecture.mdx`
+- Domain glossary (35+ terms): `docs/docs/glossary.md`
+- Impact model and CIDS framework: `docs/docs/concepts/impact-model.mdx`
+- Cross-protocol entity matrix: `docs/docs/developers/reference/entity-matrix.mdx`
+- Gardener common errors (error-to-fix table): `docs/docs/gardener/common-errors.mdx`

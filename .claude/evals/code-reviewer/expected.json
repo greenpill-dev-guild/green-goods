@@ -1,0 +1,61 @@
+{
+  "known-bug-pr": {
+    "expected_findings": [
+      {
+        "severity": "Critical",
+        "rule": "Hook Boundary",
+        "file": "packages/client/src/hooks/useGardenFilters.ts",
+        "line_context": "export function useGardenFilters()",
+        "description": "Hook defined outside @green-goods/shared. All hooks MUST live in packages/shared/src/hooks/. This file creates a new hook in packages/client/src/hooks/ which violates the Hook Boundary rule (CLAUDE.md Key Principle #4, shared.md Hook Architecture). The filtering logic should be a pure function or moved to packages/shared/src/hooks/garden/."
+      },
+      {
+        "severity": "High",
+        "rule": "Error Handling",
+        "file": "packages/shared/src/hooks/garden/useUpdateGardenDomain.ts",
+        "line_context": "onError: (error) => { console.error(\"Failed to update garden domain:\", error);",
+        "description": "Mutation hook catches error but uses console.error instead of parseContractError() + createMutationErrorHandler(). This violates the Error Handling rule (CLAUDE.md Key Patterns, TypeScript Rule #4). Should use createMutationErrorHandler() like useWorkApproval and other mutation hooks in the codebase. Also violates Rule #12 (console.log cleanup) by using console.error instead of logger."
+      },
+      {
+        "severity": "Medium",
+        "rule": "Barrel Imports",
+        "file": "packages/admin/src/views/Gardens/GardenDomainFilter.tsx",
+        "line_context": "import { useAuth } from \"@green-goods/shared/hooks/auth/useAuth\";",
+        "description": "Deep import path bypassing barrel export. Should be: import { useAuth } from \"@green-goods/shared\". This violates Rule #11 (Barrel Import Enforcement) and the Barrel Imports key pattern in CLAUDE.md."
+      }
+    ],
+    "expected_false_positives": 0,
+    "expected_verdict": "REQUEST_CHANGES"
+  },
+  "clean-pr": {
+    "expected_findings": [],
+    "expected_false_positives": 0,
+    "expected_verdict": "APPROVE"
+  },
+  "hook-boundary-violation": {
+    "expected_findings": [
+      {
+        "severity": "Critical",
+        "rule": "Hook Boundary",
+        "file": "packages/client/src/hooks/useDraftAutoSave.ts",
+        "line_context": "export function useDraftAutoSave(",
+        "description": "Hook created in packages/client/src/hooks/ instead of packages/shared/src/hooks/. All hooks MUST live in @green-goods/shared (CLAUDE.md Key Principle #4). The PR even deleted the placeholder file in shared that was meant to hold this hook. The hook should be at packages/shared/src/hooks/work/useDraftAutoSave.ts."
+      },
+      {
+        "severity": "High",
+        "rule": "Barrel Imports",
+        "file": "packages/client/src/hooks/useDraftAutoSave.ts",
+        "line_context": "import { jobQueueDB } from \"@green-goods/shared/modules/job-queue/db\";",
+        "description": "Deep import path bypassing barrel export. Should use barrel import from @green-goods/shared or, if the hook is moved to shared (as it should be), use relative imports. Violates Rule #11 (Barrel Import Enforcement)."
+      },
+      {
+        "severity": "Medium",
+        "rule": "Cleanup Safety",
+        "file": "packages/client/src/hooks/useDraftAutoSave.ts",
+        "line_context": "intervalRef.current = setInterval(saveDraft, interval);",
+        "description": "The isMountedRef is never set to false on unmount. The cleanup effect only clears the interval but does not update isMountedRef.current = false, so the saveDraft callback's isMountedRef guard is ineffective. This could lead to state updates after unmount if saveDraft is called from elsewhere."
+      }
+    ],
+    "expected_false_positives": 0,
+    "expected_verdict": "REQUEST_CHANGES"
+  }
+}

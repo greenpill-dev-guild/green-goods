@@ -400,17 +400,20 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
 
     /// @notice Storage gap for upgradeable contract
     /// @dev Reserve 50 slots total for future upgrades.
-    /// Inherited storage (5 slots):
-    ///   - Initializable: 1 slot (_initialized + _initializing packed)
-    ///   - Lockable: 1 slot (lockedUntil)
-    ///   - Overridable: 1 slot (overrides mapping)
-    ///   - Permissioned: 1 slot (permissions mapping)
-    ///   - ERC6551Account: 1 slot (_state)
-    /// GardenAccount storage (12 slots):
-    ///   - communityToken (1) + name (1) + slug (1) + description (1) + location (1)
-    ///   - bannerImage (1) + metadata (1) + openJoining (1) + maxGardeners (1)
-    ///   - gardenMemberCount (1) + _autoStaking (1) + reserved (1)
+    /// Verified via `forge inspect GardenAccount storage-layout`:
+    /// Inherited storage (4 full slots, slots 0-3):
+    ///   - Lockable: 1 slot (lockedUntil)                    [slot 0]
+    ///   - Overridable: 1 slot (overrides mapping)           [slot 1]
+    ///   - Permissioned: 1 slot (permissions mapping)        [slot 2]
+    ///   - ERC6551Account: 1 slot (_state)                   [slot 3]
+    /// Packed slot (slot 4):
+    ///   - Initializable: _initialized (1B) + _initializing (1B)
+    ///   - communityToken (20B) — packed in same slot
+    /// GardenAccount storage (10 slots, slots 5-14):
+    ///   - name (1) + slug (1) + description (1) + location (1) + bannerImage (1)
+    ///   - metadata (1) + openJoining (1) + maxGardeners (1)
+    ///   - gardenMemberCount (1) + _autoStaking (1)
     /// Note: WORK_APPROVAL_RESOLVER and ASSESSMENT_RESOLVER are immutables (no storage slots)
-    /// Gap calculation: 50 - (5 + 12) = 33 slots
-    uint256[33] private __gap;
+    /// Gap calculation: 50 - 15 (slots 0-14) = 35 slots
+    uint256[35] private __gap;
 }

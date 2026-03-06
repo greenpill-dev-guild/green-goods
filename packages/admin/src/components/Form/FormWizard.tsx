@@ -1,7 +1,9 @@
-import { cn, useTimeout } from "@green-goods/shared";
-import { RiArrowLeftLine, RiLoader4Line } from "@remixicon/react";
+import { useTimeout } from "@green-goods/shared";
+import { RiArrowLeftLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
+import { Button } from "@/components/ui/Button";
 import { type Step, StepIndicator } from "./StepIndicator";
 
 interface FormWizardProps {
@@ -42,8 +44,10 @@ export function FormWizard({
   submitLabel,
 }: FormWizardProps) {
   const { formatMessage } = useIntl();
-  const resolvedNextLabel = nextLabel ?? formatMessage({ id: "app.form.next" });
-  const resolvedSubmitLabel = submitLabel ?? formatMessage({ id: "app.form.submit" });
+  const resolvedNextLabel =
+    nextLabel ?? formatMessage({ id: "app.form.next", defaultMessage: "Next" });
+  const resolvedSubmitLabel =
+    submitLabel ?? formatMessage({ id: "app.form.submit", defaultMessage: "Submit" });
   const contentRef = useRef<HTMLDivElement>(null);
   const isLastStep = currentStep === steps.length - 1;
   const isFirstStep = currentStep === 0;
@@ -62,13 +66,77 @@ export function FormWizard({
     }, 100);
   }, [currentStep, scheduleTimeout]);
 
+  const footer = (
+    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-stroke-sub bg-bg-white shadow-lg lg:left-64">
+      <div className="px-4 py-3 sm:px-6 sm:py-4">
+        {/* Validation feedback */}
+        {showValidationMessage && (
+          <p className="mb-2 text-center text-xs text-warning-dark sm:mb-0 sm:mr-4 sm:text-left sm:text-sm">
+            {validationMessage}
+          </p>
+        )}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+          {!isFirstStep && onBack && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onBack}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
+              <RiArrowLeftLine className="h-4 w-4" />
+              {formatMessage({ id: "app.wizard.back", defaultMessage: "Back" })}
+            </Button>
+          )}
+
+          <div className="flex gap-3 sm:ml-auto">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onCancel}
+              disabled={isSubmitting}
+              className="flex-1 sm:flex-initial"
+            >
+              {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
+            </Button>
+
+            {!isLastStep && onNext && (
+              <Button
+                type="button"
+                onClick={onNext}
+                disabled={isSubmitting || nextDisabled}
+                className="flex-1 sm:flex-initial"
+              >
+                {resolvedNextLabel}
+              </Button>
+            )}
+
+            {isLastStep && onSubmit && (
+              <Button
+                type="button"
+                onClick={onSubmit}
+                disabled={isSubmitting}
+                loading={isSubmitting}
+                className="flex-1 sm:flex-initial"
+              >
+                {isSubmitting
+                  ? formatMessage({ id: "app.wizard.submitting", defaultMessage: "Deploying..." })
+                  : resolvedSubmitLabel}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="bg-bg-weak pb-20 sm:pb-24">
       {/* Screen reader announcement for step changes */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {currentStepInfo &&
           formatMessage(
-            { id: "app.form.stepAnnouncement" },
+            { id: "app.form.stepAnnouncement", defaultMessage: "Step {step} of {total}: {title}" },
             {
               step: currentStep + 1,
               total: steps.length,
@@ -80,78 +148,13 @@ export function FormWizard({
       {/* Full-width sticky step indicator */}
       <StepIndicator steps={steps} currentStep={currentStep} onStepClick={onStepClick} />
 
-      {/* Form content - centered with max-width, optimized padding */}
-      <div ref={contentRef} className="mx-auto max-w-4xl px-4 py-4 sm:px-6 sm:py-6">
+      {/* Form content - centered with max-width, generous wizard padding */}
+      <div ref={contentRef} className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
         {children}
       </div>
 
-      {/* Navigation footer - respects sidebar on desktop */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-stroke-soft bg-bg-white shadow-lg lg:left-64">
-        <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 sm:py-4">
-          {/* Validation feedback */}
-          {showValidationMessage && (
-            <p className="mb-2 text-center text-xs text-warning-dark sm:mb-0 sm:mr-4 sm:text-left sm:text-sm">
-              {validationMessage}
-            </p>
-          )}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-            {!isFirstStep && onBack && (
-              <button
-                type="button"
-                onClick={onBack}
-                disabled={isSubmitting}
-                className="flex items-center justify-center gap-1.5 rounded-md border border-stroke-sub bg-bg-white px-4 py-2.5 text-sm font-medium text-text-sub transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <RiArrowLeftLine className="h-4 w-4" />
-                {formatMessage({ id: "app.wizard.back" })}
-              </button>
-            )}
-
-            <div className="flex gap-3 sm:ml-auto">
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={isSubmitting}
-                className="flex-1 rounded-md border border-stroke-sub px-4 py-2.5 text-sm font-medium text-text-sub transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60 sm:flex-initial"
-              >
-                {formatMessage({ id: "app.wizard.cancel" })}
-              </button>
-
-              {!isLastStep && onNext && (
-                <button
-                  type="button"
-                  onClick={onNext}
-                  disabled={isSubmitting || nextDisabled}
-                  className="flex-1 rounded-md bg-primary-base px-6 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60 sm:flex-initial"
-                >
-                  {resolvedNextLabel}
-                </button>
-              )}
-
-              {isLastStep && onSubmit && (
-                <button
-                  type="button"
-                  onClick={onSubmit}
-                  disabled={isSubmitting}
-                  className={cn(
-                    "flex flex-1 items-center justify-center gap-2 rounded-md bg-primary-base px-6 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60 sm:flex-initial",
-                    isSubmitting && "cursor-not-allowed opacity-70"
-                  )}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <RiLoader4Line className="h-4 w-4 animate-spin" />
-                      {formatMessage({ id: "app.wizard.submitting" })}
-                    </>
-                  ) : (
-                    resolvedSubmitLabel
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Portal escapes the PageTransition transform so fixed positioning works correctly */}
+      {createPortal(footer, document.body)}
     </div>
   );
 }

@@ -1,11 +1,11 @@
+import { RiGroupFill, RiMapPinFill, RiMapPinUserFill } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { RiGroupFill, RiMapPinFill, RiMapPinUserFill } from "@remixicon/react";
-import { cn } from "../../../utils/styles/cn";
 import { buildGardenMemberSets } from "../../../utils/app/garden";
 import { formatAddress } from "../../../utils/app/text";
-import { ImageWithFallback } from "../../Display/ImageWithFallback";
+import { cn } from "../../../utils/styles/cn";
 import { Badge } from "../../Badge/Badge";
+import { ImageWithFallback } from "../../Display/ImageWithFallback";
 
 const gardenCardVariants = tv({
   base: "@container relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0 transition-all duration-300",

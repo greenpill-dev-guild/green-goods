@@ -66,8 +66,8 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 import { useAccount, useWalletClient } from "wagmi";
-import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { useToastAction } from "../../hooks/app/useToastAction";
+import { simulateTransaction } from "../../utils/blockchain/simulation";
 
 describe("useActionOperations", () => {
   const mockWalletClient = {

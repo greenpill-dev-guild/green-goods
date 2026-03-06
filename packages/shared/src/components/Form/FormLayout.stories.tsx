@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { FormLayout } from "./FormLayout";
 import { FormInput } from "./FormInput";
+import { FormLayout } from "./FormLayout";
 import { FormTextarea } from "./FormTextarea";
 
 const meta: Meta<typeof FormLayout> = {
-  title: "Components/Form/FormLayout",
+  title: "Form Controls/FormLayout",
   component: FormLayout,
   tags: ["autodocs"],
   argTypes: {
@@ -123,4 +123,24 @@ export const AllWidths: Story = {
   parameters: {
     layout: "fullscreen",
   },
+};
+
+export const DarkMode: Story = {
+  args: {
+    maxWidth: "lg",
+    children: (
+      <div className="flex flex-col gap-4">
+        <h2 className="text-xl font-semibold">Contact Form</h2>
+        <FormInput label="Name" placeholder="Enter your name" id="dark-name" />
+        <FormInput label="Email" placeholder="Enter your email" type="email" id="dark-email" />
+      </div>
+    ),
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="bg-bg-white-0 p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };

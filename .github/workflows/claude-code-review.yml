@@ -19,6 +19,8 @@ jobs:
     #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
 
     runs-on: ubuntu-latest
+    # Don't block PRs if Claude review fails (token expiry, SDK issues, etc.)
+    continue-on-error: true
     permissions:
       contents: read
       pull-requests: write

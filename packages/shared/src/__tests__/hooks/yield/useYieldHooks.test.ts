@@ -275,9 +275,9 @@ describe("useYieldAllocations", () => {
       wrapper: createWrapper(queryClient),
     });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // Wait for actual data (not placeholder) — placeholderData: [] makes isSuccess true immediately
+    await waitFor(() => expect(result.current.allocations).toHaveLength(1));
 
-    expect(result.current.allocations).toHaveLength(1);
     const alloc = result.current.allocations[0];
     expect(alloc.gardenAddress).toBe(TEST_GARDEN);
     expect(alloc.assetAddress).toBe(TEST_ASSET);
@@ -372,9 +372,9 @@ describe("useYieldAllocations", () => {
       wrapper: createWrapper(queryClient),
     });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // Wait for actual data (not placeholder) — placeholderData: [] makes isSuccess true immediately
+    await waitFor(() => expect(result.current.allocations).toHaveLength(2));
 
-    expect(result.current.allocations).toHaveLength(2);
     expect(result.current.allocations[0].cookieJarAmount).toBe(2000000000000000000n);
     expect(result.current.allocations[1].assetAddress).toBe(
       "0x1111111111111111111111111111111111111111"

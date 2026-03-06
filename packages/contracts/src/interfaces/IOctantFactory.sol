@@ -141,6 +141,16 @@ interface IOctantVault {
     /// @return gain Profit amount
     /// @return loss Loss amount
     function process_report(address strategy) external returns (uint256 gain, uint256 loss);
+
+    /// @notice Grants a role bitmask to an account (caller must be roleManager)
+    /// @param account The address to grant roles to
+    /// @param role Bitmask of roles to grant
+    function set_role(address account, uint256 role) external;
+
+    /// @notice Sets the deposit limit for the vault (caller must have DEPOSIT_LIMIT_MANAGER role)
+    /// @param depositLimit_ New deposit limit (type(uint256).max for unlimited)
+    /// @param shouldOverride_ If true, overrides any custom limit set by the deposit limit module
+    function set_deposit_limit(uint256 depositLimit_, bool shouldOverride_) external;
 }
 
 /// @title IOctantStrategy

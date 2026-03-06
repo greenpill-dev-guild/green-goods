@@ -10,6 +10,7 @@ import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { Alert } from "@/components/ui/Alert";
 
 const EAS_EXPLORER_URL = "https://explorer.easscan.org";
 
@@ -66,12 +67,10 @@ export default function GardenAssessment() {
     );
   } else if (error) {
     content = (
-      <div className="rounded-md border border-error-light bg-error-lighter p-4" role="alert">
-        <p className="text-sm text-error-dark">
-          {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}:{" "}
-          {error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" })}
-        </p>
-      </div>
+      <Alert variant="error">
+        {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}:{" "}
+        {error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" })}
+      </Alert>
     );
   } else {
     content = (

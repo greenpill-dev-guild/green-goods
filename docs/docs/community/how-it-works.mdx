@@ -1,0 +1,93 @@
+---
+title: How It Works
+sidebar_label: How It Works
+slug: /community/how-it-works
+sidebar_position: 2
+audience: all
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+keywords:
+  - MDR workflow
+  - passkey
+  - PWA
+  - offline
+  - impact reporting
+  - verification
+  - localization
+---
+
+import {NextBestAction} from "@site/src/components/docs";
+
+# How It Works
+
+Green Goods combines several innovations to make documenting and funding regenerative work practical for field workers. Here's how each piece works.
+
+## Frictionless Onboarding
+
+{/* IMAGE PLACEHOLDER: Passkey onboarding — fingerprint/face auth on phone (800x400) */}
+
+Green Goods eliminates the biggest barrier to web3 adoption — wallet setup:
+
+- **Passkey authentication** — Sign in with your fingerprint, face, or device PIN. No seed phrases, no browser extensions, no MetaMask popups.
+- **Automatic smart account** — Behind the scenes, a [smart account](/glossary#smart-account-account-abstraction) is created for you using account abstraction. This is your on-chain identity.
+- **Gasless transactions** — Work submissions are bundled and sponsored, so you never need to buy tokens or pay gas fees.
+- **Under a minute** — From first visit to first submission, the onboarding flow takes less than 60 seconds.
+
+Experienced users can also connect an existing wallet (MetaMask, Rainbow, etc.) for direct on-chain interaction.
+
+## Documenting Your Work
+
+{/* IMAGE PLACEHOLDER: MDR workflow — three-step phone screens showing Media, Details, Review (800x400) */}
+
+The **Media -> Details -> Review** (MDR) workflow is how every piece of work gets documented. It's designed for mobile phones in the field:
+
+1. **Media** — Open the camera and capture photos of your work. The action specifies minimum and maximum media requirements. Photos are stored locally on your device first.
+2. **Details** — Fill in action-specific form fields. These are generated from the action's configuration and can include text inputs, number fields, dropdowns, sliders, and repeating rows.
+3. **Review** — See a summary of your photos and answers. Add optional feedback, then submit. The submission enters the operator's review queue.
+
+The MDR flow ensures consistent, structured evidence capture regardless of the action type or domain. Here's the full step-by-step:
+
+{/* IMAGE PLACEHOLDER: Work logging — gardener photographing tree planting (800x400) */}
+
+1. **Open the app** and navigate to your garden
+2. **Browse available actions** — Each action card shows the title, domain badge, description, and requirements
+3. **Select an action** to start the MDR workflow
+4. **Capture media** — Take photos using your device camera or select from your gallery
+5. **Fill in details** — Complete the action-specific form fields
+6. **Review and submit** — Check your submission summary and tap submit
+7. **Track progress** — Monitor your submission status in the work dashboard (pending, approved, or changes requested)
+
+## Built for the Field
+
+Green Goods is a [Progressive Web App](/glossary#pwa-progressive-web-app) — it works like a native app on your phone, even in low-connectivity environments:
+
+- **Install from your browser** — Tap "Add to Home Screen" on any mobile browser. No app store required.
+- **Offline-first** — All submissions are saved locally before syncing. The service worker caches the app shell and critical assets.
+- **Background sync** — When you come back online, queued submissions sync automatically with exponential backoff and retry logic.
+- **Mobile optimized** — Designed for mid-range Android devices with limited bandwidth. Touch targets, image compression, and lazy loading keep the experience fast.
+- **Multi-language** — Full UI support in English, Spanish, and Portuguese. Action titles, descriptions, instructions, and form labels are all translated. Language detection follows your device settings, with manual override available.
+- **Community translations** — Translation files are open for community contributions, with French and Swahili next on the roadmap.
+
+## On-Chain Verification & Rewards
+
+Every approved piece of work creates a verifiable on-chain record:
+
+- **EAS attestations** — The [Ethereum Attestation Service](/glossary#eas-ethereum-attestation-service) creates permanent, schema-validated attestations for each approved submission
+- **Resolver validation** — Smart contract resolvers enforce that attesters have the correct [Hats Protocol](https://www.hatsprotocol.xyz/) role and that the data matches the expected schema
+- **Hypercert certification** — Aggregated, assessed work becomes a [Hypercert](/glossary#hypercert) — a tokenized impact certificate that funders can purchase
+- **Reputation building** — Your attestation history builds an on-chain reputation that's portable across gardens and platforms
+- **Automated impact reporting** — Green Goods integrates with [Karma GAP](https://gap.karmahq.xyz/) to aggregate approved work across actions and reporting periods. Impact data maps to grant milestones, and evaluators can export reports in formats that funders expect. Garden-level dashboards show work volume, approval rates, and capital measurements over time.
+
+---
+
+<NextBestAction
+  title="Next: Why We Build"
+  why="Now that you understand how the platform works, learn about the mission and ecosystem that drives Green Goods."
+  actionLabel="Why We Build"
+  actionHref="/community/why-we-build"
+  alternatives={[
+    { label: "Gardener Guide", href: "/community/gardener-guide/joining-a-garden" },
+    { label: "Operator Guide", href: "/operator/create-garden" }
+  ]}
+/>

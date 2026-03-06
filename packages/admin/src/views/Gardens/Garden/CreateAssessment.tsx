@@ -1,60 +1,112 @@
 import {
   type Address,
-  clearFormDraft,
-  ConfirmDialog,
+  assessmentStepFields,
+  type CreateAssessmentFormData,
+  classifyTxError,
   ErrorBoundary,
-  type CreateAssessmentForm as WorkflowAssessmentForm,
-  loadFormDraft,
-  saveFormDraft,
+  isMeaningfulTxErrorMessage,
   toastService,
+  useCreateAssessmentForm,
+  useCreateAssessmentStore,
   useCreateAssessmentWorkflow,
   useGardenDomains,
+  type CreateAssessmentForm as WorkflowAssessmentForm,
 } from "@green-goods/shared";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { RiErrorWarningLine } from "@remixicon/react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
+import { isAddress } from "viem";
 import { useAccount } from "wagmi";
-import { DomainActionStep } from "@/components/Assessment/CreateAssessmentSteps/DomainActionStep";
-import { SdgHarvestStep } from "@/components/Assessment/CreateAssessmentSteps/SdgHarvestStep";
-import {
-  type CreateAssessmentForm,
-  STEP_FIELDS,
-  createAssessmentSchema,
-  createDefaultAssessmentForm,
-} from "@/components/Assessment/CreateAssessmentSteps/shared";
+import { useShallow } from "zustand/react/shallow";
+import { ActionsHarvestStep } from "@/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep";
+import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps/DomainContextStep";
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
 import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
+import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 
-const stepConfigs: Step[] = [
-  {
-    id: "strategy",
-    title: "Strategy Kernel",
-    description: "Diagnosis, outcomes, and complexity",
-  },
-  {
-    id: "domain",
-    title: "Domain & Actions",
-    description: "Domain selection and coherent actions",
-  },
-  {
-    id: "sdgHarvest",
-    title: "SDG & Harvest",
-    description: "SDG alignment and reporting period",
-  },
-];
+function useStepConfigs(): Step[] {
+  const { formatMessage } = useIntl();
+  return [
+    {
+      id: "domainContext",
+      title: formatMessage({
+        id: "app.admin.assessment.create.stepDomainContext.title",
+        defaultMessage: "Domain & Context",
+      }),
+      description: formatMessage({
+        id: "app.admin.assessment.create.stepDomainContext.description",
+        defaultMessage: "Domain selection, title, and location",
+      }),
+    },
+    {
+      id: "strategy",
+      title: formatMessage({
+        id: "app.admin.assessment.create.stepStrategy.title",
+        defaultMessage: "Strategy Kernel",
+      }),
+      description: formatMessage({
+        id: "app.admin.assessment.create.stepStrategy.description",
+        defaultMessage: "Diagnosis, outcomes, and complexity",
+      }),
+    },
+    {
+      id: "actionsHarvest",
+      title: formatMessage({
+        id: "app.admin.assessment.create.stepActionsHarvest.title",
+        defaultMessage: "Actions & Harvest",
+      }),
+      description: formatMessage({
+        id: "app.admin.assessment.create.stepActionsHarvest.description",
+        defaultMessage: "Select actions and reporting period",
+      }),
+    },
+  ];
+}
+
+function toInputDate(value: string | number | null | undefined): string {
+  if (!value) return "";
+
+  let timestampMs: number;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value) || value <= 0) return "";
+    timestampMs = value > 10_000_000_000 ? value : value * 1000;
+  } else {
+    const parsed = new Date(value).getTime();
+    if (Number.isNaN(parsed)) return "";
+    timestampMs = parsed;
+  }
+
+  if (!Number.isFinite(timestampMs) || timestampMs <= 0) return "";
+  return new Date(timestampMs).toISOString().slice(0, 10);
+}
+
+function toUnixSeconds(value: string): number {
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return 0;
+  return Math.floor(timestamp / 1000);
+}
 
 export default function CreateAssessment() {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  const stepConfigs = useStepConfigs();
   const { id: gardenId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { address } = useAccount();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [showGasConfirm, setShowGasConfirm] = useState(false);
-  const [pendingPayload, setPendingPayload] = useState<WorkflowAssessmentForm | null>(null);
+
+  // ── Zustand store (source of truth for form data) ──────
+  const form = useCreateAssessmentStore(useShallow((state) => state.form));
+  const currentStep = useCreateAssessmentStore((state) => state.currentStep);
+  const setField = useCreateAssessmentStore((state) => state.setField);
+  const nextStep = useCreateAssessmentStore((state) => state.nextStep);
+  const previousStep = useCreateAssessmentStore((state) => state.previousStep);
+  const resetStore = useCreateAssessmentStore((state) => state.reset);
+
+  // ── RHF form (validation-only layer — just trigger + reset) ──
+  const { trigger, reset: resetValidationForm } = useCreateAssessmentForm();
+
+  const [showValidation, setShowValidation] = useState(false);
 
   const { data: gardenDomainMask } = useGardenDomains(gardenId);
   const normalizedGardenDomainMask =
@@ -64,8 +116,6 @@ export default function CreateAssessment() {
         ? gardenDomainMask
         : undefined;
 
-  const DRAFT_KEY = `assessment-v2-draft-${gardenId}`;
-
   const {
     state,
     startCreation,
@@ -73,42 +123,181 @@ export default function CreateAssessment() {
     retry,
     reset: resetWorkflow,
     canRetry,
-  } = useCreateAssessmentWorkflow();
+    draft,
+  } = useCreateAssessmentWorkflow({ gardenId });
+  const { loadDraft, saveDraft, draftKey } = draft;
+  const draftPersistenceWarningShownRef = useRef(false);
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    formState: { errors },
-    reset: resetForm,
-    trigger,
-    watch,
-  } = useForm<CreateAssessmentForm>({
-    resolver: zodResolver(createAssessmentSchema),
-    defaultValues: createDefaultAssessmentForm(),
-    mode: "onChange",
-    shouldUnregister: false,
-  });
+  // ── Sync Zustand store → RHF validation form ──────────
+  // Every store change clears all RHF errors and updates values.
+  // This is the key pattern from CreateGarden that prevents stale errors.
+  useEffect(() => {
+    resetValidationForm(form);
+  }, [form, resetValidationForm]);
+
+  // ── Draft restore on mount ─────────────────────────────
+  const initializedRef = useRef(false);
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    let cancelled = false;
+
+    const restoreDraft = async () => {
+      const savedDraft = await loadDraft();
+      if (!savedDraft || cancelled) return;
+
+      // Parse draft into form fields and set each in the store
+      const metrics =
+        typeof savedDraft.metrics === "string"
+          ? (() => {
+              try {
+                const parsed = JSON.parse(savedDraft.metrics);
+                return typeof parsed === "object" && parsed !== null
+                  ? (parsed as Record<string, unknown>)
+                  : {};
+              } catch {
+                return {};
+              }
+            })()
+          : ((savedDraft.metrics as Record<string, unknown> | null) ?? {});
+
+      if (savedDraft.title) setField("title", savedDraft.title);
+      if (savedDraft.description) setField("description", savedDraft.description);
+      if (savedDraft.location) setField("location", savedDraft.location);
+      if (typeof metrics.diagnosis === "string") setField("diagnosis", metrics.diagnosis);
+      if (typeof metrics.cynefinPhase === "number") setField("cynefinPhase", metrics.cynefinPhase);
+      if (typeof metrics.domain === "number") setField("domain", metrics.domain);
+
+      if (Array.isArray(metrics.smartOutcomes)) {
+        const validOutcomes = metrics.smartOutcomes.filter(
+          (item): item is { description: string; metric: string; target: number } =>
+            typeof item === "object" &&
+            item !== null &&
+            typeof (item as { description?: unknown }).description === "string" &&
+            typeof (item as { metric?: unknown }).metric === "string" &&
+            typeof (item as { target?: unknown }).target === "number"
+        );
+        if (validOutcomes.length > 0) setField("smartOutcomes", validOutcomes);
+      }
+
+      if (Array.isArray(metrics.selectedActionUIDs)) {
+        const validUIDs = metrics.selectedActionUIDs.filter(
+          (item): item is string => typeof item === "string"
+        );
+        setField("selectedActionUIDs", validUIDs);
+      }
+
+      if (Array.isArray(metrics.sdgTargets)) {
+        const validTargets = metrics.sdgTargets.filter(
+          (item): item is number => typeof item === "number"
+        );
+        setField("sdgTargets", validTargets);
+      }
+
+      const startDate = toInputDate(savedDraft.startDate);
+      const endDate = toInputDate(savedDraft.endDate);
+      if (startDate) setField("reportingPeriodStart", startDate);
+      if (endDate) setField("reportingPeriodEnd", endDate);
+    };
+
+    void restoreDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadDraft, setField]);
+
+  // ── Save draft on store changes ────────────────────────
+  const prevFormRef = useRef(form);
+  useEffect(() => {
+    // Skip the initial render
+    if (prevFormRef.current === form) return;
+    prevFormRef.current = form;
+
+    const payload = buildWorkflowPayload(form);
+    if (!payload) return;
+
+    const timeoutId = setTimeout(() => {
+      void (async () => {
+        const savedDraft = await saveDraft(payload);
+        if (savedDraft) {
+          draftPersistenceWarningShownRef.current = false;
+          return;
+        }
+
+        if (!draftKey || draftPersistenceWarningShownRef.current) return;
+        draftPersistenceWarningShownRef.current = true;
+        toastService.info({
+          title: formatMessage({
+            id: "app.assessment.draftPersistence.saveFailed.title",
+            defaultMessage: "Draft backup unavailable",
+          }),
+          message: formatMessage({
+            id: "app.assessment.draftPersistence.saveFailed.message",
+            defaultMessage:
+              "Assessment submission will continue, but your draft could not be saved.",
+          }),
+          context: "assessment draft",
+          suppressLogging: true,
+        });
+      })();
+    }, 600);
+
+    return () => clearTimeout(timeoutId);
+  }, [form, saveDraft, draftKey, formatMessage]);
+
+  const buildWorkflowPayload = useCallback(
+    (formData: CreateAssessmentFormData): WorkflowAssessmentForm | null => {
+      if (!gardenId || !isAddress(gardenId)) return null;
+
+      return {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        assessmentType: `domain-${formData.domain}`,
+        capitals: [],
+        metrics: {
+          diagnosis: formData.diagnosis,
+          smartOutcomes: formData.smartOutcomes,
+          cynefinPhase: formData.cynefinPhase,
+          domain: formData.domain,
+          selectedActionUIDs: formData.selectedActionUIDs,
+          sdgTargets: formData.sdgTargets,
+        },
+        evidenceMedia: formData.attachments ?? [],
+        reportDocuments: [],
+        impactAttestations: [],
+        startDate: toUnixSeconds(formData.reportingPeriodStart),
+        endDate: toUnixSeconds(formData.reportingPeriodEnd),
+        location: formData.location.trim(),
+        tags: formData.sdgTargets.map((id) => `sdg-${id}`),
+        gardenId: gardenId as Address,
+      };
+    },
+    [gardenId]
+  );
 
   const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");
   const isSuccess = state.matches("success");
-
-  // Load draft on mount
-  useEffect(() => {
-    const draft = loadFormDraft<CreateAssessmentForm>(DRAFT_KEY);
-    if (draft) {
-      resetForm(draft);
-    }
-  }, [DRAFT_KEY, resetForm]);
-
-  // Save draft on form change
-  useEffect(() => {
-    const subscription = watch((value) => {
-      saveFormDraft(DRAFT_KEY, value);
-    });
-    return () => subscription.unsubscribe();
-  }, [watch, DRAFT_KEY]);
+  const txErrorView = useMemo(() => classifyTxError(state.context.error), [state.context.error]);
+  const errorTitle = formatMessage({
+    id: txErrorView.titleKey,
+    defaultMessage:
+      txErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+  });
+  const errorMessage =
+    txErrorView.kind === "cancelled"
+      ? formatMessage({
+          id: txErrorView.messageKey,
+          defaultMessage: "Transaction was cancelled. Please try again when ready.",
+        })
+      : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
+        ? txErrorView.rawMessage
+        : formatMessage({
+            id: txErrorView.messageKey,
+            defaultMessage: "Please review the details and try again.",
+          });
 
   // Navigate on success
   useEffect(() => {
@@ -125,17 +314,61 @@ export default function CreateAssessment() {
         context: "assessment submission",
         suppressLogging: true,
       });
-      clearFormDraft(DRAFT_KEY);
+      resetStore();
       navigate(`/gardens/${gardenId}/assessments`);
     }
-  }, [isSuccess, navigate, gardenId, DRAFT_KEY, formatMessage]);
+  }, [isSuccess, navigate, gardenId, formatMessage, resetStore]);
 
+  // Reset validation display when step changes
   useEffect(() => {
-    resetWorkflow();
-  }, [resetWorkflow]);
+    setShowValidation(false);
+  }, [currentStep]);
 
-  const onValid = async (formData: CreateAssessmentForm) => {
-    try {
+  // ── Step validation (Garden pattern: trigger returns boolean) ──
+  const handleNext = async () => {
+    setShowValidation(true);
+    const currentStepId = stepConfigs[currentStep]?.id;
+    if (currentStepId) {
+      const fields = assessmentStepFields[currentStepId as keyof typeof assessmentStepFields];
+      if (fields) {
+        const isStepValid = await trigger([...fields], { shouldFocus: true });
+        if (!isStepValid) return;
+      }
+    }
+    setShowValidation(false);
+    nextStep();
+  };
+
+  const handleBack = () => {
+    setShowValidation(false);
+    previousStep();
+  };
+
+  const handleCancel = () => {
+    navigate(`/gardens/${gardenId}/assessments`);
+  };
+
+  // ── Final submission (validate all fields) ─────────────
+  const handleSubmit = async () => {
+    setShowValidation(true);
+    const isFormValid = await trigger(undefined, { shouldFocus: true });
+    if (!isFormValid) {
+      toastService.error({
+        title: formatMessage({
+          id: "app.assessment.incompleteForm",
+          defaultMessage: "Incomplete form",
+        }),
+        message: formatMessage({
+          id: "app.assessment.incompleteFormMessage",
+          defaultMessage: "Check the highlighted fields and try again.",
+        }),
+        context: "assessment submission",
+        suppressLogging: true,
+      });
+      return;
+    }
+
+    const onValid = async () => {
       if (!address) {
         toastService.error({
           title: formatMessage({
@@ -152,7 +385,8 @@ export default function CreateAssessment() {
         return;
       }
 
-      if (!gardenId) {
+      const payload = buildWorkflowPayload(form);
+      if (!payload) {
         toastService.error({
           title: formatMessage({
             id: "app.assessment.selectGarden",
@@ -168,223 +402,92 @@ export default function CreateAssessment() {
         return;
       }
 
-      // Build workflow payload from v2 form data
-      // The workflow hook still expects the old CreateAssessmentForm shape,
-      // so we map the new fields to the existing interface.
-      // This mapping will be updated when the workflow hook is upgraded.
-      // Cast gardenId from route param (string) to Address at the boundary
-      const payload: WorkflowAssessmentForm = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        // Map new fields to legacy interface until workflow is upgraded
-        assessmentType: `domain-${formData.domain}`,
-        capitals: [],
-        metrics: {
-          diagnosis: formData.diagnosis,
-          smartOutcomes: formData.smartOutcomes,
-          cynefinPhase: formData.cynefinPhase,
-          domain: formData.domain,
-          selectedActionUIDs: formData.selectedActionUIDs,
-          sdgTargets: formData.sdgTargets,
-        },
-        evidenceMedia: formData.attachments ?? [],
-        reportDocuments: [],
-        impactAttestations: [],
-        startDate: Math.floor(new Date(formData.reportingPeriodStart).getTime() / 1000),
-        endDate: Math.floor(new Date(formData.reportingPeriodEnd).getTime() / 1000),
-        location: formData.location.trim(),
-        tags: formData.sdgTargets.map((id) => `sdg-${id}`),
-        gardenId: gardenId as Address,
-      };
+      const started = startCreation(payload);
+      if (!started) {
+        toastService.error({
+          title: formatMessage({
+            id: "app.assessment.couldNotSubmit",
+            defaultMessage: "We could not submit the assessment",
+          }),
+          message: formatMessage({
+            id: "app.assessment.submissionFailedMessage",
+            defaultMessage: "Something went wrong. Please try again.",
+          }),
+          context: "assessment submission",
+          suppressLogging: true,
+        });
+        return;
+      }
 
-      setPendingPayload(payload);
-      setShowGasConfirm(true);
-    } catch (error) {
-      toastService.error({
-        title: formatMessage({
-          id: "app.assessment.submissionFailed",
-          defaultMessage: "Submission failed",
-        }),
-        message: formatMessage({
-          id: "app.assessment.submissionFailedMessage",
-          defaultMessage: "Something went wrong. Please try again.",
-        }),
-        context: "assessment submission",
-        error,
-      });
-    }
-  };
-
-  const handleNextStep = async () => {
-    const step = stepConfigs[currentStep];
-    if (!step) return;
-
-    const fieldMap: Record<string, readonly (keyof CreateAssessmentForm)[]> = STEP_FIELDS;
-    const fields = fieldMap[step.id];
-    if (fields) {
-      const valid = await trigger([...fields], { shouldFocus: true });
-      if (!valid) return;
-    }
-
-    setCurrentStep((prev) => Math.min(prev + 1, stepConfigs.length - 1));
-  };
-
-  const handlePreviousStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 0));
-  };
-
-  const handleCancel = () => {
-    navigate(`/gardens/${gardenId}/assessments`);
-  };
-
-  const handleFormSubmit = handleSubmit(onValid, () => {
-    toastService.error({
-      title: formatMessage({
-        id: "app.assessment.incompleteForm",
-        defaultMessage: "Incomplete form",
-      }),
-      message: formatMessage({
-        id: "app.assessment.incompleteFormMessage",
-        defaultMessage: "Check the highlighted fields and try again.",
-      }),
-      context: "assessment submission",
-      suppressLogging: true,
-    });
-  });
-
-  const handleConfirmAssessment = () => {
-    if (pendingPayload) {
-      startCreation(pendingPayload);
       submitCreation();
-    }
-    setShowGasConfirm(false);
-    setPendingPayload(null);
+    };
+
+    void onValid();
   };
-
-  const handleCancelAssessment = () => {
-    setShowGasConfirm(false);
-    setPendingPayload(null);
-  };
-
-  // Check if current step fields have errors
-  const isCurrentStepValid = () => {
-    const step = stepConfigs[currentStep];
-    if (!step) return true;
-
-    const fieldMap: Record<string, readonly (keyof CreateAssessmentForm)[]> = STEP_FIELDS;
-    const fields = fieldMap[step.id];
-    if (!fields) return true;
-
-    return fields.every((field) => !errors[field]);
-  };
-
-  const nextDisabled = !isCurrentStepValid();
 
   return (
     <ErrorBoundary context="CreateAssessment.Wizard">
-      {hasError && (
-        <div className="fixed inset-x-0 top-[120px] z-20 mx-auto max-w-4xl px-4 sm:px-6">
-          <div
-            role="alert"
-            className="flex items-start gap-3 rounded-lg border border-error-light bg-error-lighter p-4 text-sm text-error-dark shadow-lg"
-          >
-            <RiErrorWarningLine className="mt-0.5 h-5 w-5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="font-medium text-error-dark">
+      <FormWizard
+        steps={stepConfigs}
+        currentStep={currentStep}
+        onNext={handleNext}
+        onBack={handleBack}
+        onCancel={handleCancel}
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        nextLabel={formatMessage({ id: "app.assessment.continue", defaultMessage: "Continue" })}
+        submitLabel={formatMessage({
+          id: "app.assessment.submitAssessment",
+          defaultMessage: "Submit assessment",
+        })}
+      >
+        <TxInlineFeedback
+          visible={hasError}
+          severity={txErrorView.severity}
+          title={errorTitle}
+          message={errorMessage}
+          reserveClassName="min-h-[8.5rem]"
+          className="mb-4"
+          action={
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={retry}
+                disabled={!canRetry || isSubmitting}
+                className="rounded-md border border-stroke-soft bg-bg-white px-3 py-1.5 text-xs font-medium text-text-strong transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60"
+              >
                 {formatMessage({
-                  id: "app.assessment.couldNotSubmit",
-                  defaultMessage: "We could not submit the assessment",
+                  id: "app.assessment.retrySubmission",
+                  defaultMessage: "Retry submission",
                 })}
-              </p>
-              <p className="mt-1 text-error-dark/80">
-                {state.context.error ??
-                  formatMessage({
-                    id: "app.assessment.reviewAndRetry",
-                    defaultMessage: "Please review the details and try again.",
-                  })}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  onClick={retry}
-                  disabled={!canRetry || isSubmitting}
-                  className="rounded-md border border-error-light px-3 py-1.5 text-xs font-medium text-error-dark transition hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {formatMessage({
-                    id: "app.assessment.retrySubmission",
-                    defaultMessage: "Retry submission",
-                  })}
-                </button>
-                <button
-                  onClick={() => resetWorkflow()}
-                  className="rounded-md border border-stroke-soft px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
-                >
-                  {formatMessage({
-                    id: "app.assessment.editDetails",
-                    defaultMessage: "Edit details",
-                  })}
-                </button>
-              </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => resetWorkflow()}
+                className="rounded-md border border-stroke-soft px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
+              >
+                {formatMessage({
+                  id: "app.assessment.editDetails",
+                  defaultMessage: "Edit details",
+                })}
+              </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={handleFormSubmit}>
-        <FormWizard
-          steps={stepConfigs}
-          currentStep={currentStep}
-          onNext={handleNextStep}
-          onBack={handlePreviousStep}
-          onCancel={handleCancel}
-          onSubmit={handleFormSubmit}
-          isSubmitting={isSubmitting}
-          nextDisabled={nextDisabled}
-          nextLabel={formatMessage({ id: "app.assessment.continue", defaultMessage: "Continue" })}
-          submitLabel={formatMessage({
-            id: "app.assessment.submitAssessment",
-            defaultMessage: "Submit assessment",
-          })}
-        >
-          {stepConfigs[currentStep]?.id === "strategy" && (
-            <StrategyKernelStep
-              register={register}
-              errors={errors}
-              control={control}
-              isSubmitting={isSubmitting}
-            />
-          )}
-          {stepConfigs[currentStep]?.id === "domain" && (
-            <DomainActionStep
-              errors={errors}
-              control={control}
-              isSubmitting={isSubmitting}
-              gardenDomainMask={normalizedGardenDomainMask}
-            />
-          )}
-          {stepConfigs[currentStep]?.id === "sdgHarvest" && (
-            <SdgHarvestStep
-              register={register}
-              errors={errors}
-              control={control}
-              isSubmitting={isSubmitting}
-            />
-          )}
-        </FormWizard>
-      </form>
-      <ConfirmDialog
-        isOpen={showGasConfirm}
-        onClose={handleCancelAssessment}
-        onConfirm={handleConfirmAssessment}
-        title={formatMessage({
-          id: "app.assessment.confirmSubmit.title",
-          defaultMessage: "Submit assessment?",
-        })}
-        description={formatMessage({
-          id: "app.assessment.confirmSubmit.description",
-          defaultMessage:
-            "This will create an on-chain attestation which costs gas. This action cannot be undone.",
-        })}
-      />
+          }
+        />
+        {stepConfigs[currentStep]?.id === "domainContext" && (
+          <DomainContextStep
+            showValidation={showValidation}
+            isSubmitting={isSubmitting}
+            gardenDomainMask={normalizedGardenDomainMask}
+          />
+        )}
+        {stepConfigs[currentStep]?.id === "strategy" && (
+          <StrategyKernelStep showValidation={showValidation} isSubmitting={isSubmitting} />
+        )}
+        {stepConfigs[currentStep]?.id === "actionsHarvest" && (
+          <ActionsHarvestStep showValidation={showValidation} isSubmitting={isSubmitting} />
+        )}
+      </FormWizard>
     </ErrorBoundary>
   );
 }

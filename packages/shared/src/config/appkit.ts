@@ -13,10 +13,10 @@
 
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { DEFAULT_CHAIN_ID } from "./blockchain";
-import { getChain, SUPPORTED_CHAINS } from "./chains";
 import { logger } from "../modules/app/logger";
 import { getResolvedTheme } from "../utils/styles/theme";
+import { DEFAULT_CHAIN_ID } from "./blockchain";
+import { getChain, SUPPORTED_CHAINS } from "./chains";
 
 type AppKitMetadata = {
   name: string;

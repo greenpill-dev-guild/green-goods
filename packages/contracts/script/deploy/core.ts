@@ -1,12 +1,12 @@
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { execFileSync } from "node:child_process";
-import { NetworkManager } from "../utils/network";
-import { AnvilManager } from "./anvil";
-import { EnvioIntegration } from "../utils/envio-integration";
-import { DocsUpdater } from "../utils/docs-updater";
 import { type ParsedOptions, redactSensitiveArgs } from "../utils/cli-parser";
+import { DocsUpdater } from "../utils/docs-updater";
+import { EnvioIntegration } from "../utils/envio-integration";
+import { NetworkManager } from "../utils/network";
 import { assertSepoliaGate } from "../utils/release-gate";
+import { AnvilManager } from "./anvil";
 
 /**
  * CoreDeployer - Handles core contract deployment
@@ -31,6 +31,7 @@ export class CoreDeployer {
 
     // Set environment variables for the Solidity script
     this._setEnvironmentFlags(options);
+    this._ensureArbitrumEnsReceiver(options);
 
     // Display active deployment flags
     this._logActiveFlags(options);
@@ -75,14 +76,21 @@ export class CoreDeployer {
 
     // Use explicit sender for both broadcast and dry-run simulation when provided.
     // This keeps role/admin checks aligned with the real deployer identity.
-    const senderAddress = process.env.SENDER_ADDRESS;
+    const senderAddress = options.sender ?? process.env.SENDER_ADDRESS;
     if (senderAddress) {
       args.push("--sender", senderAddress);
+    }
+
+    const shouldSaveArtifacts = options.broadcast || options.saveArtifacts;
+    if (options.saveArtifacts && !options.broadcast) {
+      console.log("🗂️ Saving forge artifacts without broadcasting transactions");
     }
 
     if (options.dryRun && !options.broadcast) {
       console.log("🧪 Dry-run execution enabled (RPC simulation, no broadcast)");
     }
+
+    this._ensureDeploymentOutputDir();
 
     // Handle verification
     const shouldVerify = this._shouldVerifyContracts(options);
@@ -108,7 +116,7 @@ export class CoreDeployer {
         env: {
           ...process.env,
           FOUNDRY_PROFILE: "production",
-          FORGE_BROADCAST: options.broadcast ? "true" : "false",
+          FORGE_BROADCAST: shouldSaveArtifacts ? "true" : "false",
           FORGE_DRY_RUN_CHECKS: options.dryRun ? "true" : "false",
         },
         cwd: path.join(__dirname, "../.."),
@@ -192,6 +200,46 @@ export class CoreDeployer {
   }
 
   /**
+   * Ensure ENS_L1_RECEIVER is available for Arbitrum deployments.
+   * If unset, attempt to load it from deployments/1-latest.json (ensReceiver)
+   * after a successful mainnet ENS infra deployment.
+   */
+  private _ensureArbitrumEnsReceiver(options: ParsedOptions): void {
+    if (options.network !== "arbitrum") {
+      return;
+    }
+
+    const envReceiver = process.env.ENS_L1_RECEIVER;
+    if (envReceiver && !/^0x0+$/i.test(envReceiver)) {
+      return;
+    }
+
+    try {
+      const deploymentPath = this._resolveDeploymentFilePath("1-latest.json");
+      if (!fs.existsSync(deploymentPath)) {
+        console.warn("⚠️  ENS_L1_RECEIVER is unset and mainnet deployment file was not found.");
+        console.warn("   Run mainnet ENS deployment first or set ENS_L1_RECEIVER manually.");
+        return;
+      }
+
+      const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8")) as { ensReceiver?: string };
+      const ensReceiver = deployment.ensReceiver;
+      if (!ensReceiver || /^0x0+$/i.test(ensReceiver)) {
+        console.warn(`⚠️  ENS_L1_RECEIVER is unset and ${deploymentPath} has no valid ensReceiver.`);
+        console.warn("   Set ENS_L1_RECEIVER manually before Arbitrum deploy.");
+        return;
+      }
+
+      process.env.ENS_L1_RECEIVER = ensReceiver;
+      console.log(`✅ Loaded ENS_L1_RECEIVER from ${deploymentPath}: ${ensReceiver}`);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.warn(`⚠️  Failed to load ENS_L1_RECEIVER from mainnet deployment JSON: ${errorMsg}`);
+      console.warn("   Set ENS_L1_RECEIVER manually before Arbitrum deploy.");
+    }
+  }
+
+  /**
    * Log active deployment flags
    * @param options - Deployment options
    */
@@ -233,27 +281,8 @@ export class CoreDeployer {
     if (!options.broadcast) {
       return false;
     }
-
     const verifierConfig = this.networkManager.getVerifierConfig(options.network);
-    let shouldVerify = options.verify && verifierConfig !== null && !options.skipVerification;
-
-    if (shouldVerify) {
-      try {
-        const chainId = this.networkManager.getChainIdString(options.network);
-        const deploymentFile = path.join(__dirname, "../../deployments", `${chainId}-latest.json`);
-
-        if (fs.existsSync(deploymentFile) && !options.force) {
-          console.log("⏭️  Skipping verification - contracts already deployed and likely verified");
-          shouldVerify = false;
-        }
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.error("❌ Failed to check deployment status:", errorMsg);
-        // If check fails, proceed with verification
-      }
-    }
-
-    return shouldVerify;
+    return options.verify && verifierConfig !== null && !options.skipVerification;
   }
 
   /**
@@ -336,7 +365,7 @@ export class CoreDeployer {
 
     try {
       const chainId = this.networkManager.getChainIdString(options.network);
-      const deploymentPath = path.join(__dirname, "../../deployments", `${chainId}-latest.json`);
+      const deploymentPath = this._resolveDeploymentFilePath(`${chainId}-latest.json`);
       if (!fs.existsSync(deploymentPath)) {
         console.warn(`⚠️  ENS sync skipped: deployment file not found at ${deploymentPath}`);
         return;
@@ -382,5 +411,28 @@ export class CoreDeployer {
 
     const separator = current.endsWith("\n") ? "" : "\n";
     fs.writeFileSync(envPath, `${current}${separator}${normalizedLine}\n`, "utf8");
+  }
+
+  /**
+   * Resolve deployment output directory relative to contracts package root.
+   */
+  private _resolveDeploymentOutputDir(): string {
+    const configuredDir = process.env.DEPLOYMENT_OUTPUT_DIR?.trim();
+    const outputDir = configuredDir && configuredDir.length > 0 ? configuredDir : "deployments";
+    return path.isAbsolute(outputDir) ? outputDir : path.join(__dirname, "../..", outputDir);
+  }
+
+  /**
+   * Resolve deployment artifact path.
+   */
+  private _resolveDeploymentFilePath(fileName: string): string {
+    return path.join(this._resolveDeploymentOutputDir(), fileName);
+  }
+
+  /**
+   * Ensure deployment output directory exists before running forge script.
+   */
+  private _ensureDeploymentOutputDir(): void {
+    fs.mkdirSync(this._resolveDeploymentOutputDir(), { recursive: true });
   }
 }

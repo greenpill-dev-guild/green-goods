@@ -1,17 +1,17 @@
+import {
+  type Address,
+  buildGardenMemberSets,
+  cn,
+  formatAddress,
+  type Garden,
+  useEnsName,
+} from "@green-goods/shared";
 import { RiGroupFill, RiMapPinFill, RiMapPinUserFill } from "@remixicon/react";
 import * as React from "react";
 import { useIntl } from "react-intl";
 import { tv, type VariantProps } from "tailwind-variants";
-import {
-  buildGardenMemberSets,
-  cn,
-  formatAddress,
-  useEnsName,
-  type Address,
-  type Garden,
-} from "@green-goods/shared";
-import { ImageWithFallback } from "@/components/Display";
 import { Badge } from "@/components/Communication";
+import { ImageWithFallback } from "@/components/Display";
 import { Card, type CardRootProps } from "../Base/Card";
 
 export const gardenCardVariants = tv({

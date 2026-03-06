@@ -123,7 +123,9 @@ contract GardenTokenTest is Test, ERC6551Helper {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0
+            domainMask: 0,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
     }
 
@@ -240,7 +242,9 @@ contract GardenTokenTest is Test, ERC6551Helper {
             metadata: "",
             openJoining: true,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0
+            domainMask: 0,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         vm.prank(multisig);
@@ -603,6 +607,71 @@ contract GardenTokenTest is Test, ERC6551Helper {
         vm.prank(address(0x999));
         vm.expectRevert("Ownable: caller is not the owner");
         gardenToken.setTransferRestriction(GardenToken.TransferRestriction.Locked);
+    }
+
+    // =========================================================================
+    // Open Minting Tests
+    // =========================================================================
+
+    event OpenMintingUpdated(bool indexed open);
+
+    function test_openMinting_defaultsToFalse() public {
+        assertFalse(gardenToken.openMinting(), "openMinting should default to false");
+    }
+
+    function test_openMinting_onlyOwnerCanToggle() public {
+        vm.prank(address(0x999));
+        vm.expectRevert("Ownable: caller is not the owner");
+        gardenToken.setOpenMinting(true);
+    }
+
+    function test_openMinting_emitsEvent() public {
+        vm.expectEmit(true, false, false, false);
+        emit OpenMintingUpdated(true);
+
+        vm.prank(multisig);
+        gardenToken.setOpenMinting(true);
+    }
+
+    function test_openMinting_anyoneCanMint() public {
+        _setHatsModule();
+        _setCommunityToken();
+
+        // Enable open minting
+        vm.prank(multisig);
+        gardenToken.setOpenMinting(true);
+
+        // Random address should now be able to mint
+        address anyone = address(0xBEEF);
+        vm.prank(anyone);
+        address gardenAccount = gardenToken.mintGarden(_defaultConfig());
+
+        assertTrue(gardenAccount != address(0), "Anyone should be able to mint when open");
+        assertEq(gardenToken.ownerOf(0), anyone, "Token should be minted to caller");
+    }
+
+    function test_openMinting_canCloseAfterOpening() public {
+        _setHatsModule();
+        _setCommunityToken();
+
+        // Open minting
+        vm.prank(multisig);
+        gardenToken.setOpenMinting(true);
+
+        // Verify open minting works
+        address anyone = address(0xBEEF);
+        vm.prank(anyone);
+        gardenToken.mintGarden(_defaultConfig());
+        assertEq(gardenToken.ownerOf(0), anyone, "Should mint when open");
+
+        // Close minting
+        vm.prank(multisig);
+        gardenToken.setOpenMinting(false);
+
+        // Random address should be blocked again
+        vm.prank(anyone);
+        vm.expectRevert(GardenToken.DeploymentNotConfigured.selector);
+        gardenToken.mintGarden(_defaultConfig());
     }
 
     function test_batchMintGardens_withDomainMasks() public {

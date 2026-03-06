@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { mediaResourceManager } from "../../modules/job-queue/media-resource-manager";
 

@@ -14,7 +14,7 @@
  */
 
 import { expect, test } from "@playwright/test";
-import { ClientTestHelper, TEST_URLS, hasGardens } from "../helpers/test-utils";
+import { ClientTestHelper, hasGardens, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
 
@@ -40,7 +40,7 @@ test.describe("Offline Sync Flows", () => {
   test.describe("Offline Detection", () => {
     test("shows offline indicator when network disconnects", async ({ page, context }) => {
       await page.goto("/home");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1000);
 
       // Go offline
@@ -70,7 +70,7 @@ test.describe("Offline Sync Flows", () => {
 
     test("hides offline indicator when network reconnects", async ({ page, context }) => {
       await page.goto("/home");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1000);
 
       // Go offline first
@@ -131,7 +131,7 @@ test.describe("Offline Sync Flows", () => {
 
     test("persists offline state across page reloads", async ({ page, context }) => {
       await page.goto("/home");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1000);
 
       // Go offline
@@ -140,7 +140,7 @@ test.describe("Offline Sync Flows", () => {
 
       // Reload page while offline
       await page.reload();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(2000);
 
       // Should still show offline indicator
@@ -216,7 +216,7 @@ test.describe("Offline Sync Flows", () => {
 
     test("shows pending count in offline indicator", async ({ page, context }) => {
       await page.goto("/home");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1000);
 
       // Go offline
