@@ -672,8 +672,7 @@ export const GardenWork: React.FC = () => {
                 <p className="text-xs text-warning-dark mb-2 text-center">
                   {intl.formatMessage({
                     id: "app.home.workApproval.actionExpired",
-                    defaultMessage:
-                      "This action has ended. Approval may fail on-chain.",
+                    defaultMessage: "This action has ended. Approval may fail on-chain.",
                   })}
                 </p>
               )}

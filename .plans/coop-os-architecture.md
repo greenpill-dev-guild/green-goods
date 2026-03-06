@@ -1610,6 +1610,30 @@ Credential model:
 - A coop-connected Claude/Anthropic API key is a `CredentialRef` (`provider: "anthropic"`) whose secret lives only in `SecretVault` on authorized anchor nodes.
 - Individual members may optionally connect their own keys for *local-only drafting*; those secrets never enter shared state.
 
+**Pi-mono (Operation A): adopt the agent-loop patterns, not the full provider stack**
+
+You can use Pi (`pi-mono`) as a *design reference* for building Coop’s in-browser agent runtime: a **stateful agent loop** with **tool calling** and **event streaming**. For an extension-first Coop, the recommended approach is to **copy the concepts** (or implement a small “pi-like” loop) while keeping Coop’s own thin waist (`AIAdapter`, `AuthBroker`, `browser:*`, `coordination:*`, `chain:*`).
+
+Why not depend on `@mariozechner/pi-ai` in an MV3 extension (today):
+- **Bundle bloat**: `pi-ai` depends on multiple provider SDKs (Anthropic/OpenAI/Google/Bedrock/etc.) and is Node-oriented by default.
+- **Side effects at import time**: the built-in provider registry auto-registers on module load (`register-builtins`), which makes tree-shaking and minimal bundles harder.
+- **Key handling mismatch**: Coop wants API keys and OAuth refresh tokens confined to `SecretVault` and accessed via `AuthBroker` (least privilege, no replication).
+
+What to borrow from `@mariozechner/pi-agent-core` (maps cleanly to Coop):
+- **`agentLoop()` as an async event stream**: yield `message_*` + `tool_execution_*` events for UI/audit.
+- **`transformContext()` hook**: prune/compact context deterministically (ties into Coop retention + snapshotting).
+- **Tool schema discipline**: JSON-schema/TypeBox parameter schemas for every tool (aligns with Claude tool use and Coop’s `browser:*` interface).
+- **Steering/follow-up**: safe “interrupt” + “queue next” semantics (aligns with approvals and job queues).
+
+How it fits into Coop (thin-waist wiring):
+- Coop runs an **agent loop per job** (or per session) that plans tool calls against the stable tool surface (`browser:*`, `coordination:message`, `knowledge:*`, `chain:*`).
+- Tool execution is always routed through Coop’s **capability-gated executors** (anchor-only for outward actions), and secrets are accessed via `AuthBroker.fetchWithAuth(...)`.
+- Models are selected via Coop’s `AIAdapter` (local/WebLLM) or via an API key `CredentialRef` (Anthropic/OpenAI), not via a global provider registry.
+
+Practical recommendation:
+- **Browser/extension nodes**: implement a small Coop-native “pi-style” loop (event stream + tool router) and keep provider bindings minimal.
+- **Optional daemon**: you can adopt `pi-agent-core` + `pi-ai` more directly if desired (still route secrets through `SecretVault` or a proxy), because the daemon is not constrained by MV3 bundling and can host more providers safely.
+
 **Dispatch / Draft / Execute diagram**
 
 ```
@@ -4125,6 +4149,11 @@ PWA updates:
 - [Claude API: Messages](https://platform.claude.com/docs/api/messages)
 - [Tool use](https://platform.claude.com/docs/en/tool-use/overview)
 - [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview) — optional daemon tier
+- [Pi monorepo (upstream)](https://github.com/badlogic/pi-mono)
+- [Pi monorepo (fork you referenced)](https://github.com/mitsuhiko/pi-mono)
+- [Pi agent runtime (`@mariozechner/pi-agent-core`)](https://github.com/badlogic/pi-mono/tree/main/packages/agent)
+- [Pi unified LLM provider layer (`@mariozechner/pi-ai`)](https://github.com/badlogic/pi-mono/tree/main/packages/ai)
+- [Pi provider auto-registration (`register-builtins`)](https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/providers/register-builtins.ts)
 - [Transformers.js](https://github.com/xenova/transformers.js) — browser ML
 - [WebLLM](https://github.com/mlc-ai/web-llm) — in-browser LLM via WebGPU
 - [WebGPU (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)

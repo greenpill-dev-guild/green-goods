@@ -108,6 +108,8 @@ flowchart TD
 
 Coop is **event-driven**, not “always-running magic”.
 
+Implementation note (to keep it future-proof): the in-browser agent runtime should follow a **pi-agent-core-style loop** (tool calling + event streaming) while keeping Coop’s own thin waist (`AIAdapter`, `AuthBroker`, `browser:*`). This avoids bundling a multi-provider registry into an MV3 extension and keeps secrets confined to the node.
+
 ### 5.1 Draft → Execute split
 
 - **Draft/Propose** (any node): generate digests, summaries, classifications, tx drafts.
