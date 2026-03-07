@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { type Address, type Hex, keccak256, toHex } from "viem";
+import { type Address, type Hex, keccak256 } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { useToastAction } from "../app/useToastAction";

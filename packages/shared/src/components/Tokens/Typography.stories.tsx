@@ -369,7 +369,7 @@ export const DarkMode: Story = {
       <p className="text-paragraph-sm text-text-sub-600 mb-6">
         Typography tokens are theme-agnostic (sizes and weights stay the same). The text color comes
         from semantic <code>text-*</code> tokens, which flip automatically when{" "}
-        <code>[data-theme="dark"]</code> is active. Use the toolbar theme toggle to verify.
+        <code>[data-theme=&quot;dark&quot;]</code> is active. Use the toolbar theme toggle to verify.
       </p>
       {allGroups.map((g) => (
         <TokenGroup key={g.label} label={g.label} tokens={g.tokens} />

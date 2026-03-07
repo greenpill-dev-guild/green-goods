@@ -230,9 +230,10 @@ export function HypercertWizard({
 
   // --- Draft & preview ---
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- Store values intentionally trigger recalc even though not passed to toDraft
+  // Store values intentionally trigger recalc even though not passed to toDraft
   const draft = useMemo(
     () => toDraft(gardenId, (operatorAddress ?? zeroAddress) as `0x${string}`),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       gardenId,
       operatorAddress,

@@ -22,6 +22,7 @@ function WithStoreState({
     for (const [key, value] of Object.entries(overrides)) {
       setField(key as "name" | "slug" | "description" | "location" | "bannerImage", value);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Storybook initializer: run once on mount only
   }, []);
 
   return <>{children}</>;

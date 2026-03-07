@@ -272,7 +272,6 @@ export default function HypercertDetail() {
               <MarketplaceSection
                 gardenAddress={garden.id as Address}
                 hypercertId={hypercertId ? BigInt(hypercertId.split("-").pop() || "0") : 0n}
-                hypercertIdString={hypercertId || ""}
                 chainId={garden.chainId ?? DEFAULT_CHAIN_ID}
                 listingDialogOpen={listingDialogOpen}
                 setListingDialogOpen={setListingDialogOpen}
@@ -350,14 +349,12 @@ export default function HypercertDetail() {
 function MarketplaceSection({
   gardenAddress,
   hypercertId,
-  hypercertIdString,
   chainId,
   listingDialogOpen,
   setListingDialogOpen,
 }: {
   gardenAddress: Address;
   hypercertId: bigint;
-  hypercertIdString: string;
   chainId: number;
   listingDialogOpen: boolean;
   setListingDialogOpen: (open: boolean) => void;

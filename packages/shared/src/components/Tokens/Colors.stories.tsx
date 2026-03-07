@@ -264,13 +264,6 @@ const stateGroups: StateGroup[] = [
 /* -------------------------------------------------------------------------- */
 
 function SwatchChip({ swatch }: { swatch: Swatch }) {
-  const needsDarkText =
-    swatch.name.endsWith("-0") ||
-    swatch.name.endsWith("-50") ||
-    swatch.name.endsWith("-100") ||
-    swatch.name.endsWith("-200") ||
-    swatch.name.endsWith("-300");
-
   return (
     <div className="flex flex-col items-center gap-1">
       <div
