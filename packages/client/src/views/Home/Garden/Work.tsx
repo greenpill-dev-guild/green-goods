@@ -4,7 +4,7 @@ import {
   DEFAULT_CHAIN_ID,
   downloadWorkData,
   downloadWorkMedia,
-  getFileByHash,
+  getJsonByHash,
   isAddressInList,
   isUserAddress as sharedIsUserAddress,
   isValidAttestationId,
@@ -29,6 +29,7 @@ import {
   type WorkApprovalDraft,
   type WorkData,
   type WorkMetadata,
+  type WorkMetadataV1,
 } from "@green-goods/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
@@ -44,11 +45,17 @@ import { WorkRetryFooter } from "./WorkRetryFooter";
 import { WorkSuccessFooter } from "./WorkSuccessFooter";
 import { WorkViewSection } from "./WorkViewSection";
 
+type ResolvedWorkMetadata = WorkMetadata | WorkMetadataV1 | Record<string, unknown>;
+
+function isResolvedWorkMetadata(value: unknown): value is ResolvedWorkMetadata {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
 export const GardenWork: React.FC = () => {
   const intl = useIntl();
   const { id: gardenIdParam, workId } = useParams<{ id: string; workId: string }>();
   const { gardenId: gardenIdFromContext } = (useOutletContext() as { gardenId?: string }) || {};
-  const [workMetadata, setWorkMetadata] = useState<WorkMetadata | null>(null);
+  const [workMetadata, setWorkMetadata] = useState<ResolvedWorkMetadata | null>(null);
   const [metadataStatus, setMetadataStatus] = useState<"idle" | "loading" | "success" | "error">(
     "loading"
   );
@@ -366,34 +373,41 @@ export const GardenWork: React.FC = () => {
       if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
         try {
           const parsed = JSON.parse(trimmed) as unknown;
-          if (isMounted()) {
-            setWorkMetadata(parsed as WorkMetadata);
+          if (!isMounted()) return;
+
+          if (isResolvedWorkMetadata(parsed)) {
+            setWorkMetadata(parsed);
             setMetadataStatus("success");
+          } else {
+            setWorkMetadata(null);
+            setMetadataStatus("error");
+            setMetadataError("Invalid inline metadata payload");
           }
           return;
         } catch (error) {
-          debugWarn(
-            `[GardenWork] Failed to parse inline metadata for work ${work.id}: ${
-              error instanceof Error ? error.message : String(error)
-            }`
-          );
+          if (!isMounted()) return;
+          const message = error instanceof Error ? error.message : String(error);
+          setWorkMetadata(null);
+          setMetadataStatus("error");
+          setMetadataError(message);
+          debugWarn(`[GardenWork] Failed to parse inline metadata for work ${work.id}: ${message}`);
+          return;
         }
       }
 
       try {
-        const file = await getFileByHash(trimmed, { signal, timeoutMs: 30_000 });
-        const data = file.data as unknown as WorkMetadata | null | undefined;
+        const data = await getJsonByHash(trimmed, { signal, timeoutMs: 30_000 });
         if (!isMounted()) return;
 
-        if (data) {
+        if (isResolvedWorkMetadata(data)) {
           setWorkMetadata(data);
           setMetadataStatus("success");
         } else {
           setWorkMetadata(null);
           setMetadataStatus("error");
-          setMetadataError("Empty metadata response");
+          setMetadataError("Invalid metadata payload");
           debugWarn(
-            `[GardenWork] Received empty metadata response from gateway for work ${work.id}`
+            `[GardenWork] Received invalid metadata payload from gateway for work ${work.id}`
           );
         }
       } catch (error) {
@@ -409,12 +423,20 @@ export const GardenWork: React.FC = () => {
   );
 
   const handleBack = () => {
-    const from = (location.state as { from?: string } | null | undefined)?.from;
-    if (from === "dashboard") {
+    const state = (location.state as { backTo?: string; from?: string } | null | undefined) ?? null;
+    const fallbackPath = gardenId ? `/home/${gardenId}` : "/home";
+
+    if (state?.backTo) {
+      navigateToTop(state.backTo);
+      return;
+    }
+
+    if (state?.from === "dashboard") {
       navigateToTop("/home");
       return;
     }
-    navigateToTop(`/home/${garden?.id ?? ""}`);
+
+    navigateToTop(fallbackPath);
   };
 
   if (!work || !garden)

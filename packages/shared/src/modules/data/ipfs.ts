@@ -22,6 +22,7 @@ type IpfsInitStatus = "not_started" | "in_progress" | "success" | "failed" | "sk
 
 let ipfsInitializationStatus: IpfsInitStatus = "not_started";
 let ipfsInitializationError: string | null = null;
+const DEFAULT_IPFS_GATEWAYS = ["https://storacha.link", "https://w3s.link", "https://ipfs.io"];
 
 /**
  * Returns the current IPFS initialization status
@@ -299,39 +300,131 @@ export async function uploadJSONToIPFS(
   );
 }
 
+function trimTrailingSlashes(value: string): string {
+  return value.replace(/\/+$/, "");
+}
+
+function trimLeadingSlashes(value: string): string {
+  return value.replace(/^\/+/, "");
+}
+
+function isPotentialIpfsCid(value: string): boolean {
+  return /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z0-9]{20,})$/i.test(value);
+}
+
+interface ParsedIpfsReference {
+  cid: string;
+  path: string;
+  canonicalId: string;
+  canonicalUri: string;
+}
+
+function parseIpfsPath(value: string): ParsedIpfsReference | null {
+  const sanitized = trimLeadingSlashes(value.trim()).replace(/^ipfs\//i, "");
+  if (!sanitized) return null;
+
+  const [cid, ...pathParts] = sanitized.split("/").filter(Boolean);
+  if (!cid || !isPotentialIpfsCid(cid)) return null;
+
+  const path = pathParts.join("/");
+  const canonicalId = path ? `${cid}/${path}` : cid;
+
+  return {
+    cid,
+    path,
+    canonicalId,
+    canonicalUri: `ipfs://${canonicalId}`,
+  };
+}
+
+export function parseIPFSReference(value: string): ParsedIpfsReference | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith("ipfs://")) {
+    return parseIpfsPath(trimmed.slice("ipfs://".length));
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed);
+      const pathname = trimLeadingSlashes(url.pathname);
+      const subdomainMatch = url.hostname.match(/^([^.]+)\.ipfs\./i);
+
+      if (pathname.startsWith("ipfs/")) {
+        return parseIpfsPath(pathname.slice("ipfs/".length));
+      }
+
+      if (subdomainMatch?.[1]) {
+        const cid = subdomainMatch[1];
+        const path = trimLeadingSlashes(pathname);
+        return parseIpfsPath(path ? `${cid}/${path}` : cid);
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return parseIpfsPath(trimmed);
+}
+
+export function canonicalizeIPFSIdentifier(value: string): string {
+  const parsed = parseIPFSReference(value);
+  return parsed?.canonicalId ?? value.trim();
+}
+
+export function toCanonicalIPFSUri(value: string): string {
+  const parsed = parseIPFSReference(value);
+  return parsed?.canonicalUri ?? value.trim();
+}
+
+function getIPFSGatewayCandidates(value: string, customGateway?: string): string[] {
+  const parsed = parseIPFSReference(value);
+  if (!parsed) {
+    return [value];
+  }
+
+  const originalGatewayCandidate = /^https?:\/\//i.test(value.trim()) ? value.trim() : null;
+
+  const bases = Array.from(
+    new Set(
+      [customGateway, gatewayUrl, ...DEFAULT_IPFS_GATEWAYS]
+        .filter((entry): entry is string => Boolean(entry))
+        .map((entry) => trimTrailingSlashes(entry))
+    )
+  );
+
+  return Array.from(
+    new Set([originalGatewayCandidate, ...bases.map((base) => `${base}/ipfs/${parsed.canonicalId}`)])
+  ).filter((candidate): candidate is string => Boolean(candidate));
+}
+
+export function tryParseJson<T = unknown>(value: string): T | null {
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function readBlobAsText(blob: Blob): Promise<string> {
+  return blob.text();
+}
+
+async function readFetchedDataAsText(data: Blob | string): Promise<string> {
+  return typeof data === "string" ? data : readBlobAsText(data);
+}
+
 /**
  * Resolves an IPFS URL to a proper gateway URL for image display
  */
 export function resolveIPFSUrl(url: string, customGateway?: string): string {
   if (!url) return "";
+  const parsed = parseIPFSReference(url);
+  if (!parsed) return url;
 
-  const base = customGateway || gatewayUrl;
-
-  // Helper to clean/format the hash path
-  const formatUrl = (hashPath: string) => {
-    // Remove leading slash if present
-    const cleanPath = hashPath.startsWith("/") ? hashPath.substring(1) : hashPath;
-    return `${base}/ipfs/${cleanPath}`;
-  };
-
-  // Handle ipfs:// protocol
-  if (url.startsWith("ipfs://")) {
-    return formatUrl(url.replace("ipfs://", ""));
-  }
-
-  // Handle https://ipfs.io/ URLs
-  if (url.includes("ipfs.io/ipfs/")) {
-    return formatUrl(url.split("ipfs.io/ipfs/")[1]);
-  }
-
-  // Handle direct hash (CID) with optional path
-  // Basic check for CID-like strings (starts with Qm or baf)
-  if (url.startsWith("Qm") || url.startsWith("baf")) {
-    return formatUrl(url);
-  }
-
-  // Return original URL if no IPFS pattern matched
-  return url;
+  const base = trimTrailingSlashes(customGateway || gatewayUrl);
+  return `${base}/ipfs/${parsed.canonicalId}`;
 }
 
 /**
@@ -347,7 +440,6 @@ export async function getFileByHash(
   options: GetFileByHashOptions = {}
 ): Promise<{ data: Blob | string }> {
   const { signal, timeoutMs = 30_000 } = options;
-  const url = resolveIPFSUrl(hash);
   const abortController = new AbortController();
   const timeoutId =
     timeoutMs > 0
@@ -365,9 +457,30 @@ export async function getFileByHash(
     }
   }
 
-  let response: Response;
+  let response: Response | null = null;
+  const candidateUrls = getIPFSGatewayCandidates(hash);
+  let lastError: Error | null = null;
   try {
-    response = await fetch(url, { signal: abortController.signal });
+    for (const url of candidateUrls) {
+      try {
+        response = await fetch(url, { signal: abortController.signal });
+      } catch (error) {
+        if (abortController.signal.aborted) {
+          throw error;
+        }
+        lastError = error instanceof Error ? error : new Error(String(error));
+        continue;
+      }
+
+      if (response.ok) {
+        break;
+      }
+
+      lastError = new Error(
+        `Failed to fetch file from IPFS: ${response.status} ${response.statusText}`
+      );
+      response = null;
+    }
   } catch (error) {
     if (abortController.signal.aborted) {
       throw new Error(`IPFS request timed out after ${timeoutMs}ms`);
@@ -380,8 +493,8 @@ export async function getFileByHash(
     signal?.removeEventListener("abort", abortFromUpstream);
   }
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch file from IPFS: ${response.statusText}`);
+  if (!response) {
+    throw lastError ?? new Error("Failed to fetch file from IPFS");
   }
 
   const contentType = response.headers.get("content-type");
@@ -394,6 +507,21 @@ export async function getFileByHash(
 
   const blob = await response.blob();
   return { data: blob };
+}
+
+export async function getJsonByHash<T = unknown>(
+  hash: string,
+  options: GetFileByHashOptions = {}
+): Promise<T> {
+  const { data } = await getFileByHash(hash, options);
+  const text = await readFetchedDataAsText(data);
+  const parsed = tryParseJson<T>(text);
+
+  if (parsed === null) {
+    throw new Error("Failed to parse JSON from IPFS response");
+  }
+
+  return parsed;
 }
 
 /**

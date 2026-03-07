@@ -1,48 +1,23 @@
 import {
   DEFAULT_CHAIN_ID,
   formatDateRange,
-  logger,
-  useAdminStore,
+  getEASExplorerUrl,
   useGardenAssessments,
 } from "@green-goods/shared";
 import { RiAddLine, RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
-import { type ReactNode, useEffect, useMemo } from "react";
+import { type ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
-const EAS_EXPLORER_URL = "https://explorer.easscan.org";
-
-/** EAS decoded field structure from attestation JSON */
-interface EASDecodedField {
-  name: string;
-  value: {
-    value: unknown;
-  };
-}
-
 export default function GardenAssessment() {
   const { id } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
-  const selectedChainId = useAdminStore((state) => state.selectedChainId);
-  const setSelectedChainId = useAdminStore((state) => state.setSelectedChainId);
-
-  useEffect(() => {
-    if (selectedChainId !== DEFAULT_CHAIN_ID) {
-      setSelectedChainId(DEFAULT_CHAIN_ID);
-    }
-  }, [selectedChainId, setSelectedChainId]);
-
-  const { data: assessments = [], isLoading: fetching, error } = useGardenAssessments(id);
-
-  const parsedAssessments = useMemo(
-    () =>
-      assessments.map((attestation) => ({
-        ...attestation,
-        parsed: parseAssessment(attestation.decodedDataJson),
-      })),
-    [assessments]
-  );
+  const {
+    data: assessments = [],
+    isLoading: fetching,
+    error,
+  } = useGardenAssessments(id, DEFAULT_CHAIN_ID);
 
   const headerActions = (
     <Link
@@ -76,7 +51,7 @@ export default function GardenAssessment() {
   } else {
     content = (
       <div className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-        {parsedAssessments.length === 0 ? (
+        {assessments.length === 0 ? (
           <div className="py-16 text-center">
             <RiFileList3Line className="mx-auto h-12 w-12 text-text-disabled" />
             <h3 className="mt-2 text-sm font-medium text-text-strong">
@@ -130,28 +105,29 @@ export default function GardenAssessment() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stroke-soft bg-bg-white">
-                {parsedAssessments.map((attestation) => (
-                  <tr key={attestation.id}>
+                {assessments.map((assessment) => (
+                  <tr key={assessment.id}>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {attestation.parsed?.title || `Assessment ${attestation.id.slice(0, 6)}`}
+                      {assessment.title || `Assessment ${assessment.id.slice(0, 6)}`}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {attestation.parsed?.assessmentType || "—"}
+                      {assessment.assessmentType || "—"}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {formatDateRange(attestation.parsed?.startDate, attestation.parsed?.endDate)}
+                      {formatDateRange(
+                        assessment.startDate ?? assessment.reportingPeriod.start,
+                        assessment.endDate ?? assessment.reportingPeriod.end
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {attestation.parsed?.capitals.length
-                        ? attestation.parsed.capitals.join(", ")
-                        : "—"}
+                      {assessment.capitals?.length ? assessment.capitals.join(", ") : "—"}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {attestation.parsed?.tags.length ? attestation.parsed.tags.join(", ") : "—"}
+                      {assessment.tags?.length ? assessment.tags.join(", ") : "—"}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                       <a
-                        href={`${EAS_EXPLORER_URL}/attestation/view/${attestation.id}`}
+                        href={getEASExplorerUrl(DEFAULT_CHAIN_ID, assessment.id)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center text-primary-dark transition hover:text-primary-darker"
@@ -184,57 +160,4 @@ export default function GardenAssessment() {
       <div className="mt-6 px-6">{content}</div>
     </div>
   );
-}
-
-function parseAssessment(decodedDataJson: string | null) {
-  if (!decodedDataJson) {
-    return null;
-  }
-
-  try {
-    const fields: EASDecodedField[] = JSON.parse(decodedDataJson);
-    const readValue = (name: string): unknown =>
-      fields.find((field) => field.name === name)?.value?.value;
-
-    const toNumber = (value: unknown): number | null => {
-      if (value === undefined || value === null) return null;
-      if (typeof value === "number") return value;
-      if (typeof value === "string") {
-        if (value.startsWith("0x")) {
-          try {
-            return Number(BigInt(value));
-          } catch {
-            return null;
-          }
-        }
-        const parsed = Number(value);
-        return Number.isNaN(parsed) ? null : parsed;
-      }
-      if (typeof value === "object" && value !== null) {
-        if ("hex" in value && typeof value.hex === "string") {
-          try {
-            return Number(BigInt(value.hex));
-          } catch {
-            return null;
-          }
-        }
-        if ("value" in value) {
-          return toNumber(value.value);
-        }
-      }
-      return null;
-    };
-
-    return {
-      title: readValue("title") ?? "",
-      assessmentType: readValue("assessmentType") ?? "",
-      capitals: (readValue("capitals") as string[]) ?? [],
-      tags: (readValue("tags") as string[]) ?? [],
-      startDate: toNumber(readValue("startDate")),
-      endDate: toNumber(readValue("endDate")),
-    };
-  } catch (error) {
-    logger.error("Failed to parse assessment attestation", { error });
-    return null;
-  }
 }

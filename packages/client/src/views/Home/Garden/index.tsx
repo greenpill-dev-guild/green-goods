@@ -6,6 +6,7 @@ import {
   useBrowserNavigation,
   useConvictionStrategies,
   useGardeners,
+  useGardenAssessments,
   useGardenVaults,
   useGardens,
   useGardenTabs,
@@ -84,7 +85,16 @@ export const Garden: React.FC<GardenProps> = () => {
     isFetching: gardensLoading,
   } = useGardens(chainId);
   const garden = allGardens.find((g) => g.id === gardenIdParam);
-  const gardenStatus: "error" | "success" | "pending" = garden ? "success" : "pending";
+  const isGardenPending =
+    !garden &&
+    (gardensInitialLoading ||
+      (gardensLoading && allGardens.length === 0 && Boolean(gardenIdParam)));
+  const {
+    data: assessments = [],
+    isLoading: assessmentsLoading,
+    isFetching: assessmentsFetching,
+    isError: assessmentsError,
+  } = useGardenAssessments(garden?.id ?? gardenIdParam, chainId);
   const { data: allGardeners = [] } = useGardeners();
   const { data: actions = [] } = useActions(chainId);
   const {
@@ -150,9 +160,9 @@ export const Garden: React.FC<GardenProps> = () => {
   const hasGovernance = convictionStrategies.length > 0;
 
   if (!garden) {
-    if (gardensInitialLoading) {
+    if (isGardenPending) {
       return (
-        <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
+        <div className="min-h-full flex flex-col items-center justify-center gap-4 p-6">
           <TopNav onBackClick={() => navigate("/home")} />
           <RiLoader4Line className="w-8 h-8 text-text-soft-400 animate-spin" />
           <p className="text-sm text-text-sub-600 text-center">
@@ -165,7 +175,7 @@ export const Garden: React.FC<GardenProps> = () => {
       );
     }
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
+      <div className="min-h-full flex flex-col items-center justify-center gap-4 p-6">
         <TopNav onBackClick={() => navigate("/home")} />
         <RiMapPin2Fill className="w-10 h-10 text-text-soft-400" />
         <p className="text-sm text-text-sub-600 text-center">
@@ -178,7 +188,7 @@ export const Garden: React.FC<GardenProps> = () => {
     );
   }
 
-  const { name, bannerImage, location, createdAt, assessments, description } = garden;
+  const { name, bannerImage, location, createdAt, description } = garden;
 
   // Check if current user is an operator (can approve/reject work)
   const isOperator = useMemo(() => {
@@ -282,14 +292,20 @@ export const Garden: React.FC<GardenProps> = () => {
           />
         );
       }
-      case GardenTab.Insights:
+      case GardenTab.Insights: {
+        const assessmentFetchStatus: "pending" | "success" | "error" = assessmentsError
+          ? "error"
+          : assessmentsLoading || (assessmentsFetching && assessments.length === 0)
+            ? "pending"
+            : "success";
         return (
           <GardenAssessments
-            assessmentFetchStatus={gardensLoading ? "pending" : gardenStatus}
+            assessmentFetchStatus={assessmentFetchStatus}
             assessments={assessments}
             description={description}
           />
         );
+      }
       case GardenTab.Gardeners:
         return <GardenGardeners members={members} garden={garden} />;
     }
@@ -299,7 +315,7 @@ export const Garden: React.FC<GardenProps> = () => {
 
   return (
     <GardenErrorBoundary>
-      <div className="h-full min-h-0 w-full flex flex-col relative overflow-hidden">
+      <div className="relative flex min-h-full w-full flex-col">
         {pathname.includes("work") || pathname.includes("assessments") ? null : (
           <>
             {/* Fixed Header (banner + TopNav + title/metadata) */}
@@ -314,7 +330,6 @@ export const Garden: React.FC<GardenProps> = () => {
                 />
                 <div className="absolute top-0 left-0 right-0 z-20">
                   <TopNav
-                    className="flex w-full justify-between items-center p-4 pt-6"
                     onBackClick={() => navigate("/home")}
                     works={mergedWorks}
                     garden={garden}
@@ -381,7 +396,7 @@ export const Garden: React.FC<GardenProps> = () => {
 
             {/* Scrollable content below fixed header */}
             <div
-              className="flex-1 min-h-0 px-4 md:px-6 pb-24 overflow-y-auto overflow-x-hidden"
+              className="px-4 md:px-6 pb-[calc(6rem+env(safe-area-inset-bottom))]"
               aria-busy={worksFetching}
             >
               {renderTabContent()}

@@ -225,9 +225,11 @@ export {
 // DATA / IPFS (Storacha)
 // ============================================================================
 export {
+  canonicalizeIPFSIdentifier,
   // Upload context types
   type FileUploadContext,
   getFileByHash,
+  getJsonByHash,
   getIpfsInitStatus,
   initializeIpfs,
   initializeIpfsFromEnv,
@@ -238,9 +240,12 @@ export {
   initializeStoracha,
   initializeStorachaFromEnv,
   type JsonUploadContext,
+  parseIPFSReference,
   resolveAvatarUrl,
   resolveImageUrl,
   resolveIPFSUrl,
+  toCanonicalIPFSUri,
+  tryParseJson,
   uploadFileToIPFS,
   uploadJSONToIPFS,
 } from "./data/ipfs";

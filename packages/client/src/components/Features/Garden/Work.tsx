@@ -2,7 +2,6 @@ import { useNavigateToTop, type Action, type Work } from "@green-goods/shared";
 import { RiLoader4Line } from "@remixicon/react";
 import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
-import { FixedSizeList as List } from "react-window";
 import { MinimalWorkCard } from "@/components/Cards";
 import { BeatLoader } from "@/components/Communication";
 
@@ -23,10 +22,10 @@ interface WorkListProps {
 
 interface WorkListItemProps {
   index: number;
-  style: React.CSSProperties;
+  style?: React.CSSProperties;
   sorted: Work[];
   actionById: Map<string, Action>;
-  navigate: (path: string) => void;
+  navigate: (path: string, options?: { state?: { backTo?: string } }) => void;
 }
 
 const WorkListItem = memo(function WorkListItem({
@@ -40,7 +39,10 @@ const WorkListItem = memo(function WorkListItem({
   const action = actionById.get(String(work.actionUID));
   const title = action?.title ?? `Action ${work.actionUID}`;
   const onOpen = useCallback(
-    () => navigate(`/home/${work.gardenAddress}/work/${work.id}`),
+    () =>
+      navigate(`/home/${work.gardenAddress}/work/${work.id}`, {
+        state: { backTo: `/home/${work.gardenAddress}` },
+      }),
     [navigate, work.gardenAddress, work.id]
   );
   return (
@@ -101,26 +103,7 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
         );
       }
 
-      const shouldVirtualize = sorted.length > 30;
-      return shouldVirtualize ? (
-        <List
-          height={600}
-          itemCount={sorted.length}
-          itemSize={80}
-          width={"100%"}
-          className="w-full"
-        >
-          {({ index, style }: { index: number; style: React.CSSProperties }) => (
-            <WorkListItem
-              index={index}
-              style={style}
-              sorted={sorted}
-              actionById={actionById}
-              navigate={navigate}
-            />
-          )}
-        </List>
-      ) : (
+      return (
         <>
           {sorted.map((_, i) => (
             <WorkListItem

@@ -21,11 +21,12 @@ import { useIntl } from "react-intl";
 import { WorkView, type WorkViewAction } from "@/components/Features/Work";
 
 type ViewingMode = "operator" | "gardener" | "viewer";
+type ResolvedWorkMetadata = WorkMetadata | WorkMetadataV1 | Record<string, unknown>;
 
 type WorkViewSectionProps = {
   garden: Garden;
   work: Work;
-  workMetadata: WorkMetadata | null;
+  workMetadata: ResolvedWorkMetadata | null;
   viewingMode: ViewingMode;
   actionTitle: string;
   effectiveStatus: "approved" | "rejected" | "pending";
@@ -48,7 +49,7 @@ function isV1Metadata(
 
 /** Build details list from metadata, supporting both v1 and v2 shapes */
 function buildMetadataDetails(
-  metadata: WorkMetadata | null,
+  metadata: ResolvedWorkMetadata | null,
   metadataUnavailable: string,
   intl: ReturnType<typeof useIntl>
 ) {

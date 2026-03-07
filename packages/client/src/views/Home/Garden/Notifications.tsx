@@ -23,7 +23,7 @@ function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }
     <Link
       key={work.id}
       to={`/home/${garden.id}/work/${work.id}`}
-      state={{ from: "garden" }}
+      state={{ backTo: `/home/${garden.id}` }}
       viewTransition
       className="cv-notification w-full flex flex-col gap-2 p-4 bg-warning-lighter rounded-xl transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border border-warning-light cursor-pointer group"
     >
@@ -59,7 +59,7 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
   const pendingNotifications = notifications.filter((work) => work.status === "pending");
 
   return (
-    <div className="relative p-3 gap-3 border border-stroke-soft-200 rounded-2xl w-80 flex flex-col items-center overflow-y-auto overflow-x-hidden bg-bg-white-0 shadow-xl mx-auto min-h-[400px] max-h-[80vh] transition-all duration-300 transform translate-y-0">
+    <div className="relative flex w-[min(22rem,calc(100vw-1.5rem))] max-w-full flex-col gap-3 overflow-y-auto overflow-x-hidden rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-xl max-h-[min(75dvh,32rem)] sm:w-80">
       {pendingNotifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center py-12 px-6">
           <div className="text-6xl mb-4">🌱</div>
