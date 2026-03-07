@@ -209,6 +209,7 @@ export {
   useJoinGarden,
 } from "./garden/useJoinGarden";
 export { useGardenDomains } from "./garden/useGardenDomains";
+export { useSetGardenDomains } from "./garden/useSetGardenDomains";
 export type {
   GardenFilterScope,
   GardenFiltersState,

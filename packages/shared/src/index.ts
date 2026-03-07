@@ -273,6 +273,7 @@ export {
   useGardenAssessments,
   useGardenDetailData,
   useGardenDomains,
+  useSetGardenDomains,
   useGardenerProfile,
   useGardeners,
   useGardenInvites,
