@@ -512,7 +512,7 @@ export function useMintHypercert(): UseMintHypercertResult {
         signalPoolAddress: state.context.signalPoolAddress,
       });
     }
-  }, [setMintingState, state]);
+  }, [setMintingState, state, formatMessage]);
 
   const mint = useCallback(
     async (params: {
