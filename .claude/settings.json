@@ -2,11 +2,6 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
-  "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true
-  },
-  "teammateMode": "in-process",
   "hooks": {
     "PreToolUse": [
       {
@@ -56,6 +51,16 @@
             "type": "command",
             "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE 'git.*push.*--force.*(main|master)'; then echo 'BLOCKED: Never force push to main/master' >&2; exit 2; fi",
             "statusMessage": "Checking git push..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(^|[;&|] *)git commit'; then cd /Users/afo/Code/greenpill/green-goods && bun lint --quiet 2>&1 | tail -5; fi; exit 0",
+            "statusMessage": "Pre-commit lint check..."
           }
         ]
       }
@@ -109,6 +114,11 @@
           {
             "type": "command",
             "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE '\\.(ts|tsx|js|jsx|json)$' && ! echo \"$FILE\" | grep -q 'packages/contracts/out/'; then npx @biomejs/biome format --write \"$FILE\" 2>/dev/null; fi; exit 0"
+          },
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -q 'packages/shared/src/'; then cd /Users/afo/Code/greenpill/green-goods/packages/shared && bunx tsc --noEmit 2>&1 | head -10; fi; exit 0",
+            "statusMessage": "Type-checking shared..."
           }
         ]
       }
@@ -124,5 +134,11 @@
         ]
       }
     ]
-  }
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
+  },
+  "teammateMode": "in-process"
 }

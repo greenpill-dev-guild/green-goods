@@ -78,6 +78,12 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # Depl
 
 Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets target chain at build time. See `.env.example`.
 
+## Scope Discipline
+- When instructions say "output in chat" or "just tell me", do NOT edit files
+- For destructive changes (removing sections, replacing pages, merging content): list what will be REMOVED and ADDED, then wait for confirmation
+- Never replace content that was asked to be added as new
+- When unsure about scope, ask — the cost of a clarifying question is far less than a wrong edit
+
 ## Git Workflow
 
 **Branches**: `type/description` (e.g., `feature/hats-v2`, `bug/admin-fix`)
