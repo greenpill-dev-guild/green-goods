@@ -19,6 +19,7 @@ interface GardenPool {
 
 interface Community {
   weightScheme: number;
+  communityName?: string;
 }
 
 interface GardenCommunityCardProps {
@@ -148,6 +149,32 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
         </div>
 
         <div className="mt-4 rounded-lg bg-bg-weak p-3">
+          <p className="label-xs text-text-soft">
+            {formatMessage({
+              id: "app.community.name",
+              defaultMessage: "Community name",
+            })}
+          </p>
+          {communityLoading ? (
+            <p className="mt-1 text-sm text-text-sub">
+              {formatMessage({ id: "app.community.loading" })}
+            </p>
+          ) : community ? (
+            <p className="mt-1 text-sm font-medium text-text-strong">
+              {community.communityName ??
+                formatMessage({
+                  id: "app.community.nameUnavailable",
+                  defaultMessage: "Name unavailable",
+                })}
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-text-sub">
+              {formatMessage({ id: "app.community.noCommunity" })}
+            </p>
+          )}
+        </div>
+
+        <div className="mt-3 rounded-lg bg-bg-weak p-3">
           <p className="label-xs text-text-soft">
             {formatMessage({ id: "app.community.weightScheme" })}
           </p>

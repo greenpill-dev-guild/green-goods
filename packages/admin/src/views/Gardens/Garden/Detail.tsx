@@ -241,6 +241,7 @@ export default function GardenDetail() {
             vaultHarvestCount={vaultHarvestCount}
             vaultDepositorCount={vaultDepositorCount}
             communityLoading={communityLoading}
+            communityName={community?.communityName}
             communityLabel={weightSchemeLabel}
           />
 

@@ -48,6 +48,8 @@ export interface GardenCommunity {
   gardenAddress: Address;
   /** RegistryCommunity contract address */
   communityAddress: Address;
+  /** Human-readable Gardens V2 community name */
+  communityName?: string;
   /** GOODS token address used for staking */
   goodsTokenAddress: Address;
   /** Immutable weight scheme selected at mint time */

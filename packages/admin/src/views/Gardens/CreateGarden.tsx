@@ -1,4 +1,5 @@
 import {
+  buildGardenMemberSets,
   gardenStepFields,
   toastService,
   useCreateGardenForm,
@@ -66,7 +67,10 @@ export default function CreateGarden() {
   const isSubmitting = state.value === "submitting";
   const hasError = state.value === "error";
   const isSuccess = state.value === "success";
-  const plannedMemberCount = form.gardeners.length + form.operators.length;
+  const plannedMemberCount = useMemo(
+    () => buildGardenMemberSets(form.gardeners, form.operators).memberIds.size,
+    [form.gardeners, form.operators]
+  );
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -137,7 +141,7 @@ export default function CreateGarden() {
             {
               id: "app.admin.garden.create.teamAssignmentReminder.message",
               defaultMessage:
-                "{count} planned members were not assigned during deployment. Add them from Garden Members.",
+                "{count} planned members were not assigned during deployment. Add them from Garden Members after creation.",
             },
             { count: plannedMemberCount }
           ),
@@ -369,7 +373,8 @@ export default function CreateGarden() {
               <p className="text-xs text-text-soft">
                 {intl.formatMessage({
                   id: "app.admin.garden.create.confirm.membersHelp",
-                  defaultMessage: "Planned members are added after deployment.",
+                  defaultMessage:
+                    "Unique addresses across operators and gardeners. Roles are assigned after deployment.",
                 })}
               </p>
             </div>

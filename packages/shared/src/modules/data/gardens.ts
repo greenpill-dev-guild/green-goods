@@ -159,6 +159,7 @@ export async function getGardenCommunityFromSubgraph(
   return {
     gardenAddress,
     communityAddress: community.id as Address,
+    communityName: community.communityName,
     goodsTokenAddress: community.registerToken as Address,
     // WeightScheme is not in the subgraph -- default to Linear; caller can override
     weightScheme: WeightScheme.Linear,

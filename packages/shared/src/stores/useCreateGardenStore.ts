@@ -122,11 +122,6 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           return { success: false, error: "Address already added as gardener" };
         }
 
-        // Check if already an operator
-        if (form.operators.includes(validAddress)) {
-          return { success: false, error: "Address is already an operator" };
-        }
-
         set((state) => ({
           form: {
             ...state.form,
@@ -155,11 +150,6 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         // Check if already an operator (case-insensitive via checksummed comparison)
         if (form.operators.includes(validAddress)) {
           return { success: false, error: "Address already added as operator" };
-        }
-
-        // Check if already a gardener
-        if (form.gardeners.includes(validAddress)) {
-          return { success: false, error: "Address is already a gardener" };
         }
 
         set((state) => ({
@@ -244,7 +234,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           metadata: form.metadata.trim(),
           openJoining: form.openJoining,
           weightScheme: WeightScheme.Linear,
-          domainMask: 0x0f,
+          domainMask: 0,
         } satisfies CreateGardenParams;
       },
     }),

@@ -7,6 +7,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
 import { IGardensModule } from "../interfaces/IGardensModule.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import {
@@ -564,7 +565,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
             _feeReceiver: address(0),
             _metadata: Metadata({ protocol: 1, pointer: "" }),
             _councilSafe: payable(councilSafe),
-            _communityName: "Green Goods Community",
+            _communityName: _resolveCommunityName(garden),
             _isKickEnabled: false,
             covenantIpfsHash: ""
         });
@@ -578,6 +579,18 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         } catch {
             emit CommunityCreationFailed(garden, "Community creation failed");
         }
+    }
+
+    function _resolveCommunityName(address garden) internal view returns (string memory) {
+        try IGardenAccount(garden).name() returns (string memory gardenName) {
+            if (bytes(gardenName).length > 0) {
+                return string.concat(gardenName, " Community");
+            }
+        } catch {
+            // Fall back to the legacy default name when the garden metadata is unavailable.
+        }
+
+        return "Green Goods Community";
     }
 
     /// @notice Seed a garden treasury with GOODS to cover initial member staking slots.

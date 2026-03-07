@@ -1,9 +1,11 @@
-import { useCreateGardenStore } from "@green-goods/shared";
+import { buildGardenMemberSets, useCreateGardenStore } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 
 export function ReviewStep() {
   const { formatMessage } = useIntl();
   const form = useCreateGardenStore((s) => s.form);
+  const plannedMemberCount = buildGardenMemberSets(form.gardeners, form.operators).memberIds.size;
+
   return (
     <div className="space-y-3">
       <div className="space-y-4 rounded-xl border border-stroke-soft bg-bg-weak p-4">
@@ -61,6 +63,38 @@ export function ReviewStep() {
           )}
         </dl>
         <dl className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
+              {formatMessage({
+                id: "app.garden.create.plannedMembers",
+                defaultMessage: "Planned members",
+              })}
+            </dt>
+            <dd className="mt-1 text-sm text-text-strong">
+              {formatMessage(
+                {
+                  id: "app.garden.create.plannedMembers.uniqueCount",
+                  defaultMessage:
+                    "{count, plural, one {# unique member} other {# unique members}}",
+                },
+                { count: plannedMemberCount }
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
+              {formatMessage({
+                id: "app.garden.create.domainSetup",
+                defaultMessage: "Action domains",
+              })}
+            </dt>
+            <dd className="mt-1 text-sm text-text-strong">
+              {formatMessage({
+                id: "app.garden.create.domainSetup.none",
+                defaultMessage: "Not configured during deployment",
+              })}
+            </dd>
+          </div>
           <div className="md:col-span-2">
             <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
               {formatMessage({
@@ -83,32 +117,6 @@ export function ReviewStep() {
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
               {formatMessage({
-                id: "app.garden.create.plannedGardeners",
-                defaultMessage: "Planned gardeners",
-              })}
-            </dt>
-            <dd>
-              {form.gardeners.length === 0 ? (
-                <p className="mt-2 text-xs text-text-soft">
-                  {formatMessage({
-                    id: "app.garden.create.noGardenersYet",
-                    defaultMessage: "No gardeners added yet.",
-                  })}
-                </p>
-              ) : (
-                <ul className="mt-2 space-y-1">
-                  {form.gardeners.map((gardener) => (
-                    <li key={gardener} className="font-mono text-xs text-text-strong">
-                      {gardener}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-              {formatMessage({
                 id: "app.garden.create.plannedOperators",
                 defaultMessage: "Planned operators",
               })}
@@ -126,6 +134,32 @@ export function ReviewStep() {
                   {form.operators.map((operator) => (
                     <li key={operator} className="font-mono text-xs text-text-strong">
                       {operator}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
+              {formatMessage({
+                id: "app.garden.create.plannedGardeners",
+                defaultMessage: "Planned gardeners",
+              })}
+            </dt>
+            <dd>
+              {form.gardeners.length === 0 ? (
+                <p className="mt-2 text-xs text-text-soft">
+                  {formatMessage({
+                    id: "app.garden.create.noGardenersYet",
+                    defaultMessage: "No gardeners added yet.",
+                  })}
+                </p>
+              ) : (
+                <ul className="mt-2 space-y-1">
+                  {form.gardeners.map((gardener) => (
+                    <li key={gardener} className="font-mono text-xs text-text-strong">
+                      {gardener}
                     </li>
                   ))}
                 </ul>

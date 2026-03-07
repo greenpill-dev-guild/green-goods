@@ -112,9 +112,28 @@ export function useGardenCommunity(
           }),
         ]);
 
+      let communityName: string | undefined;
+      try {
+        const subgraphCommunity = await getGardenCommunityFromSubgraph(
+          resolvedCommunity as Address,
+          normalizedGarden as Address,
+          chainId
+        );
+        communityName = subgraphCommunity?.communityName;
+      } catch (subgraphError) {
+        logger.warn("Failed to enrich community name from subgraph", {
+          source: "useGardenCommunity",
+          gardenAddress: normalizedGarden,
+          communityAddress: resolvedCommunity,
+          chainId,
+          error: subgraphError,
+        });
+      }
+
       return {
         gardenAddress: normalizedGarden as Address,
         communityAddress: resolvedCommunity as Address,
+        communityName,
         goodsTokenAddress: goodsTokenAddress as Address,
         weightScheme: Number(weightSchemeRaw) as WeightScheme,
         stakeAmount: stakeAmount as bigint,

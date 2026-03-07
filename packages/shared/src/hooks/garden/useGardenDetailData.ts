@@ -76,7 +76,7 @@ export function useGardenDetailData(id: string | undefined) {
     enabled: Boolean(id),
   });
   const { pools } = useGardenPools(id as Address | undefined, { enabled: Boolean(id) });
-  const { createPools, isCreating: isCreatingPools } = useCreateGardenPools(
+  const { mutateAsync: createPools, isPending: isCreatingPools } = useCreateGardenPools(
     id as Address | undefined
   );
   const { allocations, isLoading: allocationsLoading } = useYieldAllocations(
