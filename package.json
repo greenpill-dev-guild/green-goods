@@ -78,7 +78,10 @@
     "verify:contracts": "./scripts/verify-production.sh",
     "verify:contracts:fast": "./scripts/verify-production.sh --skip-e2e --skip-dry-run",
     "upload:action-images": "bun scripts/upload-action-images.ts",
-    "upload:action-images:dry-run": "bun scripts/upload-action-images.ts --dry-run"
+    "upload:action-images:dry-run": "bun scripts/upload-action-images.ts --dry-run",
+    "garden:rename-batch": "bun scripts/generate-garden-name-safe-txs.ts",
+    "ipfs:repin": "bun scripts/repin-ipfs-media.ts",
+    "ipfs:repin:audit": "bun scripts/repin-ipfs-media.ts --audit-only"
   },
   "overrides": {
     "multiformats": "^13.4.2",
