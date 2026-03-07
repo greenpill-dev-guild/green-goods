@@ -39,6 +39,7 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
         <textarea
           className={cn(
             controlTextareaVariants({ size: controlSize, invalid: Boolean(error) }),
+            "mobile-safe-input",
             "resize-none",
             className
           )}

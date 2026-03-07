@@ -17,6 +17,7 @@ describe("design system foundation", () => {
     const input = screen.getByLabelText("Name");
 
     expect(input).toHaveClass("min-h-11");
+    expect(input).toHaveClass("mobile-safe-input");
     expect(input).toHaveClass("text-paragraph-md");
     expect(input).toHaveClass("sm:text-paragraph-sm");
   });
@@ -29,6 +30,7 @@ describe("design system foundation", () => {
     const textarea = screen.getByLabelText("Notes");
 
     expect(textarea).toHaveClass("min-h-32");
+    expect(textarea).toHaveClass("mobile-safe-input");
     expect(textarea).toHaveClass("px-4");
     expect(textarea).toHaveClass("sm:text-paragraph-md");
   });

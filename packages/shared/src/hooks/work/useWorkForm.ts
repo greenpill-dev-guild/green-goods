@@ -115,7 +115,13 @@ export function useWorkForm(inputs?: WorkInput[]) {
 
   // Watch only specific fields that need reactive updates
   const feedback = watch("feedback") ?? "";
-  const timeSpentMinutes = normalizeTimeSpentMinutes(watch("timeSpentMinutes"));
+  const watchedTimeSpent = watch("timeSpentMinutes");
+  const timeSpentMinutes =
+    typeof watchedTimeSpent === "string"
+      ? normalizeTimeSpentMinutes(watchedTimeSpent)
+      : typeof watchedTimeSpent === "number" && watchedTimeSpent >= 0
+        ? watchedTimeSpent
+        : undefined;
 
   return {
     ...form,

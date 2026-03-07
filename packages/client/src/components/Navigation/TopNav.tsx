@@ -44,17 +44,13 @@ const Notifications: React.FC<NotificationsProps> = ({ garden, works, popoverId 
     <div
       id={popoverId}
       popover="auto"
-      className="fixed inset-0 w-full h-full bg-transparent p-6 m-0 border-0"
-      style={{
-        inset: "unset",
-        margin: "unset",
-        left: 0,
-        top: 0,
-        width: "100%",
-        height: "100%",
-      }}
+      className="fixed inset-0 z-[1100] m-0 border-0 bg-transparent p-0"
     >
-      <GardenNotifications garden={garden} notifications={works} />
+      <div className="pointer-events-none flex min-h-full items-start justify-center px-3 pb-4 pt-[calc(env(safe-area-inset-top)+4.75rem)] sm:justify-end sm:px-4 md:px-6">
+        <div className="pointer-events-auto">
+          <GardenNotifications garden={garden} notifications={works} />
+        </div>
+      </div>
     </div>
   );
 };
@@ -185,6 +181,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onEndowmentClick,
   showGovernanceButton = false,
   onGovernanceClick,
+  className,
   ...props
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
@@ -196,10 +193,11 @@ export const TopNav: React.FC<TopNavProps> = ({
   const backButtonStyles = createButtonStyles(buttonVariant);
 
   const containerClasses = cn(
-    "relative flex z-[1000] flex-row w-full justify-evenly items-center gap-4 p-6 h-20 top-2",
-    overlay && "fixed bg-bg-white-0",
+    "relative z-[1000] grid w-full grid-cols-[minmax(2.75rem,auto)_minmax(0,1fr)_minmax(2.75rem,auto)] items-center gap-2 px-3 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:gap-4 sm:px-4 md:px-6",
+    overlay && "fixed inset-x-0 bg-bg-white-0/95 backdrop-blur-sm",
     overlay && hasOfflineIssues && "top-2", // Space for offline indicator
-    overlay && !hasOfflineIssues && "top-0"
+    overlay && !hasOfflineIssues && "top-0",
+    className
   );
 
   return (
@@ -211,39 +209,43 @@ export const TopNav: React.FC<TopNavProps> = ({
         Skip to content
       </a>
       {onBackClick && (
-        <button
-          type="button"
-          aria-label={formatMessage({ id: "app.wizard.back", defaultMessage: "Back" })}
-          onClick={(e) => {
-            onBackClick?.(e);
-            e.currentTarget.blur();
-          }}
-          className={cn(backButtonStyles.button, "z-1")}
-        >
-          <RiArrowLeftFill className={backButtonStyles.icon} />
-        </button>
+        <div className="flex items-center justify-start">
+          <button
+            type="button"
+            aria-label={formatMessage({ id: "app.wizard.back", defaultMessage: "Back" })}
+            onClick={(e) => {
+              onBackClick?.(e);
+              e.currentTarget.blur();
+            }}
+            className={cn(backButtonStyles.button, "z-1")}
+          >
+            <RiArrowLeftFill className={backButtonStyles.icon} />
+          </button>
+        </div>
       )}
+      {!onBackClick && <div aria-hidden="true" className="min-h-11 min-w-11" />}
 
-      <div className="absolute left-0 top-0 w-full h-full flex flex-row justify-between items-center py-6">
-        <div className="flex flex-row gap-4 justify-center grow">{children}</div>
+      <div className="flex min-w-0 items-center justify-center">
+        <div className="flex min-w-0 flex-row items-center justify-center gap-3">{children}</div>
       </div>
 
-      <div className="flex grow" />
-      {garden && showGovernanceButton && onGovernanceClick && (
-        <GovernanceButton
-          onClick={onGovernanceClick}
-          ariaLabel={formatMessage({ id: "app.signal.governance" })}
-        />
-      )}
-      {garden && showEndowmentButton && onEndowmentClick && (
-        <EndowmentButton
-          hasDeposits={hasEndowmentDeposits}
-          onClick={onEndowmentClick}
-          ariaLabel={formatMessage({ id: "app.treasury.open" })}
-        />
-      )}
-      {/* Only show notifications for operators - they need to review pending work */}
-      {garden && isOperator && <NotificationCenter {...props} garden={garden} />}
+      <div className="flex items-center justify-end gap-2 sm:gap-3">
+        {garden && showGovernanceButton && onGovernanceClick && (
+          <GovernanceButton
+            onClick={onGovernanceClick}
+            ariaLabel={formatMessage({ id: "app.signal.governance" })}
+          />
+        )}
+        {garden && showEndowmentButton && onEndowmentClick && (
+          <EndowmentButton
+            hasDeposits={hasEndowmentDeposits}
+            onClick={onEndowmentClick}
+            ariaLabel={formatMessage({ id: "app.treasury.open" })}
+          />
+        )}
+        {/* Only show notifications for operators - they need to review pending work */}
+        {garden && isOperator && <NotificationCenter {...props} garden={garden} />}
+      </div>
     </div>
   );
 };

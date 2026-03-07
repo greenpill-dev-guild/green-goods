@@ -16,10 +16,20 @@ describe("hooks/work/useWorkForm", () => {
       const schema = buildWorkFormSchema([]);
       const result = schema.safeParse({
         feedback: "test",
-        timeSpentMinutes: 1.5, // hours, will be normalized to minutes
+        timeSpentMinutes: "1.5", // hours, will be normalized to minutes
       });
 
       expect(result.success).toBe(true);
+    });
+
+    it("normalizes hour strings to minutes exactly once", () => {
+      const schema = buildWorkFormSchema([]);
+      const result = schema.parse({
+        feedback: "test",
+        timeSpentMinutes: "1.5",
+      });
+
+      expect(result.timeSpentMinutes).toBe(90);
     });
 
     it("validates required number fields", () => {

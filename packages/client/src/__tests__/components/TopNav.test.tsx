@@ -17,6 +17,8 @@ vi.mock("@green-goods/shared", () => ({
     isOnline: true,
   })),
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+  iconButtonVariants: vi.fn(() => "icon-button"),
+  iconButtonIconVariants: vi.fn(() => "icon-button-icon"),
 }));
 
 // Mock the GardenNotifications component
@@ -112,8 +114,7 @@ describe("components/Navigation/TopNav", () => {
       );
 
       // Notification button should be visible
-      const notificationButton = document.querySelector('button[class*="dropdown"]');
-      expect(notificationButton).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /view notifications/i })).toBeInTheDocument();
     });
 
     it("hides notification bell when user is NOT an operator", () => {
@@ -126,8 +127,7 @@ describe("components/Navigation/TopNav", () => {
       );
 
       // Notification button should NOT be visible
-      const notificationButton = document.querySelector('button[class*="dropdown"]');
-      expect(notificationButton).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /view notifications/i })).not.toBeInTheDocument();
     });
 
     it("hides notification bell when isOperator is not provided (defaults to false)", () => {
@@ -140,8 +140,7 @@ describe("components/Navigation/TopNav", () => {
       );
 
       // Notification button should NOT be visible (default isOperator = false)
-      const notificationButton = document.querySelector('button[class*="dropdown"]');
-      expect(notificationButton).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /view notifications/i })).not.toBeInTheDocument();
     });
 
     it("hides notification center even with pending works when not an operator", () => {
@@ -170,8 +169,7 @@ describe("components/Navigation/TopNav", () => {
       );
 
       // Even with pending works, non-operators should not see notifications
-      const notificationButton = document.querySelector('button[class*="dropdown"]');
-      expect(notificationButton).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /view notifications/i })).not.toBeInTheDocument();
     });
 
     it("shows notification badge with pending count for operators", () => {

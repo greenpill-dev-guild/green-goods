@@ -38,6 +38,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
         <input
           className={cn(
             controlInputVariants({ size: controlSize, invalid: Boolean(error) }),
+            "mobile-safe-input",
             className
           )}
           aria-describedby={ariaDescribedBy}

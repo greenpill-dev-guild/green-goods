@@ -49,6 +49,12 @@ body {
   @apply w-full h-full mx-auto flex flex-col overflow-x-hidden;
 }
 
+#app-scroll {
+  scroll-padding-block-end: calc(12rem + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
 #landing-root {
   @apply w-full h-full mx-auto flex flex-col max-w-[var(--breakpoint-xl)];
 }
@@ -111,5 +117,13 @@ hr {
 @supports not (app-region: drag) {
   .app-titlebar {
     min-height: 48px;
+  }
+}
+
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+  textarea,
+  select {
+    font-size: 16px !important;
   }
 }

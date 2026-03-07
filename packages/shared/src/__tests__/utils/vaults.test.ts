@@ -215,5 +215,14 @@ describe("Vault Utilities", () => {
       // German uses comma as decimal separator
       expect(result).toBe("1,5");
     });
+
+    it("shows tiny non-zero asset balances instead of rounding them to zero", () => {
+      expect(formatTokenAmount(1n, 6, 4, EN)).toBe("0.000001");
+      expect(formatTokenAmount(12n, 6, 4, EN)).toBe("0.000012");
+    });
+
+    it("preserves very small whole-less values for high-decimal assets", () => {
+      expect(formatTokenAmount(1n, 18, 4, EN)).toBe("0.000000000000000001");
+    });
   });
 });
