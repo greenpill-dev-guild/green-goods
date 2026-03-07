@@ -4,6 +4,7 @@ import {
   canonicalizeIPFSIdentifier,
   getFileByHash,
   getJsonByHash,
+  initializeIpfsFromEnv,
   parseIPFSReference,
   resolveIPFSUrl,
 } from "../../modules/data/ipfs";
@@ -16,8 +17,9 @@ describe("modules/data/ipfs", () => {
     vi.restoreAllMocks();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     globalThis.fetch = originalFetch;
+    await initializeIpfsFromEnv({});
   });
 
   it("canonicalizes bare, ipfs://, and gateway references consistently", () => {
@@ -78,5 +80,27 @@ describe("modules/data/ipfs", () => {
     const result = await getFileByHash(`${validCid}/config.json`);
 
     expect(result.data).toBe('{"hello":"world"}');
+  });
+
+  it("prefers the configured Pinata gateway for new reads", async () => {
+    await initializeIpfsFromEnv({
+      PINATA_GATEWAY_URL: "https://pinata.example",
+    });
+
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    globalThis.fetch = fetchMock;
+
+    const result = await getJsonByHash<{ ok: boolean }>(`ipfs://${validCid}/config.json`);
+
+    expect(result).toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      `https://pinata.example/ipfs/${validCid}/config.json`
+    );
+    expect(resolveIPFSUrl(`ipfs://${validCid}/config.json`)).toBe(
+      `https://pinata.example/ipfs/${validCid}/config.json`
+    );
   });
 });

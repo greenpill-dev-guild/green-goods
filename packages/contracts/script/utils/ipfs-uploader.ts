@@ -4,6 +4,7 @@
  * IPFS Action Uploader
  *
  * Purpose: Upload action instruction documents to IPFS via Storacha.
+ * Hybrid mode: verifies Storacha availability and syncs the CID to Pinata when configured.
  * Called by Deploy.s.sol via FFI during deployment.
  *
  * Inputs: Reads config/actions.json
@@ -17,6 +18,11 @@
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  ensureHybridCidAvailability,
+  loadPinataConfigFromEnv,
+} from "../../../../scripts/lib/ipfs-hybrid";
 
 /**
  * Silently load .env file without any stdout output.
@@ -69,8 +75,10 @@ function loadEnvFile(envPath: string): void {
   }
 }
 
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+
 // Load environment variables silently
-loadEnvFile(path.join(__dirname, "../../../../", ".env"));
+loadEnvFile(path.join(SCRIPT_DIR, "../../../../", ".env"));
 
 const CACHE_FILE = path.join(process.cwd(), ".ipfs-cache.json");
 const ACTIONS_FILE = path.join(process.cwd(), "config", "actions.json");
@@ -350,6 +358,9 @@ async function main(): Promise<void> {
 
     // Initialize Storacha
     const client = await initStoracha();
+    const pinataConfig = loadPinataConfigFromEnv();
+    const storachaGatewayBaseUrl =
+      (process.env.VITE_STORACHA_GATEWAY || "https://storacha.link").trim();
 
     // Process each action
     for (let i = 0; i < actions.length; i++) {
@@ -358,10 +369,25 @@ async function main(): Promise<void> {
 
       // Check cache first
       if (cache[cacheKey]?.hash) {
-        cacheHits += 1;
-        console.error(`Cache hit for action ${i}: ${action.title} -> ${cache[cacheKey].hash}`);
-        ipfsHashes.push(cache[cacheKey].hash);
-        continue;
+        try {
+          await ensureHybridCidAvailability(cache[cacheKey].hash, {
+            storachaGatewayBaseUrl,
+            pinataConfig,
+            name: `${action.title.replace(/\s+/g, "-").toLowerCase()}.json`,
+            metadata: {
+              source: "action-instructions",
+              title: action.title,
+            },
+          });
+          cacheHits += 1;
+          console.error(`Cache hit for action ${i}: ${action.title} -> ${cache[cacheKey].hash}`);
+          ipfsHashes.push(cache[cacheKey].hash);
+          continue;
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          console.error(`Cache verification failed for ${action.title}: ${errorMsg}`);
+          delete cache[cacheKey];
+        }
       }
 
       // Generate instructions document
@@ -370,6 +396,15 @@ async function main(): Promise<void> {
       // Upload to IPFS
       try {
         const hash = await uploadToIPFS(client, action.title.replace(/\s+/g, "-").toLowerCase(), instructionsDoc);
+        await ensureHybridCidAvailability(hash, {
+          storachaGatewayBaseUrl,
+          pinataConfig,
+          name: `${action.title.replace(/\s+/g, "-").toLowerCase()}.json`,
+          metadata: {
+            source: "action-instructions",
+            title: action.title,
+          },
+        });
         uploads += 1;
 
         // Upload successful

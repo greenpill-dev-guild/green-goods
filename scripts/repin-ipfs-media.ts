@@ -10,6 +10,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { CID } from "multiformats/cid";
+import {
+  ensureHybridCidAvailability,
+  loadPinataConfigFromEnv,
+} from "./lib/ipfs-hybrid";
 
 const DEFAULT_GATEWAYS = ["https://storacha.link", "https://w3s.link", "https://ipfs.io"];
 const DEFAULT_INDEXER_URL =
@@ -18,6 +22,7 @@ const TEXT_DECODER = new TextDecoder();
 const CAR_CONTENT_TYPE = "application/vnd.ipld.car";
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, "..");
+const pinataConfig = loadPinataConfigFromEnv();
 
 const CHAIN_CONFIGS = {
   11155111: {
@@ -87,6 +92,8 @@ type PinResult = {
   pinnedFrom?: string;
   pinnedRootCid?: string;
   pinMatchesExpected?: boolean;
+  storachaGatewayUrl?: string;
+  pinataGatewayUrl?: string;
   note?: string;
   pinError?: string;
   carByteLength?: number;
@@ -109,6 +116,8 @@ type AuditEntry = {
   pinnedFrom?: string;
   pinnedRootCid?: string;
   pinMatchesExpected?: boolean;
+  storachaGatewayUrl?: string;
+  pinataGatewayUrl?: string;
   carByteLength?: number;
   pinError?: string;
   note?: string;
@@ -138,7 +147,7 @@ function usage(): never {
       "  bun scripts/repin-ipfs-media.ts --chain 42161 --audit-only --input ./broken-refs.json",
       "",
       "Include values: input,actions,gardens,works,assessments,hypercerts",
-      "Non-audit mode pins the original CID by fetching the existing DAG as CAR and uploading that CAR to Storacha.",
+      "Non-audit mode pins the original CID by fetching the existing DAG as CAR, uploading that CAR to Storacha, and syncing the CID to Pinata when PINATA_JWT is configured.",
     ].join("\n")
   );
   process.exit(1);
@@ -234,6 +243,7 @@ function getGatewayCandidates(reference: string): string[] {
   const bases = Array.from(
     new Set(
       [
+        pinataConfig?.gatewayBaseUrl,
         process.env.VITE_STORACHA_GATEWAY?.trim(),
         ...DEFAULT_GATEWAYS,
       ]
@@ -480,15 +490,29 @@ async function pinOriginalCid(
       );
       const pinnedRootCid = upload.toString();
       const pinMatchesExpected = cidsMatch(pinnedRootCid, entry.cid);
+      const availability = await ensureHybridCidAvailability(entry.cid, {
+        storachaGatewayBaseUrl:
+          process.env.VITE_STORACHA_GATEWAY?.trim() || "https://storacha.link",
+        pinataConfig,
+        name: entry.canonicalId,
+        metadata: {
+          source: "repin-ipfs-media",
+          cid: entry.cid,
+        },
+      });
 
       return {
         pinStatus: "pinned" as const,
         pinnedFrom: car.url,
         pinnedRootCid,
         pinMatchesExpected,
+        storachaGatewayUrl: availability.storachaUrl,
+        pinataGatewayUrl: availability.pinataUrl,
         carByteLength: car.bytes.byteLength,
         note: pinMatchesExpected
-          ? "Pinned the original DAG via CAR without changing the root CID."
+          ? availability.pinataUrl
+            ? "Pinned the original DAG via CAR, verified Storacha, and synced the CID to Pinata."
+            : "Pinned the original DAG via CAR and verified Storacha without changing the root CID."
           : "Storacha accepted the CAR, but the reported root CID differs from the expected CID. Review before marking this complete.",
       };
     } catch (error) {
@@ -1031,6 +1055,8 @@ async function auditAndRepin(
       pinnedFrom: pinResult.pinnedFrom,
       pinnedRootCid: pinResult.pinnedRootCid,
       pinMatchesExpected: pinResult.pinMatchesExpected,
+      storachaGatewayUrl: pinResult.storachaGatewayUrl,
+      pinataGatewayUrl: pinResult.pinataGatewayUrl,
       carByteLength: pinResult.carByteLength,
       pinError: pinResult.pinError,
       note: pinResult.note,
@@ -1109,6 +1135,7 @@ async function main() {
     pinned: audit.filter((entry) => entry.pinStatus === "pinned").length,
     pinFailures: audit.filter((entry) => entry.pinStatus === "pin_failed").length,
     auditOnly: audit.filter((entry) => entry.pinStatus === "audit_only").length,
+    pinataVerified: audit.filter((entry) => Boolean(entry.pinataGatewayUrl)).length,
     cidMismatches: audit.filter(
       (entry) => entry.pinStatus === "pinned" && entry.pinMatchesExpected === false
     ).length,
@@ -1124,6 +1151,7 @@ async function main() {
       indexer: DEFAULT_INDEXER_URL,
       eas: CHAIN_CONFIGS[chainId].easGraphqlUrl,
       gardensSubgraph: getGardensSubgraphUrl(chainId),
+      pinataGateway: pinataConfig?.gatewayBaseUrl ?? null,
     },
     summary,
     references: audit,
@@ -1139,6 +1167,7 @@ async function main() {
       `Reachable: ${summary.reachableReferences}`,
       `Pinned: ${summary.pinned}`,
       `Pin failures: ${summary.pinFailures}`,
+      `Pinata verified: ${summary.pinataVerified}`,
       `Fetch failures: ${summary.fetchFailures}`,
       `Output: ${outPath}`,
     ].join("\n")

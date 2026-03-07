@@ -220,7 +220,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: appBasePath,
     envDir: rootDir,
-    envPrefix: ["VITE_", "SKIP_"],
+    envPrefix: ["VITE_", "PINATA_", "SKIP_"],
     build: { sourcemap: true, chunkSizeWarningLimit: 2000 },
     plugins,
     // Deduplicate React and PostHog to prevent multiple instances
