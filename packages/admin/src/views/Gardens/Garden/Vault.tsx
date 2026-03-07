@@ -1,8 +1,8 @@
 import {
   type Address,
-  formatTokenAmount,
   getNetDeposited,
   getNetworkContracts,
+  getVaultAssetDecimals,
   getVaultAssetSymbol,
   OCTANT_MODULE_ABI,
   useCurrentChain,
@@ -13,13 +13,34 @@ import {
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { useParams } from "react-router-dom";
-import { useReadContract } from "wagmi";
+import { useLocation, useParams } from "react-router-dom";
+import { useReadContract, useReadContracts } from "wagmi";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import {
+  buildAssetTotals,
+  formatAssetTotal,
+  getAssetTotalKey,
+} from "@/components/Vault/assetTotals";
 import { DepositModal, PositionCard, VaultEventHistory, WithdrawModal } from "@/components/Vault";
+
+const TOKEN_DECIMALS_ABI = [
+  {
+    type: "function",
+    name: "decimals",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+] as const;
+
+type VaultRouteState = {
+  returnTo?: string;
+  returnLabelId?: string;
+};
 
 export default function GardenVaultView() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { formatMessage } = useIntl();
   const [depositAsset, setDepositAsset] = useState<string | undefined>(undefined);
   const [withdrawAsset, setWithdrawAsset] = useState<string | undefined>(undefined);
@@ -55,34 +76,70 @@ export default function GardenVaultView() {
     enabled: Boolean(garden?.id ?? id),
   });
 
-  const { totalNetDeposited, totalHarvestCount, totalDepositorCount } = useMemo(() => {
-    let netDeposited = 0n;
+  const assetAddresses = useMemo(() => {
+    const uniqueAssets = new Map<string, Address>();
+
+    for (const vault of vaults) {
+      uniqueAssets.set(getAssetTotalKey(vault.chainId, vault.asset), vault.asset);
+    }
+
+    return Array.from(uniqueAssets.entries()).map(([key, address]) => ({ key, address }));
+  }, [vaults]);
+
+  const { data: assetDecimalsResults } = useReadContracts({
+    contracts: assetAddresses.map(({ address }) => ({
+      address,
+      abi: TOKEN_DECIMALS_ABI,
+      functionName: "decimals" as const,
+    })),
+    query: {
+      enabled: assetAddresses.length > 0,
+    },
+  });
+
+  const assetDecimalsByKey = useMemo(() => {
+    const decimals = new Map<string, number>();
+
+    assetAddresses.forEach(({ key, address }, index) => {
+      const result = assetDecimalsResults?.[index];
+      const resolved =
+        result?.status === "success" && typeof result.result === "number"
+          ? result.result
+          : getVaultAssetDecimals(address, undefined);
+
+      decimals.set(key, resolved);
+    });
+
+    return decimals;
+  }, [assetAddresses, assetDecimalsResults]);
+
+  const { totalHarvestCount, totalDepositorCount, totalAssetTotals } = useMemo(() => {
     let harvestCount = 0;
     let depositorCount = 0;
     for (const vault of vaults) {
-      netDeposited += getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
       harvestCount += vault.totalHarvestCount;
       depositorCount += vault.depositorCount;
     }
     return {
-      totalNetDeposited: netDeposited,
       totalHarvestCount: harvestCount,
       totalDepositorCount: depositorCount,
+      totalAssetTotals: buildAssetTotals(
+        vaults.map((vault) => ({
+          chainId: vault.chainId,
+          assetAddress: vault.asset,
+          amount: getNetDeposited(vault.totalDeposited, vault.totalWithdrawn),
+          decimals:
+            assetDecimalsByKey.get(getAssetTotalKey(vault.chainId, vault.asset)) ??
+            getVaultAssetDecimals(vault.asset, vault.chainId),
+          symbol: getVaultAssetSymbol(vault.asset, vault.chainId),
+        }))
+      ),
     };
-  }, [vaults]);
+  }, [assetDecimalsByKey, vaults]);
 
-  const tvlDenomination = useMemo(() => {
-    const symbols = new Set(
-      vaults.map((vault) => getVaultAssetSymbol(vault.asset, vault.chainId)).filter(Boolean)
-    );
-
-    if (symbols.size === 1) return Array.from(symbols)[0];
-    if (symbols.size > 1) {
-      return formatMessage({ id: "app.treasury.multiAssetDenomination" }, { count: symbols.size });
-    }
-
-    return formatMessage({ id: "app.treasury.tokenDenominationFallback" });
-  }, [formatMessage, vaults]);
+  const routeState =
+    (location.state as VaultRouteState | null) ??
+    ((typeof window !== "undefined" ? window.history.state?.usr : null) as VaultRouteState | null);
 
   if (gardensLoading) {
     return (
@@ -90,10 +147,20 @@ export default function GardenVaultView() {
         <PageHeader
           title={formatMessage({ id: "app.treasury.title" })}
           description={formatMessage({ id: "app.treasury.loadingGarden" })}
-          backLink={{
-            to: "/gardens",
-            label: formatMessage({ id: "app.hypercerts.backToGardens" }),
-          }}
+          backLink={
+            typeof routeState?.returnTo === "string"
+              ? {
+                  to: routeState.returnTo,
+                  label:
+                    typeof routeState.returnLabelId === "string"
+                      ? formatMessage({ id: routeState.returnLabelId })
+                      : formatMessage({ id: "app.treasury.title" }),
+                }
+              : {
+                  to: "/gardens",
+                  label: formatMessage({ id: "app.hypercerts.backToGardens" }),
+                }
+          }
         />
       </div>
     );
@@ -105,10 +172,20 @@ export default function GardenVaultView() {
         <PageHeader
           title={formatMessage({ id: "app.treasury.title" })}
           description={formatMessage({ id: "app.treasury.gardenNotFound" })}
-          backLink={{
-            to: "/gardens",
-            label: formatMessage({ id: "app.hypercerts.backToGardens" }),
-          }}
+          backLink={
+            typeof routeState?.returnTo === "string"
+              ? {
+                  to: routeState.returnTo,
+                  label:
+                    typeof routeState.returnLabelId === "string"
+                      ? formatMessage({ id: routeState.returnLabelId })
+                      : formatMessage({ id: "app.treasury.title" }),
+                }
+              : {
+                  to: "/gardens",
+                  label: formatMessage({ id: "app.hypercerts.backToGardens" }),
+                }
+          }
         />
       </div>
     );
@@ -117,6 +194,19 @@ export default function GardenVaultView() {
   const gardenAddress = garden.id as Address;
   const canManage = permissions.canManageGarden(garden);
   const canEmergencyPause = permissions.isOwnerOfGarden(garden);
+  const backLink =
+    typeof routeState?.returnTo === "string"
+      ? {
+          to: routeState.returnTo,
+          label:
+            typeof routeState.returnLabelId === "string"
+              ? formatMessage({ id: routeState.returnLabelId })
+              : formatMessage({ id: "app.treasury.title" }),
+        }
+      : {
+          to: `/gardens/${garden.id}`,
+          label: formatMessage({ id: "app.hypercerts.backToGarden" }),
+        };
 
   return (
     <div className="pb-6">
@@ -126,10 +216,7 @@ export default function GardenVaultView() {
           { id: "app.treasury.gardenTreasuryDescription" },
           { gardenName: garden.name }
         )}
-        backLink={{
-          to: `/gardens/${garden.id}`,
-          label: formatMessage({ id: "app.hypercerts.backToGarden" }),
-        }}
+        backLink={backLink}
         sticky
       />
 
@@ -139,9 +226,13 @@ export default function GardenVaultView() {
             <p className="text-xs text-text-soft">
               {formatMessage({ id: "app.treasury.totalValueLocked" })}
             </p>
-            <p className="mt-1 text-xl font-semibold text-text-strong">
-              {formatTokenAmount(totalNetDeposited)} {tvlDenomination}
-            </p>
+            <div className="mt-1 space-y-1 text-xl font-semibold text-text-strong">
+              {totalAssetTotals.length > 0 ? (
+                totalAssetTotals.map((total) => <p key={total.key}>{formatAssetTotal(total)}</p>)
+              ) : (
+                <p>0</p>
+              )}
+            </div>
           </div>
           <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
             <p className="text-xs text-text-soft">
@@ -213,7 +304,7 @@ export default function GardenVaultView() {
           </section>
         )}
 
-        <VaultEventHistory gardenAddress={gardenAddress} />
+        <VaultEventHistory gardenAddress={gardenAddress} assetDecimalsByKey={assetDecimalsByKey} />
       </div>
 
       <DepositModal

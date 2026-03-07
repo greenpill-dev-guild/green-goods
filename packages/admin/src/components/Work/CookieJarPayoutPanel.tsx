@@ -8,6 +8,8 @@ import {
   useCookieJarEmergencyWithdraw,
   useCookieJarPause,
   useCookieJarUnpause,
+  useCookieJarUpdateInterval,
+  useCookieJarUpdateMaxWithdrawal,
   useCookieJarWithdraw,
   useGardenCookieJars,
   useUser,
@@ -18,13 +20,31 @@ import * as Accordion from "@radix-ui/react-accordion";
 import { RiArrowDownSLine, RiCupLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
 import { Card } from "@/components/ui/Card";
 
 interface CookieJarPayoutPanelProps {
   gardenAddress: Address;
   canManage: boolean;
   isOwner: boolean;
+}
+
+interface JarLimitDraft {
+  maxWithdrawal: string;
+  withdrawalInterval: string;
+}
+
+function parseAmountToUnits(value: string, decimals: number): bigint {
+  const trimmed = value.trim();
+  if (!trimmed) return 0n;
+
+  const [wholePart, fractionPart = ""] = trimmed.split(".");
+  const base = 10n ** BigInt(decimals);
+  const wholeUnits = BigInt(wholePart || "0") * base;
+  const normalizedFraction = fractionPart.padEnd(decimals, "0").slice(0, decimals);
+  const fractionUnits = normalizedFraction ? BigInt(normalizedFraction) : 0n;
+
+  return wholeUnits + fractionUnits;
 }
 
 export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
@@ -70,8 +90,11 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   // Admin mutations
   const pauseMutation = useCookieJarPause(gardenAddress);
   const unpauseMutation = useCookieJarUnpause(gardenAddress);
+  const updateMaxWithdrawalMutation = useCookieJarUpdateMaxWithdrawal(gardenAddress);
+  const updateIntervalMutation = useCookieJarUpdateInterval(gardenAddress);
   const emergencyWithdrawMutation = useCookieJarEmergencyWithdraw(gardenAddress);
   const [emergencyJar, setEmergencyJar] = useState<CookieJar | null>(null);
+  const [limitDrafts, setLimitDrafts] = useState<Record<string, JarLimitDraft>>({});
 
   const selectedWithdrawJar = useMemo(
     () => jars.find((j) => j.jarAddress === withdrawJar),
@@ -103,7 +126,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   const parsedWithdrawAmount = useMemo(() => {
     if (!withdrawAmount.trim() || withdrawInputError) return 0n;
     try {
-      return parseUnits(withdrawAmount, withdrawDecimals);
+      return parseAmountToUnits(withdrawAmount, withdrawDecimals);
     } catch {
       return 0n;
     }
@@ -112,7 +135,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   const parsedDepositAmount = useMemo(() => {
     if (!depositAmount.trim() || depositInputError) return 0n;
     try {
-      return parseUnits(depositAmount, depositDecimals);
+      return parseAmountToUnits(depositAmount, depositDecimals);
     } catch {
       return 0n;
     }
@@ -124,6 +147,83 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
     if (secs >= 3600) return `${Math.floor(secs / 3600)}h`;
     if (secs >= 60) return `${Math.floor(secs / 60)}m`;
     return `${secs}s`;
+  };
+
+  const getJarLimitDraft = (jar: CookieJar): JarLimitDraft =>
+    limitDrafts[jar.jarAddress] ?? {
+      maxWithdrawal: formatUnits(jar.maxWithdrawal, jar.decimals),
+      withdrawalInterval: jar.withdrawalInterval.toString(),
+    };
+
+  const updateJarLimitDraft = (jar: CookieJar, patch: Partial<JarLimitDraft>) => {
+    setLimitDrafts((current) => ({
+      ...current,
+      [jar.jarAddress]: {
+        ...getJarLimitDraft(jar),
+        ...patch,
+      },
+    }));
+  };
+
+  const handleUpdateJarLimits = async (jar: CookieJar) => {
+    const draft = getJarLimitDraft(jar);
+    const maxWithdrawalError = validateDecimalInput(draft.maxWithdrawal, jar.decimals);
+    const parsedInterval = /^\d+$/.test(draft.withdrawalInterval.trim())
+      ? BigInt(draft.withdrawalInterval.trim())
+      : null;
+
+    if (maxWithdrawalError || !draft.maxWithdrawal.trim() || parsedInterval === null) return;
+
+    try {
+      const parsedMaxWithdrawal = parseAmountToUnits(draft.maxWithdrawal, jar.decimals);
+      let nextDraft: JarLimitDraft = {
+        maxWithdrawal: formatUnits(jar.maxWithdrawal, jar.decimals),
+        withdrawalInterval: jar.withdrawalInterval.toString(),
+      };
+
+      if (parsedMaxWithdrawal !== jar.maxWithdrawal) {
+        await updateMaxWithdrawalMutation.mutateAsync({
+          jarAddress: jar.jarAddress,
+          maxWithdrawal: parsedMaxWithdrawal,
+        });
+        nextDraft = {
+          ...nextDraft,
+          maxWithdrawal: formatUnits(parsedMaxWithdrawal, jar.decimals),
+        };
+        setLimitDrafts((current) => ({
+          ...current,
+          [jar.jarAddress]: nextDraft,
+        }));
+      }
+
+      if (parsedInterval !== jar.withdrawalInterval) {
+        await updateIntervalMutation.mutateAsync({
+          jarAddress: jar.jarAddress,
+          withdrawalInterval: parsedInterval,
+        });
+        nextDraft = {
+          ...nextDraft,
+          withdrawalInterval: parsedInterval.toString(),
+        };
+        setLimitDrafts((current) => ({
+          ...current,
+          [jar.jarAddress]: nextDraft,
+        }));
+      }
+    } catch {
+      // Mutation hooks surface user-visible errors via toasts.
+    }
+  };
+
+  const parseDraftMaxWithdrawal = (draft: JarLimitDraft, jar: CookieJar): bigint | null => {
+    if (!draft.maxWithdrawal.trim()) return null;
+    if (validateDecimalInput(draft.maxWithdrawal, jar.decimals)) return null;
+
+    try {
+      return parseAmountToUnits(draft.maxWithdrawal, jar.decimals);
+    } catch {
+      return null;
+    }
   };
 
   // Return null when module not configured, still loading, or no jars exist
@@ -160,7 +260,8 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                         : "bg-success-lighter text-success-dark"
                     }`}
                   >
-                    {formatTokenAmount(jar.balance, jar.decimals)} {symbol}
+                    {formatTokenAmount(jar.balance, jar.decimals, Math.min(jar.decimals, 6))}{" "}
+                    {symbol}
                   </span>
                 );
               })}
@@ -187,7 +288,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                   .map((jar) => (
                     <option key={jar.jarAddress} value={jar.jarAddress}>
                       {getVaultAssetSymbol(jar.assetAddress, undefined)} (
-                      {formatTokenAmount(jar.balance, jar.decimals)})
+                      {formatTokenAmount(jar.balance, jar.decimals, Math.min(jar.decimals, 6))})
                     </option>
                   ))}
               </select>
@@ -381,6 +482,28 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                   <div className="space-y-3 pb-4">
                     {jars.map((jar) => {
                       const symbol = getVaultAssetSymbol(jar.assetAddress, undefined);
+                      const draft = getJarLimitDraft(jar);
+                      const maxWithdrawalError = validateDecimalInput(
+                        draft.maxWithdrawal,
+                        jar.decimals
+                      );
+                      const intervalError =
+                        draft.withdrawalInterval.trim() &&
+                        !/^\d+$/.test(draft.withdrawalInterval.trim())
+                          ? "app.treasury.invalidAmount"
+                          : null;
+                      const parsedMaxWithdrawal = maxWithdrawalError
+                        ? null
+                        : parseDraftMaxWithdrawal(draft, jar);
+                      const parsedInterval = /^\d+$/.test(draft.withdrawalInterval.trim())
+                        ? BigInt(draft.withdrawalInterval.trim())
+                        : null;
+                      const hasLimitChanges =
+                        parsedMaxWithdrawal !== null &&
+                        parsedInterval !== null &&
+                        (parsedMaxWithdrawal !== jar.maxWithdrawal ||
+                          parsedInterval !== jar.withdrawalInterval);
+
                       return (
                         <div
                           key={jar.jarAddress}
@@ -423,7 +546,11 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                           <div className="mt-2 flex gap-4 text-xs text-text-sub">
                             <span>
                               {formatMessage({ id: "app.cookieJar.maxWithdrawal" })}:{" "}
-                              {formatTokenAmount(jar.maxWithdrawal, jar.decimals)}
+                              {formatTokenAmount(
+                                jar.maxWithdrawal,
+                                jar.decimals,
+                                Math.min(jar.decimals, 6)
+                              )}
                             </span>
                             <span>
                               {formatMessage({ id: "app.cookieJar.withdrawalInterval" })}:{" "}
@@ -431,9 +558,92 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                             </span>
                             <span>
                               {formatMessage({ id: "app.cookieJar.balance" })}:{" "}
-                              {formatTokenAmount(jar.balance, jar.decimals)}
+                              {formatTokenAmount(
+                                jar.balance,
+                                jar.decimals,
+                                Math.min(jar.decimals, 6)
+                              )}
                             </span>
                           </div>
+                          <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,180px)_auto]">
+                            <div className="space-y-1">
+                              <label
+                                htmlFor={`jar-max-withdrawal-${jar.jarAddress}`}
+                                className="text-xs font-medium text-text-sub"
+                              >
+                                {formatMessage({ id: "app.cookieJar.maxWithdrawal" })}
+                              </label>
+                              <input
+                                id={`jar-max-withdrawal-${jar.jarAddress}`}
+                                type="text"
+                                inputMode="decimal"
+                                value={draft.maxWithdrawal}
+                                onChange={(event) =>
+                                  updateJarLimitDraft(jar, {
+                                    maxWithdrawal: event.target.value,
+                                  })
+                                }
+                                aria-invalid={Boolean(maxWithdrawalError)}
+                                className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+                                  maxWithdrawalError
+                                    ? "border-error-base focus:border-error-base"
+                                    : "border-stroke-sub bg-bg-white focus:border-primary-base"
+                                }`}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label
+                                htmlFor={`jar-withdrawal-interval-${jar.jarAddress}`}
+                                className="text-xs font-medium text-text-sub"
+                              >
+                                {formatMessage({ id: "app.cookieJar.withdrawalInterval" })}
+                              </label>
+                              <input
+                                id={`jar-withdrawal-interval-${jar.jarAddress}`}
+                                type="number"
+                                min="0"
+                                step="1"
+                                inputMode="numeric"
+                                value={draft.withdrawalInterval}
+                                onChange={(event) =>
+                                  updateJarLimitDraft(jar, {
+                                    withdrawalInterval: event.target.value,
+                                  })
+                                }
+                                aria-invalid={Boolean(intervalError)}
+                                className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+                                  intervalError
+                                    ? "border-error-base focus:border-error-base"
+                                    : "border-stroke-sub bg-bg-white focus:border-primary-base"
+                                }`}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void handleUpdateJarLimits(jar);
+                              }}
+                              disabled={
+                                !hasLimitChanges ||
+                                Boolean(maxWithdrawalError || intervalError) ||
+                                updateMaxWithdrawalMutation.isPending ||
+                                updateIntervalMutation.isPending
+                              }
+                              className="self-end rounded-md bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {formatMessage({ id: "app.cookieJar.updateLimits" })}
+                            </button>
+                          </div>
+                          {maxWithdrawalError && (
+                            <p className="mt-2 text-xs text-error-dark" role="alert">
+                              {formatMessage({ id: maxWithdrawalError })}
+                            </p>
+                          )}
+                          {intervalError && (
+                            <p className="mt-2 text-xs text-error-dark" role="alert">
+                              {formatMessage({ id: intervalError })}
+                            </p>
+                          )}
                         </div>
                       );
                     })}
@@ -490,7 +700,11 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
           { id: "app.cookieJar.confirmWithdrawDescription" },
           {
             amount: emergencyJar
-              ? formatTokenAmount(emergencyJar.balance, emergencyJar.decimals)
+              ? formatTokenAmount(
+                  emergencyJar.balance,
+                  emergencyJar.decimals,
+                  Math.min(emergencyJar.decimals, 6)
+                )
               : "0",
             asset: emergencyJar ? getVaultAssetSymbol(emergencyJar.assetAddress, undefined) : "",
           }

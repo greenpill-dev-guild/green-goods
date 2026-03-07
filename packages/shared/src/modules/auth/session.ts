@@ -33,11 +33,19 @@ export const CREDENTIAL_STORAGE_KEY = "greengoods_credential";
 /** RP ID used during passkey registration (for cross-device consistency) */
 export const RP_ID_STORAGE_KEY = "greengoods_rp_id";
 
+/**
+ * Passkey restore preference.
+ * - "auto": restore the passkey session on app start when credentials exist
+ * - "manual": require an explicit passkey login before restoring
+ */
+export const PASSKEY_RESTORE_PREFERENCE_STORAGE_KEY = "greengoods_passkey_restore_preference";
+
 // ============================================================================
 // AUTH MODE
 // ============================================================================
 
 export type AuthMode = "passkey" | "wallet" | null;
+export type PasskeyRestorePreference = "auto" | "manual" | null;
 
 /** Get the active auth mode */
 export function getAuthMode(): AuthMode {
@@ -52,6 +60,30 @@ export function setAuthMode(mode: "passkey" | "wallet"): void {
 /** Clear the auth mode (on sign out) */
 export function clearAuthMode(): void {
   localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+}
+
+// ============================================================================
+// PASSKEY RESTORE PREFERENCE
+// ============================================================================
+
+/** Get the current passkey restore preference. */
+export function getPasskeyRestorePreference(): PasskeyRestorePreference {
+  return localStorage.getItem(PASSKEY_RESTORE_PREFERENCE_STORAGE_KEY) as PasskeyRestorePreference;
+}
+
+/** Enable automatic passkey session restoration. */
+export function enablePasskeyAutoRestore(): void {
+  localStorage.setItem(PASSKEY_RESTORE_PREFERENCE_STORAGE_KEY, "auto");
+}
+
+/** Require an explicit passkey login before restoring a saved credential. */
+export function disablePasskeyAutoRestore(): void {
+  localStorage.setItem(PASSKEY_RESTORE_PREFERENCE_STORAGE_KEY, "manual");
+}
+
+/** Clear the passkey restore preference. */
+export function clearPasskeyRestorePreference(): void {
+  localStorage.removeItem(PASSKEY_RESTORE_PREFERENCE_STORAGE_KEY);
 }
 
 // ============================================================================
@@ -128,6 +160,7 @@ export function clearAllAuth(): void {
   localStorage.removeItem(USERNAME_STORAGE_KEY);
   localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
   localStorage.removeItem(RP_ID_STORAGE_KEY);
+  localStorage.removeItem(PASSKEY_RESTORE_PREFERENCE_STORAGE_KEY);
 }
 
 // ============================================================================

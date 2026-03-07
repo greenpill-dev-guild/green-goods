@@ -1,4 +1,5 @@
 const GREEN_GOODS_SYNC_TAG = "green-goods-sync";
+const resolveAsset = (path) => new URL(path, self.registration.scope).toString();
 
 async function notifyClients(payload) {
   const windowClients = await self.clients.matchAll({
@@ -46,10 +47,10 @@ self.addEventListener("message", (event) => {
     event.waitUntil(
       self.registration.showNotification("ENS Name Active", {
         body: `Your name ${slug}.greengoods.eth is now active!`,
-        icon: "/icons/icon-192x192.png",
-        badge: "/icons/icon-72x72.png",
+        icon: resolveAsset("icon-192.png"),
+        badge: resolveAsset("images/android-icon-72x72.png"),
         tag: `ens-complete-${slug}`,
-        data: { url: "/profile", slug },
+        data: { url: new URL("profile", self.registration.scope).toString(), slug },
       })
     );
   }
@@ -57,7 +58,7 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/";
+  const url = event.notification.data?.url || self.registration.scope;
   event.waitUntil(
     self.clients.matchAll({ type: "window" }).then((windowClients) => {
       // Focus existing window if available

@@ -14,6 +14,7 @@ import {
   type InstallGuidance,
   type Platform,
 } from "@green-goods/shared";
+import { useAuthContext } from "@green-goods/shared/hooks";
 
 import { Splash, type LoadingState } from "@/components/Layout";
 import { LoadingSplash } from "@/views/Login/components/LoadingSplash";
@@ -111,6 +112,7 @@ export function Login() {
     hasStoredCredential,
     error: authError,
   } = useAuth();
+  const { clearPasskey } = useAuthContext();
 
   // Get platform/browser info for installation guidance
   const { platform, isMobile, isInstalled, wasInstalled, deferredPrompt } = useApp();
@@ -172,9 +174,8 @@ export function Login() {
     ? "/home"
     : new URLSearchParams(location.search).get("redirectTo") || "/home";
 
-  // Existing account detection (check localStorage for stored credential)
-  // Always show login option if credential exists - even after logout
-  // The credential is preserved during signOut() to allow re-login with same address
+  // Existing account detection is based on the saved passkey credential.
+  // Soft logout keeps that credential on-device but requires an explicit login.
   const hasExistingAccount = hasStoredCredential;
 
   // Handle auth errors
@@ -257,6 +258,22 @@ export function Login() {
     loginWithWallet?.();
   };
 
+  const handleForgetStoredPasskey = () => {
+    clearPasskey();
+    setLoginError(null);
+    setUsername("");
+    toastService.success({
+      title: intl.formatMessage({
+        id: "app.login.toast.passkeyRemoved",
+        defaultMessage: "Saved passkey removed",
+      }),
+      description: intl.formatMessage({
+        id: "app.login.toast.passkeyRemovedDescription",
+        defaultMessage: "You can create or connect a different account now.",
+      }),
+    });
+  };
+
   // Render logic
   if (isNestedRoute) return <Outlet />;
   if (!isReady) return <LoadingSplash loadingState="welcome" />;
@@ -284,6 +301,18 @@ export function Login() {
         }
       : undefined;
 
+  const tertiaryAction =
+    browserGuidanceTertiaryAction ||
+    (hasExistingAccount
+      ? {
+          label: intl.formatMessage({
+            id: "app.login.button.forgetPasskey",
+            defaultMessage: "Forget saved passkey",
+          }),
+          onClick: handleForgetStoredPasskey,
+        }
+      : undefined);
+
   return (
     <>
       <Helmet>
@@ -305,7 +334,7 @@ export function Login() {
           }),
           onSelect: handleWalletLogin,
         }}
-        tertiaryAction={browserGuidanceTertiaryAction}
+        tertiaryAction={tertiaryAction}
         // Show username input only for new account creation (required, min 3 chars)
         usernameInput={
           !hasExistingAccount

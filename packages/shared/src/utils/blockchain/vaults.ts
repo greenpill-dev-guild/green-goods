@@ -124,7 +124,21 @@ export function formatTokenAmount(
   }
 
   const padded = fraction.toString().padStart(decimals, "0");
-  const trimmed = padded.slice(0, maxFractionDigits).replace(/0+$/, "");
+  let trimmed = padded.slice(0, maxFractionDigits).replace(/0+$/, "");
+
+  if (!trimmed && whole === 0n) {
+    const firstNonZeroIndex = padded.search(/[1-9]/);
+
+    if (firstNonZeroIndex !== -1) {
+      const extendedDigits = Math.min(
+        decimals,
+        Math.max(maxFractionDigits, firstNonZeroIndex + maxFractionDigits)
+      );
+
+      trimmed = padded.slice(0, extendedDigits).replace(/0+$/, "");
+    }
+  }
+
   if (!trimmed) {
     return negative ? `-${wholeText}` : wholeText;
   }

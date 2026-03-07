@@ -42,6 +42,8 @@ import {
   trackAuthSessionRestored,
 } from "../modules/app/analytics-events";
 import {
+  enablePasskeyAutoRestore,
+  getPasskeyRestorePreference,
   getAuthMode,
   getStoredCredential,
   getStoredUsername,
@@ -162,9 +164,12 @@ async function buildSmartAccountFromCredential(
  * Restore session from localStorage.
  * Reads stored credential and rebuilds smart account client.
  *
- * IMPORTANT: Only restores passkey session if the stored authMode is "passkey" or not set.
- * If authMode is "wallet", we skip passkey restoration to let wallet auth take precedence.
- * This prevents passkey auth from hijacking wallet sessions after page refresh.
+ * IMPORTANT: Only restores passkey session when the user explicitly allows it.
+ * - authMode === "wallet" always wins
+ * - passkey restore preference === "manual" requires an explicit login
+ *
+ * This prevents passkey auth from hijacking wallet sessions or silently
+ * restoring a user who intentionally signed out.
  */
 export const restoreSessionService = fromPromise<RestoreSessionResult | null, RestoreInput>(
   async ({ input }) => {
@@ -172,11 +177,21 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
 
     // Check stored auth mode - respect user's last authentication choice
     const storedAuthMode = getAuthMode();
+    const passkeyRestorePreference = getPasskeyRestorePreference();
 
     // If user was last authenticated with wallet, don't auto-restore passkey session
     // This prevents passkey from "stealing" the session when user explicitly chose wallet
     if (storedAuthMode === "wallet") {
       logger.debug("[Auth] Auth mode is wallet, skipping passkey session restore");
+      return null;
+    }
+
+    const shouldAutoRestore =
+      passkeyRestorePreference === "auto" ||
+      (passkeyRestorePreference === null && storedAuthMode === "passkey");
+
+    if (!shouldAutoRestore) {
+      logger.debug("[Auth] Passkey restore requires explicit login, skipping auto-restore");
       return null;
     }
 
@@ -189,11 +204,15 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
       return null;
     }
 
-    // At this point, authMode is either "passkey" or null (legacy sessions)
-    // since wallet mode returned early above. Proceed with passkey session restore.
+    // At this point, wallet mode is not active and the restore preference allows
+    // automatic restoration. Proceed with passkey session restore.
     try {
       // Build smart account from stored credential
       const { client, address } = await buildSmartAccountFromCredential(storedCredential, chainId);
+
+      if (passkeyRestorePreference === null && storedAuthMode === "passkey") {
+        enablePasskeyAutoRestore();
+      }
 
       // Track successful session restore
       trackAuthSessionRestored({

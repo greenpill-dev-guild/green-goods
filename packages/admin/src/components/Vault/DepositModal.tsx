@@ -14,11 +14,21 @@ import {
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
-import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
+import { useBalance, useEstimateGas, useGasPrice, useReadContract } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/ui/Button";
 import { encodeFunctionData, formatUnits } from "viem";
+
+const VAULT_DECIMALS_ABI = [
+  {
+    type: "function",
+    name: "decimals",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+] as const;
 
 const VAULT_DEPOSIT_ABI = [
   {
@@ -59,6 +69,22 @@ export function DepositModal({
   const assetSymbol = selectedVault
     ? getVaultAssetSymbol(selectedVault.asset, selectedVault.chainId)
     : "";
+  const { data: assetDecimalsResult } = useReadContract({
+    address: selectedVault?.asset as Address | undefined,
+    abi: VAULT_DECIMALS_ABI,
+    functionName: "decimals",
+    query: {
+      enabled: isOpen && Boolean(selectedVault),
+    },
+  });
+  const { data: vaultDecimalsResult } = useReadContract({
+    address: selectedVault?.vaultAddress as Address | undefined,
+    abi: VAULT_DECIMALS_ABI,
+    functionName: "decimals",
+    query: {
+      enabled: isOpen && Boolean(selectedVault),
+    },
+  });
 
   const { data: balance } = useBalance({
     address: primaryAddress as Address | undefined,
@@ -73,8 +99,16 @@ export function DepositModal({
     ? hasVaultAssetDecimals(selectedVault.asset, selectedVault.chainId)
     : false;
   const fallbackDecimals = getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
-  const decimals = balance?.decimals ?? fallbackDecimals;
-  const decimalsReady = typeof balance?.decimals === "number" || hasStaticDecimals;
+  const assetDecimals =
+    typeof assetDecimalsResult === "number" ? assetDecimalsResult : fallbackDecimals;
+  const vaultDecimals =
+    typeof vaultDecimalsResult === "number" ? vaultDecimalsResult : fallbackDecimals;
+  const decimals = balance?.decimals ?? assetDecimals;
+  const decimalsReady =
+    typeof balance?.decimals === "number" ||
+    typeof assetDecimalsResult === "number" ||
+    typeof vaultDecimalsResult === "number" ||
+    hasStaticDecimals;
   const { form, amount, amountBigInt, amountErrorKey, hasBlockingError, resetAmount } =
     useDepositForm({
       decimals,
@@ -241,7 +275,13 @@ export function DepositModal({
               <p>
                 {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {preview ? `${formatTokenAmount(preview.previewShares, 18)} shares` : "--"}
+                  {preview
+                    ? `${formatTokenAmount(
+                        preview.previewShares,
+                        vaultDecimals,
+                        Math.min(vaultDecimals, 6)
+                      )} shares`
+                    : "--"}
                 </span>
               </p>
               <p>

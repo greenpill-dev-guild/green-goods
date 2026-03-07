@@ -16,8 +16,19 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { RiLoader4Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { useReadContract } from "wagmi";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+
+const VAULT_DECIMALS_ABI = [
+  {
+    type: "function",
+    name: "decimals",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+] as const;
 
 interface PositionCardProps {
   gardenAddress: Address;
@@ -45,7 +56,17 @@ export function PositionCard({
   const configureVaultRoles = useConfigureVaultRoles();
   const [confirmPauseOpen, setConfirmPauseOpen] = useState(false);
 
-  const assetDecimals = getVaultAssetDecimals(vault.asset, vault.chainId);
+  const { data: assetDecimalsResult } = useReadContract({
+    address: vault.asset,
+    abi: VAULT_DECIMALS_ABI,
+    functionName: "decimals",
+    query: { enabled: Boolean(vault.asset) },
+  });
+
+  const assetDecimals =
+    typeof assetDecimalsResult === "number"
+      ? assetDecimalsResult
+      : getVaultAssetDecimals(vault.asset, vault.chainId);
   const netDeposited = getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
   const hasDeposits = netDeposited > 0n;
   const assetSymbol = getVaultAssetSymbol(vault.asset, vault.chainId);
@@ -97,7 +118,8 @@ export function PositionCard({
             {formatMessage({ id: "app.treasury.netDeposited" })}
           </p>
           <p className="mt-1 font-semibold text-text-strong">
-            {formatTokenAmount(netDeposited, assetDecimals)} {assetSymbol}
+            {formatTokenAmount(netDeposited, assetDecimals, Math.min(assetDecimals, 6))}{" "}
+            {assetSymbol}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
@@ -105,7 +127,8 @@ export function PositionCard({
             {formatMessage({ id: "app.treasury.currentYield" })}
           </p>
           <p className="mt-1 font-semibold text-text-strong">
-            {formatTokenAmount(currentYield, assetDecimals)} {assetSymbol}
+            {formatTokenAmount(currentYield, assetDecimals, Math.min(assetDecimals, 6))}{" "}
+            {assetSymbol}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">

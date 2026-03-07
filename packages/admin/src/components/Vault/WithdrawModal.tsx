@@ -16,8 +16,42 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
+import { useReadContract } from "wagmi";
 import { Button } from "@/components/ui/Button";
+
+const VAULT_DECIMALS_ABI = [
+  {
+    type: "function",
+    name: "decimals",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+] as const;
+
+const VAULT_PREVIEW_WITHDRAW_ABI = [
+  {
+    type: "function",
+    name: "previewWithdraw",
+    stateMutability: "view",
+    inputs: [{ name: "assets", type: "uint256" }],
+    outputs: [{ name: "shares", type: "uint256" }],
+  },
+] as const;
+
+function parseAmountToUnits(value: string, decimals: number): bigint {
+  const trimmed = value.trim();
+  if (!trimmed) return 0n;
+
+  const [wholePart, fractionPart = ""] = trimmed.split(".");
+  const base = 10n ** BigInt(decimals);
+  const wholeUnits = BigInt(wholePart || "0") * base;
+  const normalizedFraction = fractionPart.padEnd(decimals, "0").slice(0, decimals);
+  const fractionUnits = normalizedFraction ? BigInt(normalizedFraction) : 0n;
+
+  return wholeUnits + fractionUnits;
+}
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -72,7 +106,28 @@ export function WithdrawModal({
 
   const maxShares = selectedDeposit?.shares ?? 0n;
 
-  const assetDecimals = getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
+  const fallbackVaultDecimals = getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
+  const { data: assetDecimalsResult } = useReadContract({
+    address: selectedVault?.asset as Address | undefined,
+    abi: VAULT_DECIMALS_ABI,
+    functionName: "decimals",
+    query: {
+      enabled: isOpen && Boolean(selectedVault),
+    },
+  });
+  const { data: vaultDecimalsResult } = useReadContract({
+    address: selectedVault?.vaultAddress as Address | undefined,
+    abi: VAULT_DECIMALS_ABI,
+    functionName: "decimals",
+    query: {
+      enabled: isOpen && Boolean(selectedVault),
+    },
+  });
+
+  const assetDecimals =
+    typeof assetDecimalsResult === "number" ? assetDecimalsResult : fallbackVaultDecimals;
+  const shareDecimals =
+    typeof vaultDecimalsResult === "number" ? vaultDecimalsResult : fallbackVaultDecimals;
   const assetSymbol = selectedVault
     ? getVaultAssetSymbol(selectedVault.asset, selectedVault.chainId)
     : "";
@@ -85,7 +140,7 @@ export function WithdrawModal({
   const assetAmount = useMemo(() => {
     if (!assetInput.trim() || inputError) return 0n;
     try {
-      return parseUnits(assetInput, assetDecimals);
+      return parseAmountToUnits(assetInput, assetDecimals);
     } catch {
       return 0n;
     }
@@ -109,14 +164,18 @@ export function WithdrawModal({
 
   const debouncedAssetAmount = useDebouncedValue(assetAmount, 300);
 
-  const { preview } = useVaultPreview({
-    vaultAddress: selectedVault?.vaultAddress as Address | undefined,
-    amount: debouncedAssetAmount,
-    userAddress: primaryAddress as Address | undefined,
-    enabled: isOpen && Boolean(selectedVault && debouncedAssetAmount > 0n),
+  // Withdrawal previews must round up to the required share burn.
+  const { data: previewWithdrawShares } = useReadContract({
+    address: selectedVault?.vaultAddress as Address | undefined,
+    abi: VAULT_PREVIEW_WITHDRAW_ABI,
+    functionName: "previewWithdraw",
+    args: selectedVault ? [debouncedAssetAmount] : undefined,
+    query: {
+      enabled: isOpen && Boolean(selectedVault && debouncedAssetAmount > 0n),
+    },
   });
 
-  const previewShares = preview?.previewShares ?? 0n;
+  const previewShares = typeof previewWithdrawShares === "bigint" ? previewWithdrawShares : 0n;
 
   const onSubmit = () => {
     if (
@@ -214,13 +273,14 @@ export function WithdrawModal({
               <p>
                 {formatMessage({ id: "app.treasury.myShares" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {formatTokenAmount(maxShares, 18)} shares
+                  {formatTokenAmount(maxShares, shareDecimals, Math.min(shareDecimals, 6))} shares
                 </span>
               </p>
               <p>
                 {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {formatTokenAmount(availableAssets, assetDecimals)} {assetSymbol}
+                  {formatTokenAmount(availableAssets, assetDecimals, Math.min(assetDecimals, 6))}{" "}
+                  {assetSymbol}
                 </span>
               </p>
             </div>
@@ -265,7 +325,13 @@ export function WithdrawModal({
               <p>
                 {formatMessage({ id: "app.treasury.estimatedSharesBurned" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {preview ? formatTokenAmount(previewShares, 18) : "--"}
+                  {assetAmount > 0n
+                    ? `${formatTokenAmount(
+                        previewShares,
+                        shareDecimals,
+                        Math.min(shareDecimals, 6)
+                      )} shares`
+                    : "--"}
                 </span>
               </p>
             </div>

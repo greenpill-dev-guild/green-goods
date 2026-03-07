@@ -1,7 +1,8 @@
 import {
-  formatTokenAmount,
+  type Address,
   getNetDeposited,
   getVaultAssetSymbol,
+  getVaultAssetDecimals,
   useDebouncedValue,
   useGardenVaults,
   useGardens,
@@ -13,10 +14,16 @@ import {
   RiPlantLine,
   RiSafe2Line,
 } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { useReadContracts } from "wagmi";
 import { Button } from "@/components/ui/Button";
+import {
+  buildAssetTotals,
+  formatAssetTotal,
+  getAssetTotalKey,
+} from "@/components/Vault/assetTotals";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
@@ -26,6 +33,16 @@ import { StatCard } from "@/components/StatCard";
 
 type TreasurySortOrder = "name" | "tvl";
 
+const TOKEN_DECIMALS_ABI = [
+  {
+    type: "function",
+    name: "decimals",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+] as const;
+
 export default function TreasuryOverview() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
@@ -34,6 +51,66 @@ export default function TreasuryOverview() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [sortOrder, setSortOrder] = useState<TreasurySortOrder>("name");
+
+  const assetAddresses = useMemo(() => {
+    const uniqueAssets = new Map<string, Address>();
+
+    for (const vault of vaults) {
+      uniqueAssets.set(getAssetTotalKey(vault.chainId, vault.asset), vault.asset);
+    }
+
+    return Array.from(uniqueAssets.entries()).map(([key, address]) => ({ key, address }));
+  }, [vaults]);
+
+  const { data: assetDecimalsResults } = useReadContracts({
+    contracts: assetAddresses.map(({ address }) => ({
+      address,
+      abi: TOKEN_DECIMALS_ABI,
+      functionName: "decimals" as const,
+    })),
+    query: {
+      enabled: assetAddresses.length > 0,
+    },
+  });
+
+  const assetDecimalsByKey = useMemo(() => {
+    const decimals = new Map<string, number>();
+
+    assetAddresses.forEach(({ key, address }, index) => {
+      const result = assetDecimalsResults?.[index];
+      const resolved =
+        result?.status === "success" && typeof result.result === "number"
+          ? result.result
+          : getVaultAssetDecimals(address, undefined);
+
+      decimals.set(key, resolved);
+    });
+
+    return decimals;
+  }, [assetAddresses, assetDecimalsResults]);
+
+  const totalAssetTotals = useMemo(
+    () =>
+      buildAssetTotals(
+        vaults.map((vault) => ({
+          chainId: vault.chainId,
+          assetAddress: vault.asset,
+          amount: getNetDeposited(vault.totalDeposited, vault.totalWithdrawn),
+          decimals:
+            assetDecimalsByKey.get(getAssetTotalKey(vault.chainId, vault.asset)) ??
+            getVaultAssetDecimals(vault.asset, vault.chainId),
+          symbol: getVaultAssetSymbol(vault.asset, vault.chainId),
+        }))
+      ),
+    [assetDecimalsByKey, vaults]
+  );
+  const canSortByTvl = totalAssetTotals.length === 1;
+
+  useEffect(() => {
+    if (!canSortByTvl && sortOrder === "tvl") {
+      setSortOrder("name");
+    }
+  }, [canSortByTvl, sortOrder]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, typeof vaults>();
@@ -51,15 +128,29 @@ export default function TreasuryOverview() {
           gardenAddress,
           garden,
           vaults: gardenVaults,
-          netDeposited: gardenVaults.reduce(
-            (sum, vault) => sum + getNetDeposited(vault.totalDeposited, vault.totalWithdrawn),
-            0n
+          assetTotals: buildAssetTotals(
+            gardenVaults.map((vault) => ({
+              chainId: vault.chainId,
+              assetAddress: vault.asset,
+              amount: getNetDeposited(vault.totalDeposited, vault.totalWithdrawn),
+              decimals:
+                assetDecimalsByKey.get(getAssetTotalKey(vault.chainId, vault.asset)) ??
+                getVaultAssetDecimals(vault.asset, vault.chainId),
+              symbol: getVaultAssetSymbol(vault.asset, vault.chainId),
+            }))
           ),
+          sortableTvlAmount:
+            gardenVaults.length > 0 && canSortByTvl
+              ? gardenVaults.reduce(
+                  (sum, vault) => sum + getNetDeposited(vault.totalDeposited, vault.totalWithdrawn),
+                  0n
+                )
+              : 0n,
           harvestCount: gardenVaults.reduce((sum, vault) => sum + vault.totalHarvestCount, 0),
         };
       })
       .filter((item) => item.garden);
-  }, [gardens, vaults]);
+  }, [canSortByTvl, gardens, assetDecimalsByKey, vaults]);
 
   const filteredGrouped = useMemo(() => {
     let working = grouped;
@@ -75,15 +166,15 @@ export default function TreasuryOverview() {
     }
 
     // Sort
-    if (sortOrder === "tvl") {
+    if (sortOrder === "tvl" && canSortByTvl) {
       return [...working].sort((a, b) => {
-        if (b.netDeposited > a.netDeposited) return 1;
-        if (b.netDeposited < a.netDeposited) return -1;
+        if (b.sortableTvlAmount > a.sortableTvlAmount) return 1;
+        if (b.sortableTvlAmount < a.sortableTvlAmount) return -1;
         return 0;
       });
     }
     return [...working].sort((a, b) => (a.garden?.name ?? "").localeCompare(b.garden?.name ?? ""));
-  }, [grouped, debouncedSearch, sortOrder]);
+  }, [canSortByTvl, grouped, debouncedSearch, sortOrder]);
 
   const isFilterActive = !!debouncedSearch || sortOrder !== "name";
 
@@ -91,11 +182,6 @@ export default function TreasuryOverview() {
     setSearch("");
     setSortOrder("name");
   };
-
-  const totalTVL = useMemo(
-    () => grouped.reduce((sum, item) => sum + item.netDeposited, 0n),
-    [grouped]
-  );
   const totalHarvests = useMemo(
     () => grouped.reduce((sum, item) => sum + item.harvestCount, 0),
     [grouped]
@@ -103,10 +189,17 @@ export default function TreasuryOverview() {
 
   const isLoading = gardensLoading || vaultsLoading;
 
-  const sortOptions: { value: TreasurySortOrder; label: string }[] = [
-    { value: "name", label: formatMessage({ id: "app.treasury.sort.name" }) },
-    { value: "tvl", label: formatMessage({ id: "app.treasury.sort.tvl" }) },
-  ];
+  const sortOptions: { value: TreasurySortOrder; label: string }[] = canSortByTvl
+    ? [
+        { value: "name", label: formatMessage({ id: "app.treasury.sort.name" }) },
+        { value: "tvl", label: formatMessage({ id: "app.treasury.sort.tvl" }) },
+      ]
+    : [{ value: "name", label: formatMessage({ id: "app.treasury.sort.name" }) }];
+
+  const totalTvlLabel =
+    totalAssetTotals.length > 0
+      ? totalAssetTotals.map((total) => formatAssetTotal(total)).join(" / ")
+      : "0";
 
   return (
     <div className="pb-6">
@@ -137,7 +230,8 @@ export default function TreasuryOverview() {
           <StatCard
             icon={<RiMoneyDollarCircleLine className="h-5 w-5" />}
             label={formatMessage({ id: "app.treasury.totalValueLocked" })}
-            value={formatTokenAmount(totalTVL)}
+            value={totalTvlLabel}
+            titleText={totalTvlLabel}
             colorScheme="info"
           />
           <StatCard
@@ -237,19 +331,13 @@ export default function TreasuryOverview() {
                 </div>
 
                 <div className="space-y-2">
-                  {item.vaults.map((vault) => (
+                  {item.assetTotals.map((total) => (
                     <div
-                      key={vault.id}
+                      key={total.key}
                       className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm"
                     >
-                      <span className="font-medium text-text-sub">
-                        {getVaultAssetSymbol(vault.asset, vault.chainId)}
-                      </span>
-                      <span className="text-text-strong">
-                        {formatTokenAmount(
-                          getNetDeposited(vault.totalDeposited, vault.totalWithdrawn)
-                        )}
-                      </span>
+                      <span className="font-medium text-text-sub">{total.symbol}</span>
+                      <span className="text-text-strong">{formatAssetTotal(total)}</span>
                     </div>
                   ))}
                 </div>
@@ -260,7 +348,10 @@ export default function TreasuryOverview() {
                   </p>
                   {item.garden && (
                     <Button variant="secondary" size="sm" asChild>
-                      <Link to={`/gardens/${item.garden.id}/vault`}>
+                      <Link
+                        to={`/gardens/${item.garden.id}/vault`}
+                        state={{ returnTo: "/endowments", returnLabelId: "app.admin.nav.treasury" }}
+                      >
                         {formatMessage({ id: "app.treasury.manageVault" })}
                         <RiArrowRightLine className="h-4 w-4" />
                       </Link>

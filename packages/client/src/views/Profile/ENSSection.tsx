@@ -1,4 +1,5 @@
 import {
+  DEFAULT_CHAIN_ID,
   ENSProgressTimeline,
   useENSClaim,
   useENSRegistrationStatus,
@@ -8,15 +9,38 @@ import {
   useSlugForm,
   type Address,
 } from "@green-goods/shared";
+import {
+  createClients,
+  GreenGoodsENSABI,
+  getNetworkContracts,
+} from "@green-goods/shared/utils";
 import { RiAlertLine, RiCheckLine, RiGlobalLine, RiLoader4Line } from "@remixicon/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { zeroAddress } from "viem";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 
 interface ENSSectionProps {
   primaryAddress: Address | undefined;
+}
+
+const GREENGOODS_ENS_SUFFIX = ".greengoods.eth";
+
+function getStoredSlugKey(address: Address) {
+  return `gg:ens:slug:${DEFAULT_CHAIN_ID}:${address.toLowerCase()}`;
+}
+
+function normalizeSlug(slug: string | null | undefined): string | null {
+  if (!slug) return null;
+
+  const normalized = slug.trim().toLowerCase();
+  if (!normalized || normalized.includes(".") || normalized.endsWith(GREENGOODS_ENS_SUFFIX)) {
+    return null;
+  }
+
+  return normalized;
 }
 
 export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
@@ -31,26 +55,142 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
     slugValue || undefined
   );
   const ensClaim = useENSClaim();
-  const [claimedSlug, setClaimedSlug] = useState<string | null>(null);
-  const { data: registrationData } = useENSRegistrationStatus(claimedSlug ?? undefined);
+  const [accountEnsState, setAccountEnsState] = useState<{
+    address: Address;
+    slug: string | null;
+    status: "loading" | "ready" | "error";
+  } | null>(null);
+  const [trackedSlugState, setTrackedSlugState] = useState<{
+    address: Address;
+    slug: string | null;
+  } | null>(null);
+
+  const storageKey = useMemo(
+    () => (primaryAddress ? getStoredSlugKey(primaryAddress) : null),
+    [primaryAddress]
+  );
+  const accountEnsSlug =
+    primaryAddress && accountEnsState?.address === primaryAddress ? accountEnsState.slug : null;
+  const accountEnsLookupStatus =
+    primaryAddress && accountEnsState?.address === primaryAddress ? accountEnsState.status : null;
+  const trackedSlug =
+    primaryAddress && trackedSlugState?.address === primaryAddress ? trackedSlugState.slug : null;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!primaryAddress) {
+      setAccountEnsState(null);
+      return;
+    }
+
+    setAccountEnsState((current) =>
+      current?.address === primaryAddress
+        ? { ...current, status: "loading" }
+        : { address: primaryAddress, slug: null, status: "loading" }
+    );
+
+    const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);
+    const ensAddress = contracts.greenGoodsENS as Address | undefined;
+    if (!ensAddress || ensAddress === zeroAddress) {
+      setAccountEnsState({ address: primaryAddress, slug: null, status: "ready" });
+      return;
+    }
+
+    const { publicClient } = createClients(DEFAULT_CHAIN_ID);
+    void publicClient
+      .readContract({
+        address: ensAddress,
+        abi: GreenGoodsENSABI,
+        functionName: "ownerToSlug",
+        args: [primaryAddress],
+      })
+      .then((slug) => {
+        if (!cancelled) {
+          setAccountEnsState({
+            address: primaryAddress,
+            slug: normalizeSlug(slug as string),
+            status: "ready",
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAccountEnsState((current) =>
+            current?.address === primaryAddress
+              ? { ...current, status: "error" }
+              : { address: primaryAddress, slug: null, status: "error" }
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [primaryAddress]);
+
+  useEffect(() => {
+    if (!storageKey || !primaryAddress) {
+      setTrackedSlugState(null);
+      return;
+    }
+
+    if (accountEnsSlug) {
+      setTrackedSlugState({ address: primaryAddress, slug: accountEnsSlug });
+      localStorage.setItem(storageKey, accountEnsSlug);
+      return;
+    }
+
+    const storedSlug = localStorage.getItem(storageKey);
+    setTrackedSlugState({
+      address: primaryAddress,
+      slug: storedSlug || null,
+    });
+  }, [accountEnsSlug, primaryAddress, storageKey]);
+
+  const { data: registrationData } = useENSRegistrationStatus(trackedSlug ?? undefined);
+
+  useEffect(() => {
+    if (!storageKey) return;
+
+    if (trackedSlug && registrationData?.status !== "available") {
+      localStorage.setItem(storageKey, trackedSlug);
+      return;
+    }
+
+    if (!accountEnsSlug && registrationData?.status === "available") {
+      localStorage.removeItem(storageKey);
+    }
+  }, [accountEnsSlug, registrationData?.status, storageKey, trackedSlug]);
 
   const hasExistingName =
-    registrationData?.status === "pending" || registrationData?.status === "active";
-  const showENSSection = primaryAddress && isProtocolMember && !hasExistingName;
+    Boolean(accountEnsSlug) ||
+    registrationData?.status === "pending" ||
+    registrationData?.status === "active" ||
+    registrationData?.status === "timed_out";
+  const showENSSection =
+    Boolean(primaryAddress) &&
+    isProtocolMember &&
+    accountEnsLookupStatus === "ready" &&
+    !hasExistingName;
 
   const ensNotifiedRef = useRef(false);
   useEffect(() => {
-    if (claimedSlug && registrationData?.status === "active" && !ensNotifiedRef.current) {
+    ensNotifiedRef.current = false;
+  }, [trackedSlug]);
+
+  useEffect(() => {
+    if (trackedSlug && registrationData?.status === "active" && !ensNotifiedRef.current) {
       ensNotifiedRef.current = true;
       const sw = navigator.serviceWorker?.controller;
       if (sw) {
         sw.postMessage({
           type: "ENS_REGISTRATION_COMPLETE",
-          slug: claimedSlug,
+          slug: trackedSlug,
         });
       }
     }
-  }, [claimedSlug, registrationData?.status]);
+  }, [trackedSlug, registrationData?.status]);
 
   const handleENSClaim = async () => {
     const result = slugForm.trigger("slug");
@@ -58,7 +198,10 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
     const slug = slugForm.getValues("slug");
     try {
       await ensClaim.mutateAsync({ slug });
-      setClaimedSlug(slug);
+      if (primaryAddress) setTrackedSlugState({ address: primaryAddress, slug });
+      if (storageKey) {
+        localStorage.setItem(storageKey, slug);
+      }
       slugForm.reset();
     } catch {
       // Error handling is in the mutation hook
@@ -199,7 +342,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
         </>
       )}
 
-      {claimedSlug && registrationData && registrationData.status !== "available" && (
+      {trackedSlug && registrationData && registrationData.status !== "available" && (
         <>
           <h5 className="text-label-md text-text-strong-950">
             {intl.formatMessage({
@@ -207,7 +350,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
               defaultMessage: "ENS Registration",
             })}
           </h5>
-          <ENSProgressTimeline data={registrationData} slug={claimedSlug} />
+          <ENSProgressTimeline data={registrationData} slug={trackedSlug} />
         </>
       )}
     </>
