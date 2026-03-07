@@ -108,6 +108,22 @@ grep -rn "TODO\|FIXME\|HACK" --include="*.ts" packages/            # full
 
 ---
 
+## Part 1.5: Self-Validation (REQUIRED before Part 5)
+
+Before generating the final report, re-verify EVERY finding from Parts 1-4:
+
+1. **Re-read** the flagged file at the cited line number
+2. **Confirm** the code matches what you described in the finding
+3. **Check context** — read 10 lines above/below for guards, comments, or patterns that invalidate the finding
+4. **Assign confidence**: `HIGH` (verified in code) / `MEDIUM` (likely but context unclear) / `LOW` (might be false positive)
+5. **Drop LOW confidence findings** — do not include them in the report. If you're not sure, it's not a finding.
+
+### Team Mode Addition
+
+When using `--team`, the lead agent MUST re-read every finding from sub-agents before synthesis. Sub-agents may have read stale working tree state modified by other agents. Any finding the lead cannot verify gets dropped.
+
+---
+
 ## Part 2: File-by-File Review
 
 For each file check:
@@ -352,6 +368,10 @@ Audit packages/contracts and packages/indexer. Run Parts 1-4 of the audit skill
 scoped to these packages. Use `bunx knip --workspace @green-goods/contracts`
 and `bunx knip --workspace @green-goods/indexer`. Report all findings with
 severity (Critical/High/Medium/Low) and file:line references. Do NOT edit any files.
+IMPORTANT: Only read files in packages/contracts and packages/indexer. Do NOT read
+files in other packages — another agent handles those. Cross-package findings
+(e.g., unused exports consumed by shared) should be noted as "needs cross-package
+verification" rather than stated as confirmed.
 ```
 
 **middleware-auditor:**
@@ -360,6 +380,9 @@ Audit packages/shared. Run Parts 1-4 of the audit skill scoped to shared.
 Use `bunx knip --workspace @green-goods/shared`. Check for god objects (>500 lines),
 `as any` assertions, and error handling patterns. Report all findings with
 severity and file:line references. Do NOT edit any files.
+IMPORTANT: Only read files in packages/shared. Do NOT read files in other packages —
+another agent handles those. If a finding depends on how client/admin consumes a
+shared export, note it as "needs cross-package verification" rather than confirmed.
 ```
 
 **app-auditor:**
@@ -368,6 +391,10 @@ Audit packages/client, packages/admin, and packages/agent. Run Parts 1-4
 scoped to these packages. Check for hooks outside shared, dead components,
 unused dependencies. Use knip per workspace. Report all findings with
 severity and file:line references. Do NOT edit any files.
+IMPORTANT: Only read files in packages/client, packages/admin, and packages/agent.
+Do NOT read files in packages/shared or packages/contracts — another agent handles
+those. If a finding depends on shared internals, note it as "needs cross-package
+verification" rather than confirmed.
 ```
 
 ### When to Use Team Mode
