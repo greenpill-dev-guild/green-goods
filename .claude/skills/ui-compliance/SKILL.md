@@ -1,5 +1,6 @@
 ---
 name: ui-compliance
+user-invocable: false
 description: UI compliance - accessibility (WCAG), forms, responsive design, animation. Use for a11y, mobile-first, forms, i18n.
 ---
 

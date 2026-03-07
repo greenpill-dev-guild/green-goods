@@ -1,5 +1,6 @@
 ---
 name: indexer
+user-invocable: false
 description: Envio blockchain indexer development. Use for event handlers, schema.graphql design, Docker workflow, and GraphQL patterns.
 ---
 

@@ -1,5 +1,6 @@
 ---
 name: react
+user-invocable: false
 description: React patterns - state management (Zustand, Query), composition, performance. Use for components, state, hooks, optimization.
 ---
 

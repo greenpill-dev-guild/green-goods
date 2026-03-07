@@ -1,5 +1,6 @@
 ---
 name: testing
+user-invocable: false
 description: Testing patterns - TDD workflow, Vitest unit tests, Playwright E2E. Use for writing tests, implementing features, debugging.
 ---
 

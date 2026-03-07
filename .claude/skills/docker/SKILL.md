@@ -1,6 +1,6 @@
 ---
 name: docker
-disable-model-invocation: true
+user-invocable: false
 description: Docker and Docker Compose patterns - containerized services, volume management, networking, health checks, dev vs prod configs. Use for indexer Docker workflow, container debugging, and service orchestration.
 ---
 

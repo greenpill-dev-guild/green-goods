@@ -1,5 +1,6 @@
 ---
 name: tdd-bugfix
+user-invocable: false
 description: Deterministic test-first bugfix wrapper. Use for reproduce -> fix -> verify loops with explicit evidence.
 ---
 

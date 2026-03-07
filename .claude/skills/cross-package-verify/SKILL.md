@@ -1,5 +1,6 @@
 ---
 name: cross-package-verify
+user-invocable: false
 description: Cross-package verification wrapper. Use for deterministic multi-package validation before optional fix mode.
 ---
 

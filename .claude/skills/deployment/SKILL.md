@@ -1,7 +1,7 @@
 ---
 name: deployment
+user-invocable: false
 description: Full deployment pipeline - contracts via deploy.ts, indexer via Docker Compose, frontends via Vercel, environment promotion. Use for deployments, releases, and environment management.
-disable-model-invocation: true
 ---
 
 # Deployment Skill

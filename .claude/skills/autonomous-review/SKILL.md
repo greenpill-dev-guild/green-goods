@@ -1,7 +1,7 @@
 ---
 name: autonomous-review
+user-invocable: false
 description: Autonomous review-to-fix wrapper. Use when the user explicitly asks for review + implementation in one pass.
-disable-model-invocation: true
 ---
 
 # Autonomous Review Skill

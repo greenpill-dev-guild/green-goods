@@ -1,6 +1,6 @@
 ---
 name: dependency-management
-disable-model-invocation: true
+user-invocable: false
 description: Monorepo dependency management - workspace protocol, lockfile conflicts, audit/update workflows, phantom dependencies. Use for dependency upgrades, lockfile issues, workspace management.
 ---
 

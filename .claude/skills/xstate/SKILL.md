@@ -1,6 +1,6 @@
 ---
 name: xstate
-disable-model-invocation: true
+user-invocable: false
 description: XState state machines and workflows - actor model, state machine design, React integration, testing. Use for multi-step flows, workflow orchestration, and complex UI state.
 ---
 

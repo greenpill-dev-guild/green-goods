@@ -16,6 +16,7 @@ Use these canonical commands to start structured workflows:
 | **review** | `/review`, "review this PR", "code review" | 6-pass systematic code review (report-first by default) |
 | **audit** | `/audit`, "audit the codebase", "health check" | Dead code detection, architectural anti-patterns |
 | **teams** | `/teams`, "create agent team", "agent team" | Coordinate multiple Claude Code sessions as a team |
+| **meeting-notes** | `/meeting-notes`, "extract issues from transcript" | Extract actionable items from meeting transcripts as GitHub issues |
 
 ### Command Mode Wrappers (Aliases)
 
@@ -139,6 +140,7 @@ What do you need?
 ├─► Health check? ────────────► /audit
 ├─► Verify whole repo? ───────► /review --mode verify_only --scope cross-package
 ├─► Coordinate agent team? ──► /teams (build, review, investigate)
+├─► Meeting transcript? ───────► /meeting-notes
 │
 ├─► Research/investigate? ────► oracle agent
 ├─► Complex implementation? ──► cracked-coder agent

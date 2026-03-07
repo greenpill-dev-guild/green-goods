@@ -1,6 +1,6 @@
 ---
 name: ci-cd
-disable-model-invocation: true
+user-invocable: false
 description: GitHub Actions CI/CD patterns - workflow config, build matrix, caching, PR checks, status gates. Use for pipeline configuration and automation.
 ---
 

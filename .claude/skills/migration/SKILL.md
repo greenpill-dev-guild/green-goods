@@ -1,7 +1,7 @@
 ---
 name: migration
+user-invocable: false
 description: Deterministic migration wrapper for cross-package breaking changes. Use for protocol upgrades and dependency-impacting migrations.
-disable-model-invocation: true
 ---
 
 # Migration Skill

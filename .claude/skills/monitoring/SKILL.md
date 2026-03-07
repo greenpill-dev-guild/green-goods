@@ -1,6 +1,6 @@
 ---
 name: monitoring
-disable-model-invocation: true
+user-invocable: false
 description: Production monitoring and observability - transaction tracking, service worker health, storage quotas, indexer sync lag, error tracking. Use for production health checks, alerting, and diagnostics.
 ---
 

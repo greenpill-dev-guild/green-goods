@@ -1,5 +1,6 @@
 ---
 name: contracts
+user-invocable: false
 description: Solidity smart contract development with Foundry. Use for contract design, testing, gas optimization, UUPS upgrades, and deployment via deploy.ts.
 ---
 

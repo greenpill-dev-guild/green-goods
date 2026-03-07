@@ -1,6 +1,6 @@
 ---
 name: vite
-disable-model-invocation: true
+user-invocable: false
 description: Vite 7.x build tool. Use when configuring Vite, adding plugins, working with dev server, or building.
 ---
 
