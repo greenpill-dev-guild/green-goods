@@ -179,6 +179,7 @@ export function FileUploadField({
         URL.revokeObjectURL(url);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- filesKey is stable serialization of currentFiles; previewUrls is state set within the effect
   }, [filesKey, showPreview]);
 
   return (

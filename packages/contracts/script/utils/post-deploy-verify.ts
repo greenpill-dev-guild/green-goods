@@ -3,8 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
 import * as yaml from "js-yaml";
-import { zeroAddress } from "viem";
-
 import { CHAIN_ID_MAP, NetworkManager } from "./network";
 
 type NetworkName = "sepolia" | "arbitrum" | "celo" | "mainnet" | "localhost";

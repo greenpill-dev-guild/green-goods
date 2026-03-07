@@ -2,7 +2,6 @@ import { cn, Domain, useActions, useCurrentChain } from "@green-goods/shared";
 import {
   type Control,
   type FieldErrors,
-  type UseFormRegister,
   useController,
 } from "react-hook-form";
 import { useMemo } from "react";

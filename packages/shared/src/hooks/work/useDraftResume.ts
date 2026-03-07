@@ -106,6 +106,7 @@ export function useDraftResume(options: UseDraftResumeOptions) {
     return () => {
       controller.abort();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- searchParams.toString() is read for snapshot, not as a reactive dep
   }, [draftIdFromUrl, setSearchParams, resumeDraft]);
 
   /**

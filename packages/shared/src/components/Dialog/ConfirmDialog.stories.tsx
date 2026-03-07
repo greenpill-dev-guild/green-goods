@@ -172,9 +172,7 @@ export const Interactive: Story = {
     onClose: fn(),
     onCancel: fn(),
   },
-  play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement);
-
+  play: async ({ args }) => {
     // The dialog renders in a portal, so query from the document body
     const dialog = within(document.body);
 

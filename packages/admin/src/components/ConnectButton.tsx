@@ -1,7 +1,6 @@
 import { cn } from "@green-goods/shared";
 import { RiLoader4Line, RiWallet3Line } from "@remixicon/react";
 import { useAppKit } from "@reown/appkit/react";
-import { useIntl } from "react-intl";
 import { useAccount } from "wagmi";
 
 interface ConnectButtonProps {
@@ -17,7 +16,6 @@ export function ConnectButton({
   variant = "primary",
   size = "md",
 }: ConnectButtonProps) {
-  const { formatMessage } = useIntl();
   const { isConnecting } = useAccount();
   const { open } = useAppKit();
 

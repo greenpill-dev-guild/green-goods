@@ -67,8 +67,9 @@ export function useTranslation<T extends TranslatableValue>(
         logger.error(`Translation to ${locale} failed`, { source: "useTranslation", error });
         setTranslated(content); // Fallback to original
       } finally {
-        if (!isMounted) return;
-        setIsTranslating(false);
+        if (isMounted) {
+          setIsTranslating(false);
+        }
       }
     };
 

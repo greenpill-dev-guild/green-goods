@@ -196,6 +196,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
 
       return new Promise((resolve) => {
         let installing = registration.installing;
+        // eslint-disable-next-line prefer-const -- reassigned by setTimeout below
         let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
         const cleanup = (worker: ServiceWorker | null) => {

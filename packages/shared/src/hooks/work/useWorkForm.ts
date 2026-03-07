@@ -97,6 +97,7 @@ export function useWorkForm(inputs?: WorkInput[]) {
   const inputsKey = inputs ? JSON.stringify(inputs) : "";
   const schema = useMemo(
     () => (inputs ? buildWorkFormSchema(inputs) : workFormSchema),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- inputsKey is the stable serialization of inputs
     [inputsKey]
   );
   const resolver = useMemo(() => zodResolver(schema) as Resolver<WorkFormData>, [schema]);
