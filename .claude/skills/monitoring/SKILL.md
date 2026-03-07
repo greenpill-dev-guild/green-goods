@@ -1,13 +1,7 @@
 ---
 name: monitoring
-user-invocable: false
+disable-model-invocation: true
 description: Production monitoring and observability - transaction tracking, service worker health, storage quotas, indexer sync lag, error tracking. Use for production health checks, alerting, and diagnostics.
-version: "1.0.0"
-status: active
-packages: ["indexer", "shared", "client", "admin", "agent"]
-dependencies: []
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
 ---
 
 # Monitoring Skill

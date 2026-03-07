@@ -13,8 +13,6 @@ memory: project
 skills:
   - contracts
   - testing
-mcpServers:
-  - foundry
 maxTurns: 50
 ---
 

@@ -2,12 +2,6 @@
 name: debug
 description: Debugging & Troubleshooting - root cause investigation. Use for systematic debugging and verification.
 argument-hint: "[error-description]"
-version: "1.0.0"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
 ---
 
 # Debug Skill

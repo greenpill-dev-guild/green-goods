@@ -6,7 +6,8 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-EVENT_DETAILS="${CLAUDE_HOOK_EVENT_DETAILS:-}"
+# Read event details from stdin (Claude Code hooks protocol)
+EVENT_DETAILS="$(cat)"
 if [ -z "$EVENT_DETAILS" ]; then
   EVENT_DETAILS='{}'
 fi

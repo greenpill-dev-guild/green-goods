@@ -2,12 +2,6 @@
 name: tailwindcss
 user-invocable: false
 description: TailwindCSS v4 configuration and theming - @theme directive, CSS custom properties, design tokens, dark mode, responsive utilities. Use for styling configuration, theme customization, and CSS architecture.
-version: "1.0.0"
-status: active
-packages: ["shared", "client", "admin"]
-dependencies: []
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
 ---
 
 # TailwindCSS v4 Skill
@@ -285,6 +279,57 @@ packages/admin/src/
 @import "./styles/typography.css";
 ```
 
+## Part 6: Animation Recipes
+
+Reusable animation patterns using Tailwind classes (source CSS in `packages/client/src/styles/animation.css`):
+
+### Staggered List Reveal
+
+```typescript
+// Organic feel for garden/work lists
+function StaggeredList({ items, renderItem }: StaggeredListProps) {
+  return (
+    <ul className="space-y-3">
+      {items.map((item, i) => (
+        <li
+          key={item.id}
+          className="animate-in fade-in-0 slide-in-from-bottom-2"
+          style={{ animationDelay: `${i * 60}ms`, animationFillMode: "backwards" }}
+        >
+          {renderItem(item)}
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Skeleton Loading
+
+```typescript
+function CardSkeleton() {
+  return (
+    <div className="rounded-xl border border-border/50 p-4 space-y-3">
+      <div className="h-4 w-2/3 rounded-md bg-muted animate-pulse" />
+      <div className="h-3 w-full rounded-md bg-muted/70 animate-pulse [animation-delay:150ms]" />
+      <div className="h-3 w-4/5 rounded-md bg-muted/50 animate-pulse [animation-delay:300ms]" />
+    </div>
+  );
+}
+```
+
+### Page Transition
+
+```typescript
+function PageTransition({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="animate-in fade-in-0 slide-in-from-right-4 duration-300 ease-out">
+      {children}
+    </div>
+  );
+}
+```
+
 ## Anti-Patterns
 
 - **Never use `tailwind.config.js`** — TailwindCSS v4 uses CSS-first configuration
@@ -312,7 +357,7 @@ grep "data-theme.*dark" packages/shared/src/styles/theme.css
 ## Related Skills
 
 - `radix-ui` — Radix primitives styled with TailwindCSS classes
-- `frontend-design` — Design philosophy and aesthetic direction
+- `frontend-design:frontend-design` — Design philosophy and aesthetic direction
 - `ui-compliance` — Responsive design and accessibility patterns
 - `biome` — Code formatting (Biome handles TS/JS; TailwindCSS handles CSS)
 - `performance` — Bundle size impact of CSS utilities

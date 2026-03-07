@@ -29,6 +29,13 @@ Green Goods is an **offline-first, single-chain** platform for documenting conse
 3. **Single Chain**: Target chain set by `VITE_CHAIN_ID` at build time
 4. **Shared Logic**: ALL React hooks MUST live in `@green-goods/shared`
 
+### Intent Priorities (trade-off hierarchy)
+1. **Offline correctness** — nothing breaks without network
+2. **Security** — funds, access control, key management
+3. **User experience** — PWA-native feel, responsive, accessible
+4. **Developer experience** — build times, test speed, clear errors
+5. **Code elegance** — readability, patterns, minimal complexity
+
 ### Build Order
 1. **contracts** -> ABIs for other packages
 2. **shared** -> hooks/modules for frontends

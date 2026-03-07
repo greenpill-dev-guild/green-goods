@@ -9,15 +9,13 @@ tools:
   - Edit
   - Write
   - Bash
-  - Task
+  - Agent
 memory: project
 skills:
   - testing
   - react
   - contracts
   - error-handling-patterns
-mcpServers:
-  - foundry
 maxTurns: 50
 ---
 
@@ -39,7 +37,7 @@ Use when:
 
 ### SCOPE (Step 0 — MANDATORY)
 
-Before ANY work, check for a `bundle_id` in the task brief. If present, load the matching bundle from `.claude/registry/skill-bundles.json` to determine which skills to activate and in what mode.
+Before ANY work:
 
 1. Confirm target scope — which package(s)? If unclear, ASK.
 2. Confirm intent:

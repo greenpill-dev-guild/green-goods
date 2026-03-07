@@ -101,6 +101,7 @@ Use agents for multi-step tasks that need sustained context:
 | **code-reviewer** | "use code-reviewer" | Systematic 6-pass PR review with GitHub posting |
 | **migration** | "use migration agent" | Cross-package migration orchestration with blast radius tracking |
 | **triage** | "triage this", "classify this issue", "what skill for this" | Fast classification, severity/type/package routing to skill chains |
+| **storybook-author** | "use storybook-author", "write stories" | CSF3 story authoring with dark mode, a11y, interaction tests |
 
 ### Agent Handoff Protocol
 
@@ -167,6 +168,7 @@ What do you need?
 ├─► TailwindCSS/theming? ─────► tailwindcss skill
 ├─► Dialog/Select/Popover? ───► radix-ui skill
 ├─► Component stories? ───────► storybook skill
+├─► Write component stories? ─► storybook-author agent
 ├─► Accessibility/UI? ────────► ui-compliance skill
 ├─► Create diagram? ──────────► mermaid-diagrams skill
 ├─► Architecture decision? ───► architecture skill
@@ -283,7 +285,7 @@ Package-specific implementation patterns:
 ### Tier 3 — Design
 UI/UX patterns and documentation:
 
-`frontend-design` · `tailwindcss` · `radix-ui` · `ui-compliance` · `storybook` · `mermaid-diagrams`
+`frontend-design:frontend-design` · `tailwindcss` · `radix-ui` · `ui-compliance` · `storybook` · `mermaid-diagrams`
 
 ### Tier 4 — Orchestration
 Workflow coordination (command skills + agents):

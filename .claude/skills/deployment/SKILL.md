@@ -2,12 +2,6 @@
 name: deployment
 description: Full deployment pipeline - contracts via deploy.ts, indexer via Docker Compose, frontends via Vercel, environment promotion. Use for deployments, releases, and environment management.
 disable-model-invocation: true
-version: "1.0.0"
-status: active
-packages: ["contracts", "indexer", "client", "admin"]
-dependencies: ["contracts"]
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
 ---
 
 # Deployment Skill

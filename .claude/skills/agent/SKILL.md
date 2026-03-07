@@ -1,12 +1,6 @@
 ---
 name: agent
 description: Multi-platform bot development - Telegram handlers, platform adapters, crypto services, rate limiting. Use for bot features, command handlers, and platform integrations.
-version: "1.0.0"
-status: active
-packages: ["agent"]
-dependencies: []
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
 ---
 
 # Agent Skill

@@ -8,6 +8,7 @@ tools:
   - Grep
   - Edit
   - Write
+  - Bash
 memory: project
 skills:
   - react

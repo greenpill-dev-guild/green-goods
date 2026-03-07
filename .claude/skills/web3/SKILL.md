@@ -2,12 +2,6 @@
 name: web3
 user-invocable: false
 description: Web3 frontend patterns - Wagmi, Viem, wallet/passkey auth, transaction lifecycle, contract interactions. Use for wallet flows, chain switching, contract reads/writes, and account abstraction.
-version: "1.0.0"
-status: active
-packages: ["shared", "client", "admin"]
-dependencies: []
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
 ---
 
 # Web3 Skill

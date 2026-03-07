@@ -2,12 +2,6 @@
 name: radix-ui
 user-invocable: false
 description: Radix UI primitives with TailwindCSS v4 - accessible, unstyled components. Use for dialogs, selects, accordions, popovers, and other interactive UI patterns.
-version: "1.0.0"
-status: active
-packages: ["shared", "client", "admin"]
-dependencies: ["tailwindcss"]
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
 ---
 
 # Radix UI Skill
@@ -246,9 +240,61 @@ Radix primitives handle accessibility automatically:
 - [ ] Test keyboard navigation (Tab, Arrow keys, Escape)
 - [ ] Portal content renders at document root
 
+## Part 6: Tailwind Variants for Component APIs
+
+When a Radix composition needs multiple variants, use `tv()` from `tailwind-variants` instead of manual `cn()` ternaries:
+
+```typescript
+import * as Dialog from "@radix-ui/react-dialog";
+import { tv, type VariantProps } from "tailwind-variants";
+
+const overlay = tv({
+  base: "fixed inset-0 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+});
+
+const content = tv({
+  base: "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl bg-background p-6 shadow-2xl border border-border/50",
+  variants: {
+    size: {
+      sm: "w-[90vw] max-w-sm",
+      md: "w-[90vw] max-w-lg",
+      lg: "w-[90vw] max-w-2xl",
+    },
+  },
+  defaultVariants: { size: "md" },
+});
+
+// Usage: <SizedDialog size="lg">...</SizedDialog>
+```
+
+### StatusBadge Pattern
+
+```typescript
+import { tv } from "tailwind-variants";
+
+const badge = tv({
+  base: "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset transition-colors",
+  variants: {
+    status: {
+      active: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400",
+      pending: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400",
+      failed: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-400",
+      offline: "bg-zinc-100 text-zinc-600 ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400",
+    },
+  },
+});
+
+export function StatusBadge({ status, label }: StatusBadgeProps) {
+  return <span className={badge({ status })}>{label}</span>;
+}
+```
+
+**When to use `tv()` vs `cn()`:**
+- `tv()` — Component has 2+ variant dimensions (size, status, intent) or default variants
+- `cn()` — Simple conditional class toggling (1 boolean condition)
+
 ## Related Skills
 
 - `react` — Component composition patterns
-- `frontend-design` — Visual design with Radix primitives
 - `ui-compliance` — For WCAG audit checklists and page-level accessibility (this skill handles component-level a11y)
 - `storybook` — Stories for Radix compositions

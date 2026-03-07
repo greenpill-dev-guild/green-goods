@@ -10,7 +10,7 @@ tools:
 disallowedTools:
   - Write
   - Edit
-  - Task
+  - Agent
 permissionMode: plan
 maxTurns: 5
 ---

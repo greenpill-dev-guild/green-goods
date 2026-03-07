@@ -2,12 +2,6 @@
 name: error-handling-patterns
 user-invocable: false
 description: Robust error handling strategies for graceful failures and debugging. Use for error handling implementations, error flow debugging, error boundaries, retry mechanisms, and user-friendly error messages.
-version: "1.0.0"
-status: active
-packages: ["shared", "client", "admin"]
-dependencies: []
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
 ---
 
 # Error Handling Patterns

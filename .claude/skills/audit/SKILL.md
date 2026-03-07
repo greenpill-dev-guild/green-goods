@@ -1,19 +1,13 @@
 ---
 name: audit
-description: Codebase Audit - quality analysis, dead code detection. Use for health checks and anti-pattern detection.
-argument-hint: "[package-name]"
+description: "Codebase Audit - quality analysis, dead code detection, issue tracking across runs. Use for health checks, anti-pattern detection, and progress tracking on known issues."
+argument-hint: "[package-name] [--team]"
 context: fork
-version: "1.0.0"
-status: active
-packages: ["all"]
-dependencies: ["review", "security"]
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
 ---
 
 # Audit Skill
 
-Systematic codebase analysis: quality audit, dead code detection, architectural review.
+Systematic codebase analysis: quality audit, dead code detection, architectural review, and issue tracking across runs.
 
 **References**: See `CLAUDE.md` for codebase patterns. Use `oracle` for deep investigation.
 
@@ -23,10 +17,24 @@ Systematic codebase analysis: quality audit, dead code detection, architectural 
 
 | Trigger | Action |
 |---------|--------|
-| `/audit` | Full codebase audit |
-| `/audit [package]` | Targeted package audit |
+| `/audit` | Full codebase audit (single agent) |
+| `/audit [package]` | Targeted package audit (scoped checks) |
+| `/audit --team` | Full audit with parallel agent team |
+| `/audit [package] --team` | Package audit with team |
 | Before refactoring | Identify tech debt |
 | Periodic assessment | Codebase health check |
+
+### Package Scoping
+
+When a `[package]` argument is provided (e.g., `shared`, `client`, `admin`, `contracts`, `indexer`, `agent`), scope ALL checks to that package:
+
+- **tsc**: `bun run --filter @green-goods/[package] tsc --noEmit`
+- **knip**: `bunx knip --workspace @green-goods/[package]`
+- **File review**: Only `packages/[package]/src/`
+- **Anti-patterns**: Only violations in that package
+- **Cross-cutting checks** (drift, hook boundary): Still run but filter results to package
+
+When NO package is specified, run everything.
 
 ## Progress Tracking (REQUIRED)
 
@@ -34,11 +42,55 @@ Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in t
 
 ---
 
+## Part 0: Previous Findings Verification
+
+**REQUIRED before any new analysis.** Check whether previously reported Critical and High issues are still open.
+
+### Steps
+
+1. **Find the most recent audit report**:
+```bash
+ls -t .plans/audits/*-audit.md | head -1
+```
+
+2. **Extract Critical and High findings** — read the report sections for `## Critical Findings` and `## High Findings`. Collect each finding's:
+   - ID (e.g., C1, H3)
+   - Description
+   - File path and line number(s)
+   - Original recommendation
+
+3. **Verify each finding** — read the referenced file:line and determine status:
+
+| Status | Meaning | How to determine |
+|--------|---------|-----------------|
+| `FIXED` | Issue no longer exists | Code at file:line has changed and the problem pattern is gone |
+| `STILL OPEN` | Issue persists unchanged | Same problematic code at same or nearby location |
+| `CHANGED` | Code modified but issue may persist | File changed but the root problem pattern is still present |
+| `MOVED` | Issue relocated | Original location clean, but pattern found elsewhere |
+| `N/A` | File deleted or feature removed | File no longer exists |
+
+4. **Include in report** as the first section after Executive Summary (see Part 5 template).
+
+### Trend Data
+
+If 2+ previous audit reports exist, include trend comparisons:
+```bash
+# Compare key metrics across last 3 reports
+ls -t .plans/audits/*-audit.md | head -3
+```
+
+Track: total findings by severity, unused files count, unused exports count, unused dependencies count.
+
+---
+
 ## Part 1: Automated Analysis
 
+Run these checks, scoped to `[package]` if provided:
+
 ```bash
-# Type checking
-bun run --filter [package] tsc --noEmit
+# Type checking (scoped or full)
+bun run --filter @green-goods/[package] tsc --noEmit  # scoped
+bun run tsc --noEmit                                   # full
 
 # Linting
 bun lint
@@ -49,8 +101,9 @@ bash .claude/scripts/validate-hook-location.sh
 # i18n completeness
 node .claude/scripts/check-i18n-completeness.js
 
-# TODO/FIXME markers
-grep -rn "TODO\|FIXME\|HACK" --include="*.ts" packages/
+# TODO/FIXME markers (scoped or full)
+grep -rn "TODO\|FIXME\|HACK" --include="*.ts" packages/[package]/  # scoped
+grep -rn "TODO\|FIXME\|HACK" --include="*.ts" packages/            # full
 ```
 
 ---
@@ -86,27 +139,19 @@ For each file check:
 > rate in this monorepo due to barrel exports, re-exports, and aliased imports.
 
 ```bash
-# knip — PREFERRED: monorepo-aware unused files, exports, deps, types
-# Installed at root as devDependency. Understands workspace cross-package imports.
-bunx knip                          # Full analysis (files, exports, deps, types)
-bunx knip --reporter compact       # Condensed output
+# Full analysis
+bunx knip --reporter compact 2>&1 | grep -v 'packages/contracts/lib/'
+
+# Package-scoped analysis
+bunx knip --workspace @green-goods/[package] --reporter compact
+
+# Specific categories
 bunx knip --include files          # Only unused files
 bunx knip --include exports        # Only unused exports
 bunx knip --include dependencies   # Only unused deps
 
-# IMPORTANT: knip will flag files in packages/contracts/lib/ (Foundry deps).
-# Filter these out — they are git submodules managed by Foundry, not dead code:
-bunx knip --reporter compact 2>&1 | grep -v 'packages/contracts/lib/'
-
 # madge — Detect circular dependencies
-# Install: bun add -D madge
-bunx madge --circular packages/shared/src/index.ts
-bunx madge --circular packages/client/src/main.tsx
-bunx madge --image graph.svg packages/shared/src/  # Visual dep graph
-
-# bundlesize — Enforce bundle budgets (CI integration)
-# Configure in package.json or bundlesize.config.json
-# Green Goods budgets: main <150KB, per-route <50KB, total <400KB gzipped
+bunx madge --circular packages/[package]/src/index.ts
 ```
 
 | Tool | Purpose | Status |
@@ -162,8 +207,33 @@ Create at `.plans/audits/[date]-audit.md`:
 - Files analyzed: N
 - Critical: N | High: N | Medium: N | Low: N
 
+## Previous Findings Status
+_Tracked from: [previous report date]_
+
+| ID | Finding | File | Status | Notes |
+|----|---------|------|--------|-------|
+| C1 | WithdrawModal shares vs assets | admin/.../WithdrawModal.tsx | STILL OPEN / FIXED | [details] |
+| H2 | Dead file WorkApprovalDrawer | client/.../WorkApprovalDrawer.tsx | FIXED | Removed in abc123 |
+
+### Trend (last 3 audits)
+| Metric | [date-3] | [date-2] | [date-1 (current)] |
+|--------|----------|----------|---------------------|
+| Critical | N | N | N |
+| High | N | N | N |
+| Unused files | N | N | N |
+| Unused exports | N | N | N |
+
 ## Critical Findings
 [List with file:line references]
+
+## High Findings
+[List with file:line references]
+
+## Medium Findings
+[Grouped by category]
+
+## Low Findings
+[Grouped by category]
 
 ## Dead Code
 | File | Export | Recommendation |
@@ -173,6 +243,9 @@ Create at `.plans/audits/[date]-audit.md`:
 
 ## Green Goods Violations
 | Rule | Violation | Location |
+
+## Skill & Configuration Drift
+[See Part 6]
 
 ## Recommendations
 1. [Priority 1]
@@ -200,7 +273,7 @@ done
 
 # Check that utility functions referenced in skills exist
 for util in parseContractError createMutationErrorHandler mediaResourceManager \
-  getStorageQuota jobQueue eventBus logger toastService; do
+  getStorageQuota jobQueue jobQueueEventBus logger toastService; do
   count=$(grep -rn "export.*$util" packages/shared/src/ | wc -l)
   if [ "$count" -eq 0 ]; then
     echo "DRIFT: $util referenced in skills but not exported from shared"
@@ -237,15 +310,76 @@ Add to audit report:
 
 | Reference | Location | Status |
 |-----------|----------|--------|
-| `useDelayedInvalidation` | data-layer SKILL.md, architectural-rules.md | ✅ Exists |
-| `parseContractError` | error-handling SKILL.md | ⚠️ Renamed to `decodeContractError` |
-| `Address` type | web3 SKILL.md, contracts SKILL.md | ✅ Exists |
-| Provider order (Rule #13) | architectural-rules.md | ⚠️ `JobQueueProvider` moved above `AppProvider` |
+| `useDelayedInvalidation` | data-layer SKILL.md | OK |
+| `parseContractError` | error-handling SKILL.md | DRIFT: renamed |
+| `Address` type | web3 SKILL.md, contracts SKILL.md | OK |
 
 ### Recommendations
-- Update error-handling SKILL.md: `parseContractError` → `decodeContractError`
-- Update architectural-rules.md: Fix provider nesting order
+- Update [skill]: `oldName` -> `newName`
 ```
+
+---
+
+## Part 7: Team Mode
+
+When `--team` is passed, spawn a parallel agent team instead of running sequentially.
+
+**Requires**: Agent Teams feature (see `agent-teams` skill). If unavailable, fall back to single-agent mode.
+
+### Team Structure
+
+```
+Lead (Part 0 + Part 5 + Part 6 — tracking, synthesis, drift)
+  chain-auditor      (contracts + indexer — Parts 1-4)
+  middleware-auditor  (shared — Parts 1-4)
+  app-auditor         (client + admin + agent — Parts 1-4)
+```
+
+### Lead Responsibilities
+
+1. Run **Part 0** (Previous Findings Verification) before spawning teammates
+2. Spawn 3 teammates with package-scoped instructions
+3. Wait for all teammates to complete
+4. **Synthesize** findings into single report (Part 5)
+5. Run **Part 6** (Drift Detection) — cross-cutting, lead-only
+6. Write final report to `.plans/audits/[date]-audit.md`
+
+### Spawn Prompts
+
+**chain-auditor:**
+```
+Audit packages/contracts and packages/indexer. Run Parts 1-4 of the audit skill
+scoped to these packages. Use `bunx knip --workspace @green-goods/contracts`
+and `bunx knip --workspace @green-goods/indexer`. Report all findings with
+severity (Critical/High/Medium/Low) and file:line references. Do NOT edit any files.
+```
+
+**middleware-auditor:**
+```
+Audit packages/shared. Run Parts 1-4 of the audit skill scoped to shared.
+Use `bunx knip --workspace @green-goods/shared`. Check for god objects (>500 lines),
+`as any` assertions, and error handling patterns. Report all findings with
+severity and file:line references. Do NOT edit any files.
+```
+
+**app-auditor:**
+```
+Audit packages/client, packages/admin, and packages/agent. Run Parts 1-4
+scoped to these packages. Check for hooks outside shared, dead components,
+unused dependencies. Use knip per workspace. Report all findings with
+severity and file:line references. Do NOT edit any files.
+```
+
+### When to Use Team Mode
+
+| Scenario | Mode |
+|----------|------|
+| Quick health check on one package | `/audit shared` (single agent) |
+| Full codebase audit | `/audit --team` (parallel) |
+| Pre-release audit | `/audit --team` (parallel, thorough) |
+| Checking a specific concern | `/audit [package]` (single agent) |
+
+---
 
 ## Key Principles
 
@@ -254,6 +388,7 @@ Add to audit report:
 - **Evidence-based** — every finding needs file:line
 - **Prompt before issues** — ask user before creating GitHub issues
 - **Check for drift** — verify skill references match actual codebase
+- **Track across runs** — always verify previous Critical/High findings before new analysis
 
 ## Related Skills
 
@@ -261,3 +396,4 @@ Add to audit report:
 - `performance` — Bundle analysis and optimization findings
 - `security` — Security-specific audit patterns for contracts
 - `testing` — Coverage analysis and test gap identification
+- `agent-teams` — Team coordination for parallel audits

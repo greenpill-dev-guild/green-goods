@@ -2,12 +2,6 @@
 name: migration
 description: Deterministic migration wrapper for cross-package breaking changes. Use for protocol upgrades and dependency-impacting migrations.
 disable-model-invocation: true
-version: "1.0.0"
-status: active
-packages: ["contracts", "indexer", "shared", "client", "admin"]
-dependencies: ["testing"]
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
 ---
 
 # Migration Skill

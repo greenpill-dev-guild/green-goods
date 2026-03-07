@@ -1,12 +1,6 @@
 ---
 name: react
 description: React patterns - state management (Zustand, Query), composition, performance. Use for components, state, hooks, optimization.
-version: "1.0.0"
-status: active
-packages: ["shared", "client", "admin"]
-dependencies: []
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
 ---
 
 # React Skill
@@ -680,4 +674,4 @@ useQuery({
 - `performance` — React Profiler, re-render optimization, and bundle analysis
 - `storybook` — Component documentation and visual testing
 - `ui-compliance` — WCAG accessibility, responsive design, and i18n for React components
-- `frontend-design` — Visual design direction and aesthetic choices for React UIs
+- `frontend-design:frontend-design` — Visual design direction and aesthetic choices for React UIs
