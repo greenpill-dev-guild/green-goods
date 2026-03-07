@@ -9,7 +9,6 @@ import {
   LISTING_DEFAULTS,
   type CreateListingParams,
   type ListingStep,
-  DEFAULT_CHAIN_ID,
 } from "@green-goods/shared";
 import { parseEther, zeroAddress } from "viem";
 

@@ -148,7 +148,7 @@ export const Gallery: Story = {
     <div className="space-y-6">
       <p className="text-sm text-text-sub">
         Withdraw modals render as Radix portals. Share balances and estimated assets require a
-        connected wallet; they show 0.0 / "--" in Storybook.
+        connected wallet; they show 0.0 / &ldquo;--&rdquo; in Storybook.
       </p>
 
       <div>

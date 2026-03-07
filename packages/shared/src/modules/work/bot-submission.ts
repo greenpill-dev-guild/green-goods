@@ -19,7 +19,7 @@ export async function submitWorkBot(
 ): Promise<`0x${string}`> {
   // encodeWorkData normalizes Blob -> File internally (encoders.ts).
   // Convert Buffer -> Blob here so encodeWorkData receives a type it can handle.
-  const mediaFiles = images.map((img, index) => {
+  const mediaFiles = images.map((img) => {
     if (typeof Buffer !== "undefined" && img instanceof Buffer) {
       return new Blob([new Uint8Array(img)], { type: "application/octet-stream" });
     }

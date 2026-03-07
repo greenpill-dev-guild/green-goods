@@ -2,7 +2,7 @@ import type { Domain_t } from "../../generated/src/db/Enums.gen";
 
 import type { Garden, GardenVault, Hypercert } from "../../generated/src/Types.gen";
 
-import { Capital, HypercertStatus, PoolType, VaultEventType, WeightScheme } from "../../generated";
+import { Capital, HypercertStatus, PoolType, WeightScheme } from "../../generated";
 
 // ============================================================================
 // TYPE HELPERS

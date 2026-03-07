@@ -178,15 +178,18 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Filter gardens to only show ones user is a member of
   // Filter to user's gardens
-  const userGardens =
-    userAddress && gardensData
-      ? gardensData.filter((garden: Garden) => {
-          return (
-            isAddressInList(userAddress, garden.gardeners) ||
-            isAddressInList(userAddress, garden.operators)
-          );
-        })
-      : [];
+  const userGardens = useMemo(
+    () =>
+      userAddress && gardensData
+        ? gardensData.filter((garden: Garden) => {
+            return (
+              isAddressInList(userAddress, garden.gardeners) ||
+              isAddressInList(userAddress, garden.operators)
+            );
+          })
+        : [],
+    [userAddress, gardensData]
+  );
 
   // UI state via Zustand with useShallow for multi-select optimization
   const {

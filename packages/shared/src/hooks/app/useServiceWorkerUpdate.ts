@@ -166,7 +166,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
       cleanupFns.forEach((fn) => fn());
       registrationRef.current = null;
     };
-  }, [isEnabled, handleUpdateFound, handleStateChange]);
+  }, [isEnabled, handleUpdateFound, handleStateChange, markUpdateAvailable]);
 
   // Use the event listener hook for controller change (with { once: true })
   // This ensures we only handle it once and it's properly cleaned up

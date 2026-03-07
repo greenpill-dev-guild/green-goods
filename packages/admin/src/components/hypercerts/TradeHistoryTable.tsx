@@ -3,7 +3,6 @@ import {
   DEFAULT_CHAIN_ID,
   getNetworkConfig,
   type Address,
-  type FractionTrade,
 } from "@green-goods/shared";
 import { RiLoader4Line, RiExternalLinkLine, RiAlertLine, RiHistoryLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
