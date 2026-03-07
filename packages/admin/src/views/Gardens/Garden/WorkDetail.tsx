@@ -16,12 +16,37 @@ import { WorkReviewPanel } from "@/components/Work/WorkReviewPanel";
 import { WorkStatusBadge } from "@/components/Work/WorkStatusBadge";
 import { WorkSubmissionDetails } from "@/components/Work/WorkSubmissionDetails";
 
+type ReviewBlockReason = "operator" | "expired" | null;
+
 function parseWorkMetadata(metadataStr: string): Partial<WorkMetadata> | null {
   try {
     return JSON.parse(metadataStr);
   } catch {
     return null;
   }
+}
+
+function getReviewBlockReason(params: {
+  isReviewed: boolean;
+  canReview: boolean;
+  actionEndTime?: number;
+  nowMs?: number;
+}): ReviewBlockReason {
+  const { isReviewed, canReview, actionEndTime, nowMs = Date.now() } = params;
+
+  if (isReviewed) {
+    return null;
+  }
+
+  if (!canReview) {
+    return "operator";
+  }
+
+  if (typeof actionEndTime === "number" && actionEndTime <= nowMs) {
+    return "expired";
+  }
+
+  return null;
 }
 
 export default function WorkDetail() {
@@ -43,6 +68,11 @@ export default function WorkDetail() {
 
   const canReview = garden ? gardenPermissions.canReviewGarden(garden) : false;
   const isReviewed = work?.status === "approved" || work?.status === "rejected";
+  const reviewBlockReason = getReviewBlockReason({
+    isReviewed,
+    canReview,
+    actionEndTime: action?.endTime,
+  });
 
   const metadata = useMemo(
     () => (work?.metadata ? parseWorkMetadata(work.metadata) : null),
@@ -131,13 +161,40 @@ export default function WorkDetail() {
             />
           </div>
 
-          <WorkReviewPanel
-            work={work}
-            gardenId={gardenId!}
-            actionSlug={action?.slug}
-            canReview={canReview}
-            isReviewed={isReviewed}
-          />
+          {reviewBlockReason ? (
+            <div className="lg:col-span-2">
+              <div className="lg:sticky lg:top-24">
+                <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+                  <h3 className="text-base font-semibold text-text-strong">
+                    {formatMessage({ id: "app.work.detail.operatorReview" })}
+                  </h3>
+                  <div
+                    className="mt-4 rounded-lg border border-warning-light bg-warning-lighter p-4"
+                    role="alert"
+                  >
+                    <p className="text-sm font-medium text-warning-dark">
+                      {reviewBlockReason === "operator"
+                        ? formatMessage({ id: "app.work.detail.reviewBlocked.operatorTitle" })
+                        : formatMessage({ id: "app.work.detail.reviewBlocked.expiredTitle" })}
+                    </p>
+                    <p className="mt-1 text-sm text-warning-dark">
+                      {reviewBlockReason === "operator"
+                        ? formatMessage({ id: "app.work.detail.reviewBlocked.operatorMessage" })
+                        : formatMessage({ id: "app.work.detail.reviewBlocked.expiredMessage" })}
+                    </p>
+                  </div>
+                </section>
+              </div>
+            </div>
+          ) : (
+            <WorkReviewPanel
+              work={work}
+              gardenId={gardenId!}
+              actionSlug={action?.slug}
+              canReview={canReview}
+              isReviewed={isReviewed}
+            />
+          )}
         </div>
       </div>
     </div>

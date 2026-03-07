@@ -1,5 +1,12 @@
 import { v4 as uuidv4 } from "uuid";
-import type { Action, Address, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
+import {
+  Confidence,
+  type Action,
+  type Address,
+  type Work,
+  type WorkApprovalDraft,
+  type WorkDraft,
+} from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { serviceWorkerManager } from "../app/service-worker";
 import { createOfflineTxHash, jobQueue } from "../job-queue";
@@ -113,6 +120,8 @@ export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 export const MAX_IMAGE_COUNT = 10;
 export const MAX_TOTAL_IMAGE_SIZE_BYTES = 50 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+export const MAX_APPROVAL_CONFIDENCE = Confidence.HIGH;
+export const MAX_APPROVAL_VERIFICATION_METHOD = 15;
 
 /**
  * Options for validating work submission context
@@ -215,9 +224,31 @@ export function validateApprovalDraft(draft: WorkApprovalDraft): string[] {
     errors.push("Approval decision is required");
   }
 
-  // Feedback is optional but if provided, should not be empty
-  if (draft.feedback !== undefined && draft.feedback.trim().length === 0) {
-    errors.push("Feedback cannot be empty if provided");
+  if (
+    typeof draft.confidence !== "number" ||
+    !Number.isInteger(draft.confidence) ||
+    draft.confidence < Confidence.NONE ||
+    draft.confidence > MAX_APPROVAL_CONFIDENCE
+  ) {
+    errors.push("Confidence must be between NONE and HIGH");
+  }
+
+  if (
+    typeof draft.verificationMethod !== "number" ||
+    !Number.isInteger(draft.verificationMethod) ||
+    draft.verificationMethod < 0 ||
+    draft.verificationMethod > MAX_APPROVAL_VERIFICATION_METHOD
+  ) {
+    errors.push("Verification method must be between 0 and 15");
+  }
+
+  // Feedback is optional. Treat an empty string as "not provided", but reject whitespace-only input.
+  if (
+    draft.feedback !== undefined &&
+    draft.feedback.length > 0 &&
+    draft.feedback.trim().length === 0
+  ) {
+    errors.push("Feedback cannot only contain whitespace");
   }
 
   // Confidence validation (decision #31: approvals require >= LOW, rejections use NONE)

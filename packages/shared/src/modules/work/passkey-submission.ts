@@ -9,7 +9,7 @@ import {
   buildBatchApprovalAttestTx,
   buildWorkAttestTx,
 } from "../../utils/eas/transaction-builder";
-import { simulateWorkSubmission } from "./simulate";
+import { simulateApprovalSubmission, simulateWorkSubmission } from "./simulate";
 
 function assertSmartAccount(
   client: SmartAccountClient | null
@@ -128,6 +128,21 @@ export async function submitApprovalWithPasskey({
   const smartClient = client as SmartAccountClient;
 
   const easConfig = getEASConfig(chainId);
+
+  try {
+    debugLog("[PasskeySubmission] Simulating approval before submission...");
+    await simulateApprovalSubmission({
+      draft,
+      gardenAddress: gardenAddress as `0x${string}`,
+      chainId,
+      accountAddress: smartClient.account!.address as `0x${string}`,
+    });
+    debugLog("[PasskeySubmission] Approval simulation successful");
+  } catch (error) {
+    debugError("[PasskeySubmission] Approval simulation failed", error);
+    throw error;
+  }
+
   const attestationData = encodeWorkApprovalData(draft, chainId);
 
   const txParams = buildApprovalAttestTx(
@@ -196,6 +211,19 @@ export async function submitBatchApprovalsWithPasskey({
   // Check abort again before encoding (could be expensive for large batches)
   if (signal?.aborted) {
     throw new DOMException("Batch approval aborted", "AbortError");
+  }
+
+  for (const approval of approvals) {
+    await simulateApprovalSubmission({
+      draft: approval.draft,
+      gardenAddress: approval.gardenAddress as `0x${string}`,
+      chainId,
+      accountAddress: smartClient.account!.address as `0x${string}`,
+    });
+
+    if (signal?.aborted) {
+      throw new DOMException("Batch approval aborted", "AbortError");
+    }
   }
 
   // Encode all approvals

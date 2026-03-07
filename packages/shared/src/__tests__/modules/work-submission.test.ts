@@ -31,6 +31,7 @@ import {
   formatJobError,
   submitApprovalToQueue,
   submitWorkToQueue,
+  validateApprovalDraft,
   validateWorkDraft,
   validateWorkSubmissionContext,
 } from "../../modules/work/work-submission";
@@ -166,6 +167,32 @@ describe("modules/work-submission", () => {
     );
     expect(result.jobId).toBe("job-1");
     expect(result.txHash.startsWith("0xoffline_")).toBe(true);
+  });
+
+  describe("validateApprovalDraft", () => {
+    it("rejects verification methods outside the 4-bit contract range", () => {
+      const errors = validateApprovalDraft({
+        workUID: "0xwork",
+        actionUID: 1,
+        approved: true,
+        confidence: 2,
+        verificationMethod: 16,
+      });
+
+      expect(errors).toContain("Verification method must be between 0 and 15");
+    });
+
+    it("rejects confidence values outside the contract range", () => {
+      const errors = validateApprovalDraft({
+        workUID: "0xwork",
+        actionUID: 1,
+        approved: true,
+        confidence: 4 as any,
+        verificationMethod: 1,
+      });
+
+      expect(errors).toContain("Confidence must be between NONE and HIGH");
+    });
   });
 
   it("formats job errors", () => {

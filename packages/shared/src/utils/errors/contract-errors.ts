@@ -40,7 +40,8 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   },
   "0xf3aeae14": {
     name: "NotGardenOperator",
-    message: "Only garden operators can perform this action",
+    message: "Only garden owners or operators can perform this action",
+    action: "Ask a garden owner to grant you operator access before reviewing work",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -207,8 +208,35 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   "0x6beb8978": {
     name: "NotInWorkRegistry",
     message: "This work submission does not exist",
+    action: "Refresh the work detail page and make sure the submission still exists before retrying",
     recoverable: false,
     suggestedAction: "contact-support",
+  },
+  "0x5629ca14": {
+    name: "ActionMismatch",
+    message: "This approval no longer matches the original work submission",
+    action: "Refresh the page and retry from the latest work details",
+    recoverable: false,
+    suggestedAction: "retry",
+  },
+  "0x001331cf": {
+    name: "ActionExpired",
+    message: "This action has expired and can no longer accept new approval decisions",
+    action: "Extend the action window or retry with work tied to an active action",
+    recoverable: false,
+    suggestedAction: "contact-support",
+  },
+  "0x126db58e": {
+    name: "InvalidConfidence",
+    message: "Confidence must be NONE, LOW, MEDIUM, or HIGH",
+    action: "Select a valid confidence level before submitting the approval",
+    recoverable: false,
+  },
+  "0xe7b7cd42": {
+    name: "InvalidVerificationMethod",
+    message: "Verification method selection is invalid",
+    action: "Choose one or more valid verification methods before submitting the approval",
+    recoverable: false,
   },
 
   // ============================================================================
@@ -419,6 +447,35 @@ export function parseContractError(error: unknown): ParsedContractError {
   }
 
   // Check for manual validation errors (from simulation)
+  if (
+    errorStr.includes("Validation failed") &&
+    errorStr.toLowerCase().includes("verification method")
+  ) {
+    const knownError = ERROR_SIGNATURES["0xe7b7cd42"];
+    return {
+      raw: signature ?? errorStr,
+      name: knownError.name,
+      message: knownError.message,
+      action: knownError.action,
+      isKnown: true,
+      recoverable: knownError.recoverable,
+      suggestedAction: knownError.suggestedAction,
+    };
+  }
+
+  if (errorStr.includes("Validation failed") && errorStr.toLowerCase().includes("confidence")) {
+    const knownError = ERROR_SIGNATURES["0x126db58e"];
+    return {
+      raw: signature ?? errorStr,
+      name: knownError.name,
+      message: knownError.message,
+      action: knownError.action,
+      isKnown: true,
+      recoverable: knownError.recoverable,
+      suggestedAction: knownError.suggestedAction,
+    };
+  }
+
   if (errorStr.includes("Validation failed")) {
     // Clean up the message (remove "Error: " prefix if present)
     const cleanMessage = errorStr.replace(/^Error:\s*/, "");

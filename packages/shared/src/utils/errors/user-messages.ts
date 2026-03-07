@@ -19,6 +19,8 @@ export const USER_FRIENDLY_ERRORS: Record<string, string> = {
   gardener: "You don't have permission to submit work to this garden",
   permission: "Permission denied - check your garden access",
   unauthorized: "You're not authorized to perform this action",
+  notgardenoperator:
+    "Only garden owners or operators can approve or reject work. Ask a garden owner to grant operator access.",
   "not a gardener": "You're not a member of this garden. Please join from your profile.",
   notgardener: "You're not a member of this garden. Please join from your profile.",
   "not a member": "You're not a member of this garden. Please join from your profile.",
@@ -34,6 +36,13 @@ export const USER_FRIENDLY_ERRORS: Record<string, string> = {
   "user rejected": "Transaction cancelled by user",
   "insufficient funds": "Insufficient funds for gas",
   nonce: "Transaction conflict - please try again",
+  actionexpired: "This action has expired. Extend the action window before approving this work.",
+  actionmismatch: "This approval no longer matches the original work submission. Refresh and try again.",
+  notinworkregistry:
+    "This work submission could not be found on-chain. Refresh the page and try again.",
+  invalidverificationmethod:
+    "Select at least one valid verification method before approving this work.",
+  invalidconfidence: "Select a valid confidence level before approving this work.",
   reverted: "Transaction would fail. Make sure you're a member of the selected garden.",
 
   // Storage errors
@@ -107,6 +116,24 @@ export function formatWalletError(error: unknown): string {
   const lowerMessage = message.toLowerCase();
 
   // Wallet-specific patterns
+  if (lowerMessage.includes("notgardenoperator")) {
+    return USER_FRIENDLY_ERRORS.notgardenoperator;
+  }
+  if (lowerMessage.includes("actionexpired")) {
+    return USER_FRIENDLY_ERRORS.actionexpired;
+  }
+  if (lowerMessage.includes("actionmismatch")) {
+    return USER_FRIENDLY_ERRORS.actionmismatch;
+  }
+  if (lowerMessage.includes("notinworkregistry")) {
+    return USER_FRIENDLY_ERRORS.notinworkregistry;
+  }
+  if (lowerMessage.includes("invalidverificationmethod")) {
+    return USER_FRIENDLY_ERRORS.invalidverificationmethod;
+  }
+  if (lowerMessage.includes("invalidconfidence")) {
+    return USER_FRIENDLY_ERRORS.invalidconfidence;
+  }
   if (lowerMessage.includes("user rejected") || lowerMessage.includes("user denied")) {
     return "Transaction cancelled by user";
   }

@@ -14,6 +14,7 @@ import { encodeWorkApprovalData } from "../../../utils/eas/encoders";
 import { buildApprovalAttestTx } from "../../../utils/eas/transaction-builder";
 import { formatWalletError } from "../../../utils/errors/user-messages";
 import { pollQueriesAfterTransaction } from "../../../utils/blockchain/polling";
+import { simulateApprovalSubmission } from "../simulate";
 import type { WalletSubmissionOptions } from "./types";
 import { waitForReceiptWithTimeout } from "./receipt";
 
@@ -42,6 +43,21 @@ export async function submitApprovalDirectly(
       logger.error(message);
     }
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
+  }
+
+  if (walletClient.account?.address) {
+    try {
+      debugLog("[WalletSubmission] Simulating approval before wallet confirmation...");
+      await simulateApprovalSubmission({
+        draft,
+        gardenAddress,
+        chainId,
+        accountAddress: walletClient.account.address as `0x${string}`,
+      });
+    } catch (err: unknown) {
+      debugError("[WalletSubmission] Approval simulation failed", err);
+      throw err;
+    }
   }
 
   try {
