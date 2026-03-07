@@ -1,190 +1,59 @@
-import {
-  cn,
-  Confidence,
-  ConfidenceSelector,
-  hapticLight,
-  toastService,
-  useTimeout,
-  useWindowEvent,
-  VerificationMethod,
-  type Work,
-  type WorkApprovalDraft,
-} from "@green-goods/shared";
+import { cn, type Confidence, ConfidenceSelector } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React from "react";
 import { useIntl } from "react-intl";
 
 import { Button } from "@/components/Actions";
 
-interface WorkApprovalDrawerProps {
-  work: Work;
+type WorkApprovalFooterProps = {
+  feedbackMode: "approve" | "reject" | null;
+  inlineFeedback: string;
+  confidence: Confidence;
   isPending: boolean;
-  onSubmit: (draft: WorkApprovalDraft) => void;
-}
+  onApprovePress: () => void;
+  onRejectPress: () => void;
+  onCancelFeedback: () => void;
+  onSubmitApproval: () => void;
+  onFeedbackChange: (value: string) => void;
+  onConfidenceChange: (value: Confidence) => void;
+};
 
-export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
-  work,
+export const WorkApprovalFooter: React.FC<WorkApprovalFooterProps> = ({
+  feedbackMode,
+  inlineFeedback,
+  confidence,
   isPending,
-  onSubmit,
+  onApprovePress,
+  onRejectPress,
+  onCancelFeedback,
+  onSubmitApproval,
+  onFeedbackChange,
+  onConfidenceChange,
 }) => {
   const intl = useIntl();
-  const [feedbackMode, setFeedbackMode] = useState<"approve" | "reject" | null>(null);
-  const [inlineFeedback, setInlineFeedback] = useState("");
-  const [confidence, setConfidence] = useState<Confidence>(Confidence.NONE);
-  const drawerRef = useRef<HTMLDivElement>(null);
-  const { set: scheduleTimeout } = useTimeout();
-
-  const handleCancelFeedback = useCallback(() => {
-    setFeedbackMode(null);
-    setInlineFeedback("");
-    setConfidence(Confidence.NONE);
-  }, []);
-
-  const handleEscape = useCallback(
-    (event: KeyboardEvent) => {
-      if (event.key === "Escape" && feedbackMode) {
-        handleCancelFeedback();
-      }
-    },
-    [feedbackMode, handleCancelFeedback]
-  );
-  useWindowEvent("keydown", handleEscape);
-
-  useEffect(() => {
-    if (!feedbackMode) return;
-    const drawer = drawerRef.current;
-    if (!drawer) return;
-
-    const getFocusableElements = () =>
-      Array.from(
-        drawer.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
-        )
-      ).filter((element) => !element.hasAttribute("hidden"));
-
-    const handleTabTrap = (event: KeyboardEvent) => {
-      if (event.key !== "Tab") return;
-      const focusable = getFocusableElements();
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement as HTMLElement | null;
-
-      if (event.shiftKey && active === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    drawer.addEventListener("keydown", handleTabTrap);
-    return () => {
-      drawer.removeEventListener("keydown", handleTabTrap);
-    };
-  }, [feedbackMode]);
-
-  const handleApprovePress = () => {
-    hapticLight();
-    setFeedbackMode("approve");
-    setConfidence(Confidence.MEDIUM);
-    scheduleTimeout(() => {
-      document.getElementById("approval-feedback-input")?.focus();
-    }, 300);
-  };
-
-  const handleRejectPress = () => {
-    hapticLight();
-    setFeedbackMode("reject");
-    setConfidence(Confidence.NONE);
-    scheduleTimeout(() => {
-      document.getElementById("approval-feedback-input")?.focus();
-    }, 300);
-  };
-
-  const handleSubmitApproval = () => {
-    if (feedbackMode === "reject" && !inlineFeedback) {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.home.workApproval.feedbackRequired",
-          defaultMessage: "Feedback required",
-        }),
-        message: intl.formatMessage({
-          id: "app.home.workApproval.feedbackRequiredMessage",
-          defaultMessage: "Please provide feedback when rejecting work.",
-        }),
-        context: "work approval",
-      });
-      return;
-    }
-
-    if (feedbackMode === "approve" && confidence < Confidence.LOW) {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.home.workApproval.confidenceRequired",
-          defaultMessage: "Confidence required",
-        }),
-        message: intl.formatMessage({
-          id: "app.home.workApproval.confidenceRequiredMessage",
-          defaultMessage: "Please select a confidence level (Low or higher) when approving.",
-        }),
-        context: "work approval",
-      });
-      return;
-    }
-
-    const draft: WorkApprovalDraft = {
-      actionUID: work.actionUID,
-      workUID: work.id,
-      approved: feedbackMode === "approve",
-      feedback: inlineFeedback,
-      confidence: feedbackMode === "approve" ? confidence : Confidence.NONE,
-      verificationMethod: VerificationMethod.HUMAN,
-    };
-
-    onSubmit(draft);
-    // Don't reset state here — the mutation is async and might fail.
-    // Reset only the drawer mode; feedback is preserved for retry if needed.
-    setFeedbackMode(null);
-  };
-
-  // Reset feedback state when the work changes (new work selected)
-  // or when the mutation completes (isPending transitions from true → false)
-  const prevPendingRef = useRef(isPending);
-  useEffect(() => {
-    if (prevPendingRef.current && !isPending) {
-      // Mutation just completed (success or error handled by parent)
-      setInlineFeedback("");
-      setConfidence(Confidence.NONE);
-    }
-    prevPendingRef.current = isPending;
-  }, [isPending]);
 
   return (
     <>
-      {/* Backdrop - Fades in over content */}
       <div
         className={cn(
           "fixed inset-0 bg-black/30 backdrop-blur-sm z-[190] transition-opacity duration-300",
           feedbackMode ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
-        onClick={handleCancelFeedback}
+        onClick={onCancelFeedback}
         aria-hidden="true"
       />
 
-      {/* Footer Container */}
       <div className="fixed left-0 right-0 bottom-0 z-[200]">
-        {/* Feedback Drawer - Slides up from behind the footer bar */}
         <div
-          ref={drawerRef}
           className={cn(
             "absolute bottom-full left-0 right-0 bg-bg-white-0 rounded-t-2xl shadow-xl overflow-hidden transition-transform duration-300 ease-out origin-bottom",
             feedbackMode ? "translate-y-0" : "translate-y-full"
           )}
           onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Escape") onCancelFeedback();
+          }}
           role="dialog"
           aria-modal="true"
           aria-labelledby="feedback-drawer-title"
@@ -203,6 +72,17 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
                       defaultMessage: "Add Feedback (Required)",
                     })}
               </h2>
+              <button
+                type="button"
+                onClick={onCancelFeedback}
+                className="p-1 rounded-md text-text-soft-400 hover:text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary"
+                aria-label={intl.formatMessage({
+                  id: "app.home.workApproval.closeFeedback",
+                  defaultMessage: "Close feedback",
+                })}
+              >
+                <RiCloseLine className="w-5 h-5" />
+              </button>
             </div>
 
             <p id="feedback-drawer-description" className="sr-only">
@@ -212,7 +92,6 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
               })}
             </p>
 
-            {/* Confidence selector -- above feedback, required for approvals */}
             {feedbackMode === "approve" && (
               <div className="space-y-1">
                 <label className="text-xs font-medium text-text-sub-600 uppercase tracking-wide">
@@ -221,7 +100,7 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
                     defaultMessage: "Confidence",
                   })}
                 </label>
-                <ConfidenceSelector value={confidence} onChange={setConfidence} required />
+                <ConfidenceSelector value={confidence} onChange={onConfidenceChange} required />
               </div>
             )}
 
@@ -234,7 +113,7 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
             <textarea
               id="approval-feedback-input"
               value={inlineFeedback}
-              onChange={(e) => setInlineFeedback(e.target.value)}
+              onChange={(e) => onFeedbackChange(e.target.value)}
               placeholder={intl.formatMessage({
                 id: "app.home.workApproval.feedbackPlaceholder",
                 defaultMessage: "Add your feedback here...",
@@ -243,20 +122,16 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
             />
           </div>
 
-          {/* Visual separator */}
           <div className="h-px w-full bg-stroke-soft-200" />
         </div>
 
-        {/* Action Bar - Always visible */}
         <div className="bg-bg-white-0 border-t border-stroke-soft-200 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative">
           <div className="max-w-screen-sm mx-auto">
-            {/* Button Group - changes based on mode */}
             <div className="flex gap-3">
               {!feedbackMode ? (
-                // Initial state: Approve/Reject
                 <>
                   <Button
-                    onClick={handleRejectPress}
+                    onClick={onRejectPress}
                     label={intl.formatMessage({
                       id: "app.home.workApproval.reject",
                       defaultMessage: "Reject",
@@ -271,7 +146,7 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
                     disabled={isPending}
                   />
                   <Button
-                    onClick={handleApprovePress}
+                    onClick={onApprovePress}
                     type="button"
                     label={intl.formatMessage({
                       id: "app.home.workApproval.approve",
@@ -287,10 +162,9 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
                   />
                 </>
               ) : (
-                // Feedback mode: Cancel/Submit
                 <>
                   <Button
-                    onClick={handleCancelFeedback}
+                    onClick={onCancelFeedback}
                     label={intl.formatMessage({
                       id: "app.common.cancel",
                       defaultMessage: "Cancel",
@@ -304,7 +178,7 @@ export const WorkApprovalDrawer: React.FC<WorkApprovalDrawerProps> = ({
                     disabled={isPending}
                   />
                   <Button
-                    onClick={handleSubmitApproval}
+                    onClick={onSubmitApproval}
                     type="button"
                     label={intl.formatMessage({
                       id: "app.common.submit",

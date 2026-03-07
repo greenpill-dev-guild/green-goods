@@ -54,10 +54,10 @@ import {
   TimeoutError,
   withTimeout,
   extractHypercertIdFromLogs,
-  isZeroAddress,
   serializeAllowlistTree,
   RECEIPT_POLLING_TIMEOUT_MS,
 } from "./hypercert-utils";
+import { isZeroAddress } from "../../utils/blockchain/address";
 
 // Re-export TimeoutError for consumers
 export { TimeoutError };

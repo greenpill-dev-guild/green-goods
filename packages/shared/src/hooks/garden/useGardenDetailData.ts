@@ -1,27 +1,25 @@
-import {
-  type Address,
-  DEFAULT_CHAIN_ID,
-  type GardenOperationResult,
-  type GardenRole,
-  getNetDeposited,
-  queryInvalidation,
-  useConvictionStrategies,
-  useCreateGardenPools,
-  useDelayedInvalidation,
-  useGardenAssessments,
-  useGardenCommunity,
-  useGardenOperations,
-  useGardenPermissions,
-  useGardenPools,
-  useGardens,
-  useGardenVaults,
-  useHypercerts,
-  useWorks,
-  useYieldAllocations,
-  WeightScheme,
-} from "@green-goods/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import type { Address } from "../../types/domain";
+import { WeightScheme } from "../../types/gardens-community";
+import type { GardenRole } from "../../utils/blockchain/garden-roles";
+import { getNetDeposited } from "../../utils/blockchain/vaults";
+import { useGardenAssessments } from "../assessment/useGardenAssessments";
+import { useGardens } from "../blockchain/useBaseLists";
+import { useConvictionStrategies } from "../conviction/useConvictionStrategies";
+import { useCreateGardenPools } from "../conviction/useCreateGardenPools";
+import { useGardenCommunity } from "../conviction/useGardenCommunity";
+import { useGardenPools } from "../conviction/useGardenPools";
+import { useHypercerts } from "../hypercerts/useHypercerts";
+import { queryInvalidation } from "../query-keys";
+import { useDelayedInvalidation } from "../utils/useTimeout";
+import { useGardenVaults } from "../vault/useGardenVaults";
+import { useWorks } from "../work/useWorks";
+import { useYieldAllocations } from "../yield/useYieldAllocations";
+import type { GardenOperationResult } from "./createGardenOperation";
+import { useGardenOperations } from "./useGardenOperations";
+import { useGardenPermissions } from "./useGardenPermissions";
 
 export function useGardenDetailData(id: string | undefined) {
   const queryClient = useQueryClient();

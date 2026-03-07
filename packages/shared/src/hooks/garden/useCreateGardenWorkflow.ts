@@ -30,6 +30,7 @@ import {
   GreenGoodsENSABI,
   getNetworkContracts,
 } from "../../utils/blockchain/contracts";
+import { isZeroAddress } from "../../utils/blockchain/address";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { createGardenMachine, type CreateGardenFormStatus } from "../../workflows/createGarden";
 import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
@@ -51,7 +52,7 @@ async function estimateCCIPFee(
   callerAddress: `0x${string}`,
   chainId: number
 ): Promise<bigint> {
-  if (!slug || !ensAddress || ensAddress === "0x0000000000000000000000000000000000000000") {
+  if (!slug || !ensAddress || isZeroAddress(ensAddress)) {
     return 0n;
   }
 

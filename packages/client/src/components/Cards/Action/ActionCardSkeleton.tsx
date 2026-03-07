@@ -25,5 +25,3 @@ export const ActionCardSkeleton: React.FC<ActionCardSkeletonProps> = ({
     </Card>
   );
 };
-
-export default ActionCardSkeleton;

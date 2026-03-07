@@ -13,6 +13,7 @@ import { DEFAULT_CHAIN_ID, createPublicClientForChain } from "../../config";
 import { logger } from "../../modules/app/logger";
 import { HYPERCERTS_MODULE_ABI } from "./hypercert-abis";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
+import { isZeroAddress } from "../../utils/blockchain/address";
 import { useAuth } from "../auth/useAuth";
 import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
 import { queryInvalidation } from "../query-keys";
@@ -38,7 +39,7 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
 
       const contracts = getNetworkContracts(chainId);
       const moduleAddress = contracts.hypercertsModule as Address;
-      if (!moduleAddress || moduleAddress === "0x0000000000000000000000000000000000000000") {
+      if (!moduleAddress || isZeroAddress(moduleAddress)) {
         throw new Error("HypercertsModule not deployed on this chain");
       }
 

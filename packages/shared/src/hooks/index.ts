@@ -198,6 +198,7 @@ export { useGardenDraft } from "./garden/useGardenDraft";
 export { useCreateGardenWorkflow } from "./garden/useCreateGardenWorkflow";
 export type { GardenInvite } from "./garden/useGardenInvites";
 export { useGardenInvites } from "./garden/useGardenInvites";
+export { useGardenDetailData } from "./garden/useGardenDetailData";
 export { useGardenOperations } from "./garden/useGardenOperations";
 export type { GardenPermissions } from "./garden/useGardenPermissions";
 export { useGardenPermissions } from "./garden/useGardenPermissions";

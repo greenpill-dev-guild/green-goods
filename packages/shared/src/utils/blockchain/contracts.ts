@@ -45,7 +45,7 @@ const DEPLOYMENT_CONFIGS: Record<string, Record<string, any>> = {
   "11155111": deployment11155111 as Record<string, any>,
 };
 
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
+import { ZERO_ADDRESS } from "./vaults";
 
 function asAddress(value: unknown): Address {
   return typeof value === "string" ? (value as Address) : ZERO_ADDRESS;

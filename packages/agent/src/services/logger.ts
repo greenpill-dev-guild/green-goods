@@ -85,5 +85,3 @@ export function auditLog(
     `Audit: ${event}`
   );
 }
-
-export default logger;

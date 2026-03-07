@@ -7,7 +7,7 @@ import {
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiErrorWarningLine, RiLoader4Line } from "@remixicon/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
@@ -154,9 +154,11 @@ export default function CreateGarden() {
     setShowValidation(false);
   }, [currentStep]);
 
+  const formKey = useMemo(() => JSON.stringify(form), [form]);
   useEffect(() => {
     resetValidationForm(form);
-  }, [form, resetValidationForm]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stabilized via formKey
+  }, [formKey, resetValidationForm]);
 
   const handleNext = async () => {
     setShowValidation(true);

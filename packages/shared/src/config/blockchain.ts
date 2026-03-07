@@ -3,6 +3,7 @@ import deployment11155111 from "@green-goods/contracts/deployments/11155111-late
 import deployment42161 from "@green-goods/contracts/deployments/42161-latest.json";
 import deployment42220 from "@green-goods/contracts/deployments/42220-latest.json";
 import networksConfig from "@green-goods/contracts/deployments/networks.json";
+import { ZERO_ADDRESS } from "../utils/blockchain/vaults";
 
 // Export types
 export interface EASConfig {
@@ -197,27 +198,21 @@ export function getNetworkConfig(chainId?: number | string, alchemyKey = "demo")
     blockExplorer: networkConfig.blockExplorer,
     nativeCurrency: networkConfig.nativeCurrency,
     contracts: {
-      gardenToken: deployment.gardenToken || "0x0000000000000000000000000000000000000000",
-      actionRegistry: deployment.actionRegistry || "0x0000000000000000000000000000000000000000",
-      workResolver: deployment.workResolver || "0x0000000000000000000000000000000000000000",
-      workApprovalResolver:
-        deployment.workApprovalResolver || "0x0000000000000000000000000000000000000000",
-      deploymentRegistry:
-        deployment.deploymentRegistry || "0x0000000000000000000000000000000000000000",
-      octantModule: deployment.octantModule || "0x0000000000000000000000000000000000000000",
-      octantFactory: deployment.octantFactory || "0x0000000000000000000000000000000000000000",
-      hatsModule: deployment.hatsModule || "0x0000000000000000000000000000000000000000",
-      karmaGAPModule: deployment.karmaGAPModule || "0x0000000000000000000000000000000000000000",
+      gardenToken: deployment.gardenToken || ZERO_ADDRESS,
+      actionRegistry: deployment.actionRegistry || ZERO_ADDRESS,
+      workResolver: deployment.workResolver || ZERO_ADDRESS,
+      workApprovalResolver: deployment.workApprovalResolver || ZERO_ADDRESS,
+      deploymentRegistry: deployment.deploymentRegistry || ZERO_ADDRESS,
+      octantModule: deployment.octantModule || ZERO_ADDRESS,
+      octantFactory: deployment.octantFactory || ZERO_ADDRESS,
+      hatsModule: deployment.hatsModule || ZERO_ADDRESS,
+      karmaGAPModule: deployment.karmaGAPModule || ZERO_ADDRESS,
       // Add contracts from networks.json
-      eas: networkConfig.contracts?.eas || "0x0000000000000000000000000000000000000000",
-      easSchemaRegistry:
-        networkConfig.contracts?.easSchemaRegistry || "0x0000000000000000000000000000000000000000",
-      communityToken:
-        networkConfig.contracts?.communityToken || "0x0000000000000000000000000000000000000000",
-      erc4337EntryPoint:
-        networkConfig.contracts?.erc4337EntryPoint || "0x0000000000000000000000000000000000000000",
-      multicallForwarder:
-        networkConfig.contracts?.multicallForwarder || "0x0000000000000000000000000000000000000000",
+      eas: networkConfig.contracts?.eas || ZERO_ADDRESS,
+      easSchemaRegistry: networkConfig.contracts?.easSchemaRegistry || ZERO_ADDRESS,
+      communityToken: networkConfig.contracts?.communityToken || ZERO_ADDRESS,
+      erc4337EntryPoint: networkConfig.contracts?.erc4337EntryPoint || ZERO_ADDRESS,
+      multicallForwarder: networkConfig.contracts?.multicallForwarder || ZERO_ADDRESS,
     },
     rootGarden: deployment.rootGarden
       ? {

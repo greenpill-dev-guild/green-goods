@@ -350,5 +350,3 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
     />
   );
 };
-
-export default WorkViewSection;

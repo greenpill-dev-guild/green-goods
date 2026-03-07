@@ -81,12 +81,8 @@ export function withTimeout<T>(
   return Promise.race([promise, timeoutPromise]).finally(cleanup);
 }
 
-/**
- * Checks if an address is the zero address or undefined/null.
- */
-export function isZeroAddress(address?: Address | null): boolean {
-  return !address || address.toLowerCase() === zeroAddress;
-}
+// Re-export isZeroAddress from canonical location for backward compatibility
+export { isZeroAddress } from "../../utils/blockchain/address";
 
 /**
  * Extracts the hypercert ID from transaction logs.

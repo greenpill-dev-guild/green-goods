@@ -258,6 +258,7 @@ export {
   useSlugForm,
   useSlugAvailability,
   useGardenAssessments,
+  useGardenDetailData,
   useGardenDomains,
   useGardenerProfile,
   useGardeners,
@@ -701,6 +702,7 @@ export {
   getVaultAssetSymbol,
   hasVaultAssetDecimals,
   isZeroAddressValue,
+  isZeroAddress,
   // Address utilities
   isAddressInList,
   isUserAddress,

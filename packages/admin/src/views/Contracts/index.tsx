@@ -2,6 +2,7 @@ import {
   SUPPORTED_CHAINS,
   useAdminStore,
   getNetworkContracts,
+  isZeroAddress,
   type Address,
 } from "@green-goods/shared";
 import * as Tabs from "@radix-ui/react-tabs";
@@ -20,8 +21,6 @@ export default function Contracts() {
   const currentChain = chains.find((c) => c.id === selectedChainId);
 
   const explorerUrl = currentChain?.blockExplorers?.default?.url;
-  const isZeroAddress = (address: Address) =>
-    address === "0x0000000000000000000000000000000000000000";
 
   const contractList = [
     { name: "Garden Token", address: contracts.gardenToken, type: "core" },

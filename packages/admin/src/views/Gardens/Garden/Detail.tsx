@@ -2,11 +2,13 @@ import {
   type Address,
   ConfirmDialog,
   ErrorBoundary,
+  formatAddress,
   GARDEN_ROLE_COLORS,
   type GardenRole,
-  formatAddress,
   toastService,
+  useGardenDetailData,
 } from "@green-goods/shared";
+import * as Tabs from "@radix-ui/react-tabs";
 import {
   RiAddLine,
   RiCheckboxCircleLine,
@@ -16,13 +18,9 @@ import {
   RiShieldCheckLine,
   RiUserLine,
 } from "@remixicon/react";
-import * as Tabs from "@radix-ui/react-tabs";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
@@ -32,11 +30,13 @@ import { GardenMetadata } from "@/components/Garden/GardenMetadata";
 import { GardenRolesPanel } from "@/components/Garden/GardenRolesPanel";
 import { GardenStatsGrid } from "@/components/Garden/GardenStatsGrid";
 import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
+import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { MembersModal } from "@/components/Garden/MembersModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { CookieJarPayoutPanel } from "@/components/Work/CookieJarPayoutPanel";
 import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
-import { useGardenDetailData } from "./useGardenDetailData";
 import "./GardenDetailLayout.css";
 
 const TAB_TRIGGER_BASE =
