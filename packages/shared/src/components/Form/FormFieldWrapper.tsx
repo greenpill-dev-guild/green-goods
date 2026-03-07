@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { cn } from "../../utils/styles/cn";
+import { formErrorClassName, formHelperClassName, formLabelClassName } from "../Tokens/foundation";
 
 export interface FormFieldWrapperProps {
   id?: string;
@@ -25,15 +26,15 @@ export function FormFieldWrapper({
   children,
 }: FormFieldWrapperProps) {
   return (
-    <div className={cn("flex flex-col gap-1", error && "shake-error", className)}>
-      <label className="font-semibold text-text-strong-950 text-label-sm" htmlFor={id}>
+    <div className={cn("flex flex-col gap-1.5", error && "shake-error", className)}>
+      <label className={formLabelClassName} htmlFor={id}>
         {label}
       </label>
       {children}
       {(helperText || error) && (
         <p
           id={id ? `${id}-helper-text` : undefined}
-          className={cn("text-xs min-h-[1rem]", error ? "text-error-base" : "text-text-sub-600")}
+          className={cn("min-h-[1rem]", error ? formErrorClassName : formHelperClassName)}
         >
           {error || helperText}
         </p>

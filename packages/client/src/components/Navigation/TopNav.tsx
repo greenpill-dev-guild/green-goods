@@ -1,4 +1,11 @@
-import { type Garden, type Work, cn, useOffline } from "@green-goods/shared";
+import {
+  type Garden,
+  type Work,
+  cn,
+  iconButtonIconVariants,
+  iconButtonVariants,
+  useOffline,
+} from "@green-goods/shared";
 import {
   RiArrowLeftFill,
   RiBankLine,
@@ -8,7 +15,6 @@ import {
 } from "@remixicon/react";
 import { useId } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
 type TopNavProps = {
@@ -58,34 +64,23 @@ Notifications.displayName = "Notifications";
 // Styling configuration for different button states
 const BUTTON_VARIANTS = {
   work: {
-    focus:
-      "focus-visible:ring-emerald-200 focus-visible:border-emerald-600 active:border-emerald-600",
-    icon: "focus-visible:text-emerald-700 active:text-emerald-700",
+    button: "focus-visible:ring-success-light focus-visible:border-success-base",
+    icon: "text-text-sub-600",
   },
   sync: {
-    focus: "focus-visible:ring-blue-200 focus-visible:border-blue-600 active:border-blue-600",
-    icon: "focus-visible:text-blue-700 active:text-blue-700",
+    button: "focus-visible:ring-information-light focus-visible:border-information-base",
+    icon: "text-information-base",
   },
   offline: {
-    focus: "focus-visible:ring-orange-200 focus-visible:border-orange-600 active:border-orange-600",
-    icon: "focus-visible:text-orange-700 active:text-orange-700",
+    button: "focus-visible:ring-warning-light focus-visible:border-warning-base",
+    icon: "text-warning-base",
   },
 } as const;
 
-// Base styling for navigation buttons
-const NAV_BUTTON_BASE = [
-  "relative flex items-center justify-center w-11 h-11 p-1 rounded-lg border",
-  "bg-bg-white-0 border-stroke-soft-200 text-text-sub-600",
-  "transition-all duration-200 tap-feedback",
-  "active:scale-95",
-  "focus-visible:outline-none focus-visible:ring-2",
-] as const;
-
 // Create complete button styles for a given variant
 const createButtonStyles = (variant: keyof typeof BUTTON_VARIANTS = "work") => ({
-  button: cn(NAV_BUTTON_BASE, BUTTON_VARIANTS[variant].focus),
-  icon: cn("w-4 h-4", BUTTON_VARIANTS[variant].icon),
-  focusStyles: BUTTON_VARIANTS[variant].focus,
+  button: cn(iconButtonVariants({ size: "md" }), "tap-feedback", BUTTON_VARIANTS[variant].button),
+  icon: cn(iconButtonIconVariants({ size: "md" }), BUTTON_VARIANTS[variant].icon),
 });
 
 // Reusable notification badge component
@@ -207,12 +202,6 @@ export const TopNav: React.FC<TopNavProps> = ({
     overlay && !hasOfflineIssues && "top-0"
   );
 
-  const backButtonClasses = cn(
-    "p-0 px-2 z-1 transition-all duration-200 tap-target-lg tap-feedback",
-    "focus-visible:outline-none focus-visible:ring-2 active:scale-95",
-    backButtonStyles.focusStyles
-  );
-
   return (
     <div className={containerClasses} {...props}>
       <a
@@ -222,20 +211,17 @@ export const TopNav: React.FC<TopNavProps> = ({
         Skip to content
       </a>
       {onBackClick && (
-        <Button
-          variant="neutral"
-          mode="stroke"
+        <button
           type="button"
-          shape="regular"
-          size="xsmall"
-          label=""
-          leadingIcon={<RiArrowLeftFill className={backButtonStyles.icon} />}
+          aria-label={formatMessage({ id: "app.wizard.back", defaultMessage: "Back" })}
           onClick={(e) => {
             onBackClick?.(e);
             e.currentTarget.blur();
           }}
-          className={backButtonClasses}
-        />
+          className={cn(backButtonStyles.button, "z-1")}
+        >
+          <RiArrowLeftFill className={backButtonStyles.icon} />
+        </button>
       )}
 
       <div className="absolute left-0 top-0 w-full h-full flex flex-row justify-between items-center py-6">

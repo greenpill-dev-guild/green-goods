@@ -8,19 +8,6 @@
     @apply contrast-110 brightness-105 saturate-150;
   }
 
-  /* Usage examples in utility classes */
-  .shadow-regular-xs {
-    box-shadow: var(--shadow-regular-xs);
-  }
-
-  .shadow-regular-sm {
-    box-shadow: var(--shadow-regular-sm);
-  }
-
-  .shadow-regular-md {
-    box-shadow: var(--shadow-regular-md);
-  }
-
   .shadow-button-primary-focus {
     box-shadow: var(--shadow-button-primary-focus);
   }
@@ -84,25 +71,15 @@
 
   /* Universal Icon Button Class - Dark mode compatible */
   .btn-icon {
-    @apply relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border;
-    @apply bg-bg-white-0 border-stroke-soft-200 text-text-soft-400;
-    @apply transition-all duration-200 active:scale-95;
-    @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary;
+    @apply relative inline-flex size-11 items-center justify-center rounded-xl border;
+    @apply bg-bg-white-0 border-stroke-soft-200 text-text-sub-600;
+    @apply transition-all duration-150 ease-out active:scale-95;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-alpha-16 focus-visible:border-primary-base;
+    @apply hover:border-stroke-sub-300 hover:bg-bg-weak-50 hover:text-text-strong-950;
   }
 
   .btn-icon svg {
-    @apply text-text-soft-400 focus:text-primary active:text-primary;
-  }
-
-  /* Increase hit area for touch without changing visual size */
-  .btn-icon::after {
-    content: "";
-    position: absolute;
-    /* Expand by 8px on all sides: 32px + 16px = 48px touch target */
-    inset: -8px;
-    border-radius: inherit;
-    background: transparent;
-    pointer-events: auto;
+    @apply h-4 w-4;
   }
 
   /* Reusable large touch target utility */

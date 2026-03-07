@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { cn, selectTriggerVariants } from "@green-goods/shared";
 import { RiArrowUpDownLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
@@ -33,7 +33,10 @@ export function SortSelect<T extends string>({
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
         aria-label={resolvedAriaLabel}
-        className="h-9 cursor-pointer appearance-none rounded-lg border border-stroke-soft bg-bg-white pl-8 pr-8 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
+        className={cn(
+          selectTriggerVariants({ size: "sm" }),
+          "cursor-pointer appearance-none pl-9 pr-8"
+        )}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>

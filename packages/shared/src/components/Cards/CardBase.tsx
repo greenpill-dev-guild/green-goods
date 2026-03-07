@@ -1,29 +1,35 @@
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 import { cn } from "../../utils/styles/cn";
+import {
+  cardDescriptionClassName,
+  cardSectionVariants,
+  cardShellVariants,
+  cardTitleClassName,
+} from "../Tokens/foundation";
 
 export const cardVariants = tv({
-  base: "rounded-2xl border flex gap-0.5 justify-between border-border bg-bg-white-0",
+  base: [cardShellVariants(), "flex flex-col"],
   variants: {
     variant: {
       default: "",
       primary: "",
-      elevated: "shadow-md",
+      elevated: "shadow-regular-sm",
     },
     mode: {
-      outline: "border-border border shadow-xs",
-      filled: "bg-card border-0",
-      ghost: "border-0 shadow-none bg-transparent",
-      "no-outline": "border-0 shadow-0",
+      outline: "",
+      filled: "bg-bg-weak-50 border-transparent shadow-none",
+      ghost: "border-transparent shadow-none bg-transparent",
+      "no-outline": "border-transparent shadow-none",
     },
     size: {
-      sm: "p-2",
-      md: "p-4",
-      lg: "p-6",
+      sm: "p-4",
+      md: "p-5 sm:p-6",
+      lg: "p-6 sm:p-7",
       auto: "",
     },
     interactive: {
-      true: "cursor-pointer transition-all duration-200 active:brightness-102 active:bg-primary/1.5",
+      true: cardShellVariants({ interactive: true }),
       false: "",
     },
     container: {
@@ -56,37 +62,51 @@ CardBase.displayName = "CardBase";
 
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("flex flex-col space-y-1.5", className)} {...props} />
+    <div
+      ref={ref}
+      className={cn(cardSectionVariants({ size: "md" }), "gap-1.5", className)}
+      {...props}
+    />
   )
 );
 CardHeader.displayName = "CardHeader";
 
 const CardTitle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn("font-semibold leading-none tracking-tight", className)}
-      {...props}
-    />
+    <div ref={ref} className={cn(cardTitleClassName, className)} {...props} />
   )
 );
 CardTitle.displayName = "CardTitle";
 
 const CardDescription = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
+    <div ref={ref} className={cn(cardDescriptionClassName, className)} {...props} />
   )
 );
 CardDescription.displayName = "CardDescription";
 
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => <div ref={ref} className={cn("flex-1", className)} {...props} />
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(cardSectionVariants({ size: "md" }), "flex-1", className)}
+      {...props}
+    />
+  )
 );
 CardContent.displayName = "CardContent";
 
 const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("flex items-center", className)} {...props} />
+    <div
+      ref={ref}
+      className={cn(
+        cardSectionVariants({ size: "md", divider: "top" }),
+        "flex items-center gap-3",
+        className
+      )}
+      {...props}
+    />
   )
 );
 CardFooter.displayName = "CardFooter";

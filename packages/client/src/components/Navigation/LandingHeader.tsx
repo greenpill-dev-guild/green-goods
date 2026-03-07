@@ -1,4 +1,11 @@
-import { APP_NAME, useApp, type Link } from "@green-goods/shared";
+import {
+  APP_NAME,
+  cn,
+  iconButtonIconVariants,
+  iconButtonVariants,
+  useApp,
+  type Link,
+} from "@green-goods/shared";
 import { type RemixiconComponentType, RiGithubLine, RiTwitterLine } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
@@ -34,7 +41,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = () => {
       </a>
       <div className="flex items-center space-x-2">
         <img src="/icon.png" alt="APP_NAME Logo" className=" w-12 lg:w-20" />
-        <h1 className="text-xl lg:text-3xl font-bold">{APP_NAME}</h1>
+        <h1 className="text-label-lg sm:text-title-h5">{APP_NAME}</h1>
       </div>
       <div className="flex gap-2">
         {filterLinks.map(({ Icon, link, action, title }) => (
@@ -47,10 +54,13 @@ export const LandingHeader: React.FC<LandingHeaderProps> = () => {
               { id: "app.landing.header.socialLink" },
               { platform: title }
             )}
-            className="text-[#367D42] hover:text-[#D2B48C] bg-bg-weak-50 hover:bg-bg-soft-200 p-2 rounded-full transition-colors grid place-items-center"
+            className={cn(
+              iconButtonVariants({ size: "md", tone: "ghost" }),
+              "text-[#367D42] hover:text-[#2a6a35]"
+            )}
             onClick={action}
           >
-            <Icon size={28} />
+            <Icon className={iconButtonIconVariants({ size: "lg" })} />
           </a>
         ))}
       </div>

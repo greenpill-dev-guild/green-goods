@@ -73,7 +73,7 @@ export const AppSettings: React.FC = () => {
             value={theme}
             onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}
           >
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger size="sm" className="w-full sm:w-[180px]">
               <SelectValue placeholder={currentThemeOption.label} />
             </SelectTrigger>
             <SelectContent>
@@ -107,7 +107,7 @@ export const AppSettings: React.FC = () => {
         Icon: <RiEarthFill className="w-4" />,
         Option: () => (
           <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger size="sm" className="w-full sm:w-[180px]">
               <SelectValue
                 className="capitalize"
                 placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
@@ -210,10 +210,10 @@ export const AppSettings: React.FC = () => {
               </div>
             </Avatar>
             <div className="flex flex-col gap-1 grow">
-              <div className="flex items-center font-sm gap-1">
-                <div className="line-clamp-1 text-sm">{title}</div>
+              <div className="flex items-center gap-1">
+                <div className="line-clamp-1 text-label-sm text-text-strong-950">{title}</div>
               </div>
-              <div className="text-xs text-text-sub-600">{description}</div>
+              <div className="text-paragraph-xs text-text-sub-600">{description}</div>
             </div>
             <Option />
           </div>
@@ -228,13 +228,13 @@ export const AppSettings: React.FC = () => {
             </div>
           </Avatar>
           <div className="flex flex-col gap-1 grow">
-            <div className="line-clamp-1 text-sm">
+            <div className="line-clamp-1 text-label-sm text-text-strong-950">
               {intl.formatMessage({
                 id: "app.update.title",
                 defaultMessage: "Refresh app",
               })}
             </div>
-            <div className="text-xs text-text-sub-600">
+            <div className="text-paragraph-xs text-text-sub-600">
               {intl.formatMessage({
                 id: "app.update.subtitle",
                 defaultMessage: "Use this if things look weird after an update.",

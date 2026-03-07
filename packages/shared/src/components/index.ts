@@ -29,6 +29,23 @@ export { ImageWithFallback, type ImageWithFallbackProps } from "./Display";
 // Badge Component
 export { Badge, badgeVariants, type BadgeProps, type BadgeVariantProps } from "./Badge";
 
+// UI Foundation Tokens
+export {
+  cardDescriptionClassName,
+  cardSectionVariants,
+  cardShellVariants,
+  cardTitleClassName,
+  controlInputVariants,
+  controlStyleSizes,
+  controlTextareaVariants,
+  formErrorClassName,
+  formHelperClassName,
+  formLabelClassName,
+  iconButtonIconVariants,
+  iconButtonVariants,
+  selectTriggerVariants,
+} from "./Tokens/foundation";
+
 // Card Components
 export {
   CardBase,

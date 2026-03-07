@@ -5,9 +5,10 @@ import { formatRelativeTime } from "../../../utils/time";
 import { getStatusColors } from "../../StatusBadge";
 import { ImageWithFallback } from "../../Display/ImageWithFallback";
 import { RiImageLine } from "@remixicon/react";
+import { cardShellVariants } from "../../Tokens/foundation";
 
 const workCardVariants = tv({
-  base: "@container flex items-stretch gap-0 border border-stroke-soft-200 rounded-lg overflow-hidden transition-all duration-300 bg-bg-white-0 w-full text-left",
+  base: "@container flex items-stretch gap-0 overflow-hidden w-full text-left rounded-2xl",
   variants: {
     variant: {
       compact: "",
@@ -15,7 +16,7 @@ const workCardVariants = tv({
       auto: "",
     },
     interactive: {
-      true: "cursor-pointer hover:shadow-md active:brightness-98",
+      true: cardShellVariants({ interactive: true }),
       false: "",
     },
   },
@@ -128,7 +129,11 @@ export const WorkCard: React.FC<WorkCardProps> = ({
 
   return (
     <Wrapper
-      className={cn(workCardVariants({ variant, interactive }), className)}
+      className={cn(
+        cardShellVariants({ interactive }),
+        workCardVariants({ variant, interactive }),
+        className
+      )}
       {...wrapperProps}
     >
       {/* Media thumbnail - adapts size based on container width */}
@@ -148,15 +153,15 @@ export const WorkCard: React.FC<WorkCardProps> = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 pl-2 pr-3 py-3">
+      <div className="flex-1 min-w-0 px-4 py-4 sm:px-5 sm:py-5">
         {/* Title row */}
         <div className="flex items-start justify-between">
-          <h4 className="font-medium text-sm text-text-strong-950 truncate pr-2">
+          <h4 className="text-label-sm text-text-strong-950 truncate pr-2">
             {work.title || labels.untitledWork}
           </h4>
           <span
             className={cn(
-              "text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0",
+              "text-paragraph-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0",
               statusColors
             )}
           >
@@ -165,7 +170,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
         </div>
 
         {/* Subtitle */}
-        <div className="mt-0.5 text-xs text-text-sub-600 truncate">
+        <div className="mt-0.5 text-paragraph-xs text-text-sub-600 truncate">
           {showGardener && work.gardenerDisplayName && (
             <>
               {work.gardenerDisplayName}
@@ -182,7 +187,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
         </div>
 
         {/* Meta / Tags row */}
-        <div className="mt-2 flex items-center gap-2 text-xs">
+        <div className="mt-2 flex items-center gap-2 text-paragraph-xs">
           {showMediaCount && mediaCount > 0 && (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-information-lighter text-information-dark border border-information-light">
               <RiImageLine className="w-3 h-3" /> {mediaCount}

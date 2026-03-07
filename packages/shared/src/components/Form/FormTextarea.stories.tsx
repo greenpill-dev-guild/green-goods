@@ -30,6 +30,11 @@ const meta: Meta<typeof FormTextarea> = {
       control: "boolean",
       description: "Disabled state",
     },
+    controlSize: {
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Shared control size scale",
+    },
   },
 };
 
@@ -107,6 +112,31 @@ export const AllStates: Story = {
         disabled
         defaultValue="Cannot edit"
         id="state-disabled"
+      />
+    </div>
+  ),
+};
+
+export const SizeScale: Story = {
+  render: () => (
+    <div className="flex flex-col gap-4 max-w-md">
+      <FormTextarea
+        label="Small"
+        placeholder="Compact textarea"
+        id="textarea-size-sm"
+        controlSize="sm"
+      />
+      <FormTextarea
+        label="Medium"
+        placeholder="Default textarea"
+        id="textarea-size-md"
+        controlSize="md"
+      />
+      <FormTextarea
+        label="Large"
+        placeholder="Expanded textarea"
+        id="textarea-size-lg"
+        controlSize="lg"
       />
     </div>
   ),

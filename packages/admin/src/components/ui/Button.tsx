@@ -22,9 +22,9 @@ const buttonVariants = tv({
       danger: "bg-error-base text-white hover:bg-error-dark",
     },
     size: {
-      sm: "h-8 px-3 text-xs",
-      md: "h-10 px-4 text-sm",
-      lg: "h-12 px-6 text-base",
+      sm: "h-10 px-3.5 text-label-sm",
+      md: "h-11 px-4 text-label-sm",
+      lg: "h-12 px-5 text-label-md",
     },
   },
   defaultVariants: {

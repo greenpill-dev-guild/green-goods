@@ -124,6 +124,37 @@ export const FullWidth: Story = {
   ),
 };
 
+export const SizeScale: Story = {
+  render: () => (
+    <div className="flex max-w-md flex-col gap-4">
+      <Select>
+        <SelectTrigger size="sm">
+          <SelectValue placeholder="Small select" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="one">Option 1</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select>
+        <SelectTrigger size="md">
+          <SelectValue placeholder="Medium select" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="two">Option 2</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select>
+        <SelectTrigger size="lg">
+          <SelectValue placeholder="Large select" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="three">Option 3</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  ),
+};
+
 export const DarkMode: Story = {
   render: () => (
     <Select>

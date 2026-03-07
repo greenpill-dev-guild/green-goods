@@ -1,4 +1,9 @@
-import { cn } from "@green-goods/shared";
+import {
+  cn,
+  controlInputVariants,
+  iconButtonIconVariants,
+  iconButtonVariants,
+} from "@green-goods/shared";
 import { RiCloseLine, RiSearchLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
@@ -35,19 +40,22 @@ export function ListToolbar({
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="h-9 w-full rounded-lg border border-stroke-soft bg-bg-white pl-9 pr-8 text-sm text-text-strong placeholder:text-text-disabled focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
+          className={cn(controlInputVariants({ size: "sm" }), "pl-9 pr-10")}
         />
         {search && (
           <button
             type="button"
             onClick={() => onSearchChange("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-text-soft hover:text-text-strong"
+            className={cn(
+              iconButtonVariants({ size: "sm", tone: "ghost" }),
+              "absolute right-1 top-1/2 -translate-y-1/2"
+            )}
             aria-label={intl.formatMessage({
               id: "app.admin.listToolbar.clearSearch",
               defaultMessage: "Clear search",
             })}
           >
-            <RiCloseLine className="h-4 w-4" />
+            <RiCloseLine className={iconButtonIconVariants({ size: "sm" })} />
           </button>
         )}
       </div>

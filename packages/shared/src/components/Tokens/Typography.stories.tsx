@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 /**
  * Visual documentation of the Green Goods typography scale.
  *
- * Typography tokens are defined in `storybook.css` via `@theme` blocks and
+ * Typography tokens are defined in `packages/shared/src/styles/theme.css` and
  * consumed through Tailwind utility classes like `text-title-h1`,
  * `text-label-md`, `text-paragraph-sm`, and `text-subheading-xs`.
  *
