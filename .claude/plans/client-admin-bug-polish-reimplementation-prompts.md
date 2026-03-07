@@ -11,6 +11,33 @@
 - Any new user-facing string must be added to `en`, `es`, and `pt`.
 - Use root `.env` only.
 - Keep hooks in `@green-goods/shared`.
+- Use barrel imports from `@green-goods/shared`, not deep shared imports.
+- Use `DEFAULT_CHAIN_ID` / `useCurrentChain()` patterns, not wallet-derived chain IDs.
+- Use shared `queryKeys.*` helpers for query invalidation and fetching.
+- Use shared `logger`, `parseContractError()`, `USER_FRIENDLY_ERRORS`, and `useToastAction()` patterns instead of ad-hoc logging/toast/error handling.
+- Preserve offline-first behavior. Do not add polling loops where event-driven invalidation already exists.
+
+## Claude Environment Notes
+
+Each Claude run should start from the current `main` branch and read the repo guidance before editing:
+
+- `CLAUDE.md`
+- `.claude/context/shared.md`
+- `.claude/context/client.md` when touching `packages/client`
+- `.claude/context/admin.md` when touching `packages/admin`
+
+Preferred Claude workflow:
+
+- Start with `/plan` for each batch.
+- Use `/review --mode verify_only --scope cross-package` after implementation when the batch touches more than one package.
+- Keep final validation grounded in repo commands:
+  - `bun lint`
+  - `bun run test`
+  - `bun build`
+
+Important command rule:
+
+- Use `bun run test`, never `bun test`.
 
 ## Parallelization
 
@@ -58,8 +85,9 @@ Required outcomes
 - Update or add token/component stories where useful so the system is documented.
 
 Validation
-- Run typecheck for shared/client/admin.
-- Run focused Storybook or component tests for shared form/token primitives.
+- Run `bun lint`.
+- Run targeted `bun run test` coverage for shared form/token primitives or stories if present.
+- Run `bun build` if shared primitives or CSS tokens change in a way that affects both apps.
 - Summarize which local overrides were intentionally left in place.
 ```
 
@@ -109,8 +137,9 @@ Required outcomes
 - Remove the home-view flash before garden load.
 
 Validation
-- Run focused client tests for garden/work flows.
-- Run client/shared typecheck.
+- Run `bun lint`.
+- Run targeted `bun run test` for garden/work flows.
+- Run `bun build` if route/layout behavior changes affect the app shell.
 - Call out any UX follow-up that was deliberately left out of scope.
 ```
 
@@ -157,8 +186,9 @@ Required outcomes
 - Normalize home dashboard entry animations and card heights.
 
 Validation
-- Run focused client component tests where available.
-- Run typecheck for shared/client/admin if shared card primitives are touched.
+- Run `bun lint`.
+- Run targeted `bun run test` for touched client/shared components.
+- Run `bun build` if shared card primitives or profile/home route shells change.
 - Provide before/after notes for the main surfaces changed.
 ```
 
@@ -203,8 +233,9 @@ Required outcomes
 - Improve deposit flow confidence: connection prompting, Aave pool visibility, and clearer state handling.
 
 Validation
-- Run focused admin/client/shared treasury tests.
-- Run typecheck for affected packages.
+- Run `bun lint`.
+- Run targeted `bun run test` for treasury/vault/cookie-jar flows.
+- Run `bun build` if cross-package UI or shared treasury helpers change.
 - Note any contract deployment dependency separately if one is discovered.
 ```
 
@@ -249,8 +280,9 @@ Required outcomes
 - Display the real community name consistently instead of collapsing to scheme labels.
 
 Validation
-- Run focused admin/shared tests for create-garden and garden detail surfaces.
-- Run shared/admin typecheck.
+- Run `bun lint`.
+- Run targeted `bun run test` for create-garden and garden detail surfaces.
+- Run `bun build` if shared garden types or create-garden flows change.
 - Explicitly document any product decisions encoded by the new UX.
 ```
 
@@ -295,8 +327,9 @@ Required outcomes
 - Add approval preflight validation and clearer approval failure states.
 
 Validation
-- Run focused shared/client/admin tests for work/assessment flows.
-- Run shared/client/admin typecheck.
+- Run `bun lint`.
+- Run targeted `bun run test` for work/assessment flows.
+- Run `bun build` if shared assessment/work modules or route-level loaders change.
 - Summarize any remaining chain-state-dependent failure cases.
 ```
 
@@ -342,8 +375,9 @@ Required outcomes
 - Ensure ENS/subdomain state is driven by account/chain truth, not stale local session state.
 
 Validation
-- Run focused shared/client auth/profile/PWA tests.
-- Run client/shared typecheck.
+- Run `bun lint`.
+- Run targeted `bun run test` for auth/profile/PWA flows.
+- Run `bun build` to catch manifest/service-worker regressions.
 - Note any behavior change that requires user-facing release notes.
 ```
 
