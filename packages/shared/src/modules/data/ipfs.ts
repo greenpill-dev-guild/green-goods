@@ -13,15 +13,29 @@ interface IpfsConfig {
   proof: string;
   /** Optional custom IPFS gateway URL */
   gatewayBaseUrl?: string;
+  /** Optional Pinata JWT for secondary pinning */
+  pinataJwt?: string;
+  /** Optional Pinata gateway URL (dedicated gateway preferred) */
+  pinataGatewayBaseUrl?: string;
+  /** Optional Pinata API base URL */
+  pinataApiBaseUrl?: string;
 }
 
 let storachaClient: Client | null = null;
 let gatewayUrl = "https://storacha.link";
+let pinataJwt: string | null = null;
+let pinataGatewayUrl: string | null = null;
+let pinataApiBaseUrl = "https://api.pinata.cloud";
 
 type IpfsInitStatus = "not_started" | "in_progress" | "success" | "failed" | "skipped_no_config";
 
 let ipfsInitializationStatus: IpfsInitStatus = "not_started";
 let ipfsInitializationError: string | null = null;
+const DEFAULT_IPFS_GATEWAYS = ["https://storacha.link", "https://w3s.link", "https://ipfs.io"];
+const DEFAULT_PINATA_GATEWAY = "https://gateway.pinata.cloud";
+const DEFAULT_PINATA_API_BASE_URL = "https://api.pinata.cloud";
+const PROVIDER_VERIFICATION_ATTEMPTS = 6;
+const PROVIDER_VERIFICATION_TIMEOUT_MS = 15_000;
 
 /**
  * Returns the current IPFS initialization status
@@ -31,6 +45,8 @@ export function getIpfsInitStatus() {
     status: ipfsInitializationStatus,
     error: ipfsInitializationError,
     clientReady: storachaClient !== null,
+    pinataConfigured: Boolean(pinataGatewayUrl),
+    pinataWriteReady: Boolean(pinataJwt),
   };
 }
 
@@ -85,6 +101,12 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
   try {
     const result = await uploadFn();
     const cid = result.cid.toString();
+    await ensureCidAvailableAcrossProviders(cid, {
+      category,
+      source: context.source ?? "executeUpload",
+      gardenAddress: context.gardenAddress,
+      name: fileInfo.name,
+    });
     const uploadDuration = Date.now() - startTime;
 
     trackUploadSuccess({
@@ -144,6 +166,7 @@ export async function initializeIpfs(config: IpfsConfig): Promise<{
   const startTime = Date.now();
   ipfsInitializationStatus = "in_progress";
   ipfsInitializationError = null;
+  configurePinata(config);
 
   try {
     // Dynamic imports for subpath exports (workaround for TypeScript/bundler resolution)
@@ -299,39 +322,296 @@ export async function uploadJSONToIPFS(
   );
 }
 
+function trimTrailingSlashes(value: string): string {
+  return value.replace(/\/+$/, "");
+}
+
+function trimLeadingSlashes(value: string): string {
+  return value.replace(/^\/+/, "");
+}
+
+function normalizeOptionalUrl(value?: string | null): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimTrailingSlashes(trimmed) : null;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function configurePinata(config: Pick<IpfsConfig, "pinataJwt" | "pinataGatewayBaseUrl" | "pinataApiBaseUrl">) {
+  pinataJwt = config.pinataJwt?.trim() || null;
+  pinataGatewayUrl =
+    normalizeOptionalUrl(config.pinataGatewayBaseUrl) ??
+    (pinataJwt ? DEFAULT_PINATA_GATEWAY : null);
+  pinataApiBaseUrl =
+    normalizeOptionalUrl(config.pinataApiBaseUrl) ?? DEFAULT_PINATA_API_BASE_URL;
+}
+
+function isPotentialIpfsCid(value: string): boolean {
+  return /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z0-9]{20,})$/i.test(value);
+}
+
+interface ParsedIpfsReference {
+  cid: string;
+  path: string;
+  canonicalId: string;
+  canonicalUri: string;
+}
+
+function parseIpfsPath(value: string): ParsedIpfsReference | null {
+  const sanitized = trimLeadingSlashes(value.trim()).replace(/^ipfs\//i, "");
+  if (!sanitized) return null;
+
+  const [cid, ...pathParts] = sanitized.split("/").filter(Boolean);
+  if (!cid || !isPotentialIpfsCid(cid)) return null;
+
+  const path = pathParts.join("/");
+  const canonicalId = path ? `${cid}/${path}` : cid;
+
+  return {
+    cid,
+    path,
+    canonicalId,
+    canonicalUri: `ipfs://${canonicalId}`,
+  };
+}
+
+export function parseIPFSReference(value: string): ParsedIpfsReference | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith("ipfs://")) {
+    return parseIpfsPath(trimmed.slice("ipfs://".length));
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed);
+      const pathname = trimLeadingSlashes(url.pathname);
+      const subdomainMatch = url.hostname.match(/^([^.]+)\.ipfs\./i);
+
+      if (pathname.startsWith("ipfs/")) {
+        return parseIpfsPath(pathname.slice("ipfs/".length));
+      }
+
+      if (subdomainMatch?.[1]) {
+        const cid = subdomainMatch[1];
+        const path = trimLeadingSlashes(pathname);
+        return parseIpfsPath(path ? `${cid}/${path}` : cid);
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return parseIpfsPath(trimmed);
+}
+
+export function canonicalizeIPFSIdentifier(value: string): string {
+  const parsed = parseIPFSReference(value);
+  return parsed?.canonicalId ?? value.trim();
+}
+
+export function toCanonicalIPFSUri(value: string): string {
+  const parsed = parseIPFSReference(value);
+  return parsed?.canonicalUri ?? value.trim();
+}
+
+function getReadGatewayBases(customGateway?: string): string[] {
+  return Array.from(
+    new Set(
+      [customGateway, pinataGatewayUrl, gatewayUrl, ...DEFAULT_IPFS_GATEWAYS]
+        .filter((entry): entry is string => Boolean(entry))
+        .map((entry) => trimTrailingSlashes(entry))
+    )
+  );
+}
+
+function buildGatewayUrl(value: string, gatewayBaseUrl: string): string {
+  const parsed = parseIPFSReference(value);
+  if (!parsed) return value;
+  return `${trimTrailingSlashes(gatewayBaseUrl)}/ipfs/${parsed.canonicalId}`;
+}
+
+function getIPFSGatewayCandidates(value: string, customGateway?: string): string[] {
+  const parsed = parseIPFSReference(value);
+  if (!parsed) {
+    return [value];
+  }
+
+  const originalGatewayCandidate = /^https?:\/\//i.test(value.trim()) ? value.trim() : null;
+
+  return Array.from(
+    new Set([
+      originalGatewayCandidate,
+      ...getReadGatewayBases(customGateway).map((base) => `${base}/ipfs/${parsed.canonicalId}`),
+    ])
+  ).filter((candidate): candidate is string => Boolean(candidate));
+}
+
+function buildPinataMetadata(
+  options: {
+    name?: string;
+    category?: UploadErrorCategory;
+    source?: string;
+    gardenAddress?: string;
+  } = {}
+) {
+  const keyvalues = Object.fromEntries(
+    Object.entries({
+      category: options.category,
+      source: options.source,
+      gardenAddress: options.gardenAddress,
+    }).filter(([, value]) => Boolean(value))
+  ) as Record<string, string>;
+
+  return {
+    ...(options.name ? { name: options.name } : {}),
+    ...(Object.keys(keyvalues).length > 0 ? { keyvalues } : {}),
+  };
+}
+
+async function pinCidWithPinata(
+  cid: string,
+  options: {
+    name?: string;
+    category?: UploadErrorCategory;
+    source?: string;
+    gardenAddress?: string;
+  } = {}
+): Promise<void> {
+  if (!pinataJwt) return;
+
+  const response = await fetch(`${pinataApiBaseUrl}/pinning/pinByHash`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${pinataJwt}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      hashToPin: cid,
+      pinataMetadata: buildPinataMetadata(options),
+    }),
+  });
+
+  if (response.ok) {
+    return;
+  }
+
+  let message = `${response.status} ${response.statusText}`;
+  try {
+    const payload = (await response.json()) as { error?: { reason?: string }; message?: string };
+    message =
+      payload.error?.reason?.trim() ||
+      payload.message?.trim() ||
+      message;
+  } catch {
+    // Ignore non-JSON error payloads.
+  }
+
+  if (response.status === 409 || /already|duplicate/i.test(message)) {
+    return;
+  }
+
+  throw new Error(`Pinata pinByHash failed for ${cid}: ${message}`);
+}
+
+async function verifyGatewayAvailability(
+  value: string,
+  gatewayBaseUrl: string,
+  label: string
+): Promise<string> {
+  const targetUrl = buildGatewayUrl(value, gatewayBaseUrl);
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= PROVIDER_VERIFICATION_ATTEMPTS; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), PROVIDER_VERIFICATION_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(targetUrl, {
+        signal: controller.signal,
+        cache: "no-store",
+      });
+
+      if (response.ok) {
+        try {
+          await response.arrayBuffer();
+        } catch {
+          // Ignore response body read issues after a successful status.
+        }
+        return targetUrl;
+      }
+
+      lastError = new Error(`${response.status} ${response.statusText}`);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (attempt < PROVIDER_VERIFICATION_ATTEMPTS) {
+      await sleep(1_000 * attempt);
+    }
+  }
+
+  throw new Error(
+    `Failed to verify ${label} availability for ${value}: ${lastError?.message ?? "unknown error"}`
+  );
+}
+
+async function ensureCidAvailableAcrossProviders(
+  cid: string,
+  options: {
+    name?: string;
+    category?: UploadErrorCategory;
+    source?: string;
+    gardenAddress?: string;
+  } = {}
+): Promise<void> {
+  const canonicalUri = `ipfs://${cid}`;
+
+  await verifyGatewayAvailability(canonicalUri, gatewayUrl, "Storacha gateway");
+
+  if (!pinataJwt) {
+    return;
+  }
+
+  await pinCidWithPinata(cid, options);
+  await verifyGatewayAvailability(
+    canonicalUri,
+    pinataGatewayUrl ?? DEFAULT_PINATA_GATEWAY,
+    "Pinata gateway"
+  );
+}
+
+export function tryParseJson<T = unknown>(value: string): T | null {
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function readBlobAsText(blob: Blob): Promise<string> {
+  return blob.text();
+}
+
+async function readFetchedDataAsText(data: Blob | string): Promise<string> {
+  return typeof data === "string" ? data : readBlobAsText(data);
+}
+
 /**
  * Resolves an IPFS URL to a proper gateway URL for image display
  */
 export function resolveIPFSUrl(url: string, customGateway?: string): string {
   if (!url) return "";
+  const parsed = parseIPFSReference(url);
+  if (!parsed) return url;
 
-  const base = customGateway || gatewayUrl;
-
-  // Helper to clean/format the hash path
-  const formatUrl = (hashPath: string) => {
-    // Remove leading slash if present
-    const cleanPath = hashPath.startsWith("/") ? hashPath.substring(1) : hashPath;
-    return `${base}/ipfs/${cleanPath}`;
-  };
-
-  // Handle ipfs:// protocol
-  if (url.startsWith("ipfs://")) {
-    return formatUrl(url.replace("ipfs://", ""));
-  }
-
-  // Handle https://ipfs.io/ URLs
-  if (url.includes("ipfs.io/ipfs/")) {
-    return formatUrl(url.split("ipfs.io/ipfs/")[1]);
-  }
-
-  // Handle direct hash (CID) with optional path
-  // Basic check for CID-like strings (starts with Qm or baf)
-  if (url.startsWith("Qm") || url.startsWith("baf")) {
-    return formatUrl(url);
-  }
-
-  // Return original URL if no IPFS pattern matched
-  return url;
+  const base = trimTrailingSlashes(customGateway || pinataGatewayUrl || gatewayUrl);
+  return `${base}/ipfs/${parsed.canonicalId}`;
 }
 
 /**
@@ -347,7 +627,6 @@ export async function getFileByHash(
   options: GetFileByHashOptions = {}
 ): Promise<{ data: Blob | string }> {
   const { signal, timeoutMs = 30_000 } = options;
-  const url = resolveIPFSUrl(hash);
   const abortController = new AbortController();
   const timeoutId =
     timeoutMs > 0
@@ -365,9 +644,30 @@ export async function getFileByHash(
     }
   }
 
-  let response: Response;
+  let response: Response | null = null;
+  const candidateUrls = getIPFSGatewayCandidates(hash);
+  let lastError: Error | null = null;
   try {
-    response = await fetch(url, { signal: abortController.signal });
+    for (const url of candidateUrls) {
+      try {
+        response = await fetch(url, { signal: abortController.signal });
+      } catch (error) {
+        if (abortController.signal.aborted) {
+          throw error;
+        }
+        lastError = error instanceof Error ? error : new Error(String(error));
+        continue;
+      }
+
+      if (response.ok) {
+        break;
+      }
+
+      lastError = new Error(
+        `Failed to fetch file from IPFS: ${response.status} ${response.statusText}`
+      );
+      response = null;
+    }
   } catch (error) {
     if (abortController.signal.aborted) {
       throw new Error(`IPFS request timed out after ${timeoutMs}ms`);
@@ -380,8 +680,8 @@ export async function getFileByHash(
     signal?.removeEventListener("abort", abortFromUpstream);
   }
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch file from IPFS: ${response.statusText}`);
+  if (!response) {
+    throw lastError ?? new Error("Failed to fetch file from IPFS");
   }
 
   const contentType = response.headers.get("content-type");
@@ -394,6 +694,21 @@ export async function getFileByHash(
 
   const blob = await response.blob();
   return { data: blob };
+}
+
+export async function getJsonByHash<T = unknown>(
+  hash: string,
+  options: GetFileByHashOptions = {}
+): Promise<T> {
+  const { data } = await getFileByHash(hash, options);
+  const text = await readFetchedDataAsText(data);
+  const parsed = tryParseJson<T>(text);
+
+  if (parsed === null) {
+    throw new Error("Failed to parse JSON from IPFS response");
+  }
+
+  return parsed;
 }
 
 /**
@@ -439,6 +754,9 @@ function isPlaceholderCredential(value: string | undefined): boolean {
  *
  * Optional:
  * - VITE_STORACHA_GATEWAY: Custom IPFS gateway URL (default: https://storacha.link)
+ * - VITE_PINATA_JWT or PINATA_JWT: Pinata JWT for secondary pinning
+ * - VITE_PINATA_GATEWAY_URL or PINATA_GATEWAY_URL: Pinata gateway URL
+ * - VITE_PINATA_API_URL or PINATA_API_URL: Pinata API base URL
  */
 export async function initializeIpfsFromEnv(
   env: Record<string, string | undefined> = typeof import.meta !== "undefined"
@@ -448,6 +766,15 @@ export async function initializeIpfsFromEnv(
   const key = env?.VITE_STORACHA_KEY;
   const proof = env?.VITE_STORACHA_PROOF;
   const gatewayBaseUrl = env?.VITE_STORACHA_GATEWAY;
+  const pinataJwtValue = env?.VITE_PINATA_JWT ?? env?.PINATA_JWT;
+  const pinataGatewayBaseUrl = env?.VITE_PINATA_GATEWAY_URL ?? env?.PINATA_GATEWAY_URL;
+  const pinataApiBaseUrl = env?.VITE_PINATA_API_URL ?? env?.PINATA_API_URL;
+
+  configurePinata({
+    pinataJwt: pinataJwtValue,
+    pinataGatewayBaseUrl,
+    pinataApiBaseUrl,
+  });
 
   // Skip initialization if credentials are missing or are placeholder values (CI builds)
   if (!key || !proof || isPlaceholderCredential(key) || isPlaceholderCredential(proof)) {
@@ -464,7 +791,14 @@ export async function initializeIpfsFromEnv(
   }
 
   try {
-    await initializeIpfs({ key, proof, gatewayBaseUrl });
+    await initializeIpfs({
+      key,
+      proof,
+      gatewayBaseUrl,
+      pinataJwt: pinataJwtValue,
+      pinataGatewayBaseUrl,
+      pinataApiBaseUrl,
+    });
     return true;
   } catch (err) {
     logger.error("Failed to initialize Storacha", { error: err });

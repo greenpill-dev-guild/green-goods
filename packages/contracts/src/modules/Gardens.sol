@@ -7,6 +7,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
 import { IGardensModule } from "../interfaces/IGardensModule.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import {
@@ -180,7 +181,8 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     // solhint-disable-next-line code-complexity
     function onGardenMinted(
         address garden,
-        WeightScheme scheme
+        WeightScheme scheme,
+        string calldata gardenName
     )
         external
         override
@@ -202,7 +204,9 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         gardenInitialized[garden] = true;
 
         // Step 1: Create community (independent, no deps on registry/pools)
-        community = _createCommunity(garden);
+        // gardenName is passed explicitly because the GardenAccount is not yet initialized
+        // when this is called during mintGarden().
+        community = _createCommunity(garden, gardenName);
         if (community != address(0)) {
             gardenCommunities[garden] = community;
         }
@@ -437,11 +441,16 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     }
 
     /// @notice Retry community creation for a garden that had a partial failure
-    /// @dev Garden must be initialized but have no community set
+    /// @dev Garden must be initialized but have no community set.
+    ///      Reads garden name from the (already initialized) GardenAccount.
     function retryCreateCommunity(address garden) external onlyOwner returns (address community) {
         if (!gardenInitialized[garden]) revert GardenNotInitialized(garden);
         if (gardenCommunities[garden] != address(0)) revert GardenAlreadyInitialized(garden);
-        community = _createCommunity(garden);
+        string memory gardenName;
+        try IGardenAccount(garden).name() returns (string memory n) {
+            gardenName = n;
+        } catch { }
+        community = _createCommunity(garden, gardenName);
         if (community != address(0)) {
             gardenCommunities[garden] = community;
             _seedGardenTreasury(garden, community);
@@ -550,7 +559,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     ///      via partial initialization flow.
     ///      Uses createRegistry() with RegistryCommunityInitializeParamsV2 matching the real
     ///      Gardens V2 RegistryFactory signature. _nonce and _registryFactory are set by the factory.
-    function _createCommunity(address garden) internal returns (address community) {
+    function _createCommunity(address garden, string memory gardenName) internal returns (address community) {
         if (address(registryFactory) == address(0)) return address(0);
         address councilSafe = communityCouncilSafe == address(0) ? garden : communityCouncilSafe;
 
@@ -564,7 +573,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
             _feeReceiver: address(0),
             _metadata: Metadata({ protocol: 1, pointer: "" }),
             _councilSafe: payable(councilSafe),
-            _communityName: "Green Goods Community",
+            _communityName: _resolveCommunityName(gardenName),
             _isKickEnabled: false,
             covenantIpfsHash: ""
         });
@@ -596,6 +605,15 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         } catch {
             // Non-blocking — garden can still initialize and be funded later.
         }
+    }
+
+    /// @notice Derive community name from garden name
+    /// @dev Falls back to "Green Goods Community" if name is empty
+    function _resolveCommunityName(string memory gardenName) internal pure returns (string memory) {
+        if (bytes(gardenName).length > 0) {
+            return string.concat(gardenName, " Community");
+        }
+        return "Green Goods Community";
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

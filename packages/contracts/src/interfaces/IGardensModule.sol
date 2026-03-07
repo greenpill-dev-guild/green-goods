@@ -77,11 +77,13 @@ interface IGardensModule {
     /// @notice Called by GardenToken during mint to create Gardens V2 infrastructure
     /// @param garden The garden account address
     /// @param scheme The weight scheme selected by the operator
+    /// @param gardenName The garden name (passed explicitly since the account is not yet initialized)
     /// @return community The created RegistryCommunity address
     /// @return pools Array of created signal pool addresses [action, hypercert]
     function onGardenMinted(
         address garden,
-        WeightScheme scheme
+        WeightScheme scheme,
+        string calldata gardenName
     )
         external
         returns (address community, address[] memory pools);

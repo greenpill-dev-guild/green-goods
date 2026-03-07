@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: isIPFSBuild ? "./" : "/",
     envDir: rootDir,
-    envPrefix: ["VITE_", "PRIVY_", "SKIP_"],
+    envPrefix: ["VITE_", "PINATA_", "PRIVY_", "SKIP_"],
     build: { sourcemap: true, chunkSizeWarningLimit: 2000 },
     plugins,
     // Deduplicate React and PostHog to prevent multiple instances

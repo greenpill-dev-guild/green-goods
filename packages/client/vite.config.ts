@@ -51,6 +51,8 @@ export default defineConfig(({ mode }) => {
   // Use relative paths for IPFS builds
   const isIPFSBuild =
     rootEnv.VITE_USE_HASH_ROUTER === "true" || localEnv.VITE_USE_HASH_ROUTER === "true";
+  const appBasePath = isIPFSBuild ? "./" : "/";
+  const shortcutUrl = (path: string) => (isIPFSBuild ? `./#${path}` : path);
 
   // Skip mkcert in devcontainer, CI, or when SKIP_MKCERT is set
   // SKIP_MKCERT is useful when sudo is broken (e.g., "you do not exist in passwd database")
@@ -73,10 +75,11 @@ export default defineConfig(({ mode }) => {
     VitePWA({
       includeAssets: [
         "favicon.ico",
+        "apple-icon.png",
+        "icon-192.png",
         "icon.png",
         "icon-512.png",
         "maskable-icon-512.png",
-        "apple-icon.png",
         "images/android-icon-36x36.png",
         "images/android-icon-48x48.png",
         "images/android-icon-72x72.png",
@@ -88,10 +91,7 @@ export default defineConfig(({ mode }) => {
         "images/apple-icon-144x144.png",
         "images/ms-icon-70x70.png",
         "images/ms-icon-144x144.png",
-        "images/ms-icon-310.png",
-        "images/home.png",
-        "images/work.png",
-        "images/profile.png",
+        "images/ms-icon-310x310.png",
       ],
       injectRegister: "auto",
       registerType: "prompt",
@@ -167,27 +167,26 @@ export default defineConfig(({ mode }) => {
         ],
       },
       manifest: {
+        id: appBasePath,
         name: "Green Goods",
         short_name: "Green Goods",
         // Window Controls Overlay: Native desktop app feel (removes browser titlebar)
         // Falls back to standalone on mobile or unsupported browsers
         display_override: ["window-controls-overlay", "standalone"],
         icons: [
-          { src: "/images/android-icon-36x36.png", sizes: "36x36", type: "image/png" },
-          { src: "/images/android-icon-48x48.png", sizes: "48x48", type: "image/png" },
-          { src: "/images/android-icon-72x72.png", sizes: "72x72", type: "image/png" },
-          { src: "/images/android-icon-144x144.png", sizes: "144x144", type: "image/png" },
-          { src: "/apple-icon.png", sizes: "192x192", type: "image/png" },
-          { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "images/android-icon-72x72.png", sizes: "72x72", type: "image/png" },
+          { src: "images/android-icon-144x144.png", sizes: "144x144", type: "image/png" },
+          { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
           {
-            src: "/maskable-icon-512.png",
+            src: "maskable-icon-512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
           },
         ],
-        start_url: "/",
-        scope: "/",
+        start_url: appBasePath,
+        scope: appBasePath,
         display: "standalone",
         orientation: "portrait-primary",
         theme_color: "#fff",
@@ -196,20 +195,20 @@ export default defineConfig(({ mode }) => {
           {
             name: "Home",
             description: "View Gardens",
-            url: "/home",
-            icons: [{ src: "images/home.png", sizes: "64x64", type: "image/png" }],
+            url: shortcutUrl("/home"),
+            icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
           },
           {
             name: "Garden",
             description: "Upload your work",
-            url: "/garden",
-            icons: [{ src: "images/work.png", sizes: "64x64", type: "image/png" }],
+            url: shortcutUrl("/garden"),
+            icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
           },
           {
             name: "Profile",
             description: "View your profile",
-            url: "/profile",
-            icons: [{ src: "images/profile.png", sizes: "64x64", type: "image/png" }],
+            url: shortcutUrl("/profile"),
+            icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
           },
         ],
         categories: [],
@@ -219,9 +218,9 @@ export default defineConfig(({ mode }) => {
   ];
 
   return {
-    base: isIPFSBuild ? "./" : "/",
+    base: appBasePath,
     envDir: rootDir,
-    envPrefix: ["VITE_", "SKIP_"],
+    envPrefix: ["VITE_", "PINATA_", "SKIP_"],
     build: { sourcemap: true, chunkSizeWarningLimit: 2000 },
     plugins,
     // Deduplicate React and PostHog to prevent multiple instances
