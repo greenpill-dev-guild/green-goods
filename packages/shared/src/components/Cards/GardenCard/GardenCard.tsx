@@ -5,6 +5,7 @@ import { buildGardenMemberSets } from "../../../utils/app/garden";
 import { formatAddress } from "../../../utils/app/text";
 import { cn } from "../../../utils/styles/cn";
 import { Badge } from "../../Badge/Badge";
+import { GardenBannerFallback } from "../../Display/GardenBannerFallback";
 import { ImageWithFallback } from "../../Display/ImageWithFallback";
 
 const gardenCardVariants = tv({
@@ -75,19 +76,6 @@ export interface GardenCardProps extends GardenCardVariantProps {
   renderOperatorName?: (address: string) => React.ReactNode;
 }
 
-/** Banner fallback when no image is available */
-const BannerFallback: React.FC<{ name?: string }> = ({ name }) => (
-  <div className="absolute inset-0">
-    <div className="absolute inset-0 bg-gradient-to-br from-bg-weak-50 to-bg-soft-200" />
-    <div className="absolute inset-0 opacity-50 bg-[repeating-linear-gradient(45deg,rgba(0,0,0,0.04)_0px,rgba(0,0,0,0.04)_10px,transparent_10px,transparent_20px)]" />
-    <div className="absolute inset-0 grid place-items-center">
-      <span className="text-5xl font-semibold text-text-soft-400 select-none">
-        {(name?.charAt(0) || "G").toUpperCase()}
-      </span>
-    </div>
-  </div>
-);
-
 export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
   (
     {
@@ -153,7 +141,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                 onErrorCallback={() => setImageError(true)}
               />
             ) : (
-              <BannerFallback name={garden.name} />
+              <GardenBannerFallback name={garden.name} />
             )}
           </div>
         )}

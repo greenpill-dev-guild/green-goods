@@ -55,6 +55,10 @@ export {
 // Dialog Components
 export { ConfirmDialog, type ConfirmDialogProps } from "./Dialog";
 // Display Components
+export {
+	GardenBannerFallback,
+	type GardenBannerFallbackProps,
+} from "./Display";
 export { ImageWithFallback, type ImageWithFallbackProps } from "./Display";
 // Error Boundary
 export { ErrorBoundary, type ErrorBoundaryProps } from "./ErrorBoundary";

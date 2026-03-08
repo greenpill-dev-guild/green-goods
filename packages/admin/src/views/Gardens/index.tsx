@@ -1,4 +1,5 @@
 import {
+  GardenBannerFallback,
   type GardenFiltersState,
   resolveIPFSUrl,
   useAuth,
@@ -7,7 +8,7 @@ import {
   useGardens,
 } from "@green-goods/shared";
 import { RiAddLine, RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
@@ -17,6 +18,33 @@ import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SkeletonGrid } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { SortSelect } from "@/components/ui/SortSelect";
+
+/** Banner with automatic fallback on image load error */
+function GardenCardBanner({
+  name,
+  bannerImage,
+  children,
+}: { name: string; bannerImage?: string; children?: ReactNode }) {
+  const [error, setError] = useState(false);
+  const resolved = bannerImage ? resolveIPFSUrl(bannerImage) : null;
+
+  return (
+    <div className="relative h-48">
+      {resolved && !error ? (
+        <img
+          src={resolved}
+          alt={name}
+          className="h-full w-full object-cover"
+          onError={() => setError(true)}
+          loading="lazy"
+        />
+      ) : (
+        <GardenBannerFallback name={name} />
+      )}
+      {children}
+    </div>
+  );
+}
 
 export default function Gardens() {
   const intl = useIntl();
@@ -189,9 +217,6 @@ export default function Gardens() {
           <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {filteredGardens.map((garden) => {
               const canManage = gardenPermissions.canManageGarden(garden);
-              const resolvedBannerImage = garden.bannerImage
-                ? resolveIPFSUrl(garden.bannerImage)
-                : null;
 
               return (
                 <Link
@@ -200,38 +225,14 @@ export default function Gardens() {
                   data-testid="garden-card"
                   className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md hover:border-primary-base"
                 >
-                  <div className="relative h-48">
-                    {resolvedBannerImage ? (
-                      <img
-                        src={resolvedBannerImage}
-                        alt={garden.name}
-                        className="h-full w-full object-cover"
-                        onError={(event) => {
-                          const placeholder = event.currentTarget
-                            .nextElementSibling as HTMLElement | null;
-                          if (placeholder) {
-                            placeholder.style.display = "flex";
-                          }
-                          event.currentTarget.style.display = "none";
-                        }}
-                        loading="lazy"
-                      />
-                    ) : null}
-                    <div
-                      className={`absolute inset-0 items-center justify-center bg-gradient-to-br from-primary-dark via-primary-base to-primary-darker text-primary-foreground ${resolvedBannerImage ? "hidden" : "flex"}`}
-                      style={{ display: resolvedBannerImage ? "none" : "flex" }}
-                    >
-                      <div className="text-center">
-                        <div className="text-2xl font-bold opacity-80">{garden.name.charAt(0)}</div>
-                      </div>
-                    </div>
+                  <GardenCardBanner name={garden.name} bannerImage={garden.bannerImage}>
                     {canManage && (
                       <div className="absolute top-2 right-2 flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark">
                         <RiShieldCheckLine className="mr-1 h-3 w-3" />
                         Operator
                       </div>
                     )}
-                  </div>
+                  </GardenCardBanner>
                   <div className="p-6">
                     <div className="mb-2">
                       <h3 className="mb-1 text-lg font-medium text-text-strong group-hover:text-primary-dark">

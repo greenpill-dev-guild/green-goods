@@ -3,6 +3,7 @@ import {
   buildGardenMemberSets,
   cn,
   formatAddress,
+  GardenBannerFallback,
   type Garden,
   useEnsName,
 } from "@green-goods/shared";
@@ -91,18 +92,6 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
 
     const classes = gardenCardVariants({ media, height, class: className });
 
-    const BannerFallback = () => (
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-bg-weak-50 to-bg-soft-200" />
-        <div className="absolute inset-0 opacity-50 bg-[repeating-linear-gradient(45deg,rgba(0,0,0,0.04)_0px,rgba(0,0,0,0.04)_10px,transparent_10px,transparent_20px)]" />
-        <div className="absolute inset-0 grid place-items-center">
-          <span className="text-5xl font-semibold text-text-soft-400 select-none">
-            {(garden.name?.charAt(0) || "G").toUpperCase()}
-          </span>
-        </div>
-      </div>
-    );
-
     return (
       <Card
         ref={ref}
@@ -123,7 +112,7 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                 onErrorCallback={() => setImageError(true)}
               />
             ) : (
-              <BannerFallback />
+              <GardenBannerFallback name={garden.name} />
             )}
           </div>
         )}

@@ -1,6 +1,7 @@
 import {
   type Address,
   DEFAULT_CHAIN_ID,
+  GardenBannerFallback,
   GardenTab,
   isGardenMember,
   toastService,
@@ -48,6 +49,7 @@ export const Garden: React.FC = () => {
   const { primaryAddress } = useUser();
   const [isEndowmentOpen, setIsEndowmentOpen] = useState(false);
   const [isGovernanceOpen, setIsGovernanceOpen] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -305,14 +307,19 @@ export const Garden: React.FC = () => {
           <>
             {/* Fixed Header (banner + TopNav + title/metadata) */}
             <div className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20">
-              <div className="relative w-full">
-                <img
-                  src={bannerImage}
-                  className="w-full object-cover object-center rounded-b-3xl h-36 md:h-44"
-                  alt={`${name} banner`}
-                  loading="eager"
-                  decoding="async"
-                />
+              <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-b-3xl">
+                {bannerImage && !bannerError ? (
+                  <img
+                    src={bannerImage}
+                    className="w-full h-full object-cover object-center"
+                    alt={`${name} banner`}
+                    loading="eager"
+                    decoding="async"
+                    onError={() => setBannerError(true)}
+                  />
+                ) : (
+                  <GardenBannerFallback name={name} className="rounded-b-3xl" />
+                )}
                 <div className="absolute top-0 left-0 right-0 z-20">
                   <TopNav
                     className="flex w-full justify-between items-center p-4 pt-6"

@@ -1,4 +1,10 @@
-import { DOMAIN_COLORS, type Domain, expandDomainMask, resolveIPFSUrl } from "@green-goods/shared";
+import {
+  DOMAIN_COLORS,
+  type Domain,
+  expandDomainMask,
+  GardenBannerFallback,
+  resolveIPFSUrl,
+} from "@green-goods/shared";
 import {
   RiAlertLine,
   RiArrowLeftLine,
@@ -57,6 +63,7 @@ export function GardenHeroBanner({
 }: GardenHeroBannerProps) {
   const { formatMessage } = useIntl();
   const [descExpanded, setDescExpanded] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
   const bannerUrl = bannerImage ? resolveIPFSUrl(bannerImage) : "";
   const domains: Domain[] = typeof domainMask === "number" ? expandDomainMask(domainMask) : [];
   const isLongDescription = Boolean(description && description.length > 100);
@@ -64,20 +71,19 @@ export function GardenHeroBanner({
   return (
     <div>
       <div className="garden-hero-banner">
-        {bannerUrl ? (
+        {bannerUrl && !bannerError ? (
           <>
             <img
               src={bannerUrl}
               alt={formatMessage({ id: "app.garden.detail.bannerAlt" }, { name })}
               className="garden-hero-banner-image"
+              onError={() => setBannerError(true)}
             />
             <div className="garden-hero-banner-gradient" />
           </>
         ) : (
-          <div className="garden-hero-banner-fallback bg-gradient-to-r from-primary-lighter to-primary-base">
-            <span className="select-none text-5xl font-bold text-white/30 sm:text-6xl">
-              {name.charAt(0).toUpperCase()}
-            </span>
+          <div className="garden-hero-banner-fallback">
+            <GardenBannerFallback name={name} />
             <div className="garden-hero-banner-gradient" />
           </div>
         )}
