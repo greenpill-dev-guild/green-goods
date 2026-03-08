@@ -4,8 +4,10 @@ import {
   AuthProvider,
   DEFAULT_CHAIN_ID,
   ErrorBoundary,
+  initGlobalErrorHandlers,
   initTheme,
   queryClient,
+  trackErrorBoundary,
 } from "@green-goods/shared";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { StrictMode } from "react";
@@ -27,6 +29,10 @@ declare global {
 // Initialize theme system
 const cleanupTheme = initTheme();
 
+// Initialize global error handlers for PostHog exception tracking
+// Catches unhandled errors and promise rejections that escape Error Boundaries
+initGlobalErrorHandlers();
+
 export const Root = () => (
   <PersistQueryClientProvider
     client={queryClient}
@@ -36,7 +42,15 @@ export const Root = () => (
       dehydrateOptions: { shouldDehydrateQuery },
     }}
   >
-    <ErrorBoundary context="AdminApp">
+    <ErrorBoundary
+      context="AdminApp"
+      onError={(error, errorInfo) =>
+        trackErrorBoundary(error, {
+          componentStack: errorInfo.componentStack,
+          boundaryName: "AdminApp",
+        })
+      }
+    >
       <AppKitProvider
         projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
         metadata={{
