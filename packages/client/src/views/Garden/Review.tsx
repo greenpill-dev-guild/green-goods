@@ -124,14 +124,6 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
     [videoFiles]
   );
 
-  // Stable URL for video
-  const videoUrl = useMemo(
-    () => (videoFile ? mediaResourceManager.getOrCreateUrl(videoFile, VIDEO_TRACKING_ID) : null),
-    [videoFile]
-  );
-
-  const hasVideo = videoFile !== null;
-
   return (
     <div className="flex flex-col gap-4">
       <WorkView

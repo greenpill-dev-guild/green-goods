@@ -6,12 +6,6 @@ const { mockCapture, mockIdentify, mockReset } = vi.hoisted(() => ({
   mockReset: vi.fn(),
 }));
 
-const { mockCapture, mockIdentify, mockReset } = vi.hoisted(() => ({
-  mockCapture: vi.fn(),
-  mockIdentify: vi.fn(),
-  mockReset: vi.fn(),
-}));
-
 vi.mock("posthog-js", () => ({
   posthog: {
     init: vi.fn(),

@@ -7,7 +7,6 @@
  */
 
 import type { Abi, WalletClient } from "viem";
-import type { Address } from "../../types/domain";
 import { toastService } from "../../components/toast";
 import {
   trackAdminMemberAddFailed,

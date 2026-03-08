@@ -277,36 +277,6 @@ export default function CreateAssessment() {
     [gardenId]
   );
 
-  const buildWorkflowPayload = useCallback(
-    (formData: CreateAssessmentForm): WorkflowAssessmentForm | null => {
-      if (!gardenId || !isAddress(gardenId)) return null;
-
-      return {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        assessmentType: `domain-${formData.domain}`,
-        capitals: [],
-        metrics: {
-          diagnosis: formData.diagnosis,
-          smartOutcomes: formData.smartOutcomes,
-          cynefinPhase: formData.cynefinPhase,
-          domain: formData.domain,
-          selectedActionUIDs: formData.selectedActionUIDs,
-          sdgTargets: formData.sdgTargets,
-        },
-        evidenceMedia: formData.attachments ?? [],
-        reportDocuments: [],
-        impactAttestations: [],
-        startDate: toUnixSeconds(formData.reportingPeriodStart),
-        endDate: toUnixSeconds(formData.reportingPeriodEnd),
-        location: formData.location.trim(),
-        tags: formData.sdgTargets.map((id) => `sdg-${id}`),
-        gardenId: gardenId as Address,
-      };
-    },
-    [gardenId]
-  );
-
   const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");
   const isSuccess = state.matches("success");

@@ -127,13 +127,12 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
     const classes = gardenCardVariants({ media, height, interactive });
 
     const Wrapper = interactive ? "button" : "div";
-    const shellClasses = cardShellVariants({ interactive });
 
     return (
       <Wrapper
         ref={ref as React.Ref<HTMLButtonElement & HTMLDivElement>}
         data-testid="garden-card"
-        className={cn(classes, shellClasses, "overflow-hidden text-left", className)}
+        className={cn(classes, "rounded-2xl border border-border bg-bg-white-0", className)}
         onClick={interactive ? onClick : undefined}
         type={interactive ? "button" : undefined}
       >
@@ -164,15 +163,15 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
           className={cn(
             // Container query: responsive padding based on card width
             "p-3 @[300px]:p-4 @[400px]:p-5",
-            "flex flex-col gap-3 transition-all duration-300 flex-1",
-            showBanner && "border-t border-stroke-soft-200"
+            "flex flex-col gap-2 border border-border rounded-lg transition-all duration-400 flex-1",
+            showBanner && "border-t-0 rounded-t-none"
           )}
         >
           <div className="flex flex-col gap-2 flex-1">
             {/* Selection highlight overlay */}
             <div
               className={cn(
-                "absolute inset-0 w-full h-full rounded-2xl border-2 border-primary-alpha-24 opacity-0 transition-opacity duration-300 z-10 pointer-events-none",
+                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 transition-opacity duration-300 z-10 pointer-events-none",
                 selected && "opacity-100"
               )}
             />
@@ -180,7 +179,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
             {/* Garden name */}
             <h5
               className={cn(
-                "flex items-center text-label-lg text-text-strong-950 transition-colors line-clamp-1",
+                "flex items-center text-lg font-semibold transition-colors line-clamp-1",
                 selected && "text-primary"
               )}
             >
@@ -188,7 +187,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
             </h5>
 
             {/* Stats badges */}
-            <div className="flex flex-row flex-wrap gap-1 text-paragraph-xs text-text-sub-600">
+            <div className="flex flex-row flex-wrap gap-1 text-xs text-text-sub-600 font-medium">
               <Badge
                 variant="outline"
                 tint="none"
@@ -224,11 +223,11 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
             {/* Operators list */}
             {showOperators && operatorCount > 0 && (
               <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2 text-subheading-xs text-text-sub-600 uppercase">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-sub-600">
                   <RiMapPinUserFill className="h-3.5 w-3.5 text-primary" />
                   <span>{labels.operatorHeading}</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-1 text-paragraph-xs text-text-sub-600">
+                <div className="flex flex-wrap items-center gap-1 text-xs text-text-sub-600">
                   {operatorAddresses.slice(0, 2).map((operator) => (
                     <Badge
                       key={operator}
@@ -252,9 +251,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
 
             {/* Description */}
             {showDescription && garden.description && (
-              <p className="text-paragraph-sm text-text-sub-600 line-clamp-3 flex-1">
-                {garden.description}
-              </p>
+              <p className="text-sm text-text-sub-600 line-clamp-3 flex-1">{garden.description}</p>
             )}
           </div>
         </div>

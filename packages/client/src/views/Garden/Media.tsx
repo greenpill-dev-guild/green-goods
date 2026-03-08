@@ -123,7 +123,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
   const uploadSourceRef = useRef<"gallery" | "camera" | null>(null);
 
   // Stable blob URLs for all media items
@@ -159,12 +158,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     uploadSourceRef.current = source;
     track("media_upload_clicked", { source, ...getPlatformContext() });
     (source === "gallery" ? mediaInputRef : cameraInputRef).current?.click();
-  }, []);
-
-  const handleVideoClick = useCallback(() => {
-    setVideoError(null);
-    track("media_upload_clicked", { source: "video", ...getPlatformContext() });
-    videoInputRef.current?.click();
   }, []);
 
   // Expose handlers to parent
@@ -375,14 +368,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           onChange={handleMediaUpload}
           disabled={isCompressing}
         />
-        <input
-          ref={videoInputRef}
-          id="work-media-video"
-          type="file"
-          accept="video/*"
-          onChange={handleVideoUpload}
-          disabled={isCompressing}
-        />
       </div>
 
       {/* Compression progress */}
@@ -537,44 +522,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           <Books />
         </div>
       )}
-
-      {/* Audio notes section */}
-      <div className="flex flex-col gap-3">
-        <FormInfo
-          title={intl.formatMessage({
-            id: "app.garden.upload.audioTitle",
-            defaultMessage: "Audio Notes",
-          })}
-          info={intl.formatMessage({
-            id: "app.garden.upload.audioDescription",
-            defaultMessage: "Record an optional audio note (max 4:20)",
-          })}
-          Icon={RiMicLine}
-        />
-
-        {/* List existing audio notes with player + delete */}
-        {audioNotes.map((file, index) => (
-          <AudioPlayer
-            key={`audio-${file.name}-${index}`}
-            file={file}
-            onDelete={() => {
-              setAudioNotes((prev) => prev.filter((_, i) => i !== index));
-            }}
-          />
-        ))}
-
-        {/* Audio recorder (captures 1 live note at a time) */}
-        <AudioRecorder
-          onRecordingComplete={(file) => {
-            setAudioNotes((prev) => [...prev, file]);
-            track("audio_note_recorded", {
-              duration: "unknown",
-              noteIndex: audioNotes.length,
-              ...getPlatformContext(),
-            });
-          }}
-        />
-      </div>
 
       <ImagePreviewDialog
         isOpen={previewIndex !== null}

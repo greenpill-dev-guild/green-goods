@@ -75,7 +75,7 @@ export default function GardenAssessment() {
   } else {
     content = (
       <div className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-        {assessments.length === 0 ? (
+        {parsedAssessments.length === 0 ? (
           <div className="py-16 text-center">
             <RiFileList3Line className="mx-auto h-12 w-12 text-text-disabled" />
             <h3 className="mt-2 text-sm font-medium text-text-strong">

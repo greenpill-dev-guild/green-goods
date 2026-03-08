@@ -63,13 +63,11 @@ vi.mock("@/components/Layout", () => ({
     buttonLabel,
     errorMessage,
     secondaryAction,
-    tertiaryAction,
   }: {
     login?: () => void;
     buttonLabel?: string;
     errorMessage?: string | null;
     secondaryAction?: { label: string; onSelect: () => void };
-    tertiaryAction?: { label: string; onClick?: () => void };
   }) =>
     createElement(
       "div",
@@ -92,16 +90,6 @@ vi.mock("@/components/Layout", () => ({
             type: "button",
           },
           secondaryAction.label
-        ),
-      tertiaryAction &&
-        createElement(
-          "button",
-          {
-            "data-testid": "tertiary-button",
-            onClick: tertiaryAction.onClick,
-            type: "button",
-          },
-          tertiaryAction.label
         ),
       errorMessage && createElement("p", { "data-testid": "error-message" }, errorMessage)
     ),

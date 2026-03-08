@@ -78,14 +78,6 @@ async function parseInstructionConfig(
   return null;
 }
 
-const editActionSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  startTime: z.coerce.date(),
-  endTime: z.coerce.date(),
-});
-
-type EditActionFormData = z.infer<typeof editActionSchema>;
-
 export default function EditAction() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();

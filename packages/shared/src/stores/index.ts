@@ -39,11 +39,3 @@ export type { WorkDraftState, WorkFlowState } from "./useWorkFlowStore";
 export { useWorkFlowStore } from "./useWorkFlowStore";
 // Work Flow Types
 export { WorkTab } from "./workFlowTypes";
-
-// Hypercert Wizard Store
-export type {
-  HypercertWizardStore,
-  MintingState,
-  MintingStatus,
-} from "./useHypercertWizardStore";
-export { useHypercertWizardStore } from "./useHypercertWizardStore";

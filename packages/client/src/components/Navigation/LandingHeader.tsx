@@ -34,7 +34,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = () => {
       </a>
       <div className="flex items-center space-x-2">
         <img src="/icon.png" alt="APP_NAME Logo" className=" w-12 lg:w-20" />
-        <h1 className="text-label-lg sm:text-title-h5">{APP_NAME}</h1>
+        <h1 className="text-xl lg:text-3xl font-bold">{APP_NAME}</h1>
       </div>
       <div className="flex gap-2">
         {filterLinks.map(({ Icon, link, action, title }) => (
@@ -50,7 +50,7 @@ export const LandingHeader: React.FC<LandingHeaderProps> = () => {
             className="text-primary-dark hover:text-text-sub-600 bg-bg-weak-50 hover:bg-bg-soft-200 p-2 rounded-full transition-colors grid place-items-center"
             onClick={action}
           >
-            <Icon className={iconButtonIconVariants({ size: "lg" })} />
+            <Icon size={28} />
           </a>
         ))}
       </div>

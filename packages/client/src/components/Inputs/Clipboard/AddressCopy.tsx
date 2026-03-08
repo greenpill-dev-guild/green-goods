@@ -2,6 +2,7 @@ import {
   type Address,
   cn,
   copyToClipboard,
+  type FormatAddressVariant,
   formatAddress,
   toastService,
 } from "@green-goods/shared";

@@ -73,7 +73,7 @@ export default function CreateAction() {
     defaultValues: {
       title: "",
       startTime: new Date(),
-      endTime: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      endTime: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       capitals: [],
       media: [],
       instructionConfig: defaultTemplate,
@@ -94,6 +94,7 @@ export default function CreateAction() {
       );
       const mediaCIDs = mediaUploads.map((upload: { cid: string }) => upload.cid);
 
+      // Convert instruction config to JSON and upload to IPFS
       const instructionsBlob = new Blob([JSON.stringify(data.instructionConfig, null, 2)], {
         type: "application/json",
       });
@@ -105,6 +106,7 @@ export default function CreateAction() {
 
       toastService.dismiss();
 
+      // Register action on-chain
       await registerAction({
         title: data.title,
         startTime: Math.floor(data.startTime.getTime() / 1000),
@@ -633,21 +635,6 @@ export default function CreateAction() {
   const handleCancel = () => {
     navigate("/actions");
   };
-
-  function renderStep(): React.ReactNode {
-    switch (currentStep) {
-      case 0:
-        return <BasicsStep form={form} />;
-      case 1:
-        return <CapitalsMediaStep form={form} />;
-      case 2:
-        return <InstructionsStep form={form} />;
-      case 3:
-        return <ReviewStep form={form} />;
-      default:
-        return null;
-    }
-  }
 
   return (
     <FormWizard

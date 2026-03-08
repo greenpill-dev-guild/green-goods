@@ -15,13 +15,6 @@ const LoginRedirect = () => {
   return <Navigate to={redirectTo} replace />;
 };
 
-// Login redirect - preserves redirectTo param for bookmarked /login URLs
-const LoginRedirect = () => {
-  const location = useLocation();
-  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/dashboard";
-  return <Navigate to={redirectTo} replace />;
-};
-
 export const router = createRouter([
   {
     id: "root",

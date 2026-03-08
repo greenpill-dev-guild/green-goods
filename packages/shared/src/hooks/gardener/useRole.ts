@@ -4,7 +4,6 @@ import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { greenGoodsGraphQL } from "../../modules/data/graphql";
 import { greenGoodsIndexer } from "../../modules/data/graphql-client";
-import { logger } from "../../modules/app/logger";
 import { useAuthContext } from "../../providers/Auth";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";

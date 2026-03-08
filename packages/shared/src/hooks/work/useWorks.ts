@@ -3,7 +3,6 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { getWorkApprovals, getWorks } from "../../modules/data/eas";
-import { logger } from "../../modules/app/logger";
 import { jobQueue, jobQueueDB } from "../../modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import type { Work, WorkCard, WorkDisplayStatus } from "../../types/domain";
@@ -11,16 +10,6 @@ import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { useMerged } from "../app/useMerged";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { queryKeys } from "../query-keys";
-
-/** Options for the useWorks hook */
-export interface UseWorksOptions {
-  /**
-   * Enable offline job queue integration.
-   * When true, merges online works with pending offline jobs.
-   * @default false
-   */
-  offline?: boolean;
-}
 
 /** Options for the useWorks hook */
 export interface UseWorksOptions {

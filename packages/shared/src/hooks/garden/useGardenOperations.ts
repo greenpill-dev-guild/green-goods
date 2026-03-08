@@ -22,7 +22,6 @@ import {
   type GardenOperationResult,
   type OptimisticUpdateCallback,
 } from "./createGardenOperation";
-import type { GardenRole } from "../../utils/blockchain/garden-roles";
 
 /**
  * Apply optimistic update to garden cache data

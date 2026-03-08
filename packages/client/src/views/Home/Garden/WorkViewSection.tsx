@@ -22,12 +22,11 @@ import { useIntl } from "react-intl";
 import { WorkView, type WorkViewAction } from "@/components/Features/Work";
 
 type ViewingMode = "operator" | "gardener" | "viewer";
-type ResolvedWorkMetadata = WorkMetadata | WorkMetadataV1 | Record<string, unknown>;
 
 type WorkViewSectionProps = {
   garden?: Garden;
   work: Work;
-  workMetadata: ResolvedWorkMetadata | null;
+  workMetadata: WorkMetadata | null;
   viewingMode: ViewingMode;
   actionTitle: string;
   effectiveStatus: WorkDisplayStatus;
@@ -390,3 +389,5 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
     />
   );
 };
+
+export default WorkViewSection;

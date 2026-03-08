@@ -8,21 +8,13 @@ import { TopNav } from "@/components/Navigation";
 
 type GardenAssessmentProps = {};
 
-function formatAssessmentDate(value?: number | null): string | null {
-  if (value === undefined || value === null || value === 0) return null;
-  const timestamp = value > 10_000_000_000 ? value : value * 1000;
-  return new Date(timestamp).toLocaleDateString();
-}
-
 export const GardenAssessment: FC<GardenAssessmentProps> = () => {
   const { id, assessmentId } = useParams<{ id: string; assessmentId: string }>();
-  const intl = useIntl();
   const { data: gardens = [] } = useGardens(DEFAULT_CHAIN_ID);
-  const { data: assessments = [] } = useGardenAssessments(id, DEFAULT_CHAIN_ID);
+  const garden = gardens.find((g) => g.id === id) || null;
+  const intl = useIntl();
 
-  const garden = gardens.find((entry) => entry.id === id) || null;
-  const assessment = assessments.find((entry) => entry.id === assessmentId) || null;
-
+  const assessment = garden?.assessments.find((assessment) => assessment.id === assessmentId);
   const metricsJson = useMemo(() => {
     if (!assessment?.metrics) return null;
     try {
@@ -32,27 +24,22 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
     }
   }, [assessment?.metrics]);
 
-  const evidenceMedia = assessment?.evidenceMedia?.length
-    ? assessment.evidenceMedia
-    : (assessment?.attachments ?? [])
-        .filter((attachment) => attachment.mimeType.startsWith("image/"))
-        .map((attachment) => resolveIPFSUrl(attachment.cid));
-  const reportDocuments = assessment?.reportDocuments?.length
-    ? assessment.reportDocuments
-    : (assessment?.attachments ?? [])
-        .filter((attachment) => !attachment.mimeType.startsWith("image/"))
-        .map((attachment) => resolveIPFSUrl(attachment.cid));
-  const impactAttestations = assessment?.impactAttestations ?? [];
-  const capitals = assessment?.capitals ?? [];
-  const tags = assessment?.tags ?? [];
-  const startDate = formatAssessmentDate(
-    assessment?.startDate ?? assessment?.reportingPeriod.start ?? null
-  );
-  const endDate = formatAssessmentDate(
-    assessment?.endDate ?? assessment?.reportingPeriod.end ?? null
-  );
+  const startDateValue = assessment?.startDate;
+  const startDate =
+    startDateValue !== undefined && startDateValue !== null
+      ? new Date(
+          startDateValue > 10_000_000_000 ? startDateValue : startDateValue * 1000
+        ).toLocaleDateString()
+      : null;
+  const endDateValue = assessment?.endDate;
+  const endDate =
+    endDateValue !== undefined && endDateValue !== null
+      ? new Date(
+          endDateValue > 10_000_000_000 ? endDateValue : endDateValue * 1000
+        ).toLocaleDateString()
+      : null;
 
-  if (!assessment)
+  if (!assessment || !garden)
     return (
       <article>
         <TopNav onBackClick={() => window.history.back()} />
@@ -67,9 +54,7 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
       <TopNav onBackClick={() => window.history.back()} />
       <div className="padded flex flex-col gap-8 pt-16">
         <header className="space-y-3">
-          <p className="text-xs uppercase tracking-wide text-text-sub-600">
-            {garden?.name ?? assessment.gardenAddress}
-          </p>
+          <p className="text-xs uppercase tracking-wide text-text-sub-600">{garden.name}</p>
           <h1 className="text-2xl font-semibold text-text-strong-950">{assessment.title}</h1>
           <p className="text-sm text-text-sub-600">{assessment.description}</p>
           <div className="flex flex-wrap gap-2">
@@ -77,7 +62,7 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
               {assessment.assessmentType ||
                 intl.formatMessage({ id: "app.garden.assessments.title" })}
             </Badge>
-            {capitals.map((capital) => (
+            {assessment.capitals.map((capital) => (
               <Badge key={`${assessment.id}-${capital}`} variant="pill" tint="tertiary">
                 {capital}
               </Badge>
@@ -90,9 +75,9 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
             {" · "}
             {assessment.location || "Location not provided"}
           </div>
-          {tags.length ? (
+          {assessment.tags.length ? (
             <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
+              {assessment.tags.map((tag) => (
                 <Badge key={`${assessment.id}-${tag}`} variant="pill" tint="primary">
                   {getTag(intl, tag)}
                 </Badge>
@@ -120,9 +105,9 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
           <h2 className="text-base font-semibold text-text-strong-950">
             {intl.formatMessage({ id: "app.garden.assessments.evidence" })}
           </h2>
-          {evidenceMedia.length ? (
+          {assessment.evidenceMedia.length ? (
             <ul className="space-y-2 text-sm text-green-700">
-              {evidenceMedia.map((media, index) => (
+              {assessment.evidenceMedia.map((media, index) => (
                 <li key={`${assessment.id}-evidence-${index}`}>
                   <a
                     href={media}
@@ -149,9 +134,9 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
           <h2 className="text-base font-semibold text-text-strong-950">
             {intl.formatMessage({ id: "app.garden.assessments.documents" })}
           </h2>
-          {reportDocuments.length ? (
+          {assessment.reportDocuments.length ? (
             <ul className="space-y-2 text-sm text-green-700">
-              {reportDocuments.map((doc, index) => (
+              {assessment.reportDocuments.map((doc, index) => (
                 <li key={`${assessment.id}-document-${index}`}>
                   <a
                     href={doc}
@@ -175,22 +160,18 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
           <h2 className="text-base font-semibold text-text-strong-950">
             {intl.formatMessage({ id: "app.garden.assessments.impactAttestations" })}
           </h2>
-          {impactAttestations.length ? (
+          {assessment.impactAttestations.length ? (
             <ul className="space-y-1 text-xs font-mono text-green-700">
-              {impactAttestations.map((uid) => (
+              {assessment.impactAttestations.map((uid) => (
                 <li key={`${assessment.id}-${uid}`}>
-                  {isValidAttestationId(uid) ? (
-                    <a
-                      href={getEASExplorerUrl(DEFAULT_CHAIN_ID, uid)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                    >
-                      {uid}
-                    </a>
-                  ) : (
-                    <span>{uid}</span>
-                  )}
+                  <a
+                    href={`https://explorer.easscan.org/attestation/view/${uid}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline"
+                  >
+                    {uid}
+                  </a>
                 </li>
               ))}
             </ul>

@@ -97,7 +97,7 @@ export function TeamStep() {
               key={gardener}
               className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
             >
-              <span>{operator}</span>
+              <span>{gardener}</span>
               <button
                 type="button"
                 onClick={() => removeGardener(form.gardeners.indexOf(gardener))}
@@ -176,7 +176,7 @@ export function TeamStep() {
               key={operator}
               className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
             >
-              <span>{gardener}</span>
+              <span>{operator}</span>
               <button
                 type="button"
                 onClick={() => removeOperator(form.operators.indexOf(operator))}

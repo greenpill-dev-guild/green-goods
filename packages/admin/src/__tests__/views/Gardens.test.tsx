@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import React from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import enMessages from "@green-goods/shared/i18n/en";
 import Gardens from "@/views/Gardens";
 
 // Mock the shared barrel — Gardens imports from @green-goods/shared directly
@@ -19,23 +18,6 @@ vi.mock("@green-goods/shared", () => ({
 vi.mock("@remixicon/react", () => {
   const Icon = (props: any) => React.createElement("span", props);
   return new Proxy({}, { get: () => Icon });
-});
-
-// Mock @remixicon/react icons used by Gardens and PageHeader
-vi.mock("@remixicon/react", () => {
-  const Icon = (props: any) => React.createElement("span", props);
-  return {
-    RiAddLine: Icon,
-    RiArrowUpDownLine: Icon,
-    RiEyeLine: Icon,
-    RiPlantLine: Icon,
-    RiSearchLine: Icon,
-    RiShieldCheckLine: Icon,
-    RiUserLine: Icon,
-    RiVipCrownLine: Icon,
-    RiArrowLeftLine: Icon,
-    RiCloseLine: Icon,
-  };
 });
 
 // Mock react-router-dom Link

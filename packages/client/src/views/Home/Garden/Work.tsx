@@ -47,12 +47,13 @@ import { useLocation, useNavigate, useOutletContext, useParams } from "react-rou
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
+import WorkViewSection from "./WorkViewSection";
 
 export const GardenWork: React.FC = () => {
   const intl = useIntl();
   const { id: gardenIdParam, workId } = useParams<{ id: string; workId: string }>();
   const { gardenId: gardenIdFromContext } = (useOutletContext() as { gardenId?: string }) || {};
-  const [workMetadata, setWorkMetadata] = useState<ResolvedWorkMetadata | null>(null);
+  const [workMetadata, setWorkMetadata] = useState<WorkMetadata | null>(null);
   const [metadataStatus, setMetadataStatus] = useState<"idle" | "loading" | "success" | "error">(
     "loading"
   );
@@ -73,6 +74,7 @@ export const GardenWork: React.FC = () => {
   const { works: mergedWorks } = useWorks(gardenId || "", { offline: true });
   const work = mergedWorks.find((w) => w.id === (workId || ""));
 
+  // Derive effective status (optimistic takes precedence over fetched data)
   const effectiveStatus = optimisticStatus ?? work?.status ?? "pending";
 
   const queryClient = useQueryClient();
@@ -94,9 +96,11 @@ export const GardenWork: React.FC = () => {
     "evaluator"
   );
 
+  // Determine user role and viewing mode
   const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
     if (!garden || !work) return "viewer";
 
+    // Check if user is garden operator
     const isOperator = isAddressInList(activeAddress, garden.operators);
     const canReview = isOperator || canReviewOnChain;
 
@@ -108,29 +112,17 @@ export const GardenWork: React.FC = () => {
     return "viewer";
   }, [garden, work, activeAddress, canReviewOnChain]);
 
+  // Detect if this is offline work
   const isOfflineWork =
     work?.id.startsWith("0xoffline_") || (work?.id && !work.id.startsWith("0x"));
 
-  function buildWorkData(): WorkData | null {
-    if (!work) return null;
-    return {
-      id: work.id,
-      title: work.feedback || `Work ${work.id}`,
-      description: work.feedback,
-      status: work.status,
-      createdAt: work.createdAt,
-      media: work.media || [],
-      metadata: workMetadata,
-      feedback: work.feedback,
-      gardenId: garden?.id || "",
-    };
-  }
-
+  // Handle individual work retry
   const handleRetry = async () => {
     if (!smartAccountClient || !work) return;
 
     setIsRetrying(true);
     try {
+      // Process just this job
       const result = await jobQueue.processJob(work.id, { smartAccountClient });
 
       if (result.success) {
@@ -255,6 +247,7 @@ export const GardenWork: React.FC = () => {
     openEASExplorer(chainId, work.id);
   };
 
+  // Approval feedback handlers
   const handleApprovePress = () => {
     if (navigator.vibrate) navigator.vibrate([50]);
     setFeedbackMode("approve");
@@ -326,6 +319,7 @@ export const GardenWork: React.FC = () => {
       verificationMethod: VerificationMethod.HUMAN,
     };
 
+    // Optimistic status is set AFTER transaction confirms (in job:completed handler)
     workApprovalMutation.mutate({ draft, work });
     setFeedbackMode(null);
     setInlineFeedback("");
@@ -334,6 +328,7 @@ export const GardenWork: React.FC = () => {
 
   const workApprovalMutation = useWorkApproval();
 
+  // Toasts + cache invalidation from queue events
   useJobQueueEvents(
     ["job:completed", "job:failed"],
     (type, data) => {
@@ -343,6 +338,7 @@ export const GardenWork: React.FC = () => {
       if (payload.workUID !== work.id) return;
 
       if (type === "job:completed") {
+        // Set optimistic status AFTER transaction confirms (bridges indexer lag)
         setOptimisticStatus(payload.approved ? "approved" : "rejected");
 
         const message = payload.approved
@@ -363,6 +359,7 @@ export const GardenWork: React.FC = () => {
         }, 2500);
       }
       if (type === "job:failed") {
+        // Clear optimistic status on failure
         setOptimisticStatus(null);
 
         const failureMessage = intl.formatMessage({
@@ -378,6 +375,7 @@ export const GardenWork: React.FC = () => {
         });
       }
 
+      // Invalidate queries - real data will replace optimistic when ready
       queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
       if (garden?.id) {
         queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(garden.id, chainId) });
@@ -387,8 +385,10 @@ export const GardenWork: React.FC = () => {
     [work?.id, garden?.id]
   );
 
+  // Clear optimistic status when real data arrives
   useEffect(() => {
     if (optimisticStatus && work?.status && work.status === optimisticStatus) {
+      // Real data caught up with optimistic state, clear it
       setOptimisticStatus(null);
     }
   }, [work?.status, optimisticStatus]);
@@ -425,10 +425,6 @@ export const GardenWork: React.FC = () => {
           if (isMounted()) {
             setWorkMetadata(parsed as WorkMetadata);
             setMetadataStatus("success");
-          } else {
-            setWorkMetadata(null);
-            setMetadataStatus("error");
-            setMetadataError("Invalid inline metadata payload");
           }
           return;
         } catch (error) {
@@ -447,15 +443,15 @@ export const GardenWork: React.FC = () => {
         const data = file.data as unknown as WorkMetadata | null | undefined;
         if (!isMounted()) return;
 
-        if (isResolvedWorkMetadata(data)) {
+        if (data) {
           setWorkMetadata(data);
           setMetadataStatus("success");
         } else {
           setWorkMetadata(null);
           setMetadataStatus("error");
-          setMetadataError("Invalid metadata payload");
+          setMetadataError("Empty metadata response");
           debugWarn(
-            `[GardenWork] Received invalid metadata payload from gateway for work ${work.id}`
+            `[GardenWork] Received empty metadata response from gateway for work ${work.id}`
           );
         }
       } catch (error) {
@@ -519,9 +515,54 @@ export const GardenWork: React.FC = () => {
     });
   const canViewAttestation = Boolean(work?.id && isValidAttestationId(work.id));
 
+  // Retry footer for offline work
   const retryFooter =
     isOfflineWork && viewingMode === "gardener" ? (
-      <WorkRetryFooter isRetrying={isRetrying} onRetry={handleRetry} />
+      <div className="fixed left-0 right-0 bottom-0 bg-warning-lighter border-t border-warning-light p-4 pb-6 z-[100]">
+        <div className="max-w-screen-sm mx-auto">
+          <p className="text-sm text-warning-dark mb-3 flex items-center gap-2">
+            <RiErrorWarningLine className="w-4 h-4 flex-shrink-0" />
+            {intl.formatMessage({
+              id: "app.home.work.pendingUpload",
+              defaultMessage: "This work is pending upload to the blockchain.",
+            })}
+          </p>
+          <Button
+            onClick={handleRetry}
+            disabled={isRetrying || !navigator.onLine}
+            label={
+              isRetrying
+                ? intl.formatMessage({
+                    id: "app.home.work.uploading",
+                    defaultMessage: "Uploading...",
+                  })
+                : intl.formatMessage({
+                    id: "app.home.work.uploadNow",
+                    defaultMessage: "Upload Now",
+                  })
+            }
+            className="w-full"
+            variant="primary"
+            mode="filled"
+            shape="pilled"
+            leadingIcon={
+              isRetrying ? (
+                <RiLoader4Line className="w-5 h-5 animate-spin" />
+              ) : (
+                <RiUploadCloudLine className="w-5 h-5" />
+              )
+            }
+          />
+          {!navigator.onLine && (
+            <p className="text-xs text-warning-base mt-2 text-center">
+              {intl.formatMessage({
+                id: "app.home.work.offlineNotice",
+                defaultMessage: "You're offline. Connect to upload.",
+              })}
+            </p>
+          )}
+        </div>
+      </div>
     ) : null;
 
   const approvalFooter =
@@ -776,21 +817,23 @@ export const GardenWork: React.FC = () => {
         {isMetadataLoading ? (
           <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
         ) : (
-          <WorkViewSection
-            garden={garden}
-            work={work}
-            workMetadata={workMetadata}
-            viewingMode={viewingMode}
-            actionTitle={resolvedActionTitle}
-            effectiveStatus={effectiveStatus}
-            onDownloadData={handleDownloadData}
-            onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
-            onShare={handleShare}
-            onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
-            footer={retryFooter || approvalFooter || successFooter}
-            reserveFooterSpace={Boolean(retryFooter || approvalFooter || successFooter)}
-            footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
-          />
+          <>
+            <WorkViewSection
+              garden={garden}
+              work={work}
+              workMetadata={workMetadata}
+              viewingMode={viewingMode}
+              actionTitle={resolvedActionTitle}
+              effectiveStatus={effectiveStatus}
+              onDownloadData={handleDownloadData}
+              onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
+              onShare={handleShare}
+              onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
+              footer={retryFooter || approvalFooter || successFooter}
+              reserveFooterSpace={Boolean(retryFooter || approvalFooter || successFooter)}
+              footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
+            />
+          </>
         )}
 
         {metadataStatus === "error" && (

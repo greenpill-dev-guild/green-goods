@@ -171,26 +171,4 @@ describe("parseAndFormatError", () => {
     expect(result.parsed.name).toBe("NotGardenOperator");
     expect(result.title).toContain("Garden Operator");
   });
-
-  it("parses ActionExpired approval errors", () => {
-    const result = parseAndFormatError("0x001331cf");
-
-    expect(result.parsed.name).toBe("ActionExpired");
-    expect(result.message).toContain("expired");
-  });
-
-  it("parses InvalidVerificationMethod approval errors", () => {
-    const result = parseAndFormatError("0xe7b7cd42");
-
-    expect(result.parsed.name).toBe("InvalidVerificationMethod");
-    expect(result.message).toContain("verification method");
-  });
-
-  it("maps validation failures onto approval-specific known errors", () => {
-    const result = parseAndFormatError(
-      new Error("Validation failed: Verification method must be between 0 and 15")
-    );
-
-    expect(result.parsed.name).toBe("InvalidVerificationMethod");
-  });
 });

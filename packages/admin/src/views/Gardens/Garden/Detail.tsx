@@ -10,7 +10,6 @@ import {
 } from "@green-goods/shared";
 import * as Tabs from "@radix-ui/react-tabs";
 import {
-  RiAddLine,
   RiCheckboxCircleLine,
   RiErrorWarningLine,
   RiFileList3Line,

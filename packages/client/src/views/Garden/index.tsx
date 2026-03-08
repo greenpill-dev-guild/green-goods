@@ -105,7 +105,6 @@ const Work: React.FC = () => {
   // Media upload click handlers (exposed by WorkMedia for PostHog tracking)
   const mediaClickRef = useRef<(() => void) | null>(null);
   const cameraClickRef = useRef<(() => void) | null>(null);
-  const videoClickRef = useRef<(() => void) | null>(null);
 
   // Audio recording from action bar (toggle button — no in-page recorder UI)
   const {
@@ -560,7 +559,7 @@ const Work: React.FC = () => {
 
       <form
         id="work-form"
-        className="relative flex min-h-full flex-col gap-4 py-6 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20"
+        className="relative py-6 pt-20 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
       >
         <div className="padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))]">
           {renderTabContent()}

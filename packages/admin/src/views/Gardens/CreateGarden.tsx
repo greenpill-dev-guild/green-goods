@@ -45,14 +45,6 @@ export default function CreateGarden() {
   const { loadDraft } = draft;
 
   const [showValidation, setShowValidation] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [isEstimating, setIsEstimating] = useState(false);
-  const [estimateError, setEstimateError] = useState<string | null>(null);
-  const [feeEstimate, setFeeEstimate] = useState<{
-    txFeeEth: string;
-    ccipFeeEth: string;
-    totalEth: string;
-  } | null>(null);
 
   const isSubmitting = state.value === "submitting";
   const hasError = state.value === "error";

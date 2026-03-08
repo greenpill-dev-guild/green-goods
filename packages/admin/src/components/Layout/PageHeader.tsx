@@ -1,7 +1,6 @@
 import { cn } from "@green-goods/shared";
 import { RiArrowLeftLine } from "@remixicon/react";
 import type { ReactNode } from "react";
-import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
 type BackLinkConfig = {
@@ -40,8 +39,6 @@ export function PageHeader({
   className,
   children,
 }: PageHeaderProps) {
-  const intl = useIntl();
-
   return (
     <header
       className={cn(

@@ -37,40 +37,6 @@ import {
   wasteUpcycleBatch,
 } from "./templates/waste";
 
-import {
-  solarSiteSetup,
-  solarInstallMilestone,
-  solarServiceSession,
-  solarEnergyUptimeCheck,
-  solarNodeOps,
-} from "./templates/solar";
-
-import {
-  agroSiteSpeciesPlan,
-  agroPlantingEvent,
-  agroSurvivalCheck,
-  agroMaintenanceActivity,
-  agroLearningReflection,
-  agroHarvestYield,
-} from "./templates/agro";
-
-import {
-  eduPublishSession,
-  eduDeliverSession,
-  eduVerifyAttendance,
-  eduFollowupAction,
-  eduLearningAssessment,
-} from "./templates/edu";
-
-import {
-  wasteSiteAssessment,
-  wasteCleanupEvent,
-  wasteSortingBreakdown,
-  wasteTransferReceipt,
-  wasteUpcycleBatch,
-  wasteMaintenanceCheck,
-} from "./templates/waste";
-
 export const defaultTemplate: ActionInstructionConfig = {
   description: "Complete this action",
   uiConfig: {

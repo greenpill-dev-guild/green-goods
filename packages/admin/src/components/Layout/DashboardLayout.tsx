@@ -2,7 +2,6 @@ import { useIntl } from "react-intl";
 import { PageTransition } from "../ui/PageTransition";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
-import { PageTransition } from "../ui/PageTransition";
 
 export function DashboardLayout() {
   const intl = useIntl();

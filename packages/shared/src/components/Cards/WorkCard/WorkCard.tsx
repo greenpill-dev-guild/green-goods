@@ -16,7 +16,7 @@ const workCardVariants = tv({
       auto: "",
     },
     interactive: {
-      true: cardShellVariants({ interactive: true }),
+      true: "cursor-pointer hover:shadow-md active:brightness-98",
       false: "",
     },
   },

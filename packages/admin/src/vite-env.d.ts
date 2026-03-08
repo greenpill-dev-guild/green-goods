@@ -8,12 +8,6 @@ interface ImportMetaEnv {
   readonly VITE_OPS_RUNNER_URL?: string;
   readonly VITE_ENABLE_SW_DEV?: string;
   readonly VITE_MOCK_PWA_INSTALLED?: string;
-  readonly VITE_PINATA_JWT?: string;
-  readonly VITE_PINATA_GATEWAY_URL?: string;
-  readonly VITE_PINATA_API_URL?: string;
-  readonly PINATA_JWT?: string;
-  readonly PINATA_GATEWAY_URL?: string;
-  readonly PINATA_API_URL?: string;
 }
 
 interface ImportMeta {

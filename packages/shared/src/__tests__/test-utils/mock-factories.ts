@@ -18,18 +18,6 @@ import type {
   OutcomeMetrics,
 } from "../../types/hypercerts";
 
-import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types";
-import type { CookieJar } from "../../types/cookie-jar";
-import { Confidence, Domain, VerificationMethod } from "../../types";
-import type {
-  AllowlistEntry,
-  HypercertAttestation,
-  HypercertDraft,
-  HypercertRecord,
-  OutcomeMetrics,
-} from "../../types/hypercerts";
-import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
-
 // ============================================
 // Address Constants
 // ============================================
