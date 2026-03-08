@@ -200,7 +200,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   const backButtonStyles = createButtonStyles(buttonVariant);
 
   const containerClasses = cn(
-    "relative flex z-[1000] flex-row w-full justify-evenly items-center gap-4 p-6 h-20 top-2",
+    "relative flex z-[1000] flex-row w-full justify-evenly items-start gap-4 p-6 h-20 top-2",
     overlay && "fixed bg-bg-white-0",
     overlay && hasOfflineIssues && "top-2", // Space for offline indicator
     overlay && !hasOfflineIssues && "top-0"
@@ -234,6 +234,8 @@ export const TopNav: React.FC<TopNavProps> = ({
 
       <div className="flex grow" />
       <div className="flex flex-col items-end gap-2 z-1">
+        {/* Notifications at top — operators need quick access to pending reviews */}
+        {garden && isOperator && <NotificationCenter works={works} garden={garden} />}
         {garden && showGovernanceButton && onGovernanceClick && (
           <GovernanceButton
             onClick={onGovernanceClick}
@@ -247,8 +249,6 @@ export const TopNav: React.FC<TopNavProps> = ({
             ariaLabel={formatMessage({ id: "app.treasury.open" })}
           />
         )}
-        {/* Only show notifications for operators - they need to review pending work */}
-        {garden && isOperator && <NotificationCenter works={works} garden={garden} />}
       </div>
     </div>
   );
