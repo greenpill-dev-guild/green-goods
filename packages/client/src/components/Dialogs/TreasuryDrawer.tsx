@@ -495,9 +495,29 @@ export function EndowmentDrawer({
   };
 
   const tabs: ModalDrawerTab[] = [
-    { id: "treasury", label: formatMessage({ id: "app.treasury.title" }) },
+    { id: "treasury", label: formatMessage({ id: "app.treasury.endowmentsTab" }) },
     { id: "cookie-jar", label: formatMessage({ id: "app.cookieJar.title" }) },
   ];
+
+  const depositFooter = activeTab === "treasury" ? (
+    <button
+      type="button"
+      onClick={onDeposit}
+      disabled={
+        !isOnline ||
+        !selectedVault ||
+        !primaryAddress ||
+        amount <= 0n ||
+        amount > (balance?.value ?? 0n) ||
+        depositMutation.isPending
+      }
+      className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {depositMutation.isPending
+        ? formatMessage({ id: "app.treasury.depositing" })
+        : formatMessage({ id: "app.treasury.deposit" })}
+    </button>
+  ) : undefined;
 
   return (
     <ModalDrawer
@@ -509,9 +529,10 @@ export function EndowmentDrawer({
       onTabChange={setActiveTab}
       contentClassName="overflow-y-auto p-0"
       maxHeight="95vh"
+      footer={depositFooter}
     >
       {activeTab === "treasury" && (
-        <div className="space-y-5 p-4 pb-6">
+        <div className="space-y-5 p-4 pb-4">
           {!isOnline && (
             <p
               role="status"
@@ -680,24 +701,6 @@ export function EndowmentDrawer({
                 {preview ? formatTokenAmount(preview.previewShares, 18) : "--"}
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={onDeposit}
-              disabled={
-                !isOnline ||
-                !selectedVault ||
-                !primaryAddress ||
-                amount <= 0n ||
-                amount > (balance?.value ?? 0n) ||
-                depositMutation.isPending
-              }
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {depositMutation.isPending
-                ? formatMessage({ id: "app.treasury.depositing" })
-                : formatMessage({ id: "app.treasury.deposit" })}
-            </button>
           </section>
         </div>
       )}

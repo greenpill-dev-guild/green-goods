@@ -17,6 +17,7 @@ import {
   useJoinGarden,
   useNavigateToTop,
   useScrollToTop,
+  useUIStore,
   useUser,
   useVaultDeposits,
   useWorks,
@@ -48,15 +49,15 @@ import { type StandardTab, StandardTabs, TopNav } from "@/components/Navigation"
 export const Garden: React.FC = () => {
   const intl = useIntl();
   const { primaryAddress } = useUser();
-  const [isEndowmentOpen, setIsEndowmentOpen] = useState(false);
+  const isEndowmentOpen = useUIStore((s) => s.isEndowmentDrawerOpen);
+  const openEndowmentDrawer = useUIStore((s) => s.openEndowmentDrawer);
+  const closeEndowmentDrawer = useUIStore((s) => s.closeEndowmentDrawer);
   const [isGovernanceOpen, setIsGovernanceOpen] = useState(false);
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
 
   // Reset scroll position before paint — prevents flash from stale scroll state
   useScrollToTop();
-
-  // Removed JS-based scroll toggling; use CSS-only containment instead
 
   const tabNames = {
     [GardenTab.Work]: intl.formatMessage({
@@ -325,7 +326,7 @@ export const Garden: React.FC = () => {
                     onGovernanceClick={() => setIsGovernanceOpen(true)}
                     showEndowmentButton={gardenVaults.length > 0}
                     hasEndowmentDeposits={hasEndowmentDeposits}
-                    onEndowmentClick={() => setIsEndowmentOpen(true)}
+                    onEndowmentClick={openEndowmentDrawer}
                   />
                 </div>
               </div>
@@ -393,7 +394,7 @@ export const Garden: React.FC = () => {
         {garden && (
           <EndowmentDrawer
             isOpen={isEndowmentOpen}
-            onClose={() => setIsEndowmentOpen(false)}
+            onClose={closeEndowmentDrawer}
             gardenAddress={garden.id}
             gardenName={garden.name}
           />

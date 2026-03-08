@@ -21,7 +21,8 @@ export const AppBar = () => {
   // Check if any drawer is open to hide AppBar beneath them
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
-  const isAnyDrawerOpen = isWorkDashboardOpen || isGardenFilterOpen;
+  const isEndowmentDrawerOpen = useUIStore((s) => s.isEndowmentDrawerOpen);
+  const isAnyDrawerOpen = isWorkDashboardOpen || isGardenFilterOpen || isEndowmentDrawerOpen;
   const shouldHideBar = isGarden || isWorkDetail || isAnyDrawerOpen;
 
   const tabs: {
