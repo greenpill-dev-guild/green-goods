@@ -74,10 +74,7 @@ const NotificationBadge: React.FC<{ count: number }> = ({ count }) => (
   </div>
 );
 
-const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({
-  works,
-  garden,
-}) => {
+const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works, garden }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { formatMessage } = useIntl();
 
@@ -236,21 +233,23 @@ export const TopNav: React.FC<TopNavProps> = ({
       </div>
 
       <div className="flex grow" />
-      {garden && showGovernanceButton && onGovernanceClick && (
-        <GovernanceButton
-          onClick={onGovernanceClick}
-          ariaLabel={formatMessage({ id: "app.signal.governance" })}
-        />
-      )}
-      {garden && showEndowmentButton && onEndowmentClick && (
-        <EndowmentButton
-          hasDeposits={hasEndowmentDeposits}
-          onClick={onEndowmentClick}
-          ariaLabel={formatMessage({ id: "app.treasury.open" })}
-        />
-      )}
-      {/* Only show notifications for operators - they need to review pending work */}
-      {garden && isOperator && <NotificationCenter works={works} garden={garden} />}
+      <div className="flex flex-col items-end gap-2 z-1">
+        {garden && showGovernanceButton && onGovernanceClick && (
+          <GovernanceButton
+            onClick={onGovernanceClick}
+            ariaLabel={formatMessage({ id: "app.signal.governance" })}
+          />
+        )}
+        {garden && showEndowmentButton && onEndowmentClick && (
+          <EndowmentButton
+            hasDeposits={hasEndowmentDeposits}
+            onClick={onEndowmentClick}
+            ariaLabel={formatMessage({ id: "app.treasury.open" })}
+          />
+        )}
+        {/* Only show notifications for operators - they need to review pending work */}
+        {garden && isOperator && <NotificationCenter works={works} garden={garden} />}
+      </div>
     </div>
   );
 };
