@@ -6,7 +6,7 @@ owner: docs
 last_verified: 2026-03-01
 feature_status: Live
 source_of_truth:
-  - docs/docs/developers/reference/deployment-indexer-status.mdx
+  - docs/docs/builders/deployments/status.mdx
   - packages/shared/src/hooks/index.ts
 ---
 
@@ -54,7 +54,7 @@ The three-step workflow for submitting work in the Green Goods PWA:
 This pattern ensures high-quality documentation and reduces submission errors.
 
 ## Hypercert
-A semi-fungible token representing a claim of impact work. Hypercerts enable retroactive funding by allowing impact to be certified, tracked, and fractionally owned. In Green Goods, hypercert mint/list workflows are implemented but may be activation-pending depending on deployment and indexing status. Note: "Impact Tokens" are the broader concept (verified impact work tokenized via Karma GAP attestations), while Hypercerts are the specific tokenized certificates that represent fractional ownership of those impact claims. Learn more at [hypercerts.org](https://hypercerts.org) and [Mint and List Hypercerts](/operator/mint-and-list-hypercerts).
+A semi-fungible token representing a claim of impact work. Hypercerts enable retroactive funding by allowing impact to be certified, tracked, and fractionally owned. In Green Goods, hypercert mint/list workflows are implemented but may be activation-pending depending on deployment and indexing status. Note: "Impact Tokens" are the broader concept (verified impact work tokenized via Karma GAP attestations), while Hypercerts are the specific tokenized certificates that represent fractional ownership of those impact claims. Learn more at [hypercerts.org](https://hypercerts.org) and [Mint and List Hypercerts](/community/operator-guide/creating-impact-certificates).
 
 ## Impact Token
 A token representing verified impact work that can be traded, funded, or used to unlock benefits. Green Goods uses Karma GAP attestations as the foundation for impact tokenization. Impact Tokens are the broader concept; see [Hypercert](#hypercert) for the specific tokenized certificate implementation.

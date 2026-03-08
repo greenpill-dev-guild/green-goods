@@ -2,24 +2,152 @@
 title: How To Contribute
 sidebar_label: How To Contribute
 slug: /builders/how-to-contribute
+sidebar_position: 2
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-03-07
+feature_status: Live
+keywords:
+  - contributing
+  - pull request
+  - git workflow
+  - coding standards
+  - dev guild
 ---
+
+import {NextBestAction} from "@site/src/components/docs";
 
 # How To Contribute
 
-{/* IMAGE PLACEHOLDER: Open source contribution workflow — fork, branch, PR (800x400) */}
+Green Goods is open source and built by the [Greenpill Dev Guild](https://paragraph.com/@greenpilldevguild). Whether you're fixing a bug, adding a feature, or improving docs — here's everything you need to contribute.
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
+---
+
+## Starting Your 1st Issue
+
+The best way to get started is to pick an issue from the [GitHub issue tracker](https://github.com/greenpill-dev-guild/green-goods/issues):
+
+1. **Look for `good first issue` labels** — These are scoped, well-documented, and appropriate for newcomers
+2. **Comment on the issue** — Let the team know you're working on it to avoid duplicate effort
+3. **Read the relevant context files** — Each package has a `.claude/context/*.md` file explaining conventions and patterns
+4. **Set up your local environment** — Follow the [Getting Started](/builders/getting-started) guide
+
+### Understanding the codebase
+
+Before diving into code, familiarize yourself with these key resources:
+
+- **`CLAUDE.md`** — Project-wide rules, patterns, and commands
+- **`AGENTS.md`** — How agentic tools interact with the codebase
+- **`.claude/context/`** — Package-specific documentation and conventions
+- **Architecture docs** — [System architecture](/builders/architecture) for the big picture
+
+### Coding standards
+
+- **Hook boundary** — ALL React hooks live in `@green-goods/shared`. Client and admin only have components and views.
+- **Barrel imports** — Always `import { x } from "@green-goods/shared"`, never deep paths.
+- **Address types** — Use `Address` type (not `string`) for Ethereum addresses.
+- **Error handling** — Never swallow errors. Use `parseContractError()` + `USER_FRIENDLY_ERRORS` for contract errors.
+- **Logging** — Use `logger` from shared, not `console.log`.
+- **Translations** — User-facing strings must be added to all three translation files (`en.json`, `es.json`, `pt.json`).
+
+---
+
+## Joining The Dev Guild
+
+The Greenpill Dev Guild is a collective of builders working on regenerative public goods. Contributing to Green Goods is the best way to join:
+
+- **Start contributing** — Pick issues, submit PRs, join discussions
+- **Join the community** — [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) for real-time coordination
+- **Attend meetings** — Weekly dev syncs are open to contributors
+- **Grow your role** — Consistent contributors can become core maintainers
+
+---
+
+## Making A Pull Request
+
+### Branch naming
+
+Follow the `type/description` convention:
+
+```
+feature/hats-v2
+bug/admin-fix
+refactor/shared-hooks
+docs/architecture-update
+chore/update-dependencies
+```
+
+### Commit messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) with scope:
+
+```
+feat(contracts): add yield splitter module
+fix(shared): resolve query key collision in useGardenVaults
+refactor(admin): extract WorkCard into standalone component
+docs(builders): update architecture diagrams
+test(shared): add coverage for useWorkMutation error paths
+chore(deps): bump viem to 2.46.1
+```
+
+**Types:** `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `perf`, `ci`
+
+**Scopes:** `contracts`, `indexer`, `shared`, `client`, `admin`, `agent`, `claude`
+
+### Quality gate
+
+Run the full validation before pushing:
+
+```bash
+bun format      # Format all files
+bun lint        # Lint workspace
+bun run test    # Run all tests (CRITICAL: not `bun test`)
+bun build       # Build everything (respects dependency order)
+```
+
+:::warning `bun test` vs `bun run test`
+`bun test` invokes Bun's built-in test runner, which ignores your Vitest config. Always use `bun run test` to run the package.json script with proper environment setup.
 :::
 
-## Overview
-Everything you need to start contributing to Green Goods.
+### PR workflow
 
-## What to Expect
-- Development environment setup
-- Coding standards and conventions
-- Pull request workflow
+1. **Create a branch** from `main` with the naming convention above
+2. **Make your changes** — Keep PRs focused on a single concern
+3. **Run the quality gate** — All four commands must pass
+4. **Push and create a PR** — Include a clear description of what and why
+5. **Address review feedback** — Maintainers will review within 48 hours
+
+### Writing docs
+
+When contributing documentation:
+
+- **One primary task per page** — Keep pages focused
+- **Start with the first user action** above the fold
+- **Keep sections short** and scannable
+- **Use action verbs** in headings
+- **End with one clear next action** using the `NextBestAction` component
+- **Include `source_of_truth`** in frontmatter with real file paths
+- **Use approved status labels** only: `Live`, `Planned`, `Beta`, `Deprecated`
+
+Available docs components:
+
+| Component | Purpose |
+|-----------|---------|
+| `NextBestAction` | Primary CTA plus optional alternatives at page end |
+| `DecisionGuide` | Intent-based branching for complex workflows |
+| `QuickAnswer` | Fast in-page answers without long prose |
+| `StepFlow` | Step-by-step checklists |
+| `StatusBadge` | Visual status indicator |
+
+---
+
+<NextBestAction
+  title="Next: Architecture"
+  why="Understand the system architecture before contributing to any package."
+  actionLabel="Architecture"
+  actionHref="/builders/architecture"
+  alternatives={[
+    { label: "Packages", href: "/builders/packages/contracts" },
+    { label: "Testing", href: "/builders/testing/vitest" }
+  ]}
+/>

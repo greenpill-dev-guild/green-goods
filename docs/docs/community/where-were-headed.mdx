@@ -5,7 +5,7 @@ slug: /community/where-were-headed
 sidebar_position: 4
 audience: all
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-03-07
 feature_status: Live
 keywords:
   - strategy
@@ -14,19 +14,27 @@ keywords:
   - partnerships
   - capital formation
   - success metrics
+  - regen stack
+  - greenwill
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
 
 # Where We're Headed
 
-{/* IMAGE PLACEHOLDER: Green Goods roadmap timeline — current features and upcoming milestones (800x400) */}
+![Dev Guild Roadmap](/img/builders/roadmap-q3-q4-2025.webp)
 
-Green Goods pursues three strategic goals, each with distinct development priorities and success metrics.
+Green Goods is evolving from a field reporting tool into a **full-stack regenerative coordination platform** — connecting impact capture, community governance, and sustainable funding into one integrated system.
 
-## Strategic Goals
+---
 
-**1. Capital Formation** — Regenerative communities need sustainable funding, not one-off grants. Green Goods creates a cycle where verified impact attracts capital:
+## Vision & Strategy of Green Goods
+
+### Our Long Term Vision
+
+Green Goods pursues three strategic goals, each reinforcing the others:
+
+**1. Capital Formation** — Regenerative communities need sustainable funding, not one-off grants. Green Goods creates a cycle where **verified impact attracts capital**:
 
 - **Octant Vaults** — Yield-bearing deposits where returns fund regenerative operations
 - **Hypercerts** — Tokenized impact certificates that funders can purchase
@@ -65,9 +73,113 @@ Green Goods pursues three strategic goals, each with distinct development priori
 | Signal pool utilization | Active use in funded gardens |
 | Role transitions | Gardener → Operator progression |
 
-## Roadmap
+### Our 2026 Strategy
 
-**Shipping Now (v1)** — The current release includes:
+The 2026 strategy centers on **proving economic sustainability** at small scale before growing. The break-even point is achievable at **~$60k TVL** given minimal operational costs (~$195/mo for gas, IPFS, and infrastructure).
+
+**Revenue Structure:**
+
+| Source | Range | Notes |
+|--------|-------|-------|
+| Operator subscriptions | $49 – $1,000/mo per Garden | Scales with garden size and features |
+| Funder dashboards | $2k – $50k/yr | Impact reporting and analytics |
+| Yield from vaults | Variable | Octant vault returns fund operations |
+
+**Competitive moats** that strengthen over time:
+
+| Moat | Description |
+|------|-------------|
+| **Network effects** | More gardeners → more data → more funder confidence → more capital |
+| **Data moat** | Longitudinal impact data across 20+ communities builds unique evidence base |
+| **Capital moat** | Yield-backed vaults create compounding returns new entrants can't replicate |
+| **Switching costs** | Attestation history is portable, but workflow integration is sticky |
+
+---
+
+## Where It Fits In Our Regen Stack
+
+Green Goods is one of four products in the Greenpill Dev Guild's **Regenerative Stack** — each layer addresses a different coordination challenge.
+
+### Connects the 4 Elements Into One
+
+```mermaid
+graph TD
+    subgraph Stack["The Regenerative Stack"]
+        GG["Green Goods\n(Field Operations)"]
+        OC["OpenClaw\n(Agentic Coordination)"]
+        RN["RevNet\n(Revenue Infrastructure)"]
+        GPN["Greenpill Network\n(Community Layer)"]
+    end
+
+    GG -->|"verified impact data"| OC
+    OC -->|"automated tasks & governance"| GG
+    GG -->|"impact certificates"| RN
+    RN -->|"sustainable revenue"| GG
+    GPN -->|"communities & operators"| GG
+    GG -->|"field data & evidence"| GPN
+
+    style GG fill:#22c55e,stroke:#16a34a,color:#fff
+    style OC fill:#3b82f6,stroke:#2563eb,color:#fff
+    style RN fill:#f59e0b,stroke:#d97706,color:#fff
+    style GPN fill:#a855f7,stroke:#9333ea,color:#fff
+```
+
+| Layer | Product | What it does |
+|-------|---------|-------------|
+| **Field Operations** | **Green Goods** | Mobile-first work documentation, community verification, and impact certification |
+| **Agentic Coordination** | **OpenClaw** | AI-powered meeting-to-action pipeline — transcripts become tasks, tasks become on-chain operations |
+| **Revenue Infrastructure** | **RevNet** | Sustainable revenue distribution for open-source projects and communities |
+| **Community Layer** | **Greenpill Network** | The broader community of builders, gardeners, and funders working on regenerative public goods |
+
+Green Goods serves as the **field operations layer** — the point where physical regenerative work enters the digital verification and funding stack.
+
+### How GreenWill Grows
+
+**GreenWill** is the upcoming agentic layer that extends Green Goods into automated coordination:
+
+- **Meeting-to-action pipelines** — Community meetings are transcribed, and action items are automatically created as on-chain tasks
+- **Agent-based reporting** — WhatsApp and SMS bots let gardeners submit work without a smartphone
+- **Automated evidence validation** — AI assists operators in reviewing submissions for completeness and consistency
+- **Cross-garden coordination** — GreenWill connects gardens that work on related ecological goals
+
+### Public Good Staking Integration Points
+
+Green Goods connects to broader **public goods funding** mechanisms:
+
+- **Hypercerts Marketplace** — Verified impact certificates listed for purchase
+- **Octant Epoch Funding** — Community gardens eligible for quadratic funding rounds
+- **Gitcoin integration** — Impact data from Green Goods feeds into Gitcoin passport and funding rounds
+- **Squad Staking** — Community members can stake together to boost their garden's funding allocation
+
+---
+
+## Our 2026 Roadmap
+
+```mermaid
+gantt
+    title Green Goods 2026 Roadmap
+    dateFormat YYYY-MM
+    axisFormat %b %Y
+
+    section Q1
+    v1 Beta Launch           :active, q1a, 2026-01, 2026-03
+    Impact + Capital Integration :active, q1b, 2026-01, 2026-03
+    Core attestation chain   :done, q1c, 2026-01, 2026-02
+
+    section Q2
+    Partnership expansion    :q2a, 2026-04, 2026-06
+    Beta user growth         :q2b, 2026-04, 2026-06
+    Agent-based reporting    :q2c, 2026-05, 2026-06
+
+    section Q3/Q4
+    Large funding opportunity :q3a, 2026-07, 2026-09
+    Revenue generation       :q3b, 2026-07, 2026-12
+    IoT + AI integrations    :q3c, 2026-10, 2026-12
+```
+
+### Q1 — Launch of v1 Beta connecting impact reporting with capital formation
+
+The v1 release brings together the full stack:
 
 - Offline-first work submission with photo evidence
 - Operator review and approval workflows
@@ -78,25 +190,36 @@ Green Goods pursues three strategic goals, each with distinct development priori
 - Indexer for core state queries
 - Admin dashboard for garden operations
 
-**Shipping Next** — Coming in future releases:
+### Q2 — Growing partnerships and integrations for Beta users
+
+Focus shifts to **adoption and partnerships**:
 
 - Agent-based impact reporting (WhatsApp/SMS bots)
-- IoT + AI integrations for automated evidence capture
-- RevNet tokenization for community revenue sharing
 - Unlock Protocol badge integration
-- Community stablecoins
-- Bio-regional quadratic funding streams
+- Sarafu Network community currency integration (Cape Town)
+- AgroforestryDAO DeSci data partnership (Brazil)
+- Expanded Karma GAP reporting capabilities
 
-**Out of Scope** — Not planned:
+### Q3/Q4 — Secure large funding opportunity and start to generate revenue
+
+The target: **economic sustainability**:
+
+- RevNet tokenization for community revenue sharing
+- IoT + AI integrations for automated evidence capture
+- Bio-regional quadratic funding streams
+- Community stablecoins
+- Target TVL of $100k – $200k for self-sustaining operations
+
+**Out of scope** — Not planned:
 
 - Carbon credit issuance or offset marketplace
 - Self-custodial wallet flows for gardeners
 - Always-online features
 - Direct fiat on/off-ramp integration
 
-## Partnerships
+### Partnerships
 
-**Active** — Current integration partners:
+**Active:**
 
 - **Hypercerts Foundation** — Impact certificate standard
 - **Hats Protocol** — Role-based access control
@@ -104,22 +227,12 @@ Green Goods pursues three strategic goals, each with distinct development priori
 - **Gardens V2** — Conviction voting and community governance
 - **EAS** — On-chain attestation infrastructure
 
-**Planned** — Upcoming partnerships:
+**Planned:**
 
 - **Unlock Protocol** — Token-gated credentials and badges
-- **Sarafu Network** — Community currency integration (waste management)
+- **Sarafu Network** — Community currency integration
 - **AgroforestryDAO** — DeSci data partnerships (Brazil)
-- **Fireflies.ai** — Meeting transcript processing for OpenClaw pipeline
-
-## Economic Sustainability
-
-| Source | Range |
-|--------|-------|
-| Operator subscriptions | $49 – $1,000/mo per Garden |
-| Funder dashboards | $2k – $50k/yr |
-| Vault yield | Variable (Octant returns) |
-
-Operational costs are minimal (~$195/mo for gas, IPFS, and infrastructure), making the break-even point achievable at ~$60k TVL.
+- **Fireflies.ai** — Meeting transcript processing for OpenClaw
 
 ---
 
@@ -129,7 +242,7 @@ Operational costs are minimal (~$195/mo for gas, IPFS, and infrastructure), maki
   actionLabel="Joining a Garden"
   actionHref="/community/gardener-guide/joining-a-garden"
   alternatives={[
-    { label: "Operator Guide", href: "/operator/create-garden" },
-    { label: "Builder Docs", href: "/developers/getting-started" }
+    { label: "Operator Guide", href: "/community/operator-guide/creating-a-garden" },
+    { label: "Builder Docs", href: "/builders/getting-started" }
   ]}
 />

@@ -68,32 +68,32 @@ const config: Config = {
               '/welcome/who-is-it-for',
               '/welcome/what-you-can-do',
             ],
-            to: '/gardener/get-started',
+            to: '/community/gardener-guide/joining-a-garden',
           },
           {
             from: ['/gardeners/tracking-contributions'],
             to: '/community/gardener-guide/earning-badges',
           },
-          {from: ['/gardeners/best-practices'], to: '/gardener/submit-work-mdr'},
+          {from: ['/gardeners/best-practices'], to: '/community/gardener-guide/uploading-your-work'},
           {
             from: ['/welcome/quickstart-operator', '/operators/managing-gardens'],
-            to: '/operator/get-started-and-roles',
+            to: '/community/operator-guide/creating-a-garden',
           },
-          {from: ['/operators/managing-actions'], to: '/operator/create-garden'},
-          {from: ['/operators/reviewing-work'], to: '/operator/review-work'},
+          {from: ['/operators/managing-actions'], to: '/community/operator-guide/creating-a-garden'},
+          {from: ['/operators/reviewing-work'], to: '/community/operator-guide/reviewing-work'},
           {from: ['/operators/reporting-impact'], to: '/community/evaluator-guide/reporting-analytics'},
           {
             from: ['/welcome/quickstart-evaluator', '/evaluators/accessing-data'],
-            to: '/evaluator/get-started',
+            to: '/community/evaluator-guide/joining-a-garden',
           },
-          {from: ['/evaluators/exploring-gardens'], to: '/evaluator/verify-attestation-chains'},
+          {from: ['/evaluators/exploring-gardens'], to: '/community/evaluator-guide/making-assessments'},
           {
             from: ['/evaluators/using-attestation-data'],
-            to: '/evaluator/verify-attestation-chains',
+            to: '/community/evaluator-guide/making-assessments',
           },
           {
             from: ['/evaluators/external-frameworks'],
-            to: '/evaluator/verify-attestation-chains',
+            to: '/community/evaluator-guide/making-assessments',
           },
           {
             from: [
@@ -106,9 +106,9 @@ const config: Config = {
               '/developer/admin',
               '/developer/shared',
             ],
-            to: '/developers/getting-started',
+            to: '/builders/getting-started',
           },
-          {from: ['/developer/architecture', '/developer/diagrams'], to: '/developers/architecture'},
+          {from: ['/developer/architecture', '/developer/diagrams'], to: '/builders/architecture'},
           {
             from: [
               '/developer/contracts',
@@ -117,7 +117,7 @@ const config: Config = {
               '/developer/gardener-accounts',
               '/developer/theming',
             ],
-            to: '/developers/getting-started',
+            to: '/builders/getting-started',
           },
           {
             from: [
@@ -131,7 +131,7 @@ const config: Config = {
               '/developer/auto-translation-flow',
               '/developer/translation-troubleshooting',
             ],
-            to: '/developers/integrations',
+            to: '/builders/integrations/overview',
           },
           {
             from: [
@@ -144,29 +144,29 @@ const config: Config = {
             ],
             to: '/builders/deployments/status',
           },
-          {from: ['/developer/api-reference'], to: '/developers/reference/api-index'},
+          {from: ['/developer/api-reference'], to: '/builders/packages/api-index'},
           {
             from: ['/developer/claude-mcp-workflows', '/developer/agent'],
-            to: '/developers/reference/agent-mcp-guide',
+            to: '/builders/agentic/mcp-guide',
           },
           {
             from: [
               '/concepts/roles',
               '/concepts/gardens-and-work',
             ],
-            to: '/gardener/get-started',
+            to: '/community/gardener-guide/joining-a-garden',
           },
           {
             from: ['/concepts/mdr-workflow'],
-            to: '/gardener/submit-work-mdr',
+            to: '/community/gardener-guide/uploading-your-work',
           },
           {
             from: ['/concepts/attestations'],
-            to: '/evaluator/verify-attestation-chains',
+            to: '/community/evaluator-guide/making-assessments',
           },
           {
             from: ['/concepts/hypercerts'],
-            to: '/operator/mint-and-list-hypercerts',
+            to: '/community/operator-guide/creating-impact-certificates',
           },
           {
             from: ['/features/overview', '/features/core-features'],
@@ -208,7 +208,7 @@ const config: Config = {
           },
           {
             from: ['/features/architecture'],
-            to: '/developers/architecture',
+            to: '/builders/architecture',
           },
           {
             from: [
@@ -230,7 +230,7 @@ const config: Config = {
               '/specs/yield-splitting',
               '/specs/yield-splitting/index',
             ],
-            to: '/developers/reference',
+            to: '/builders/getting-started',
           },
           {
             from: [
@@ -241,8 +241,59 @@ const config: Config = {
               '/developers/reference/specs',
               '/developers/reference/legacy',
             ],
-            to: '/developers/reference',
+            to: '/builders/getting-started',
           },
+
+          // === Docs restructuring redirects (v1.1 consolidation) ===
+
+          // developers/ → builders/
+          {from: ['/developers/getting-started'], to: '/builders/getting-started'},
+          {from: ['/developers/architecture'], to: '/builders/architecture'},
+          {from: ['/developers/integrations'], to: '/builders/integrations/overview'},
+          {from: ['/developers/build-patterns'], to: '/builders/build-patterns'},
+          {from: ['/developers/operations'], to: '/builders/operations'},
+          {from: ['/developers/reference'], to: '/builders/getting-started'},
+          {from: ['/developers/reference/entity-matrix'], to: '/builders/integrations/entity-matrix'},
+          {from: ['/developers/reference/api-index'], to: '/builders/packages/api-index'},
+          {from: ['/developers/reference/docs-writing-guide'], to: '/builders/how-to-contribute'},
+          {from: ['/developers/reference/deployment-indexer-status'], to: '/builders/deployments/status'},
+          {from: ['/developers/reference/agent-mcp-guide'], to: '/builders/agentic/mcp-guide'},
+          {from: ['/developers/reference/docs-frontmatter-contract'], to: '/builders/how-to-contribute'},
+
+          // concepts/ → community pillar pages
+          {from: ['/concepts/impact-model'], to: '/community/how-it-works'},
+          {from: ['/concepts/strategy-and-goals'], to: '/community/where-were-headed'},
+          {from: ['/concepts/mission-and-values'], to: '/community/why-we-build'},
+          {from: ['/concepts/communities'], to: '/'},
+
+          // operator/ → community/operator-guide/
+          {from: ['/operator/create-garden'], to: '/community/operator-guide/creating-a-garden'},
+          {from: ['/operator/create-assessments'], to: '/community/operator-guide/making-an-assessment'},
+          {from: ['/operator/review-work'], to: '/community/operator-guide/reviewing-work'},
+          {from: ['/operator/mint-and-list-hypercerts'], to: '/community/operator-guide/creating-impact-certificates'},
+          {from: ['/operator/vaults-and-treasury'], to: '/community/operator-guide/managing-endowments'},
+          {from: ['/operator/conviction-and-signal-pools'], to: '/community/operator-guide/managing-governance'},
+          {from: ['/operator/get-started-and-roles'], to: '/community/operator-guide/creating-a-garden'},
+          {from: ['/operator/manage-actions'], to: '/community/operator-guide/managing-actions'},
+          {from: ['/operator/reporting-and-gap'], to: '/community/operator-guide/reporting-and-gap'},
+          {from: ['/operator/cookie-jars'], to: '/community/operator-guide/cookie-jars'},
+          {from: ['/operator/troubleshooting'], to: '/community/operator-guide/troubleshooting'},
+
+          // gardener/ → community/gardener-guide/
+          {from: ['/gardener/submit-work-mdr'], to: '/community/gardener-guide/uploading-your-work'},
+          {from: ['/gardener/get-started'], to: '/community/gardener-guide/joining-a-garden'},
+          {from: ['/gardener/common-errors'], to: '/community/gardener-guide/common-errors'},
+          {from: ['/gardener/offline-sync-and-drafts'], to: '/community/gardener-guide/offline-sync-and-drafts'},
+          {from: ['/gardener/track-status-and-attestations'], to: '/community/gardener-guide/track-status-and-attestations'},
+
+          // evaluator/ → community/evaluator-guide/
+          {from: ['/evaluator/verify-attestation-chains'], to: '/community/evaluator-guide/making-assessments'},
+          {from: ['/evaluator/get-started'], to: '/community/evaluator-guide/joining-a-garden'},
+          {from: ['/evaluator/cross-framework-mapping'], to: '/community/evaluator-guide/cross-framework-mapping'},
+          {from: ['/evaluator/export-and-analysis'], to: '/community/evaluator-guide/export-and-analysis'},
+          {from: ['/evaluator/query-eas'], to: '/community/evaluator-guide/query-eas'},
+          {from: ['/evaluator/query-indexer'], to: '/community/evaluator-guide/query-indexer'},
+          {from: ['/evaluator/troubleshooting'], to: '/community/evaluator-guide/troubleshooting'},
         ],
       },
     ],
@@ -313,9 +364,9 @@ const config: Config = {
         {
           title: 'Builders',
           items: [
-            { label: 'Getting Started', to: '/developers/getting-started' },
-            { label: 'Architecture', to: '/developers/architecture' },
-            { label: 'Integrations', to: '/developers/integrations' },
+            { label: 'Getting Started', to: '/builders/getting-started' },
+            { label: 'Architecture', to: '/builders/architecture' },
+            { label: 'Integrations', to: '/builders/integrations/overview' },
             { label: 'How To Contribute', to: '/builders/how-to-contribute' },
           ],
         },

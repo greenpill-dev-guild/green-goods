@@ -1,0 +1,70 @@
+---
+title: Evaluator Troubleshooting
+sidebar_label: Troubleshooting
+slug: /community/evaluator-guide/troubleshooting
+audience: evaluator
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Complete Evaluator Troubleshooting with clear, role-specific next actions."
+difficulty: "advanced"
+estimated_time: "10-40 minutes."
+prereqs: "Query logs and chain/deployment context."
+next_steps: "/builders/deployments/status"
+persona_context: "Evaluators validating attestations and translating impact data into analysis outputs."
+source_of_truth:
+  - packages/indexer/config.yaml
+  - packages/contracts/deployments/42161-latest.json
+keywords:
+  - evaluator troubleshooting
+  - query errors
+---
+
+import {FeatureState, NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Evaluator Troubleshooting
+
+<StatusBadge status="Live" />
+
+## Common issues
+
+<FeatureState
+  title="No records returned"
+  status="Live"
+  summary="Usually chain/schema mismatch or wrong recipient address in variables."
+>
+  Re-check endpoint chain, schema UID source, and recipient format.
+</FeatureState>
+
+<FeatureState
+  title="Metadata exists but v1 module events missing"
+  status="Implemented (activation pending deployment)"
+  summary="Indexer config has zero-address modules until deployment activation."
+>
+  Confirm non-zero addresses in deployment artifacts and indexer config.
+</FeatureState>
+
+<FeatureState
+  title="Inconsistent joins"
+  status="Live"
+  summary="Work and approval datasets can be joined incorrectly if ref UID logic is ignored."
+>
+  Join on explicit attestation UID/ref UID pairs, not only action IDs.
+</FeatureState>
+
+## Escalation data
+
+1. Query text and variables.
+2. Chain ID + endpoint URL.
+3. Deployment artifact file used.
+4. Sample missing UID(s).
+
+<NextBestAction
+  title="Next best action"
+  why="Close troubleshooting by checking canonical activation truth before reporting defects."
+  actionLabel="Deployment and indexer status"
+  actionHref="/builders/deployments/status"
+  alternatives={[
+    {label: "Evaluator get started", href: "./joining-a-garden"},
+  ]}
+/>
