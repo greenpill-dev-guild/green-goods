@@ -17,6 +17,7 @@ error NotGardenOperator();
 error InvalidInvite();
 error AlreadyGardener();
 error GardenFull();
+error NameTooLong();
 error HatsModuleNotAvailable();
 
 /// @notice Minimal interface to fetch module addresses from GardenToken
@@ -69,6 +70,9 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     /// @param member The member address that was registered.
     /// @param community The community address.
     event MemberAutoRegistered(address indexed member, address indexed community);
+
+    /// @notice Maximum allowed byte-length for the garden name (UTF-8).
+    uint256 public constant MAX_NAME_LENGTH = 72;
 
     /// @notice The community token associated with this garden.
     address public communityToken;
@@ -153,6 +157,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     /// @dev Role initialization is handled by GardenToken + HatsModule (v2).
     /// @param params Initialization parameters struct
     function initialize(IGardenAccount.InitParams calldata params) external initializer {
+        if (bytes(params.name).length > MAX_NAME_LENGTH) revert NameTooLong();
         communityToken = params.communityToken;
         name = params.name;
         slug = params.slug;
@@ -171,6 +176,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
 
     /// @notice Updates the name of the garden
     function updateName(string memory _name) external onlyGardenOwner {
+        if (bytes(_name).length > MAX_NAME_LENGTH) revert NameTooLong();
         name = _name;
         emit NameUpdated(_msgSender(), _name);
     }

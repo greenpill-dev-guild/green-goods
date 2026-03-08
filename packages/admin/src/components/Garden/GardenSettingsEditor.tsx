@@ -1,6 +1,7 @@
 import {
   type Address,
   cn,
+  GARDEN_NAME_MAX_LENGTH,
   useSetMaxGardeners,
   useSetOpenJoining,
   useUpdateGardenBannerImage,
@@ -35,6 +36,7 @@ interface EditableFieldProps {
   isPending: boolean;
   canEdit: boolean;
   multiline?: boolean;
+  maxLength?: number;
 }
 
 function EditableField({
@@ -44,6 +46,7 @@ function EditableField({
   isPending,
   canEdit,
   multiline,
+  maxLength,
 }: EditableFieldProps) {
   const { formatMessage } = useIntl();
   const [editing, setEditing] = useState(false);
@@ -114,9 +117,24 @@ function EditableField({
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          maxLength={maxLength}
           className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
           autoFocus
         />
+      )}
+      {maxLength && (
+        <p
+          className={cn(
+            "text-right text-xs tabular-nums",
+            draft.length > maxLength
+              ? "text-error-base"
+              : draft.length > maxLength * 0.85
+                ? "text-warning-base"
+                : "text-text-soft"
+          )}
+        >
+          {draft.length}/{maxLength}
+        </p>
       )}
       <div className="flex gap-2">
         <Button size="sm" onClick={handleSave} disabled={isPending || draft.trim() === value}>
@@ -175,6 +193,7 @@ export function GardenSettingsEditor({
           onSave={(v) => updateName.mutate({ gardenAddress, value: v })}
           isPending={updateName.isPending}
           canEdit={isOwner}
+          maxLength={GARDEN_NAME_MAX_LENGTH}
         />
 
         <div className="border-t border-stroke-soft" />

@@ -60,7 +60,9 @@ export const GardenHeroSection: React.FC<GardenHeroSectionProps> = ({
         />
 
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-static-black/80 via-static-black/50 to-transparent p-4 pb-8 text-static-white sm:p-6 sm:pb-10">
-          <h2 className="text-xl font-bold drop-shadow-lg sm:text-2xl">{garden.name}</h2>
+          <h2 className="text-xl font-bold drop-shadow-lg sm:text-2xl line-clamp-1">
+            {garden.name}
+          </h2>
           <p className="mt-1 body-sm opacity-90">{garden.location}</p>
         </div>
       </div>

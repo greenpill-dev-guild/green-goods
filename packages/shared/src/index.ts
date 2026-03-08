@@ -196,6 +196,7 @@ export {
   createDefaultGardenForm,
   // Garden hooks
   createGardenSchema,
+  GARDEN_NAME_MAX_LENGTH,
   // Query constants
   DEFAULT_RETRY_COUNT,
   DEPLOYMENT_REGISTRY_ABI,

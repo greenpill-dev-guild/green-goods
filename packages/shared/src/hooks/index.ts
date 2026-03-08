@@ -183,6 +183,7 @@ export type {
 export {
   createDefaultGardenForm,
   createGardenSchema,
+  GARDEN_NAME_MAX_LENGTH,
   gardenStepFields,
   useCreateGardenForm,
 } from "./garden/useCreateGardenForm";

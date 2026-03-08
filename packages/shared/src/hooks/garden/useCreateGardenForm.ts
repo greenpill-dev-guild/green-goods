@@ -15,6 +15,13 @@ import { z } from "zod";
 import { Domain } from "../../types/domain";
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Maximum character length for garden names (enforced on-chain and in UI) */
+export const GARDEN_NAME_MAX_LENGTH = 72;
+
+// ---------------------------------------------------------------------------
 // Address schema (Ethereum 0x-prefixed, 40 hex chars)
 // ---------------------------------------------------------------------------
 
@@ -38,7 +45,13 @@ const gardenSlugSchema = z
 // ---------------------------------------------------------------------------
 
 export const createGardenSchema = z.object({
-  name: z.string().min(1, "Garden name is required"),
+  name: z
+    .string()
+    .min(1, "Garden name is required")
+    .max(
+      GARDEN_NAME_MAX_LENGTH,
+      `Garden name must be ${GARDEN_NAME_MAX_LENGTH} characters or less`
+    ),
   slug: gardenSlugSchema,
   description: z.string().min(1, "Description is required"),
   location: z.string().min(1, "Location is required"),

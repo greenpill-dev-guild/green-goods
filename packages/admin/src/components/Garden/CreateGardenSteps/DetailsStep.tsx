@@ -2,6 +2,7 @@ import {
   cn,
   DOMAIN_COLORS,
   Domain,
+  GARDEN_NAME_MAX_LENGTH,
   imageCompressor,
   logger,
   resolveIPFSUrl,
@@ -62,12 +63,20 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
   const detailsErrors = useMemo(
     () => ({
       name:
-        form.name.trim().length > 0
-          ? null
-          : formatMessage({
+        form.name.trim().length === 0
+          ? formatMessage({
               id: "app.garden.create.nameRequired",
               defaultMessage: "Garden name is required",
-            }),
+            })
+          : form.name.length > GARDEN_NAME_MAX_LENGTH
+            ? formatMessage(
+                {
+                  id: "app.garden.create.nameTooLong",
+                  defaultMessage: "Garden name must be {max} characters or less",
+                },
+                { max: GARDEN_NAME_MAX_LENGTH }
+              )
+            : null,
       slug:
         trimmedSlug.length === 0
           ? formatMessage({
@@ -193,6 +202,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             value={form.name}
             onChange={(event) => setField("name", event.target.value)}
             onBlur={() => handleFieldBlur("name")}
+            maxLength={GARDEN_NAME_MAX_LENGTH}
             placeholder={formatMessage({
               id: "admin.details.namePlaceholder",
               defaultMessage: "eg. Rio rainforest lab",
@@ -207,13 +217,23 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
                 "border-error-base focus:border-error-base focus:ring-error-lighter"
             )}
           />
-          <span
-            id="name-error"
-            role="alert"
-            className="block min-h-[1.25rem] text-xs text-error-base"
-          >
-            {showFieldError("name") && detailsErrors.name ? detailsErrors.name : "\u00A0"}
-          </span>
+          <div className="flex items-center justify-between min-h-[1.25rem]">
+            <span id="name-error" role="alert" className="text-xs text-error-base">
+              {showFieldError("name") && detailsErrors.name ? detailsErrors.name : "\u00A0"}
+            </span>
+            <span
+              className={cn(
+                "text-xs tabular-nums",
+                form.name.length > GARDEN_NAME_MAX_LENGTH
+                  ? "text-error-base"
+                  : form.name.length > GARDEN_NAME_MAX_LENGTH * 0.85
+                    ? "text-warning-base"
+                    : "text-text-soft"
+              )}
+            >
+              {form.name.length}/{GARDEN_NAME_MAX_LENGTH}
+            </span>
+          </div>
         </label>
         <label className="space-y-1.5 text-sm">
           <span className="font-medium text-text-strong">
