@@ -39,20 +39,34 @@ type WorkViewSectionProps = {
   footerSpacerClassName?: string;
 };
 
+/** Safely resolve metadata that may arrive as a JSON string (double-encoded) */
+function resolveMetadata(metadata: WorkMetadata | string | null): WorkMetadata | null {
+  if (!metadata) return null;
+  if (typeof metadata === "string") {
+    try {
+      return JSON.parse(metadata) as WorkMetadata;
+    } catch {
+      return null;
+    }
+  }
+  return metadata;
+}
+
 /** Type guard for v1 metadata shape */
 function isV1Metadata(
   metadata: WorkMetadata | WorkMetadataV1 | Record<string, unknown> | null
 ): metadata is WorkMetadataV1 {
-  if (!metadata) return false;
+  if (!metadata || typeof metadata !== "object") return false;
   return "plantCount" in metadata || "plantSelection" in metadata;
 }
 
 /** Build details list from metadata, supporting both v1 and v2 shapes */
 function buildMetadataDetails(
-  metadata: WorkMetadata | null,
+  rawMetadata: WorkMetadata | null,
   metadataUnavailable: string,
   intl: ReturnType<typeof useIntl>
 ) {
+  const metadata = resolveMetadata(rawMetadata);
   // v2 metadata: generic details map
   if (metadata && "schemaVersion" in metadata && metadata.schemaVersion === "work_metadata_v2") {
     const items: Array<{

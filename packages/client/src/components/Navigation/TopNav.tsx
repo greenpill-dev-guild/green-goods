@@ -6,9 +6,9 @@ import {
   RiNotificationFill,
   RiNotificationLine,
 } from "@remixicon/react";
-import { useId } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
+import { ModalDrawer } from "@/components/Dialogs";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
 type TopNavProps = {
@@ -24,36 +24,6 @@ type TopNavProps = {
   showGovernanceButton?: boolean;
   onGovernanceClick?: () => void;
 } & React.HTMLAttributes<HTMLDivElement>;
-
-type NotificationsProps = {
-  garden?: Garden;
-  works?: Work[];
-  popoverId: string;
-};
-
-const Notifications: React.FC<NotificationsProps> = ({ garden, works, popoverId }) => {
-  if (!garden || !works) return null;
-
-  return (
-    <div
-      id={popoverId}
-      popover="auto"
-      className="fixed inset-0 w-full h-full bg-transparent p-6 m-0 border-0"
-      style={{
-        inset: "unset",
-        margin: "unset",
-        left: 0,
-        top: 0,
-        width: "100%",
-        height: "100%",
-      }}
-    >
-      <GardenNotifications garden={garden} notifications={works} />
-    </div>
-  );
-};
-
-Notifications.displayName = "Notifications";
 
 // Styling configuration for different button states
 const BUTTON_VARIANTS = {
@@ -72,11 +42,12 @@ const BUTTON_VARIANTS = {
   },
 } as const;
 
-// Base styling for navigation buttons
+// Base styling for navigation buttons — visually compact (w-8 h-8 = 32px)
+// with tap-target-lg for a larger invisible touch area (matches Home view buttons)
 const NAV_BUTTON_BASE = [
-  "relative flex items-center justify-center w-11 h-11 p-1 rounded-lg border",
+  "relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border",
   "bg-bg-white-0 border-stroke-soft-200 text-text-sub-600",
-  "transition-all duration-200 tap-feedback",
+  "transition-all duration-200 tap-feedback tap-target-lg",
   "active:scale-95",
   "focus-visible:outline-none focus-visible:ring-2",
 ] as const;
@@ -103,8 +74,12 @@ const NotificationBadge: React.FC<{ count: number }> = ({ count }) => (
   </div>
 );
 
-const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
-  const popoverId = useId();
+const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({
+  works,
+  garden,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { formatMessage } = useIntl();
 
   const workNotifications = works?.filter((work) => work.status === "pending") || [];
   const hasNotifications = workNotifications.length > 0;
@@ -118,14 +93,40 @@ const NotificationCenter: React.FC<TopNavProps> = ({ works, ...props }) => {
     <>
       <button
         type="button"
-        popoverTarget={popoverId}
-        className={cn(styles.button, "dropdown dropdown-bottom dropdown-end tap-target-lg")}
+        onClick={() => setIsOpen(true)}
+        className={styles.button}
         aria-label="View notifications"
       >
         {hasNotifications && <NotificationBadge count={workNotifications.length} />}
         <NotificationIcon className={styles.icon} />
       </button>
-      <Notifications {...props} works={works} popoverId={popoverId} />
+      <ModalDrawer
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        header={{
+          title: formatMessage({
+            id: "app.home.notifications.drawerTitle",
+            defaultMessage: "Notifications",
+          }),
+          description: hasNotifications
+            ? formatMessage(
+                {
+                  id: "app.home.notifications.pendingCount",
+                  defaultMessage:
+                    "{count, plural, one {# pending review} other {# pending reviews}}",
+                },
+                { count: workNotifications.length }
+              )
+            : undefined,
+        }}
+        maxHeight="60vh"
+      >
+        <GardenNotifications
+          garden={garden}
+          notifications={works}
+          onClose={() => setIsOpen(false)}
+        />
+      </ModalDrawer>
     </>
   );
 };
@@ -183,6 +184,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   children,
   onBackClick,
   garden,
+  works,
   overlay,
   isOperator = false,
   showEndowmentButton = false,
@@ -190,7 +192,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onEndowmentClick,
   showGovernanceButton = false,
   onGovernanceClick,
-  ...props
+  ...htmlProps
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
   const { syncStatus, isOnline } = useOffline();
@@ -207,14 +209,8 @@ export const TopNav: React.FC<TopNavProps> = ({
     overlay && !hasOfflineIssues && "top-0"
   );
 
-  const backButtonClasses = cn(
-    "p-0 px-2 z-1 transition-all duration-200 tap-target-lg tap-feedback",
-    "focus-visible:outline-none focus-visible:ring-2 active:scale-95",
-    backButtonStyles.focusStyles
-  );
-
   return (
-    <div className={containerClasses} {...props}>
+    <div className={containerClasses} {...htmlProps}>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary-base focus:text-white focus:rounded-lg focus:text-sm focus:font-medium"
@@ -222,20 +218,17 @@ export const TopNav: React.FC<TopNavProps> = ({
         Skip to content
       </a>
       {onBackClick && (
-        <Button
-          variant="neutral"
-          mode="stroke"
+        <button
           type="button"
-          shape="regular"
-          size="xsmall"
-          label=""
-          leadingIcon={<RiArrowLeftFill className={backButtonStyles.icon} />}
           onClick={(e) => {
             onBackClick?.(e);
             e.currentTarget.blur();
           }}
-          className={backButtonClasses}
-        />
+          className={cn(backButtonStyles.button, "z-1")}
+          aria-label="Go back"
+        >
+          <RiArrowLeftFill className={backButtonStyles.icon} />
+        </button>
       )}
 
       <div className="absolute left-0 top-0 w-full h-full flex flex-row justify-between items-center py-6">
@@ -257,7 +250,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         />
       )}
       {/* Only show notifications for operators - they need to review pending work */}
-      {garden && isOperator && <NotificationCenter {...props} garden={garden} />}
+      {garden && isOperator && <NotificationCenter works={works} garden={garden} />}
     </div>
   );
 };

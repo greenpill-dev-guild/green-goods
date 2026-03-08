@@ -421,7 +421,11 @@ export const GardenWork: React.FC = () => {
       // Try parsing as inline JSON first
       if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
         try {
-          const parsed = JSON.parse(trimmed) as unknown;
+          let parsed = JSON.parse(trimmed) as unknown;
+          // Handle double-encoded JSON (string inside string)
+          if (typeof parsed === "string") {
+            parsed = JSON.parse(parsed) as unknown;
+          }
           if (isMounted()) {
             setWorkMetadata(parsed as WorkMetadata);
             setMetadataStatus("success");
@@ -477,11 +481,17 @@ export const GardenWork: React.FC = () => {
       navigateToTop(state.returnTo);
       return;
     }
+    // Always navigate to the garden if we have a gardenId, rather than
+    // relying on browser history which may go to /home instead
+    if (gardenId) {
+      navigateToTop(`/home/${gardenId}`);
+      return;
+    }
     if (window.history.length > 1) {
       navigate(-1);
       return;
     }
-    navigateToTop(gardenId ? `/home/${gardenId}` : "/home");
+    navigateToTop("/home");
   };
 
   if (!work)

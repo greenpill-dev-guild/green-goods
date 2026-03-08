@@ -14,6 +14,7 @@ import {
   useHasRole,
   useJoinGarden,
   useNavigateToTop,
+  useScrollToTop,
   useUser,
   useVaultDeposits,
   useWorks,
@@ -50,6 +51,9 @@ export const Garden: React.FC = () => {
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
+
+  // Reset scroll position before paint — prevents flash from stale scroll state
+  useScrollToTop();
 
   // Removed JS-based scroll toggling; use CSS-only containment instead
 
@@ -304,7 +308,7 @@ export const Garden: React.FC = () => {
               <div className="relative w-full">
                 <img
                   src={bannerImage}
-                  className="w-full object-cover object-center rounded-b-3xl h-44 md:h-52"
+                  className="w-full object-cover object-center rounded-b-3xl h-36 md:h-44"
                   alt={`${name} banner`}
                   loading="eager"
                   decoding="async"
@@ -326,9 +330,23 @@ export const Garden: React.FC = () => {
               </div>
 
               {/* Title and meta below banner */}
-              <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
-                <div className="flex items-start justify-between gap-3">
-                  <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
+              <div className="px-4 sm:px-5 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
+                <h1 className="text-lg md:text-xl font-semibold line-clamp-2">{name}</h1>
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
+                      <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span>{location}</span>
+                    </div>
+                    <span className="hidden sm:inline text-text-soft-400">•</span>
+                    <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
+                      <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span>
+                        {intl.formatMessage({ id: "app.home.founded" })}{" "}
+                        {new Date(createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
                   {showJoinButton && (
                     <Button
                       label={intl.formatMessage({
@@ -343,20 +361,6 @@ export const Garden: React.FC = () => {
                       disabled={isJoining}
                     />
                   )}
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
-                    <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span>{location}</span>
-                  </div>
-                  <span className="hidden sm:inline text-text-soft-400">•</span>
-                  <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
-                    <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span>
-                      {intl.formatMessage({ id: "app.home.founded" })}{" "}
-                      {new Date(createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
                 </div>
               </div>
 
@@ -373,12 +377,12 @@ export const Garden: React.FC = () => {
             </div>
 
             {/* Spacer for fixed header - matches header height without duplicating content
-                Height breakdown: banner (176px/208px) + title section (~80px) + tabs (~48px) = ~304px/336px */}
-            <div className="h-[304px] md:h-[336px] flex-shrink-0" aria-hidden="true" />
+                Height breakdown: banner (144px/176px) + title section (~96px for 2-line name) + tabs (~48px) = ~288px/320px */}
+            <div className="h-[288px] md:h-[320px] flex-shrink-0" aria-hidden="true" />
 
             {/* Scrollable content below fixed header */}
             <div
-              className="flex-1 min-h-0 px-4 md:px-6 pb-24 overflow-y-auto overflow-x-hidden"
+              className="flex-1 min-h-0 px-4 sm:px-5 md:px-6 pt-3 sm:pt-4 pb-24 overflow-y-auto overflow-x-hidden"
               aria-busy={worksFetching}
             >
               {renderTabContent()}
