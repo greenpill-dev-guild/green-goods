@@ -5,12 +5,14 @@
 // COMPONENTS
 // ============================================================================
 export type {
+  ActionBannerFallbackProps,
   AudioPlayerProps,
   AudioRecorderProps,
   BadgeProps,
   BadgeVariantProps,
   ConfidenceSelectorProps,
   ConfirmDialogProps,
+  ImagePreviewDialogProps,
   DatePickerProps,
   DateRangePickerProps,
   ErrorBoundaryProps,
@@ -36,6 +38,7 @@ export type {
   WorkStatus,
 } from "./components/index";
 export {
+  ActionBannerFallback,
   AssetSelector,
   AudioPlayer,
   AudioRecorder,
@@ -43,6 +46,7 @@ export {
   badgeVariants,
   ConfidenceSelector,
   ConfirmDialog,
+  ImagePreviewDialog,
   DatePicker,
   DateRangePicker,
   ENSProgressTimeline,

@@ -1,8 +1,12 @@
 export {
-	GardenBannerFallback,
-	type GardenBannerFallbackProps,
+  ActionBannerFallback,
+  type ActionBannerFallbackProps,
+} from "./ActionBannerFallback";
+export {
+  GardenBannerFallback,
+  type GardenBannerFallbackProps,
 } from "./GardenBannerFallback";
 export {
-	ImageWithFallback,
-	type ImageWithFallbackProps,
+  ImageWithFallback,
+  type ImageWithFallbackProps,
 } from "./ImageWithFallback";

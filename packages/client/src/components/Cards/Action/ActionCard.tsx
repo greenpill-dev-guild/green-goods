@@ -1,4 +1,4 @@
-import { type Action, cn } from "@green-goods/shared";
+import { type Action, ActionBannerFallback, cn } from "@green-goods/shared";
 import { RiCamera3Line } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
@@ -40,15 +40,20 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
         className={cn(classes, "tap-feedback transition-all duration-300")}
         {...props}
       >
-        <ImageWithFallback
-          src={action.media[0]}
-          alt={action.description}
-          className={cn(
-            media === "large" ? "h-40" : "h-26", // Consistent with garden cards
-            "w-full object-cover image-lut z-1"
-          )}
-          fallbackClassName={cn(media === "large" ? "h-40" : "h-26", "w-full")}
-        />
+        <div className={cn("relative", media === "large" ? "h-40" : "h-26", "w-full")}>
+          <ImageWithFallback
+            src={action.media[0]}
+            alt={action.description}
+            className={cn(
+              media === "large" ? "h-40" : "h-26",
+              "w-full object-cover image-lut z-1"
+            )}
+            fallbackClassName={cn(media === "large" ? "h-40" : "h-26", "w-full")}
+            backgroundFallback={
+              <ActionBannerFallback domain={action.domain} title={action.title} />
+            }
+          />
+        </div>
         <div
           data-selected={selected}
           className="p-5 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border transition-all duration-400 flex-1"

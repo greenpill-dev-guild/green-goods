@@ -54,10 +54,15 @@ export {
 } from "./DatePicker";
 // Dialog Components
 export { ConfirmDialog, type ConfirmDialogProps } from "./Dialog";
+export { ImagePreviewDialog, type ImagePreviewDialogProps } from "./Dialog";
 // Display Components
 export {
-	GardenBannerFallback,
-	type GardenBannerFallbackProps,
+  ActionBannerFallback,
+  type ActionBannerFallbackProps,
+} from "./Display";
+export {
+  GardenBannerFallback,
+  type GardenBannerFallbackProps,
 } from "./Display";
 export { ImageWithFallback, type ImageWithFallbackProps } from "./Display";
 // Error Boundary

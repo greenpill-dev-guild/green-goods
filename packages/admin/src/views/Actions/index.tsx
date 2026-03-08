@@ -1,4 +1,5 @@
 import {
+  ActionBannerFallback,
   type ActionFiltersState,
   cn,
   DEFAULT_CHAIN_ID,
@@ -15,10 +16,9 @@ import {
   RiEditLine,
   RiEyeLine,
   RiFileListLine,
-  RiImageLine,
   RiRefreshLine,
 } from "@remixicon/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
@@ -31,41 +31,19 @@ import { SortSelect } from "@/components/ui/SortSelect";
 interface ActionCardMediaProps {
   src?: string;
   alt: string;
-  unavailableLabel: string;
-  unavailableDescription: string;
+  domain: Domain;
+  title: string;
 }
 
-function ActionCardMedia({
-  src,
-  alt,
-  unavailableLabel,
-  unavailableDescription,
-}: ActionCardMediaProps) {
-  const [hasError, setHasError] = useState(!src);
-
-  useEffect(() => {
-    setHasError(!src);
-  }, [src]);
-
-  if (hasError) {
-    return (
-      <div className="h-40 w-full bg-bg-soft flex flex-col items-center justify-center px-4 text-center">
-        <RiImageLine className="h-6 w-6 text-text-soft mb-2" />
-        <p className="text-sm font-medium text-text-sub">{unavailableLabel}</p>
-        <p className="mt-1 text-xs text-text-soft">{unavailableDescription}</p>
-      </div>
-    );
-  }
-
+function ActionCardMedia({ src, alt, domain, title }: ActionCardMediaProps) {
   return (
     <div className="relative h-40 w-full overflow-hidden">
       <ImageWithFallback
         src={src || ""}
         alt={alt}
         className="w-full h-40 object-cover"
-        fallbackClassName="w-full h-40 bg-bg-soft text-text-soft"
-        fallbackIcon={RiImageLine}
-        onErrorCallback={() => setHasError(true)}
+        fallbackClassName="w-full h-40"
+        backgroundFallback={<ActionBannerFallback domain={domain} title={title} />}
       />
     </div>
   );
@@ -129,14 +107,6 @@ export default function Actions() {
   ];
 
   const showToolbar = !isLoading && actions.length > 0;
-  const imageUnavailableLabel = intl.formatMessage({
-    id: "admin.actions.imageUnavailable",
-    defaultMessage: "Image unavailable",
-  });
-  const imageUnavailableDescription = intl.formatMessage({
-    id: "admin.actions.imageUnavailableDescription",
-    defaultMessage: "This action does not currently have a valid image.",
-  });
 
   const description = isLoading
     ? intl.formatMessage({ id: "admin.actions.loading" })
@@ -285,8 +255,8 @@ export default function Actions() {
                 <ActionCardMedia
                   src={action.media[0]}
                   alt={action.title}
-                  unavailableLabel={imageUnavailableLabel}
-                  unavailableDescription={imageUnavailableDescription}
+                  domain={action.domain}
+                  title={action.title}
                 />
 
                 <div className="p-6">

@@ -1,12 +1,13 @@
 import {
+  ActionBannerFallback,
   DEFAULT_CHAIN_ID,
+  type Domain,
   formatDateTime,
   ImageWithFallback,
   useActions,
   useRole,
 } from "@green-goods/shared";
-import { RiEditLine, RiImageLine } from "@remixicon/react";
-import { useEffect, useState } from "react";
+import { RiEditLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
@@ -14,41 +15,23 @@ import { PageHeader } from "@/components/Layout/PageHeader";
 interface ActionDetailMediaTileProps {
   src?: string;
   alt: string;
-  unavailableLabel: string;
-  unavailableDescription: string;
+  domain: Domain;
+  title: string;
 }
 
-function ActionDetailMediaTile({
-  src,
-  alt,
-  unavailableLabel,
-  unavailableDescription,
-}: ActionDetailMediaTileProps) {
-  const [hasError, setHasError] = useState(!src);
-
-  useEffect(() => {
-    setHasError(!src);
-  }, [src]);
-
-  if (hasError) {
-    return (
-      <div className="w-full h-48 rounded bg-bg-soft flex flex-col items-center justify-center px-4 text-center">
-        <RiImageLine className="h-6 w-6 text-text-soft mb-2" />
-        <p className="text-sm font-medium text-text-sub">{unavailableLabel}</p>
-        <p className="mt-1 text-xs text-text-soft">{unavailableDescription}</p>
-      </div>
-    );
-  }
-
+function ActionDetailMediaTile({ src, alt, domain, title }: ActionDetailMediaTileProps) {
   return (
-    <ImageWithFallback
-      src={src || ""}
-      alt={alt}
-      className="w-full h-48 object-cover rounded"
-      fallbackClassName="w-full h-48 rounded bg-bg-soft text-text-soft"
-      fallbackIcon={RiImageLine}
-      onErrorCallback={() => setHasError(true)}
-    />
+    <div className="relative w-full h-48 rounded overflow-hidden">
+      <ImageWithFallback
+        src={src || ""}
+        alt={alt}
+        className="w-full h-48 object-cover rounded"
+        fallbackClassName="w-full h-48 rounded"
+        backgroundFallback={
+          <ActionBannerFallback domain={domain} title={title} className="rounded" />
+        }
+      />
+    </div>
   );
 }
 
@@ -59,14 +42,6 @@ export default function ActionDetail() {
   const { data: actions = [], isLoading } = useActions(DEFAULT_CHAIN_ID);
   const canManageActions = role === "deployer" || role === "operator";
   const action = actions.find((a) => a.id === id);
-  const imageUnavailableLabel = formatMessage({
-    id: "admin.actions.imageUnavailable",
-    defaultMessage: "Image unavailable",
-  });
-  const imageUnavailableDescription = formatMessage({
-    id: "admin.actions.imageUnavailableDescription",
-    defaultMessage: "This action does not currently have a valid image.",
-  });
 
   if (isLoading) {
     return (
@@ -178,9 +153,9 @@ export default function ActionDetail() {
               {action.media.length === 0 ? (
                 <div className="col-span-2">
                   <ActionDetailMediaTile
-                    unavailableLabel={imageUnavailableLabel}
-                    unavailableDescription={imageUnavailableDescription}
-                    alt={imageUnavailableLabel}
+                    alt={action.title}
+                    domain={action.domain}
+                    title={action.title}
                   />
                 </div>
               ) : (
@@ -189,8 +164,8 @@ export default function ActionDetail() {
                     key={i}
                     src={url}
                     alt={formatMessage({ id: "app.actions.detail.mediaAlt" }, { index: i + 1 })}
-                    unavailableLabel={imageUnavailableLabel}
-                    unavailableDescription={imageUnavailableDescription}
+                    domain={action.domain}
+                    title={action.title}
                   />
                 ))
               )}
