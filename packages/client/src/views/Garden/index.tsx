@@ -325,7 +325,7 @@ const Work: React.FC = () => {
       name: intl.formatMessage({ id: "app.garden.unknown", defaultMessage: "Unknown Garden" }),
       description: "",
       location: "",
-      bannerImage: "/images/no-image-placeholder.png",
+      bannerImage: "",
       gardeners: [],
       operators: [],
       assessments: [],
@@ -407,7 +407,7 @@ const Work: React.FC = () => {
               }
             }}
             label=""
-            className="w-12 px-0 shrink-0"
+            className="w-10 px-0 shrink-0"
             variant="neutral"
             type="button"
             shape="pilled"
@@ -423,7 +423,7 @@ const Work: React.FC = () => {
               }
             }}
             label=""
-            className="w-12 px-0 shrink-0"
+            className="w-10 px-0 shrink-0"
             variant="neutral"
             type="button"
             shape="pilled"
@@ -433,7 +433,7 @@ const Work: React.FC = () => {
           <Button
             onClick={toggleAudioRecording}
             label=""
-            className="w-12 px-0 shrink-0"
+            className="w-10 px-0 shrink-0"
             variant={isRecording ? "error" : "neutral"}
             type="button"
             shape="pilled"

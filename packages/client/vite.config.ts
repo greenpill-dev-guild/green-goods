@@ -126,6 +126,21 @@ export default defineConfig(({ mode }) => {
             },
           },
           {
+            // IPFS content is immutable (same CID = same bytes forever), so cache aggressively.
+            // Matches dedicated Pinata gateway + public IPFS gateways.
+            urlPattern:
+              /https:\/\/(greengoods\.mypinata\.cloud|gateway\.pinata\.cloud|storacha\.link|w3s\.link|ipfs\.io)\/ipfs\/.+/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "ipfs-cache",
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year — CIDs are immutable
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             // Indexer API - show cached immediately, revalidate in background
             urlPattern: /indexer\.hyperindex\.xyz|localhost:8080/,
             handler: "StaleWhileRevalidate",

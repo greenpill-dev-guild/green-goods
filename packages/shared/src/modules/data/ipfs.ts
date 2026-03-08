@@ -32,11 +32,10 @@ type IpfsInitStatus = "not_started" | "in_progress" | "success" | "failed" | "sk
 let ipfsInitializationStatus: IpfsInitStatus = "not_started";
 let ipfsInitializationError: string | null = null;
 export const IPFS_FALLBACK_GATEWAYS = [
+  "https://greengoods.mypinata.cloud",
   "https://storacha.link",
-  "https://w3s.link",
-  "https://ipfs.io",
 ];
-const DEFAULT_PINATA_GATEWAY = "https://gateway.pinata.cloud";
+const DEFAULT_PINATA_GATEWAY = "https://greengoods.mypinata.cloud";
 const DEFAULT_PINATA_API_BASE_URL = "https://api.pinata.cloud";
 const PROVIDER_VERIFICATION_ATTEMPTS = 6;
 const PROVIDER_VERIFICATION_TIMEOUT_MS = 15_000;

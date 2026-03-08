@@ -97,9 +97,6 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
     // Merge provided labels with defaults
     const labels = { ...defaultLabels, ...labelsProp };
 
-    const [imageError, setImageError] = React.useState(false);
-    const hasProvidedSrc = Boolean(garden.bannerImage);
-
     const membership = React.useMemo(
       () => buildGardenMemberSets(garden.gardeners || [], garden.operators || []),
       [garden.gardeners, garden.operators]
@@ -132,17 +129,12 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
               "relative w-full overflow-hidden"
             )}
           >
-            {hasProvidedSrc && !imageError ? (
-              <ImageWithFallback
-                src={garden.bannerImage!}
-                alt={garden.name || garden.description || "Garden"}
-                className="absolute inset-0 w-full h-full object-cover"
-                fallbackClassName="absolute inset-0 w-full h-full"
-                onErrorCallback={() => setImageError(true)}
-              />
-            ) : (
-              <GardenBannerFallback name={garden.name} />
-            )}
+            <ImageWithFallback
+              src={garden.bannerImage || ""}
+              alt={garden.name || garden.description || "Garden"}
+              className="absolute inset-0 w-full h-full object-cover"
+              backgroundFallback={<GardenBannerFallback name={garden.name} />}
+            />
           </div>
         )}
 

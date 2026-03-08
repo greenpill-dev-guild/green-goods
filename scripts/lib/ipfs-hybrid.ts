@@ -1,5 +1,5 @@
 const DEFAULT_STORACHA_GATEWAY = "https://storacha.link";
-const DEFAULT_PINATA_GATEWAY = "https://gateway.pinata.cloud";
+const DEFAULT_PINATA_GATEWAY = "https://greengoods.mypinata.cloud";
 const DEFAULT_PINATA_API_BASE_URL = "https://api.pinata.cloud";
 
 export interface PinataScriptConfig {

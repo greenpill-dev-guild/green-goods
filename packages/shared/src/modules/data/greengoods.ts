@@ -322,7 +322,7 @@ export async function getGardens(): Promise<Garden[]> {
         ? resolveIPFSUrl(OCTANT_BANNER_OVERRIDE)
         : garden.bannerImage
           ? resolveIPFSUrl(garden.bannerImage)
-          : "/images/no-image-placeholder.png";
+          : "";
 
       return {
         id: garden.id,

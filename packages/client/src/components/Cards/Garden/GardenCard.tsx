@@ -77,8 +77,6 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
   ) => {
     const intl = useIntl();
 
-    const [imageError, setImageError] = React.useState(false);
-    const hasProvidedSrc = Boolean(garden.bannerImage);
     const membership = React.useMemo(
       () => buildGardenMemberSets(garden.gardeners, garden.operators),
       [garden.gardeners, garden.operators]
@@ -103,17 +101,12 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
           <div
             className={cn("h-26 @[300px]:h-32 @[400px]:h-40", "relative w-full overflow-hidden")}
           >
-            {hasProvidedSrc && !imageError ? (
-              <ImageWithFallback
-                src={garden.bannerImage}
-                alt={garden.name || garden.description || "Garden"}
-                className="absolute inset-0 w-full h-full object-cover image-lut z-1"
-                fallbackClassName="absolute inset-0 w-full h-full"
-                onErrorCallback={() => setImageError(true)}
-              />
-            ) : (
-              <GardenBannerFallback name={garden.name} />
-            )}
+            <ImageWithFallback
+              src={garden.bannerImage || ""}
+              alt={garden.name || garden.description || "Garden"}
+              className="absolute inset-0 w-full h-full object-cover image-lut z-1"
+              backgroundFallback={<GardenBannerFallback name={garden.name} />}
+            />
           </div>
         )}
         <div

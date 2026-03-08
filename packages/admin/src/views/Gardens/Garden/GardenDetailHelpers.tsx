@@ -3,6 +3,7 @@ import {
   type Domain,
   expandDomainMask,
   GardenBannerFallback,
+  ImageWithFallback,
   resolveIPFSUrl,
 } from "@green-goods/shared";
 import {
@@ -63,7 +64,6 @@ export function GardenHeroBanner({
 }: GardenHeroBannerProps) {
   const { formatMessage } = useIntl();
   const [descExpanded, setDescExpanded] = useState(false);
-  const [bannerError, setBannerError] = useState(false);
   const bannerUrl = bannerImage ? resolveIPFSUrl(bannerImage) : "";
   const domains: Domain[] = typeof domainMask === "number" ? expandDomainMask(domainMask) : [];
   const isLongDescription = Boolean(description && description.length > 100);
@@ -71,22 +71,17 @@ export function GardenHeroBanner({
   return (
     <div>
       <div className="garden-hero-banner">
-        {bannerUrl && !bannerError ? (
-          <>
-            <img
-              src={bannerUrl}
-              alt={formatMessage({ id: "app.garden.detail.bannerAlt" }, { name })}
-              className="garden-hero-banner-image"
-              onError={() => setBannerError(true)}
-            />
-            <div className="garden-hero-banner-gradient" />
-          </>
-        ) : (
-          <div className="garden-hero-banner-fallback">
-            <GardenBannerFallback name={name} />
-            <div className="garden-hero-banner-gradient" />
-          </div>
-        )}
+        <ImageWithFallback
+          src={bannerUrl}
+          alt={formatMessage({ id: "app.garden.detail.bannerAlt" }, { name })}
+          className="garden-hero-banner-image"
+          backgroundFallback={
+            <div className="garden-hero-banner-fallback">
+              <GardenBannerFallback name={name} />
+            </div>
+          }
+        />
+        <div className="garden-hero-banner-gradient" />
 
         <Link
           to={backTo}
