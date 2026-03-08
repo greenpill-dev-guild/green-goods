@@ -140,6 +140,15 @@ export function formatTokenAmount(
   const padded = fraction.toString().padStart(decimals, "0");
   const trimmed = padded.slice(0, maxFractionDigits).replace(/0+$/, "");
   if (!trimmed) {
+    // When whole === 0 and value is non-zero, show full precision to avoid displaying "0"
+    if (whole === 0n) {
+      const fullTrimmed = padded.replace(/0+$/, "");
+      if (fullTrimmed) {
+        const decSep = (0.1).toLocaleString(resolvedLocale).charAt(1);
+        const full = `${wholeText}${decSep}${fullTrimmed}`;
+        return negative ? `-${full}` : full;
+      }
+    }
     return negative ? `-${wholeText}` : wholeText;
   }
 

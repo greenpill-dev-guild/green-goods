@@ -1,9 +1,7 @@
 import { RiImageLine } from "@remixicon/react";
 import React, { useRef, useState } from "react";
+import { getIPFSFallbackGateways } from "../../modules/data/ipfs";
 import { cn } from "../../utils/styles/cn";
-
-/** Ordered list of IPFS gateways to try when image loading fails */
-const FALLBACK_GATEWAYS = ["https://w3s.link", "https://storacha.link", "https://dweb.link"];
 
 /**
  * Attempt to rewrite an IPFS gateway URL to use an alternate gateway.
@@ -52,7 +50,8 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
 
   const handleError = () => {
     // Try alternate IPFS gateways before showing fallback
-    for (const gateway of FALLBACK_GATEWAYS) {
+    const gateways = getIPFSFallbackGateways();
+    for (const gateway of gateways) {
       if (triedGateways.current.has(gateway)) continue;
       triedGateways.current.add(gateway);
 

@@ -46,6 +46,7 @@ export { useLoadingWithMinDuration } from "./app/useLoadingWithMinDuration";
 export { useMerged } from "./app/useMerged";
 export type { NavigateToTopOptions } from "./app/useNavigateToTop";
 export { useNavigateToTop } from "./app/useNavigateToTop";
+export { useScrollToTop } from "./app/useScrollToTop";
 export { useOffline } from "./app/useOffline";
 export type { ServiceWorkerUpdateState } from "./app/useServiceWorkerUpdate";
 export { useServiceWorkerUpdate } from "./app/useServiceWorkerUpdate";

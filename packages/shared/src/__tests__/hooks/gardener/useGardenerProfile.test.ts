@@ -9,6 +9,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
+import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const TEST_SMART_ACCOUNT = "0x1111111111111111111111111111111111111111" as `0x${string}`;
@@ -76,7 +77,11 @@ import { useGardenerProfile } from "../../../hooks/gardener/useGardenerProfile";
 
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
+    return createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      createElement(IntlProvider, { locale: "en", messages: {} }, children)
+    );
   };
 }
 

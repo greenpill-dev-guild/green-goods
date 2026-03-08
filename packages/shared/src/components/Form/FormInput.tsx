@@ -36,7 +36,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
         <input
           className={cn(
             "block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4",
-            "text-sm text-text-strong-950 placeholder:text-text-soft-400",
+            "text-base text-text-strong-950 placeholder:text-text-soft-400",
             "transition-all duration-200",
             "disabled:opacity-50 disabled:pointer-events-none",
             error

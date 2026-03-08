@@ -176,6 +176,7 @@
         "embla-carousel-react": "^8.6.0",
         "idb": "^8.0.3",
         "idb-keyval": "^6.2.2",
+        "multiformats": "^13.4.2",
         "posthog-js": "^1.315.0",
         "qrcode.react": "^4.2.0",
         "react": "^19.2.3",

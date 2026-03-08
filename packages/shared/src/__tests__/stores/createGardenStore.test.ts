@@ -12,9 +12,9 @@ describe("stores/useCreateGardenStore", () => {
     resetCreateGardenStore();
   });
 
-  it("defaults to all domains selected", () => {
+  it("defaults to no domains selected", () => {
     const { form } = useCreateGardenStore.getState();
-    expect(form.domains).toEqual([Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE]);
+    expect(form.domains).toEqual([]);
   });
 
   it("builds garden params with computed domainMask and role arrays", () => {

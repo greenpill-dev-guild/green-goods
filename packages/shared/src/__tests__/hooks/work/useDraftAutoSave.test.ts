@@ -151,24 +151,6 @@ describe("useDraftAutoSave", () => {
       expect(result.current.hasMeaningfulProgress).toBe(true);
     });
 
-    it("returns true when plant selection is provided", () => {
-      const { result } = renderHook(
-        () => useDraftAutoSave(createFormData({ plantSelection: ["oak", "pine"] }), undefined),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.hasMeaningfulProgress).toBe(true);
-    });
-
-    it("returns true when plant count is non-zero", () => {
-      const { result } = renderHook(
-        () => useDraftAutoSave(createFormData({ plantCount: 5 }), undefined),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.hasMeaningfulProgress).toBe(true);
-    });
-
     it("returns true when time spent is non-zero", () => {
       const { result } = renderHook(
         () => useDraftAutoSave(createFormData({ timeSpentMinutes: 30 }), undefined),

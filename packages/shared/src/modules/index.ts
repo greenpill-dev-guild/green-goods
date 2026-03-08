@@ -200,12 +200,14 @@ export {
   // Upload context types
   type FileUploadContext,
   getFileByHash,
+  getIPFSFallbackGateways,
   getIpfsInitStatus,
   initializeIpfs,
   initializeIpfsFromEnv,
   // Storacha aliases (preferred naming)
   initializeStoracha,
   initializeStorachaFromEnv,
+  IPFS_FALLBACK_GATEWAYS,
   type JsonUploadContext,
   resolveAvatarUrl,
   resolveImageUrl,

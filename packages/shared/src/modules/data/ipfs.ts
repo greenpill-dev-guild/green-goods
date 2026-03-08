@@ -31,7 +31,11 @@ type IpfsInitStatus = "not_started" | "in_progress" | "success" | "failed" | "sk
 
 let ipfsInitializationStatus: IpfsInitStatus = "not_started";
 let ipfsInitializationError: string | null = null;
-const DEFAULT_IPFS_GATEWAYS = ["https://storacha.link", "https://w3s.link", "https://ipfs.io"];
+export const IPFS_FALLBACK_GATEWAYS = [
+  "https://storacha.link",
+  "https://w3s.link",
+  "https://ipfs.io",
+];
 const DEFAULT_PINATA_GATEWAY = "https://gateway.pinata.cloud";
 const DEFAULT_PINATA_API_BASE_URL = "https://api.pinata.cloud";
 const PROVIDER_VERIFICATION_ATTEMPTS = 6;
@@ -419,10 +423,15 @@ export function toCanonicalIPFSUri(value: string): string {
   return parsed?.canonicalUri ?? value.trim();
 }
 
-function getReadGatewayBases(customGateway?: string): string[] {
+/**
+ * Returns deduplicated list of IPFS gateway base URLs, including
+ * configured Pinata/Storacha gateways and hardcoded fallbacks.
+ * Single source of truth for gateway ordering across the app.
+ */
+export function getIPFSFallbackGateways(customGateway?: string): string[] {
   return Array.from(
     new Set(
-      [customGateway, pinataGatewayUrl, gatewayUrl, ...DEFAULT_IPFS_GATEWAYS]
+      [customGateway, pinataGatewayUrl, gatewayUrl, ...IPFS_FALLBACK_GATEWAYS]
         .filter((entry): entry is string => Boolean(entry))
         .map((entry) => trimTrailingSlashes(entry))
     )
@@ -446,7 +455,7 @@ function getIPFSGatewayCandidates(value: string, customGateway?: string): string
   return Array.from(
     new Set([
       originalGatewayCandidate,
-      ...getReadGatewayBases(customGateway).map((base) => `${base}/ipfs/${parsed.canonicalId}`),
+      ...getIPFSFallbackGateways(customGateway).map((base) => `${base}/ipfs/${parsed.canonicalId}`),
     ])
   ).filter((candidate): candidate is string => Boolean(candidate));
 }

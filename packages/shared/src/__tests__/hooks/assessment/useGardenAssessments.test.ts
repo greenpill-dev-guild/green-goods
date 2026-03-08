@@ -2,7 +2,8 @@
  * useGardenAssessments Tests
  *
  * Tests the TanStack Query wrapper for fetching garden assessments from EAS.
- * Covers enabled/disabled states, query key construction, and loading behavior.
+ * Covers enabled/disabled states, query key construction, explicit chainId parameter,
+ * and loading behavior.
  */
 
 /**
@@ -20,10 +21,8 @@ vi.mock("../../../modules/data/eas", () => ({
   getGardenAssessments: (...args: unknown[]) => mockGetGardenAssessments(...args),
 }));
 
-const mockSelectedChainId = vi.fn().mockReturnValue(11155111);
-vi.mock("../../../stores/useAdminStore", () => ({
-  useAdminStore: (selector: (state: any) => any) =>
-    selector({ selectedChainId: mockSelectedChainId() }),
+vi.mock("../../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 const mockUseQuery = vi.fn();
@@ -68,7 +67,7 @@ describe("useGardenAssessments", () => {
     });
   });
 
-  it("passes correct query key with garden address and chain ID", () => {
+  it("passes correct query key with garden address and default chain ID", () => {
     useGardenAssessments(GARDEN_ADDRESS);
 
     expect(mockUseQuery).toHaveBeenCalledWith(
@@ -125,9 +124,8 @@ describe("useGardenAssessments", () => {
     expect(options.queryKey).toEqual(["greengoods", "assessments", "byGarden", "", 11155111]);
   });
 
-  it("picks up selectedChainId from admin store", () => {
-    mockSelectedChainId.mockReturnValue(42161);
-    useGardenAssessments(GARDEN_ADDRESS);
+  it("uses explicit chainId when provided", () => {
+    useGardenAssessments(GARDEN_ADDRESS, 42161);
 
     const options = mockUseQuery.mock.calls[0][0];
     expect(options.queryKey).toEqual([
@@ -136,6 +134,30 @@ describe("useGardenAssessments", () => {
       "byGarden",
       GARDEN_ADDRESS,
       42161,
+    ]);
+  });
+
+  it("queryFn uses explicit chainId for data fetching", async () => {
+    mockGetGardenAssessments.mockResolvedValue([]);
+    useGardenAssessments(GARDEN_ADDRESS, 42161);
+
+    const options = mockUseQuery.mock.calls[0][0];
+    await options.queryFn();
+
+    expect(mockGetGardenAssessments).toHaveBeenCalledWith(GARDEN_ADDRESS, 42161);
+  });
+
+  it("defaults to DEFAULT_CHAIN_ID when chainId is not provided", () => {
+    useGardenAssessments(GARDEN_ADDRESS);
+
+    const options = mockUseQuery.mock.calls[0][0];
+    // DEFAULT_CHAIN_ID is mocked as 11155111
+    expect(options.queryKey).toEqual([
+      "greengoods",
+      "assessments",
+      "byGarden",
+      GARDEN_ADDRESS,
+      11155111,
     ]);
   });
 });

@@ -105,11 +105,10 @@ describe("useSetGardenDomains", () => {
     expect(toastService.dismiss).toHaveBeenCalledWith("toast-id");
     expect(toastService.success).toHaveBeenCalled();
 
-    const invalidatedKeys = invalidateSpy.mock.calls.map(([arg]) => JSON.stringify(arg.queryKey));
-    expect(invalidatedKeys).toContain(JSON.stringify(["greengoods", "gardens"]));
-    expect(invalidatedKeys).toContain(JSON.stringify(["greengoods", "gardens", TEST_CHAIN_ID]));
-    expect(invalidatedKeys).toContain(
-      JSON.stringify(["readContract", { functionName: "gardenDomains", args: [TEST_GARDEN] }])
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: ["readContract", { functionName: "gardenDomains", args: [TEST_GARDEN] }],
+      })
     );
   });
 

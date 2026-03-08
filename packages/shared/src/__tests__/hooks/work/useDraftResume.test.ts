@@ -370,7 +370,7 @@ describe("useDraftResume", () => {
       expect(result.current.showDraftDialog).toBe(false);
     });
 
-    it("shows dialog when plant selection + garden/action are present", () => {
+    it("shows dialog when feedback + garden/action are present", () => {
       const { result } = renderHook(
         () =>
           useDraftResume({
@@ -378,7 +378,7 @@ describe("useDraftResume", () => {
               ...createDefaultFormState(),
               gardenAddress: MOCK_ADDRESSES.garden,
               actionUID: 1,
-              plantSelection: ["oak"],
+              feedback: "Some work notes",
             },
             isOnIntroTab: true,
             searchParams: new URLSearchParams(),

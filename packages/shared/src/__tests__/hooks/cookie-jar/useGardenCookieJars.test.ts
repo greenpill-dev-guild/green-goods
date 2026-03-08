@@ -164,7 +164,7 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     // Step 1: jar addresses
     mockReadContractReturn.data = [TEST_JAR_1];
 
-    // Step 2: jar details multicall (6 fields per jar)
+    // Step 2: jar details multicall (7 fields per jar)
     mockReadContractsReturn.data = [
       { result: TEST_CURRENCY, status: "success" }, // CURRENCY
       { result: 5000000000000000000n, status: "success" }, // currencyHeldByJar (5e18)
@@ -172,6 +172,7 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
       { result: 3600n, status: "success" }, // withdrawalInterval
       { result: false, status: "success" }, // paused
       { result: true, status: "success" }, // EMERGENCY_WITHDRAWAL_ENABLED
+      { result: 100n, status: "success" }, // MIN_DEPOSIT
     ];
 
     // Step 3: decimals
@@ -199,20 +200,22 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
 
     const currency2 = "0xCurr222222222222222222222222222222222222";
     mockReadContractsReturn.data = [
-      // Jar 1 (6 fields)
+      // Jar 1 (7 fields)
       { result: TEST_CURRENCY, status: "success" },
       { result: 1000n, status: "success" },
       { result: 500n, status: "success" },
       { result: 3600n, status: "success" },
       { result: false, status: "success" },
       { result: false, status: "success" },
-      // Jar 2 (6 fields)
+      { result: 50n, status: "success" }, // MIN_DEPOSIT
+      // Jar 2 (7 fields)
       { result: currency2, status: "success" },
       { result: 2000n, status: "success" },
       { result: 1000n, status: "success" },
       { result: 7200n, status: "success" },
       { result: true, status: "success" },
       { result: true, status: "success" },
+      { result: 100n, status: "success" }, // MIN_DEPOSIT
     ];
 
     mockDecimalsReturn.data = [
@@ -241,6 +244,7 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
       { result: 3600n, status: "success" },
       { result: false, status: "success" },
       { result: false, status: "success" },
+      { result: 50n, status: "success" }, // MIN_DEPOSIT
     ];
 
     const { result } = renderHook(() => useGardenCookieJars(TEST_GARDEN), {
@@ -260,6 +264,7 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
       { result: 3600n, status: "success" },
       { result: false, status: "success" },
       { result: false, status: "success" },
+      { result: 50n, status: "success" }, // MIN_DEPOSIT
     ];
 
     const { result } = renderHook(() => useGardenCookieJars(TEST_GARDEN), {
@@ -279,6 +284,7 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
       { result: 3600n, status: "success" },
       { result: false, status: "success" },
       { result: false, status: "success" },
+      { result: 50n, status: "success" }, // MIN_DEPOSIT
     ];
 
     // Decimals returns undefined (call failed)

@@ -1,6 +1,7 @@
 import {
   DEFAULT_CHAIN_ID,
   formatDateRange,
+  getEASExplorerUrl,
   logger,
   useAdminStore,
   useGardenAssessments,
@@ -11,8 +12,6 @@ import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Alert } from "@/components/ui/Alert";
-
-const EAS_EXPLORER_URL = "https://explorer.easscan.org";
 
 /** EAS decoded field structure from attestation JSON */
 interface EASDecodedField {
@@ -34,7 +33,11 @@ export default function GardenAssessment() {
     }
   }, [selectedChainId, setSelectedChainId]);
 
-  const { data: assessments = [], isLoading: fetching, error } = useGardenAssessments(id);
+  const {
+    data: assessments = [],
+    isLoading: fetching,
+    error,
+  } = useGardenAssessments(id, selectedChainId);
 
   const parsedAssessments = useMemo(
     () =>
@@ -150,7 +153,7 @@ export default function GardenAssessment() {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                       <a
-                        href={`${EAS_EXPLORER_URL}/attestation/view/${attestation.id}`}
+                        href={getEASExplorerUrl(selectedChainId, attestation.id)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center text-primary-dark transition hover:text-primary-darker"

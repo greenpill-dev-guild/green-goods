@@ -44,6 +44,9 @@ describe("useCreateGardenStore", () => {
     store.setField("description", "Protecting the river delta");
     store.setField("location", "Portland, Oregon");
 
-    expect(store.getParams()?.domainMask).toBe(0);
+    // With no domains selected, the details step is invalid so getParams returns null
+    expect(store.getParams()).toBeNull();
+    // Verify the form itself has an empty domains array
+    expect(useCreateGardenStore.getState().form.domains).toEqual([]);
   });
 });

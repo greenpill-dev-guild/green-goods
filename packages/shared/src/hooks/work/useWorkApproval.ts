@@ -93,6 +93,17 @@ export function useWorkApproval() {
 
   const mutation = useMutation({
     mutationFn: async ({ draft, work }: UseWorkApprovalParams): Promise<ApprovalMutationResult> => {
+      // Pre-flight validation — catch invalid states before hitting the chain
+      if (!draft.workUID) {
+        throw new Error("Work UID is required for approval");
+      }
+      if (!work.gardenAddress) {
+        throw new Error("Garden address is missing from work data");
+      }
+      if (work.status === "approved" || work.status === "rejected") {
+        throw new Error(`This work has already been ${work.status}`);
+      }
+
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Starting approval submission", {
           authMode,

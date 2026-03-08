@@ -235,11 +235,11 @@ describe("hooks/vault/useVaultOperations", () => {
     );
   });
 
-  it("clamps withdraw shares to maxRedeem when within tolerance", async () => {
-    const maxRedeem = 1_000_000_000_000_000_000n;
-    const tolerance = maxRedeem / 10_000n;
+  it("clamps withdraw amount to maxWithdraw when within tolerance", async () => {
+    const maxWithdraw = 1_000_000_000_000_000_000n;
 
-    mockReadContract.mockResolvedValueOnce(maxRedeem);
+    // maxWithdraw pre-check returns the limit
+    mockReadContract.mockResolvedValueOnce(maxWithdraw);
     mockWriteContractAsync.mockResolvedValue(
       "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     );
@@ -255,28 +255,28 @@ describe("hooks/vault/useVaultOperations", () => {
       wrapper: createWrapper(queryClient),
     });
 
+    // Withdraw exactly at the maxWithdraw limit should succeed
     await act(async () => {
       await result.current.mutateAsync({
         gardenAddress: TEST_GARDEN as `0x${string}`,
         assetAddress: TEST_ASSET as `0x${string}`,
         vaultAddress: TEST_VAULT as `0x${string}`,
-        shares: maxRedeem + tolerance,
+        amount: maxWithdraw,
       });
     });
 
     expect(mockWriteContractAsync).toHaveBeenCalledWith(
       expect.objectContaining({
-        functionName: "redeem",
-        args: [maxRedeem, TEST_PRIMARY_ADDRESS, TEST_PRIMARY_ADDRESS],
+        functionName: "withdraw",
       })
     );
   });
 
-  it("rejects withdraw shares above maxRedeem tolerance", async () => {
-    const maxRedeem = 1_000_000_000_000_000_000n;
-    const tolerance = maxRedeem / 10_000n;
+  it("rejects withdraw amount above maxWithdraw", async () => {
+    const maxWithdraw = 1_000_000_000_000_000_000n;
 
-    mockReadContract.mockResolvedValueOnce(maxRedeem);
+    // maxWithdraw pre-check returns the limit
+    mockReadContract.mockResolvedValueOnce(maxWithdraw);
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -295,9 +295,9 @@ describe("hooks/vault/useVaultOperations", () => {
           gardenAddress: TEST_GARDEN as `0x${string}`,
           assetAddress: TEST_ASSET as `0x${string}`,
           vaultAddress: TEST_VAULT as `0x${string}`,
-          shares: maxRedeem + tolerance + 1n,
+          amount: maxWithdraw + 1n,
         })
-      ).rejects.toThrow("Withdrawal amount exceeds the redeemable limit");
+      ).rejects.toThrow("Withdrawal amount exceeds the available balance");
     });
 
     expect(mockWriteContractAsync).not.toHaveBeenCalled();
