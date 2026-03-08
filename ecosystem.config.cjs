@@ -25,14 +25,9 @@ module.exports = {
       autorestart: true,
       max_restarts: 3,
       min_uptime: "10s",
-<<<<<<< HEAD
-      restart_delay: 3000, // Wait 3s between restarts to allow port release
-      kill_timeout: 5000,
-=======
       restart_delay: 3000,
       kill_timeout: 5000,
       treekill: true,
->>>>>>> release/1.1
     },
     {
       name: "admin",
@@ -48,19 +43,12 @@ module.exports = {
       min_uptime: "10s",
       restart_delay: 3000,
       kill_timeout: 5000,
-<<<<<<< HEAD
-=======
       treekill: true,
->>>>>>> release/1.1
     },
     {
       name: "client",
       script: "sh",
-<<<<<<< HEAD
-      args: '-c "cd packages/client && bun run dev"',
-=======
       args: `-c "${killPort(PORTS.client)} && cd packages/client && bun run dev"`,
->>>>>>> release/1.1
       cwd: ".",
       env: {
         NODE_ENV: "development",
@@ -72,8 +60,6 @@ module.exports = {
       min_uptime: "10s",
       restart_delay: 3000,
       kill_timeout: 5000,
-<<<<<<< HEAD
-=======
       treekill: true,
     },
     {
@@ -91,7 +77,6 @@ module.exports = {
       restart_delay: 3000,
       kill_timeout: 5000,
       treekill: true,
->>>>>>> release/1.1
     },
     {
       name: "agent",
@@ -107,10 +92,7 @@ module.exports = {
       min_uptime: "10s",
       restart_delay: 3000,
       kill_timeout: 5000,
-<<<<<<< HEAD
-=======
       treekill: true,
->>>>>>> release/1.1
     },
     {
       name: "indexer",
@@ -118,35 +100,11 @@ module.exports = {
       // Use Docker-based indexer to avoid macOS Rust panic in system-configuration crate
       // The Docker container runs PostgreSQL, Hasura, and the Envio indexer
       args: '-c "cd packages/indexer && docker compose -f docker-compose.indexer.yaml up --build"',
-<<<<<<< HEAD
       cwd: ".",
       env: {
         NODE_ENV: "development",
       },
       merge_logs: true,
-      autorestart: false, // Docker Compose handles its own restarts
-      max_restarts: 0,
-      min_uptime: "10s",
-      kill_timeout: 30000, // Longer timeout for Docker Compose to stop gracefully
-    },
-    {
-      name: "storybook",
-      script: "sh",
-      args: '-c "cd packages/shared && bun run storybook"',
-=======
->>>>>>> release/1.1
-      cwd: ".",
-      env: {
-        NODE_ENV: "development",
-      },
-      merge_logs: true,
-<<<<<<< HEAD
-      autorestart: true,
-      max_restarts: 3,
-      min_uptime: "10s",
-      restart_delay: 3000,
-      kill_timeout: 5000,
-=======
       autorestart: false, // Docker Compose handles its own restarts
       max_restarts: 0,
       min_uptime: "10s",
@@ -169,7 +127,6 @@ module.exports = {
       restart_delay: 3000,
       kill_timeout: 5000,
       treekill: true,
->>>>>>> release/1.1
     },
   ],
 };
