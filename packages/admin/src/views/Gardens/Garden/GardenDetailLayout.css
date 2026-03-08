@@ -1,25 +1,193 @@
 /* Garden Detail Layout */
 
 .garden-detail-container {
-  position: relative;
   min-height: 100%;
+  position: relative;
 }
 
-/* Tab content sections use simple vertical stacking with consistent gap */
+/* Hero Banner */
+
+.garden-hero-banner {
+  position: relative;
+  height: 12rem;
+  overflow: hidden;
+}
+
+.garden-hero-banner-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.garden-hero-banner-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.4) 50%, transparent);
+}
+
+.garden-hero-banner-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.garden-hero-banner-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem 1rem 0.75rem;
+}
+
+/* Tab bar with inline actions */
+
+.garden-tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--color-stroke-soft);
+  background: var(--color-bg-white);
+  padding: 0 1rem;
+}
+
+.garden-tab-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  padding: 0.25rem 0;
+}
+
+/* Tab list & triggers */
+
+.garden-tabs-list {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.garden-tab-trigger {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
 .garden-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+/* Tab inner layout */
+
+.garden-tab-shell {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-@media (min-width: 480px) {
-  .garden-tab-content {
-    gap: 1.5rem;
+.garden-tab-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.garden-tab-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  order: 1;
+}
+
+.garden-tab-rail {
+  order: 2;
+}
+
+.garden-tab-rail-sticky {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Rail stat rows */
+
+.garden-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-stroke-soft);
+  background: var(--color-bg-weak);
+  font-size: 0.875rem;
+  transition: background-color 0.15s;
+}
+
+.garden-stat-row:hover {
+  background: var(--color-bg-soft);
+}
+
+.garden-stat-row-label {
+  color: var(--color-text-sub);
+}
+
+.garden-stat-row-value {
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+
+/* Responsive breakpoints */
+
+@media (min-width: 640px) {
+  .garden-hero-banner {
+    height: 14rem;
+  }
+
+  .garden-hero-banner-content {
+    padding: 1.5rem 1.5rem 1rem;
+  }
+
+  .garden-tab-bar {
+    padding: 0 1.5rem;
+  }
+
+  .garden-tab-content,
+  .garden-tab-shell,
+  .garden-tab-layout,
+  .garden-tab-main,
+  .garden-tab-rail-sticky {
+    gap: 1.25rem;
   }
 }
 
-@media (min-width: 768px) {
-  .garden-tab-content {
-    gap: 2rem;
+@media (min-width: 1024px) {
+  .garden-tab-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 9fr) minmax(260px, 3fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .garden-tab-main {
+    order: 0;
+    gap: 1.5rem;
+  }
+
+  .garden-tab-rail {
+    order: 0;
+  }
+
+  .garden-tab-rail-sticky {
+    position: sticky;
+    top: 7.5rem;
+    gap: 1rem;
   }
 }

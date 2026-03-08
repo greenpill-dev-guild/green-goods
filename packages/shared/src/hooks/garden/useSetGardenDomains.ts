@@ -2,11 +2,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import type { Address, Domain } from "../../types/domain";
-import { normalizeAddress } from "../../utils/blockchain/address";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryInvalidation } from "../query-keys";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
 
 export interface SetGardenDomainsParams {
@@ -66,27 +64,14 @@ export function useSetGardenDomains() {
         }),
       });
 
-      const normalizedGarden = normalizeAddress(params.gardenAddress);
-      queryInvalidation
-        .invalidateGardens(chainId)
-        .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
-      queryInvalidation
-        .invalidateGarden(normalizedGarden, chainId)
-        .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
-
       // Invalidate the gardenDomains read query so the UI refreshes
       queryClient.invalidateQueries({
-        queryKey: ["readContract", { functionName: "gardenDomains", args: [normalizedGarden] }],
+        queryKey: ["readContract", { functionName: "gardenDomains", args: [params.gardenAddress] }],
       });
     },
-    onError: (error, params, context) => {
+    onError: (error, _params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
-      handleError(error, {
-        metadata: {
-          gardenAddress: params?.gardenAddress,
-          domains: params?.domains,
-        },
-      });
+      handleError(error, {});
     },
   });
 }

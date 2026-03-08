@@ -2,7 +2,7 @@
  * Mutation Error Handler Tests
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock dependencies before importing the module under test
 vi.mock("../../../components/toast", () => ({
@@ -24,9 +24,9 @@ vi.mock("../../../utils/debug", () => ({
   debugError: vi.fn(),
 }));
 
-import { createMutationErrorHandler, createDraftErrorHandler } from "../mutation-error-handler";
 import { toastService, walletProgressToasts } from "../../../components/toast";
 import { trackContractError } from "../../../modules/app/error-tracking";
+import { createDraftErrorHandler, createMutationErrorHandler } from "../mutation-error-handler";
 
 describe("createMutationErrorHandler", () => {
   beforeEach(() => {
@@ -219,6 +219,19 @@ describe("createMutationErrorHandler", () => {
           description: "Try again later",
         })
       );
+    });
+
+    it("does not show a toast when showToast is false", () => {
+      const handler = createMutationErrorHandler({
+        source: "useTestHook",
+        toastContext: "test operation",
+      });
+
+      handler(new Error("Something failed"), { showToast: false });
+
+      expect(toastService.error).not.toHaveBeenCalled();
+      expect(walletProgressToasts.error).not.toHaveBeenCalled();
+      expect(trackContractError).toHaveBeenCalled();
     });
   });
 

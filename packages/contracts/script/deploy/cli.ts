@@ -1,14 +1,14 @@
 #!/usr/bin/env bun
 
 import { CliParser } from "../utils/cli-parser";
-import { NetworkManager } from "../utils/network";
 import { DeploymentAddresses } from "../utils/deployment-addresses";
-import { CoreDeployer } from "./core";
-import { GardenDeployer } from "./gardens";
+import { NetworkManager } from "../utils/network";
 import { ActionDeployer } from "./actions";
 import { AnvilManager } from "./anvil";
-import { HatsTreeDeployer } from "./hats";
+import { CoreDeployer } from "./core";
+import { GardenDeployer } from "./gardens";
 import { GoodsDeployer } from "./goods";
+import { HatsTreeDeployer } from "./hats";
 import { OctantFactoryDeployer } from "./octant-factory";
 
 /**
@@ -71,6 +71,8 @@ Commands:
 Common Options:
   --network, -n <network>  Network to deploy to (default: localhost)
   --broadcast, -b          Broadcast transactions
+  --save-artifacts         Save forge broadcast artifacts without broadcasting
+  --sender <address>       Override tx sender address for simulation/broadcast
   --update-schemas         Only update schemas, skip existing contracts
   --force                  Force fresh deployment
   --dry-run                Run full deployment simulation against RPC (no broadcast)
@@ -245,5 +247,8 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
 const isMain = import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("cli.ts");
 if (isMain) {
   const cli = new DeploymentCLI();
-  cli.run(process.argv).catch(console.error);
+  cli.run(process.argv).catch((error) => {
+    console.error("CLI failed:", error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
 }

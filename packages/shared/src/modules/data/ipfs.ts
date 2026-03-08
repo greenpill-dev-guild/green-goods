@@ -629,6 +629,44 @@ export async function getFileByHash(
   options: GetFileByHashOptions = {}
 ): Promise<{ data: Blob | string }> {
   const { signal, timeoutMs = 30_000 } = options;
+  const url = resolveIPFSUrl(hash);
+  const abortController = new AbortController();
+  const timeoutId =
+    timeoutMs > 0
+      ? setTimeout(() => {
+          abortController.abort();
+        }, timeoutMs)
+      : null;
+
+  const abortFromUpstream = () => abortController.abort();
+  if (signal) {
+    if (signal.aborted) {
+      abortController.abort();
+    } else {
+      signal.addEventListener("abort", abortFromUpstream, { once: true });
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, { signal: abortController.signal });
+  } catch (error) {
+    if (abortController.signal.aborted) {
+      throw new Error(`IPFS request timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    signal?.removeEventListener("abort", abortFromUpstream);
+  }
+
+export async function getFileByHash(
+  hash: string,
+  options: GetFileByHashOptions = {}
+): Promise<{ data: Blob | string }> {
+  const { signal, timeoutMs = 30_000 } = options;
   const abortController = new AbortController();
   const timeoutId =
     timeoutMs > 0
@@ -811,9 +849,3 @@ export async function initializeIpfsFromEnv(
 // Storacha aliases (preferred naming)
 export const initializeStoracha = initializeIpfs;
 export const initializeStorachaFromEnv = initializeIpfsFromEnv;
-
-// Backward compatibility aliases (deprecated - will be removed in future version)
-/** @deprecated Use initializeIpfs or initializeStoracha instead */
-export const initializePinata = initializeIpfs;
-/** @deprecated Use initializeIpfsFromEnv or initializeStorachaFromEnv instead */
-export const initializePinataFromEnv = initializeIpfsFromEnv;

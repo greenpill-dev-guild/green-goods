@@ -1,6 +1,6 @@
 import { cn } from "@green-goods/shared";
 import { RiRefreshLine } from "@remixicon/react";
-import { useCallback, useEffect, useRef, useState, type PropsWithChildren } from "react";
+import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Minimum pull distance in pixels before a refresh is triggered.

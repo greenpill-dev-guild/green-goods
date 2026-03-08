@@ -179,7 +179,6 @@ export function FileUploadField({
         URL.revokeObjectURL(url);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- filesKey is stable serialization of currentFiles; previewUrls is state set within the effect
   }, [filesKey, showPreview]);
 
   return (
@@ -253,7 +252,9 @@ export function FileUploadField({
                   />
                 )}
                 <div className="flex-1 truncate">
-                  <p className="truncate text-sm font-medium text-text-sub">{safeFileName}</p>
+                  <p className="truncate text-sm font-medium text-text-sub" title={safeFileName}>
+                    {safeFileName}
+                  </p>
                   <p className="text-xs text-text-soft">{(file.size / 1024).toFixed(1)} KB</p>
                 </div>
                 {onRemoveFile && (
@@ -261,8 +262,10 @@ export function FileUploadField({
                     type="button"
                     onClick={() => handleRemove(index)}
                     className="rounded-md p-1 text-error-base transition hover:bg-error-lighter"
-                    // eslint-disable-next-line jsx-a11y/aria-proptypes
-                    aria-label={`Remove ${safeFileName}`}
+                    aria-label={formatMessage(
+                      { id: "admin.fileUpload.remove", defaultMessage: "Remove {filename}" },
+                      { filename: safeFileName }
+                    )}
                   >
                     <RiCloseLine className="h-5 w-5" />
                   </button>

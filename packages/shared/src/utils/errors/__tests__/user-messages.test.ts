@@ -2,10 +2,10 @@
  * User-Friendly Error Message Tests
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  formatUserError,
   formatJobError,
+  formatUserError,
   formatWalletError,
   USER_FRIENDLY_ERRORS,
 } from "../user-messages";
@@ -89,15 +89,6 @@ describe("formatUserError", () => {
 
     it("formats revert errors", () => {
       expect(formatUserError("Execution reverted")).toContain("fail");
-    });
-
-    it("formats approval-specific operator and expiry errors", () => {
-      expect(formatUserError("NotGardenOperator")).toBe(
-        "Only garden owners or operators can approve or reject work. Ask a garden owner to grant operator access."
-      );
-      expect(formatUserError("ActionExpired")).toBe(
-        "This action has expired. Extend the action window before approving this work."
-      );
     });
   });
 
@@ -199,15 +190,6 @@ describe("formatWalletError", () => {
   it("formats reverted errors without reason", () => {
     expect(formatWalletError("execution reverted")).toBe(
       "Transaction would fail. Make sure you're a member of the selected garden."
-    );
-  });
-
-  it("formats approval-specific wallet errors", () => {
-    expect(formatWalletError("ActionMismatch")).toBe(
-      "This approval no longer matches the original work submission. Refresh and try again."
-    );
-    expect(formatWalletError("NotInWorkRegistry")).toBe(
-      "This work submission could not be found on-chain. Refresh the page and try again."
     );
   });
 

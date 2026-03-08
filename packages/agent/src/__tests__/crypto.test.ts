@@ -1,14 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  encryptPrivateKey,
   decryptPrivateKey,
-  isEncryptedKey,
-  getPrivateKey,
-  prepareKeyForStorage,
-  generateSecurePrivateKey,
+  encryptPrivateKey,
   generateSecureId,
-  isValidPrivateKey,
+  generateSecurePrivateKey,
+  getPrivateKey,
+  isEncryptedKey,
   isValidAddress,
+  isValidPrivateKey,
+  prepareKeyForStorage,
 } from "../services/crypto";
 
 describe("Crypto Service", () => {

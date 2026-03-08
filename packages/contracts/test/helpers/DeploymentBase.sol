@@ -850,8 +850,11 @@ abstract contract DeploymentBase is Test, DeployHelper {
             if (deployed != predicted) {
                 revert WorkResolverDeploymentAddressMismatch();
             }
-            UUPSUpgradeable(deployed).upgradeTo(address(implementation));
         }
+
+        // Always upgrade implementation — immutables (e.g. _eas) are baked into
+        // bytecode and won't update if the proxy already existed from a prior run
+        UUPSUpgradeable(predicted).upgradeTo(address(implementation));
 
         return predicted;
     }
@@ -890,8 +893,11 @@ abstract contract DeploymentBase is Test, DeployHelper {
             if (deployed != predicted) {
                 revert WorkApprovalResolverDeploymentAddressMismatch();
             }
-            UUPSUpgradeable(deployed).upgradeTo(address(implementation));
         }
+
+        // Always upgrade implementation — immutables (e.g. _eas) are baked into
+        // bytecode and won't update if the proxy already existed from a prior run
+        UUPSUpgradeable(predicted).upgradeTo(address(implementation));
 
         return predicted;
     }
@@ -929,8 +935,11 @@ abstract contract DeploymentBase is Test, DeployHelper {
             if (deployed != predicted) {
                 revert DeploymentAddressMismatch();
             }
-            UUPSUpgradeable(deployed).upgradeTo(address(implementation));
         }
+
+        // Always upgrade implementation — immutables (e.g. _eas) are baked into
+        // bytecode and won't update if the proxy already existed from a prior run
+        UUPSUpgradeable(predicted).upgradeTo(address(implementation));
 
         return predicted;
     }

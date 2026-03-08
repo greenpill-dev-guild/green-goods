@@ -1,12 +1,6 @@
+import { cn } from "@green-goods/shared";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import {
-  cardDescriptionClassName,
-  cardSectionVariants,
-  cardShellVariants,
-  cardTitleClassName,
-  cn,
-} from "@green-goods/shared";
 
 export const cardVariants = tv({
   base: [cardShellVariants(), "flex flex-col"],

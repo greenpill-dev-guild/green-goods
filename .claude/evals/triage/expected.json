@@ -1,0 +1,115 @@
+{
+  "issues": [
+    {
+      "id": 1,
+      "expected_priority": "P0",
+      "expected_type": "security",
+      "expected_package": "contracts",
+      "rationale": "Active fund loss vulnerability via re-entrancy. Affects all deployed gardens with ETH balances. Requires immediate hotfix and potential pause."
+    },
+    {
+      "id": 2,
+      "expected_priority": "P1",
+      "expected_type": "bug",
+      "expected_package": "shared",
+      "rationale": "Complete authentication failure blocking all users. No workaround exists. Regression from recent merge."
+    },
+    {
+      "id": 3,
+      "expected_priority": "P2",
+      "expected_type": "bug",
+      "expected_package": "admin",
+      "rationale": "Garden creation broken for a subset of cases (>5 actions). Workaround exists (create with fewer actions, add more later). Not a total blocker."
+    },
+    {
+      "id": 4,
+      "expected_priority": "P3",
+      "expected_type": "bug",
+      "expected_package": "shared",
+      "rationale": "Cosmetic typo in a single label. No functional impact. Fix is a one-line i18n string change."
+    },
+    {
+      "id": 5,
+      "expected_priority": "P4",
+      "expected_type": "enhancement",
+      "expected_package": "admin",
+      "rationale": "Feature request. System theme following already works. Manual toggle is a nice-to-have with no current user complaints."
+    },
+    {
+      "id": 6,
+      "expected_priority": "P3",
+      "expected_type": "refactor",
+      "expected_package": "shared",
+      "rationale": "Dependency cleanup. No user-facing impact. Bundle size reduction is beneficial but not urgent. Can be scheduled for a maintenance sprint."
+    },
+    {
+      "id": 7,
+      "expected_priority": "P2",
+      "expected_type": "performance",
+      "expected_package": "client",
+      "rationale": "Significant UX degradation for users in active communities with many gardens. Not a crash but renders the app unusable during the freeze window."
+    },
+    {
+      "id": 8,
+      "expected_priority": "P4",
+      "expected_type": "documentation",
+      "expected_package": "docs",
+      "rationale": "Contributor onboarding improvement. No user-facing impact. Important but not time-sensitive."
+    },
+    {
+      "id": 9,
+      "expected_priority": "P3",
+      "expected_type": "test",
+      "expected_package": "shared",
+      "rationale": "Test coverage gap in critical infrastructure. No immediate risk since the code works in production, but increases risk for future changes to retry logic."
+    },
+    {
+      "id": 10,
+      "expected_priority": "P4",
+      "expected_type": "chore",
+      "expected_package": "shared",
+      "rationale": "Dependency update with no breaking changes. Minor improvements. Can be bundled with other maintenance work."
+    }
+  ],
+  "p0-security": {
+    "expected_priority": "P0",
+    "expected_type": "security",
+    "expected_complexity": "medium",
+    "expected_packages": ["shared"],
+    "expected_route": "/debug --mode incident_hotfix",
+    "must_identify": [
+      "Cryptographic material exposure in logs",
+      "PostHog exfiltration vector",
+      "IndexedDB persistence of sensitive data"
+    ],
+    "scoring": {
+      "correct_severity": 30,
+      "correct_type": 15,
+      "identifies_affected_packages": 15,
+      "correct_routing": 15,
+      "identifies_posthog_vector": 15,
+      "recommends_log_purge": 10
+    }
+  },
+  "p3-enhancement": {
+    "expected_priority": "P4",
+    "expected_priority_acceptable": ["P3", "P4"],
+    "expected_type": "enhancement",
+    "expected_complexity": "high",
+    "expected_packages": ["client", "shared"],
+    "expected_route": "/plan",
+    "must_not_include": [
+      "Implementation guidance",
+      "Library selection decisions",
+      "Component code suggestions"
+    ],
+    "scoring": {
+      "correct_severity_range": 25,
+      "correct_type": 15,
+      "correct_complexity": 15,
+      "correct_routing_to_plan": 20,
+      "no_implementation_guidance": 15,
+      "identifies_bundle_concern": 10
+    }
+  }
+}

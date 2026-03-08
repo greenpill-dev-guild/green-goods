@@ -1,13 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { STALE_TIMES } from "../../config/react-query";
+import { logger } from "../../modules/app/logger";
 import { greenGoodsGraphQL } from "../../modules/data/graphql";
 import { greenGoodsIndexer } from "../../modules/data/graphql-client";
 import { logger } from "../../modules/app/logger";
 import { useAuthContext } from "../../providers/Auth";
-import { queryKeys } from "../query-keys";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
+import { queryKeys } from "../query-keys";
 
 const GET_OPERATOR_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
   query GetOperatorGardens($operator: [String!]!, $chainId: Int!) {

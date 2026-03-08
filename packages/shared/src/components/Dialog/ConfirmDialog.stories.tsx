@@ -107,21 +107,10 @@ export const NoDescription: Story = {
   },
 };
 
-/**
- * KNOWN BUG: In dark mode, `bg-bg-strong` resolves to #F5F5F5 and `text-text-strong`
- * resolves to #F7F7F7, giving a contrast ratio of approximately 1:1.
- * This makes text nearly invisible against the background.
- *
- * The dialog itself uses `bg-bg-white-0` (which is dark in dark mode) and
- * `text-text-strong-950` which should be correct, but any parent elements or
- * overlays using `bg-bg-strong` + `text-text-strong` will have this issue.
- *
- * Toggle the Storybook theme toolbar to "Dark" to observe.
- */
 export const DarkMode: Story = {
   decorators: [
     (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4 min-h-[400px]">
+      <div data-theme="dark" className="bg-bg-white p-4 min-h-[400px]">
         <Story />
       </div>
     ),
@@ -130,7 +119,7 @@ export const DarkMode: Story = {
     isOpen: true,
     title: "Dark Mode Dialog",
     description:
-      "Check text contrast carefully. Known bug: bg-bg-strong + text-text-strong gives ~1:1 contrast ratio in dark mode.",
+      "Verify text contrast in dark mode. The dialog uses bg-bg-white (dark in dark mode) with text-text-strong (light in dark mode) for WCAG AA compliance.",
     variant: "danger",
     confirmLabel: "Delete Garden",
   },
@@ -172,7 +161,9 @@ export const Interactive: Story = {
     onClose: fn(),
     onCancel: fn(),
   },
-  play: async ({ args }) => {
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+
     // The dialog renders in a portal, so query from the document body
     const dialog = within(document.body);
 

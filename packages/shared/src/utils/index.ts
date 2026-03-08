@@ -15,37 +15,6 @@ export {
 } from "./action/parsers";
 export { defaultTemplate, instructionTemplates } from "./action/templates";
 // ============================================================================
-// APP
-// ============================================================================
-export { copyToClipboard } from "./app/clipboard";
-export type { GardenMemberLike } from "./app/garden";
-// ============================================================================
-// HAPTIC FEEDBACK (Vibration API)
-// ============================================================================
-export {
-  hapticError,
-  hapticHeavy,
-  hapticLight,
-  haptics,
-  hapticSelection,
-  hapticSuccess,
-  hapticWarning,
-  isHapticsEnabled,
-  isHapticsSupported,
-  resetHapticsState,
-  setHapticsEnabled,
-} from "./app/haptics";
-export {
-  buildGardenMemberSets,
-  gardenHasMember,
-  resolveGardenMemberKey,
-} from "./app/garden";
-// ============================================================================
-// FILES
-// ============================================================================
-export type { NormalizeToFileOptions } from "./app/normalizeToFile";
-export { normalizeToFile } from "./app/normalizeToFile";
-// ============================================================================
 // BROWSER
 // ============================================================================
 export type { BrowserInfo, MobileBrowser } from "./app/browser";
@@ -55,6 +24,37 @@ export {
   getOpenInBrowserUrl,
   getRecommendedBrowser,
 } from "./app/browser";
+// ============================================================================
+// APP
+// ============================================================================
+export { copyToClipboard } from "./app/clipboard";
+export type { GardenMemberLike } from "./app/garden";
+export {
+  buildGardenMemberSets,
+  gardenHasMember,
+  resolveGardenMemberKey,
+} from "./app/garden";
+// ============================================================================
+// HAPTIC FEEDBACK (Vibration API)
+// ============================================================================
+export {
+  hapticError,
+  hapticHeavy,
+  hapticLight,
+  hapticSelection,
+  hapticSuccess,
+  haptics,
+  hapticWarning,
+  isHapticsEnabled,
+  isHapticsSupported,
+  resetHapticsState,
+  setHapticsEnabled,
+} from "./app/haptics";
+// ============================================================================
+// FILES
+// ============================================================================
+export type { NormalizeToFileOptions } from "./app/normalizeToFile";
+export { normalizeToFile } from "./app/normalizeToFile";
 // ============================================================================
 // PWA
 // ============================================================================
@@ -79,6 +79,7 @@ export {
   setupWakeLockVisibilityHandler,
   withWakeLock,
 } from "./app/wake-lock";
+export { GARDEN_ACCOUNT_ROLE_ABI, OCTANT_MODULE_ABI } from "./blockchain/abis";
 // ============================================================================
 // ADDRESS
 // ============================================================================
@@ -135,13 +136,25 @@ export {
   GardenAccountABI,
   GardenTokenABI,
   GreenGoodsENSABI,
-  HatsABI,
   getNetworkContracts,
+  HatsABI,
 } from "./blockchain/contracts";
-export { GARDEN_ACCOUNT_ROLE_ABI, OCTANT_MODULE_ABI } from "./blockchain/abis";
-export type { ResolveEnsAddressOptions, ResolveEnsOptions } from "./blockchain/ens";
+export type {
+  ResolveEnsAddressOptions,
+  ResolveEnsOptions,
+  SlugValidationResult,
+} from "./blockchain/ens";
 export { resolveEnsAddress, resolveEnsName, suggestSlug, validateSlug } from "./blockchain/ens";
-export type { SlugValidationResult } from "./blockchain/ens";
+export type { GardenRole, RoleColorScheme } from "./blockchain/garden-roles";
+export {
+  GARDEN_ROLE_COLORS,
+  GARDEN_ROLE_FUNCTIONS,
+  GARDEN_ROLE_I18N_KEYS,
+  GARDEN_ROLE_IDS,
+  GARDEN_ROLE_ORDER,
+  getRoleColorClasses,
+  ROLE_COLOR_CLASSES,
+} from "./blockchain/garden-roles";
 // ============================================================================
 // BLOCKCHAIN POLLING
 // ============================================================================
@@ -151,6 +164,17 @@ export { pollQueriesAfterTransaction, pollQueryAfterTransaction } from "./blockc
 // ============================================================================
 export type { SimulationResult } from "./blockchain/simulation";
 export { simulateJoinGarden, simulateTransaction } from "./blockchain/simulation";
+export {
+  formatTokenAmount,
+  getNetDeposited,
+  getVaultAssetDecimals,
+  getVaultAssetSymbol,
+  hasVaultAssetDecimals,
+  isZeroAddressValue,
+  isZeroBytes32,
+  validateDecimalInput,
+  ZERO_ADDRESS,
+} from "./blockchain/vaults";
 // ============================================================================
 // COMPRESSION (Native Compression Streams API)
 // ============================================================================
@@ -173,6 +197,10 @@ export { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "./debug";
 // ============================================================================
 export { createDispatchAdapter } from "./dispatch-adapter";
 // ============================================================================
+// DOMAIN BITMASK
+// ============================================================================
+export { expandDomainMask, hasDomain } from "./domain";
+// ============================================================================
 // EAS
 // ============================================================================
 export { encodeWorkApprovalData } from "./eas/encoders";
@@ -188,6 +216,18 @@ export {
   buildBatchWorkAttestTx,
   buildWorkAttestTx,
 } from "./eas/transaction-builder";
+export type { BlockchainErrorInfo, BlockchainErrorType } from "./errors/blockchain-errors";
+export {
+  detectBlockchainError,
+  getBlockchainErrorAction,
+  getBlockchainErrorI18nKey,
+  isRecoverableBlockchainError,
+} from "./errors/blockchain-errors";
+export type {
+  CategorizedError,
+  ErrorCategory as CategorizedErrorCategory,
+} from "./errors/categorize-error";
+export { categorizeError } from "./errors/categorize-error";
 // ============================================================================
 // ERRORS
 // ============================================================================
@@ -205,6 +245,21 @@ export type {
 } from "./errors/categorize-error";
 export { categorizeError } from "./errors/categorize-error";
 export { extractErrorMessage, extractErrorMessageOr } from "./errors/extract-message";
+export type {
+  MutationErrorContext,
+  MutationErrorHandlerConfig,
+  MutationErrorResult,
+} from "./errors/mutation-error-handler";
+export {
+  createDraftErrorHandler,
+  createMutationErrorHandler,
+} from "./errors/mutation-error-handler";
+export type { TxErrorKind, TxErrorSeverity, TxErrorView } from "./errors/tx-error-classifier";
+export {
+  classifyTxError,
+  isCancelledTxError,
+  isMeaningfulTxErrorMessage,
+} from "./errors/tx-error-classifier";
 export {
   formatJobError,
   formatUserError,
@@ -212,13 +267,6 @@ export {
   USER_FRIENDLY_ERRORS,
 } from "./errors/user-messages";
 export { ValidationError } from "./errors/validation-error";
-export type { BlockchainErrorInfo, BlockchainErrorType } from "./errors/blockchain-errors";
-export {
-  detectBlockchainError,
-  getBlockchainErrorAction,
-  getBlockchainErrorI18nKey,
-  isRecoverableBlockchainError,
-} from "./errors/blockchain-errors";
 export {
   formatTimeSpent,
   normalizeFeedback,

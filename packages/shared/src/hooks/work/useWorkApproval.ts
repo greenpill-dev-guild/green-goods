@@ -14,7 +14,6 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
@@ -25,8 +24,8 @@ import {
 } from "../../modules/app/analytics-events";
 import { jobQueue } from "../../modules/job-queue";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
-import { simulateApprovalSubmission } from "../../modules/work/simulate";
-import { submitApprovalToQueue, validateApprovalDraft } from "../../modules/work/work-submission";
+import { submitApprovalToQueue } from "../../modules/work/work-submission";
+import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
@@ -92,26 +91,6 @@ export function useWorkApproval() {
   // Using a single useTimeout caused the indexer lag timer to cancel the auto-clear timer.
   const { set: scheduleAutoClear } = useTimeout();
   const { set: scheduleInvalidation } = useTimeout();
-  const handleApprovalError = createMutationErrorHandler({
-    source: "useWorkApproval",
-    toastContext: "approval submission",
-    toastId: "approval-submit",
-    trackError: (errorMsg, metadata) =>
-      trackWorkApprovalFailed({
-        workUID: typeof metadata?.workUID === "string" ? metadata.workUID : "",
-        gardenAddress: typeof metadata?.gardenAddress === "string" ? metadata.gardenAddress : "",
-        error: errorMsg,
-        authMode,
-      }),
-    getFallbackMessage: (mode) =>
-      mode === "wallet"
-        ? "Approval failed. Refresh the page and try again."
-        : "We couldn't send the approval. We'll retry shortly.",
-    getFallbackDescription: (mode) =>
-      mode === "wallet"
-        ? "Confirm you're still an operator and that the action is active before resubmitting."
-        : "Keep the app open; the queue will keep trying in the background.",
-  });
 
   const mutation = useMutation({
     mutationFn: async ({ draft, work }: UseWorkApprovalParams): Promise<ApprovalMutationResult> => {
@@ -503,6 +482,15 @@ export function useWorkApproval() {
         });
       }
 
+      const isApproval = variables?.draft.approved ?? false;
+      const actionType = isApproval ? "approval" : "decision";
+
+      if (DEBUG_ENABLED) {
+        debugLog("[useWorkApproval] Rolled back optimistic update due to error", {
+          workUID: variables?.draft.workUID,
+        });
+      }
+
       handleApprovalError(error, {
         authMode,
         gardenAddress: variables?.work.gardenAddress,
@@ -522,46 +510,8 @@ export function useWorkApproval() {
 
   const mutateAsync = useCallback(
     (...args: Parameters<typeof mutation.mutateAsync>) =>
-      runWithLock(async () => {
-        const variables = args[0];
-        if (variables) {
-          const validationErrors = validateApprovalDraft(variables.draft);
-          if (validationErrors.length > 0) {
-            const error = new ValidationError(`Validation failed: ${validationErrors[0]}`);
-            handleApprovalError(error, {
-              authMode,
-              gardenAddress: variables.work.gardenAddress,
-              metadata: {
-                chainId,
-                workUID: variables.draft.workUID,
-                gardenAddress: variables.work.gardenAddress,
-                approved: variables.draft.approved,
-                gardenerAddress: variables.work.gardenerAddress,
-              },
-            });
-            throw error;
-          }
-
-          if (variables.draft.actionUID !== variables.work.actionUID) {
-            const error = new Error("ActionMismatch");
-            handleApprovalError(error, {
-              authMode,
-              gardenAddress: variables.work.gardenAddress,
-              metadata: {
-                chainId,
-                workUID: variables.draft.workUID,
-                gardenAddress: variables.work.gardenAddress,
-                approved: variables.draft.approved,
-                gardenerAddress: variables.work.gardenerAddress,
-              },
-            });
-            throw error;
-          }
-        }
-
-        return mutation.mutateAsync(...args);
-      }),
-    [authMode, chainId, handleApprovalError, mutation, runWithLock]
+      runWithLock(() => mutation.mutateAsync(...args)),
+    [mutation, runWithLock]
   );
 
   const mutate = useCallback(

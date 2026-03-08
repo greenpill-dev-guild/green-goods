@@ -3,15 +3,16 @@ import { createPublicClient, http } from "viem";
 import { useAccount } from "wagmi";
 import { DEFAULT_CHAIN_ID, getNetworkConfig } from "../../config/blockchain";
 import { STALE_TIMES } from "../../config/react-query";
+import { logger } from "../../modules/app/logger";
 import { useAuthContext } from "../../providers/Auth";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
-import { compareAddresses, isZeroAddress } from "../../utils/blockchain/address";
+import type { Address } from "../../types/domain";
+import { compareAddresses } from "../../utils/blockchain/address";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { logger } from "../../modules/app/logger";
 import { queryKeys } from "../query-keys";
 
-// DeploymentRegistry ABI - only the functions we need
-const DEPLOYMENT_REGISTRY_ABI = [
+// DeploymentRegistry ABI - read + write functions needed by hooks and views
+export const DEPLOYMENT_REGISTRY_ABI = [
   {
     inputs: [{ name: "account", type: "address" }],
     name: "isInAllowlist",
@@ -24,6 +25,34 @@ const DEPLOYMENT_REGISTRY_ABI = [
     name: "owner",
     outputs: [{ name: "", type: "address" }],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getAllowlist",
+    outputs: [{ name: "", type: "address[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "allowlistLength",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "addToAllowlist",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "removeFromAllowlist",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
 ] as const;
@@ -50,7 +79,7 @@ async function fetchDeploymentPermissions(
   });
 
   // If deployment registry is not configured, return false
-  if (isZeroAddress(contracts.deploymentRegistry)) {
+  if (contracts.deploymentRegistry === "0x0000000000000000000000000000000000000000") {
     return { isOwner: false, isInAllowlist: false, canDeploy: false };
   }
 
@@ -115,6 +144,57 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
     isInAllowlist: data?.isInAllowlist ?? false,
     canDeploy: data?.canDeploy ?? false,
     loading: !ready || isLoading,
+    ...(error ? { error: error instanceof Error ? error.message : "Unknown error" } : {}),
+  };
+}
+
+// --- Allowlist query (gated by isOwner) ---
+
+async function fetchDeploymentAllowlist(chainId: number): Promise<Address[]> {
+  const contracts = getNetworkContracts(chainId);
+  const chain = getChain(chainId);
+  const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
+  const networkConfig = getNetworkConfig(chainId, alchemyKey);
+
+  if (contracts.deploymentRegistry === "0x0000000000000000000000000000000000000000") {
+    return [];
+  }
+
+  const publicClient = createPublicClient({
+    chain,
+    transport: http(networkConfig.rpcUrl),
+  });
+
+  const allowlist = await publicClient.readContract({
+    address: contracts.deploymentRegistry as `0x${string}`,
+    abi: DEPLOYMENT_REGISTRY_ABI,
+    functionName: "getAllowlist",
+  });
+
+  return allowlist as Address[];
+}
+
+export interface DeploymentAllowlistResult {
+  allowlist: Address[];
+  loading: boolean;
+  error?: string;
+}
+
+export function useDeploymentAllowlist(enabled: boolean): DeploymentAllowlistResult {
+  const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
+  const chainId = selectedChainId || DEFAULT_CHAIN_ID;
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKeys.role.allowlist(chainId),
+    queryFn: () => fetchDeploymentAllowlist(chainId),
+    enabled,
+    staleTime: STALE_TIMES.baseLists,
+    networkMode: "offlineFirst",
+  });
+
+  return {
+    allowlist: data ?? [],
+    loading: isLoading,
     ...(error ? { error: error instanceof Error ? error.message : "Unknown error" } : {}),
   };
 }

@@ -19,8 +19,11 @@ const mockGetGardenAssessments = vi.fn();
 vi.mock("../../../modules/data/eas", () => ({
   getGardenAssessments: (...args: unknown[]) => mockGetGardenAssessments(...args),
 }));
-vi.mock("../../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 11155111,
+
+const mockSelectedChainId = vi.fn().mockReturnValue(11155111);
+vi.mock("../../../stores/useAdminStore", () => ({
+  useAdminStore: (selector: (state: any) => any) =>
+    selector({ selectedChainId: mockSelectedChainId() }),
 }));
 
 const mockUseQuery = vi.fn();
@@ -122,8 +125,9 @@ describe("useGardenAssessments", () => {
     expect(options.queryKey).toEqual(["greengoods", "assessments", "byGarden", "", 11155111]);
   });
 
-  it("uses an explicit chain ID override when provided", () => {
-    useGardenAssessments(GARDEN_ADDRESS, 42161);
+  it("picks up selectedChainId from admin store", () => {
+    mockSelectedChainId.mockReturnValue(42161);
+    useGardenAssessments(GARDEN_ADDRESS);
 
     const options = mockUseQuery.mock.calls[0][0];
     expect(options.queryKey).toEqual([

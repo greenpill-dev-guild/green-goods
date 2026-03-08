@@ -1,8 +1,8 @@
 "use client";
 
+import { CarouselContext, type CarouselProps, cn, useCarousel } from "@green-goods/shared";
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
 import * as React from "react";
-import { CarouselContext, cn, useCarousel, type CarouselProps } from "@green-goods/shared";
 import { ImagePreviewDialog } from "@/components/Dialogs";
 
 type CarouselApi = UseEmblaCarouselType[1];

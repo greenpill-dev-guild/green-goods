@@ -1,7 +1,9 @@
 import {
+  type Address,
   DEFAULT_CHAIN_ID,
   GardenTab,
   isGardenMember,
+  toastService,
   useActions,
   useBrowserNavigation,
   useConvictionStrategies,
@@ -10,14 +12,13 @@ import {
   useGardenVaults,
   useGardens,
   useGardenTabs,
+  useGardenVaults,
   useHasRole,
   useJoinGarden,
   useNavigateToTop,
   useUser,
   useVaultDeposits,
   useWorks,
-  toastService,
-  type Address,
 } from "@green-goods/shared";
 import {
   RiCalendarEventFill,
@@ -43,9 +44,7 @@ import {
 } from "@/components/Features";
 import { type StandardTab, StandardTabs, TopNav } from "@/components/Navigation";
 
-type GardenProps = {};
-
-export const Garden: React.FC<GardenProps> = () => {
+export const Garden: React.FC = () => {
   const intl = useIntl();
   const { primaryAddress } = useUser();
   const [isEndowmentOpen, setIsEndowmentOpen] = useState(false);
@@ -159,45 +158,15 @@ export const Garden: React.FC<GardenProps> = () => {
   });
   const hasGovernance = convictionStrategies.length > 0;
 
-  if (!garden) {
-    if (isGardenPending) {
-      return (
-        <div className="min-h-full flex flex-col items-center justify-center gap-4 p-6">
-          <TopNav onBackClick={() => navigate("/home")} />
-          <RiLoader4Line className="w-8 h-8 text-text-soft-400 animate-spin" />
-          <p className="text-sm text-text-sub-600 text-center">
-            {intl.formatMessage({
-              id: "app.garden.loading",
-              defaultMessage: "Loading garden...",
-            })}
-          </p>
-        </div>
-      );
-    }
-    return (
-      <div className="min-h-full flex flex-col items-center justify-center gap-4 p-6">
-        <TopNav onBackClick={() => navigate("/home")} />
-        <RiMapPin2Fill className="w-10 h-10 text-text-soft-400" />
-        <p className="text-sm text-text-sub-600 text-center">
-          {intl.formatMessage({
-            id: "app.garden.notFound",
-            defaultMessage: "Garden not found",
-          })}
-        </p>
-      </div>
-    );
-  }
-
-  const { name, bannerImage, location, createdAt, description } = garden;
-
   // Check if current user is an operator (can approve/reject work)
   const isOperator = useMemo(() => {
-    if (!primaryAddress || !garden.operators) return false;
+    if (!primaryAddress || !garden?.operators) return false;
     const normalizedUserAddress = primaryAddress.toLowerCase();
     return garden.operators.some((addr) => addr.toLowerCase() === normalizedUserAddress);
-  }, [primaryAddress, garden.operators]);
+  }, [primaryAddress, garden?.operators]);
+
   const { hasRole: canReviewOnChain } = useHasRole(
-    garden.id as Address | undefined,
+    garden?.id as Address | undefined,
     primaryAddress as Address | undefined,
     "evaluator"
   );
@@ -205,14 +174,15 @@ export const Garden: React.FC<GardenProps> = () => {
 
   // Check if current user is already a member of this garden
   const isMember = useMemo(() => {
+    if (!garden) return false;
     return isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id);
-  }, [primaryAddress, garden.gardeners, garden.operators, garden.id]);
+  }, [primaryAddress, garden]);
 
   // Join garden functionality
   const { joinGarden, isJoining } = useJoinGarden();
 
   const handleJoinGarden = useCallback(async () => {
-    if (!garden.id) return;
+    if (!garden?.id) return;
 
     try {
       const result = await joinGarden(garden.id);
@@ -239,18 +209,46 @@ export const Garden: React.FC<GardenProps> = () => {
         }),
       });
     }
-  }, [garden.id, joinGarden, intl]);
+  }, [garden?.id, joinGarden, intl]);
 
   // Determine if join button should be shown
   const showJoinButton = useMemo(() => {
-    // Must be authenticated
     if (!primaryAddress) return false;
-    // Must not already be a member
     if (isMember) return false;
-    // Garden must allow open joining
-    if (!garden.openJoining) return false;
+    if (!garden?.openJoining) return false;
     return true;
-  }, [primaryAddress, isMember, garden.openJoining]);
+  }, [primaryAddress, isMember, garden?.openJoining]);
+
+  if (!garden) {
+    if (gardensInitialLoading) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
+          <TopNav onBackClick={() => navigate("/home")} />
+          <RiLoader4Line className="w-8 h-8 text-text-soft-400 animate-spin" />
+          <p className="text-sm text-text-sub-600 text-center">
+            {intl.formatMessage({
+              id: "app.garden.loading",
+              defaultMessage: "Loading garden...",
+            })}
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
+        <TopNav onBackClick={() => navigate("/home")} />
+        <RiMapPin2Fill className="w-10 h-10 text-text-soft-400" />
+        <p className="text-sm text-text-sub-600 text-center">
+          {intl.formatMessage({
+            id: "app.garden.notFound",
+            defaultMessage: "Garden not found",
+          })}
+        </p>
+      </div>
+    );
+  }
+
+  const { name, bannerImage, location, createdAt, assessments, description } = garden;
 
   // Restore scroll position when switching tabs
 
@@ -300,7 +298,7 @@ export const Garden: React.FC<GardenProps> = () => {
             : "success";
         return (
           <GardenAssessments
-            assessmentFetchStatus={assessmentFetchStatus}
+            assessmentFetchStatus={gardensLoading ? "pending" : gardenStatus}
             assessments={assessments}
             description={description}
           />
@@ -396,7 +394,7 @@ export const Garden: React.FC<GardenProps> = () => {
 
             {/* Scrollable content below fixed header */}
             <div
-              className="px-4 md:px-6 pb-[calc(6rem+env(safe-area-inset-bottom))]"
+              className="flex-1 min-h-0 px-4 md:px-6 pb-24 overflow-y-auto overflow-x-hidden"
               aria-busy={worksFetching}
             >
               {renderTabContent()}

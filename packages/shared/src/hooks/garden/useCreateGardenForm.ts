@@ -12,6 +12,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { Domain } from "../../types/domain";
+
 // ---------------------------------------------------------------------------
 // Address schema (Ethereum 0x-prefixed, 40 hex chars)
 // ---------------------------------------------------------------------------
@@ -43,6 +45,7 @@ export const createGardenSchema = z.object({
   bannerImage: z.string().optional().default(""),
   metadata: z.string().optional().default(""),
   openJoining: z.boolean().default(false),
+  domains: z.array(z.nativeEnum(Domain)).min(1, "Select at least one domain"),
   gardeners: z.array(addressSchema).default([]),
   operators: z.array(addressSchema).default([]),
 });
@@ -60,7 +63,7 @@ export type CreateGardenFormData = CreateGardenFormInput;
  * UI calls `trigger(gardenStepFields[stepId])` to validate only the current step.
  */
 export const gardenStepFields = {
-  details: ["name", "slug", "description", "location", "bannerImage"] as const,
+  details: ["name", "slug", "description", "location", "bannerImage", "domains"] as const,
   team: ["gardeners", "operators", "openJoining"] as const,
   review: [] as const,
 } satisfies Record<string, readonly (keyof CreateGardenFormData)[]>;
@@ -80,6 +83,7 @@ export function createDefaultGardenForm(): CreateGardenFormInput {
     bannerImage: "",
     metadata: "",
     openJoining: false,
+    domains: [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE],
     gardeners: [],
     operators: [],
   };
@@ -92,7 +96,7 @@ export function createDefaultGardenForm(): CreateGardenFormInput {
 export function useCreateGardenForm() {
   return useForm<CreateGardenFormInput, unknown, CreateGardenFormOutput>({
     resolver: zodResolver(createGardenSchema),
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: createDefaultGardenForm(),
   });
 }

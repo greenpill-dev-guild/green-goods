@@ -6,6 +6,17 @@
  */
 
 import { vi } from "vitest";
+import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
+import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types";
+import { Confidence, Domain, VerificationMethod } from "../../types";
+import type { CookieJar } from "../../types/cookie-jar";
+import type {
+  AllowlistEntry,
+  HypercertAttestation,
+  HypercertDraft,
+  HypercertRecord,
+  OutcomeMetrics,
+} from "../../types/hypercerts";
 
 import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types";
 import type { CookieJar } from "../../types/cookie-jar";
@@ -303,7 +314,7 @@ export function createMockHypercertDraft(overrides: Partial<HypercertDraft> = {}
     stepNumber: 1,
     attestationIds: [],
     title: "Test Hypercert",
-    description: "A test hypercert for conservation work",
+    description: "A test hypercert for regenerative work",
     workScopes: ["gardening", "planting"],
     impactScopes: ["environment"],
     workTimeframeStart: now - 86400 * 30, // 30 days ago

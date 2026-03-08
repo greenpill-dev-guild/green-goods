@@ -46,7 +46,8 @@ contract GreenGoodsENSReceiverTest is Test {
     address public user2 = address(0x50);
 
     uint64 public constant ARB_CHAIN_SELECTOR = 4_949_039_107_694_359_620;
-    bytes32 public constant BASE_NODE = keccak256(abi.encodePacked(bytes32(0), keccak256("eth")));
+    /// @dev namehash("greengoods.eth") = keccak256(abi.encodePacked(namehash("eth"), keccak256("greengoods")))
+    bytes32 public constant BASE_NODE = 0x15ee556e39afd119101712c5ac4f1519d9f2f32780d4e1cf42b27fdfa73db841;
 
     event NameRegistered(
         string slug, address indexed owner, GreenGoodsENSReceiver.NameType nameType, bytes32 indexed messageId

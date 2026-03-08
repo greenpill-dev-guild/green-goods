@@ -1,11 +1,4 @@
-import {
-  type Garden,
-  type Work,
-  cn,
-  iconButtonIconVariants,
-  iconButtonVariants,
-  useOffline,
-} from "@green-goods/shared";
+import { cn, type Garden, useOffline, type Work } from "@green-goods/shared";
 import {
   RiArrowLeftFill,
   RiBankLine,
@@ -15,6 +8,7 @@ import {
 } from "@remixicon/react";
 import { useId } from "react";
 import { useIntl } from "react-intl";
+import { Button } from "@/components/Actions";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
 type TopNavProps = {
@@ -60,18 +54,28 @@ Notifications.displayName = "Notifications";
 // Styling configuration for different button states
 const BUTTON_VARIANTS = {
   work: {
-    button: "focus-visible:ring-success-light focus-visible:border-success-base",
-    icon: "text-text-sub-600",
+    focus:
+      "focus-visible:ring-emerald-200 focus-visible:border-emerald-600 active:border-emerald-600",
+    icon: "focus-visible:text-emerald-700 active:text-emerald-700",
   },
   sync: {
-    button: "focus-visible:ring-information-light focus-visible:border-information-base",
-    icon: "text-information-base",
+    focus: "focus-visible:ring-blue-200 focus-visible:border-blue-600 active:border-blue-600",
+    icon: "focus-visible:text-blue-700 active:text-blue-700",
   },
   offline: {
-    button: "focus-visible:ring-warning-light focus-visible:border-warning-base",
-    icon: "text-warning-base",
+    focus: "focus-visible:ring-orange-200 focus-visible:border-orange-600 active:border-orange-600",
+    icon: "focus-visible:text-orange-700 active:text-orange-700",
   },
 } as const;
+
+// Base styling for navigation buttons
+const NAV_BUTTON_BASE = [
+  "relative flex items-center justify-center w-11 h-11 p-1 rounded-lg border",
+  "bg-bg-white-0 border-stroke-soft-200 text-text-sub-600",
+  "transition-all duration-200 tap-feedback",
+  "active:scale-95",
+  "focus-visible:outline-none focus-visible:ring-2",
+] as const;
 
 // Create complete button styles for a given variant
 const createButtonStyles = (variant: keyof typeof BUTTON_VARIANTS = "work") => ({
@@ -181,7 +185,6 @@ export const TopNav: React.FC<TopNavProps> = ({
   onEndowmentClick,
   showGovernanceButton = false,
   onGovernanceClick,
-  className,
   ...props
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
@@ -196,8 +199,13 @@ export const TopNav: React.FC<TopNavProps> = ({
     "relative z-[1000] grid w-full grid-cols-[minmax(2.75rem,auto)_minmax(0,1fr)_minmax(2.75rem,auto)] items-center gap-2 px-3 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:gap-4 sm:px-4 md:px-6",
     overlay && "fixed inset-x-0 bg-bg-white-0/95 backdrop-blur-sm",
     overlay && hasOfflineIssues && "top-2", // Space for offline indicator
-    overlay && !hasOfflineIssues && "top-0",
-    className
+    overlay && !hasOfflineIssues && "top-0"
+  );
+
+  const backButtonClasses = cn(
+    "p-0 px-2 z-1 transition-all duration-200 tap-target-lg tap-feedback",
+    "focus-visible:outline-none focus-visible:ring-2 active:scale-95",
+    backButtonStyles.focusStyles
   );
 
   return (
@@ -229,23 +237,22 @@ export const TopNav: React.FC<TopNavProps> = ({
         <div className="flex min-w-0 flex-row items-center justify-center gap-3">{children}</div>
       </div>
 
-      <div className="flex items-center justify-end gap-2 sm:gap-3">
-        {garden && showGovernanceButton && onGovernanceClick && (
-          <GovernanceButton
-            onClick={onGovernanceClick}
-            ariaLabel={formatMessage({ id: "app.signal.governance" })}
-          />
-        )}
-        {garden && showEndowmentButton && onEndowmentClick && (
-          <EndowmentButton
-            hasDeposits={hasEndowmentDeposits}
-            onClick={onEndowmentClick}
-            ariaLabel={formatMessage({ id: "app.treasury.open" })}
-          />
-        )}
-        {/* Only show notifications for operators - they need to review pending work */}
-        {garden && isOperator && <NotificationCenter {...props} garden={garden} />}
-      </div>
+      <div className="flex grow" />
+      {garden && showGovernanceButton && onGovernanceClick && (
+        <GovernanceButton
+          onClick={onGovernanceClick}
+          ariaLabel={formatMessage({ id: "app.signal.governance" })}
+        />
+      )}
+      {garden && showEndowmentButton && onEndowmentClick && (
+        <EndowmentButton
+          hasDeposits={hasEndowmentDeposits}
+          onClick={onEndowmentClick}
+          ariaLabel={formatMessage({ id: "app.treasury.open" })}
+        />
+      )}
+      {/* Only show notifications for operators - they need to review pending work */}
+      {garden && isOperator && <NotificationCenter {...props} garden={garden} />}
     </div>
   );
 };

@@ -14,7 +14,7 @@
  * @see https://docs.pimlico.io/reference/bundler/endpoints
  */
 
-import { http, HttpResponse, type PathParams, type DefaultBodyType } from "msw";
+import { type DefaultBodyType, HttpResponse, http, type PathParams } from "msw";
 
 // ============================================================================
 // TYPES

@@ -44,8 +44,6 @@ contract Deploy is Script, DeploymentBase {
     error MissingArbitrumL1Receiver();
     error ENSRegistrationSendFailed();
     error ENSRegistrationVerificationFailed();
-    error InvalidSeedRoleAddress(address garden, uint8 role, uint256 index);
-    error SeedRoleGrantFailed(address garden, address account, uint8 role);
     error RootGardenCommunityNotCreated();
     error RootGardenPoolNotCreated();
     error RootGardenVaultMissing(address asset);
@@ -118,7 +116,7 @@ contract Deploy is Script, DeploymentBase {
         } else {
             // Schema-only update mode - load existing deployment
             string memory chainIdStr = vm.toString(block.chainid);
-            string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-latest.json");
+            string memory deploymentPath = _chainDeploymentPath(chainIdStr, "-latest.json");
             string memory json = vm.readFile(deploymentPath);
 
             // Load existing resolver addresses
@@ -730,6 +728,30 @@ contract Deploy is Script, DeploymentBase {
                 }
                 console.log("WARNING: root garden has no signal pools; continuing (REQUIRE_ROOT_GARDEN_POOL=false)");
             }
+
+            // solhint-disable-next-line no-empty-blocks
+            try gardensModule.retryCreateCommunity(rootGardenAddress) returns (address retriedCommunity) {
+                community = retriedCommunity;
+            } catch { }
+
+            community = gardensModule.getGardenCommunity(rootGardenAddress);
+            if (community == address(0)) revert RootGardenCommunityNotCreated();
+        }
+
+        address[] memory pools = gardensModule.getGardenSignalPools(rootGardenAddress);
+        if (pools.length == 0) {
+            // solhint-disable-next-line no-empty-blocks
+            try gardensModule.retryCreatePools(rootGardenAddress) returns (address[] memory retriedPools) {
+                pools = retriedPools;
+            } catch { }
+
+            pools = gardensModule.getGardenSignalPools(rootGardenAddress);
+            if (pools.length == 0) {
+                if (_requireRootGardenPool()) {
+                    revert RootGardenPoolNotCreated();
+                }
+                console.log("WARNING: root garden has no signal pools; continuing (REQUIRE_ROOT_GARDEN_POOL=false)");
+            }
         }
 
         // Recovery path: if community/pools were created via retry helpers, treasury seeding
@@ -883,14 +905,137 @@ contract Deploy is Script, DeploymentBase {
                 : hatsModule.isGardenerOf(garden, account);
             if (!granted) revert SeedRoleGrantFailed(garden, account, uint8(role));
         }
+
+        // Recovery path: if community/pools were created via retry helpers, treasury seeding
+        // from the original onGardenMinted() may have been skipped. Attempt owner-only reseed.
+        address goodsTokenAddress = address(gardensModule.goodsToken());
+        if (goodsTokenAddress != address(0) && IERC20(goodsTokenAddress).balanceOf(rootGardenAddress) == 0) {
+            // solhint-disable-next-line no-empty-blocks
+            try gardensModule.seedGardenTreasury(rootGardenAddress) { } catch { }
+        }
+    }
+
+    /// @notice Whether root-garden pool creation is a hard deployment gate.
+    /// @dev Arbitrum defaults to non-blocking because community council-safe policy and
+    ///      Gardens V2 permissions may require post-deploy council transactions for pools.
+    function _requireRootGardenPool() internal view returns (bool) {
+        bool defaultValue = block.chainid != ARBITRUM_CHAIN_ID;
+        return _envBoolOrDefault("REQUIRE_ROOT_GARDEN_POOL", defaultValue);
+    }
+
+    /// @notice Should we auto-deploy a mock Gardens registry factory for recovery.
+    /// @dev Sepolia defaults to true because public Gardens V2 factory frequently lacks
+    ///      configured community facets. Override with AUTO_DEPLOY_MOCK_GARDENS_FACTORY.
+    function _shouldAutoDeployMockGardensFactory() internal view returns (bool) {
+        bool fallbackDefault = block.chainid == SEPOLIA_CHAIN_ID;
+        return _envBoolOrDefault("AUTO_DEPLOY_MOCK_GARDENS_FACTORY", fallbackDefault);
+    }
+
+    /// @notice Deploy and set a mock registry factory used only as a recovery fallback.
+    function _deployAndSetMockGardensFactory() internal {
+        if (address(gardensModule) == address(0)) return;
+        MockRegistryFactory mockFactory = new MockRegistryFactory();
+        gardensModule.setRegistryFactory(address(mockFactory));
+    }
+
+    /// @notice Deploy gardens from config/gardens.json.
+    function _deployGardensFromConfig(string memory gardensJson) internal {
+        uint256 gardensCount = _getGardensCount(gardensJson);
+        if (gardensCount == 0) revert NoSeedGardensConfigured();
+
+        string memory communitySlug = _getCommunityGardenSlug();
+
+        for (uint256 i = 0; i < gardensCount; i++) {
+            string memory basePath = string.concat(".gardens[", vm.toString(i), "]");
+            GardenToken.GardenConfig memory gardenConfig =
+                _parseGardenConfigFromJson(gardensJson, basePath, i, communitySlug);
+
+            uint256 ensFee = _estimateENSFee(gardenConfig.slug);
+            address gardenAddress = gardenToken.mintGarden{ value: ensFee }(gardenConfig);
+
+            gardenAddresses.push(gardenAddress);
+            uint256 tokenId = i + 1;
+            gardenTokenIds.push(tokenId);
+
+            if (_slugMatches(gardenConfig.slug, communitySlug)) {
+                rootGardenAddress = gardenAddress;
+                rootGardenTokenId = tokenId;
+            }
+        }
+
+        if (rootGardenAddress == address(0)) {
+            revert RootGardenCommunityNotCreated();
+        }
+    }
+
+    /// @notice Count gardens defined in the JSON.
+    function _getGardensCount(string memory gardensJson) internal view returns (uint256) {
+        for (uint256 i = 0; i < MAX_CONFIG_ENTRIES; i++) {
+            string memory basePath = string.concat(".gardens[", vm.toString(i), "]");
+            try vm.parseJson(gardensJson, basePath) returns (bytes memory gardenBytes) {
+                if (gardenBytes.length == 0) {
+                    return i;
+                }
+            } catch {
+                return i;
+            }
+        }
+        return MAX_CONFIG_ENTRIES;
+    }
+
+    /// @notice Parse a single garden entry from JSON.
+    function _parseGardenConfigFromJson(
+        string memory gardensJson,
+        string memory basePath,
+        uint256 gardenIndex,
+        string memory communitySlug
+    )
+        internal
+        view
+        returns (GardenToken.GardenConfig memory gardenConfig)
+    {
+        string memory name = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".name")), (string));
+        string memory description = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".description")), (string));
+        string memory location = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".location")), (string));
+        string memory bannerImage = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".bannerImage")), (string));
+
+        string memory slug = _parseOptionalString(gardensJson, string.concat(basePath, ".slug"));
+        string memory metadata = _parseOptionalString(gardensJson, string.concat(basePath, ".metadata"));
+        bool openJoining = _parseOptionalBool(gardensJson, string.concat(basePath, ".openJoining"), false);
+
+        uint8 domainMask = _slugMatches(slug, communitySlug) ? MAX_DOMAIN_MASK : 0;
+        try vm.parseJson(gardensJson, string.concat(basePath, ".domainMask")) returns (bytes memory domainMaskBytes) {
+            uint256 parsedDomainMask = abi.decode(domainMaskBytes, (uint256));
+            if (parsedDomainMask > MAX_DOMAIN_MASK) {
+                revert InvalidSeedGardenDomainMask(gardenIndex, parsedDomainMask);
+            }
+            domainMask = uint8(parsedDomainMask);
+        } catch { }
+
+        address[] memory operators = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".operators"));
+        address[] memory gardeners = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".gardeners"));
+
+        gardenConfig = GardenToken.GardenConfig({
+            name: name,
+            slug: slug,
+            description: description,
+            location: location,
+            bannerImage: bannerImage,
+            metadata: metadata,
+            openJoining: openJoining,
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: domainMask,
+            gardeners: gardeners,
+            operators: operators
+        });
     }
 
     /// @notice Upload actions to IPFS and return hashes
     // solhint-disable-next-line code-complexity
     function _uploadActionsToIPFS(uint256 expectedCount) internal returns (string[] memory) {
         string[] memory inputs = new string[](3);
-        inputs[0] = "bun";
-        inputs[1] = "run";
+        inputs[0] = "npx";
+        inputs[1] = "tsx";
         inputs[2] = "script/utils/ipfs-uploader.ts";
 
         try vm.ffi(inputs) returns (bytes memory result) {
@@ -1210,7 +1355,7 @@ contract Deploy is Script, DeploymentBase {
     /// @notice Update only schema UIDs in existing deployment file (schema-only mode)
     function _updateSchemaUIDsOnly() internal {
         string memory chainIdStr = vm.toString(block.chainid);
-        string memory deploymentPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-latest.json");
+        string memory deploymentPath = _chainDeploymentPath(chainIdStr, "-latest.json");
 
         // Update only the schema UID fields within the schemas object
         vm.writeJson(vm.toString(workSchemaUID), deploymentPath, ".schemas.workSchemaUID");
@@ -1283,7 +1428,7 @@ contract Deploy is Script, DeploymentBase {
         // Also save all garden addresses and token IDs to a separate file for reference
         if (gardenAddresses.length > 0) {
             string memory chainIdStr = vm.toString(block.chainid);
-            string memory gardensPath = string.concat(vm.projectRoot(), "/deployments/", chainIdStr, "-gardens.json");
+            string memory gardensPath = _chainDeploymentPath(chainIdStr, "-gardens.json");
 
             // Build JSON manually for array of gardens
             string memory gardensJson = "{\"gardens\":[";

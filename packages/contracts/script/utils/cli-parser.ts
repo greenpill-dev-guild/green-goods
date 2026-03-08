@@ -7,6 +7,7 @@
 export interface ParsedOptions {
   network: string;
   broadcast: boolean;
+  saveArtifacts: boolean;
   verify: boolean;
   updateSchemasOnly: boolean;
   force: boolean;
@@ -17,13 +18,14 @@ export interface ParsedOptions {
   startIndexer: boolean;
   saveReport: boolean;
   overrideSepoliaGate: boolean;
+  sender?: string;
   deploymentSalt?: string;
   help?: boolean;
   error?: string;
 }
 
 /** Flags that consume the next argument as their value */
-const VALUE_FLAGS = new Set(["--network", "-n", "--chain", "--salt"]);
+const VALUE_FLAGS = new Set(["--network", "-n", "--chain", "--salt", "--sender"]);
 
 /** Flags whose values contain secrets and must be redacted in logs */
 const SENSITIVE_FLAGS = new Set(["--private-key", "--etherscan-api-key", "--account", "--sender"]);
@@ -58,6 +60,7 @@ export class CliParser {
     const options: ParsedOptions = {
       network: "localhost",
       broadcast: false,
+      saveArtifacts: false,
       verify: true,
       updateSchemasOnly: false,
       force: false,
@@ -87,6 +90,9 @@ export class CliParser {
         case "--broadcast":
         case "-b":
           options.broadcast = true;
+          break;
+        case "--save-artifacts":
+          options.saveArtifacts = true;
           break;
         case "--update-schemas":
           options.updateSchemasOnly = true;
@@ -120,6 +126,12 @@ export class CliParser {
             return { ...options, error: `${arg} requires a salt value` };
           }
           options.deploymentSalt = args[++i];
+          break;
+        case "--sender":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires an address value` };
+          }
+          options.sender = args[++i];
           break;
         case "--help":
         case "-h":

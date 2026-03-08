@@ -5,9 +5,9 @@ import {
   SelectGroup,
   SelectItem,
   SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
-  SelectSeparator,
 } from "./Select";
 
 const meta: Meta<typeof Select> = {
@@ -118,37 +118,6 @@ export const FullWidth: Story = {
           <SelectItem value="option1">Option 1</SelectItem>
           <SelectItem value="option2">Option 2</SelectItem>
           <SelectItem value="option3">Option 3</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  ),
-};
-
-export const SizeScale: Story = {
-  render: () => (
-    <div className="flex max-w-md flex-col gap-4">
-      <Select>
-        <SelectTrigger size="sm">
-          <SelectValue placeholder="Small select" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="one">Option 1</SelectItem>
-        </SelectContent>
-      </Select>
-      <Select>
-        <SelectTrigger size="md">
-          <SelectValue placeholder="Medium select" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="two">Option 2</SelectItem>
-        </SelectContent>
-      </Select>
-      <Select>
-        <SelectTrigger size="lg">
-          <SelectValue placeholder="Large select" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="three">Option 3</SelectItem>
         </SelectContent>
       </Select>
     </div>

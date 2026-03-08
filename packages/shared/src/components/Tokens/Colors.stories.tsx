@@ -1,5 +1,5 @@
-import React from "react";
 import type { Meta, StoryObj } from "@storybook/react";
+import React from "react";
 
 /**
  * Visual documentation of the Green Goods color system.
@@ -264,6 +264,13 @@ const stateGroups: StateGroup[] = [
 /* -------------------------------------------------------------------------- */
 
 function SwatchChip({ swatch }: { swatch: Swatch }) {
+  const needsDarkText =
+    swatch.name.endsWith("-0") ||
+    swatch.name.endsWith("-50") ||
+    swatch.name.endsWith("-100") ||
+    swatch.name.endsWith("-200") ||
+    swatch.name.endsWith("-300");
+
   return (
     <div className="flex flex-col items-center gap-1">
       <div

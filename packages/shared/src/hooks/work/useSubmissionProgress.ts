@@ -11,7 +11,7 @@
  * @module hooks/work/useSubmissionProgress
  */
 
-import { useState, useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 
 /**
  * Submission stages in order of execution

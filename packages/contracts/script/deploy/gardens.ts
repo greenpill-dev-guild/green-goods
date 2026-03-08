@@ -117,7 +117,7 @@ export class GardenDeployer {
       args.push("--account", keystoreName);
 
       // Optionally specify sender address for verification
-      const senderAddress = process.env.SENDER_ADDRESS;
+      const senderAddress = options.sender ?? process.env.SENDER_ADDRESS;
       if (senderAddress) {
         args.push("--sender", senderAddress);
       }

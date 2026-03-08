@@ -1,15 +1,14 @@
+import { getAddress, isAddress } from "viem";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
-import { isAddress, getAddress } from "viem";
-
+import type { DistributionMode } from "../lib/hypercerts/distribution";
+import { logger } from "../modules/app/logger";
 import type {
   AllowlistEntry,
   CapitalType,
   HypercertDraft,
   OutcomeMetrics,
 } from "../types/hypercerts";
-import type { DistributionMode } from "../lib/hypercerts/distribution";
-import { logger } from "../modules/app/logger";
 
 /**
  * Session storage key for minting state persistence.

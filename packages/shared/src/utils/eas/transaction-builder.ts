@@ -7,10 +7,10 @@
  * @module utils/eas/transaction-builder
  */
 
-import { NO_EXPIRATION, ZERO_BYTES32 } from "./constants";
 import { encodeFunctionData, type Hex } from "viem";
 import type { EASConfig } from "../../config/blockchain";
 import { EASABI } from "../blockchain/contracts";
+import { NO_EXPIRATION, ZERO_BYTES32 } from "./constants";
 
 /**
  * EAS attestation request structure (internal)
@@ -40,7 +40,7 @@ function buildAttestationRequest(
     data: {
       recipient,
       expirationTime: NO_EXPIRATION,
-      revocable: true,
+      revocable: false,
       refUID: ZERO_BYTES32 as Hex,
       data: attestationData,
       value: 0n,
@@ -149,7 +149,7 @@ export function buildBatchApprovalAttestTx(
     data: approvals.map(({ gardenAddress, attestationData }) => ({
       recipient: gardenAddress,
       expirationTime: NO_EXPIRATION,
-      revocable: true,
+      revocable: false,
       refUID: ZERO_BYTES32 as Hex,
       data: attestationData,
       value: 0n,
@@ -191,7 +191,7 @@ export function buildBatchWorkAttestTx(
     data: works.map(({ gardenAddress, attestationData }) => ({
       recipient: gardenAddress,
       expirationTime: NO_EXPIRATION,
-      revocable: true,
+      revocable: false,
       refUID: ZERO_BYTES32 as Hex,
       data: attestationData,
       value: 0n,

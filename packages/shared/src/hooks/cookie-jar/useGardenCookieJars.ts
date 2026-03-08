@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useReadContract, useReadContracts } from "wagmi";
-import type { Address } from "../../types/domain";
 import type { CookieJar } from "../../types/cookie-jar";
+import type { Address } from "../../types/domain";
 import {
   COOKIE_JAR_ABI,
   COOKIE_JAR_MODULE_ABI,

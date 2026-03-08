@@ -17,8 +17,8 @@
  * This wrapper maintains backward compatibility with existing scripts.
  */
 
-import dotenv from "dotenv";
 import path from "node:path";
+import dotenv from "dotenv";
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
@@ -30,7 +30,10 @@ import { DeploymentCLI } from "./deploy/cli";
 const isMain = import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("deploy.ts");
 if (isMain) {
   const cli = new DeploymentCLI();
-  cli.run(process.argv).catch(console.error);
+  cli.run(process.argv).catch((error) => {
+    console.error("Deploy failed:", error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
 }
 
 // Export for programmatic use

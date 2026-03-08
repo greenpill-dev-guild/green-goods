@@ -1,0 +1,110 @@
+---
+title: Deployment Status
+sidebar_label: Status
+slug: /builders/deployments/status
+audience: developer
+owner: docs
+last_verified: 2026-03-01
+---
+
+# Deployment Status
+
+{/* IMAGE PLACEHOLDER: Deployment status dashboard — services, endpoints, and health checks (800x400) */}
+
+Overview of all deployed Green Goods services, live endpoints, and chain contract addresses.
+
+## Service Endpoints
+
+| Service | Environment | URL |
+|---------|-------------|-----|
+| Client PWA | Production | `app.greengoods.app` |
+| Admin Dashboard | Production | `admin.greengoods.app` |
+| Documentation | Production | `docs.greengoods.app` |
+| Envio Indexer | Production | Hosted by Envio (GraphQL endpoint in `.env`) |
+| Agent Bot | Production | Telegram bot service |
+
+## Chain Deployments
+
+Contract addresses are stored in deployment artifacts at `packages/contracts/deployments/{chainId}-latest.json`. This file is the single source of truth for all addresses.
+
+### Supported Chains
+
+| Chain | Chain ID | Status | Notes |
+|-------|----------|--------|-------|
+| Sepolia | 11155111 | Active (testnet) | Primary development chain |
+| Arbitrum | 42161 | Active | Production mainnet |
+| Celo | 42220 | Active | Production mainnet |
+
+The target chain is set by `VITE_CHAIN_ID` at build time. Each frontend build is single-chain.
+
+### Deployment Artifact Structure
+
+Each `{chainId}-latest.json` file contains addresses for all deployed contracts:
+
+- `accountProxy` / `gardenAccountImpl` / `gardenToken` -- Garden TBA system
+- `actionRegistry` / `deploymentRegistry` -- Protocol registries
+- `assessmentResolver` / `workResolver` / `workApprovalResolver` -- EAS resolvers
+- `eas.address` / `eas.schemaRegistry` -- EAS infrastructure
+- `rootGarden` -- Root garden address and token ID
+- `hats.*` -- Hats Protocol tree addresses
+
+Zero addresses indicate a module has not been deployed yet. This is not a blocker for optional modules.
+
+## Hats Protocol Trees
+
+Each chain has a dedicated Hats tree for role management:
+
+| Chain | Tree ID | Community Hat |
+|-------|---------|---------------|
+| Sepolia | 2022 | `0x000007e60002...` |
+| Arbitrum | 92 | `0x0000005c0002...` |
+| Celo | 31 | `0x0000001f0002...` |
+
+## Verification
+
+### Post-Deploy Verification
+
+After any deployment, run the verification suite:
+
+```bash
+# Full verification (contract state + Etherscan)
+cd packages/contracts && bun run verify:post-deploy:sepolia
+
+# Etherscan verification only
+cd packages/contracts && bun run verify:etherscan:sepolia
+
+# Verify with indexer runtime check
+cd packages/contracts && bun run verify:post-deploy:indexer:sepolia
+```
+
+### EAS Immutable Validation
+
+Resolver contracts have immutable `_eas` references that must match the chain's EAS deployment:
+
+```bash
+cd packages/contracts && node script/validate-eas-immutables.mjs
+cd packages/contracts && node script/validate-resolver-eas.mjs
+```
+
+## Health Monitoring
+
+### Checking Deployment Status
+
+```bash
+cd packages/contracts && bun run status
+```
+
+This reads the deployment artifacts and reports which contracts are deployed, their addresses, and whether they are verified on Etherscan.
+
+### Indexer Health
+
+The indexer exposes a GraphQL endpoint. Query `_metadata` for sync status:
+
+```graphql
+{
+  _metadata {
+    lastProcessedBlockNumber
+    lastProcessedTimestamp
+  }
+}
+```

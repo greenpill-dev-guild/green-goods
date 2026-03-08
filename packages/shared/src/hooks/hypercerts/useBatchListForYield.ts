@@ -7,26 +7,25 @@
  * @module hooks/hypercerts/useBatchListForYield
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useCallback } from "react";
-import { type Address, type Hex, encodeFunctionData } from "viem";
+import { useCallback, useState } from "react";
+import { type Address, encodeFunctionData, type Hex } from "viem";
 import { useWalletClient } from "wagmi";
 
-import { DEFAULT_CHAIN_ID, createPublicClientForChain } from "../../config";
+import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
 import { logger } from "../../modules/app/logger";
-import { isZeroAddress } from "../../utils/blockchain/address";
 import {
-  type MakerAskOrder,
   buildMakerAsk,
+  type MakerAskOrder,
   signMakerAsk,
   validateOrder,
 } from "../../modules/marketplace";
-import { HYPERCERTS_MODULE_ABI } from "./hypercert-abis";
-import { getNetworkContracts } from "../../utils/blockchain/contracts";
+import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { CreateListingParams } from "../../types/hypercerts";
-import { useAuth } from "../auth/useAuth";
-import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
-import { queryInvalidation } from "../query-keys";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
+import { useAuth } from "../auth/useAuth";
+import { queryInvalidation } from "../query-keys";
+import { HYPERCERTS_MODULE_ABI } from "./hypercert-abis";
 
 export interface BatchProgress {
   total: number;
@@ -62,7 +61,7 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
 
       const contracts = getNetworkContracts(chainId);
       const moduleAddress = contracts.hypercertsModule as Address;
-      if (!moduleAddress || isZeroAddress(moduleAddress)) {
+      if (!moduleAddress || moduleAddress === "0x0000000000000000000000000000000000000000") {
         throw new Error("HypercertsModule not deployed on this chain");
       }
 

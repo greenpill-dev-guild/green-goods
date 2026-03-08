@@ -92,7 +92,7 @@ Green Goods uses a holistic framework for impact measurement:
 ### User Personas
 
 **Gardener: Maria**
-- Conservation volunteer
+- Community volunteer
 - Uses smartphone primarily
 - Limited tech experience
 - Needs simple, offline-capable tools
@@ -115,7 +115,7 @@ Green Goods uses a holistic framework for impact measurement:
 
 ### 1. Mobile-First
 
-**Why**: Conservation work happens in the field, not at desks.
+**Why**: Regenerative work happens in the field, not at desks.
 
 **How**: Touch-optimized UI, camera-centric, minimal typing.
 

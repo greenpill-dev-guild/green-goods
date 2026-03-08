@@ -1,7 +1,13 @@
 ---
 name: debug
-description: Debugging & Troubleshooting - root cause investigation. Use for systematic debugging and verification.
+description: Debugging & Troubleshooting - systematic root cause investigation with hypothesis testing and evidence collection. Use when the user reports a bug, encounters an error, sees unexpected behavior, or says 'debug this' or 'investigate this issue'.
 argument-hint: "[error-description]"
+version: "1.0.0"
+status: active
+packages: ["all"]
+dependencies: []
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Debug Skill
@@ -234,7 +240,7 @@ IndexedDB Draft → Job Queue → IPFS Upload → Contract Call → Indexer Even
 # Console: jobQueue.getStats(userAddress)
 
 # Monitor job events
-# Console: eventBus.subscribe("job:*", console.log)
+# Console: jobQueueEventBus.subscribe("job:*", console.log)
 ```
 
 | Symptom | Layer | Check |

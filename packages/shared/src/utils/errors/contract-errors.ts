@@ -26,7 +26,7 @@ interface ErrorInfo {
  * Selectors are calculated using: cast sig "ErrorName()"
  * Run `cast sig "ErrorName()"` to get the 4-byte selector for any error.
  *
- * Last updated: 2026-01-18 (synced with deployed contracts)
+ * Last updated: 2026-02-25 (synced with deployed contracts)
  */
 const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   // ============================================================================
@@ -201,6 +201,24 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     action: "Select a valid action to submit work for",
     recoverable: false,
   },
+  "0x522af862": {
+    name: "ActionDomainMismatch",
+    message: "This action's domain is not enabled for the target garden",
+    action: "Select an action whose domain matches the garden",
+    recoverable: false,
+  },
+  "0xbf37b20e": {
+    name: "InvalidSchema",
+    message: "Attestation uses the wrong schema UID",
+    recoverable: false,
+    suggestedAction: "contact-support",
+  },
+  "0xb839f0ae": {
+    name: "MetadataRequired",
+    message: "Work metadata is required",
+    action: "Please provide metadata for the work submission",
+    recoverable: false,
+  },
 
   // ============================================================================
   // WorkApprovalResolver.sol errors
@@ -212,58 +230,56 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     recoverable: false,
     suggestedAction: "contact-support",
   },
-  "0x5629ca14": {
-    name: "ActionMismatch",
-    message: "This approval no longer matches the original work submission",
-    action: "Refresh the page and retry from the latest work details",
-    recoverable: false,
-    suggestedAction: "retry",
-  },
-  "0x001331cf": {
-    name: "ActionExpired",
-    message: "This action has expired and can no longer accept new approval decisions",
-    action: "Extend the action window or retry with work tied to an active action",
-    recoverable: false,
-    suggestedAction: "contact-support",
-  },
   "0x126db58e": {
     name: "InvalidConfidence",
-    message: "Confidence must be NONE, LOW, MEDIUM, or HIGH",
-    action: "Select a valid confidence level before submitting the approval",
+    message: "Confidence value must be between 0 and 3",
+    action: "Please select a valid confidence level",
     recoverable: false,
   },
   "0xe7b7cd42": {
     name: "InvalidVerificationMethod",
-    message: "Verification method selection is invalid",
-    action: "Choose one or more valid verification methods before submitting the approval",
+    message: "Verification method must be a valid 4-bit bitmask (0-15)",
+    action: "Please select valid verification methods",
+    recoverable: false,
+  },
+  "0x5629ca14": {
+    name: "ActionMismatch",
+    message: "The approval references a different action than the work submission",
+    recoverable: false,
+    suggestedAction: "contact-support",
+  },
+  "0x001331cf": {
+    name: "ActionExpired",
+    message: "This action has expired",
+    action: "The action's end time has passed",
     recoverable: false,
   },
 
   // ============================================================================
   // AssessmentResolver.sol errors
   // ============================================================================
+  "0xb5d73c9b": {
+    name: "NotAuthorizedAttester",
+    message: "You must be an evaluator or operator to submit assessments",
+    recoverable: false,
+    suggestedAction: "contact-support",
+  },
   "0xceaa3788": {
     name: "TitleRequired",
-    message: "Assessment title is required",
-    action: "Please provide a title for the assessment",
+    message: "Title is required",
+    action: "Please provide a title",
     recoverable: false,
   },
-  "0xd40cd602": {
-    name: "AssessmentTypeRequired",
-    message: "Assessment type is required",
-    action: "Please select an assessment type",
+  "0x287ec981": {
+    name: "ConfigCIDRequired",
+    message: "Assessment configuration CID is required",
+    action: "Please provide the assessment configuration",
     recoverable: false,
   },
-  "0x465e359e": {
-    name: "AtLeastOneCapitalRequired",
-    message: "At least one capital type must be selected",
-    action: "Please select at least one capital type for the assessment",
-    recoverable: false,
-  },
-  "0x4e5aca13": {
-    name: "InvalidCapital",
-    message: "Invalid capital type specified",
-    action: "Please select a valid capital type",
+  "0x8d96aaf0": {
+    name: "InvalidDomain",
+    message: "Invalid domain specified (must be 0-3)",
+    action: "Please select a valid domain",
     recoverable: false,
   },
 

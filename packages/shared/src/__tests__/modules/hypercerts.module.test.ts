@@ -1,12 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import { getSDGLabel } from "../../config/sdg";
 import {
   domainToActionDomain,
   filterAttestationsByAssessment,
   prefillMetadataFromAssessment,
 } from "../../modules/data/hypercerts";
-import { getSDGLabel } from "../../config/sdg";
-import { Domain, CynefinPhase } from "../../types/domain";
 import type { GardenAssessment } from "../../types/domain";
+import { CynefinPhase, Domain } from "../../types/domain";
 import type { HypercertAttestation } from "../../types/hypercerts";
 
 // ============================================

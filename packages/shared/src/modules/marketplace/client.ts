@@ -9,10 +9,10 @@
  */
 
 import {
-  HypercertExchangeClient,
   type Addresses,
-  ChainId,
   addressesByNetwork,
+  ChainId,
+  HypercertExchangeClient,
 } from "@hypercerts-org/marketplace-sdk";
 import { JsonRpcProvider } from "ethers";
 import type { Address, PublicClient } from "viem";

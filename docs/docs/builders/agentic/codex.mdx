@@ -1,0 +1,115 @@
+---
+title: Codex
+sidebar_label: Codex
+slug: /builders/agentic/codex
+audience: developer
+owner: docs
+last_verified: 2026-03-01
+---
+
+# Codex
+
+{/* IMAGE PLACEHOLDER: Codex sandboxed execution — autonomous coding with config.toml (800x400) */}
+
+OpenAI Codex is used for automated maintenance tasks in the Green Goods monorepo. It runs in a sandboxed cloud environment with pre-built dependencies and no network access during execution.
+
+## Configuration
+
+### `config.toml`
+
+The main Codex configuration lives at `.codex/config.toml`:
+
+```toml
+# Use CLAUDE.md as context (AGENTS.md is the primary, CLAUDE.md is fallback)
+project_doc_fallback_filenames = ["CLAUDE.md"]
+project_doc_max_bytes = 40960
+
+# Default model for automated tasks
+model = "gpt-5.3-codex"
+
+# Sandbox: no network access during agent execution
+[sandbox_workspace_write]
+network_access = false
+```
+
+Key settings:
+- **`project_doc_fallback_filenames`** -- Codex reads `AGENTS.md` by default; falls back to `CLAUDE.md` for directories without an `AGENTS.md`
+- **`model`** -- `gpt-5.3-codex` is the default for judgment tasks. Individual automations can override with `-m gpt-5.2` for simple transforms.
+- **`network_access = false`** -- The agent sandbox has no internet access, improving safety for automated tasks. Setup scripts retain network access for dependency installation.
+
+### Environment Setup (`environment.toml`)
+
+The cloud environment at `.codex/environments/environment.toml` defines one-time setup:
+
+```toml
+[setup]
+script = """
+# Install Bun (primary runtime)
+curl -fsSL https://bun.sh/install | bash
+
+# Install Foundry (Solidity toolchain)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Initialize submodules, install deps, build foundation
+git submodule update --init --recursive
+bun install
+VITE_CHAIN_ID=11155111 bun run build:contracts
+VITE_CHAIN_ID=11155111 bun run build:shared
+"""
+```
+
+The setup installs Bun and Foundry, initializes git submodules, installs npm dependencies, and builds the foundation packages (contracts -> shared) in the correct dependency order. This is cached for up to 12 hours.
+
+### Predefined Actions
+
+Three actions are configured for quick execution:
+
+| Action | Command |
+|--------|---------|
+| Test | `bun run test` |
+| Lint | `bun format && bun lint` |
+| Build | `VITE_CHAIN_ID=11155111 bun run build` |
+
+## Use Cases
+
+Codex is used for tasks that benefit from sandboxed, automated execution:
+
+- **Mechanical transforms** -- Renaming variables, updating imports across files
+- **Test generation** -- Generating initial test scaffolds from existing patterns
+- **Lint fixes** -- Automated formatting and lint rule application
+- **Documentation updates** -- Updating code references in docs after refactors
+
+## Scope Constraints
+
+When running automated maintenance tasks via Codex (or any automated agent), constraints from `AGENTS.md` apply:
+
+- Max 20 files changed per PR
+- Never touch deployment scripts, contract upgrade scripts, or `.env` files
+- Do not create new packages or top-level directories
+- Do not modify `CLAUDE.md`, `AGENTS.md`, or files in `.claude/`
+- All automated PRs must be created as drafts with appropriate labels
+
+## Skills Discovery
+
+Codex discovers skills through a symlink:
+
+```bash
+# Created during environment setup
+ln -s ../.claude/skills .agents/skills
+```
+
+This makes the same skill library available to Codex that Claude Code agents use, ensuring consistent patterns across both toolchains.
+
+## Relationship to Claude Code
+
+Codex and Claude Code serve complementary roles:
+
+| Aspect | Claude Code | Codex |
+|--------|-------------|-------|
+| Context source | `CLAUDE.md` + `.claude/` | `AGENTS.md` + `.codex/` |
+| Execution | Local machine | Cloud sandbox |
+| Network | Full access | None (agent phase) |
+| Model | Claude Opus/Sonnet | GPT-5.3 Codex |
+| Best for | Interactive development | Automated maintenance |
+| Memory | Persistent per-agent | Per-session |

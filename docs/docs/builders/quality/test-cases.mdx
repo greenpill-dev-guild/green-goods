@@ -1,0 +1,108 @@
+---
+title: Test Cases
+sidebar_label: Test Cases
+slug: /builders/quality/test-cases
+audience: developer
+owner: docs
+last_verified: 2026-03-01
+feature_status: Planned
+---
+
+# Test Cases
+
+Structured test case tracking for Green Goods QA. This page outlines the categories, critical paths, and automation strategy for ensuring protocol correctness.
+
+## Scope
+
+The test case system covers end-to-end user journeys and integration points across the platform:
+
+- **Work submission flows** -- gardener creates work, uploads media to IPFS, submits EAS attestation, resolver validates
+- **Garden lifecycle** -- minting, module initialization, role assignment, metadata updates, action publishing
+- **Attestation validation** -- resolver role checks, action validity, struct-vs-tuple encoding correctness
+- **Offline sync** -- draft creation in IndexedDB, job queue processing, conflict resolution on reconnect
+- **Wallet and passkey auth** -- wallet connect, passkey registration, session management, smart account creation
+- **Hypercert minting** -- metadata assembly, allowlist generation, minting, marketplace listing
+- **Vault operations** -- deposits, yield harvesting, three-way splitting, withdrawal
+
+## Test Cases
+
+:::info Under Development
+Test cases are being populated from GitHub issues and structured QA reviews. The categories below define the planned coverage.
+:::
+
+### Critical Path: Work Submission to Attestation
+
+The core user journey that must never break:
+
+1. Gardener selects an action and fills out work form
+2. Media files are uploaded to IPFS (Storacha)
+3. Metadata JSON is uploaded to IPFS
+4. Work attestation is encoded and submitted to EAS
+5. WorkResolver validates: gardener role, action validity, data format
+6. Attestation is stored on-chain
+7. Operator reviews and submits WorkApproval attestation
+8. WorkApprovalResolver validates: operator role, work reference, confidence/method
+
+### Offline Sync
+
+- Draft creation persists to IndexedDB when offline
+- Job queue processes pending jobs when connectivity returns
+- Background sync (service worker) flushes queue on `BACKGROUND_SYNC` event
+- Retry policy: exponential backoff (1s base, doubling, max 60s, 5 retries)
+- Mutex prevents concurrent flush operations
+- Conflict resolution: last-write-wins for draft updates
+
+### Authentication
+
+- **Wallet connect**: MetaMask, WalletConnect, Coinbase Wallet
+- **Passkey registration**: WebAuthn credential creation, smart account deployment
+- **Session management**: auth state machine transitions (disconnected, connecting, connected, authenticated)
+- **Role verification**: hat-based role checks for gardener, operator, evaluator actions
+
+### Garden Management
+
+- Garden minting triggers module fan-out (Hats tree, vaults, cookie jars, ENS, communities)
+- Role assignment via Hats Protocol (6-role tree per garden)
+- Action publishing with domain categorization and metadata
+- Garden metadata updates via tokenbound account
+
+### Impact Pipeline
+
+- Assessment creation with strategy kernel (diagnosis, SMART outcomes, Cynefin phase)
+- Hypercert minting from approved work (metadata, allowlist, distribution)
+- Marketplace listing and trading (LooksRare protocol integration)
+- Conviction voting on registered hypercerts via Gardens V2 signal pools
+
+## Automation
+
+### CI Pipeline
+
+- **GitHub Actions** runs vitest (all packages) and Playwright (E2E) on every pull request
+- **Contract tests** run via `bun run test` in the contracts package (Forge test runner)
+- **Fork tests** run against live chain state for resolver validation
+
+### Pre-commit
+
+- **Husky hooks** enforce formatting (`bun format`) and linting (`bun lint`) before commits
+- Prevents common issues: console.log usage, missing type annotations, import ordering
+
+### E2E (Playwright)
+
+- Critical user journeys: navigation, work submission, auth flows, offline sync
+- Performance benchmarks: page load times, interaction responsiveness
+- Fork-based tests: submit real attestations against forked chain state
+
+### Coverage
+
+- All packages target 70% minimum coverage (branches, functions, lines, statements)
+- V8 coverage provider with text + HTML + JSON reporters
+- Coverage reports generated per package and aggregated in CI
+
+## Status
+
+Current test infrastructure is operational across all packages. Key gaps being addressed:
+
+- Structured test case repository (this page) is being built out
+- E2E coverage for hypercert minting and marketplace flows
+- Cross-chain deployment verification tests
+- Load testing for job queue under high-volume offline scenarios

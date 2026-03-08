@@ -9,15 +9,15 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  queryKeys,
-  queryInvalidation,
-  STALE_TIME_FAST,
-  STALE_TIME_MEDIUM,
-  STALE_TIME_SLOW,
-  STALE_TIME_RARE,
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
   INDEXER_LAG_FOLLOWUP_MS,
+  queryInvalidation,
+  queryKeys,
+  STALE_TIME_FAST,
+  STALE_TIME_MEDIUM,
+  STALE_TIME_RARE,
+  STALE_TIME_SLOW,
 } from "../../hooks/query-keys";
 import type { Address } from "../../types/domain";
 
@@ -388,6 +388,16 @@ describe("queryKeys", () => {
         "vaults",
         "myDeposits",
         TEST_GARDEN,
+        TEST_USER,
+        TEST_CHAIN_ID,
+      ]);
+    });
+
+    it("generates myDepositsByUser key", () => {
+      expect(queryKeys.vaults.myDepositsByUser(TEST_USER, TEST_CHAIN_ID)).toEqual([
+        "greengoods",
+        "vaults",
+        "myDepositsByUser",
         TEST_USER,
         TEST_CHAIN_ID,
       ]);
@@ -1463,10 +1473,11 @@ describe("queryInvalidation", () => {
 
     it("includes myDeposits when userAddress is provided", () => {
       const result = queryInvalidation.onVaultDeposit(TEST_GARDEN, TEST_USER, TEST_CHAIN_ID);
-      expect(result).toHaveLength(4);
+      expect(result).toHaveLength(5);
       expect(result).toContainEqual(
         queryKeys.vaults.myDeposits(TEST_GARDEN, TEST_USER, TEST_CHAIN_ID)
       );
+      expect(result).toContainEqual(queryKeys.vaults.myDepositsByUser(TEST_USER, TEST_CHAIN_ID));
     });
   });
 

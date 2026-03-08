@@ -5,10 +5,10 @@
  * retry logic, error recovery, and context management.
  */
 
-import { createActor, fromPromise } from "xstate";
 import { describe, expect, it, vi } from "vitest";
+import { createActor, fromPromise } from "xstate";
 
-import { createGardenMachine, type CreateGardenFormStatus } from "../../workflows/createGarden";
+import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
 
 // ============================================
 // Test Helpers

@@ -23,6 +23,7 @@ vi.mock("../../../utils/blockchain/abis", () => ({
 
 vi.mock("../../../utils/blockchain/vaults", () => ({
   ZERO_ADDRESS: "0x0000000000000000000000000000000000000000",
+  VAULT_MAX_BPS: 10000n,
 }));
 
 import { useVaultPreview } from "../../../hooks/vault/useVaultPreview";
@@ -67,6 +68,8 @@ describe("useVaultPreview", () => {
         { status: "success", result: 1000000n },
         { status: "success", result: 500n },
         { status: "success", result: 25000n },
+        { status: "success", result: 5000n },
+        { status: "success", result: 42n },
       ],
       isLoading: false,
     });
@@ -88,6 +91,8 @@ describe("useVaultPreview", () => {
       maxDeposit: 1000000n,
       shareBalance: 500n,
       totalAssets: 25000n,
+      maxWithdraw: 5000n,
+      previewWithdrawShares: 42n,
     });
   });
 
@@ -99,6 +104,8 @@ describe("useVaultPreview", () => {
         { status: "failure", error: new Error("reverted") },
         { status: "success", result: 200n },
         { status: "failure", error: new Error("reverted") },
+        { status: "failure", error: new Error("reverted") },
+        { status: "success", result: 77n },
       ],
       isLoading: false,
     });
@@ -119,6 +126,8 @@ describe("useVaultPreview", () => {
       maxDeposit: 0n,
       shareBalance: 200n,
       totalAssets: 0n,
+      maxWithdraw: 0n,
+      previewWithdrawShares: 77n,
     });
   });
 
@@ -176,6 +185,9 @@ describe("useVaultPreview", () => {
     const balanceOfContract = call.contracts[3];
     expect(maxDepositContract.args[0]).toBe("0x0000000000000000000000000000000000000000");
     expect(balanceOfContract.args[0]).toBe("0x0000000000000000000000000000000000000000");
+    // maxWithdraw should also use ZERO_ADDRESS as first arg
+    const maxWithdrawContract = call.contracts[5];
+    expect(maxWithdrawContract.args[0]).toBe("0x0000000000000000000000000000000000000000");
   });
 
   it("defaults amount and shares to 0n when not provided", () => {
@@ -194,5 +206,7 @@ describe("useVaultPreview", () => {
     expect(call.contracts[0].args[0]).toBe(0n);
     // convertToAssets uses shares
     expect(call.contracts[1].args[0]).toBe(0n);
+    // previewWithdraw uses amount
+    expect(call.contracts[6].args[0]).toBe(0n);
   });
 });

@@ -10,7 +10,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { SmartAccountClient } from "permissionless";
 import { useCallback } from "react";
-import type { Action, Address, Work, WorkDraft } from "../../types/domain";
 import {
   showWalletProgress,
   toastService,
@@ -23,21 +22,22 @@ import {
   trackWorkSubmissionStarted,
   trackWorkSubmissionSuccess,
 } from "../../modules/app/analytics-events";
-import { trackContractError, addBreadcrumb } from "../../modules/app/error-tracking";
+import { addBreadcrumb, trackContractError } from "../../modules/app/error-tracking";
 import { jobQueue } from "../../modules/job-queue";
 import { simulateWorkSubmission } from "../../modules/work/simulate";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
 import { useUIStore } from "../../stores/useUIStore";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
+import type { Action, Address, Work, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
-import { useTimeout } from "../utils/useTimeout";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
+import { useTimeout } from "../utils/useTimeout";
 
 interface UseWorkMutationOptions {
   authMode: "wallet" | "passkey" | null;

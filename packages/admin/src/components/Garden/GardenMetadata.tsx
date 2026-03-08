@@ -1,9 +1,9 @@
 import {
+  type Address,
   cn,
   getNetworkConfig,
   toastService,
   useCopyToClipboard,
-  type Address,
 } from "@green-goods/shared";
 import {
   RiCheckLine,

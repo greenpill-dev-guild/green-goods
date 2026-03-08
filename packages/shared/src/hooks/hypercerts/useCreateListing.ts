@@ -8,29 +8,27 @@
  * @module hooks/hypercerts/useCreateListing
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { type Address, encodeFunctionData } from "viem";
 import { useWalletClient } from "wagmi";
-
-import { DEFAULT_CHAIN_ID, createPublicClientForChain } from "../../config";
-import { logger } from "../../modules/app/logger";
-import { isZeroAddress } from "../../utils/blockchain/address";
-import { trackContractError } from "../../modules/app/error-tracking";
-import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { toastService } from "../../components/Toast/toast.service";
+import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
+import { trackContractError } from "../../modules/app/error-tracking";
+import { logger } from "../../modules/app/logger";
 import {
   buildMakerAsk,
   getOrderNonces,
   signMakerAsk,
   validateOrder,
 } from "../../modules/marketplace";
-import { HYPERCERTS_MODULE_ABI } from "./hypercert-abis";
-import { getNetworkContracts } from "../../utils/blockchain/contracts";
+import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { CreateListingParams } from "../../types/hypercerts";
-import { useAuth } from "../auth/useAuth";
-import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
-import { queryInvalidation } from "../query-keys";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
+import { parseAndFormatError } from "../../utils/errors/contract-errors";
+import { useAuth } from "../auth/useAuth";
+import { queryInvalidation } from "../query-keys";
+import { HYPERCERTS_MODULE_ABI } from "./hypercert-abis";
 
 export type ListingStep =
   | "idle"
@@ -64,7 +62,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
 
       const contracts = getNetworkContracts(chainId);
       const moduleAddress = contracts.hypercertsModule as Address;
-      if (!moduleAddress || isZeroAddress(moduleAddress)) {
+      if (!moduleAddress || moduleAddress === "0x0000000000000000000000000000000000000000") {
         throw new Error("HypercertsModule not deployed on this chain");
       }
 

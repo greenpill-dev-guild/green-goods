@@ -147,7 +147,6 @@ export function GardenList({
           height="home"
           showOperators={true}
           selected={garden.id === selectedGardenId}
-          {...garden}
           onClick={() => onCardClick(garden.id)}
         />
       ))}

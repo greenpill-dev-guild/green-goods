@@ -1,0 +1,164 @@
+---
+title: Impact Model (CIDS)
+sidebar_label: How It Works
+sidebar_position: 2
+slug: /concepts/impact-model
+audience: all
+owner: docs
+last_verified: 2026-02-28
+feature_status: Live
+goal: Understand the CIDS impact framework and how actions map to measurable outcomes
+difficulty: intermediate
+estimated_time: "10 minutes"
+keywords:
+  - CIDS
+  - impact model
+  - action domains
+  - schema registry
+  - eight forms of capital
+  - action chains
+source_of_truth:
+  - docs/docs/concepts/impact-model.mdx
+  - packages/contracts/src/registries/Action.sol
+---
+
+# Impact Model (CIDS)
+
+Every action in Green Goods follows the **CIDS Framework** — a structured chain from raw activity to measurable impact. This ensures that work submissions are not just recorded, but contribute to verifiable outcomes.
+
+## The CIDS Chain
+
+```
+Activity → Output → Outcome → Impact
+```
+
+| Stage | Definition | Example |
+|-------|-----------|---------|
+| **Activity** | The work performed | "Planted 12 mango trees" |
+| **Output** | The direct product | "12 trees in the ground, geotagged" |
+| **Outcome** | The change produced | "Increased canopy cover by 15% in zone A" |
+| **Impact** | The long-term effect | "Carbon sequestration, improved biodiversity, food security" |
+
+Every action schema in Green Goods must maintain this chain. Removing any link (especially evidence capture at the Activity stage) breaks the verification model.
+
+## Action Chain Examples
+
+### Planting
+
+```
+Activity: Plant trees/crops in designated area
+  → Output: Number of plants, species, GPS coordinates, photo evidence
+    → Outcome: Increased vegetation cover, soil health improvement
+      → Impact: Carbon sequestration, biodiversity, food security
+```
+
+### Harvesting
+
+```
+Activity: Harvest crops from garden plots
+  → Output: Harvest weight/volume, crop type, quality assessment
+    → Outcome: Food produced for community consumption or sale
+      → Impact: Food security, economic value, sustainable agriculture
+```
+
+### Trash Pick Ups
+
+```
+Activity: Collect and sort waste from designated areas
+  → Output: Weight/volume of waste, categories (plastic, organic, metal)
+    → Outcome: Reduced environmental pollution, materials diverted from landfill
+      → Impact: Cleaner ecosystems, recyclable material recovery, community health
+```
+
+### Tree Observation
+
+```
+Activity: Monitor and document tree health and growth
+  → Output: Growth measurements, health indicators, photo documentation
+    → Outcome: Longitudinal data on reforestation progress
+      → Impact: Scientific evidence base, adaptive management, carbon tracking
+```
+
+### Ecological Maintenance
+
+```
+Activity: Maintain garden infrastructure (irrigation, fencing, composting)
+  → Output: Maintenance tasks completed, materials used, area covered
+    → Outcome: Sustained garden productivity, reduced degradation
+      → Impact: Long-term ecosystem health, resource efficiency
+```
+
+## Action Domains
+
+Actions are grouped into five domains, each with specific impact metrics:
+
+### Solar Infrastructure
+
+**Impact metrics:** kWh generated, panels maintained, outages prevented
+
+Solar monitoring actions track installation, maintenance, and performance of community solar systems. Particularly relevant for communities with unreliable grid power.
+
+### Waste Management
+
+**Impact metrics:** kg diverted from landfill, recycling rate, area cleaned
+
+Waste actions cover collection, sorting, and processing. Integrates with community currency systems (e.g., Sarafu) where waste collection earns local credits.
+
+### Agroforestry
+
+**Impact metrics:** trees planted, species diversity, canopy cover, harvest yield
+
+Agroforestry actions span planting, maintenance, observation, and harvest. This domain produces the richest scientific data and supports DeSci partnerships.
+
+### Education
+
+**Impact metrics:** students engaged, curricula completed, knowledge assessments
+
+Education actions track learning activities tied to environmental stewardship. Includes school-based programs where students adopt and monitor trees.
+
+### Mutual Credit
+
+**Impact metrics:** transactions facilitated, community participation rate, economic velocity
+
+Mutual credit actions capture community economic activity powered by local exchange systems. Tracks how environmental work connects to local economic resilience.
+
+## Core vs Domain-Specific Actions
+
+| Type | Availability | Examples |
+|------|-------------|----------|
+| **Core actions** (7) | Available in ALL gardens | Plant, Harvest, Clean Up, Observe, Maintain, Water, Compost |
+| **Domain-specific** | Opt-in per garden | Solar Panel Install, Waste Sort, Tree Health Survey |
+
+Garden operators configure which domain-specific actions their community needs. Core actions are always available and cannot be removed.
+
+## Schema Structure
+
+Every action has a schema registered on-chain via the Action Registry. Schemas define:
+
+- **Required fields**: What evidence the gardener must provide (photos, measurements, GPS)
+- **Validation rules**: What the operator checks during review
+- **Assessment criteria**: What the evaluator uses for certification
+- **Impact mapping**: How the output connects to CIDS outcomes
+
+## Eight Forms of Capital
+
+Assessments in Green Goods are framed using the **Eight Forms of Capital**, ensuring impact is measured beyond just financial value:
+
+| Capital Form | What It Measures |
+|-------------|-----------------|
+| **Natural** | Ecosystem health, biodiversity, soil quality |
+| **Social** | Community bonds, trust networks, collective action |
+| **Financial** | Economic value generated, costs saved |
+| **Material** | Physical infrastructure created or maintained |
+| **Living** | Food produced, species supported, health outcomes |
+| **Intellectual** | Knowledge generated, research data, curricula |
+| **Experiential** | Skills developed, practices learned |
+| **Spiritual/Cultural** | Cultural preservation, sense of purpose, connection to land |
+
+## Next Steps
+
+The CIDS model is evolving. Planned improvements include:
+
+- **Cross-action correlation**: Linking related actions (e.g., planting → observation → harvest) into impact narratives
+- **Proportional contribution**: Attributing outcomes to multiple gardeners who contributed to the same area
+- **Temporal tracking**: Connecting point-in-time actions to longitudinal outcomes over seasons and years

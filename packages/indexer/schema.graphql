@@ -66,6 +66,7 @@ type Garden {
   location: String!
   bannerImage: String!
   openJoining: Boolean!
+  initialized: Boolean! # false for placeholder entities created by createDefaultGarden()
   createdAt: Int!
 
   gardeners: [String!]! # Address

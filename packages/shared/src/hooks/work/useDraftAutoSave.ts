@@ -9,9 +9,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-
-import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
+import { logger } from "../../modules/app/logger";
 import { useDrafts } from "./useDrafts";
 
 interface DraftFormData {

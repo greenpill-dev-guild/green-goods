@@ -4,15 +4,14 @@
  * Tests for the core message handlers (start, join, submit).
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-
-import { handleStart, type StartDeps } from "../handlers/start";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { handleJoin, type JoinDeps } from "../handlers/join";
-import { handleTextSubmission, handleCancelSubmission, type SubmitDeps } from "../handlers/submit";
-import type { InboundMessage, User } from "../types";
-import { initDB } from "../services/db";
+import { handleStart, type StartDeps } from "../handlers/start";
+import { handleCancelSubmission, handleTextSubmission, type SubmitDeps } from "../handlers/submit";
 import { initAI } from "../services/ai";
 import * as db from "../services/db";
+import { initDB } from "../services/db";
+import type { InboundMessage, User } from "../types";
 
 // Set up test environment
 const TEST_DB_PATH = "data/test/handlers-test.db";

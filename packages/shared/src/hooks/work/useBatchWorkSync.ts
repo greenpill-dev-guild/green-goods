@@ -9,17 +9,17 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
-import type { Job, WorkJobPayload } from "../../types/job-queue";
-import type { WorkDraft } from "../../types/domain";
-import { logger } from "../../modules/app/logger";
-import { trackContractError } from "../../modules/app/error-tracking";
 import { queueToasts } from "../../components/toast";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
+import { trackContractError } from "../../modules/app/error-tracking";
+import { logger } from "../../modules/app/logger";
 import { jobQueue, jobQueueDB, jobQueueEventBus } from "../../modules/job-queue";
+import type { WorkDraft } from "../../types/domain";
+import type { Job, WorkJobPayload } from "../../types/job-queue";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { encodeWorkData } from "../../utils/eas/encoders";
 import { buildBatchWorkAttestTx } from "../../utils/eas/transaction-builder";
-import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../query-keys";

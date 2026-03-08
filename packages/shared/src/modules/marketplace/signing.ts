@@ -8,7 +8,7 @@
  * @module modules/marketplace/signing
  */
 
-import { type Address, type Hex, type WalletClient, encodeAbiParameters } from "viem";
+import { type Address, encodeAbiParameters, type Hex, type WalletClient } from "viem";
 
 import type { CreateListingParams } from "../../types/hypercerts";
 import { createLogger } from "../app/logger";

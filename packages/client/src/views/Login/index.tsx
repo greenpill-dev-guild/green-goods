@@ -1,22 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
-import { Helmet } from "react-helmet-async";
-import { type IntlShape, useIntl } from "react-intl";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
-
 import {
   copyToClipboard,
   debugError,
+  type InstallGuidance,
+  type Platform,
   toastService,
   trackAuthError,
   useApp,
   useAuth,
   useInstallGuidance,
-  type InstallGuidance,
-  type Platform,
 } from "@green-goods/shared";
-import { useAuthContext } from "@green-goods/shared/hooks";
+import { useCallback, useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
+import { type IntlShape, useIntl } from "react-intl";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 
-import { Splash, type LoadingState } from "@/components/Layout";
+import { type LoadingState, Splash } from "@/components/Layout";
 import { LoadingSplash } from "@/views/Login/components/LoadingSplash";
 
 /** Get the browser guidance label based on scenario and platform */

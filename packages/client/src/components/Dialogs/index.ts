@@ -1,9 +1,5 @@
 export * from "./ConvictionDrawer";
-export * from "./CookieJarCard";
-export * from "./CookieJarTabContent";
 export * from "./DraftDialog";
 export * from "./ImagePreviewDialog";
 export * from "./ModalDrawer";
-export * from "./MyDepositRow";
-export * from "./TreasuryDrawer";
-export * from "./TreasuryTabContent";
+export { EndowmentDrawer } from "./TreasuryDrawer";

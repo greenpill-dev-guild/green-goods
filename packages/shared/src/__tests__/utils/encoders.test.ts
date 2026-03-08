@@ -5,7 +5,7 @@
  * confidence, verificationMethod, and reviewNotesCID fields.
  */
 
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the EAS config before importing
 vi.mock("../../config/blockchain", () => ({
@@ -31,9 +31,9 @@ vi.mock("../../modules/app/error-tracking", () => ({
   trackUploadError: vi.fn(),
 }));
 
-import { encodeWorkApprovalData } from "../../utils/eas/encoders";
-import { Confidence, VerificationMethod } from "../../types/domain";
 import type { WorkApprovalDraft } from "../../types/domain";
+import { Confidence, VerificationMethod } from "../../types/domain";
+import { encodeWorkApprovalData } from "../../utils/eas/encoders";
 
 describe("utils/eas/encoders", () => {
   describe("encodeWorkApprovalData (extended)", () => {

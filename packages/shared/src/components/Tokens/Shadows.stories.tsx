@@ -1,5 +1,5 @@
-import React from "react";
 import type { Meta, StoryObj } from "@storybook/react";
+import React from "react";
 
 /**
  * Visual documentation of the Green Goods shadow / elevation system.
@@ -201,7 +201,7 @@ export const ButtonFocusVariants: Story = {
     <div>
       <p className="text-paragraph-sm text-text-sub-600 mb-6">
         Focus shadows use a double-ring pattern: an inner ring matching the page background and an
-        outer ring using the button&apos;s accent color at low opacity. This creates a clear, accessible
+        outer ring using the button's accent color at low opacity. This creates a clear, accessible
         focus indicator that works on any background.
       </p>
       <div className="flex flex-wrap gap-6">

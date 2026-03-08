@@ -1,11 +1,9 @@
-import { toastService, useApp } from "@green-goods/shared";
+import { toastService } from "@green-goods/shared";
 import React from "react";
 import { Hero } from "@/components/Layout";
-import { Footer, Header } from "@/components/Navigation";
+import { Header } from "@/components/Navigation";
 
 const Landing: React.FC = () => {
-  const { isMobile } = useApp();
-
   function handleSubscribe(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
@@ -44,7 +42,6 @@ const Landing: React.FC = () => {
     <div id="landing-root" className="px-8">
       <Header />
       <Hero handleSubscribe={handleSubscribe} />
-      {!isMobile && <Footer />}
     </div>
   );
 };

@@ -8,15 +8,26 @@ Loaded when working in `packages/contracts/`. Extends CLAUDE.md.
 |---------|---------|
 | `bun run test` | Run unit tests (skips E2E) |
 | `bun run test:gas` | Tests with gas report |
-| `bun build` | Adaptive build (~2s cached, skips test/script when unchanged) |
-| `bun build:fast` | Explicit fast (~2s cached, source contracts only) |
+| `bun build` | Adaptive build (changed Solidity targets with shared-file fallback to `src`) |
+| `bun build:changed` | Build changed Solidity under `src/test/script` only |
+| `bun build:target -- <path...>` | Build explicit Solidity target(s) only |
+| `bun build:fast` | Explicit fast mode (`src` only, skips Foundry test/script) |
 | `bun build:full` | Full compilation including tests (>180s cold) |
 | `bun run test:lite` | ~35 fast tests, excludes heavy/account suites |
 | `bun lint` | Format & lint with forge fmt + solhint |
 | `bun deploy:testnet` | Deploy to Sepolia |
 | `bun upgrade:testnet` | Upgrade existing contracts |
 
-> **Build modes:** Use `build:full` for deployment and CI. Use `build` (adaptive) for local iteration.
+> **Build modes:** Use `build`/`build:changed`/`build:target` for local iteration. Use `build:full` for deployment and CI.
+
+## Contents
+- [Architecture](#architecture)
+- [Critical Patterns](#critical-patterns)
+- [Testing](#testing)
+- [Anti-Patterns](#anti-patterns)
+- [Upgrade Safety Checklist](#upgrade-safety-checklist)
+- [Deployment Pre-Flight](#deployment-pre-flight)
+- [Reference Files](#reference-files)
 
 ## Architecture
 
@@ -290,3 +301,12 @@ bun script/deploy.ts core --network sepolia --broadcast
 - Core deployer: `script/deploy/core.ts`
 - Schemas: `config/schemas.json` (READ ONLY)
 - Deployments: `deployments/{chainId}-latest.json`
+
+## Documentation References (on-demand)
+
+Read these docs pages when you need deployment context or protocol details:
+
+- Deployment runbook (3-chain CLI commands): `docs/docs/developers/operations.mdx`
+- System architecture and contract relationships: `docs/docs/developers/architecture.mdx`
+- Cross-protocol entity matrix: `docs/docs/developers/reference/entity-matrix.mdx`
+- EAS schema reference: `docs/docs/developers/reference/eas-schemas.mdx`

@@ -1,7 +1,6 @@
 import type { SmartAccountClient } from "permissionless";
-import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
-
 import { getEASConfig } from "../../config/blockchain";
+import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { debugError, debugLog } from "../../utils/debug";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import {
@@ -9,7 +8,7 @@ import {
   buildBatchApprovalAttestTx,
   buildWorkAttestTx,
 } from "../../utils/eas/transaction-builder";
-import { simulateApprovalSubmission, simulateWorkSubmission } from "./simulate";
+import { simulateWorkSubmission } from "./simulate";
 
 function assertSmartAccount(
   client: SmartAccountClient | null
@@ -211,19 +210,6 @@ export async function submitBatchApprovalsWithPasskey({
   // Check abort again before encoding (could be expensive for large batches)
   if (signal?.aborted) {
     throw new DOMException("Batch approval aborted", "AbortError");
-  }
-
-  for (const approval of approvals) {
-    await simulateApprovalSubmission({
-      draft: approval.draft,
-      gardenAddress: approval.gardenAddress as `0x${string}`,
-      chainId,
-      accountAddress: smartClient.account!.address as `0x${string}`,
-    });
-
-    if (signal?.aborted) {
-      throw new DOMException("Batch approval aborted", "AbortError");
-    }
   }
 
   // Encode all approvals

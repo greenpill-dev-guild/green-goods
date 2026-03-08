@@ -1,5 +1,5 @@
-import * as React from "react";
 import type { ReactNode } from "react";
+import * as React from "react";
 import toast, { type Toast as HotToast, type ToastOptions } from "react-hot-toast";
 import { logger } from "../../modules/app/logger";
 import { useUIStore } from "../../stores/useUIStore";

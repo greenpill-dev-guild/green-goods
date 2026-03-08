@@ -1,4 +1,7 @@
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import { getEASConfig } from "../../config/blockchain";
+import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
 import type {
   AssessmentDraft,
   Domain,
@@ -7,9 +10,32 @@ import type {
   WorkMetadata,
 } from "../../types/domain";
 
-import { getEASConfig } from "../../config/blockchain";
-import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
-import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
+/**
+ * Maps MIME types to file extensions.
+ * Returns the appropriate extension for a given MIME type.
+ */
+function getExtensionFromMimeType(mimeType: string): string {
+  const mimeMap: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "image/heic": "heic",
+    "image/heif": "heif",
+    "image/svg+xml": "svg",
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "video/quicktime": "mov",
+    "application/pdf": "pdf",
+    "application/octet-stream": "bin",
+  };
+
+  // Extract subtype (e.g., "jpeg" from "image/jpeg" or "image/jpeg;charset=UTF-8")
+  const subtype = mimeType.split("/")[1]?.split(";")[0];
+
+  // Return mapped extension, or the subtype itself, or fallback to 'bin'
+  return mimeMap[mimeType] || subtype || "bin";
+}
 
 /**
  * Maps MIME types to file extensions.

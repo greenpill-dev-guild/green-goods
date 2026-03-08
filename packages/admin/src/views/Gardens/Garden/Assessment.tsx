@@ -1,23 +1,49 @@
 import {
   DEFAULT_CHAIN_ID,
   formatDateRange,
-  getEASExplorerUrl,
+  logger,
+  useAdminStore,
   useGardenAssessments,
 } from "@green-goods/shared";
 import { RiAddLine, RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { Alert } from "@/components/ui/Alert";
+
+const EAS_EXPLORER_URL = "https://explorer.easscan.org";
+
+/** EAS decoded field structure from attestation JSON */
+interface EASDecodedField {
+  name: string;
+  value: {
+    value: unknown;
+  };
+}
 
 export default function GardenAssessment() {
   const { id } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
-  const {
-    data: assessments = [],
-    isLoading: fetching,
-    error,
-  } = useGardenAssessments(id, DEFAULT_CHAIN_ID);
+  const selectedChainId = useAdminStore((state) => state.selectedChainId);
+  const setSelectedChainId = useAdminStore((state) => state.setSelectedChainId);
+
+  useEffect(() => {
+    if (selectedChainId !== DEFAULT_CHAIN_ID) {
+      setSelectedChainId(DEFAULT_CHAIN_ID);
+    }
+  }, [selectedChainId, setSelectedChainId]);
+
+  const { data: assessments = [], isLoading: fetching, error } = useGardenAssessments(id);
+
+  const parsedAssessments = useMemo(
+    () =>
+      assessments.map((attestation) => ({
+        ...attestation,
+        parsed: parseAssessment(attestation.decodedDataJson),
+      })),
+    [assessments]
+  );
 
   const headerActions = (
     <Link
@@ -41,12 +67,10 @@ export default function GardenAssessment() {
     );
   } else if (error) {
     content = (
-      <div className="rounded-md border border-error-light bg-error-lighter p-4" role="alert">
-        <p className="text-sm text-error-dark">
-          {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}:{" "}
-          {error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" })}
-        </p>
-      </div>
+      <Alert variant="error">
+        {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}:{" "}
+        {error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" })}
+      </Alert>
     );
   } else {
     content = (
@@ -105,29 +129,28 @@ export default function GardenAssessment() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stroke-soft bg-bg-white">
-                {assessments.map((assessment) => (
-                  <tr key={assessment.id}>
+                {parsedAssessments.map((attestation) => (
+                  <tr key={attestation.id}>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {assessment.title || `Assessment ${assessment.id.slice(0, 6)}`}
+                      {attestation.parsed?.title || `Assessment ${attestation.id.slice(0, 6)}`}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {assessment.assessmentType || "—"}
+                      {attestation.parsed?.assessmentType || "—"}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {formatDateRange(
-                        assessment.startDate ?? assessment.reportingPeriod.start,
-                        assessment.endDate ?? assessment.reportingPeriod.end
-                      )}
+                      {formatDateRange(attestation.parsed?.startDate, attestation.parsed?.endDate)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {assessment.capitals?.length ? assessment.capitals.join(", ") : "—"}
+                      {attestation.parsed?.capitals.length
+                        ? attestation.parsed.capitals.join(", ")
+                        : "—"}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {assessment.tags?.length ? assessment.tags.join(", ") : "—"}
+                      {attestation.parsed?.tags.length ? attestation.parsed.tags.join(", ") : "—"}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                       <a
-                        href={getEASExplorerUrl(DEFAULT_CHAIN_ID, assessment.id)}
+                        href={`${EAS_EXPLORER_URL}/attestation/view/${attestation.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center text-primary-dark transition hover:text-primary-darker"
@@ -160,4 +183,57 @@ export default function GardenAssessment() {
       <div className="mt-6 px-6">{content}</div>
     </div>
   );
+}
+
+function parseAssessment(decodedDataJson: string | null) {
+  if (!decodedDataJson) {
+    return null;
+  }
+
+  try {
+    const fields: EASDecodedField[] = JSON.parse(decodedDataJson);
+    const readValue = (name: string): unknown =>
+      fields.find((field) => field.name === name)?.value?.value;
+
+    const toNumber = (value: unknown): number | null => {
+      if (value === undefined || value === null) return null;
+      if (typeof value === "number") return value;
+      if (typeof value === "string") {
+        if (value.startsWith("0x")) {
+          try {
+            return Number(BigInt(value));
+          } catch {
+            return null;
+          }
+        }
+        const parsed = Number(value);
+        return Number.isNaN(parsed) ? null : parsed;
+      }
+      if (typeof value === "object" && value !== null) {
+        if ("hex" in value && typeof value.hex === "string") {
+          try {
+            return Number(BigInt(value.hex));
+          } catch {
+            return null;
+          }
+        }
+        if ("value" in value) {
+          return toNumber(value.value);
+        }
+      }
+      return null;
+    };
+
+    return {
+      title: readValue("title") ?? "",
+      assessmentType: readValue("assessmentType") ?? "",
+      capitals: (readValue("capitals") as string[]) ?? [],
+      tags: (readValue("tags") as string[]) ?? [],
+      startDate: toNumber(readValue("startDate")),
+      endDate: toNumber(readValue("endDate")),
+    };
+  } catch (error) {
+    logger.error("Failed to parse assessment attestation", { error });
+    return null;
+  }
 }

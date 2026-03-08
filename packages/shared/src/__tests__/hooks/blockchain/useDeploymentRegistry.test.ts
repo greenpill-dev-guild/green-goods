@@ -78,7 +78,6 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
 // Mock address comparison
 vi.mock("../../../utils/blockchain/address", () => ({
   compareAddresses: (a: string, b: string) => a?.toLowerCase() === b?.toLowerCase(),
-  isZeroAddress: (addr: string) => !addr || addr === "0x0000000000000000000000000000000000000000",
 }));
 
 // Mock logger

@@ -1,8 +1,7 @@
+import { cn } from "@green-goods/shared";
+import { RiAlertLine, RiCheckLine, RiCloseLine, RiInformationLine } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { RiCheckLine, RiAlertLine, RiCloseLine, RiInformationLine } from "@remixicon/react";
-
-import { cn } from "./cn";
 
 const defaultIcons: Record<string, React.ReactNode> = {
   success: <RiCheckLine className="h-3.5 w-3.5" aria-hidden="true" />,

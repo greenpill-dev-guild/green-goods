@@ -2,6 +2,12 @@
 name: dependency-management
 user-invocable: false
 description: Monorepo dependency management - workspace protocol, lockfile conflicts, audit/update workflows, phantom dependencies. Use for dependency upgrades, lockfile issues, workspace management.
+version: "1.0.0"
+status: active
+packages: ["all"]
+dependencies: []
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Dependency Management Skill

@@ -7,7 +7,7 @@
  */
 
 import { renderHook } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the logger to avoid console output
 vi.mock("../../../modules/app/logger", () => ({

@@ -17,11 +17,11 @@ bun build                    # Build everything (respects dependency order)
 
 Per-package: `bun run test`, `bun build`, `bun lint` (check each package.json for available scripts).
 
-**Contracts** (never use raw `forge` commands): `bun build` (~2s cached), `bun build:full` (CI/deploy only, >180s), `bun run test:fork` (needs RPC URLs).
+**Contracts** (never use raw `forge` commands): `bun build` (adaptive changed-target compile), `bun build:changed` (changed Solidity only), `bun build:target -- src/...` (single-target compile), `bun build:full` (CI/deploy only), `bun run test:fork` (needs RPC URLs).
 
 ## Architecture
 
-Green Goods is an **offline-first, single-chain** platform for documenting conservation work on-chain. Bun monorepo.
+Green Goods is an **offline-first, single-chain** platform for documenting regenerative work on-chain. Bun monorepo.
 
 ### Key Principles
 1. **Offline-First**: Client PWA works without internet, syncs when connected
@@ -29,18 +29,23 @@ Green Goods is an **offline-first, single-chain** platform for documenting conse
 3. **Single Chain**: Target chain set by `VITE_CHAIN_ID` at build time
 4. **Shared Logic**: ALL React hooks MUST live in `@green-goods/shared`
 
-### Intent Priorities (trade-off hierarchy)
-1. **Offline correctness** — nothing breaks without network
-2. **Security** — funds, access control, key management
-3. **User experience** — PWA-native feel, responsive, accessible
-4. **Developer experience** — build times, test speed, clear errors
-5. **Code elegance** — readability, patterns, minimal complexity
-
 ### Build Order
 1. **contracts** -> ABIs for other packages
 2. **shared** -> hooks/modules for frontends
 3. **indexer** -> needs contract ABIs
 4. **client/admin/agent** -> need shared package
+
+## Documentation
+
+The `docs/` directory contains a Docusaurus site with product documentation, user guides, and developer references. When investigating domain questions, architecture decisions, or user-facing behavior, consult:
+
+- System architecture (diagrams): `docs/docs/developers/architecture.mdx`
+- Domain glossary: `docs/docs/glossary.md`
+- Impact model (CIDS): `docs/docs/concepts/impact-model.mdx`
+- Strategy and goals: `docs/docs/concepts/strategy-and-goals.mdx`
+- Entity matrix: `docs/docs/developers/reference/entity-matrix.mdx`
+
+Package-specific context files (`.claude/context/*.md`) include additional documentation references relevant to each package.
 
 ## Key Patterns
 
@@ -64,6 +69,10 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 **Indexer Boundary**: Envio indexes only Green Goods core state (actions, gardens, hats role membership, vault history, yield split history, minimal hypercert linkage/claims). Do not re-index EAS attestations, Gardens V2 community/pools, marketplace, ENS lifecycle, cookie jars, or Hypercert display metadata.
 
+**Investigate Before Answering**: Never speculate about code you have not opened. If referencing a specific file, you MUST read it before answering. Give grounded, hallucination-free answers based on actual file contents, not assumptions about what code might look like.
+
+**Subagent Discipline**: Spawn teammates when tasks can run in parallel, require isolated context, or involve independent workstreams. Work directly (no subagent) for single-file edits, sequential operations, tasks sharing state across steps, or any task needing fewer than 10 tool calls. Prefer the simplest approach that completes the task.
+
 ## Contract Deployment
 
 ```bash
@@ -78,12 +87,6 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # Depl
 
 Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets target chain at build time. See `.env.example`.
 
-## Scope Discipline
-- When instructions say "output in chat" or "just tell me", do NOT edit files
-- For destructive changes (removing sections, replacing pages, merging content): list what will be REMOVED and ADDED, then wait for confirmation
-- Never replace content that was asked to be added as new
-- When unsure about scope, ask — the cost of a clarifying question is far less than a wrong edit
-
 ## Git Workflow
 
 **Branches**: `type/description` (e.g., `feature/hats-v2`, `bug/admin-fix`)
@@ -93,3 +96,23 @@ Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets
 - Scopes: contracts, indexer, shared, client, admin, agent, claude
 
 **Validation before committing**: `bun format && bun lint && bun run test && bun build`
+
+## Session Continuity
+
+Before context compaction or ending a long session, write a `session-state.md` in the working directory:
+
+```markdown
+## Session State
+- **Current task**: [what you're working on]
+- **Progress**: [what's done, what's in progress]
+- **Files modified**: [list of changed files]
+- **Tests**: [passing/failing/not yet written]
+- **Next steps**: [immediate next actions]
+- **Blocked by**: [blockers, if any]
+```
+
+This is distinct from agent-memory (which stores learnings). Session state captures execution context for the next context window.
+
+## Cleanup
+
+If you create temporary files, scripts, or helpers during iteration, remove them before reporting task completion.

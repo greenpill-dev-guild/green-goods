@@ -6,7 +6,14 @@ const createRouter =
   import.meta.env.VITE_USE_HASH_ROUTER === "true" ? createHashRouter : createBrowserRouter;
 
 // Root redirect component - prevents "empty page" warning
-const RootRedirect = () => <Navigate to="/dashboard" replace />;
+const RootRedirect = () => <Navigate to="/endowments" replace />;
+
+// Login redirect - preserves redirectTo param for bookmarked /login URLs
+const LoginRedirect = () => {
+  const location = useLocation();
+  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/endowments";
+  return <Navigate to={redirectTo} replace />;
+};
 
 // Login redirect - preserves redirectTo param for bookmarked /login URLs
 const LoginRedirect = () => {
@@ -102,7 +109,7 @@ export const router = createRouter([
           },
           {
             path: "endowments",
-            lazy: async () => ({ Component: (await import("@/views/Treasury")).default }),
+            lazy: async () => ({ Component: (await import("@/views/Endowments")).default }),
           },
           {
             path: "actions",
@@ -140,14 +147,30 @@ export const router = createRouter([
               {
                 path: "actions/create",
                 lazy: async () => ({
-                  Component: (await import("@/views/Actions/CreateAction")).default,
+                  Component: (await import("@/routes/RequireActionManager")).default,
                 }),
+                children: [
+                  {
+                    index: true,
+                    lazy: async () => ({
+                      Component: (await import("@/views/Actions/CreateAction")).default,
+                    }),
+                  },
+                ],
               },
               {
                 path: "actions/:id/edit",
                 lazy: async () => ({
-                  Component: (await import("@/views/Actions/EditAction")).default,
+                  Component: (await import("@/routes/RequireActionManager")).default,
                 }),
+                children: [
+                  {
+                    index: true,
+                    lazy: async () => ({
+                      Component: (await import("@/views/Actions/EditAction")).default,
+                    }),
+                  },
+                ],
               },
               {
                 lazy: async () => ({

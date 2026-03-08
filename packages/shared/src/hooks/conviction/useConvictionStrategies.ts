@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
-import type { Address } from "../../types/domain";
 import { wagmiConfig } from "../../config/appkit";
-import { HATS_MODULE_CONVICTION_ABI } from "../../utils/blockchain/abis";
-import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { getConvictionStrategiesFromSubgraph } from "../../modules/data/gardens";
+import type { Address } from "../../types/domain";
+import { HATS_MODULE_CONVICTION_ABI } from "../../utils/blockchain/abis";
 import { normalizeAddress } from "../../utils/blockchain/address";
+import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { queryKeys, STALE_TIME_SLOW } from "../query-keys";
 

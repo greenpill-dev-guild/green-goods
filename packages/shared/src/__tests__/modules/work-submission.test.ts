@@ -27,6 +27,7 @@ vi.mock("../../modules/work/passkey-submission", () => ({
   submitApprovalWithPasskey: vi.fn(async () => "0xtestapproval"),
 }));
 
+import { jobQueue } from "../../modules/job-queue";
 import {
   formatJobError,
   submitApprovalToQueue,
@@ -35,7 +36,6 @@ import {
   validateWorkDraft,
   validateWorkSubmissionContext,
 } from "../../modules/work/work-submission";
-import { jobQueue } from "../../modules/job-queue";
 
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";

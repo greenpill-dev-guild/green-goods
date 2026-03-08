@@ -1,12 +1,4 @@
-import {
-  DEFAULT_CHAIN_ID,
-  getEASExplorerUrl,
-  getTag,
-  isValidAttestationId,
-  resolveIPFSUrl,
-  useGardenAssessments,
-  useGardens,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, getTag, useGardens } from "@green-goods/shared";
 import { type FC, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";

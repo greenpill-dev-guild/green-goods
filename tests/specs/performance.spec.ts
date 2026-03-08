@@ -5,8 +5,8 @@
  */
 
 import { expect, test } from "@playwright/test";
-import { TEST_URLS } from "../helpers/test-utils";
 import { TIMEOUTS } from "../helpers/test-config";
+import { TEST_URLS } from "../helpers/test-utils";
 
 test.describe("Performance Tests", () => {
   test.describe("Page Load Performance", () => {

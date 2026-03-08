@@ -4,6 +4,7 @@ import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import enMessages from "../../../../shared/src/i18n/en.json";
 import Gardens from "@/views/Gardens";
+import enMessages from "../../../../shared/src/i18n/en.json";
 
 // Mock the shared barrel — Gardens imports from @green-goods/shared directly
 const mockUseGardens = vi.fn();
@@ -18,15 +19,7 @@ vi.mock("@green-goods/shared", () => ({
 // Mock @remixicon/react icons used by Gardens and PageHeader
 vi.mock("@remixicon/react", () => {
   const Icon = (props: any) => React.createElement("span", props);
-  return {
-    RiAddLine: Icon,
-    RiEyeLine: Icon,
-    RiPlantLine: Icon,
-    RiShieldCheckLine: Icon,
-    RiUserLine: Icon,
-    RiVipCrownLine: Icon,
-    RiArrowLeftLine: Icon,
-  };
+  return new Proxy({}, { get: () => Icon });
 });
 
 // Mock react-router-dom

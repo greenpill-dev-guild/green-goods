@@ -51,7 +51,10 @@ reset_fixture() {
     rm -rf "$TMP_DIR/packages" "$TMP_DIR/output" "$TMP_DIR/scripts"
     mkdir -p "$TMP_DIR/scripts"
     cp "$SOURCE_AUDIT_SCRIPT" "$TMP_DIR/scripts/check-contract-test-realism.sh"
+<<<<<<< HEAD
     cp "$ROOT_DIR/scripts/check-contract-test-realism-worker.js" "$TMP_DIR/scripts/check-contract-test-realism-worker.js"
+=======
+>>>>>>> release/1.1
     chmod +x "$TMP_DIR/scripts/check-contract-test-realism.sh"
     write_common_matrix_files
 }

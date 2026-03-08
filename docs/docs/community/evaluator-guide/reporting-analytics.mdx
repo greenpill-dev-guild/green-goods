@@ -1,0 +1,125 @@
+---
+title: "Reporting & Analytics"
+sidebar_label: "Reporting & Analytics"
+slug: /community/evaluator-guide/reporting-analytics
+audience: evaluator
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+goal: "Help evaluators generate and export impact reports from attestation data."
+difficulty: "standard"
+estimated_time: "20-45 minutes for monthly reporting."
+prereqs: "Access to garden attestation data and assessment context."
+next_steps: "/community/evaluator-guide/earning-badges"
+persona_context: "Evaluators analyzing impact data and producing accountability reports."
+source_of_truth:
+  - packages/admin/src/views/Dashboard/index.tsx
+  - packages/shared/src/modules/data/eas.ts
+  - packages/indexer/config.yaml
+keywords:
+  - reporting
+  - analytics
+  - karma gap
+  - impact metrics
+  - data export
+---
+
+import {
+  DecisionGuide,
+  FeatureState,
+  NextBestAction,
+  StatusBadge,
+  StepFlow,
+} from "@site/src/components/docs";
+
+# Reporting & Analytics
+
+<StatusBadge status="Live" />
+
+## Overview
+
+Evaluators use reporting tools to transform raw attestation data into structured impact reports. Green Goods integrates with [Karma GAP](https://gap.karmahq.xyz/) to automate much of this process — approved work attestations feed directly into accountability-compatible report formats.
+
+{/* IMAGE PLACEHOLDER: Reporting dashboard showing attestation metrics and export options (800x400) */}
+
+This page covers the reporting surfaces available to evaluators, the monthly reporting loop, and how to map outputs to external frameworks like SDG indicators or funder-specific schemas.
+
+## How It Works
+
+<FeatureState
+  title="Attestation-backed reporting"
+  status="Live"
+  summary="Work and approval attestations provide verifiable submission-level evidence for reports."
+/>
+
+<FeatureState
+  title="GAP alignment"
+  status="Live"
+  summary="Garden metadata and approved work can be mapped into GAP-compatible reporting workflows."
+/>
+
+<FeatureState
+  title="v1 endowment/governance metrics"
+  status="Implemented (activation pending deployment)"
+  summary="Vault/cookie/signal data models exist but full on-chain/indexer activation is pending non-zero deployments."
+/>
+
+### Monthly Reporting Loop
+
+<StepFlow
+  steps={[
+    {title: "Collect period scope", detail: "Select chain, gardens, and date range for the reporting period."},
+    {title: "Export approved work", detail: "Pull EAS approval-linked records. Each record includes attestation UID, timestamps, and approval chain."},
+    {title: "Map to frameworks", detail: "Tag outputs to SDG indicators, GAP milestones, or funder-specific schemas."},
+    {title: "Publish report", detail: "Share methods, caveats, and attestation references with stakeholders."},
+  ]}
+/>
+
+### Data Sources
+
+Evaluators can pull data from multiple sources:
+
+- **Indexer GraphQL API** — Query gardens, work submissions, approvals, and membership data
+- **EAS Explorer** — Verify individual attestation UIDs and their on-chain status
+- **Admin Dashboard** — View garden-level analytics, approval rates, and work volume
+
+## Best Practices
+
+<DecisionGuide
+  title="Choose the right reporting approach"
+  items={[
+    {
+      when: "You need a quick snapshot for a funder update",
+      do: "Use the admin dashboard's built-in metrics view for the current period.",
+      next: "Export key metrics and attestation counts for the report.",
+    },
+    {
+      when: "You need detailed, auditable impact data",
+      do: "Query the indexer API for attestation-level records with full metadata.",
+      next: "Cross-reference UIDs on EAS explorer for independent verification.",
+    },
+    {
+      when: "You are mapping to an external framework (SDG, GAP)",
+      do: "Use the Eight Forms of Capital assessment data as your mapping layer.",
+      next: "Document your mapping methodology alongside the report for transparency.",
+    },
+  ]}
+/>
+
+- Always include attestation UIDs in reports so reviewers can independently verify claims
+- Document any exclusions (rejected work, incomplete submissions) transparently
+- Use consistent date ranges aligned with funder reporting cycles
+- Archive exported data for longitudinal analysis across reporting periods
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="Build your evaluator reputation through consistent, high-quality reporting."
+  actionLabel="Earning Badges"
+  actionHref="/community/evaluator-guide/earning-badges"
+  alternatives={[
+    {label: "Evaluating Certificates", href: "/community/evaluator-guide/evaluating-certificates"},
+    {label: "Glossary", href: "/glossary"},
+  ]}
+/>

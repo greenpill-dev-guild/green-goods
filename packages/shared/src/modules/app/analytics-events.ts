@@ -12,6 +12,7 @@
  * @module modules/app/analytics-events
  */
 
+import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { track } from "./posthog";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
 

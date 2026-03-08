@@ -1,12 +1,11 @@
 import {
   capitalize,
   hapticLight,
+  type Locale,
   logger,
   toastService,
   useApp,
-  useServiceWorkerUpdate,
   useTheme,
-  type Locale,
 } from "@green-goods/shared";
 import {
   RiComputerLine,
@@ -32,8 +31,6 @@ interface ApplicationSettings {
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { locale, switchLanguage, availableLocales } = useApp();
-  const { updateAvailable, isUpdating, waitingWorker, applyUpdate, checkForUpdate } =
-    useServiceWorkerUpdate();
   const intl = useIntl();
 
   const themeOptions = useMemo(
@@ -76,7 +73,7 @@ export const AppSettings: React.FC = () => {
             value={theme}
             onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}
           >
-            <SelectTrigger size="sm" className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder={currentThemeOption.label} />
             </SelectTrigger>
             <SelectContent>
@@ -110,7 +107,7 @@ export const AppSettings: React.FC = () => {
         Icon: <RiEarthFill className="w-4" />,
         Option: () => (
           <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-            <SelectTrigger size="sm" className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue
                 className="capitalize"
                 placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
@@ -157,69 +154,42 @@ export const AppSettings: React.FC = () => {
     }
 
     try {
-      const hasWaitingWorker = Boolean(updateAvailable || waitingWorker);
-
       toastService.loading({
         title: intl.formatMessage({
-          id: hasWaitingWorker ? "app.update.refreshing" : "app.update.checking",
-          defaultMessage: hasWaitingWorker ? "Updating app…" : "Checking for updates…",
+          id: "app.update.refreshing",
+          defaultMessage: "Updating app…",
         }),
         message: intl.formatMessage({
-          id: hasWaitingWorker ? "app.update.refreshingMessage" : "app.update.checkingMessage",
-          defaultMessage: hasWaitingWorker
-            ? "Activating the new version and reloading."
-            : "Looking for the latest version of the app.",
+          id: "app.update.refreshingMessage",
+          defaultMessage: "Clearing cached data and reloading.",
         }),
         context: "appRefresh",
       });
 
-      if (hasWaitingWorker) {
-        applyUpdate();
-        return;
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
       }
 
-      const updateReady = await checkForUpdate();
-      if (updateReady) {
-        toastService.loading({
-          title: intl.formatMessage({
-            id: "app.update.refreshing",
-            defaultMessage: "Updating app…",
-          }),
-          message: intl.formatMessage({
-            id: "app.update.refreshingMessage",
-            defaultMessage: "Activating the new version and reloading.",
-          }),
-          context: "appRefresh",
-        });
-        applyUpdate();
-        return;
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
       }
 
-      toastService.info({
-        title: intl.formatMessage({
-          id: "app.update.current",
-          defaultMessage: "You're up to date",
-        }),
-        message: intl.formatMessage({
-          id: "app.update.currentMessage",
-          defaultMessage: "No new version is ready to install right now.",
-        }),
-        context: "appRefresh",
-      });
-    } catch (error) {
-      logger.debug("[AppUpdate] Update check failed:", { error });
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.update.failed",
-          defaultMessage: "Update check failed",
-        }),
-        message: intl.formatMessage({
-          id: "app.update.failedMessage",
-          defaultMessage: "Please try again in a moment.",
-        }),
-        context: "appRefresh",
-        error,
-      });
+      try {
+        localStorage.removeItem("__rq_pc__");
+      } catch (e) {
+        if (import.meta.env.DEV) console.debug("[AppRefresh] localStorage clear failed:", e);
+      }
+      try {
+        indexedDB.deleteDatabase("gg-react-query");
+      } catch (e) {
+        if (import.meta.env.DEV) console.debug("[AppRefresh] IndexedDB clear failed:", e);
+      }
+    } catch (err) {
+      logger.debug("[AppRefresh] Best-effort cache clear failed:", { error: err });
+    } finally {
+      window.location.reload();
     }
   };
 
@@ -240,10 +210,10 @@ export const AppSettings: React.FC = () => {
               </div>
             </Avatar>
             <div className="flex flex-col gap-1 grow">
-              <div className="flex items-center gap-1">
-                <div className="line-clamp-1 text-label-sm text-text-strong-950">{title}</div>
+              <div className="flex items-center font-sm gap-1">
+                <div className="line-clamp-1 text-sm">{title}</div>
               </div>
-              <div className="text-paragraph-xs text-text-sub-600">{description}</div>
+              <div className="text-xs text-text-sub-600">{description}</div>
             </div>
             <Option />
           </div>
@@ -258,16 +228,16 @@ export const AppSettings: React.FC = () => {
             </div>
           </Avatar>
           <div className="flex flex-col gap-1 grow">
-            <div className="line-clamp-1 text-label-sm text-text-strong-950">
+            <div className="line-clamp-1 text-sm">
               {intl.formatMessage({
                 id: "app.update.title",
-                defaultMessage: "Update app",
+                defaultMessage: "Refresh app",
               })}
             </div>
-            <div className="text-paragraph-xs text-text-sub-600">
+            <div className="text-xs text-text-sub-600">
               {intl.formatMessage({
                 id: "app.update.subtitle",
-                defaultMessage: "Check for a new version and install it when it is ready.",
+                defaultMessage: "Use this if things look weird after an update.",
               })}
             </div>
           </div>
@@ -279,9 +249,8 @@ export const AppSettings: React.FC = () => {
             leadingIcon={<RiRefreshLine className="w-4" />}
             label={intl.formatMessage({
               id: "app.update.button",
-              defaultMessage: "Update",
+              defaultMessage: "Refresh",
             })}
-            disabled={isUpdating}
             className="shrink-0"
           />
         </div>

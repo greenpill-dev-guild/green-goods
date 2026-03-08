@@ -7,8 +7,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock GraphQL client - use vi.hoisted to ensure mockQuery is available before vi.mock hoisting
-const { mockQuery } = vi.hoisted(() => ({
+const { mockQuery, mockResolveIPFSUrl, mockGetFileByHash } = vi.hoisted(() => ({
   mockQuery: vi.fn(),
+  mockResolveIPFSUrl: vi.fn((cid: string) => `https://ipfs.io/ipfs/${cid}`),
+  mockGetFileByHash: vi.fn(async () => ({
+    data: JSON.stringify({
+      description: "Test action description",
+      uiConfig: {
+        media: { title: "Photos", maxImageCount: 5, minImageCount: 1, required: true },
+        details: {
+          title: "Details",
+          description: "Details",
+          feedbackPlaceholder: "",
+          inputs: [],
+        },
+        review: { title: "Review", description: "Review" },
+      },
+    }),
+  })),
 }));
 
 vi.mock("../../modules/data/graphql-client", () => ({
@@ -24,17 +40,8 @@ vi.mock("../../config/blockchain", () => ({
 
 // Mock IPFS (Storacha)
 vi.mock("../../modules/data/ipfs", () => ({
-  resolveIPFSUrl: vi.fn((cid) => `https://ipfs.io/ipfs/${cid}`),
-  getFileByHash: vi.fn(async () => ({
-    data: JSON.stringify({
-      description: "Test action description",
-      uiConfig: {
-        media: { title: "Photos", maxImageCount: 5, required: true },
-        details: { title: "Details", inputs: [] },
-        review: { title: "Review" },
-      },
-    }),
-  })),
+  resolveIPFSUrl: mockResolveIPFSUrl,
+  getFileByHash: mockGetFileByHash,
 }));
 
 // Mock graphql
@@ -43,6 +50,7 @@ vi.mock("../../modules/data/graphql", () => ({
 }));
 
 import { getActions, getGardens } from "../../modules/data/greengoods";
+import { instructionTemplates } from "../../utils/action/templates";
 
 describe("modules/data/greengoods", () => {
   beforeEach(() => {
@@ -252,8 +260,41 @@ describe("modules/data/greengoods", () => {
 
       expect(result).toBeDefined();
       expect(result.length).toBe(1);
-      // Should use default mediaInfo when no instructions
+      // Should use template/default mediaInfo when no instructions
       expect(result[0].mediaInfo).toBeDefined();
+      // Media should no longer be filled with a fake placeholder URL
+      expect(result[0].media).toEqual([]);
+    });
+
+    it("falls back to instruction template when instruction fetch fails", async () => {
+      const mockActions = [
+        {
+          id: "42161-1",
+          chainId: 42161,
+          startTime: "1700000000",
+          endTime: "1800000000",
+          title: "Site Setup",
+          slug: "solar.site_setup",
+          instructions: "bafkMissing",
+          capitals: [0],
+          media: ["QmMedia1"],
+          domain: "SOLAR",
+          createdAt: "1700000000",
+        },
+      ];
+
+      mockQuery.mockResolvedValue({
+        data: { Action: mockActions },
+      });
+      mockGetFileByHash.mockRejectedValueOnce(new Error("timeout"));
+
+      const result = await getActions();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].description).toBe(instructionTemplates["solar.site_setup"].description);
+      expect(result[0].mediaInfo?.title).toBe(
+        instructionTemplates["solar.site_setup"].uiConfig.media.title
+      );
     });
   });
 });

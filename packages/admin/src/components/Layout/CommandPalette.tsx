@@ -1,5 +1,5 @@
+import { cn, DEFAULT_CHAIN_ID, useActions, useGardens } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
-import { DEFAULT_CHAIN_ID, cn, useActions, useGardens } from "@green-goods/shared";
 import {
   RiArrowDownLine,
   RiArrowUpLine,
@@ -58,10 +58,19 @@ const STATIC_ROUTES: { id: string; labelId: string; defaultLabel: string; href: 
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [inputValue, setInputValue] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Debounce the search query by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(inputValue);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [inputValue]);
 
   const navigate = useNavigate();
   const { formatMessage } = useIntl();
@@ -81,9 +90,9 @@ export function CommandPalette() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Build filtered results
+  // Build filtered results using debounced query
   const results = useMemo(() => {
-    const lowerQuery = query.toLowerCase().trim();
+    const lowerQuery = debouncedQuery.toLowerCase().trim();
     const items: SearchResult[] = [];
 
     // Static pages
@@ -123,7 +132,7 @@ export function CommandPalette() {
     }
 
     return items;
-  }, [query, gardens, actions, formatMessage]);
+  }, [debouncedQuery, gardens, actions, formatMessage]);
 
   // Group results by category
   const grouped = useMemo(() => {
@@ -153,7 +162,8 @@ export function CommandPalette() {
   const handleOpenChange = useCallback((isOpen: boolean) => {
     setOpen(isOpen);
     if (isOpen) {
-      setQuery("");
+      setInputValue("");
+      setDebouncedQuery("");
       setActiveIndex(0);
     }
   }, []);
@@ -191,22 +201,30 @@ export function CommandPalette() {
     activeEl?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
 
-  // Reset active index on query change
+  // Reset active index on debounced query change
   useEffect(() => {
     setActiveIndex(0);
-  }, [query]);
+  }, [debouncedQuery]);
 
   let flatIndex = 0;
 
   return (
     <>
-      {/* Trigger button */}
+      {/* Trigger button with keyboard shortcut hint */}
       <button
         onClick={() => handleOpenChange(true)}
         aria-label={formatMessage({ id: "app.admin.nav.search", defaultMessage: "Search" })}
-        className="min-h-11 min-w-11 p-2 rounded-md text-text-soft hover:text-text-sub hover:bg-bg-weak transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+        className="min-h-11 flex items-center gap-1.5 px-2 rounded-md text-text-soft hover:text-text-sub hover:bg-bg-weak transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
       >
         <RiSearchLine className="h-5 w-5" />
+        <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-stroke-soft bg-bg-weak px-1.5 py-0.5 text-[10px] font-medium text-text-soft">
+          <span className="text-xs">
+            {typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent)
+              ? "\u2318"
+              : "Ctrl"}
+          </span>
+          <span>K</span>
+        </kbd>
       </button>
 
       <Dialog.Root open={open} onOpenChange={handleOpenChange}>
@@ -229,8 +247,8 @@ export function CommandPalette() {
               <RiSearchLine className="h-5 w-5 shrink-0 text-text-soft" aria-hidden="true" />
               <input
                 ref={inputRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
                 placeholder={formatMessage({
                   id: "app.admin.nav.searchPlaceholder",
                   defaultMessage: "Search pages, gardens, actions...",

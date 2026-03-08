@@ -1,13 +1,13 @@
 import { gql } from "graphql-request";
 
 import { getGardensSubgraphUrl } from "../../config/gardens-subgraph";
-import type { Address } from "../../types/domain";
 import type { ConvictionWeight, MemberPower, VoterAllocation } from "../../types/conviction";
+import type { Address } from "../../types/domain";
 import {
-  WeightScheme,
-  PoolType,
   type GardenCommunity,
   type GardenSignalPool,
+  PoolType,
+  WeightScheme,
 } from "../../types/gardens-community";
 import { logger } from "../app/logger";
 import { GQLClient } from "./graphql-client";
@@ -159,7 +159,6 @@ export async function getGardenCommunityFromSubgraph(
   return {
     gardenAddress,
     communityAddress: community.id as Address,
-    communityName: community.communityName,
     goodsTokenAddress: community.registerToken as Address,
     // WeightScheme is not in the subgraph -- default to Linear; caller can override
     weightScheme: WeightScheme.Linear,

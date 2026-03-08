@@ -281,20 +281,3 @@ export function hasStoredCredential(): boolean {
 export function clearStoredCredential(): void {
   localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
 }
-
-// ============================================================================
-// LEGACY EXPORTS (kept for backward compatibility)
-// ============================================================================
-
-/** @deprecated Use CREDENTIAL_STORAGE_KEY instead */
-export const PASSKEY_STORAGE_KEY = "greengoods_passkey_credential";
-
-/** @deprecated Use hasStoredCredential instead */
-export function hasStoredPasskey(): boolean {
-  return hasStoredCredential() || hasStoredUsername();
-}
-
-/** @deprecated Use clearStoredCredential instead */
-export function clearStoredPasskey(): void {
-  clearStoredCredential();
-}

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @notice Error thrown when function is not implemented
@@ -13,7 +13,6 @@ error NotImplemented();
 contract ResolverStub is OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Initialize the stub with proper ownership
     function initialize(address _owner) external initializer {
-        __UUPSUpgradeable_init();
         __Ownable_init();
         _transferOwnership(_owner);
     }

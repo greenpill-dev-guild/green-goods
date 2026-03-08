@@ -7,21 +7,21 @@
  * @module hooks/garden/useCreateGardenWorkflow
  */
 
-import { useMachine } from "@xstate/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { waitForTransactionReceipt } from "@wagmi/core";
-import { formatEther, isAddress } from "viem";
-import { fromPromise } from "xstate";
+import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { formatEther, isAddress } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
+import { fromPromise } from "xstate";
+import { wagmiConfig } from "../../config/appkit";
+import { getChain } from "../../config/chains";
 import {
   trackAdminGardenCreateFailed,
   trackAdminGardenCreateStarted,
   trackAdminGardenCreateSuccess,
 } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
-import { wagmiConfig } from "../../config/appkit";
-import { getChain } from "../../config/chains";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useCreateGardenStore } from "../../stores/useCreateGardenStore";
 import {
@@ -30,15 +30,14 @@ import {
   GreenGoodsENSABI,
   getNetworkContracts,
 } from "../../utils/blockchain/contracts";
-import { isZeroAddress } from "../../utils/blockchain/address";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
-import { createGardenMachine, type CreateGardenFormStatus } from "../../workflows/createGarden";
+import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
 import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 import { useGardenDraft } from "./useGardenDraft";
-import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 
 export type { GardenDraft } from "./useGardenDraft";
 
@@ -52,7 +51,7 @@ async function estimateCCIPFee(
   callerAddress: `0x${string}`,
   chainId: number
 ): Promise<bigint> {
-  if (!slug || !ensAddress || isZeroAddress(ensAddress)) {
+  if (!slug || !ensAddress || ensAddress === "0x0000000000000000000000000000000000000000") {
     return 0n;
   }
 
@@ -217,6 +216,8 @@ export function useCreateGardenWorkflow() {
                 openJoining: params.openJoining ?? false,
                 weightScheme: params.weightScheme,
                 domainMask: params.domainMask,
+                gardeners: params.gardeners,
+                operators: params.operators,
               };
 
               // Estimate CCIP fee for ENS registration (if slug provided and ENS module configured)
@@ -409,6 +410,8 @@ export function useCreateGardenWorkflow() {
       openJoining: params.openJoining ?? false,
       weightScheme: params.weightScheme,
       domainMask: params.domainMask,
+      gardeners: params.gardeners,
+      operators: params.operators,
     };
 
     const { publicClient } = createClients(currentChainId);

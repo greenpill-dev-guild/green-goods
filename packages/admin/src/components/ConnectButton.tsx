@@ -1,6 +1,7 @@
 import { cn } from "@green-goods/shared";
 import { RiLoader4Line, RiWallet3Line } from "@remixicon/react";
 import { useAppKit } from "@reown/appkit/react";
+import { useIntl } from "react-intl";
 import { useAccount } from "wagmi";
 
 interface ConnectButtonProps {
@@ -16,6 +17,7 @@ export function ConnectButton({
   variant = "primary",
   size = "md",
 }: ConnectButtonProps) {
+  const { formatMessage } = useIntl();
   const { isConnecting } = useAccount();
   const { open } = useAppKit();
 
@@ -47,14 +49,20 @@ export function ConnectButton({
         {isConnecting ? (
           <>
             <RiLoader4Line className="animate-spin -ml-1 mr-2 h-4 w-4" aria-hidden="true" />
-            Connecting...
+            {formatMessage({
+              id: "admin.connectButton.connecting",
+              defaultMessage: "Connecting...",
+            })}
           </>
         ) : (
           <>
             {children || (
               <>
                 <RiWallet3Line className="mr-2 h-4 w-4" aria-hidden="true" />
-                Connect Wallet
+                {formatMessage({
+                  id: "admin.connectButton.connect",
+                  defaultMessage: "Connect Wallet",
+                })}
               </>
             )}
           </>

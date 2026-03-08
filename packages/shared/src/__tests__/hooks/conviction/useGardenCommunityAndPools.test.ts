@@ -69,8 +69,8 @@ vi.mock("../../../config/appkit", () => ({
 
 import { useGardenCommunity } from "../../../hooks/conviction/useGardenCommunity";
 import { useGardenPools } from "../../../hooks/conviction/useGardenPools";
-import { PoolType, WeightScheme } from "../../../types/gardens-community";
 import type { Address } from "../../../types/domain";
+import { PoolType, WeightScheme } from "../../../types/gardens-community";
 
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -97,7 +97,6 @@ describe("useGardenCommunity — subgraph path", () => {
     mockGetGardenCommunity.mockResolvedValueOnce({
       gardenAddress: TEST_GARDEN.toLowerCase() as Address,
       communityAddress: TEST_COMMUNITY as Address,
-      communityName: "River Keepers Council",
       goodsTokenAddress: TEST_GOODS_TOKEN as Address,
       weightScheme: WeightScheme.Linear,
       stakeAmount: 1000000000000000000n,
@@ -118,7 +117,6 @@ describe("useGardenCommunity — subgraph path", () => {
 
     expect(result.current.community).not.toBeNull();
     expect(result.current.community?.communityAddress).toBe(TEST_COMMUNITY);
-    expect(result.current.community?.communityName).toBe("River Keepers Council");
     // Enriched from RPC
     expect(result.current.community?.weightScheme).toBe(WeightScheme.Exponential);
     expect(result.current.community?.goodsTokenAddress).toBe(TEST_GOODS_TOKEN);
@@ -252,14 +250,6 @@ describe("useGardenCommunity — RPC fallback", () => {
       .mockResolvedValueOnce(1) // getGardenWeightScheme (Exponential)
       .mockResolvedValueOnce(TEST_GOODS_TOKEN) // goodsToken
       .mockResolvedValueOnce(1000000000000000000n); // stakeAmountPerMember
-    mockGetGardenCommunity.mockResolvedValueOnce({
-      gardenAddress: TEST_GARDEN.toLowerCase() as Address,
-      communityAddress: TEST_COMMUNITY as Address,
-      communityName: "River Keepers Council",
-      goodsTokenAddress: TEST_GOODS_TOKEN as Address,
-      weightScheme: WeightScheme.Exponential,
-      stakeAmount: 1000000000000000000n,
-    });
 
     const { result } = renderHook(() => useGardenCommunity(TEST_GARDEN as Address), {
       wrapper: createWrapper(queryClient),
@@ -267,14 +257,9 @@ describe("useGardenCommunity — RPC fallback", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockGetGardenCommunity).toHaveBeenCalledWith(
-      TEST_COMMUNITY,
-      TEST_GARDEN.toLowerCase(),
-      TEST_CHAIN_ID
-    );
+    expect(mockGetGardenCommunity).not.toHaveBeenCalled();
     expect(result.current.community).not.toBeNull();
     expect(result.current.community?.communityAddress).toBe(TEST_COMMUNITY);
-    expect(result.current.community?.communityName).toBe("River Keepers Council");
     expect(result.current.community?.weightScheme).toBe(1);
   });
 

@@ -305,7 +305,9 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: domainMask
+            domainMask: domainMask,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
         return gardenToken.mintGarden(config);
     }

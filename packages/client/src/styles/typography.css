@@ -8,8 +8,17 @@
   --color-header-text: rgb(var(--green-200));
 }
 
-@layer base {
-  :where(h1, h2, h3, h4, h5, h6) {
+/* Typography @theme tokens are inherited from the shared theme.css import
+   in index.css -- no need to re-declare them here. */
+
+@layer utilities {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-family-sans);
     color: var(--color-header-text);
   }
 

@@ -60,7 +60,6 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   // Track registration for cleanup
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const installingWorkerRef = useRef<ServiceWorker | null>(null);
-  const waitingWorkerRef = useRef<ServiceWorker | null>(null);
 
   // Check if SW is enabled - memoized to avoid recomputation
   const isEnabled = useMemo(() => {
@@ -69,21 +68,15 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
     return import.meta.env.PROD || enableDevServiceWorker;
   }, []);
 
-  const markUpdateAvailable = useCallback((worker: ServiceWorker, source: string) => {
-    waitingWorkerRef.current = worker;
-    setWaitingWorker(worker);
-    setDismissed(false);
-    setUpdateAvailable(true);
-    track("sw_update_available", { source });
-  }, []);
-
   // Handler for when a new SW is found installing
   const handleStateChange = useCallback(() => {
     const installing = installingWorkerRef.current;
     if (installing?.state === "installed" && navigator.serviceWorker.controller) {
-      markUpdateAvailable(registrationRef.current?.waiting ?? installing, "update_found");
+      setWaitingWorker(installing);
+      setUpdateAvailable(true);
+      track("sw_update_available", { source: "update_found" });
     }
-  }, [markUpdateAvailable]);
+  }, []);
 
   // Handler for update found event
   const handleUpdateFound = useCallback(() => {
@@ -117,7 +110,9 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
 
         // Check if there's already a waiting worker
         if (registration.waiting) {
-          markUpdateAvailable(registration.waiting, "initial_check");
+          setWaitingWorker(registration.waiting);
+          setUpdateAvailable(true);
+          track("sw_update_available", { source: "initial_check" });
         }
 
         // Listen for future updates
@@ -174,19 +169,21 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
       // Run all cleanup functions
       cleanupFns.forEach((fn) => fn());
       registrationRef.current = null;
-      waitingWorkerRef.current = null;
     };
-  }, [isEnabled, handleUpdateFound, handleStateChange, markUpdateAvailable]);
+  }, [isEnabled, handleUpdateFound, handleStateChange]);
 
   // Use the event listener hook for controller change (with { once: true })
   // This ensures we only handle it once and it's properly cleaned up
   const handleControllerChange = useCallback(() => {
-    controllerChangeListenerRef.current = false;
     window.location.reload();
   }, []);
 
   // Track if we've added the controllerchange listener
   const controllerChangeListenerRef = useRef(false);
+
+  // Apply update handler
+  const applyUpdate = useCallback(() => {
+    if (!waitingWorker) return;
 
   const waitForWaitingWorker = useCallback(
     async (registration: ServiceWorkerRegistration): Promise<ServiceWorker | null> => {

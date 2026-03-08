@@ -67,7 +67,25 @@ describe("modules/data/eas", () => {
   });
 
   describe("getGardenAssessments", () => {
-    it("hydrates legacy assessment configs into the shared model", async () => {
+    it("returns parsed assessments on success", async () => {
+      const mockAttestations = [
+        {
+          id: "0xAssessment1",
+          attester: "0xAttester",
+          recipient: "0xGarden",
+          time: 1700000000,
+          decodedDataJson: JSON.stringify([
+            { name: "title", value: { value: "Test Assessment" } },
+            { name: "description", value: { value: "Test Description" } },
+            { name: "assessmentConfigCID", value: { value: "bafyConfigCID123" } },
+            { name: "domain", value: { value: { hex: "0x03" } } },
+            { name: "startDate", value: { value: { hex: "0x65B8D800" } } },
+            { name: "endDate", value: { value: { hex: "0x660D5800" } } },
+            { name: "location", value: { value: "Austin TX" } },
+          ]),
+        },
+      ];
+
       mockQuery.mockResolvedValue({
         data: {
           attestations: [

@@ -233,6 +233,36 @@ abstract contract DeployHelper is Script {
         return addr.code.length > 0;
     }
 
+    /// @notice Resolve deployment output directory (defaults to "deployments")
+    function _deploymentOutputDir() internal view returns (string memory) {
+        string memory outputDir = "deployments";
+        // solhint-disable-next-line no-empty-blocks
+        try vm.envString("DEPLOYMENT_OUTPUT_DIR") returns (string memory configuredOutputDir) {
+            if (bytes(configuredOutputDir).length > 0) {
+                outputDir = configuredOutputDir;
+            }
+            // solhint-disable-next-line no-empty-blocks
+        } catch {
+            // Keep default output directory
+        }
+        return outputDir;
+    }
+
+    /// @notice Build absolute deployment artifact path from file name
+    function _deploymentArtifactPath(string memory fileName) internal view returns (string memory) {
+        string memory outputDir = _deploymentOutputDir();
+        bytes memory outputDirBytes = bytes(outputDir);
+        if (outputDirBytes.length > 0 && outputDirBytes[0] == 0x2f) {
+            return string.concat(outputDir, "/", fileName);
+        }
+        return string.concat(vm.projectRoot(), "/", outputDir, "/", fileName);
+    }
+
+    /// @notice Build deployment file path for a specific chain and suffix
+    function _chainDeploymentPath(string memory chainId, string memory suffix) internal view returns (string memory) {
+        return _deploymentArtifactPath(string.concat(chainId, suffix));
+    }
+
     /// @notice Save deployment result to JSON with schema configuration
     function _saveDeployment(DeploymentResult memory result) internal {
         console.log("\n=== Saving Deployment ===");
@@ -300,9 +330,9 @@ abstract contract DeployHelper is Script {
         string memory finalJson = vm.serializeAddress(obj, "workApprovalResolver", result.workApprovalResolver);
 
         string memory chainIdStr = vm.toString(block.chainid);
-        string memory fileName = string.concat("deployments/", chainIdStr, "-latest.json");
-        console.log("\nWriting deployment to:", fileName);
-        vm.writeJson(finalJson, fileName);
+        string memory outputPath = _chainDeploymentPath(chainIdStr, "-latest.json");
+        console.log("\nWriting deployment to:", outputPath);
+        vm.writeJson(finalJson, outputPath);
         console.log("Deployment saved successfully\n");
     }
 

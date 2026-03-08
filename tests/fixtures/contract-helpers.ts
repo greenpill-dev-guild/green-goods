@@ -9,12 +9,12 @@
  */
 
 import {
-  type PublicClient,
-  type WalletClient,
-  getContract,
   encodeAbiParameters,
-  parseAbiParameters,
+  getContract,
   type Log,
+  type PublicClient,
+  parseAbiParameters,
+  type WalletClient,
 } from "viem";
 import type { AnvilForkContext, DeploymentArtifact, TestAccountWithSigner } from "./anvil-fork";
 

@@ -16,27 +16,17 @@
  * Required env vars (unless --dry-run):
  *   VITE_STORACHA_KEY   - Base64-encoded ed25519 private key
  *   VITE_STORACHA_PROOF - Multibase-encoded delegation proof
- *
- * Optional env vars:
- *   PINATA_JWT or VITE_PINATA_JWT - Pinata JWT for secondary pinning
- *   PINATA_GATEWAY_URL            - Pinata dedicated gateway URL
  */
 
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import {
-	ensureHybridCidAvailability,
-	loadPinataConfigFromEnv,
-} from "./lib/ipfs-hybrid";
 
 // --- Paths ---
 
-const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.join(SCRIPT_DIR, "..");
+const ROOT_DIR = path.join(import.meta.dir, "..");
 const CONTRACTS_DIR = path.join(ROOT_DIR, "packages", "contracts");
 const IMAGES_DIR = path.join(CONTRACTS_DIR, "config", "action-images");
 const ACTIONS_FILE = path.join(CONTRACTS_DIR, "config", "actions.json");
@@ -297,12 +287,9 @@ async function uploadImages(
 	compressed: CompressedImage[],
 	cache: Cache,
 ): Promise<Record<string, string>> {
-	console.error("--- Stage 2: Sync to Storacha + Pinata ---\n");
+	console.error("--- Stage 2: Upload to Storacha ---\n");
 
 	const client = await initStoracha();
-	const pinataConfig = loadPinataConfigFromEnv();
-	const storachaGatewayBaseUrl =
-		(process.env.VITE_STORACHA_GATEWAY || "https://storacha.link").trim();
 	const cidMap: Record<string, string> = {};
 	let uploads = 0;
 	let cacheHits = 0;
@@ -311,42 +298,17 @@ async function uploadImages(
 		const cached = cache[item.slug];
 
 		if (cached && cached.contentHash === item.contentHash) {
-			try {
-				await ensureHybridCidAvailability(cached.cid, {
-					storachaGatewayBaseUrl,
-					pinataConfig,
-					name: path.basename(item.webpPath),
-					metadata: {
-						source: "action-image",
-						slug: item.slug,
-					},
-				});
-				cacheHits++;
-				cidMap[item.slug] = cached.cid;
-				console.error(
-					`  CACHED: ${item.slug} -> ${cached.cid.slice(0, 24)}...`,
-				);
-				continue;
-			} catch (error) {
-				const message = error instanceof Error ? error.message : String(error);
-				console.error(`  STALE:  ${item.slug} — ${message}`);
-				console.error("         Cache entry failed verification, re-uploading");
-				delete cache[item.slug];
-			}
+			cacheHits++;
+			cidMap[item.slug] = cached.cid;
+			console.error(
+				`  CACHED: ${item.slug} -> ${cached.cid.slice(0, 24)}...`,
+			);
+			continue;
 		}
 
 		try {
 			const fileName = path.basename(item.webpPath);
 			const cid = await uploadToStoracha(client, item.webpPath, fileName);
-			await ensureHybridCidAvailability(cid, {
-				storachaGatewayBaseUrl,
-				pinataConfig,
-				name: fileName,
-				metadata: {
-					source: "action-image",
-					slug: item.slug,
-				},
-			});
 			uploads++;
 			cidMap[item.slug] = cid;
 

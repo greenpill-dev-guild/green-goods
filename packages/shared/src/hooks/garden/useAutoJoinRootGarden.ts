@@ -19,6 +19,7 @@ import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
 import { logger } from "../../modules/app/logger";
 import { trackNetworkError } from "../../modules/app/error-tracking";
+import { logger } from "../../modules/app/logger";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";

@@ -46,8 +46,8 @@ vi.mock("../../../config/appkit", () => ({
   wagmiConfig: {},
 }));
 
-import { useWorkApprovals } from "../../../hooks/work/useWorkApprovals";
 import { queryKeys } from "../../../hooks/query-keys";
+import { useWorkApprovals } from "../../../hooks/work/useWorkApprovals";
 
 // ============================================
 // Test helpers

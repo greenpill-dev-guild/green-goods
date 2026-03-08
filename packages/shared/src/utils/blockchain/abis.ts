@@ -113,6 +113,17 @@ export const HATS_MODULE_ABI = [
   },
   {
     type: "function",
+    name: "grantRoles",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "accounts", type: "address[]" },
+      { name: "roles", type: "uint8[]" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "isConfigured",
     stateMutability: "view",
     inputs: [{ name: "garden", type: "address" }],
@@ -769,9 +780,26 @@ export const OCTANT_VAULT_ABI = [
   },
   {
     type: "function",
+    name: "withdraw",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "assets", type: "uint256" },
+      { name: "receiver", type: "address" },
+      { name: "owner", type: "address" },
+      { name: "maxLoss", type: "uint256" },
+      { name: "strategies", type: "address[]" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
     name: "maxWithdraw",
     stateMutability: "view",
-    inputs: [{ name: "owner", type: "address" }],
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "maxLoss", type: "uint256" },
+      { name: "strategies", type: "address[]" },
+    ],
     outputs: [{ name: "", type: "uint256" }],
   },
   {
@@ -799,7 +827,11 @@ export const OCTANT_VAULT_ABI = [
     type: "function",
     name: "maxRedeem",
     stateMutability: "view",
-    inputs: [{ name: "owner", type: "address" }],
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "maxLoss", type: "uint256" },
+      { name: "strategies", type: "address[]" },
+    ],
     outputs: [{ name: "", type: "uint256" }],
   },
   {

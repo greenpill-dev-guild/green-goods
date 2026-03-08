@@ -1,8 +1,8 @@
 import {
   formatAddress,
+  type Garden,
   useEnsName,
   useNavigateToTop,
-  type Garden,
   type Work,
 } from "@green-goods/shared";
 import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";
@@ -23,7 +23,7 @@ function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }
     <Link
       key={work.id}
       to={`/home/${garden.id}/work/${work.id}`}
-      state={{ backTo: `/home/${garden.id}` }}
+      state={{ from: "garden", returnTo: `/home/${garden.id}` }}
       viewTransition
       className="cv-notification w-full flex flex-col gap-2 p-4 bg-warning-lighter rounded-xl transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border border-warning-light cursor-pointer group"
     >

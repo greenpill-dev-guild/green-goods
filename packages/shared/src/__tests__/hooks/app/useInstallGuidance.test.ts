@@ -16,13 +16,13 @@ vi.mock("../../../utils/app/browser", () => ({
   canTriggerInstallPrompt: vi.fn(),
 }));
 
-import { useInstallGuidance } from "../../../hooks/app/useInstallGuidance";
 import type { InstallScenario } from "../../../hooks/app/useInstallGuidance";
+import { useInstallGuidance } from "../../../hooks/app/useInstallGuidance";
 import {
-  detectMobileBrowser,
-  getRecommendedBrowser,
-  getOpenInBrowserUrl,
   canTriggerInstallPrompt,
+  detectMobileBrowser,
+  getOpenInBrowserUrl,
+  getRecommendedBrowser,
 } from "../../../utils/app/browser";
 
 const mockDetect = vi.mocked(detectMobileBrowser);

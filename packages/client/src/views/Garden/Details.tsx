@@ -102,6 +102,13 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
     [setValue]
   );
 
+  const handleTextareaFocus = useCallback((event: React.FocusEvent<HTMLTextAreaElement>) => {
+    const target = event.currentTarget;
+    requestAnimationFrame(() => {
+      target.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+    });
+  }, []);
+
   return (
     <div className="flex flex-col gap-4">
       <FormInfo title={detailsTitle} info={detailsDescription} Icon={RiFileFill} />
@@ -282,6 +289,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
               rows={3}
               placeholder={placeholder}
               required={required}
+              onFocus={handleTextareaFocus}
             />
           );
         }
@@ -343,6 +351,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
         })}
         rows={4}
         placeholder={feedbackPlaceholder}
+        onFocus={handleTextareaFocus}
       />
     </div>
   );

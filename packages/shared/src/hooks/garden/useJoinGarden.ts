@@ -8,7 +8,6 @@
  */
 
 import { useQueryClient } from "@tanstack/react-query";
-import type { Garden } from "../../types/domain";
 import { readContract } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
 import { useCallback, useRef, useState } from "react";
@@ -29,6 +28,8 @@ import {
   trackContractError,
   trackNetworkError,
 } from "../../modules/app/error-tracking";
+import { logger } from "../../modules/app/logger";
+import type { Garden } from "../../types/domain";
 import { isAddressInList } from "../../utils/blockchain/address";
 
 /**

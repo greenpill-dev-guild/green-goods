@@ -16,7 +16,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mockLoginWithPasskey = vi.fn();
 const mockCreateAccount = vi.fn();
 const mockLoginWithWallet = vi.fn();
-const mockClearPasskey = vi.fn();
 let mockHasStoredCredential = false;
 
 vi.mock("@green-goods/shared", () => ({
@@ -55,12 +54,6 @@ vi.mock("@green-goods/shared", () => ({
   debugError: vi.fn(),
   trackAuthError: vi.fn(),
   APP_NAME: "Green Goods",
-}));
-
-vi.mock("@green-goods/shared/hooks", () => ({
-  useAuthContext: () => ({
-    clearPasskey: mockClearPasskey,
-  }),
 }));
 
 // Mock Splash component to simplify testing
@@ -197,12 +190,6 @@ describe("Login View - Existing User", () => {
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Login with Passkey");
   });
 
-  it("shows a distinct action to remove the saved passkey", () => {
-    renderWithRouter();
-
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Forget saved passkey");
-  });
-
   it("calls loginWithPasskey when primary button clicked for existing user", async () => {
     const user = userEvent.setup();
     renderWithRouter();
@@ -210,14 +197,5 @@ describe("Login View - Existing User", () => {
     await user.click(screen.getByTestId("primary-button"));
 
     expect(mockLoginWithPasskey).toHaveBeenCalled();
-  });
-
-  it("clears the saved passkey when the tertiary action is clicked", async () => {
-    const user = userEvent.setup();
-    renderWithRouter();
-
-    await user.click(screen.getByTestId("tertiary-button"));
-
-    expect(mockClearPasskey).toHaveBeenCalled();
   });
 });

@@ -21,8 +21,8 @@ vi.mock("../../../lib/hypercerts", () => ({
 }));
 
 import { useHypercertAllowlist } from "../../../hooks/hypercerts/useHypercertAllowlist";
-import type { AllowlistEntry } from "../../../types/hypercerts";
 import type { ContributorWeight, DistributionMode } from "../../../lib/hypercerts";
+import type { AllowlistEntry } from "../../../types/hypercerts";
 
 // ============================================
 // Test Suite

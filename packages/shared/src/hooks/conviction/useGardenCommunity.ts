@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
-import type { Address } from "../../types/domain";
-import { WeightScheme, type GardenCommunity } from "../../types/gardens-community";
 import { wagmiConfig } from "../../config/appkit";
-import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis";
-import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules";
-import { getGardenCommunityFromSubgraph } from "../../modules/data/gardens";
-import { normalizeAddress } from "../../utils/blockchain/address";
 import { logger } from "../../modules/app/logger";
+import { getGardenCommunityFromSubgraph } from "../../modules/data/gardens";
+import type { Address } from "../../types/domain";
+import { type GardenCommunity, WeightScheme } from "../../types/gardens-community";
+import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis";
+import { normalizeAddress } from "../../utils/blockchain/address";
+import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { queryKeys, STALE_TIME_SLOW } from "../query-keys";
 
@@ -112,28 +112,9 @@ export function useGardenCommunity(
           }),
         ]);
 
-      let communityName: string | undefined;
-      try {
-        const subgraphCommunity = await getGardenCommunityFromSubgraph(
-          resolvedCommunity as Address,
-          normalizedGarden as Address,
-          chainId
-        );
-        communityName = subgraphCommunity?.communityName;
-      } catch (subgraphError) {
-        logger.warn("Failed to enrich community name from subgraph", {
-          source: "useGardenCommunity",
-          gardenAddress: normalizedGarden,
-          communityAddress: resolvedCommunity,
-          chainId,
-          error: subgraphError,
-        });
-      }
-
       return {
         gardenAddress: normalizedGarden as Address,
         communityAddress: resolvedCommunity as Address,
-        communityName,
         goodsTokenAddress: goodsTokenAddress as Address,
         weightScheme: Number(weightSchemeRaw) as WeightScheme,
         stakeAmount: stakeAmount as bigint,

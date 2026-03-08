@@ -24,8 +24,8 @@
  *   VITE_STORACHA_PROOF — UCAN delegation proof for Storacha uploads
  */
 
-import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -148,7 +148,9 @@ function onChainHasCid(actionRegistry: string, uid: number, cid: string, rpcUrl:
       .trim();
     const cidHex = Buffer.from(cid, "utf8").toString("hex");
     return raw.includes(cidHex);
-  } catch {
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`  ⚠️  cast call failed for action ${uid}: ${reason}`);
     return false;
   }
 }
@@ -275,6 +277,7 @@ async function uploadImages(
 
   // Upload sequentially with progress
   let uploaded = 0;
+  let failed = 0;
   for (const item of toUpload) {
     const imageBuffer = fs.readFileSync(item.imagePath);
     const sizeMB = (imageBuffer.length / 1024 / 1024).toFixed(1);
@@ -295,13 +298,16 @@ async function uploadImages(
       uploaded++;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.log(`✗ FAILED: ${msg}`);
+      console.error(`✗ FAILED: ${msg}`);
+      failed++;
     }
   }
 
   // Save cache
   fs.writeFileSync(MEDIA_CACHE, JSON.stringify(mediaCache, null, 2));
-  console.log(`\n  Uploaded: ${uploaded}/${toUpload.length}, Total cached: ${mediaCids.size}/${actions.length}`);
+  console.log(
+    `\n  Uploaded: ${uploaded}/${toUpload.length} (${failed} failed), Total cached: ${mediaCids.size}/${actions.length}`,
+  );
 
   return mediaCids;
 }
@@ -428,12 +434,12 @@ function generateBatchScript(updates: ActionUpdate[], actionRegistry: string): s
       }
 
       if (u.needsMedia && u.mediaCid) {
-        lines.push(`        {`);
-        lines.push(`            string[] memory media = new string[](1);`);
+        lines.push("        {");
+        lines.push("            string[] memory media = new string[](1);");
         lines.push(`            media[0] = "${u.mediaCid}";`);
         lines.push(`            registry.updateActionMedia(${u.uid}, media);`);
         lines.push(`            console.log("Updated media for action ${u.uid}");`);
-        lines.push(`        }`);
+        lines.push("        }");
       }
 
       return lines.join("\n");
@@ -486,7 +492,7 @@ function executeBatchScript(solidity: string, rpcUrl: string): void {
   console.log(`  Keystore: ${keystoreName}`);
   console.log(`  RPC: ${rpcUrl.replace(/\/v2\/.*/, "/v2/***")}`);
   console.log(`  Script: ${scriptPath}`);
-  console.log(`\n  Executing forge script (enter keystore password once)...\n`);
+  console.log("\n  Executing forge script (enter keystore password once)...\n");
 
   try {
     execFileSync("forge", args, {

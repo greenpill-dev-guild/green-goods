@@ -1,8 +1,10 @@
 import {
+  type Address,
   ConfirmDialog,
   createPublicClientForChain,
-  debugError,
   DEFAULT_CHAIN_ID,
+  debugError,
+  type Garden,
   GardenAccountABI,
   getDefaultChain,
   hapticLight,
@@ -14,8 +16,6 @@ import {
   useGardens,
   useJoinGarden,
   useTimeout,
-  type Address,
-  type Garden,
 } from "@green-goods/shared";
 import { RiCheckLine, RiMapPinLine, RiPlantLine } from "@remixicon/react";
 import { useMemo, useState } from "react";

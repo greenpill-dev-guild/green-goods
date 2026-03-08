@@ -1,10 +1,10 @@
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { execFileSync } from "node:child_process";
-import { NetworkManager, CHAIN_ID_MAP } from "../utils/network";
-import { AnvilManager } from "./anvil";
 import { type ParsedOptions, redactSensitiveArgs } from "../utils/cli-parser";
+import { CHAIN_ID_MAP, NetworkManager } from "../utils/network";
 import { assertSepoliaGate } from "../utils/release-gate";
+import { AnvilManager } from "./anvil";
 
 /**
  * OctantFactoryDeployer - Deploys the Octant vault factory
@@ -58,7 +58,7 @@ export class OctantFactoryDeployer {
       const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
       args.push("--account", keystoreName);
 
-      const senderAddress = process.env.SENDER_ADDRESS;
+      const senderAddress = options.sender ?? process.env.SENDER_ADDRESS;
       if (senderAddress) {
         args.push("--sender", senderAddress);
       }

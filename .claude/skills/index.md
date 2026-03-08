@@ -16,7 +16,6 @@ Use these canonical commands to start structured workflows:
 | **review** | `/review`, "review this PR", "code review" | 6-pass systematic code review (report-first by default) |
 | **audit** | `/audit`, "audit the codebase", "health check" | Dead code detection, architectural anti-patterns |
 | **teams** | `/teams`, "create agent team", "agent team" | Coordinate multiple Claude Code sessions as a team |
-| **meeting-notes** | `/meeting-notes`, "extract issues from transcript" | Extract actionable items from meeting transcripts as GitHub issues |
 
 ### Command Mode Wrappers (Aliases)
 
@@ -102,7 +101,6 @@ Use agents for multi-step tasks that need sustained context:
 | **code-reviewer** | "use code-reviewer" | Systematic 6-pass PR review with GitHub posting |
 | **migration** | "use migration agent" | Cross-package migration orchestration with blast radius tracking |
 | **triage** | "triage this", "classify this issue", "what skill for this" | Fast classification, severity/type/package routing to skill chains |
-| **storybook-author** | "use storybook-author", "write stories" | CSF3 story authoring with dark mode, a11y, interaction tests |
 
 ### Agent Handoff Protocol
 
@@ -140,7 +138,6 @@ What do you need?
 ├─► Health check? ────────────► /audit
 ├─► Verify whole repo? ───────► /review --mode verify_only --scope cross-package
 ├─► Coordinate agent team? ──► /teams (build, review, investigate)
-├─► Meeting transcript? ───────► /meeting-notes
 │
 ├─► Research/investigate? ────► oracle agent
 ├─► Complex implementation? ──► cracked-coder agent
@@ -170,7 +167,6 @@ What do you need?
 ├─► TailwindCSS/theming? ─────► tailwindcss skill
 ├─► Dialog/Select/Popover? ───► radix-ui skill
 ├─► Component stories? ───────► storybook skill
-├─► Write component stories? ─► storybook-author agent
 ├─► Accessibility/UI? ────────► ui-compliance skill
 ├─► Create diagram? ──────────► mermaid-diagrams skill
 ├─► Architecture decision? ───► architecture skill
@@ -287,7 +283,7 @@ Package-specific implementation patterns:
 ### Tier 3 — Design
 UI/UX patterns and documentation:
 
-`frontend-design:frontend-design` · `tailwindcss` · `radix-ui` · `ui-compliance` · `storybook` · `mermaid-diagrams`
+`frontend-design` · `tailwindcss` · `radix-ui` · `ui-compliance` · `storybook` · `mermaid-diagrams`
 
 ### Tier 4 — Orchestration
 Workflow coordination (command skills + agents):
@@ -327,3 +323,19 @@ Which skills apply to which packages:
 | radix-ui | | | x | x | x | |
 | ui-compliance | | | x | x | x | |
 | storybook | | | x | | | |
+
+## Documentation Sources
+
+The `docs/` directory contains agent-readable specification pages. When skills need domain context beyond code patterns, reference these docs:
+
+| Topic | Path | Use For |
+|-------|------|---------|
+| System architecture | `docs/docs/developers/architecture.mdx` | Data flow diagrams, component relationships |
+| Domain glossary | `docs/docs/glossary.md` | Term definitions for domain vocabulary |
+| Entity matrix | `docs/docs/developers/integrations.mdx` | Cross-protocol entity mapping |
+| EAS queries | `docs/docs/evaluator/verify-attestation-chains.mdx` | Attestation query templates |
+| Envio queries | `docs/docs/evaluator/verify-attestation-chains.mdx` | GraphQL query templates |
+| Error lookup | `docs/docs/gardener/submit-work-mdr.mdx` | User-facing error-to-fix mapping |
+| Impact model | `docs/docs/concepts/impact-model.mdx` | CIDS framework, action domains |
+| Deployment ops | `docs/docs/builders/deployments/status.mdx` | Multi-chain deployment runbook |
+| Strategy | `docs/docs/concepts/strategy-and-goals.mdx` | Feature scope, success metrics |

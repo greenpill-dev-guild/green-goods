@@ -1,5 +1,6 @@
 import type { ActionInstructionConfig } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { FormField } from "@/components/ui/FormField";
 
 interface ReviewConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["review"];
@@ -11,13 +12,13 @@ export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionPro
 
   return (
     <div className="space-y-4">
-      <div>
-        <label htmlFor="review-title" className="block text-sm font-medium text-text-strong mb-2">
-          {formatMessage({
-            id: "app.admin.actions.reviewConfig.sectionTitle",
-            defaultMessage: "Section Title",
-          })}
-        </label>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.reviewConfig.sectionTitle",
+          defaultMessage: "Section Title",
+        })}
+        htmlFor="review-title"
+      >
         <input
           id="review-title"
           type="text"
@@ -29,18 +30,15 @@ export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionPro
             defaultMessage: "e.g., Review & Submit",
           })}
         />
-      </div>
+      </FormField>
 
-      <div>
-        <label
-          htmlFor="review-description"
-          className="block text-sm font-medium text-text-strong mb-2"
-        >
-          {formatMessage({
-            id: "app.admin.actions.reviewConfig.description",
-            defaultMessage: "Description",
-          })}
-        </label>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.reviewConfig.description",
+          defaultMessage: "Description",
+        })}
+        htmlFor="review-description"
+      >
         <textarea
           id="review-description"
           value={config.description}
@@ -52,7 +50,7 @@ export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionPro
             defaultMessage: "Instructions for the review screen...",
           })}
         />
-      </div>
+      </FormField>
     </div>
   );
 }

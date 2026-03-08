@@ -1,15 +1,15 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within, waitFor } from "storybook/test";
-import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@green-goods/shared";
+import * as Dialog from "@radix-ui/react-dialog";
 import {
   RiArrowDownLine,
   RiArrowUpLine,
   RiCornerDownLeftLine,
   RiSearchLine,
 } from "@remixicon/react";
+import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 
 // ─── Mock CommandPalette ─────────────────────────────────────────────
 // The real component uses useNavigate, useGardens, and useActions which

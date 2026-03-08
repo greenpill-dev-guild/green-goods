@@ -8,9 +8,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-
-import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
+import { logger } from "../../modules/app/logger";
 import { useDrafts } from "./useDrafts";
 
 interface DraftFormState {
@@ -106,7 +105,6 @@ export function useDraftResume(options: UseDraftResumeOptions) {
     return () => {
       controller.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- searchParams.toString() is read for snapshot, not as a reactive dep
   }, [draftIdFromUrl, setSearchParams, resumeDraft]);
 
   /**

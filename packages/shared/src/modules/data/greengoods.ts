@@ -1,20 +1,21 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
-  Capital,
-  Domain,
   type Action,
   type ActionInstructionConfig,
   type Address,
+  Capital,
+  Domain,
   type Garden,
   type GardenerCard,
   type WorkInput,
 } from "../../types/domain";
+import { defaultTemplate, instructionTemplates } from "../../utils/action/templates";
 import { logger } from "../app/logger";
 import { greenGoodsGraphQL } from "./graphql";
 import { greenGoodsIndexer } from "./graphql-client";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs";
 
-const GATEWAY_BASE_URL = "https://storacha.link";
+const ACTION_INSTRUCTIONS_TIMEOUT_MS = 5_000;
 
 // Re-export Capital for backward compatibility
 export { Capital };
@@ -31,13 +32,138 @@ function parseDomain(domain: string | undefined | null): Domain {
   return map[domain] ?? Domain.SOLAR;
 }
 
+function cloneInstructionConfig(config: ActionInstructionConfig): ActionInstructionConfig {
+  return {
+    description: config.description,
+    uiConfig: {
+      media: {
+        ...config.uiConfig.media,
+        needed: [...config.uiConfig.media.needed],
+        optional: [...config.uiConfig.media.optional],
+      },
+      details: {
+        ...config.uiConfig.details,
+        inputs: [...config.uiConfig.details.inputs],
+      },
+      review: { ...config.uiConfig.review },
+    },
+  };
+}
+
+function normalizeStringArray(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return [...fallback];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function normalizeWorkInputs(value: unknown, fallback: WorkInput[]): WorkInput[] {
+  if (!Array.isArray(value)) return [...fallback];
+  return value as WorkInput[];
+}
+
+function normalizeInstructionConfig(
+  candidate: unknown,
+  fallback: ActionInstructionConfig
+): ActionInstructionConfig {
+  const resolvedFallback = cloneInstructionConfig(fallback);
+  if (!candidate || typeof candidate !== "object") return resolvedFallback;
+
+  const config = candidate as Partial<ActionInstructionConfig>;
+  const uiConfig =
+    config.uiConfig && typeof config.uiConfig === "object"
+      ? (config.uiConfig as Partial<ActionInstructionConfig["uiConfig"]>)
+      : undefined;
+  const media =
+    uiConfig?.media && typeof uiConfig.media === "object"
+      ? (uiConfig.media as Partial<ActionInstructionConfig["uiConfig"]["media"]>)
+      : undefined;
+  const details =
+    uiConfig?.details && typeof uiConfig.details === "object"
+      ? (uiConfig.details as Partial<ActionInstructionConfig["uiConfig"]["details"]>)
+      : undefined;
+  const review =
+    uiConfig?.review && typeof uiConfig.review === "object"
+      ? (uiConfig.review as Partial<ActionInstructionConfig["uiConfig"]["review"]>)
+      : undefined;
+
+  return {
+    description:
+      typeof config.description === "string" ? config.description : resolvedFallback.description,
+    uiConfig: {
+      media: {
+        title:
+          typeof media?.title === "string" ? media.title : resolvedFallback.uiConfig.media.title,
+        description:
+          typeof media?.description === "string"
+            ? media.description
+            : resolvedFallback.uiConfig.media.description,
+        maxImageCount:
+          typeof media?.maxImageCount === "number"
+            ? media.maxImageCount
+            : resolvedFallback.uiConfig.media.maxImageCount,
+        minImageCount:
+          typeof media?.minImageCount === "number"
+            ? media.minImageCount
+            : resolvedFallback.uiConfig.media.minImageCount,
+        required:
+          typeof media?.required === "boolean"
+            ? media.required
+            : resolvedFallback.uiConfig.media.required,
+        needed: normalizeStringArray(media?.needed, resolvedFallback.uiConfig.media.needed),
+        optional: normalizeStringArray(media?.optional, resolvedFallback.uiConfig.media.optional),
+      },
+      details: {
+        title:
+          typeof details?.title === "string"
+            ? details.title
+            : resolvedFallback.uiConfig.details.title,
+        description:
+          typeof details?.description === "string"
+            ? details.description
+            : resolvedFallback.uiConfig.details.description,
+        feedbackPlaceholder:
+          typeof details?.feedbackPlaceholder === "string"
+            ? details.feedbackPlaceholder
+            : resolvedFallback.uiConfig.details.feedbackPlaceholder,
+        inputs: normalizeWorkInputs(details?.inputs, resolvedFallback.uiConfig.details.inputs),
+      },
+      review: {
+        title:
+          typeof review?.title === "string" ? review.title : resolvedFallback.uiConfig.review.title,
+        description:
+          typeof review?.description === "string"
+            ? review.description
+            : resolvedFallback.uiConfig.review.description,
+      },
+    },
+  };
+}
+
+function getActionInstructionFallback(slug: string): ActionInstructionConfig {
+  const template = instructionTemplates[slug] ?? defaultTemplate;
+  return cloneInstructionConfig(template);
+}
+
+async function parseInstructionConfig(
+  data: Blob | string,
+  fallbackConfig: ActionInstructionConfig
+): Promise<ActionInstructionConfig> {
+  if (typeof data === "string") {
+    return normalizeInstructionConfig(JSON.parse(data), fallbackConfig);
+  }
+  if (data instanceof Blob) {
+    const text = await data.text();
+    return normalizeInstructionConfig(JSON.parse(text), fallbackConfig);
+  }
+  return cloneInstructionConfig(fallbackConfig);
+}
+
 /** Fetches action definitions from the indexer and enriches media + UI config. */
 export async function getActions(): Promise<Action[]> {
   try {
     const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
       query Actions($chainId: Int!) {
-        Action(where: {chainId: {_eq: $chainId}}) {
+        Action(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 100) {
           id
           chainId
           startTime
@@ -62,7 +188,9 @@ export async function getActions(): Promise<Action[]> {
 
     if (!data || !data.Action || !Array.isArray(data.Action)) return [];
 
-    return await Promise.all(
+    const instructionFailures: Array<{ actionId: string; message: string }> = [];
+
+    const actions = await Promise.all(
       data.Action.map(
         async ({
           id,
@@ -76,64 +204,61 @@ export async function getActions(): Promise<Action[]> {
           instructions,
           createdAt,
         }) => {
+          const actionSlug = typeof slug === "string" ? slug : "";
+          const fallbackConfig = getActionInstructionFallback(actionSlug);
+
           // Resolve media CIDs to gateway URLs
           const resolvedMedia =
-            media && Array.isArray(media)
-              ? media.map((cid: string) => resolveIPFSUrl(cid, GATEWAY_BASE_URL))
-              : [];
+            media && Array.isArray(media) ? media.map((cid: string) => resolveIPFSUrl(cid)) : [];
 
           // Fetch action instructions from IPFS using Storacha module
-          let actionConfig: ActionInstructionConfig | null = null;
+          let actionConfig = fallbackConfig;
           try {
             if (instructions) {
-              const configData = await getFileByHash(instructions);
-              // Parse the data as JSON
-              if (typeof configData.data === "string") {
-                actionConfig = JSON.parse(configData.data) as ActionInstructionConfig;
-              } else if (configData.data instanceof Blob) {
-                const text = await configData.data.text();
-                actionConfig = JSON.parse(text) as ActionInstructionConfig;
-              } else {
-                actionConfig = configData.data as ActionInstructionConfig;
-              }
+              const configData = await getFileByHash(instructions, {
+                timeoutMs: ACTION_INSTRUCTIONS_TIMEOUT_MS,
+              });
+              actionConfig = await parseInstructionConfig(configData.data, fallbackConfig);
             }
           } catch (error) {
-            logger.error(`[getActions] Failed to fetch instructions for action ${id}`, { error });
+            instructionFailures.push({
+              actionId: id,
+              message: error instanceof Error ? error.message : String(error),
+            });
           }
 
           return {
             id, // composite id stays for uniqueness but downstream selection matches numeric UID
             title,
-            slug: typeof slug === "string" ? slug : "",
-            instructions: instructions ? resolveIPFSUrl(instructions, GATEWAY_BASE_URL) : undefined,
+            slug: actionSlug,
+            instructions: instructions ? resolveIPFSUrl(instructions) : undefined,
             domain: parseDomain(domain as string | undefined),
             startTime: startTime ? Number(startTime) * 1000 : Date.now(),
             endTime: endTime ? Number(endTime) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now
             capitals: Array.isArray(capitals) ? capitals.map((c: unknown) => c as Capital) : [],
-            media: resolvedMedia.length > 0 ? resolvedMedia : ["/images/no-image-placeholder.png"],
-            description: actionConfig?.description || "",
-            inputs: (actionConfig?.uiConfig?.details?.inputs as WorkInput[]) || [],
-            mediaInfo: actionConfig?.uiConfig?.media || {
-              title: "Capture Media",
-              description: "",
-              maxImageCount: 5,
-              required: false,
-              minImageCount: 1,
-              needed: [],
-              optional: [],
-            },
-            details: actionConfig?.uiConfig?.details || {
-              title: "Details",
-              description: "",
-              feedbackPlaceholder: "",
-              inputs: [],
-            },
-            review: actionConfig?.uiConfig?.review || { title: "Review", description: "" },
+            media: resolvedMedia,
+            description: actionConfig.description,
+            inputs: actionConfig.uiConfig.details.inputs as WorkInput[],
+            mediaInfo: actionConfig.uiConfig.media,
+            details: actionConfig.uiConfig.details,
+            review: actionConfig.uiConfig.review,
             createdAt: createdAt ? Number(createdAt) * 1000 : Date.now(),
           };
         }
       )
     );
+
+    if (instructionFailures.length > 0) {
+      logger.warn(
+        `[getActions] Failed to fetch instructions for ${instructionFailures.length}/${data.Action.length} actions`,
+        {
+          actionIds: instructionFailures.map((failure) => failure.actionId),
+          failures: instructionFailures,
+        }
+      );
+    }
+
+    return actions;
   } catch (error) {
     logger.error("[getActions] Failed to fetch actions", { error });
     return [];
@@ -146,7 +271,7 @@ export async function getGardens(): Promise<Garden[]> {
     const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
       query Gardens($chainId: Int!) {
-        Garden(where: {chainId: {_eq: $chainId}}) {
+        Garden(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 50) {
           id
           chainId
           tokenAddress
@@ -194,9 +319,9 @@ export async function getGardens(): Promise<Garden[]> {
       const isOctantGarden = garden.name === "Octant Community Garden";
 
       const bannerImage = isOctantGarden
-        ? resolveIPFSUrl(OCTANT_BANNER_OVERRIDE, GATEWAY_BASE_URL)
+        ? resolveIPFSUrl(OCTANT_BANNER_OVERRIDE)
         : garden.bannerImage
-          ? resolveIPFSUrl(garden.bannerImage, GATEWAY_BASE_URL)
+          ? resolveIPFSUrl(garden.bannerImage)
           : "/images/no-image-placeholder.png";
 
       return {
@@ -233,7 +358,7 @@ export async function getGardeners(): Promise<GardenerCard[]> {
     const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
       query Gardeners($chainId: Int!) {
-        Gardener(where: {chainId: {_eq: $chainId}}) {
+        Gardener(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 200) {
           id
           chainId
           createdAt

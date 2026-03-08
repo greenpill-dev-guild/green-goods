@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { parseUnits } from "viem";
 import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { parseUnits } from "viem";
 import { z } from "zod";
 
 import { validateDecimalInput } from "../../utils/blockchain/vaults";

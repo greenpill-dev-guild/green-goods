@@ -1,6 +1,6 @@
 import {
-  type CookieJar,
   ConfirmDialog,
+  type CookieJar,
   formatTokenAmount,
   getVaultAssetSymbol,
   useCookieJarWithdraw,
@@ -11,24 +11,11 @@ import {
 } from "@green-goods/shared";
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { formatUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 
 interface JarCardProps {
   jar: CookieJar;
   gardenName: string;
-}
-
-function parseAmountToUnits(value: string, decimals: number): bigint {
-  const trimmed = value.trim();
-  if (!trimmed) return 0n;
-
-  const [wholePart, fractionPart = ""] = trimmed.split(".");
-  const base = 10n ** BigInt(decimals);
-  const wholeUnits = BigInt(wholePart || "0") * base;
-  const normalizedFraction = fractionPart.padEnd(decimals, "0").slice(0, decimals);
-  const fractionUnits = normalizedFraction ? BigInt(normalizedFraction) : 0n;
-
-  return wholeUnits + fractionUnits;
 }
 
 function JarCard({ jar, gardenName }: JarCardProps) {
@@ -40,21 +27,18 @@ function JarCard({ jar, gardenName }: JarCardProps) {
   const [purpose, setPurpose] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const decimals = jar.decimals;
+  const decimals = 18;
   const assetSymbol = getVaultAssetSymbol(jar.assetAddress, undefined);
-  const inputError = useMemo(
-    () => validateDecimalInput(amountInput, decimals),
-    [amountInput, decimals]
-  );
+  const inputError = useMemo(() => validateDecimalInput(amountInput, decimals), [amountInput]);
 
   const parsedAmount = useMemo(() => {
     if (!amountInput.trim() || inputError) return 0n;
     try {
-      return parseAmountToUnits(amountInput, decimals);
+      return parseUnits(amountInput, decimals);
     } catch {
       return 0n;
     }
-  }, [amountInput, decimals, inputError]);
+  }, [amountInput, inputError]);
 
   const executeWithdraw = () => {
     withdrawMutation.mutate(
@@ -78,13 +62,13 @@ function JarCard({ jar, gardenName }: JarCardProps) {
       >
         <div>
           <p className="text-sm font-medium text-text-strong">
-            {assetSymbol} - {formatTokenAmount(jar.balance, decimals, Math.min(decimals, 6))}
+            {assetSymbol} - {formatTokenAmount(jar.balance, decimals)}
           </p>
           <p className="text-xs text-text-soft">{gardenName}</p>
         </div>
         <p className="text-xs text-text-sub">
           {formatMessage({ id: "app.cookieJar.maxWithdrawal" })}:{" "}
-          {formatTokenAmount(jar.maxWithdrawal, decimals, Math.min(decimals, 6))}
+          {formatTokenAmount(jar.maxWithdrawal, decimals)}
         </p>
       </button>
 
@@ -155,10 +139,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
             title={formatMessage({ id: "app.cookieJar.confirmWithdrawTitle" })}
             description={formatMessage(
               { id: "app.cookieJar.confirmWithdrawDescription" },
-              {
-                amount: formatTokenAmount(parsedAmount, decimals, Math.min(decimals, 6)),
-                asset: assetSymbol,
-              }
+              { amount: formatTokenAmount(parsedAmount, decimals), asset: assetSymbol }
             )}
             confirmLabel={formatMessage({ id: "app.cookieJar.withdraw" })}
             variant="warning"

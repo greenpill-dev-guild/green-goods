@@ -1,0 +1,135 @@
+---
+title: Specification Engineering
+sidebar_label: Spec Engineering
+slug: /builders/agentic/spec-engineering
+audience: developer
+owner: docs
+last_verified: 2026-03-01
+---
+
+# Specification Engineering
+
+Specification engineering is writing structured documents that both humans and AI agents can execute. In Green Goods, specs drive agent workflows through clearly defined phases, acceptance criteria, and verification steps.
+
+## Specification Types
+
+### Agent Specifications (`.claude/agents/*.md`)
+
+Define agent identity, capabilities, and constraints:
+
+```yaml
+---
+name: cracked-coder
+description: Implements complex features using strict TDD workflow.
+model: opus
+tools: [Read, Glob, Grep, Edit, Write, Bash, Task]
+skills: [testing, react, contracts, error-handling-patterns]
+maxTurns: 50
+---
+```
+
+The project maintains six agent specs:
+
+| Agent | Purpose | Model |
+|-------|---------|-------|
+| `cracked-coder` | Feature implementation with TDD | Opus |
+| `code-reviewer` | PR review and pattern enforcement | Opus |
+| `oracle` | Architecture guidance and analysis | Opus |
+| `migration` | Cross-package migrations | Opus |
+| `storybook-author` | Story creation and design system | Opus |
+| `triage` | Issue classification | Sonnet |
+
+### Feature Specifications (`.claude/specs/`)
+
+Detailed requirements for complex features. Structure:
+
+1. **Problem statement** -- What problem does this solve?
+2. **User stories** -- Who benefits and how?
+3. **Technical design** -- Architecture, data flow, dependencies
+4. **Acceptance criteria** -- Testable conditions for completion
+5. **Edge cases** -- Known failure modes and how to handle them
+
+### Plan Files (`.plans/`)
+
+Intermediate artifacts from agent PLAN phases. Saved when a user asks for "just a plan" without execution:
+
+```markdown
+## Plan: Cookie Jar Payout Integration
+
+### Phase 1: Hook Layer
+- [ ] Create `useCookieJarPayout` in shared
+- [ ] Test: query key correctness, enabled guard, error path
+
+### Phase 2: UI Layer
+- [ ] Add PayoutPanel component in admin
+- [ ] Wire to existing GardenDetail view
+
+### Phase 3: I18n
+- [ ] Add strings to en.json, es.json, pt.json
+```
+
+## Writing Effective Specs
+
+### Testable Acceptance Criteria
+
+Every criterion should be verifiable without human judgment:
+
+```markdown
+# Good
+- [ ] `useGardenActions(undefined, chainId)` returns `{ enabled: false }`
+- [ ] Calling `bun run test` passes with 0 failures
+- [ ] The barrel export exists in `packages/shared/src/hooks/index.ts`
+
+# Bad
+- [ ] The hook works correctly
+- [ ] Performance is acceptable
+- [ ] Code is clean
+```
+
+### Scope Boundaries
+
+Specs must define what is NOT in scope to prevent agents from over-engineering:
+
+```markdown
+## Out of Scope
+- Visual design changes (handled by storybook-author agent)
+- Contract modifications (requires separate spec + security review)
+- i18n for languages other than en/es/pt
+```
+
+### Dependency Mapping
+
+For cross-package work, explicitly list which packages are touched and in what order:
+
+```markdown
+## Packages Affected
+1. `packages/shared` -- New hook + tests (build first)
+2. `packages/admin` -- New component consuming the hook
+3. `packages/client` -- No changes
+```
+
+## Skill Specifications (`.claude/skills/`)
+
+Skills are specialized instruction sets loaded by agents. Each skill has:
+
+- **Activation criteria** -- When to use this skill
+- **Patterns** -- Code patterns with examples
+- **Constraints** -- What to avoid
+- **Verification** -- How to confirm correct application
+
+The project has 40+ skills covering domains from `testing` to `xstate` to `web3`.
+
+## Spec Review Checklist
+
+Before handing a spec to an agent:
+
+1. Are all acceptance criteria mechanically testable?
+2. Is the scope bounded (explicit out-of-scope section)?
+3. Are package dependencies listed with build order?
+4. Does the spec reference existing patterns (Cathedral Check)?
+5. Are edge cases listed with expected behavior?
+6. Is the model requirement appropriate for the complexity?
+
+## Governance
+
+Specs are version-controlled alongside the code they describe. The guidance consistency check (`node .claude/scripts/check-guidance-consistency.js`) validates that specs do not contradict the rules and constraints defined in `CLAUDE.md` and `.claude/rules/`.

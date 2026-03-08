@@ -1,7 +1,10 @@
 import {
+  type ActionInstructionConfig,
   DEFAULT_CHAIN_ID,
   defaultTemplate,
   fromDateTimeLocalValue,
+  getFileByHash,
+  instructionTemplates,
   logger,
   toastService,
   toDateTimeLocalValue,
@@ -10,7 +13,6 @@ import {
   useActionOperations,
   useActions,
   useAsyncEffect,
-  type ActionInstructionConfig,
 } from "@green-goods/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
@@ -20,6 +22,61 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { FormField } from "@/components/ui/FormField";
+
+const editActionSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  startTime: z.coerce.date(),
+  endTime: z.coerce.date(),
+});
+
+type EditActionFormData = z.infer<typeof editActionSchema>;
+
+const INSTRUCTION_LOAD_TIMEOUT_MS = 8_000;
+
+function cloneInstructionConfig(config: ActionInstructionConfig): ActionInstructionConfig {
+  return {
+    description: config.description,
+    uiConfig: {
+      media: {
+        ...config.uiConfig.media,
+        needed: [...config.uiConfig.media.needed],
+        optional: [...config.uiConfig.media.optional],
+      },
+      details: {
+        ...config.uiConfig.details,
+        inputs: [...config.uiConfig.details.inputs],
+      },
+      review: { ...config.uiConfig.review },
+    },
+  };
+}
+
+async function parseInstructionConfig(
+  data: Blob | string
+): Promise<ActionInstructionConfig | null> {
+  const isInstructionConfig = (value: unknown): value is ActionInstructionConfig => {
+    if (!value || typeof value !== "object") return false;
+    const config = value as Partial<ActionInstructionConfig>;
+    return !!(
+      config.uiConfig &&
+      config.uiConfig.media &&
+      config.uiConfig.details &&
+      config.uiConfig.review
+    );
+  };
+
+  if (typeof data === "string") {
+    const parsed = JSON.parse(data) as unknown;
+    return isInstructionConfig(parsed) ? parsed : null;
+  }
+  if (data instanceof Blob) {
+    const text = await data.text();
+    const parsed = JSON.parse(text) as unknown;
+    return isInstructionConfig(parsed) ? parsed : null;
+  }
+  return null;
+}
 
 const editActionSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -61,21 +118,33 @@ export default function EditAction() {
   useAsyncEffect(
     async ({ isMounted }) => {
       if (!action) return;
+      const fallbackConfig = cloneInstructionConfig(
+        instructionTemplates[action.slug] ?? defaultTemplate
+      );
 
       form.reset({
         title: action.title || "",
         startTime: toSafeDate(action.startTime) ?? new Date(),
         endTime: toSafeDate(action.endTime) ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       });
+      if (isMounted()) {
+        setInstructionConfig(fallbackConfig);
+      }
 
       if (!action.instructions) return;
 
       setIsLoadingInstructions(true);
       try {
-        const response = await fetch(action.instructions);
-        const config = await response.json();
+        const file = await getFileByHash(action.instructions, {
+          timeoutMs: INSTRUCTION_LOAD_TIMEOUT_MS,
+        });
+        const config = await parseInstructionConfig(file.data);
         if (isMounted()) {
-          setInstructionConfig(config);
+          if (config) {
+            setInstructionConfig(config);
+          } else {
+            setInstructionConfig(fallbackConfig);
+          }
         }
       } catch (error) {
         if (isMounted()) {
@@ -159,6 +228,13 @@ export default function EditAction() {
       <PageHeader
         title={formatMessage({ id: "app.actions.edit.title" }, { name: action.title })}
         description={formatMessage({ id: "app.actions.edit.description" })}
+        backLink={{
+          to: `/actions/${id}`,
+          label: formatMessage({
+            id: "app.actions.backToAction",
+            defaultMessage: "Back to action",
+          }),
+        }}
       />
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 max-w-4xl space-y-6">
@@ -168,34 +244,24 @@ export default function EditAction() {
             {formatMessage({ id: "app.actions.edit.basicInfo" })}
           </h3>
           <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="action-title"
-                className="block text-sm font-medium text-text-strong mb-2"
-              >
-                {formatMessage({ id: "app.assessment.table.title" })}
-              </label>
+            <FormField
+              label={formatMessage({ id: "app.assessment.table.title" })}
+              htmlFor="action-title"
+              error={form.formState.errors.title?.message}
+            >
               <input
                 id="action-title"
                 type="text"
                 {...form.register("title")}
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
               />
-              {form.formState.errors.title && (
-                <p className="mt-1 text-xs text-error-base">
-                  {form.formState.errors.title.message}
-                </p>
-              )}
-            </div>
+            </FormField>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="action-start-time"
-                  className="block text-sm font-medium text-text-strong mb-2"
-                >
-                  {formatMessage({ id: "app.actions.detail.startTime" })}
-                </label>
+              <FormField
+                label={formatMessage({ id: "app.actions.detail.startTime" })}
+                htmlFor="action-start-time"
+              >
                 <input
                   id="action-start-time"
                   type="datetime-local"
@@ -205,15 +271,12 @@ export default function EditAction() {
                   }
                   className="w-full rounded-md border border-stroke-soft px-3 py-2"
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label
-                  htmlFor="action-end-time"
-                  className="block text-sm font-medium text-text-strong mb-2"
-                >
-                  {formatMessage({ id: "app.actions.detail.endTime" })}
-                </label>
+              <FormField
+                label={formatMessage({ id: "app.actions.detail.endTime" })}
+                htmlFor="action-end-time"
+              >
                 <input
                   id="action-end-time"
                   type="datetime-local"
@@ -221,7 +284,7 @@ export default function EditAction() {
                   onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
                   className="w-full rounded-md border border-stroke-soft px-3 py-2"
                 />
-              </div>
+              </FormField>
             </div>
           </div>
         </div>

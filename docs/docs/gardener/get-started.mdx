@@ -1,15 +1,28 @@
 ---
+<<<<<<< HEAD
 title: Gardener Get Started
+=======
+title: Gardener Guide
+>>>>>>> release/1.1
 sidebar_position: 1
 slug: /gardener/get-started
 audience: gardener
 owner: docs
+<<<<<<< HEAD
 last_verified: 2026-02-18
 feature_status: Live
 goal: "Complete Gardener Get Started with clear, role-specific next actions."
 difficulty: "quickstart"
 estimated_time: "5-10 minutes."
 prereqs: "Smartphone, camera access, first internet session for sign-in."
+=======
+last_verified: 2026-03-01
+feature_status: Live
+goal: "Get started documenting your regenerative work with Green Goods."
+difficulty: "quickstart"
+estimated_time: "5 minutes"
+prereqs: "A smartphone with a camera."
+>>>>>>> release/1.1
 next_steps: "./submit-work-mdr"
 persona_context: "Gardeners documenting and syncing impact work in field conditions."
 source_of_truth:
@@ -18,6 +31,7 @@ source_of_truth:
 keywords:
   - gardener
   - submit work
+<<<<<<< HEAD
   - mdr
   - offline
 ---
@@ -37,11 +51,23 @@ import {AtAGlanceCard, JourneyMap, NextBestAction, StatusBadge, StepFlow} from "
   personaContext="Gardeners documenting and syncing impact work in field conditions."
   lastVerified="2026-02-18"
 />
+=======
+  - document impact
+  - offline
+---
+
+import {JourneyMap, NextBestAction, StepFlow} from "@site/src/components/docs";
+
+# Gardener Guide
+
+You're the person on the ground making change happen. This guide helps you document your regenerative work so it becomes verified, funded impact.
+>>>>>>> release/1.1
 
 <JourneyMap
   role="Gardener"
   steps={[
     {title: "Get started", href: "./get-started", state: "current", note: "Set up your first field-ready workflow."},
+<<<<<<< HEAD
     {title: "Submit work (MDR)", href: "./submit-work-mdr", state: "upcoming", note: "Capture evidence and submit quickly."},
     {title: "Handle offline + drafts", href: "./offline-sync-and-drafts", state: "upcoming", note: "Keep progress when disconnected."},
     {title: "Track approvals", href: "./track-status-and-attestations", state: "upcoming", note: "Follow status and verify attestations."},
@@ -78,3 +104,56 @@ import {AtAGlanceCard, JourneyMap, NextBestAction, StatusBadge, StepFlow} from "
     {label: "Common Errors", href: "./common-errors"},
   ]}
 />
+=======
+    {title: "Document your work", href: "./submit-work-mdr", state: "upcoming", note: "Capture photos and submit your regenerative work."},
+    {title: "Working offline", href: "./offline-sync-and-drafts", state: "upcoming", note: "Keep working even without internet."},
+    {title: "Track your progress", href: "./track-status-and-attestations", state: "upcoming", note: "See how your submissions are reviewed and verified."},
+  ]}
+/>
+
+## Overview
+
+Green Goods is a mobile-first app for documenting regenerative work. As a gardener, you can:
+
+1. **Sign in** with Face ID, Touch ID, or your device biometrics — no passwords or seed phrases needed.
+2. **Open an action** in your garden to see what regenerative work is needed.
+3. **Document your work** by taking photos, adding details, and submitting in one flow.
+4. **Work offline** — your progress is saved and syncs automatically when you reconnect.
+5. **Track your submissions** as they move through review and verification.
+
+{/* IMAGE PLACEHOLDER */}
+
+## How It Works
+
+<StepFlow
+  steps={[
+    {title: "Sign in", detail: "Open greengoods.app and sign in with your device biometrics. No passwords required — your account is secured by a passkey stored on your device."},
+    {title: "Open an action", detail: "Browse your garden and pick an active regenerative action. Each action describes what needs to be done, what evidence to capture, and any time windows."},
+    {title: "Document your work", detail: "Follow the MDR workflow: capture photos (Media), add details about what you did (Details), then preview and confirm (Review)."},
+    {title: "Track your progress", detail: "Watch your submission move through review. Once approved, it becomes a permanent on-chain attestation — a verifiable record of your impact."},
+  ]}
+/>
+
+## Best Practices
+
+- Take clear, well-lit photos that show the before and after of your work
+- Fill in all details while the work is fresh — accuracy matters for approval
+- If you lose connectivity, keep working — drafts are saved locally and sync when you reconnect
+- Check your work dashboard regularly to catch any rejections early and resubmit with corrections
+
+## What's Next
+
+<NextBestAction
+  title="Next step"
+  why="Learn how to capture and submit your regenerative work."
+  actionLabel="Document Your Work"
+  actionHref="./submit-work-mdr"
+  alternatives={[
+    {label: "Working Offline", href: "./offline-sync-and-drafts"},
+    {label: "Track Your Progress", href: "./track-status-and-attestations"},
+    {label: "Troubleshooting", href: "./common-errors"},
+  ]}
+/>
+
+Want to run your own garden? Learn about the [Operator role](/operator/get-started-and-roles).
+>>>>>>> release/1.1

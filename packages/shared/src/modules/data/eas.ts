@@ -1,8 +1,5 @@
 import { getEASConfig } from "../../config/blockchain";
-import { isZeroBytes32 } from "../../utils/blockchain/vaults";
-import { easGraphQL } from "./graphql";
-import { createEasClient } from "./graphql-client";
-import { canonicalizeIPFSIdentifier, getJsonByHash, resolveIPFSUrl, tryParseJson } from "./ipfs";
+import type { WorkApproval } from "../../types/domain";
 import type {
   EASAttestationRaw,
   EASDecodedField,
@@ -10,11 +7,11 @@ import type {
   EASWork,
   EASWorkApproval,
 } from "../../types/eas-responses";
-import { CynefinPhase, Domain, type GardenAssessment, type WorkApproval } from "../../types/domain";
-import type { AssessmentConfigPayload } from "../../utils/eas/encoders";
+import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { logger } from "../app/logger";
-
-const GATEWAY_BASE_URL = "https://storacha.link";
+import { easGraphQL } from "./graphql";
+import { createEasClient } from "./graphql-client";
+import { resolveIPFSUrl } from "./ipfs";
 
 /** Custom error for EAS fetch failures - allows React Query to properly retry/error */
 export class EASFetchError extends Error {
@@ -431,16 +428,16 @@ const parseDataToGardenAssessment = (
   const fields = parseDecodedFields(decodedDataJson, "parseDataToGardenAssessment");
   const findField = (name: string) => fields.find((field) => field.name === name);
   const readValue = (name: string): unknown => findField(name)?.value?.value;
-  const readStringField = (name: string): string => readString(readValue(name)) ?? "";
+  const readString = (name: string): string => (readValue(name) as string) ?? "";
 
-  const title = readStringField("title");
-  const description = readStringField("description");
-  const assessmentConfigCID = canonicalizeIPFSIdentifier(readStringField("assessmentConfigCID"));
+  const title = readString("title");
+  const description = readString("description");
+  const assessmentConfigCID = readString("assessmentConfigCID");
   const domainRaw = readValue("domain") as NumberConvertibleValue;
   const domain = toNumberFromField(domainRaw) ?? 0;
   const startDateRaw = readValue("startDate") as NumberConvertibleValue;
   const endDateRaw = readValue("endDate") as NumberConvertibleValue;
-  const location = readStringField("location");
+  const location = readString("location");
 
   const startDate = toNumberFromField(startDateRaw);
   const endDate = toNumberFromField(endDateRaw);
@@ -456,7 +453,7 @@ const parseDataToGardenAssessment = (
     startDate,
     endDate,
     location,
-    createdAt: normalizeTimestamp(attestation.time),
+    createdAt: attestation.time,
   };
 };
 
@@ -476,7 +473,7 @@ const parseDataToWork = (
   const mediaCIDs = readStringArray(mediaData?.value?.value);
 
   // Resolve IPFS CIDs to gateway URLs
-  const media = mediaCIDs.map((cid: string) => resolveIPFSUrl(cid, GATEWAY_BASE_URL));
+  const media = mediaCIDs.map((cid: string) => resolveIPFSUrl(cid));
 
   // Safely extract optional fields with null handling
   const feedbackData = data.find((d) => d.name === "feedback");
@@ -551,7 +548,7 @@ export const parseDataToWorkApproval = (
     verificationMethod:
       toNumberFromField(verificationMethodData?.value?.value as NumberConvertibleValue) ?? 0,
     reviewNotesCID: (reviewNotesCIDData?.value?.value as string) || "",
-    createdAt: normalizeTimestamp(attestation.time),
+    createdAt: attestation.time,
   };
 };
 

@@ -41,6 +41,7 @@ import {
   trackAuthPasskeyRegisterSuccess,
   trackAuthSessionRestored,
 } from "../modules/app/analytics-events";
+import { logger } from "../modules/app/logger";
 import {
   enablePasskeyAutoRestore,
   getPasskeyRestorePreference,
@@ -183,15 +184,6 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
     // This prevents passkey from "stealing" the session when user explicitly chose wallet
     if (storedAuthMode === "wallet") {
       logger.debug("[Auth] Auth mode is wallet, skipping passkey session restore");
-      return null;
-    }
-
-    const shouldAutoRestore =
-      passkeyRestorePreference === "auto" ||
-      (passkeyRestorePreference === null && storedAuthMode === "passkey");
-
-    if (!shouldAutoRestore) {
-      logger.debug("[Auth] Passkey restore requires explicit login, skipping auto-restore");
       return null;
     }
 

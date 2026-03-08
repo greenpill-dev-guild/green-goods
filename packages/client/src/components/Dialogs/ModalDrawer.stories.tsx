@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "storybook/test";
 import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
 import { ModalDrawer, type ModalDrawerProps } from "./ModalDrawer";
 
 /**
@@ -228,7 +228,7 @@ export const Gallery: Story = {
   render: () => (
     <div className="flex flex-col gap-6 p-4">
       <p className="text-sm text-text-sub-600">
-        ModalDrawer is a bottom-sheet pattern using Radix Dialog. Click &ldquo;Open Drawer&rdquo; buttons below
+        ModalDrawer is a bottom-sheet pattern using Radix Dialog. Click "Open Drawer" buttons below
         to see each variant. The Gallery shows the trigger buttons only since multiple portalled
         drawers cannot be rendered side-by-side.
       </p>

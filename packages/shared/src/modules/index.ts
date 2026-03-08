@@ -88,6 +88,11 @@ export {
   type UploadErrorContext,
 } from "./app/error-tracking";
 // ============================================================================
+// LOGGING
+// ============================================================================
+export type { LogContext, Logger } from "./app/logger";
+export { createLogger, logger } from "./app/logger";
+// ============================================================================
 // APP / ANALYTICS
 // ============================================================================
 export {
@@ -100,12 +105,10 @@ export {
   trackOfflineEvent,
   trackSyncPerformance,
 } from "./app/posthog";
-
 // ============================================================================
 // APP / SERVICE WORKER
 // ============================================================================
 export { serviceWorkerManager } from "./app/service-worker";
-
 // ============================================================================
 // AUTH / SESSION
 // ============================================================================
@@ -116,17 +119,13 @@ export {
   type AuthMode,
   clearAllAuth,
   clearAuthMode,
-  // Legacy (deprecated - credentials now on Pimlico server)
-  clearStoredPasskey,
   clearStoredRpId,
   // Username (Pimlico server)
   clearStoredUsername,
   getAuthMode,
   getStoredRpId,
   getStoredUsername,
-  hasStoredPasskey,
   hasStoredUsername,
-  PASSKEY_STORAGE_KEY,
   // RP ID (Android passkey compatibility)
   RP_ID_STORAGE_KEY,
   setAuthMode,
@@ -134,7 +133,6 @@ export {
   setStoredUsername,
   USERNAME_STORAGE_KEY,
 } from "./auth/session";
-
 // ============================================================================
 // DATA / EAS
 // ============================================================================
@@ -144,7 +142,17 @@ export {
   getWorks,
   getWorksByGardener,
 } from "./data/eas";
-
+// ============================================================================
+// DATA / GARDENS (Gardens V2 Subgraph)
+// ============================================================================
+export {
+  getConvictionStrategiesFromSubgraph,
+  getConvictionWeightsFromSubgraph,
+  getGardenCommunityFromSubgraph,
+  getGardenPoolsFromSubgraph,
+  getMemberPowerFromSubgraph,
+  getRegisteredHypercertsFromSubgraph,
+} from "./data/gardens";
 // ============================================================================
 // DATA / GRAPHQL
 // ============================================================================
@@ -159,8 +167,6 @@ export {
   GQLClient,
   GRAPHQL_TIMEOUT_MS,
   greenGoodsIndexer,
-  // Timeout utilities
-  INDEXER_TIMEOUT_MS,
   TimeoutError,
   withTimeout,
 } from "./data/graphql-client";
@@ -222,6 +228,19 @@ export {
   getVaultEvents,
 } from "./data/vaults";
 // ============================================================================
+// DATA / HYPERCERTS
+// ============================================================================
+export {
+  type AssessmentMetadataPrefill,
+  checkAttestationsBundled,
+  domainToActionDomain,
+  filterAttestationsByAssessment,
+  getApprovedAttestations,
+  getGardenHypercerts,
+  getHypercertById,
+  prefillMetadataFromAssessment,
+} from "./data/hypercerts";
+// ============================================================================
 // DATA / IPFS (Storacha)
 // ============================================================================
 export {
@@ -233,9 +252,6 @@ export {
   getIpfsInitStatus,
   initializeIpfs,
   initializeIpfsFromEnv,
-  // Deprecated aliases for backward compatibility
-  initializePinata,
-  initializePinataFromEnv,
   // Storacha aliases (preferred naming)
   initializeStoracha,
   initializeStorachaFromEnv,
@@ -249,26 +265,66 @@ export {
   uploadFileToIPFS,
   uploadJSONToIPFS,
 } from "./data/ipfs";
-
+// ============================================================================
+// DATA / MARKETPLACE (On-chain reads & event queries)
+// ============================================================================
+export {
+  getActiveOrder,
+  getListingHistory,
+  getMinPrice,
+  getRegisteredOrders,
+  getSellerOrders,
+  getTradeHistory,
+  previewPurchase,
+} from "./data/marketplace";
+// ============================================================================
+// DATA / VAULTS
+// ============================================================================
+export {
+  getAllGardenVaults,
+  getGardenVaults,
+  getVaultDeposits,
+  getVaultEvents,
+} from "./data/vaults";
 // ============================================================================
 // JOB QUEUE
 // ============================================================================
 export {
   createOfflineTxHash,
+  isOfflineTxHash,
   jobQueue,
   jobQueueDB,
   jobQueueEventBus,
   mediaResourceManager,
   useJobQueueEvents,
 } from "./job-queue";
-
+// ============================================================================
+// MARKETPLACE (HypercertExchange SDK integration)
+// ============================================================================
+export {
+  buildApprovalTransactions,
+  buildMakerAsk,
+  checkMarketplaceApprovals,
+  type EncodedApprovalCall,
+  getMarketplaceAddresses,
+  // Client
+  getMarketplaceClient,
+  isMarketplaceSupported,
+  // Signing
+  type MakerAskOrder,
+  // Approvals
+  type MarketplaceApprovals,
+  resetMarketplaceClients,
+  signMakerAsk,
+  type ValidationResult,
+  validateOrder,
+} from "./marketplace";
 // ============================================================================
 // TRANSLATION
 // ============================================================================
 export { browserTranslator } from "./translation/browser-translator";
 export { translationCache } from "./translation/db";
 export { runTranslationDiagnostics } from "./translation/diagnostics";
-
 // ============================================================================
 // LOGGING
 // ============================================================================
@@ -279,7 +335,6 @@ export { createLogger, logger } from "./app/logger";
 // WORK / BOT SUBMISSION
 // ============================================================================
 export { submitApprovalBot, submitWorkBot } from "./work/bot-submission";
-
 // ============================================================================
 // WORK / PASSKEY SUBMISSION
 // ============================================================================
@@ -291,7 +346,6 @@ export {
   submitApprovalWithPasskey,
   submitWorkWithPasskey,
 } from "./work/passkey-submission";
-
 // ============================================================================
 // WORK / WORK SUBMISSION
 // ============================================================================

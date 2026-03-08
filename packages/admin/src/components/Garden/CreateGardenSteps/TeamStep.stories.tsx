@@ -1,6 +1,6 @@
+import { type Address, useCreateGardenStore } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
-import { useCreateGardenStore, type Address } from "@green-goods/shared";
 import { TeamStep } from "./TeamStep";
 
 const MOCK_ADDRESSES: Address[] = [
@@ -28,7 +28,6 @@ function WithStoreState({
     reset();
     if (gardeners.length > 0) setField("gardeners", gardeners);
     if (operators.length > 0) setField("operators", operators);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Storybook initializer: run once on mount only
   }, []);
 
   return <>{children}</>;

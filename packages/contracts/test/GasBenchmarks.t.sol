@@ -124,7 +124,9 @@ contract GasBenchmarks is Test, ERC6551Helper {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0
+            domainMask: 0,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         uint256 gasBefore = gasleft();
@@ -154,7 +156,9 @@ contract GasBenchmarks is Test, ERC6551Helper {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0
+            domainMask: 0,
+            gardeners: gardeners,
+            operators: operators
         });
 
         uint256 gasBefore = gasleft();
@@ -184,7 +188,9 @@ contract GasBenchmarks is Test, ERC6551Helper {
                 metadata: "",
                 openJoining: false,
                 weightScheme: IGardensModule.WeightScheme.Linear,
-                domainMask: 0
+                domainMask: 0,
+                gardeners: gardeners,
+                operators: operators
             });
         }
 
@@ -433,7 +439,9 @@ contract GasBenchmarks is Test, ERC6551Helper {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0
+            domainMask: 0,
+            gardeners: gardeners,
+            operators: operators
         });
 
         garden = gardenToken.mintGarden(config);

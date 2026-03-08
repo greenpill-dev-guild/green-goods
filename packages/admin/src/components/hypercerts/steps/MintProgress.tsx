@@ -1,13 +1,15 @@
 import {
+  classifyTxError,
   cn,
   DEFAULT_CHAIN_ID,
   getNetworkConfig,
-  getBlockchainErrorI18nKey,
+  isMeaningfulTxErrorMessage,
   type MintingState,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
-import { useMemo, useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
+import { Alert } from "@/components/ui/Alert";
 
 interface MintStep {
   id: string;
@@ -61,6 +63,11 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
   const currentStepIndex = useMemo(() => getStepIndex(state.status), [state.status]);
   const isFailed = state.status === "failed";
   const isComplete = state.status === "confirmed";
+  const txErrorView = useMemo(
+    () => (state.status === "failed" ? classifyTxError(state.error) : null),
+    [state.error, state.status]
+  );
+  const isFailureWarning = isFailed && txErrorView?.severity === "warning";
 
   // Screen reader announcement for status changes
   const srAnnouncement = useMemo(() => {
@@ -149,7 +156,10 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
                         isStepActive &&
                           !isStepFailed &&
                           "border-primary-base bg-primary-base text-primary-foreground",
-                        isStepFailed && "border-error-base bg-error-base text-white",
+                        isStepFailed &&
+                          (isFailureWarning
+                            ? "border-warning-base bg-warning-base text-white"
+                            : "border-error-base bg-error-base text-white"),
                         isStepPending && "border-stroke-sub bg-bg-white text-text-sub"
                       )}
                     >
@@ -166,7 +176,8 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
                         "text-xs font-medium sm:hidden lg:inline",
                         isStepComplete && "text-success-dark",
                         isStepActive && !isStepFailed && "text-primary-dark",
-                        isStepFailed && "text-error-dark",
+                        isStepFailed &&
+                          (isFailureWarning ? "text-warning-dark" : "text-error-dark"),
                         isStepPending && "text-text-sub"
                       )}
                     >
@@ -208,15 +219,31 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
       )}
 
       {state.status === "failed" && (
-        <div className="rounded-lg border border-error-light bg-error-lighter p-4 text-sm text-error-dark">
-          <p>{formatMessage({ id: "app.hypercerts.mint.failed" })}</p>
-          {state.error && (
-            <p className="mt-1 text-xs">
-              {formatMessage({
-                id: getBlockchainErrorI18nKey(state.error),
-              })}
-            </p>
+        <div
+          className={cn(
+            "rounded-lg border p-4 text-sm",
+            txErrorView?.severity === "warning"
+              ? "border-warning-light bg-warning-lighter text-warning-dark"
+              : "border-error-light bg-error-lighter text-error-dark"
           )}
+        >
+          <p>
+            {formatMessage({
+              id: txErrorView?.titleKey ?? "app.txFeedback.failed.title",
+              defaultMessage:
+                txErrorView?.severity === "warning"
+                  ? "Transaction cancelled"
+                  : "Transaction failed",
+            })}
+          </p>
+          <p className="mt-1 text-xs">
+            {isMeaningfulTxErrorMessage(state.error) && txErrorView?.kind !== "cancelled"
+              ? state.error
+              : formatMessage({
+                  id: txErrorView?.messageKey ?? "app.errors.blockchain.unknown.message",
+                  defaultMessage: "Something went wrong. Please try again.",
+                })}
+          </p>
         </div>
       )}
     </div>

@@ -4,11 +4,11 @@
  * Tests for the garden members modal component.
  */
 
-import { screen, fireEvent, waitFor } from "@testing-library/react";
-import { renderWithProviders as render } from "../test-utils";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render } from "../test-utils";
 
 // Mock AddressDisplay component
 vi.mock("../../components/AddressDisplay", () => ({

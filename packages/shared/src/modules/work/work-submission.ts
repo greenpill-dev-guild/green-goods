@@ -1,12 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import {
-  Confidence,
-  type Action,
-  type Address,
-  type Work,
-  type WorkApprovalDraft,
-  type WorkDraft,
-} from "../../types/domain";
+import type { Action, Address, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { serviceWorkerManager } from "../app/service-worker";
 import { createOfflineTxHash, jobQueue } from "../job-queue";
@@ -120,8 +113,6 @@ export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 export const MAX_IMAGE_COUNT = 10;
 export const MAX_TOTAL_IMAGE_SIZE_BYTES = 50 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-export const MAX_APPROVAL_CONFIDENCE = Confidence.HIGH;
-export const MAX_APPROVAL_VERIFICATION_METHOD = 15;
 
 /**
  * Options for validating work submission context
@@ -254,6 +245,24 @@ export function validateApprovalDraft(draft: WorkApprovalDraft): string[] {
   // Confidence validation (decision #31: approvals require >= LOW, rejections use NONE)
   if (draft.approved && typeof draft.confidence === "number" && draft.confidence < 1) {
     errors.push("Confidence must be at least LOW for approvals");
+  }
+
+  // Verification method must be set for approvals
+  if (draft.approved && (!draft.verificationMethod || draft.verificationMethod === 0)) {
+    errors.push("At least one verification method is required for approvals");
+  }
+
+  // Confidence validation (decision #31: approvals require >= LOW, rejections use NONE)
+  if (draft.approved && typeof draft.confidence === "number" && draft.confidence < 1) {
+    errors.push("Confidence must be at least LOW for approvals");
+  }
+
+  // Verification method must be a valid 4-bit bitmask (0-15)
+  if (
+    typeof draft.verificationMethod === "number" &&
+    (draft.verificationMethod < 0 || draft.verificationMethod > 15)
+  ) {
+    errors.push("Verification method must be between 0 and 15");
   }
 
   // Verification method must be set for approvals

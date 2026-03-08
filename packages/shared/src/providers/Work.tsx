@@ -10,7 +10,6 @@
  */
 
 import React, { useCallback, useContext, useMemo, useState } from "react";
-import type { Action, Domain, Garden, WorkDraft } from "../types/domain";
 import type { Control, FormState, UseFormRegister, UseFormSetValue } from "react-hook-form";
 import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../components/toast";
@@ -23,6 +22,7 @@ import { useWorkMutation } from "../hooks/work/useWorkMutation";
 import { validateWorkSubmissionContext } from "../modules/work/work-submission";
 import { useWorkFlowStore } from "../stores/useWorkFlowStore";
 import { WorkTab } from "../stores/workFlowTypes";
+import type { Action, Domain, Garden, WorkDraft } from "../types/domain";
 import { isAddressInList, normalizeAddress } from "../utils/blockchain/address";
 import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../utils/debug";
 
@@ -178,18 +178,15 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Filter gardens to only show ones user is a member of
   // Filter to user's gardens
-  const userGardens = useMemo(
-    () =>
-      userAddress && gardensData
-        ? gardensData.filter((garden: Garden) => {
-            return (
-              isAddressInList(userAddress, garden.gardeners) ||
-              isAddressInList(userAddress, garden.operators)
-            );
-          })
-        : [],
-    [userAddress, gardensData]
-  );
+  const userGardens =
+    userAddress && gardensData
+      ? gardensData.filter((garden: Garden) => {
+          return (
+            isAddressInList(userAddress, garden.gardeners) ||
+            isAddressInList(userAddress, garden.operators)
+          );
+        })
+      : [];
 
   // UI state via Zustand with useShallow for multi-select optimization
   const {

@@ -12,11 +12,11 @@
  * @module modules/marketplace/approvals
  */
 
-import { type Address, type Hex, encodeFunctionData } from "viem";
+import { type Address, encodeFunctionData, type Hex } from "viem";
 
 import { createPublicClientForChain } from "../../config";
-import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { TRANSFER_MANAGER_ABI } from "../../hooks/hypercerts/hypercert-abis";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createLogger } from "../app/logger";
 
 const log = createLogger({ source: "marketplace/approvals" });

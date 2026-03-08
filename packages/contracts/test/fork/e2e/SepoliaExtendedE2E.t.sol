@@ -51,7 +51,9 @@ contract SepoliaExtendedE2EForkTest is ForkTestBase {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0x0F
+            domainMask: 0x0F,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         address garden = gardenToken.mintGarden{ value: fee }(config);

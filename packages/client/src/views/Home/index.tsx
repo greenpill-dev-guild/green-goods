@@ -20,10 +20,10 @@ import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { PullToRefresh } from "@/components/Inputs";
-import { GardenList } from "./GardenList";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
-import { WalletDrawerIcon } from "./WalletDrawer/Icon";
+import { GardenList } from "./GardenList";
 import { WalletDrawer } from "./WalletDrawer";
+import { WalletDrawerIcon } from "./WalletDrawer/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
 /** Storage key for welcome prompt - shown once per device */

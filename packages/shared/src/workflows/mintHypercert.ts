@@ -1,5 +1,5 @@
-import { assign, fromPromise, setup } from "xstate";
 import type { Address, Hex } from "viem";
+import { assign, fromPromise, setup } from "xstate";
 
 import type { AllowlistEntry, HypercertMetadata } from "../types/hypercerts";
 

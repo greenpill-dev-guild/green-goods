@@ -23,10 +23,7 @@
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: 14px;
   padding: 1rem;
-  background:
-    radial-gradient(circle at top right, rgba(31, 128, 95, 0.16), transparent 42%),
-    var(--ifm-background-surface-color);
-  box-shadow: 0 10px 24px rgba(10, 24, 18, 0.06);
+  background: var(--ifm-background-surface-color);
   animation: featureEnter 480ms ease both;
 }
 

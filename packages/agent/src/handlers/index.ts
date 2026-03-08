@@ -6,6 +6,7 @@
 
 import { generateSecureId, generateSecurePrivateKey, isValidAddress } from "../services/crypto";
 import * as db from "../services/db";
+import { classifyError } from "../services/errors";
 import { loggers } from "../services/logger";
 import { type RateLimitType, rateLimiter } from "../services/rate-limiter";
 
@@ -271,11 +272,11 @@ async function handleVoice(
     await applySessionUpdates(platform, sender.platformId, result);
     return result.response;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    log.error({ err: error }, "Voice processing error");
+    const { category, userMessage } = classifyError(error);
+    log.error({ err: error, category }, "Voice processing error");
     return textResponse(
       `❌ Sorry, I couldn't process that audio.\n\n` +
-        `Error: ${errorMessage}\n\n` +
+        `${userMessage}\n\n` +
         `Try sending a text message instead.`
     );
   }
@@ -308,8 +309,9 @@ async function handleText(
     await applySessionUpdates(platform, sender.platformId, result);
     return result.response;
   } catch (error) {
-    log.error({ err: error }, "Text processing error");
-    return textResponse("❌ Sorry, I couldn't process that message. Please try again.");
+    const { category, userMessage } = classifyError(error);
+    log.error({ err: error, category }, "Text processing error");
+    return textResponse(`❌ ${userMessage}`);
   }
 }
 
@@ -396,9 +398,12 @@ async function handlePhoto(
       "markdown"
     );
   } catch (error) {
-    log.error({ err: error }, "Photo processing error");
+    const { category, userMessage } = classifyError(error);
+    log.error({ err: error, category }, "Photo processing error");
     return textResponse(
-      "❌ Sorry, I couldn't process that photo.\n\n" + "Please try again or send a text message."
+      `❌ Sorry, I couldn't process that photo.\n\n` +
+        `${userMessage}\n\n` +
+        `Please try again or send a text message.`
     );
   }
 }

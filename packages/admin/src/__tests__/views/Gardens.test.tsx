@@ -5,30 +5,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import enMessages from "@green-goods/shared/i18n/en";
 import Gardens from "@/views/Gardens";
 
-// Mock the shared modules used by Gardens
+// Mock the shared barrel — Gardens imports from @green-goods/shared directly
 const mockUseGardens = vi.fn();
 const mockUseGardenPermissions = vi.fn();
-const mockUseAuth = vi.fn();
-const mockUseFilteredGardens = vi.fn();
-
 vi.mock("@green-goods/shared", () => ({
-  useFilteredGardens: (...args: unknown[]) => mockUseFilteredGardens(...args),
-  cn: (...args: any[]) => args.filter(Boolean).join(" "),
-  controlInputVariants: () => "",
-  iconButtonIconVariants: () => "",
-  iconButtonVariants: () => "",
-  selectTriggerVariants: () => "",
-}));
-
-vi.mock("@green-goods/shared/hooks", () => ({
-  useAuth: () => mockUseAuth(),
   useGardens: () => mockUseGardens(),
   useGardenPermissions: () => mockUseGardenPermissions(),
+  resolveIPFSUrl: (url: string) => url,
+  cn: (...args: any[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared/modules", () => ({
-  resolveIPFSUrl: (url: string) => url,
-}));
+// Mock @remixicon/react — Proxy returns stub for any icon (future-proof)
+vi.mock("@remixicon/react", () => {
+  const Icon = (props: any) => React.createElement("span", props);
+  return new Proxy({}, { get: () => Icon });
+});
 
 // Mock @remixicon/react icons used by Gardens and PageHeader
 vi.mock("@remixicon/react", () => {
@@ -58,7 +49,7 @@ vi.mock("react-router-dom", async () => {
 });
 
 function renderWithIntl(ui: React.ReactElement) {
-  return render(React.createElement(IntlProvider, { locale: "en", messages: enMessages }, ui));
+  return render(React.createElement(IntlProvider, { locale: "en", messages: {} }, ui));
 }
 
 function buildPermissions(overrides: Record<string, any> = {}) {
@@ -74,12 +65,7 @@ function buildPermissions(overrides: Record<string, any> = {}) {
 describe("Gardens View", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseAuth.mockReturnValue({ eoaAddress: null });
     mockUseGardenPermissions.mockReturnValue(buildPermissions());
-    mockUseFilteredGardens.mockImplementation((gardens: any[]) => ({
-      filteredGardens: gardens,
-      myGardensCount: 0,
-    }));
   });
 
   it("should display loading state while fetching gardens", () => {
@@ -142,9 +128,6 @@ describe("Gardens View", () => {
   });
 
   it("should display gardens with operator badge for managed gardens", () => {
-    mockUseAuth.mockReturnValue({
-      eoaAddress: "0x04D60647836bcA09c37B379550038BdaaFD82503",
-    });
     mockUseGardenPermissions.mockReturnValue(
       buildPermissions({
         canManageGarden: (garden: { id: string }) =>

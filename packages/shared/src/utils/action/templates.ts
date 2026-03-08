@@ -5,6 +5,37 @@
  */
 
 import type { ActionInstructionConfig } from "../../types/domain";
+import {
+  agroHarvestYield,
+  agroLearningReflection,
+  agroMaintenanceActivity,
+  agroPlantingEvent,
+  agroSiteSpeciesPlan,
+  agroSurvivalCheck,
+} from "./templates/agro";
+import {
+  eduDeliverSession,
+  eduFollowupAction,
+  eduLearningAssessment,
+  eduPublishSession,
+  eduVerifyAttendance,
+} from "./templates/edu";
+import {
+  solarEnergyUptimeCheck,
+  solarInstallMilestone,
+  solarNodeOps,
+  solarServiceSession,
+  solarSiteSetup,
+} from "./templates/solar";
+
+import {
+  wasteCleanupEvent,
+  wasteMaintenanceCheck,
+  wasteSiteAssessment,
+  wasteSortingBreakdown,
+  wasteTransferReceipt,
+  wasteUpcycleBatch,
+} from "./templates/waste";
 
 import {
   solarSiteSetup,

@@ -48,8 +48,8 @@ vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
 }));
 
 import {
-  useHypercerts,
   type OptimisticHypercertData,
+  useHypercerts,
 } from "../../../hooks/hypercerts/useHypercerts";
 import { createMockHypercertRecord, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
 

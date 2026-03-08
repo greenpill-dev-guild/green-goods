@@ -239,29 +239,6 @@ export interface GardenAssessment {
   /** Supporting documents stored on IPFS */
   attachments: AssessmentAttachment[];
 
-  /**
-   * Raw assessment config CID retained for direct reads/debugging.
-   * Legacy client/admin views also use this to resolve supplemental content.
-   */
-  assessmentConfigCID?: string;
-  /** Reporting window copied from the attestation for compatibility with older views. */
-  startDate?: number | null;
-  /** Reporting window copied from the attestation for compatibility with older views. */
-  endDate?: number | null;
-  /** Legacy assessment type label, when present in older config payloads. */
-  assessmentType?: string;
-  /** Legacy capitals list, when present in older config payloads. */
-  capitals?: string[];
-  /** Legacy metrics payload, when present in older config payloads. */
-  metrics?: Record<string, unknown> | null;
-  /** Legacy evidence URLs resolved for display. */
-  evidenceMedia?: string[];
-  /** Legacy report/document URLs resolved for display. */
-  reportDocuments?: string[];
-  /** Related attestation UIDs referenced by the assessment. */
-  impactAttestations?: string[];
-  /** Legacy display tags, when present in older config payloads. */
-  tags?: string[];
   location: string;
   createdAt: number;
 }
@@ -346,6 +323,28 @@ export interface WorkInput {
 }
 
 // ============================================
+// Work Display Status
+// ============================================
+
+/**
+ * Canonical display status for work items across the UI.
+ *
+ * On-chain statuses: "pending" | "approved" | "rejected"
+ * Offline/sync statuses: "syncing" | "uploading" | "sync_failed" | "offline"
+ *
+ * This is the single source of truth — all components (StatusBadge, WorkCard,
+ * SyncIndicator) should reference this type rather than defining their own.
+ */
+export type WorkDisplayStatus =
+  | "approved"
+  | "rejected"
+  | "pending"
+  | "syncing"
+  | "uploading"
+  | "sync_failed"
+  | "offline";
+
+// ============================================
 // Work Types
 // ============================================
 
@@ -409,9 +408,9 @@ export interface WorkCard {
   createdAt: number;
 }
 
-/** On-chain work record with approval status */
+/** On-chain work record with approval status and display state */
 export interface Work extends WorkCard {
-  status: "pending" | "approved" | "rejected";
+  status: WorkDisplayStatus;
 }
 
 /**

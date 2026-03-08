@@ -4,21 +4,20 @@
  * 1. transferManager.grantApprovals([exchange])
  * 2. hypercertMinter.setApprovalForAll(transferManager, true)
  */
-import { useQuery, useMutation, useQueryClient, skipToken } from "@tanstack/react-query";
-import type { Address } from "../../types/domain";
+import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWalletClient } from "wagmi";
-
-import { DEFAULT_CHAIN_ID, createPublicClientForChain } from "../../config";
+import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
 import { logger } from "../../modules/app/logger";
 import {
-  checkMarketplaceApprovals,
   buildApprovalTransactions,
+  checkMarketplaceApprovals,
   type MarketplaceApprovals,
 } from "../../modules/marketplace";
-import { useAuth } from "../auth/useAuth";
-import { useAdminStore, type AdminState } from "../../stores/useAdminStore";
-import { queryKeys, queryInvalidation, STALE_TIME_RARE } from "../query-keys";
+import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
+import type { Address } from "../../types/domain";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
+import { useAuth } from "../auth/useAuth";
+import { queryInvalidation, queryKeys, STALE_TIME_RARE } from "../query-keys";
 
 export interface UseMarketplaceApprovalsResult {
   approvals: MarketplaceApprovals | null;

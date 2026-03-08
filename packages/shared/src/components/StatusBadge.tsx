@@ -1,18 +1,21 @@
 import {
+  RiAlertLine,
   RiCheckLine,
   RiCloseLine,
-  RiErrorWarningLine,
   RiLoader4Line,
   RiTimeLine,
   RiUploadCloud2Line,
+  RiWifiOffLine,
 } from "@remixicon/react";
 import React from "react";
+import type { WorkDisplayStatus } from "../types/domain";
 import { cn } from "../utils/styles/cn";
 
-export type WorkStatus = "approved" | "rejected" | "pending" | "syncing" | "uploading" | "failed";
+/** @deprecated Use `WorkDisplayStatus` from `@green-goods/shared` instead. */
+export type WorkStatus = WorkDisplayStatus;
 
 export interface StatusBadgeProps {
-  status: WorkStatus;
+  status: WorkDisplayStatus;
   className?: string;
   showIcon?: boolean;
   size?: "sm" | "md";
@@ -28,7 +31,7 @@ interface StatusConfig {
   borderColor: string;
 }
 
-function getStatusConfig(status: WorkStatus, variant: "semantic" | "default"): StatusConfig {
+function getStatusConfig(status: WorkDisplayStatus, variant: "semantic" | "default"): StatusConfig {
   const iconClass = "w-3 h-3";
 
   if (variant === "semantic") {
@@ -74,13 +77,21 @@ function getStatusConfig(status: WorkStatus, variant: "semantic" | "default"): S
           textColor: "text-information-dark",
           borderColor: "border-information-light",
         };
-      case "failed":
+      case "sync_failed":
         return {
-          icon: <RiErrorWarningLine className={iconClass} />,
-          label: "Failed",
+          icon: <RiAlertLine className={iconClass} />,
+          label: "Sync Failed",
           bgColor: "bg-error-lighter",
           textColor: "text-error-dark",
           borderColor: "border-error-light",
+        };
+      case "offline":
+        return {
+          icon: <RiWifiOffLine className={iconClass} />,
+          label: "Offline",
+          bgColor: "bg-bg-soft",
+          textColor: "text-text-sub",
+          borderColor: "border-stroke-soft",
         };
       default:
         return {
@@ -135,13 +146,21 @@ function getStatusConfig(status: WorkStatus, variant: "semantic" | "default"): S
         textColor: "text-information-dark",
         borderColor: "border-information-light",
       };
-    case "failed":
+    case "sync_failed":
       return {
-        icon: <RiErrorWarningLine className={iconClass} />,
-        label: "Failed",
+        icon: <RiAlertLine className={iconClass} />,
+        label: "Sync Failed",
         bgColor: "bg-error-lighter",
         textColor: "text-error-dark",
         borderColor: "border-error-light",
+      };
+    case "offline":
+      return {
+        icon: <RiWifiOffLine className={iconClass} />,
+        label: "Offline",
+        bgColor: "bg-bg-soft",
+        textColor: "text-text-sub",
+        borderColor: "border-stroke-soft",
       };
     default:
       return {
@@ -158,14 +177,21 @@ function getStatusConfig(status: WorkStatus, variant: "semantic" | "default"): S
  * Get status color classes for inline use (without the full badge)
  */
 export function getStatusColors(
-  status: WorkStatus | string,
+  status: WorkDisplayStatus | string,
   variant: "semantic" | "default" = "default"
 ) {
+  const validStatuses: WorkDisplayStatus[] = [
+    "approved",
+    "rejected",
+    "pending",
+    "syncing",
+    "uploading",
+    "sync_failed",
+    "offline",
+  ];
   const normalizedStatus = (
-    ["approved", "rejected", "pending", "syncing", "uploading", "failed"].includes(status)
-      ? status
-      : "pending"
-  ) as WorkStatus;
+    validStatuses.includes(status as WorkDisplayStatus) ? status : "pending"
+  ) as WorkDisplayStatus;
   const config = getStatusConfig(normalizedStatus, variant);
   return {
     bg: config.bgColor,

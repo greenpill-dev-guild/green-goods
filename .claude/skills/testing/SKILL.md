@@ -1,7 +1,12 @@
 ---
 name: testing
-user-invocable: false
-description: Testing patterns - TDD workflow, Vitest unit tests, Playwright E2E. Use for writing tests, implementing features, debugging.
+description: Testing patterns - TDD workflow, Vitest unit tests, Playwright E2E, mock strategies, and coverage targets. Use when writing tests, setting up test infrastructure, following TDD, or diagnosing test failures.
+version: "1.0.0"
+status: active
+packages: ["shared", "contracts", "client", "admin"]
+dependencies: []
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Testing Skill
@@ -135,201 +140,136 @@ Keep tests green. Don't add behavior.
 
 ## Part 2: Unit Testing with Vitest
 
-See `references/vitest.md` for the full Vitest API reference (core API, assertions, hooks, mocking).
+### Why Vitest
+
+- **Vite-native**: Same transformation pipeline as your app
+- **Fast HMR**: Tests rerun only on affected changes
+- **Jest-compatible**: Familiar API
+- **TypeScript native**: No extra config
+
+### Core API
+
+```typescript
+import { describe, it, test, expect } from "vitest";
+
+// Basic test
+test("adds numbers", () => {
+  expect(1 + 1).toBe(2);
+});
+
+// With describe grouping
+describe("GardenService", () => {
+  it("fetches gardens by chain", async () => {
+    const gardens = await fetchGardens(11155111);
+    expect(gardens).toHaveLength(3);
+  });
+
+  it.skip("skipped test", () => {});
+  it.only("focused test", () => {});
+});
+```
+
+### Assertions
+
+```typescript
+// Equality
+expect(value).toBe(exact);           // === comparison
+expect(value).toEqual(deep);         // Deep equality
+expect(value).toMatchObject(partial); // Partial match
+
+// Truthiness
+expect(value).toBeTruthy();
+expect(value).toBeFalsy();
+expect(value).toBeNull();
+expect(value).toBeUndefined();
+
+// Numbers
+expect(value).toBeGreaterThan(3);
+expect(value).toBeCloseTo(0.3, 5);   // Floating point
+
+// Strings/Arrays
+expect(str).toMatch(/pattern/);
+expect(arr).toContain(item);
+expect(arr).toHaveLength(3);
+
+// Objects
+expect(obj).toHaveProperty("key");
+expect(obj).toMatchSnapshot();
+
+// Errors
+expect(() => fn()).toThrow();
+expect(() => fn()).toThrow("message");
+
+// Async
+await expect(promise).resolves.toBe(value);
+await expect(promise).rejects.toThrow();
+```
+
+### Hooks
+
+```typescript
+import { beforeAll, beforeEach, afterEach, afterAll, vi } from "vitest";
+
+beforeAll(async () => {
+  await setupDatabase();
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+afterEach(() => {
+  // Cleanup
+});
+
+afterAll(async () => {
+  await teardownDatabase();
+});
+```
+
+### Mocking
+
+```typescript
+import { vi } from "vitest";
+
+// Mock function
+const mockFn = vi.fn();
+mockFn.mockReturnValue(42);
+mockFn.mockResolvedValue(data);
+mockFn.mockImplementation((x) => x * 2);
+
+// Assertions
+expect(mockFn).toHaveBeenCalled();
+expect(mockFn).toHaveBeenCalledWith(arg1, arg2);
+expect(mockFn).toHaveBeenCalledTimes(3);
+
+// Mock module
+vi.mock("@green-goods/shared", () => ({
+  useAuth: vi.fn(() => ({ user: mockUser })),
+}));
+
+// Spy on existing method
+const spy = vi.spyOn(object, "method");
+
+// Fake timers
+vi.useFakeTimers();
+vi.advanceTimersByTime(1000);
+vi.useRealTimers();
+```
 
 ### Green Goods Patterns
 
-#### Testing Hooks
+> For mock factories, hook testing, cleanup patterns, mutation error testing, and offline scenarios, see [vitest-patterns.md](./vitest-patterns.md)
 
-```typescript
-import { renderHook, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+**Key patterns summary:**
+- **Hook testing**: Use `renderHook` + QueryClientProvider wrapper. Always `waitFor` async results.
+- **Component testing**: Use `render` + `screen` queries. Prefer role-based selectors.
+- **Mock factories**: Use `createMockGarden`, `createMockWork` etc. from `test-utils/mock-factories.ts`.
+- **Cleanup testing (Rules 1-3)**: Verify timer cleanup, event listener removal, and isMounted guards on unmount.
+- **Mutation errors**: Test both hook-level (`isError`) and component-level (toast/UI feedback) error paths.
+- **Offline scenarios**: Use `fake-indexeddb/auto` + `vi.spyOn(navigator, "onLine", "get")` to simulate offline.
 
-const wrapper = ({ children }) => (
-  <QueryClientProvider client={new QueryClient()}>
-    {children}
-  </QueryClientProvider>
-);
-
-test("useGardens fetches gardens", async () => {
-  const { result } = renderHook(() => useGardens(11155111), { wrapper });
-
-  await waitFor(() => {
-    expect(result.current.isSuccess).toBe(true);
-  });
-
-  expect(result.current.data).toHaveLength(3);
-});
-```
-
-#### Testing Components
-
-```typescript
-import { render, screen, fireEvent } from "@testing-library/react";
-
-test("GardenCard displays garden name", () => {
-  render(<GardenCard garden={mockGarden} />);
-  expect(screen.getByText("Community Garden")).toBeInTheDocument();
-});
-
-test("GardenCard calls onSelect when clicked", async () => {
-  const onSelect = vi.fn();
-  render(<GardenCard garden={mockGarden} onSelect={onSelect} />);
-
-  await fireEvent.click(screen.getByRole("button"));
-
-  expect(onSelect).toHaveBeenCalledWith(mockGarden.address);
-});
-```
-
-#### Using Mock Factories
-
-```typescript
-// packages/shared/src/__tests__/test-utils/mock-factories.ts
-import { createMockGarden, createMockWork } from "./mock-factories";
-
-test("work submission flow", () => {
-  const garden = createMockGarden({ name: "Test Garden" });
-  const work = createMockWork({ gardenAddress: garden.address });
-
-  expect(work.gardenAddress).toBe(garden.address);
-});
-```
-
-#### Testing Hook Cleanup (Rules 1-3)
-
-Hooks that use timers, event listeners, or async effects must clean up on unmount. Verify cleanup to prevent memory leaks.
-
-```typescript
-// Rule 1: Timer cleanup — verify setTimeout/setInterval is cleared
-test("useDelayedInvalidation clears timer on unmount", () => {
-  vi.useFakeTimers();
-  const callback = vi.fn();
-  const { result, unmount } = renderHook(() => useDelayedInvalidation(callback, 3000));
-
-  result.current(); // Schedule
-  unmount();        // Unmount before timer fires
-  vi.advanceTimersByTime(5000);
-
-  expect(callback).not.toHaveBeenCalled();
-  vi.useRealTimers();
-});
-
-// Rule 2: Event listener cleanup — verify removeEventListener on unmount
-test("useEventListener removes listener on unmount", () => {
-  const handler = vi.fn();
-  const addSpy = vi.spyOn(window, "addEventListener");
-  const removeSpy = vi.spyOn(window, "removeEventListener");
-
-  const { unmount } = renderHook(() => useWindowEvent("resize", handler));
-
-  expect(addSpy).toHaveBeenCalledWith("resize", expect.any(Function));
-  unmount();
-  expect(removeSpy).toHaveBeenCalledWith("resize", expect.any(Function));
-});
-
-// Rule 3: Async cleanup — verify isMounted guard prevents stale updates
-test("useAsyncEffect skips state update after unmount", async () => {
-  const setState = vi.fn();
-  const { unmount } = renderHook(() =>
-    useAsyncEffect(async ({ isMounted }) => {
-      await new Promise((r) => setTimeout(r, 100));
-      if (isMounted()) setState("data");
-    }, [])
-  );
-
-  unmount(); // Unmount before async completes
-  await vi.advanceTimersByTimeAsync(200);
-  expect(setState).not.toHaveBeenCalled();
-});
-```
-
-#### Testing Mutation Error Paths
-
-Every mutation hook must test error handling. Verify that errors are logged, tracked, and surfaced to the user.
-
-```typescript
-test("mutation calls error handler on failure", async () => {
-  // Arrange: mock the contract call to reject
-  const mockError = new Error("Transaction reverted");
-  vi.mocked(writeContract).mockRejectedValueOnce(mockError);
-
-  const { result } = renderHook(() => useMutationHook(), { wrapper });
-
-  // Act: trigger the mutation
-  result.current.mutate(payload);
-
-  // Assert: error is handled, not swallowed
-  await waitFor(() => {
-    expect(result.current.isError).toBe(true);
-  });
-  expect(mockLogger.error).toHaveBeenCalledWith(
-    expect.stringContaining("failed"),
-    expect.objectContaining({ error: mockError })
-  );
-});
-
-// For components: verify toast/UI feedback on error
-test("shows error toast on submission failure", async () => {
-  vi.mocked(useSubmitWork).mockReturnValue({
-    mutateAsync: vi.fn().mockRejectedValue(new Error("gas estimation failed")),
-    isPending: false,
-  });
-
-  render(<SubmitButton />, { wrapper });
-  await userEvent.click(screen.getByRole("button"));
-
-  expect(screen.getByText(/transaction failed/i)).toBeInTheDocument();
-});
-```
-
-#### Testing Offline Scenarios
-
-Client uses IndexedDB + job queue for offline operation. Test offline paths with mock network state and fake-indexeddb.
-
-```typescript
-import "fake-indexeddb/auto";
-import { useJobQueue, JobKind } from "@green-goods/shared";
-
-test("queues work submission when offline", async () => {
-  // Simulate offline
-  vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
-
-  const { result } = renderHook(() => useJobQueue(), { wrapper });
-
-  await act(async () => {
-    await result.current.addJob({
-      kind: JobKind.WORK_SUBMISSION,
-      payload: { gardenAddress: "0x123", actionUID: "uid-1" },
-      maxRetries: 3,
-    });
-  });
-
-  const jobs = result.current.getJobs({ status: "pending" });
-  expect(jobs).toHaveLength(1);
-  expect(jobs[0].kind).toBe(JobKind.WORK_SUBMISSION);
-});
-
-test("processes queued jobs when back online", async () => {
-  vi.spyOn(navigator, "onLine", "get").mockReturnValue(true);
-  // ... trigger sync, verify jobs transition to "completed"
-});
-```
-
-#### Critical Paths for Shared Package
-
-These paths require **80%+ coverage** with 100% for auth and crypto:
-
-| Path | Files | Why Critical |
-|------|-------|-------------|
-| **Authentication** | `hooks/auth/useAuth.ts`, `hooks/auth/usePasskeyAuth.ts` | User identity, session management |
-| **Job Queue** | `hooks/work/useJobQueue.ts`, `stores/jobQueueStore.ts` | Offline work submission pipeline |
-| **Contract Errors** | `utils/errors/contract-errors.ts`, `utils/errors/mutation-error-handler.ts` | Error parsing and user feedback |
-| **Garden Operations** | `hooks/garden/useGardens.ts`, `hooks/garden/useGardenMembers.ts` | Core domain CRUD |
-| **Work Submission** | `hooks/work/useSubmitWork.ts`, `hooks/work/useWorkApproval.ts` | Primary user workflow |
-| **Offline Sync** | `hooks/utils/useOfflineStatus.ts`, `modules/sync/` | Data integrity across network states |
-| **Query Keys** | `hooks/query-keys.ts` | Cache correctness across all queries |
-| **Role Management** | `hooks/roles/useRole.ts`, `hooks/roles/useHatsRole.ts` | Access control enforcement |
+**Critical paths** requiring 80%+ coverage (100% for auth/crypto): authentication, job queue, contract errors, garden operations, work submission, offline sync, query keys, role management.
 
 ### Commands
 

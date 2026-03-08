@@ -52,7 +52,9 @@ contract SepoliaGardenTokenForkTest is ForkTestBase {
             metadata: "ipfs://QmMeta",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0x0F
+            domainMask: 0x0F,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         address garden = gardenToken.mintGarden(config);
@@ -184,7 +186,9 @@ contract SepoliaGardenTokenForkTest is ForkTestBase {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0x01
+            domainMask: 0x01,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         address garden = gardenToken.mintGarden{ value: mintValue }(config);

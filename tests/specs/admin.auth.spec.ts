@@ -5,8 +5,8 @@
  */
 
 import { expect, test } from "@playwright/test";
+import { SELECTORS, TestHelpers, TIMEOUTS } from "../helpers/test-config";
 import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
-import { TIMEOUTS, SELECTORS, TestHelpers } from "../helpers/test-config";
 
 const ADMIN_URL = TEST_URLS.admin;
 

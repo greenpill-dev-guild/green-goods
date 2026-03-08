@@ -1,11 +1,16 @@
-import { buildGardenMemberSets, useCreateGardenStore } from "@green-goods/shared";
+import { DOMAIN_COLORS, Domain, useCreateGardenStore } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+
+const DOMAIN_LABELS: Record<Domain, { id: string; defaultMessage: string }> = {
+  [Domain.SOLAR]: { id: "app.garden.create.domain.solar", defaultMessage: "Solar" },
+  [Domain.AGRO]: { id: "app.garden.create.domain.agro", defaultMessage: "Agroforestry" },
+  [Domain.EDU]: { id: "app.garden.create.domain.edu", defaultMessage: "Education" },
+  [Domain.WASTE]: { id: "app.garden.create.domain.waste", defaultMessage: "Waste" },
+};
 
 export function ReviewStep() {
   const { formatMessage } = useIntl();
   const form = useCreateGardenStore((s) => s.form);
-  const plannedMemberCount = buildGardenMemberSets(form.gardeners, form.operators).memberIds.size;
-
   return (
     <div className="space-y-3">
       <div className="space-y-4 rounded-xl border border-stroke-soft bg-bg-weak p-4">
@@ -61,40 +66,30 @@ export function ReviewStep() {
               </dd>
             </div>
           )}
+          <div className="md:col-span-2">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
+              {formatMessage({
+                id: "app.garden.create.confirm.domains",
+                defaultMessage: "Domains",
+              })}
+            </dt>
+            <dd className="mt-2 flex flex-wrap gap-1.5">
+              {form.domains.map((domain) => (
+                <span
+                  key={domain}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-stroke-soft bg-bg-white px-2.5 py-0.5 text-xs text-text-strong"
+                >
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: DOMAIN_COLORS[domain] }}
+                  />
+                  {formatMessage(DOMAIN_LABELS[domain])}
+                </span>
+              ))}
+            </dd>
+          </div>
         </dl>
         <dl className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-              {formatMessage({
-                id: "app.garden.create.plannedMembers",
-                defaultMessage: "Planned members",
-              })}
-            </dt>
-            <dd className="mt-1 text-sm text-text-strong">
-              {formatMessage(
-                {
-                  id: "app.garden.create.plannedMembers.uniqueCount",
-                  defaultMessage:
-                    "{count, plural, one {# unique member} other {# unique members}}",
-                },
-                { count: plannedMemberCount }
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-              {formatMessage({
-                id: "app.garden.create.domainSetup",
-                defaultMessage: "Action domains",
-              })}
-            </dt>
-            <dd className="mt-1 text-sm text-text-strong">
-              {formatMessage({
-                id: "app.garden.create.domainSetup.none",
-                defaultMessage: "Not configured during deployment",
-              })}
-            </dd>
-          </div>
           <div className="md:col-span-2">
             <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
               {formatMessage({
@@ -117,32 +112,6 @@ export function ReviewStep() {
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
               {formatMessage({
-                id: "app.garden.create.plannedOperators",
-                defaultMessage: "Planned operators",
-              })}
-            </dt>
-            <dd>
-              {form.operators.length === 0 ? (
-                <p className="mt-2 text-xs text-text-soft">
-                  {formatMessage({
-                    id: "app.garden.create.noOperatorsYet",
-                    defaultMessage: "No operators assigned yet.",
-                  })}
-                </p>
-              ) : (
-                <ul className="mt-2 space-y-1">
-                  {form.operators.map((operator) => (
-                    <li key={operator} className="font-mono text-xs text-text-strong">
-                      {operator}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
-              {formatMessage({
                 id: "app.garden.create.plannedGardeners",
                 defaultMessage: "Planned gardeners",
               })}
@@ -160,6 +129,32 @@ export function ReviewStep() {
                   {form.gardeners.map((gardener) => (
                     <li key={gardener} className="font-mono text-xs text-text-strong">
                       {gardener}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
+              {formatMessage({
+                id: "app.garden.create.plannedOperators",
+                defaultMessage: "Planned operators",
+              })}
+            </dt>
+            <dd>
+              {form.operators.length === 0 ? (
+                <p className="mt-2 text-xs text-text-soft">
+                  {formatMessage({
+                    id: "app.garden.create.noOperatorsYet",
+                    defaultMessage: "No operators assigned yet.",
+                  })}
+                </p>
+              ) : (
+                <ul className="mt-2 space-y-1">
+                  {form.operators.map((operator) => (
+                    <li key={operator} className="font-mono text-xs text-text-strong">
+                      {operator}
                     </li>
                   ))}
                 </ul>

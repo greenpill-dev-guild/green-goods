@@ -1,6 +1,6 @@
 import { type PublicClient, type WalletClient } from "viem";
-import type { Address, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getEASConfig } from "../../config/blockchain";
+import type { Address, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";
 
@@ -19,7 +19,7 @@ export async function submitWorkBot(
 ): Promise<`0x${string}`> {
   // encodeWorkData normalizes Blob -> File internally (encoders.ts).
   // Convert Buffer -> Blob here so encodeWorkData receives a type it can handle.
-  const mediaFiles = images.map((img) => {
+  const mediaFiles = images.map((img, index) => {
     if (typeof Buffer !== "undefined" && img instanceof Buffer) {
       return new Blob([new Uint8Array(img)], { type: "application/octet-stream" });
     }

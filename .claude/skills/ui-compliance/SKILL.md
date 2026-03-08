@@ -1,7 +1,12 @@
 ---
 name: ui-compliance
-user-invocable: false
-description: UI compliance - accessibility (WCAG), forms, responsive design, animation. Use for a11y, mobile-first, forms, i18n.
+description: UI compliance - WCAG 2.1 AA accessibility, form validation patterns, responsive layouts, and animation best practices. Use when building or reviewing components for accessibility compliance, form UX, mobile-first responsive design, or motion preferences.
+version: "1.0.0"
+status: active
+packages: ["shared", "client", "admin"]
+dependencies: ["i18n"]
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # UI Compliance Skill
@@ -343,6 +348,7 @@ const rowVirtualizer = useVirtualizer({
 
 ## Related Skills
 
+- `frontend-design` — Visual design patterns that must meet compliance standards
 - `radix-ui` — Accessible primitives (radix-ui handles component-level a11y; this skill handles page-level compliance)
 - `i18n` — Internationalization patterns for locale-aware UIs
 - `storybook` — Accessibility addon for automated a11y testing

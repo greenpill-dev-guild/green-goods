@@ -1,3 +1,4 @@
+import { cn } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   RiCloseLine,
@@ -14,7 +15,6 @@ import React, {
   useState,
   type WheelEvent,
 } from "react";
-import { cn } from "@green-goods/shared";
 import { ImageWithFallback } from "@/components/Display";
 
 export interface ImagePreviewDialogProps {

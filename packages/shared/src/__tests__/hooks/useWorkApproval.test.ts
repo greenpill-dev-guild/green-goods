@@ -6,7 +6,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -60,17 +60,16 @@ vi.mock("../../utils/debug", () => ({
   debugError: vi.fn(),
 }));
 
-import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
-import { simulateApprovalSubmission } from "../../modules/work/simulate";
-import { submitApprovalToQueue } from "../../modules/work/work-submission";
-import { jobQueue } from "../../modules/job-queue";
 import { toastService } from "../../components/toast";
 import { useWorkApproval } from "../../hooks/work/useWorkApproval";
+import { jobQueue } from "../../modules/job-queue";
+import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
+import { submitApprovalToQueue } from "../../modules/work/work-submission";
 import { Confidence, VerificationMethod } from "../../types/domain";
 import {
+  createMockSmartAccountClient,
   createMockWork,
   createMockWorkApprovalDraft,
-  createMockSmartAccountClient,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
 } from "../test-utils";
@@ -296,35 +295,6 @@ describe("hooks/work/useWorkApproval", () => {
         work.gardenAddress,
         work.gardenerAddress,
         11155111
-      );
-    });
-  });
-
-  describe("Preflight validation", () => {
-    it("rejects approval drafts that exceed the verification method contract bounds", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
-
-      const { result } = renderHook(() => useWorkApproval(), {
-        wrapper: createWrapper(),
-      });
-
-      const work = createMockWork();
-      const draft = createMockWorkApprovalDraft({
-        approved: true,
-        verificationMethod: 16,
-      });
-
-      await act(async () => {
-        await expect(result.current.mutateAsync({ draft, work })).rejects.toThrow(
-          "Verification method"
-        );
-      });
-
-      expect(submitApprovalDirectly).not.toHaveBeenCalled();
-      expect(toastService.error).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: "approval-submit",
-        })
       );
     });
   });

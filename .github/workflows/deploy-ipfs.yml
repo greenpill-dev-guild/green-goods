@@ -7,11 +7,13 @@ on:
       - 'packages/client/**'
       - 'packages/admin/**'
       - 'packages/shared/**'
+      - 'packages/contracts/deployments/**'
   pull_request:
     paths:
       - 'packages/client/**'
       - 'packages/admin/**'
       - 'packages/shared/**'
+      - 'packages/contracts/deployments/**'
   workflow_dispatch:
     inputs:
       app:
@@ -82,7 +84,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
           restore-keys: ${{ runner.os }}-bun-
 
       - name: Install dependencies

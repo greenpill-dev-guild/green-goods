@@ -105,7 +105,6 @@
   /* Thin styled scrollbars - visible for accessibility */
   * {
     scrollbar-width: thin;
-    scrollbar-gutter: stable;
     scrollbar-color: rgb(var(--bg-sub-300)) transparent;
   }
 
@@ -220,7 +219,7 @@
   input:not([type="checkbox"]):not([type="radio"]):disabled,
   select:disabled,
   textarea:disabled {
-    opacity: 0.6;
+    color: rgb(var(--text-sub-600));
     cursor: not-allowed;
     background: rgb(var(--bg-soft-200));
   }
@@ -297,6 +296,58 @@
 @layer utilities {
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Named Type Scale Utilities ── */
+  .label-md {
+    font-size: var(--text-label-md);
+    line-height: var(--text-label-md--line-height);
+    letter-spacing: var(--text-label-md--letter-spacing);
+    font-weight: var(--text-label-md--font-weight);
+  }
+  .label-sm {
+    font-size: var(--text-label-sm);
+    line-height: var(--text-label-sm--line-height);
+    letter-spacing: var(--text-label-sm--letter-spacing);
+    font-weight: var(--text-label-sm--font-weight);
+  }
+  .label-xs {
+    font-size: var(--text-label-xs);
+    line-height: var(--text-label-xs--line-height);
+    letter-spacing: var(--text-label-xs--letter-spacing);
+    font-weight: var(--text-label-xs--font-weight);
+  }
+  .body-md {
+    font-size: var(--text-paragraph-md);
+    line-height: var(--text-paragraph-md--line-height);
+    letter-spacing: var(--text-paragraph-md--letter-spacing);
+    font-weight: var(--text-paragraph-md--font-weight);
+  }
+  .body-sm {
+    font-size: var(--text-paragraph-sm);
+    line-height: var(--text-paragraph-sm--line-height);
+    letter-spacing: var(--text-paragraph-sm--letter-spacing);
+    font-weight: var(--text-paragraph-sm--font-weight);
+  }
+  .body-xs {
+    font-size: var(--text-paragraph-xs);
+    line-height: var(--text-paragraph-xs--line-height);
+    letter-spacing: var(--text-paragraph-xs--letter-spacing);
+    font-weight: var(--text-paragraph-xs--font-weight);
+  }
+  .subheading-sm {
+    font-size: var(--text-subheading-sm);
+    line-height: var(--text-subheading-sm--line-height);
+    letter-spacing: var(--text-subheading-sm--letter-spacing);
+    font-weight: var(--text-subheading-sm--font-weight);
+    text-transform: uppercase;
+  }
+  .subheading-xs {
+    font-size: var(--text-subheading-xs);
+    line-height: var(--text-subheading-xs--line-height);
+    letter-spacing: var(--text-subheading-xs--letter-spacing);
+    font-weight: var(--text-subheading-xs--font-weight);
+    text-transform: uppercase;
   }
 
   /* ── Touch Target ── */

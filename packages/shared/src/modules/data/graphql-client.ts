@@ -143,6 +143,3 @@ export const greenGoodsIndexer = createGreenGoodsIndexerClient(
   typeof import.meta !== "undefined" ? (import.meta.env as ViteEnv) : {},
   typeof import.meta !== "undefined" ? !!import.meta.env.DEV : false
 );
-
-// Re-export timeout constant with old name for backwards compatibility
-export const INDEXER_TIMEOUT_MS = GRAPHQL_TIMEOUT_MS;

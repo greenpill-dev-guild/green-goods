@@ -4,29 +4,54 @@ sidebar_position: 2
 slug: /gardener/submit-work-mdr
 audience: gardener
 owner: docs
+<<<<<<< HEAD
 last_verified: 2026-02-19
+=======
+last_verified: 2026-03-01
+>>>>>>> release/1.1
 feature_status: Live
 goal: "Complete Submit Work with MDR with clear, role-specific next actions."
 difficulty: "standard"
 estimated_time: "3-8 minutes per submission."
 prereqs: "Joined garden, active action, camera or media files."
+<<<<<<< HEAD
 next_steps: "./offline-sync-and-drafts"
+=======
+next_steps: "/community/gardener-guide/garden-payouts"
+>>>>>>> release/1.1
 persona_context: "Gardeners documenting and syncing impact work in field conditions."
 source_of_truth:
   - packages/client/src/views/Home/Garden/Work.tsx
   - packages/shared/src/hooks/work/useWorkForm.ts
   - packages/shared/src/hooks/work/useWorkMutation.ts
+<<<<<<< HEAD
+=======
+  - packages/shared/src/modules/job-queue
+  - packages/shared/src/hooks/work/useDrafts.ts
+>>>>>>> release/1.1
 keywords:
   - submit work
   - work submission
   - submit work offline
   - mdr
   - media details review
+<<<<<<< HEAD
 ---
 
 import {
   AtAGlanceCard,
   DecisionGuide,
+=======
+  - offline
+  - drafts
+  - sync
+  - queue
+---
+
+import {
+  DecisionGuide,
+  FeatureState,
+>>>>>>> release/1.1
   JourneyMap,
   NextBestAction,
   StatusBadge,
@@ -37,6 +62,7 @@ import {
 
 <StatusBadge status="Live" />
 
+<<<<<<< HEAD
 <AtAGlanceCard
   goal="Complete Submit Work with MDR with clear, role-specific next actions."
   difficulty="standard"
@@ -47,19 +73,32 @@ import {
   lastVerified="2026-02-19"
 />
 
+=======
+>>>>>>> release/1.1
 <JourneyMap
   role="Gardener"
   steps={[
     {title: "Get started", href: "./get-started", state: "complete"},
+<<<<<<< HEAD
     {title: "Submit work (MDR)", href: "./submit-work-mdr", state: "current", note: "Capture media, details, and submit."},
     {title: "Offline sync + drafts", href: "./offline-sync-and-drafts", state: "upcoming"},
     {title: "Track status + attestations", href: "./track-status-and-attestations", state: "upcoming"},
+=======
+    {title: "Submit work (MDR)", href: "./submit-work-mdr", state: "current", note: "Capture media, details, and submit — online or offline."},
+    {title: "Garden payouts", href: "/community/gardener-guide/garden-payouts", state: "upcoming"},
+    {title: "Voting & governance", href: "/community/gardener-guide/voting-governance", state: "upcoming"},
+    {title: "Earning badges", href: "/community/gardener-guide/earning-badges", state: "upcoming"},
+>>>>>>> release/1.1
   ]}
 />
 
 ## When to use this page
 
+<<<<<<< HEAD
 Use this guide when you need to submit work from mobile or field conditions, including offline-first submission flows.
+=======
+Use this guide when you need to submit work from mobile or field conditions, including offline-first submission flows. This page also covers how drafts persist, how the submission queue works, and what to do when connectivity is limited.
+>>>>>>> release/1.1
 
 ## MDR steps
 
@@ -68,7 +107,11 @@ Use this guide when you need to submit work from mobile or field conditions, inc
     {title: "Media", detail: "Capture or attach media evidence for the task."},
     {title: "Details", detail: "Enter title, notes, and action-specific fields."},
     {title: "Review", detail: "Confirm data and submit online or queue offline."},
+<<<<<<< HEAD
   ]} 
+=======
+  ]}
+>>>>>>> release/1.1
 />
 
 <DecisionGuide
@@ -77,12 +120,21 @@ Use this guide when you need to submit work from mobile or field conditions, inc
     {
       when: "You have stable connectivity",
       do: "Submit immediately after Review and wait for confirmation.",
+<<<<<<< HEAD
       next: "Open status tracking to verify pending/approved state.",
     },
     {
       when: "You are in low-connectivity field conditions",
       do: "Save draft and submit; queue retry will handle sync later.",
       next: "Use offline sync page to confirm queued job state.",
+=======
+      next: "Check your work dashboard to verify pending/approved state.",
+    },
+    {
+      when: "You are in low-connectivity field conditions",
+      do: "Save draft and submit; the queue retry system will handle sync later.",
+      next: "Reopen the app when back online to confirm queued submissions completed.",
+>>>>>>> release/1.1
     },
   ]}
 />
@@ -94,12 +146,39 @@ Use this guide when you need to submit work from mobile or field conditions, inc
 - Accurate metrics and notes (no placeholders).
 - Consistent location/timing details.
 
+<<<<<<< HEAD
 ## Submission outcomes
+=======
+## Offline Sync and Drafts
+
+Green Goods is built for field conditions where connectivity is unreliable. Your work is never lost.
+
+<FeatureState
+  title="Draft persistence"
+  status="Live"
+  summary="Draft data and media references are stored locally so you can resume later."
+/>
+
+<FeatureState
+  title="Queued submissions"
+  status="Live"
+  summary="When submit cannot complete online, work is queued and retried after reconnection."
+/>
+
+<FeatureState
+  title="Automatic sync"
+  status="Live"
+  summary="Queued jobs flush when connectivity and signing conditions are available."
+/>
+
+### Submission outcomes
+>>>>>>> release/1.1
 
 - **Online + ready:** Submission is sent immediately.
 - **Offline or network issue:** Submission is safely queued for retry.
 - **Validation failure:** You get actionable error feedback before submit.
 
+<<<<<<< HEAD
 <NextBestAction
   title="Next best action"
   why="Keep momentum by moving to the next high-value step in this journey."
@@ -107,5 +186,22 @@ Use this guide when you need to submit work from mobile or field conditions, inc
   actionHref="./offline-sync-and-drafts"
   alternatives={[
     {label: "Track Status and Attestations", href: "./track-status-and-attestations"},
+=======
+### Field tips
+
+1. Save progress before leaving field conditions — drafts persist in your browser's local storage.
+2. Reopen drafts and verify media is still attached before submitting.
+3. Check queue/upload states before repeating submissions — duplicate submissions waste operator review time.
+4. If a job fails repeatedly, retry from your work dashboard with corrected data.
+
+<NextBestAction
+  title="Next best action"
+  why="Keep momentum by moving to the next high-value step in this journey."
+  actionLabel="Garden Payouts"
+  actionHref="/community/gardener-guide/garden-payouts"
+  alternatives={[
+    {label: "Voting & Governance", href: "/community/gardener-guide/voting-governance"},
+    {label: "Earning Badges", href: "/community/gardener-guide/earning-badges"},
+>>>>>>> release/1.1
   ]}
 />

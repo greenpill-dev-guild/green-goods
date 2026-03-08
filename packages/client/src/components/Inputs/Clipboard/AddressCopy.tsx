@@ -1,10 +1,9 @@
 import {
+  type Address,
   cn,
   copyToClipboard,
   formatAddress,
   toastService,
-  type Address,
-  type FormatAddressVariant,
 } from "@green-goods/shared";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import React, { useEffect, useId, useState } from "react";

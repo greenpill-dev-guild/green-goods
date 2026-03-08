@@ -30,8 +30,8 @@ vi.mock("../../modules/work/passkey-submission", () => ({
 
 import { jobQueue, jobQueueDB } from "../../modules/job-queue";
 import {
-  submitWorkWithPasskey,
   submitApprovalWithPasskey,
+  submitWorkWithPasskey,
 } from "../../modules/work/passkey-submission";
 
 // Test user address for scoped queue operations

@@ -1,17 +1,17 @@
 import { GardenAccount, GardenToken } from "../../generated";
 
 import type {
-  Garden,
-  GardenToken_GardenMinted_handlerArgs,
-  GardenAccount_NameUpdated_handlerArgs,
-  GardenAccount_DescriptionUpdated_handlerArgs,
-  GardenAccount_LocationUpdated_handlerArgs,
-  GardenAccount_BannerImageUpdated_handlerArgs,
-  GardenAccount_GAPProjectCreated_handlerArgs,
-  GardenAccount_OpenJoiningUpdated_handlerArgs,
-  HandlerTypes_contractRegisterArgs,
-  GardenToken_GardenMinted_eventArgs,
   contractRegistrations,
+  Garden,
+  GardenAccount_BannerImageUpdated_handlerArgs,
+  GardenAccount_DescriptionUpdated_handlerArgs,
+  GardenAccount_GAPProjectCreated_handlerArgs,
+  GardenAccount_LocationUpdated_handlerArgs,
+  GardenAccount_NameUpdated_handlerArgs,
+  GardenAccount_OpenJoiningUpdated_handlerArgs,
+  GardenToken_GardenMinted_eventArgs,
+  GardenToken_GardenMinted_handlerArgs,
+  HandlerTypes_contractRegisterArgs,
 } from "../../generated/src/Types.gen";
 
 import { createDefaultGarden } from "./shared";
@@ -51,6 +51,7 @@ GardenToken.GardenMinted.handler(
       location: event.params.location,
       bannerImage: event.params.bannerImage,
       openJoining: event.params.openJoining,
+      initialized: true,
       gardeners: [],
       operators: [],
       evaluators: [],

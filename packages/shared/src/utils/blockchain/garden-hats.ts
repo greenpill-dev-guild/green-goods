@@ -2,8 +2,8 @@ import { readContract } from "@wagmi/core";
 import type { Address } from "viem";
 import { wagmiConfig } from "../../config/appkit";
 import { logger } from "../../modules/app/logger";
-import { isZeroAddress } from "./address";
 import { GARDEN_ACCOUNT_TOKEN_ABI, GARDEN_TOKEN_MODULES_ABI } from "./abis";
+import { isZeroAddress } from "./address";
 
 export async function fetchHatsModuleAddress(
   gardenAddress: Address,

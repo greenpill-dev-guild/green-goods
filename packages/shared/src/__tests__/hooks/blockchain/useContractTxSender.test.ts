@@ -7,10 +7,10 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Abi } from "viem";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../test-utils/mock-factories";
 
 // ============================================
@@ -19,6 +19,7 @@ import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../test-utils/mock-factories";
 
 const mockWriteContractAsync = vi.fn();
 const mockSendTransaction = vi.fn();
+const mockWaitForTransactionReceipt = vi.fn().mockResolvedValue({ status: "success" });
 
 const mockSmartAccountClient = {
   account: { address: MOCK_ADDRESSES.smartAccount },
@@ -47,7 +48,7 @@ vi.mock("wagmi", () => ({
 
 // Mock @wagmi/core (waitForTransactionReceipt used in wallet mode)
 vi.mock("@wagmi/core", () => ({
-  waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
+  waitForTransactionReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
 }));
 
 // Mock appkit config (needed by wagmi internals)
@@ -104,6 +105,7 @@ describe("useContractTxSender", () => {
     mockSmartAccountRef = mockSmartAccountClient;
     mockSendTransaction.mockResolvedValue(MOCK_TX_HASH);
     mockWriteContractAsync.mockResolvedValue(MOCK_TX_HASH);
+    mockWaitForTransactionReceipt.mockResolvedValue({ status: "success" });
   });
 
   it("returns a function", () => {
@@ -212,6 +214,36 @@ describe("useContractTxSender", () => {
         functionName: TEST_REQUEST.functionName,
         args: TEST_REQUEST.args,
       });
+    });
+
+    it("waits for transaction receipt when hash is canonical", async () => {
+      const { result } = renderHook(() => useContractTxSender(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current(TEST_REQUEST);
+      });
+
+      expect(mockWaitForTransactionReceipt).toHaveBeenCalledOnce();
+      expect(mockWaitForTransactionReceipt).toHaveBeenCalledWith({}, { hash: MOCK_TX_HASH });
+    });
+
+    it("skips receipt wait for non-canonical hash (Safe-style hash)", async () => {
+      const safeStyleHash = `0x${"a".repeat(130)}` as `0x${string}`;
+      mockWriteContractAsync.mockResolvedValueOnce(safeStyleHash);
+
+      const { result } = renderHook(() => useContractTxSender(), {
+        wrapper: createWrapper(),
+      });
+
+      let txHash: string;
+      await act(async () => {
+        txHash = await result.current(TEST_REQUEST);
+      });
+
+      expect(txHash!).toBe(safeStyleHash);
+      expect(mockWaitForTransactionReceipt).not.toHaveBeenCalled();
     });
 
     it("propagates errors from writeContractAsync", async () => {

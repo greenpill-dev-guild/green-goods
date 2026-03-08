@@ -83,7 +83,10 @@ export function MembersModal({
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <Dialog.Title className="truncate text-lg font-semibold text-text-strong sm:text-xl">
+                <Dialog.Title
+                  className="truncate text-lg font-semibold text-text-strong sm:text-xl"
+                  title={title}
+                >
                   {title}
                 </Dialog.Title>
                 <Dialog.Description className="text-xs text-text-soft sm:text-sm">

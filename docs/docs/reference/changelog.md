@@ -43,7 +43,7 @@ This release updates documentation IA and workflows to reflect current Green Goo
 
 **First Official Release**
 
-This is the first official release of Green Goods — an offline-first platform for documenting conservation work and proving impact on-chain.
+This is the first official release of Green Goods — an offline-first platform for documenting regenerative work and proving impact on-chain.
 
 **Release Stats:**
 - 765 files changed

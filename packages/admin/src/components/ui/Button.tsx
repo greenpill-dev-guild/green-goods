@@ -1,9 +1,8 @@
+import { cn } from "@green-goods/shared";
 import { Slot } from "@radix-ui/react-slot";
 import { RiLoader4Line } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-
-import { cn } from "./cn";
 
 const buttonVariants = tv({
   base: [
@@ -22,9 +21,9 @@ const buttonVariants = tv({
       danger: "bg-error-base text-white hover:bg-error-dark",
     },
     size: {
-      sm: "h-10 px-3.5 text-label-sm",
-      md: "h-11 px-4 text-label-sm",
-      lg: "h-12 px-5 text-label-md",
+      sm: "h-8 px-3 text-xs",
+      md: "h-10 px-4 text-sm",
+      lg: "h-12 px-6 text-base",
     },
   },
   defaultVariants: {

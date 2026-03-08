@@ -1,0 +1,64 @@
+{
+  "issues": [
+    {
+      "id": 1,
+      "title": "GardenAccount vault can be drained via re-entrancy in withdraw()",
+      "body": "The `withdraw()` function in GardenAccount.sol sends ETH via `call{value: amount}` before updating the internal balance mapping. An attacker who is a garden operator could deploy a contract that re-enters `withdraw()` during the ETH transfer callback, draining the entire vault balance in a single transaction. This affects all gardens on Arbitrum with non-zero ETH balances. The fix is to follow checks-effects-interactions: update the balance mapping before the external call, or add a reentrancy guard.",
+      "labels": ["security", "contracts", "critical"]
+    },
+    {
+      "id": 2,
+      "title": "Login fails with 'Invalid session' for all users after auth provider update",
+      "body": "After the AppKit v4 upgrade merged in #287, all users hitting the /login route get an 'Invalid session' error. The AuthProvider's `onConnect` callback is firing but `session.validate()` returns false because the new AppKit changed the session token format. Affects both wallet and passkey users. No one can log in to either client or admin. Rolling back #287 restores functionality but we need a proper fix.",
+      "labels": ["bug", "shared", "auth", "blocking"]
+    },
+    {
+      "id": 3,
+      "title": "Garden creation fails silently when more than 5 actions are added",
+      "body": "When creating a new garden in the admin UI, if you add more than 5 actions in the garden creation wizard, the 'Create Garden' button does nothing when clicked. No error toast, no console error. The form validation passes but the mutation never fires. Works fine with 1-5 actions. Tested on Chrome and Safari. The transaction builder in `createGardenOperation.ts` might have an array length issue in the batch encoding.",
+      "labels": ["bug", "admin", "garden"]
+    },
+    {
+      "id": 4,
+      "title": "Typo: 'Graden Description' label in garden edit form",
+      "body": "In the admin garden edit view, the label for the description field reads 'Graden Description' instead of 'Garden Description'. This appears in the English locale file at `packages/shared/src/i18n/en.json` under the key `garden.edit.description.label`.",
+      "labels": ["bug", "i18n", "minor"]
+    },
+    {
+      "id": 5,
+      "title": "Add dark mode toggle to admin sidebar navigation",
+      "body": "The admin panel currently follows the system theme preference but there's no way to manually toggle between light and dark mode from within the admin UI. Would be nice to add a theme toggle button in the sidebar footer area, similar to how the client app has the toggle in its settings view. The `useTheme` hook in shared already supports manual overrides.",
+      "labels": ["enhancement", "admin", "ui"]
+    },
+    {
+      "id": 6,
+      "title": "Migrate from ethers.js v5 to viem for remaining utils in shared",
+      "body": "There are still 3 utility files in `packages/shared/src/utils/blockchain/` that import from `ethers` v5: `legacy-encoder.ts`, `gas-estimation.ts`, and `abi-helpers.ts`. The rest of the codebase uses viem. We should migrate these to viem to remove the ethers dependency (saves ~120KB gzipped from the client bundle). Each file has corresponding tests that need updating.",
+      "labels": ["refactor", "shared", "dependencies"]
+    },
+    {
+      "id": 7,
+      "title": "Garden list view takes 8+ seconds to render with 50+ gardens",
+      "body": "On the client app, when the indexer returns more than 50 gardens, the GardenListView component takes 8-12 seconds to become interactive. React DevTools Profiler shows the `GardenCard` component re-renders for every garden on each filter change because the `gardens` array reference changes. This blocks the main thread and causes the app to feel frozen. Need to memoize the garden list or virtualize the rendering.",
+      "labels": ["performance", "client", "ux"]
+    },
+    {
+      "id": 8,
+      "title": "Document the EAS attestation data flow from client to resolver",
+      "body": "New contributors have trouble understanding how attestation data flows from the client UI through the EAS SDK to the on-chain resolver contracts. We need a documentation page or architecture diagram that traces the full path: form input -> encoder -> EAS.attest() -> resolver.onAttest() -> event indexed. Should cover both the work submission and work approval flows, and explain the tuple encoding requirement.",
+      "labels": ["documentation", "onboarding"]
+    },
+    {
+      "id": 9,
+      "title": "Add test coverage for offline work submission queue retry logic",
+      "body": "The `JobQueue.processJob()` method in `packages/shared/src/modules/job-queue/index.ts` has retry logic (exponential backoff with 3 retries) that is not covered by tests. The current tests mock out `processJob` entirely. We need integration-level tests that verify: (1) retry fires after failure, (2) backoff timing is correct, (3) max retries triggers failure callback, (4) successful retry clears the retry counter.",
+      "labels": ["test", "shared", "job-queue"]
+    },
+    {
+      "id": 10,
+      "title": "Upgrade TanStack Query from v5.20 to v5.62",
+      "body": "We're on TanStack Query v5.20.5 and the latest is v5.62.0. The changelog shows improvements to query deduplication, better garbage collection, and a fix for the stale closure issue we've been working around in `useWorks.ts` (the `queryClient.getQueryData` inside `queryFn` workaround). Should be a minor version bump with no breaking changes but needs testing across all hooks.",
+      "labels": ["dependencies", "shared", "chore"]
+    }
+  ]
+}

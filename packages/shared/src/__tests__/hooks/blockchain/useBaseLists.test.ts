@@ -39,7 +39,7 @@ vi.mock("../../../config/appkit", () => ({
   wagmiConfig: {},
 }));
 
-import { useActions, useGardens, useGardeners } from "../../../hooks/blockchain/useBaseLists";
+import { useActions, useGardeners, useGardens } from "../../../hooks/blockchain/useBaseLists";
 
 // ============================================
 // Test helpers
@@ -120,6 +120,23 @@ describe("useBaseLists", () => {
 
       const cached = queryClient.getQueryData(["greengoods", "actions", 11155111]);
       expect(cached).toEqual([]);
+    });
+
+    it("uses actions-specific stale time", async () => {
+      mockGetActions.mockResolvedValue([]);
+
+      renderHook(() => useActions(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(mockGetActions).toHaveBeenCalled();
+      });
+
+      const query = queryClient.getQueryCache().find({
+        queryKey: ["greengoods", "actions", 11155111],
+      });
+      expect(query?.options.staleTime).toBe(60_000);
     });
 
     it("provides empty array as placeholder data", async () => {

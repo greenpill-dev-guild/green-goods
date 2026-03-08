@@ -1,4 +1,4 @@
-import { useNavigateToTop, type Action, type Work } from "@green-goods/shared";
+import { type Action, useNavigateToTop, type Work } from "@green-goods/shared";
 import { RiLoader4Line } from "@remixicon/react";
 import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -25,7 +25,7 @@ interface WorkListItemProps {
   style?: React.CSSProperties;
   sorted: Work[];
   actionById: Map<string, Action>;
-  navigate: (path: string, options?: { state?: { backTo?: string } }) => void;
+  navigate: (path: string, options?: { state?: unknown }) => void;
 }
 
 const WorkListItem = memo(function WorkListItem({
@@ -41,7 +41,10 @@ const WorkListItem = memo(function WorkListItem({
   const onOpen = useCallback(
     () =>
       navigate(`/home/${work.gardenAddress}/work/${work.id}`, {
-        state: { backTo: `/home/${work.gardenAddress}` },
+        state: {
+          from: "garden",
+          returnTo: `/home/${work.gardenAddress}`,
+        },
       }),
     [navigate, work.gardenAddress, work.id]
   );
@@ -109,7 +112,6 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
             <WorkListItem
               key={sorted[i].id}
               index={i}
-              style={{}}
               sorted={sorted}
               actionById={actionById}
               navigate={navigate}

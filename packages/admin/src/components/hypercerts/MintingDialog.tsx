@@ -1,7 +1,7 @@
+import { DEFAULT_CHAIN_ID, type MintingState } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { type MintingState, DEFAULT_CHAIN_ID } from "@green-goods/shared";
 import { MintProgress } from "./steps/MintProgress";
 
 interface MintingDialogProps {

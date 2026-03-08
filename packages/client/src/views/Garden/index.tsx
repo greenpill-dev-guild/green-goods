@@ -1,8 +1,12 @@
 import {
+  type Action,
   DEFAULT_CHAIN_ID,
   findActionByUID,
+  type Garden,
   logger,
+  track,
   useActionTranslation,
+  useAudioRecording,
   useDraftAutoSave,
   useDraftResume,
   useGardenTranslation,
@@ -12,16 +16,15 @@ import {
   useWorkFlowStore,
   useWorkSelection,
   WorkTab,
-  type Action,
-  type Garden,
 } from "@green-goods/shared";
 import {
   RiArrowRightSLine,
   RiCameraFill,
   RiHammerFill,
   RiImageFill,
+  RiMicLine,
   RiPlantFill,
-  RiVideoFill,
+  RiStopFill,
 } from "@remixicon/react";
 import React, { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
@@ -100,9 +103,23 @@ const Work: React.FC = () => {
   const { set: scheduleNavigation } = useTimeout();
 
   // Media upload click handlers (exposed by WorkMedia for PostHog tracking)
-  const galleryClickRef = useRef<(() => void) | null>(null);
+  const mediaClickRef = useRef<(() => void) | null>(null);
   const cameraClickRef = useRef<(() => void) | null>(null);
   const videoClickRef = useRef<(() => void) | null>(null);
+
+  // Audio recording from action bar (toggle button — no in-page recorder UI)
+  const {
+    isRecording,
+    elapsed: recordingElapsed,
+    toggle: toggleAudioRecording,
+  } = useAudioRecording({
+    onRecordingComplete: (file) => {
+      // Read current state directly — Zustand setters don't accept updater functions
+      const current = useWorkFlowStore.getState().audioNotes;
+      setAudioNotes([...current, file]);
+      track("audio_note_recorded", { duration: "unknown", noteIndex: current.length });
+    },
+  });
 
   if (!form) {
     return null;
@@ -384,8 +401,8 @@ const Work: React.FC = () => {
         <>
           <Button
             onClick={() => {
-              if (galleryClickRef.current) {
-                galleryClickRef.current();
+              if (mediaClickRef.current) {
+                mediaClickRef.current();
               } else {
                 document.getElementById("work-media-upload")?.click();
               }
@@ -415,20 +432,20 @@ const Work: React.FC = () => {
             leadingIcon={<RiCameraFill className="text-primary w-5 h-5" />}
           />
           <Button
-            onClick={() => {
-              if (videoClickRef.current) {
-                videoClickRef.current();
-              } else {
-                document.getElementById("work-media-video")?.click();
-              }
-            }}
+            onClick={toggleAudioRecording}
             label=""
             className="w-12 px-0 shrink-0"
-            variant="neutral"
+            variant={isRecording ? "error" : "neutral"}
             type="button"
             shape="pilled"
-            mode="stroke"
-            leadingIcon={<RiVideoFill className="text-primary w-5 h-5" />}
+            mode={isRecording ? "filled" : "stroke"}
+            leadingIcon={
+              isRecording ? (
+                <RiStopFill className="text-white w-5 h-5" />
+              ) : (
+                <RiMicLine className="text-primary w-5 h-5" />
+              )
+            }
           />
         </>
       ),
@@ -484,9 +501,10 @@ const Work: React.FC = () => {
             audioNotes={audioNotes}
             setAudioNotes={setAudioNotes}
             minRequired={minRequired}
-            onGalleryClickRef={galleryClickRef}
+            onMediaClickRef={mediaClickRef}
             onCameraClickRef={cameraClickRef}
-            onVideoClickRef={videoClickRef}
+            isRecording={isRecording}
+            recordingElapsed={recordingElapsed}
           />
         );
       case WorkTab.Details:
@@ -544,7 +562,9 @@ const Work: React.FC = () => {
         id="work-form"
         className="relative flex min-h-full flex-col gap-4 py-6 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20"
       >
-        <div className="padded relative flex flex-col gap-4 flex-1">{renderTabContent()}</div>
+        <div className="padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+          {renderTabContent()}
+        </div>
         <div className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] w-full z-[10000] bg-bg-white-0 border-t border-stroke-soft-200">
           <div className="flex flex-col gap-2 w-full padded">
             {queueStatusMessage && (

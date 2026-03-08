@@ -1,5 +1,5 @@
-import { vi, beforeEach, afterEach } from "vitest";
 import type { Address } from "@green-goods/shared";
+import { afterEach, beforeEach, vi } from "vitest";
 
 // Logger mock that tracks calls for assertions
 export const mockLogger = {

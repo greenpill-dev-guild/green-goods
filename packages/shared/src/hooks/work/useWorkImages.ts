@@ -9,9 +9,8 @@
 
 import { get as idbGet, set as idbSet } from "idb-keyval";
 import { useEffect, useRef } from "react";
-
-import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
+import { logger } from "../../modules/app/logger";
 import { useWorkFlowStore, type WorkFlowState } from "../../stores/useWorkFlowStore";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { createDispatchAdapter } from "../../utils/dispatch-adapter";

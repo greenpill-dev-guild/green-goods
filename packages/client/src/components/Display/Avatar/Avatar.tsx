@@ -1,9 +1,9 @@
 "use client";
 
+import { cn } from "@green-goods/shared";
 import * as AvatarPrimitive from "@radix-ui/react-avatar";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@green-goods/shared";
 
 export const avatarVariants = tv({
   base: "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",

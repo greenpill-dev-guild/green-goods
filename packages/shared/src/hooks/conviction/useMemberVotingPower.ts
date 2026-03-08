@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Address } from "../../types/domain";
-import type { MemberPower } from "../../types/conviction";
 import { getMemberPowerFromSubgraph } from "../../modules/data/gardens";
+import type { MemberPower } from "../../types/conviction";
+import type { Address } from "../../types/domain";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";

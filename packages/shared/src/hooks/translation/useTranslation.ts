@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from "react";
+import { logger } from "../../modules/app/logger";
 import { browserTranslator } from "../../modules/translation/browser-translator";
 import { logger } from "../../modules/app/logger";
 import { AppContext } from "../../providers/App";
@@ -35,9 +36,7 @@ export function useTranslation<T extends TranslatableValue>(
     }
 
     if (!browserTranslator.isSupported) {
-      console.debug(
-        `⚠️ [Translation] Skipping translation - browser API not supported (locale: ${locale})`
-      );
+      logger.debug("[Translation] Skipping - browser API not supported", { locale });
       setTranslated(content);
       return () => {
         isMounted = false;
@@ -55,21 +54,20 @@ export function useTranslation<T extends TranslatableValue>(
     const translateContent = async () => {
       if (!isMounted) return;
       setIsTranslating(true);
-      console.debug(`🔄 [Translation] Translating content to ${locale}...`);
+      logger.debug("[Translation] Translating content", { locale });
 
       try {
         const result = await translateValue(content, locale, sourceLang);
         if (!isMounted) return;
         setTranslated(result as T);
-        console.debug(`✅ [Translation] Content translated to ${locale}`);
+        logger.debug("[Translation] Content translated", { locale });
       } catch (error) {
         if (!isMounted) return;
         logger.error(`Translation to ${locale} failed`, { source: "useTranslation", error });
         setTranslated(content); // Fallback to original
       } finally {
-        if (isMounted) {
-          setIsTranslating(false);
-        }
+        if (!isMounted) return;
+        setIsTranslating(false);
       }
     };
 

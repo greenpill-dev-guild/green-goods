@@ -26,10 +26,10 @@ export { FormInfo } from "./Form/FormInfo";
 // Garden cards
 export {
   GardenCard,
-  gardenCardVariants,
-  type GardenCardProps,
   type GardenCardOptions,
+  type GardenCardProps,
   type GardenCardVariantProps,
+  gardenCardVariants,
 } from "./Garden/GardenCard";
 export { GardenCardSkeleton } from "./Garden/GardenCardSkeleton";
 

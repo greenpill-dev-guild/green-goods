@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
-import { useIntl } from "react-intl";
 import { useCallback, useRef } from "react";
+import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
+import { wagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import type {
   DepositParams,
@@ -10,22 +11,21 @@ import type {
   HarvestParams,
   WithdrawParams,
 } from "../../types/vaults";
-import { useCurrentChain } from "../blockchain/useChainConfig";
-import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { useUser } from "../auth/useUser";
-import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
-import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
-import { useMutationLock } from "../utils/useMutationLock";
-import { useDelayedInvalidation } from "../utils/useTimeout";
-import { wagmiConfig } from "../../config/appkit";
 import {
   ERC20_ALLOWANCE_ABI,
   OCTANT_MODULE_ABI,
   OCTANT_VAULT_ABI,
 } from "../../utils/blockchain/abis";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
+import { VAULT_MAX_BPS, ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
-import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
+import { useUser } from "../auth/useUser";
+import { useCurrentChain } from "../blockchain/useChainConfig";
+import { useContractTxSender } from "../blockchain/useContractTxSender";
+import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
+import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
+import { useMutationLock } from "../utils/useMutationLock";
+import { useDelayedInvalidation } from "../utils/useTimeout";
 
 function getOctantModuleAddress(chainId: number): Address {
   const moduleAddress = getNetworkContracts(chainId).octantModule;
@@ -53,6 +53,15 @@ type VaultDepositFailureReason =
   | "depositLimitReached"
   | "vaultUnavailable"
   | "slippage";
+type TxErrorMode = "toast" | "inline" | "auto";
+
+interface VaultMutationOptions {
+  errorMode?: TxErrorMode;
+}
+
+function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
+  return mode !== "inline";
+}
 
 class VaultDepositStageError extends Error {
   stage: VaultDepositStage;
@@ -67,11 +76,12 @@ class VaultDepositStageError extends Error {
   }
 }
 
-export function useVaultDeposit() {
+export function useVaultDeposit(options: VaultMutationOptions = {}) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
+  const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sendContractTx = useContractTxSender();
   const handleError = createMutationErrorHandler({
     source: "useVaultDeposit",
@@ -315,6 +325,11 @@ export function useVaultDeposit() {
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
+      const metadata = {
+        gardenAddress: params?.gardenAddress,
+        assetAddress: params?.assetAddress,
+        vaultAddress: params?.vaultAddress,
+      };
       if (error instanceof VaultDepositStageError) {
         let messageId: string;
 
@@ -343,27 +358,28 @@ export function useVaultDeposit() {
           ? ` [vault: ${error.diagnostics.vaultAddress?.slice(0, 10)}… | depositLimit: ${error.diagnostics.depositLimit} | totalAssets: ${error.diagnostics.totalAssets} | shutdown: ${error.diagnostics.isShutdown}]`
           : "";
 
-        toastService.error({
-          title: formatMessage({ id: "app.treasury.deposit" }),
-          message:
-            formatMessage({
-              id: messageId,
-              defaultMessage:
-                error.stage === "approval"
-                  ? "Approval failed. Please try again."
-                  : "Deposit failed. Please try again.",
-            }) + diagnosticsSuffix,
-          context: "vault deposit",
-          error,
-        });
+        if (showErrorToast) {
+          toastService.error({
+            title: formatMessage({ id: "app.treasury.deposit" }),
+            message:
+              formatMessage({
+                id: messageId,
+                defaultMessage:
+                  error.stage === "approval"
+                    ? "Approval failed. Please try again."
+                    : "Deposit failed. Please try again.",
+              }) + diagnosticsSuffix,
+            context: "vault deposit",
+            error,
+          });
+        } else {
+          handleError(error, { metadata, showToast: false });
+        }
         return;
       }
       handleError(error, {
-        metadata: {
-          gardenAddress: params?.gardenAddress,
-          assetAddress: params?.assetAddress,
-          vaultAddress: params?.vaultAddress,
-        },
+        metadata,
+        showToast: showErrorToast,
       });
     },
   });
@@ -387,11 +403,12 @@ export function useVaultDeposit() {
   return { ...mutation, mutate, mutateAsync, isPending };
 }
 
-export function useVaultWithdraw() {
+export function useVaultWithdraw(options: VaultMutationOptions = {}) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
+  const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sendContractTx = useContractTxSender();
   const handleError = createMutationErrorHandler({
     source: "useVaultWithdraw",
@@ -427,27 +444,27 @@ export function useVaultWithdraw() {
       const receiver = (params.receiver ?? primaryAddress) as Address;
       const owner = (params.owner ?? primaryAddress) as Address;
 
-      // Pre-check: verify shares don't exceed redeemable limit
-      const maxRedeemResult = await readContract(wagmiConfig, {
+      // Pre-check: verify amount doesn't exceed withdrawable limit
+      const maxWithdrawResult = await readContract(wagmiConfig, {
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
-        functionName: "maxRedeem",
-        args: [owner],
+        functionName: "maxWithdraw",
+        args: [owner, VAULT_MAX_BPS, []],
       });
-      const maxRedeem = typeof maxRedeemResult === "bigint" ? maxRedeemResult : 0n;
+      const maxWithdrawable = typeof maxWithdrawResult === "bigint" ? maxWithdrawResult : 0n;
 
-      if (maxRedeem <= 0n) {
+      if (maxWithdrawable <= 0n) {
         throw new Error("Vault is not accepting withdrawals right now");
       }
-      if (params.shares > maxRedeem) {
-        throw new Error("Withdrawal amount exceeds the redeemable limit");
+      if (params.amount > maxWithdrawable) {
+        throw new Error("Withdrawal amount exceeds the available balance");
       }
 
       return sendContractTx({
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
-        functionName: "redeem",
-        args: [params.shares, receiver, owner],
+        functionName: "withdraw",
+        args: [params.amount, receiver, owner, VAULT_MAX_BPS, []],
       });
     },
     onMutate: () => {
@@ -480,6 +497,7 @@ export function useVaultWithdraw() {
           assetAddress: params?.assetAddress,
           vaultAddress: params?.vaultAddress,
         },
+        showToast: showErrorToast,
       });
     },
   });

@@ -1,33 +1,32 @@
 import { EAS, SchemaEncoder, type Transaction } from "@ethereum-attestation-service/eas-sdk";
-import { useMachine } from "@xstate/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ethers, type Eip1193Provider } from "ethers";
+import { useMachine } from "@xstate/react";
+import { type Eip1193Provider, ethers } from "ethers";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-import { fromPromise } from "xstate";
 import { useAccount, useWalletClient } from "wagmi";
+import { fromPromise } from "xstate";
 import { toastService } from "../../components/toast";
 import { getEASConfig } from "../../config/blockchain";
-import { logger } from "../../modules/app/logger";
 import {
   trackAdminAssessmentCreateFailed,
   trackAdminAssessmentCreateStarted,
   trackAdminAssessmentCreateSuccess,
 } from "../../modules/app/analytics-events";
+import { logger } from "../../modules/app/logger";
 import { getIpfsInitStatus, uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
-import { isZeroBytes32 } from "../../utils/blockchain/vaults";
-import { getNetworkContracts } from "../../utils/blockchain/contracts";
-import {
-  createAssessmentMachine,
-  type AssessmentWorkflowParams,
-} from "../../workflows/createAssessment";
 import type { Address } from "../../types/domain";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
+import { isZeroBytes32 } from "../../utils/blockchain/vaults";
+import {
+  type AssessmentWorkflowParams,
+  createAssessmentMachine,
+} from "../../workflows/createAssessment";
 import { queryInvalidation } from "../query-keys";
 import { useAssessmentDraft } from "./useAssessmentDraft";
 
-export type { AssessmentWorkflowParams } from "../../types/domain";
-export type { CreateAssessmentForm } from "../../types/domain";
+export type { AssessmentWorkflowParams, CreateAssessmentForm } from "../../types/domain";
 export type { AssessmentDraftRecord } from "./useAssessmentDraft";
 
 /**
@@ -300,7 +299,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                   data: {
                     recipient: params.gardenId,
                     expirationTime: 0n,
-                    revocable: true,
+                    revocable: false,
                     data: encodedData,
                   },
                 });

@@ -9,9 +9,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  type AssessmentFormData,
   assessmentFormSchema,
   createDefaultAssessmentFormData,
-  type AssessmentFormData,
 } from "../../../hooks/assessment/useAssessmentForm";
 
 // ============================================
@@ -21,7 +21,7 @@ import {
 function createValidFormData(overrides: Partial<AssessmentFormData> = {}): AssessmentFormData {
   return {
     title: "Urban Garden Assessment",
-    description: "Assessment of conservation work",
+    description: "Assessment of regenerative work",
     assessmentType: "biodiversity",
     capitals: ["natural"],
     metrics: '{"score": 85}',

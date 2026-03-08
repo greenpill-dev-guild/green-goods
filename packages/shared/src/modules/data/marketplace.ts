@@ -11,16 +11,25 @@
  */
 
 import { type Address, parseAbiItem } from "viem";
-import type { RegisteredOrderView, FractionTrade } from "../../types/hypercerts";
-import { logger } from "../app/logger";
 import { createPublicClientForChain } from "../../config/pimlico";
-import { getNetworkContracts } from "../../utils/blockchain/contracts";
-import { isZeroAddress } from "../../utils/blockchain/address";
-import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import {
-  MARKETPLACE_ADAPTER_ABI,
   HYPERCERTS_MODULE_ABI,
+  MARKETPLACE_ADAPTER_ABI,
 } from "../../hooks/hypercerts/hypercert-abis";
+import type { FractionTrade, RegisteredOrderView } from "../../types/hypercerts";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
+import { logger } from "../app/logger";
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+/** Check if an address is the zero address (undeployed contract). */
+function isZero(address: string): boolean {
+  return !address || address === ZERO_ADDRESS;
+}
 
 /** Parse an order tuple returned by the adapter's orders() view function. */
 function parseOrderTuple(orderId: number, tuple: readonly unknown[]): RegisteredOrderView {
@@ -52,7 +61,7 @@ export async function getRegisteredOrders(
 ): Promise<RegisteredOrderView[]> {
   const contracts = getNetworkContracts(chainId);
 
-  if (isZeroAddress(contracts.marketplaceAdapter) || isZeroAddress(contracts.hypercertsModule)) {
+  if (isZero(contracts.marketplaceAdapter) || isZero(contracts.hypercertsModule)) {
     return [];
   }
 
@@ -140,7 +149,7 @@ export async function getActiveOrder(
 ): Promise<RegisteredOrderView | null> {
   const contracts = getNetworkContracts(chainId);
 
-  if (isZeroAddress(contracts.marketplaceAdapter)) {
+  if (isZero(contracts.marketplaceAdapter)) {
     return null;
   }
 
@@ -193,7 +202,7 @@ export async function previewPurchase(
 ): Promise<bigint> {
   const contracts = getNetworkContracts(chainId);
 
-  if (isZeroAddress(contracts.marketplaceAdapter)) {
+  if (isZero(contracts.marketplaceAdapter)) {
     return 0n;
   }
 
@@ -233,7 +242,7 @@ export async function getMinPrice(
 ): Promise<bigint> {
   const contracts = getNetworkContracts(chainId);
 
-  if (isZeroAddress(contracts.marketplaceAdapter)) {
+  if (isZero(contracts.marketplaceAdapter)) {
     return 0n;
   }
 
@@ -272,7 +281,7 @@ export async function getSellerOrders(
 ): Promise<RegisteredOrderView[]> {
   const contracts = getNetworkContracts(chainId);
 
-  if (isZeroAddress(contracts.marketplaceAdapter)) {
+  if (isZero(contracts.marketplaceAdapter)) {
     return [];
   }
 
@@ -357,7 +366,7 @@ export async function getTradeHistory(
 ): Promise<FractionTrade[]> {
   const contracts = getNetworkContracts(chainId);
 
-  if (isZeroAddress(contracts.marketplaceAdapter)) {
+  if (isZero(contracts.marketplaceAdapter)) {
     return [];
   }
 
@@ -444,7 +453,7 @@ export async function getListingHistory(
 > {
   const contracts = getNetworkContracts(chainId);
 
-  if (isZeroAddress(contracts.marketplaceAdapter)) {
+  if (isZero(contracts.marketplaceAdapter)) {
     return [];
   }
 

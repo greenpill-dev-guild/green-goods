@@ -51,7 +51,6 @@ vi.mock("../../utils/blockchain/polling", () => ({
 
 vi.mock("../../modules/work/simulate", () => ({
   simulateWorkSubmission: vi.fn(),
-  simulateApprovalSubmission: vi.fn(),
 }));
 
 vi.mock("../../utils/debug", () => ({

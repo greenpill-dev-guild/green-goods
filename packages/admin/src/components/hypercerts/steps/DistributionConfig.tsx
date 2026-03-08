@@ -1,15 +1,16 @@
 import {
-  cn,
-  TOTAL_UNITS,
   type Address,
   type AllowlistEntry,
+  cn,
   type DistributionMode,
   sumUnits,
+  TOTAL_UNITS,
   useCopyToClipboard,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiFileCopyLine } from "@remixicon/react";
-import { isAddress, zeroAddress } from "viem";
 import { useIntl } from "react-intl";
+import { isAddress, zeroAddress } from "viem";
+import { Alert } from "@/components/ui/Alert";
 import { DistributionChart } from "../DistributionChart";
 
 /** Displays truncated Ethereum address with copy button */
@@ -146,7 +147,7 @@ export function DistributionConfig({
       </div>
 
       {showError && (
-        <div className="rounded-lg border border-error-light bg-error-lighter p-3 text-sm text-error-dark">
+        <Alert variant="error">
           {isEmpty
             ? formatMessage({ id: "app.hypercerts.distribution.error.empty" })
             : hasNonPositive
@@ -155,7 +156,7 @@ export function DistributionConfig({
                   { id: "app.hypercerts.distribution.error.unitsMismatch" },
                   { total: totalUnits.toLocaleString(), current: unitsTotal.toLocaleString() }
                 )}
-        </div>
+        </Alert>
       )}
 
       <div className="overflow-x-auto rounded-lg border border-stroke-soft bg-bg-white">

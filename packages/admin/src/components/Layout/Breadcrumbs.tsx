@@ -96,20 +96,36 @@ export function Breadcrumbs() {
       <ol className="flex items-center gap-1 text-sm min-w-0">
         {segments.map((segment, index) => {
           const isLast = index === segments.length - 1;
+          // On mobile (< lg), show only the last 2 segments
+          const mobileStart = Math.max(0, segments.length - 2);
+          const hiddenOnMobile = index < mobileStart;
+          // Hide the separator arrow when this is the first visible mobile segment
+          const hideArrowOnMobile = !hiddenOnMobile && index === mobileStart && mobileStart > 0;
 
           return (
-            <li key={segment.href} className="flex items-center gap-1 min-w-0">
+            <li
+              key={segment.href}
+              className={`flex items-center gap-1 min-w-0${hiddenOnMobile ? " hidden lg:flex" : ""}`}
+            >
               {index > 0 && (
-                <RiArrowRightSLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden="true" />
+                <RiArrowRightSLine
+                  className={`h-4 w-4 shrink-0 text-text-soft${hideArrowOnMobile ? " hidden lg:block" : ""}`}
+                  aria-hidden="true"
+                />
               )}
               {isLast ? (
-                <span className="truncate font-medium text-text-strong" aria-current="page">
+                <span
+                  className="truncate font-medium text-text-strong"
+                  title={segment.label}
+                  aria-current="page"
+                >
                   {segment.label}
                 </span>
               ) : (
                 <Link
                   to={segment.href}
                   className="truncate text-text-sub hover:text-text-strong transition-colors"
+                  title={segment.label}
                 >
                   {segment.label}
                 </Link>

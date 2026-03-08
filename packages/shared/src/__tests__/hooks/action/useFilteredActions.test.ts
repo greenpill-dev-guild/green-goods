@@ -7,11 +7,11 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  useFilteredActions,
   type ActionFiltersState,
+  useFilteredActions,
 } from "../../../hooks/action/useFilteredActions";
-import { Domain } from "../../../types";
 import type { Action } from "../../../types";
+import { Domain } from "../../../types";
 
 // ============================================
 // Test Helpers

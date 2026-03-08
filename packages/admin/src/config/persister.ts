@@ -1,6 +1,6 @@
 import { debugWarn } from "@green-goods/shared";
-import type { PersistedClient, Persister } from "@tanstack/react-query-persist-client";
 import type { Query } from "@tanstack/react-query";
+import type { PersistedClient, Persister } from "@tanstack/react-query-persist-client";
 import { createStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 
 /** Maximum age for persisted queries (24 hours) */

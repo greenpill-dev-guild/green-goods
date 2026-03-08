@@ -94,19 +94,79 @@
       "label": "hatsModule",
       "offset": 0,
       "slot": "203",
-      "type": "t_contract(IHatsModule)5920"
+      "type": "t_contract(IHatsModule)5451"
     },
     {
       "label": "karmaGAPModule",
       "offset": 0,
       "slot": "204",
-      "type": "t_contract(IKarmaGAPModule)6074"
+      "type": "t_contract(IKarmaGAPModule)5613"
+    },
+    {
+      "label": "octantModule",
+      "offset": 0,
+      "slot": "205",
+      "type": "t_contract(OctantModule)7960"
+    },
+    {
+      "label": "gardensModule",
+      "offset": 0,
+      "slot": "206",
+      "type": "t_contract(IGardensModule)5165"
+    },
+    {
+      "label": "actionRegistry",
+      "offset": 0,
+      "slot": "207",
+      "type": "t_contract(ActionRegistry)8617"
+    },
+    {
+      "label": "cookieJarModule",
+      "offset": 0,
+      "slot": "208",
+      "type": "t_contract(ICookieJarModule)4806"
+    },
+    {
+      "label": "ensModule",
+      "offset": 0,
+      "slot": "209",
+      "type": "t_contract(IGreenGoodsENS)5211"
+    },
+    {
+      "label": "communityToken",
+      "offset": 0,
+      "slot": "210",
+      "type": "t_address"
+    },
+    {
+      "label": "failedENSRefunds",
+      "offset": 0,
+      "slot": "211",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "label": "totalPendingENSRefunds",
+      "offset": 0,
+      "slot": "212",
+      "type": "t_uint256"
+    },
+    {
+      "label": "transferRestriction",
+      "offset": 0,
+      "slot": "213",
+      "type": "t_enum(TransferRestriction)9695"
+    },
+    {
+      "label": "openMinting",
+      "offset": 1,
+      "slot": "213",
+      "type": "t_bool"
     },
     {
       "label": "__gap",
       "offset": 0,
-      "slot": "205",
-      "type": "t_array(t_uint256)46_storage"
+      "slot": "214",
+      "type": "t_array(t_uint256)37_storage"
     }
   ]
 }

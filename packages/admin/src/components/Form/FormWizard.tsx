@@ -78,6 +78,7 @@ export function FormWizard({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
           {!isFirstStep && onBack && (
             <Button
+              type="button"
               variant="secondary"
               onClick={onBack}
               disabled={isSubmitting}
@@ -90,6 +91,7 @@ export function FormWizard({
 
           <div className="flex gap-3 sm:ml-auto">
             <Button
+              type="button"
               variant="secondary"
               onClick={onCancel}
               disabled={isSubmitting}
@@ -100,6 +102,7 @@ export function FormWizard({
 
             {!isLastStep && onNext && (
               <Button
+                type="button"
                 onClick={onNext}
                 disabled={isSubmitting || nextDisabled}
                 className="flex-1 sm:flex-initial"
@@ -110,6 +113,7 @@ export function FormWizard({
 
             {isLastStep && onSubmit && (
               <Button
+                type="button"
                 onClick={onSubmit}
                 disabled={isSubmitting}
                 loading={isSubmitting}

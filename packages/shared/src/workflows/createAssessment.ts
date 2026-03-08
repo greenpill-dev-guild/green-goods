@@ -1,9 +1,8 @@
-import { setup, assign, fromPromise } from "xstate";
+import { assign, fromPromise, setup } from "xstate";
 import type { Address, AssessmentWorkflowParams } from "../types/domain";
 
 // Re-export from canonical location for backwards compatibility
-export type { AssessmentWorkflowParams } from "../types/domain";
-export type { CreateAssessmentForm } from "../types/domain";
+export type { AssessmentWorkflowParams, CreateAssessmentForm } from "../types/domain";
 
 export interface CreateAssessmentContext {
   assessmentParams?: AssessmentWorkflowParams;

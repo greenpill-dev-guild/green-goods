@@ -11,11 +11,9 @@ import {
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { getAssetTotalKey } from "./assetTotals";
 
 interface VaultEventHistoryProps {
   gardenAddress: Address;
-  assetDecimalsByKey?: Map<string, number>;
 }
 
 const EVENT_BADGE_CLASS: Record<string, string> = {
@@ -32,7 +30,7 @@ const EVENT_TYPE_I18N: Record<string, string> = {
   EMERGENCY_PAUSED: "app.treasury.eventType.EMERGENCY_PAUSED",
 };
 
-export function VaultEventHistory({ gardenAddress, assetDecimalsByKey }: VaultEventHistoryProps) {
+export function VaultEventHistory({ gardenAddress }: VaultEventHistoryProps) {
   const { formatMessage } = useIntl();
   const chainId = useCurrentChain();
   const { events, isLoading } = useVaultEvents(gardenAddress, { limit: 200, enabled: true });
@@ -40,9 +38,6 @@ export function VaultEventHistory({ gardenAddress, assetDecimalsByKey }: VaultEv
 
   const blockExplorer = useMemo(() => getNetworkConfig(chainId).blockExplorer, [chainId]);
   const visibleEvents = useMemo(() => events.slice(0, visibleCount), [events, visibleCount]);
-  const getEventDecimals = (asset: Address, eventChainId: number) =>
-    assetDecimalsByKey?.get(getAssetTotalKey(eventChainId, asset)) ??
-    getVaultAssetDecimals(asset, eventChainId);
 
   return (
     <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
@@ -98,7 +93,7 @@ export function VaultEventHistory({ gardenAddress, assetDecimalsByKey }: VaultEv
                       {event.amount !== null
                         ? formatTokenAmount(
                             event.amount,
-                            getEventDecimals(event.asset, event.chainId)
+                            getVaultAssetDecimals(event.asset, event.chainId)
                           )
                         : formatMessage({ id: "app.treasury.none" })}
                     </td>
@@ -159,7 +154,7 @@ export function VaultEventHistory({ gardenAddress, assetDecimalsByKey }: VaultEv
                       {event.amount !== null
                         ? formatTokenAmount(
                             event.amount,
-                            getEventDecimals(event.asset, event.chainId)
+                            getVaultAssetDecimals(event.asset, event.chainId)
                           )
                         : formatMessage({ id: "app.treasury.none" })}
                     </span>

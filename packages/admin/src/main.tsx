@@ -11,7 +11,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "@/App.tsx";
-import { persister, PERSIST_MAX_AGE, shouldDehydrateQuery } from "@/config/persister";
+import { PERSIST_MAX_AGE, persister, shouldDehydrateQuery } from "@/config/persister";
 
 import "@/index.css";
 import "@/config";
