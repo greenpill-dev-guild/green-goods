@@ -25,6 +25,13 @@
   padding: 1rem;
   background: var(--ifm-background-surface-color);
   animation: featureEnter 480ms ease both;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.card:hover {
+  border-color: var(--ifm-color-primary-light);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--ifm-color-primary) 10%, transparent);
+  transform: translateY(-2px);
 }
 
 .cardHeader {

@@ -333,6 +333,12 @@ const config: Config = {
       items: [
         {
           type: 'docSidebar',
+          sidebarId: 'communitySidebar',
+          position: 'left',
+          label: 'Community',
+        },
+        {
+          type: 'docSidebar',
           sidebarId: 'buildersSidebar',
           position: 'left',
           label: 'Builders',
