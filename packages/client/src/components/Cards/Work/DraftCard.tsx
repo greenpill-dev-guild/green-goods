@@ -1,4 +1,4 @@
-import { cn, formatRelativeTime, type DraftWithImages } from "@green-goods/shared";
+import { cn, type DraftWithImages, formatRelativeTime } from "@green-goods/shared";
 import { RiDeleteBinLine, RiDraftLine, RiImageLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -139,3 +139,5 @@ function getStepProgress(step: string): number {
       return 1;
   }
 }
+
+export default DraftCard;

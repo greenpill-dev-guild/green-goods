@@ -1,12 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  ZERO_ADDRESS,
-  isZeroAddressValue,
-  getVaultAssetSymbol,
-  getVaultAssetDecimals,
-  validateDecimalInput,
-  getNetDeposited,
   formatTokenAmount,
+  getNetDeposited,
+  getVaultAssetDecimals,
+  getVaultAssetSymbol,
+  isZeroAddressValue,
+  validateDecimalInput,
+  ZERO_ADDRESS,
 } from "../../utils/blockchain/vaults";
 
 describe("Vault Utilities", () => {
@@ -214,6 +214,18 @@ describe("Vault Utilities", () => {
       const result = formatTokenAmount(amount, 18, 4, "de-DE");
       // German uses comma as decimal separator
       expect(result).toBe("1,5");
+    });
+
+    it("shows dust indicator when value is too small to display", () => {
+      expect(formatTokenAmount(1n, 18, 4, EN, true)).toBe("< 0.0001");
+    });
+
+    it("shows negative dust indicator for tiny negative values", () => {
+      expect(formatTokenAmount(-1n, 18, 4, EN, true)).toBe("< -0.0001");
+    });
+
+    it("respects maxFractionDigits in dust indicator", () => {
+      expect(formatTokenAmount(1n, 6, 6, EN, true)).toBe("0.000001");
     });
   });
 });

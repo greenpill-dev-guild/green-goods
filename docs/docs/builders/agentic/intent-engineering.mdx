@@ -1,0 +1,92 @@
+---
+title: Intent Engineering
+sidebar_label: Intent Engineering
+slug: /builders/agentic/intent-engineering
+audience: developer
+owner: docs
+last_verified: 2026-03-01
+---
+
+# Intent Engineering
+
+Intent engineering translates user goals into structured agent tasks. In the Green Goods workflow, this means decomposing a request like "add cookie jar support" into scoped, verifiable work items that agents can execute independently.
+
+## The Intent File
+
+The `.claude/context/intent.md` file provides organizational context for decisions that require business judgment:
+
+- **Decision heuristics** -- How to resolve conflicts between features, communities, and goals
+- **UX personas** -- How different users perceive the platform (Gardener sees "a helpful WhatsApp contact"; Funder sees "a high-yield savings account")
+- **Community context** -- Real communities using the platform, their constraints (power outages, low bandwidth, Portuguese language)
+- **Economic context** -- Target metrics, cost structure, break-even thresholds
+- **Grant mapping** -- Which features map to which funding sources
+
+This file is loaded when agents make prioritization or UX decisions, ensuring they align with organizational intent.
+
+## Task Decomposition
+
+### Complexity Estimation
+
+Before starting work, agents estimate task complexity:
+
+- **Simple** (1-2 files, single concern) -- Execute directly
+- **Medium** (3+ files, single concern) -- Plan first, then execute
+- **Complex** (3+ concerns across files) -- Decompose into independently verifiable steps using `.plans/`
+
+The threshold is whether the task involves creating new files AND wiring them into existing code across 3+ concerns (e.g., hook + component + i18n + barrel exports).
+
+### Plan Files
+
+Complex tasks produce plan files saved to `.plans/`:
+
+```markdown
+## Plan: Add Cookie Jar Withdrawal
+1. Add `useWithdrawFromJar` hook in shared (test first)
+2. Add withdrawal form component in admin
+3. Wire i18n strings for en/es/pt
+4. Add barrel export from shared
+5. Integration test
+```
+
+Plans are executable specifications -- each step has clear inputs, outputs, and verification criteria.
+
+## The Values Priority Stack
+
+When agent values conflict, `.claude/context/values.md` defines the resolution order:
+
+1. **User safety** over feature completeness
+2. **Offline-first functionality** over real-time accuracy
+3. **Data integrity** (attestation chains) over convenience features
+4. **Gardener simplicity** over operator power
+5. **Existing patterns** over novel approaches
+6. **Tested code** over untested code
+
+An agent implementing a feature that requires network connectivity must consider whether an offline fallback is possible before proceeding (priority 2 outranks feature completeness).
+
+## Agent Decision Heuristics
+
+From `intent.md`, agents use these heuristics:
+
+### Feature Conflicts
+- Features advancing Capital Formation + Impact Accessibility take priority over Governance-only features
+- Features serving LATAM communities take priority over enterprise polish
+- Gardener-facing simplicity takes priority over technical correctness visible to the Gardener
+
+### UX Judgment Calls
+- Never use blockchain vocabulary in Gardener-facing copy
+- Every action must maintain the CIDS chain: Activity -> Output -> Outcome -> Impact
+- Removing evidence capture (photos) breaks the entire verification model
+
+### Scope Decisions
+- Each major feature set maps to a specific grant (see intent.md table)
+- When a feature request touches a grant area, scope the work to that grant's deliverables
+- Do not expand scope beyond the funding source
+
+## Verification
+
+Intent engineering is successful when:
+
+- Agents make decisions aligned with organizational priorities without being told
+- Complex tasks are decomposed into steps that can be independently tested
+- Plan files accurately reflect the dependency order of implementation steps
+- The values priority stack is applied consistently across different agents and sessions

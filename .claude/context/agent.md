@@ -13,6 +13,16 @@ Loaded when working in `packages/agent/`. Extends CLAUDE.md.
 | `bun run test:coverage` | Tests with coverage |
 | `bun run test:ui` | Interactive test UI |
 
+## Contents
+- [Architecture](#architecture)
+- [Data Flow](#data-flow)
+- [Critical Patterns](#critical-patterns)
+- [Security Patterns](#security-patterns-mandatory)
+- [Deployment](#deployment)
+- [Testing](#testing)
+- [Adding a New Platform](#adding-a-new-platform)
+- [Reference Files](#reference-files)
+
 ## Architecture
 
 ```
@@ -292,3 +302,12 @@ The test setup (`src/__tests__/setup.ts`) provides:
 - Crypto: `src/services/crypto.ts`
 - Rate limiter: `src/services/rate-limiter.ts`
 - Telegram: `src/platforms/telegram.ts`
+
+## Documentation References (on-demand)
+
+Read these docs pages when you need domain context for bot responses or user guidance:
+
+- Domain glossary (35+ terms): `docs/docs/glossary.md`
+- Impact model and CIDS framework: `docs/docs/concepts/impact-model.mdx`
+- Gardener getting started: `docs/docs/gardener/getting-started.mdx`
+- Communities and localization: `docs/docs/concepts/communities.mdx`

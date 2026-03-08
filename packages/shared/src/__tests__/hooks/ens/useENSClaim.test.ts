@@ -5,10 +5,10 @@
  * passkey (sponsored) and wallet (user-funded) registration paths.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================================================
 // MOCKS — declared before imports that use them
@@ -98,11 +98,11 @@ vi.mock("../../../utils/errors/contract-errors", () => ({
   })),
 }));
 
+import { toastService } from "../../../components/toast";
 // Import after mocks
 import { useENSClaim } from "../../../hooks/ens/useENSClaim";
-import { toastService } from "../../../components/toast";
-import { logger } from "../../../modules/app/logger";
 import { queryKeys } from "../../../hooks/query-keys";
+import { logger } from "../../../modules/app/logger";
 
 // ============================================================================
 // TEST HELPERS

@@ -6,7 +6,7 @@ owner: docs
 last_verified: 2026-02-19
 feature_status: Live
 source_of_truth:
-  - docs/docs/developers/reference/deployment-indexer-status.mdx
+  - docs/docs/builders/deployments/status.mdx
   - docs/docusaurus.config.ts
 ---
 
@@ -34,7 +34,7 @@ This release updates documentation IA and workflows to reflect current Green Goo
   - `Planned`
 - Operator coverage for hypercert, vault, cookie-jar, strategy, and signal-pool surfaces with explicit activation gating.
 - Evaluator query packs for indexer + EAS with chain-aware variable patterns.
-- Developer reference consolidation under `/developers/reference`, including deployment/indexer status and MCP alignment notes.
+- Developer reference consolidation under `/builders`, including deployment/indexer status and MCP alignment notes.
 - Legacy route redirects added for prior `welcome`, role, `developer`, `prd`, and `specs` paths.
 
 ---
@@ -43,7 +43,7 @@ This release updates documentation IA and workflows to reflect current Green Goo
 
 **First Official Release**
 
-This is the first official release of Green Goods — an offline-first platform for documenting conservation work and proving impact on-chain.
+This is the first official release of Green Goods — an offline-first platform for documenting regenerative work and proving impact on-chain.
 
 **Release Stats:**
 - 765 files changed

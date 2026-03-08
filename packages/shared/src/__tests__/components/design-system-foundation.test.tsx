@@ -11,26 +11,26 @@ import {
 } from "../../components/Tokens/foundation";
 
 describe("design system foundation", () => {
-  it("uses mobile-safe shared text control sizing by default", () => {
+  it("uses shared text control styling by default", () => {
     render(<FormInput id="foundation-name" label="Name" placeholder="Add a name" />);
 
     const input = screen.getByLabelText("Name");
 
-    expect(input).toHaveClass("min-h-11");
-    expect(input).toHaveClass("text-paragraph-md");
-    expect(input).toHaveClass("sm:text-paragraph-sm");
+    expect(input).toHaveClass("w-full");
+    expect(input).toHaveClass("text-base");
+    expect(input).toHaveClass("rounded-lg");
+    expect(input).toHaveClass("px-4");
   });
 
-  it("supports the shared large textarea size scale", () => {
-    render(
-      <FormTextarea id="foundation-notes" label="Notes" placeholder="Add notes" controlSize="lg" />
-    );
+  it("supports the shared textarea styling", () => {
+    render(<FormTextarea id="foundation-notes" label="Notes" placeholder="Add notes" />);
 
     const textarea = screen.getByLabelText("Notes");
 
-    expect(textarea).toHaveClass("min-h-32");
+    expect(textarea).toHaveClass("w-full");
+    expect(textarea).toHaveClass("text-base");
     expect(textarea).toHaveClass("px-4");
-    expect(textarea).toHaveClass("sm:text-paragraph-md");
+    expect(textarea).toHaveClass("rounded-lg");
   });
 
   it("exposes one shared control sizing contract for native inputs and selects", () => {

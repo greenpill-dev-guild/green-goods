@@ -1,13 +1,11 @@
 import { forwardRef, type TextareaHTMLAttributes } from "react";
 import { cn } from "../../utils/styles/cn";
-import { controlTextareaVariants } from "../Tokens/foundation";
 import { FormFieldWrapper } from "./FormFieldWrapper";
 
 export interface FormTextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
   helperText?: string;
   error?: string;
-  controlSize?: "sm" | "md" | "lg";
 }
 
 /**
@@ -24,7 +22,7 @@ export interface FormTextareaProps extends TextareaHTMLAttributes<HTMLTextAreaEl
  * />
  */
 export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
-  ({ label, helperText, error, className, rows = 4, controlSize = "md", ...props }, ref) => {
+  ({ label, helperText, error, className, rows = 4, ...props }, ref) => {
     const helperId = props.id ? `${props.id}-helper-text` : undefined;
     const ariaDescribedBy = (helperText || error) && helperId ? helperId : undefined;
 
@@ -38,9 +36,13 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
       >
         <textarea
           className={cn(
-            controlTextareaVariants({ size: controlSize, invalid: Boolean(error) }),
-            "resize-none",
-            className
+            "block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4",
+            "text-base text-text-strong-950 placeholder:text-text-soft-400",
+            "transition-all duration-200 resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]",
+            "disabled:opacity-50 disabled:pointer-events-none",
+            error
+              ? "border-error-base focus-visible:ring-2 focus-visible:ring-error-lighter focus-visible:border-error-base"
+              : "focus-visible:ring-2 focus-visible:ring-primary-lighter focus-visible:border-primary-base"
           )}
           rows={rows}
           aria-describedby={ariaDescribedBy}

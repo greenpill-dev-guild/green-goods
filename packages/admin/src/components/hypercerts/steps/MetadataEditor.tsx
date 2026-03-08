@@ -1,9 +1,9 @@
 import {
+  type CapitalType,
   cn,
   DatePicker,
   FormInput,
   FormTextarea,
-  type CapitalType,
   type GardenAssessment,
   type HypercertDraft,
 } from "@green-goods/shared";
@@ -15,7 +15,7 @@ import {
   RiSparklingLine,
 } from "@remixicon/react";
 import { useMemo } from "react";
-import { useIntl, type IntlShape } from "react-intl";
+import { type IntlShape, useIntl } from "react-intl";
 
 /** Get localized SDG name for accessibility */
 function getSdgName(id: number, intl: IntlShape): string {

@@ -8,11 +8,11 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MOCK_ADDRESSES, createMockFile } from "../../test-utils/mock-factories";
+import { createMockFile, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
 
 // ============================================
 // Mocks
@@ -370,7 +370,7 @@ describe("useDraftResume", () => {
       expect(result.current.showDraftDialog).toBe(false);
     });
 
-    it("shows dialog when plant selection + garden/action are present", () => {
+    it("shows dialog when feedback + garden/action are present", () => {
       const { result } = renderHook(
         () =>
           useDraftResume({
@@ -378,7 +378,7 @@ describe("useDraftResume", () => {
               ...createDefaultFormState(),
               gardenAddress: MOCK_ADDRESSES.garden,
               actionUID: 1,
-              plantSelection: ["oak"],
+              feedback: "Some work notes",
             },
             isOnIntroTab: true,
             searchParams: new URLSearchParams(),

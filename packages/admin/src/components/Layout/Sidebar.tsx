@@ -1,6 +1,4 @@
-import { useAuth, useRole } from "@green-goods/shared/hooks";
-import { useUIStore } from "@green-goods/shared/stores";
-import { cn } from "@green-goods/shared/utils";
+import { cn, useAuth, useRole, useUIStore } from "@green-goods/shared";
 import {
   RiDashboardLine,
   RiHammerFill,
@@ -16,15 +14,46 @@ import { Link, useLocation } from "react-router-dom";
 const navigation = [
   {
     name: "Dashboard",
+    nameId: "app.sidebar.dashboard",
     href: "/dashboard",
     icon: RiDashboardLine,
     roles: ["deployer", "operator", "user"],
   },
-  { name: "Gardens", href: "/gardens", icon: RiPlantLine, roles: ["deployer", "operator", "user"] },
-  { name: "Actions", href: "/actions", icon: RiHammerFill, roles: ["deployer", "operator"] },
-  { name: "Endowments", href: "/endowments", icon: RiSafe2Line, roles: ["deployer", "operator"] },
-  { name: "Contracts", href: "/contracts", icon: RiSettings3Line, roles: ["deployer"] },
-  { name: "Deployment", href: "/deployment", icon: RiUploadLine, roles: ["deployer"] },
+  {
+    name: "Gardens",
+    nameId: "app.sidebar.gardens",
+    href: "/gardens",
+    icon: RiPlantLine,
+    roles: ["deployer", "operator", "user"],
+  },
+  {
+    name: "Actions",
+    nameId: "app.sidebar.actions",
+    href: "/actions",
+    icon: RiHammerFill,
+    roles: ["deployer", "operator", "user"],
+  },
+  {
+    name: "Endowments",
+    nameId: "app.sidebar.endowments",
+    href: "/endowments",
+    icon: RiSafe2Line,
+    roles: ["deployer", "operator", "user"],
+  },
+  {
+    name: "Contracts",
+    nameId: "app.sidebar.contracts",
+    href: "/contracts",
+    icon: RiSettings3Line,
+    roles: ["deployer"],
+  },
+  {
+    name: "Deployment",
+    nameId: "app.sidebar.deployment",
+    href: "/deployment",
+    icon: RiUploadLine,
+    roles: ["deployer"],
+  },
 ];
 
 export function Sidebar() {
@@ -40,7 +69,7 @@ export function Sidebar() {
     <div
       data-testid="sidebar"
       className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-bg-white shadow-lg transform transition-transform duration-300 ease-in-out",
+        "fixed inset-y-0 left-0 z-50 w-56 bg-bg-white shadow-lg transform transition-transform duration-300 ease-in-out",
         sidebarOpen ? "translate-x-0" : "-translate-x-full",
         "lg:translate-x-0 lg:static lg:inset-0"
       )}
@@ -85,12 +114,14 @@ export function Sidebar() {
                 className={cn(
                   "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
                   isActive
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-primary-alpha-10 text-primary-dark"
                     : "text-text-sub hover:bg-bg-weak hover:text-text-strong"
                 )}
               >
                 <item.icon className="mr-3 h-5 w-5" />
-                {item.name}
+                {item.nameId
+                  ? intl.formatMessage({ id: item.nameId, defaultMessage: item.name })
+                  : item.name}
               </Link>
             );
           })}

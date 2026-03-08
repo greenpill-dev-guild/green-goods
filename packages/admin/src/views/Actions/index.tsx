@@ -1,45 +1,106 @@
 import {
+  type ActionFiltersState,
+  cn,
   DEFAULT_CHAIN_ID,
   Domain,
   formatDate,
-  type ActionFiltersState,
+  ImageWithFallback,
+  useActions,
   useFilteredActions,
+  useRole,
 } from "@green-goods/shared";
-import { cn } from "@green-goods/shared/utils";
-import { useActions } from "@green-goods/shared/hooks";
-import { RiAddLine, RiCalendarLine, RiEditLine, RiEyeLine, RiFileListLine } from "@remixicon/react";
-import { useState } from "react";
+import {
+  RiAddLine,
+  RiCalendarLine,
+  RiEditLine,
+  RiEyeLine,
+  RiFileListLine,
+  RiImageLine,
+  RiRefreshLine,
+} from "@remixicon/react";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
+import { SkeletonGrid } from "@/components/ui/Skeleton";
 import { SortSelect } from "@/components/ui/SortSelect";
 
-const DOMAIN_TAGS: { value: Domain; label: string; activeClass: string }[] = [
+interface ActionCardMediaProps {
+  src?: string;
+  alt: string;
+  unavailableLabel: string;
+  unavailableDescription: string;
+}
+
+function ActionCardMedia({
+  src,
+  alt,
+  unavailableLabel,
+  unavailableDescription,
+}: ActionCardMediaProps) {
+  const [hasError, setHasError] = useState(!src);
+
+  useEffect(() => {
+    setHasError(!src);
+  }, [src]);
+
+  if (hasError) {
+    return (
+      <div className="h-40 w-full bg-bg-soft flex flex-col items-center justify-center px-4 text-center">
+        <RiImageLine className="h-6 w-6 text-text-soft mb-2" />
+        <p className="text-sm font-medium text-text-sub">{unavailableLabel}</p>
+        <p className="mt-1 text-xs text-text-soft">{unavailableDescription}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-40 w-full overflow-hidden">
+      <ImageWithFallback
+        src={src || ""}
+        alt={alt}
+        className="w-full h-40 object-cover"
+        fallbackClassName="w-full h-40 bg-bg-soft text-text-soft"
+        fallbackIcon={RiImageLine}
+        onErrorCallback={() => setHasError(true)}
+      />
+    </div>
+  );
+}
+
+const DOMAIN_TAGS: { value: Domain; labelId: string; activeClass: string }[] = [
   {
     value: Domain.SOLAR,
-    label: "Solar",
-    activeClass: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    labelId: "app.domain.tab.solar",
+    activeClass: "bg-away-lighter text-away-dark border-away-light",
   },
   {
     value: Domain.AGRO,
-    label: "Agro",
-    activeClass: "bg-green-100 text-green-800 border-green-300",
+    labelId: "app.domain.tab.agro",
+    activeClass: "bg-success-lighter text-success-dark border-success-light",
   },
-  { value: Domain.EDU, label: "Edu", activeClass: "bg-blue-100 text-blue-800 border-blue-300" },
+  {
+    value: Domain.EDU,
+    labelId: "app.domain.tab.education",
+    activeClass: "bg-information-lighter text-information-dark border-information-light",
+  },
   {
     value: Domain.WASTE,
-    label: "Waste",
-    activeClass: "bg-orange-100 text-orange-800 border-orange-300",
+    labelId: "app.domain.tab.waste",
+    activeClass: "bg-warning-lighter text-warning-dark border-warning-light",
   },
 ];
 
 export default function Actions() {
   const intl = useIntl();
-  const { data: actions = [], isLoading } = useActions(DEFAULT_CHAIN_ID);
+  const { role } = useRole();
+  const { data: actions = [], isLoading, isFetching, refetch } = useActions(DEFAULT_CHAIN_ID);
+  const canManageActions = role === "deployer" || role === "operator";
   const [filters, setFilters] = useState<ActionFiltersState>({ sort: "default" });
+  const isRefreshing = isFetching && !isLoading;
 
   const { filteredActions } = useFilteredActions(actions, filters);
 
@@ -68,6 +129,14 @@ export default function Actions() {
   ];
 
   const showToolbar = !isLoading && actions.length > 0;
+  const imageUnavailableLabel = intl.formatMessage({
+    id: "admin.actions.imageUnavailable",
+    defaultMessage: "Image unavailable",
+  });
+  const imageUnavailableDescription = intl.formatMessage({
+    id: "admin.actions.imageUnavailableDescription",
+    defaultMessage: "This action does not currently have a valid image.",
+  });
 
   const description = isLoading
     ? intl.formatMessage({ id: "admin.actions.loading" })
@@ -86,35 +155,49 @@ export default function Actions() {
         description={description}
         sticky
         actions={
-          <Button size="sm" asChild>
-            <Link to="/actions/create">
-              <RiAddLine className="mr-1.5 h-4 w-4" />
-              Create Action
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={isRefreshing}
+              onClick={() => {
+                void refetch();
+              }}
+            >
+              {!isRefreshing && <RiRefreshLine className="h-4 w-4" />}
+              {intl.formatMessage({
+                id: isRefreshing ? "app.common.refreshing" : "app.common.refresh",
+              })}
+            </Button>
+            {canManageActions && (
+              <Button size="sm" asChild>
+                <Link to="/actions/create">
+                  <RiAddLine className="mr-1.5 h-4 w-4" />
+                  Create Action
+                </Link>
+              </Button>
+            )}
+          </div>
         }
         toolbar={
           showToolbar ? (
-            <div className="space-y-3">
-              <ListToolbar
-                search={filters.search ?? ""}
-                onSearchChange={(value) =>
-                  setFilters((prev) => ({ ...prev, search: value || undefined }))
-                }
-                searchPlaceholder={intl.formatMessage({
-                  id: "admin.actions.searchPlaceholder",
-                  defaultMessage: "Search actions...",
-                })}
-              >
-                <SortSelect
-                  value={filters.sort}
-                  onChange={(value) => setFilters((prev) => ({ ...prev, sort: value }))}
-                  options={sortOptions}
-                />
-              </ListToolbar>
-
+            <ListToolbar
+              search={filters.search ?? ""}
+              onSearchChange={(value) =>
+                setFilters((prev) => ({ ...prev, search: value || undefined }))
+              }
+              searchPlaceholder={intl.formatMessage({
+                id: "admin.actions.searchPlaceholder",
+                defaultMessage: "Search actions...",
+              })}
+            >
+              <SortSelect
+                value={filters.sort}
+                onChange={(value) => setFilters((prev) => ({ ...prev, sort: value }))}
+                options={sortOptions}
+              />
               <div
-                className="flex flex-wrap items-center gap-2"
+                className="flex flex-wrap items-center gap-1.5"
                 role="group"
                 aria-label={intl.formatMessage({
                   id: "admin.actions.filterByDomain",
@@ -136,31 +219,26 @@ export default function Actions() {
                       )}
                       aria-pressed={isActive}
                     >
-                      {tag.label}
+                      {intl.formatMessage({ id: tag.labelId })}
                     </button>
                   );
                 })}
               </div>
-            </div>
+            </ListToolbar>
           ) : undefined
         }
       />
 
       <div className="mt-6 space-y-6 px-4 sm:px-6">
         {isLoading && (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="animate-pulse overflow-hidden rounded-lg border border-stroke-soft bg-bg-white"
-              >
-                <div className="h-40 bg-bg-soft" />
-                <div className="p-6">
-                  <div className="h-6 bg-bg-soft rounded mb-2" />
-                  <div className="h-4 bg-bg-soft rounded w-3/4" />
-                </div>
-              </div>
-            ))}
+          <div role="status" aria-live="polite">
+            <span className="sr-only">
+              {intl.formatMessage({
+                id: "admin.actions.loadingMessage",
+                defaultMessage: "Loading actions...",
+              })}
+            </span>
+            <SkeletonGrid count={6} columns={3} />
           </div>
         )}
 
@@ -196,28 +274,33 @@ export default function Actions() {
         )}
 
         {!isLoading && filteredActions.length > 0 && (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredActions.map((action) => (
               <Link
                 key={action.id}
                 to={`/actions/${action.id}`}
                 data-testid="action-card"
-                className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-green-500 hover:shadow-md"
+                className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-primary-base hover:shadow-md"
               >
-                {action.media[0] && (
-                  <img
-                    src={action.media[0]}
-                    alt={action.title}
-                    className="w-full h-40 object-cover"
-                  />
-                )}
+                <ActionCardMedia
+                  src={action.media[0]}
+                  alt={action.title}
+                  unavailableLabel={imageUnavailableLabel}
+                  unavailableDescription={imageUnavailableDescription}
+                />
 
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold text-text-strong mb-2 group-hover:text-green-600">
+                  <h3
+                    className="text-xl font-semibold text-text-strong mb-2 group-hover:text-primary-dark line-clamp-1"
+                    title={action.title}
+                  >
                     {action.title}
                   </h3>
 
-                  <p className="text-sm text-text-sub mb-4 line-clamp-2">
+                  <p
+                    className="text-sm text-text-sub mb-4 line-clamp-2"
+                    title={action.description || undefined}
+                  >
                     {action.description || "No description"}
                   </p>
 
@@ -230,7 +313,7 @@ export default function Actions() {
                     </div>
                     <div className="flex items-center gap-2">
                       <RiEyeLine className="h-4 w-4" />
-                      <RiEditLine className="h-4 w-4" />
+                      {canManageActions && <RiEditLine className="h-4 w-4" />}
                     </div>
                   </div>
                 </div>

@@ -7,7 +7,7 @@
  * and dispatch adapter for React.SetStateAction API.
  */
 
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createMockFile, createMockFiles } from "../../test-utils/mock-factories";
@@ -41,10 +41,10 @@ vi.mock("../../../utils/debug", () => ({
   debugLog: vi.fn(),
 }));
 
+import { useWorkImages } from "../../../hooks/work/useWorkImages";
 // We need to let Zustand work normally for this hook since it directly reads/writes the store
 // But we need to reset the store between tests
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
-import { useWorkImages } from "../../../hooks/work/useWorkImages";
 
 // ============================================
 // Tests

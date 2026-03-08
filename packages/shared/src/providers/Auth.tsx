@@ -41,6 +41,7 @@ import { useAccount, useConfig } from "wagmi";
 import { appKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
 import { logger } from "../modules/app/logger";
+import { serviceWorkerManager } from "../modules/app/service-worker";
 import {
   type AuthMode,
   clearAuthMode,
@@ -377,6 +378,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Clear query cache
     queryClient.clear();
+
+    // Clear SW caches and IndexedDB to prevent stale data leaking across sessions
+    serviceWorkerManager.clearAllCaches().catch(() => {});
   }, [actor, disconnectWallet]);
 
   const retry = useCallback(() => {

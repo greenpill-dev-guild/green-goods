@@ -1,12 +1,12 @@
 /**
  * useNavigateToTop Hook Tests
  *
- * Tests the navigation helper that scrolls to top before navigating,
- * with view transition support.
+ * Tests the navigation helper with view transition support.
+ * Scroll reset is handled by useScrollToTop in target views, not here.
  */
 
-import { renderHook, act } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock react-router-dom
 const mockNavigate = vi.fn();
@@ -19,16 +19,6 @@ import { useNavigateToTop } from "../../../hooks/app/useNavigateToTop";
 describe("hooks/app/useNavigateToTop", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Setup app-scroll element
-    const scrollEl = document.createElement("div");
-    scrollEl.id = "app-scroll";
-    scrollEl.scrollTop = 500;
-    document.body.appendChild(scrollEl);
-  });
-
-  afterEach(() => {
-    const el = document.getElementById("app-scroll");
-    if (el) el.remove();
   });
 
   it("returns a navigation function", () => {
@@ -37,40 +27,27 @@ describe("hooks/app/useNavigateToTop", () => {
     expect(typeof result.current).toBe("function");
   });
 
-  it("scrolls app-scroll element to top before navigating", () => {
+  it("navigates without touching scroll (scroll is handled by target view)", () => {
     const { result } = renderHook(() => useNavigateToTop());
 
-    const scrollEl = document.getElementById("app-scroll")!;
+    // Setup scroll container to verify it's NOT reset
+    const scrollEl = document.createElement("div");
+    scrollEl.id = "app-scroll";
     scrollEl.scrollTop = 500;
+    document.body.appendChild(scrollEl);
 
     act(() => {
       result.current("/garden");
     });
 
-    expect(scrollEl.scrollTop).toBe(0);
     expect(mockNavigate).toHaveBeenCalledWith("/garden", {
       viewTransition: true,
     });
-  });
 
-  it("falls back to window.scrollTo when app-scroll element not found", () => {
-    // Remove app-scroll
-    document.getElementById("app-scroll")?.remove();
+    // Scroll should NOT be reset — that's the target view's responsibility
+    expect(scrollEl.scrollTop).toBe(500);
 
-    const scrollToSpy = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
-
-    const { result } = renderHook(() => useNavigateToTop());
-
-    act(() => {
-      result.current("/home");
-    });
-
-    expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: "auto" });
-    expect(mockNavigate).toHaveBeenCalledWith("/home", {
-      viewTransition: true,
-    });
-
-    scrollToSpy.mockRestore();
+    scrollEl.remove();
   });
 
   it("enables view transitions by default", () => {

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
-import { AssetSelector } from "./AssetSelector";
 import type { GardenVault } from "../../types/vaults";
+import { AssetSelector } from "./AssetSelector";
 
 const mockVaults: GardenVault[] = [
   {

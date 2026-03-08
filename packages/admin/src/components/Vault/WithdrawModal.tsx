@@ -1,10 +1,12 @@
 import {
   type Address,
   AssetSelector,
+  classifyTxError,
   formatTokenAmount,
   type GardenVault,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
+  isMeaningfulTxErrorMessage,
   useDebouncedValue,
   useUser,
   useVaultDeposits,
@@ -17,7 +19,10 @@ import { RiCloseLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
+import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
+import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { FormField } from "@/components/ui/FormField";
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -36,17 +41,19 @@ export function WithdrawModal({
 }: WithdrawModalProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  const withdrawMutation = useVaultWithdraw();
+  const withdrawMutation = useVaultWithdraw({ errorMode: "inline" });
+  const resetWithdrawMutation = withdrawMutation.reset;
   const [selectedAsset, setSelectedAsset] = useState<string>(
     defaultAsset ?? vaults[0]?.asset ?? ""
   );
-  const [assetInput, setAssetInput] = useState("");
+  const [amountInput, setAmountInput] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
     setSelectedAsset(defaultAsset ?? vaults[0]?.asset ?? "");
-    setAssetInput("");
-  }, [defaultAsset, isOpen, vaults]);
+    setAmountInput("");
+    resetWithdrawMutation();
+  }, [defaultAsset, isOpen, resetWithdrawMutation, vaults]);
 
   const selectedVault = useMemo(
     () => vaults.find((vault) => vault.asset.toLowerCase() === selectedAsset.toLowerCase()),
@@ -70,70 +77,74 @@ export function WithdrawModal({
     [deposits, selectedAsset]
   );
 
-  const maxShares = selectedDeposit?.shares ?? 0n;
-
   const assetDecimals = getVaultAssetDecimals(selectedAsset, selectedVault?.chainId);
   const assetSymbol = selectedVault
     ? getVaultAssetSymbol(selectedVault.asset, selectedVault.chainId)
     : "";
 
   const inputError = useMemo(
-    () => validateDecimalInput(assetInput, assetDecimals),
-    [assetInput, assetDecimals]
+    () => validateDecimalInput(amountInput, assetDecimals),
+    [amountInput, assetDecimals]
   );
 
-  const assetAmount = useMemo(() => {
-    if (!assetInput.trim() || inputError) return 0n;
+  const amount = useMemo(() => {
+    if (!amountInput.trim() || inputError) return 0n;
     try {
-      return parseUnits(assetInput, assetDecimals);
+      return parseUnits(amountInput, assetDecimals);
     } catch {
       return 0n;
     }
-  }, [assetInput, inputError, assetDecimals]);
+  }, [amountInput, inputError, assetDecimals]);
 
-  const { preview: availablePreview } = useVaultPreview({
-    vaultAddress: selectedVault?.vaultAddress as Address | undefined,
-    shares: maxShares,
-    userAddress: primaryAddress as Address | undefined,
-    enabled: isOpen && Boolean(selectedVault && maxShares > 0n),
-  });
-
-  const availableAssets = availablePreview?.previewAssets ?? 0n;
-
-  const exceedsBalanceError = useMemo(() => {
-    if (!assetInput.trim() || inputError) return null;
-    return assetAmount > availableAssets ? "app.treasury.exceedsAvailableBalance" : null;
-  }, [assetInput, inputError, assetAmount, availableAssets]);
-
-  const amountError = inputError ?? exceedsBalanceError;
-
-  const debouncedAssetAmount = useDebouncedValue(assetAmount, 300);
+  const debouncedAmount = useDebouncedValue(amount, 300);
 
   const { preview } = useVaultPreview({
     vaultAddress: selectedVault?.vaultAddress as Address | undefined,
-    amount: debouncedAssetAmount,
+    amount: debouncedAmount,
     userAddress: primaryAddress as Address | undefined,
-    enabled: isOpen && Boolean(selectedVault && debouncedAssetAmount > 0n),
+    enabled: isOpen && Boolean(selectedVault && primaryAddress),
   });
 
-  const previewShares = preview?.previewShares ?? 0n;
+  const maxWithdrawable = preview?.maxWithdraw ?? 0n;
+  const maxShares = selectedDeposit?.shares ?? 0n;
+
+  const exceedsBalanceError = useMemo(() => {
+    if (!amountInput.trim() || inputError) return null;
+    return amount > maxWithdrawable ? "app.treasury.exceedsAvailableBalance" : null;
+  }, [amountInput, inputError, amount, maxWithdrawable]);
+
+  const amountError = inputError ?? exceedsBalanceError;
+  const txErrorView = useMemo(
+    () => classifyTxError(withdrawMutation.error),
+    [withdrawMutation.error]
+  );
+  const txErrorTitle = formatMessage({
+    id: txErrorView.titleKey,
+    defaultMessage:
+      txErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+  });
+  const txErrorMessage =
+    txErrorView.kind === "cancelled"
+      ? formatMessage({
+          id: txErrorView.messageKey,
+          defaultMessage: "Transaction was cancelled. Please try again when ready.",
+        })
+      : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
+        ? txErrorView.rawMessage
+        : formatMessage({
+            id: txErrorView.messageKey,
+            defaultMessage: "Something went wrong. Please try again.",
+          });
 
   const onSubmit = () => {
-    if (
-      !selectedVault ||
-      !primaryAddress ||
-      assetAmount <= 0n ||
-      amountError ||
-      previewShares <= 0n
-    )
-      return;
+    if (!selectedVault || !primaryAddress || amount <= 0n || amountError) return;
 
     withdrawMutation.mutate(
       {
         gardenAddress,
         assetAddress: selectedVault.asset,
         vaultAddress: selectedVault.vaultAddress,
-        shares: previewShares,
+        amount,
         owner: primaryAddress as Address,
         receiver: primaryAddress as Address,
       },
@@ -144,8 +155,8 @@ export function WithdrawModal({
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
+        <Dialog.Overlay className="fixed inset-0 z-[9999] bg-overlay backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-[calc(100vw-2rem)] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <Dialog.Title className="text-lg font-semibold text-text-strong">
@@ -186,61 +197,61 @@ export function WithdrawModal({
               }}
             />
             {depositsError && (
-              <div
-                role="alert"
-                className="rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark"
+              <Alert
+                variant="error"
+                action={
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void refetchDeposits();
+                    }}
+                    disabled={depositsFetching}
+                    className="rounded-md border border-error-light px-2 py-1 text-xs font-medium text-error-dark hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {depositsFetching
+                      ? formatMessage({ id: "app.common.refreshing" })
+                      : formatMessage({ id: "app.common.tryAgain" })}
+                  </button>
+                }
               >
-                <p>
-                  {depositsQueryError instanceof Error
-                    ? depositsQueryError.message
-                    : formatMessage({ id: "app.treasury.errorLoading" })}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void refetchDeposits();
-                  }}
-                  disabled={depositsFetching}
-                  className="mt-2 rounded-md border border-error-light px-2 py-1 text-xs font-medium text-error-dark hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {depositsFetching
-                    ? formatMessage({ id: "app.common.refreshing" })
-                    : formatMessage({ id: "app.common.tryAgain" })}
-                </button>
-              </div>
+                {depositsQueryError instanceof Error
+                  ? depositsQueryError.message
+                  : formatMessage({ id: "app.treasury.errorLoading" })}
+              </Alert>
             )}
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>
-                {formatMessage({ id: "app.treasury.myShares" })}:{" "}
+                {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {formatTokenAmount(maxShares, 18)} shares
+                  {formatTokenAmount(maxWithdrawable, assetDecimals)} {assetSymbol}
                 </span>
               </p>
               <p>
-                {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
+                {formatMessage({ id: "app.treasury.myShares" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {formatTokenAmount(availableAssets, assetDecimals)} {assetSymbol}
+                  {formatTokenAmount(maxShares, 18)}{" "}
+                  {formatMessage({ id: "app.treasury.shares", defaultMessage: "shares" })}
                 </span>
               </p>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="withdraw-amount" className="text-sm font-medium text-text-sub">
-                {formatMessage({ id: "app.treasury.amount" })} ({assetSymbol})
-              </label>
+            <FormField
+              label={formatMessage({ id: "app.treasury.withdrawAmount" })}
+              htmlFor="withdraw-amount"
+              error={amountError ? formatMessage({ id: amountError }) : undefined}
+            >
               <div className="flex items-center gap-2">
                 <input
                   id="withdraw-amount"
                   type="text"
                   inputMode="decimal"
-                  value={assetInput}
-                  onChange={(event) => setAssetInput(event.target.value)}
-                  placeholder="0.0"
+                  value={amountInput}
+                  onChange={(event) => setAmountInput(event.target.value)}
+                  placeholder={`0.0 ${assetSymbol}`}
                   aria-required="true"
                   aria-invalid={Boolean(amountError)}
-                  aria-describedby={amountError ? "withdraw-error" : undefined}
-                  className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+                  className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/40 ${
                     amountError
                       ? "border-error-base focus:border-error-base"
                       : "border-stroke-sub bg-bg-white focus:border-primary-base"
@@ -249,36 +260,36 @@ export function WithdrawModal({
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setAssetInput(formatUnits(availableAssets, assetDecimals))}
+                  onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
                 >
                   {formatMessage({ id: "app.treasury.max" })}
                 </Button>
               </div>
-              {amountError && (
-                <p id="withdraw-error" className="text-xs text-error-dark" role="alert">
-                  {formatMessage({ id: amountError })}
-                </p>
-              )}
-            </div>
+            </FormField>
 
             <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
               <p>
-                {formatMessage({ id: "app.treasury.estimatedSharesBurned" })}:{" "}
+                {formatMessage({ id: "app.treasury.sharesToBurn" })}:{" "}
                 <span className="font-medium text-text-strong">
-                  {preview ? formatTokenAmount(previewShares, 18) : "--"}
+                  {preview && debouncedAmount > 0n
+                    ? `${formatTokenAmount(preview.previewWithdrawShares, 18)} ${formatMessage({ id: "app.treasury.shares", defaultMessage: "shares" })}`
+                    : "--"}
                 </span>
               </p>
             </div>
+            <TxInlineFeedback
+              visible={Boolean(withdrawMutation.error)}
+              severity={txErrorView.severity}
+              title={txErrorTitle}
+              message={txErrorMessage}
+              reserveClassName="min-h-[5.5rem]"
+            />
 
             <Button
               className="w-full"
               onClick={onSubmit}
               disabled={
-                Boolean(amountError) ||
-                assetAmount <= 0n ||
-                previewShares <= 0n ||
-                depositsError ||
-                withdrawMutation.isPending
+                Boolean(amountError) || amount <= 0n || depositsError || withdrawMutation.isPending
               }
               loading={withdrawMutation.isPending}
             >

@@ -1,0 +1,82 @@
+---
+sidebar_position: 2
+title: Entity Matrix
+slug: /builders/integrations/entity-matrix
+audience: developers
+owner: docs
+last_verified: 2026-02-28
+feature_status: Live
+source_of_truth:
+  - CharmVerse > Regen Stack > Green Goods > Entity Matrix
+keywords:
+  - entity matrix
+  - protocol mapping
+  - karma gap
+  - hypercerts
+  - hats protocol
+---
+
+# Entity Matrix
+
+A cross-protocol mapping of Green Goods domain entities to their equivalents across 12 partner protocols. Use this as a Rosetta Stone when integrating with external systems or translating between protocol vocabularies.
+
+## How to read this table
+
+- **Rows** are Green Goods domain entities (the canonical vocabulary used in code and docs).
+- **Columns** are partner protocols. Each cell shows the equivalent concept in that protocol.
+- **Empty cells** (`—`) mean no mapping exists — the protocol does not have an equivalent concept.
+- **Role entities** (Garden Operator through Data Scientist/Researcher) map to protocol-specific role or permission types.
+
+## Full Entity Matrix
+
+| Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Garden | Project | Hypercert Holder | Vault Owner | Community | Top Hat | Project | Jar | — | — | — | — |
+| Assessment | Project Milestone | Hypercert Data | — | — | — | — | — | — | — | — | — |
+| Action | Partial Project Update | Hypercert Data | — | — | — | — | — | — | — | — | — |
+| Work | Partial Project Update | Hypercert Data | — | — | — | — | — | — | — | — | — |
+| Work Approval | Partial Project Update | Hypercert Data | — | — | — | — | — | — | — | — | — |
+| Garden Operator | Project Owner | Creator | Vault Admin, TAM Operator | Council Member | Operator Hat | — | — | — | — | — | — |
+| Gardener | Project Member | Creator | TAM Proposer | Community Member | Gardener Hat | — | — | — | — | — | — |
+| Community Member | Project Explorer | Evaluator | TAM Voter | Community Member | Community Member | — | — | — | — | — | — |
+| Funder/Evaluator | Grant Evaluator | Funder | Vault Depositor | Community Funder | Garden Supporter | — | — | — | — | — | — |
+| Data Scientist/Researcher | Grant Evaluator | Evaluator | — | Community Explorer | Garden Analyst | — | — | — | — | — | — |
+| Impact | — | Hypercert Token | — | — | — | — | — | — | — | — | — |
+| Badges | — | — | — | — | — | — | — | Unlock NFT | — | — | — |
+
+## Protocol integration notes
+
+### Active integrations
+
+These protocols have established entity mappings and active or planned code integrations:
+
+- **Karma GAP**: Project reporting and milestone tracking. Maps all 5 core entities (Garden through Work Approval) and all role types.
+- **Hypercerts**: Impact certification tokens. Maps core entities to Hypercert Data and roles to Creator/Funder/Evaluator.
+- **Octant**: Vault and treasury management. Maps Garden to Vault Owner, with role mappings for admin, proposer, voter, and depositor flows.
+- **Gardens V2**: Community governance primitives. Maps Garden to Community, with role mappings for council and community membership.
+- **Hats Protocol**: On-chain role management. Maps all 6 role types to protocol-specific hat levels (Top Hat, Operator Hat, Gardener Hat, Community Member, Garden Supporter, Garden Analyst).
+- **Silvi**: Forestry and agroforestry partner. Currently maps only Garden to Project.
+- **Cookie Jar**: Payout and reward primitive. Currently maps only Garden to Jar.
+- **Unlock**: Credential and badge primitive. Currently maps only Badges to Unlock NFT.
+
+### Integration planned
+
+These protocols appear in the matrix but have no entity mappings yet:
+
+- **ENS**: Ethereum Name Service — name resolution integration planned.
+- **Lido**: Liquid staking — yield integration planned.
+- **FTC**: Integration scope to be defined.
+
+## Using the matrix
+
+### For developers
+
+When implementing a new protocol integration, consult this matrix to understand which Green Goods entities have equivalents in the target protocol. This prevents naming confusion and ensures API boundaries align with established mappings.
+
+### For agents
+
+When a task involves a partner protocol, use this matrix to translate between vocabularies. For example, if a Karma GAP issue references "Project Milestones", map that to Green Goods Assessments.
+
+### Maintenance
+
+This matrix is sourced from CharmVerse and should be reviewed quarterly. When new protocol partnerships are established, add columns here and update the CharmVerse source.

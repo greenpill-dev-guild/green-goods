@@ -1,9 +1,8 @@
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-import type { Address } from "../../types/domain";
-import { logger } from "../../modules/app/logger";
 import { trackStorageError } from "../../modules/app/error-tracking";
+import { logger } from "../../modules/app/logger";
+import type { Address } from "../../types/domain";
 import type { AssessmentWorkflowParams } from "../../workflows/createAssessment";
 
 // ---------------------------------------------------------------------------

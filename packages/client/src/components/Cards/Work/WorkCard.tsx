@@ -21,7 +21,7 @@ export interface WorkCardItem {
   description?: string;
   gardenId: string;
   gardenName?: string;
-  status: "approved" | "rejected" | "pending" | "syncing" | "uploading" | "failed";
+  status: "approved" | "rejected" | "pending" | "syncing" | "uploading" | "sync_failed" | "offline";
   createdAt: number;
   lastAttempt?: number;
   retryCount: number;
@@ -57,11 +57,20 @@ export interface MinimalWorkCardProps {
 // Type for media items which can be strings, objects with url, or File objects
 type MediaItem = string | { url: string } | { file: File } | File;
 
+/** Map status values to human-readable labels */
+const STATUS_LABELS: Record<string, string> = {
+  approved: "Approved",
+  rejected: "Rejected",
+  pending: "Pending",
+  syncing: "Syncing",
+  uploading: "Uploading",
+  sync_failed: "Sync Failed",
+  offline: "Offline",
+};
+
 // Use shared getStatusColors utility for inline status styling
 const getStatusColor = (status: string) => {
-  return getStatusColors(
-    status as "approved" | "rejected" | "pending" | "syncing" | "uploading" | "failed"
-  ).combined;
+  return getStatusColors(status).combined;
 };
 
 export const WorkCard: React.FC<WorkCardProps> = ({
@@ -71,7 +80,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   onClick,
 }) => {
   const intl = useIntl();
-  const displayStatus = work.status.charAt(0).toUpperCase() + work.status.slice(1);
+  const displayStatus = STATUS_LABELS[work.status] ?? work.status;
   const timeAgo = formatRelativeTime(work.createdAt);
   const thumbUrl = work.mediaPreview?.[0];
 
@@ -172,9 +181,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   // Detect offline/optimistic entries by ID prefix and show "Uploading" instead of "Pending"
   const isOfflineWork = work.id.startsWith("0xoffline_");
   const effectiveStatus = isOfflineWork ? "uploading" : work.status;
-  const displayStatus = effectiveStatus
-    ? effectiveStatus.charAt(0).toUpperCase() + effectiveStatus.slice(1)
-    : "Pending";
+  const displayStatus = STATUS_LABELS[effectiveStatus] ?? effectiveStatus ?? "Pending";
 
   // Resolve thumbnail from media entry (supports string URL, {url}, or File)
   const initialCandidate =
@@ -313,6 +320,6 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   );
 };
 
+export type { StatusBadgeProps } from "@green-goods/shared";
 // Re-export StatusBadge from shared for convenience
 export { StatusBadge } from "@green-goods/shared";
-export type { StatusBadgeProps } from "@green-goods/shared";

@@ -200,8 +200,8 @@ describe("hooks/vault/useVaultOperations", () => {
     );
   });
 
-  it("runs single-step withdraw flow using redeem", async () => {
-    // maxRedeem pre-check
+  it("runs single-step withdraw flow using withdraw", async () => {
+    // maxWithdraw pre-check
     mockReadContract.mockResolvedValueOnce(100n);
     mockWriteContractAsync.mockResolvedValue(
       "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
@@ -223,16 +223,84 @@ describe("hooks/vault/useVaultOperations", () => {
         gardenAddress: TEST_GARDEN as `0x${string}`,
         assetAddress: TEST_ASSET as `0x${string}`,
         vaultAddress: TEST_VAULT as `0x${string}`,
-        shares: 5n,
+        amount: 5n,
       });
     });
 
     expect(mockWriteContractAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         address: TEST_VAULT,
-        functionName: "redeem",
+        functionName: "withdraw",
       })
     );
+  });
+
+  it("clamps withdraw amount to maxWithdraw when within tolerance", async () => {
+    const maxWithdraw = 1_000_000_000_000_000_000n;
+
+    // maxWithdraw pre-check returns the limit
+    mockReadContract.mockResolvedValueOnce(maxWithdraw);
+    mockWriteContractAsync.mockResolvedValue(
+      "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    );
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useVaultWithdraw(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    // Withdraw exactly at the maxWithdraw limit should succeed
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: TEST_GARDEN as `0x${string}`,
+        assetAddress: TEST_ASSET as `0x${string}`,
+        vaultAddress: TEST_VAULT as `0x${string}`,
+        amount: maxWithdraw,
+      });
+    });
+
+    expect(mockWriteContractAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        functionName: "withdraw",
+      })
+    );
+  });
+
+  it("rejects withdraw amount above maxWithdraw", async () => {
+    const maxWithdraw = 1_000_000_000_000_000_000n;
+
+    // maxWithdraw pre-check returns the limit
+    mockReadContract.mockResolvedValueOnce(maxWithdraw);
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useVaultWithdraw(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          gardenAddress: TEST_GARDEN as `0x${string}`,
+          assetAddress: TEST_ASSET as `0x${string}`,
+          vaultAddress: TEST_VAULT as `0x${string}`,
+          amount: maxWithdraw + 1n,
+        })
+      ).rejects.toThrow("Withdrawal amount exceeds the available balance");
+    });
+
+    expect(mockWriteContractAsync).not.toHaveBeenCalled();
   });
 
   it("calls OctantModule.harvest for harvest mutation", async () => {
@@ -370,5 +438,36 @@ describe("hooks/vault/useVaultOperations", () => {
     });
 
     expect(mockErrorHandler).toHaveBeenCalled();
+  });
+
+  it("passes showToast=false to error handler in inline mode", async () => {
+    mockReadContract.mockRejectedValueOnce(new Error("boom"));
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useVaultDeposit({ errorMode: "inline" }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          gardenAddress: TEST_GARDEN as `0x${string}`,
+          assetAddress: TEST_ASSET as `0x${string}`,
+          vaultAddress: TEST_VAULT as `0x${string}`,
+          amount: 10n,
+        })
+      ).rejects.toThrow("boom");
+    });
+
+    expect(mockErrorHandler).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ showToast: false })
+    );
   });
 });

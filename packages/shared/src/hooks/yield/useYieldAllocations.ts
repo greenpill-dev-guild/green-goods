@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { logger } from "../../modules/app/logger";
+import { greenGoodsIndexer } from "../../modules/data/graphql-client";
 import type { Address } from "../../types/domain";
 import type { YieldAllocation } from "../../types/gardens-community";
 import { normalizeAddress } from "../../utils/blockchain/address";
-import { greenGoodsIndexer } from "../../modules/data/graphql-client";
-import { logger } from "../../modules/app/logger";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 

@@ -1,0 +1,94 @@
+---
+title: "Joining A Garden"
+sidebar_label: "Joining A Garden"
+slug: /community/evaluator-guide/joining-a-garden
+audience: all
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+goal: "Help evaluators understand how to join gardens and access impact data for verification."
+difficulty: "quickstart"
+estimated_time: "5-10 minutes."
+prereqs: "Familiarity with data querying tools and blockchain attestations."
+next_steps: "/community/evaluator-guide/evaluating-certificates"
+persona_context: "Evaluators seeking to join garden communities and begin verifying impact claims."
+source_of_truth:
+  - packages/indexer/config.yaml
+  - packages/shared/src/modules/data/eas.ts
+  - packages/shared/src/hooks/roles/useGardenRoles.ts
+keywords:
+  - evaluator
+  - joining a garden
+  - evaluator role
+  - data access
+  - impact verification
+---
+
+import {
+  DecisionGuide,
+  NextBestAction,
+  StatusBadge,
+  StepFlow,
+} from "@site/src/components/docs";
+
+# Joining A Garden
+
+<StatusBadge status="Live" />
+
+## Overview
+
+Evaluators verify that impact claims are backed by real evidence. To begin evaluating, you need access to a garden's impact data — which is publicly queryable through the Green Goods indexer and EAS. Joining a garden as an evaluator gives you contextual understanding of the community's work, but most evaluation data is publicly accessible on-chain.
+
+{/* IMAGE PLACEHOLDER */}
+
+## How It Works
+
+<StepFlow
+  steps={[
+    {title: "Identify your scope", detail: "Decide which gardens or impact areas you want to evaluate. You can evaluate any garden whose data is indexed — most data is public."},
+    {title: "Request evaluator role", detail: "Contact the garden operator to request the evaluator role. This grants you visibility into garden-specific context like review policies and action definitions."},
+    {title: "Set up your tools", detail: "Configure access to the Green Goods indexer (Envio GraphQL API) and the EAS GraphQL endpoints for the chains you will be evaluating."},
+    {title: "Begin evaluation", detail: "Start querying garden data, reviewing attestation chains, and building your evaluation methodology."},
+  ]}
+/>
+
+<DecisionGuide
+  title="How to get started as an evaluator"
+  items={[
+    {
+      when: "You want to evaluate a specific garden's impact claims",
+      do: "Contact the garden operator to get context on their review standards, then query their data through the indexer.",
+      next: "Start with a small sample of attestation chains to validate your methodology.",
+    },
+    {
+      when: "You want to evaluate impact across multiple gardens",
+      do: "Use the indexer to query across all gardens on a given chain. No garden-specific role is required for public data.",
+      next: "Build cross-garden comparison frameworks and document your evaluation criteria.",
+    },
+    {
+      when: "You are new to on-chain impact evaluation",
+      do: "Start with the Evaluator Guide to understand the data landscape and available tools.",
+      next: "Practice verification on a few attestation chains before scaling up.",
+    },
+  ]}
+/>
+
+## Best Practices
+
+- Most Green Goods impact data is publicly queryable — you do not need special permissions to start evaluating
+- Having the evaluator role in a garden gives you context (review policies, action definitions) that improves evaluation quality
+- Familiarize yourself with the EAS schema definitions for work submissions, approvals, and assessments before diving into data
+- Connect with garden operators to understand their specific standards and edge cases
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="With access established, learn how to evaluate impact certificates."
+  actionLabel="Evaluating Certificates"
+  actionHref="/community/evaluator-guide/evaluating-certificates"
+  alternatives={[
+    {label: "Evaluator Guide", href: "/community/evaluator-guide/joining-a-garden"},
+    {label: "Query the Indexer", href: "/community/evaluator-guide/query-indexer"},
+  ]}
+/>

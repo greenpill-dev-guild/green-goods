@@ -1,0 +1,597 @@
+{
+  "source": "CharmVerse > Product > QA (Quality Analysis) > QA Test Cases",
+  "last_synced": "2026-02-28",
+  "total_cases": 30,
+  "maturity": {
+    "passed": 8,
+    "in_progress": 6,
+    "ready_stub": 16
+  },
+  "groups": {
+    "passkey-login": {
+      "label": "Passkey Login",
+      "case_count": 3,
+      "package_mapping": ["client", "shared"],
+      "cases": [
+        {
+          "id": "PL-001",
+          "name": "First-time login - New user signs up with passkey and lands on home screen which then prompts them to join the root garden",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P0",
+          "status": "Passed",
+          "type": "Functional",
+          "story": "issues/2",
+          "preconditions": [
+            "Test environment is up and reachable on mobile (PWA or mobile web)",
+            "Passkey / WebAuthn is supported and enabled on the device + browser",
+            "Root garden exists in the system and is configured as the default/joinable garden",
+            "User is logged out; no existing session or cached auth state in the app"
+          ],
+          "steps": [
+            "Open the Green Goods app on a mobile device (or mobile browser)",
+            "On the landing/auth screen, tap Login (or equivalent)",
+            "When the OS passkey prompt appears, complete the flow (Face ID / fingerprint / device PIN, etc.)",
+            "Wait for the app to finish registration/login and load the authenticated view",
+            "Observe the first authenticated screen (home screen)",
+            "Observe the prompt to join the root garden (toaster)",
+            "(Optional for full flow) Tap Join root garden and confirm any join action"
+          ],
+          "expected": [
+            "A new account is created and linked to the device passkey with no errors",
+            "User is redirected to the gardener home screen after successful authentication",
+            "There is no intermediate blank/undefined state; a loading indicator is shown while processing",
+            "The home screen clearly shows a prompt to join the root garden, with clear CTA text",
+            "If the user signs the passkey transaction they are successfully added to that garden and the UI updates"
+          ],
+          "notes": [
+            "Messaging should make it obvious this is a one-time setup and that passkey = secure login, not a social login",
+            "The join root garden prompt should explain why this matters",
+            "Watch for any jank between auth success and home loading (spinners vs. blank white screen)",
+            "Consider a small success microcopy: You're in! Let's connect you to your first garden."
+          ]
+        },
+        {
+          "id": "PL-002",
+          "name": "Returning login with existing passkey",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P0",
+          "status": "Passed",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "PL-003",
+          "name": "User cancels passkey prompt",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P2",
+          "status": "Passed",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        }
+      ]
+    },
+    "wallet-login": {
+      "label": "Wallet Login",
+      "case_count": 4,
+      "package_mapping": ["client", "shared"],
+      "cases": [
+        {
+          "id": "WL-001",
+          "name": "No wallet available - No wallet extension/app detected",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P1",
+          "status": "Passed",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "WL-002",
+          "name": "Successful wallet login - Connect wallet, sign",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P0",
+          "status": "In Progress",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "WL-003",
+          "name": "User reject signature",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P1",
+          "status": "In Progress",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "WL-004",
+          "name": "Wrong Network - Wallet on unsupported network",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P1",
+          "status": "Passed",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        }
+      ]
+    },
+    "app-logout": {
+      "label": "App Logout",
+      "case_count": 3,
+      "package_mapping": ["client", "shared"],
+      "cases": [
+        {
+          "id": "AL-001",
+          "name": "Back navigation after logout - Using device back",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P1",
+          "status": "Passed",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "AL-002",
+          "name": "Manual logout from app - Gardener logs out",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P0",
+          "status": "Passed",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "AL-003",
+          "name": "Re-login after logout - Gardener can immediately re-authenticate",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P0",
+          "status": "In Progress",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        }
+      ]
+    },
+    "admin-wallet-login": {
+      "label": "Admin Wallet Login",
+      "case_count": 0,
+      "package_mapping": ["admin", "shared"],
+      "cases": []
+    },
+    "admin-logout": {
+      "label": "Admin Logout",
+      "case_count": 0,
+      "package_mapping": ["admin", "shared"],
+      "cases": []
+    },
+    "submit-work": {
+      "label": "Submit Work",
+      "case_count": 4,
+      "package_mapping": ["client", "shared", "contracts"],
+      "cases": [
+        {
+          "id": "SW-001",
+          "name": "Double-tap submit / duplicate prevention",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P1",
+          "status": "In Progress",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "SW-002",
+          "name": "Happy path work submission - Gardener submits work with valid media and details",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P0",
+          "status": "In Progress",
+          "type": "Functional",
+          "story": "issues/8",
+          "preconditions": [
+            "Gardener is logged in and on home screen",
+            "Gardener is a member of at least one garden",
+            "Backend/API service is stable and reachable",
+            "Camera and/or media permissions granted (or grantable at prompt)"
+          ],
+          "steps": [
+            "Navigate to the active garden's actions screen",
+            "Select an available action",
+            "Tap Submit Work (or equivalent CTA)",
+            "Add at least one media item (capture photo or select from gallery)",
+            "Fill out required detail fields (title, description, etc.)",
+            "Tap Submit",
+            "Observe the submission result and check My Work list"
+          ],
+          "expected": [
+            "No validation errors on submission",
+            "Loading state is clearly visible during upload/processing",
+            "Success indication (toast, redirect, or confirmation screen)",
+            "New entry appears in My Work with correct action type, timestamp, and status = Pending",
+            "No duplicate entries created",
+            "Form state is cleared after successful submission"
+          ],
+          "notes": [
+            "Success copy should feel celebratory (Great work! Your submission is being reviewed.)",
+            "Consider a CTA after success (e.g. Submit another or View your work)",
+            "Media preview before submit is helpful for confidence",
+            "Progress feedback during upload (especially on slow connections)"
+          ]
+        },
+        {
+          "id": "SW-003",
+          "name": "Network/API failure - Simulated network failure during submission",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P2",
+          "status": "In Progress",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "SW-004",
+          "name": "Required fields validation - Missing required fields",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P1",
+          "status": "Passed",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        }
+      ]
+    },
+    "work-approval-reject": {
+      "label": "Work Approval/Reject",
+      "case_count": 5,
+      "package_mapping": ["admin", "shared", "contracts"],
+      "cases": [
+        {
+          "id": "WA-001",
+          "name": "Approve pending work - Operator approves submission; status changes to Approved",
+          "roles": ["Operator"],
+          "platform": "Mobile",
+          "priority": "P0",
+          "status": "Ready",
+          "type": "Functional",
+          "story": "issues/10",
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "WA-002",
+          "name": "Concurrency case (two operators) - Simultaneous approval",
+          "roles": ["Operator"],
+          "platform": "Mobile",
+          "priority": "P2",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "WA-003",
+          "name": "Onchain failure on approval - Approval tx failure",
+          "roles": ["Operator"],
+          "platform": "Mobile",
+          "priority": "P1",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "WA-004",
+          "name": "Prevent double decisions - After approval/rejection",
+          "roles": ["Operator"],
+          "platform": "Mobile",
+          "priority": "P1",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "WA-005",
+          "name": "Reject pending work with comment - Operator rejects",
+          "roles": ["Operator"],
+          "platform": "Mobile",
+          "priority": "P0",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        }
+      ]
+    },
+    "create-garden": {
+      "label": "Create Garden",
+      "case_count": 0,
+      "package_mapping": ["admin", "shared", "contracts"],
+      "cases": []
+    },
+    "view-gardens": {
+      "label": "View Gardens",
+      "case_count": 4,
+      "package_mapping": ["client", "shared"],
+      "cases": [
+        {
+          "id": "VG-001",
+          "name": "My Work list with entries - Gardener sees list",
+          "roles": ["Gardener"],
+          "platform": "Mobile",
+          "priority": "P1",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "VG-002",
+          "name": "Work detail view - Selecting an entry shows details",
+          "roles": ["Gardener"],
+          "platform": "Mobile",
+          "priority": "P1",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "VG-003",
+          "name": "Empty state (no submissions) - New gardener",
+          "roles": ["Gardener"],
+          "platform": "Mobile",
+          "priority": "P2",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "VG-004",
+          "name": "Status updates after operator decision",
+          "roles": ["Gardener"],
+          "platform": "Mobile",
+          "priority": "P2",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        }
+      ]
+    },
+    "view-garden-work": {
+      "label": "View Garden Work",
+      "case_count": 4,
+      "package_mapping": ["admin", "shared"],
+      "cases": [
+        {
+          "id": "VGW-001",
+          "name": "Garden submissions list - Operator sees all submissions",
+          "roles": ["Operator"],
+          "platform": "Web",
+          "priority": "P1",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "VGW-002",
+          "name": "Deep link to submission detail - Clicking an entry",
+          "roles": ["Operator"],
+          "platform": "Mobile",
+          "priority": "P2",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "VGW-003",
+          "name": "Filter by status - If supported, filter by Pending/Approved",
+          "roles": ["Operator"],
+          "platform": "Mobile",
+          "priority": "P3",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "VGW-004",
+          "name": "Performance with many submissions - List loads",
+          "roles": ["Operator"],
+          "platform": "Mobile",
+          "priority": "P2",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        }
+      ]
+    },
+    "view-garden-details": {
+      "label": "View Garden Details",
+      "case_count": 3,
+      "package_mapping": ["client", "admin", "shared"],
+      "cases": [
+        {
+          "id": "VGD-001",
+          "name": "Navigate from list to details - Selecting a garden",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P0",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "VGD-002",
+          "name": "Refresh and deep link - Refreshing or deep-linking",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P2",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        },
+        {
+          "id": "VGD-003",
+          "name": "Sections/tabs visible - Work, Assessments, etc",
+          "roles": ["Gardener", "Operator"],
+          "platform": "Mobile",
+          "priority": "P0",
+          "status": "Ready",
+          "type": "Functional",
+          "story": null,
+          "preconditions": null,
+          "steps": null,
+          "expected": null,
+          "notes": null
+        }
+      ]
+    },
+    "view-garden-assessment": {
+      "label": "View Garden Assessment",
+      "case_count": 0,
+      "package_mapping": ["admin", "shared"],
+      "cases": []
+    },
+    "view-garden-operators": {
+      "label": "View Garden Operators",
+      "case_count": 0,
+      "package_mapping": ["admin", "shared"],
+      "cases": []
+    },
+    "view-work-dashboard": {
+      "label": "View Work Dashboard",
+      "case_count": 0,
+      "package_mapping": ["client", "shared"],
+      "cases": []
+    },
+    "create-garden-assessment": {
+      "label": "Create Garden Assessment",
+      "case_count": 0,
+      "package_mapping": ["admin", "shared", "contracts"],
+      "cases": []
+    },
+    "update-garden-operator": {
+      "label": "Update Garden Operator",
+      "case_count": 0,
+      "package_mapping": ["admin", "shared", "contracts"],
+      "cases": []
+    },
+    "create-action": {
+      "label": "Create Action",
+      "case_count": 0,
+      "package_mapping": ["admin", "shared", "contracts"],
+      "cases": []
+    },
+    "no-feature": {
+      "label": "No Feature",
+      "case_count": 0,
+      "package_mapping": [],
+      "cases": []
+    }
+  }
+}

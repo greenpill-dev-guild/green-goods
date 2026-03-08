@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import {
-  calculateDistribution,
   type ContributorWeight,
+  calculateDistribution,
   type DistributionMode,
 } from "../../lib/hypercerts";
 import type { AllowlistEntry } from "../../types/hypercerts";

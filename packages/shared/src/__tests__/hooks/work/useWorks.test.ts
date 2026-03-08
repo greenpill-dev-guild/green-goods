@@ -326,7 +326,7 @@ describe("hooks/work/useWorks", () => {
       expect(work.media).toEqual([]);
       // createdAt should be converted from ms to seconds (EAS format)
       expect(work.createdAt).toBe(Math.floor(1700000000000 / 1000));
-      expect(work.status).toBe("pending");
+      expect(work.status).toBe("syncing");
     });
 
     it("uses action UID as fallback title when title is empty", () => {
@@ -379,7 +379,7 @@ describe("hooks/work/useWorks", () => {
       expect(work.status).toBe("pending");
     });
 
-    it("marks failed job as rejected", () => {
+    it("marks failed job as sync_failed", () => {
       const job: Job<WorkJobPayload> = {
         id: "job-failed",
         kind: "work",
@@ -401,7 +401,7 @@ describe("hooks/work/useWorks", () => {
       };
 
       const work = jobToWork(job);
-      expect(work.status).toBe("rejected");
+      expect(work.status).toBe("sync_failed");
     });
 
     it("serializes details and tags into metadata JSON", () => {

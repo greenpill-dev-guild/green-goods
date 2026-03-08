@@ -11,7 +11,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -99,11 +99,11 @@ vi.mock("@wagmi/core", () => ({
 }));
 
 import {
+  useCookieJarEmergencyWithdraw,
   useCookieJarPause,
   useCookieJarUnpause,
-  useCookieJarUpdateMaxWithdrawal,
   useCookieJarUpdateInterval,
-  useCookieJarEmergencyWithdraw,
+  useCookieJarUpdateMaxWithdrawal,
 } from "../../../hooks/cookie-jar/useCookieJarAdmin";
 
 // Minimal i18n messages for tests

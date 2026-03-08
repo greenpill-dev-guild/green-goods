@@ -1,8 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { useCallback, useEffect, useState, type FC } from "react";
-import { useNavigate } from "react-router-dom";
+import { QRCodeCanvas } from "qrcode.react";
+import { type FC, useCallback, useEffect, useState } from "react";
 import { DeviceFrameset } from "react-device-frameset";
-
+import { useNavigate } from "react-router-dom";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
 import { copyToClipboard, useApp, useInstallGuidance } from "@green-goods/shared";
@@ -16,10 +16,26 @@ import {
   RiExternalLinkLine,
   RiFileCopyLine,
   RiMore2Fill,
-  RiSmartphoneLine,
   RiUploadLine,
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
+
+function useIsDarkMode() {
+  const [isDark, setIsDark] = useState(() => document.documentElement.dataset.theme === "dark");
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.dataset.theme === "dark");
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  return isDark;
+}
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -32,6 +48,8 @@ export const Hero: FC<HeroProps> = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyError, setCopyError] = useState(false);
+
+  const isDark = useIsDarkMode();
 
   // Get smart installation guidance based on current browser/platform
   const guidance = useInstallGuidance(
@@ -102,250 +120,270 @@ export const Hero: FC<HeroProps> = () => {
   }, [guidance, promptInstall, handleCopyUrl, navigate]);
 
   return (
-    <main className="w-full min-h-[calc(100lvh-9rem)] lg:min-h-[calc(100lvh-6rem)] flex flex-col lg:flex-row lg:justify-center gap-16">
-      <div
-        // onSubmit={handleSubscribe}
-        className="flex-1 flex flex-col gap-2 items-center lg:items-start lg:justify-center pt-[10vh] lg:pt-0 text-center lg:text-left"
-      >
-        <h2 className="font-bold lg:text-7xl lg:tracking-wide text-primary mb-2">
-          {intl.formatMessage({
-            id: "app.hero.title",
-            defaultMessage: "Bringing Regenerative Actions Onchain",
-          })}
-        </h2>
-        <p className="text-xl lg:text-2xl">
-          {intl.formatMessage({
-            id: "app.hero.description",
-            defaultMessage:
-              "Green Goods measures, tracks, and rewards the impact on local hubs with a simple progressive web app.",
-          })}
-          <span className="font-bold text-2xl hidden sm:flex text-primary">
+    <>
+      <main className="w-full min-h-[calc(100lvh-9rem)] lg:min-h-[calc(100lvh-6rem)] flex flex-col lg:flex-row lg:justify-center gap-16">
+        <div
+          // onSubmit={handleSubscribe}
+          className="flex-1 flex flex-col gap-4 items-center lg:items-start lg:justify-center pt-[10vh] lg:pt-0 text-center lg:text-left"
+        >
+          <h2 className="font-bold lg:text-6xl lg:tracking-wide text-primary-dark capitalize">
             {intl.formatMessage({
-              id: "app.hero.cta",
-              defaultMessage: "Open the website on your phone to get started!",
+              id: "app.hero.title",
+              defaultMessage: "From Good Intentions to Green\u00a0Outcomes",
             })}
-          </span>
-        </p>
-
-        {/* Smart PWA Installation Flow based on browser/platform detection */}
-        {guidance.scenario === "already-installed" ? (
-          /* Already installed - show open app button */
-          <a
-            href="/home"
-            className="px-6 py-4 bg-primary text-primary-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2 no-underline"
-          >
-            <RiExternalLinkLine className="w-5 h-5" />
+          </h2>
+          <p className="text-xl lg:text-2xl">
             {intl.formatMessage({
-              id: "app.hero.open",
-              defaultMessage: "Open App",
+              id: "app.hero.description",
+              defaultMessage:
+                "A mobile first tool that helps local communities document, verify, and fund their positive impact.",
             })}
-          </a>
-        ) : guidance.scenario === "desktop" ? (
-          /* Desktop view - prompt to open on mobile */
-          <div className="text-center lg:text-left">
-            <div className="flex items-center gap-2 text-primary">
-              <RiSmartphoneLine className="w-5 h-5" />
-              <span className="font-bold">
-                {intl.formatMessage({
-                  id: "app.hero.desktop.prompt",
-                  defaultMessage: "Open on your phone to install",
+          </p>
+          <div className="hidden sm:flex flex-col items-center lg:items-start gap-4 mt-4">
+            <div className="rounded-xl shadow-sm bg-white dark:bg-gray-800 transition-colors border border-transparent dark:border-gray-600">
+              <QRCodeCanvas
+                value={window.location.origin}
+                size={128}
+                fgColor={isDark ? "#ffffff" : "#000000"}
+                bgColor={isDark ? "#1a1a1a" : "#ffffff"}
+                aria-label={intl.formatMessage({
+                  id: "app.hero.qr.ariaLabel",
+                  defaultMessage: "QR code linking to Green Goods app",
                 })}
-              </span>
+                role="img"
+              />
             </div>
+            <span className="font-bold text-xl text-primary-dark">
+              {intl.formatMessage({
+                id: "app.hero.cta",
+                defaultMessage: "Open on your phone to get started!",
+              })}
+            </span>
           </div>
-        ) : (
-          /* Mobile installation flow */
-          <div className="space-y-3 w-full">
-            {/* Browser Switch Warning */}
-            {(guidance.scenario === "wrong-browser" || guidance.scenario === "in-app-browser") && (
-              <div className="bg-warning-lighter border border-warning-light rounded-lg p-4 flex items-start gap-3">
-                <RiAlertLine className="w-5 h-5 text-warning-dark shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-warning-dark text-sm">
-                    {guidance.scenario === "in-app-browser"
-                      ? intl.formatMessage({
-                          id: "app.hero.inapp.title",
-                          defaultMessage: "Open in Browser",
-                        })
-                      : intl.formatMessage({
-                          id: "app.hero.wrongbrowser.title",
-                          defaultMessage: "Switch Browser",
-                        })}
-                  </p>
-                  <p className="text-sm text-warning-dark/80 mt-1">
-                    {guidance.browserSwitchReason}
-                  </p>
-                </div>
-              </div>
-            )}
 
-            {/* Primary Action Button */}
-            <button
-              type="button"
-              onClick={handlePrimaryAction}
-              className="px-6 py-4 bg-primary text-primary-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
+          {/* Smart PWA Installation Flow based on browser/platform detection */}
+          {guidance.scenario === "already-installed" ? (
+            /* Already installed - show open app button */
+            <a
+              href="/home"
+              className="px-6 py-4 bg-primary text-primary-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2 no-underline"
             >
-              {guidance.primaryAction.type === "native-install" && (
-                <RiDownloadLine className="w-5 h-5" />
-              )}
-              {guidance.primaryAction.type === "show-manual-steps" && (
-                <RiDownloadLine className="w-5 h-5" />
-              )}
-              {guidance.primaryAction.type === "open-in-browser" && (
-                <RiExternalLinkLine className="w-5 h-5" />
-              )}
-              {guidance.primaryAction.type === "copy-url" &&
-                (copySuccess ? (
-                  <RiCheckLine className="w-5 h-5" />
-                ) : copyError ? (
-                  <RiAlertLine className="w-5 h-5" />
-                ) : (
-                  <RiFileCopyLine className="w-5 h-5" />
-                ))}
-              {guidance.primaryAction.type === "open-app" && (
-                <RiExternalLinkLine className="w-5 h-5" />
+              <RiExternalLinkLine className="w-5 h-5" />
+              {intl.formatMessage({
+                id: "app.hero.open",
+                defaultMessage: "Open App",
+              })}
+            </a>
+          ) : guidance.scenario === "desktop" ? null : (
+            /* Mobile installation flow */
+            <div className="space-y-3 w-full">
+              {/* Browser Switch Warning */}
+              {(guidance.scenario === "wrong-browser" ||
+                guidance.scenario === "in-app-browser") && (
+                <div className="bg-warning-lighter border border-warning-light rounded-lg p-4 flex items-start gap-3">
+                  <RiAlertLine className="w-5 h-5 text-warning-dark shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-warning-dark text-sm">
+                      {guidance.scenario === "in-app-browser"
+                        ? intl.formatMessage({
+                            id: "app.hero.inapp.title",
+                            defaultMessage: "Open in Browser",
+                          })
+                        : intl.formatMessage({
+                            id: "app.hero.wrongbrowser.title",
+                            defaultMessage: "Switch Browser",
+                          })}
+                    </p>
+                    <p className="text-sm text-warning-dark/80 mt-1">
+                      {guidance.browserSwitchReason}
+                    </p>
+                  </div>
+                </div>
               )}
 
-              {copySuccess
-                ? intl.formatMessage({ id: "app.hero.copied", defaultMessage: "Copied!" })
-                : copyError
-                  ? intl.formatMessage({ id: "app.hero.copyFailed", defaultMessage: "Copy failed" })
-                  : guidance.primaryAction.label}
-            </button>
-
-            {/* Secondary Action - Continue in Browser */}
-            {guidance.secondaryAction && guidance.showBrowserOption && (
-              <a
-                href="/home"
-                className="px-6 py-3 bg-transparent border border-stroke-soft-200 text-text-sub-600 rounded-full w-full font-medium flex items-center justify-center gap-2 no-underline hover:bg-bg-weak-50 transition-colors"
+              {/* Primary Action Button */}
+              <button
+                type="button"
+                onClick={handlePrimaryAction}
+                className="px-6 py-4 bg-primary text-primary-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
               >
-                <RiArrowRightLine className="w-4 h-4" />
-                {guidance.secondaryAction.label}
-              </a>
-            )}
+                {guidance.primaryAction.type === "native-install" && (
+                  <RiDownloadLine className="w-5 h-5" />
+                )}
+                {guidance.primaryAction.type === "show-manual-steps" && (
+                  <RiDownloadLine className="w-5 h-5" />
+                )}
+                {guidance.primaryAction.type === "open-in-browser" && (
+                  <RiExternalLinkLine className="w-5 h-5" />
+                )}
+                {guidance.primaryAction.type === "copy-url" &&
+                  (copySuccess ? (
+                    <RiCheckLine className="w-5 h-5" />
+                  ) : copyError ? (
+                    <RiAlertLine className="w-5 h-5" />
+                  ) : (
+                    <RiFileCopyLine className="w-5 h-5" />
+                  ))}
+                {guidance.primaryAction.type === "open-app" && (
+                  <RiExternalLinkLine className="w-5 h-5" />
+                )}
 
-            {/* Manual Installation Modal */}
-            <Dialog.Root open={isModalOpen} onOpenChange={setIsModalOpen}>
-              <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fade-in z-50" />
-                <Dialog.Content
-                  className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 max-w-md w-full animate-scale-in z-50 focus:outline-none"
-                  aria-labelledby="hero-modal-title"
-                  aria-describedby="hero-modal-desc"
+                {copySuccess
+                  ? intl.formatMessage({ id: "app.hero.copied", defaultMessage: "Copied!" })
+                  : copyError
+                    ? intl.formatMessage({
+                        id: "app.hero.copyFailed",
+                        defaultMessage: "Copy failed",
+                      })
+                    : guidance.primaryAction.label}
+              </button>
+
+              {/* Secondary Action - Continue in Browser */}
+              {guidance.secondaryAction && guidance.showBrowserOption && (
+                <a
+                  href="/home"
+                  className="px-6 py-3 bg-transparent border border-stroke-soft-200 text-text-sub-600 rounded-full w-full font-medium flex items-center justify-center gap-2 no-underline hover:bg-bg-weak-50 transition-colors"
                 >
-                  <div className="relative bg-bg-white-0 rounded-xl shadow-2xl p-6 w-full overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-2 bg-primary" />
+                  <RiArrowRightLine className="w-4 h-4" />
+                  {guidance.secondaryAction.label}
+                </a>
+              )}
 
-                    <div className="mt-2 mb-6">
-                      <h4 id="hero-modal-title" className="text-xl font-bold text-primary mb-2">
-                        {intl.formatMessage({
-                          id: "app.hero.install.title",
-                          defaultMessage: "Install Green Goods",
-                        })}
-                      </h4>
-                      <p id="hero-modal-desc" className="text-text-sub-600">
-                        {intl.formatMessage({
-                          id: "app.hero.install.subtitle",
-                          defaultMessage: "Add to your home screen for the best experience.",
-                        })}
-                      </p>
-                      {/* Show detected browser for transparency */}
-                      <p className="text-xs text-text-soft-400 mt-2">
-                        {intl.formatMessage(
-                          {
-                            id: "app.hero.install.browser",
-                            defaultMessage: "Detected: {browser} on {platform}",
-                          },
-                          {
-                            browser: guidance.browserInfo.displayName,
-                            platform:
-                              platform === "ios"
-                                ? "iOS"
-                                : platform === "android"
-                                  ? "Android"
-                                  : "Mobile",
-                          }
-                        )}
-                      </p>
-                    </div>
+              {/* Manual Installation Modal */}
+              <Dialog.Root open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <Dialog.Portal>
+                  <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fade-in z-50" />
+                  <Dialog.Content
+                    className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 max-w-md w-full animate-scale-in z-50 focus:outline-none"
+                    aria-labelledby="hero-modal-title"
+                    aria-describedby="hero-modal-desc"
+                  >
+                    <div className="relative bg-bg-white-0 rounded-xl shadow-2xl p-6 w-full overflow-hidden">
+                      <div className="absolute top-0 left-0 w-full h-2 bg-primary" />
 
-                    {/* Dynamic Installation Steps based on browser detection */}
-                    {guidance.manualInstructions && (
-                      <div className="space-y-4 bg-bg-weak-50 p-4 rounded-lg border border-stroke-soft-200">
-                        {guidance.manualInstructions.map((step, index) => (
-                          <div key={step.stepNumber}>
-                            {index > 0 && <div className="w-px h-4 bg-bg-sub-300 ml-5 -my-2" />}
-                            <div className="flex items-start gap-3">
-                              <div
-                                className={`p-2 rounded-md shrink-0 border ${
-                                  index === 0
-                                    ? "bg-information-lighter text-information-dark border-information-light"
-                                    : "bg-bg-soft-200 text-text-sub-600 border-stroke-sub-300"
-                                }`}
-                              >
-                                <StepIcon icon={step.icon} />
-                              </div>
-                              <div>
-                                <p className="font-bold text-text-strong-950 text-sm uppercase tracking-wide">
-                                  {step.title}
-                                </p>
-                                <p className="text-sm text-text-sub-600 leading-tight mt-0.5">
-                                  <FormattedMessage
-                                    id={`app.hero.install.step.${step.stepNumber}`}
-                                    defaultMessage={step.description}
-                                    values={{
-                                      b: (chunks) => (
-                                        <b className="font-bold text-text-strong-950">{chunks}</b>
-                                      ),
-                                    }}
-                                  />
-                                </p>
+                      <div className="mt-2 mb-6">
+                        <h4 id="hero-modal-title" className="text-xl font-bold text-primary mb-2">
+                          {intl.formatMessage({
+                            id: "app.hero.install.title",
+                            defaultMessage: "Install Green Goods",
+                          })}
+                        </h4>
+                        <p id="hero-modal-desc" className="text-text-sub-600">
+                          {intl.formatMessage({
+                            id: "app.hero.install.subtitle",
+                            defaultMessage: "Add to your home screen for the best experience.",
+                          })}
+                        </p>
+                        {/* Show detected browser for transparency */}
+                        <p className="text-xs text-text-soft-400 mt-2">
+                          {intl.formatMessage(
+                            {
+                              id: "app.hero.install.browser",
+                              defaultMessage: "Detected: {browser} on {platform}",
+                            },
+                            {
+                              browser: guidance.browserInfo.displayName,
+                              platform:
+                                platform === "ios"
+                                  ? "iOS"
+                                  : platform === "android"
+                                    ? "Android"
+                                    : "Mobile",
+                            }
+                          )}
+                        </p>
+                      </div>
+
+                      {/* Dynamic Installation Steps based on browser detection */}
+                      {guidance.manualInstructions && (
+                        <div className="space-y-4 bg-bg-weak-50 p-4 rounded-lg border border-stroke-soft-200">
+                          {guidance.manualInstructions.map((step, index) => (
+                            <div key={step.stepNumber}>
+                              {index > 0 && <div className="w-px h-4 bg-bg-sub-300 ml-5 -my-2" />}
+                              <div className="flex items-start gap-3">
+                                <div
+                                  className={`p-2 rounded-md shrink-0 border ${
+                                    index === 0
+                                      ? "bg-information-lighter text-information-dark border-information-light"
+                                      : "bg-bg-soft-200 text-text-sub-600 border-stroke-sub-300"
+                                  }`}
+                                >
+                                  <StepIcon icon={step.icon} />
+                                </div>
+                                <div>
+                                  <p className="font-bold text-text-strong-950 text-sm uppercase tracking-wide">
+                                    {step.title}
+                                  </p>
+                                  <p className="text-sm text-text-sub-600 leading-tight mt-0.5">
+                                    <FormattedMessage
+                                      id={`app.hero.install.step.${step.stepNumber}`}
+                                      defaultMessage={step.description}
+                                      values={{
+                                        b: (chunks) => (
+                                          <b className="font-bold text-text-strong-950">{chunks}</b>
+                                        ),
+                                      }}
+                                    />
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Continue in browser option inside modal */}
+                      <div className="mt-6 pt-4 border-t border-stroke-soft-200">
+                        <a
+                          href="/home"
+                          className="text-sm text-text-soft-400 hover:text-text-sub-600 flex items-center justify-center gap-1 no-underline"
+                          onClick={() => setIsModalOpen(false)}
+                        >
+                          {intl.formatMessage({
+                            id: "app.hero.install.continue",
+                            defaultMessage: "Continue in browser instead",
+                          })}
+                          <RiArrowRightLine className="w-4 h-4" />
+                        </a>
                       </div>
-                    )}
 
-                    {/* Continue in browser option inside modal */}
-                    <div className="mt-6 pt-4 border-t border-stroke-soft-200">
-                      <a
-                        href="/home"
-                        className="text-sm text-text-soft-400 hover:text-text-sub-600 flex items-center justify-center gap-1 no-underline"
-                        onClick={() => setIsModalOpen(false)}
-                      >
-                        {intl.formatMessage({
-                          id: "app.hero.install.continue",
-                          defaultMessage: "Continue in browser instead",
-                        })}
-                        <RiArrowRightLine className="w-4 h-4" />
-                      </a>
+                      <Dialog.Close className="absolute top-4 right-4 p-2 text-text-soft-400 hover:text-text-sub-600 rounded-full hover:bg-bg-weak-50 transition-colors">
+                        <RiCloseLine className="w-5 h-5" />
+                      </Dialog.Close>
                     </div>
-
-                    <Dialog.Close className="absolute top-4 right-4 p-2 text-text-soft-400 hover:text-text-sub-600 rounded-full hover:bg-bg-weak-50 transition-colors">
-                      <RiCloseLine className="w-5 h-5" />
-                    </Dialog.Close>
-                  </div>
-                </Dialog.Content>
-              </Dialog.Portal>
-            </Dialog.Root>
-          </div>
-        )}
-      </div>
-      <div>
-        {!isMobile && (
-          <div className="flex-1 w-full h-full grid place-items-center">
-            <DeviceFrameset device="iPhone 8" color="black">
-              <img
-                src="/images/app-mock.png"
-                alt="Green Goods App Mockup"
-                className="w-full h-full object-cover"
-              />
-            </DeviceFrameset>
-          </div>
-        )}
-      </div>
-    </main>
+                  </Dialog.Content>
+                </Dialog.Portal>
+              </Dialog.Root>
+            </div>
+          )}
+        </div>
+        <div className="flex-1 overflow-hidden">
+          {!isMobile && (
+            <div className="w-full h-full flex items-center justify-center">
+              <DeviceFrameset device="Galaxy Note 8" zoom={0.5}>
+                <img
+                  src="/images/app-mock.png"
+                  alt="Green Goods App Mockup"
+                  className="w-full h-full object-cover select-none pointer-events-none"
+                  draggable={false}
+                />
+              </DeviceFrameset>
+            </div>
+          )}
+        </div>
+      </main>
+      <p className="fixed bottom-0 left-0 w-full text-center text-sm text-text-soft-400 py-4">
+        Built by{" "}
+        <a
+          href="https://discord.gg/ZJjft2EKz7"
+          target="_blank"
+          rel="noreferrer"
+          className="font-bold text-primary-dark hover:text-primary-darker hover:underline no-underline transition-colors"
+        >
+          Greenpill Dev Guild
+        </a>
+      </p>
+    </>
   );
 };
 

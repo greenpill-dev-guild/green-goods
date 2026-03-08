@@ -4,31 +4,34 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 
+const localReactPath = resolve(__dirname, "./node_modules/react");
+const localReactDomPath = resolve(__dirname, "./node_modules/react-dom");
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: [
       { find: "@", replacement: resolve(__dirname, "./src") },
-      // Force React to resolve to the root node_modules to prevent multiple instances
+      // Force React to resolve to package-local node_modules to prevent multiple instances
       {
         find: /^react$/,
-        replacement: resolve(__dirname, "../../node_modules/react"),
+        replacement: localReactPath,
       },
       {
         find: /^react\/jsx-runtime$/,
-        replacement: resolve(__dirname, "../../node_modules/react/jsx-runtime.js"),
+        replacement: resolve(localReactPath, "jsx-runtime.js"),
       },
       {
         find: /^react\/jsx-dev-runtime$/,
-        replacement: resolve(__dirname, "../../node_modules/react/jsx-dev-runtime.js"),
+        replacement: resolve(localReactPath, "jsx-dev-runtime.js"),
       },
       {
         find: /^react-dom$/,
-        replacement: resolve(__dirname, "../../node_modules/react-dom"),
+        replacement: localReactDomPath,
       },
       {
         find: /^react-dom\/client$/,
-        replacement: resolve(__dirname, "../../node_modules/react-dom/client.js"),
+        replacement: resolve(localReactDomPath, "client.js"),
       },
       // Shared package aliases
       {

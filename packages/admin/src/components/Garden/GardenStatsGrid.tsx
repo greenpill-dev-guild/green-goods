@@ -20,6 +20,7 @@ interface GardenStatsGridProps {
   vaultHarvestCount: number;
   vaultDepositorCount: number;
   communityLoading: boolean;
+  communityName?: string;
   communityLabel: string | undefined;
 }
 
@@ -33,9 +34,15 @@ export const GardenStatsGrid: React.FC<GardenStatsGridProps> = ({
   vaultHarvestCount,
   vaultDepositorCount,
   communityLoading,
+  communityName,
   communityLabel,
 }) => {
   const { formatMessage } = useIntl();
+  const translatedCommunityLabel = communityLabel
+    ? formatMessage({
+        id: `app.community.weightScheme.${communityLabel.toLowerCase()}`,
+      })
+    : null;
 
   return (
     <section className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:gap-4 lg:grid-cols-4">
@@ -92,19 +99,26 @@ export const GardenStatsGrid: React.FC<GardenStatsGridProps> = ({
         titleText={
           communityLoading
             ? undefined
-            : communityLabel
-              ? formatMessage({
-                  id: `app.community.weightScheme.${communityLabel.toLowerCase()}`,
-                })
-              : formatMessage({ id: "app.community.noCommunity" })
+            : communityName
+              ? `${communityName}${translatedCommunityLabel ? ` • ${translatedCommunityLabel}` : ""}`
+              : translatedCommunityLabel
+                ? translatedCommunityLabel
+                : formatMessage({ id: "app.community.noCommunity" })
         }
         value={
           communityLoading ? (
             <span className="inline-block h-6 w-20 rounded skeleton-shimmer align-middle" />
-          ) : communityLabel ? (
-            formatMessage({
-              id: `app.community.weightScheme.${communityLabel.toLowerCase()}`,
-            })
+          ) : communityName ? (
+            <span className="block">
+              <span className="block truncate text-base sm:text-lg">{communityName}</span>
+              {translatedCommunityLabel ? (
+                <span className="mt-1 block text-xs font-medium text-text-soft">
+                  {translatedCommunityLabel}
+                </span>
+              ) : null}
+            </span>
+          ) : translatedCommunityLabel ? (
+            translatedCommunityLabel
           ) : (
             formatMessage({ id: "app.community.noCommunity" })
           )

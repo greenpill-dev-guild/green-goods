@@ -57,7 +57,9 @@ contract E2EWorkflowForkTest is ForkTestBase {
             metadata: "",
             openJoining: openJoining,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0x0F
+            domainMask: 0x0F,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
         return gardenToken.mintGarden(config);
     }

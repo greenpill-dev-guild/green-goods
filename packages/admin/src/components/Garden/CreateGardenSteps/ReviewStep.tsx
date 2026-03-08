@@ -1,5 +1,12 @@
-import { useCreateGardenStore } from "@green-goods/shared";
+import { DOMAIN_COLORS, Domain, useCreateGardenStore } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+
+const DOMAIN_LABELS: Record<Domain, { id: string; defaultMessage: string }> = {
+  [Domain.SOLAR]: { id: "app.garden.create.domain.solar", defaultMessage: "Solar" },
+  [Domain.AGRO]: { id: "app.garden.create.domain.agro", defaultMessage: "Agroforestry" },
+  [Domain.EDU]: { id: "app.garden.create.domain.edu", defaultMessage: "Education" },
+  [Domain.WASTE]: { id: "app.garden.create.domain.waste", defaultMessage: "Waste" },
+};
 
 export function ReviewStep() {
   const { formatMessage } = useIntl();
@@ -59,6 +66,28 @@ export function ReviewStep() {
               </dd>
             </div>
           )}
+          <div className="md:col-span-2">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-text-soft">
+              {formatMessage({
+                id: "app.garden.create.confirm.domains",
+                defaultMessage: "Domains",
+              })}
+            </dt>
+            <dd className="mt-2 flex flex-wrap gap-1.5">
+              {form.domains.map((domain) => (
+                <span
+                  key={domain}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-stroke-soft bg-bg-white px-2.5 py-0.5 text-xs text-text-strong"
+                >
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: DOMAIN_COLORS[domain] }}
+                  />
+                  {formatMessage(DOMAIN_LABELS[domain])}
+                </span>
+              ))}
+            </dd>
+          </div>
         </dl>
         <dl className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="md:col-span-2">

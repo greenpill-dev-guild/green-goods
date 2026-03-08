@@ -50,7 +50,7 @@ bun add helia @helia/unixfs @helia/car blockstore-opfs
 
 **What**: Pure JavaScript image quality checks (blur, brightness, resolution) and EXIF GPS extraction — no model downloads required.
 
-**Why it matters**: Conservation workers in the field sometimes submit blurry, dark, or off-location photos. These can be caught client-side before submission:
+**Why it matters**: Field workers sometimes submit blurry, dark, or off-location photos. These can be caught client-side before submission:
 - **Blur detection**: Laplacian variance via Canvas API (sharp images = high variance)
 - **Brightness/contrast**: Pixel histogram analysis
 - **GPS validation**: `exifr` library (4KB gzipped) extracts GPS from EXIF, cross-referenced against garden location via `turf.booleanPointInPolygon()`
@@ -70,7 +70,7 @@ bun add helia @helia/unixfs @helia/car blockstore-opfs
 | **IPFS gateway caching** | CacheFirst rule for `w3s.link/ipfs/*` in Workbox | 0KB (config change) | Trivial | Immutable content = perfect cache-forever |
 | **OffscreenCanvas thumbnails** | Generate 256px thumbnails in Web Worker | 0KB (native API) | Medium | Faster gallery, less memory on low-end Android |
 | **browser-image-compression** | Already in use, well-tuned | — | None | Already optimal at `maxSizeMB: 0.8, maxWidthOrHeight: 2048` |
-| **Photon WASM** | High-perf image processing (watermarks, filters, metadata stripping) | ~4MB | Low priority | Future: watermark conservation photos |
+| **Photon WASM** | High-perf image processing (watermarks, filters, metadata stripping) | ~4MB | Low priority | Future: watermark field photos |
 
 **Recommended order**: IPFS gateway caching (minutes) → EXIF extraction → OffscreenCanvas thumbnails → OPFS migration → Helia evaluation
 
@@ -153,7 +153,7 @@ WebGPU has hit universal browser support as of January 2026 (~70% global coverag
 | **Auth machine offline sub-states** | Add `authenticated.passkey.online`/`.offline` to XState machine | Low | Honest UX about what's possible offline |
 | **FIDO CXP/CXF** | Passkey portability between providers | Monitor | Future: cross-device passkey migration |
 
-**WebAuthn PRF detail**: The PRF (Pseudo-Random Function) extension derives deterministic keys during passkey authentication. This enables encrypting the local SQLite database at rest — important for conservation data privacy on shared devices. Supported in Chrome, Edge, Firefox. NOT supported on Windows Hello. Green Goods' Android-primary user base is well-covered.
+**WebAuthn PRF detail**: The PRF (Pseudo-Random Function) extension derives deterministic keys during passkey authentication. This enables encrypting the local SQLite database at rest — important for field data privacy on shared devices. Supported in Chrome, Edge, Firefox. NOT supported on Windows Hello. Green Goods' Android-primary user base is well-covered.
 
 **Files to modify**:
 - `packages/shared/src/modules/auth/session.ts` — add PRF key derivation

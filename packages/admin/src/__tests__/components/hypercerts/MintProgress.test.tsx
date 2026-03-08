@@ -7,11 +7,11 @@
  * @vitest-environment jsdom
  */
 
-import { screen } from "@testing-library/react";
-import { renderWithProviders as render } from "../../test-utils";
-import { createElement } from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { MintingState } from "@green-goods/shared";
+import { screen } from "@testing-library/react";
+import { createElement } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render } from "../../test-utils";
 
 // Mock cn utility
 vi.mock("@green-goods/shared/utils", () => ({
@@ -26,6 +26,14 @@ vi.mock("@green-goods/shared", () => ({
     blockExplorer: "https://sepolia.etherscan.io",
   }),
   getBlockchainErrorI18nKey: (error: string) => `app.errors.blockchain.${error}`,
+  classifyTxError: (error: unknown) => ({
+    kind: "unknown" as const,
+    severity: "error" as const,
+    titleKey: "app.txFeedback.failed.title",
+    messageKey: "app.errors.blockchain.unknown.message",
+    rawMessage: String(error),
+  }),
+  isMeaningfulTxErrorMessage: (msg: string | null | undefined) => Boolean(msg?.trim()),
 }));
 
 import { MintProgress } from "../../../components/hypercerts/steps/MintProgress";

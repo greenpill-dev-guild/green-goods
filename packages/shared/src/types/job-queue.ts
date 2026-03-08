@@ -12,7 +12,7 @@
 
 import type { SmartAccountClient } from "permissionless";
 
-import type { Address } from "./domain";
+import type { Address, WorkDisplayStatus } from "./domain";
 
 // ============================================
 // Core Job Types
@@ -155,7 +155,7 @@ export interface CachedWork {
   metadata: string;
   media: string[];
   createdAt: number;
-  status?: "pending" | "approved" | "rejected";
+  status?: WorkDisplayStatus;
 }
 
 // ============================================

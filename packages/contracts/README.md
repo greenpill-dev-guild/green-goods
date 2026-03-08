@@ -175,7 +175,11 @@ bun run test:e2e:celo       # Fork and test Celo mainnet
 bun run test:e2e:arbitrum   # Fork and test Arbitrum mainnet
 
 # 🔧 DEVELOPMENT
-bun build               # Compile contracts
+bun build               # Adaptive compile (changed Solidity targets)
+bun build:changed       # Compile changed Solidity in src/test/script
+bun build:target -- src/registries/ENS.sol  # Compile a specific Solidity target
+bun build:fast          # Compile src only (skip Foundry test/script)
+bun build:full          # Full compile incl. tests/scripts (CI/deploy)
 bun lint                # Format and lint
 bun dev                 # Start local blockchain
 ```

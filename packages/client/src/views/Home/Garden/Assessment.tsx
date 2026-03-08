@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN_ID, getTag, useGardens } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, getEASExplorerUrl, getTag, useGardens } from "@green-goods/shared";
 import { type FC, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
@@ -165,7 +165,7 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
               {assessment.impactAttestations.map((uid) => (
                 <li key={`${assessment.id}-${uid}`}>
                   <a
-                    href={`https://explorer.easscan.org/attestation/view/${uid}`}
+                    href={getEASExplorerUrl(DEFAULT_CHAIN_ID, uid)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:underline"

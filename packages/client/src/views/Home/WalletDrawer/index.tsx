@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
-import { type ModalDrawerTab, ModalDrawer } from "@/components/Dialogs/ModalDrawer";
-import { CookieJarTab } from "./CookieJarTab";
+import { ModalDrawer, type ModalDrawerTab } from "@/components/Dialogs/ModalDrawer";
 import { ComingSoonStub } from "./ComingSoonStub";
+import { CookieJarTab } from "./CookieJarTab";
 
 interface WalletDrawerProps {
   isOpen: boolean;

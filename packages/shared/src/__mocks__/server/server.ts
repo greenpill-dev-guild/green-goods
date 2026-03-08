@@ -1,5 +1,5 @@
-import { setupServer } from "msw/node";
 import { graphql, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
 
 // Mock GraphQL responses for the indexer
 const handlers = [

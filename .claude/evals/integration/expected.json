@@ -1,0 +1,44 @@
+{
+  "triage-to-oracle": {
+    "triage_output": {
+      "severity": "P2",
+      "type": "bug",
+      "affected_packages": ["shared", "admin"],
+      "route": "oracle",
+      "handoff_max_lines": 5,
+      "handoff_required_fields": ["severity", "type", "affected_packages", "context"]
+    },
+    "oracle_output": {
+      "root_cause_keywords": ["invalidateQueries", "query cache", "queryKeys", "stale"],
+      "confidence": "High",
+      "references_files": true,
+      "min_sources": 2
+    }
+  },
+  "triage-to-cracked-coder": {
+    "triage_output": {
+      "severity": "P3",
+      "type": "feature",
+      "affected_packages": ["shared"],
+      "route": "cracked-coder",
+      "companion_spec": "add-shared-hook",
+      "handoff_max_lines": 5,
+      "handoff_required_fields": ["severity", "type", "affected_packages", "context"]
+    },
+    "cracked_coder_output": {
+      "file_exists": "packages/shared/src/hooks/garden/useGardenOperators.ts",
+      "test_exists": true,
+      "barrel_export": true,
+      "tests_pass": true,
+      "build_succeeds": true,
+      "pattern_present": ["queryKeys", "useQuery", "Address"]
+    }
+  },
+  "scoring": {
+    "triage_classification": "Exact match on severity + type (25 points)",
+    "triage_routing": "Correct route + companion spec (25 points)",
+    "handoff_format": "Within line limit + all required fields (25 points)",
+    "downstream_success": "Downstream agent produces correct output (25 points)",
+    "total": 100
+  }
+}

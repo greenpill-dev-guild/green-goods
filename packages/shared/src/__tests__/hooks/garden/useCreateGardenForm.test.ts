@@ -9,11 +9,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  type CreateGardenFormData,
+  createDefaultGardenForm,
   createGardenSchema,
   gardenStepFields,
-  createDefaultGardenForm,
-  type CreateGardenFormData,
 } from "../../../hooks/garden/useCreateGardenForm";
+import { Domain } from "../../../types/domain";
 
 // ============================================
 // Test Helpers
@@ -31,6 +32,7 @@ function createValidForm(overrides: Partial<CreateGardenFormData> = {}): CreateG
     bannerImage: "",
     metadata: "",
     openJoining: false,
+    domains: [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE],
     gardeners: [VALID_ADDRESS],
     operators: [VALID_ADDRESS_2],
     ...overrides,
@@ -99,6 +101,11 @@ describe("createGardenSchema", () => {
     it("accepts empty operators array", () => {
       const result = createGardenSchema.safeParse(createValidForm({ operators: [] }));
       expect(result.success).toBe(true);
+    });
+
+    it("rejects empty domains array", () => {
+      const result = createGardenSchema.safeParse(createValidForm({ domains: [] }));
+      expect(result.success).toBe(false);
     });
   });
 
@@ -214,13 +221,14 @@ describe("createGardenSchema", () => {
 // ============================================
 
 describe("gardenStepFields", () => {
-  it("details step validates name, slug, description, location, bannerImage", () => {
+  it("details step validates name, slug, description, location, bannerImage, domains", () => {
     expect(gardenStepFields.details).toEqual([
       "name",
       "slug",
       "description",
       "location",
       "bannerImage",
+      "domains",
     ]);
   });
 
@@ -248,6 +256,7 @@ describe("createDefaultGardenForm", () => {
     expect(defaults.bannerImage).toBe("");
     expect(defaults.metadata).toBe("");
     expect(defaults.openJoining).toBe(false);
+    expect(defaults.domains).toEqual([]);
     expect(defaults.gardeners).toEqual([]);
     expect(defaults.operators).toEqual([]);
   });

@@ -7,7 +7,7 @@
  *
  * Run with: bun test:e2e:passkey
  */
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
 import { ClientTestHelper, TEST_URLS } from "../helpers/test-utils";
 import { handlePimlicoRpc, MOCK_PAYMASTER, resetPimlicoMocks } from "../mocks/pimlico-handlers";
 

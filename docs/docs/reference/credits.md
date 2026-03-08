@@ -78,7 +78,7 @@ Thank you to everyone who has contributed to Green Goods!
 - Community support
 - Translations
 
-[Contributing Guide →](../developers/getting-started)
+[Contributing Guide →](../builders/getting-started)
 
 ---
 
@@ -151,9 +151,9 @@ Green Goods has been supported by:
 - **ReFi DAO** - Regenerative finance community
 - **Karma GAP** - Impact reporting standard
 
-### Conservation Partners
+### Community Partners
 
-- Local gardens and conservation organizations
+- Local gardens and regenerative organizations
 - Bioregional networks
 - Community coordinators
 - (Partners to be listed as they onboard)
@@ -212,7 +212,7 @@ Contact: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) for media inquiries
 
 ## Contributing
 
-Want to be listed here? [Start contributing!](../developers/getting-started)
+Want to be listed here? [Start contributing!](../builders/getting-started)
 
 All contributors are credited in:
 - GitHub contributors list

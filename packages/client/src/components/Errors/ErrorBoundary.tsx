@@ -1,7 +1,7 @@
+import { logger, trackErrorBoundary } from "@green-goods/shared";
+import { RiArrowGoBackLine, RiLeafFill, RiRefreshLine } from "@remixicon/react";
 import React, { Component, type ReactNode } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { RiLeafFill, RiRefreshLine, RiArrowGoBackLine } from "@remixicon/react";
-import { logger, trackErrorBoundary } from "@green-goods/shared";
 import { Button } from "../Actions";
 
 interface ErrorBoundaryState {

@@ -1,6 +1,6 @@
-import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, within, userEvent } from "storybook/test";
+import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
 import { DateRangePicker } from "./DateRangePicker";
 
 // Fixed timestamps for deterministic stories
@@ -301,7 +301,7 @@ export const Gallery: Story = {
       <DateRangePicker label="Required" required id="gallery-required" />
       <DateRangePicker
         label="With Helper"
-        helperText="Select the conservation work period"
+        helperText="Select the regenerative work period"
         id="gallery-helper"
       />
       <DateRangePicker

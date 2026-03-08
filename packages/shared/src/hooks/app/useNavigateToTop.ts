@@ -27,14 +27,6 @@ export const useNavigateToTop = () => {
   const navigate = useNavigate();
 
   const navigateToTop = (path: string, options: NavigateToTopOptions = {}): void => {
-    // Reset scroll position
-    const el = document.getElementById("app-scroll");
-    if (el) {
-      el.scrollTop = 0;
-    } else {
-      window.scrollTo({ top: 0, behavior: "auto" });
-    }
-
     // Default to enabling view transitions
     const { viewTransition = true, ...restOptions } = options;
 
@@ -42,6 +34,11 @@ export const useNavigateToTop = () => {
       ...restOptions,
       viewTransition,
     });
+
+    // NOTE: Scroll reset is NOT done here — it causes a visible flash where the
+    // old page scrolls to top before the new page renders. Instead, target views
+    // should use useScrollToTop() (a useLayoutEffect hook) which resets scroll
+    // synchronously before paint, making the reset invisible.
   };
 
   return navigateToTop;

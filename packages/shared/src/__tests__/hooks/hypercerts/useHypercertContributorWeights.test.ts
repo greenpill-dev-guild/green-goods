@@ -20,8 +20,8 @@ vi.mock("../../../lib/hypercerts", () => ({
 }));
 
 import { useHypercertContributorWeights } from "../../../hooks/hypercerts/useHypercertContributorWeights";
-import { createMockHypercertAttestation } from "../../test-utils/mock-factories";
 import type { ContributorWeight } from "../../../lib/hypercerts";
+import { createMockHypercertAttestation } from "../../test-utils/mock-factories";
 
 // ============================================
 // Test Suite

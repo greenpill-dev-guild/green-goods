@@ -235,5 +235,8 @@ ${schemaSection}
 if (import.meta.main) {
   const updater = new DocsUpdater();
   const chainIds = process.argv.slice(2);
-  updater.updateDocs(chainIds.length > 0 ? chainIds : undefined).catch(console.error);
+  updater.updateDocs(chainIds.length > 0 ? chainIds : undefined).catch((error) => {
+    console.error("Docs update failed:", error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
 }

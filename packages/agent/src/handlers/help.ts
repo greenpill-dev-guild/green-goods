@@ -2,7 +2,7 @@
  * Help Handler - Show available commands
  */
 
-import type { InboundMessage, User, HandlerResult } from "../types";
+import type { HandlerResult, InboundMessage, User } from "../types";
 
 export async function handleHelp(
   _message: InboundMessage,

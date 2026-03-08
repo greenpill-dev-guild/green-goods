@@ -1,0 +1,100 @@
+---
+title: Contracts Package
+sidebar_label: Contracts
+slug: /builders/packages/contracts
+audience: developer
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+---
+
+# Contracts
+
+{/* IMAGE PLACEHOLDER: Solidity contract architecture — resolvers, garden modules, deploy pipeline (800x400) */}
+
+Solidity smart contracts for the Green Goods protocol: resolver contracts for on-chain attestation validation, garden NFTs with tokenbound accounts, an action registry, and role-based access via Hats Protocol. Includes TypeScript deploy scripts that orchestrate CREATE2 deterministic deployment across multiple chains.
+
+## What It Does
+
+- **Resolver contracts** (Work, WorkApproval, Assessment) validate EAS attestations on-chain, enforcing role checks and action validity before attestations are stored
+- **GardenToken** (ERC-721) mints garden NFTs and fans out to all configured modules (Hats, Octant, CookieJar, ENS, etc.) during minting
+- **GardenAccount** (ERC-6551 Tokenbound) gives each garden a smart account that owns assets and stores metadata
+- **ActionRegistry** publishes and manages garden action definitions with domain categorization
+- **HatsModule** creates per-garden 6-role hat trees (Owner, Operator, Evaluator, Gardener, Funder, Community) for hierarchical RBAC
+- **OctantModule + OctantVault** manage ERC-4626 yield vaults with three-way yield splitting (CookieJar, Hypercert fractions, endowment)
+- **Deploy scripts** (TypeScript CLI + Solidity) handle CREATE2 deployment, UUPS upgrades, EAS schema registration, and cross-chain ENS wiring
+
+## Architecture
+
+```
+packages/contracts/
+  src/            # Solidity contracts
+    core/         # GardenToken, GardenAccount, ActionRegistry
+    modules/      # HatsModule, OctantModule, CookieJarModule, etc.
+    resolvers/    # Work, WorkApproval, Assessment EAS resolvers
+    libraries/    # HatsLib (per-chain constants), shared helpers
+  script/         # TypeScript deploy CLI + Solidity deploy scripts
+    deploy/       # core.ts, actions.ts, hats.ts, goods.ts, etc.
+    utils/        # build-adaptive.ts, envio-integration.ts, ipfs-uploader.ts
+  test/           # Forge tests (unit, integration, fork, E2E, fuzz, gas)
+  deployments/    # Deployment artifacts ({chainId}-latest.json)
+  abis/           # Exported ABI JSON files
+```
+
+**Key patterns:**
+
+- **CREATE2 deterministic deployment** -- contracts deploy to the same address across chains. Existing addresses are skipped via `_isDeployed()` check.
+- **Hub-and-spoke modules** -- GardenToken uses typed module slots. Optional modules degrade gracefully with `if (address != 0)` + `try/catch` guards.
+- **`via_ir=true`** only for GardenAccount and GardenToken (complex multi-module contracts). All other contracts compile without the Yul IR pipeline.
+- **Adaptive build system** -- `bun build` defaults to fast mode (~2s cached), detecting what changed. Only `bun build:full` triggers the slow full build (~180-400s).
+- **Two-layer deploy** -- TypeScript CLI (`deploy/core.ts`) orchestrates environment and parameters, then shells out to Solidity (`Deploy.s.sol`) for on-chain execution.
+
+## Key APIs
+
+**Deployment artifacts** are the source of truth for all contract addresses:
+
+```typescript
+import deployment from '@green-goods/contracts/deployments/11155111-latest.json';
+
+// deployment.gardenToken, deployment.actionRegistry, deployment.workResolver, etc.
+// Zero addresses mean the module hasn't been deployed yet (not a blocker)
+```
+
+**HatsLib constants** provide per-chain hat tree IDs:
+- Sepolia: Tree 2022, communityHat = `0x000007e60002...`
+- Arbitrum: Tree 92, communityHat = `0x0000005c0002...`
+- Celo: Tree 31, communityHat = `0x0000001f0002...`
+
+**EAS resolver interface** -- each resolver implements `onAttest()` to validate attestation data. Resolvers check role membership via HatsModule and action validity via ActionRegistry.
+
+## Development
+
+```bash
+# Build
+bun build                    # Adaptive fast build (~2s cached)
+bun build:full               # CI/deploy only (skip test/script, ~180-400s)
+bun build:target -- src/...  # Single-target compile
+
+# Test (never use raw `forge test`)
+bun run test                 # Unit tests (excludes E2E and fork)
+bun run test:fast            # Unit tests (excludes fork)
+bun run test:fork            # Fork tests (needs RPC URLs in .env)
+bun run test:e2e             # Full E2E suite
+
+# Deploy
+bun script/deploy.ts core --network sepolia                     # Dry run
+bun script/deploy.ts core --network sepolia --broadcast         # Deploy
+bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # Deploy + register schemas
+
+# Upgrade
+bun script/upgrade.ts all --network sepolia --broadcast         # UUPS upgrades
+
+# Verify
+bun run verify:post-deploy:sepolia                              # Post-deploy checks
+bun run verify:etherscan:sepolia                                # Etherscan verification
+```
+
+## Related
+
+- [Architecture](/builders/architecture) -- system diagrams and module relationships
+- [EAS Integration](/builders/integrations/eas) -- attestation schemas and resolver validation

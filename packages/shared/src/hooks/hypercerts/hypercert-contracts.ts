@@ -29,10 +29,11 @@ function isNetworkConfig(value: unknown): value is {
     isAddress(obj.hypercerts)
   );
 }
+
 import { logger } from "../../modules/app/logger";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { DEPLOYMENT_REGISTRY_ABI } from "./hypercert-abis";
-import { isZeroAddress } from "../../utils/blockchain/address";
+import { isZeroAddress } from "./hypercert-utils";
 
 /**
  * Chain-specific Hypercert Minter contract addresses.

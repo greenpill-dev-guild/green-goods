@@ -5,39 +5,36 @@
  */
 
 import type { ActionInstructionConfig } from "../../types/domain";
-
 import {
-  solarSiteSetup,
-  solarInstallMilestone,
-  solarServiceSession,
+  agroHarvestYield,
+  agroLearningReflection,
+  agroMaintenanceActivity,
+  agroPlantingEvent,
+  agroSiteSpeciesPlan,
+  agroSurvivalCheck,
+} from "./templates/agro";
+import {
+  eduDeliverSession,
+  eduFollowupAction,
+  eduLearningAssessment,
+  eduPublishSession,
+  eduVerifyAttendance,
+} from "./templates/edu";
+import {
   solarEnergyUptimeCheck,
+  solarInstallMilestone,
   solarNodeOps,
+  solarServiceSession,
+  solarSiteSetup,
 } from "./templates/solar";
 
 import {
-  agroSiteSpeciesPlan,
-  agroPlantingEvent,
-  agroSurvivalCheck,
-  agroMaintenanceActivity,
-  agroLearningReflection,
-  agroHarvestYield,
-} from "./templates/agro";
-
-import {
-  eduPublishSession,
-  eduDeliverSession,
-  eduVerifyAttendance,
-  eduFollowupAction,
-  eduLearningAssessment,
-} from "./templates/edu";
-
-import {
-  wasteSiteAssessment,
   wasteCleanupEvent,
+  wasteMaintenanceCheck,
+  wasteSiteAssessment,
   wasteSortingBreakdown,
   wasteTransferReceipt,
   wasteUpcycleBatch,
-  wasteMaintenanceCheck,
 } from "./templates/waste";
 
 export const defaultTemplate: ActionInstructionConfig = {

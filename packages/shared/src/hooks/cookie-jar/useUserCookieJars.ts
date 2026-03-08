@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useReadContracts } from "wagmi";
-import type { Address } from "../../types/domain";
 import type { CookieJar } from "../../types/cookie-jar";
+import type { Address } from "../../types/domain";
 import {
   COOKIE_JAR_ABI,
   COOKIE_JAR_MODULE_ABI,
@@ -9,8 +9,8 @@ import {
 } from "../../utils/blockchain/abis";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
-import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useGardens } from "../blockchain/useBaseLists";
+import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useRole } from "../gardener/useRole";
 import { STALE_TIME_MEDIUM } from "../query-keys";
 

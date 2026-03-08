@@ -1,0 +1,5 @@
+# Force bun runtime for package.json scripts (instead of Node)
+# Required because oxlint v1.48+ uses native bindings that bun resolves
+# but Node v18's ESM loader cannot handle extensionless bin wrappers.
+[run]
+bun = true

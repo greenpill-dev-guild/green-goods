@@ -4,7 +4,6 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { RiArrowDropDownLine, RiArrowDropUpLine, RiCheckLine } from "@remixicon/react";
 import * as React from "react";
 import { cn } from "../../../utils/styles/cn";
-import { iconButtonIconVariants, selectTriggerVariants } from "../../Tokens/foundation";
 
 const Select = SelectPrimitive.Root;
 
@@ -12,23 +11,27 @@ const SelectGroup = SelectPrimitive.Group;
 
 const SelectValue = SelectPrimitive.Value;
 
-type SelectTriggerProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
-  size?: "sm" | "md" | "lg";
-  invalid?: boolean;
-};
-
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
-  SelectTriggerProps
->(({ className, children, size = "md", invalid = false, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
+>(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
-    className={cn(selectTriggerVariants({ size, invalid }), className)}
+    className={cn(
+      "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md",
+      "border border-stroke-soft-200 bg-bg-white-0 px-3 py-2",
+      "text-sm text-text-strong-950 ring-offset-stroke-soft-200",
+      "data-[placeholder]:text-text-soft-400",
+      "focus:outline-none focus:ring-1 focus:ring-primary-base",
+      "disabled:cursor-not-allowed disabled:opacity-50",
+      "[&>span]:line-clamp-1",
+      className
+    )}
     {...props}
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <RiArrowDropDownLine className={cn(iconButtonIconVariants({ size }), "opacity-60")} />
+      <RiArrowDropDownLine className="h-4 w-4 opacity-50" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -40,13 +43,10 @@ const SelectScrollUpButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollUpButton
     ref={ref}
-    className={cn(
-      "flex cursor-default items-center justify-center py-1 text-text-soft-400",
-      className
-    )}
+    className={cn("flex cursor-default items-center justify-center py-1", className)}
     {...props}
   >
-    <RiArrowDropUpLine className={iconButtonIconVariants({ size: "sm" })} />
+    <RiArrowDropUpLine className="h-4 w-4" />
   </SelectPrimitive.ScrollUpButton>
 ));
 SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName;
@@ -57,13 +57,10 @@ const SelectScrollDownButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollDownButton
     ref={ref}
-    className={cn(
-      "flex cursor-default items-center justify-center py-1 text-text-soft-400",
-      className
-    )}
+    className={cn("flex cursor-default items-center justify-center py-1", className)}
     {...props}
   >
-    <RiArrowDropDownLine className={iconButtonIconVariants({ size: "sm" })} />
+    <RiArrowDropDownLine className="h-4 w-4" />
   </SelectPrimitive.ScrollDownButton>
 ));
 SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName;
@@ -78,7 +75,7 @@ const SelectContent = React.forwardRef<
       className={cn(
         "relative z-50 max-h-[--radix-select-content-available-height] min-w-[8rem]",
         "overflow-y-auto overflow-x-hidden rounded-md",
-        "border border-stroke-soft-200 bg-bg-white-0 text-text-strong-950 shadow-regular-sm",
+        "border border-stroke-soft-200 bg-bg-white-0 text-text-strong-950 shadow-sm",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -114,7 +111,7 @@ const SelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
-    className={cn("px-2 py-1.5 text-label-sm text-text-strong-950", className)}
+    className={cn("px-2 py-1.5 text-sm font-semibold text-text-strong-950", className)}
     {...props}
   />
 ));
@@ -127,9 +124,9 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-lg px-3 py-2",
-      "text-paragraph-sm text-text-strong-950 outline-none",
-      "focus:bg-bg-soft-200 focus:text-text-strong-950",
+      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8",
+      "text-sm text-text-strong-950 outline-none",
+      "focus:bg-primary-lighter focus:text-primary-dark",
       "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
@@ -137,7 +134,7 @@ const SelectItem = React.forwardRef<
   >
     <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <RiCheckLine className={iconButtonIconVariants({ size: "sm" })} />
+        <RiCheckLine className="h-4 w-4" />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>

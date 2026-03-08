@@ -1,2 +1,2 @@
-export * from "./ErrorBoundary";
 export * from "./AppErrorBoundary";
+export * from "./ErrorBoundary";

@@ -2,8 +2,8 @@ import { execFileSync } from "node:child_process";
 import * as path from "node:path";
 import { type ParsedOptions, redactSensitiveArgs } from "../utils/cli-parser";
 import { NetworkManager } from "../utils/network";
-import { AnvilManager } from "./anvil";
 import { assertSepoliaGate } from "../utils/release-gate";
+import { AnvilManager } from "./anvil";
 
 /**
  * GoodsDeployer - Handles GOODS Juicebox project deployment
@@ -84,7 +84,7 @@ export class GoodsDeployer {
       const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
       args.push("--account", keystoreName);
 
-      const senderAddress = process.env.SENDER_ADDRESS;
+      const senderAddress = options.sender ?? process.env.SENDER_ADDRESS;
       if (senderAddress) {
         args.push("--sender", senderAddress);
       }

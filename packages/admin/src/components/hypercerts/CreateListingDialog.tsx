@@ -1,16 +1,18 @@
+import {
+  type Address,
+  type CreateListingParams,
+  DEFAULT_CHAIN_ID,
+  LISTING_DEFAULTS,
+  type ListingStep,
+  useCreateListing,
+} from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
-import { RiCloseLine, RiLoader4Line, RiCheckLine, RiExchangeDollarLine } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiExchangeDollarLine, RiLoader4Line } from "@remixicon/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
-import {
-  type Address,
-  useCreateListing,
-  LISTING_DEFAULTS,
-  type CreateListingParams,
-  type ListingStep,
-} from "@green-goods/shared";
 import { parseEther, zeroAddress } from "viem";
+import { Alert } from "@/components/ui/Alert";
 
 interface CreateListingDialogProps {
   open: boolean;
@@ -106,7 +108,7 @@ export function CreateListingDialog({
   return (
     <Dialog.Root open={open} onOpenChange={handleClose}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200" />
         <Dialog.Content
           className="fixed z-50 w-full max-w-lg overflow-hidden bg-bg-white shadow-2xl focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-2xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom duration-300"
           onPointerDownOutside={(e) => {
@@ -251,21 +253,15 @@ export function CreateListingDialog({
               <div className="space-y-4">
                 <ListingProgress step={step} />
 
-                {error && (
-                  <div className="rounded-md bg-error-lighter p-3">
-                    <p className="text-sm text-error-dark">{error.message}</p>
-                  </div>
-                )}
+                {error && <Alert variant="error">{error.message}</Alert>}
 
                 {step === "done" && (
-                  <div className="rounded-md bg-success-lighter p-3 text-center">
-                    <p className="text-sm font-medium text-success-dark">
-                      {formatMessage({
-                        id: "app.listing.createdSuccessfully",
-                        defaultMessage: "Listing created successfully!",
-                      })}
-                    </p>
-                  </div>
+                  <Alert variant="success">
+                    {formatMessage({
+                      id: "app.listing.createdSuccessfully",
+                      defaultMessage: "Listing created successfully!",
+                    })}
+                  </Alert>
                 )}
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">

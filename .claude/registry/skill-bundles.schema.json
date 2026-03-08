@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Skill Bundles Registry",
+  "type": "object",
+  "required": ["bundles"],
+  "properties": {
+    "bundles": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/bundle" }
+    }
+  },
+  "$defs": {
+    "bundle": {
+      "type": "object",
+      "required": ["entrypoint", "default_mode", "skills", "user_facing", "contract_touching"],
+      "properties": {
+        "entrypoint": { "type": "string" },
+        "default_mode": { "type": "string" },
+        "skills": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "user_facing": { "type": "boolean" },
+        "contract_touching": { "type": "boolean" }
+      }
+    }
+  }
+}

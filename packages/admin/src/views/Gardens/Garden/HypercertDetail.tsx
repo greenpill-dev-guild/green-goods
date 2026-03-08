@@ -4,26 +4,27 @@ import {
   formatDate,
   getNetworkConfig,
   ImageWithFallback,
-  useGardens,
-  useHypercerts,
-  useHypercertListings,
-  useGardenPermissions,
   type OptimisticHypercertData,
+  useGardenPermissions,
+  useGardens,
+  useHypercertListings,
+  useHypercerts,
 } from "@green-goods/shared";
 import {
-  RiExternalLinkLine,
-  RiLoader4Line,
   RiCheckLine,
   RiExchangeDollarLine,
+  RiExternalLinkLine,
+  RiLoader4Line,
 } from "@remixicon/react";
 import { useState } from "react";
-import { useParams, useLocation } from "react-router-dom";
 import { useIntl } from "react-intl";
+import { useLocation, useParams } from "react-router-dom";
 import { formatEther } from "viem";
-import { PageHeader } from "@/components/Layout/PageHeader";
-import { MarketplaceApprovalGate } from "@/components/hypercerts/MarketplaceApprovalGate";
 import { CreateListingDialog } from "@/components/hypercerts/CreateListingDialog";
+import { MarketplaceApprovalGate } from "@/components/hypercerts/MarketplaceApprovalGate";
 import { TradeHistoryTable } from "@/components/hypercerts/TradeHistoryTable";
+import { PageHeader } from "@/components/Layout/PageHeader";
+import { Alert } from "@/components/ui/Alert";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
 
@@ -152,12 +153,7 @@ export default function HypercertDetail() {
         )}
 
         {!isLoading && !hypercert && (
-          <div
-            className="rounded-lg border border-error-light bg-error-lighter p-6 text-sm text-error-dark"
-            role="alert"
-          >
-            {formatMessage({ id: "app.hypercerts.detail.missing" })}
-          </div>
+          <Alert variant="error">{formatMessage({ id: "app.hypercerts.detail.missing" })}</Alert>
         )}
 
         {!isLoading && hypercert && (

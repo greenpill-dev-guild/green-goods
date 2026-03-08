@@ -21,20 +21,20 @@
  * ```
  */
 
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import {
-  createTestClient,
+  type Chain,
   createPublicClient,
+  createTestClient,
   createWalletClient,
   http,
+  type PublicClient,
   parseEther,
   type TestClient,
-  type PublicClient,
   type WalletClient,
-  type Chain,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { FORK_CONFIG, TEST_ACCOUNTS, ANVIL_TIMEOUTS } from "./anvil-config";
+import { ANVIL_TIMEOUTS, FORK_CONFIG, TEST_ACCOUNTS } from "./anvil-config";
 
 // ============================================================================
 // TYPES
@@ -516,5 +516,5 @@ export async function setNextBlockTimestamp(
 // UTILITY EXPORTS
 // ============================================================================
 
-export { TEST_ACCOUNTS, FORK_CONFIG, ANVIL_TIMEOUTS } from "./anvil-config";
 export { parseEther } from "viem";
+export { ANVIL_TIMEOUTS, FORK_CONFIG, TEST_ACCOUNTS } from "./anvil-config";

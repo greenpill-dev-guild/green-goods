@@ -6,11 +6,11 @@
  * @vitest-environment node
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Address } from "viem";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  checkMarketplaceApprovals,
   buildApprovalTransactions,
+  checkMarketplaceApprovals,
 } from "../../../modules/marketplace/approvals";
 
 const TEST_OPERATOR = "0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF" as Address;

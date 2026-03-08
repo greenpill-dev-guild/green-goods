@@ -40,13 +40,7 @@ vi.mock("react-router-dom", () => ({
 
 vi.mock("@remixicon/react", () => {
   const Icon = (props: any) => React.createElement("span", props);
-  return {
-    RiExternalLinkLine: Icon,
-    RiLoader4Line: Icon,
-    RiCheckLine: Icon,
-    RiExchangeDollarLine: Icon,
-    RiArrowLeftLine: Icon,
-  };
+  return new Proxy({}, { get: () => Icon });
 });
 
 vi.mock("@/components/Layout/PageHeader", () => ({
@@ -89,7 +83,7 @@ const mockGarden = {
 
 const mockHypercert = {
   id: "hc-123",
-  title: "Conservation Hypercert",
+  title: "Regenerative Hypercert",
   description: "Documenting tree planting work",
   imageUri: "ipfs://QmImage123",
   mintedAt: 1700000000,
@@ -189,7 +183,7 @@ describe("HypercertDetail View", () => {
 
       renderWithIntl(<HypercertDetail />);
 
-      expect(screen.getByText("Conservation Hypercert")).toBeInTheDocument();
+      expect(screen.getByText("Regenerative Hypercert")).toBeInTheDocument();
       expect(screen.getByText("Documenting tree planting work")).toBeInTheDocument();
     });
 

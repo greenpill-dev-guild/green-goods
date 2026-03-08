@@ -8,11 +8,11 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  type BlockchainErrorType,
   detectBlockchainError,
+  getBlockchainErrorAction,
   getBlockchainErrorI18nKey,
   isRecoverableBlockchainError,
-  getBlockchainErrorAction,
-  type BlockchainErrorType,
 } from "../../../utils/errors/blockchain-errors";
 
 // ============================================

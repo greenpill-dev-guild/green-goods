@@ -5,7 +5,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, type RenderHookOptions } from "@testing-library/react";
+import { type RenderHookOptions, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import enMessages from "../../i18n/en.json";
@@ -206,9 +206,9 @@ export function renderWithQuery(
   return render(ui, { wrapper: QueryTestWrapper, ...options });
 }
 
+import type React from "react";
 // Import vi for mock utilities
 import { vi } from "vitest";
-import type React from "react";
 
 // Re-export testing library for convenience
 export * from "@testing-library/react";

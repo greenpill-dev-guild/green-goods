@@ -72,12 +72,7 @@ export function getPasskeyRpId(): string {
 export async function createPasskey(userName: string): Promise<P256Credential> {
   const rpId = getPasskeyRpId();
 
-  console.debug(
-    "[Passkey] Creating credential - RP ID:",
-    rpId,
-    "| Origin:",
-    window.location.origin
-  );
+  logger.debug("[Passkey] Creating credential", { rpId, origin: window.location.origin });
 
   // Create WebAuthn credential using viem's helper
   const credential = await createWebAuthnCredential({
@@ -94,7 +89,7 @@ export async function createPasskey(userName: string): Promise<P256Credential> {
   // Store RP ID for future authentications
   setStoredRpId(rpId);
 
-  console.debug("[Passkey] Credential created - ID:", credential.id.substring(0, 16) + "...");
+  logger.debug("[Passkey] Credential created", { id: credential.id.substring(0, 16) });
 
   return credential;
 }

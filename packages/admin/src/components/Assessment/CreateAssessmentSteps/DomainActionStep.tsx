@@ -1,9 +1,5 @@
 import { cn, Domain, useActions, useCurrentChain } from "@green-goods/shared";
-import {
-  type Control,
-  type FieldErrors,
-  useController,
-} from "react-hook-form";
+import { type Control, type FieldErrors, useController } from "react-hook-form";
 import { useMemo } from "react";
 import { useIntl, type IntlShape } from "react-intl";
 import { type CreateAssessmentForm, Section, extractErrorMessage } from "./shared";

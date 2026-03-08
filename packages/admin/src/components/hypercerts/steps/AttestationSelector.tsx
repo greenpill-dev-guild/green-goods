@@ -1,16 +1,17 @@
 import {
-  cn,
-  formatDateTime,
-  FormInput,
   ACTION_DOMAINS,
-  filterAttestationsByAssessment,
   type ActionDomain,
+  cn,
+  FormInput,
+  filterAttestationsByAssessment,
+  formatDateTime,
   type GardenAssessment,
   type HypercertAttestation,
 } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiCheckboxMultipleLine, RiCloseCircleLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { Alert } from "@/components/ui/Alert";
 
 interface AttestationSelectorProps {
   attestations: HypercertAttestation[];
@@ -262,9 +263,7 @@ export function AttestationSelector({
       )}
 
       {hasError && !isLoading && (
-        <div className="rounded-lg border border-error-light bg-error-lighter p-6 text-sm text-error-dark">
-          {formatMessage({ id: "app.hypercerts.attestations.error" })}
-        </div>
+        <Alert variant="error">{formatMessage({ id: "app.hypercerts.attestations.error" })}</Alert>
       )}
 
       {!isLoading && !hasError && filtered.length === 0 && (

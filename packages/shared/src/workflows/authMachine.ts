@@ -38,9 +38,9 @@
 import { type SmartAccountClient } from "permissionless";
 import { type Hex } from "viem";
 import { type P256Credential } from "viem/account-abstraction";
+import { assign, fromPromise, setup } from "xstate";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import { logger } from "../modules/app/logger";
-import { assign, fromPromise, setup } from "xstate";
 
 // ============================================================================
 // CONTEXT

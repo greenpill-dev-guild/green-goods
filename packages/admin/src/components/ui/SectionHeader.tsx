@@ -1,6 +1,5 @@
+import { cn } from "@green-goods/shared";
 import type { ReactNode } from "react";
-
-import { cn } from "./cn";
 
 interface SectionHeaderProps {
   title: string;
@@ -13,8 +12,8 @@ function SectionHeader({ title, description, action, className }: SectionHeaderP
   return (
     <div className={cn("flex items-start justify-between gap-4", className)}>
       <div className="min-w-0">
-        <h2 className="font-heading text-label-lg text-text-strong sm:text-title-h6">{title}</h2>
-        {description && <p className="mt-1 text-paragraph-sm text-text-sub">{description}</p>}
+        <h2 className="font-heading text-2xl font-bold text-text-strong">{title}</h2>
+        {description && <p className="mt-1 text-sm text-text-sub">{description}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>

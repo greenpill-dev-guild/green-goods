@@ -1,0 +1,109 @@
+---
+title: "Earning Badges & Rewards"
+sidebar_label: "Earning Badges"
+slug: /community/gardener-guide/earning-badges
+audience: all
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+goal: "Help gardeners understand status tracking, attestation verification, and reputation building."
+difficulty: "standard"
+estimated_time: "5-10 minutes."
+prereqs: "At least one submitted work item."
+next_steps: "/community/how-it-works"
+persona_context: "Gardeners tracking their work status and building on-chain reputation."
+source_of_truth:
+  - packages/client/src/views/Home/WorkDashboard
+  - packages/shared/src/modules/data/eas.ts
+keywords:
+  - badges
+  - rewards
+  - reputation
+  - work status
+  - attestation
+  - approval
+---
+
+import {
+  FeatureState,
+  NextBestAction,
+  StatusBadge,
+  StepFlow,
+} from "@site/src/components/docs";
+import {EAS_EXPLORER_ENDPOINTS} from "@site/src/data/endpoints";
+
+# Earning Badges & Rewards
+
+<StatusBadge status="Live" />
+
+## Overview
+
+Every approved work submission creates a permanent, verifiable record on the blockchain. Over time, these records build your on-chain reputation — a portable history of verified impact that follows you across gardens and platforms.
+
+{/* IMAGE PLACEHOLDER: Gardener profile showing badge collection and attestation history (800x400) */}
+
+This page covers how to track your submission status, verify your attestation records, and understand how consistent contributions build your reputation.
+
+## How It Works
+
+### Tracking Your Work Status
+
+After submitting work through the MDR workflow, your submission moves through these stages:
+
+- **Uploading/Queued** — Submission is still syncing (common in offline/low-connectivity conditions)
+- **Pending** — Waiting for operator review
+- **Approved** — Work validated; an approval attestation has been created on-chain
+- **Rejected** — Work requires correction and resubmission (check operator feedback)
+
+### Verifying Your Attestations
+
+Every approval creates an EAS attestation — a permanent, cryptographically signed record. You can verify your attestations independently:
+
+<StepFlow
+  steps={[
+    {title: "Open approved work", detail: "Navigate to your work dashboard and select an approved submission."},
+    {title: "Copy attestation UID", detail: "Find the attestation UID and note which chain the attestation is on."},
+    {title: "Verify on EAS Explorer", detail: "Visit the matching EAS explorer endpoint and search for your UID."},
+    {title: "Confirm details", detail: "Verify the approval linkage, timestamps, and attester address match."},
+  ]}
+/>
+
+**EAS Explorer endpoints:**
+
+- Arbitrum: <code>{EAS_EXPLORER_ENDPOINTS[42161]}</code>
+- Celo: <code>{EAS_EXPLORER_ENDPOINTS[42220]}</code>
+- Sepolia: <code>{EAS_EXPLORER_ENDPOINTS[11155111]}</code>
+
+### Building Reputation
+
+Your attestation history builds an on-chain reputation that is:
+
+- **Portable** — Your attestations exist on-chain and can be verified by any platform, not just Green Goods
+- **Permanent** — Once attested, your verified work record cannot be altered or removed
+- **Composable** — Other protocols and applications can read your attestation history to assess your impact track record
+
+<FeatureState
+  title="Badge system"
+  status="Planned"
+  summary="Unlock Protocol badge integration for visual reputation milestones is planned for a future release."
+/>
+
+## Best Practices
+
+- Check your work dashboard regularly to catch rejections early — resubmit with corrections promptly
+- Keep a record of your attestation UIDs for your own portfolio or grant applications
+- Consistent, high-quality submissions build stronger reputation faster than volume alone
+- If a submission stays in "Pending" for an extended period, check with your garden operator
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="You've built your reputation — now deepen your understanding of the platform."
+  actionLabel="How It Works"
+  actionHref="/community/how-it-works"
+  alternatives={[
+    {label: "Voting & Governance", href: "/community/gardener-guide/voting-governance"},
+    {label: "Glossary", href: "/glossary"},
+  ]}
+/>

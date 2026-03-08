@@ -1,7 +1,7 @@
 // SKIP: #312 — createPublicClientForChain mock doesn't intercept real Pimlico config import
 // Owner: shared / Expiry: 2026-03-17
 import { describe, expect, it, vi } from "vitest";
-import { resolveEnsName, resolveEnsAddress } from "../../utils";
+import { resolveEnsAddress, resolveEnsName } from "../../utils";
 
 vi.mock("../../config/pimlico", () => ({
   createPublicClientForChain: vi.fn(() => ({

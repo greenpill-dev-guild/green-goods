@@ -6,24 +6,24 @@
  */
 
 import { type Abi, type Address, createPublicClient, http } from "viem";
-import type { NetworkContracts } from "../../types/contracts";
 import { getChain as getChainFromConfig } from "../../config/chains";
+import type { NetworkContracts } from "../../types/contracts";
 import { getNetworkName, getRpcUrl } from "./chain-registry";
 
 // Re-export chain utilities from config
 export { getChain } from "../../config/chains";
 
+import ActionRegistryABIJson from "@green-goods/contracts/abis/ActionRegistry.json";
+import GardenAccountABIJson from "@green-goods/contracts/abis/GardenAccount.json";
+import GardenTokenABIJson from "@green-goods/contracts/abis/GardenToken.json";
+import GreenGoodsENSABIJson from "@green-goods/contracts/abis/GreenGoodsENS.json";
+import IHatsABIJson from "@green-goods/contracts/abis/IHats.json";
+import EASABIJson from "@green-goods/contracts/abis/MockEAS.json";
 // Import deployment configurations
 import deployment42161 from "@green-goods/contracts/deployments/42161-latest.json";
 import deployment42220 from "@green-goods/contracts/deployments/42220-latest.json";
 import deployment11155111 from "@green-goods/contracts/deployments/11155111-latest.json";
 import networksConfig from "@green-goods/contracts/deployments/networks.json";
-import ActionRegistryABIJson from "@green-goods/contracts/abis/ActionRegistry.json";
-import EASABIJson from "@green-goods/contracts/abis/MockEAS.json";
-import GardenAccountABIJson from "@green-goods/contracts/abis/GardenAccount.json";
-import GardenTokenABIJson from "@green-goods/contracts/abis/GardenToken.json";
-import GreenGoodsENSABIJson from "@green-goods/contracts/abis/GreenGoodsENS.json";
-import IHatsABIJson from "@green-goods/contracts/abis/IHats.json";
 
 // Export the ABIs for viem compatibility
 export const GardenTokenABI = GardenTokenABIJson as Abi;
@@ -45,7 +45,7 @@ const DEPLOYMENT_CONFIGS: Record<string, Record<string, any>> = {
   "11155111": deployment11155111 as Record<string, any>,
 };
 
-import { ZERO_ADDRESS } from "./vaults";
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
 
 function asAddress(value: unknown): Address {
   return typeof value === "string" ? (value as Address) : ZERO_ADDRESS;

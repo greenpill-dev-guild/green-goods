@@ -1,0 +1,102 @@
+---
+title: "Voting & Governance"
+sidebar_label: "Voting & Governance"
+slug: /community/gardener-guide/voting-governance
+audience: all
+owner: docs
+last_verified: 2026-03-01
+feature_status: Implemented (activation pending deployment)
+goal: "Help gardeners understand and participate in garden governance through conviction voting and signal pools."
+difficulty: "standard"
+estimated_time: "10 minutes."
+prereqs: "Membership in a garden with active signal pools."
+next_steps: "/community/gardener-guide/earning-badges"
+persona_context: "Gardeners participating in community governance and resource allocation decisions."
+source_of_truth:
+  - packages/client/src/components/Dialogs/ConvictionDrawer.tsx
+  - packages/shared/src/hooks/conviction/useGardenPools.ts
+  - packages/shared/src/hooks/conviction/useMemberVotingPower.ts
+  - packages/shared/src/hooks/conviction/useAllocateHypercertSupport.ts
+keywords:
+  - conviction voting
+  - signal pools
+  - governance
+  - voting power
+  - gardener governance
+---
+
+import {
+  DecisionGuide,
+  FeatureState,
+  NextBestAction,
+  StatusBadge,
+  StepFlow,
+} from "@site/src/components/docs";
+
+# Voting & Governance
+
+<StatusBadge status="Implemented (activation pending deployment)" />
+
+## Overview
+
+Garden governance lets you influence how community resources are allocated. Through signal pools and conviction voting, you express which impact initiatives and hypercerts deserve funding. Your voting power is determined by your role, contribution history, or stake in the garden.
+
+{/* IMAGE PLACEHOLDER */}
+
+<FeatureState
+  title="Conviction voting"
+  status="Implemented (activation pending deployment)"
+  summary="Signal pool and conviction voting hooks are implemented. Activation is pending non-zero module addresses in deployment artifacts."
+/>
+
+## How It Works
+
+<StepFlow
+  steps={[
+    {title: "Open signal pools", detail: "Navigate to your garden and find the active signal pools. Each pool targets a specific allocation decision — such as which hypercerts should receive funding."},
+    {title: "Review candidates", detail: "Browse the registered hypercerts or initiatives available for voting. Read descriptions and impact claims before committing your support."},
+    {title: "Allocate your support", detail: "Stake your voting power on the candidates you believe deserve funding. You can split your support across multiple candidates."},
+    {title: "Watch conviction build", detail: "Conviction accumulates over time as you keep your support allocated. The longer you maintain support, the stronger your signal becomes."},
+  ]}
+/>
+
+<DecisionGuide
+  title="How to use your voting power"
+  items={[
+    {
+      when: "You want to strongly support one initiative",
+      do: "Concentrate your voting power on a single candidate for maximum conviction.",
+      next: "Monitor conviction thresholds to see when the initiative reaches funding eligibility.",
+    },
+    {
+      when: "You want to support multiple initiatives",
+      do: "Split your voting power across candidates. Each allocation builds conviction independently.",
+      next: "Rebalance periodically as initiatives progress or new ones are added.",
+    },
+    {
+      when: "You are unsure which initiative to support",
+      do: "Review the impact claims and attestation evidence before committing.",
+      next: "Start with a small allocation and increase as you gain confidence.",
+    },
+  ]}
+/>
+
+## Best Practices
+
+- Keep your support allocated over time — conviction voting rewards sustained commitment, not one-time votes
+- Review new proposals and registered hypercerts regularly to stay informed about allocation options
+- If you change your mind, you can reallocate your support at any time, but conviction resets on the moved portion
+- Participate in garden discussions about governance strategy so your votes reflect community priorities
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="With governance covered, understand how your contributions build lasting reputation."
+  actionLabel="Earning Badges"
+  actionHref="/community/gardener-guide/earning-badges"
+  alternatives={[
+    {label: "Garden Payouts", href: "/community/gardener-guide/garden-payouts"},
+    {label: "Conviction Pools (Operator)", href: "/community/operator-guide/managing-governance"},
+  ]}
+/>

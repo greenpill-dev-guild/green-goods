@@ -1,8 +1,11 @@
+import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
 import { formatAddress } from "../app/text";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 
 export const ZERO_ADDRESS: Address = "0x0000000000000000000000000000000000000000";
+
+/** Octant vault MAX_BPS (10000 = 100%). Used as maxLoss for permissive withdraw/redeem queries. */
+export const VAULT_MAX_BPS = 10000n;
 
 const ASSET_SYMBOLS_BY_CHAIN: Record<number, Record<string, string>> = {
   42161: {
@@ -105,7 +108,8 @@ export function formatTokenAmount(
   value: bigint,
   decimals = 18,
   maxFractionDigits = 4,
-  locale?: string
+  locale?: string,
+  showDustIndicator = false
 ): string {
   if (value === 0n) return "0";
 
@@ -114,6 +118,16 @@ export function formatTokenAmount(
   const base = 10n ** BigInt(decimals);
   const whole = absolute / base;
   const fraction = absolute % base;
+
+  // Dust indicator: when value is non-zero but too small to display
+  if (showDustIndicator && whole === 0n) {
+    const padded = fraction.toString().padStart(decimals, "0");
+    const visible = padded.slice(0, maxFractionDigits).replace(/0+$/, "");
+    if (!visible) {
+      const dustStr = `< 0.${"0".repeat(maxFractionDigits - 1)}1`;
+      return negative ? `< -0.${"0".repeat(maxFractionDigits - 1)}1` : dustStr;
+    }
+  }
 
   const resolvedLocale =
     locale ?? (typeof navigator !== "undefined" ? navigator.language : "en-US");
@@ -126,6 +140,15 @@ export function formatTokenAmount(
   const padded = fraction.toString().padStart(decimals, "0");
   const trimmed = padded.slice(0, maxFractionDigits).replace(/0+$/, "");
   if (!trimmed) {
+    // When whole === 0 and value is non-zero, show full precision to avoid displaying "0"
+    if (whole === 0n) {
+      const fullTrimmed = padded.replace(/0+$/, "");
+      if (fullTrimmed) {
+        const decSep = (0.1).toLocaleString(resolvedLocale).charAt(1);
+        const full = `${wholeText}${decSep}${fullTrimmed}`;
+        return negative ? `-${full}` : full;
+      }
+    }
     return negative ? `-${wholeText}` : wholeText;
   }
 

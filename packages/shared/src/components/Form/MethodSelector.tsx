@@ -1,13 +1,7 @@
-import { useCallback, type KeyboardEvent } from "react";
+import { type KeyboardEvent, useCallback } from "react";
+import { useIntl } from "react-intl";
 import { VerificationMethod } from "../../types/domain";
 import { cn } from "../../utils/styles/cn";
-
-const METHOD_OPTIONS = [
-  { value: VerificationMethod.HUMAN, label: "Human", icon: "ri-user-line" },
-  { value: VerificationMethod.IOT, label: "IoT", icon: "ri-sensor-line" },
-  { value: VerificationMethod.ONCHAIN, label: "Onchain", icon: "ri-links-line" },
-  { value: VerificationMethod.AGENT, label: "Agent", icon: "ri-robot-2-line" },
-] as const;
 
 export interface MethodSelectorProps {
   /** Bitmask value combining VerificationMethod flags */
@@ -30,6 +24,31 @@ export function MethodSelector({
   disabled = false,
   className,
 }: MethodSelectorProps) {
+  const { formatMessage } = useIntl();
+
+  const METHOD_OPTIONS = [
+    {
+      value: VerificationMethod.HUMAN,
+      label: formatMessage({ id: "app.form.method.human", defaultMessage: "Human" }),
+      icon: "ri-user-line",
+    },
+    {
+      value: VerificationMethod.IOT,
+      label: formatMessage({ id: "app.form.method.iot", defaultMessage: "IoT" }),
+      icon: "ri-sensor-line",
+    },
+    {
+      value: VerificationMethod.ONCHAIN,
+      label: formatMessage({ id: "app.form.method.onchain", defaultMessage: "Onchain" }),
+      icon: "ri-links-line",
+    },
+    {
+      value: VerificationMethod.AGENT,
+      label: formatMessage({ id: "app.form.method.agent", defaultMessage: "Agent" }),
+      icon: "ri-robot-2-line",
+    },
+  ];
+
   const toggle = useCallback(
     (method: number) => {
       if (disabled) return;
@@ -52,7 +71,10 @@ export function MethodSelector({
   return (
     <div
       role="group"
-      aria-label="Verification methods"
+      aria-label={formatMessage({
+        id: "app.form.method.groupLabel",
+        defaultMessage: "Verification methods",
+      })}
       className={cn("flex flex-wrap gap-2", className)}
     >
       {METHOD_OPTIONS.map((option) => {
@@ -62,7 +84,10 @@ export function MethodSelector({
             key={option.value}
             type="button"
             aria-pressed={isActive}
-            aria-label={`${option.label} verification`}
+            aria-label={formatMessage(
+              { id: "app.form.method.ariaLabel", defaultMessage: "{method} verification" },
+              { method: option.label }
+            )}
             disabled={disabled}
             onClick={() => toggle(option.value)}
             onKeyDown={(e) => handleKeyDown(e, option.value)}

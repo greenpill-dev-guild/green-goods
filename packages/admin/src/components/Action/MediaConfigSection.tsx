@@ -2,6 +2,7 @@ import type { ActionInstructionConfig } from "@green-goods/shared";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { FormField } from "@/components/ui/FormField";
 
 interface MediaConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["media"];
@@ -50,13 +51,13 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
   return (
     <div className="space-y-6">
       {/* Basic Settings */}
-      <div>
-        <label htmlFor="media-title" className="block text-sm font-medium text-text-strong mb-2">
-          {formatMessage({
-            id: "app.admin.actions.mediaConfig.sectionTitle",
-            defaultMessage: "Section Title",
-          })}
-        </label>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.mediaConfig.sectionTitle",
+          defaultMessage: "Section Title",
+        })}
+        htmlFor="media-title"
+      >
         <input
           id="media-title"
           type="text"
@@ -68,18 +69,15 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             defaultMessage: "e.g., Capture Media",
           })}
         />
-      </div>
+      </FormField>
 
-      <div>
-        <label
-          htmlFor="media-description"
-          className="block text-sm font-medium text-text-strong mb-2"
-        >
-          {formatMessage({
-            id: "app.admin.actions.mediaConfig.description",
-            defaultMessage: "Description",
-          })}
-        </label>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.mediaConfig.description",
+          defaultMessage: "Description",
+        })}
+        htmlFor="media-description"
+      >
         <textarea
           id="media-description"
           value={config.description}
@@ -91,17 +89,17 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             defaultMessage: "Provide instructions for media capture...",
           })}
         />
-      </div>
+      </FormField>
 
       {/* Image Count */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="media-min" className="block text-sm font-medium text-text-strong mb-2">
-            {formatMessage({
-              id: "app.admin.actions.mediaConfig.minImages",
-              defaultMessage: "Min Images",
-            })}
-          </label>
+        <FormField
+          label={formatMessage({
+            id: "app.admin.actions.mediaConfig.minImages",
+            defaultMessage: "Min Images",
+          })}
+          htmlFor="media-min"
+        >
           <input
             id="media-min"
             type="number"
@@ -110,14 +108,14 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             onChange={(e) => onChange({ ...config, minImageCount: parseInt(e.target.value) || 0 })}
             className="w-full rounded-md border border-stroke-soft px-3 py-2"
           />
-        </div>
-        <div>
-          <label htmlFor="media-max" className="block text-sm font-medium text-text-strong mb-2">
-            {formatMessage({
-              id: "app.admin.actions.mediaConfig.maxImages",
-              defaultMessage: "Max Images",
-            })}
-          </label>
+        </FormField>
+        <FormField
+          label={formatMessage({
+            id: "app.admin.actions.mediaConfig.maxImages",
+            defaultMessage: "Max Images",
+          })}
+          htmlFor="media-max"
+        >
           <input
             id="media-max"
             type="number"
@@ -126,7 +124,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             onChange={(e) => onChange({ ...config, maxImageCount: parseInt(e.target.value) || 1 })}
             className="w-full rounded-md border border-stroke-soft px-3 py-2"
           />
-        </div>
+        </FormField>
       </div>
 
       {/* Required Toggle */}
@@ -147,19 +145,16 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
       </div>
 
       {/* Needed Shot Types */}
-      <div>
-        <label htmlFor="media-needed" className="block text-sm font-medium text-text-strong mb-2">
-          {formatMessage({
-            id: "app.admin.actions.mediaConfig.requiredShots",
-            defaultMessage: "Required Shot Types",
-          })}
-        </label>
-        <p className="text-xs text-text-sub mb-3">
-          {formatMessage({
-            id: "app.admin.actions.mediaConfig.requiredShotsDescription",
-            defaultMessage: "Specify what types of photos users must capture",
-          })}
-        </p>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.mediaConfig.requiredShots",
+          defaultMessage: "Required Shot Types",
+        })}
+        hint={formatMessage({
+          id: "app.admin.actions.mediaConfig.requiredShotsDescription",
+          defaultMessage: "Specify what types of photos users must capture",
+        })}
+      >
         <fieldset id="media-needed" className="space-y-2">
           {config.needed.map((shot, index) => (
             <div key={index} className="flex items-center gap-2">
@@ -209,22 +204,19 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             </button>
           </div>
         </fieldset>
-      </div>
+      </FormField>
 
       {/* Optional Shot Types */}
-      <div>
-        <label htmlFor="media-optional" className="block text-sm font-medium text-text-strong mb-2">
-          {formatMessage({
-            id: "app.admin.actions.mediaConfig.optionalShots",
-            defaultMessage: "Optional Shot Types",
-          })}
-        </label>
-        <p className="text-xs text-text-sub mb-3">
-          {formatMessage({
-            id: "app.admin.actions.mediaConfig.optionalShotsDescription",
-            defaultMessage: "Suggest additional photos users can optionally include",
-          })}
-        </p>
+      <FormField
+        label={formatMessage({
+          id: "app.admin.actions.mediaConfig.optionalShots",
+          defaultMessage: "Optional Shot Types",
+        })}
+        hint={formatMessage({
+          id: "app.admin.actions.mediaConfig.optionalShotsDescription",
+          defaultMessage: "Suggest additional photos users can optionally include",
+        })}
+      >
         <fieldset id="media-optional" className="space-y-2">
           {config.optional.map((shot, index) => (
             <div key={index} className="flex items-center gap-2">
@@ -274,7 +266,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
             </button>
           </div>
         </fieldset>
-      </div>
+      </FormField>
     </div>
   );
 }

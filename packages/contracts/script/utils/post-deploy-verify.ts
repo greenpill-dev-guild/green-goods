@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
 import * as yaml from "js-yaml";
+
+
 import { CHAIN_ID_MAP, NetworkManager } from "./network";
 
 type NetworkName = "sepolia" | "arbitrum" | "celo" | "mainnet" | "localhost";
@@ -559,8 +561,9 @@ function validateEtherscanVerification(chainId: string, deployment: DeploymentRe
         stdio: ["pipe", "pipe", "pipe"],
       });
       console.log(`  ${entry.name}: verified`);
-    } catch {
-      failures.push(`Etherscan source not verified: ${entry.name} (${entry.address})`);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      failures.push(`Etherscan source not verified: ${entry.name} (${entry.address}): ${reason}`);
       console.log(`  ${entry.name}: NOT VERIFIED`);
     }
   }

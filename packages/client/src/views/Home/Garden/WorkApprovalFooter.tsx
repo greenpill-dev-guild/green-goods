@@ -1,6 +1,6 @@
 import { cn, type Confidence, ConfidenceSelector } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { Button } from "@/components/Actions";
@@ -31,6 +31,32 @@ export const WorkApprovalFooter: React.FC<WorkApprovalFooterProps> = ({
   onConfidenceChange,
 }) => {
   const intl = useIntl();
+  const [viewportBottomInset, setViewportBottomInset] = useState(0);
+
+  useEffect(() => {
+    if (!feedbackMode || typeof window === "undefined" || !window.visualViewport) {
+      setViewportBottomInset(0);
+      return;
+    }
+
+    const updateViewportInset = () => {
+      const viewport = window.visualViewport;
+      const nextInset = Math.max(
+        0,
+        Math.round(window.innerHeight - viewport.height - viewport.offsetTop)
+      );
+      setViewportBottomInset(nextInset);
+    };
+
+    updateViewportInset();
+    window.visualViewport.addEventListener("resize", updateViewportInset);
+    window.visualViewport.addEventListener("scroll", updateViewportInset);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", updateViewportInset);
+      window.visualViewport?.removeEventListener("scroll", updateViewportInset);
+    };
+  }, [feedbackMode]);
 
   return (
     <>
@@ -43,7 +69,7 @@ export const WorkApprovalFooter: React.FC<WorkApprovalFooterProps> = ({
         aria-hidden="true"
       />
 
-      <div className="fixed left-0 right-0 bottom-0 z-[200]">
+      <div className="fixed left-0 right-0 z-[200]" style={{ bottom: viewportBottomInset }}>
         <div
           className={cn(
             "absolute bottom-full left-0 right-0 bg-bg-white-0 rounded-t-2xl shadow-xl overflow-hidden transition-transform duration-300 ease-out origin-bottom",
@@ -118,7 +144,7 @@ export const WorkApprovalFooter: React.FC<WorkApprovalFooterProps> = ({
                 id: "app.home.workApproval.feedbackPlaceholder",
                 defaultMessage: "Add your feedback here...",
               })}
-              className="w-full min-h-[120px] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              className="mobile-safe-input w-full min-h-[120px] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
             />
           </div>
 

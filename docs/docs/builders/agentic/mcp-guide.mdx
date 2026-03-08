@@ -1,0 +1,70 @@
+---
+title: Agent and MCP Guide
+slug: /builders/agentic/mcp-guide
+audience: developer
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Understand current MCP server configuration and safe usage boundaries."
+difficulty: "advanced"
+estimated_time: "10-20 minutes"
+prereqs: "Read access to `.mcp.json` and AGENTS guidance."
+next_steps: "../deployments/status"
+persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
+source_of_truth:
+  - .mcp.json
+  - AGENTS.md
+---
+
+import {NextBestAction, QuickAnswer, StatusBadge} from "@site/src/components/docs";
+
+# Agent and MCP Guide
+
+<StatusBadge status="Live" />
+
+Status aligned to `.mcp.json` as of **2026-02-18**.
+
+## Configured servers
+
+| Server | Enabled | Purpose |
+| --- | --- | --- |
+| `foundry` | true | Contract compile/test/cast/anvil flows |
+| `storacha` | true | IPFS/Filecoin storage workflows |
+| `railway` | true | Deployment/service operations |
+
+## Agent access model
+
+| Agent | Declared access |
+| --- | --- |
+| `cracked-coder` | `foundry`, `storacha`, `railway` |
+| `code-reviewer` | none |
+| `oracle` | `miro` |
+
+## Consistency note
+
+`.mcp.json` declares `oracle -> miro` in `agentAccess`, but `miro` is not present under `servers`.
+
+Treat this as configuration drift until either:
+
+1. `miro` server block is added, or
+2. `oracle` access list is updated to remove `miro`.
+
+## Safe usage policy
+
+- Prefer local tooling (`bun`, `forge`, `cast`) for small scoped tasks.
+- Use MCP when cross-system automation is required.
+- Avoid exposing secrets in logs or docs examples.
+
+<QuickAnswer question="Which source wins if docs and config disagree?" openByDefault>
+  `.mcp.json` is the source of truth. Update docs in the same PR that changes MCP config.
+</QuickAnswer>
+
+<NextBestAction
+  title="Next best action"
+  why="After checking tool access, confirm protocol activation status before documenting feature availability."
+  actionLabel="Open deployment status"
+  actionHref="../deployments/status"
+  alternatives={[
+    {label: "Back to agentic guides", href: "./core-philosophies"},
+  ]}
+/>

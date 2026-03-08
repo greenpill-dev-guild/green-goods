@@ -38,15 +38,8 @@ export {
   isChainSupported,
   SUPPORTED_CHAINS,
 } from "./chains";
-
-// From pimlico.ts
-export {
-  createPimlicoClientForChain,
-  createPublicClientForChain,
-  getPimlicoApiKey,
-  getPimlicoBundlerUrl,
-  getPimlicoPaymasterUrl,
-} from "./pimlico";
+// From gardens-subgraph.ts
+export { getGardensSubgraphUrl } from "./gardens-subgraph";
 
 // From passkeyServer.ts (client-only passkey utilities)
 export {
@@ -56,13 +49,17 @@ export {
   PASSKEY_RP_ID,
   PASSKEY_RP_NAME,
 } from "./passkeyServer";
-
+// From pimlico.ts
+export {
+  createPimlicoClientForChain,
+  createPublicClientForChain,
+  getPimlicoApiKey,
+  getPimlicoBundlerUrl,
+  getPimlicoPaymasterUrl,
+} from "./pimlico";
 // From react-query.ts
 export { GC_TIMES, queryClient, STALE_TIMES } from "./react-query";
 
-// From gardens-subgraph.ts
-export { getGardensSubgraphUrl } from "./gardens-subgraph";
-
 // From sdg.ts
-export type { SDGTarget, SDGGoalId } from "./sdg";
-export { SDG_TARGETS, getSDGLabel } from "./sdg";
+export type { SDGGoalId, SDGTarget } from "./sdg";
+export { getSDGLabel, SDG_TARGETS } from "./sdg";

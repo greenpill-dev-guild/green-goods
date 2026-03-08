@@ -5,8 +5,8 @@
  * for the HypercertMarketplaceAdapter and HypercertsModule contracts.
  */
 
-import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import type { Address } from "viem";
+import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 
 // We mock the dependencies before importing the module under test
 vi.mock("../../../config/pimlico", () => ({
@@ -26,19 +26,18 @@ vi.mock("../../../modules/app/logger", () => ({
   },
 }));
 
+import { createPublicClientForChain } from "../../../config/pimlico";
+import { logger } from "../../../modules/app/logger";
 import {
-  getRegisteredOrders,
   getActiveOrder,
-  previewPurchase,
+  getListingHistory,
   getMinPrice,
+  getRegisteredOrders,
   getSellerOrders,
   getTradeHistory,
-  getListingHistory,
+  previewPurchase,
 } from "../../../modules/data/marketplace";
-
-import { createPublicClientForChain } from "../../../config/pimlico";
 import { getNetworkContracts } from "../../../utils/blockchain/contracts";
-import { logger } from "../../../modules/app/logger";
 
 // ============================================
 // Test Constants

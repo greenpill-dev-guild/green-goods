@@ -1,0 +1,86 @@
+---
+title: "Earning Badges & Recognition"
+sidebar_label: "Earning Badges"
+slug: /community/evaluator-guide/earning-badges
+audience: all
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+goal: "Help evaluators understand how assessment work builds their on-chain reputation and credibility."
+difficulty: "standard"
+estimated_time: "5 minutes."
+prereqs: "Completed at least one evaluation or attestation chain verification."
+next_steps: "/community/how-it-works"
+persona_context: "Evaluators building credibility through consistent, high-quality impact verification work."
+source_of_truth:
+  - packages/shared/src/modules/data/eas.ts
+  - packages/shared/src/hooks/assessment/useGardenAssessments.ts
+keywords:
+  - evaluator reputation
+  - badges
+  - recognition
+  - credibility
+  - assessment history
+---
+
+import {
+  FeatureState,
+  NextBestAction,
+  StatusBadge,
+  StepFlow,
+} from "@site/src/components/docs";
+
+# Earning Badges & Recognition
+
+<StatusBadge status="Live" />
+
+## Overview
+
+Evaluator credibility is built through a track record of thorough, accurate impact verification. Every assessment you contribute to and every attestation chain you verify adds to your on-chain history. Funders and other stakeholders rely on evaluator reputation to gauge the trustworthiness of impact claims.
+
+{/* IMAGE PLACEHOLDER */}
+
+## How It Works
+
+<StepFlow
+  steps={[
+    {title: "Verify attestation chains", detail: "Each attestation chain you verify and document contributes to your evaluation track record. Consistent, accurate verification builds trust."},
+    {title: "Contribute to assessments", detail: "Participating in garden assessments (reviewing impact across the Eight Forms of Capital) creates on-chain records of your evaluation work."},
+    {title: "Produce evaluation reports", detail: "Documenting your findings in structured reports demonstrates analytical rigor and helps funders make informed decisions."},
+    {title: "Build a portable reputation", detail: "Your evaluation history is on-chain and verifiable by any protocol. This record follows you across gardens, platforms, and funding ecosystems."},
+  ]}
+/>
+
+**What contributes to your reputation:**
+
+- **Verification volume and accuracy** — how many attestation chains you have verified and how consistently your findings hold up
+- **Assessment contributions** — your participation in garden assessments, especially those that led to successful funding
+- **Cross-garden evaluation** — evaluating across multiple gardens demonstrates breadth and independence
+- **Methodology documentation** — published evaluation frameworks that others can review and build on
+
+<FeatureState
+  title="Evaluator badge system"
+  status="Planned"
+  summary="Visual badges and structured reputation scores for evaluators are planned for a future release. Current recognition is based on raw on-chain evaluation history."
+/>
+
+## Best Practices
+
+- Maintain evaluation independence — avoid conflicts of interest by disclosing any affiliations with gardens you evaluate
+- Document your methodology so that your results are reproducible and your reasoning is transparent
+- Build evaluation history across multiple gardens to demonstrate breadth and reduce bias perception
+- Share your evaluation history when seeking new evaluation opportunities or applying for funding analysis roles
+- Stay current with evolving impact frameworks and attestation standards to maintain evaluation quality
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="Understand the broader platform and how evaluator work fits into the ecosystem."
+  actionLabel="How It Works"
+  actionHref="/community/how-it-works"
+  alternatives={[
+    {label: "Evaluating Certificates", href: "/community/evaluator-guide/evaluating-certificates"},
+    {label: "Evaluator Guide", href: "/community/evaluator-guide/joining-a-garden"},
+  ]}
+/>

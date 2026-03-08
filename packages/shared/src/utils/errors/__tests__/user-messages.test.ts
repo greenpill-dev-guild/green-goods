@@ -2,10 +2,10 @@
  * User-Friendly Error Message Tests
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  formatUserError,
   formatJobError,
+  formatUserError,
   formatWalletError,
   USER_FRIENDLY_ERRORS,
 } from "../user-messages";

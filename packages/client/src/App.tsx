@@ -1,4 +1,7 @@
-import { queryClient, debugWarn } from "@green-goods/shared";
+import { debugWarn, queryClient } from "@green-goods/shared";
+// Note: Service worker is registered by vite-plugin-pwa (registerType: "autoUpdate")
+// Auto-update logic (foreground checks + controllerchange reload) is in main.tsx
+import type { Query } from "@tanstack/react-query";
 import {
   type PersistedClient,
   type Persister,
@@ -7,9 +10,6 @@ import {
 import { createStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import { RouterProvider } from "react-router-dom";
 import { AppErrorBoundary } from "@/components/Errors";
-// Note: Service worker is registered by vite-plugin-pwa (registerType: "autoUpdate")
-// Auto-update logic (foreground checks + controllerchange reload) is in main.tsx
-import type { Query } from "@tanstack/react-query";
 import { router } from "@/router";
 
 const createSyncStoragePersister = ({ storage }: { storage: Storage }): Persister => {
@@ -40,52 +40,49 @@ const createSyncStoragePersister = ({ storage }: { storage: Storage }): Persiste
   } as Persister;
 };
 
-function App() {
-  // Prefer IndexedDB persister for larger caches; fall back to localStorage
-  const createIDBPersister = ({
-    dbName,
-    storeName,
-  }: {
-    dbName: string;
-    storeName: string;
-  }): Persister | undefined => {
-    try {
-      const store = createStore(dbName, storeName);
-      return {
-        persistClient: async (client: PersistedClient) => {
-          try {
-            await idbSet("__rq_pc__", client, store);
-          } catch (error) {
-            debugWarn("[Persister] Failed to persist client to IndexedDB:", error);
-          }
-        },
-        restoreClient: async (): Promise<PersistedClient | undefined> => {
-          try {
-            return (await idbGet("__rq_pc__", store)) as PersistedClient | undefined;
-          } catch (error) {
-            debugWarn("[Persister] Failed to restore client from IndexedDB:", error);
-            return undefined;
-          }
-        },
-        removeClient: async (): Promise<void> => {
-          try {
-            await idbDel("__rq_pc__", store);
-          } catch (error) {
-            debugWarn("[Persister] Failed to remove client from IndexedDB:", error);
-          }
-        },
-      } as Persister;
-    } catch (e) {
-      debugWarn(
-        "[Persister] Failed to initialize IndexedDB persister, falling back to storage:",
-        e
-      );
-      return undefined;
-    }
-  };
-  const idbPersister = createIDBPersister({ dbName: "gg-react-query", storeName: "rq" });
-  const persister = idbPersister ?? createSyncStoragePersister({ storage: window.localStorage });
+const createIDBPersister = ({
+  dbName,
+  storeName,
+}: {
+  dbName: string;
+  storeName: string;
+}): Persister | undefined => {
+  try {
+    const store = createStore(dbName, storeName);
+    return {
+      persistClient: async (client: PersistedClient) => {
+        try {
+          await idbSet("__rq_pc__", client, store);
+        } catch (error) {
+          debugWarn("[Persister] Failed to persist client to IndexedDB:", error);
+        }
+      },
+      restoreClient: async (): Promise<PersistedClient | undefined> => {
+        try {
+          return (await idbGet("__rq_pc__", store)) as PersistedClient | undefined;
+        } catch (error) {
+          debugWarn("[Persister] Failed to restore client from IndexedDB:", error);
+          return undefined;
+        }
+      },
+      removeClient: async (): Promise<void> => {
+        try {
+          await idbDel("__rq_pc__", store);
+        } catch (error) {
+          debugWarn("[Persister] Failed to remove client from IndexedDB:", error);
+        }
+      },
+    } as Persister;
+  } catch (e) {
+    debugWarn("[Persister] Failed to initialize IndexedDB persister, falling back to storage:", e);
+    return undefined;
+  }
+};
 
+const idbPersister = createIDBPersister({ dbName: "gg-react-query", storeName: "rq" });
+const persister = idbPersister ?? createSyncStoragePersister({ storage: window.localStorage });
+
+function App() {
   /**
    * Avoid persisting volatile or in-flight queries.
    * Only persist stable, successful query results.

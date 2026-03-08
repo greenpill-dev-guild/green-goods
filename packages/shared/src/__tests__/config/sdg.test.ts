@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { SDG_TARGETS, getSDGLabel } from "../../config/sdg";
+import { getSDGLabel, SDG_TARGETS } from "../../config/sdg";
 
 describe("config/sdg", () => {
   describe("SDG_TARGETS", () => {

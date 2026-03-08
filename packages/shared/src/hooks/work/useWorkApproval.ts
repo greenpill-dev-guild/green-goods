@@ -14,7 +14,6 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
@@ -26,6 +25,7 @@ import {
 import { jobQueue } from "../../modules/job-queue";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
+import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
@@ -93,6 +93,17 @@ export function useWorkApproval() {
 
   const mutation = useMutation({
     mutationFn: async ({ draft, work }: UseWorkApprovalParams): Promise<ApprovalMutationResult> => {
+      // Pre-flight validation — catch invalid states before hitting the chain
+      if (!draft.workUID) {
+        throw new Error("Work UID is required for approval");
+      }
+      if (!work.gardenAddress) {
+        throw new Error("Garden address is missing from work data");
+      }
+      if (work.status === "approved" || work.status === "rejected") {
+        throw new Error(`This work has already been ${work.status}`);
+      }
+
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Starting approval submission", {
           authMode,

@@ -8,10 +8,10 @@
  */
 
 import type { SmartAccountClient } from "permissionless";
-import type { Action, Address, WorkDraft } from "../../types/domain";
 import { useCallback, useMemo } from "react";
+import type { Action, Address, WorkDraft } from "../../types/domain";
+import { type SubmissionStage, useSubmissionProgress } from "./useSubmissionProgress";
 import { useWorkMutation } from "./useWorkMutation";
-import { useSubmissionProgress, type SubmissionStage } from "./useSubmissionProgress";
 
 interface UseWorkMutationWithProgressOptions {
   authMode: "wallet" | "passkey" | null;

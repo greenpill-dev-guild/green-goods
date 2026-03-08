@@ -17,6 +17,7 @@ import {
   pollQueriesAfterTransaction,
   TX_RECEIPT_TIMEOUT_MS,
 } from "../../../utils/blockchain/polling";
+import { simulateApprovalSubmission } from "../simulate";
 import type { BatchApprovalOptions } from "./types";
 import { waitForReceiptWithTimeout } from "./receipt";
 
@@ -59,6 +60,16 @@ export async function submitBatchApprovalsDirectly(
   }
 
   try {
+    for (const [index, approval] of approvals.entries()) {
+      onProgress?.("validating", `Checking approval ${index + 1} of ${approvals.length}...`);
+      await simulateApprovalSubmission({
+        draft: approval.draft,
+        gardenAddress: approval.gardenAddress,
+        chainId,
+        accountAddress: operatorAddress as `0x${string}`,
+      });
+    }
+
     const encodedApprovals = approvals.map(({ draft, gardenAddress }) => ({
       gardenAddress: gardenAddress as `0x${string}`,
       attestationData: encodeWorkApprovalData(draft, chainId),

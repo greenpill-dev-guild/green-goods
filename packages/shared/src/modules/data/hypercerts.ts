@@ -1,6 +1,6 @@
 import type { Address } from "viem";
-
-import { logger } from "../app/logger";
+import { Domain, type GardenAssessment } from "../../types/domain";
+import type { EASWorkApproval } from "../../types/eas-responses";
 import {
   ACTION_DOMAINS,
   type ActionDomain,
@@ -11,10 +11,9 @@ import {
   type HypercertStatus,
   type MetricValue,
 } from "../../types/hypercerts";
-import { Domain, type GardenAssessment } from "../../types/domain";
-import type { EASWorkApproval } from "../../types/eas-responses";
-import { greenGoodsIndexer, GQLClient } from "./graphql-client";
-import { getWorks, getWorkApprovals, getWorkApprovalsByUIDs, getWorksByUIDs } from "./eas";
+import { logger } from "../app/logger";
+import { getWorkApprovals, getWorkApprovalsByUIDs, getWorks, getWorksByUIDs } from "./eas";
+import { GQLClient, greenGoodsIndexer } from "./graphql-client";
 import { resolveIPFSUrl } from "./ipfs";
 
 // =============================================================================

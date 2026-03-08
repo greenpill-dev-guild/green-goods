@@ -2,6 +2,12 @@
 name: performance
 user-invocable: false
 description: Performance profiling and optimization - bundle analysis, Lighthouse CI, React Profiler, memory leaks, service worker cache efficiency. Use for performance investigations, optimization, and budget enforcement.
+version: "1.0.0"
+status: active
+packages: ["shared", "client", "admin"]
+dependencies: []
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Performance Skill

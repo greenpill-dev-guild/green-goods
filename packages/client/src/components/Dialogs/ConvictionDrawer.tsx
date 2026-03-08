@@ -12,8 +12,8 @@ import {
   useOffline,
   useUser,
   useYieldAllocations,
-  WeightScheme,
   WEIGHT_SCHEME_VALUES,
+  WeightScheme,
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

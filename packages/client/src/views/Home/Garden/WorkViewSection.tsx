@@ -2,6 +2,7 @@ import {
   formatTimeSpent,
   type Garden,
   type Work,
+  type WorkDisplayStatus,
   type WorkMetadata,
   type WorkMetadataV1,
 } from "@green-goods/shared";
@@ -23,12 +24,12 @@ import { WorkView, type WorkViewAction } from "@/components/Features/Work";
 type ViewingMode = "operator" | "gardener" | "viewer";
 
 type WorkViewSectionProps = {
-  garden: Garden;
+  garden?: Garden;
   work: Work;
   workMetadata: WorkMetadata | null;
   viewingMode: ViewingMode;
   actionTitle: string;
-  effectiveStatus: "approved" | "rejected" | "pending";
+  effectiveStatus: WorkDisplayStatus;
   onDownloadData: () => void;
   onDownloadMedia?: () => void;
   onShare: () => void;
@@ -38,20 +39,34 @@ type WorkViewSectionProps = {
   footerSpacerClassName?: string;
 };
 
+/** Safely resolve metadata that may arrive as a JSON string (double-encoded) */
+function resolveMetadata(metadata: WorkMetadata | string | null): WorkMetadata | null {
+  if (!metadata) return null;
+  if (typeof metadata === "string") {
+    try {
+      return JSON.parse(metadata) as WorkMetadata;
+    } catch {
+      return null;
+    }
+  }
+  return metadata;
+}
+
 /** Type guard for v1 metadata shape */
 function isV1Metadata(
   metadata: WorkMetadata | WorkMetadataV1 | Record<string, unknown> | null
 ): metadata is WorkMetadataV1 {
-  if (!metadata) return false;
+  if (!metadata || typeof metadata !== "object") return false;
   return "plantCount" in metadata || "plantSelection" in metadata;
 }
 
 /** Build details list from metadata, supporting both v1 and v2 shapes */
 function buildMetadataDetails(
-  metadata: WorkMetadata | null,
+  rawMetadata: WorkMetadata | null,
   metadataUnavailable: string,
   intl: ReturnType<typeof useIntl>
 ) {
+  const metadata = resolveMetadata(rawMetadata);
   // v2 metadata: generic details map
   if (metadata && "schemaVersion" in metadata && metadata.schemaVersion === "work_metadata_v2") {
     const items: Array<{
@@ -168,8 +183,27 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
   const { feedback: workFeedback, media } = work;
 
+  const isOfflineStatus =
+    effectiveStatus === "syncing" ||
+    effectiveStatus === "uploading" ||
+    effectiveStatus === "sync_failed" ||
+    effectiveStatus === "offline";
+
   // Dynamic title based on status and viewing mode
   const getTitle = () => {
+    if (isOfflineStatus) {
+      if (effectiveStatus === "sync_failed") {
+        return intl.formatMessage({
+          id: "app.home.work.syncFailed",
+          defaultMessage: "Upload Failed",
+        });
+      }
+      return intl.formatMessage({
+        id: "app.home.work.pendingUploadTitle",
+        defaultMessage: "Pending Upload",
+      });
+    }
+
     if (viewingMode === "operator") {
       if (effectiveStatus === "approved") {
         return intl.formatMessage({
@@ -210,6 +244,25 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
   // Dynamic info text based on status and viewing mode
   const getInfo = () => {
+    if (isOfflineStatus) {
+      if (effectiveStatus === "sync_failed") {
+        return intl.formatMessage({
+          id: "app.home.work.syncFailedInfo",
+          defaultMessage: "This work could not be uploaded. Please retry when connected.",
+        });
+      }
+      if (effectiveStatus === "syncing" || effectiveStatus === "uploading") {
+        return intl.formatMessage({
+          id: "app.home.work.syncingInfo",
+          defaultMessage: "This work is being uploaded to the blockchain.",
+        });
+      }
+      return intl.formatMessage({
+        id: "app.home.work.offlineInfo",
+        defaultMessage: "This work is saved locally and will be uploaded when connected.",
+      });
+    }
+
     if (viewingMode === "operator") {
       if (effectiveStatus === "approved") {
         return intl.formatMessage({
@@ -350,3 +403,5 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
     />
   );
 };
+
+export default WorkViewSection;

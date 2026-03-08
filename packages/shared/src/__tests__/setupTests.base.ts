@@ -148,10 +148,12 @@ export function setupTestEnvironment() {
       persisted: vi.fn().mockResolvedValue(true),
     });
 
-    Object.defineProperty(navigator, "storage", {
-      value: createMockStorage(),
-      writable: true,
-    });
+    if (typeof navigator !== "undefined") {
+      Object.defineProperty(navigator, "storage", {
+        value: createMockStorage(),
+        writable: true,
+      });
+    }
 
     // Mock caches API - only if not already defined
     if (!("caches" in global)) {
@@ -213,11 +215,13 @@ export function setupTestEnvironment() {
     }
 
     // Reset navigator.onLine
-    Object.defineProperty(navigator, "onLine", {
-      value: true,
-      writable: true,
-      configurable: true,
-    });
+    if (typeof navigator !== "undefined") {
+      Object.defineProperty(navigator, "onLine", {
+        value: true,
+        writable: true,
+        configurable: true,
+      });
+    }
   });
 }
 

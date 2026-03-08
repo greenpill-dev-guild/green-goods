@@ -6,7 +6,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -50,16 +50,16 @@ vi.mock("../../utils/debug", () => ({
   debugError: vi.fn(),
 }));
 
-import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
-import { submitApprovalToQueue } from "../../modules/work/work-submission";
-import { jobQueue } from "../../modules/job-queue";
 import { toastService } from "../../components/toast";
 import { useWorkApproval } from "../../hooks/work/useWorkApproval";
+import { jobQueue } from "../../modules/job-queue";
+import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
+import { submitApprovalToQueue } from "../../modules/work/work-submission";
 import { Confidence, VerificationMethod } from "../../types/domain";
 import {
+  createMockSmartAccountClient,
   createMockWork,
   createMockWorkApprovalDraft,
-  createMockSmartAccountClient,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
 } from "../test-utils";

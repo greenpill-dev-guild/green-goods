@@ -1,6 +1,6 @@
+import { useCreateGardenStore } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
-import { useCreateGardenStore } from "@green-goods/shared";
 import { DetailsStep } from "./DetailsStep";
 
 /**
@@ -98,7 +98,7 @@ export const Prefilled: Story = {
           name: "Rio Rainforest Lab",
           slug: "rio-rainforest-lab",
           description:
-            "A community-driven conservation effort to document and protect native species in the Atlantic Forest biome near Rio de Janeiro.",
+            "A community-driven regenerative effort to document and protect native species in the Atlantic Forest biome near Rio de Janeiro.",
           location: "Rio de Janeiro, Brazil",
         }}
       >

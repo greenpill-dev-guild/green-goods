@@ -1,8 +1,6 @@
-import type { Domain_t } from "../../generated/src/db/Enums.gen";
-
-import type { Garden, GardenVault, Hypercert } from "../../generated/src/Types.gen";
-
 import { Capital, HypercertStatus, PoolType, WeightScheme } from "../../generated";
+import type { Domain_t } from "../../generated/src/db/Enums.gen";
+import type { Garden, GardenVault, Hypercert } from "../../generated/src/Types.gen";
 
 // ============================================================================
 // TYPE HELPERS
@@ -505,6 +503,7 @@ export function createDefaultGarden(gardenId: string, chainId: number, timestamp
     location: "",
     bannerImage: "",
     openJoining: false,
+    initialized: false,
     gardeners: [],
     operators: [],
     evaluators: [],

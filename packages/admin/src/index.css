@@ -90,7 +90,8 @@
 @layer base {
   body {
     margin: 0;
-    font-family: var(--font-family-sans);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 200ms ease, color 200ms ease;
@@ -105,7 +106,6 @@
   /* Thin styled scrollbars - visible for accessibility */
   * {
     scrollbar-width: thin;
-    scrollbar-gutter: stable;
     scrollbar-color: rgb(var(--bg-sub-300)) transparent;
   }
 
@@ -184,29 +184,8 @@
   textarea {
     background: inherit;
     border: 1px solid rgb(var(--stroke-sub-300));
-    border-radius: 0.75rem;
     color: rgb(var(--text-strong-950));
-    min-height: 44px;
-    padding: 0.625rem 0.875rem;
-    font-size: var(--text-paragraph-md);
-    line-height: var(--text-paragraph-md--line-height);
-    letter-spacing: var(--text-paragraph-md--letter-spacing);
     transition: all 200ms ease;
-  }
-
-  textarea {
-    min-height: 7rem;
-    resize: vertical;
-  }
-
-  @media (min-width: 640px) {
-    input:not([type="checkbox"]):not([type="radio"]),
-    select,
-    textarea {
-      font-size: var(--text-paragraph-sm);
-      line-height: var(--text-paragraph-sm--line-height);
-      letter-spacing: var(--text-paragraph-sm--letter-spacing);
-    }
   }
 
   input:not([type="checkbox"]):not([type="radio"]):focus,
@@ -220,7 +199,7 @@
   input:not([type="checkbox"]):not([type="radio"]):disabled,
   select:disabled,
   textarea:disabled {
-    opacity: 0.6;
+    color: rgb(var(--text-sub-600));
     cursor: not-allowed;
     background: rgb(var(--bg-soft-200));
   }
@@ -299,6 +278,58 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* ── Named Type Scale Utilities ── */
+  .label-md {
+    font-size: var(--text-label-md);
+    line-height: var(--text-label-md--line-height);
+    letter-spacing: var(--text-label-md--letter-spacing);
+    font-weight: var(--text-label-md--font-weight);
+  }
+  .label-sm {
+    font-size: var(--text-label-sm);
+    line-height: var(--text-label-sm--line-height);
+    letter-spacing: var(--text-label-sm--letter-spacing);
+    font-weight: var(--text-label-sm--font-weight);
+  }
+  .label-xs {
+    font-size: var(--text-label-xs);
+    line-height: var(--text-label-xs--line-height);
+    letter-spacing: var(--text-label-xs--letter-spacing);
+    font-weight: var(--text-label-xs--font-weight);
+  }
+  .body-md {
+    font-size: var(--text-paragraph-md);
+    line-height: var(--text-paragraph-md--line-height);
+    letter-spacing: var(--text-paragraph-md--letter-spacing);
+    font-weight: var(--text-paragraph-md--font-weight);
+  }
+  .body-sm {
+    font-size: var(--text-paragraph-sm);
+    line-height: var(--text-paragraph-sm--line-height);
+    letter-spacing: var(--text-paragraph-sm--letter-spacing);
+    font-weight: var(--text-paragraph-sm--font-weight);
+  }
+  .body-xs {
+    font-size: var(--text-paragraph-xs);
+    line-height: var(--text-paragraph-xs--line-height);
+    letter-spacing: var(--text-paragraph-xs--letter-spacing);
+    font-weight: var(--text-paragraph-xs--font-weight);
+  }
+  .subheading-sm {
+    font-size: var(--text-subheading-sm);
+    line-height: var(--text-subheading-sm--line-height);
+    letter-spacing: var(--text-subheading-sm--letter-spacing);
+    font-weight: var(--text-subheading-sm--font-weight);
+    text-transform: uppercase;
+  }
+  .subheading-xs {
+    font-size: var(--text-subheading-xs);
+    line-height: var(--text-subheading-xs--line-height);
+    letter-spacing: var(--text-subheading-xs--letter-spacing);
+    font-weight: var(--text-subheading-xs--font-weight);
+    text-transform: uppercase;
+  }
+
   /* ── Touch Target ── */
   .touch-target {
     min-height: 44px;
@@ -327,6 +358,43 @@
     background-image: linear-gradient(90deg, transparent 0%, rgb(var(--success-base) / 0.08) 45%, transparent 100%);
     background-size: 200% 100%;
     animation: confirmedShimmer 0.6s ease-out;
+  }
+
+  /* ── CSS-only Tooltip ── */
+  [data-tooltip] {
+    position: relative;
+  }
+  [data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgb(var(--gray-950) / 0.9);
+    color: rgb(var(--gray-0));
+    font-size: 0.6875rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  [data-tooltip]:hover::after {
+    opacity: 1;
+  }
+  /* Right-aligned variant to prevent overflow on right-edge elements */
+  [data-tooltip-align="right"]::after {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+  /* Left-aligned variant */
+  [data-tooltip-align="left"]::after {
+    left: 0;
+    transform: none;
   }
 
   /* Staggered entrance animation for lists/grids of children */

@@ -80,14 +80,8 @@ contract WorkApprovalResolverTest is Test {
 
         // Pre-populate a valid work attestation in MockEAS
         workUID = bytes32(uint256(42));
-        WorkSchema memory workSchema = WorkSchema({
-            actionUID: activeActionId,
-            title: "Planted Trees",
-            feedback: "",
-            metadata: "",
-            media: new string[](1)
-        });
-        workSchema.media[0] = "ipfs://QmWorkPhoto";
+        string[] memory media = new string[](1);
+        media[0] = "ipfs://QmWorkPhoto";
 
         Attestation memory workAttestation = Attestation({
             uid: workUID,
@@ -99,7 +93,7 @@ contract WorkApprovalResolverTest is Test {
             recipient: address(mockGarden), // Work was submitted to this garden
             attester: gardener,
             revocable: true,
-            data: abi.encode(workSchema)
+            data: abi.encode(activeActionId, "Planted Trees", "", "", media)
         });
         mockEAS.setAttestationByUID(workUID, workAttestation);
     }
@@ -238,14 +232,8 @@ contract WorkApprovalResolverTest is Test {
 
         // Pre-populate work attestation referencing this action
         bytes32 expiredWorkUID = bytes32(uint256(99));
-        WorkSchema memory workSchema = WorkSchema({
-            actionUID: expiredActionId,
-            title: "Short Work",
-            feedback: "",
-            metadata: "",
-            media: new string[](1)
-        });
-        workSchema.media[0] = "ipfs://QmExpiredWork";
+        string[] memory expiredMedia = new string[](1);
+        expiredMedia[0] = "ipfs://QmExpiredWork";
 
         Attestation memory workAttestation = Attestation({
             uid: expiredWorkUID,
@@ -257,7 +245,7 @@ contract WorkApprovalResolverTest is Test {
             recipient: address(mockGarden),
             attester: gardener,
             revocable: true,
-            data: abi.encode(workSchema)
+            data: abi.encode(expiredActionId, "Short Work", "", "", expiredMedia)
         });
         mockEAS.setAttestationByUID(expiredWorkUID, workAttestation);
 
@@ -625,15 +613,9 @@ contract WorkApprovalResolverTest is Test {
         view
         returns (Attestation memory)
     {
-        WorkApprovalSchema memory schema = WorkApprovalSchema({
-            actionUID: actionUID,
-            workUID: _workUID,
-            approved: approved,
-            feedback: approved ? "Good work" : "Needs improvement",
-            confidence: confidence,
-            verificationMethod: verificationMethod,
-            reviewNotesCID: reviewNotesCID
-        });
+        // Encode as flat tuple to match how clients encode via encodeAbiParameters.
+        // See src/resolvers/Work.sol for details on struct vs tuple ABI encoding.
+        string memory feedback = approved ? "Good work" : "Needs improvement";
 
         return Attestation({
             uid: bytes32(uint256(100)),
@@ -645,7 +627,7 @@ contract WorkApprovalResolverTest is Test {
             recipient: address(mockGarden),
             attester: attester,
             revocable: true,
-            data: abi.encode(schema)
+            data: abi.encode(actionUID, _workUID, approved, feedback, confidence, verificationMethod, reviewNotesCID)
         });
     }
 }

@@ -1,16 +1,16 @@
 import {
   type Address,
-  type GardenVault,
   formatTokenAmount,
+  type GardenVault,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  ZERO_ADDRESS,
   useConfigureVaultRoles,
   useEmergencyPause,
   useHarvest,
   useUser,
   useVaultPreview,
+  ZERO_ADDRESS,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiLoader4Line } from "@remixicon/react";
@@ -183,7 +183,7 @@ export function PositionCard({
       {/* Emergency pause confirmation dialog */}
       <Dialog.Root open={confirmPauseOpen} onOpenChange={setConfirmPauseOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm" />
+          <Dialog.Overlay className="fixed inset-0 z-[9999] bg-overlay backdrop-blur-sm" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
             <Dialog.Title className="text-lg font-semibold text-text-strong">
               {formatMessage({ id: "app.treasury.emergencyPauseTitle" })}

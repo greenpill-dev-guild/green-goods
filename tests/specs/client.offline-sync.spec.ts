@@ -14,7 +14,7 @@
  */
 
 import { expect, test } from "@playwright/test";
-import { ClientTestHelper, TEST_URLS, hasGardens } from "../helpers/test-utils";
+import { ClientTestHelper, hasGardens, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
 

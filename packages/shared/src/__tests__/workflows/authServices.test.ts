@@ -153,10 +153,8 @@ vi.mock("../../modules/auth/session", () => ({
   clearStoredCredential: vi.fn(() => {
     mockStoredCredential = null;
   }),
-  hasStoredPasskey: vi.fn(() => false),
   getStoredRpId: vi.fn(() => "localhost"),
   setStoredRpId: vi.fn(),
-  PASSKEY_STORAGE_KEY: "greengoods_passkey_credential",
   USERNAME_STORAGE_KEY: "greengoods_username",
 }));
 

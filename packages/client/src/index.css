@@ -17,7 +17,7 @@
   scrollbar-width: none;
   -ms-overflow-style: none; /* IE and Edge */
 
-  font-family: var(--font-family-sans);
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-style: normal;
   font-weight: 400;
   font-synthesis: none;

@@ -1,0 +1,110 @@
+---
+title: "Getting Started as a Funder"
+sidebar_label: "Getting Started"
+slug: /community/funder-guide/getting-started
+audience: all
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+goal: "Help funders understand how to support verified regenerative impact."
+difficulty: "beginner"
+estimated_time: "10 minutes."
+prereqs: "Wallet with supported assets (ETH, stablecoins)."
+next_steps: "/community/funder-guide/vaults-and-hypercerts"
+persona_context: "Funders looking to support verified regenerative impact through vaults and Hypercerts."
+keywords:
+  - funder
+  - funding
+  - impact investment
+  - regenerative finance
+  - verified impact
+---
+
+import {
+  DecisionGuide,
+  NextBestAction,
+  StatusBadge,
+  StepFlow,
+} from "@site/src/components/docs";
+
+# Getting Started as a Funder
+
+<StatusBadge status="Live" />
+
+## Overview
+
+Funders play a critical role in the Green Goods ecosystem — they provide the capital that makes regenerative work sustainable. Unlike traditional grant funding where impact is self-reported and hard to verify, Green Goods gives funders **attestation-backed proof** that their capital supports real, community-verified work.
+
+{/* IMAGE PLACEHOLDER: Funder viewing verified impact certificates with attestation chains (800x400) */}
+
+As a funder, you can:
+
+- **Deposit into yield-bearing vaults** — Your capital generates returns while funding garden operations
+- **Purchase Hypercerts** — Buy tokenized impact certificates representing verified regenerative work
+- **Track real impact** — Every claim is backed by EAS attestations verified by community operators
+- **Choose your gardens** — Support specific communities and bioregions that align with your values
+
+## How It Works
+
+<StepFlow
+  steps={[
+    {title: "Connect your wallet", detail: "Use MetaMask, Rainbow, or any WalletConnect-compatible wallet on Arbitrum, Celo, or Sepolia."},
+    {title: "Browse gardens", detail: "Explore active garden communities, their verified work history, and available impact certificates."},
+    {title: "Fund impact", detail: "Deposit into a garden's vault for yield-bearing support, or purchase Hypercerts for direct impact ownership."},
+    {title: "Track outcomes", detail: "Monitor your portfolio's impact through attestation-backed dashboards and reporting."},
+  ]}
+/>
+
+### Why Verified Impact Matters
+
+Traditional impact funding relies on self-reported metrics. Green Goods changes this:
+
+| Traditional Funding | Green Goods Funding |
+|---|---|
+| Self-reported impact | Community-verified attestations |
+| Annual reports | Real-time attestation chain |
+| Trust the organization | Verify on-chain |
+| One-time grants | Sustainable yield + impact tokens |
+
+Every piece of funded work has a verifiable chain: **Gardener submission → Operator approval → Evaluator assessment → Hypercert**. Each step creates an on-chain attestation you can independently verify.
+
+## Best Practices
+
+<DecisionGuide
+  title="Choose your funding approach"
+  items={[
+    {
+      when: "You want passive, sustainable support",
+      do: "Deposit into a garden vault. Your capital generates yield while funding operations.",
+      next: "Monitor vault performance and garden activity over time.",
+    },
+    {
+      when: "You want direct ownership of verified impact",
+      do: "Purchase Hypercerts from gardens with strong attestation histories.",
+      next: "Review the attestation chain backing each Hypercert before purchasing.",
+    },
+    {
+      when: "You want to influence community priorities",
+      do: "Combine vault deposits with conviction voting to signal which work matters most.",
+      next: "Participate in governance to help shape garden strategy.",
+    },
+  ]}
+/>
+
+- Always verify the attestation chain before purchasing Hypercerts — check EAS explorer for approval records
+- Start with smaller deposits to understand a garden's operational cadence before committing larger amounts
+- Review garden assessments across the Eight Forms of Capital for holistic impact understanding
+- Diversify across gardens and bioregions for broader impact coverage
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="Learn the mechanics of vault deposits and Hypercert purchases."
+  actionLabel="Vaults & Hypercerts"
+  actionHref="/community/funder-guide/vaults-and-hypercerts"
+  alternatives={[
+    {label: "How It Works", href: "/community/how-it-works"},
+    {label: "Glossary", href: "/glossary"},
+  ]}
+/>

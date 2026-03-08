@@ -6,6 +6,8 @@ import { QueryClient } from "@tanstack/react-query";
 export const STALE_TIMES = {
   /** Gardens, actions, gardeners - base data that changes infrequently */
   baseLists: 5 * 60_000, // 5 minutes
+  /** Actions list should refresh faster than other base lists */
+  actions: 60_000, // 1 minute
   /** Work submissions - changes more frequently */
   works: 15_000, // 15 seconds
   /** Job queue stats - needs to be responsive */

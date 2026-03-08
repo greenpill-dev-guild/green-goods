@@ -1,9 +1,9 @@
 import {
+  type Address,
   ErrorBoundary,
   GARDEN_ROLE_ORDER,
-  getRoleColorClasses,
-  type Address,
   type GardenRole,
+  getRoleColorClasses,
 } from "@green-goods/shared";
 import {
   RiCheckboxCircleLine,

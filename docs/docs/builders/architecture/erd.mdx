@@ -1,0 +1,270 @@
+---
+title: Entity Relationship Diagram
+sidebar_position: 2
+slug: /builders/architecture/erd
+audience: developer
+owner: docs
+last_verified: 2026-03-07
+feature_status: Live
+---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Entity Relationship Diagram
+
+<StatusBadge status="Live" />
+
+This page maps every domain entity in Green Goods, its key fields, and how entities relate to each other -- from on-chain events through the Envio indexer to the frontend GraphQL surface.
+
+## Full entity relationship diagram
+
+```mermaid
+erDiagram
+    Garden ||--o{ Action : "enables via domains"
+    Garden ||--o{ Gardener : "has members"
+    Garden ||--o{ GardenVault : "receives deposits"
+    Garden ||--o{ Hypercert : "mints certificates"
+    Garden ||--o{ GardenDomains : "configures"
+    Garden ||--|{ Hat : "has role tree"
+
+    Action ||--o{ Work : "documents"
+    Work ||--o| WorkApproval : "reviewed by"
+    Work }o--|| Gardener : "submitted by"
+    WorkApproval }o--|| GardenAssessment : "aggregated into"
+
+    GardenVault ||--o{ VaultDeposit : "tracks per depositor"
+    GardenVault ||--o{ VaultEvent : "logs activity"
+    GardenVault ||--o{ YieldAllocation : "splits yield"
+
+    Hypercert ||--o{ HypercertClaim : "fractionalized into"
+    Hypercert }o--o{ Work : "bundles attestations"
+
+    Garden {
+        ID id "Garden TBA address"
+        Int chainId
+        String tokenAddress
+        BigInt tokenID
+        String name
+        String description
+        String location
+        Boolean openJoining
+        Boolean initialized
+    }
+
+    Action {
+        ID id "chainId-actionUID"
+        String title
+        String slug "e.g. waste.cleanup_event"
+        String instructions
+        Domain domain "SOLAR | AGRO | EDU | WASTE"
+        Capital[] capitals
+        BigInt startTime
+        BigInt endTime
+    }
+
+    Work {
+        String uid "EAS attestation UID"
+        String actionUID "references Action"
+        String gardenAddress "references Garden"
+        String attester "Gardener address"
+        String title
+        String mediaURI "IPFS CID"
+        Int createdAt
+    }
+
+    WorkApproval {
+        String uid "EAS attestation UID"
+        String workUID "references Work"
+        String attester "Operator address"
+        Boolean approved
+        Int confidence "0-100"
+        String method
+    }
+
+    GardenAssessment {
+        String uid "EAS attestation UID"
+        String gardenAddress "references Garden"
+        String attester "Evaluator address"
+        String notes
+        String[] mediaURIs
+    }
+
+    Gardener {
+        ID id "Smart account address"
+        Int chainId
+        String owner "EOA owner"
+        String ensName
+        String[] gardens
+    }
+
+    GardenVault {
+        ID id "chainId-garden-asset"
+        String vaultAddress
+        String asset "ERC-20 address"
+        BigInt totalDeposited
+        BigInt totalWithdrawn
+        Int depositorCount
+        Boolean paused
+    }
+
+    VaultDeposit {
+        ID id "chainId-vault-depositor"
+        String depositor
+        BigInt shares
+        BigInt totalDeposited
+        BigInt totalWithdrawn
+    }
+
+    VaultEvent {
+        ID id "chainId-txHash-logIndex"
+        VaultEventType eventType "DEPOSIT | WITHDRAW | HARVEST | EMERGENCY_PAUSED"
+        String actor
+        BigInt amount
+        Int timestamp
+    }
+
+    YieldAllocation {
+        ID id "chainId-txHash-logIndex"
+        BigInt cookieJarAmount
+        BigInt fractionsAmount
+        BigInt juiceboxAmount
+        BigInt totalAmount
+    }
+
+    Hypercert {
+        ID id "chainId-tokenId"
+        BigInt tokenId
+        String metadataUri "IPFS URI"
+        BigInt totalUnits
+        BigInt claimedUnits
+        HypercertStatus status "ACTIVE | CLAIMED | SOLD"
+        String[] attestationUIDs
+    }
+
+    HypercertClaim {
+        ID id "chainId-tokenId-claimant"
+        String claimant
+        BigInt units
+        Int claimedAt
+    }
+
+    GardenDomains {
+        ID id "chainId-gardenAddress"
+        Int domainMask "Bitmask for enabled domains"
+        Domain[] domains
+    }
+
+    Hat {
+        BigInt hatId "Hats Protocol ID"
+        String role "owner | operator | evaluator | gardener | funder | community"
+        String wearer "Address wearing the hat"
+    }
+```
+
+## Entity descriptions
+
+### Core entities
+
+| Entity | Source | Description |
+| --- | --- | --- |
+| **Garden** | Envio (GardenToken events) | A regenerative project with a tokenbound account (ERC-6551 TBA), role tree, and configured domains. Created when an operator calls `mintGarden()`. |
+| **Action** | Envio (ActionRegistry events) | A template that defines what kind of work can be documented -- e.g., "Waste Cleanup Event". Actions belong to a domain (solar, agro, edu, waste) and have a time window. |
+| **Gardener** | Envio (HatsModule events) | A person who participates in gardens. Identified by their smart account address. May have ENS identity and passkey credentials. |
+| **Hat** | Envio (HatsModule events) | A role assignment from Hats Protocol. Each garden gets 6 roles: owner, operator, evaluator, gardener, funder, community. |
+
+### Attestation entities (via EAS)
+
+| Entity | Source | Description |
+| --- | --- | --- |
+| **Work** | EAS GraphQL | An attestation that a gardener performed a specific action. Contains a title, media URI (IPFS), and reference to the action. Validated by the WorkResolver. |
+| **WorkApproval** | EAS GraphQL | An operator's review of a work submission. References the work UID with an approval boolean, confidence score, and method description. |
+| **GardenAssessment** | EAS GraphQL | An evaluator's holistic assessment of a garden's progress. Contains notes and supporting media. |
+
+### Financial entities
+
+| Entity | Source | Description |
+| --- | --- | --- |
+| **GardenVault** | Envio (OctantModule events) | An ERC-4626 vault that holds ERC-20 deposits for a garden. One vault per supported asset per garden. |
+| **VaultDeposit** | Envio (OctantVault events) | Per-depositor tracking of shares, total deposited, and total withdrawn for a specific vault. |
+| **VaultEvent** | Envio (OctantVault events) | An immutable log entry for every deposit, withdrawal, harvest, or emergency pause event. |
+| **YieldAllocation** | Envio (YieldSplitter events) | Records how harvested yield was split three ways: cookie jar (petty cash), hypercert fractions, and community endowment (Juicebox). |
+
+### Impact entities
+
+| Entity | Source | Description |
+| --- | --- | --- |
+| **Hypercert** | Envio (HypercertMinter events) | An impact certificate that bundles one or more approved work attestations. Fractionalizable into claims. |
+| **HypercertClaim** | Envio (HypercertMinter events) | A fraction of a hypercert claimed by an address. Tracks units claimed and timestamp. |
+
+## Contract-to-indexer event mapping
+
+The Envio indexer watches specific contract events and materializes them into the GraphQL entities above. EAS attestations (works, approvals, assessments) are **not** re-indexed -- they are queried directly from easscan.org.
+
+```mermaid
+graph LR
+    subgraph Contracts["Contract Events"]
+        E1["GardenToken<br/><code>GardenMinted</code>"]
+        E2["HatsModule<br/><code>RoleGranted</code><br/><code>RoleRevoked</code>"]
+        E3["ActionRegistry<br/><code>ActionRegistered</code><br/><code>GardenDomainsUpdated</code>"]
+        E4["GardenAccount<br/><code>NameUpdated</code><br/><code>DescriptionUpdated</code><br/><code>...</code>"]
+        E5["OctantModule<br/><code>VaultCreated</code><br/><code>HarvestTriggered</code><br/><code>DonationAddressUpdated</code><br/><code>EmergencyPaused</code>"]
+        E6["OctantVault<br/><code>Deposit</code><br/><code>Withdraw</code>"]
+        E7["YieldSplitter<br/><code>YieldSplit</code>"]
+        E8["HypercertMinter<br/><code>TransferSingle</code><br/><code>ClaimStored</code>"]
+    end
+
+    subgraph Entities["Indexed Entities"]
+        G["Garden"]
+        Gd["Gardener"]
+        A["Action"]
+        DD["GardenDomains"]
+        GV["GardenVault"]
+        VD["VaultDeposit"]
+        VE["VaultEvent"]
+        YA["YieldAllocation"]
+        HC["Hypercert"]
+        HCC["HypercertClaim"]
+    end
+
+    E1 --> G
+    E2 --> G
+    E2 --> Gd
+    E3 --> A
+    E3 --> DD
+    E4 --> G
+    E5 --> GV
+    E6 --> VD
+    E6 --> VE
+    E6 --> GV
+    E7 --> YA
+    E8 --> HC
+    E8 --> HCC
+
+    style Contracts fill:#fce4ec,stroke:#c62828
+    style Entities fill:#e3f2fd,stroke:#1565c0
+```
+
+### Dynamic contract registration
+
+When a garden is minted, its tokenbound account (TBA) address is dynamically registered for `GardenAccount` events. When a vault is created, its vault contract address is registered for `Deposit`/`Withdraw` events. This means the indexer discovers new contracts at runtime rather than requiring static configuration.
+
+### Indexer boundary
+
+The Envio indexer covers only **core Green Goods state**. Several modules have stub handler files that are explicitly externalized:
+
+- **Cookie jars** -- read via direct RPC calls.
+- **ENS lifecycle** -- resolved client-side.
+- **Gardens V2 communities/pools** -- queried from external subgraph.
+- **Marketplace orders** -- read from external API.
+- **EAS attestations** -- queried from easscan.org.
+
+<NextBestAction
+  title="Next best action"
+  why="See how the contract module system enables this entity model."
+  actionLabel="Modular Approach"
+  actionHref="./modular-approach"
+  alternatives={[
+    {label: "Sequence Diagrams", href: "./sequence-diagrams"},
+    {label: "Back to Architecture", href: "../architecture"},
+  ]}
+/>

@@ -1,9 +1,4 @@
-import {
-  normalizeTimeSpentMinutes,
-  type Action,
-  type WorkFormData,
-  type WorkInput,
-} from "@green-goods/shared";
+import { type Action, type WorkFormData, type WorkInput } from "@green-goods/shared";
 import { RiFileFill, RiMapPinLine } from "@remixicon/react";
 import React, { useCallback, useState } from "react";
 import type { Control, Path, UseFormRegister, UseFormSetValue } from "react-hook-form";
@@ -107,15 +102,20 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
     [setValue]
   );
 
+  const handleTextareaFocus = useCallback((event: React.FocusEvent<HTMLTextAreaElement>) => {
+    const target = event.currentTarget;
+    requestAnimationFrame(() => {
+      target.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+    });
+  }, []);
+
   return (
     <div className="flex flex-col gap-4">
       <FormInfo title={detailsTitle} info={detailsDescription} Icon={RiFileFill} />
 
       {/* Time Spent Input - Always shown as a default field */}
       <FormInput
-        {...register("timeSpentMinutes", {
-          setValueAs: normalizeTimeSpentMinutes,
-        })}
+        {...register("timeSpentMinutes")}
         label={intl.formatMessage({
           id: "app.garden.details.timeSpent",
           defaultMessage: "Time Spent (hours)",
@@ -289,6 +289,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
               rows={3}
               placeholder={placeholder}
               required={required}
+              onFocus={handleTextareaFocus}
             />
           );
         }
@@ -350,6 +351,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
         })}
         rows={4}
         placeholder={feedbackPlaceholder}
+        onFocus={handleTextareaFocus}
       />
     </div>
   );

@@ -57,7 +57,7 @@ export interface WithdrawParams {
   gardenAddress: Address;
   assetAddress: Address;
   vaultAddress: Address;
-  shares: bigint;
+  amount: bigint;
   receiver?: Address;
   owner?: Address;
 }
@@ -78,4 +78,6 @@ export interface VaultPreview {
   maxDeposit: bigint;
   shareBalance: bigint;
   totalAssets: bigint;
+  maxWithdraw: bigint;
+  previewWithdrawShares: bigint;
 }

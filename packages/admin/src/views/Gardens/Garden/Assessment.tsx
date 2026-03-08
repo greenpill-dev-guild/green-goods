@@ -1,6 +1,7 @@
 import {
   DEFAULT_CHAIN_ID,
   formatDateRange,
+  getEASExplorerUrl,
   logger,
   useAdminStore,
   useGardenAssessments,
@@ -10,8 +11,7 @@ import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
-
-const EAS_EXPLORER_URL = "https://explorer.easscan.org";
+import { Alert } from "@/components/ui/Alert";
 
 /** EAS decoded field structure from attestation JSON */
 interface EASDecodedField {
@@ -33,7 +33,11 @@ export default function GardenAssessment() {
     }
   }, [selectedChainId, setSelectedChainId]);
 
-  const { data: assessments = [], isLoading: fetching, error } = useGardenAssessments(id);
+  const {
+    data: assessments = [],
+    isLoading: fetching,
+    error,
+  } = useGardenAssessments(id, selectedChainId);
 
   const parsedAssessments = useMemo(
     () =>
@@ -66,12 +70,10 @@ export default function GardenAssessment() {
     );
   } else if (error) {
     content = (
-      <div className="rounded-md border border-error-light bg-error-lighter p-4" role="alert">
-        <p className="text-sm text-error-dark">
-          {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}:{" "}
-          {error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" })}
-        </p>
-      </div>
+      <Alert variant="error">
+        {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}:{" "}
+        {error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" })}
+      </Alert>
     );
   } else {
     content = (
@@ -151,7 +153,7 @@ export default function GardenAssessment() {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                       <a
-                        href={`${EAS_EXPLORER_URL}/attestation/view/${attestation.id}`}
+                        href={getEASExplorerUrl(selectedChainId, attestation.id)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center text-primary-dark transition hover:text-primary-darker"

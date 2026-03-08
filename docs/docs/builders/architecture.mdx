@@ -1,0 +1,122 @@
+---
+title: Architecture
+sidebar_position: 3
+slug: /builders/architecture
+audience: developer
+owner: docs
+last_verified: 2026-03-07
+feature_status: Live
+---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Architecture
+
+<StatusBadge status="Live" />
+
+Green Goods is an **offline-first, single-chain** platform for documenting regenerative work on-chain. The system is built as a Bun monorepo with six packages that communicate through clearly defined boundaries.
+
+## Package boundaries
+
+| Package | Responsibility |
+| --- | --- |
+| `packages/client` | Gardener-facing PWA UI |
+| `packages/admin` | Operator-facing dashboard UI |
+| `packages/shared` | Hooks, providers, stores, business logic |
+| `packages/contracts` | Solidity modules + deployment scripts |
+| `packages/indexer` | Envio event indexing and GraphQL surface |
+| `packages/agent` | Automation/bot workflows |
+
+## Architecture principles
+
+- **DRY** for shared hooks, query keys, and deployment addresses.
+- **KISS** for chain/environment model -- single chain set by `VITE_CHAIN_ID`.
+- **YAGNI** for config surface and feature toggles.
+- **Separation of concerns** across packages with strict import boundaries.
+- **Offline-first** -- the client PWA works without internet and syncs when connected.
+- **Graceful degradation** -- optional contract modules fail silently via `try/catch`.
+
+## System context
+
+How all packages connect end-to-end: contracts emit events, the indexer materializes them into GraphQL, and frontends read through shared hooks.
+
+```mermaid
+graph TB
+    subgraph Clients["Frontend Apps"]
+        PWA["Client PWA<br/><small>Gardeners</small>"]
+        Admin["Admin Dashboard<br/><small>Operators / Deployers</small>"]
+    end
+
+    subgraph Shared["@green-goods/shared"]
+        Hooks["React Hooks<br/><small>useGardens, useWorks, useVaults...</small>"]
+        GQL["GraphQL Clients"]
+        JQ["Job Queue<br/><small>IndexedDB</small>"]
+        Mutations["Mutation Hooks<br/><small>useWorkMutation, useGardenOperations...</small>"]
+    end
+
+    subgraph Data["Data Sources"]
+        Envio["Envio Indexer<br/><small>gardens, roles, actions, vaults, yield, hypercerts</small>"]
+        EAS_GQL["EAS GraphQL<br/><small>works, approvals, assessments</small>"]
+        RPC["On-chain reads<br/><small>cookie jars, ENS, Gardens V2</small>"]
+    end
+
+    subgraph Chain["On-Chain Contracts"]
+        GT["GardenToken"]
+        Hats["HatsModule"]
+        AR["ActionRegistry"]
+        EAS["EAS Contract"]
+        Octant["OctantModule"]
+        Resolvers["Resolvers<br/><small>Work - Approval - Assessment</small>"]
+        GA["GardenAccount<br/><small>TBA</small>"]
+        Other["CookieJar - Gardens - ENS<br/>Hypercerts - Yield"]
+    end
+
+    PWA --> Hooks
+    Admin --> Hooks
+    Hooks --> GQL
+    PWA --> JQ
+    GQL --> Envio
+    GQL --> EAS_GQL
+    Hooks --> RPC
+    Mutations --> Chain
+    JQ -.->|flush when online| Mutations
+
+    Envio -.->|watches events| GT
+    Envio -.->|watches events| Hats
+    Envio -.->|watches events| AR
+    Envio -.->|watches events| Octant
+    Envio -.->|watches events| GA
+
+    EAS --> Resolvers
+    Resolvers --> Hats
+    Resolvers --> AR
+    GT --> Hats
+    GT --> Octant
+    GT --> Other
+
+    style Clients fill:#e8f5e9,stroke:#388e3c
+    style Shared fill:#e3f2fd,stroke:#1565c0
+    style Data fill:#fff3e0,stroke:#ef6c00
+    style Chain fill:#fce4ec,stroke:#c62828
+```
+
+## Deep dives
+
+| Page | What you will learn |
+| --- | --- |
+| [Local vs Global Balance](./architecture/local-vs-global) | How the offline-first job queue and two-indexer read path keep the PWA responsive while data settles on-chain. |
+| [Entity Relationship Diagram](./architecture/erd) | Every domain entity, its fields, and how they relate -- from on-chain events through the indexer to the frontend. |
+| [Modular Approach](./architecture/modular-approach) | The hub-and-spoke contract module system, package dependency graph, and Hats Protocol role tree. |
+| [Sequence Diagrams](./architecture/sequence-diagrams) | Step-by-step flows for garden minting, work submission, vault deposits, passkey onboarding, and more. |
+
+<NextBestAction
+  title="Next best action"
+  why="Start with the offline-first architecture that makes Green Goods unique."
+  actionLabel="Local vs Global Balance"
+  actionHref="./architecture/local-vs-global"
+  alternatives={[
+    {label: "Entity Relationships", href: "./architecture/erd"},
+    {label: "Modular Approach", href: "./architecture/modular-approach"},
+    {label: "Sequence Diagrams", href: "./architecture/sequence-diagrams"},
+  ]}
+/>

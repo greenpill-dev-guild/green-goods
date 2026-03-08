@@ -1,5 +1,5 @@
+import { type Action, Capital, Domain } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
-import { Capital, Domain, type Action } from "@green-goods/shared";
 import { ActionCard } from "./ActionCard";
 
 const now = Math.floor(Date.now() / 1000);

@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/react";
 import { RiUserLine } from "@remixicon/react";
+import type { Meta, StoryObj } from "@storybook/react";
 import { ImageWithFallback } from "./ImageWithFallback";
 
 const meta: Meta<typeof ImageWithFallback> = {

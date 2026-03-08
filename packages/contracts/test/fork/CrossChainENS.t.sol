@@ -41,7 +41,8 @@ contract CrossChainENSForkTest is Test {
     address internal constant ENS_PUBLIC_RESOLVER = 0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63;
 
     /// @notice namehash("greengoods.eth")
-    bytes32 internal constant BASE_NODE = 0x0854ba3d72dfe3022a4d5a14f037c0d42e0be5f7eb16a4e0f4ceef06a16ef614;
+    /// @dev keccak256(abi.encodePacked(namehash("eth"), keccak256("greengoods")))
+    bytes32 internal constant BASE_NODE = 0x15ee556e39afd119101712c5ac4f1519d9f2f32780d4e1cf42b27fdfa73db841;
 
     // Fork IDs
     uint256 internal arbForkId;

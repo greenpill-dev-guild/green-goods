@@ -6,10 +6,10 @@
  * Tests for the job queue context provider and its hooks.
  */
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock job queue module - inline factory to avoid hoisting issues
 vi.mock("../../modules/job-queue", () => ({
@@ -71,17 +71,17 @@ vi.mock("../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+import { queueToasts } from "../../components/toast";
+import { useAuth } from "../../hooks/auth/useAuth";
+import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
+import { useUser } from "../../hooks/auth/useUser";
+import { jobQueue } from "../../modules/job-queue";
 import {
   JobQueueProvider,
   useJobQueue,
-  useQueueStats,
   useQueueFlush,
+  useQueueStats,
 } from "../../providers/JobQueue";
-import { queueToasts } from "../../components/toast";
-import { jobQueue } from "../../modules/job-queue";
-import { useAuth } from "../../hooks/auth/useAuth";
-import { useUser } from "../../hooks/auth/useUser";
-import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
 
 // Type helpers for mocked functions
 const mockJobQueue = jobQueue as {

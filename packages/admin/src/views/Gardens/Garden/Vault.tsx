@@ -7,8 +7,8 @@ import {
   OCTANT_MODULE_ABI,
   useCurrentChain,
   useGardenPermissions,
-  useGardenVaults,
   useGardens,
+  useGardenVaults,
   useUser,
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
@@ -16,6 +16,7 @@ import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import { useReadContract } from "wagmi";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { Alert } from "@/components/ui/Alert";
 import { DepositModal, PositionCard, VaultEventHistory, WithdrawModal } from "@/components/Vault";
 
 export default function GardenVaultView() {
@@ -164,24 +165,25 @@ export default function GardenVaultView() {
         )}
 
         {vaultsHasError && (
-          <div
-            role="alert"
-            className="rounded-md border border-error-light bg-error-lighter px-4 py-3 text-sm text-error-dark"
+          <Alert
+            variant="error"
+            action={
+              <button
+                type="button"
+                onClick={() => {
+                  void refetchVaults();
+                }}
+                disabled={vaultsFetching}
+                className="rounded-md border border-error-light px-3 py-1.5 text-xs font-medium text-error-dark hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {vaultsFetching
+                  ? formatMessage({ id: "app.common.refreshing" })
+                  : formatMessage({ id: "app.common.tryAgain" })}
+              </button>
+            }
           >
-            <p>{formatMessage({ id: "app.treasury.errorLoading" })}</p>
-            <button
-              type="button"
-              onClick={() => {
-                void refetchVaults();
-              }}
-              disabled={vaultsFetching}
-              className="mt-2 rounded-md border border-error-light px-3 py-1.5 text-xs font-medium text-error-dark hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {vaultsFetching
-                ? formatMessage({ id: "app.common.refreshing" })
-                : formatMessage({ id: "app.common.tryAgain" })}
-            </button>
-          </div>
+            {formatMessage({ id: "app.treasury.errorLoading" })}
+          </Alert>
         )}
 
         {!vaultsLoading && !vaultsHasError && vaults.length === 0 && (

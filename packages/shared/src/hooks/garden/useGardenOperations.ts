@@ -7,11 +7,12 @@
  */
 
 import { useQueryClient } from "@tanstack/react-query";
-import type { Garden } from "../../types/domain";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useAccount, useWalletClient } from "wagmi";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import type { Garden } from "../../types/domain";
+import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { useToastAction } from "../app/useToastAction";
 import { queryKeys } from "../query-keys";
 import {
@@ -21,7 +22,6 @@ import {
   type GardenOperationResult,
   type OptimisticUpdateCallback,
 } from "./createGardenOperation";
-import type { GardenRole } from "../../utils/blockchain/garden-roles";
 
 /**
  * Apply optimistic update to garden cache data

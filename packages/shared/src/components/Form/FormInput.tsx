@@ -1,13 +1,11 @@
 import { forwardRef, type InputHTMLAttributes } from "react";
 import { cn } from "../../utils/styles/cn";
-import { controlInputVariants } from "../Tokens/foundation";
 import { FormFieldWrapper } from "./FormFieldWrapper";
 
 export interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   helperText?: string;
   error?: string;
-  controlSize?: "sm" | "md" | "lg";
 }
 
 /**
@@ -23,7 +21,7 @@ export interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
  * />
  */
 export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
-  ({ label, helperText, error, className, controlSize = "md", ...props }, ref) => {
+  ({ label, helperText, error, className, ...props }, ref) => {
     const helperId = props.id ? `${props.id}-helper-text` : undefined;
     const ariaDescribedBy = (helperText || error) && helperId ? helperId : undefined;
 
@@ -37,8 +35,13 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
       >
         <input
           className={cn(
-            controlInputVariants({ size: controlSize, invalid: Boolean(error) }),
-            className
+            "block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4",
+            "text-base text-text-strong-950 placeholder:text-text-soft-400",
+            "transition-all duration-200",
+            "disabled:opacity-50 disabled:pointer-events-none",
+            error
+              ? "border-error-base focus-visible:ring-2 focus-visible:ring-error-lighter focus-visible:border-error-base"
+              : "focus-visible:ring-2 focus-visible:ring-primary-lighter focus-visible:border-primary-base"
           )}
           aria-describedby={ariaDescribedBy}
           aria-invalid={!!error || undefined}

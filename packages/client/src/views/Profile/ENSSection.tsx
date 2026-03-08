@@ -1,4 +1,5 @@
 import {
+  type Address,
   ENSProgressTimeline,
   useENSClaim,
   useENSRegistrationStatus,
@@ -6,7 +7,6 @@ import {
   useProtocolMemberStatus,
   useSlugAvailability,
   useSlugForm,
-  type Address,
 } from "@green-goods/shared";
 import { RiAlertLine, RiCheckLine, RiGlobalLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";

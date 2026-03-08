@@ -7,7 +7,7 @@
 
 import { cleanup, render, screen } from "@testing-library/react";
 import { createElement } from "react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock react-intl
 vi.mock("react-intl", () => ({

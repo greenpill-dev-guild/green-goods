@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useForm, FormProvider } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import { FormSelect, type FormSelectOption } from "./FormSelect";
 
 const sampleOptions: FormSelectOption[] = [
   { label: "Reforestation", value: "reforestation" },
   { label: "Wetland Restoration", value: "wetland" },
-  { label: "Soil Conservation", value: "soil" },
+  { label: "Soil Regeneration", value: "soil" },
   { label: "Biodiversity Monitoring", value: "biodiversity" },
   { label: "Water Quality Testing", value: "water" },
 ];
@@ -28,7 +28,7 @@ function FormSelectWrapper(props: {
       <div className="w-[400px]">
         <FormSelect
           name="tags"
-          label="Conservation Tags"
+          label="Regenerative Tags"
           placeholder="Select tags..."
           options={options}
           control={methods.control}

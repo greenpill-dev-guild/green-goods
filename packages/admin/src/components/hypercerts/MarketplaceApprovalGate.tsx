@@ -1,5 +1,5 @@
 import { useMarketplaceApprovals } from "@green-goods/shared";
-import { RiShieldCheckLine, RiLoader4Line, RiAlertLine } from "@remixicon/react";
+import { RiAlertLine, RiLoader4Line, RiShieldCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
 interface MarketplaceApprovalGateProps {

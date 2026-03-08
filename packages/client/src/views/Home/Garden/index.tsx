@@ -1,22 +1,23 @@
 import {
+  type Address,
   DEFAULT_CHAIN_ID,
   GardenTab,
   isGardenMember,
+  toastService,
   useActions,
   useBrowserNavigation,
   useConvictionStrategies,
   useGardeners,
-  useGardenVaults,
   useGardens,
   useGardenTabs,
+  useGardenVaults,
   useHasRole,
   useJoinGarden,
   useNavigateToTop,
+  useScrollToTop,
   useUser,
   useVaultDeposits,
   useWorks,
-  toastService,
-  type Address,
 } from "@green-goods/shared";
 import {
   RiCalendarEventFill,
@@ -42,9 +43,7 @@ import {
 } from "@/components/Features";
 import { type StandardTab, StandardTabs, TopNav } from "@/components/Navigation";
 
-type GardenProps = {};
-
-export const Garden: React.FC<GardenProps> = () => {
+export const Garden: React.FC = () => {
   const intl = useIntl();
   const { primaryAddress } = useUser();
   const [isEndowmentOpen, setIsEndowmentOpen] = useState(false);
@@ -52,6 +51,9 @@ export const Garden: React.FC<GardenProps> = () => {
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
+
+  // Reset scroll position before paint — prevents flash from stale scroll state
+  useScrollToTop();
 
   // Removed JS-based scroll toggling; use CSS-only containment instead
 
@@ -149,6 +151,67 @@ export const Garden: React.FC<GardenProps> = () => {
   });
   const hasGovernance = convictionStrategies.length > 0;
 
+  // Check if current user is an operator (can approve/reject work)
+  const isOperator = useMemo(() => {
+    if (!primaryAddress || !garden?.operators) return false;
+    const normalizedUserAddress = primaryAddress.toLowerCase();
+    return garden.operators.some((addr) => addr.toLowerCase() === normalizedUserAddress);
+  }, [primaryAddress, garden?.operators]);
+
+  const { hasRole: canReviewOnChain } = useHasRole(
+    garden?.id as Address | undefined,
+    primaryAddress as Address | undefined,
+    "evaluator"
+  );
+  const canReview = isOperator || canReviewOnChain;
+
+  // Check if current user is already a member of this garden
+  const isMember = useMemo(() => {
+    if (!garden) return false;
+    return isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id);
+  }, [primaryAddress, garden]);
+
+  // Join garden functionality
+  const { joinGarden, isJoining } = useJoinGarden();
+
+  const handleJoinGarden = useCallback(async () => {
+    if (!garden?.id) return;
+
+    try {
+      const result = await joinGarden(garden.id);
+      if (result === "already-member") {
+        toastService.success({
+          title: intl.formatMessage({
+            id: "app.garden.alreadyMember",
+            defaultMessage: "You're already a member of this garden",
+          }),
+        });
+      } else {
+        toastService.success({
+          title: intl.formatMessage({
+            id: "app.garden.joinSuccess",
+            defaultMessage: "Successfully joined the garden!",
+          }),
+        });
+      }
+    } catch {
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.garden.joinError",
+          defaultMessage: "Failed to join garden. Please try again.",
+        }),
+      });
+    }
+  }, [garden?.id, joinGarden, intl]);
+
+  // Determine if join button should be shown
+  const showJoinButton = useMemo(() => {
+    if (!primaryAddress) return false;
+    if (isMember) return false;
+    if (!garden?.openJoining) return false;
+    return true;
+  }, [primaryAddress, isMember, garden?.openJoining]);
+
   if (!garden) {
     if (gardensInitialLoading) {
       return (
@@ -179,68 +242,6 @@ export const Garden: React.FC<GardenProps> = () => {
   }
 
   const { name, bannerImage, location, createdAt, assessments, description } = garden;
-
-  // Check if current user is an operator (can approve/reject work)
-  const isOperator = useMemo(() => {
-    if (!primaryAddress || !garden.operators) return false;
-    const normalizedUserAddress = primaryAddress.toLowerCase();
-    return garden.operators.some((addr) => addr.toLowerCase() === normalizedUserAddress);
-  }, [primaryAddress, garden.operators]);
-  const { hasRole: canReviewOnChain } = useHasRole(
-    garden.id as Address | undefined,
-    primaryAddress as Address | undefined,
-    "evaluator"
-  );
-  const canReview = isOperator || canReviewOnChain;
-
-  // Check if current user is already a member of this garden
-  const isMember = useMemo(() => {
-    return isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id);
-  }, [primaryAddress, garden.gardeners, garden.operators, garden.id]);
-
-  // Join garden functionality
-  const { joinGarden, isJoining } = useJoinGarden();
-
-  const handleJoinGarden = useCallback(async () => {
-    if (!garden.id) return;
-
-    try {
-      const result = await joinGarden(garden.id);
-      if (result === "already-member") {
-        toastService.success({
-          title: intl.formatMessage({
-            id: "app.garden.alreadyMember",
-            defaultMessage: "You're already a member of this garden",
-          }),
-        });
-      } else {
-        toastService.success({
-          title: intl.formatMessage({
-            id: "app.garden.joinSuccess",
-            defaultMessage: "Successfully joined the garden!",
-          }),
-        });
-      }
-    } catch {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.garden.joinError",
-          defaultMessage: "Failed to join garden. Please try again.",
-        }),
-      });
-    }
-  }, [garden.id, joinGarden, intl]);
-
-  // Determine if join button should be shown
-  const showJoinButton = useMemo(() => {
-    // Must be authenticated
-    if (!primaryAddress) return false;
-    // Must not already be a member
-    if (isMember) return false;
-    // Garden must allow open joining
-    if (!garden.openJoining) return false;
-    return true;
-  }, [primaryAddress, isMember, garden.openJoining]);
 
   // Restore scroll position when switching tabs
 
@@ -307,7 +308,7 @@ export const Garden: React.FC<GardenProps> = () => {
               <div className="relative w-full">
                 <img
                   src={bannerImage}
-                  className="w-full object-cover object-center rounded-b-3xl h-44 md:h-52"
+                  className="w-full object-cover object-center rounded-b-3xl h-36 md:h-44"
                   alt={`${name} banner`}
                   loading="eager"
                   decoding="async"
@@ -329,9 +330,23 @@ export const Garden: React.FC<GardenProps> = () => {
               </div>
 
               {/* Title and meta below banner */}
-              <div className="px-4 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
-                <div className="flex items-start justify-between gap-3">
-                  <h1 className="text-xl md:text-2xl font-semibold line-clamp-1">{name}</h1>
+              <div className="px-4 sm:px-5 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
+                <h1 className="text-lg md:text-xl font-semibold line-clamp-2">{name}</h1>
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
+                      <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span>{location}</span>
+                    </div>
+                    <span className="hidden sm:inline text-text-soft-400">•</span>
+                    <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
+                      <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span>
+                        {intl.formatMessage({ id: "app.home.founded" })}{" "}
+                        {new Date(createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
                   {showJoinButton && (
                     <Button
                       label={intl.formatMessage({
@@ -346,20 +361,6 @@ export const Garden: React.FC<GardenProps> = () => {
                       disabled={isJoining}
                     />
                   )}
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
-                    <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span>{location}</span>
-                  </div>
-                  <span className="hidden sm:inline text-text-soft-400">•</span>
-                  <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
-                    <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span>
-                      {intl.formatMessage({ id: "app.home.founded" })}{" "}
-                      {new Date(createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
                 </div>
               </div>
 
@@ -376,12 +377,12 @@ export const Garden: React.FC<GardenProps> = () => {
             </div>
 
             {/* Spacer for fixed header - matches header height without duplicating content
-                Height breakdown: banner (176px/208px) + title section (~80px) + tabs (~48px) = ~304px/336px */}
-            <div className="h-[304px] md:h-[336px] flex-shrink-0" aria-hidden="true" />
+                Height breakdown: banner (144px/176px) + title section (~96px for 2-line name) + tabs (~48px) = ~288px/320px */}
+            <div className="h-[288px] md:h-[320px] flex-shrink-0" aria-hidden="true" />
 
             {/* Scrollable content below fixed header */}
             <div
-              className="flex-1 min-h-0 px-4 md:px-6 pb-24 overflow-y-auto overflow-x-hidden"
+              className="flex-1 min-h-0 px-4 sm:px-5 md:px-6 pt-3 sm:pt-4 pb-24 overflow-y-auto overflow-x-hidden"
               aria-busy={worksFetching}
             >
               {renderTabContent()}

@@ -27,7 +27,7 @@ export const router = createRouter([
       },
       {
         path: "login",
-        lazy: async () => ({ Component: (await import("@/views/Login")).Login }),
+        lazy: async () => ({ Component: (await import("@/views/Login")).default }),
       },
       // Install is no longer a hard gate. Auth is the gate.
       {

@@ -1,7 +1,12 @@
 ---
 name: tdd-bugfix
-user-invocable: false
 description: Deterministic test-first bugfix wrapper. Use for reproduce -> fix -> verify loops with explicit evidence.
+version: "1.0.0"
+status: active
+packages: ["all"]
+dependencies: ["debug", "testing"]
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # TDD Bugfix Skill

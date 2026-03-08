@@ -1,7 +1,7 @@
 import { useIntl } from "react-intl";
+import { PageTransition } from "../ui/PageTransition";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
-import { PageTransition } from "../ui/PageTransition";
 
 export function DashboardLayout() {
   const intl = useIntl();
@@ -24,7 +24,11 @@ export function DashboardLayout() {
           id="main-content"
           tabIndex={-1}
           className="flex-1 overflow-y-auto"
-          style={{ overscrollBehaviorY: "contain", WebkitOverflowScrolling: "touch" }}
+          style={{
+            overscrollBehaviorY: "contain",
+            WebkitOverflowScrolling: "touch",
+            scrollbarGutter: "stable",
+          }}
         >
           <PageTransition />
         </main>

@@ -1,36 +1,30 @@
+import { cn } from "@green-goods/shared";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import {
-  cardDescriptionClassName,
-  cardSectionVariants,
-  cardShellVariants,
-  cardTitleClassName,
-  cn,
-} from "@green-goods/shared";
 
 export const cardVariants = tv({
-  base: [cardShellVariants(), "flex flex-col"],
+  base: "rounded-2xl border flex gap-0.5 justify-between border-border p-1 px-4 bg-bg-white-0",
   variants: {
     variant: {
       primary: "",
       avatar: "",
     },
     mode: {
-      "no-outline": "border-transparent shadow-none",
-      outline: "",
-      filled: "bg-bg-weak-50 border-transparent shadow-none",
+      "no-outline": "border-0 shadow-0",
+      outline: "border-border border shadow-xs",
+      filled: "bg-card border-0",
     },
     size: {
-      large: "min-h-18 p-5 sm:p-6",
-      small: "h-auto p-4",
+      large: "min-h-18",
+      small: "h-auto py-4",
     },
     shadow: {
       "no-shadow": "shadow-none",
-      shadow: "shadow-regular-sm",
+      shadow: "shadow-md",
     },
     animating: {
       default:
-        "transition-[background-color,border-color,box-shadow,transform] duration-200 ease-in-out hover:border-stroke-sub-300 hover:shadow-regular-sm active:translate-y-px",
+        "active:brightness-102 active:bg-primary/1.5 transition-all duration-200 ease-in-out",
       none: "",
     },
   },
@@ -59,47 +53,39 @@ Card.displayName = "Card";
 
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(cardSectionVariants({ size: "md" }), "gap-1.5", className)}
-      {...props}
-    />
+    <div ref={ref} className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />
   )
 );
 CardHeader.displayName = "CardHeader";
 
 const CardTitle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn(cardTitleClassName, className)} {...props} />
+    <div
+      ref={ref}
+      className={cn("font-semibold leading-none tracking-tight", className)}
+      {...props}
+    />
   )
 );
 CardTitle.displayName = "CardTitle";
 
 const CardDescription = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn(cardDescriptionClassName, className)} {...props} />
+    <div ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
   )
 );
 CardDescription.displayName = "CardDescription";
 
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn(cardSectionVariants({ size: "md" }), className)} {...props} />
+    <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
   )
 );
 CardContent.displayName = "CardContent";
 
 const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        cardSectionVariants({ size: "md", divider: "top" }),
-        "flex items-center gap-3",
-        className
-      )}
-      {...props}
-    />
+    <div ref={ref} className={cn("flex items-center p-6 pt-0", className)} {...props} />
   )
 );
 CardFooter.displayName = "CardFooter";

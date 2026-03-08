@@ -19,8 +19,8 @@
  *   FOUNDRY_KEYSTORE_ACCOUNT — Foundry keystore name (default: green-goods-deployer)
  */
 
-import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -112,7 +112,9 @@ function readOnChainCid(actionRegistry: string, uid: number, expectedCid: string
     // Hex-encode the expected CID and check if it appears in the raw ABI output
     const cidHex = Buffer.from(expectedCid, "utf8").toString("hex");
     return rawHex.includes(cidHex);
-  } catch {
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`  ⚠️  cast call failed for action ${uid}: ${reason}`);
     return false;
   }
 }
@@ -161,7 +163,7 @@ async function main() {
 
   // Check on-chain state to skip already-updated actions
   const rpcUrl = getRpcUrl();
-  console.log(`\nChecking on-chain state...\n`);
+  console.log("\nChecking on-chain state...\n");
 
   const pending: typeof allUpdates = [];
   const alreadyDone: typeof allUpdates = [];

@@ -1,8 +1,8 @@
-import * as path from "node:path";
 import { execSync } from "node:child_process";
-import { NetworkManager } from "../utils/network";
-import { DeploymentAddresses } from "../utils/deployment-addresses";
+import * as path from "node:path";
 import type { ParsedOptions } from "../utils/cli-parser";
+import { DeploymentAddresses } from "../utils/deployment-addresses";
+import { NetworkManager } from "../utils/network";
 
 /**
  * HatsTreeDeployer - Sets up the Green Goods Hats protocol tree
@@ -45,7 +45,7 @@ export class HatsTreeDeployer {
       const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
       args.push("--account", keystoreName);
 
-      const senderAddress = process.env.SENDER_ADDRESS;
+      const senderAddress = options.sender ?? process.env.SENDER_ADDRESS;
       if (senderAddress) {
         args.push("--sender", senderAddress);
       }

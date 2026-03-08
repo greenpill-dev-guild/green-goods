@@ -4,11 +4,11 @@ import { persist } from "zustand/middleware";
 
 import {
   createGardenSchema,
-  gardenStepFields,
   type GardenStepId,
+  gardenStepFields,
 } from "../hooks/garden/useCreateGardenForm";
-import type { Address } from "../types/domain";
 import { type CreateGardenParams, WeightScheme } from "../types/contracts";
+import { type Address, Domain } from "../types/domain";
 
 // Storage key for garden creation flow persistence
 const CREATE_GARDEN_STORAGE_KEY = "green-goods:create-garden";
@@ -21,6 +21,7 @@ export interface CreateGardenFormState {
   bannerImage: string;
   metadata: string;
   openJoining: boolean;
+  domains: Domain[];
   gardeners: Address[];
   operators: Address[];
 }
@@ -70,6 +71,7 @@ export function createEmptyGardenForm(): CreateGardenFormState {
     bannerImage: "",
     metadata: "",
     openJoining: false,
+    domains: [],
     gardeners: [],
     operators: [],
   };
@@ -122,11 +124,6 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           return { success: false, error: "Address already added as gardener" };
         }
 
-        // Check if already an operator
-        if (form.operators.includes(validAddress)) {
-          return { success: false, error: "Address is already an operator" };
-        }
-
         set((state) => ({
           form: {
             ...state.form,
@@ -155,11 +152,6 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         // Check if already an operator (case-insensitive via checksummed comparison)
         if (form.operators.includes(validAddress)) {
           return { success: false, error: "Address already added as operator" };
-        }
-
-        // Check if already a gardener
-        if (form.gardeners.includes(validAddress)) {
-          return { success: false, error: "Address is already a gardener" };
         }
 
         set((state) => ({
@@ -244,7 +236,9 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           metadata: form.metadata.trim(),
           openJoining: form.openJoining,
           weightScheme: WeightScheme.Linear,
-          domainMask: 0x0f,
+          domainMask: form.domains.reduce((mask, d) => mask | (1 << d), 0),
+          gardeners: form.gardeners,
+          operators: form.operators,
         } satisfies CreateGardenParams;
       },
     }),
@@ -263,6 +257,18 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         removeItem: (name) => {
           sessionStorage.removeItem(name);
         },
+      },
+      // Deep-merge persisted form with defaults so new/renamed fields are always present
+      merge: (persisted, current) => {
+        const p = persisted as Partial<CreateGardenStore>;
+        return {
+          ...current,
+          currentStep: p.currentStep ?? current.currentStep,
+          form: {
+            ...createEmptyGardenForm(),
+            ...p.form,
+          },
+        };
       },
       // Only persist form and currentStep, not steps (static) or functions
       partialize: (state) =>

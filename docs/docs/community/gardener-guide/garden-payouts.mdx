@@ -1,0 +1,97 @@
+---
+title: "Garden Payouts"
+sidebar_label: "Garden Payouts"
+slug: /community/gardener-guide/garden-payouts
+audience: all
+owner: docs
+last_verified: 2026-03-01
+feature_status: Implemented (activation pending deployment)
+goal: "Help gardeners understand how they receive compensation from garden vaults and cookie jars."
+difficulty: "standard"
+estimated_time: "5-10 minutes."
+prereqs: "Membership in at least one garden with an active endowment."
+next_steps: "/community/gardener-guide/voting-governance"
+persona_context: "Gardeners seeking to understand compensation mechanisms for verified regenerative work."
+source_of_truth:
+  - packages/client/src/views/Home/WalletDrawer/CookieJarTab.tsx
+  - packages/shared/src/hooks/cookie-jar/useUserCookieJars.ts
+  - packages/shared/src/hooks/vault/useVaultOperations.ts
+keywords:
+  - payouts
+  - cookie jar
+  - vault
+  - gardener compensation
+  - withdrawals
+---
+
+import {
+  DecisionGuide,
+  FeatureState,
+  NextBestAction,
+  StatusBadge,
+  StepFlow,
+} from "@site/src/components/docs";
+
+# Garden Payouts
+
+<StatusBadge status="Implemented (activation pending deployment)" />
+
+## Overview
+
+Gardens can compensate gardeners for verified regenerative work through two mechanisms: vault distributions (managed by operators) and cookie jars (self-service withdrawals within preset limits). Both systems are funded by deposits into the garden's on-chain treasury.
+
+{/* IMAGE PLACEHOLDER */}
+
+<FeatureState
+  title="Payout system"
+  status="Implemented (activation pending deployment)"
+  summary="Cookie jar and vault withdrawal hooks are implemented. Activation is pending non-zero module addresses in deployment artifacts."
+/>
+
+## How It Works
+
+### Vault Distributions
+
+Garden vaults hold assets in yield-bearing positions. Operators manage distributions from vault funds to compensate gardeners, fund community initiatives, or reinvest in garden operations.
+
+<StepFlow
+  steps={[
+    {title: "Work gets approved", detail: "Submit work through the MDR workflow and receive operator approval. Approved work builds your contribution record."},
+    {title: "Operator reviews contributions", detail: "Your garden operator reviews contribution records and determines distribution amounts."},
+    {title: "Funds are distributed", detail: "The operator initiates a withdrawal from the garden vault to your address."},
+    {title: "Check your wallet", detail: "Distributed funds arrive in your smart account wallet. Check the wallet drawer in the app."},
+  ]}
+/>
+
+### Cookie Jars
+
+Cookie jars provide lightweight, recurring payouts with preset limits. If your garden has an active cookie jar, you can withdraw directly without waiting for operator approval.
+
+<StepFlow
+  steps={[
+    {title: "Open wallet drawer", detail: "Navigate to the wallet drawer in the Green Goods app and select the Cookie Jar tab."},
+    {title: "Check eligibility", detail: "View available cookie jars and confirm you are an eligible member. Check withdrawal limits and cooldown intervals."},
+    {title: "Withdraw", detail: "Claim your available amount. The transaction is signed with your passkey and submitted gaslessly."},
+    {title: "Track history", detail: "Review past withdrawals and upcoming availability windows."},
+  ]}
+/>
+
+## Best Practices
+
+- Keep your work submissions consistent and high-quality — contribution history is a key factor in operator-managed distributions
+- Check cookie jar withdrawal windows regularly to avoid missing available claims
+- If a cookie jar shows zero available, check whether you have already claimed for the current interval
+- Ask your garden operator about the payout policy so you know what to expect and when
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="With payouts understood, learn how to participate in garden governance."
+  actionLabel="Voting and Governance"
+  actionHref="/community/gardener-guide/voting-governance"
+  alternatives={[
+    {label: "Earning Badges", href: "/community/gardener-guide/earning-badges"},
+    {label: "Vault Operations (Operator)", href: "/community/operator-guide/managing-endowments"},
+  ]}
+/>

@@ -5,10 +5,10 @@
  */
 
 import { screen } from "@testing-library/react";
-import { renderWithProviders as render } from "../test-utils";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render } from "../test-utils";
 
 // Mock dependencies
 vi.mock("@green-goods/shared/utils", () => ({

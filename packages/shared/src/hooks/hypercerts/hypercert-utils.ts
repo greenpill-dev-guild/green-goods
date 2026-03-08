@@ -7,7 +7,7 @@
  * @module hooks/hypercerts/hypercert-utils
  */
 
-import { decodeEventLog, type Address, type Hex, zeroAddress } from "viem";
+import { type Address, decodeEventLog, type Hex, zeroAddress } from "viem";
 
 import { generateMerkleTree } from "../../lib/hypercerts";
 import { ERC1155_TRANSFER_SINGLE_ABI } from "./hypercert-abis";
@@ -81,8 +81,12 @@ export function withTimeout<T>(
   return Promise.race([promise, timeoutPromise]).finally(cleanup);
 }
 
-// Re-export isZeroAddress from canonical location for backward compatibility
-export { isZeroAddress } from "../../utils/blockchain/address";
+/**
+ * Checks if an address is the zero address or undefined/null.
+ */
+export function isZeroAddress(address?: Address | null): boolean {
+  return !address || address.toLowerCase() === zeroAddress;
+}
 
 /**
  * Extracts the hypercert ID from transaction logs.

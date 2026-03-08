@@ -106,7 +106,9 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
             metadata: "ipfs://QmArbMeta",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Exponential,
-            domainMask: 0x0F
+            domainMask: 0x0F,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         address garden = gardenToken.mintGarden(config);
@@ -175,7 +177,9 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0x01
+            domainMask: 0x01,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         vm.expectRevert(GardenToken.HatsModuleNotSet.selector);
@@ -208,7 +212,9 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0x01
+            domainMask: 0x01,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         configs[1] = GardenToken.GardenConfig({
@@ -220,7 +226,9 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
             metadata: "",
             openJoining: true,
             weightScheme: IGardensModule.WeightScheme.Exponential,
-            domainMask: 0x03
+            domainMask: 0x03,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         configs[2] = GardenToken.GardenConfig({
@@ -232,7 +240,9 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
             metadata: "",
             openJoining: false,
             weightScheme: IGardensModule.WeightScheme.Power,
-            domainMask: 0x0F
+            domainMask: 0x0F,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         address[] memory accounts = gardenToken.batchMintGardens(configs);
@@ -288,7 +298,9 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
             metadata: "",
             openJoining: true,
             weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: 0x0F
+            domainMask: 0x0F,
+            gardeners: new address[](0),
+            operators: new address[](0)
         });
 
         address garden = gardenToken.mintGarden(config);

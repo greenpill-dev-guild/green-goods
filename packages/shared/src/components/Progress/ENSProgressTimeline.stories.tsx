@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, within, userEvent } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import type { ENSRegistrationData } from "../../types/domain";
 import { ENSProgressTimeline } from "./ENSProgressTimeline";
 

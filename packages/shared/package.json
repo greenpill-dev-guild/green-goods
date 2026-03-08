@@ -60,7 +60,6 @@
     "gql.tada": "^1.8.10",
     "graphql": "^16.10.0",
     "graphql-request": "^7.1.2",
-    "multiformats": "^13.4.2",
     "permissionless": "^0.2.57",
     "posthog-js": "^1.315.0",
     "react-day-picker": "^9.13.0",

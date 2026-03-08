@@ -60,10 +60,10 @@ vi.mock("@wagmi/core", () => ({
   readContract: (...args: unknown[]) => mockReadContract(...args),
 }));
 
-import { useMemberVotingPower } from "../../../hooks/conviction/useMemberVotingPower";
-import { useHypercertConviction } from "../../../hooks/conviction/useHypercertConviction";
-import { useRegisteredHypercerts } from "../../../hooks/conviction/useRegisteredHypercerts";
 import { useConvictionStrategies } from "../../../hooks/conviction/useConvictionStrategies";
+import { useHypercertConviction } from "../../../hooks/conviction/useHypercertConviction";
+import { useMemberVotingPower } from "../../../hooks/conviction/useMemberVotingPower";
+import { useRegisteredHypercerts } from "../../../hooks/conviction/useRegisteredHypercerts";
 import type { Address } from "../../../types/domain";
 
 function createWrapper(queryClient: QueryClient) {

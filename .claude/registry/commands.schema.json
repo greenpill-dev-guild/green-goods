@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Commands Registry",
+  "type": "object",
+  "required": ["source", "canonical_commands", "commands", "aliases"],
+  "properties": {
+    "source": { "type": "string", "const": ".claude/skills/*/SKILL.md" },
+    "canonical_commands": { "type": "array", "items": { "type": "string" } },
+    "commands": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/command" }
+    },
+    "aliases": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "command": {
+      "type": "object",
+      "required": ["name", "status", "default_mode", "intent", "entry_file", "owned_skills"],
+      "properties": {
+        "name": { "type": "string" },
+        "status": { "type": "string" },
+        "default_mode": { "type": "string" },
+        "intent": { "type": "string" },
+        "entry_file": {
+          "type": "string",
+          "pattern": "^\\.claude\\/skills\\/[a-z0-9-]+\\/SKILL\\.md$"
+        },
+        "owned_skills": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

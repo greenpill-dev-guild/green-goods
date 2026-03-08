@@ -7,7 +7,7 @@
  * @module hooks/blockchain/useEnsQuery
  */
 
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { type UseQueryResult, useQuery } from "@tanstack/react-query";
 import { STALE_TIME_RARE } from "../query-keys";
 
 /** Default stale time for ENS queries (5 minutes) */

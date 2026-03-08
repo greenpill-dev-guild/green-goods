@@ -319,7 +319,7 @@ export const STALE_TIMES = {
 
 **Goal**: Replace `sessionStorage`-based form persistence with IndexedDB-backed persistence that survives browser closes.
 
-**Why**: `form.ts` uses `sessionStorage` which clears when the browser tab closes. Conservation workers on mobile frequently close/reopen the PWA — losing mid-form progress is a significant UX pain point.
+**Why**: `form.ts` uses `sessionStorage` which clears when the browser tab closes. Field workers on mobile frequently close/reopen the PWA — losing mid-form progress is a significant UX pain point.
 
 ### Files to modify
 
@@ -588,6 +588,31 @@ Works become a TanStack DB collection that merges local job queue entries with s
 4. `bun run test` — all hooks tests pass with new TanStack DB backend
 
 ---
+
+## Conflict Resolution for Concurrent Offline Edits
+
+When multiple devices or tabs submit work offline and sync later, conflicts are resolved as follows:
+
+### Strategy: Last-Write-Wins with Timestamp Comparison
+
+- Each job queue entry carries a `createdAt` timestamp (client-side `Date.now()` at submission time).
+- When two jobs produce attestations for the same logical work, the later timestamp wins.
+- On-chain attestations are append-only (EAS does not support updates), so "winning" means the later attestation becomes the canonical reference in the UI.
+
+### Detection: clientWorkId Deduplication
+
+- Each work submission generates a unique `clientWorkId` (UUID v4) at creation time.
+- If two jobs share the same `clientWorkId` (e.g., same form submitted from two tabs), the job queue deduplicates within a **5-minute window**: the second submission is silently dropped.
+- If two jobs have different `clientWorkId` values but reference the same action + gardener, both are valid separate submissions (a gardener may legitimately submit work to the same action multiple times).
+
+### Race Condition: Multiple Tabs Draining Simultaneously
+
+- The job queue uses an IndexedDB transaction lock: only one tab can transition a job from `queued → syncing` at a time.
+- If a second tab attempts to drain the same job, the IndexedDB write fails with a constraint error, and the tab skips that job.
+
+### Future: CRDT Consideration
+
+CRDTs (Conflict-free Replicated Data Types) are not implemented and are not currently needed. Green Goods work submissions are write-once attestations with no collaborative editing. If collaborative features are added (e.g., shared garden configuration editing), CRDT-based merge should be evaluated. See Phase 6 TanStack DB notes for the likely integration path.
 
 ## Future Considerations (Not in Scope)
 

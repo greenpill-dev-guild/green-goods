@@ -1,0 +1,200 @@
+{
+  "create-query-hook": {
+    "checks": {
+      "file_exists": ["packages/shared/src/hooks/garden/useGardenMemberStats.ts"],
+      "test_file_exists": [
+        "packages/shared/src/hooks/garden/__tests__/useGardenMemberStats.test.ts"
+      ],
+      "pattern_present": {
+        "packages/shared/src/hooks/garden/useGardenMemberStats.ts": [
+          "Address",
+          "queryKeys",
+          "useQuery"
+        ],
+        "packages/shared/src/hooks/index.ts": ["useGardenMemberStats"]
+      },
+      "pattern_absent": {
+        "packages/shared/src/hooks/garden/useGardenMemberStats.ts": [
+          "console.log",
+          "console.error",
+          ": string"
+        ]
+      },
+      "barrel_export": {
+        "file": "packages/shared/src/hooks/index.ts",
+        "symbol": "useGardenMemberStats"
+      },
+      "tests_pass": true,
+      "build_pass": true,
+      "lint_pass": true
+    },
+    "scoring": {
+      "hook_boundary_respected": 20,
+      "query_keys_used": 15,
+      "address_type_used": 15,
+      "barrel_export_updated": 15,
+      "tests_written_and_pass": 20,
+      "cathedral_check_followed": 15
+    }
+  },
+  "fix-mutation-error-handling": {
+    "checks": {
+      "pattern_present": {
+        "packages/shared/src/hooks/action/useArchiveAction.ts": ["createMutationErrorHandler"]
+      },
+      "pattern_absent": {
+        "packages/shared/src/hooks/action/useArchiveAction.ts": [
+          "console.error",
+          "console.log",
+          "console.warn"
+        ]
+      },
+      "behavior_preserved": {
+        "success_handler_unchanged": true,
+        "mutation_signature_unchanged": true
+      },
+      "tests_pass": true,
+      "build_pass": true,
+      "lint_pass": true
+    },
+    "scoring": {
+      "error_handler_replaced": 30,
+      "no_console_statements": 20,
+      "behavior_preserved": 20,
+      "test_verifies_error_path": 20,
+      "follows_existing_mutation_patterns": 10
+    }
+  },
+  "add-utility-hook": {
+    "checks": {
+      "file_exists": ["packages/shared/src/hooks/utils/useInterval.ts"],
+      "test_file_exists": ["packages/shared/src/hooks/utils/__tests__/useInterval.test.ts"],
+      "pattern_present": {
+        "packages/shared/src/hooks/utils/useInterval.ts": [
+          "useRef",
+          "useCallback",
+          "useEffect",
+          "isMountedRef",
+          "clearInterval"
+        ],
+        "packages/shared/src/hooks/index.ts": ["useInterval"]
+      },
+      "pattern_absent": {
+        "packages/shared/src/hooks/utils/useInterval.ts": ["console.log", "console.error"]
+      },
+      "barrel_export": {
+        "file": "packages/shared/src/hooks/index.ts",
+        "symbol": "useInterval"
+      },
+      "tests_pass": true,
+      "build_pass": true,
+      "lint_pass": true
+    },
+    "scoring": {
+      "pattern_follows_useTimeout": 25,
+      "cleanup_on_unmount": 20,
+      "ref_based_guards": 15,
+      "barrel_export_updated": 10,
+      "tests_cover_lifecycle": 20,
+      "tdd_workflow_followed": 10
+    }
+  },
+  "fix-offline-sync-bug": {
+    "checks": {
+      "file_exists": ["packages/shared/src/modules/job-queue/sync-processor.ts"],
+      "test_file_exists": [
+        "packages/shared/src/modules/job-queue/__tests__/sync-processor.test.ts"
+      ],
+      "pattern_present": {
+        "packages/shared/src/modules/job-queue/sync-processor.ts": [
+          "job:failed",
+          "success: false",
+          "failedReason",
+          "isContractError"
+        ]
+      },
+      "pattern_absent": {
+        "packages/shared/src/modules/job-queue/sync-processor.ts": [
+          "console.log",
+          "console.error",
+          "console.warn"
+        ]
+      },
+      "behavior_checks": {
+        "network_errors_still_retry": true,
+        "contract_errors_do_not_retry": true,
+        "failed_jobs_not_marked_synced": true,
+        "success_requires_txHash": true
+      },
+      "tests_pass": true,
+      "build_pass": true,
+      "lint_pass": true
+    },
+    "scoring": {
+      "contract_error_classification_added": 20,
+      "failed_path_returns_false": 20,
+      "event_bus_correctness": 15,
+      "network_retry_preserved": 15,
+      "tests_cover_all_error_categories": 20,
+      "tdd_workflow_followed": 10
+    }
+  },
+  "add-admin-component": {
+    "checks": {
+      "file_exists": [
+        "packages/shared/src/hooks/garden/useGardenActivityFeed.ts",
+        "packages/admin/src/components/Garden/GardenActivityFeed.tsx"
+      ],
+      "test_file_exists": [
+        "packages/shared/src/hooks/garden/__tests__/useGardenActivityFeed.test.ts"
+      ],
+      "pattern_present": {
+        "packages/shared/src/hooks/garden/useGardenActivityFeed.ts": [
+          "Address",
+          "queryKeys",
+          "useQuery",
+          "useRolePermissions"
+        ],
+        "packages/shared/src/hooks/index.ts": ["useGardenActivityFeed"],
+        "packages/admin/src/components/Garden/GardenActivityFeed.tsx": [
+          "@green-goods/shared",
+          "useIntl",
+          "formatMessage",
+          "@remixicon/react"
+        ]
+      },
+      "pattern_absent": {
+        "packages/shared/src/hooks/garden/useGardenActivityFeed.ts": [
+          "console.log",
+          "console.error",
+          ": string"
+        ],
+        "packages/admin/src/components/Garden/GardenActivityFeed.tsx": [
+          "console.log",
+          "console.error",
+          "@green-goods/shared/hooks",
+          "lucide"
+        ]
+      },
+      "barrel_export": {
+        "file": "packages/shared/src/hooks/index.ts",
+        "symbol": "useGardenActivityFeed"
+      },
+      "tests_pass": true,
+      "build_pass": true,
+      "lint_pass": true
+    },
+    "scoring": {
+      "hook_boundary_respected": 15,
+      "query_keys_used": 10,
+      "address_type_used": 10,
+      "barrel_export_updated": 10,
+      "barrel_import_in_admin": 10,
+      "role_based_filtering": 15,
+      "i18n_compliance": 10,
+      "remixicon_used": 5,
+      "tests_written_and_pass": 10,
+      "cathedral_check_followed": 5
+    }
+  }
+}

@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, useCallback, useMemo } from "react";
-
-import type { HypercertRecord, HypercertStatus } from "../../types/hypercerts";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { logger } from "../../modules/app/logger";
 import {
   getGardenHypercerts,
   getHypercertById,
@@ -9,10 +8,10 @@ import {
   hydrateHypercertMetadata,
   hydrateHypercertRecords,
 } from "../../modules/data/hypercerts";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import type { HypercertRecord, HypercertStatus } from "../../types/hypercerts";
 import { ValidationError } from "../../utils/errors/validation-error";
-import { logger } from "../../modules/app/logger";
 import { useCurrentChain } from "../blockchain/useChainConfig";
+import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 
 /**
  * Sync status for newly minted hypercerts.

@@ -1,7 +1,12 @@
 ---
 name: contracts
-user-invocable: false
 description: Solidity smart contract development with Foundry. Use for contract design, testing, gas optimization, UUPS upgrades, and deployment via deploy.ts.
+version: "1.0.0"
+status: active
+packages: ["contracts"]
+dependencies: []
+last_updated: "2026-02-25"
+last_verified: "2026-02-25"
 ---
 
 # Contracts Skill
@@ -42,14 +47,16 @@ packages/contracts/
 |---------|---------|
 | `bun run test` | Run unit tests (skips E2E) |
 | `bun test:gas` | Tests with gas report |
-| `bun build` | Adaptive build (~2s cached, skips test/script when unchanged) |
-| `bun build:fast` | Explicit fast (~2s cached, source contracts only) |
+| `bun build` | Adaptive build (changed Solidity targets with shared-file fallback to `src`) |
+| `bun build:changed` | Build changed Solidity under `src/test/script` only |
+| `bun build:target -- <path...>` | Build explicit Solidity target(s) only |
+| `bun build:fast` | Explicit fast mode (`src` only, skips Foundry test/script) |
 | `bun build:full` | Full compilation including tests (>180s cold) |
 | `bun run test:lite` | ~35 fast tests, excludes heavy/account suites |
 | `bun lint` | Format & lint with forge fmt + solhint |
 | `bun deploy:testnet` | Deploy to Sepolia |
 
-> **Build guidance:** Use `build:full` before deployment. Use `build` (adaptive) for iteration.
+> **Build guidance:** Use `build`/`build:changed`/`build:target` for iteration. Use `build:full` before deployment.
 
 ### Custom Errors (MANDATORY)
 

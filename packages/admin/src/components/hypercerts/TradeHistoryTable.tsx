@@ -1,12 +1,14 @@
 import {
-  useTradeHistory,
-  DEFAULT_CHAIN_ID,
-  getNetworkConfig,
   type Address,
+  DEFAULT_CHAIN_ID,
+  type FractionTrade,
+  getNetworkConfig,
+  useTradeHistory,
 } from "@green-goods/shared";
-import { RiLoader4Line, RiExternalLinkLine, RiAlertLine, RiHistoryLine } from "@remixicon/react";
+import { RiExternalLinkLine, RiHistoryLine, RiLoader4Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEther } from "viem";
+import { Alert } from "@/components/ui/Alert";
 
 interface TradeHistoryTableProps {
   hypercertId: bigint;
@@ -62,15 +64,12 @@ export function TradeHistoryTable({
 
   if (error) {
     return (
-      <div className="flex items-center gap-2 rounded-md bg-error-lighter p-3">
-        <RiAlertLine className="h-4 w-4 text-error-base" />
-        <span className="text-sm text-error-dark">
-          {intl.formatMessage({
-            id: "app.admin.tradeHistory.loadError",
-            defaultMessage: "Failed to load trades",
-          })}
-        </span>
-      </div>
+      <Alert variant="error">
+        {intl.formatMessage({
+          id: "app.admin.tradeHistory.loadError",
+          defaultMessage: "Failed to load trades",
+        })}
+      </Alert>
     );
   }
 

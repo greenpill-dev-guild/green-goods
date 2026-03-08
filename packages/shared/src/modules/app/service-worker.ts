@@ -151,6 +151,42 @@ class ServiceWorkerManager {
   }
 
   /**
+   * Clear all SW caches and the React Query IndexedDB store.
+   * Used during sign-out to prevent stale data leaking across sessions.
+   */
+  async clearAllCaches(): Promise<void> {
+    // Clear Cache Storage (SW runtime caches)
+    if ("caches" in window) {
+      try {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      } catch (error) {
+        logger.warn("[ServiceWorker] Failed to clear caches", { error });
+      }
+    }
+
+    // Clear React Query IndexedDB persistence store
+    if ("indexedDB" in window) {
+      try {
+        const databases = await indexedDB.databases();
+        await Promise.all(
+          databases
+            .filter((db) => db.name?.includes("gg-react-query"))
+            .map((db) => {
+              return new Promise<void>((resolve, reject) => {
+                const req = indexedDB.deleteDatabase(db.name!);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+              });
+            })
+        );
+      } catch (error) {
+        logger.warn("[ServiceWorker] Failed to clear IndexedDB", { error });
+      }
+    }
+  }
+
+  /**
    * Get registration status info
    */
   getStatus() {

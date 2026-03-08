@@ -1,0 +1,93 @@
+---
+title: "Joining A Garden"
+sidebar_label: "Joining A Garden"
+slug: /community/gardener-guide/joining-a-garden
+audience: all
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+goal: "Help gardeners find, join, and begin working in a garden community."
+difficulty: "quickstart"
+estimated_time: "5 minutes."
+prereqs: "A smartphone with a camera and an internet connection for initial setup."
+next_steps: "/community/gardener-guide/uploading-your-work"
+persona_context: "New gardeners discovering and joining garden communities for the first time."
+source_of_truth:
+  - packages/client/src/views/Home/index.tsx
+  - packages/shared/src/hooks/garden/useJoinGarden.ts
+  - packages/shared/src/hooks/garden/useAutoJoinRootGarden.ts
+keywords:
+  - join garden
+  - gardener role
+  - open garden
+  - community garden
+---
+
+import {
+  DecisionGuide,
+  NextBestAction,
+  StatusBadge,
+  StepFlow,
+} from "@site/src/components/docs";
+
+# Joining A Garden
+
+<StatusBadge status="Live" />
+
+## Overview
+
+Gardens are community hubs for regenerative work, each focused on a specific bioregion or initiative. As a gardener, you join a garden to access its actions, document your work, and earn on-chain recognition. Every new user is automatically added to the Community Garden on signup, so you can start immediately.
+
+{/* IMAGE PLACEHOLDER */}
+
+## How It Works
+
+<StepFlow
+  steps={[
+    {title: "Sign in", detail: "Open greengoods.app and sign in with your device biometrics (Face ID, Touch ID, or fingerprint). No passwords or seed phrases needed — a passkey-based smart account is created for you automatically."},
+    {title: "Explore the Community Garden", detail: "You are auto-joined to the Community Garden on first login. Browse available actions to see what regenerative work is needed in your area."},
+    {title: "Find additional gardens", detail: "Browse the gardens list to find communities matching your interests or bioregion. Open gardens let you join instantly; restricted gardens require an operator invitation."},
+    {title: "Start working", detail: "Once you have joined a garden, open an active action and begin documenting your regenerative work using the MDR workflow (Media, Details, Review)."},
+  ]}
+/>
+
+<DecisionGuide
+  title="Open vs restricted gardens"
+  items={[
+    {
+      when: "The garden has an open joining policy",
+      do: "Join directly from the gardens list. No approval needed.",
+      next: "Browse active actions and start documenting your work.",
+    },
+    {
+      when: "The garden has a restricted joining policy",
+      do: "Request an invitation from the garden operator or wait for one to be sent to you.",
+      next: "Once accepted, the garden and its actions will appear in your dashboard.",
+    },
+    {
+      when: "You are not sure which garden to join",
+      do: "Start with the Community Garden — it is open to everyone and has general-purpose actions.",
+      next: "Explore other gardens as you get comfortable with the workflow.",
+    },
+  ]}
+/>
+
+## Best Practices
+
+- Start with the Community Garden to learn the MDR submission workflow before joining specialized gardens
+- When joining a restricted garden, reach out to the operator directly to express your interest and experience
+- You can belong to multiple gardens at once — each garden tracks your contributions independently
+- Check a garden's active actions before joining to make sure it matches your interests and availability
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="You have joined a garden — now learn how to document your regenerative work."
+  actionLabel="Document Your Work"
+  actionHref="/community/gardener-guide/uploading-your-work"
+  alternatives={[
+    {label: "Working Offline", href: "/community/gardener-guide/offline-sync-and-drafts"},
+    {label: "Earning Badges", href: "/community/gardener-guide/earning-badges"},
+  ]}
+/>

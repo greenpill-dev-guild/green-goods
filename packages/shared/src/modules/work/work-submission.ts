@@ -225,6 +225,14 @@ export function validateApprovalDraft(draft: WorkApprovalDraft): string[] {
     errors.push("Confidence must be at least LOW for approvals");
   }
 
+  // Verification method must be a valid 4-bit bitmask (0-15)
+  if (
+    typeof draft.verificationMethod === "number" &&
+    (draft.verificationMethod < 0 || draft.verificationMethod > 15)
+  ) {
+    errors.push("Verification method must be between 0 and 15");
+  }
+
   // Verification method must be set for approvals
   if (draft.approved && (!draft.verificationMethod || draft.verificationMethod === 0)) {
     errors.push("At least one verification method is required for approvals");

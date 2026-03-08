@@ -1,7 +1,13 @@
 ---
 name: mermaid-diagrams
 user-invocable: false
-description: Use when explaining architecture, documenting workflows, visualizing state machines, or mapping entity relationships. Renders in GitHub Markdown, PRs, and docs.
+description: Create software diagrams using Mermaid syntax. Use for architecture explanations, workflow/flow diagrams, state machines, and relationship maps.
+version: "1.0.0"
+status: active
+packages: ["all"]
+dependencies: []
+last_updated: "2026-02-19"
+last_verified: "2026-02-19"
 ---
 
 # Mermaid Diagramming

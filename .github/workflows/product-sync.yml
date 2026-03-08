@@ -1,0 +1,93 @@
+name: Product Sync Extraction
+
+# Triggered when n8n (or a human) creates an issue labeled "product-sync"
+# containing @claude and the meeting transcript.
+#
+# Flow: Fireflies webhook → n8n → GitHub Issue (labeled product-sync) → this workflow
+#       → Claude Code extracts items → creates individual bug/feature/polish issues
+#       → closes the trigger issue
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  extract-issues:
+    if: |
+      contains(github.event.issue.labels.*.name, 'product-sync') &&
+      (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowedTools "Read,Glob,Grep,Bash(gh issue create:*),Bash(gh issue close:*),Bash(gh issue edit:*)"'
+          prompt: |
+            You are processing a product sync transcript that was submitted via GitHub Issue #${{ github.event.issue.number }}.
+
+            ## Your Task
+
+            1. Read the issue body to get the transcript
+            2. Run the /product-sync extraction process using your knowledge of this repo
+            3. For each extracted item, create a real GitHub issue using `gh issue create`
+            4. After all issues are created, close this trigger issue with a summary comment
+
+            ## Creating Issues
+
+            Use `gh issue create` for each extracted item:
+
+            ```
+            gh issue create \
+              --title "Title here" \
+              --label "bug" \
+              --body "Full issue body matching our templates"
+            ```
+
+            Labels to use:
+            - Bugs: `bug`
+            - Features: `enhancement`
+            - Polish: `polish`
+
+            ## Context Files to Read
+
+            Before extraction, read these for grounding:
+            - `.github/ISSUE_TEMPLATE/bug.yml`
+            - `.github/ISSUE_TEMPLATE/feature.yml`
+            - `.github/ISSUE_TEMPLATE/polish.yml`
+            - `.claude/context/intent.md` (grant mapping, decision heuristics)
+
+            ## Extraction Rules
+
+            - Categorize each item as Bug, Feature (User Story), or Polish
+            - Assign severity P0-P4 based on discussion urgency
+            - Scope to correct package(s): contracts, shared, client, admin, agent, indexer
+            - Map to grants when possible (see intent.md)
+            - Flag assumptions with [ASSUMPTION]
+            - Cross-reference known issues before creating duplicates
+
+            ## After Creating All Issues
+
+            1. Post a summary comment on this trigger issue listing all created issues:
+               ```
+               gh issue comment ${{ github.event.issue.number }} --body "## Extraction Complete\n\n| # | Title | Type | Severity |\n|---|-------|------|----------|\n..."
+               ```
+
+            2. Close this trigger issue:
+               ```
+               gh issue close ${{ github.event.issue.number }} --reason completed
+               ```
+
+            ## Transcript
+
+            Read the body of issue #${{ github.event.issue.number }} to get the transcript.

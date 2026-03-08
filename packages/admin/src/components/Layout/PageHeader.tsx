@@ -1,7 +1,6 @@
-import { cn, iconButtonIconVariants, iconButtonVariants } from "@green-goods/shared";
+import { cn } from "@green-goods/shared";
 import { RiArrowLeftLine } from "@remixicon/react";
 import type { ReactNode } from "react";
-import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
 type BackLinkConfig = {
@@ -40,8 +39,6 @@ export function PageHeader({
   className,
   children,
 }: PageHeaderProps) {
-  const intl = useIntl();
-
   return (
     <header
       className={cn(
@@ -51,44 +48,42 @@ export function PageHeader({
         className
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
-        <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
-          {backLink ? (
-            <Link
-              to={backLink.to}
-              className={iconButtonVariants({ size: "sm" })}
-              aria-label={
-                backLink.label ??
-                intl.formatMessage({ id: "app.wizard.back", defaultMessage: "Back" })
-              }
-            >
-              <RiArrowLeftLine className={iconButtonIconVariants({ size: "sm" })} />
-            </Link>
-          ) : null}
-
-          <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1">
-            <h1 className="truncate font-heading text-label-lg text-text-strong sm:text-title-h6">
-              {title}
-            </h1>
-            {description ? (
-              <p className="line-clamp-2 text-paragraph-xs text-text-sub sm:text-paragraph-sm">
-                {description}
-              </p>
-            ) : null}
-            {metadata ? (
-              <div className="text-paragraph-xs text-text-soft sm:text-paragraph-sm">
-                {metadata}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        {actions ? (
-          <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">{actions}</div>
+      <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+        {backLink ? (
+          <Link
+            to={backLink.to}
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-stroke-soft text-text-soft transition hover:text-text-sub active:scale-95 sm:h-10 sm:w-10"
+            aria-label={backLink.label ?? "Go back"}
+          >
+            <RiArrowLeftLine className="h-5 w-5" />
+          </Link>
         ) : null}
+
+        <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1">
+          <h1
+            className="truncate font-heading text-lg font-semibold text-text-strong sm:text-2xl"
+            title={typeof title === "string" ? title : undefined}
+          >
+            {title}
+          </h1>
+          {description ? (
+            <p
+              className="line-clamp-2 text-xs text-text-sub sm:text-sm"
+              title={typeof description === "string" ? description : undefined}
+            >
+              {description}
+            </p>
+          ) : null}
+          {metadata ? <div className="text-xs text-text-soft sm:text-sm">{metadata}</div> : null}
+        </div>
       </div>
 
-      {toolbar ? <div className="mt-3 sm:mt-4">{toolbar}</div> : null}
+      {actions || toolbar ? (
+        <div className="flex items-center justify-between gap-3 mt-3 sm:mt-4">
+          <div className="flex items-center gap-3">{toolbar}</div>
+          <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">{actions}</div>
+        </div>
+      ) : null}
 
       {children ? <div className="mt-3 sm:mt-4">{children}</div> : null}
     </header>

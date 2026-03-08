@@ -1,10 +1,10 @@
 import {
+  type Address,
   debugError,
   hapticLight,
   toastService,
   useAuth,
   useEnsName,
-  type Address,
 } from "@green-goods/shared";
 import { RiKeyLine, RiLogoutBoxRLine, RiWalletLine } from "@remixicon/react";
 import { useIntl } from "react-intl";

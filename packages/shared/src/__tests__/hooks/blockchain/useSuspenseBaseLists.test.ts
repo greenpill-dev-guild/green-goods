@@ -9,7 +9,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, Suspense, type ReactNode } from "react";
+import { createElement, type ReactNode, Suspense } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockAction, createMockGarden } from "../../test-utils/mock-factories";
 
@@ -40,9 +40,9 @@ vi.mock("../../../config/appkit", () => ({
 }));
 
 import {
-  useSuspenseGardens,
   useSuspenseActions,
   useSuspenseGardeners,
+  useSuspenseGardens,
 } from "../../../hooks/blockchain/useSuspenseBaseLists";
 
 // ============================================

@@ -26,11 +26,6 @@ const meta: Meta<typeof FormInput> = {
       control: "boolean",
       description: "Disabled state",
     },
-    controlSize: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Shared control size scale",
-    },
     type: {
       control: "select",
       options: ["text", "email", "password", "number", "tel"],
@@ -111,16 +106,6 @@ export const AllStates: Story = {
         defaultValue="Cannot edit"
         id="state-disabled"
       />
-    </div>
-  ),
-};
-
-export const SizeScale: Story = {
-  render: () => (
-    <div className="flex flex-col gap-4 max-w-md">
-      <FormInput label="Small" placeholder="40px control" id="size-sm" controlSize="sm" />
-      <FormInput label="Medium" placeholder="44px control" id="size-md" controlSize="md" />
-      <FormInput label="Large" placeholder="48px control" id="size-lg" controlSize="lg" />
     </div>
   ),
 };

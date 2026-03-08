@@ -1,18 +1,17 @@
+import { cn } from "@green-goods/shared";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 
-import { cardSectionVariants, cardShellVariants, cn } from "@green-goods/shared";
-
 const cardVariants = tv({
-  base: [cardShellVariants(), "flex flex-col"],
+  base: "rounded-xl border border-stroke-soft bg-bg-white shadow-sm",
   variants: {
     variant: {
       default: "",
-      interactive: cardShellVariants({ interactive: true }),
+      interactive: "cursor-pointer transition-shadow duration-200 hover:shadow-md",
     },
     padding: {
       compact: "p-4",
-      feature: "p-5 sm:p-6",
+      feature: "p-6",
       none: "",
     },
   },
@@ -45,7 +44,6 @@ const CardRoot = React.forwardRef<HTMLDivElement, CardRootProps>(
       className={cn(
         cardVariants({ variant, padding }),
         colorAccent && colorAccentMap[colorAccent],
-        "overflow-hidden",
         className
       )}
       {...props}
@@ -59,8 +57,7 @@ const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
     <div
       ref={ref}
       className={cn(
-        cardSectionVariants({ size: "md", divider: "bottom" }),
-        "flex items-center justify-between gap-4",
+        "flex items-center justify-between border-b border-stroke-soft px-4 py-3 sm:px-6 sm:py-4",
         className
       )}
       {...props}
@@ -71,7 +68,7 @@ CardHeader.displayName = "Card.Header";
 
 const CardBody = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn(cardSectionVariants({ size: "md" }), className)} {...props} />
+    <div ref={ref} className={cn("p-4 sm:p-6", className)} {...props} />
   )
 );
 CardBody.displayName = "Card.Body";
@@ -81,8 +78,7 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
     <div
       ref={ref}
       className={cn(
-        cardSectionVariants({ size: "md", divider: "top" }),
-        "flex items-center gap-3",
+        "flex items-center border-t border-stroke-soft px-4 py-3 sm:px-6 sm:py-4",
         className
       )}
       {...props}

@@ -1,0 +1,120 @@
+---
+title: Context Engineering
+sidebar_label: Context Engineering
+slug: /builders/agentic/context-engineering
+audience: developer
+owner: docs
+last_verified: 2026-03-01
+---
+
+# Context Engineering
+
+{/* IMAGE PLACEHOLDER: Context engineering — .claude directory structure and layered context (800x400) */}
+
+Context engineering is how we structure project knowledge so AI agents can work effectively with the Green Goods codebase. This goes beyond a single prompt -- it is the architecture of information that surrounds every agent interaction.
+
+## The `.claude/` Directory
+
+The `.claude/` directory is the central context store for all agent tooling:
+
+```
+.claude/
+  agents/          # Agent specifications (6 agents)
+  context/         # Package and domain context files
+  rules/           # Path-scoped coding rules
+  skills/          # Modular instruction sets (40+ skills)
+  plans/           # Saved plans from agent PLAN phases
+  registry/        # Skill bundles and activation configs
+  scripts/         # Guidance consistency checks
+  specs/           # Detailed feature specifications
+  standards/       # Code standards documentation
+  agent-memory/    # Persistent agent memory (per-agent)
+  evals/           # Agent evaluation criteria
+  hooks.json       # Tool execution hooks
+  settings.json    # Global agent settings
+```
+
+## Context Layers
+
+Context is loaded in layers, from broadest to most specific:
+
+### Layer 1: `CLAUDE.md` (Always Loaded)
+
+The root `CLAUDE.md` provides universal project context: commands, architecture, key patterns, git workflow, and non-negotiable rules. Every agent session starts with this context. Keep it under 4KB.
+
+### Layer 2: `AGENTS.md` (Always Loaded)
+
+A compact runtime contract for all agents -- non-negotiable invariants, code conventions, scope constraints, and pointers to canonical sources. Tools like OpenAI Codex use this as their primary context file.
+
+### Layer 3: Package Context (`.claude/context/*.md`)
+
+Loaded based on which files the agent is working with:
+
+| File | Loaded When |
+|------|-------------|
+| `shared.md` | Editing `packages/shared/` |
+| `contracts.md` | Editing `packages/contracts/` |
+| `client.md` | Editing `packages/client/` |
+| `admin.md` | Editing `packages/admin/` |
+| `agent.md` | Editing `packages/agent/` |
+| `indexer.md` | Editing `packages/indexer/` |
+| `intent.md` | Making prioritization or UX decisions |
+| `values.md` | Resolving conflicts between constraints |
+| `product.md` | Feature planning and requirements |
+
+### Layer 4: Rules (`.claude/rules/*.md`)
+
+Path-scoped rules loaded conditionally based on the files being edited:
+
+- `contracts.md` -- Solidity conventions, bun script requirements
+- `typescript.md` -- Error handling, Address type, barrel imports
+- `react-patterns.md` -- Hook patterns, component conventions
+- `frontend-design.md` -- UI primitives, theme tokens, accessibility
+
+### Layer 5: Skills (Loaded Per-Agent)
+
+Each agent's specification lists the skills it needs. Skills provide detailed how-to instructions for specific domains.
+
+## Session Continuity
+
+### Agent Memory
+
+Each agent has persistent memory at `.claude/agent-memory/{agent-name}/`. The `MEMORY.md` file in each directory is loaded into the agent's system prompt on every session, providing cross-session learning.
+
+Memory guidelines:
+- Save stable patterns confirmed across multiple interactions
+- Save solutions to recurring problems
+- Do not save session-specific context or speculative conclusions
+
+### Session State
+
+For long sessions, agents checkpoint their progress to `session-state.md`:
+
+```markdown
+## Session State
+- **Current task**: [description]
+- **Progress**: [what's done]
+- **Files modified**: [list]
+- **Tests**: [passing/failing/not written]
+- **Next steps**: [immediate actions]
+```
+
+This enables context recovery after compaction or session handoff.
+
+## Guidance Governance
+
+A consistency check script validates that guidance across all context files does not contradict:
+
+```bash
+node .claude/scripts/check-guidance-consistency.js
+```
+
+This runs in CI to catch drift between `CLAUDE.md`, `AGENTS.md`, agent specs, and rules files.
+
+## Design Principles
+
+1. **Layered loading** -- Only load what is relevant to the current task
+2. **Single source of truth** -- Each fact lives in one place, referenced from others
+3. **Machine-readable structure** -- Use frontmatter, tables, and consistent headers
+4. **Version controlled** -- All context files are committed to the repository
+5. **Testable consistency** -- CI validates that guidance files do not contradict
