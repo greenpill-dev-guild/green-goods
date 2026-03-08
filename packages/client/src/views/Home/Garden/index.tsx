@@ -322,7 +322,7 @@ export const Garden: React.FC = () => {
                 )}
                 <div className="absolute top-0 left-0 right-0 z-20">
                   <TopNav
-                    className="flex w-full justify-between items-center p-4 pt-6"
+                    className="flex w-full justify-between items-start p-4 pt-6"
                     onBackClick={() => navigate("/home")}
                     works={mergedWorks}
                     garden={garden}
