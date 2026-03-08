@@ -26,6 +26,8 @@ type WorkViewProps = {
   actionTitle: string;
   media?: string[];
   details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
+  /** When true, shows skeleton placeholders for details instead of the actual cards */
+  isDetailsLoading?: boolean;
   headerIcon?: IconComponent | null;
   primaryActions?: WorkViewAction[]; // shown near header or under details
   feedbackSection?: React.ReactNode; // optional feedback input section
@@ -51,6 +53,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
   actionTitle,
   media = [],
   details,
+  isDetailsLoading = false,
   headerIcon: HeaderIcon,
   primaryActions = [],
   feedbackSection,
@@ -122,16 +125,24 @@ export const WorkView: React.FC<WorkViewProps> = ({
         Icon={RiExternalLinkLine}
       />
 
-      {details
-        .filter((d) => d.value && d.value.trim().length > 0)
-        .map((d) => (
-          <FormCard
-            key={d.label}
-            label={d.label}
-            value={d.value}
-            Icon={d.icon ?? RiExternalLinkLine}
-          />
-        ))}
+      {isDetailsLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={`detail-loading-${i}`} className="h-12 bg-bg-weak-50 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        details
+          .filter((d) => d.value && d.value.trim().length > 0)
+          .map((d) => (
+            <FormCard
+              key={d.label}
+              label={d.label}
+              value={d.value}
+              Icon={d.icon ?? RiExternalLinkLine}
+            />
+          ))
+      )}
 
       {feedbackSection}
 

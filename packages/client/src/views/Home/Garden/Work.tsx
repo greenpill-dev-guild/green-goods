@@ -515,7 +515,6 @@ export const GardenWork: React.FC = () => {
       </article>
     );
 
-  const isMetadataLoading = metadataStatus === "loading" || metadataStatus === "idle";
   const hasMedia = Array.isArray(work.media) && work.media.length > 0;
   const resolvedActionTitle =
     actionTitle ??
@@ -824,27 +823,22 @@ export const GardenWork: React.FC = () => {
     <article>
       <TopNav onBackClick={handleBack} overlay />
       <div className="padded pt-20">
-        {isMetadataLoading ? (
-          <WorkViewSkeleton showMedia showActions={false} numDetails={3} />
-        ) : (
-          <>
-            <WorkViewSection
-              garden={garden}
-              work={work}
-              workMetadata={workMetadata}
-              viewingMode={viewingMode}
-              actionTitle={resolvedActionTitle}
-              effectiveStatus={effectiveStatus}
-              onDownloadData={handleDownloadData}
-              onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
-              onShare={handleShare}
-              onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
-              footer={retryFooter || approvalFooter || successFooter}
-              reserveFooterSpace={Boolean(retryFooter || approvalFooter || successFooter)}
-              footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
-            />
-          </>
-        )}
+        <WorkViewSection
+          garden={garden}
+          work={work}
+          workMetadata={workMetadata}
+          metadataStatus={metadataStatus}
+          viewingMode={viewingMode}
+          actionTitle={resolvedActionTitle}
+          effectiveStatus={effectiveStatus}
+          onDownloadData={handleDownloadData}
+          onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
+          onShare={handleShare}
+          onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
+          footer={retryFooter || approvalFooter || successFooter}
+          reserveFooterSpace={Boolean(retryFooter || approvalFooter || successFooter)}
+          footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
+        />
 
         {metadataStatus === "error" && (
           <div className="mt-4 rounded-xl border border-error-light bg-error-lighter px-4 py-3 flex items-start gap-3">

@@ -23,10 +23,13 @@ import { WorkView, type WorkViewAction } from "@/components/Features/Work";
 
 type ViewingMode = "operator" | "gardener" | "viewer";
 
+type MetadataStatus = "idle" | "loading" | "success" | "error";
+
 type WorkViewSectionProps = {
   garden?: Garden;
   work: Work;
   workMetadata: WorkMetadata | null;
+  metadataStatus?: MetadataStatus;
   viewingMode: ViewingMode;
   actionTitle: string;
   effectiveStatus: WorkDisplayStatus;
@@ -168,6 +171,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   garden,
   work,
   workMetadata,
+  metadataStatus = "success",
   viewingMode,
   actionTitle,
   effectiveStatus,
@@ -387,6 +391,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
     return items;
   }, [metadataDetails, workFeedback, intl]);
 
+  const isDetailsLoading = metadataStatus === "loading" || metadataStatus === "idle";
+
   return (
     <WorkView
       title={getTitle()}
@@ -395,6 +401,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       actionTitle={actionTitle}
       media={media}
       details={allDetails}
+      isDetailsLoading={isDetailsLoading}
       headerIcon={RiCheckDoubleFill}
       primaryActions={primaryActions}
       footer={footer}
