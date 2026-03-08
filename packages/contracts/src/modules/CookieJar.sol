@@ -105,7 +105,7 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
         cookieJarFactory = ICookieJarFactory(_cookieJarFactory);
         hatsProtocol = _hatsProtocol;
 
-        defaultMaxWithdrawal = 0.01 ether;
+        defaultMaxWithdrawal = 100 ether;
         defaultWithdrawalInterval = 86_400;
         defaultStrictPurpose = false;
 

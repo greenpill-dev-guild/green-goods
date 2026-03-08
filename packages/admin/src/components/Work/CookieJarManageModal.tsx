@@ -7,12 +7,25 @@ import {
   useCookieJarEmergencyWithdraw,
   useCookieJarPause,
   useCookieJarUnpause,
+  useCookieJarUpdateInterval,
+  useCookieJarUpdateMaxWithdrawal,
   useGardenCookieJars,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
-import { RiCloseLine } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiPencilLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { formatUnits, parseUnits } from "viem";
+
+type EditingField = { jarAddress: Address; field: "maxWithdrawal" | "interval" };
+
+const INTERVAL_PRESETS = [
+  { label: "1h", value: "3600" },
+  { label: "6h", value: "21600" },
+  { label: "12h", value: "43200" },
+  { label: "1d", value: "86400" },
+  { label: "7d", value: "604800" },
+] as const;
 
 interface CookieJarManageModalProps {
   isOpen: boolean;
@@ -38,10 +51,48 @@ export function CookieJarManageModal({
   const pauseMutation = useCookieJarPause(gardenAddress);
   const unpauseMutation = useCookieJarUnpause(gardenAddress);
   const emergencyWithdrawMutation = useCookieJarEmergencyWithdraw(gardenAddress);
+  const updateMaxWithdrawalMutation = useCookieJarUpdateMaxWithdrawal(gardenAddress);
+  const updateIntervalMutation = useCookieJarUpdateInterval(gardenAddress);
   const [emergencyJar, setEmergencyJar] = useState<CookieJar | null>(null);
+  const [editing, setEditing] = useState<EditingField | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   const isPending =
-    pauseMutation.isPending || unpauseMutation.isPending || emergencyWithdrawMutation.isPending;
+    pauseMutation.isPending ||
+    unpauseMutation.isPending ||
+    emergencyWithdrawMutation.isPending ||
+    updateMaxWithdrawalMutation.isPending ||
+    updateIntervalMutation.isPending;
+
+  const startEditing = (jar: CookieJar, field: EditingField["field"]) => {
+    setEditing({ jarAddress: jar.jarAddress, field });
+    if (field === "maxWithdrawal") {
+      setEditValue(formatUnits(jar.maxWithdrawal, jar.decimals));
+    } else {
+      setEditValue(String(jar.withdrawalInterval));
+    }
+  };
+
+  const cancelEditing = () => {
+    setEditing(null);
+    setEditValue("");
+  };
+
+  const submitMaxWithdrawal = (jar: CookieJar) => {
+    const parsed = parseUnits(editValue, jar.decimals);
+    updateMaxWithdrawalMutation.mutate(
+      { jarAddress: jar.jarAddress, maxWithdrawal: parsed },
+      { onSuccess: () => cancelEditing() }
+    );
+  };
+
+  const submitInterval = (jar: CookieJar) => {
+    const interval = BigInt(editValue);
+    updateIntervalMutation.mutate(
+      { jarAddress: jar.jarAddress, withdrawalInterval: interval },
+      { onSuccess: () => cancelEditing() }
+    );
+  };
 
   const cooldownDisplay = (seconds: bigint) => {
     const secs = Number(seconds);
@@ -158,28 +209,160 @@ export function CookieJarManageModal({
                           )}
                         </div>
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-sub">
-                        <span>
-                          {formatMessage({
-                            id: "app.cookieJar.maxWithdrawal",
-                            defaultMessage: "Max Withdrawal",
-                          })}
-                          : {formatTokenAmount(jar.maxWithdrawal, jar.decimals)}
-                        </span>
-                        <span>
-                          {formatMessage({
-                            id: "app.cookieJar.withdrawalInterval",
-                            defaultMessage: "Withdrawal Cooldown",
-                          })}
-                          : {cooldownDisplay(jar.withdrawalInterval)}
-                        </span>
-                        <span>
-                          {formatMessage({
-                            id: "app.cookieJar.balance",
-                            defaultMessage: "Jar Balance",
-                          })}
-                          : {formatTokenAmount(jar.balance, jar.decimals)}
-                        </span>
+                      <div className="mt-2 space-y-1.5 text-xs text-text-sub">
+                        {/* Max Withdrawal - inline editable */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="whitespace-nowrap">
+                            {formatMessage({
+                              id: "app.cookieJar.maxWithdrawal",
+                              defaultMessage: "Max Withdrawal",
+                            })}
+                            :{" "}
+                          </span>
+                          {editing?.jarAddress === jar.jarAddress &&
+                          editing.field === "maxWithdrawal" ? (
+                            <span className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") submitMaxWithdrawal(jar);
+                                  if (e.key === "Escape") cancelEditing();
+                                }}
+                                className="w-20 rounded border border-stroke-soft bg-bg-white px-1.5 py-0.5 text-xs text-text-strong focus:border-primary-base focus:outline-none"
+                                autoFocus
+                                disabled={updateMaxWithdrawalMutation.isPending}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => submitMaxWithdrawal(jar)}
+                                disabled={updateMaxWithdrawalMutation.isPending}
+                                className="flex h-5 w-5 items-center justify-center rounded text-success-dark hover:bg-success-lighter disabled:opacity-50"
+                                aria-label={formatMessage({
+                                  id: "app.cookieJar.confirmMaxWithdrawal",
+                                  defaultMessage: "Confirm max withdrawal",
+                                })}
+                              >
+                                <RiCheckLine className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditing}
+                                className="flex h-5 w-5 items-center justify-center rounded text-text-soft hover:bg-bg-soft"
+                                aria-label={formatMessage({
+                                  id: "app.cookieJar.cancelEdit",
+                                  defaultMessage: "Cancel edit",
+                                })}
+                              >
+                                <RiCloseLine className="h-3.5 w-3.5" />
+                              </button>
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <span>{formatTokenAmount(jar.maxWithdrawal, jar.decimals)}</span>
+                              {canManage && (
+                                <button
+                                  type="button"
+                                  onClick={() => startEditing(jar, "maxWithdrawal")}
+                                  className="flex h-5 w-5 items-center justify-center rounded text-text-soft hover:bg-bg-soft hover:text-text-strong"
+                                  aria-label={formatMessage({
+                                    id: "app.cookieJar.editMaxWithdrawal",
+                                    defaultMessage: "Edit max withdrawal",
+                                  })}
+                                >
+                                  <RiPencilLine className="h-3 w-3" />
+                                </button>
+                              )}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Withdrawal Cooldown - inline editable */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="whitespace-nowrap">
+                            {formatMessage({
+                              id: "app.cookieJar.withdrawalInterval",
+                              defaultMessage: "Withdrawal Cooldown",
+                            })}
+                            :{" "}
+                          </span>
+                          {editing?.jarAddress === jar.jarAddress &&
+                          editing.field === "interval" ? (
+                            <span className="flex items-center gap-1">
+                              <select
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                className="rounded border border-stroke-soft bg-bg-white px-1.5 py-0.5 text-xs text-text-strong focus:border-primary-base focus:outline-none"
+                                disabled={updateIntervalMutation.isPending}
+                              >
+                                {INTERVAL_PRESETS.map((preset) => (
+                                  <option key={preset.value} value={preset.value}>
+                                    {preset.label}
+                                  </option>
+                                ))}
+                                {/* Keep current value if it doesn't match a preset */}
+                                {!INTERVAL_PRESETS.some((p) => p.value === editValue) && (
+                                  <option value={editValue}>
+                                    {cooldownDisplay(BigInt(editValue))} (custom)
+                                  </option>
+                                )}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => submitInterval(jar)}
+                                disabled={updateIntervalMutation.isPending}
+                                className="flex h-5 w-5 items-center justify-center rounded text-success-dark hover:bg-success-lighter disabled:opacity-50"
+                                aria-label={formatMessage({
+                                  id: "app.cookieJar.confirmWithdrawalCooldown",
+                                  defaultMessage: "Confirm withdrawal cooldown",
+                                })}
+                              >
+                                <RiCheckLine className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditing}
+                                className="flex h-5 w-5 items-center justify-center rounded text-text-soft hover:bg-bg-soft"
+                                aria-label={formatMessage({
+                                  id: "app.cookieJar.cancelEdit",
+                                  defaultMessage: "Cancel edit",
+                                })}
+                              >
+                                <RiCloseLine className="h-3.5 w-3.5" />
+                              </button>
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <span>{cooldownDisplay(jar.withdrawalInterval)}</span>
+                              {canManage && (
+                                <button
+                                  type="button"
+                                  onClick={() => startEditing(jar, "interval")}
+                                  className="flex h-5 w-5 items-center justify-center rounded text-text-soft hover:bg-bg-soft hover:text-text-strong"
+                                  aria-label={formatMessage({
+                                    id: "app.cookieJar.editWithdrawalCooldown",
+                                    defaultMessage: "Edit withdrawal cooldown",
+                                  })}
+                                >
+                                  <RiPencilLine className="h-3 w-3" />
+                                </button>
+                              )}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Jar Balance - read only */}
+                        <div className="flex items-center gap-1.5">
+                          <span>
+                            {formatMessage({
+                              id: "app.cookieJar.balance",
+                              defaultMessage: "Jar Balance",
+                            })}
+                            : {formatTokenAmount(jar.balance, jar.decimals)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );

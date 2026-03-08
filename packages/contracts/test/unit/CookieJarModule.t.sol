@@ -703,7 +703,7 @@ contract CookieJarModuleTest is Test {
     }
 
     function test_initialize_setsDefaultMaxWithdrawal() public {
-        assertEq(cookieJarModule.defaultMaxWithdrawal(), 0.01 ether, "defaultMaxWithdrawal should be 0.01 ether");
+        assertEq(cookieJarModule.defaultMaxWithdrawal(), 100 ether, "defaultMaxWithdrawal should be 100 tokens");
     }
 
     function test_initialize_setsDefaultWithdrawalInterval() public {
@@ -837,7 +837,7 @@ contract CookieJarModuleTest is Test {
         vm.prank(gardenToken);
         cookieJarModule.onGardenMinted(garden1);
 
-        assertEq(factory.getLastMaxWithdrawal(), 0.01 ether, "maxWithdrawal should use default");
+        assertEq(factory.getLastMaxWithdrawal(), 100 ether, "maxWithdrawal should use default");
         assertEq(factory.getLastWithdrawalInterval(), 86_400, "withdrawalInterval should use default");
         assertEq(factory.getLastStrictPurpose(), false, "strictPurpose should use default");
     }

@@ -1,4 +1,5 @@
 import {
+  buildGardenMemberSets,
   cn,
   Domain,
   DOMAIN_COLORS,
@@ -101,7 +102,12 @@ export function GardenSummaryList({
           const operatorCount = garden.operators?.length ?? 0;
           const gardenerCount = garden.gardeners?.length ?? 0;
           const evaluatorCount = garden.evaluators?.length ?? 0;
-          const memberCount = operatorCount + gardenerCount + evaluatorCount;
+          // Deduplicate members who hold multiple roles (e.g. operator + gardener)
+          const { memberIds } = buildGardenMemberSets(
+            [...(garden.gardeners ?? []), ...(garden.evaluators ?? [])],
+            garden.operators
+          );
+          const memberCount = memberIds.size;
           const workCount = workCountByGarden.get(garden.id.toLowerCase()) ?? 0;
           const assessmentCount = assessmentCountByGarden.get(garden.id.toLowerCase()) ?? 0;
           const isActive = garden.createdAt > 0;

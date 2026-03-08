@@ -51,6 +51,8 @@ contract Deploy is Script, DeploymentBase {
     error RootGardenGoodsNotSeeded();
     error RootGardenDomainMaskInvalid(uint8 domainMask);
     error NoSeedGardensConfigured();
+    error InvalidSeedRoleAddress(address garden, uint8 role, uint256 index);
+    error SeedRoleGrantFailed(address garden, address account, uint8 role);
 
     // ===== STATE =====
     address[] private gardenAddresses;
@@ -703,30 +705,6 @@ contract Deploy is Script, DeploymentBase {
         if (community == address(0)) {
             if (_shouldAutoDeployMockGardensFactory()) {
                 _deployAndSetMockGardensFactory();
-            }
-
-            // solhint-disable-next-line no-empty-blocks
-            try gardensModule.retryCreateCommunity(rootGardenAddress) returns (address retriedCommunity) {
-                community = retriedCommunity;
-            } catch { }
-
-            community = gardensModule.getGardenCommunity(rootGardenAddress);
-            if (community == address(0)) revert RootGardenCommunityNotCreated();
-        }
-
-        address[] memory pools = gardensModule.getGardenSignalPools(rootGardenAddress);
-        if (pools.length == 0) {
-            // solhint-disable-next-line no-empty-blocks
-            try gardensModule.retryCreatePools(rootGardenAddress) returns (address[] memory retriedPools) {
-                pools = retriedPools;
-            } catch { }
-
-            pools = gardensModule.getGardenSignalPools(rootGardenAddress);
-            if (pools.length == 0) {
-                if (_requireRootGardenPool()) {
-                    revert RootGardenPoolNotCreated();
-                }
-                console.log("WARNING: root garden has no signal pools; continuing (REQUIRE_ROOT_GARDEN_POOL=false)");
             }
 
             // solhint-disable-next-line no-empty-blocks
