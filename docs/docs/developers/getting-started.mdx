@@ -4,20 +4,12 @@ sidebar_position: 1
 slug: /developers/getting-started
 audience: developer
 owner: docs
-<<<<<<< HEAD
-last_verified: 2026-02-18
-=======
 last_verified: 2026-03-01
->>>>>>> release/1.1
 feature_status: Live
 goal: "Complete Developer Getting Started with clear, role-specific next actions."
 difficulty: "standard"
 estimated_time: "20-40 minutes."
-<<<<<<< HEAD
-prereqs: "Node 20+, Bun, Foundry, Git."
-=======
 prereqs: "Node 20+, Bun, Foundry, Git, Docker."
->>>>>>> release/1.1
 next_steps: "./architecture"
 persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
 source_of_truth:
@@ -29,27 +21,12 @@ keywords:
   - green goods monorepo
 ---
 
-<<<<<<< HEAD
-import {AtAGlanceCard, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
-=======
 import {NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
->>>>>>> release/1.1
 
 # Developer Getting Started
 
 <StatusBadge status="Live" />
 
-<<<<<<< HEAD
-<AtAGlanceCard
-  goal="Complete Developer Getting Started with clear, role-specific next actions."
-  difficulty="standard"
-  estimatedTime="20-40 minutes."
-  prereqs="Node 20+, Bun, Foundry, Git."
-  outcome="Local dev stack running with a shared understanding of repo rules."
-  personaContext="Developers and maintainers building, operating, and validating Green Goods systems."
-  lastVerified="2026-02-18"
-/>
-=======
 {/* IMAGE PLACEHOLDER: Developer environment setup terminal with bun and foundry (800x400) */}
 
 ## Prerequisites
@@ -65,15 +42,10 @@ Before cloning, make sure these tools are installed:
 | **Docker** | any | Runs the Envio indexer locally | [docker.com](https://www.docker.com/get-started/) |
 
 Foundry and Docker are only required if you work on contracts or the indexer, respectively. The setup script warns but does not block if they are missing.
->>>>>>> release/1.1
 
 ## Bootstrap
 
 ```bash
-<<<<<<< HEAD
-bun setup
-bun dev
-=======
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
 bun setup   # checks deps, installs packages, creates .env
@@ -131,28 +103,12 @@ bun dev:docs        # Docusaurus site
 bun dev:indexer     # Envio indexer (Docker Compose)
 bun dev:contracts   # Anvil local chain
 bun dev:agent       # Agent bot
->>>>>>> release/1.1
 ```
 
 ## First-run checklist
 
 <StepFlow
   steps={[
-<<<<<<< HEAD
-    {title: "Read project rules", detail: "Start with `AGENTS.md`, `CLAUDE.md`, and `.claude/context/*`."},
-    {title: "Configure root env", detail: "Use root `.env` only. Never add package-level env files."},
-    {title: "Start services", detail: "Run `bun dev` and verify client, admin, indexer, and docs start cleanly."},
-    {title: "Run quality gate", detail: "Run package tests/lint before pushing changes."},
-  ]}
-/>
-
-## Non-negotiables
-
-- Hooks live in `packages/shared`.
-- Single chain derives from `VITE_CHAIN_ID` defaults.
-- Deployment changes go through `bun deploy:*` wrappers.
-- User-facing strings must be added to `en/es/pt` translation files.
-=======
     {title: "Read project rules", detail: "Start with `AGENTS.md`, `CLAUDE.md`, and `.claude/context/*` for conventions."},
     {title: "Fill in .env", detail: "Add your API keys. Use root `.env` only -- never add package-level env files."},
     {title: "Start services", detail: "Run `bun dev` and verify client, admin, indexer, and docs start cleanly."},
@@ -198,7 +154,6 @@ bun format
 - The target chain derives from `VITE_CHAIN_ID` at build time. There is no runtime chain switching.
 - Deployment changes go through `bun deploy:*` wrappers, never raw `forge` commands.
 - User-facing strings must be added to all three translation files (`en.json`, `es.json`, `pt.json`).
->>>>>>> release/1.1
 
 <NextBestAction
   title="Next best action"

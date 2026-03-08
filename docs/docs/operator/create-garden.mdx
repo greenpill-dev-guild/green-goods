@@ -4,11 +4,7 @@ sidebar_position: 2
 slug: /operator/create-garden
 audience: operator
 owner: docs
-<<<<<<< HEAD
-last_verified: 2026-02-18
-=======
 last_verified: 2026-03-01
->>>>>>> release/1.1
 feature_status: Live
 goal: "Complete Create Garden with clear, role-specific next actions."
 difficulty: "standard"
@@ -25,29 +21,12 @@ keywords:
   - operator workflow
 ---
 
-<<<<<<< HEAD
-import {AtAGlanceCard, JourneyMap, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
-=======
 import {JourneyMap, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
->>>>>>> release/1.1
 
 # Create Garden
 
 <StatusBadge status="Live" />
 
-<<<<<<< HEAD
-<AtAGlanceCard
-  goal="Complete Create Garden with clear, role-specific next actions."
-  difficulty="standard"
-  estimatedTime="10-25 minutes."
-  prereqs="Operator/deployer permissions and clear garden metadata."
-  outcome="New garden created with baseline metadata and membership model."
-  personaContext="Operators coordinating gardens, approvals, and governance/endowment execution."
-  lastVerified="2026-02-18"
-/>
-
-=======
->>>>>>> release/1.1
 <JourneyMap
   role="Operator"
   steps={[
@@ -58,35 +37,6 @@ import {JourneyMap, NextBestAction, StatusBadge, StepFlow} from "@site/src/compo
   ]}
 />
 
-<<<<<<< HEAD
-## Required inputs
-
-- Garden name and short description.
-- Location and banner/media assets.
-- Joining policy (open vs restricted).
-- Initial member/role setup plan.
-
-## Creation flow
-
-<StepFlow
-  steps={[
-    {title: "Open Create Garden", detail: "Use `/gardens/create` in admin."},
-    {title: "Complete form", detail: "Enter metadata and joining settings."},
-    {title: "Review transaction", detail: "Confirm chain/network and sign the transaction."},
-    {title: "Verify visibility", detail: "Confirm new garden appears in list and detail page."},
-  ]}
-/>
-
-## Quality checks before sharing
-
-1. Garden metadata renders correctly in admin and client.
-2. Correct operator/admin permissions are present.
-3. Action creation works in the new garden.
-
-<NextBestAction
-  title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
-=======
 ## Overview
 
 A garden is your community hub for regenerative work. Creating one sets up an on-chain identity (ERC-6551 Tokenbound Account) that can hold assets, manage members, and coordinate impact. You will need a garden name, description, location, and a plan for your initial membership.
@@ -124,7 +74,6 @@ A garden is your community hub for regenerative work. Creating one sets up an on
 <NextBestAction
   title="Next best action"
   why="Your garden is live — now define the regenerative actions your community can work on."
->>>>>>> release/1.1
   actionLabel="Manage Actions"
   actionHref="./manage-actions"
   alternatives={[

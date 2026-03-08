@@ -4,12 +4,7 @@
 # Exit 0 = allow idle. Exit 2 = block idle and send feedback.
 set -uo pipefail
 
-<<<<<<< HEAD
-# Read event details from stdin (Claude Code hooks protocol)
-EVENT_DETAILS="$(cat)"
-=======
 EVENT_DETAILS="${CLAUDE_HOOK_EVENT_DETAILS:-}"
->>>>>>> release/1.1
 if [ -z "$EVENT_DETAILS" ]; then
   EVENT_DETAILS='{}'
 fi

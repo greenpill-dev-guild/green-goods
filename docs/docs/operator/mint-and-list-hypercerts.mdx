@@ -4,11 +4,7 @@ sidebar_position: 6
 slug: /operator/mint-and-list-hypercerts
 audience: operator
 owner: docs
-<<<<<<< HEAD
-last_verified: 2026-02-19
-=======
 last_verified: 2026-03-01
->>>>>>> release/1.1
 feature_status: Implemented (activation pending deployment)
 goal: "Complete Mint Hypercerts and List on Marketplace with clear, role-specific next actions."
 difficulty: "standard"
@@ -31,39 +27,17 @@ keywords:
   - marketplace
 ---
 
-<<<<<<< HEAD
-import {AtAGlanceCard, FeatureState, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
-=======
 import {FeatureState, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
->>>>>>> release/1.1
 
 # Mint Hypercerts and List on Marketplace
 
 <StatusBadge status="Implemented (activation pending deployment)" />
 
-<<<<<<< HEAD
-<AtAGlanceCard
-  goal="Complete Mint Hypercerts and List on Marketplace with clear, role-specific next actions."
-  difficulty="standard"
-  estimatedTime="20-40 minutes once activation is complete."
-  prereqs="Assessment/work history prepared; deployment status reviewed."
-  outcome="Clear runbook for mint/list flow plus current activation constraints."
-  personaContext="Operators coordinating gardens, approvals, and governance/endowment execution."
-  lastVerified="2026-02-19"
-/>
-
-## When to use this page
-
-Use this guide when you need to mint hypercert claims from verified work and prepare marketplace listing steps.
-
-## Current state
-=======
 ## Overview
 
 Hypercerts are semi-fungible tokens representing claims of verified impact work. Minting a hypercert bundles your garden's approved work and assessments into a tradeable on-chain certificate. Once minted, you can list hypercerts on the marketplace for retroactive funding.
 
 {/* IMAGE PLACEHOLDER */}
->>>>>>> release/1.1
 
 <FeatureState
   title="UI and hooks"
@@ -74,32 +48,6 @@ Hypercerts are semi-fungible tokens representing claims of verified impact work.
 <FeatureState
   title="Marketplace activation"
   status="Implemented (activation pending deployment)"
-<<<<<<< HEAD
-  summary="`marketplaceAdapter` remains zero-address in latest deployment artifacts, so public listing is not fully active."
-/>
-
-## Activation-gated operator flow
-
-<StepFlow
-  steps={[
-    {title: "Prepare claim", detail: "Aggregate verified work/assessment scope for the hypercert claim."},
-    {title: "Mint hypercert", detail: "Use create/mint flow and confirm token data."},
-    {title: "Approve marketplace", detail: "Grant adapter permissions for listing."},
-    {title: "Create listing", detail: "Set pricing, units, and expiration strategy."},
-  ]}
-/>
-
-## Activation checklist
-
-1. Non-zero module/adapter addresses in `deployments/*-latest.json`.
-2. Indexer config updated with those addresses.
-3. End-to-end mint/list test passes on target chain.
-
-<NextBestAction
-  title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
-  actionLabel="Vault deposit and endowment operations"
-=======
   summary="marketplaceAdapter remains zero-address in latest deployment artifacts, so public listing is not fully active."
 />
 
@@ -134,7 +82,6 @@ Hypercerts are semi-fungible tokens representing claims of verified impact work.
   title="Next best action"
   why="With impact certificates minted, manage your garden's financial infrastructure."
   actionLabel="Vaults and Treasury"
->>>>>>> release/1.1
   actionHref="./vaults-and-treasury"
   alternatives={[
     {label: "Conviction and Signal Pools", href: "./conviction-and-signal-pools"},

@@ -65,17 +65,6 @@ REPORT_JSON="${REPORT_JSON:-$ROOT_DIR/output/contracts-test-audit/realism-report
 
 mkdir -p "$(dirname "$REPORT_MD")" "$(dirname "$REPORT_JSON")"
 
-<<<<<<< HEAD
-# Resolve the worker script relative to this script's directory
-WORKER_SCRIPT="$(cd "$(dirname "$0")" && pwd)/check-contract-test-realism-worker.js"
-
-MODE="$MODE" \
-ROOT_DIR="$ROOT_DIR" \
-REPORT_MD="$REPORT_MD" \
-REPORT_JSON="$REPORT_JSON" \
-ALLOWLIST_PATH="$ALLOWLIST_PATH" \
-node "$WORKER_SCRIPT"
-=======
 MODE="$MODE" ROOT_DIR="$ROOT_DIR" REPORT_MD="$REPORT_MD" REPORT_JSON="$REPORT_JSON" ALLOWLIST_PATH="$ALLOWLIST_PATH" node <<'NODE'
 const fs = require('fs');
 const path = require('path');
@@ -714,4 +703,3 @@ console.log(`Mode: ${mode} | Must-fix: ${mustFix.length} | Should-fix: ${shouldF
 
 process.exit(exitCode);
 NODE
->>>>>>> release/1.1

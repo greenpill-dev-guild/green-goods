@@ -1,28 +1,15 @@
 ---
-<<<<<<< HEAD
-title: Evaluator Get Started
-=======
 title: Evaluator Guide
->>>>>>> release/1.1
 sidebar_position: 1
 slug: /evaluator/get-started
 audience: evaluator
 owner: docs
-<<<<<<< HEAD
-last_verified: 2026-02-18
-feature_status: Live
-goal: "Complete Evaluator Get Started with clear, role-specific next actions."
-difficulty: "quickstart"
-estimated_time: "15-25 minutes."
-prereqs: "GraphQL client and chain-aware schema/deployment references."
-=======
 last_verified: 2026-03-01
 feature_status: Live
 goal: "Get started verifying impact data with Green Goods."
 difficulty: "quickstart"
 estimated_time: "15 minutes"
 prereqs: "Familiarity with data querying (we'll guide you through the tools)."
->>>>>>> release/1.1
 next_steps: "./query-indexer"
 persona_context: "Evaluators validating attestations and translating impact data into analysis outputs."
 source_of_truth:
@@ -32,26 +19,6 @@ source_of_truth:
 keywords:
   - evaluator
   - impact analysis
-<<<<<<< HEAD
-  - attestations
----
-
-import {AtAGlanceCard, JourneyMap, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
-
-# Evaluator Get Started
-
-<StatusBadge status="Live" />
-
-<AtAGlanceCard
-  goal="Complete Evaluator Get Started with clear, role-specific next actions."
-  difficulty="quickstart"
-  estimatedTime="15-25 minutes."
-  prereqs="GraphQL client and chain-aware schema/deployment references."
-  outcome="You can run reliable cross-source queries and validate attestation chains."
-  personaContext="Evaluators validating attestations and translating impact data into analysis outputs."
-  lastVerified="2026-02-18"
-/>
-=======
   - data verification
 ---
 
@@ -60,47 +27,10 @@ import {JourneyMap, NextBestAction, StepFlow} from "@site/src/components/docs";
 # Evaluator Guide
 
 You validate that impact claims are real. Query data, verify evidence chains, and produce analysis that funders trust.
->>>>>>> release/1.1
 
 <JourneyMap
   role="Evaluator"
   steps={[
-<<<<<<< HEAD
-    {title: "Get started", href: "./get-started", state: "current", note: "Set chain context and data strategy."},
-    {title: "Query indexer", href: "./query-indexer", state: "upcoming"},
-    {title: "Query EAS", href: "./query-eas", state: "upcoming"},
-    {title: "Verify attestation chains", href: "./verify-attestation-chains", state: "upcoming"},
-  ]}
-/>
-
-## Data model in one view
-
-1. Use Green Goods indexer for gardens/actions/membership metadata.
-2. Use EAS GraphQL for work/approval/assessment attestations.
-3. Join datasets by chain + garden address + attestation references.
-
-## First evaluator workflow
-
-<StepFlow
-  steps={[
-    {title: "Set chain context", detail: "Pick 42161, 42220, or 11155111 and fetch deployment JSON."},
-    {title: "Query indexer", detail: "Pull gardens/actions for your scope."},
-    {title: "Query EAS", detail: "Fetch work and approval attestations with matching schema IDs."},
-    {title: "Verify chain", detail: "Trace work -> approval links and validate on EAS explorer."},
-  ]}
-/>
-
-<NextBestAction
-  title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
-  actionLabel="Query Indexer"
-  actionHref="./query-indexer"
-  alternatives={[
-    {label: "Query EAS", href: "./query-eas"},
-    {label: "Verify Attestation Chains", href: "./verify-attestation-chains"},
-  ]}
-/>
-=======
     {title: "Get started", href: "./get-started", state: "current", note: "Understand the data landscape and your tools."},
     {title: "Query the indexer", href: "./query-indexer", state: "upcoming"},
     {title: "Query attestations", href: "./query-eas", state: "upcoming"},
@@ -153,4 +83,3 @@ Evaluators are the trust layer of Green Goods. Your role is to verify that the i
 />
 
 Want to build custom tools for impact analysis? Check out the [Developer hub](/developers/getting-started).
->>>>>>> release/1.1

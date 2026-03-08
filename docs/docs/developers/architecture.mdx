@@ -4,11 +4,7 @@ sidebar_position: 2
 slug: /developers/architecture
 audience: developer
 owner: docs
-<<<<<<< HEAD
-last_verified: 2026-02-19
-=======
 last_verified: 2026-03-01
->>>>>>> release/1.1
 feature_status: Live
 goal: "Complete Architecture with clear, role-specific next actions."
 difficulty: "standard"
@@ -25,29 +21,13 @@ keywords:
   - package boundaries
 ---
 
-<<<<<<< HEAD
-import {AtAGlanceCard, NextBestAction, StatusBadge} from "@site/src/components/docs";
-=======
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
->>>>>>> release/1.1
 
 # Architecture
 
 <StatusBadge status="Live" />
 
-<<<<<<< HEAD
-<AtAGlanceCard
-  goal="Complete Architecture with clear, role-specific next actions."
-  difficulty="standard"
-  estimatedTime="15-30 minutes."
-  prereqs="Familiarity with monorepo workspace and TypeScript/Solidity flows."
-  outcome="Correct boundaries between UI, shared logic, contracts, indexer, and agent runtime."
-  personaContext="Developers and maintainers building, operating, and validating Green Goods systems."
-  lastVerified="2026-02-19"
-/>
-=======
 {/* IMAGE PLACEHOLDER: Green Goods system architecture overview diagram (800x400) */}
->>>>>>> release/1.1
 
 ## Package boundaries
 
@@ -220,11 +200,7 @@ graph LR
         E2["HatsModule<br/><code>RoleGranted</code><br/><code>RoleRevoked</code>"]
         E3["ActionRegistry<br/><code>ActionRegistered</code><br/><code>GardenDomainsUpdated</code>"]
         E4["GardenAccount<br/><code>NameUpdated</code><br/><code>DescriptionUpdated</code><br/><code>…</code>"]
-<<<<<<< HEAD
-        E5["OctantModule<br/><code>VaultCreated</code><br/><code>HarvestTriggered</code>"]
-=======
         E5["OctantModule<br/><code>VaultCreated</code><br/><code>HarvestTriggered</code><br/><code>DonationAddressUpdated</code><br/><code>EmergencyPaused</code>"]
->>>>>>> release/1.1
         E6["OctantVault<br/><code>Deposit</code><br/><code>Withdraw</code>"]
         E7["YieldSplitter<br/><code>YieldSplit</code>"]
         E8["HypercertMinter<br/><code>TransferSingle</code><br/><code>ClaimStored</code>"]
@@ -263,11 +239,8 @@ graph LR
 
 **Dynamic contract registration**: When a garden is minted, its TBA address is registered for `GardenAccount` events. When a vault is created, its address is registered for `Deposit`/`Withdraw` events.
 
-<<<<<<< HEAD
-=======
 **Indexer boundary**: The Envio indexer only covers core Green Goods state. Several modules have stub handler files that are explicitly externalized: cookie jars, ENS lifecycle, Gardens V2 communities/pools, marketplace orders, and power registry audits are all read via direct RPC calls or external subgraphs at query time. EAS attestations (works, approvals, assessments) are queried from easscan.org, not re-indexed.
 
->>>>>>> release/1.1
 ---
 
 ## Two-indexer read path

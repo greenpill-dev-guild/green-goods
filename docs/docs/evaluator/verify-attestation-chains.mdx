@@ -4,11 +4,7 @@ sidebar_position: 4
 slug: /evaluator/verify-attestation-chains
 audience: evaluator
 owner: docs
-<<<<<<< HEAD
-last_verified: 2026-02-18
-=======
 last_verified: 2026-03-01
->>>>>>> release/1.1
 feature_status: Live
 goal: "Complete Verify Attestation Chains with clear, role-specific next actions."
 difficulty: "standard"
@@ -25,52 +21,13 @@ keywords:
   - work approval linkage
 ---
 
-<<<<<<< HEAD
-import {AtAGlanceCard, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
-=======
 import {NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
->>>>>>> release/1.1
 import {EAS_EXPLORER_ENDPOINTS} from "@site/src/data/endpoints";
 
 # Verify Attestation Chains
 
 <StatusBadge status="Live" />
 
-<<<<<<< HEAD
-<AtAGlanceCard
-  goal="Complete Verify Attestation Chains with clear, role-specific next actions."
-  difficulty="standard"
-  estimatedTime="10-30 minutes."
-  prereqs="Work + approval attestation query outputs."
-  outcome="You can prove each approved record has a valid attestation trail."
-  personaContext="Evaluators validating attestations and translating impact data into analysis outputs."
-  lastVerified="2026-02-18"
-/>
-
-## Verification flow
-
-<StepFlow
-  steps={[
-    {title: "Extract work UID", detail: "Collect work attestation `id` values from EAS query."},
-    {title: "Match approvals", detail: "Confirm approval `refUID` points to the expected work UID."},
-    {title: "Check schema + chain", detail: "Validate schema UID and endpoint chain alignment."},
-    {title: "Explorer proof", detail: "Open sampled UIDs on EAS explorer and compare decoded fields."},
-  ]}
-/>
-
-## Pass criteria
-
-- Work attestation exists and is not revoked.
-- Approval attestation references that work via `refUID`.
-- Attester role matches expected operator context.
-- Timestamps are logically ordered.
-
-## Explorer URLs
-
-- <code>{`${EAS_EXPLORER_ENDPOINTS[42161]}/attestation/view/<uid>`}</code>
-- <code>{`${EAS_EXPLORER_ENDPOINTS[42220]}/attestation/view/<uid>`}</code>
-- <code>{`${EAS_EXPLORER_ENDPOINTS[11155111]}/attestation/view/<uid>`}</code>
-=======
 ## Overview
 
 Attestation chain verification is the core evaluator skill. Every approved piece of work in Green Goods creates a linked pair of attestations: a work submission attestation and an approval attestation that references it. Verifying this chain confirms that impact claims are backed by real, operator-validated evidence.
@@ -110,21 +67,13 @@ Attestation chain verification is the core evaluator skill. Every approved piece
 - When working across chains, always double-check you are querying the correct EAS endpoint — Arbitrum and Celo attestations are on different contracts
 
 ## What's Next
->>>>>>> release/1.1
 
 <NextBestAction
   title="Next best action"
   why="After validating attestation chains, translate verified records into reporting frameworks."
-<<<<<<< HEAD
-  actionLabel="Cross-framework mapping"
-  actionHref="./cross-framework-mapping"
-  alternatives={[
-    {label: "Export and analysis", href: "./export-and-analysis"},
-=======
   actionLabel="Cross-Framework Mapping"
   actionHref="./cross-framework-mapping"
   alternatives={[
     {label: "Export and Analysis", href: "./export-and-analysis"},
->>>>>>> release/1.1
   ]}
 />

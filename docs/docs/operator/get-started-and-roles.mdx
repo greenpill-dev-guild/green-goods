@@ -1,28 +1,15 @@
 ---
-<<<<<<< HEAD
-title: Operator Get Started and Roles
-=======
 title: Operator Guide
->>>>>>> release/1.1
 sidebar_position: 1
 slug: /operator/get-started-and-roles
 audience: operator
 owner: docs
-<<<<<<< HEAD
-last_verified: 2026-02-18
-feature_status: Live
-goal: "Complete Operator Get Started and Roles with clear, role-specific next actions."
-difficulty: "quickstart"
-estimated_time: "10-20 minutes."
-prereqs: "Operator role in at least one garden, admin login access."
-=======
 last_verified: 2026-03-01
 feature_status: Live
 goal: "Get started managing your garden community on Green Goods."
 difficulty: "quickstart"
 estimated_time: "10 minutes"
 prereqs: "Access to the Green Goods admin dashboard."
->>>>>>> release/1.1
 next_steps: "./create-garden"
 persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
@@ -32,33 +19,6 @@ source_of_truth:
 keywords:
   - operator
   - admin dashboard
-<<<<<<< HEAD
-  - garden roles
----
-
-import {
-  AtAGlanceCard,
-  FeatureState,
-  JourneyMap,
-  NextBestAction,
-  StatusBadge,
-  StepFlow,
-} from "@site/src/components/docs";
-
-# Operator Get Started and Roles
-
-<StatusBadge status="Live" />
-
-<AtAGlanceCard
-  goal="Complete Operator Get Started and Roles with clear, role-specific next actions."
-  difficulty="quickstart"
-  estimatedTime="10-20 minutes."
-  prereqs="Operator role in at least one garden, admin login access."
-  outcome="You can navigate operator flows and understand which v1 surfaces are live versus activation-pending."
-  personaContext="Operators coordinating gardens, approvals, and governance/endowment execution."
-  lastVerified="2026-02-18"
-/>
-=======
   - garden management
 ---
 
@@ -72,68 +32,10 @@ import {
 # Operator Guide
 
 You keep the garden running. Review submissions, manage your community, and help turn regenerative work into lasting impact.
->>>>>>> release/1.1
 
 <JourneyMap
   role="Operator"
   steps={[
-<<<<<<< HEAD
-    {title: "Get started + roles", href: "./get-started-and-roles", state: "current", note: "Validate route access and role scope."},
-    {title: "Create garden", href: "./create-garden", state: "upcoming"},
-    {title: "Manage actions", href: "./manage-actions", state: "upcoming"},
-    {title: "Review work", href: "./review-work", state: "upcoming"},
-    {title: "Endowments and governance", href: "./vaults-and-treasury", state: "upcoming"},
-  ]}
-/>
-
-## First session checklist
-
-<StepFlow
-  steps={[
-    {title: "Sign in to admin", detail: "Open admin.greengoods.app and complete authentication."},
-    {title: "Validate role access", detail: "Confirm you can open dashboard, gardens, and actions pages."},
-    {title: "Open one garden", detail: "Check work, assessments, and governance tabs for your garden."},
-    {title: "Review feature status", detail: "Use status badges in this guide before announcing a workflow as live."},
-  ]}
-/>
-
-## Feature-state snapshot
-
-<FeatureState
-  title="Garden and action operations"
-  status="Live"
-  summary="Garden creation, action management, and work review are active operator workflows."
-/>
-
-<FeatureState
-  title="Hypercert mint/list routes"
-  status="Implemented (activation pending deployment)"
-  summary="UI and hooks are present, but marketplace and module addresses are still zero in latest deployment artifacts."
-/>
-
-<FeatureState
-  title="Vault, cookie jar, conviction, signal pool routes"
-  status="Implemented (activation pending deployment)"
-  summary="Routes exist in admin; activation depends on module deployment + indexer address updates."
-/>
-
-## Route coverage in admin
-
-| Capability | Route | Status |
-| --- | --- | --- |
-| Garden management | `/gardens`, `/gardens/create`, `/gardens/:id` | Live |
-| Work review | `/gardens/:id/work/:workId` | Live |
-| Assessments | `/gardens/:id/assessments`, `/create` | Live |
-| Hypercerts | `/gardens/:id/hypercerts` | Implemented (activation pending deployment) |
-| Vault | `/gardens/:id/vault` | Implemented (activation pending deployment) |
-| Cookie jars | `/gardens/:id/cookie-jars` | Implemented (activation pending deployment) |
-| Conviction/signal | `/gardens/:id/strategies`, `/signal-pool` | Implemented (activation pending deployment) |
-
-<NextBestAction
-  title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
-  actionLabel="Create Garden"
-=======
     {title: "Get started", href: "./get-started-and-roles", state: "current", note: "Learn what you can do as an operator."},
     {title: "Create a garden", href: "./create-garden", state: "upcoming"},
     {title: "Manage actions", href: "./manage-actions", state: "upcoming"},
@@ -198,7 +100,6 @@ Operators are the trusted coordinators who manage gardens and validate gardener 
   title="Next step"
   why="Set up your first garden and start managing regenerative work."
   actionLabel="Create a Garden"
->>>>>>> release/1.1
   actionHref="./create-garden"
   alternatives={[
     {label: "Manage Actions", href: "./manage-actions"},
@@ -206,8 +107,5 @@ Operators are the trusted coordinators who manage gardens and validate gardener 
     {label: "Troubleshooting", href: "./troubleshooting"},
   ]}
 />
-<<<<<<< HEAD
-=======
 
 Interested in verifying impact at scale? Explore the [Evaluator path](/evaluator/get-started).
->>>>>>> release/1.1

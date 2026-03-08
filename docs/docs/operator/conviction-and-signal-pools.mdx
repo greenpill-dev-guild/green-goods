@@ -4,11 +4,7 @@ sidebar_position: 9
 slug: /operator/conviction-and-signal-pools
 audience: operator
 owner: docs
-<<<<<<< HEAD
-last_verified: 2026-02-18
-=======
 last_verified: 2026-03-01
->>>>>>> release/1.1
 feature_status: Implemented (activation pending deployment)
 goal: "Complete Conviction and Signal Pools with clear, role-specific next actions."
 difficulty: "standard"
@@ -28,10 +24,6 @@ keywords:
 ---
 
 import {
-<<<<<<< HEAD
-  AtAGlanceCard,
-=======
->>>>>>> release/1.1
   DecisionGuide,
   FeatureState,
   NextBestAction,
@@ -43,25 +35,11 @@ import {
 
 <StatusBadge status="Implemented (activation pending deployment)" />
 
-<<<<<<< HEAD
-<AtAGlanceCard
-  goal="Complete Conviction and Signal Pools with clear, role-specific next actions."
-  difficulty="standard"
-  estimatedTime="20-40 minutes once module deployment is active."
-  prereqs="Governance policy and role model."
-  outcome="Clear status and runbook for strategy + pool operations."
-  personaContext="Operators coordinating gardens, approvals, and governance/endowment execution."
-  lastVerified="2026-02-18"
-/>
-
-## Current state
-=======
 ## Overview
 
 Conviction voting and signal pools give your garden community a voice in resource allocation. Signal pools let members express preferences on which hypercerts or initiatives should receive funding, while conviction strategies apply time-weighted voting mechanics to turn signals into binding decisions.
 
 {/* IMAGE PLACEHOLDER */}
->>>>>>> release/1.1
 
 <FeatureState
   title="Routes and hooks"
@@ -72,19 +50,6 @@ Conviction voting and signal pools give your garden community a voice in resourc
 <FeatureState
   title="On-chain modules"
   status="Implemented (activation pending deployment)"
-<<<<<<< HEAD
-  summary="`gardensModule` and `unifiedPowerRegistry` addresses are zero in latest deployment artifacts."
-/>
-
-## Target flow after activation
-
-<StepFlow
-  steps={[
-    {title: "Configure strategy", detail: "Set conviction strategy addresses and role hat IDs."},
-    {title: "Create pools", detail: "Create signal pools for selected weight schemes."},
-    {title: "Register hypercerts", detail: "Register/deregister eligible claims for signaling."},
-    {title: "Allocate support", detail: "Track voting power and conviction changes over time."},
-=======
   summary="gardensModule and unifiedPowerRegistry addresses are zero in latest deployment artifacts."
 />
 
@@ -96,7 +61,6 @@ Conviction voting and signal pools give your garden community a voice in resourc
     {title: "Create pools", detail: "Create signal pools for selected weight schemes. Each pool can target different allocation decisions."},
     {title: "Register hypercerts", detail: "Register or deregister eligible hypercert claims for signaling. Only registered claims can receive votes."},
     {title: "Allocate support", detail: "Community members stake their voting power on preferred claims. Track conviction changes over time as support accumulates or shifts."},
->>>>>>> release/1.1
   ]}
 />
 
@@ -121,11 +85,6 @@ Conviction voting and signal pools give your garden community a voice in resourc
   ]}
 />
 
-<<<<<<< HEAD
-<NextBestAction
-  title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
-=======
 ## Best Practices
 
 - Start with signal pools to gauge community preferences before committing to full conviction voting
@@ -139,7 +98,6 @@ Conviction voting and signal pools give your garden community a voice in resourc
 <NextBestAction
   title="Next best action"
   why="With governance configured, track and report your garden's impact."
->>>>>>> release/1.1
   actionLabel="Reporting and GAP"
   actionHref="./reporting-and-gap"
   alternatives={[
