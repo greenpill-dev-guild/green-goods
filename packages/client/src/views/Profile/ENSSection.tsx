@@ -77,13 +77,13 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
           </h5>
           <Card>
             <div className="flex flex-col gap-3 w-full">
-              <div className="flex items-start gap-3">
+              <div className="flex items-center gap-3">
                 <Avatar>
                   <div className="flex items-center justify-center text-center mx-auto text-primary">
                     <RiGlobalLine className="w-4" />
                   </div>
                 </Avatar>
-                <div className="flex flex-col gap-1 grow">
+                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                   <div className="text-sm font-medium">
                     {intl.formatMessage({
                       id: "app.profile.claimENSTitle",
@@ -115,7 +115,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                     autoCapitalize="none"
                     autoComplete="off"
                     spellCheck={false}
-                    className="w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 py-2.5 pr-10 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 pr-10 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                   {slugValue && slugValue.length >= 3 && (
                     <span className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -135,31 +135,33 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-text-sub-600">
-                  {slugValue
-                    ? `${slugValue}.greengoods.eth`
-                    : intl.formatMessage({
-                        id: "app.profile.slugHint",
-                        defaultMessage: "Choose your personal subdomain on greengoods.eth",
+                <div className="min-h-[48px]">
+                  <span className="text-xs text-text-sub-600">
+                    {slugValue
+                      ? `${slugValue}.greengoods.eth`
+                      : intl.formatMessage({
+                          id: "app.profile.slugHint",
+                          defaultMessage: "Choose your personal subdomain on greengoods.eth",
+                        })}
+                  </span>
+                  {slugForm.formState.errors.slug && (
+                    <p className="text-xs text-error-base mt-0.5">
+                      {slugForm.formState.errors.slug.message}
+                    </p>
+                  )}
+                  {!isCheckingSlug && isSlugAvailable === false && slugValue && (
+                    <p className="text-xs text-error-base mt-0.5">
+                      {intl.formatMessage({
+                        id: "app.profile.slugTaken",
+                        defaultMessage: "This name is already taken",
                       })}
-                </span>
-                {slugForm.formState.errors.slug && (
-                  <span className="text-xs text-error-base">
-                    {slugForm.formState.errors.slug.message}
-                  </span>
-                )}
-                {!isCheckingSlug && isSlugAvailable === false && slugValue && (
-                  <span className="text-xs text-error-base">
-                    {intl.formatMessage({
-                      id: "app.profile.slugTaken",
-                      defaultMessage: "This name is already taken",
-                    })}
-                  </span>
-                )}
+                    </p>
+                  )}
+                </div>
                 <Button
                   variant="primary"
                   mode="filled"
-                  size="xsmall"
+                  size="small"
                   onClick={handleENSClaim}
                   disabled={
                     !isOnline ||

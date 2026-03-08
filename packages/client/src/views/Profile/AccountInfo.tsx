@@ -61,7 +61,7 @@ export const AccountInfo: React.FC = () => {
       </h5>
 
       <Card>
-        <div className="flex flex-row items-center gap-3 justify-center w-full">
+        <div className="flex items-center gap-3 w-full">
           <Avatar>
             <div className="flex items-center justify-center text-center mx-auto text-primary">
               {authMode === "passkey" ? (
@@ -71,19 +71,17 @@ export const AccountInfo: React.FC = () => {
               )}
             </div>
           </Avatar>
-          <div className="flex flex-col gap-1 grow">
-            <div className="flex items-center font-sm gap-1">
-              <div className="line-clamp-1 text-sm">
-                {authMode === "passkey"
-                  ? intl.formatMessage({
-                      id: "app.account.passkey",
-                      defaultMessage: "Passkey Wallet",
-                    })
-                  : intl.formatMessage({
-                      id: "app.account.wallet",
-                      defaultMessage: "External Wallet",
-                    })}
-              </div>
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <div className="text-sm font-medium truncate">
+              {authMode === "passkey"
+                ? intl.formatMessage({
+                    id: "app.account.passkey",
+                    defaultMessage: "Passkey Wallet",
+                  })
+                : intl.formatMessage({
+                    id: "app.account.wallet",
+                    defaultMessage: "External Wallet",
+                  })}
             </div>
             <div className="text-xs text-text-sub-600">
               {authMode === "passkey" && credential
@@ -98,29 +96,27 @@ export const AccountInfo: React.FC = () => {
 
       {(smartAccountAddress || walletAddress) && (
         <Card>
-          <div className="flex flex-row items-center gap-3 justify-center w-full">
+          <div className="flex items-center gap-3 w-full">
             <Avatar>
               <div className="flex items-center justify-center text-center mx-auto text-primary">
                 <RiWalletLine className="w-4" />
               </div>
             </Avatar>
-            <div className="flex flex-col gap-1 grow">
-              <div className="flex items-center font-sm gap-1">
-                <div className="line-clamp-1 text-sm">
-                  {intl.formatMessage({
-                    id: "app.account.address",
-                    defaultMessage:
-                      authMode === "passkey" ? "Smart Account Address" : "Wallet Address",
-                  })}
-                </div>
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              <div className="text-sm font-medium truncate">
+                {intl.formatMessage({
+                  id: "app.account.address",
+                  defaultMessage:
+                    authMode === "passkey" ? "Smart Account Address" : "Wallet Address",
+                })}
               </div>
-              <AddressCopy
-                address={primaryAddress as Address}
-                ensName={primaryEnsName}
-                size="compact"
-                className="mt-2"
-              />
             </div>
+            <AddressCopy
+              address={primaryAddress as Address}
+              ensName={primaryEnsName}
+              size="compact"
+              className="w-auto shrink-0"
+            />
           </div>
         </Card>
       )}
@@ -128,6 +124,7 @@ export const AccountInfo: React.FC = () => {
       <Button
         variant="neutral"
         mode="stroke"
+        size="small"
         onClick={handleLogout}
         label={intl.formatMessage({
           id: "app.profile.logout",

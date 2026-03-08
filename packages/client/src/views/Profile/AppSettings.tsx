@@ -65,7 +65,7 @@ export const AppSettings: React.FC = () => {
         }),
         description: intl.formatMessage({
           id: "app.settings.selectTheme",
-          defaultMessage: "Choose your preferred appearance",
+          defaultMessage: "Choose how the app looks",
         }),
         Icon: currentThemeOption.icon,
         Option: () => (
@@ -73,7 +73,7 @@ export const AppSettings: React.FC = () => {
             value={theme}
             onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}
           >
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-[110px] sm:w-[140px]">
               <SelectValue placeholder={currentThemeOption.label} />
             </SelectTrigger>
             <SelectContent>
@@ -97,8 +97,8 @@ export const AppSettings: React.FC = () => {
         description: intl.formatMessage(
           {
             id: "app.settings.selectLanguage",
-            description: "Select your desired language, language selector",
-            defaultMessage: "Select your preferred language",
+            description: "Language preference subtitle",
+            defaultMessage: "Set your preferred language",
           },
           {
             language: locale,
@@ -107,7 +107,7 @@ export const AppSettings: React.FC = () => {
         Icon: <RiEarthFill className="w-4" />,
         Option: () => (
           <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-[110px] sm:w-[140px]">
               <SelectValue
                 className="capitalize"
                 placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
@@ -203,48 +203,48 @@ export const AppSettings: React.FC = () => {
       </h5>
       {applicationSettings.map(({ title, Icon, description, Option }) => (
         <Card key={title}>
-          <div className="flex flex-row items-center gap-3 justify-center w-full">
+          <div className="flex flex-row items-center gap-3 w-full">
             <Avatar>
               <div className="flex items-center justify-center text-center mx-auto text-primary">
                 {Icon}
               </div>
             </Avatar>
-            <div className="flex flex-col gap-1 grow">
-              <div className="flex items-center font-sm gap-1">
-                <div className="line-clamp-1 text-sm">{title}</div>
-              </div>
-              <div className="text-xs text-text-sub-600">{description}</div>
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              <div className="text-sm font-medium truncate">{title}</div>
+              <div className="text-xs text-text-sub-600 line-clamp-2">{description}</div>
             </div>
-            <Option />
+            <div className="shrink-0">
+              <Option />
+            </div>
           </div>
         </Card>
       ))}
 
       <Card>
-        <div className="flex flex-row items-center gap-3 justify-between w-full">
+        <div className="flex flex-row items-center gap-3 w-full">
           <Avatar>
             <div className="flex items-center justify-center text-center mx-auto text-primary">
               <RiRefreshLine className="w-4" />
             </div>
           </Avatar>
-          <div className="flex flex-col gap-1 grow">
-            <div className="line-clamp-1 text-sm">
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <div className="text-sm font-medium">
               {intl.formatMessage({
                 id: "app.update.title",
                 defaultMessage: "Refresh app",
               })}
             </div>
-            <div className="text-xs text-text-sub-600">
+            <div className="text-xs text-text-sub-600 line-clamp-2">
               {intl.formatMessage({
                 id: "app.update.subtitle",
-                defaultMessage: "Use this if things look weird after an update.",
+                defaultMessage: "Get the latest updates and features",
               })}
             </div>
           </div>
           <Button
             variant="neutral"
             mode="stroke"
-            size="xsmall"
+            size="small"
             onClick={handleRefreshApp}
             leadingIcon={<RiRefreshLine className="w-4" />}
             label={intl.formatMessage({

@@ -12,12 +12,14 @@ import {
   isAlreadyGardenerError,
   isGardenMember,
   parseAndFormatError,
+  queryKeys,
   toastService,
   useGardens,
   useJoinGarden,
   useTimeout,
 } from "@green-goods/shared";
-import { RiCheckLine, RiMapPinLine, RiPlantLine } from "@remixicon/react";
+import { RiCheckLine, RiMapPinLine, RiPlantLine, RiRefreshLine } from "@remixicon/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +34,8 @@ interface GardensListProps {
 export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const intl = useIntl();
   const navigate = useNavigate();
-  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
+  const queryClient = useQueryClient();
+  const { data: gardens = [], isLoading: gardensLoading, isFetching, refetch } = useGardens();
   const { joinGarden, isJoining, joiningGardenId } = useJoinGarden();
   const [pendingGarden, setPendingGarden] = useState<Garden | null>(null);
   const [estimatedGas, setEstimatedGas] = useState<bigint | null>(null);
@@ -161,12 +164,30 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
 
   return (
     <>
-      <h5 className="text-label-md text-text-strong-950">
-        {intl.formatMessage({
-          id: "app.profile.gardens",
-          defaultMessage: "Gardens",
-        })}
-      </h5>
+      <div className="flex items-center justify-between">
+        <h5 className="text-label-md text-text-strong-950">
+          {intl.formatMessage({
+            id: "app.profile.gardens",
+            defaultMessage: "Gardens",
+          })}
+        </h5>
+        <button
+          type="button"
+          onClick={() => {
+            hapticLight();
+            queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
+            refetch();
+          }}
+          disabled={isFetching}
+          className="p-1.5 rounded-lg text-text-sub-600 hover:text-primary active:scale-95 transition-all duration-200 disabled:opacity-50"
+          aria-label={intl.formatMessage({
+            id: "app.profile.refreshGardens",
+            defaultMessage: "Refresh gardens",
+          })}
+        >
+          <RiRefreshLine className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+        </button>
+      </div>
 
       {gardensLoading ? (
         <Card>
@@ -186,22 +207,20 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
 
             return (
               <Card key={garden.id}>
-                <div className="flex flex-row items-center gap-3 justify-between w-full">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Avatar>
-                      <div className="flex items-center justify-center text-center mx-auto text-primary">
-                        <RiPlantLine className="w-4" />
-                      </div>
-                    </Avatar>
-                    <div className="flex flex-col gap-0.5 min-w-0">
-                      <div className="text-sm font-medium line-clamp-1">{garden.name}</div>
-                      {garden.location && (
-                        <div className="flex items-center gap-1 text-xs text-text-sub-600">
-                          <RiMapPinLine className="w-3 h-3 shrink-0" />
-                          <span className="line-clamp-1">{garden.location}</span>
-                        </div>
-                      )}
+                <div className="flex items-center gap-3 w-full">
+                  <Avatar>
+                    <div className="flex items-center justify-center text-center mx-auto text-primary">
+                      <RiPlantLine className="w-4" />
                     </div>
+                  </Avatar>
+                  <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate">{garden.name}</div>
+                    {garden.location && (
+                      <div className="flex items-center gap-1 text-xs text-text-sub-600">
+                        <RiMapPinLine className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{garden.location}</span>
+                      </div>
+                    )}
                   </div>
                   {garden.isMember ? (
                     <div className="flex items-center gap-1 text-xs text-primary shrink-0">
@@ -217,7 +236,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                     <Button
                       variant="primary"
                       mode="filled"
-                      size="xsmall"
+                      size="small"
                       onClick={() => handleJoinGarden(garden)}
                       label={intl.formatMessage({
                         id: "app.profile.join",
@@ -266,7 +285,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
               leadingIcon={<RiPlantLine className="w-4" />}
               label={intl.formatMessage({
                 id: "app.profile.discoverGardens",
-                defaultMessage: "Discover Gardens",
+                defaultMessage: "Open Gardens",
               })}
             />
           </div>
