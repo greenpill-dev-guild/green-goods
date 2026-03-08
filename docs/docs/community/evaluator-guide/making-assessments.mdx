@@ -1,0 +1,80 @@
+---
+title: Making Assessments
+sidebar_position: 4
+sidebar_label: Making Assessments
+slug: /community/evaluator-guide/making-assessments
+audience: evaluator
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+goal: "Complete Verify Attestation Chains with clear, role-specific next actions."
+difficulty: "standard"
+estimated_time: "10-30 minutes."
+prereqs: "Work + approval attestation query outputs."
+next_steps: "./cross-framework-mapping"
+persona_context: "Evaluators validating attestations and translating impact data into analysis outputs."
+source_of_truth:
+  - packages/shared/src/modules/data/eas.ts
+  - packages/contracts/deployments/42161-latest.json
+keywords:
+  - attestation chain
+  - verification
+  - work approval linkage
+---
+
+import {NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+import {EAS_EXPLORER_ENDPOINTS} from "@site/src/data/endpoints";
+
+# Making Assessments
+
+<StatusBadge status="Live" />
+
+## Overview
+
+Attestation chain verification is the core evaluator skill. Every approved piece of work in Green Goods creates a linked pair of attestations: a work submission attestation and an approval attestation that references it. Verifying this chain confirms that impact claims are backed by real, operator-validated evidence.
+
+{/* IMAGE PLACEHOLDER */}
+
+## How It Works
+
+<StepFlow
+  steps={[
+    {title: "Extract work UID", detail: "Collect work attestation id values from your EAS query results. Each work submission has a unique attestation UID."},
+    {title: "Match approvals", detail: "Find the corresponding approval attestation and confirm its refUID points to the expected work UID. This link proves the approval references the exact work submission."},
+    {title: "Check schema and chain", detail: "Validate the schema UID matches the expected Green Goods schema. Confirm the EAS endpoint matches the chain the attestation was created on."},
+    {title: "Explorer proof", detail: "Open sampled UIDs on the EAS explorer and compare decoded fields against your query data."},
+  ]}
+/>
+
+**Pass criteria:**
+
+- Work attestation exists and is not revoked
+- Approval attestation references that work via `refUID`
+- Attester role matches expected operator context
+- Timestamps are logically ordered (work created before approval)
+
+**Explorer URLs:**
+
+- Arbitrum: <code>{`${EAS_EXPLORER_ENDPOINTS[42161]}/attestation/view/<uid>`}</code>
+- Celo: <code>{`${EAS_EXPLORER_ENDPOINTS[42220]}/attestation/view/<uid>`}</code>
+- Sepolia: <code>{`${EAS_EXPLORER_ENDPOINTS[11155111]}/attestation/view/<uid>`}</code>
+
+## Best Practices
+
+- Spot-check a random sample of attestation chains rather than only checking the most recent ones
+- Watch for revoked attestations — a revoked work submission with an active approval indicates a data integrity issue
+- Verify attester addresses against known operator addresses for the garden in question
+- Log any broken chains (missing refUID links, schema mismatches) for follow-up investigation
+- When working across chains, always double-check you are querying the correct EAS endpoint — Arbitrum and Celo attestations are on different contracts
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="After validating attestation chains, translate verified records into reporting frameworks."
+  actionLabel="Cross-Framework Mapping"
+  actionHref="./cross-framework-mapping"
+  alternatives={[
+    {label: "Export and Analysis", href: "./export-and-analysis"},
+  ]}
+/>

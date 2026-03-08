@@ -6,8 +6,8 @@ owner: docs
 last_verified: 2026-02-19
 feature_status: Live
 source_of_truth:
-  - docs/docs/operator/get-started-and-roles.mdx
-  - docs/docs/gardener/get-started.mdx
+  - docs/docs/community/operator-guide/creating-a-garden.mdx
+  - docs/docs/community/gardener-guide/joining-a-garden.mdx
 ---
 
 # Design & Research

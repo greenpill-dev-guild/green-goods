@@ -1,0 +1,348 @@
+---
+title: Sequence Diagrams
+sidebar_position: 4
+slug: /builders/architecture/sequence-diagrams
+audience: developer
+owner: docs
+last_verified: 2026-03-07
+feature_status: Live
+---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Sequence Diagrams
+
+<StatusBadge status="Live" />
+
+This page collects all major transaction flows in Green Goods, showing how participants, contracts, and off-chain services interact step by step.
+
+## Garden minting
+
+When an operator mints a garden, GardenToken fans out to all configured modules in two phases. Phase 1 handles role setup and governance. Phase 2 handles integration wiring. Each optional module call is wrapped in `try/catch` so failures never block the mint.
+
+```mermaid
+sequenceDiagram
+    actor Op as Operator
+    participant GT as GardenToken
+    participant TBA as GardenAccount (TBA)
+    participant HM as HatsModule
+    participant KG as KarmaGAPModule
+    participant OCT as OctantModule
+    participant GM as GardensModule
+    participant CJ as CookieJarModule
+    participant ENS as GreenGoodsENS
+
+    Op->>GT: mintGarden(name, desc, location, ...)
+    GT->>GT: _safeMint(tokenId)
+    GT->>TBA: Deploy tokenbound account (ERC-6551)
+
+    rect rgb(232, 245, 233)
+        Note over GT,GM: Phase 1 -- Role & Governance
+        GT->>HM: createGardenHatTree(garden, roles)
+        HM-->>HM: Create 6-role hat tree
+        GT->>KG: createProject(garden) [try/catch]
+        GT->>OCT: onGardenMinted(garden) [try/catch]
+        Note over OCT: Creates vault per supported asset
+        GT->>GM: onGardenMinted(garden) [try/catch]
+        Note over GM: Creates community + signal pools
+    end
+
+    rect rgb(255, 243, 224)
+        Note over GT,ENS: Phase 2 -- Integrations
+        GT->>CJ: onGardenMinted(garden) [try/catch]
+        Note over CJ: Deploys per-asset cookie jars
+        GT->>ENS: registerGarden(slug) [try/catch]
+        Note over ENS: CCIP message to L1
+    end
+
+    GT->>TBA: initialize(name, desc, location, ...)
+    GT-->>Op: GardenMinted event
+```
+
+### What happens after minting
+
+1. The Envio indexer picks up the `GardenMinted` event and creates the `Garden` entity.
+2. The indexer dynamically registers the TBA address for `GardenAccount` events.
+3. If OctantModule created vaults, those vault addresses are also registered for `Deposit`/`Withdraw` events.
+4. The admin dashboard invalidates its garden list query and shows the new garden.
+
+---
+
+## Work submission and approval
+
+The core user flow: a gardener submits work, an operator reviews it, and the attestation chain is anchored on EAS. The WorkResolver validates that the gardener has the correct hat and the action is active. The WorkApprovalResolver validates the operator role and optionally triggers a Karma GAP impact attestation.
+
+```mermaid
+sequenceDiagram
+    actor G as Gardener
+    actor Op as Operator
+    participant EAS as EAS Contract
+    participant WR as WorkResolver
+    participant WAR as WorkApprovalResolver
+    participant HM as HatsModule
+    participant AR as ActionRegistry
+    participant KG as KarmaGAPModule
+
+    G->>EAS: attest(WorkSchema)
+    EAS->>WR: onAttest() validation
+    WR->>HM: isGardener(attester)?
+    HM-->>WR: true
+    WR->>AR: getAction(actionUID) valid + active?
+    AR-->>WR: true
+    WR-->>EAS: allow
+    EAS-->>G: workUID
+
+    Note over G,Op: Later -- operator reviews
+
+    Op->>EAS: attest(WorkApprovalSchema)
+    EAS->>WAR: onAttest() validation
+    WAR->>WAR: Verify workUID matches garden
+    WAR->>HM: isOperator(attester)?
+    HM-->>WAR: true
+    WAR->>WAR: Validate confidence + method
+
+    alt approved == true
+        WAR->>KG: createImpact() [try/catch]
+        KG-->>WAR: impact attestation
+    end
+
+    WAR-->>EAS: allow
+    EAS-->>Op: approvalUID
+```
+
+### Validation rules
+
+| Check | Resolver | Description |
+| --- | --- | --- |
+| Gardener role | WorkResolver | Attester must wear the Gardener hat for the target garden. |
+| Action validity | WorkResolver | The action UID must exist in the ActionRegistry and its time window must be active. |
+| Operator role | WorkApprovalResolver | Attester must wear the Operator hat for the target garden. |
+| Work reference | WorkApprovalResolver | The referenced work UID must belong to the same garden. |
+| Confidence range | WorkApprovalResolver | Confidence must be 0-100. |
+
+---
+
+## Vault and yield flow
+
+When gardens receive deposits, the yield accrues in an ERC-4626 vault. An operator triggers harvest, and the YieldSplitter divides the yield three ways.
+
+```mermaid
+graph TD
+    subgraph Deposit["Deposit Flow"]
+        D1["Funder deposits ERC-20"]
+        D2["OctantVault<br/><small>ERC-4626 vault</small>"]
+        D3["Strategy<br/><small>Yearn-style yield</small>"]
+    end
+
+    subgraph Harvest["Harvest Flow"]
+        H1["Operator calls harvest()"]
+        H2["OctantModule"]
+        H3["YieldSplitter"]
+    end
+
+    subgraph Split["Three-Way Split"]
+        S1["CookieJar<br/><small>Petty cash for gardeners</small>"]
+        S2["Hypercert Fractions<br/><small>Buy impact fractions</small>"]
+        S3["Juicebox<br/><small>Community endowment</small>"]
+    end
+
+    subgraph Governance["Conviction Voting"]
+        CV["Signal Pool<br/><small>Gardens V2</small>"]
+        HP["Registered Hypercerts"]
+    end
+
+    D1 --> D2
+    D2 --> D3
+    D3 -.->|yield accrues| D2
+
+    H1 --> H2
+    H2 --> D2
+    D2 -->|harvested yield| H3
+
+    H3 -->|cookieJarBps| S1
+    H3 -->|fractionsBps| S2
+    H3 -->|juiceboxBps| S3
+
+    S2 -.->|listed for yield| CV
+    CV --> HP
+
+    style Deposit fill:#e8f5e9,stroke:#388e3c
+    style Harvest fill:#fff3e0,stroke:#ef6c00
+    style Split fill:#e3f2fd,stroke:#1565c0
+    style Governance fill:#f3e5f5,stroke:#7b1fa2
+```
+
+### Deposit flow (sequence)
+
+```mermaid
+sequenceDiagram
+    actor F as Funder
+    participant Token as ERC-20 Token
+    participant Vault as OctantVault
+    participant Idx as Envio Indexer
+    participant UI as Admin Dashboard
+
+    F->>Token: approve(vaultAddress, amount)
+    F->>Vault: deposit(amount, receiver)
+    Vault->>Vault: Mint shares proportional to assets
+    Vault-->>F: Deposit event (shares minted)
+
+    Idx->>Idx: Handle Deposit event
+    Idx->>Idx: Update GardenVault totals
+    Idx->>Idx: Upsert VaultDeposit for funder
+    Idx->>Idx: Create VaultEvent record
+
+    UI->>UI: Query cache invalidated
+    UI-->>F: Updated vault balance shown
+```
+
+### Yield split configuration
+
+The three-way split is configured per garden in basis points (bps):
+
+| Destination | Default | Description |
+| --- | --- | --- |
+| CookieJar | 3,000 bps (30%) | Petty cash distributed to gardeners for small expenses. |
+| Hypercert Fractions | 4,000 bps (40%) | Used to buy fractions of impact certificates, funding verified work. |
+| Juicebox | 3,000 bps (30%) | Community endowment for long-term garden sustainability. |
+
+---
+
+## Passkey onboarding flow
+
+New gardeners onboard using WebAuthn passkeys -- no seed phrases, no browser extensions. The passkey creates a smart account (ERC-4337) that serves as the gardener's on-chain identity.
+
+```mermaid
+sequenceDiagram
+    actor G as New Gardener
+    participant PWA as Client PWA
+    participant WebAuthn as WebAuthn API
+    participant Bundler as ERC-4337 Bundler
+    participant Factory as Account Factory
+    participant Chain as On-Chain
+
+    G->>PWA: Tap "Join Garden"
+    PWA->>WebAuthn: navigator.credentials.create()
+    WebAuthn-->>PWA: PublicKeyCredential (passkey)
+
+    PWA->>PWA: Derive smart account address (CREATE2)
+    PWA->>PWA: Store credential ID in IndexedDB
+
+    Note over PWA,Bundler: First transaction sponsors gas
+
+    PWA->>Bundler: UserOperation (initCode + calldata)
+    Bundler->>Factory: Deploy smart account
+    Factory->>Chain: CREATE2 deploy
+    Chain-->>Factory: Smart account address
+    Bundler->>Chain: Execute first action
+
+    Chain-->>PWA: Transaction confirmed
+    PWA-->>G: "Welcome! Your account is ready."
+
+    Note over G,Chain: Subsequent transactions
+
+    G->>PWA: Submit work
+    PWA->>WebAuthn: navigator.credentials.get()
+    WebAuthn-->>PWA: Signed assertion
+    PWA->>Bundler: UserOperation (signed by passkey)
+    Bundler->>Chain: Execute via smart account
+```
+
+### Key design decisions
+
+- **No wallet required**: Gardeners authenticate with device biometrics (fingerprint, face) via WebAuthn.
+- **Counterfactual deployment**: The smart account address is derived from the passkey public key before deployment. The account is only deployed on-chain with the first real transaction.
+- **Gas sponsorship**: The first transaction uses a paymaster so new users do not need to hold ETH.
+- **Credential storage**: The passkey credential ID is stored locally in IndexedDB and (optionally) synced to ENS text records for cross-device recovery.
+
+---
+
+## Funding deposit flow
+
+Funders deposit ERC-20 tokens into garden vaults. The deposit flow handles token approval, vault deposit, and event propagation through the indexer to the frontend.
+
+```mermaid
+sequenceDiagram
+    actor F as Funder
+    participant UI as Admin Dashboard
+    participant Shared as @green-goods/shared
+    participant Token as ERC-20 Token
+    participant Vault as OctantVault (ERC-4626)
+    participant Idx as Envio Indexer
+
+    F->>UI: Enter deposit amount
+    UI->>Shared: useVaultOperations().deposit()
+
+    Shared->>Shared: Check allowance
+    alt Insufficient allowance
+        Shared->>Token: approve(vaultAddress, amount)
+        Token-->>Shared: Approval confirmed
+    end
+
+    Shared->>Vault: deposit(assets, receiver)
+    Vault->>Vault: Calculate shares (previewDeposit)
+    Vault->>Token: transferFrom(funder, vault, assets)
+    Vault->>Vault: Mint shares to receiver
+    Vault-->>Shared: Deposit event emitted
+
+    Idx->>Idx: Process Deposit event
+    Idx->>Idx: Update GardenVault.totalDeposited
+    Idx->>Idx: Update VaultDeposit.shares
+    Idx->>Idx: Create VaultEvent (DEPOSIT)
+
+    Shared->>Shared: Invalidate vault queries (2s delay)
+    UI-->>F: Updated balance + "Deposit successful"
+```
+
+### Withdrawal flow
+
+Withdrawals follow the reverse path: the funder specifies an amount of assets to withdraw, the vault burns the corresponding shares, and the underlying ERC-20 tokens are transferred back to the funder. The same event pipeline (VaultEvent with `WITHDRAW` type) updates the indexer and frontend.
+
+---
+
+## Assessment flow
+
+Evaluators create garden-level assessments that provide a holistic view of a garden's progress. Unlike work approvals (which reference specific work submissions), assessments evaluate the garden as a whole.
+
+```mermaid
+sequenceDiagram
+    actor E as Evaluator
+    participant UI as Admin Dashboard
+    participant IPFS as IPFS (Storacha)
+    participant EAS as EAS Contract
+    participant AR as AssessmentResolver
+    participant HM as HatsModule
+
+    E->>UI: Write assessment + attach media
+    UI->>IPFS: Upload media files
+    IPFS-->>UI: CIDs
+
+    UI->>EAS: attest(AssessmentSchema)
+    EAS->>AR: onAttest() validation
+    AR->>HM: isEvaluator(attester)?
+    HM-->>AR: true
+    AR->>AR: Validate garden exists
+    AR-->>EAS: allow
+    EAS-->>E: assessmentUID
+
+    Note over E: Assessment queryable via EAS GraphQL
+```
+
+---
+
+## Further reading
+
+- [Local vs Global Balance](./local-vs-global) -- How the offline job queue and two-indexer path work together.
+- [Entity Relationship Diagram](./erd) -- The data model these flows create and update.
+- [Modular Approach](./modular-approach) -- How the hub-and-spoke module system enables graceful degradation.
+
+<NextBestAction
+  title="Next best action"
+  why="Understand the data entities these flows produce."
+  actionLabel="Entity Relationship Diagram"
+  actionHref="./erd"
+  alternatives={[
+    {label: "Modular Approach", href: "./modular-approach"},
+    {label: "Back to Architecture", href: "../architecture"},
+  ]}
+/>

@@ -1,0 +1,61 @@
+---
+title: Build Patterns
+sidebar_position: 3
+slug: /builders/build-patterns
+audience: developer
+owner: docs
+last_verified: 2026-02-18
+feature_status: Live
+goal: "Complete Build Patterns with clear, role-specific next actions."
+difficulty: "standard"
+estimated_time: "20-40 minutes."
+prereqs: "Basic repo familiarity."
+next_steps: "./integrations/overview"
+persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
+source_of_truth:
+  - AGENTS.md
+  - CLAUDE.md
+  - packages/shared/src/hooks/index.ts
+keywords:
+  - coding patterns
+  - hooks
+  - solidity patterns
+---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Build Patterns
+
+<StatusBadge status="Live" />
+
+## Frontend and shared patterns
+
+- Build hooks in `packages/shared`, not in `client`/`admin`.
+- Use centralized `queryKeys`, toasts, and date utilities.
+- Use strict typing (`unknown` + guards, discriminated unions, `as const`).
+- Keep UI packages thin: views/components only.
+
+## Contract patterns
+
+- Checks-Effects-Interactions and explicit visibility.
+- Custom errors + events for all state changes.
+- Fuzz/invariant tests for adversarial behavior.
+- Upgrade/deploy through wrapper scripts, not raw broadcast by default.
+
+## Review checklist
+
+1. Is logic duplicated instead of reused?
+2. Are package boundaries respected?
+3. Are tests focused on behavior regressions?
+4. Is deletion of this code straightforward?
+
+<NextBestAction
+  title="Next best action"
+  why="After aligning coding patterns, validate integration points and data surfaces."
+  actionLabel="Open integrations"
+  actionHref="./integrations/overview"
+  alternatives={[
+    {label: "Operations", href: "./operations"},
+    {label: "Package guides", href: "./packages/contracts"},
+  ]}
+/>

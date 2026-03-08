@@ -1,0 +1,82 @@
+---
+title: Creating A Garden
+sidebar_label: Creating A Garden
+slug: /community/operator-guide/creating-a-garden
+audience: operator
+owner: docs
+last_verified: 2026-03-01
+feature_status: Live
+goal: "Complete Create Garden with clear, role-specific next actions."
+difficulty: "standard"
+estimated_time: "10-25 minutes."
+prereqs: "Operator/deployer permissions and clear garden metadata."
+next_steps: "./managing-actions"
+persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
+source_of_truth:
+  - packages/admin/src/views/Gardens/CreateGarden.tsx
+  - packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts
+  - packages/shared/src/hooks/garden/useCreateGardenForm.ts
+keywords:
+  - create garden
+  - operator workflow
+---
+
+import {JourneyMap, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+
+# Creating A Garden
+
+<StatusBadge status="Live" />
+
+<JourneyMap
+  role="Operator"
+  steps={[
+    {title: "Get started + roles", href: "/community/operator-guide/creating-a-garden", state: "complete"},
+    {title: "Create garden", href: "/community/operator-guide/creating-a-garden", state: "current", note: "Define metadata, policy, and membership setup."},
+    {title: "Manage actions", href: "/community/operator-guide/managing-actions", state: "upcoming"},
+    {title: "Review work", href: "/community/operator-guide/reviewing-work", state: "upcoming"},
+  ]}
+/>
+
+## Overview
+
+A garden is your community hub for regenerative work. Creating one sets up an on-chain identity (ERC-6551 Tokenbound Account) that can hold assets, manage members, and coordinate impact. You will need a garden name, description, location, and a plan for your initial membership.
+
+{/* IMAGE PLACEHOLDER */}
+
+## How It Works
+
+<StepFlow
+  steps={[
+    {title: "Open Create Garden", detail: "Navigate to /gardens/create in the admin dashboard."},
+    {title: "Complete the form", detail: "Enter your garden name, description, location, banner image, and joining policy (open or restricted)."},
+    {title: "Review and sign", detail: "Confirm the chain/network and sign the creation transaction with your wallet."},
+    {title: "Verify visibility", detail: "Confirm the new garden appears in the gardens list and detail page."},
+  ]}
+/>
+
+**Required inputs:**
+
+- Garden name and short description
+- Location and banner/media assets
+- Joining policy (open vs restricted)
+- Initial member/role setup plan
+
+## Best Practices
+
+- Choose a clear, descriptive garden name that reflects the bioregion or community focus
+- Set your joining policy thoughtfully — open gardens grow faster, restricted gardens maintain tighter quality control
+- Verify that garden metadata renders correctly in both admin and client before sharing with your community
+- Create your first action immediately after garden creation to give gardeners something to work on
+- Confirm that correct operator/admin permissions are in place before inviting members
+
+## What's Next
+
+<NextBestAction
+  title="Next best action"
+  why="Your garden is live — now define the regenerative actions your community can work on."
+  actionLabel="Managing Actions"
+  actionHref="./managing-actions"
+  alternatives={[
+    {label: "Reviewing Work", href: "./reviewing-work"},
+  ]}
+/>

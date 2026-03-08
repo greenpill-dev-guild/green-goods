@@ -7,8 +7,8 @@ last_verified: 2026-02-19
 feature_status: Live
 source_of_truth:
   - docs/docs/intro.md
-  - docs/docs/developers/reference/api-index.mdx
-  - docs/docs/developers/reference/deployment-indexer-status.mdx
+  - docs/docs/builders/packages/api-index.mdx
+  - docs/docs/builders/deployments/status.mdx
 ---
 
 Common questions about Green Goods, organized by role.
@@ -54,12 +54,12 @@ No. Gardener submission flows are designed to work without wallet management.
 
 Use operator feedback to update evidence and resubmit. See:
 
-- [Submit Work with MDR](../gardener/submit-work-mdr)
-- [Common Errors](../gardener/common-errors)
+- [Submit Work with MDR](../community/gardener-guide/uploading-your-work)
+- [Common Errors](../community/gardener-guide/common-errors)
 
 ### How do I track approval status and attestations?
 
-See [Track Status and Attestations](../gardener/track-status-and-attestations).
+See [Track Status and Attestations](../community/gardener-guide/track-status-and-attestations).
 
 ## Operator
 
@@ -69,17 +69,17 @@ Operator permissions are assigned by admins or existing operator governance in a
 
 ### Can I create a new garden?
 
-Use [Create Garden](../operator/create-garden). Availability depends on your current permissions.
+Use [Create Garden](../community/operator-guide/creating-a-garden). Availability depends on your current permissions.
 
 ### Where are endowment and governance workflows documented?
 
 Use the operator endowment/governance pages:
 
-- [Vaults and Endowments](../operator/vaults-and-treasury)
-- [Cookie Jars](../operator/cookie-jars)
-- [Conviction and Signal Pools](../operator/conviction-and-signal-pools)
+- [Vaults and Endowments](../community/operator-guide/managing-endowments)
+- [Cookie Jars](../community/operator-guide/cookie-jars)
+- [Conviction and Signal Pools](../community/operator-guide/managing-governance)
 
-Check [Deployment and Indexer Status](../developers/reference/deployment-indexer-status) before announcing those flows as live.
+Check [Deployment and Indexer Status](../builders/deployments/status) before announcing those flows as live.
 
 ### How much does operator activity cost?
 
@@ -93,19 +93,19 @@ No for read-only query access to public surfaces.
 
 ### Where are canonical endpoints and schemas listed?
 
-Use [API Index](../developers/reference/api-index).
+Use [API Index](../builders/packages/api-index).
 
 ### How do I verify attestation chains?
 
-Use [Verify Attestation Chains](../evaluator/verify-attestation-chains).
+Use [Verify Attestation Chains](../community/evaluator-guide/making-assessments).
 
 ### Can I export data for analysis?
 
 Yes. Start with:
 
-- [Query Indexer](../evaluator/query-indexer)
-- [Query EAS](../evaluator/query-eas)
-- [Export and Analysis](../evaluator/export-and-analysis)
+- [Query Indexer](../community/evaluator-guide/query-indexer)
+- [Query EAS](../community/evaluator-guide/query-eas)
+- [Export and Analysis](../community/evaluator-guide/export-and-analysis)
 
 ## Technical
 
@@ -122,11 +122,11 @@ bun setup
 bun dev
 ```
 
-See [Developer Getting Started](../developers/getting-started).
+See [Developer Getting Started](../builders/getting-started).
 
 ### How do I contribute?
 
-Open an issue or PR in GitHub and follow the developer docs in [Developer Hub](../developers/getting-started).
+Open an issue or PR in GitHub and follow the developer docs in [Developer Hub](../builders/getting-started).
 
 ## Troubleshooting
 
@@ -156,7 +156,7 @@ Open an issue or PR in GitHub and follow the developer docs in [Developer Hub](.
 
 For role-first guides:
 
-- [Gardener](../gardener/get-started)
-- [Operator](../operator/get-started-and-roles)
-- [Evaluator](../evaluator/get-started)
-- [Developers](../developers/getting-started)
+- [Gardener](../community/gardener-guide/joining-a-garden)
+- [Operator](../community/operator-guide/creating-a-garden)
+- [Evaluator](../community/evaluator-guide/joining-a-garden)
+- [Developers](../builders/getting-started)

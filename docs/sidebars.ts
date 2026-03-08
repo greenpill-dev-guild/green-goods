@@ -3,21 +3,16 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 /**
  * Green Goods Documentation Sidebars
  *
- * Architecture:
- * - Two audience-based sidebars: Community (all users) and Builders (developers)
- * - Existing docs are referenced by their original IDs (no file moves needed)
- * - New pages live in community/ and builders/ directories
- * - Home page (community/welcome) serves as the root `/` page
+ * Two-track audience architecture:
+ * - Community: All users (gardeners, operators, evaluators, funders, community members)
+ * - Builders: Developers contributing to the Green Goods codebase
  *
- * Sidebar counts:
- * - Gardener Guide: 5 items
- * - Operator Guide: 9 items
- * - Evaluator Guide: 5 items
- * - Community Member Guide: 2 items
- * - Funder Guide: 2 items
+ * Community pages live under docs/community/ with role-specific guides.
+ * Builder pages live under docs/builders/ with technical docs.
  */
 const sidebars: SidebarsConfig = {
   communitySidebar: [
+    // ── Pillar Pages (flat narrative scrolls) ──
     {
       type: 'doc',
       id: 'community/welcome',
@@ -36,85 +31,80 @@ const sidebars: SidebarsConfig = {
     {
       type: 'doc',
       id: 'community/where-were-headed',
-      label: 'Where We\'re Headed',
+      label: "Where We're Headed",
     },
+
+    // ── Gardener Guide (5 items) ──
     {
       type: 'category',
       label: 'Gardener Guide',
       items: [
         {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Joining A Garden'},
-        {type: 'doc', id: 'gardener/submit-work-mdr', label: 'Uploading Your Work'},
+        {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Uploading Your Work'},
         {type: 'doc', id: 'community/gardener-guide/garden-payouts', label: 'Garden Payouts'},
         {type: 'doc', id: 'community/gardener-guide/voting-governance', label: 'Voting & Governance'},
         {type: 'doc', id: 'community/gardener-guide/earning-badges', label: 'Earning Badges & Rewards'},
       ],
     },
-  ],
 
-  operatorSidebar: [
-    {
-      type: 'doc',
-      id: 'operator/get-started-and-roles',
-      label: 'Get Started',
-    },
+    // ── Operator Guide (9 items) ──
     {
       type: 'category',
       label: 'Operator Guide',
       items: [
-        {type: 'doc', id: 'operator/create-garden', label: 'Creating A Garden'},
-        {type: 'doc', id: 'operator/create-assessments', label: 'Making An Assessment'},
-        {type: 'doc', id: 'operator/review-work', label: 'Reviewing Work'},
-        {type: 'doc', id: 'operator/mint-and-list-hypercerts', label: 'Creating Impact Certificates'},
-        {type: 'doc', id: 'community/operator-guide/managing-certificates', label: 'Managing Certificates'},
-        {type: 'doc', id: 'operator/vaults-and-treasury', label: 'Managing Endowments'},
+        {type: 'doc', id: 'community/operator-guide/creating-a-garden', label: 'Creating A Garden'},
+        {type: 'doc', id: 'community/operator-guide/making-an-assessment', label: 'Making An Assessment'},
+        {type: 'doc', id: 'community/operator-guide/reviewing-work', label: 'Reviewing Work'},
+        {type: 'doc', id: 'community/operator-guide/creating-impact-certificates', label: 'Creating Impact Certificates'},
+        {type: 'doc', id: 'community/operator-guide/managing-certificates', label: 'Managing Certificates & Work'},
+        {type: 'doc', id: 'community/operator-guide/managing-endowments', label: 'Managing Endowments'},
         {type: 'doc', id: 'community/operator-guide/managing-payouts', label: 'Managing Payouts'},
-        {type: 'doc', id: 'operator/conviction-and-signal-pools', label: 'Managing Governance'},
+        {type: 'doc', id: 'community/operator-guide/managing-governance', label: 'Managing Governance'},
         {type: 'doc', id: 'community/operator-guide/earning-recognition', label: 'Earning Recognition'},
       ],
     },
+
+    // ── Evaluator Guide (4 items) ──
     {
       type: 'category',
       label: 'Evaluator Guide',
       items: [
         {type: 'doc', id: 'community/evaluator-guide/joining-a-garden', label: 'Joining A Garden'},
-        {type: 'doc', id: 'evaluator/verify-attestation-chains', label: 'Making Assessments'},
+        {type: 'doc', id: 'community/evaluator-guide/making-assessments', label: 'Making Assessments'},
         {type: 'doc', id: 'community/evaluator-guide/evaluating-certificates', label: 'Evaluating Impact Certificates'},
-        {type: 'doc', id: 'community/evaluator-guide/reporting-analytics', label: 'Reporting & Analytics'},
-        {type: 'doc', id: 'community/evaluator-guide/earning-badges', label: 'Earning Badges'},
+        {type: 'doc', id: 'community/evaluator-guide/earning-badges', label: 'Earning Recognition'},
       ],
     },
-    {
-      type: 'category',
-      label: 'Community Member Guide',
-      items: [
-        {type: 'doc', id: 'community/community-member-guide/getting-involved', label: 'Getting Involved'},
-        {type: 'doc', id: 'community/community-member-guide/conviction-voting', label: 'Conviction Voting'},
-      ],
-    },
-  ],
 
-  evaluatorSidebar: [
-    {
-      type: 'doc',
-      id: 'evaluator/get-started',
-      label: 'Get Started',
-    },
+    // ── Funder Guide (2 items) ──
     {
       type: 'category',
       label: 'Funder Guide',
       items: [
-        {type: 'doc', id: 'community/funder-guide/getting-started', label: 'Getting Started'},
-        {type: 'doc', id: 'community/funder-guide/vaults-and-hypercerts', label: 'Vaults & Hypercerts'},
+        {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Funding A Garden'},
+        {type: 'doc', id: 'community/funder-guide/earning-recognition', label: 'Earning Recognition'},
       ],
     },
+
+    // ── Community Guide (2 items) ──
+    {
+      type: 'category',
+      label: 'Community Guide',
+      items: [
+        {type: 'doc', id: 'community/community-member-guide/getting-involved', label: 'Voting In Gardens'},
+        {type: 'doc', id: 'community/community-member-guide/conviction-voting', label: 'Earning Rewards'},
+      ],
+    },
+
     {type: 'doc', id: 'reference/faq', label: 'FAQ'},
     {type: 'doc', id: 'glossary', label: 'Glossary'},
   ],
 
   buildersSidebar: [
+    // ── Top-Level Flat Pages ──
     {
       type: 'doc',
-      id: 'developers/getting-started',
+      id: 'builders/getting-started',
       label: 'Getting Started',
     },
     {
@@ -122,14 +112,27 @@ const sidebars: SidebarsConfig = {
       id: 'builders/how-to-contribute',
       label: 'How To Contribute',
     },
-    {
-      type: 'doc',
-      id: 'developers/architecture',
-      label: 'Green Goods Architecture',
-    },
+
+    // ── Architecture (category with index + 4 sub-pages) ──
     {
       type: 'category',
-      label: 'Green Goods Packages',
+      label: 'Architecture',
+      link: {
+        type: 'doc',
+        id: 'builders/architecture',
+      },
+      items: [
+        {type: 'doc', id: 'builders/architecture/local-vs-global', label: 'Local vs Global Balance'},
+        {type: 'doc', id: 'builders/architecture/erd', label: 'Entity Relationship Diagram'},
+        {type: 'doc', id: 'builders/architecture/modular-approach', label: 'Modular Approach'},
+        {type: 'doc', id: 'builders/architecture/sequence-diagrams', label: 'Sequence Diagrams'},
+      ],
+    },
+
+    // ── Packages (7 items) ──
+    {
+      type: 'category',
+      label: 'Packages',
       items: [
         {type: 'doc', id: 'builders/packages/contracts', label: 'Contracts'},
         {type: 'doc', id: 'builders/packages/indexer', label: 'Indexer'},
@@ -140,20 +143,25 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'builders/packages/shared', label: 'Shared'},
       ],
     },
+
+    // ── Product Specifications (3 items) ──
     {
       type: 'category',
       label: 'Product Specifications',
       items: [
-        {type: 'doc', id: 'builders/specs/v0-1', label: 'v0.1'},
-        {type: 'doc', id: 'builders/specs/v0-4', label: 'v0.4'},
-        {type: 'doc', id: 'builders/specs/v1-0', label: 'v1.0'},
+        {type: 'doc', id: 'builders/specs/v0-1', label: 'v0.1 — Privy, EAS, Pimlico, Tokenbound'},
+        {type: 'doc', id: 'builders/specs/v0-4', label: 'v0.4 — Passkey, EAS, Pimlico, Tokenbound, Karma'},
+        {type: 'doc', id: 'builders/specs/v1-0', label: 'v1.0 — Hypercerts, Octant, Gardens, Cookie Jar'},
       ],
     },
+
+    // ── Integrations (15 items) ──
     {
       type: 'category',
       label: 'Integrations',
       items: [
-        {type: 'doc', id: 'developers/integrations', label: 'Overview'},
+        {type: 'doc', id: 'builders/integrations/entity-matrix', label: 'Entity Matrix'},
+        {type: 'doc', id: 'builders/integrations/overview', label: 'Overview'},
         {type: 'doc', id: 'builders/integrations/eas', label: 'EAS'},
         {type: 'doc', id: 'builders/integrations/tokenbound', label: 'Tokenbound Accounts'},
         {type: 'doc', id: 'builders/integrations/passkey', label: 'Passkey'},
@@ -169,6 +177,8 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'builders/integrations/silvi', label: 'Silvi (Coming Soon)'},
       ],
     },
+
+    // ── Agentic Development ──
     {
       type: 'category',
       label: 'Agentic Development',
@@ -188,9 +198,11 @@ const sidebars: SidebarsConfig = {
             {type: 'doc', id: 'builders/agentic/gemini', label: 'Gemini'},
           ],
         },
-        {type: 'doc', id: 'developers/reference/agent-mcp-guide', label: 'MCP Guide'},
+        {type: 'doc', id: 'builders/agentic/mcp-guide', label: 'MCP Guide'},
       ],
     },
+
+    // ── Testing (5 items) ──
     {
       type: 'category',
       label: 'Testing',
@@ -202,6 +214,8 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'builders/testing/storybook', label: 'Storybook'},
       ],
     },
+
+    // ── Quality Assurance (5 items) ──
     {
       type: 'category',
       label: 'Quality Assurance',
@@ -213,6 +227,8 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'builders/quality/gh-actions', label: 'GitHub Actions'},
       ],
     },
+
+    // ── Build & Deployments (6 items) ──
     {
       type: 'category',
       label: 'Build & Deployments',
@@ -225,10 +241,11 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'builders/deployments/agent-deploy', label: 'Agent'},
       ],
     },
+
+    {type: 'doc', id: 'builders/glossary', label: 'Builder Glossary'},
     {type: 'doc', id: 'reference/changelog', label: 'Changelog'},
     {type: 'doc', id: 'reference/design-research', label: 'Design & Research'},
     {type: 'doc', id: 'reference/credits', label: 'Credits & Licenses'},
-    {type: 'doc', id: 'builders/glossary', label: 'Builder Glossary'},
   ],
 };
 

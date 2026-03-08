@@ -1,0 +1,203 @@
+---
+title: Modular Approach
+sidebar_position: 3
+slug: /builders/architecture/modular-approach
+audience: developer
+owner: docs
+last_verified: 2026-03-07
+feature_status: Live
+---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Modular Approach
+
+<StatusBadge status="Live" />
+
+Green Goods uses a modular architecture at two levels: **contract modules** (on-chain) and **package boundaries** (off-chain). This page explains both, plus the Hats Protocol role tree that governs access control across the system.
+
+## Contract module system
+
+GardenToken uses a **hub-and-spoke pattern** with typed module slots. Each module is a UUPS-upgradeable proxy deployed via CREATE2. Optional modules degrade gracefully -- every call is wrapped in `if (address != 0)` + `try/catch`.
+
+```mermaid
+graph LR
+    GT["GardenToken<br/><small>Hub</small>"]
+
+    GT --- |"REQUIRED"| HM["HatsModule<br/><small>RBAC via Hats Protocol</small>"]
+    GT --- |"REQUIRED"| CT["communityToken<br/><small>Shared ERC-20</small>"]
+    GT -.- |"optional"| KG["KarmaGAPModule<br/><small>Impact attestations</small>"]
+    GT -.- |"optional"| OCT["OctantModule<br/><small>Yield vaults</small>"]
+    GT -.- |"optional"| GM["GardensModule<br/><small>V2 communities</small>"]
+    GT -.- |"optional"| CJ["CookieJarModule<br/><small>Petty cash jars</small>"]
+    GT -.- |"optional"| AR["ActionRegistry<br/><small>Action domain config</small>"]
+    GT -.- |"optional"| ENS["GreenGoodsENS<br/><small>ENS subdomains via CCIP</small>"]
+
+    style GT fill:#fff9c4,stroke:#f9a825
+    style HM fill:#c8e6c9,stroke:#388e3c
+    style CT fill:#c8e6c9,stroke:#388e3c
+    style KG fill:#e3f2fd,stroke:#1565c0
+    style OCT fill:#e3f2fd,stroke:#1565c0
+    style GM fill:#e3f2fd,stroke:#1565c0
+    style CJ fill:#e3f2fd,stroke:#1565c0
+    style AR fill:#e3f2fd,stroke:#1565c0
+    style ENS fill:#e3f2fd,stroke:#1565c0
+```
+
+### Required vs optional modules
+
+| Module | Required | Purpose |
+| --- | --- | --- |
+| **HatsModule** | Yes | Role-based access control via Hats Protocol. Creates the 6-role hat tree per garden. |
+| **communityToken** | Yes | Shared ERC-20 used for governance signaling and funder eligibility. |
+| **KarmaGAPModule** | No | Creates impact attestations on Karma GAP when work is approved. |
+| **OctantModule** | No | Deploys ERC-4626 vaults per asset, handles harvest and yield splitting. |
+| **GardensModule** | No | Creates Gardens V2 communities and conviction voting signal pools. |
+| **CookieJarModule** | No | Deploys per-asset cookie jars for petty cash distribution. |
+| **ActionRegistry** | No | Stores action templates with domain configuration per garden. |
+| **GreenGoodsENS** | No | Registers ENS subdomains via CCIP-Read for L2 resolution. |
+
+### Adding a new module
+
+Adding a new module type requires:
+
+1. A new UUPS-upgradeable contract implementing the module interface.
+2. A GardenToken UUPS upgrade to add one new storage slot (from the `uint256[37] __gap`).
+3. A setter function on GardenToken (e.g., `setNewModule(address)`).
+4. Wiring in `DeploymentBase` for CREATE2 deployment.
+5. Optional: An indexer handler if the module emits events the frontend needs.
+
+### Graceful degradation
+
+Every optional module call follows this pattern in GardenToken:
+
+```solidity
+if (address(octantModule) != address(0)) {
+    try octantModule.onGardenMinted(garden) {
+        emit ModuleExecutionSuccess(MODULE_OCTANT, garden);
+    } catch {
+        emit ModuleExecutionFailed(MODULE_OCTANT, garden);
+    }
+}
+```
+
+If a module is not deployed (zero address), the call is skipped. If a deployed module reverts, the failure is logged but does not block garden minting. This ensures the core flow always succeeds.
+
+## Package dependency graph
+
+The monorepo has a strict build order. Each package depends only on packages above it in the chain.
+
+```mermaid
+graph TD
+    Contracts["packages/contracts<br/><small>Solidity modules + ABIs</small>"]
+    Shared["packages/shared<br/><small>Hooks, stores, utilities</small>"]
+    Indexer["packages/indexer<br/><small>Envio event handlers</small>"]
+    Client["packages/client<br/><small>Gardener PWA</small>"]
+    Admin["packages/admin<br/><small>Operator dashboard</small>"]
+    Agent["packages/agent<br/><small>Automation bots</small>"]
+
+    Contracts -->|ABIs| Shared
+    Contracts -->|ABIs| Indexer
+    Shared -->|hooks, types| Client
+    Shared -->|hooks, types| Admin
+    Shared -->|hooks, types| Agent
+
+    style Contracts fill:#fce4ec,stroke:#c62828
+    style Shared fill:#e3f2fd,stroke:#1565c0
+    style Indexer fill:#fff3e0,stroke:#ef6c00
+    style Client fill:#e8f5e9,stroke:#388e3c
+    style Admin fill:#e8f5e9,stroke:#388e3c
+    style Agent fill:#f3e5f5,stroke:#7b1fa2
+```
+
+### Build order
+
+| Step | Package | Produces |
+| --- | --- | --- |
+| 1 | **contracts** | ABI JSON files consumed by shared hooks and indexer handlers. |
+| 2 | **shared** | React hooks, TypeScript types, and utility modules consumed by all frontends. |
+| 3 | **indexer** | Envio handlers that need contract ABIs for event decoding. |
+| 4 | **client / admin / agent** | Final applications that import from `@green-goods/shared`. |
+
+### Import rules
+
+- **All React hooks** live in `@green-goods/shared`. Client and admin only contain components and views.
+- **Barrel imports only**: `import { useAuth } from "@green-goods/shared"` -- never deep paths.
+- **Deployment artifacts**: `import deployment from '../../../contracts/deployments/11155111-latest.json'` -- never hardcode addresses.
+- **No cross-frontend imports**: Client cannot import from admin, and vice versa.
+
+## Hats Protocol role tree
+
+Each garden gets a **6-role hat tree** created by `HatsModule.createGardenHatTree()` during minting. Roles are hierarchical -- each parent hat is admin of its children.
+
+```mermaid
+graph TD
+    TH["Top Hat<br/><small>Protocol root</small>"]
+    CH["Community Hat<br/><small>Protocol-wide</small>"]
+    GH["Gardens Hat<br/><small>All gardens</small>"]
+    PG["Protocol Gardeners Hat<br/><small>Cross-garden members</small>"]
+
+    subgraph GardenTree["Per-Garden Tree"]
+        Admin["Garden Admin Hat<br/><small>parent of all roles</small>"]
+        Owner["Owner<br/><small>Full control</small>"]
+        Operator["Operator<br/><small>Approvals, management</small>"]
+        Evaluator["Evaluator<br/><small>Assessments</small>"]
+        Gardener["Gardener<br/><small>Work submission</small>"]
+        Funder["Funder<br/><small>ERC-20 eligibility</small>"]
+        Community["Community<br/><small>Token-gated access</small>"]
+    end
+
+    TH --> CH
+    CH --> GH
+    CH --> PG
+    GH --> Admin
+    Admin --> Owner
+    Admin --> Operator
+    Admin --> Evaluator
+    Admin --> Gardener
+    Admin --> Funder
+    Admin --> Community
+
+    style TH fill:#fff9c4,stroke:#f9a825
+    style CH fill:#e8f5e9,stroke:#388e3c
+    style GH fill:#e8f5e9,stroke:#388e3c
+    style PG fill:#e8f5e9,stroke:#388e3c
+    style GardenTree fill:#f3e5f5,stroke:#7b1fa2
+    style Admin fill:#e1bee7,stroke:#7b1fa2
+```
+
+### Role hierarchy
+
+| Level | Hat | Purpose |
+| --- | --- | --- |
+| Protocol | **Top Hat** | Root of the entire Hats tree. Worn by the deployer. |
+| Protocol | **Community Hat** | Parent of all protocol-wide hats. HatsModule needs this to create garden sub-trees. |
+| Protocol | **Gardens Hat** | Parent of all per-garden admin hats. |
+| Protocol | **Protocol Gardeners** | Cross-garden membership for gardeners who participate in multiple gardens. |
+| Garden | **Garden Admin** | Per-garden root. Parent (admin) of all garden-specific roles. |
+| Garden | **Owner** | Full control over garden configuration and membership. |
+| Garden | **Operator** | Can approve/reject work submissions and manage day-to-day operations. |
+| Garden | **Evaluator** | Can create garden assessments. |
+| Garden | **Gardener** | Can submit work attestations against enabled actions. |
+| Garden | **Funder** | Eligibility for depositing into garden vaults (ERC-20 token-gated). |
+| Garden | **Community** | General community membership (token-gated). |
+
+### Authorization model
+
+Key points about Hats Protocol authorization:
+
+- `isAdminOfHat(account, hatId)` checks if `account` wears any **ancestor** hat of `hatId` (transitive).
+- Wearing a hat does **not** make you admin of that hat -- you need the parent.
+- `createHat(parentHat, ...)` requires `isAdminOfHat(caller, parentHat)`, meaning the caller must wear the parent hat's parent.
+- The HatsModule needs the **communityHat** (not the gardensHat) to create garden sub-trees under gardensHat.
+
+<NextBestAction
+  title="Next best action"
+  why="See how these modules interact in real transaction flows."
+  actionLabel="Sequence Diagrams"
+  actionHref="./sequence-diagrams"
+  alternatives={[
+    {label: "Entity Relationships", href: "./erd"},
+    {label: "Back to Architecture", href: "../architecture"},
+  ]}
+/>
