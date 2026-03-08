@@ -360,6 +360,43 @@
     animation: confirmedShimmer 0.6s ease-out;
   }
 
+  /* ── CSS-only Tooltip ── */
+  [data-tooltip] {
+    position: relative;
+  }
+  [data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgb(var(--gray-950) / 0.9);
+    color: rgb(var(--gray-0));
+    font-size: 0.6875rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  [data-tooltip]:hover::after {
+    opacity: 1;
+  }
+  /* Right-aligned variant to prevent overflow on right-edge elements */
+  [data-tooltip-align="right"]::after {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+  /* Left-aligned variant */
+  [data-tooltip-align="left"]::after {
+    left: 0;
+    transform: none;
+  }
+
   /* Staggered entrance animation for lists/grids of children */
   .stagger-children > * {
     opacity: 0;

@@ -229,7 +229,7 @@ export function CommandPalette() {
 
       <Dialog.Root open={open} onOpenChange={handleOpenChange}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay" />
           <Dialog.Content
             className="fixed left-1/2 top-[20%] z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border border-stroke-sub bg-bg-white shadow-xl animate-fade-in-up"
             aria-label={formatMessage({

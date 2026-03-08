@@ -290,7 +290,12 @@ export default function Dashboard() {
           />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <GardenSummaryList gardens={displayGardens} className="lg:col-span-2" />
+            <GardenSummaryList
+              gardens={displayGardens}
+              works={platformStats?.works}
+              assessments={platformStats?.assessments}
+              className="lg:col-span-2"
+            />
             <RecentActivitySection
               gardens={displayGardens}
               works={platformStats?.works}

@@ -71,7 +71,7 @@ export function createEmptyGardenForm(): CreateGardenFormState {
     bannerImage: "",
     metadata: "",
     openJoining: false,
-    domains: [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE],
+    domains: [],
     gardeners: [],
     operators: [],
   };
@@ -124,11 +124,6 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           return { success: false, error: "Address already added as gardener" };
         }
 
-        // Check if already an operator
-        if (form.operators.includes(validAddress)) {
-          return { success: false, error: "Address is already an operator" };
-        }
-
         set((state) => ({
           form: {
             ...state.form,
@@ -157,11 +152,6 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         // Check if already an operator (case-insensitive via checksummed comparison)
         if (form.operators.includes(validAddress)) {
           return { success: false, error: "Address already added as operator" };
-        }
-
-        // Check if already a gardener
-        if (form.gardeners.includes(validAddress)) {
-          return { success: false, error: "Address is already a gardener" };
         }
 
         set((state) => ({
@@ -267,6 +257,18 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         removeItem: (name) => {
           sessionStorage.removeItem(name);
         },
+      },
+      // Deep-merge persisted form with defaults so new/renamed fields are always present
+      merge: (persisted, current) => {
+        const p = persisted as Partial<CreateGardenStore>;
+        return {
+          ...current,
+          currentStep: p.currentStep ?? current.currentStep,
+          form: {
+            ...createEmptyGardenForm(),
+            ...p.form,
+          },
+        };
       },
       // Only persist form and currentStep, not steps (static) or functions
       partialize: (state) =>

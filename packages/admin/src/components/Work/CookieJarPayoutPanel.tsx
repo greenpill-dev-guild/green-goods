@@ -44,7 +44,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   return (
     <>
       <Card className="overflow-hidden">
-        {/* Header: Gardener Payouts with balance badges */}
+        {/* Header: Cookie Jars with balance badges */}
         <Card.Header>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -55,13 +55,13 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                 <h3 className="label-md text-text-strong sm:text-lg">
                   {formatMessage({
                     id: "app.cookieJar.payoutTitle",
-                    defaultMessage: "Gardener Payouts",
+                    defaultMessage: "Cookie Jars",
                   })}
                 </h3>
                 <p className="mt-0.5 text-sm text-text-sub">
                   {formatMessage({
                     id: "app.cookieJar.payoutDescription",
-                    defaultMessage: "Pay gardeners from cookie jars for completed work",
+                    defaultMessage: "Gardeners claim rewards from cookie jars for completed work",
                   })}
                 </p>
               </div>
@@ -92,8 +92,8 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
             <Button variant="primary" size="md" onClick={() => setWithdrawOpen(true)}>
               <RiHandCoinLine className="h-4 w-4" />
               {formatMessage({
-                id: "app.cookieJar.withdrawModal.title",
-                defaultMessage: "Pay Gardeners",
+                id: "app.cookieJar.withdraw",
+                defaultMessage: "Withdraw",
               })}
             </Button>
             <Button variant="secondary" size="md" onClick={() => setDepositOpen(true)}>

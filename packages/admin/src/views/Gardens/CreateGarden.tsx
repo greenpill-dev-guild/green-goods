@@ -138,9 +138,14 @@ export default function CreateGarden() {
     setShowValidation(false);
   }, [currentStep]);
 
+  // Sync Zustand store → RHF only when actual form values change.
+  // Using JSON.stringify avoids infinite loops from new object references.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const formKey = JSON.stringify(form);
   useEffect(() => {
     resetValidationForm(form);
-  }, [form, resetValidationForm]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formKey]);
 
   const handleNext = async () => {
     setShowValidation(true);

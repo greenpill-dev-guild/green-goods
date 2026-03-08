@@ -1,12 +1,15 @@
 import {
   cn,
   Domain,
+  DOMAIN_COLORS,
+  type EASGardenAssessment,
+  type EASWork,
   formatRelativeTime,
   ImageWithFallback,
   resolveIPFSUrl,
   type Garden,
 } from "@green-goods/shared";
-import { RiArrowRightLine, RiUserLine } from "@remixicon/react";
+import { RiAwardLine, RiArrowRightLine, RiFileListLine, RiUserLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -17,13 +20,6 @@ const DOMAIN_LABELS: Record<Domain, string> = {
   [Domain.AGRO]: "Agro",
   [Domain.EDU]: "Edu",
   [Domain.WASTE]: "Waste",
-};
-
-const DOMAIN_DOT_COLORS: Record<Domain, string> = {
-  [Domain.SOLAR]: "bg-yellow-400",
-  [Domain.AGRO]: "bg-green-500",
-  [Domain.EDU]: "bg-blue-500",
-  [Domain.WASTE]: "bg-orange-500",
 };
 
 /** Extract enabled domains from a bitmask (bit 0=Solar, 1=Agro, 2=Edu, 3=Waste) */
@@ -38,6 +34,8 @@ function getEnabledDomains(mask?: number): Domain[] {
 
 interface GardenSummaryListProps {
   gardens: Garden[];
+  works?: EASWork[];
+  assessments?: EASGardenAssessment[];
   maxItems?: number;
   viewAllLink?: string;
   className?: string;
@@ -45,6 +43,8 @@ interface GardenSummaryListProps {
 
 export function GardenSummaryList({
   gardens,
+  works,
+  assessments,
   maxItems = 8,
   viewAllLink = "/gardens",
   className,
@@ -53,6 +53,27 @@ export function GardenSummaryList({
 
   // Memoize slicing to avoid creating new arrays on every render (Phase 5)
   const displayGardens = useMemo(() => gardens.slice(0, maxItems), [gardens, maxItems]);
+
+  // Build per-garden work/assessment count lookups from EAS data
+  const workCountByGarden = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!works) return map;
+    for (const work of works) {
+      const key = work.gardenAddress.toLowerCase();
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return map;
+  }, [works]);
+
+  const assessmentCountByGarden = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!assessments) return map;
+    for (const assessment of assessments) {
+      const key = assessment.gardenAddress.toLowerCase();
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return map;
+  }, [assessments]);
 
   return (
     <Card className={className}>
@@ -81,6 +102,8 @@ export function GardenSummaryList({
           const gardenerCount = garden.gardeners?.length ?? 0;
           const evaluatorCount = garden.evaluators?.length ?? 0;
           const memberCount = operatorCount + gardenerCount + evaluatorCount;
+          const workCount = workCountByGarden.get(garden.id.toLowerCase()) ?? 0;
+          const assessmentCount = assessmentCountByGarden.get(garden.id.toLowerCase()) ?? 0;
           const isActive = garden.createdAt > 0;
           const enabledDomains = getEnabledDomains(garden.domainMask);
 
@@ -160,42 +183,92 @@ export function GardenSummaryList({
                 </p>
               </div>
 
-              {/* Domain dots */}
-              {enabledDomains.length > 0 && (
-                <div
-                  className="flex items-center gap-0.5"
-                  title={enabledDomains.map((d) => DOMAIN_LABELS[d]).join(", ")}
-                >
-                  {enabledDomains.map((d) => (
-                    <div key={d} className={cn("h-2 w-2 rounded-full", DOMAIN_DOT_COLORS[d])} />
-                  ))}
-                </div>
-              )}
-
-              {/* Member count with tooltip */}
-              <div className="flex items-center gap-1 text-xs text-text-soft" title={memberTooltip}>
-                <RiUserLine className="h-3.5 w-3.5" />
-                <span>{memberCount}</span>
-              </div>
-
-              {/* Status dot */}
-              <div
-                className={cn(
-                  "h-2.5 w-2.5 flex-shrink-0 rounded-full",
-                  isActive ? "bg-success-base" : "bg-text-soft"
+              {/* Stat badges — CSS tooltips via data-tooltip */}
+              <div className="flex items-center gap-2.5">
+                {/* Domain dots */}
+                {enabledDomains.length > 0 && (
+                  <div
+                    className="flex items-center gap-0.5"
+                    data-tooltip={intl.formatMessage(
+                      {
+                        id: "admin.dashboard.garden.domainTooltip",
+                        defaultMessage: "Domains: {domains}",
+                      },
+                      { domains: enabledDomains.map((d) => DOMAIN_LABELS[d]).join(", ") }
+                    )}
+                  >
+                    {enabledDomains.map((d) => (
+                      <div
+                        key={d}
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: DOMAIN_COLORS[d] }}
+                      />
+                    ))}
+                  </div>
                 )}
-                title={
-                  isActive
-                    ? intl.formatMessage({
-                        id: "admin.dashboard.gardenStatus.active",
-                        defaultMessage: "Active",
-                      })
-                    : intl.formatMessage({
-                        id: "admin.dashboard.gardenStatus.inactive",
-                        defaultMessage: "Inactive",
-                      })
-                }
-              />
+
+                {/* Work submissions */}
+                <div
+                  className="flex items-center gap-0.5 text-xs text-text-soft"
+                  data-tooltip={intl.formatMessage(
+                    {
+                      id: "admin.dashboard.garden.workCount",
+                      defaultMessage:
+                        "{count} {count, plural, one {work submission} other {work submissions}}",
+                    },
+                    { count: workCount }
+                  )}
+                >
+                  <RiFileListLine className="h-3.5 w-3.5" />
+                  <span>{workCount}</span>
+                </div>
+
+                {/* Assessments */}
+                <div
+                  className="flex items-center gap-0.5 text-xs text-text-soft"
+                  data-tooltip={intl.formatMessage(
+                    {
+                      id: "admin.dashboard.garden.assessmentCount",
+                      defaultMessage:
+                        "{count} {count, plural, one {assessment} other {assessments}}",
+                    },
+                    { count: assessmentCount }
+                  )}
+                >
+                  <RiAwardLine className="h-3.5 w-3.5" />
+                  <span>{assessmentCount}</span>
+                </div>
+
+                {/* Members */}
+                <div
+                  className="flex items-center gap-0.5 text-xs text-text-soft"
+                  data-tooltip={memberTooltip}
+                  data-tooltip-align="right"
+                >
+                  <RiUserLine className="h-3.5 w-3.5" />
+                  <span>{memberCount}</span>
+                </div>
+
+                {/* Status dot */}
+                <div
+                  className={cn(
+                    "h-2.5 w-2.5 flex-shrink-0 rounded-full",
+                    isActive ? "bg-success-base" : "bg-text-soft"
+                  )}
+                  data-tooltip={
+                    isActive
+                      ? intl.formatMessage({
+                          id: "admin.dashboard.gardenStatus.active",
+                          defaultMessage: "Active",
+                        })
+                      : intl.formatMessage({
+                          id: "admin.dashboard.gardenStatus.inactive",
+                          defaultMessage: "Inactive",
+                        })
+                  }
+                  data-tooltip-align="right"
+                />
+              </div>
             </Link>
           );
         })}

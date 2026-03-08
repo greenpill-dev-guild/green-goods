@@ -198,8 +198,17 @@ export default function ActionDetail() {
           </div>
         </div>
 
-        {/* Details Sidebar */}
+        {/* Details Sidebar — description first for visibility */}
         <div className="space-y-6">
+          <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
+            <h3 className="text-lg font-semibold mb-4">
+              {formatMessage({ id: "app.actions.detail.descriptionTitle" })}
+            </h3>
+            <p className="text-text-sub">
+              {action.description || formatMessage({ id: "app.actions.noDescription" })}
+            </p>
+          </div>
+
           <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
             <h3 className="text-lg font-semibold mb-4">
               {formatMessage({ id: "app.actions.detail.details" })}
@@ -233,15 +242,6 @@ export default function ActionDetail() {
                 </dd>
               </div>
             </dl>
-          </div>
-
-          <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
-            <h3 className="text-lg font-semibold mb-4">
-              {formatMessage({ id: "app.actions.detail.descriptionTitle" })}
-            </h3>
-            <p className="text-text-sub">
-              {action.description || formatMessage({ id: "app.actions.noDescription" })}
-            </p>
           </div>
 
           {/* Form Configuration */}

@@ -256,7 +256,7 @@ describe("createDefaultGardenForm", () => {
     expect(defaults.bannerImage).toBe("");
     expect(defaults.metadata).toBe("");
     expect(defaults.openJoining).toBe(false);
-    expect(defaults.domains).toEqual([Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE]);
+    expect(defaults.domains).toEqual([]);
     expect(defaults.gardeners).toEqual([]);
     expect(defaults.operators).toEqual([]);
   });

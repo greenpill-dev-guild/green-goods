@@ -18,7 +18,7 @@ const buttonVariants = tv({
       secondary:
         "border border-stroke-soft bg-bg-white text-text-strong hover:bg-bg-soft hover:border-stroke-sub",
       ghost: "text-text-sub hover:bg-bg-soft hover:text-text-strong",
-      danger: "bg-error-base text-white hover:bg-error-dark",
+      danger: "bg-error-base text-destructive-foreground hover:bg-error-dark",
     },
     size: {
       sm: "h-8 px-3 text-xs",

@@ -261,8 +261,13 @@ export default function EndowmentsOverview() {
       });
     }
 
+    // Sort ETH/WETH first (more natural for crypto UX), then DAI, then by TVL
     return positions.sort((a, b) => {
-      if (a.assetSymbol !== b.assetSymbol) return a.assetSymbol.localeCompare(b.assetSymbol);
+      if (a.assetSymbol !== b.assetSymbol) {
+        if (a.assetSymbol === "WETH") return -1;
+        if (b.assetSymbol === "WETH") return 1;
+        return a.assetSymbol.localeCompare(b.assetSymbol);
+      }
       if (b.netDeposited > a.netDeposited) return 1;
       if (b.netDeposited < a.netDeposited) return -1;
       return a.gardenName.localeCompare(b.gardenName);
@@ -303,9 +308,13 @@ export default function EndowmentsOverview() {
           <StatCard
             icon={<RiMoneyDollarCircleLine className="h-5 w-5" />}
             label={formatMessage({ id: "app.treasury.totalValueLocked" })}
-            value={`${formatTokenAmount(tvlByAsset.totalEth)} ETH / ${formatTokenAmount(
-              tvlByAsset.totalDai
-            )} DAI`}
+            value={
+              <>
+                {formatTokenAmount(tvlByAsset.totalEth)} ETH
+                <br />
+                {formatTokenAmount(tvlByAsset.totalDai)} DAI
+              </>
+            }
             colorScheme="info"
           />
           <StatCard
@@ -359,7 +368,7 @@ export default function EndowmentsOverview() {
           )}
 
           {userAddress && !isMyPositionsLoading && myTrackedPositions.length > 0 && (
-            <div className="space-y-3">
+            <div className="max-h-[400px] overflow-y-auto space-y-3">
               {myTrackedPositions.map((position) => (
                 <MyTrackedPositionCard
                   key={position.id}
@@ -484,21 +493,30 @@ export default function EndowmentsOverview() {
                 </div>
 
                 <div className="space-y-2">
-                  {item.vaults.map((vault) => (
-                    <div
-                      key={vault.id}
-                      className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm"
-                    >
-                      <span className="font-medium text-text-sub">
-                        {getVaultAssetSymbol(vault.asset, vault.chainId)}
-                      </span>
-                      <span className="text-text-strong">
-                        {formatTokenAmount(
-                          getNetDeposited(vault.totalDeposited, vault.totalWithdrawn)
-                        )}
-                      </span>
-                    </div>
-                  ))}
+                  {[...item.vaults]
+                    .sort((a, b) => {
+                      const symA = getVaultAssetSymbol(a.asset, a.chainId).toUpperCase();
+                      const symB = getVaultAssetSymbol(b.asset, b.chainId).toUpperCase();
+                      // ETH/WETH first, then alphabetical
+                      if (symA === "WETH" || symA === "ETH") return -1;
+                      if (symB === "WETH" || symB === "ETH") return 1;
+                      return symA.localeCompare(symB);
+                    })
+                    .map((vault) => (
+                      <div
+                        key={vault.id}
+                        className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm"
+                      >
+                        <span className="font-medium text-text-sub">
+                          {getVaultAssetSymbol(vault.asset, vault.chainId)}
+                        </span>
+                        <span className="text-text-strong">
+                          {formatTokenAmount(
+                            getNetDeposited(vault.totalDeposited, vault.totalWithdrawn)
+                          )}
+                        </span>
+                      </div>
+                    ))}
                 </div>
 
                 <div className="mt-4 flex items-center justify-between">

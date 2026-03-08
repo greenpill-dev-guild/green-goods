@@ -34,7 +34,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
   const { formatMessage } = useIntl();
   const form = useCreateGardenStore((s) => s.form);
   const setField = useCreateGardenStore((s) => s.setField);
-  const domains = useCreateGardenStore((s) => s.form.domains);
+  const domains = useCreateGardenStore((s) => s.form.domains) ?? [];
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [bannerUploadProgress, setBannerUploadProgress] = useState(0);

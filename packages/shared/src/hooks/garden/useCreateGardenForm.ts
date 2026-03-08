@@ -83,7 +83,7 @@ export function createDefaultGardenForm(): CreateGardenFormInput {
     bannerImage: "",
     metadata: "",
     openJoining: false,
-    domains: [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE],
+    domains: [],
     gardeners: [],
     operators: [],
   };
