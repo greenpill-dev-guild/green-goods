@@ -29,7 +29,6 @@ import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
-import { ValidationError } from "../../utils/errors/validation-error";
 import { useUser } from "../auth/useUser";
 import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
@@ -132,15 +131,6 @@ export function useWorkApproval() {
       // Validate user address for queue operations
       if (!smartAccountAddress) {
         throw new Error("User address is required for approval submission");
-      }
-
-      if (navigator.onLine) {
-        await simulateApprovalSubmission({
-          draft,
-          gardenAddress: work.gardenAddress,
-          chainId,
-          accountAddress: smartAccountAddress as `0x${string}`,
-        });
       }
 
       const { txHash: offlineTxHash, jobId } = await submitApprovalToQueue(
@@ -485,19 +475,34 @@ export function useWorkApproval() {
       const isApproval = variables?.draft.approved ?? false;
       const actionType = isApproval ? "approval" : "decision";
 
-      if (DEBUG_ENABLED) {
-        debugLog("[useWorkApproval] Rolled back optimistic update due to error", {
-          workUID: variables?.draft.workUID,
-        });
-      }
+      // Create error handler with approval-specific configuration
+      const handleError = createMutationErrorHandler({
+        source: "useWorkApproval",
+        toastContext: `${actionType} submission`,
+        toastId: "approval-submit",
+        trackError: (errorMsg) =>
+          trackWorkApprovalFailed({
+            workUID: variables?.draft.workUID ?? "",
+            gardenAddress: variables?.work.gardenAddress ?? "",
+            error: errorMsg,
+            authMode,
+          }),
+        getFallbackMessage: (mode) =>
+          mode === "wallet"
+            ? "Transaction failed. Check your wallet and try again."
+            : `We couldn't send the ${actionType}. We'll retry shortly.`,
+        getFallbackDescription: (mode) =>
+          mode === "wallet"
+            ? "If this keeps happening, reconnect your wallet before resubmitting."
+            : "Keep the app open; the queue will keep trying in the background.",
+      });
 
-      handleApprovalError(error, {
+      handleError(error, {
         authMode,
         gardenAddress: variables?.work.gardenAddress,
         metadata: {
           chainId,
           workUID: variables?.draft.workUID,
-          gardenAddress: variables?.work.gardenAddress,
           approved: variables?.draft.approved,
           gardenerAddress: variables?.work?.gardenerAddress,
         },

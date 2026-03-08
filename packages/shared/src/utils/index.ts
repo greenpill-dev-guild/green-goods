@@ -1,10 +1,6 @@
 // Utilities — EXPLICIT EXPORTS for tree-shaking
 
 // ============================================================================
-// DOMAIN BITMASK
-// ============================================================================
-export { expandDomainMask, hasDomain } from "./domain";
-// ============================================================================
 // ACTION
 // ============================================================================
 export {
@@ -92,16 +88,6 @@ export {
   normalizeAddress,
   truncateAddress,
 } from "./blockchain/address";
-export {
-  GARDEN_ROLE_COLORS,
-  GARDEN_ROLE_FUNCTIONS,
-  GARDEN_ROLE_I18N_KEYS,
-  GARDEN_ROLE_IDS,
-  GARDEN_ROLE_ORDER,
-  getRoleColorClasses,
-  ROLE_COLOR_CLASSES,
-} from "./blockchain/garden-roles";
-export type { GardenRole, RoleColorScheme } from "./blockchain/garden-roles";
 // ============================================================================
 // CHAIN REGISTRY
 // ============================================================================
@@ -116,17 +102,6 @@ export {
   getRpcUrl,
   isChainSupported,
 } from "./blockchain/chain-registry";
-export {
-  formatTokenAmount,
-  getNetDeposited,
-  getVaultAssetDecimals,
-  getVaultAssetSymbol,
-  hasVaultAssetDecimals,
-  isZeroAddressValue,
-  isZeroBytes32,
-  validateDecimalInput,
-  ZERO_ADDRESS,
-} from "./blockchain/vaults";
 // ============================================================================
 // CONTRACTS (ABIs & clients)
 // ============================================================================
@@ -239,11 +214,6 @@ export {
   parseAndFormatError,
   parseContractError,
 } from "./errors/contract-errors";
-export type {
-  CategorizedError,
-  ErrorCategory as CategorizedErrorCategory,
-} from "./errors/categorize-error";
-export { categorizeError } from "./errors/categorize-error";
 export { extractErrorMessage, extractErrorMessageOr } from "./errors/extract-message";
 export type {
   MutationErrorContext,

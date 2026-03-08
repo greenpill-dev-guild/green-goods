@@ -171,18 +171,6 @@ export {
   withTimeout,
 } from "./data/graphql-client";
 // ============================================================================
-// DATA / GARDENS (Gardens V2 Subgraph)
-// ============================================================================
-export {
-  getConvictionStrategiesFromSubgraph,
-  getConvictionWeightsFromSubgraph,
-  getGardenCommunityFromSubgraph,
-  getGardenPoolsFromSubgraph,
-  getMemberPowerFromSubgraph,
-  getRegisteredHypercertsFromSubgraph,
-} from "./data/gardens";
-
-// ============================================================================
 // DATA / GREENGOODS
 // ============================================================================
 export {
@@ -192,41 +180,6 @@ export {
   getGardens,
   updateUserProfile,
 } from "./data/greengoods";
-
-// ============================================================================
-// DATA / HYPERCERTS
-// ============================================================================
-export {
-  type AssessmentMetadataPrefill,
-  checkAttestationsBundled,
-  domainToActionDomain,
-  filterAttestationsByAssessment,
-  getApprovedAttestations,
-  getGardenHypercerts,
-  getHypercertById,
-  prefillMetadataFromAssessment,
-} from "./data/hypercerts";
-// ============================================================================
-// DATA / MARKETPLACE (On-chain reads & event queries)
-// ============================================================================
-export {
-  getRegisteredOrders,
-  getActiveOrder,
-  previewPurchase,
-  getMinPrice,
-  getSellerOrders,
-  getTradeHistory,
-  getListingHistory,
-} from "./data/marketplace";
-// ============================================================================
-// DATA / VAULTS
-// ============================================================================
-export {
-  getAllGardenVaults,
-  getGardenVaults,
-  getVaultDeposits,
-  getVaultEvents,
-} from "./data/vaults";
 // ============================================================================
 // DATA / HYPERCERTS
 // ============================================================================
@@ -244,11 +197,9 @@ export {
 // DATA / IPFS (Storacha)
 // ============================================================================
 export {
-  canonicalizeIPFSIdentifier,
   // Upload context types
   type FileUploadContext,
   getFileByHash,
-  getJsonByHash,
   getIpfsInitStatus,
   initializeIpfs,
   initializeIpfsFromEnv,
@@ -256,12 +207,9 @@ export {
   initializeStoracha,
   initializeStorachaFromEnv,
   type JsonUploadContext,
-  parseIPFSReference,
   resolveAvatarUrl,
   resolveImageUrl,
   resolveIPFSUrl,
-  toCanonicalIPFSUri,
-  tryParseJson,
   uploadFileToIPFS,
   uploadJSONToIPFS,
 } from "./data/ipfs";
@@ -326,12 +274,6 @@ export { browserTranslator } from "./translation/browser-translator";
 export { translationCache } from "./translation/db";
 export { runTranslationDiagnostics } from "./translation/diagnostics";
 // ============================================================================
-// LOGGING
-// ============================================================================
-export type { LogContext, Logger } from "./app/logger";
-export { createLogger, logger } from "./app/logger";
-
-// ============================================================================
 // WORK / BOT SUBMISSION
 // ============================================================================
 export { submitApprovalBot, submitWorkBot } from "./work/bot-submission";
@@ -355,25 +297,3 @@ export {
   validateApprovalDraft,
   validateWorkDraft,
 } from "./work/work-submission";
-
-// ============================================================================
-// MARKETPLACE (HypercertExchange SDK integration)
-// ============================================================================
-export {
-  // Client
-  getMarketplaceClient,
-  getMarketplaceAddresses,
-  isMarketplaceSupported,
-  resetMarketplaceClients,
-  // Signing
-  type MakerAskOrder,
-  type ValidationResult,
-  buildMakerAsk,
-  signMakerAsk,
-  validateOrder,
-  // Approvals
-  type MarketplaceApprovals,
-  type EncodedApprovalCall,
-  checkMarketplaceApprovals,
-  buildApprovalTransactions,
-} from "./marketplace";

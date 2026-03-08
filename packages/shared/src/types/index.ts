@@ -41,41 +41,6 @@ export type { AuthMode, BaseAuthContext } from "./auth";
 // ============================================
 export type { ChainId, DeploymentConfig } from "./blockchain";
 // ============================================
-// Conviction Types
-// ============================================
-export type {
-  SetConvictionStrategiesParams,
-  HypercertSignal,
-  HypercertEntry,
-  ConvictionWeight,
-  MemberPower,
-  VoterAllocation,
-  AllocateHypercertSupportParams,
-  RegisterHypercertParams,
-  DeregisterHypercertParams,
-  SetDecayParams,
-  SetPointsPerVoterParams,
-  SetRoleHatIdsParams,
-} from "./conviction";
-// ============================================
-// Gardens Community Types
-// ============================================
-export { WeightScheme, PoolType } from "./gardens-community";
-export {
-  WEIGHT_SCHEME_VALUES,
-  DEFAULT_SPLIT_CONFIG,
-  MIN_YIELD_THRESHOLD_USD,
-} from "./gardens-community";
-export type {
-  WeightSchemeConfig,
-  GardenCommunity,
-  GardenSignalPool,
-  SplitConfig,
-  YieldAllocation,
-  AllocateYieldParams,
-  SetSplitRatioParams,
-} from "./gardens-community";
-// ============================================
 // Contract Types
 // ============================================
 export type { CreateGardenParams, DeploymentParams, NetworkContracts } from "./contracts";

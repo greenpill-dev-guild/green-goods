@@ -111,7 +111,10 @@ describe("Home garden work detail", () => {
           createElement(
             Routes,
             null,
-            createElement(Route, { path: "/home/:id/work/:workId", element: createElement(GardenWork) })
+            createElement(Route, {
+              path: "/home/:id/work/:workId",
+              element: createElement(GardenWork),
+            })
           )
         )
       )

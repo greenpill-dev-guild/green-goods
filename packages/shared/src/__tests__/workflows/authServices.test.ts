@@ -131,10 +131,8 @@ vi.mock("../../config/passkeyServer", () => ({
 let mockStoredUsername: string | null = null;
 let mockStoredCredential: unknown = null;
 let mockAuthMode: "passkey" | "wallet" | null = null;
-let mockPasskeyRestorePreference: "auto" | "manual" | null = null;
 vi.mock("../../modules/auth/session", () => ({
   getAuthMode: vi.fn(() => mockAuthMode),
-  getPasskeyRestorePreference: vi.fn(() => mockPasskeyRestorePreference),
   setAuthMode: vi.fn((mode: "passkey" | "wallet") => {
     mockAuthMode = mode;
   }),
@@ -261,7 +259,6 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
     mockStoredUsername = null;
     mockStoredCredential = null;
     mockAuthMode = null;
-    mockPasskeyRestorePreference = null;
     globalMockLocalStorage.clear();
     globalMockLocalStorage._setStore({});
 
@@ -366,23 +363,10 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(result).toBeNull();
     });
 
-    it("returns null when passkey restore requires explicit login", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = MOCK_USERNAME;
-      mockPasskeyRestorePreference = "manual";
-
-      const result = await invokeService(restoreSessionService, {
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).toBeNull();
-    });
-
     it("restores session when authMode is passkey", async () => {
       mockStoredCredential = MOCK_CREDENTIAL;
       mockStoredUsername = MOCK_USERNAME;
       mockAuthMode = "passkey";
-      mockPasskeyRestorePreference = "auto";
 
       const result = await invokeService(restoreSessionService, {
         chainId: MOCK_CHAIN_ID,

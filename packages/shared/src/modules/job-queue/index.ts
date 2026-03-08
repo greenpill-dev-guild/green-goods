@@ -77,6 +77,12 @@ export interface FlushResult {
   skipped: number;
 }
 
+function ensureArray<T>(value: T[] | T | undefined): T[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "undefined") return [];
+  return [value as T];
+}
+
 async function executeWorkJob(
   jobId: string,
   job: Job<WorkJobPayload>,

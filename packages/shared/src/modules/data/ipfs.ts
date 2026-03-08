@@ -339,15 +339,15 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function configurePinata(config: Pick<IpfsConfig, "pinataJwt" | "pinataGatewayBaseUrl" | "pinataApiBaseUrl">) {
+function configurePinata(
+  config: Pick<IpfsConfig, "pinataJwt" | "pinataGatewayBaseUrl" | "pinataApiBaseUrl">
+) {
   pinataJwt = config.pinataJwt?.trim() || null;
   pinataGatewayUrl =
     normalizeOptionalUrl(config.pinataGatewayBaseUrl) ??
     (pinataJwt ? DEFAULT_PINATA_GATEWAY : null);
-  pinataApiBaseUrl =
-    normalizeOptionalUrl(config.pinataApiBaseUrl) ?? DEFAULT_PINATA_API_BASE_URL;
+  pinataApiBaseUrl = normalizeOptionalUrl(config.pinataApiBaseUrl) ?? DEFAULT_PINATA_API_BASE_URL;
 }
-
 
 function isPotentialIpfsCid(value: string): boolean {
   return /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z0-9]{20,})$/i.test(value);
@@ -435,7 +435,6 @@ function buildGatewayUrl(value: string, gatewayBaseUrl: string): string {
   return `${trimTrailingSlashes(gatewayBaseUrl)}/ipfs/${parsed.canonicalId}`;
 }
 
-
 function getIPFSGatewayCandidates(value: string, customGateway?: string): string[] {
   const parsed = parseIPFSReference(value);
   if (!parsed) {
@@ -504,10 +503,7 @@ async function pinCidWithPinata(
   let message = `${response.status} ${response.statusText}`;
   try {
     const payload = (await response.json()) as { error?: { reason?: string }; message?: string };
-    message =
-      payload.error?.reason?.trim() ||
-      payload.message?.trim() ||
-      message;
+    message = payload.error?.reason?.trim() || payload.message?.trim() || message;
   } catch {
     // Ignore non-JSON error payloads.
   }
@@ -623,44 +619,6 @@ export interface GetFileByHashOptions {
   signal?: AbortSignal;
   timeoutMs?: number;
 }
-
-export async function getFileByHash(
-  hash: string,
-  options: GetFileByHashOptions = {}
-): Promise<{ data: Blob | string }> {
-  const { signal, timeoutMs = 30_000 } = options;
-  const url = resolveIPFSUrl(hash);
-  const abortController = new AbortController();
-  const timeoutId =
-    timeoutMs > 0
-      ? setTimeout(() => {
-          abortController.abort();
-        }, timeoutMs)
-      : null;
-
-  const abortFromUpstream = () => abortController.abort();
-  if (signal) {
-    if (signal.aborted) {
-      abortController.abort();
-    } else {
-      signal.addEventListener("abort", abortFromUpstream, { once: true });
-    }
-  }
-
-  let response: Response;
-  try {
-    response = await fetch(url, { signal: abortController.signal });
-  } catch (error) {
-    if (abortController.signal.aborted) {
-      throw new Error(`IPFS request timed out after ${timeoutMs}ms`);
-    }
-    throw error;
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    signal?.removeEventListener("abort", abortFromUpstream);
-  }
 
 export async function getFileByHash(
   hash: string,
@@ -849,3 +807,9 @@ export async function initializeIpfsFromEnv(
 // Storacha aliases (preferred naming)
 export const initializeStoracha = initializeIpfs;
 export const initializeStorachaFromEnv = initializeIpfsFromEnv;
+
+// Backward compatibility aliases (deprecated - will be removed in future version)
+/** @deprecated Use initializeIpfs or initializeStoracha instead */
+export const initializePinata = initializeIpfs;
+/** @deprecated Use initializeIpfsFromEnv or initializeStorachaFromEnv instead */
+export const initializePinataFromEnv = initializeIpfsFromEnv;

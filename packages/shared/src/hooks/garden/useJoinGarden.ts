@@ -16,7 +16,6 @@ import { type Address, encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { wagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
-import { logger } from "../../modules/app/logger";
 import {
   trackGardenJoinAlreadyMember,
   trackGardenJoinFailed,

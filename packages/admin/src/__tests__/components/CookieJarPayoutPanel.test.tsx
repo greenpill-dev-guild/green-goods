@@ -61,7 +61,8 @@ vi.mock("@radix-ui/react-accordion", () => ({
   Item: ({ children }: { children: React.ReactNode }) => React.createElement("div", null, children),
   Trigger: ({ children, ...props }: any) =>
     React.createElement("button", { type: "button", ...props }, children),
-  Content: ({ children }: { children: React.ReactNode }) => React.createElement("div", null, children),
+  Content: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
 }));
 
 vi.mock("@remixicon/react", () => ({
@@ -85,11 +86,7 @@ describe("CookieJarPayoutPanel", () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <CookieJarPayoutPanel
-        gardenAddress={"0xgarden" as `0x${string}`}
-        canManage
-        isOwner={false}
-      />
+      <CookieJarPayoutPanel gardenAddress={"0xgarden" as `0x${string}`} canManage isOwner={false} />
     );
 
     const maxWithdrawalInput = screen.getByLabelText("Max Withdrawal");

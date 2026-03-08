@@ -19,10 +19,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  ensureHybridCidAvailability,
-  loadPinataConfigFromEnv,
-} from "../../../../scripts/lib/ipfs-hybrid";
+import { ensureHybridCidAvailability, loadPinataConfigFromEnv } from "../../../../scripts/lib/ipfs-hybrid";
 
 /**
  * Silently load .env file without any stdout output.
@@ -359,8 +356,7 @@ async function main(): Promise<void> {
     // Initialize Storacha
     const client = await initStoracha();
     const pinataConfig = loadPinataConfigFromEnv();
-    const storachaGatewayBaseUrl =
-      (process.env.VITE_STORACHA_GATEWAY || "https://storacha.link").trim();
+    const storachaGatewayBaseUrl = (process.env.VITE_STORACHA_GATEWAY || "https://storacha.link").trim();
 
     // Process each action
     for (let i = 0; i < actions.length; i++) {

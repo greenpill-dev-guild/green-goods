@@ -38,353 +38,11 @@ type NumberConvertibleValue =
   | null
   | undefined;
 
-interface LegacyAssessmentConfigPayload {
-  assessmentType?: string;
-  capitals?: unknown;
-  metricsCid?: string;
-  evidenceMediaCids?: unknown;
-  reportDocuments?: unknown;
-  impactAttestations?: unknown;
-  tags?: unknown;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function isKnownDomain(value: number): value is Domain {
-  return value >= Domain.SOLAR && value <= Domain.WASTE;
-}
-
-function isKnownCynefinPhase(value: number): value is CynefinPhase {
-  return value >= CynefinPhase.CLEAR && value <= CynefinPhase.CHAOTIC;
-}
-
-function normalizeTimestamp(value: number | string | null | undefined): number {
-  if (typeof value === "number") return value;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined;
-}
-
-function readStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .filter((item): item is string => typeof item === "string")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function sanitizeMetrics(value: unknown): Record<string, unknown> | null {
-  if (isRecord(value)) return value;
-  if (Array.isArray(value)) return { items: value };
-  if (value === null || value === undefined) return null;
-  return { value };
-}
-
-function parseDecodedFields(
-  decodedDataJson: string | EASDecodedField[] | null | undefined,
-  operation: string
-): EASDecodedField[] {
-  if (Array.isArray(decodedDataJson)) {
-    return decodedDataJson;
-  }
-
-  const parsed = tryParseJson<EASDecodedField[]>(decodedDataJson ?? "[]");
-  if (Array.isArray(parsed)) {
-    return parsed;
-  }
-
-  logger.warn(`[${operation}] Failed to parse decoded attestation fields`, {
-    decodedDataJson,
-  });
-  return [];
-}
-
-function buildMetricsFromSmartOutcomes(
-  smartOutcomes: GardenAssessment["smartOutcomes"]
-): Record<string, unknown> | null {
-  if (smartOutcomes.length === 0) return null;
-
-  return smartOutcomes.reduce<Record<string, unknown>>((accumulator, outcome) => {
-    if (!outcome.metric) return accumulator;
-    accumulator[outcome.metric] = {
-      target: outcome.target,
-      description: outcome.description,
-    };
-    return accumulator;
-  }, {});
-}
-
-function splitAssessmentAttachments(
-  attachments: GardenAssessment["attachments"]
-): Pick<GardenAssessment, "evidenceMedia" | "reportDocuments"> {
-  const evidenceMedia: string[] = [];
-  const reportDocuments: string[] = [];
-
-  for (const attachment of attachments) {
-    const resolved = resolveIPFSUrl(attachment.cid, GATEWAY_BASE_URL);
-    if (attachment.mimeType.startsWith("image/") || attachment.mimeType.startsWith("video/")) {
-      evidenceMedia.push(resolved);
-    } else {
-      reportDocuments.push(resolved);
-    }
-  }
-
-  return { evidenceMedia, reportDocuments };
-}
-
-function parseAssessmentConfigPayload(payload: unknown): {
-  canonical: Partial<GardenAssessment>;
-  compatibility: Pick<
-    GardenAssessment,
-    | "assessmentType"
-    | "capitals"
-    | "metrics"
-    | "evidenceMedia"
-    | "reportDocuments"
-    | "impactAttestations"
-    | "tags"
-  >;
-} {
-  const emptyCompatibility = {
-    assessmentType: undefined,
-    capitals: [],
-    metrics: null,
-    evidenceMedia: [],
-    reportDocuments: [],
-    impactAttestations: [],
-    tags: [],
-  } satisfies Pick<
-    GardenAssessment,
-    | "assessmentType"
-    | "capitals"
-    | "metrics"
-    | "evidenceMedia"
-    | "reportDocuments"
-    | "impactAttestations"
-    | "tags"
-  >;
-
-  if (!isRecord(payload)) {
-    return { canonical: {}, compatibility: emptyCompatibility };
-  }
-
-  const schemaVersion = readString(payload.schemaVersion);
-  if (schemaVersion === "assessment_v2") {
-    const canonicalPayload = payload as unknown as AssessmentConfigPayload;
-    const cynefinPhaseRaw =
-      toNumberFromField(canonicalPayload.cynefinPhase as NumberConvertibleValue) ??
-      CynefinPhase.CLEAR;
-    const domainRaw =
-      toNumberFromField(canonicalPayload.domain as NumberConvertibleValue) ?? Domain.SOLAR;
-    const attachments = Array.isArray(canonicalPayload.attachments)
-      ? canonicalPayload.attachments.filter(
-          (
-            attachment
-          ): attachment is {
-            name: string;
-            cid: string;
-            mimeType: string;
-          } =>
-            isRecord(attachment) &&
-            typeof attachment.name === "string" &&
-            typeof attachment.cid === "string" &&
-            typeof attachment.mimeType === "string"
-        )
-      : [];
-    const attachmentLinks = splitAssessmentAttachments(attachments);
-    const smartOutcomes = Array.isArray(canonicalPayload.smartOutcomes)
-      ? canonicalPayload.smartOutcomes.filter(
-          (
-            outcome
-          ): outcome is {
-            description: string;
-            metric: string;
-            target: number;
-          } =>
-            isRecord(outcome) &&
-            typeof outcome.description === "string" &&
-            typeof outcome.metric === "string" &&
-            typeof outcome.target === "number"
-        )
-      : [];
-
-    return {
-      canonical: {
-        diagnosis: readString(canonicalPayload.diagnosis) ?? "",
-        smartOutcomes,
-        cynefinPhase: isKnownCynefinPhase(cynefinPhaseRaw) ? cynefinPhaseRaw : CynefinPhase.CLEAR,
-        domain: isKnownDomain(domainRaw) ? domainRaw : Domain.SOLAR,
-        selectedActionUIDs: readStringArray(canonicalPayload.selectedActionUIDs),
-        reportingPeriod: {
-          start:
-            toNumberFromField(canonicalPayload.reportingPeriod?.start as NumberConvertibleValue) ??
-            0,
-          end:
-            toNumberFromField(canonicalPayload.reportingPeriod?.end as NumberConvertibleValue) ?? 0,
-        },
-        sdgTargets: Array.isArray(canonicalPayload.sdgTargets)
-          ? canonicalPayload.sdgTargets.filter(
-              (target): target is number => typeof target === "number" && Number.isFinite(target)
-            )
-          : [],
-        attachments: attachments.map((attachment) => ({
-          ...attachment,
-          cid: canonicalizeIPFSIdentifier(attachment.cid),
-        })),
-      },
-      compatibility: {
-        ...emptyCompatibility,
-        metrics: buildMetricsFromSmartOutcomes(smartOutcomes),
-        ...attachmentLinks,
-      },
-    };
-  }
-
-  const legacyPayload = payload as LegacyAssessmentConfigPayload;
-
-  return {
-    canonical: {},
-    compatibility: {
-      assessmentType: readString(legacyPayload.assessmentType),
-      capitals: readStringArray(legacyPayload.capitals),
-      metrics: null,
-      evidenceMedia: readStringArray(legacyPayload.evidenceMediaCids).map((entry) =>
-        resolveIPFSUrl(entry, GATEWAY_BASE_URL)
-      ),
-      reportDocuments: readStringArray(legacyPayload.reportDocuments).map((entry) =>
-        resolveIPFSUrl(entry, GATEWAY_BASE_URL)
-      ),
-      impactAttestations: readStringArray(legacyPayload.impactAttestations).map((uid) =>
-        uid.toLowerCase()
-      ),
-      tags: readStringArray(legacyPayload.tags),
-    },
-  };
-}
-
-async function readAssessmentMetrics(payload: unknown): Promise<Record<string, unknown> | null> {
-  if (
-    !isRecord(payload) ||
-    typeof payload.metricsCid !== "string" ||
-    payload.metricsCid.length === 0
-  ) {
-    return null;
-  }
-
-  try {
-    const metrics = await getJsonByHash(payload.metricsCid);
-    return sanitizeMetrics(metrics);
-  } catch (error) {
-    logger.warn("[getGardenAssessments] Failed to hydrate assessment metrics", {
-      error,
-      metricsCid: payload.metricsCid,
-    });
-    return null;
-  }
-}
-
-async function hydrateGardenAssessment(
-  rawAssessment: EASGardenAssessment
-): Promise<GardenAssessment> {
-  let canonical: Partial<GardenAssessment> = {};
-  let compatibility: Pick<
-    GardenAssessment,
-    | "assessmentType"
-    | "capitals"
-    | "metrics"
-    | "evidenceMedia"
-    | "reportDocuments"
-    | "impactAttestations"
-    | "tags"
-  > = {
-    assessmentType: undefined,
-    capitals: [],
-    metrics: null,
-    evidenceMedia: [],
-    reportDocuments: [],
-    impactAttestations: [],
-    tags: [],
-  };
-
-  if (rawAssessment.assessmentConfigCID) {
-    try {
-      const assessmentConfig = await getJsonByHash(rawAssessment.assessmentConfigCID);
-      const parsedConfig = parseAssessmentConfigPayload(assessmentConfig);
-      canonical = parsedConfig.canonical;
-      compatibility = parsedConfig.compatibility;
-
-      if (!compatibility.metrics) {
-        compatibility = {
-          ...compatibility,
-          metrics: await readAssessmentMetrics(assessmentConfig),
-        };
-      }
-    } catch (error) {
-      logger.warn("[getGardenAssessments] Failed to hydrate assessment config", {
-        error,
-        assessmentId: rawAssessment.id,
-        assessmentConfigCID: rawAssessment.assessmentConfigCID,
-      });
-    }
-  }
-
-  const reportingPeriod = canonical.reportingPeriod ?? {
-    start: rawAssessment.startDate ?? 0,
-    end: rawAssessment.endDate ?? 0,
-  };
-  const resolvedDomain =
-    canonical.domain !== undefined
-      ? canonical.domain
-      : isKnownDomain(rawAssessment.domain)
-        ? rawAssessment.domain
-        : Domain.SOLAR;
-
-  return {
-    id: rawAssessment.id,
-    schemaVersion: "assessment_v2",
-    authorAddress: rawAssessment.authorAddress,
-    gardenAddress: rawAssessment.gardenAddress,
-    title: rawAssessment.title,
-    description: rawAssessment.description,
-    diagnosis: canonical.diagnosis ?? rawAssessment.description,
-    smartOutcomes: canonical.smartOutcomes ?? [],
-    cynefinPhase: canonical.cynefinPhase ?? CynefinPhase.CLEAR,
-    domain: resolvedDomain,
-    selectedActionUIDs: canonical.selectedActionUIDs ?? [],
-    reportingPeriod,
-    sdgTargets: canonical.sdgTargets ?? [],
-    attachments: canonical.attachments ?? [],
-    assessmentConfigCID: rawAssessment.assessmentConfigCID
-      ? canonicalizeIPFSIdentifier(rawAssessment.assessmentConfigCID)
-      : undefined,
-    startDate: rawAssessment.startDate,
-    endDate: rawAssessment.endDate,
-    assessmentType: compatibility.assessmentType,
-    capitals: compatibility.capitals ?? [],
-    metrics: compatibility.metrics,
-    evidenceMedia: compatibility.evidenceMedia ?? [],
-    reportDocuments: compatibility.reportDocuments ?? [],
-    impactAttestations: compatibility.impactAttestations ?? [],
-    tags: compatibility.tags ?? [],
-    location: rawAssessment.location,
-    createdAt: rawAssessment.createdAt,
-  };
-}
-
 /**
  * Converts various EAS field value formats to a number.
  * Handles: raw numbers, bigints, hex strings, and nested value objects.
  */
-function toNumberFromField(value: NumberConvertibleValue): number | null {
+const toNumberFromField = (value: NumberConvertibleValue): number | null => {
   if (value === undefined || value === null) return null;
   if (typeof value === "number") return value;
   if (typeof value === "bigint") return Number(value);
@@ -414,7 +72,7 @@ function toNumberFromField(value: NumberConvertibleValue): number | null {
     }
   }
   return null;
-}
+};
 
 const parseDataToGardenAssessment = (
   gardenAssessmentUID: string,
@@ -425,7 +83,9 @@ const parseDataToGardenAssessment = (
   },
   decodedDataJson: string | EASDecodedField[]
 ): EASGardenAssessment => {
-  const fields = parseDecodedFields(decodedDataJson, "parseDataToGardenAssessment");
+  const fields: EASDecodedField[] = Array.isArray(decodedDataJson)
+    ? decodedDataJson
+    : JSON.parse(decodedDataJson ?? "[]");
   const findField = (name: string) => fields.find((field) => field.name === name);
   const readValue = (name: string): unknown => findField(name)?.value?.value;
   const readString = (name: string): string => (readValue(name) as string) ?? "";
@@ -466,11 +126,11 @@ const parseDataToWork = (
   },
   decodedDataJson: string
 ): EASWork => {
-  const data = parseDecodedFields(decodedDataJson, "parseDataToWork");
+  const data: EASDecodedField[] = JSON.parse(decodedDataJson);
 
   // Safely extract media with error handling
   const mediaData = data.find((d) => d.name === "media");
-  const mediaCIDs = readStringArray(mediaData?.value?.value);
+  const mediaCIDs: string[] = (mediaData?.value?.value as string[]) || [];
 
   // Resolve IPFS CIDs to gateway URLs
   const media = mediaCIDs.map((cid: string) => resolveIPFSUrl(cid));
@@ -493,9 +153,9 @@ const parseDataToWork = (
     actionUID,
     title: (titleData?.value?.value as string) || "Untitled Work",
     feedback: (feedbackData?.value?.value as string) || "",
-    metadata: canonicalizeIPFSIdentifier(readString(metadataData?.value?.value) ?? ""),
+    metadata: (metadataData?.value?.value as string) || "",
     media, // Now returns proper gateway URLs
-    createdAt: normalizeTimestamp(attestation.time),
+    createdAt: attestation.time,
   };
 };
 
@@ -508,7 +168,7 @@ export const parseDataToWorkApproval = (
   },
   decodedDataJson: string
 ): EASWorkApproval => {
-  const data = parseDecodedFields(decodedDataJson, "parseDataToWorkApproval");
+  const data: EASDecodedField[] = JSON.parse(decodedDataJson);
 
   // Helper to find field by name
   const findField = (name: string) => data.find((d) => d.name === name);
@@ -594,7 +254,7 @@ export function parseWorkApprovalAttestation(
 export const getGardenAssessments = async (
   gardenAddress?: string,
   chainId?: number | string
-): Promise<GardenAssessment[]> => {
+): Promise<EASGardenAssessment[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
       attestations(where: $where) {
@@ -642,20 +302,18 @@ export const getGardenAssessments = async (
     return [];
   }
 
-  const rawAssessments = data.attestations.map(
-    ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToGardenAssessment(
-        id,
-        {
-          attester,
-          recipient,
-          time: normalizeTimestamp(timeCreated),
-        },
-        decodedDataJson
-      )
-  );
-
-  return Promise.all(rawAssessments.map((assessment) => hydrateGardenAssessment(assessment)));
+  return data.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) => {
+    const timestamp = typeof timeCreated === "string" ? Number(timeCreated) : (timeCreated ?? 0);
+    return parseDataToGardenAssessment(
+      id,
+      {
+        attester,
+        recipient,
+        time: timestamp,
+      },
+      decodedDataJson
+    );
+  });
 };
 
 /** Queries work attestations for a garden or multiple gardens */

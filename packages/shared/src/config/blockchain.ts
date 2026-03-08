@@ -209,11 +209,15 @@ export function getNetworkConfig(chainId?: number | string, alchemyKey = "demo")
       hatsModule: deployment.hatsModule || "0x0000000000000000000000000000000000000000",
       karmaGAPModule: deployment.karmaGAPModule || "0x0000000000000000000000000000000000000000",
       // Add contracts from networks.json
-      eas: networkConfig.contracts?.eas || ZERO_ADDRESS,
-      easSchemaRegistry: networkConfig.contracts?.easSchemaRegistry || ZERO_ADDRESS,
-      communityToken: networkConfig.contracts?.communityToken || ZERO_ADDRESS,
-      erc4337EntryPoint: networkConfig.contracts?.erc4337EntryPoint || ZERO_ADDRESS,
-      multicallForwarder: networkConfig.contracts?.multicallForwarder || ZERO_ADDRESS,
+      eas: networkConfig.contracts?.eas || "0x0000000000000000000000000000000000000000",
+      easSchemaRegistry:
+        networkConfig.contracts?.easSchemaRegistry || "0x0000000000000000000000000000000000000000",
+      communityToken:
+        networkConfig.contracts?.communityToken || "0x0000000000000000000000000000000000000000",
+      erc4337EntryPoint:
+        networkConfig.contracts?.erc4337EntryPoint || "0x0000000000000000000000000000000000000000",
+      multicallForwarder:
+        networkConfig.contracts?.multicallForwarder || "0x0000000000000000000000000000000000000000",
     },
     rootGarden: deployment.rootGarden
       ? {

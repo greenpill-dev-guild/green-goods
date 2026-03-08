@@ -215,41 +215,9 @@ export function validateApprovalDraft(draft: WorkApprovalDraft): string[] {
     errors.push("Approval decision is required");
   }
 
-  if (
-    typeof draft.confidence !== "number" ||
-    !Number.isInteger(draft.confidence) ||
-    draft.confidence < Confidence.NONE ||
-    draft.confidence > MAX_APPROVAL_CONFIDENCE
-  ) {
-    errors.push("Confidence must be between NONE and HIGH");
-  }
-
-  if (
-    typeof draft.verificationMethod !== "number" ||
-    !Number.isInteger(draft.verificationMethod) ||
-    draft.verificationMethod < 0 ||
-    draft.verificationMethod > MAX_APPROVAL_VERIFICATION_METHOD
-  ) {
-    errors.push("Verification method must be between 0 and 15");
-  }
-
-  // Feedback is optional. Treat an empty string as "not provided", but reject whitespace-only input.
-  if (
-    draft.feedback !== undefined &&
-    draft.feedback.length > 0 &&
-    draft.feedback.trim().length === 0
-  ) {
-    errors.push("Feedback cannot only contain whitespace");
-  }
-
-  // Confidence validation (decision #31: approvals require >= LOW, rejections use NONE)
-  if (draft.approved && typeof draft.confidence === "number" && draft.confidence < 1) {
-    errors.push("Confidence must be at least LOW for approvals");
-  }
-
-  // Verification method must be set for approvals
-  if (draft.approved && (!draft.verificationMethod || draft.verificationMethod === 0)) {
-    errors.push("At least one verification method is required for approvals");
+  // Feedback is optional but if provided, should not be empty
+  if (draft.feedback !== undefined && draft.feedback.trim().length === 0) {
+    errors.push("Feedback cannot be empty if provided");
   }
 
   // Confidence validation (decision #31: approvals require >= LOW, rejections use NONE)

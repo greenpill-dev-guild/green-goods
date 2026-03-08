@@ -127,21 +127,6 @@ export async function submitApprovalWithPasskey({
   const smartClient = client as SmartAccountClient;
 
   const easConfig = getEASConfig(chainId);
-
-  try {
-    debugLog("[PasskeySubmission] Simulating approval before submission...");
-    await simulateApprovalSubmission({
-      draft,
-      gardenAddress: gardenAddress as `0x${string}`,
-      chainId,
-      accountAddress: smartClient.account!.address as `0x${string}`,
-    });
-    debugLog("[PasskeySubmission] Approval simulation successful");
-  } catch (error) {
-    debugError("[PasskeySubmission] Approval simulation failed", error);
-    throw error;
-  }
-
   const attestationData = encodeWorkApprovalData(draft, chainId);
 
   const txParams = buildApprovalAttestTx(

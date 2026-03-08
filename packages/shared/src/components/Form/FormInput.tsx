@@ -6,7 +6,6 @@ export interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   helperText?: string;
   error?: string;
-  controlSize?: "sm" | "md" | "lg";
 }
 
 /**

@@ -16,8 +16,6 @@ export interface ServiceWorkerUpdateState {
   updateAvailable: boolean;
   /** Whether the update is currently being applied */
   isUpdating: boolean;
-  /** Check for an update and return true when a waiting worker is ready */
-  checkForUpdate: () => Promise<boolean>;
   /** Apply the update (reloads the page) */
   applyUpdate: () => void;
   /** Dismiss the update notification (user can update later) */
@@ -25,8 +23,6 @@ export interface ServiceWorkerUpdateState {
   /** The waiting service worker registration, if any */
   waitingWorker: ServiceWorker | null;
 }
-
-const WAITING_WORKER_TIMEOUT_MS = 10_000;
 
 /**
  * Hook to manage service worker updates with user control.
@@ -185,108 +181,11 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   const applyUpdate = useCallback(() => {
     if (!waitingWorker) return;
 
-  const waitForWaitingWorker = useCallback(
-    async (registration: ServiceWorkerRegistration): Promise<ServiceWorker | null> => {
-      if (registration.waiting) {
-        return registration.waiting;
-      }
-
-      return new Promise((resolve) => {
-        let installing = registration.installing;
-        // eslint-disable-next-line prefer-const -- reassigned by setTimeout below
-        let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-        const cleanup = (worker: ServiceWorker | null) => {
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
-          registration.removeEventListener("updatefound", handleUpdateFoundOnce);
-          if (installing) {
-            installing.removeEventListener("statechange", handleStateChangeOnce);
-          }
-          resolve(worker);
-        };
-
-        const handleStateChangeOnce = () => {
-          if (installing?.state === "installed" && navigator.serviceWorker.controller) {
-            cleanup(registration.waiting ?? installing ?? null);
-          }
-        };
-
-        const handleUpdateFoundOnce = () => {
-          if (installing) {
-            installing.removeEventListener("statechange", handleStateChangeOnce);
-          }
-          installing = registration.installing;
-          if (installing) {
-            installing.addEventListener("statechange", handleStateChangeOnce);
-          }
-        };
-
-        if (installing) {
-          installing.addEventListener("statechange", handleStateChangeOnce);
-          if (installing.state === "installed" && navigator.serviceWorker.controller) {
-            cleanup(registration.waiting ?? installing ?? null);
-            return;
-          }
-        }
-
-        registration.addEventListener("updatefound", handleUpdateFoundOnce);
-        timeoutId = setTimeout(
-          () => cleanup(registration.waiting ?? null),
-          WAITING_WORKER_TIMEOUT_MS
-        );
-      });
-    },
-    []
-  );
-
-  const checkForUpdate = useCallback(async (): Promise<boolean> => {
-    if (!isEnabled) return false;
-
-    try {
-      const registration =
-        registrationRef.current ?? (await navigator.serviceWorker.getRegistration());
-
-      if (!registration) return false;
-
-      registrationRef.current = registration;
-
-      if (registration.waiting) {
-        markUpdateAvailable(registration.waiting, "manual_check");
-        return true;
-      }
-
-      await registration.update();
-
-      const waiting = await waitForWaitingWorker(registration);
-      if (!waiting) {
-        return false;
-      }
-
-      markUpdateAvailable(waiting, "manual_check");
-      return true;
-    } catch (error) {
-      logger.error("Service worker update check failed", {
-        source: "useServiceWorkerUpdate.checkForUpdate",
-        error,
-      });
-      throw error;
-    }
-  }, [isEnabled, markUpdateAvailable, waitForWaitingWorker]);
-
-  // Apply update handler
-  const applyUpdate = useCallback(() => {
-    const worker =
-      waitingWorkerRef.current ?? waitingWorker ?? registrationRef.current?.waiting ?? null;
-    if (!worker) return;
-
-    waitingWorkerRef.current = worker;
     setIsUpdating(true);
     track("sw_update_applied", {});
 
     // Tell the waiting SW to skip waiting and become active
-    worker.postMessage({ type: "SKIP_WAITING" });
+    waitingWorker.postMessage({ type: "SKIP_WAITING" });
 
     // Use { once: true } to automatically remove the listener after it fires
     // Track that we added it for cleanup on unmount
@@ -315,7 +214,6 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   return {
     updateAvailable: updateAvailable && !dismissed,
     isUpdating,
-    checkForUpdate,
     applyUpdate,
     dismissUpdate,
     waitingWorker,

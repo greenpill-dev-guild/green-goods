@@ -12,8 +12,6 @@ import { mediaResourceManager } from "./media-resource-manager";
 
 const log = createLogger({ source: "job-queue/db" });
 
-const log = createLogger({ source: "job-queue/db" });
-
 const DB_NAME = "green-goods-job-queue";
 const DB_VERSION = 5; // Incremented for userAddress field
 

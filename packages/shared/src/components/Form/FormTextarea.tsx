@@ -6,7 +6,6 @@ export interface FormTextareaProps extends TextareaHTMLAttributes<HTMLTextAreaEl
   label: string;
   helperText?: string;
   error?: string;
-  controlSize?: "sm" | "md" | "lg";
 }
 
 /**

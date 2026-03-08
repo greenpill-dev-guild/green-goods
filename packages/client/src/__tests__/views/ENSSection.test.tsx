@@ -64,7 +64,9 @@ import { ENSSection } from "../../views/Profile/ENSSection";
 const PRIMARY_ADDRESS = "0x1234567890123456789012345678901234567890" as const;
 const SECONDARY_ADDRESS = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as const;
 
-function renderENSSection(primaryAddress: typeof PRIMARY_ADDRESS | typeof SECONDARY_ADDRESS = PRIMARY_ADDRESS) {
+function renderENSSection(
+  primaryAddress: typeof PRIMARY_ADDRESS | typeof SECONDARY_ADDRESS = PRIMARY_ADDRESS
+) {
   return render(
     createElement(
       IntlProvider,

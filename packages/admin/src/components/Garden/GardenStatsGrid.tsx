@@ -103,7 +103,7 @@ export const GardenStatsGrid: React.FC<GardenStatsGridProps> = ({
               ? `${communityName}${translatedCommunityLabel ? ` • ${translatedCommunityLabel}` : ""}`
               : translatedCommunityLabel
                 ? translatedCommunityLabel
-              : formatMessage({ id: "app.community.noCommunity" })
+                : formatMessage({ id: "app.community.noCommunity" })
         }
         value={
           communityLoading ? (

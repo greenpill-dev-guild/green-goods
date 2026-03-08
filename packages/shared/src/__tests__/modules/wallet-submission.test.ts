@@ -97,7 +97,6 @@ import * as wagmiCore from "@wagmi/core";
 import type { WalletClient } from "viem";
 
 import { submitApprovalDirectly, submitWorkDirectly } from "../../modules/work/wallet-submission";
-import * as simulation from "../../modules/work/simulate";
 import * as encoders from "../../utils/eas/encoders";
 import { mock } from "../test-utils";
 
@@ -292,7 +291,6 @@ describe("wallet-submission", () => {
     it("should successfully submit approval when wallet is connected", async () => {
       // Setup mocks
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
-      mock(simulation.simulateApprovalSubmission).mockResolvedValue(undefined);
       mock(encoders.encodeWorkApprovalData).mockReturnValue(
         "0xEncodedApprovalData" as `0x${string}`
       );
@@ -312,12 +310,6 @@ describe("wallet-submission", () => {
       // Verify
       expect(result).toBe("0xApprovalTxHash");
       expect(wagmiCore.getWalletClient).toHaveBeenCalledWith({}, { chainId: mockChainId });
-      expect(simulation.simulateApprovalSubmission).toHaveBeenCalledWith({
-        draft: mockApprovalDraft,
-        gardenAddress: "0xGardenAddress",
-        chainId: mockChainId,
-        accountAddress: "0xUserAddress",
-      });
       expect(encoders.encodeWorkApprovalData).toHaveBeenCalledWith(mockApprovalDraft, mockChainId);
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -349,7 +341,6 @@ describe("wallet-submission", () => {
     it("should handle user rejection error for approval", async () => {
       // Setup mocks
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
-      mock(simulation.simulateApprovalSubmission).mockResolvedValue(undefined);
       mock(encoders.encodeWorkApprovalData).mockReturnValue(
         "0xEncodedApprovalData" as `0x${string}`
       );
@@ -366,17 +357,6 @@ describe("wallet-submission", () => {
           mockChainId
         )
       ).rejects.toThrow("Transaction cancelled by user");
-    });
-
-    it("stops before wallet confirmation when approval simulation fails", async () => {
-      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
-      mock(simulation.simulateApprovalSubmission).mockRejectedValue(new Error("ActionExpired"));
-
-      await expect(
-        submitApprovalDirectly(mockApprovalDraft, "0xGardenAddress", "0xGardenerAddress", mockChainId)
-      ).rejects.toThrow("ActionExpired");
-
-      expect(mockWalletClient.sendTransaction).not.toHaveBeenCalled();
     });
   });
 });

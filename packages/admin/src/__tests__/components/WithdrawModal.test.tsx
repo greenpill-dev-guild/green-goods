@@ -65,13 +65,16 @@ vi.mock("wagmi", () => ({
 vi.mock("@radix-ui/react-dialog", () => ({
   Root: ({ open, children }: { open: boolean; children: React.ReactNode }) =>
     open ? React.createElement("div", null, children) : null,
-  Portal: ({ children }: { children: React.ReactNode }) => React.createElement("div", null, children),
+  Portal: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
   Overlay: () => React.createElement("div"),
-  Content: ({ children }: { children: React.ReactNode }) => React.createElement("div", null, children),
+  Content: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
   Title: ({ children }: { children: React.ReactNode }) => React.createElement("h2", null, children),
   Description: ({ children }: { children: React.ReactNode }) =>
     React.createElement("p", null, children),
-  Close: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, null, children),
+  Close: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
 }));
 
 vi.mock("@remixicon/react", () => ({

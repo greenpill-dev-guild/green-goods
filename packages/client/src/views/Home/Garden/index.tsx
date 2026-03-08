@@ -8,8 +8,6 @@ import {
   useBrowserNavigation,
   useConvictionStrategies,
   useGardeners,
-  useGardenAssessments,
-  useGardenVaults,
   useGardens,
   useGardenTabs,
   useGardenVaults,
@@ -84,16 +82,7 @@ export const Garden: React.FC = () => {
     isFetching: gardensLoading,
   } = useGardens(chainId);
   const garden = allGardens.find((g) => g.id === gardenIdParam);
-  const isGardenPending =
-    !garden &&
-    (gardensInitialLoading ||
-      (gardensLoading && allGardens.length === 0 && Boolean(gardenIdParam)));
-  const {
-    data: assessments = [],
-    isLoading: assessmentsLoading,
-    isFetching: assessmentsFetching,
-    isError: assessmentsError,
-  } = useGardenAssessments(garden?.id ?? gardenIdParam, chainId);
+  const gardenStatus: "error" | "success" | "pending" = garden ? "success" : "pending";
   const { data: allGardeners = [] } = useGardeners();
   const { data: actions = [] } = useActions(chainId);
   const {
@@ -290,12 +279,7 @@ export const Garden: React.FC = () => {
           />
         );
       }
-      case GardenTab.Insights: {
-        const assessmentFetchStatus: "pending" | "success" | "error" = assessmentsError
-          ? "error"
-          : assessmentsLoading || (assessmentsFetching && assessments.length === 0)
-            ? "pending"
-            : "success";
+      case GardenTab.Insights:
         return (
           <GardenAssessments
             assessmentFetchStatus={gardensLoading ? "pending" : gardenStatus}
@@ -303,7 +287,6 @@ export const Garden: React.FC = () => {
             description={description}
           />
         );
-      }
       case GardenTab.Gardeners:
         return <GardenGardeners members={members} garden={garden} />;
     }
@@ -313,7 +296,7 @@ export const Garden: React.FC = () => {
 
   return (
     <GardenErrorBoundary>
-      <div className="relative flex min-h-full w-full flex-col">
+      <div className="h-full min-h-0 w-full flex flex-col relative overflow-hidden">
         {pathname.includes("work") || pathname.includes("assessments") ? null : (
           <>
             {/* Fixed Header (banner + TopNav + title/metadata) */}
@@ -328,6 +311,7 @@ export const Garden: React.FC = () => {
                 />
                 <div className="absolute top-0 left-0 right-0 z-20">
                   <TopNav
+                    className="flex w-full justify-between items-center p-4 pt-6"
                     onBackClick={() => navigate("/home")}
                     works={mergedWorks}
                     garden={garden}

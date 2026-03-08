@@ -43,12 +43,9 @@ import { queryClient } from "../config/react-query";
 import { logger } from "../modules/app/logger";
 import {
   type AuthMode,
-  clearPasskeyRestorePreference,
   clearAuthMode,
   clearStoredCredential,
   clearStoredUsername,
-  disablePasskeyAutoRestore,
-  enablePasskeyAutoRestore,
   getAuthMode,
   getStoredUsername,
   hasStoredCredential,
@@ -306,7 +303,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Send event to machine
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: trimmedName });
       saveAuthModeToStorage("passkey");
-      enablePasskeyAutoRestore();
     },
     [actor, isConnected, disconnectWallet]
   );
@@ -326,7 +322,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Send event to machine
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: finalUserName });
       saveAuthModeToStorage("passkey");
-      enablePasskeyAutoRestore();
     },
     [actor, isConnected, disconnectWallet]
   );
@@ -358,7 +353,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const finalUserName = userName || getStoredUsername() || "user";
       actor.send({ type: "SWITCH_TO_PASSKEY", userName: finalUserName });
       saveAuthModeToStorage("passkey");
-      enablePasskeyAutoRestore();
     },
     [actor]
   );
@@ -366,17 +360,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signOut = useCallback(async () => {
     if (!actor) return;
 
-    // Soft logout: end the active session but keep the saved passkey so the
-    // user can explicitly sign back in with the same account on this device.
+    // Clear from machine
     actor.send({ type: "SIGN_OUT" });
 
     // Disconnect wallet
     await disconnectWallet();
 
-    // Keep the passkey credential and username, but prevent silent auto-restore
-    // until the user explicitly chooses passkey login again.
+    // Clear auth mode and username, but KEEP credential for future passkey login
+    // The credential contains the public key needed to reconstruct the smart account
+    // Clearing it would force the user to create a new account (different address)
     clearAuthMode();
-    disablePasskeyAutoRestore();
+    clearStoredUsername();
 
     // Reset wallet restore guard to allow future auto-restore
     walletRestoreAttemptedRef.current = false;
@@ -396,11 +390,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [actor]);
 
   const clearPasskey = useCallback(() => {
-    // Full logout: remove the saved passkey and any restore preferences.
+    // Clear stored credential and username from localStorage
     clearStoredCredential();
     clearStoredUsername();
-    clearPasskeyRestorePreference();
-    clearAuthMode();
     if (actor) {
       actor.send({ type: "SIGN_OUT" });
     }

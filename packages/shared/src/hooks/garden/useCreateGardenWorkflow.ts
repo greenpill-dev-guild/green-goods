@@ -173,8 +173,6 @@ export function useCreateGardenWorkflow() {
             if (!params) {
               throw new Error("Garden form is incomplete");
             }
-            const plannedGardeners = gardenStoreState.form.gardeners;
-            const plannedOperators = gardenStoreState.form.operators;
 
             const {
               walletClient: currentWalletClient,
@@ -194,15 +192,6 @@ export function useCreateGardenWorkflow() {
               gardenName: params.name,
               chainId: currentChainId,
             });
-
-            if (plannedGardeners.length > 0 || plannedOperators.length > 0) {
-              logger.info("Garden created with planned members requiring post-deploy assignment", {
-                source: "useCreateGardenWorkflow.submitGarden",
-                plannedGardenerCount: plannedGardeners.length,
-                plannedOperatorCount: plannedOperators.length,
-                chainId: currentChainId,
-              });
-            }
 
             try {
               const contracts = getNetworkContracts(currentChainId);

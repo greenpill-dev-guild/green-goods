@@ -21,19 +21,9 @@ vi.mock("../../modules/work/wallet-submission", () => ({
   submitApprovalDirectly: vi.fn(),
 }));
 
-vi.mock("../../modules/work/simulate", () => ({
-  simulateApprovalSubmission: vi.fn(),
+vi.mock("../../modules/work/work-submission", () => ({
+  submitApprovalToQueue: vi.fn(),
 }));
-
-vi.mock("../../modules/work/work-submission", async () => {
-  const actual = await vi.importActual<typeof import("../../modules/work/work-submission")>(
-    "../../modules/work/work-submission"
-  );
-  return {
-    ...actual,
-    submitApprovalToQueue: vi.fn(),
-  };
-});
 
 vi.mock("../../modules/job-queue", () => ({
   jobQueue: {
@@ -90,8 +80,6 @@ describe("hooks/work/useWorkApproval", () => {
       },
     });
     vi.clearAllMocks();
-    (simulateApprovalSubmission as any).mockReset();
-    (simulateApprovalSubmission as any).mockResolvedValue(undefined);
 
     // Default: online
     Object.defineProperty(navigator, "onLine", {
@@ -170,12 +158,6 @@ describe("hooks/work/useWorkApproval", () => {
         result_data = await result.current.mutateAsync({ draft, work });
       });
 
-      expect(simulateApprovalSubmission).toHaveBeenCalledWith({
-        draft,
-        gardenAddress: work.gardenAddress,
-        chainId: 11155111,
-        accountAddress: MOCK_ADDRESSES.smartAccount,
-      });
       expect(submitApprovalToQueue).toHaveBeenCalledWith(
         draft,
         work,
@@ -214,32 +196,7 @@ describe("hooks/work/useWorkApproval", () => {
         result_data = await result.current.mutateAsync({ draft, work });
       });
 
-      expect(simulateApprovalSubmission).not.toHaveBeenCalled();
       expect(result_data?.hash).toBe("0xoffline_xyz");
-      expect(jobQueue.processJob).not.toHaveBeenCalled();
-    });
-
-    it("fails before queueing when online approval simulation fails", async () => {
-      mockUseUser.mockReturnValue({
-        authMode: "passkey",
-        smartAccountClient: createMockSmartAccountClient(),
-        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
-      });
-
-      (simulateApprovalSubmission as any).mockRejectedValue(new Error("ActionExpired"));
-
-      const { result } = renderHook(() => useWorkApproval(), {
-        wrapper: createWrapper(),
-      });
-
-      const work = createMockWork();
-      const draft = createMockWorkApprovalDraft({ approved: true });
-
-      await act(async () => {
-        await expect(result.current.mutateAsync({ draft, work })).rejects.toThrow("ActionExpired");
-      });
-
-      expect(submitApprovalToQueue).not.toHaveBeenCalled();
       expect(jobQueue.processJob).not.toHaveBeenCalled();
     });
   });

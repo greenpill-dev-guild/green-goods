@@ -40,8 +40,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   },
   "0xf3aeae14": {
     name: "NotGardenOperator",
-    message: "Only garden owners or operators can perform this action",
-    action: "Ask a garden owner to grant you operator access before reviewing work",
+    message: "Only garden operators can perform this action",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -226,7 +225,6 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   "0x6beb8978": {
     name: "NotInWorkRegistry",
     message: "This work submission does not exist",
-    action: "Refresh the work detail page and make sure the submission still exists before retrying",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -463,35 +461,6 @@ export function parseContractError(error: unknown): ParsedContractError {
   }
 
   // Check for manual validation errors (from simulation)
-  if (
-    errorStr.includes("Validation failed") &&
-    errorStr.toLowerCase().includes("verification method")
-  ) {
-    const knownError = ERROR_SIGNATURES["0xe7b7cd42"];
-    return {
-      raw: signature ?? errorStr,
-      name: knownError.name,
-      message: knownError.message,
-      action: knownError.action,
-      isKnown: true,
-      recoverable: knownError.recoverable,
-      suggestedAction: knownError.suggestedAction,
-    };
-  }
-
-  if (errorStr.includes("Validation failed") && errorStr.toLowerCase().includes("confidence")) {
-    const knownError = ERROR_SIGNATURES["0x126db58e"];
-    return {
-      raw: signature ?? errorStr,
-      name: knownError.name,
-      message: knownError.message,
-      action: knownError.action,
-      isKnown: true,
-      recoverable: knownError.recoverable,
-      suggestedAction: knownError.suggestedAction,
-    };
-  }
-
   if (errorStr.includes("Validation failed")) {
     // Clean up the message (remove "Error: " prefix if present)
     const cleanMessage = errorStr.replace(/^Error:\s*/, "");

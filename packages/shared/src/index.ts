@@ -33,8 +33,6 @@ export type {
   ToastViewportProps,
   WorkCardData,
   WorkStatus,
-  BadgeProps,
-  BadgeVariantProps,
 } from "./components/index";
 export {
   AssetSelector,
@@ -149,20 +147,6 @@ export type {
   ServiceWorkerUpdateState,
   SlugFormValues,
   ToastActionOptions,
-  UseAttestationsResult,
-  UseDraftsReturn,
-  UseHypercertDraftResult,
-  UseHypercertsResult,
-  UseMintHypercertResult,
-  // Marketplace hook types
-  UseHypercertListingsResult,
-  UseMarketplaceApprovalsResult,
-  UseTradeHistoryResult,
-  UseCreateListingResult,
-  ListingStep,
-  UseCancelListingResult,
-  UseBatchListForYieldResult,
-  BatchProgress,
   UseAnalyticsIdentityOptions,
   UseAssessmentDraftResult,
   UseAssessmentFormReturn,
@@ -187,16 +171,11 @@ export type {
   UseMarketplaceApprovalsResult,
   UseMintHypercertResult,
   UsePageViewOptions,
-  UseCopyToClipboardOptions,
-  UseCopyToClipboardReturn,
-  UseDepositFormResult,
   UserRole,
   PlatformStats,
   UseTradeHistoryResult,
   WorkFormData,
   WorksQueryKey,
-  ENSClaimResult,
-  SlugFormValues,
 } from "./hooks/index";
 export {
   assessmentFormSchema,
@@ -316,7 +295,6 @@ export {
   useHypercertListings,
   useHypercerts,
   useInstallGuidance,
-  isGardenMember,
   useJoinGarden,
   useLoadingWithMinDuration,
   useMarketplaceApprovals,
@@ -468,20 +446,6 @@ export {
   uploadJSONToIPFS,
   useJobQueueEvents,
 } from "./modules/index";
-// ============================================================================
-// HYPERCERTS LIB
-// ============================================================================
-export {
-  TOTAL_UNITS,
-  TransferRestrictions,
-  buildContributorStats,
-  buildContributorWeights,
-  calculateDistribution,
-  formatHypercertMetadata,
-  hypercertMetadataSchema,
-  sumUnits,
-} from "./lib/hypercerts";
-export type { ContributorWeight, DistributionMode } from "./lib/hypercerts";
 // ============================================================================
 // PROVIDERS (re-export via subpath import recommended: @green-goods/shared/providers)
 // ============================================================================
@@ -721,7 +685,6 @@ export type {
   Resolved,
   ResolveEnsAddressOptions,
   ResolveEnsOptions,
-  SlugValidationResult,
   SimulationResult,
   SlugValidationResult,
   Theme,
@@ -776,7 +739,6 @@ export {
   GARDEN_ROLE_ORDER,
   GardenAccountABI,
   GardenTokenABI,
-  HatsABI,
   gardenHasMember,
   getBlockchainErrorI18nKey,
   getEASExplorerUrl,
@@ -810,7 +772,6 @@ export {
   normalizeToFile,
   OCTANT_MODULE_ABI,
   openEASExplorer,
-  extractErrorMessage,
   parseAndFormatError,
   parseContractError,
   recursiveCloneChildren,
