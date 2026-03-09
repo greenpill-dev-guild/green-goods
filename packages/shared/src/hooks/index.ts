@@ -196,6 +196,7 @@ export type {
   UseFilteredGardensResult,
 } from "./garden/useFilteredGardens";
 export { useFilteredGardens } from "./garden/useFilteredGardens";
+export { useGardenDerivedState } from "./garden/useGardenDerivedState";
 export { useGardenDetailData } from "./garden/useGardenDetailData";
 export { useGardenDomains } from "./garden/useGardenDomains";
 export type { GardenDraft, UseGardenDraftResult } from "./garden/useGardenDraft";

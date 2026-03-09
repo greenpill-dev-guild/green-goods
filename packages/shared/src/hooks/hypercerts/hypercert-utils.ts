@@ -82,13 +82,6 @@ export function withTimeout<T>(
 }
 
 /**
- * Checks if an address is the zero address or undefined/null.
- */
-export function isZeroAddress(address?: Address | null): boolean {
-  return !address || address.toLowerCase() === zeroAddress;
-}
-
-/**
  * Extracts the hypercert ID from transaction logs.
  * Looks for ERC1155 TransferSingle events where from is the zero address (mint).
  *

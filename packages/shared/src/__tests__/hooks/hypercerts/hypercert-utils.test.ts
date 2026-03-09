@@ -1,13 +1,14 @@
 /**
  * Hypercert Utility Functions Tests
  *
- * Tests withTimeout, isZeroAddress, TimeoutError class,
+ * Tests withTimeout, TimeoutError class,
  * and extractHypercertIdFromLogs.
+ * isZeroAddress tests live in the address utility tests.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isZeroAddress } from "../../../utils/blockchain/address";
 import {
-  isZeroAddress,
   RECEIPT_POLLING_TIMEOUT_MS,
   TimeoutError,
   withTimeout,

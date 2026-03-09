@@ -129,6 +129,7 @@ export {
   GARDEN_ROLE_IDS,
   GARDEN_ROLE_ORDER,
   getRoleColorClasses,
+  getRoleLabel,
   ROLE_COLOR_CLASSES,
 } from "./blockchain/garden-roles";
 // ============================================================================
@@ -175,6 +176,20 @@ export { createDispatchAdapter } from "./dispatch-adapter";
 // DOMAIN BITMASK
 // ============================================================================
 export { expandDomainMask, hasDomain } from "./domain";
+// ============================================================================
+// GARDEN DETAIL
+// ============================================================================
+export {
+  aggregateBadges,
+  DOMAIN_LABEL_IDS,
+  getMedian,
+  getSeverityRank,
+  hoursSince,
+  parseGardenDetailTab,
+  parseGardenRange,
+  RANGE_TO_MS,
+  toMs,
+} from "./garden-detail";
 // ============================================================================
 // EAS
 // ============================================================================

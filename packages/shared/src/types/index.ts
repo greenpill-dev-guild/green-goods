@@ -74,6 +74,19 @@ export type {
   CookieJarWithdrawParams,
 } from "./cookie-jar";
 // ============================================
+// Garden Detail Types
+// ============================================
+export type {
+  ActivityFilter,
+  GardenActivityEvent,
+  GardenDetailTab,
+  GardenRange,
+  RoleDirectoryEntry,
+  TabAction,
+  TabBadgeSeverity,
+  TabBadgeState,
+} from "./garden-detail";
+// ============================================
 // Domain Types
 // ============================================
 export type {

@@ -129,3 +129,16 @@ export const GARDEN_ROLE_I18N_KEYS: Record<GardenRole, { singular: string; plura
 export function getRoleColorClasses(role: GardenRole) {
   return ROLE_COLOR_CLASSES[GARDEN_ROLE_COLORS[role]];
 }
+
+/**
+ * Helper to get localized role labels (singular and plural).
+ */
+export function getRoleLabel(
+  role: GardenRole,
+  formatMessage: (descriptor: { id: string }) => string
+) {
+  return {
+    singular: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].singular }),
+    plural: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].plural }),
+  };
+}

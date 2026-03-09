@@ -5,7 +5,9 @@ import {
   formatTokenAmount,
   GARDEN_ROLE_COLORS,
   type GardenRole,
+  getRoleLabel,
   toastService,
+  useGardenDerivedState,
   useGardenDetailData,
 } from "@green-goods/shared";
 import * as Tabs from "@radix-ui/react-tabs";
@@ -23,7 +25,6 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { AddMemberModal } from "@/components/Garden/AddMemberModal";
 import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
 import { GardenProfileModal } from "@/components/Garden/GardenProfileModal";
-import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { ManageRolesModal } from "@/components/Garden/ManageRolesModal";
 import { MembersModal } from "@/components/Garden/MembersModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
@@ -36,7 +37,6 @@ import type { ActivityFilter, GardenTab } from "./gardenDetail.types";
 import { parseGardenRange, parseGardenTab } from "./gardenDetail.utils";
 import { ImpactTab } from "./ImpactTab";
 import { OverviewTab } from "./OverviewTab";
-import { useGardenDerivedState } from "./useGardenDerivedState";
 import { WorkTab } from "./WorkTab";
 import "./GardenDetailLayout.css";
 

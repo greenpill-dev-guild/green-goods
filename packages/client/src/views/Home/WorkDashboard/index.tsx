@@ -349,7 +349,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         queryClient.invalidateQueries({ queryKey: queryKeys.queue.uploading() });
         queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
         queryClient.invalidateQueries({
-          queryKey: ["myWorks", activeAddress, DEFAULT_CHAIN_ID],
+          queryKey: queryKeys.works.mine(activeAddress, DEFAULT_CHAIN_ID),
         });
       }
     );

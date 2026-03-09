@@ -53,9 +53,9 @@ import { useAuth } from "../auth/useAuth";
 // Import from extracted modules
 import { CREATE_ALLOWLIST_ABI } from "./hypercert-abis";
 import { resolveHypercertContracts } from "./hypercert-contracts";
+import { isZeroAddress } from "../../utils/blockchain/address";
 import {
   extractHypercertIdFromLogs,
-  isZeroAddress,
   RECEIPT_POLLING_TIMEOUT_MS,
   serializeAllowlistTree,
   TimeoutError,

@@ -1,25 +1,30 @@
-import {
-  type Address,
-  expandDomainMask,
-  formatDate,
-  formatTokenAmount,
-  GARDEN_ROLE_ORDER,
-  type GardenRole,
-} from "@green-goods/shared";
 import { useMemo } from "react";
-import type { IntlShape } from "react-intl";
-import { getRoleLabel } from "@/components/Garden/gardenUtils";
-import { DOMAIN_LABEL_IDS, RANGE_TO_MS } from "./gardenDetail.constants";
+import type { Address } from "../../types/domain";
+import {
+  type GardenRole,
+  GARDEN_ROLE_ORDER,
+  getRoleLabel,
+} from "../../utils/blockchain/garden-roles";
+import { expandDomainMask } from "../../utils/domain";
+import { formatDate } from "../../utils/time";
+import { formatTokenAmount } from "../../utils/blockchain/vaults";
 import type {
   ActivityFilter,
   GardenActivityEvent,
+  GardenDetailTab,
   GardenRange,
-  GardenTab,
   RoleDirectoryEntry,
   TabBadgeSeverity,
   TabBadgeState,
-} from "./gardenDetail.types";
-import { aggregateBadges, getMedian, hoursSince, toMs } from "./gardenDetail.utils";
+} from "../../types/garden-detail";
+import {
+  aggregateBadges,
+  DOMAIN_LABEL_IDS,
+  getMedian,
+  hoursSince,
+  RANGE_TO_MS,
+  toMs,
+} from "../../utils/garden-detail";
 
 interface DerivedStateInput {
   garden: { id: string; domainMask?: number; name: string; chainId: number };
@@ -54,8 +59,8 @@ interface DerivedStateInput {
   activityFilter: ActivityFilter;
   memberSearch: string;
   section: string | undefined;
-  formatMessage: IntlShape["formatMessage"];
-  openSection: (tab: GardenTab, section: string, itemId?: string) => void;
+  formatMessage: (descriptor: { id: string }, values?: Record<string, unknown>) => string;
+  openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
 }
 
 export function useGardenDerivedState({
@@ -132,7 +137,7 @@ export function useGardenDerivedState({
 
   const overviewBadge = aggregateBadges([impactBadge, workBadge, communityBadge]);
 
-  const tabBadges: Record<GardenTab, TabBadgeState> = {
+  const tabBadges: Record<GardenDetailTab, TabBadgeState> = {
     overview: overviewBadge,
     impact: impactBadge,
     work: workBadge,

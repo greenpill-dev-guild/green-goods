@@ -71,7 +71,13 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
   const activeAddress = user?.id;
 
   return useQuery({
-    queryKey: queryKeys.works.mine(activeAddress, chainId, includeOffline, timeFilter as string | undefined, limit),
+    queryKey: queryKeys.works.mine(
+      activeAddress,
+      chainId,
+      includeOffline,
+      timeFilter as string | undefined,
+      limit
+    ),
     queryFn: async () => {
       if (!activeAddress) return [];
 

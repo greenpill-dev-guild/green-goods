@@ -33,7 +33,7 @@ function isNetworkConfig(value: unknown): value is {
 import { logger } from "../../modules/app/logger";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { DEPLOYMENT_REGISTRY_ABI } from "./hypercert-abis";
-import { isZeroAddress } from "./hypercert-utils";
+import { isZeroAddress } from "../../utils/blockchain/address";
 
 /**
  * Chain-specific Hypercert Minter contract addresses.
