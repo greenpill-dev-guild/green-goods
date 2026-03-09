@@ -115,21 +115,7 @@
   animation: pageFadeIn 0.25s ease-out forwards;
 }
 
-/* 4. Image reveal - optimized for mobile with reduced blur */
-@keyframes imageReveal {
-  from {
-    opacity: 0;
-    filter: blur(4px); /* Reduced from 8px for better mobile GPU performance */
-  }
-  to {
-    opacity: 1;
-    filter: blur(0);
-  }
-}
-
-.image-reveal {
-  animation: imageReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+/* 4. Image reveal — moved to shared theme.css (co-located with ImageWithFallback) */
 
 /* 5. Micro-interactions */
 @keyframes subtleBounce {
