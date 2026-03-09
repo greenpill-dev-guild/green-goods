@@ -3,11 +3,18 @@ import {
   type GardenFiltersState,
   resolveIPFSUrl,
   useAuth,
+  useDeploymentRegistry,
   useFilteredGardens,
   useGardenPermissions,
   useGardens,
 } from "@green-goods/shared";
-import { RiAddLine, RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
+import {
+  RiAddLine,
+  RiGroupLine,
+  RiPlantLine,
+  RiShieldCheckLine,
+  RiUserLine,
+} from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -24,22 +31,25 @@ function GardenCardBanner({
   name,
   bannerImage,
   children,
-}: { name: string; bannerImage?: string; children?: ReactNode }) {
+}: {
+  name: string;
+  bannerImage?: string;
+  children?: ReactNode;
+}) {
   const [error, setError] = useState(false);
   const resolved = bannerImage ? resolveIPFSUrl(bannerImage) : null;
 
   return (
     <div className="relative h-48">
-      {resolved && !error ? (
+      <GardenBannerFallback name={name} />
+      {resolved && !error && (
         <img
           src={resolved}
           alt={name}
-          className="h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover z-[1]"
           onError={() => setError(true)}
           loading="lazy"
         />
-      ) : (
-        <GardenBannerFallback name={name} />
       )}
       {children}
     </div>
@@ -49,6 +59,7 @@ function GardenCardBanner({
 export default function Gardens() {
   const intl = useIntl();
   const { eoaAddress } = useAuth();
+  const { canDeploy, loading: deployLoading } = useDeploymentRegistry();
   const gardenPermissions = useGardenPermissions();
   const { data: gardens = [], isLoading, error } = useGardens();
   const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
@@ -110,12 +121,28 @@ export default function Gardens() {
         description={headerDescription}
         sticky
         actions={
-          <Button size="sm" asChild>
-            <Link to="/gardens/create">
+          deployLoading ? (
+            <Button size="sm" disabled loading>
               <RiAddLine className="mr-1.5 h-4 w-4" />
               {intl.formatMessage({ id: "admin.gardens.createGarden" })}
-            </Link>
-          </Button>
+            </Button>
+          ) : canDeploy ? (
+            <Button size="sm" asChild>
+              <Link to="/gardens/create">
+                <RiAddLine className="mr-1.5 h-4 w-4" />
+                {intl.formatMessage({ id: "admin.gardens.createGarden" })}
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              disabled
+              title={intl.formatMessage({ id: "admin.gardens.createGarden.noPermission" })}
+            >
+              <RiAddLine className="mr-1.5 h-4 w-4" />
+              {intl.formatMessage({ id: "admin.gardens.createGarden" })}
+            </Button>
+          )
         }
         toolbar={
           showToolbar ? (
@@ -151,6 +178,18 @@ export default function Gardens() {
       />
 
       <div className="mt-6 space-y-6 px-4 sm:px-6">
+        {!isLoading && !errorMessage && !canDeploy && !deployLoading && eoaAddress && (
+          <Alert
+            variant="info"
+            title={intl.formatMessage({ id: "admin.gardens.createGarden.noPermission.title" })}
+          >
+            <p>{intl.formatMessage({ id: "admin.gardens.createGarden.noPermission.message" })}</p>
+            <p className="mt-1">
+              {intl.formatMessage({ id: "admin.gardens.createGarden.noPermission.guidance" })}
+            </p>
+          </Alert>
+        )}
+
         {isLoading && (
           <div role="status" aria-live="polite">
             <span className="sr-only">
@@ -227,7 +266,7 @@ export default function Gardens() {
                 >
                   <GardenCardBanner name={garden.name} bannerImage={garden.bannerImage}>
                     {canManage && (
-                      <div className="absolute top-2 right-2 flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark">
+                      <div className="absolute top-2 right-2 z-[2] flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark">
                         <RiShieldCheckLine className="mr-1 h-3 w-3" />
                         Operator
                       </div>
@@ -235,7 +274,10 @@ export default function Gardens() {
                   </GardenCardBanner>
                   <div className="p-6">
                     <div className="mb-2">
-                      <h3 className="mb-1 text-lg font-medium text-text-strong group-hover:text-primary-dark">
+                      <h3
+                        className="mb-1 text-lg font-medium text-text-strong group-hover:text-primary-dark truncate"
+                        title={garden.name}
+                      >
                         {garden.name}
                       </h3>
                       <p className="text-sm text-text-soft">{garden.location}</p>
@@ -247,35 +289,66 @@ export default function Gardens() {
                       {garden.description}
                     </p>
 
-                    <div className="flex items-center text-sm text-text-soft">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center">
-                          <RiUserLine className="mr-1 h-4 w-4" />
-                          <span>
-                            {intl.formatMessage(
-                              {
-                                id: "admin.gardens.operatorCount",
-                                defaultMessage:
-                                  "{count, plural, one {# operator} other {# operators}}",
-                              },
-                              { count: garden.operators?.length ?? 0 }
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex items-center">
-                          <RiUserLine className="mr-1 h-4 w-4" />
-                          <span>
-                            {intl.formatMessage(
-                              {
-                                id: "admin.gardens.gardenerCount",
-                                defaultMessage:
-                                  "{count, plural, one {# gardener} other {# gardeners}}",
-                              },
-                              { count: garden.gardeners?.length ?? 0 }
-                            )}
-                          </span>
-                        </div>
+                    <div className="flex items-center gap-4 text-sm text-text-soft">
+                      <div
+                        className="flex items-center"
+                        title={intl.formatMessage(
+                          {
+                            id: "admin.gardens.totalMembersTooltip",
+                            defaultMessage:
+                              "{operators} operators, {gardeners} gardeners, {evaluators} evaluators",
+                          },
+                          {
+                            operators: garden.operators?.length ?? 0,
+                            gardeners: garden.gardeners?.length ?? 0,
+                            evaluators: garden.evaluators?.length ?? 0,
+                          }
+                        )}
+                      >
+                        <RiGroupLine className="mr-1 h-4 w-4" />
+                        <span>
+                          {intl.formatMessage(
+                            {
+                              id: "admin.gardens.totalMembers",
+                              defaultMessage: "{count, plural, one {# member} other {# members}}",
+                            },
+                            {
+                              count: new Set([
+                                ...(garden.operators ?? []),
+                                ...(garden.gardeners ?? []),
+                                ...(garden.evaluators ?? []),
+                              ]).size,
+                            }
+                          )}
+                        </span>
                       </div>
+                      <div className="flex items-center">
+                        <RiUserLine className="mr-1 h-4 w-4" />
+                        <span>
+                          {intl.formatMessage(
+                            {
+                              id: "admin.gardens.operatorCount",
+                              defaultMessage:
+                                "{count, plural, one {# operator} other {# operators}}",
+                            },
+                            { count: garden.operators?.length ?? 0 }
+                          )}
+                        </span>
+                      </div>
+                      {garden.openJoining && (
+                        <span
+                          className="inline-flex items-center text-xs text-success-dark"
+                          title={intl.formatMessage({
+                            id: "admin.gardens.openJoiningTooltip",
+                            defaultMessage: "Anyone can join this garden as a gardener",
+                          })}
+                        >
+                          {intl.formatMessage({
+                            id: "admin.gardens.openJoining",
+                            defaultMessage: "Open",
+                          })}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </Link>

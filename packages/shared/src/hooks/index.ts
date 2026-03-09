@@ -80,6 +80,7 @@ export {
 // ============================================================================
 export type { CreateAssessmentForm } from "./assessment/useCreateAssessmentWorkflow";
 export { useCreateAssessmentWorkflow } from "./assessment/useCreateAssessmentWorkflow";
+export { useAllAssessments } from "./assessment/useAllAssessments";
 export { useGardenAssessments } from "./assessment/useGardenAssessments";
 // ============================================================================
 // AUTH

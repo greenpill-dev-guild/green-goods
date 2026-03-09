@@ -218,6 +218,7 @@ export {
   useAddressInput,
   useAllocateHypercertSupport,
   useAllocateYield,
+  useAllAssessments,
   useAnalyticsIdentity,
   // Assessment hooks
   useAssessmentDraft,

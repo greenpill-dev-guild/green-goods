@@ -225,6 +225,8 @@ export const queryKeys = {
   // Assessment related keys
   assessments: {
     all: ["greengoods", "assessments"] as const,
+    /** All assessments across gardens for a chain */
+    byChain: (chainId: number) => ["greengoods", "assessments", "byChain", chainId] as const,
     /** Base key for garden assessments - use for prefix-based invalidation */
     byGardenBase: (gardenAddress: string, chainId: number) =>
       ["greengoods", "assessments", "byGarden", gardenAddress, chainId] as const,
@@ -643,6 +645,7 @@ export type QueryKey =
   | typeof queryKeys.platform.all
   | ReturnType<typeof queryKeys.platform.stats>
   | typeof queryKeys.assessments.all
+  | ReturnType<typeof queryKeys.assessments.byChain>
   | ReturnType<typeof queryKeys.assessments.byGarden>
   | typeof queryKeys.conviction.all
   | ReturnType<typeof queryKeys.conviction.strategies>

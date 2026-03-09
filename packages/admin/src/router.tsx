@@ -50,6 +50,12 @@ export const router = createRouter([
                 lazy: async () => ({ Component: (await import("@/views/Dashboard")).default }),
               },
               {
+                path: "assessments",
+                lazy: async () => ({
+                  Component: (await import("@/views/Assessments")).default,
+                }),
+              },
+              {
                 path: "gardens",
                 lazy: async () => ({ Component: (await import("@/views/Gardens")).default }),
               },

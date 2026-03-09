@@ -1,6 +1,7 @@
 import { cn, useAuth, useRole, useUIStore } from "@green-goods/shared";
 import {
   RiDashboardLine,
+  RiFileList3Line,
   RiHammerFill,
   RiLogoutBoxLine,
   RiPlantLine,
@@ -24,6 +25,13 @@ const navigation = [
     nameId: "app.sidebar.gardens",
     href: "/gardens",
     icon: RiPlantLine,
+    roles: ["deployer", "operator", "user"],
+  },
+  {
+    name: "Assessments",
+    nameId: "app.sidebar.assessments",
+    href: "/assessments",
+    icon: RiFileList3Line,
     roles: ["deployer", "operator", "user"],
   },
   {
