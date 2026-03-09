@@ -4,21 +4,50 @@ sidebar_label: Admin
 slug: /builders/deployments/admin-deploy
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-03-08
+feature_status: Live
+keywords: [admin, dashboard, SPA, Vite, roles, Hats Protocol]
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Admin Dashboard Deployment
 
-{/* IMAGE PLACEHOLDER: Admin dashboard deployment — SPA build and static hosting (800x400) */}
+<StatusBadge status="Live" />
+
+```mermaid
+graph LR
+    Contracts["contracts\nABIs"] --> Build
+    Shared["shared\nhooks"] --> Build
+
+    Build["Vite Build\nVITE_CHAIN_ID"] --> Dist["dist/\nSPA output"]
+    Dist --> Host["Static Host\n/* → index.html"]
+
+    subgraph Access["Role-Based Access"]
+        Hats["Hats Protocol\nwallet check"]
+        Roles["Deployer / Operator /\nGardener"]
+    end
+
+    Host --> Access
+```
 
 The admin dashboard is a Vite + React SPA for garden operators. It shares the same build toolchain and dependency chain as the client but targets desktop browsers and does not include service worker or offline-first capabilities.
 
-## Build Process
+<img src="/img/screenshots/admin-dashboard.png" alt="Admin Dashboard — garden overview with stats and recent activity" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
-```bash
-# Build for production
-VITE_CHAIN_ID=42161 bun run build:admin
-```
+## Deployment Checklist
+
+1. Verify `bun run test` passes in `packages/admin`
+2. Confirm shared package is built with matching version
+3. Set correct `VITE_CHAIN_ID` for the target environment in the root `.env`
+4. Build with `bun run build:admin`
+5. Deploy static output from `packages/admin/dist/`
+6. Verify routing fallback is configured on the host (`/* -> /index.html (200)`)
+7. Check role-based access works with a connected wallet
+
+## Build Environments
+
+### Build Dependencies
 
 Like the client, the admin build is single-chain and depends on:
 
@@ -37,7 +66,24 @@ The admin uses the same root `.env` as all other packages:
 
 Additional admin-specific variables may include API keys for services like Hypercerts marketplace or PostHog analytics.
 
-## Deployment Pipeline
+### Testing
+
+The admin test workflow (`admin-tests.yml`) runs on changes to `packages/admin/**` and validates:
+
+- Vitest unit and component tests
+- Lint checks via oxlint
+- Type checking via TypeScript
+
+E2E tests for admin run in the `chromium` Playwright project, matching `admin*.spec.ts` specs.
+
+## Making A Deployment
+
+### Build Process
+
+```bash
+# Build for production
+VITE_CHAIN_ID=42161 bun run build:admin
+```
 
 ### Static Build Output
 
@@ -51,17 +97,7 @@ Since the admin uses client-side routing (React Router), the hosting provider mu
 /* -> /index.html  (200)
 ```
 
-### CI Testing
-
-The admin test workflow (`admin-tests.yml`) runs on changes to `packages/admin/**` and validates:
-
-- Vitest unit and component tests
-- Lint checks via oxlint
-- Type checking via TypeScript
-
-E2E tests for admin run in the `chromium` Playwright project, matching `admin*.spec.ts` specs.
-
-## Role-Based Access
+### Role-Based Access
 
 The admin dashboard uses Hats Protocol for role-based access control. Routes are protected by the `RequireRole` component which checks if the connected wallet wears the required hat:
 
@@ -71,13 +107,13 @@ The admin dashboard uses Hats Protocol for role-based access control. Routes are
 
 Access checks happen client-side by querying the Hats contracts. The admin does not have its own auth backend.
 
-## Query Persistence
+### Query Persistence
 
 The admin uses `@tanstack/react-query` with a persister that caches query data to `localStorage`. This provides faster page loads on return visits without full offline support.
 
 The persister configuration lives in `packages/admin/src/config/persister.ts` and uses a configurable TTL for cache invalidation.
 
-## Storybook Integration
+### Storybook Integration
 
 Admin components have Storybook stories that are pulled into the shared Storybook instance. Admin stories follow the title hierarchy `Admin/Components/*` and `Admin/Views/*`.
 
@@ -89,14 +125,15 @@ cd packages/shared && bun run storybook
 
 This starts the unified Storybook that includes stories from all three UI packages.
 
-## Deployment Checklist
+## Resources
 
-Before deploying a new admin release:
-
-1. Verify `bun run test` passes in `packages/admin`
-2. Confirm shared package is built with matching version
-3. Set correct `VITE_CHAIN_ID` for the target environment
-4. Build with `bun run build:admin`
-5. Deploy static output from `packages/admin/dist/`
-6. Verify routing fallback is configured on the host
-7. Check role-based access works with a connected wallet
+<NextBestAction
+  title="Next: Deploy the Agent Bot"
+  why="The agent bot provides Telegram integration for work submission and blockchain interactions."
+  actionLabel="Agent Deployment"
+  actionHref="/builders/deployments/agent-deploy"
+  alternatives={[
+    {label: "Admin Dashboard Deployment", href: "/builders/deployments/admin-deploy"},
+    {label: "Deployment Status", href: "/builders/deployments/status"},
+  ]}
+/>

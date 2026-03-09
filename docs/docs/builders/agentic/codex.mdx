@@ -7,9 +7,30 @@ owner: docs
 last_verified: 2026-03-01
 ---
 
+import {NextBestAction} from "@site/src/components/docs";
+
 # Codex
 
-{/* IMAGE PLACEHOLDER: Codex sandboxed execution — autonomous coding with config.toml (800x400) */}
+```mermaid
+graph TB
+    subgraph Config["Codex Config"]
+        TOML["config.toml\nmodel, sandbox"]
+        ENV["environment.toml\nbun, foundry, deps"]
+        ACTS["Predefined Actions\ntest, lint, build"]
+    end
+
+    subgraph Sandbox["Cloud Sandbox"]
+        NoNet["No Network\nduring execution"]
+        Cache["12hr cache\nfor setup"]
+    end
+
+    Config --> Sandbox
+
+    AGENTS["AGENTS.md"] -->|context| Sandbox
+    Skills[".claude/skills/\nvia symlink"] -->|patterns| Sandbox
+
+    Sandbox -->|output| PR["Draft PR\nmax 20 files"]
+```
 
 OpenAI Codex is used for automated maintenance tasks in the Green Goods monorepo. It runs in a sandboxed cloud environment with pre-built dependencies and no network access during execution.
 
@@ -113,3 +134,14 @@ Codex and Claude Code serve complementary roles:
 | Model | Claude Opus/Sonnet | GPT-5.3 Codex |
 | Best for | Interactive development | Automated maintenance |
 | Memory | Persistent per-agent | Per-session |
+
+<NextBestAction
+  title="Next best action"
+  why="Learn about the custom agentic pipeline for meeting-to-action workflows."
+  actionLabel="OpenClaw"
+  actionHref="./openclaw"
+  alternatives={[
+    {label: "Claude Code", href: "./claude-code"},
+    {label: "Gemini", href: "./gemini"},
+  ]}
+/>

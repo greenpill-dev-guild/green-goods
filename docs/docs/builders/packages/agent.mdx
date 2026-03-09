@@ -10,7 +10,23 @@ feature_status: Planned
 
 # Agent Package
 
-{/* IMAGE PLACEHOLDER: Telegram bot interaction — gardener submitting work via chat (800x400) */}
+```mermaid
+sequenceDiagram
+    participant G as Gardener
+    participant TG as Telegram
+    participant Bot as Agent Bot<br/>(Fastify + Telegraf)
+    participant Chain as Blockchain
+    participant IPFS as Storacha IPFS
+
+    G->>TG: /submit work
+    TG->>Bot: Webhook
+    Bot->>IPFS: Upload media
+    IPFS-->>Bot: CID
+    Bot->>Chain: Create attestation
+    Chain-->>Bot: TX receipt
+    Bot->>TG: Confirmation
+    TG->>G: Work submitted
+```
 
 :::info Coming Soon
 This page is under development. Check back soon for full content.

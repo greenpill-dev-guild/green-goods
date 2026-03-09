@@ -10,7 +10,28 @@ feature_status: Planned
 
 # Ops Package
 
-{/* IMAGE PLACEHOLDER: Ops scripts — deployment, migration, and maintenance tools (800x400) */}
+```mermaid
+graph TB
+    subgraph Scripts["Ops Scripts"]
+        D["deploy.ts\nContract deploy"]
+        U["upgrade.ts\nUUPS upgrades"]
+        V["verify.ts\nPost-deploy checks"]
+        I["ipfs-uploader.ts\nMetadata upload"]
+        R["repin-ipfs-media.ts\nIPFS maintenance"]
+    end
+
+    subgraph Targets
+        Chains["Sepolia / Arbitrum / Celo"]
+        IPFS["Storacha IPFS"]
+        ES["Etherscan"]
+    end
+
+    D -->|broadcast| Chains
+    U -->|"upgradeTo()"| Chains
+    V -->|verify| ES
+    I -->|upload| IPFS
+    R -->|repin| IPFS
+```
 
 :::info Coming Soon
 This page is under development. Check back soon for full content.

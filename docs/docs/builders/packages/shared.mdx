@@ -10,7 +10,27 @@ feature_status: Planned
 
 # Shared Library
 
-{/* IMAGE PLACEHOLDER: Shared package dependency graph — hooks, modules, types flowing to client and admin (800x400) */}
+```mermaid
+graph TB
+    subgraph Shared["@green-goods/shared"]
+        H["Hooks\naction, garden, work, auth"]
+        M["Modules\nEAS, GraphQL, job queue"]
+        T["Types\nGarden, Work, Action, Address"]
+        U["Utils\nencoders, errors, i18n"]
+        C["Components\nUI primitives, design tokens"]
+    end
+
+    subgraph Consumers
+        Client["Client PWA\npackages/client"]
+        Admin["Admin Dashboard\npackages/admin"]
+        Agent["Agent Bot\npackages/agent"]
+    end
+
+    Contracts["contracts\nABIs + deployments"] --> Shared
+    Shared --> Client
+    Shared --> Admin
+    Shared --> Agent
+```
 
 :::info Coming Soon
 This page is under development. Check back soon for full content.

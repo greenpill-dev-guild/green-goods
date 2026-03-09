@@ -42,7 +42,20 @@ import {
 
 Garden vaults are yield-bearing positions (powered by Octant) that hold deposited assets on behalf of your garden. As an operator, you control deposits, monitor yield accrual, and manage withdrawals. Vaults are the primary mechanism for funding garden operations, gardener compensation, and community initiatives.
 
-{/* IMAGE PLACEHOLDER */}
+<img src="/img/screenshots/admin-endowments.png" alt="Treasury overview — total value locked, vault positions across gardens" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+
+```mermaid
+graph TB
+    subgraph Vault["Vault Operations"]
+        Deposit["Deposits\nfund the garden"]
+        Yield["Yield Accrual\nstrategy returns"]
+        Withdraw["Withdrawals\noperator-controlled"]
+    end
+
+    Deposit --> Balance["Vault Balance"]
+    Yield --> Balance
+    Balance --> Withdraw
+```
 
 <FeatureState
   title="Operator UI"

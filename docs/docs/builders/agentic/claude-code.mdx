@@ -8,9 +8,31 @@ last_verified: 2026-03-01
 feature_status: Live
 ---
 
+import {NextBestAction} from "@site/src/components/docs";
+
 # Claude Code
 
-{/* IMAGE PLACEHOLDER: Claude Code CLI session — agent-assisted development workflow (800x400) */}
+```mermaid
+graph TB
+    subgraph Config[".claude/ Directory"]
+        Agents["agents/\n6 custom agents"]
+        Skills["skills/\n~30 skill defs"]
+        Rules["rules/\npath-scoped"]
+        Context["context/\nper-package"]
+    end
+
+    CLAUDE["CLAUDE.md\nalways loaded"] --> Session["Claude Code\nCLI Session"]
+    Config --> Session
+
+    subgraph AgentTypes["Custom Agents"]
+        Oracle["oracle\nresearch"]
+        Cracked["cracked-coder\nTDD impl"]
+        Reviewer["code-reviewer\nPR review"]
+        Migrate["migration\ncross-pkg"]
+    end
+
+    Session -->|spawn| AgentTypes
+```
 
 Primary agentic development tool for Green Goods. Claude Code operates as a CLI-based AI assistant with deep project context, custom agents for specialized tasks, and a skill system for repeatable workflows. It is the main development interface for the team.
 
@@ -112,3 +134,14 @@ Multi-agent teams use the TeamCreate skill to spin up parallel workstreams. Each
 
 - [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code) -- official CLI docs
 - [Core Philosophies](/builders/agentic/core-philosophies) -- agentic development principles
+
+<NextBestAction
+  title="Next best action"
+  why="Compare with another AI coding tool used in the project."
+  actionLabel="Codex"
+  actionHref="./codex"
+  alternatives={[
+    {label: "OpenClaw", href: "./openclaw"},
+    {label: "MCP Guide", href: "./mcp-guide"},
+  ]}
+/>

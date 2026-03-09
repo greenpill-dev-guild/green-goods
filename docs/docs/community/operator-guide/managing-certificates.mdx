@@ -42,7 +42,18 @@ import {
 
 After minting hypercerts, operators manage their lifecycle: monitoring active listings, reviewing trade history, ensuring contributor allowlists are accurate, and maintaining the connection between certificates and underlying verified work. This page covers the ongoing management responsibilities beyond the initial mint.
 
-{/* IMAGE PLACEHOLDER */}
+```mermaid
+graph TB
+    subgraph Certificates["Certificate Management"]
+        Minted["Minted Hypercerts\nimpact records"]
+        Listings["Active Listings\npricing + status"]
+        Trades["Trade History\nbuyer patterns"]
+    end
+
+    Mint["Mint New"] --> Minted
+    Minted --> Listings
+    Listings --> Trades
+```
 
 <FeatureState
   title="Hypercert management"

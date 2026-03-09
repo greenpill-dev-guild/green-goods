@@ -4,23 +4,57 @@ sidebar_label: Vitest
 slug: /builders/testing/vitest
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-03-08
 feature_status: Live
+keywords:
+  - vitest
+  - unit testing
+  - integration testing
+  - test coverage
+  - mock factories
+  - msw
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Vitest
 
-{/* IMAGE PLACEHOLDER: Vitest test runner — unit test output with coverage metrics (800x400) */}
+<StatusBadge status="Live" />
+
+```mermaid
+graph TB
+    CMD["bun run test"] -->|vitest| Runner["Vitest Runner\njsdom + threads"]
+
+    subgraph Packages
+        S["shared\nhooks, modules, utils"]
+        A["admin\ncomponents, views"]
+        C["client\ncards, PWA"]
+        AG["agent\nservices, handlers"]
+    end
+
+    Runner --> Packages
+
+    subgraph Support
+        MF["Mock Factories"]
+        MSW["MSW API Mocks"]
+        TW["Test Wrappers\nQueryClient + Intl"]
+    end
+
+    Support --> Packages
+    Packages --> Coverage["V8 Coverage\n70% threshold"]
+```
 
 Unit and integration testing framework for all TypeScript packages. Each package has its own `vitest.config.ts` with package-specific aliases, environment settings, and coverage thresholds.
 
-## Setup
+## How To Approach Tests
+
+Vitest is the standard test runner for all TypeScript packages in the monorepo. The key philosophy: each package owns its test configuration, but shared utilities and mock factories live in `@green-goods/shared` to keep tests consistent and resilient to schema changes.
 
 ### Critical: `bun run test` not `bun test`
 
 `bun test` invokes Bun's built-in test runner, which **ignores vitest configuration entirely** (setup files, aliases, environment, coverage thresholds). Always use `bun run test`, which runs the `test` script from `package.json` and properly invokes vitest.
 
-### Workspace configuration
+### Workspace Configuration
 
 Each package has its own `vitest.config.ts`:
 
@@ -36,13 +70,13 @@ All packages use:
 - **V8 coverage** provider with 70% thresholds (branches, functions, lines, statements)
 - **10-second timeout** per test
 
-### React deduplication
+### React Deduplication
 
 A critical configuration detail: vitest aliases force all React imports (including those from `@green-goods/shared` and its transitive dependencies) to resolve to a single React instance. Without this, hooks fail with "Invalid hook call" errors due to multiple React runtimes.
 
-## Patterns
+## Completing Test Coverage
 
-### Mock factories
+### Mock Factories
 
 The shared package provides typed mock factories in `packages/shared/src/__tests__/test-utils/mock-factories.ts`:
 
@@ -55,7 +89,7 @@ const work = createMockWork({ gardenAddress: garden.address });
 
 These factories produce complete domain objects with sensible defaults, so tests only need to override the fields they care about.
 
-### Query client wrapper for hook testing
+### Query Client Wrapper for Hook Testing
 
 Hook tests use a shared wrapper that provides `QueryClientProvider` and `IntlProvider`:
 
@@ -70,11 +104,11 @@ const { result } = renderHook(() => useMyHook(), { wrapper });
 
 The test query client disables retries and garbage collection to make tests deterministic.
 
-### MSW for API mocking
+### MSW for API Mocking
 
 API calls (EAS GraphQL, Envio GraphQL, IPFS) are mocked using MSW (Mock Service Worker) with handlers defined in test setup files. The shared package's mock server intercepts network requests at the handler level rather than mocking individual fetch calls.
 
-### Module mocking with `vi.mock`
+### Module Mocking with `vi.mock`
 
 Most hook tests use `vi.mock` with factory functions to isolate the unit under test:
 
@@ -87,9 +121,9 @@ vi.mock("@tanstack/react-query", () => ({
 
 This pattern lets tests verify exact query keys, enabled conditions, and queryFn behavior without hitting real APIs.
 
-## Per-Package Notes
+### Per-Package Notes
 
-### shared (largest test suite)
+#### shared (largest test suite)
 
 Covers hooks, modules, utilities, stores, workflows, and providers. Tests live in `src/__tests__/` mirroring the source directory structure. Key areas:
 - **Hook tests** (`hooks/`): action, assessment, blockchain, conviction, cookie-jar, ENS, garden, gardener, hypercerts, vault, work, utility hooks
@@ -97,7 +131,7 @@ Covers hooks, modules, utilities, stores, workflows, and providers. Tests live i
 - **Utility tests** (`utils/`): encoders, error handling (5 test files), compression, date/time, ENS, transaction builder, vaults
 - **Workflow tests** (`workflows/`): auth machine, create assessment, create garden, mint hypercert state machines
 
-### admin (component tests)
+#### admin (component tests)
 
 Component tests with a custom render wrapper that provides routing, query client, and intl. Tests focus on:
 - Form wizard behavior, modal interactions, position cards
@@ -105,14 +139,14 @@ Component tests with a custom render wrapper that provides routing, query client
 - Route guards (RequireDeployer)
 - View-level tests (Dashboard, Actions, ActionDetail)
 
-### client (component tests)
+#### client (component tests)
 
 Similar to admin but includes PWA-specific concerns:
 - Card components (ActionCard, GardenCard, WorkCard, DraftCard, FormCard)
 - Error boundary behavior
 - Offline-aware component behavior
 
-### agent (service tests)
+#### agent (service tests)
 
 Node environment tests for:
 - Crypto operations, rate limiting, storage
@@ -144,3 +178,18 @@ bun run test -- --coverage          # Generates text + HTML + JSON reports
 cd packages/contracts && bun run test       # Unit tests
 cd packages/contracts && bun run test:fork  # Fork tests (needs RPC URLs)
 ```
+
+## Resources
+
+- [Vitest Documentation](https://vitest.dev/) -- Official Vitest docs
+- [Vitest API Reference](https://vitest.dev/api/) -- Test API reference
+- Mock factories: `packages/shared/src/__tests__/test-utils/mock-factories.ts`
+- Shared test utilities: `packages/shared/src/__tests__/test-utils/`
+- Per-package vitest configs: `packages/*/vitest.config.ts`
+
+<NextBestAction
+  title="Next: React Testing Library"
+  why="Learn how to test React components and hooks with React Testing Library patterns."
+  actionLabel="React Testing Library"
+  actionHref="/builders/testing/rtl"
+/>

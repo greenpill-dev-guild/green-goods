@@ -4,27 +4,58 @@ sidebar_label: Contracts
 slug: /builders/packages/contracts
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-03-08
 feature_status: Live
+keywords: [solidity, smart contracts, foundry, EAS resolvers, deployment, UUPS, CREATE2, hats protocol]
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Contracts
 
-{/* IMAGE PLACEHOLDER: Solidity contract architecture — resolvers, garden modules, deploy pipeline (800x400) */}
+<StatusBadge status="Live" />
+
+```mermaid
+graph TB
+    subgraph Resolvers["EAS Resolvers"]
+        WR["Work"]
+        WAR["WorkApproval"]
+        AR["Assessment"]
+    end
+
+    subgraph Core["Core Contracts"]
+        GT["GardenToken\nERC-721"]
+        GA["GardenAccount\nERC-6551 TBA"]
+        ACR["ActionRegistry"]
+    end
+
+    subgraph Modules["Hub Modules"]
+        HM["HatsModule\n6-role RBAC"]
+        OM["OctantModule\nYield Vault"]
+        CM["CookieJarModule"]
+        EM["ENSModule"]
+    end
+
+    subgraph Deploy["Deploy Pipeline"]
+        CLI["deploy.ts\nTypeScript CLI"]
+        SOL["Deploy.s.sol\nSolidity Script"]
+        C2["CREATE2\nDeterministic"]
+    end
+
+    EAS["EAS Protocol"] -->|"onAttest()"| Resolvers
+    GT -->|fan out| Modules
+    GT -->|creates| GA
+    ACR -->|validates| WR
+    HM -->|role check| Resolvers
+    CLI -->|orchestrate| SOL
+    SOL -->|deploy| C2
+    C2 -->|addresses| Core
+    C2 -->|addresses| Resolvers
+```
 
 Solidity smart contracts for the Green Goods protocol: resolver contracts for on-chain attestation validation, garden NFTs with tokenbound accounts, an action registry, and role-based access via Hats Protocol. Includes TypeScript deploy scripts that orchestrate CREATE2 deterministic deployment across multiple chains.
 
-## What It Does
-
-- **Resolver contracts** (Work, WorkApproval, Assessment) validate EAS attestations on-chain, enforcing role checks and action validity before attestations are stored
-- **GardenToken** (ERC-721) mints garden NFTs and fans out to all configured modules (Hats, Octant, CookieJar, ENS, etc.) during minting
-- **GardenAccount** (ERC-6551 Tokenbound) gives each garden a smart account that owns assets and stores metadata
-- **ActionRegistry** publishes and manages garden action definitions with domain categorization
-- **HatsModule** creates per-garden 6-role hat trees (Owner, Operator, Evaluator, Gardener, Funder, Community) for hierarchical RBAC
-- **OctantModule + OctantVault** manage ERC-4626 yield vaults with three-way yield splitting (CookieJar, Hypercert fractions, endowment)
-- **Deploy scripts** (TypeScript CLI + Solidity) handle CREATE2 deployment, UUPS upgrades, EAS schema registration, and cross-chain ENS wiring
-
-## Architecture
+## Overview
 
 ```
 packages/contracts/
@@ -41,7 +72,17 @@ packages/contracts/
   abis/           # Exported ABI JSON files
 ```
 
-**Key patterns:**
+- **Resolver contracts** (Work, WorkApproval, Assessment) validate EAS attestations on-chain, enforcing role checks and action validity before attestations are stored
+- **GardenToken** (ERC-721) mints garden NFTs and fans out to all configured modules (Hats, Octant, CookieJar, ENS, etc.) during minting
+- **GardenAccount** (ERC-6551 Tokenbound) gives each garden a smart account that owns assets and stores metadata
+- **ActionRegistry** publishes and manages garden action definitions with domain categorization
+- **HatsModule** creates per-garden 6-role hat trees (Owner, Operator, Evaluator, Gardener, Funder, Community) for hierarchical RBAC
+- **OctantModule + OctantVault** manage ERC-4626 yield vaults with three-way yield splitting (CookieJar, Hypercert fractions, endowment)
+- **Deploy scripts** (TypeScript CLI + Solidity) handle CREATE2 deployment, UUPS upgrades, EAS schema registration, and cross-chain ENS wiring
+
+## Features & Functionality
+
+### Key Patterns
 
 - **CREATE2 deterministic deployment** -- contracts deploy to the same address across chains. Existing addresses are skipped via `_isDeployed()` check.
 - **Hub-and-spoke modules** -- GardenToken uses typed module slots. Optional modules degrade gracefully with `if (address != 0)` + `try/catch` guards.
@@ -49,9 +90,9 @@ packages/contracts/
 - **Adaptive build system** -- `bun build` defaults to fast mode (~2s cached), detecting what changed. Only `bun build:full` triggers the slow full build (~180-400s).
 - **Two-layer deploy** -- TypeScript CLI (`deploy/core.ts`) orchestrates environment and parameters, then shells out to Solidity (`Deploy.s.sol`) for on-chain execution.
 
-## Key APIs
+### Deployment Artifacts
 
-**Deployment artifacts** are the source of truth for all contract addresses:
+Deployment artifacts are the source of truth for all contract addresses:
 
 ```typescript
 import deployment from '@green-goods/contracts/deployments/11155111-latest.json';
@@ -60,14 +101,18 @@ import deployment from '@green-goods/contracts/deployments/11155111-latest.json'
 // Zero addresses mean the module hasn't been deployed yet (not a blocker)
 ```
 
-**HatsLib constants** provide per-chain hat tree IDs:
+### HatsLib Constants
+
+Per-chain hat tree IDs:
 - Sepolia: Tree 2022, communityHat = `0x000007e60002...`
 - Arbitrum: Tree 92, communityHat = `0x0000005c0002...`
 - Celo: Tree 31, communityHat = `0x0000001f0002...`
 
-**EAS resolver interface** -- each resolver implements `onAttest()` to validate attestation data. Resolvers check role membership via HatsModule and action validity via ActionRegistry.
+### EAS Resolver Interface
 
-## Development
+Each resolver implements `onAttest()` to validate attestation data. Resolvers check role membership via HatsModule and action validity via ActionRegistry.
+
+### Development Commands
 
 ```bash
 # Build
@@ -94,7 +139,31 @@ bun run verify:post-deploy:sepolia                              # Post-deploy ch
 bun run verify:etherscan:sepolia                                # Etherscan verification
 ```
 
-## Related
+## How It Relates To Other Packages
+
+The contracts package is the foundation that other packages depend on:
+
+- **shared** — Imports ABI JSON files from `abis/` and deployment artifacts from `deployments/` to build typed contract interactions (hooks, encoders, query functions)
+- **indexer** — Reads contract ABIs and deployment addresses to configure Envio event handlers that index on-chain state into the GraphQL API
+- **client / admin** — Consume contract addresses and ABIs indirectly through shared hooks; never import from contracts directly
+- **agent** — Uses deployment artifacts for on-chain transaction construction
+
+Build order: contracts must build first so ABIs and deployment artifacts are available for downstream packages.
+
+## Resources
 
 - [Architecture](/builders/architecture) -- system diagrams and module relationships
 - [EAS Integration](/builders/integrations/eas) -- attestation schemas and resolver validation
+- [Contract Deployment Guide](/builders/deployments/contracts-deploy) -- full deployment walkthrough
+- [Forge Testing](/builders/testing/forge) -- contract test patterns and configuration
+
+<NextBestAction
+  title="Next best action"
+  why="After understanding the contract layer, see how on-chain events are indexed into the GraphQL API that frontends consume."
+  actionLabel="Open Indexer package"
+  actionHref="/builders/packages/indexer"
+  alternatives={[
+    {label: "EAS integration details", href: "/builders/integrations/eas"},
+    {label: "System architecture", href: "/builders/architecture"},
+  ]}
+/>

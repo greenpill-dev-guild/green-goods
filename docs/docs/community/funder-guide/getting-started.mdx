@@ -35,7 +35,18 @@ import {
 
 Funders play a critical role in the Green Goods ecosystem — they provide the capital that makes regenerative work sustainable. Unlike traditional grant funding where impact is self-reported and hard to verify, Green Goods gives funders **attestation-backed proof** that their capital supports real, community-verified work.
 
-{/* IMAGE PLACEHOLDER: Funder viewing verified impact certificates with attestation chains (800x400) */}
+```mermaid
+graph TB
+    subgraph Certificate["Impact Certificate"]
+        Chain["Attestation Chain\nwork → approval → assessment"]
+        Scope["Impact Scope\nEight Forms of Capital"]
+        Evidence["Evidence\nmedia + metadata"]
+    end
+
+    Browse["Browse Marketplace"] --> Certificate
+    Certificate --> Verify["Verify On-Chain\nEAS Explorer"]
+    Verify --> Fund["Fund Certificate\npurchase fractions"]
+```
 
 As a funder, you can:
 

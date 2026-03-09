@@ -7,9 +7,39 @@ owner: docs
 last_verified: 2026-03-01
 ---
 
+import {NextBestAction} from "@site/src/components/docs";
+
 # Prompt Engineering
 
-{/* IMAGE PLACEHOLDER: Prompt engineering — structured agent instructions and skill system (800x400) */}
+```mermaid
+graph TB
+    subgraph Agents[".claude/agents/"]
+        Spec["Agent Spec\nmodel, tools, skills"]
+    end
+
+    subgraph Skills[".claude/skills/"]
+        S1["testing"]
+        S2["react"]
+        S3["contracts"]
+        S4["40+ more..."]
+    end
+
+    Spec -->|loads| Skills
+
+    subgraph Workflow["Phase Gates"]
+        SCOPE["SCOPE"] --> GATHER["GATHER"] --> PLAN["PLAN"] --> TEST["TEST"] --> IMPLEMENT["IMPLEMENT"] --> VERIFY["VERIFY"]
+    end
+
+    Skills -->|guide| Workflow
+
+    subgraph Guards["Safety Rails"]
+        TS["Three-Strike\nProtocol"]
+        TC["Thinking\nCheckpoints"]
+        MC["Model\nSelection"]
+    end
+
+    Guards -->|enforce| Workflow
+```
 
 How Green Goods structures prompts to get reliable, codebase-aware outputs from AI agents. Prompt engineering here means crafting the instructions that control agent behavior within the development workflow.
 
@@ -93,3 +123,14 @@ Patterns that produce poor agent outputs in this codebase:
 - Reference specific files and line numbers when describing issues
 - Use imperative voice for actions ("implement", "fix", "add test for")
 - Include acceptance criteria that can be mechanically verified
+
+<NextBestAction
+  title="Next best action"
+  why="Discover how to provide the right context for agent tasks."
+  actionLabel="Context Engineering"
+  actionHref="./context-engineering"
+  alternatives={[
+    {label: "Core Philosophies", href: "./core-philosophies"},
+    {label: "Intent Engineering", href: "./intent-engineering"},
+  ]}
+/>

@@ -40,7 +40,13 @@ import {
 
 Hypercerts represent claims of verified impact work. As an evaluator, your role is to assess whether these claims are substantiated by real evidence. This means verifying the attestation chain linking work submissions to approvals, checking the scope and quality of the underlying evidence, and evaluating impact claims against frameworks like the Eight Forms of Capital.
 
-{/* IMAGE PLACEHOLDER */}
+```mermaid
+graph TB
+    Cert["Hypercert"] --> Verify["Verify Attestation Chain\nwork → approval → assessment"]
+    Verify --> Scope["Check Impact Scope\nEight Forms of Capital"]
+    Scope --> Quality["Quality Rating\nevidence depth"]
+    Quality --> Report["Evaluation Report"]
+```
 
 <FeatureState
   title="Hypercert evaluation"

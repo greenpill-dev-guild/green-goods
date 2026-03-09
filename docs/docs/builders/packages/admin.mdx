@@ -10,7 +10,19 @@ feature_status: Planned
 
 # Admin Dashboard
 
-{/* IMAGE PLACEHOLDER: Admin dashboard — garden management and work review interface (800x400) */}
+```mermaid
+graph TB
+    subgraph Admin["Admin Dashboard"]
+        Views["Views\nDashboard, Gardens,\nActions, Work Queue"]
+        Components["Components\nUI primitives, forms"]
+        RBA["Role-Based Access\nHats Protocol"]
+    end
+
+    Shared["@green-goods/shared\nhooks, types, modules"] --> Admin
+    Admin -->|read/write| GQL["Envio GraphQL"]
+    Admin -->|transactions| Chain["Blockchain"]
+    Admin -->|auth| WC["WalletConnect"]
+```
 
 :::info Coming Soon
 This page is under development. Check back soon for full content.
@@ -18,6 +30,10 @@ This page is under development. Check back soon for full content.
 
 ## Overview
 React admin dashboard for operators and evaluators to manage gardens.
+
+<img src="/img/screenshots/admin-dashboard.png" alt="Admin dashboard — garden stats, recent gardens, and activity feed" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)', marginBottom: '1rem'}} />
+
+<img src="/img/screenshots/admin-actions.png" alt="Actions registry — browse and manage regenerative work categories" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 ## What to Expect
 - Dashboard architecture

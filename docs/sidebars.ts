@@ -38,6 +38,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Gardener Guide',
+      link: {
+        type: 'generated-index',
+        description:
+          'Gardeners document real-world conservation and regenerative work using the Green Goods mobile app. Follow these guides to join a garden, submit work, earn payouts, and build your on-chain reputation.',
+      },
       items: [
         {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Joining A Garden'},
         {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Uploading Your Work'},
@@ -51,6 +56,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Operator Guide',
+      link: {
+        type: 'generated-index',
+        description:
+          'Operators create and manage gardens — defining conservation actions, reviewing submitted work, minting impact certificates, and overseeing endowments and payouts.',
+      },
       items: [
         {type: 'doc', id: 'community/operator-guide/creating-a-garden', label: 'Creating A Garden'},
         {type: 'doc', id: 'community/operator-guide/making-an-assessment', label: 'Making An Assessment'},
@@ -68,6 +78,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Evaluator Guide',
+      link: {
+        type: 'generated-index',
+        description:
+          'Evaluators verify conservation work and assess impact certificates. Learn how to join a garden as an evaluator, conduct assessments, and earn recognition for your expertise.',
+      },
       items: [
         {type: 'doc', id: 'community/evaluator-guide/joining-a-garden', label: 'Joining A Garden'},
         {type: 'doc', id: 'community/evaluator-guide/making-assessments', label: 'Making Assessments'},
@@ -80,6 +95,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Funder Guide',
+      link: {
+        type: 'generated-index',
+        description:
+          'Funders support conservation gardens by depositing into endowment vaults and purchasing impact certificates. Discover how to fund a garden and track your impact.',
+      },
       items: [
         {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Funding A Garden'},
         {type: 'doc', id: 'community/funder-guide/earning-recognition', label: 'Earning Recognition'},
@@ -90,6 +110,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Community Guide',
+      link: {
+        type: 'generated-index',
+        description:
+          'Community members participate in garden governance through conviction voting and earn rewards for their engagement. Get started with voting and community participation.',
+      },
       items: [
         {type: 'doc', id: 'community/community-member-guide/getting-involved', label: 'Voting In Gardens'},
         {type: 'doc', id: 'community/community-member-guide/conviction-voting', label: 'Earning Rewards'},
@@ -133,6 +158,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Packages',
+      link: {
+        type: 'generated-index',
+        description:
+          'The 7 packages that make up the Green Goods monorepo.',
+      },
       items: [
         {type: 'doc', id: 'builders/packages/contracts', label: 'Contracts'},
         {type: 'doc', id: 'builders/packages/indexer', label: 'Indexer'},
@@ -148,6 +178,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Product Specifications',
+      link: {
+        type: 'generated-index',
+        description:
+          'Product specifications from v0.1 through v1.0.',
+      },
       items: [
         {type: 'doc', id: 'builders/specs/v0-1', label: 'v0.1 — Privy, EAS, Pimlico, Tokenbound'},
         {type: 'doc', id: 'builders/specs/v0-4', label: 'v0.4 — Passkey, EAS, Pimlico, Tokenbound, Karma'},
@@ -159,6 +194,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Integrations',
+      link: {
+        type: 'generated-index',
+        description:
+          'External protocols and services integrated into Green Goods.',
+      },
       items: [
         {type: 'doc', id: 'builders/integrations/entity-matrix', label: 'Entity Matrix'},
         {type: 'doc', id: 'builders/integrations/overview', label: 'Overview'},
@@ -182,6 +222,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Agentic Development',
+      link: {
+        type: 'generated-index',
+        description:
+          'AI-powered development practices and agent-based tooling.',
+      },
       items: [
         {type: 'doc', id: 'builders/agentic/core-philosophies', label: 'Core Philosophies'},
         {type: 'doc', id: 'builders/agentic/prompt-engineering', label: 'Prompt Engineering'},
@@ -191,6 +236,11 @@ const sidebars: SidebarsConfig = {
         {
           type: 'category',
           label: 'Agent-Based Tools',
+          link: {
+            type: 'generated-index',
+            description:
+              'Specific AI coding tools used in the project.',
+          },
           items: [
             {type: 'doc', id: 'builders/agentic/claude-code', label: 'Claude Code'},
             {type: 'doc', id: 'builders/agentic/codex', label: 'Codex'},
@@ -206,6 +256,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Testing',
+      link: {
+        type: 'generated-index',
+        description:
+          'Testing frameworks and strategies across the monorepo.',
+      },
       items: [
         {type: 'doc', id: 'builders/testing/forge', label: 'Forge Contract Testing'},
         {type: 'doc', id: 'builders/testing/playwright', label: 'Playwright E2E'},
@@ -219,6 +274,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Quality Assurance',
+      link: {
+        type: 'generated-index',
+        description:
+          'Quality gates, regression testing, and CI/CD pipelines.',
+      },
       items: [
         {type: 'doc', id: 'builders/quality/test-cases', label: 'Test Cases'},
         {type: 'doc', id: 'builders/quality/regression', label: 'Regression Testing'},
@@ -232,6 +292,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Build & Deployments',
+      link: {
+        type: 'generated-index',
+        description:
+          'Build processes and deployment guides for each package.',
+      },
       items: [
         {type: 'doc', id: 'builders/deployments/status', label: 'Deployment Status'},
         {type: 'doc', id: 'builders/deployments/contracts-deploy', label: 'Contracts'},

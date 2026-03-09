@@ -4,12 +4,36 @@ sidebar_label: Status
 slug: /builders/deployments/status
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-03-08
+feature_status: Live
+keywords: [deployment, status, endpoints, chains, contracts, health]
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Deployment Status
 
-{/* IMAGE PLACEHOLDER: Deployment status dashboard — services, endpoints, and health checks (800x400) */}
+<StatusBadge status="Live" />
+
+```mermaid
+graph TB
+    subgraph Services["Live Services"]
+        CL["Client PWA\napp.greengoods.app"]
+        AD["Admin Dashboard\nadmin.greengoods.app"]
+        IX["Envio Indexer\nGraphQL API"]
+        AG["Agent Bot\nTelegram"]
+        DC["Docs\ndocs.greengoods.app"]
+    end
+
+    subgraph Chains["Contract Chains"]
+        Sep["Sepolia 11155111\ntestnet"]
+        Arb["Arbitrum 42161\nmainnet"]
+        Celo["Celo 42220\nmainnet"]
+    end
+
+    Artifacts["deployments/\n{chainId}-latest.json"] -->|addresses| Services
+    Chains -->|events| IX
+```
 
 Overview of all deployed Green Goods services, live endpoints, and chain contract addresses.
 
@@ -108,3 +132,14 @@ The indexer exposes a GraphQL endpoint. Query `_metadata` for sync status:
   }
 }
 ```
+
+<NextBestAction
+  title="Next: Deploy Contracts"
+  why="Learn how the two-layer deployment system (TypeScript CLI + Solidity script) deploys and upgrades smart contracts."
+  actionLabel="Contract Deployments"
+  actionHref="/builders/deployments/contracts-deploy"
+  alternatives={[
+    {label: "Indexer Deployment", href: "/builders/deployments/indexer-deploy"},
+    {label: "Client PWA Deployment", href: "/builders/deployments/client-deploy"},
+  ]}
+/>

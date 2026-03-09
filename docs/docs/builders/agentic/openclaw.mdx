@@ -7,9 +7,27 @@ owner: docs
 last_verified: 2026-03-01
 ---
 
+import {NextBestAction} from "@site/src/components/docs";
+
 # OpenClaw
 
-{/* IMAGE PLACEHOLDER: OpenClaw pipeline — meeting transcript to on-chain action flow (800x400) */}
+```mermaid
+graph LR
+    Meeting["Meeting\nRecording"] --> FF["Fireflies.ai\nTranscription"]
+    FF --> N8N["n8n\nWorkflow"]
+    N8N --> OC["OpenClaw\nWebhook"]
+
+    subgraph Processing["AI Processing"]
+        Sonnet["Claude Sonnet\nextraction"]
+        Opus["Claude Opus\nreasoning"]
+        Ollama["Ollama 3b\nheartbeat"]
+    end
+
+    OC --> Processing
+
+    Processing --> Discord["Discord\nstructured embeds"]
+    Processing --> Signal["Signal\nallowlist mode"]
+```
 
 OpenClaw is an agentic pipeline that converts meeting transcripts into structured action items, tasks, and follow-ups. It runs on a dedicated M4 Mac Mini node and integrates with the team's communication channels.
 
@@ -95,3 +113,14 @@ The pipeline does not directly create code changes. Its output is structured inp
 - The pipeline is designed for the team's meeting cadence (weekly syncs, ad-hoc standups)
 - Action items include confidence scores -- low-confidence items are flagged for human review
 - The system runs independently of the main Green Goods infrastructure
+
+<NextBestAction
+  title="Next best action"
+  why="See how Gemini is used alongside other AI tools in the project."
+  actionLabel="Gemini"
+  actionHref="./gemini"
+  alternatives={[
+    {label: "Codex", href: "./codex"},
+    {label: "MCP Guide", href: "./mcp-guide"},
+  ]}
+/>

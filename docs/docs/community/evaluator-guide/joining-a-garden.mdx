@@ -39,7 +39,12 @@ import {
 
 Evaluators verify that impact claims are backed by real evidence. To begin evaluating, you need access to a garden's impact data — which is publicly queryable through the Green Goods indexer and EAS. Joining a garden as an evaluator gives you contextual understanding of the community's work, but most evaluation data is publicly accessible on-chain.
 
-{/* IMAGE PLACEHOLDER */}
+```mermaid
+graph LR
+    Request["Request\nEvaluator Role"] --> Approve["Operator\nApproves"]
+    Approve --> Configure["Configure\nData Sources"]
+    Configure --> Ready["Ready to\nMake Assessments"]
+```
 
 ## How It Works
 

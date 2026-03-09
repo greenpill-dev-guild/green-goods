@@ -2,9 +2,9 @@
 sidebar_position: 2
 title: Entity Matrix
 slug: /builders/integrations/entity-matrix
-audience: developers
+audience: developer
 owner: docs
-last_verified: 2026-02-28
+last_verified: 2026-03-08
 feature_status: Live
 source_of_truth:
   - CharmVerse > Regen Stack > Green Goods > Entity Matrix
@@ -16,7 +16,11 @@ keywords:
   - hats protocol
 ---
 
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+
 # Entity Matrix
+
+<StatusBadge status="Live" />
 
 A cross-protocol mapping of Green Goods domain entities to their equivalents across 12 partner protocols. Use this as a Rosetta Stone when integrating with external systems or translating between protocol vocabularies.
 
@@ -80,3 +84,13 @@ When a task involves a partner protocol, use this matrix to translate between vo
 ### Maintenance
 
 This matrix is sourced from CharmVerse and should be reviewed quarterly. When new protocol partnerships are established, add columns here and update the CharmVerse source.
+
+<NextBestAction
+  title="Next best action"
+  why="See the full integrations overview with surface-level status for each protocol connection."
+  actionLabel="Integrations overview"
+  actionHref="./overview"
+  alternatives={[
+    {label: "EAS integration", href: "./eas"},
+  ]}
+/>

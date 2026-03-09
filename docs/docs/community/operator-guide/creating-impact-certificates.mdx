@@ -37,7 +37,15 @@ import {FeatureState, NextBestAction, StatusBadge, StepFlow} from "@site/src/com
 
 Hypercerts are semi-fungible tokens representing claims of verified impact work. Minting a hypercert bundles your garden's approved work and assessments into a tradeable on-chain certificate. Once minted, you can list hypercerts on the marketplace for retroactive funding.
 
-{/* IMAGE PLACEHOLDER */}
+```mermaid
+graph LR
+    Aggregate["Aggregate Work\napproved submissions"] --> Meta["Configure Metadata\nimpact scope + period"]
+    Meta --> Allow["Set Contributors\nallowlist"]
+    Allow --> Mint["Mint Hypercert\non-chain"]
+    Mint --> List["List on\nMarketplace"]
+```
+
+<img src="/img/screenshots/admin-garden-impact.png" alt="Impact tab — hypercert highlights and recent assessments" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 <FeatureState
   title="UI and hooks"

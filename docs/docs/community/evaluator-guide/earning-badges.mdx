@@ -38,7 +38,18 @@ import {
 
 Evaluator credibility is built through a track record of thorough, accurate impact verification. Every assessment you contribute to and every attestation chain you verify adds to your on-chain history. Funders and other stakeholders rely on evaluator reputation to gauge the trustworthiness of impact claims.
 
-{/* IMAGE PLACEHOLDER */}
+```mermaid
+graph TB
+    subgraph Reputation["Evaluator Reputation"]
+        Assessments["Assessment Count\nverifications made"]
+        Breadth["Cross-Garden\nevaluation breadth"]
+        History["Verification History\ntimestamped records"]
+    end
+
+    Evaluate["Make Assessments"] --> Assessments
+    Assessments -->|builds| Breadth
+    Assessments --> History
+```
 
 ## How It Works
 

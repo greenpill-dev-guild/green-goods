@@ -40,7 +40,17 @@ import {
 
 Evaluators use reporting tools to transform raw attestation data into structured impact reports. Green Goods integrates with [Karma GAP](https://gap.karmahq.xyz/) to automate much of this process — approved work attestations feed directly into accountability-compatible report formats.
 
-{/* IMAGE PLACEHOLDER: Reporting dashboard showing attestation metrics and export options (800x400) */}
+```mermaid
+graph TB
+    subgraph Dashboard["Reporting Dashboard"]
+        Metrics["Attestation Metrics\nby status + period"]
+        Export["Export Options\nCSV, JSON, GAP"]
+        Trends["Trend Analysis\nperiod-over-period"]
+    end
+
+    Data["On-Chain Data\nEAS + Indexer"] --> Dashboard
+    Dashboard --> Reports["Monthly Impact\nReports"]
+```
 
 This page covers the reporting surfaces available to evaluators, the monthly reporting loop, and how to map outputs to external frameworks like SDG indicators or funder-specific schemas.
 

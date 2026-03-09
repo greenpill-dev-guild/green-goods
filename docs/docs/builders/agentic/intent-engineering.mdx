@@ -7,6 +7,8 @@ owner: docs
 last_verified: 2026-03-01
 ---
 
+import {NextBestAction} from "@site/src/components/docs";
+
 # Intent Engineering
 
 Intent engineering translates user goals into structured agent tasks. In the Green Goods workflow, this means decomposing a request like "add cookie jar support" into scoped, verifiable work items that agents can execute independently.
@@ -90,3 +92,14 @@ Intent engineering is successful when:
 - Complex tasks are decomposed into steps that can be independently tested
 - Plan files accurately reflect the dependency order of implementation steps
 - The values priority stack is applied consistently across different agents and sessions
+
+<NextBestAction
+  title="Next best action"
+  why="See how to write specifications that guide agent implementation."
+  actionLabel="Spec Engineering"
+  actionHref="./spec-engineering"
+  alternatives={[
+    {label: "Context Engineering", href: "./context-engineering"},
+    {label: "Claude Code", href: "./claude-code"},
+  ]}
+/>

@@ -39,7 +39,14 @@ import {
 
 Conviction voting and signal pools give your garden community a voice in resource allocation. Signal pools let members express preferences on which hypercerts or initiatives should receive funding, while conviction strategies apply time-weighted voting mechanics to turn signals into binding decisions.
 
-{/* IMAGE PLACEHOLDER */}
+```mermaid
+graph LR
+    Config["Configure Strategy\nvoting parameters"] --> Pool["Create Signal Pool\nregister proposals"]
+    Pool --> Roles["Map Roles\nvoting power weights"]
+    Roles --> Active["Governance Active\ngardeners can vote"]
+```
+
+<img src="/img/screenshots/admin-garden-community.png" alt="Community tab — governance status, roles overview, and treasury" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 <FeatureState
   title="Routes and hooks"

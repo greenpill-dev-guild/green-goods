@@ -7,6 +7,8 @@ owner: docs
 last_verified: 2026-03-01
 ---
 
+import {NextBestAction} from "@site/src/components/docs";
+
 # Specification Engineering
 
 Specification engineering is writing structured documents that both humans and AI agents can execute. In Green Goods, specs drive agent workflows through clearly defined phases, acceptance criteria, and verification steps.
@@ -133,3 +135,14 @@ Before handing a spec to an agent:
 ## Governance
 
 Specs are version-controlled alongside the code they describe. The guidance consistency check (`node .claude/scripts/check-guidance-consistency.js`) validates that specs do not contradict the rules and constraints defined in `CLAUDE.md` and `.claude/rules/`.
+
+<NextBestAction
+  title="Next best action"
+  why="Explore the primary AI coding tool used in the Green Goods workflow."
+  actionLabel="Claude Code"
+  actionHref="./claude-code"
+  alternatives={[
+    {label: "Intent Engineering", href: "./intent-engineering"},
+    {label: "Codex", href: "./codex"},
+  ]}
+/>

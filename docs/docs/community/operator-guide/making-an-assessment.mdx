@@ -32,9 +32,16 @@ import {DecisionGuide, NextBestAction, StatusBadge, StepFlow} from "@site/src/co
 
 Assessments are garden-level evaluations that document impact across the Eight Forms of Capital (Living, Material, Financial, Social, Intellectual, Experiential, Spiritual, Cultural). They aggregate individual work into a broader picture of your garden's regenerative contribution and create on-chain attestation records via EAS.
 
-{/* IMAGE PLACEHOLDER */}
+```mermaid
+graph LR
+    Define["Define Assessment\ntitle, timeline"] --> Capital["Select Capital Forms\nEight Forms evaluation"]
+    Capital --> Strategy["Configure Strategy\nconviction parameters"]
+    Strategy --> Submit["Submit Assessment\non-chain attestation"]
+```
 
 Use assessments when you need to formally evaluate your garden's progress, prepare for funding rounds, or create a baseline for comparing impact over time.
+
+<img src="/img/screenshots/admin-garden-impact.png" alt="Garden impact tab — hypercert highlights and assessment summary" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 ## How It Works
 

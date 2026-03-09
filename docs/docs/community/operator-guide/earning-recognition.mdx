@@ -38,7 +38,16 @@ import {
 
 Operator reputation is built through the on-chain record of your garden management activities. Every work approval, assessment, and governance action you take creates verifiable attestations that demonstrate your commitment to the community. Over time, this record becomes a portable, provable track record of impact coordination.
 
-{/* IMAGE PLACEHOLDER */}
+```mermaid
+graph TB
+    subgraph Reputation["Operator Reputation"]
+        Reviews["Review Volume\napprovals + rejections"]
+        Health["Garden Health\nactive gardeners"]
+        Contributions["Assessment\nContributions"]
+    end
+
+    Manage["Manage Gardens"] --> Reputation
+```
 
 ## How It Works
 

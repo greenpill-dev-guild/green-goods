@@ -7,9 +7,24 @@ owner: docs
 last_verified: 2026-03-01
 ---
 
+import {NextBestAction} from "@site/src/components/docs";
+
 # Context Engineering
 
-{/* IMAGE PLACEHOLDER: Context engineering — .claude directory structure and layered context (800x400) */}
+```mermaid
+graph TB
+    subgraph Layers["Context Layers (broadest → most specific)"]
+        L1["Layer 1: CLAUDE.md\nAlways loaded — commands, architecture, patterns"]
+        L2["Layer 2: AGENTS.md\nAlways loaded — invariants, scope constraints"]
+        L3["Layer 3: context/*.md\nPer-package — shared, contracts, client, etc."]
+        L4["Layer 4: rules/*.md\nPath-scoped — typescript, contracts, frontend"]
+        L5["Layer 5: skills/*\nPer-agent — 40+ domain skill sets"]
+    end
+
+    L1 --> L2 --> L3 --> L4 --> L5
+
+    L5 --> Agent["Agent Session\nwith full context stack"]
+```
 
 Context engineering is how we structure project knowledge so AI agents can work effectively with the Green Goods codebase. This goes beyond a single prompt -- it is the architecture of information that surrounds every agent interaction.
 
@@ -118,3 +133,14 @@ This runs in CI to catch drift between `CLAUDE.md`, `AGENTS.md`, agent specs, an
 3. **Machine-readable structure** -- Use frontmatter, tables, and consistent headers
 4. **Version controlled** -- All context files are committed to the repository
 5. **Testable consistency** -- CI validates that guidance files do not contradict
+
+<NextBestAction
+  title="Next best action"
+  why="Learn how to express intent clearly for AI-assisted development."
+  actionLabel="Intent Engineering"
+  actionHref="./intent-engineering"
+  alternatives={[
+    {label: "Prompt Engineering", href: "./prompt-engineering"},
+    {label: "Spec Engineering", href: "./spec-engineering"},
+  ]}
+/>

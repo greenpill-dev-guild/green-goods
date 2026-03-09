@@ -8,13 +8,31 @@ last_verified: 2026-03-01
 feature_status: Live
 ---
 
-import {StatusBadge} from "@site/src/components/docs";
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Core Philosophies
 
 <StatusBadge status="Live" />
 
-{/* IMAGE PLACEHOLDER: Agentic development philosophy — human-AI collaborative coding (800x400) */}
+```mermaid
+graph TB
+    subgraph Influences["Key Influences"]
+        NJ["Nate B. Jones\nAgent-First Dev"]
+        DA["Dario Amodei\nResponsible Scaling"]
+        AK["Andrej Karpathy\nVibe Coding"]
+        SX["Syntax Pod\nPractical AI"]
+    end
+
+    subgraph Principles["Our Principles"]
+        CE["Context > Prompts\nCLAUDE.md + .claude/"]
+        HL["Human-in-the-Loop\nat system boundaries"]
+        TDD["Test-Driven\nvalidation"]
+        CC["Cathedral Checks\npattern consistency"]
+    end
+
+    Influences --> Principles
+    Principles --> Practice["Daily Development\nwith AI Partners"]
+```
 
 ## Overview
 
@@ -88,3 +106,14 @@ Before implementing any new module, the agent (or human) finds the most similar 
 - **Syntax Podcast** -- Episodes on web development meets AI tooling, practical integration patterns
 - **Anthropic documentation** -- Claude Code CLI and agent SDK guides for building with structured context
 - **Green Goods `CLAUDE.md`** -- The living reference for how this project structures agent context (see root of this repository)
+
+<NextBestAction
+  title="Next best action"
+  why="Learn how to write effective prompts for AI agents."
+  actionLabel="Prompt Engineering"
+  actionHref="./prompt-engineering"
+  alternatives={[
+    {label: "Context Engineering", href: "./context-engineering"},
+    {label: "Spec Engineering", href: "./spec-engineering"},
+  ]}
+/>

@@ -7,9 +7,31 @@ owner: docs
 last_verified: 2026-03-01
 ---
 
+import {NextBestAction} from "@site/src/components/docs";
+
 # Gemini
 
-{/* IMAGE PLACEHOLDER: Gemini long-context analysis — large codebase review workflow (800x400) */}
+```mermaid
+graph TB
+    subgraph UseCases["Gemini Use Cases"]
+        LC["Long-Context\ngrants, specs, transcripts"]
+        MM["Multimodal\nscreenshots, OCR, VRT"]
+        SR["Search-Grounded\necosystem research"]
+    end
+
+    subgraph Access["Access Patterns"]
+        Studio["Google AI Studio\ninteractive"]
+        API["API Calls\nautomated"]
+        Vertex["Vertex AI\nproduction"]
+    end
+
+    UseCases --> Access
+
+    subgraph Complement["Complementary Roles"]
+        G["Gemini\nresearch, analysis, grounding"]
+        C["Claude\nimplementation, review, context"]
+    end
+```
 
 Google Gemini is used for specific tasks in the Green Goods ecosystem where its strengths complement the primary Claude-based toolchain. This page documents current integration points and usage patterns.
 
@@ -75,3 +97,14 @@ Gemini is generally more cost-effective for high-volume, lower-complexity tasks.
 - Use Gemini for research and analysis where grounding matters
 - Use Claude for implementation and review where codebase context matters
 - Avoid using Gemini for tasks that require the full `.claude/` context stack
+
+<NextBestAction
+  title="Next best action"
+  why="Understand how Model Context Protocol connects AI tools to the codebase."
+  actionLabel="MCP Guide"
+  actionHref="./mcp-guide"
+  alternatives={[
+    {label: "OpenClaw", href: "./openclaw"},
+    {label: "Claude Code", href: "./claude-code"},
+  ]}
+/>

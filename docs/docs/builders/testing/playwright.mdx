@@ -4,16 +4,52 @@ sidebar_label: Playwright
 slug: /builders/testing/playwright
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-03-08
+feature_status: Live
+keywords:
+  - playwright
+  - e2e testing
+  - end-to-end
+  - browser testing
+  - anvil fork
+  - integration testing
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Playwright E2E Testing
 
-{/* IMAGE PLACEHOLDER: Playwright E2E test — browser automation testing the MDR workflow (800x400) */}
+<StatusBadge status="Live" />
+
+```mermaid
+graph TB
+    subgraph Projects["Test Projects"]
+        P1["chromium\nadmin specs"]
+        P2["chromium-client\nsmoke tests"]
+        P3["critical-path\nmock-based CI"]
+        P4["anvil-fork\nlive chain"]
+        P5["passkey-mock\nAA flow"]
+    end
+
+    Config["playwright.config.ts"] --> Projects
+
+    subgraph Servers["Auto-Start Servers"]
+        S1["Envio :8080"]
+        S2["Client :3001"]
+        S3["Admin :3002"]
+    end
+
+    Config -->|webServer| Servers
+    Projects -->|test| Browser["Chromium\ntraces on retry"]
+```
 
 End-to-end tests validate the client PWA and admin dashboard using Playwright, with fixtures for Anvil fork interaction and mock-based critical path testing.
 
-## Setup
+## How To Approach Tests
+
+Playwright E2E tests verify complete user journeys through the browser — from page navigation to blockchain interaction. The philosophy is to keep E2E tests focused on critical paths, using mock-based CI variants for speed and Anvil fork variants for fidelity.
+
+### Test Directory Structure
 
 Tests live in the `tests/` directory at the monorepo root:
 
@@ -27,9 +63,7 @@ tests/
   global-teardown.ts
 ```
 
-Playwright config (`playwright.config.ts`) auto-starts three web servers when running locally: the Envio indexer on port 8080, client on 3001, and admin on 3002. Set `SKIP_WEBSERVER=true` to use already-running services.
-
-## Test Projects
+### Test Projects
 
 The config defines several Playwright projects for different testing scopes:
 
@@ -45,25 +79,26 @@ The config defines several Playwright projects for different testing scopes:
 
 Mobile projects (`mobile-chrome`, `mobile-safari`) are available but disabled by default -- enable with `--project`.
 
-## Running Tests
+### Web Server Configuration
 
-```bash
-# Run default CI test suite
-npx playwright test
+Playwright config (`playwright.config.ts`) auto-starts three web servers when running locally: the Envio indexer on port 8080, client on 3001, and admin on 3002. Set `SKIP_WEBSERVER=true` to use already-running services.
 
-# Run specific project
-npx playwright test --project=chromium
+## Completing Test Coverage
 
-# Run a single spec file
-npx playwright test tests/specs/client.navigation.spec.ts
+### Spec Conventions
 
-# Run with UI mode for debugging
-npx playwright test --ui
-```
+Spec files follow the naming pattern `{package}.{feature}.spec.ts`:
 
-## Test Fixtures
+- `client.navigation.spec.ts` -- Client routing and page transitions
+- `client.work-submission.spec.ts` -- Full work submission flow
+- `admin.auth.spec.ts` -- Admin authentication and role checks
+- `client.offline-sync.spec.ts` -- Offline-first behavior and sync
 
-### Anvil Fork Fixture
+CI-specific variants (`*.ci.spec.ts`) use lightweight mocks instead of real infrastructure, enabling faster and more reliable CI runs.
+
+### Test Fixtures
+
+#### Anvil Fork Fixture
 
 The `anvil-fork.ts` fixture spawns a local Anvil process forking from Sepolia, providing:
 
@@ -84,22 +119,27 @@ try {
 }
 ```
 
-### Contract Helpers
+#### Contract Helpers
 
 The `contract-helpers.ts` fixture provides deployment artifact types and utility functions for interacting with deployed contracts during E2E tests. It reads addresses from `packages/contracts/deployments/{chainId}-latest.json`.
 
-## Spec Conventions
+## Running Tests
 
-Spec files follow the naming pattern `{package}.{feature}.spec.ts`:
+```bash
+# Run default CI test suite
+npx playwright test
 
-- `client.navigation.spec.ts` -- Client routing and page transitions
-- `client.work-submission.spec.ts` -- Full work submission flow
-- `admin.auth.spec.ts` -- Admin authentication and role checks
-- `client.offline-sync.spec.ts` -- Offline-first behavior and sync
+# Run specific project
+npx playwright test --project=chromium
 
-CI-specific variants (`*.ci.spec.ts`) use lightweight mocks instead of real infrastructure, enabling faster and more reliable CI runs.
+# Run a single spec file
+npx playwright test tests/specs/client.navigation.spec.ts
 
-## Configuration Details
+# Run with UI mode for debugging
+npx playwright test --ui
+```
+
+### Configuration Details
 
 Key settings from `playwright.config.ts`:
 
@@ -111,3 +151,18 @@ Key settings from `playwright.config.ts`:
 - **Timeouts**: 30s navigation, 15s actions; fork tests get 60s, testnet gets 120s
 
 The global setup (`global-setup.ts`) bootstraps the test environment, and `global-teardown.ts` handles cleanup. Both use ESM-compatible imports.
+
+## Resources
+
+- [Playwright Documentation](https://playwright.dev/docs/intro) -- Official Playwright docs
+- [Playwright Test API](https://playwright.dev/docs/api/class-test) -- Test API reference
+- Test specs: `tests/specs/`
+- Test fixtures: `tests/fixtures/`
+- Playwright config: `playwright.config.ts`
+
+<NextBestAction
+  title="Next: Vitest Unit Testing"
+  why="Learn how to write unit and integration tests for TypeScript packages with Vitest."
+  actionLabel="Vitest Unit Testing"
+  actionHref="/builders/testing/vitest"
+/>

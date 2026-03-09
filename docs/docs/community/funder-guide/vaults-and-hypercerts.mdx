@@ -37,7 +37,27 @@ import {
 
 Green Goods offers two primary funding mechanisms: **yield-bearing vaults** powered by Octant infrastructure, and **Hypercerts** — tokenized impact certificates that represent verified regenerative work. Both are backed by on-chain attestation chains that provide transparent accountability.
 
-{/* IMAGE PLACEHOLDER: Split view — vault deposit flow on left, Hypercert marketplace on right (800x400) */}
+```mermaid
+graph TB
+    subgraph Vault["Vault Deposits"]
+        Select["Select Garden"]
+        Amount["Set Amount"]
+        Track["Track Yield"]
+    end
+
+    subgraph Market["Hypercert Marketplace"]
+        Browse["Browse Certificates"]
+        Purchase["Purchase Fractions"]
+        Transfer["Track Transfers"]
+    end
+
+    Funder["Funder"] --> Vault
+    Funder --> Market
+    Vault -->|yield splits| Impact["Impact Funding"]
+    Market -->|direct purchase| Impact
+```
+
+<img src="/img/screenshots/admin-endowments.png" alt="Treasury overview — total value locked across garden vaults" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 ## How It Works
 

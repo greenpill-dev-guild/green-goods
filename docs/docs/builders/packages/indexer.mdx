@@ -10,7 +10,23 @@ feature_status: Planned
 
 # Indexer Package
 
-{/* IMAGE PLACEHOLDER: Envio indexer event flow — blockchain events to GraphQL API (800x400) */}
+```mermaid
+graph LR
+    subgraph Events["On-Chain Events"]
+        E1["ActionRegistry"]
+        E2["GardenToken"]
+        E3["HatsModule"]
+        E4["OctantVault"]
+        E5["YieldSplitter"]
+    end
+
+    Chain["Blockchain\nArbitrum / Sepolia / Celo"] --> Events
+    Events --> Envio["Envio Indexer\nv2.32.3"]
+    Envio -->|handlers| PG[("PostgreSQL")]
+    PG -->|query| GQL["GraphQL API"]
+    GQL -->|fetch| Client["Client PWA"]
+    GQL -->|fetch| Admin["Admin Dashboard"]
+```
 
 :::info Coming Soon
 This page is under development. Check back soon for full content.

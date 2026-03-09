@@ -4,16 +4,60 @@ sidebar_label: Indexer
 slug: /builders/deployments/indexer-deploy
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-03-08
+feature_status: Live
+keywords: [indexer, Envio, GraphQL, Docker, events, handlers]
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Indexer Deployment
 
-{/* IMAGE PLACEHOLDER: Envio indexer deployment — Docker container processing blockchain events (800x400) */}
+<StatusBadge status="Live" />
+
+```mermaid
+graph LR
+    subgraph Setup
+        CG["bun run codegen\nTypeScript types"]
+        SG["setup-generated\nbuild package"]
+    end
+
+    Setup --> Docker["Docker Compose\nenvio start"]
+
+    subgraph Runtime
+        PG[("PostgreSQL")]
+        Handlers["Event Handlers\n6 handler files"]
+        GQL["GraphQL API"]
+    end
+
+    Docker --> Runtime
+    Artifacts["deployments/\n{chainId}-latest.json"] -->|addresses| Handlers
+
+    Verify["verify:post-deploy\n:indexer"] -->|check| Runtime
+```
 
 The Green Goods indexer uses Envio (v2.32.3) to index on-chain events into a PostgreSQL-backed GraphQL API. Deployment involves codegen, Docker orchestration, and environment configuration.
 
-## Architecture
+## Deployment Checklist
+
+1. Ensure contract deployment artifacts exist at `packages/contracts/deployments/{chainId}-latest.json`
+2. Run codegen to generate TypeScript types: `cd packages/indexer && bun run codegen`
+3. Run `bun run setup-generated` to install and build the generated package
+4. Deploy to Envio hosted service: `envio start`
+5. Verify the indexer is tracking the correct contract addresses: `bun run verify:post-deploy:indexer:sepolia`
+6. Run diagnostics to confirm health: `bun run doctor`
+7. Run tests to validate handler logic: `bun run test`
+
+## Build Environments
+
+### Environment Configuration
+
+The indexer reads contract addresses from deployment artifacts. Key environment variables:
+
+- `VITE_ENVIO_INDEXER_URL` -- GraphQL endpoint URL (consumed by frontends)
+- Chain-specific RPC URLs for indexing
+
+### Indexing Scope
 
 The indexer package (`packages/indexer/`) indexes Green Goods core state only:
 
@@ -26,9 +70,22 @@ The indexer package (`packages/indexer/`) indexes Green Goods core state only:
 
 The indexer does **not** re-index EAS attestations, Gardens V2 community/pools, marketplace activity, ENS lifecycle, cookie jars, or Hypercert display metadata. These are queried directly from their respective APIs.
 
-## Local Development
+### Testing
 
-### First-Time Setup
+```bash
+cd packages/indexer
+bun run test        # Run Mocha tests
+bun run test:coverage  # With c8 coverage
+bun run test:full   # Codegen + setup + test
+```
+
+Tests use Mocha with Chai assertions (not Vitest -- the Envio generated package requires this).
+
+## Making A Deployment
+
+### Local Development
+
+#### First-Time Setup
 
 ```bash
 cd packages/indexer
@@ -37,7 +94,7 @@ bun run setup-generated  # Install and build generated package
 bun run dev              # Start indexer with Docker
 ```
 
-### Development Commands
+#### Development Commands
 
 ```bash
 bun run dev              # Start via dev.sh script
@@ -48,7 +105,7 @@ bun run dev:docker:down  # Stop Docker services
 bun run stop             # Kill all indexer processes
 ```
 
-### Diagnostics
+#### Diagnostics
 
 ```bash
 bun run doctor           # Check indexer health
@@ -56,9 +113,7 @@ bun run doctor:fix       # Auto-fix common issues
 bun run check:indexing-boundary  # Verify indexing scope
 ```
 
-## Deployment Process
-
-### Envio Hosted
+### Envio Hosted Deployment
 
 Production indexers are hosted by Envio. Deployment is triggered by pushing updated configuration:
 
@@ -69,13 +124,6 @@ envio start
 ```
 
 Envio handles PostgreSQL provisioning, scaling, and the GraphQL API layer.
-
-### Environment Configuration
-
-The indexer reads contract addresses from deployment artifacts. Key environment variables:
-
-- `VITE_ENVIO_INDEXER_URL` -- GraphQL endpoint URL (consumed by frontends)
-- Chain-specific RPC URLs for indexing
 
 ### Post-Deploy Verification
 
@@ -90,7 +138,7 @@ bun run verify:post-deploy:indexer:sepolia
 bun run verify:post-deploy:indexer:local:sepolia
 ```
 
-## Handler Architecture
+### Handler Architecture
 
 Event handlers live in `packages/indexer/src/handlers/`:
 
@@ -106,18 +154,7 @@ Event handlers live in `packages/indexer/src/handlers/`:
 
 Handlers use `console.error` for logging (Envio runtime has no logger service).
 
-## Testing
-
-```bash
-cd packages/indexer
-bun run test        # Run Mocha tests
-bun run test:coverage  # With c8 coverage
-bun run test:full   # Codegen + setup + test
-```
-
-Tests use Mocha with Chai assertions (not Vitest -- the Envio generated package requires this).
-
-## Reset and Reindex
+### Reset and Reindex
 
 To force a full reindex from scratch:
 
@@ -127,3 +164,16 @@ bun run reset       # Drops data and restarts from block 0
 ```
 
 This is necessary when handler logic changes affect historical event processing.
+
+## Resources
+
+<NextBestAction
+  title="Next: Deploy the Client PWA"
+  why="With contracts deployed and the indexer running, the client PWA can be built and deployed to serve users."
+  actionLabel="Client PWA Deployment"
+  actionHref="/builders/deployments/client-deploy"
+  alternatives={[
+    {label: "Contract Deployments", href: "/builders/deployments/contracts-deploy"},
+    {label: "Admin Deployment", href: "/builders/deployments/admin-deploy"},
+  ]}
+/>

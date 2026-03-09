@@ -44,7 +44,17 @@ import {
 
 Operators manage the financial flows within their garden — from vault deposits and yield tracking to direct gardener payouts through cookie jars. This page covers both the primary vault system and the cookie jar mechanism for recurring, low-overhead distributions.
 
-{/* IMAGE PLACEHOLDER: Operator payout dashboard showing vault balances and cookie jar status (800x400) */}
+```mermaid
+graph TB
+    subgraph Payouts["Payout Dashboard"]
+        VaultPos["Vault Position\ndeposits, yield, balance"]
+        CJStatus["Cookie Jar\ninterval + cooldown"]
+        Tracking["Withdrawal Tracking\nhistory + patterns"]
+    end
+
+    Monitor["Monitor Balances"] --> Payouts
+    Payouts --> Distribute["Distribute to\nGardeners"]
+```
 
 ## How It Works
 

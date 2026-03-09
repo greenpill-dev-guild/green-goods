@@ -4,23 +4,52 @@ sidebar_label: Client PWA
 slug: /builders/deployments/client-deploy
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-03-08
+feature_status: Live
+keywords: [client, PWA, Vite, service worker, offline, deployment]
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Client PWA Deployment
 
-{/* IMAGE PLACEHOLDER: PWA deployment — build, service worker registration, CDN distribution (800x400) */}
+<StatusBadge status="Live" />
+
+```mermaid
+graph LR
+    Contracts["contracts\nABIs"] --> Build
+    Shared["shared\nhooks"] --> Build
+
+    Build["Vite Build\nVITE_CHAIN_ID"] --> Dist["dist/\nstatic assets"]
+    Dist --> CDN["CDN / Static Host"]
+
+    subgraph PWA["PWA Layer"]
+        SW["Service Worker\nprecache + runtime"]
+        IDB["IndexedDB\noffline data"]
+        Sync["Background Sync\nqueue + retry"]
+    end
+
+    CDN --> PWA
+```
 
 The client is an offline-first Progressive Web App built with Vite and React. Deployment produces a static build with service worker support for offline functionality.
 
-## Build Process
+<div style={{maxWidth: '280px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-passkey-login.png" alt="Client PWA — passkey login with biometric authentication" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
 
-```bash
-# Build for production
-VITE_CHAIN_ID=42161 bun run build:client
-```
+## Deployment Checklist
 
-The build is single-chain: `VITE_CHAIN_ID` determines which deployment artifact and chain configuration is baked in at build time.
+1. Ensure `packages/contracts` and `packages/shared` are built (the client depends on both)
+2. Set the correct `VITE_CHAIN_ID` for the target environment in the root `.env`
+3. Verify all required environment variables are configured (see [Build Environments](#build-environments))
+4. Build the client: `VITE_CHAIN_ID=42161 bun run build:client`
+5. Deploy static output from `packages/client/dist/` to your CDN or static hosting provider
+6. Configure cache-busting headers for `index.html` and long-lived caching for hashed static assets
+7. Verify the service worker registers and precaches assets correctly
+8. Run Lighthouse audit to check Performance, Accessibility, PWA readiness, and SEO
+
+## Build Environments
 
 ### Build Dependencies
 
@@ -42,25 +71,18 @@ All environment variables come from the root `.env` file (never package-specific
 | `VITE_PIMLICO_API_KEY` | Pimlico bundler/paymaster for account abstraction |
 | `VITE_ENVIO_INDEXER_URL` | Envio GraphQL endpoint |
 
-## Service Worker
+### Single-Chain Build
 
-The PWA service worker enables offline functionality -- the core differentiator of the client app. Key behaviors:
+The build is single-chain: `VITE_CHAIN_ID` determines which deployment artifact and chain configuration is baked in at build time.
 
-- **Precaching** -- Static assets are cached at install time
-- **Runtime caching** -- API responses are cached with stale-while-revalidate
-- **Background sync** -- Work submissions queue when offline and sync when connectivity returns
-- **Update detection** -- The `useServiceWorkerUpdate` hook detects new versions and prompts users
+## Making A Deployment
 
-### Service Worker Update Flow
+### Build Process
 
-The shared hook `useServiceWorkerUpdate` handles the update lifecycle:
-
-1. Detect waiting service worker
-2. Show update prompt to user
-3. On accept, send `SKIP_WAITING` message
-4. Reload the page with the new version
-
-## Deployment Pipeline
+```bash
+# Build for production
+VITE_CHAIN_ID=42161 bun run build:client
+```
 
 ### Static Hosting
 
@@ -80,7 +102,25 @@ The E2E workflow builds the client with test configuration:
 
 `VITE_USE_HASH_ROUTER` enables hash-based routing for environments where server-side routing is not available (e.g., IPFS hosting).
 
-## Offline-First Architecture
+### Service Worker
+
+The PWA service worker enables offline functionality -- the core differentiator of the client app. Key behaviors:
+
+- **Precaching** -- Static assets are cached at install time
+- **Runtime caching** -- API responses are cached with stale-while-revalidate
+- **Background sync** -- Work submissions queue when offline and sync when connectivity returns
+- **Update detection** -- The `useServiceWorkerUpdate` hook detects new versions and prompts users
+
+#### Service Worker Update Flow
+
+The shared hook `useServiceWorkerUpdate` handles the update lifecycle:
+
+1. Detect waiting service worker
+2. Show update prompt to user
+3. On accept, send `SKIP_WAITING` message
+4. Reload the page with the new version
+
+### Offline-First Architecture
 
 The client is designed to work without internet connectivity:
 
@@ -91,7 +131,7 @@ The client is designed to work without internet connectivity:
 
 This architecture means the deployment must ensure the service worker and precached assets are delivered correctly. Cache-busting headers should be set for `index.html` but long-lived caching for hashed static assets.
 
-## Performance Monitoring
+### Performance Monitoring
 
 The `lighthouse-ci.yml` workflow runs Lighthouse audits against deployed sites, checking:
 
@@ -101,3 +141,16 @@ The `lighthouse-ci.yml` workflow runs Lighthouse audits against deployed sites, 
 - SEO basics
 
 Source maps are uploaded separately via `upload-sourcemaps.yml` for error tracking in production.
+
+## Resources
+
+<NextBestAction
+  title="Next: Deploy the Admin Dashboard"
+  why="The admin dashboard shares the same build toolchain as the client but targets garden operators with role-based access."
+  actionLabel="Admin Dashboard Deployment"
+  actionHref="/builders/deployments/admin-deploy"
+  alternatives={[
+    {label: "Client PWA Deployment", href: "/builders/deployments/client-deploy"},
+    {label: "Agent Deployment", href: "/builders/deployments/agent-deploy"},
+  ]}
+/>

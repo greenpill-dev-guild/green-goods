@@ -33,7 +33,13 @@ import {EAS_EXPLORER_ENDPOINTS} from "@site/src/data/endpoints";
 
 Attestation chain verification is the core evaluator skill. Every approved piece of work in Green Goods creates a linked pair of attestations: a work submission attestation and an approval attestation that references it. Verifying this chain confirms that impact claims are backed by real, operator-validated evidence.
 
-{/* IMAGE PLACEHOLDER */}
+```mermaid
+graph LR
+    Work["Work Attestation\nUID + media"] --> Match["Match UIDs\nwork → approval"]
+    Match --> Approval["Approval Attestation\noperator signature"]
+    Approval --> Assess["Create Assessment\nEight Forms of Capital"]
+    Assess --> Chain["On-Chain\nAttestation"]
+```
 
 ## How It Works
 

@@ -4,46 +4,54 @@ sidebar_label: Agent
 slug: /builders/deployments/agent-deploy
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-03-08
+feature_status: Live
+keywords: [agent, Telegram, bot, Fastify, PM2, deployment]
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Agent Deployment
 
-{/* IMAGE PLACEHOLDER: Agent bot deployment — PM2 process management and webhook setup (800x400) */}
+<StatusBadge status="Live" />
+
+```mermaid
+graph TB
+    Build["bun build\ntsc → dist/"] --> Start["bun start"]
+
+    subgraph Runtime["Agent Runtime"]
+        Fastify["Fastify\nHTTP + health"]
+        Telegraf["Telegraf\nTelegram API"]
+        Pino["Pino\nstructured logs"]
+    end
+
+    Start -->|PM2| Runtime
+
+    subgraph Integrations
+        TG["Telegram\nwebhooks"]
+        Chain["Blockchain\nviem"]
+        IPFS["Storacha\nIPFS uploads"]
+    end
+
+    Runtime --> Integrations
+```
 
 The agent package (`packages/agent/`) is a Fastify-based bot service that provides Telegram integration for the Green Goods protocol. It handles work submission via chat, blockchain interactions, and IPFS uploads.
 
-## Architecture
+## Deployment Checklist
 
-The agent runs as a long-lived Node.js/Bun process:
+1. Ensure all required environment variables are set in the root `.env` (see [Build Environments](#build-environments))
+2. Build the agent: `cd packages/agent && bun build`
+3. Run tests: `cd packages/agent && bun run test`
+4. Start the compiled output: `cd packages/agent && bun start`
+5. Verify Telegram webhook delivery status
+6. Check Fastify health endpoint responds
+7. Monitor process uptime and memory usage via PM2
+8. Confirm blockchain RPC connectivity and error rates in Pino structured logs
 
-- **Fastify** HTTP server for webhooks and health checks
-- **Telegraf** for Telegram bot API interaction
-- **Pino** for structured logging (with `pino-pretty` for development)
-- **viem** for blockchain interactions
-- **@storacha/client** for IPFS uploads
-- **@xenova/transformers** for local ML inference (classification tasks)
+## Build Environments
 
-## Local Development
-
-```bash
-cd packages/agent
-bun run dev     # Start with --watch for hot reload
-```
-
-The agent loads environment variables from the root `.env` file.
-
-## Build and Start
-
-```bash
-cd packages/agent
-bun build       # TypeScript compilation
-bun start       # Run compiled output from dist/
-```
-
-The build step uses `tsc` to compile TypeScript to the `dist/` directory.
-
-## Environment Variables
+### Environment Variables
 
 Key variables required for the agent service:
 
@@ -55,7 +63,29 @@ Key variables required for the agent service:
 | `VITE_STORACHA_KEY` | Ed25519 principal for IPFS uploads |
 | `VITE_PIMLICO_API_KEY` | Account abstraction bundler/paymaster |
 
-## Testing
+The agent loads environment variables from the root `.env` file.
+
+### API Key Management
+
+Sensitive keys should be managed through environment variables or a secrets manager:
+
+- Never commit API keys to the repository
+- Rotate `TELEGRAM_BOT_TOKEN` if compromised
+- `DEPLOYER_PRIVATE_KEY` controls on-chain funds -- use a dedicated bot wallet with limited balance
+- `VITE_STORACHA_KEY` is an ed25519 principal -- generate with Storacha client tooling
+
+### Architecture
+
+The agent runs as a long-lived Node.js/Bun process:
+
+- **Fastify** HTTP server for webhooks and health checks
+- **Telegraf** for Telegram bot API interaction
+- **Pino** for structured logging (with `pino-pretty` for development)
+- **viem** for blockchain interactions
+- **@storacha/client** for IPFS uploads
+- **@xenova/transformers** for local ML inference (classification tasks)
+
+### Testing
 
 ```bash
 cd packages/agent
@@ -73,7 +103,24 @@ Tests cover:
 
 Test utilities in `packages/agent/src/__tests__/utils/` include mock factories and shared mock setup.
 
-## Deployment Process
+## Making A Deployment
+
+### Build and Start
+
+```bash
+cd packages/agent
+bun build       # TypeScript compilation
+bun start       # Run compiled output from dist/
+```
+
+The build step uses `tsc` to compile TypeScript to the `dist/` directory.
+
+### Local Development
+
+```bash
+cd packages/agent
+bun run dev     # Start with --watch for hot reload
+```
 
 ### Process Management
 
@@ -99,16 +146,7 @@ The Fastify server exposes health check endpoints. Monitor:
 - Blockchain RPC connectivity
 - Error rates in Pino structured logs
 
-### API Key Management
-
-Sensitive keys should be managed through environment variables or a secrets manager:
-
-- Never commit API keys to the repository
-- Rotate `TELEGRAM_BOT_TOKEN` if compromised
-- `DEPLOYER_PRIVATE_KEY` controls on-chain funds -- use a dedicated bot wallet with limited balance
-- `VITE_STORACHA_KEY` is an ed25519 principal -- generate with Storacha client tooling
-
-## Blockchain Integration
+### Blockchain Integration
 
 The agent uses `@green-goods/shared` for blockchain interactions, following the same patterns as the frontend packages:
 
@@ -117,6 +155,17 @@ The agent uses `@green-goods/shared` for blockchain interactions, following the 
 - Error handling via `parseContractError()` and `createMutationErrorHandler()`
 - Logging via `logger` from shared (not `console.log`)
 
-## CI Integration
+## Resources
 
-The `agent-tests.yml` workflow triggers on changes to `packages/agent/**` and runs Vitest tests with lint checks.
+- **CI Integration**: The `agent-tests.yml` workflow triggers on changes to `packages/agent/**` and runs Vitest tests with lint checks.
+
+<NextBestAction
+  title="Next: Testing with Foundry"
+  why="Learn how to write and run Foundry tests for the Green Goods smart contracts."
+  actionLabel="Foundry Testing"
+  actionHref="/builders/testing/forge"
+  alternatives={[
+    {label: "Deployment Status", href: "/builders/deployments/status"},
+    {label: "Vitest Testing", href: "/builders/testing/vitest"},
+  ]}
+/>
