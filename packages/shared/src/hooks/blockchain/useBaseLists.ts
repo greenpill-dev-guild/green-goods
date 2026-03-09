@@ -1,9 +1,4 @@
-import {
-  type QueryKey,
-  type UseQueryResult,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { type QueryKey, type UseQueryResult, useQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { getActions, getGardeners, getGardens } from "../../modules/data/greengoods";
@@ -13,6 +8,13 @@ import { queryKeys } from "../query-keys";
 /**
  * Factory function for creating base list hooks with consistent caching behavior.
  * Reduces code duplication across action, garden, and gardener list hooks.
+ *
+ * NOTE: We intentionally do NOT use `initialData` with `queryClient.getQueryData()`.
+ * The admin app uses PersistQueryClientProvider which hydrates the cache asynchronously.
+ * Reading from cache during the isRestoring phase returns undefined (cache is empty),
+ * which creates a false "pending" → "success with []" transition that propagates
+ * downstream and disables dependent queries (e.g. usePlatformStats).
+ * PersistQueryClientProvider handles cache restoration — no manual seeding needed.
  *
  * @param getQueryKey - Function to get the query key
  * @param fetchFn - Function to fetch the data
@@ -27,7 +29,6 @@ function createBaseListHook<T>(
   }
 ): (chainId?: number) => UseQueryResult<T[], Error> {
   return function useBaseList(chainId: number = DEFAULT_CHAIN_ID) {
-    const queryClient = useQueryClient();
     const queryKey = getQueryKey(chainId);
 
     return useQuery({
@@ -35,9 +36,6 @@ function createBaseListHook<T>(
       queryFn: fetchFn,
       staleTime: options?.staleTime ?? STALE_TIMES.baseLists,
       gcTime: options?.gcTime ?? GC_TIMES.baseLists,
-      // Show cached data immediately if available (from IndexedDB persistence)
-      initialData: () => queryClient.getQueryData<T[]>(queryKey),
-      initialDataUpdatedAt: () => queryClient.getQueryState(queryKey)?.dataUpdatedAt,
       placeholderData: (previousData) => previousData ?? [],
     });
   };

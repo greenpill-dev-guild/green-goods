@@ -2,16 +2,28 @@ import {
   formatRelativeTime,
   type EASGardenAssessment,
   type EASWork,
+  type EASWorkApproval,
   type Garden,
 } from "@green-goods/shared";
-import { RiAwardLine, RiCheckDoubleLine, RiFileListLine, RiPlantLine } from "@remixicon/react";
+import {
+  RiAwardLine,
+  RiCheckDoubleLine,
+  RiFileListLine,
+  RiPlantLine,
+  RiUserAddLine,
+} from "@remixicon/react";
 import { type ComponentType, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 
-type ActivityType = "garden_created" | "work_submitted" | "work_approved" | "assessment_created";
+type ActivityType =
+  | "garden_created"
+  | "work_submitted"
+  | "work_approved"
+  | "assessment_created"
+  | "gardener_added";
 
 interface ActivityItem {
   id: string;
@@ -26,6 +38,7 @@ const ACTIVITY_ICONS: Record<ActivityType, ComponentType<{ className?: string }>
   work_submitted: RiFileListLine,
   work_approved: RiCheckDoubleLine,
   assessment_created: RiAwardLine,
+  gardener_added: RiUserAddLine,
 };
 
 const ACTIVITY_COLORS: Record<ActivityType, string> = {
@@ -33,12 +46,14 @@ const ACTIVITY_COLORS: Record<ActivityType, string> = {
   work_submitted: "bg-information-lighter text-information-dark",
   work_approved: "bg-success-lighter text-success-dark",
   assessment_created: "bg-warning-lighter text-warning-dark",
+  gardener_added: "bg-information-lighter text-information-dark",
 };
 
 interface RecentActivitySectionProps {
   gardens: Garden[];
   works?: EASWork[];
   assessments?: EASGardenAssessment[];
+  workApprovals?: EASWorkApproval[];
   maxItems?: number;
   className?: string;
 }
@@ -51,6 +66,7 @@ function buildActivityItems(
   gardens: Garden[],
   works: EASWork[] | undefined,
   assessments: EASGardenAssessment[] | undefined,
+  workApprovals: EASWorkApproval[] | undefined,
   intl: ReturnType<typeof useIntl>
 ): ActivityItem[] {
   // Build garden address → name lookup
@@ -119,6 +135,37 @@ function buildActivityItems(
     }
   }
 
+  // Work approval events
+  if (workApprovals) {
+    for (const approval of workApprovals) {
+      const status = approval.approved
+        ? intl.formatMessage({
+            id: "admin.dashboard.activity.approved",
+            defaultMessage: "approved",
+          })
+        : intl.formatMessage({
+            id: "admin.dashboard.activity.rejected",
+            defaultMessage: "rejected",
+          });
+      items.push({
+        id: `approval-${approval.id}`,
+        type: "work_approved",
+        description: intl.formatMessage(
+          {
+            id: "admin.dashboard.activity.workApproved",
+            defaultMessage: "Work {status} by {operator}",
+          },
+          {
+            status,
+            operator:
+              approval.operatorAddress.slice(0, 6) + "…" + approval.operatorAddress.slice(-4),
+          }
+        ),
+        timestamp: approval.createdAt,
+      });
+    }
+  }
+
   return items.sort((a, b) => b.timestamp - a.timestamp);
 }
 
@@ -126,17 +173,23 @@ export function RecentActivitySection({
   gardens,
   works,
   assessments,
-  maxItems = 8,
+  workApprovals,
+  maxItems = 10,
   className,
 }: RecentActivitySectionProps) {
   const intl = useIntl();
 
   const activityItems = useMemo(
-    () => buildActivityItems(gardens, works, assessments, intl).slice(0, maxItems),
+    () => buildActivityItems(gardens, works, assessments, workApprovals, intl).slice(0, maxItems),
     // intl is stable from react-intl's context; only data deps matter
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [gardens, works, assessments, maxItems]
+    [gardens, works, assessments, workApprovals, maxItems]
   );
+
+  // Detect when gardens exist but no EAS data has been created yet
+  const hasGardens = gardens.length > 0;
+  const hasEASData = (works?.length ?? 0) > 0 || (assessments?.length ?? 0) > 0 || (workApprovals?.length ?? 0) > 0;
+  const gardenOnlyActivity = hasGardens && !hasEASData && activityItems.length > 0;
 
   return (
     <Card className={className}>
@@ -148,7 +201,7 @@ export function RecentActivitySection({
           })}
         </h2>
       </Card.Header>
-      <Card.Body className="p-0">
+      <Card.Body className="p-0 max-h-[480px] overflow-y-auto">
         {activityItems.length === 0 ? (
           <div className="px-4 py-6">
             <EmptyState
@@ -159,7 +212,8 @@ export function RecentActivitySection({
               })}
               description={intl.formatMessage({
                 id: "admin.dashboard.noActivity.description",
-                defaultMessage: "Activity will appear here as gardens are created and managed.",
+                defaultMessage:
+                  "This feed tracks garden creation, work submissions, approvals, and assessments. Activity will appear as gardeners begin documenting their work on-chain.",
               })}
             />
           </div>
@@ -196,6 +250,17 @@ export function RecentActivitySection({
 
               return <div key={item.id}>{content}</div>;
             })}
+          </div>
+        )}
+        {gardenOnlyActivity && (
+          <div className="px-4 py-3 border-t border-stroke-soft">
+            <p className="text-xs text-text-soft text-center">
+              {intl.formatMessage({
+                id: "admin.dashboard.activity.gardenOnlyHint",
+                defaultMessage:
+                  "Only garden creation events so far. Work submissions, approvals, and assessments will appear as gardeners document their work.",
+              })}
+            </p>
           </div>
         )}
       </Card.Body>
