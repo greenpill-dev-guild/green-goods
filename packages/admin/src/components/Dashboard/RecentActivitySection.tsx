@@ -188,7 +188,8 @@ export function RecentActivitySection({
 
   // Detect when gardens exist but no EAS data has been created yet
   const hasGardens = gardens.length > 0;
-  const hasEASData = (works?.length ?? 0) > 0 || (assessments?.length ?? 0) > 0 || (workApprovals?.length ?? 0) > 0;
+  const hasEASData =
+    (works?.length ?? 0) > 0 || (assessments?.length ?? 0) > 0 || (workApprovals?.length ?? 0) > 0;
   const gardenOnlyActivity = hasGardens && !hasEASData && activityItems.length > 0;
 
   return (

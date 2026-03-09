@@ -6,7 +6,7 @@ import { ImageWithFallback } from "../../Display";
 import { Card, type CardRootProps } from "../Base/Card";
 
 export const cardVariants = tv({
-  base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0 h-max-content", // Fixed height to match garden cards
+  base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0 h-max-content",
   variants: {
     media: {
       large: "",
@@ -37,18 +37,15 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
       <Card
         ref={ref}
         data-testid="action-card"
-        className={cn(classes, "tap-feedback transition-all duration-300")}
+        className={cn(classes, "@container tap-feedback transition-all duration-300")}
         {...props}
       >
-        <div className={cn("relative", media === "large" ? "h-40" : "h-26", "w-full")}>
+        <div className={cn("relative h-26 @[300px]:h-32 @[400px]:h-40", "w-full")}>
           <ImageWithFallback
             src={action.media[0]}
             alt={action.description}
-            className={cn(
-              media === "large" ? "h-40" : "h-26",
-              "w-full object-cover image-lut z-1"
-            )}
-            fallbackClassName={cn(media === "large" ? "h-40" : "h-26", "w-full")}
+            className="h-26 @[300px]:h-32 @[400px]:h-40 w-full object-cover image-lut z-1"
+            fallbackClassName="h-26 @[300px]:h-32 @[400px]:h-40 w-full"
             backgroundFallback={
               <ActionBannerFallback domain={action.domain} title={action.title} />
             }
@@ -56,7 +53,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
         </div>
         <div
           data-selected={selected}
-          className="p-5 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border transition-all duration-400 flex-1"
+          className="p-3 @[300px]:p-4 @[400px]:p-5 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border transition-all duration-300 flex-1"
         >
           <div className="flex flex-row gap-2">
             <div

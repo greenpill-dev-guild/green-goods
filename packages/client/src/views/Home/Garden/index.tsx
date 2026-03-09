@@ -313,7 +313,9 @@ export const Garden: React.FC = () => {
                   alt={`${name} banner`}
                   loading="eager"
                   className="absolute inset-0 w-full h-full object-cover object-center"
-                  backgroundFallback={<GardenBannerFallback name={name} className="rounded-b-3xl" />}
+                  backgroundFallback={
+                    <GardenBannerFallback name={name} className="rounded-b-3xl" />
+                  }
                 />
                 <div className="absolute top-0 left-0 right-0 z-20">
                   <TopNav

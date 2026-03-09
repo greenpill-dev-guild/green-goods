@@ -224,6 +224,24 @@ export default function GardenDetail() {
     sticky: true,
   } as const;
 
+  // Must be called unconditionally (Rules of Hooks) — before early returns
+  const derived = useGardenDerivedState({
+    garden: garden ?? { id: "", domainMask: 0, name: "", chainId: 0 },
+    works,
+    assessments,
+    hypercerts,
+    allocations,
+    gardenVaults,
+    vaultNetDeposited,
+    roleMembers,
+    selectedRange,
+    activityFilter,
+    memberSearch,
+    section,
+    formatMessage,
+    openSection,
+  });
+
   if (fetching) {
     return (
       <div className="pb-6">
@@ -281,23 +299,6 @@ export default function GardenDetail() {
       </div>
     );
   }
-
-  const derived = useGardenDerivedState({
-    garden,
-    works,
-    assessments,
-    hypercerts,
-    allocations,
-    gardenVaults,
-    vaultNetDeposited,
-    roleMembers,
-    selectedRange,
-    activityFilter,
-    memberSearch,
-    section,
-    formatMessage,
-    openSection,
-  });
 
   const tabActions: Record<GardenTab, React.ReactNode> = {
     overview: canManage ? (

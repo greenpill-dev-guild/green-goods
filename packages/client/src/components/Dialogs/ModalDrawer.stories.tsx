@@ -113,7 +113,7 @@ const meta: Meta<typeof ModalDrawer> = {
     },
     className: {
       control: "text",
-      description: "Additional CSS classes for the Dialog.Content wrapper",
+      description: "Additional CSS classes for the drawer panel",
     },
     contentClassName: {
       control: "text",
@@ -121,7 +121,7 @@ const meta: Meta<typeof ModalDrawer> = {
     },
     maxHeight: {
       control: "text",
-      description: "Maximum height of the drawer. Defaults to '95vh'.",
+      description: "Maximum height of the drawer. Uses h-modal (85dvh) by default.",
     },
   },
 };
@@ -136,8 +136,8 @@ export const Default: Story = {
     >
       <div className="space-y-4">
         <p className="text-sm text-text-sub-600">
-          This drawer slides up from the bottom of the screen. It uses Radix Dialog for proper
-          accessibility, focus trapping, and keyboard dismissal.
+          This drawer slides up from the bottom of the screen with a manual focus trap, keyboard
+          dismissal, and CSS keyframe animations matching the WorkDashboard pattern.
         </p>
         <div className="p-4 rounded-lg bg-bg-weak-50">
           <h4 className="font-medium text-sm">Location</h4>
@@ -228,9 +228,9 @@ export const Gallery: Story = {
   render: () => (
     <div className="flex flex-col gap-6 p-4">
       <p className="text-sm text-text-sub-600">
-        ModalDrawer is a bottom-sheet pattern using Radix Dialog. Click &ldquo;Open Drawer&rdquo; buttons below
-        to see each variant. The Gallery shows the trigger buttons only since multiple portalled
-        drawers cannot be rendered side-by-side.
+        ModalDrawer is a bottom-sheet pattern matching the WorkDashboard modal. Click &ldquo;Open
+        Drawer&rdquo; buttons below to see each variant. The Gallery shows the trigger buttons only
+        since multiple portalled drawers cannot be rendered side-by-side.
       </p>
       <div className="flex flex-wrap gap-3">
         <ModalDrawerDemo header={{ title: "Simple" }}>

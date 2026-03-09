@@ -98,6 +98,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
               {media.map((item, index) => (
                 <CarouselItem
                   key={item}
+                  index={index}
                   className="max-w-40 aspect-3/4 rounded-2xl relative overflow-hidden"
                 >
                   <ImageWithFallback
@@ -128,7 +129,10 @@ export const WorkView: React.FC<WorkViewProps> = ({
       {isDetailsLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 2 }).map((_, i) => (
-            <div key={`detail-loading-${i}`} className="h-12 bg-bg-weak-50 rounded-lg animate-pulse" />
+            <div
+              key={`detail-loading-${i}`}
+              className="h-12 bg-bg-weak-50 rounded-lg animate-pulse"
+            />
           ))}
         </div>
       ) : (

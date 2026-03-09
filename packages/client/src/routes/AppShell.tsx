@@ -1,9 +1,19 @@
 import { JobQueueProvider, WorkProvider } from "@green-goods/shared";
-import { Outlet, ScrollRestoration } from "react-router-dom";
+import { useLayoutEffect } from "react";
+import { Outlet, ScrollRestoration, useLocation } from "react-router-dom";
 import { OfflineIndicator } from "@/components/Communication";
 import { AppBar } from "@/components/Layout";
 
 export default function AppShell() {
+  const { pathname } = useLocation();
+
+  // Reset the custom scroll container on every route change.
+  // React Router's <ScrollRestoration> only manages window.scrollTo,
+  // but our scrollable element is #app-scroll — so we handle it here.
+  useLayoutEffect(() => {
+    document.getElementById("app-scroll")?.scrollTo(0, 0);
+  }, [pathname]);
+
   return (
     <JobQueueProvider>
       <WorkProvider>

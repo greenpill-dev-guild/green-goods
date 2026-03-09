@@ -201,9 +201,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
         </div>
 
         {/* Footer — fixed at bottom, above content scroll */}
-        {footer && (
-          <div className="flex-shrink-0 border-t border-border p-4">{footer}</div>
-        )}
+        {footer && <div className="flex-shrink-0 border-t border-border p-4">{footer}</div>}
       </div>
     </div>
   );

@@ -112,7 +112,7 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
         <div
           data-selected={selected}
           className={cn(
-            "p-3 @[300px]:p-4 @[400px]:p-5 flex flex-col gap-2 border border-border rounded-lg transition-all duration-400 flex-1",
+            "p-3 @[300px]:p-4 @[400px]:p-5 flex flex-col gap-2 border border-border rounded-lg transition-all duration-300 flex-1",
             showBanner && "border-t-0 rounded-t-0"
           )}
         >
