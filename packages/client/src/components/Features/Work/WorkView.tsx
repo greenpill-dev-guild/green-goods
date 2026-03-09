@@ -1,4 +1,4 @@
-import type { Garden } from "@green-goods/shared";
+import { AudioPlayer, resolveIPFSUrl, type Garden } from "@green-goods/shared";
 import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -25,6 +25,8 @@ type WorkViewProps = {
   garden?: Garden;
   actionTitle: string;
   media?: string[];
+  /** IPFS CIDs for gardener audio notes (from work metadata) */
+  audioNoteCids?: string[];
   details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
   /** When true, shows skeleton placeholders for details instead of the actual cards */
   isDetailsLoading?: boolean;
@@ -52,6 +54,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
   garden,
   actionTitle,
   media = [],
+  audioNoteCids,
   details,
   isDetailsLoading = false,
   headerIcon: HeaderIcon,
@@ -65,6 +68,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
   const intl = useIntl();
 
   const hasMedia = showMedia && Array.isArray(media) && media.length > 0;
+  const hasAudioNotes = audioNoteCids && audioNoteCids.length > 0;
   const visibleActions = primaryActions.filter((a) => a.visible !== false);
 
   return (
@@ -111,6 +115,22 @@ export const WorkView: React.FC<WorkViewProps> = ({
               ))}
             </CarouselContent>
           </Carousel>
+        </>
+      )}
+
+      {hasAudioNotes && (
+        <>
+          <h6>
+            {intl.formatMessage({
+              id: "app.home.work.audioNotes",
+              defaultMessage: "Audio Notes",
+            })}
+          </h6>
+          <div className="flex flex-col gap-2">
+            {audioNoteCids.map((cid) => (
+              <AudioPlayer key={cid} src={resolveIPFSUrl(cid)} compact={false} />
+            ))}
+          </div>
         </>
       )}
 

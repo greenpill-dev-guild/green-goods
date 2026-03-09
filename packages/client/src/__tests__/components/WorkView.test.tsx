@@ -38,6 +38,12 @@ vi.mock("@/components/Cards", () => ({
   GardenCardSkeleton: () => createElement("div", { "data-testid": "garden-card-skeleton" }),
 }));
 
+vi.mock("@green-goods/shared", () => ({
+  AudioPlayer: ({ src }: { src: string }) =>
+    createElement("div", { "data-testid": "audio-player", "data-src": src }, "Audio"),
+  resolveIPFSUrl: (cid: string) => `https://gateway.test/ipfs/${cid}`,
+}));
+
 vi.mock("@/components/Display", () => ({
   Carousel: ({ children }: { children: React.ReactNode }) =>
     createElement("div", { "data-testid": "carousel" }, children),
@@ -132,6 +138,29 @@ describe("WorkView", () => {
       );
 
       expect(screen.queryByText("Media")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("audio notes", () => {
+    it("does not show audio section when no audioNoteCids provided", () => {
+      render(createElement(WorkView, defaultProps));
+
+      expect(screen.queryByText("Audio Notes")).not.toBeInTheDocument();
+    });
+
+    it("renders AudioPlayer for each audio CID", () => {
+      render(
+        createElement(WorkView, {
+          ...defaultProps,
+          audioNoteCids: ["bafyabc123", "bafydef456"],
+        })
+      );
+
+      expect(screen.getByText("Audio Notes")).toBeInTheDocument();
+      const players = screen.getAllByTestId("audio-player");
+      expect(players).toHaveLength(2);
+      expect(players[0]).toHaveAttribute("data-src", "https://gateway.test/ipfs/bafyabc123");
+      expect(players[1]).toHaveAttribute("data-src", "https://gateway.test/ipfs/bafydef456");
     });
   });
 

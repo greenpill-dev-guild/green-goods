@@ -393,6 +393,21 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
   const isDetailsLoading = metadataStatus === "loading" || metadataStatus === "idle";
 
+  // Extract audio note CIDs from v2 metadata
+  const audioNoteCids = useMemo(() => {
+    const resolved = resolveMetadata(workMetadata);
+    if (
+      resolved &&
+      "schemaVersion" in resolved &&
+      resolved.schemaVersion === "work_metadata_v2" &&
+      resolved.audioNoteCids &&
+      resolved.audioNoteCids.length > 0
+    ) {
+      return resolved.audioNoteCids;
+    }
+    return undefined;
+  }, [workMetadata]);
+
   return (
     <WorkView
       title={getTitle()}
@@ -400,6 +415,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       garden={garden}
       actionTitle={actionTitle}
       media={media}
+      audioNoteCids={audioNoteCids}
       details={allDetails}
       isDetailsLoading={isDetailsLoading}
       headerIcon={RiCheckDoubleFill}
