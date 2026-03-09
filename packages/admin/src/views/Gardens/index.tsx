@@ -1,7 +1,7 @@
 import {
   GardenBannerFallback,
   type GardenFiltersState,
-  resolveIPFSUrl,
+  ImageWithFallback,
   useAuth,
   useDeploymentRegistry,
   useFilteredGardens,
@@ -19,11 +19,11 @@ import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
+import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SkeletonGrid } from "@/components/ui/Skeleton";
-import { Alert } from "@/components/ui/Alert";
 import { SortSelect } from "@/components/ui/SortSelect";
 
 /** Banner with automatic fallback on image load error */
@@ -36,21 +36,14 @@ function GardenCardBanner({
   bannerImage?: string;
   children?: ReactNode;
 }) {
-  const [error, setError] = useState(false);
-  const resolved = bannerImage ? resolveIPFSUrl(bannerImage) : null;
-
   return (
-    <div className="relative h-48">
-      <GardenBannerFallback name={name} />
-      {resolved && !error && (
-        <img
-          src={resolved}
-          alt={name}
-          className="absolute inset-0 h-full w-full object-cover z-[1]"
-          onError={() => setError(true)}
-          loading="lazy"
-        />
-      )}
+    <div className="relative h-48 overflow-hidden">
+      <ImageWithFallback
+        src={bannerImage || ""}
+        alt={name}
+        className="absolute inset-0 h-full w-full object-cover"
+        backgroundFallback={<GardenBannerFallback name={name} />}
+      />
       {children}
     </div>
   );

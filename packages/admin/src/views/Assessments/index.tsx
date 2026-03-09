@@ -1,15 +1,22 @@
 import {
+  ActionBannerFallback,
   DEFAULT_CHAIN_ID,
   Domain,
+  type EASGardenAssessment,
   formatDateRange,
+  type Garden,
   getEASExplorerUrl,
   useAdminStore,
   useAllAssessments,
   useGardens,
-  type EASGardenAssessment,
-  type Garden,
 } from "@green-goods/shared";
-import { RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
+import {
+  RiCalendarLine,
+  RiExternalLinkLine,
+  RiFileList3Line,
+  RiMapPinLine,
+  RiPlantLine,
+} from "@remixicon/react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { PageHeader } from "@/components/Layout/PageHeader";
@@ -20,6 +27,13 @@ import { SkeletonGrid } from "@/components/ui/Skeleton";
 import { SortSelect } from "@/components/ui/SortSelect";
 
 type SortOrder = "date" | "title";
+
+const DOMAIN_BADGE_STYLES: Record<number, string> = {
+  [Domain.SOLAR]: "bg-away-lighter text-away-dark",
+  [Domain.AGRO]: "bg-success-lighter text-success-dark",
+  [Domain.EDU]: "bg-information-lighter text-information-dark",
+  [Domain.WASTE]: "bg-warning-lighter text-warning-dark",
+};
 
 function getGardenName(gardenAddress: string, gardens: Garden[]): string | null {
   const garden = gardens.find((g) => g.id.toLowerCase() === gardenAddress.toLowerCase());
@@ -165,58 +179,18 @@ export default function Assessments() {
     );
   } else {
     content = (
-      <div className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table
-            className="min-w-full divide-y divide-stroke-soft"
-            aria-label={intl.formatMessage({ id: "admin.assessments.title" })}
-          >
-            <thead className="bg-bg-weak">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-soft"
-                >
-                  {intl.formatMessage({ id: "admin.assessments.table.garden" })}
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-soft"
-                >
-                  {intl.formatMessage({ id: "admin.assessments.table.title" })}
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-soft"
-                >
-                  {intl.formatMessage({ id: "admin.assessments.table.type" })}
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-soft"
-                >
-                  {intl.formatMessage({ id: "admin.assessments.table.dateRange" })}
-                </th>
-                <th scope="col" className="relative px-6 py-3">
-                  <span className="sr-only">{intl.formatMessage({ id: "app.actions.view" })}</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stroke-soft bg-bg-white">
-              {filteredAssessments.map((assessment) => (
-                <AssessmentRow
-                  key={assessment.id}
-                  assessment={assessment}
-                  gardenName={
-                    getGardenName(assessment.gardenAddress, gardens) ??
-                    intl.formatMessage({ id: "admin.assessments.unknownGarden" })
-                  }
-                  chainId={selectedChainId}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {filteredAssessments.map((assessment) => (
+          <AssessmentCard
+            key={assessment.id}
+            assessment={assessment}
+            gardenName={
+              getGardenName(assessment.gardenAddress, gardens) ??
+              intl.formatMessage({ id: "admin.assessments.unknownGarden" })
+            }
+            chainId={selectedChainId}
+          />
+        ))}
       </div>
     );
   }
@@ -255,7 +229,7 @@ export default function Assessments() {
   );
 }
 
-function AssessmentRow({
+function AssessmentCard({
   assessment,
   gardenName,
   chainId,
@@ -265,30 +239,67 @@ function AssessmentRow({
   chainId: number;
 }) {
   const intl = useIntl();
+  const title = assessment.title || `Assessment ${assessment.id.slice(0, 6)}`;
+  const domainLabel = getDomainLabel(assessment.domain);
+  const domainEnum = assessment.domain as Domain;
+  const badgeStyle = DOMAIN_BADGE_STYLES[assessment.domain] ?? "bg-bg-soft text-text-sub";
 
   return (
-    <tr>
-      <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">{gardenName}</td>
-      <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-        {assessment.title || `Assessment ${assessment.id.slice(0, 6)}`}
-      </td>
-      <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-        {getDomainLabel(assessment.domain)}
-      </td>
-      <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-        {formatDateRange(assessment.startDate, assessment.endDate)}
-      </td>
-      <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-        <a
-          href={getEASExplorerUrl(chainId, assessment.id)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center text-primary-dark transition hover:text-primary-darker"
+    <a
+      href={getEASExplorerUrl(chainId, assessment.id)}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-testid="assessment-card"
+      className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md hover:border-primary-base"
+    >
+      {/* Domain-colored gradient header */}
+      <div className="relative h-24 overflow-hidden">
+        <ActionBannerFallback domain={domainEnum} title={title} />
+      </div>
+
+      {/* Card content */}
+      <div className="p-5">
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <h3
+            className="text-lg font-medium text-text-strong group-hover:text-primary-dark line-clamp-2"
+            title={title}
+          >
+            {title}
+          </h3>
+          <RiExternalLinkLine className="mt-0.5 h-4 w-4 shrink-0 text-text-disabled group-hover:text-primary-dark transition-colors" />
+        </div>
+
+        {assessment.description && (
+          <p className="mb-3 text-sm text-text-sub line-clamp-2">{assessment.description}</p>
+        )}
+
+        {/* Domain badge */}
+        <span
+          className={`mb-3 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeStyle}`}
         >
-          {intl.formatMessage({ id: "app.actions.view" })}{" "}
-          <RiExternalLinkLine className="ml-1 h-4 w-4" />
-        </a>
-      </td>
-    </tr>
+          {domainLabel}
+        </span>
+
+        {/* Metadata */}
+        <div className="mt-3 flex flex-col gap-1.5 text-xs text-text-soft">
+          <div className="flex items-center gap-1.5">
+            <RiPlantLine className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{gardenName}</span>
+          </div>
+          {(assessment.startDate || assessment.endDate) && (
+            <div className="flex items-center gap-1.5">
+              <RiCalendarLine className="h-3.5 w-3.5 shrink-0" />
+              <span>{formatDateRange(assessment.startDate, assessment.endDate)}</span>
+            </div>
+          )}
+          {assessment.location && (
+            <div className="flex items-center gap-1.5">
+              <RiMapPinLine className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{assessment.location}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </a>
   );
 }

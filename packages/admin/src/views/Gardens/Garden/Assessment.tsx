@@ -1,17 +1,28 @@
 import {
+  ActionBannerFallback,
   DEFAULT_CHAIN_ID,
+  Domain,
   formatDateRange,
   getEASExplorerUrl,
   logger,
   useAdminStore,
   useGardenAssessments,
 } from "@green-goods/shared";
-import { RiAddLine, RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
+import {
+  RiAddLine,
+  RiCalendarLine,
+  RiExternalLinkLine,
+  RiFileList3Line,
+  RiPriceTag3Line,
+} from "@remixicon/react";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonGrid } from "@/components/ui/Skeleton";
 
 /** EAS decoded field structure from attestation JSON */
 interface EASDecodedField {
@@ -20,6 +31,22 @@ interface EASDecodedField {
     value: unknown;
   };
 }
+
+interface ParsedAssessment {
+  title: unknown;
+  assessmentType: unknown;
+  capitals: string[];
+  tags: string[];
+  startDate: number | null;
+  endDate: number | null;
+}
+
+const DOMAIN_BADGE_STYLES: Record<string, string> = {
+  Solar: "bg-away-lighter text-away-dark",
+  Agro: "bg-success-lighter text-success-dark",
+  Edu: "bg-information-lighter text-information-dark",
+  Waste: "bg-warning-lighter text-warning-dark",
+};
 
 export default function GardenAssessment() {
   const { id } = useParams<{ id: string }>();
@@ -48,24 +75,15 @@ export default function GardenAssessment() {
     [assessments]
   );
 
-  const headerActions = (
-    <Link
-      to={`/gardens/${id}/assessments/create`}
-      className="inline-flex items-center rounded-md border border-transparent bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2"
-    >
-      <RiAddLine className="mr-2 h-4 w-4" />
-      {formatMessage({ id: "app.garden.admin.newAssessment" })}
-    </Link>
-  );
-
   let content: ReactNode;
 
   if (fetching) {
     content = (
-      <div className="rounded-lg border border-stroke-soft bg-bg-white p-12 text-center shadow-sm">
-        <p className="text-sm text-text-soft">
+      <div role="status" aria-live="polite">
+        <span className="sr-only">
           {formatMessage({ id: "app.garden.admin.loadingAssessments" })}
-        </p>
+        </span>
+        <SkeletonGrid count={3} columns={3} />
       </div>
     );
   } else if (error) {
@@ -75,99 +93,95 @@ export default function GardenAssessment() {
         {error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" })}
       </Alert>
     );
+  } else if (parsedAssessments.length === 0) {
+    content = (
+      <EmptyState
+        icon={<RiFileList3Line className="h-6 w-6" />}
+        title={formatMessage({ id: "app.garden.admin.noAssessments" })}
+        description={formatMessage({ id: "app.garden.admin.noAssessmentsDescription" })}
+      />
+    );
   } else {
     content = (
-      <div className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
-        {parsedAssessments.length === 0 ? (
-          <div className="py-16 text-center">
-            <RiFileList3Line className="mx-auto h-12 w-12 text-text-disabled" />
-            <h3 className="mt-2 text-sm font-medium text-text-strong">
-              {formatMessage({ id: "app.garden.admin.noAssessments" })}
-            </h3>
-            <p className="mt-1 text-sm text-text-soft">
-              {formatMessage({ id: "app.garden.admin.noAssessmentsDescription" })}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table
-              className="min-w-full divide-y divide-stroke-soft"
-              aria-label={formatMessage({ id: "app.garden.admin.assessmentsTable" })}
+      <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {parsedAssessments.map((attestation) => {
+          const title =
+            (attestation.parsed?.title as string) || `Assessment ${attestation.id.slice(0, 6)}`;
+          const assessmentType = (attestation.parsed?.assessmentType as string) || "";
+          const domainValue = guessDomainFromType(assessmentType);
+          const badgeStyle = DOMAIN_BADGE_STYLES[assessmentType] ?? "bg-bg-soft text-text-sub";
+
+          return (
+            <a
+              key={attestation.id}
+              href={getEASExplorerUrl(selectedChainId, attestation.id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="assessment-card"
+              className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md hover:border-primary-base"
             >
-              <thead className="bg-bg-weak">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-soft"
+              {/* Domain-colored gradient header */}
+              <div className="relative h-20 overflow-hidden">
+                <ActionBannerFallback domain={domainValue} title={title} />
+              </div>
+
+              {/* Card content */}
+              <div className="p-5">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <h3
+                    className="text-base font-medium text-text-strong group-hover:text-primary-dark line-clamp-2"
+                    title={title}
                   >
-                    {formatMessage({ id: "app.assessment.table.title" })}
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-soft"
+                    {title}
+                  </h3>
+                  <RiExternalLinkLine className="mt-0.5 h-4 w-4 shrink-0 text-text-disabled group-hover:text-primary-dark transition-colors" />
+                </div>
+
+                {/* Type badge */}
+                {assessmentType && (
+                  <span
+                    className={`mb-3 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeStyle}`}
                   >
-                    {formatMessage({ id: "app.assessment.table.type" })}
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-soft"
-                  >
-                    {formatMessage({ id: "app.assessment.table.dateRange" })}
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-soft"
-                  >
-                    {formatMessage({ id: "app.assessment.table.capitals" })}
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-soft"
-                  >
-                    {formatMessage({ id: "app.assessment.table.tags" })}
-                  </th>
-                  <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">{formatMessage({ id: "app.actions.view" })}</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stroke-soft bg-bg-white">
-                {parsedAssessments.map((attestation) => (
-                  <tr key={attestation.id}>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {attestation.parsed?.title || `Assessment ${attestation.id.slice(0, 6)}`}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {attestation.parsed?.assessmentType || "—"}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
+                    {assessmentType}
+                  </span>
+                )}
+
+                {/* Date range */}
+                {(attestation.parsed?.startDate || attestation.parsed?.endDate) && (
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-text-soft">
+                    <RiCalendarLine className="h-3.5 w-3.5 shrink-0" />
+                    <span>
                       {formatDateRange(attestation.parsed?.startDate, attestation.parsed?.endDate)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {attestation.parsed?.capitals.length
-                        ? attestation.parsed.capitals.join(", ")
-                        : "—"}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-text-strong">
-                      {attestation.parsed?.tags.length ? attestation.parsed.tags.join(", ") : "—"}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                      <a
-                        href={getEASExplorerUrl(selectedChainId, attestation.id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center text-primary-dark transition hover:text-primary-darker"
+                    </span>
+                  </div>
+                )}
+
+                {/* Tags & Capitals */}
+                {attestation.parsed?.capitals.length || attestation.parsed?.tags.length ? (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {attestation.parsed?.capitals.map((c) => (
+                      <span
+                        key={c}
+                        className="inline-flex items-center rounded-full bg-bg-soft px-2 py-0.5 text-[11px] text-text-sub"
                       >
-                        {formatMessage({ id: "app.actions.view" })}{" "}
-                        <RiExternalLinkLine className="ml-1 h-4 w-4" />
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                        {c}
+                      </span>
+                    ))}
+                    {attestation.parsed?.tags.map((t) => (
+                      <span
+                        key={t}
+                        className="inline-flex items-center gap-0.5 rounded-full bg-bg-soft px-2 py-0.5 text-[11px] text-text-sub"
+                      >
+                        <RiPriceTag3Line className="h-2.5 w-2.5" />
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </a>
+          );
+        })}
       </div>
     );
   }
@@ -181,14 +195,31 @@ export default function GardenAssessment() {
           to: `/gardens/${id}`,
           label: formatMessage({ id: "app.garden.admin.backToGarden" }),
         }}
-        actions={headerActions}
+        actions={
+          <Button size="sm" asChild>
+            <Link to={`/gardens/${id}/assessments/create`}>
+              <RiAddLine className="mr-1.5 h-4 w-4" />
+              {formatMessage({ id: "app.garden.admin.newAssessment" })}
+            </Link>
+          </Button>
+        }
       />
-      <div className="mt-6 px-6">{content}</div>
+      <div className="mt-6 space-y-6 px-4 sm:px-6">{content}</div>
     </div>
   );
 }
 
-function parseAssessment(decodedDataJson: string | null) {
+/** Map assessment type string to a Domain enum for gradient colors */
+function guessDomainFromType(assessmentType: string): Domain {
+  const lower = assessmentType.toLowerCase();
+  if (lower.includes("solar")) return Domain.SOLAR;
+  if (lower.includes("agro")) return Domain.AGRO;
+  if (lower.includes("edu")) return Domain.EDU;
+  if (lower.includes("waste")) return Domain.WASTE;
+  return Domain.AGRO; // default
+}
+
+function parseAssessment(decodedDataJson: string | null): ParsedAssessment | null {
   if (!decodedDataJson) {
     return null;
   }
