@@ -23,11 +23,10 @@ export function DashboardLayout() {
         <main
           id="main-content"
           tabIndex={-1}
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto main-scroll-area"
           style={{
             overscrollBehaviorY: "contain",
             WebkitOverflowScrolling: "touch",
-            scrollbarGutter: "stable",
           }}
         >
           <PageTransition />

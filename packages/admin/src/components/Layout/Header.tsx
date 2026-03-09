@@ -15,7 +15,7 @@ export function Header() {
 
   return (
     <header className="bg-bg-soft shadow-sm border-b border-stroke-sub">
-      <div className="flex items-center justify-between h-16 px-6">
+      <div className="flex items-center justify-between h-16 px-3 sm:px-6">
         {/* Mobile menu button */}
         <button
           onClick={() => setSidebarOpen(true)}
@@ -35,10 +35,10 @@ export function Header() {
         </div>
 
         {/* Right side - Search, Chain badge, User profile */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <CommandPalette />
 
-          <div className="px-3 py-2 rounded-md border border-stroke-sub bg-bg-white text-sm text-text-strong">
+          <div className="hidden min-[400px]:block px-2 sm:px-3 py-1.5 sm:py-2 rounded-md border border-stroke-sub bg-bg-white text-xs sm:text-sm text-text-strong whitespace-nowrap">
             {chainLabel}
           </div>
 

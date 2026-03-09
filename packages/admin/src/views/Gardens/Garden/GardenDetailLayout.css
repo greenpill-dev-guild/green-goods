@@ -46,6 +46,7 @@
 /* Tab bar with inline actions */
 
 .garden-tab-bar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -53,6 +54,21 @@
   border-bottom: 1px solid var(--color-stroke-soft);
   background: var(--color-bg-white);
   padding: 0 1rem;
+}
+
+/* Scroll hint fade for tab bar on mobile */
+@media (max-width: 639px) {
+  .garden-tab-bar::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 2rem;
+    background: linear-gradient(to right, transparent, var(--color-bg-white));
+    pointer-events: none;
+    z-index: 1;
+  }
 }
 
 .garden-tab-bar-actions {

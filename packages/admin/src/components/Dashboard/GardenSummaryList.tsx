@@ -1,16 +1,16 @@
 import {
   buildGardenMemberSets,
   cn,
-  Domain,
   DOMAIN_COLORS,
+  Domain,
   type EASGardenAssessment,
   type EASWork,
   formatRelativeTime,
+  type Garden,
   ImageWithFallback,
   resolveIPFSUrl,
-  type Garden,
 } from "@green-goods/shared";
-import { RiAwardLine, RiArrowRightLine, RiFileListLine, RiUserLine } from "@remixicon/react";
+import { RiArrowRightLine, RiAwardLine, RiFileListLine, RiUserLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -190,11 +190,11 @@ export function GardenSummaryList({
               </div>
 
               {/* Stat badges — CSS tooltips via data-tooltip */}
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-1.5 sm:gap-2.5">
                 {/* Domain dots */}
                 {enabledDomains.length > 0 && (
                   <div
-                    className="flex items-center gap-0.5"
+                    className="hidden sm:flex items-center gap-0.5"
                     data-tooltip={intl.formatMessage(
                       {
                         id: "admin.dashboard.garden.domainTooltip",
@@ -231,7 +231,7 @@ export function GardenSummaryList({
 
                 {/* Assessments */}
                 <div
-                  className="flex items-center gap-0.5 text-xs text-text-soft"
+                  className="hidden sm:flex items-center gap-0.5 text-xs text-text-soft"
                   data-tooltip={intl.formatMessage(
                     {
                       id: "admin.dashboard.garden.assessmentCount",

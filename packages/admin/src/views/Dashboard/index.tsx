@@ -7,6 +7,7 @@ import {
   RiTeamLine,
   RiTimeLine,
 } from "@remixicon/react";
+import { useIsRestoring } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -55,6 +56,7 @@ function useDashboardHeader(intl: ReturnType<typeof useIntl>, role: string, gard
 
 export default function Dashboard() {
   const intl = useIntl();
+  const isRestoring = useIsRestoring();
   const { role, operatorGardens } = useRole();
   const { data: gardens = [], isLoading, error } = useGardens();
   const { data: actions = [] } = useActions();
@@ -89,7 +91,7 @@ export default function Dashboard() {
 
   const displayGardens = role === "operator" ? operatorGardens : gardens;
 
-  if (isLoading) {
+  if (isLoading || isRestoring) {
     return (
       <div className="pb-6">
         <div role="status" aria-live="polite">
@@ -201,7 +203,7 @@ export default function Dashboard() {
       <PageHeader title={welcomeTitle} description={welcomeDescription} />
 
       {/* Stats Grid */}
-      <div className="stagger-children grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 mb-8 px-4 sm:px-6">
+      <div className="stagger-children grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 mb-8 px-4 sm:px-6">
         <StatCard
           icon={<RiPlantLine className="h-5 w-5" />}
           label={
@@ -300,6 +302,7 @@ export default function Dashboard() {
               gardens={displayGardens}
               works={platformStats?.works}
               assessments={platformStats?.assessments}
+              workApprovals={platformStats?.workApprovals}
               className="lg:col-span-1"
             />
           </div>

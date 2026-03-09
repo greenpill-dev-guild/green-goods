@@ -397,6 +397,16 @@
     transform: none;
   }
 
+  /* Scrollbar gutter — only on desktop where scrollbars consume layout space */
+  .main-scroll-area {
+    scrollbar-gutter: auto;
+  }
+  @media (min-width: 1024px) {
+    .main-scroll-area {
+      scrollbar-gutter: stable;
+    }
+  }
+
   /* Staggered entrance animation for lists/grids of children */
   .stagger-children > * {
     opacity: 0;
