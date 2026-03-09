@@ -5,6 +5,7 @@ import "dotenv/config";
 import { create } from "@storacha/client";
 import { Signer } from "@storacha/client/principal/ed25519";
 import { parse as parseProof } from "@storacha/client/proof";
+import { StoreMemory } from "@storacha/client/stores/memory";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
@@ -15,7 +16,7 @@ import {
   loadPinataConfigFromEnv,
 } from "./lib/ipfs-hybrid";
 
-const DEFAULT_GATEWAYS = ["https://storacha.link", "https://w3s.link", "https://ipfs.io"];
+const DEFAULT_GATEWAYS = ["https://greengoods.mypinata.cloud", "https://storacha.link", "https://w3s.link", "https://ipfs.io"];
 const DEFAULT_INDEXER_URL =
   process.env.VITE_ENVIO_INDEXER_URL?.trim() || "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 const TEXT_DECODER = new TextDecoder();
@@ -596,7 +597,7 @@ async function initStorachaClient(): Promise<StorachaClient> {
   }
 
   const principal = Signer.parse(key);
-  const client = await create({ principal });
+  const client = await create({ principal, store: new StoreMemory() });
   const delegation = await parseProof(proof);
   const space = await client.addSpace(delegation);
   await client.setCurrentSpace(space.did());

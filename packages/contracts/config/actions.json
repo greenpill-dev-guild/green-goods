@@ -201,7 +201,7 @@
       "capitals": ["MATERIAL", "SOCIAL", "INTELLECTUAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreicqol4i3cj27zul3fof4zp7ozxu7cqndl3koqbdvtnpss6yyfdxoq"],
+      "media": ["ipfs://bafkreihcyofevpswjhje2gyvyxzfpjdbqunqbrfe6cmamz6xal3hnwpkvy"],
       "uiConfig": {
         "media": {
           "title": "Capture Site Photos",
@@ -287,7 +287,7 @@
       "capitals": ["MATERIAL", "FINANCIAL", "INTELLECTUAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreihwt2b2ci5zh4sr2lf6ljkuww3nzfww2fvalarkugmiuyq2xkylau"],
+      "media": ["ipfs://bafkreic5dhi5e3tha4k56i2sk52cdcotryreq2fvpepqyvz5qgyyn355nq"],
       "uiConfig": {
         "media": {
           "title": "Capture Install Photos",
@@ -374,7 +374,7 @@
       "capitals": ["SOCIAL", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreiagjssmggxhapo4zkqfwgop5sgghzn5sqaffvn7hkr4efnzwho6lq"],
+      "media": ["ipfs://bafkreic6atl4k3fhqx7jf5kbiucbvqiulzv7lkx2nclvqincwnjr4b4xgu"],
       "uiConfig": {
         "media": {
           "title": "Capture Hub in Use",
@@ -459,7 +459,7 @@
       "capitals": ["MATERIAL", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreiebd4pva3rg36qqoe2de76fntbvopjmr34xksxuoyozwfmvazvl5u"],
+      "media": ["ipfs://bafkreib4mw237yvc4b6jifwy65645poqfxlgz4346kc5pojlmthov6cgiq"],
       "uiConfig": {
         "media": {
           "title": "Capture Meter/Inverter Photo",
@@ -543,7 +543,7 @@
       "capitals": ["FINANCIAL", "INTELLECTUAL", "MATERIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreibajlut7buza7dmacd3tji5rgexfkq3nwxs5ccr2khfmt26shmvam"],
+      "media": ["ipfs://bafkreicybk7ebtucp4bjagz6fgklizwhauhojs4ber7ldpiryc4uhjweg4"],
       "uiConfig": {
         "media": {
           "title": "Capture Node Proof",
@@ -621,7 +621,7 @@
       "capitals": ["LIVING", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreihs273zgo6d4mjgc23tilqpfekmfxivlcxrc73vj2y6qe2tpah2e4"],
+      "media": ["ipfs://bafkreiajusqmziaxrj5vpuuep4vbpj6aibspigmx4nd6gtijffuqalr3vi"],
       "uiConfig": {
         "media": {
           "title": "Capture Baseline Photos",
@@ -708,7 +708,7 @@
       "capitals": ["LIVING", "MATERIAL", "SOCIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreia3ec5jntxsr52joflpelwhdxy466tc64xm5spse7xz4xk6sk37du"],
+      "media": ["ipfs://bafkreien2jwf4dxsdorveyaj3uwufrf7jiz5piqwmzpxhkalwhkbqkcb74"],
       "uiConfig": {
         "media": {
           "title": "Capture Planting Photos",
@@ -788,7 +788,7 @@
       "capitals": ["LIVING", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreih5rn2yxvq57546pp7c3w54ih6kdvekgyz6lvkxwc62273s5xjud4"],
+      "media": ["ipfs://bafkreiaieslupv2phlgbrfssfmiks26zajoqm6yu55pswszylfjpjdbula"],
       "uiConfig": {
         "media": {
           "title": "Capture Plot Photos",
@@ -859,7 +859,7 @@
       "capitals": ["LIVING", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreiciyeoeb3nhfibmerlobpkghss6lon7yjdpda2w2gsoa52cg6kgtm"],
+      "media": ["ipfs://bafkreibeqw6tztwzoaoixib5bnq7qznr25bq3nveqqryx66c7ahnusrxvi"],
       "uiConfig": {
         "media": {
           "title": "Capture Maintenance Photo",
@@ -953,7 +953,7 @@
       "capitals": ["INTELLECTUAL", "EXPERIENTIAL", "SOCIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreihzgah2ibnfiokj4jdtsttymnkpovuefbkbqecmxwlb2adqrfb66y"],
+      "media": ["ipfs://bafkreigq34nesrbugtdb533umqbhbmzhuvsrvpefryiafhd6fcjaxwhilm"],
       "uiConfig": {
         "media": {
           "title": "Optional Photo",
@@ -1043,7 +1043,7 @@
       "capitals": ["LIVING", "MATERIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreig7gikjwvayfbwaty6w37d72rql2mnugaoxvlpotcn2rat3hquco4"],
+      "media": ["ipfs://bafkreie6ogbaa53fkuf24p6ld5nm642ydlrs5lw7fvhrsw3at4b2bexldm"],
       "uiConfig": {
         "media": {
           "title": "Capture Harvest Photos",
@@ -1122,7 +1122,7 @@
       "capitals": ["INTELLECTUAL", "SOCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreiffqg37uvsl2rvykuap6zdq4f2ahj33lhubg2nquay7tcd66yrqda"],
+      "media": ["ipfs://bafkreigawivlcwxha2d3xx2rzmzmjiirnk4za4a2hbhsflfpfgoy3y354q"],
       "uiConfig": {
         "media": {
           "title": "Attach Flyer or Poster",
@@ -1204,7 +1204,7 @@
       "capitals": ["INTELLECTUAL", "SOCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreihg7c7j5d3y6j4gvefpybw5arvioyqupsmo2362yw7jlhicivwl7y"],
+      "media": ["ipfs://bafkreiczutvqylsggvadc5e2kayzf4i3ubjyyrtf4woreohfqazdvhavf4"],
       "uiConfig": {
         "media": {
           "title": "Capture Workshop Photo",
@@ -1293,7 +1293,7 @@
       "capitals": ["SOCIAL", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreiakynvdzxvyla3fc6t2mi6sp5rxlbdljwbnk2ne4eowwvrsmudt54"],
+      "media": ["ipfs://bafkreias2b3te3jrlvaz63s745frarqtbji3g6tegkn2lhpsdb2bm5j3nu"],
       "uiConfig": {
         "media": {
           "title": "Capture Attendance Proof",
@@ -1370,7 +1370,7 @@
       "capitals": ["INTELLECTUAL", "EXPERIENTIAL", "SOCIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreihxxewthuyxhruxkz4vfjanzonfi5lpoenq4rnj4bib2ddf3ztv7e"],
+      "media": ["ipfs://bafkreiax3scpgyue6rhvzrlwh6blp7x75bs7g76eu56aqo2bxgnhkcdu2i"],
       "uiConfig": {
         "media": {
           "title": "Capture Proof",
@@ -1463,7 +1463,7 @@
       "capitals": ["INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreidxyundykvie4b7eiowpm7h6ruwh6v7atni2wg4jkm3fo5wm25bt4"],
+      "media": ["ipfs://bafkreifzjnhrfavcho3xapcbhfcw7hyygrp2hrmlj5qs54hbwnkzkxtgyq"],
       "uiConfig": {
         "media": {
           "title": "Capture Assessment Proof",
@@ -1549,7 +1549,7 @@
       "capitals": ["MATERIAL", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreib7rhpgm4w72c2lh5lyhlnsgj2obgcppz54a5ymddd43j5va3peua"],
+      "media": ["ipfs://bafkreif3adf65kfgyhpnxb5xtxyo4gvtywgx5ffyxvc4bi2lz723mrhuiy"],
       "uiConfig": {
         "media": {
           "title": "Capture Before Photos",
@@ -1637,7 +1637,7 @@
       "capitals": ["MATERIAL", "SOCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreib4uglkyfqq6rscy4oygji5lvffx4ecxbap4mbvvipvamr6pnqvei"],
+      "media": ["ipfs://bafkreiajlfj47i3inprzu4k474nlrer4af5xe3mbqawkyoassb2fzvxrfi"],
       "uiConfig": {
         "media": {
           "title": "Capture Before/After Photos",
@@ -1716,7 +1716,7 @@
       "capitals": ["MATERIAL", "INTELLECTUAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreiab6mghuyccchmzst2zemwptdbpqmg3mszhmeirp2czsk4myzbrge"],
+      "media": ["ipfs://bafkreifiwhtpbvltzpodivb5vb7jw5zzv5ke6imkum7mo5nfcsxu7k5jqi"],
       "uiConfig": {
         "media": {
           "title": "Capture Sorted Piles Photo",
@@ -1805,7 +1805,7 @@
       "capitals": ["MATERIAL", "FINANCIAL", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreiasfawqz2f76d5km2vverzmtoa5ee7pyz73urktnq3xe6hpqs3mzu"],
+      "media": ["ipfs://bafkreiem32ppztq5w2rypzipx4pmb2mdxkbekwrz4cw5p65ghrix2lwaha"],
       "uiConfig": {
         "media": {
           "title": "Capture Receipt/Facility Proof",
@@ -1891,7 +1891,7 @@
       "capitals": ["MATERIAL", "LIVING", "EXPERIENTIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreiconxgmzxvph5dollqu47bbszlhtgplzzc6akgfzczjcxknpyqqmy"],
+      "media": ["ipfs://bafkreidope5rc2qqhii7aegjv64hmdvjupo2wh2ycwde7ykkglzayag4am"],
       "uiConfig": {
         "media": {
           "title": "Capture Batch Photo",
@@ -1972,7 +1972,7 @@
       "capitals": ["MATERIAL", "EXPERIENTIAL", "SOCIAL"],
       "startTime": "2024-01-01T00:00:00Z",
       "endTime": "2027-12-31T23:59:59Z",
-      "media": ["ipfs://bafkreie3emlfgjuqfzqpajp4mrybvkc5mgwj7674ivj6zyyp53ab62r6je"],
+      "media": ["ipfs://bafkreic7nzcytnmkkn5gyofditbwbv5hi3zpqsbsnvrjmxffa4yjxcyhqm"],
       "uiConfig": {
         "media": {
           "title": "Capture Site Photo",

@@ -4,7 +4,6 @@ import path from "node:path";
 import dotenv from "dotenv";
 import * as yaml from "js-yaml";
 
-
 import { CHAIN_ID_MAP, NetworkManager } from "./network";
 
 type NetworkName = "sepolia" | "arbitrum" | "celo" | "mainnet" | "localhost";

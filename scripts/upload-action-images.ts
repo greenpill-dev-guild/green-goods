@@ -3,10 +3,10 @@
 /**
  * Action Image Uploader
  *
- * Compresses action card images to WebP format, uploads to Storacha (IPFS/Filecoin),
+ * Uploads action card images to Storacha (IPFS/Filecoin), pins to Pinata,
  * and updates actions.json with the resulting CIDs.
  *
- * Pipeline: PNG (1536x1024, ~3.4MB) → WebP (800x533, ~40KB) → Storacha → actions.json
+ * Pipeline: WebP/PNG source → Storacha + Pinata → actions.json
  *
  * Usage:
  *   bun scripts/upload-action-images.ts              # Full run
@@ -24,13 +24,11 @@
 
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import sharp from "sharp";
 import {
-	ensureHybridCidAvailability,
 	loadPinataConfigFromEnv,
+	pinCidWithPinata,
 } from "./lib/ipfs-hybrid";
 
 // --- Paths ---
@@ -41,14 +39,6 @@ const CONTRACTS_DIR = path.join(ROOT_DIR, "packages", "contracts");
 const IMAGES_DIR = path.join(CONTRACTS_DIR, "config", "action-images");
 const ACTIONS_FILE = path.join(CONTRACTS_DIR, "config", "actions.json");
 const CACHE_FILE = path.join(CONTRACTS_DIR, ".action-images-cache.json");
-const TEMP_DIR = path.join(os.tmpdir(), "green-goods-action-images-webp");
-
-// --- Compression targets (from action-image-prompts.md) ---
-
-const TARGET_WIDTH = 800;
-const TARGET_HEIGHT = 533;
-const WEBP_QUALITY = 80;
-
 // --- Filename overrides for mismatches between slug and actual filename ---
 // The canonical slug is in actions.json; the filename on disk may differ.
 
@@ -235,59 +225,53 @@ async function uploadToStoracha(
 
 // --- Pipeline stages ---
 
-async function compressImages(
+async function collectImages(
 	actions: ActionEntry[],
 ): Promise<CompressedImage[]> {
-	console.error("--- Stage 1: Compress ---\n");
+	console.error("--- Stage 1: Collect images ---\n");
 
-	fs.mkdirSync(TEMP_DIR, { recursive: true });
 	const results: CompressedImage[] = [];
-	let totalOriginal = 0;
-	let totalCompressed = 0;
+	let totalSize = 0;
 	let missing = 0;
 
 	for (const action of actions) {
 		const baseName = slugToFilename(action.slug);
+		const webpPath = path.join(IMAGES_DIR, `${baseName}.webp`);
 		const pngPath = path.join(IMAGES_DIR, `${baseName}.png`);
+		const sourcePath = fs.existsSync(webpPath)
+			? webpPath
+			: fs.existsSync(pngPath)
+				? pngPath
+				: null;
 
-		if (!fs.existsSync(pngPath)) {
-			console.error(`  SKIP: ${baseName}.png not found (slug: ${action.slug})`);
+		if (!sourcePath) {
+			console.error(
+				`  SKIP: ${baseName}.{webp,png} not found (slug: ${action.slug})`,
+			);
 			missing++;
 			continue;
 		}
 
-		const webpName = `${baseName}.webp`;
-		const webpPath = path.join(TEMP_DIR, webpName);
-
-		await sharp(pngPath)
-			.resize(TARGET_WIDTH, TARGET_HEIGHT, { fit: "cover" })
-			.webp({ quality: WEBP_QUALITY })
-			.toFile(webpPath);
-
-		const originalSize = fs.statSync(pngPath).size;
-		const compressedSize = fs.statSync(webpPath).size;
-		const contentHash = hashFile(webpPath);
-		const reduction = ((1 - compressedSize / originalSize) * 100).toFixed(1);
-
-		totalOriginal += originalSize;
-		totalCompressed += compressedSize;
+		const size = fs.statSync(sourcePath).size;
+		const contentHash = hashFile(sourcePath);
+		totalSize += size;
 
 		results.push({
 			slug: action.slug,
 			title: action.title,
-			webpPath,
+			webpPath: sourcePath,
 			contentHash,
-			originalSize,
-			compressedSize,
+			originalSize: size,
+			compressedSize: size,
 		});
 
 		console.error(
-			`  ${webpName} — ${formatSize(originalSize)} -> ${formatSize(compressedSize)} (${reduction}% smaller)`,
+			`  ${path.basename(sourcePath)} — ${formatSize(size)}`,
 		);
 	}
 
 	console.error(
-		`\n  Total: ${formatSize(totalOriginal)} -> ${formatSize(totalCompressed)} (${results.length} images, ${missing} missing)\n`,
+		`\n  Total: ${formatSize(totalSize)} (${results.length} images, ${missing} missing)\n`,
 	);
 
 	return results;
@@ -301,52 +285,39 @@ async function uploadImages(
 
 	const client = await initStoracha();
 	const pinataConfig = loadPinataConfigFromEnv();
-	const storachaGatewayBaseUrl =
-		(process.env.VITE_STORACHA_GATEWAY || "https://storacha.link").trim();
 	const cidMap: Record<string, string> = {};
 	let uploads = 0;
 	let cacheHits = 0;
+	let pinataSuccesses = 0;
 
 	for (const item of compressed) {
 		const cached = cache[item.slug];
 
 		if (cached && cached.contentHash === item.contentHash) {
+			cacheHits++;
+			cidMap[item.slug] = cached.cid;
+
+			// Still pin cached CIDs to Pinata
 			try {
-				await ensureHybridCidAvailability(cached.cid, {
-					storachaGatewayBaseUrl,
-					pinataConfig,
+				await pinCidWithPinata(pinataConfig, cached.cid, {
 					name: path.basename(item.webpPath),
-					metadata: {
-						source: "action-image",
-						slug: item.slug,
-					},
+					metadata: { source: "action-image", slug: item.slug },
 				});
-				cacheHits++;
-				cidMap[item.slug] = cached.cid;
-				console.error(
-					`  CACHED: ${item.slug} -> ${cached.cid.slice(0, 24)}...`,
-				);
-				continue;
+				pinataSuccesses++;
 			} catch (error) {
-				const message = error instanceof Error ? error.message : String(error);
-				console.error(`  STALE:  ${item.slug} — ${message}`);
-				console.error("         Cache entry failed verification, re-uploading");
-				delete cache[item.slug];
+				const msg = error instanceof Error ? error.message : String(error);
+				console.error(`  WARN:  Pinata pin failed for cached ${item.slug}: ${msg}`);
 			}
+
+			console.error(
+				`  CACHED: ${item.slug} -> ${cached.cid.slice(0, 24)}...`,
+			);
+			continue;
 		}
 
 		try {
 			const fileName = path.basename(item.webpPath);
 			const cid = await uploadToStoracha(client, item.webpPath, fileName);
-			await ensureHybridCidAvailability(cid, {
-				storachaGatewayBaseUrl,
-				pinataConfig,
-				name: fileName,
-				metadata: {
-					source: "action-image",
-					slug: item.slug,
-				},
-			});
 			uploads++;
 			cidMap[item.slug] = cid;
 
@@ -356,6 +327,18 @@ async function uploadImages(
 				slug: item.slug,
 				uploadedAt: new Date().toISOString(),
 			};
+
+			// Pin to Pinata (non-fatal)
+			try {
+				await pinCidWithPinata(pinataConfig, cid, {
+					name: fileName,
+					metadata: { source: "action-image", slug: item.slug },
+				});
+				pinataSuccesses++;
+			} catch (error) {
+				const msg = error instanceof Error ? error.message : String(error);
+				console.error(`  WARN:  Pinata pin failed for ${item.slug}: ${msg}`);
+			}
 
 			console.error(`  UPLOAD: ${item.slug} -> ${cid.slice(0, 24)}...`);
 		} catch (error) {
@@ -372,7 +355,7 @@ async function uploadImages(
 		}
 	}
 
-	console.error(`\n  ${uploads} uploaded, ${cacheHits} cached\n`);
+	console.error(`\n  ${uploads} uploaded, ${cacheHits} cached, ${pinataSuccesses} pinned to Pinata\n`);
 	return cidMap;
 }
 
@@ -424,8 +407,8 @@ async function main(): Promise<void> {
 	) as ActionsData;
 	console.error(`Found ${actionsData.actions.length} actions in actions.json\n`);
 
-	// Stage 1: Compress
-	const compressed = await compressImages(actionsData.actions);
+	// Stage 1: Collect images
+	const compressed = await collectImages(actionsData.actions);
 
 	if (compressed.length === 0) {
 		console.error("No images found to process. Check config/action-images/");
@@ -435,14 +418,12 @@ async function main(): Promise<void> {
 	// Dry run: show summary and exit
 	if (dryRun) {
 		console.error("--- Dry run complete ---\n");
-		console.error(`Compressed images saved to: ${TEMP_DIR}\n`);
 
 		const summary = compressed.map((c) => ({
 			slug: c.slug,
 			title: c.title,
 			file: path.basename(c.webpPath),
-			originalKB: Math.round(c.originalSize / 1024),
-			compressedKB: Math.round(c.compressedSize / 1024),
+			sizeKB: Math.round(c.originalSize / 1024),
 		}));
 		console.log(JSON.stringify(summary, null, 2));
 		return;

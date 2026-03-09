@@ -66,11 +66,12 @@ loadEnvFile(path.join(__dirname, "../../../../", ".env"));
 // Constants
 // ---------------------------------------------------------------------------
 const CHAIN_ID = 42161; // Arbitrum One
-const DEPLOYMENT_FILE = path.join(process.cwd(), `deployments/${CHAIN_ID}-latest.json`);
-const INSTRUCTIONS_CACHE = path.join(process.cwd(), ".ipfs-cache.json");
-const MEDIA_CACHE = path.join(process.cwd(), ".ipfs-media-cache.json");
-const ACTIONS_FILE = path.join(process.cwd(), "config", "actions.json");
-const IMAGES_DIR = path.join(process.cwd(), "config", "action-images");
+const CONTRACTS_DIR = path.resolve(__dirname, "../..");
+const DEPLOYMENT_FILE = path.join(CONTRACTS_DIR, `deployments/${CHAIN_ID}-latest.json`);
+const INSTRUCTIONS_CACHE = path.join(CONTRACTS_DIR, ".ipfs-cache.json");
+const MEDIA_CACHE = path.join(CONTRACTS_DIR, ".ipfs-media-cache.json");
+const ACTIONS_FILE = path.join(CONTRACTS_DIR, "config", "actions.json");
+const IMAGES_DIR = path.join(CONTRACTS_DIR, "config", "action-images");
 const TEMP_DIR = path.join(__dirname, "../temp");
 
 // ---------------------------------------------------------------------------
