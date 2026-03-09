@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { isZeroAddress, ZERO_ADDRESS } from "../../utils/blockchain/address";
 import {
   formatTokenAmount,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  isZeroAddressValue,
   validateDecimalInput,
-  ZERO_ADDRESS,
 } from "../../utils/blockchain/vaults";
 
 describe("Vault Utilities", () => {
@@ -17,30 +16,30 @@ describe("Vault Utilities", () => {
     });
   });
 
-  describe("isZeroAddressValue", () => {
+  describe("isZeroAddress", () => {
     it("returns true for zero address", () => {
-      expect(isZeroAddressValue(ZERO_ADDRESS)).toBe(true);
+      expect(isZeroAddress(ZERO_ADDRESS)).toBe(true);
     });
 
     it("returns true for null", () => {
-      expect(isZeroAddressValue(null)).toBe(true);
+      expect(isZeroAddress(null)).toBe(true);
     });
 
     it("returns true for undefined", () => {
-      expect(isZeroAddressValue(undefined)).toBe(true);
+      expect(isZeroAddress(undefined)).toBe(true);
     });
 
     it("returns true for empty string", () => {
-      expect(isZeroAddressValue("")).toBe(true);
+      expect(isZeroAddress("")).toBe(true);
     });
 
     it("returns false for non-zero address", () => {
-      expect(isZeroAddressValue("0x1234567890abcdef1234567890abcdef12345678")).toBe(false);
+      expect(isZeroAddress("0x1234567890abcdef1234567890abcdef12345678")).toBe(false);
     });
 
     it("is case-insensitive", () => {
-      expect(isZeroAddressValue("0x0000000000000000000000000000000000000000")).toBe(true);
-      expect(isZeroAddressValue("0X0000000000000000000000000000000000000000")).toBe(true);
+      expect(isZeroAddress("0x0000000000000000000000000000000000000000")).toBe(true);
+      expect(isZeroAddress("0X0000000000000000000000000000000000000000")).toBe(true);
     });
   });
 

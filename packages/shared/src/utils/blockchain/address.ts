@@ -113,10 +113,13 @@ export function isValidAddressFormat(address: string | undefined | null): boolea
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
+/** The Ethereum zero address constant. */
+export const ZERO_ADDRESS: `0x${string}` = "0x0000000000000000000000000000000000000000";
+
 /**
  * Check if an address is the zero address.
  */
 export function isZeroAddress(address: string | undefined | null): boolean {
   if (!address) return true;
-  return address.toLowerCase() === "0x0000000000000000000000000000000000000000";
+  return address.toLowerCase() === ZERO_ADDRESS;
 }

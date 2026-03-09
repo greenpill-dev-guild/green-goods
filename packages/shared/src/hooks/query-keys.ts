@@ -66,6 +66,8 @@ export const queryKeys = {
   // Works related keys
   works: {
     all: ["greengoods", "works"] as const,
+    mine: (userAddress?: string, chainId?: number, includeOffline?: boolean, timeFilter?: string, limit?: number) =>
+      ["greengoods", "works", "mine", userAddress, chainId, includeOffline, timeFilter, limit] as const,
     online: (gardenId: string, chainId: number) =>
       ["greengoods", "works", "online", gardenId, chainId] as const,
     offline: (gardenId: string) => ["greengoods", "works", "offline", gardenId] as const,

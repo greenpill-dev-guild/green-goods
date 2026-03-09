@@ -13,6 +13,7 @@ import { useWalletClient } from "wagmi";
 
 import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
 import { logger } from "../../modules/app/logger";
+import { isZeroAddress } from "../../utils/blockchain/address";
 import {
   buildMakerAsk,
   type MakerAskOrder,
@@ -61,7 +62,7 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
 
       const contracts = getNetworkContracts(chainId);
       const moduleAddress = contracts.hypercertsModule as Address;
-      if (!moduleAddress || moduleAddress === "0x0000000000000000000000000000000000000000") {
+      if (isZeroAddress(moduleAddress)) {
         throw new Error("HypercertsModule not deployed on this chain");
       }
 

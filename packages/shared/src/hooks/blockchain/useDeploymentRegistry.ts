@@ -7,7 +7,7 @@ import { logger } from "../../modules/app/logger";
 import { useAuthContext } from "../../providers/Auth";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
-import { compareAddresses } from "../../utils/blockchain/address";
+import { compareAddresses, isZeroAddress } from "../../utils/blockchain/address";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { queryKeys } from "../query-keys";
 
@@ -79,7 +79,7 @@ async function fetchDeploymentPermissions(
   });
 
   // If deployment registry is not configured, return false
-  if (contracts.deploymentRegistry === "0x0000000000000000000000000000000000000000") {
+  if (isZeroAddress(contracts.deploymentRegistry)) {
     return { isOwner: false, isInAllowlist: false, canDeploy: false };
   }
 
@@ -156,7 +156,7 @@ async function fetchDeploymentAllowlist(chainId: number): Promise<Address[]> {
   const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY || "demo";
   const networkConfig = getNetworkConfig(chainId, alchemyKey);
 
-  if (contracts.deploymentRegistry === "0x0000000000000000000000000000000000000000") {
+  if (isZeroAddress(contracts.deploymentRegistry)) {
     return [];
   }
 

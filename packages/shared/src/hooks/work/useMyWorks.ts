@@ -13,6 +13,7 @@ import { filterByTimeRange, sortByCreatedAt, type TimeFilter } from "../../utils
 import { deduplicateById, mergeAndDeduplicateByClientId } from "../../utils/work/deduplication";
 import { fetchOfflineWorks } from "../../utils/work/offline";
 import { useUser } from "../auth/useUser";
+import { queryKeys } from "../query-keys";
 
 export interface UseMyWorksOptions {
   /**
@@ -70,7 +71,7 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
   const activeAddress = user?.id;
 
   return useQuery({
-    queryKey: ["myWorks", activeAddress, chainId, includeOffline, timeFilter, limit],
+    queryKey: queryKeys.works.mine(activeAddress, chainId, includeOffline, timeFilter as string | undefined, limit),
     queryFn: async () => {
       if (!activeAddress) return [];
 

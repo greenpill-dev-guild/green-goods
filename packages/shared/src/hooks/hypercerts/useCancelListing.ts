@@ -12,6 +12,7 @@ import { useWalletClient } from "wagmi";
 import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
 import { logger } from "../../modules/app/logger";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
+import { isZeroAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { useAuth } from "../auth/useAuth";
@@ -38,7 +39,7 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
 
       const contracts = getNetworkContracts(chainId);
       const moduleAddress = contracts.hypercertsModule as Address;
-      if (!moduleAddress || moduleAddress === "0x0000000000000000000000000000000000000000") {
+      if (isZeroAddress(moduleAddress)) {
         throw new Error("HypercertsModule not deployed on this chain");
       }
 

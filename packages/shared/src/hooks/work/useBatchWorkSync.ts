@@ -179,7 +179,7 @@ export function useBatchWorkSync() {
 
       if (primaryAddress) {
         queryClient.invalidateQueries({
-          queryKey: ["myWorks", primaryAddress],
+          queryKey: queryKeys.works.mine(primaryAddress),
           exact: false,
         });
       }

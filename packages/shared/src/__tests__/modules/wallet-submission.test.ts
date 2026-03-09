@@ -51,6 +51,7 @@ vi.mock("../../utils/blockchain/polling", () => ({
 
 vi.mock("../../modules/work/simulate", () => ({
   simulateWorkSubmission: vi.fn(),
+  simulateApprovalSubmission: vi.fn(),
 }));
 
 vi.mock("../../utils/debug", () => ({
@@ -63,6 +64,7 @@ vi.mock("../../hooks/query-keys", () => ({
   queryKeys: {
     works: {
       all: ["greengoods", "works"],
+      mine: (userAddress?: string) => ["greengoods", "works", "mine", userAddress],
       online: (gardenId: string, chainId: number) => [
         "greengoods",
         "works",

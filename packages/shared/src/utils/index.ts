@@ -87,6 +87,7 @@ export {
   isZeroAddress,
   normalizeAddress,
   truncateAddress,
+  ZERO_ADDRESS,
 } from "./blockchain/address";
 // ============================================================================
 // CHAIN REGISTRY
@@ -148,7 +149,6 @@ export {
   isZeroAddressValue,
   isZeroBytes32,
   validateDecimalInput,
-  ZERO_ADDRESS,
 } from "./blockchain/vaults";
 // ============================================================================
 // COMPRESSION (Native Compression Streams API)

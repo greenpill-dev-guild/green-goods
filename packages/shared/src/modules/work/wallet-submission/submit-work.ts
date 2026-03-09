@@ -154,7 +154,7 @@ export async function submitWorkDirectly(
   const userAddress = walletClient.account?.address;
   if (userAddress) {
     queryClient.invalidateQueries({
-      queryKey: ["myWorks", userAddress],
+      queryKey: queryKeys.works.mine(userAddress),
       exact: false,
     });
   }

@@ -24,6 +24,7 @@ import {
 import { logger } from "../../modules/app/logger";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useCreateGardenStore } from "../../stores/useCreateGardenStore";
+import { isZeroAddress } from "../../utils/blockchain/address";
 import {
   createClients,
   GardenTokenABI,
@@ -51,7 +52,7 @@ async function estimateCCIPFee(
   callerAddress: `0x${string}`,
   chainId: number
 ): Promise<bigint> {
-  if (!slug || !ensAddress || ensAddress === "0x0000000000000000000000000000000000000000") {
+  if (!slug || isZeroAddress(ensAddress)) {
     return 0n;
   }
 

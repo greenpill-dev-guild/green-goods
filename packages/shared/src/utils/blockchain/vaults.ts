@@ -1,8 +1,10 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
 import { formatAddress } from "../app/text";
+import { isZeroAddress, ZERO_ADDRESS } from "./address";
 
-export const ZERO_ADDRESS: Address = "0x0000000000000000000000000000000000000000";
+// Re-export for backward compatibility (canonical source is address.ts)
+export { ZERO_ADDRESS };
 
 /** Octant vault MAX_BPS (10000 = 100%). Used as maxLoss for permissive withdraw/redeem queries. */
 export const VAULT_MAX_BPS = 10000n;
@@ -37,10 +39,8 @@ const ASSET_DECIMALS_BY_CHAIN: Record<number, Record<string, number>> = {
   },
 };
 
-export function isZeroAddressValue(address?: string | null): boolean {
-  if (!address) return true;
-  return address.toLowerCase() === ZERO_ADDRESS;
-}
+/** @deprecated Use `isZeroAddress` from `./address` instead. */
+export const isZeroAddressValue = isZeroAddress;
 
 /**
  * Checks if a bytes32 value is zero or falsy.
