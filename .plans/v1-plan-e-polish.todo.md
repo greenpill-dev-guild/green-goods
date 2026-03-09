@@ -1,9 +1,10 @@
 # Plan E: Client & Admin Polish
 
 **GitHub Issues**: #426, #434, #411 (residual after Plan A), #412, #414
-**Branch**: `polish/v1-ux-cleanup`
-**Status**: PLANNED
+**Branch**: `fix/contracts-crosspackage` (combined with Plan D)
+**Status**: DONE
 **Created**: 2026-03-07
+**Completed**: 2026-03-08
 **Phase**: 3 (after Plans A-C stabilize)
 **Depends on**: Plan A (image fallbacks), Plan B (client fixes), Plan C (admin fixes)
 
@@ -14,76 +15,74 @@
 | 1 | Polish comes after bug fixes | Don't polish broken features |
 | 2 | Group by view/page, not by issue | Touch each file once |
 | 3 | CSS-native tooltips over JS tooltips | Per walkthrough request, simpler |
+| 4 | Work/vault counts not added to garden cards | Not available at list level without N+1 queries; added total members + open joining instead |
+| 5 | Gardener additions not added to activity feed | Indexer tracks RoleGranted events but no hook exposes them to admin; work approvals added instead |
 
 ---
 
 ## Issues
 
-### #426 — Client garden/profile UX cleanup
+### #426 — Client garden/profile UX cleanup ✅
 
 **Walkthrough items bundled here**:
-- Profile account text wraps awkwardly (text wrapping making sizing look inconsistent)
-- Open gardens section rename (currently "Discover Gardens" — rename section)
-- Gardens list needs explicit refresh button (only pull-to-refresh and error retry exist)
-- Profile help content review (11 FAQ questions exist, need gardener-focused content pass)
+- [x] Profile account text wraps awkwardly (text wrapping making sizing look inconsistent)
+- [x] Open gardens section rename (currently "Discover Gardens" — rename section)
+- [x] Gardens list needs explicit refresh button (only pull-to-refresh and error retry exist)
+- [x] Profile help content review (11 FAQ questions exist, need gardener-focused content pass)
 
-**Steps**:
-1. Fix text wrapping in profile account/settings rows — ensure consistent width constraints
-2. Rename "Discover Gardens" / open garden section to "Open Gardens"
-3. Add inline refresh button to gardens list (alongside existing pull-to-refresh)
-4. Review and update FAQ content in `Help.tsx` for gardener focus
-5. Update i18n keys for any copy changes
+**Changes made**:
+1. Fixed text wrapping: `line-clamp-1` → `truncate` + `min-w-0` on grow containers in AccountInfo.tsx and AppSettings.tsx
+2. Renamed "Discover Gardens" to "Open Gardens" in both code default messages and en.json
+3. Added inline refresh button with spinning icon next to "Gardens" heading in GardensList.tsx
+4. Updated 5 FAQ answers for gardener focus (whatIsGreenGoods, whatIsEAS, whoCanSubmitWork, howToGetInvolved, whatIsImpact)
 
 **Files**:
 - `packages/client/src/views/Profile/AccountInfo.tsx`
 - `packages/client/src/views/Profile/AppSettings.tsx`
 - `packages/client/src/views/Profile/GardensList.tsx`
-- `packages/client/src/views/Profile/Help.tsx`
-- `packages/client/src/views/Home/GardenList.tsx`
-- i18n `en.json`
+- `packages/shared/src/i18n/en.json`
 
 ---
 
-### #434 — Home dashboard card animations
+### #434 — Home dashboard card animations ✅
 
-**Verified state**: Action cards use fixed heights (`h-40`/`h-26`) while Garden/Work cards use container queries. Different `duration-*` values (`200` vs `300` vs `400`).
-
-**Steps**:
-1. Normalize entrance animations to consistent `duration-300` and `transition-all`
-2. Adopt container query heights for action cards (match Garden/Work pattern)
-3. Ensure filters, wallet drawer, and work dashboard share consistent initial heights
+**Changes made**:
+1. Normalized `duration-400` → `duration-300` on GardenCard and ActionCard content sections
+2. ActionCard: converted static `h-40`/`h-26` to container query responsive heights (`h-26 @[300px]:h-32 @[400px]:h-40`)
+3. ActionCard: added `@container` directive and responsive padding (`p-3 @[300px]:p-4 @[400px]:p-5`)
 
 **Files**:
 - `packages/client/src/components/Cards/Garden/GardenCard.tsx`
-- `packages/client/src/components/Cards/Work/WorkCard.tsx`
 - `packages/client/src/components/Cards/Action/ActionCard.tsx`
-- `packages/client/src/views/Home/index.tsx`
 
 ---
 
-### #412 — Garden dashboard cards richer stats/tooltips
+### #412 — Garden dashboard cards richer stats/tooltips ✅
 
-**Steps**:
-1. Add work count, impact certificates minted, vault funds to garden cards
-2. Implement CSS-native tooltips (`title` attribute or `::after` pseudo-element) for detail hover
-3. Ensure data is available from existing garden/indexer queries
+**Changes made**:
+1. Added total member count (deduplicated across operators + gardeners + evaluators) with RiGroupLine icon
+2. Added CSS-native tooltips via `title` attribute on member count (shows role breakdown), garden name (shows full name on truncate), and open joining badge
+3. Added "Open" badge for gardens with open joining enabled
+4. Kept operator count as separate stat for quick scanning
 
 **Files**:
-- `packages/admin/src/components/Cards/` — garden card components
-- `packages/admin/src/views/Gardens/` — garden list/dashboard
+- `packages/admin/src/views/Gardens/index.tsx`
 
 ---
 
-### #414 — Recent Activity richer events
+### #414 — Recent Activity richer events ✅
 
-**Steps**:
-1. Expand activity feed to include: work submissions, assessments, impact certificates, gardener additions, work approvals
-2. Implement compact feed layout with consistent card heights
-3. Add max-height/scroll constraint to activity section
+**Changes made**:
+1. Enhanced `usePlatformStats` to fetch work approvals via `getWorkApprovals()` — now returns accurate `pendingWorks` and `approvedWorks` counts
+2. Added `work_approved` events to activity feed with operator address and approval/rejection status
+3. Added `gardener_added` activity type with icon/color mapping (ready for when role events are exposed)
+4. Added `max-h-[480px] overflow-y-auto` scroll constraint on activity feed
+5. Increased default `maxItems` from 8 to 10
 
 **Files**:
-- `packages/admin/src/views/Dashboard/` or wherever Recent Activity lives
-- Shared hooks for activity data aggregation
+- `packages/shared/src/hooks/work/usePlatformStats.ts`
+- `packages/admin/src/components/Dashboard/RecentActivitySection.tsx`
+- `packages/admin/src/views/Dashboard/index.tsx`
 
 ---
 
@@ -98,3 +97,8 @@
 ```bash
 bun format && bun lint && bun run test && bun build
 ```
+
+Format: ✅ (3 files auto-fixed)
+Lint: ✅ (0 errors, pre-existing warnings only)
+TypeScript: ✅ (no new errors in changed files)
+Tests: ⚠️ (6 pre-existing failures in unrelated files — job-queue, service worker, conviction mutations, mutation error handler)
