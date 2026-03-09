@@ -11,6 +11,55 @@ import type {
 } from "../../types/domain";
 
 /**
+ * Determines upload concurrency based on connection quality.
+ * Uses Network Information API when available, falls back to full concurrency.
+ */
+function getUploadConcurrency(fileCount: number): number {
+  if (typeof navigator === "undefined") return fileCount;
+  const conn = (navigator as unknown as { connection?: { effectiveType?: string } }).connection;
+  if (!conn?.effectiveType) return fileCount;
+  switch (conn.effectiveType) {
+    case "slow-2g":
+    case "2g":
+      return 1;
+    case "3g":
+      return 2;
+    default:
+      return fileCount;
+  }
+}
+
+/**
+ * Runs async tasks with a concurrency limit, returning PromiseSettledResult[].
+ * Maintains original array order regardless of completion order.
+ */
+async function pooledSettled<T>(
+  tasks: (() => Promise<T>)[],
+  concurrency: number
+): Promise<PromiseSettledResult<T>[]> {
+  if (concurrency >= tasks.length) {
+    return Promise.allSettled(tasks.map((fn) => fn()));
+  }
+
+  const results: PromiseSettledResult<T>[] = new Array(tasks.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < tasks.length) {
+      const i = nextIndex++;
+      try {
+        results[i] = { status: "fulfilled", value: await tasks[i]() };
+      } catch (reason) {
+        results[i] = { status: "rejected", reason };
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker()));
+  return results;
+}
+
+/**
  * Maps MIME types to file extensions.
  * Returns the appropriate extension for a given MIME type.
  */
@@ -76,6 +125,8 @@ export interface EncodeWorkDataOptions {
   authMode?: "passkey" | "wallet" | null;
   /** Per-file upload progress callback */
   onFileProgress?: (progress: { completed: number; total: number; fileIndex: number }) => void;
+  /** Batch ID for correlating upload events with submission errors */
+  uploadBatchId?: string;
   /** Domain for v2 metadata */
   domain?: Domain;
   /** Action slug for v2 metadata */
@@ -100,9 +151,12 @@ export async function encodeWorkData(
   const totalFiles = data.media.length;
   const totalSizeBytes = data.media.reduce((sum, file) => sum + (file?.size || 0), 0);
 
+  const batchId = options.uploadBatchId;
+
   // Track batch upload started
   trackUploadBatchProgress({
     stage: "started",
+    uploadBatchId: batchId,
     totalFiles: totalFiles + 1, // +1 for metadata JSON
     completedFiles: 0,
     failedFiles: 0,
@@ -160,37 +214,41 @@ export async function encodeWorkData(
     throw error;
   }
 
-  // Upload all files concurrently using Promise.allSettled for graceful error handling
-  const uploadPromises = normalizedFiles.map((file, index) =>
-    uploadFileToIPFS(file, {
-      fileIndex: index,
-      totalFiles: totalFiles,
-      source: "encodeWorkData",
-      gardenAddress: options.gardenAddress,
-      authMode: options.authMode,
-    }).then((result) => {
-      completedFiles++;
-      options.onFileProgress?.({
-        completed: completedFiles,
-        total: totalFiles,
+  // Upload files with adaptive concurrency based on connection quality.
+  // On slow connections (2g/3g), limits parallel uploads to avoid overwhelming bandwidth.
+  const concurrency = getUploadConcurrency(normalizedFiles.length);
+  const uploadTasks = normalizedFiles.map(
+    (file, index) => () =>
+      uploadFileToIPFS(file, {
         fileIndex: index,
-      });
-      // Track individual file completion
-      trackUploadBatchProgress({
-        stage: "file_complete",
-        totalFiles: totalFiles + 1,
-        completedFiles,
-        failedFiles,
-        totalSizeBytes,
-        elapsedMs: Date.now() - startTime,
+        totalFiles: totalFiles,
         source: "encodeWorkData",
         gardenAddress: options.gardenAddress,
-      });
-      return { index, cid: result.cid };
-    })
+        authMode: options.authMode,
+      }).then((result) => {
+        completedFiles++;
+        options.onFileProgress?.({
+          completed: completedFiles,
+          total: totalFiles,
+          fileIndex: index,
+        });
+        // Track individual file completion
+        trackUploadBatchProgress({
+          stage: "file_complete",
+          uploadBatchId: batchId,
+          totalFiles: totalFiles + 1,
+          completedFiles,
+          failedFiles,
+          totalSizeBytes,
+          elapsedMs: Date.now() - startTime,
+          source: "encodeWorkData",
+          gardenAddress: options.gardenAddress,
+        });
+        return { index, cid: result.cid };
+      })
   );
 
-  const uploadResults = await Promise.allSettled(uploadPromises);
+  const uploadResults = await pooledSettled(uploadTasks, concurrency);
 
   // Process results and handle any failures
   const media: string[] = [];
@@ -208,6 +266,7 @@ export async function encodeWorkData(
       // Track encoding-level error with full context
       trackUploadError(result.reason, {
         uploadCategory: "encoding",
+        uploadBatchId: batchId,
         fileIndex: i,
         totalFiles: totalFiles,
         fileSize: maybeFile?.size,
@@ -234,6 +293,7 @@ export async function encodeWorkData(
   if (errors.length > 0) {
     trackUploadBatchProgress({
       stage: "failed",
+      uploadBatchId: batchId,
       totalFiles: totalFiles + 1,
       completedFiles,
       failedFiles,
@@ -322,6 +382,7 @@ export async function encodeWorkData(
     // Track batch completion
     trackUploadBatchProgress({
       stage: "completed",
+      uploadBatchId: batchId,
       totalFiles: totalFiles + 1,
       completedFiles,
       failedFiles,
@@ -346,6 +407,7 @@ export async function encodeWorkData(
     // Track encoding-level error for metadata
     trackUploadError(error, {
       uploadCategory: "encoding",
+      uploadBatchId: batchId,
       uploadDurationMs: Date.now() - startTime,
       source: "encodeWorkData",
       gardenAddress: options.gardenAddress,
@@ -365,6 +427,7 @@ export async function encodeWorkData(
     // Track batch failure
     trackUploadBatchProgress({
       stage: "failed",
+      uploadBatchId: batchId,
       totalFiles: totalFiles + 1,
       completedFiles,
       failedFiles,

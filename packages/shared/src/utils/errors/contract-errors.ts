@@ -474,11 +474,29 @@ export function parseContractError(error: unknown): ParsedContractError {
     };
   }
 
+  // Check for IPFS/upload errors (recoverable)
+  const lowerStr = errorStr.toLowerCase();
+  if (
+    lowerStr.includes("storacha") ||
+    lowerStr.includes("ipfs") ||
+    lowerStr.includes("failed to upload") ||
+    lowerStr.includes("failed to verify")
+  ) {
+    return {
+      raw: signature ?? errorStr,
+      name: "UploadError",
+      message: "Media upload failed. Please check your connection and try again.",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }
+
   // Check for network/timeout errors (recoverable)
   if (
-    errorStr.toLowerCase().includes("timeout") ||
-    errorStr.toLowerCase().includes("network") ||
-    errorStr.toLowerCase().includes("connection")
+    lowerStr.includes("timeout") ||
+    lowerStr.includes("network") ||
+    lowerStr.includes("connection")
   ) {
     return {
       raw: signature ?? errorStr,

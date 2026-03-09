@@ -1,5 +1,6 @@
 import { type Client, create } from "@storacha/client";
 import {
+  getNetworkContext,
   trackUploadError,
   trackUploadSuccess,
   type UploadErrorCategory,
@@ -37,8 +38,8 @@ export const IPFS_FALLBACK_GATEWAYS = [
 ];
 const DEFAULT_PINATA_GATEWAY = "https://greengoods.mypinata.cloud";
 const DEFAULT_PINATA_API_BASE_URL = "https://api.pinata.cloud";
-const PROVIDER_VERIFICATION_ATTEMPTS = 6;
-const PROVIDER_VERIFICATION_TIMEOUT_MS = 15_000;
+const PROVIDER_VERIFICATION_ATTEMPTS = 3;
+const PROVIDER_VERIFICATION_TIMEOUT_MS = 5_000;
 
 /**
  * Returns the current IPFS initialization status
@@ -58,18 +59,6 @@ const DEFAULT_AVATAR = "/images/avatar.png";
 // ============================================================================
 // SHARED UPLOAD UTILITIES
 // ============================================================================
-
-/**
- * Gets network context for error tracking
- */
-function getNetworkContext() {
-  if (typeof navigator === "undefined") return { isOnline: true };
-  const conn = navigator as unknown as { connection?: { effectiveType?: string } };
-  return {
-    is_online: navigator.onLine,
-    connection_type: conn.connection?.effectiveType,
-  };
-}
 
 /**
  * Common upload handler that wraps Storacha upload with error tracking
@@ -104,13 +93,23 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
   try {
     const result = await uploadFn();
     const cid = result.cid.toString();
-    await ensureCidAvailableAcrossProviders(cid, {
+    const uploadDuration = Date.now() - startTime;
+
+    // Fire-and-forget: verify gateway availability in background.
+    // The CID is valid once Storacha returns it; gateway propagation
+    // should not block the user's submission flow.
+    ensureCidAvailableAcrossProviders(cid, {
       category,
       source: context.source ?? "executeUpload",
       gardenAddress: context.gardenAddress,
       name: fileInfo.name,
+    }).catch((verifyError) => {
+      logger.warn("Gateway verification failed (non-blocking)", {
+        cid,
+        error: verifyError,
+        ...getNetworkContext(),
+      });
     });
-    const uploadDuration = Date.now() - startTime;
 
     trackUploadSuccess({
       uploadCategory: category,
@@ -142,7 +141,7 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
       gardenAddress: context.gardenAddress,
       severity: "error",
       recoverable: true,
-      metadata: getNetworkContext(),
+      metadata: { ...getNetworkContext() },
     });
 
     throw error;

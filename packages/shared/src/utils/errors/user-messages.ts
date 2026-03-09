@@ -40,6 +40,7 @@ export const USER_FRIENDLY_ERRORS: Record<string, string> = {
   // Transaction errors
   "user rejected": "Transaction cancelled by user",
   "insufficient funds": "Insufficient funds for gas",
+  "gas estimation": "Transaction would fail - please check your inputs and try again",
   nonce: "Transaction conflict - please try again",
   reverted: "Transaction would fail. Make sure you're a member of the selected garden.",
 
@@ -47,12 +48,14 @@ export const USER_FRIENDLY_ERRORS: Record<string, string> = {
   quota: "Storage quota exceeded - please free up space",
   storage: "Storage error - please try again",
 
+  // IPFS / upload errors
+  "storacha not initialized": "Media upload service unavailable - please reload and try again",
+  "failed to upload": "Media upload failed - please check your connection and try again",
+  "failed to verify": "Media upload slow - please check your connection and try again",
+
   // Validation errors
   invalid: "Invalid data - please check your submission",
   "validation failed": "Please check your submission and try again",
-
-  // General errors
-  failed: "Operation failed - please try again",
 };
 
 /**

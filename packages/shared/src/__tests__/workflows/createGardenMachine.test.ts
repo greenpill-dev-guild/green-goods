@@ -432,8 +432,10 @@ describe("workflows/createGardenMachine", () => {
         expect(actor.getSnapshot().value).toBe("error");
       });
 
-      // formatUserError maps "Gas estimation failed" → USER_FRIENDLY_ERRORS["failed"]
-      expect(actor.getSnapshot().context.error).toBe("Operation failed - please try again");
+      // formatUserError maps "Gas estimation failed" → gas estimation pattern
+      expect(actor.getSnapshot().context.error).toBe(
+        "Transaction would fail - please check your inputs and try again"
+      );
       expect(actor.getSnapshot().context.retryCount).toBe(1);
 
       actor.stop();

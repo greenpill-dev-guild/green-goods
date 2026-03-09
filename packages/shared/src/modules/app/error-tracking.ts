@@ -22,6 +22,53 @@ import { getAppContext, track } from "./posthog";
 const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
 
+const PAGE_LOAD_TIME = Date.now();
+
+// ============================================================================
+// NETWORK & DEVICE CONTEXT
+// ============================================================================
+
+interface NetworkInfo {
+  is_online: boolean;
+  connection_type?: string;
+  downlink_mbps?: number;
+  rtt_ms?: number;
+}
+
+/**
+ * Reads connection quality from the Network Information API.
+ * Provides effectiveType (slow-2g/2g/3g/4g), downlink, and RTT.
+ * Safe to call in SSR (returns defaults).
+ */
+export function getNetworkContext(): NetworkInfo {
+  if (typeof navigator === "undefined") return { is_online: true };
+
+  const conn = (
+    navigator as unknown as {
+      connection?: {
+        effectiveType?: string;
+        downlink?: number;
+        rtt?: number;
+      };
+    }
+  ).connection;
+
+  return {
+    is_online: navigator.onLine,
+    connection_type: conn?.effectiveType,
+    downlink_mbps: conn?.downlink,
+    rtt_ms: conn?.rtt,
+  };
+}
+
+/**
+ * Milliseconds since the page was loaded.
+ * Useful for identifying errors that happen during startup vs. steady state.
+ */
+export function getTimeSincePageLoad(): number {
+  return Date.now() - PAGE_LOAD_TIME;
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -212,6 +259,14 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
   // Get app context for version and environment
   const appContext = getAppContext();
 
+  // Collect device/network context for every error event
+  const networkCtx = getNetworkContext();
+
+  // Preserve original error message when the error was re-wrapped with a user-friendly message.
+  // The `cause` chain can contain the raw upstream error (e.g. IPFS gateway timeout).
+  const originalErrorMessage =
+    normalizedError.cause instanceof Error ? normalizedError.cause.message : undefined;
+
   // Build the error properties
   const properties: Record<string, unknown> = {
     // App context (version and environment)
@@ -223,6 +278,7 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
     error_type: normalizedError.name || "Error",
     error_message: normalizedError.message,
     error_stack: normalizedError.stack,
+    original_error_message: originalErrorMessage,
 
     // Custom error context
     severity,
@@ -234,6 +290,12 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
     auth_mode: authMode,
     is_offline: isOffline,
     recoverable: recoverable ?? parsedContractError?.recoverable,
+
+    // Network & device context (auto-collected)
+    connection_type: networkCtx.connection_type,
+    connection_downlink_mbps: networkCtx.downlink_mbps,
+    connection_rtt_ms: networkCtx.rtt_ms,
+    time_since_page_load_ms: getTimeSincePageLoad(),
 
     // Contract error details
     contract_error_name: parsedContractError?.name,
@@ -491,6 +553,8 @@ export type UploadErrorCategory = "ipfs_init" | "file_upload" | "json_upload" | 
 export interface UploadErrorContext extends Omit<ErrorContext, "category"> {
   /** Type of upload that failed */
   uploadCategory: UploadErrorCategory;
+  /** Batch ID for correlating upload errors with submission errors */
+  uploadBatchId?: string;
   /** File index if uploading multiple files */
   fileIndex?: number;
   /** Total files being uploaded */
@@ -534,6 +598,7 @@ export interface UploadErrorContext extends Omit<ErrorContext, "category"> {
 export function trackUploadError(error: unknown, context: UploadErrorContext): void {
   const {
     uploadCategory,
+    uploadBatchId,
     fileIndex,
     totalFiles,
     fileSize,
@@ -552,6 +617,7 @@ export function trackUploadError(error: unknown, context: UploadErrorContext): v
     metadata: {
       ...context.metadata,
       upload_category: uploadCategory,
+      upload_batch_id: uploadBatchId,
       file_index: fileIndex,
       total_files: totalFiles,
       file_size_bytes: fileSize,
@@ -570,6 +636,7 @@ export function trackUploadError(error: unknown, context: UploadErrorContext): v
  */
 export function trackUploadSuccess(context: {
   uploadCategory: UploadErrorCategory;
+  uploadBatchId?: string;
   fileIndex?: number;
   totalFiles?: number;
   fileSize?: number;
@@ -584,6 +651,7 @@ export function trackUploadSuccess(context: {
   import("./posthog").then(({ track }) => {
     track("upload_success", {
       upload_category: context.uploadCategory,
+      upload_batch_id: context.uploadBatchId,
       file_index: context.fileIndex,
       total_files: context.totalFiles,
       file_size_bytes: context.fileSize,
@@ -602,6 +670,7 @@ export function trackUploadSuccess(context: {
  */
 export function trackUploadBatchProgress(context: {
   stage: "started" | "file_complete" | "completed" | "failed";
+  uploadBatchId?: string;
   totalFiles: number;
   completedFiles: number;
   failedFiles: number;
@@ -614,6 +683,7 @@ export function trackUploadBatchProgress(context: {
   import("./posthog").then(({ track }) => {
     track("upload_batch_progress", {
       stage: context.stage,
+      upload_batch_id: context.uploadBatchId,
       total_files: context.totalFiles,
       completed_files: context.completedFiles,
       failed_files: context.failedFiles,
