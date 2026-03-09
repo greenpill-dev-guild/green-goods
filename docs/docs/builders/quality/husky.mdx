@@ -5,13 +5,49 @@ slug: /builders/quality/husky
 audience: developer
 owner: docs
 last_verified: 2026-03-01
+feature_status: Live
+keywords: [husky, git hooks, pre-commit, pre-push, lint-staged, biome, formatting]
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Husky Git Hooks
 
+<StatusBadge status="Live" />
+
 Git hooks enforce code quality gates before commits and pushes reach the repository. Husky manages hook scripts in the `.husky/` directory.
 
-## Hook Configuration
+```mermaid
+flowchart TD
+    GC[git commit] --> PC[Pre-Commit Hook]
+    PC --> LS[lint-staged]
+    LS --> BF[Biome Format staged files]
+    BF --> |Pass| Commit[Commit Created]
+    BF --> |Fail| Fix[Fix Formatting]
+    Fix --> GC
+    GP[git push] --> PP[Pre-Push Hook]
+    PP --> FC[forge fmt]
+    FC --> BF2[Biome Format workspace]
+    BF2 --> Lint[oxlint + linters]
+    Lint --> |Pass| Push[Push Succeeds]
+    Lint --> |Fail| Fix2[Fix Issues]
+```
+
+## What It Checks
+
+Git hooks enforce formatting and linting standards on every commit and push. The pre-commit hook formats staged files with Biome, and the pre-push hook runs both formatting and linting across the workspace.
+
+### What Hooks Do Not Cover
+
+Hooks intentionally skip expensive operations:
+
+- **Tests** are not run in pre-commit or pre-push (too slow for the feedback loop)
+- **Type checking** is deferred to CI (cross-package type resolution requires full build)
+- **Contract compilation** is not triggered (adaptive build handles this during development)
+
+These checks run in CI via GitHub Actions workflows instead.
+
+## How It's Configured
 
 ### Pre-Commit
 
@@ -53,7 +89,7 @@ $RUNNER lint                # oxlint + package linters
 
 The pre-push hook auto-fixes formatting before checking lint. This ensures consistent formatting across the team without requiring developers to remember to run formatters manually.
 
-## Shell Compatibility
+### Shell Compatibility
 
 Both hooks are written for POSIX `sh` compatibility with careful handling of edge cases:
 
@@ -62,7 +98,7 @@ Both hooks are written for POSIX `sh` compatibility with careful handling of edg
 - `nvm` sourcing only runs under bash (nvm is not POSIX-sh safe)
 - `PATH` is prepended with `~/.bun/bin` and `~/.local/bin` to find bun in non-interactive shells
 
-## Package Manager Detection
+### Package Manager Detection
 
 Hooks prefer `bun` but fall back to `npm`:
 
@@ -77,7 +113,7 @@ else
 fi
 ```
 
-## Troubleshooting
+## Running & Troubleshooting
 
 ### Hook Not Running
 
@@ -101,12 +137,20 @@ git add -u      # Re-stage the fixed files
 
 Hooks should not be skipped in normal development. If a hook is failing, investigate and fix the underlying issue rather than bypassing with `--no-verify`. The pre-commit hook only formats staged files, so failures typically indicate a genuine formatting or lint issue.
 
-## What Hooks Do Not Cover
+## Resources
 
-Hooks intentionally skip expensive operations:
+- [GitHub Actions](./gh-actions) -- CI pipeline that runs the checks hooks intentionally skip (tests, type checking)
+- [Regression Testing](./regression) -- Regression suites that complement local hook checks
+- [Agentic Evaluation](./agentic-eval) -- How AI agents enforce quality alongside git hooks
+- [Test Cases](./test-cases) -- Test case strategy and coverage targets
 
-- **Tests** are not run in pre-commit or pre-push (too slow for the feedback loop)
-- **Type checking** is deferred to CI (cross-package type resolution requires full build)
-- **Contract compilation** is not triggered (adaptive build handles this during development)
-
-These checks run in CI via GitHub Actions workflows instead.
+<NextBestAction
+  title="Next best action"
+  why="See the full CI/CD pipeline that runs tests, linting, and deployment on every push."
+  actionLabel="GitHub Actions"
+  actionHref="./gh-actions"
+  alternatives={[
+    {label: "Regression Testing", href: "./regression"},
+    {label: "Agentic Evaluation", href: "./agentic-eval"},
+  ]}
+/>

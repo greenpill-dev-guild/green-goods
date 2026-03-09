@@ -35,6 +35,19 @@ import {INDEXER_ENDPOINT} from "@site/src/data/endpoints";
 
 <StatusBadge status="Live" />
 
+```mermaid
+sequenceDiagram
+    actor E as Evaluator
+    participant GQL as GraphQL API
+    participant Idx as Envio Indexer
+
+    E->>GQL: Query gardens and actions
+    GQL->>Idx: Resolve indexed data
+    Idx-->>GQL: Metadata, vault events, yield history
+    GQL-->>E: Structured results
+    E->>E: Carry IDs to EAS queries
+```
+
 ## Endpoints
 
 - Production: <code>{INDEXER_ENDPOINT}</code>

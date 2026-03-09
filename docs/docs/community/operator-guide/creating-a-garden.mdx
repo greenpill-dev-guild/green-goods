@@ -41,7 +41,17 @@ import {JourneyMap, NextBestAction, StatusBadge, StepFlow} from "@site/src/compo
 
 A garden is your community hub for regenerative work. Creating one sets up an on-chain identity (ERC-6551 Tokenbound Account) that can hold assets, manage members, and coordinate impact. You will need a garden name, description, location, and a plan for your initial membership.
 
-{/* IMAGE PLACEHOLDER */}
+```mermaid
+graph LR
+    Meta["Enter Metadata\nname, description,\nlocation, banner"] --> Policy["Set Joining Policy\nopen or restricted"]
+    Policy --> Actions["Define Actions\nwork categories"]
+    Actions --> Create["Create Garden\non-chain TX"]
+    Create --> Live["Garden Live\nready for gardeners"]
+```
+
+<img src="/img/screenshots/admin-gardens.png" alt="Admin gardens list — browse, search, and create garden communities" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+
+<img src="/img/screenshots/admin-create-garden.png" alt="Garden creation form — enter name, location, ENS subdomain, and description" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 ## How It Works
 

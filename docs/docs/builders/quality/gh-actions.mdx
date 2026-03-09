@@ -5,13 +5,40 @@ slug: /builders/quality/gh-actions
 audience: developer
 owner: docs
 last_verified: 2026-03-01
+feature_status: Live
+keywords: [GitHub Actions, CI/CD, workflows, concurrency, path triggers, Playwright, Storybook]
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # GitHub Actions
 
+<StatusBadge status="Live" />
+
 The CI/CD pipeline uses GitHub Actions with per-package workflows, path-based triggering, and concurrency controls to keep builds fast and focused.
 
-## Workflow Architecture
+```mermaid
+flowchart LR
+    PR[Pull Request] --> PT{Path Triggers}
+    PT --> |contracts/**| CT[Contract Tests]
+    PT --> |shared/**| ST[Shared Tests]
+    PT --> |admin/**| AT[Admin Tests]
+    PT --> |client/**| CLT[Client Tests]
+    PT --> |components/**| SB[Storybook CI]
+    PT --> |push to main| E2E[E2E Tests]
+    CT --> Gate{All Green?}
+    ST --> Gate
+    AT --> Gate
+    CLT --> Gate
+    SB --> Gate
+    E2E --> Gate
+    Gate --> |Yes| Merge[Merge]
+    Gate --> |No| Fix[Fix Required]
+```
+
+## What It Checks
+
+### Workflow Architecture
 
 Each package has a dedicated test workflow, plus cross-cutting workflows for E2E, Storybook, and deployment:
 
@@ -28,11 +55,13 @@ Each package has a dedicated test workflow, plus cross-cutting workflows for E2E
 | `claude-guidance.yml` | `.claude/**`, `CLAUDE.md` | Guidance consistency check |
 | `test-quality.yml` | Test file changes | Test quality metrics |
 
-## Common Configuration
+## How It's Configured
+
+### Common Configuration
 
 All workflows share these patterns:
 
-### Concurrency Control
+#### Concurrency Control
 
 ```yaml
 concurrency:
@@ -42,7 +71,7 @@ concurrency:
 
 This ensures only the latest push for a given branch runs, canceling stale builds.
 
-### Bun Setup
+#### Bun Setup
 
 ```yaml
 - name: Setup Bun
@@ -56,11 +85,11 @@ This ensures only the latest push for a given branch runs, canceling stale build
 
 `--frozen-lockfile` ensures CI uses the exact dependency versions from the lockfile. The bun setup is shared across all workflows.
 
-### Permissions
+#### Permissions
 
 Workflows use minimal permissions (`contents: read` by default). Write permissions are added only where needed (deployment workflows, PR comment workflows).
 
-## Contract Tests
+### Contract Tests
 
 The contracts workflow has two jobs:
 
@@ -69,7 +98,7 @@ The contracts workflow has two jobs:
 
 Fork tests run against real chain state (Sepolia, Arbitrum, Celo) and use `foundry-rs/foundry-toolchain@v1` for Foundry installation.
 
-## E2E Tests
+### E2E Tests
 
 The E2E workflow is the most complex, requiring:
 
@@ -89,7 +118,7 @@ The E2E workflow is the most complex, requiring:
 
 The workflow supports manual dispatch with a project selector for targeted E2E runs.
 
-## Storybook CI
+### Storybook CI
 
 Triggered by changes to component files in any of the three UI packages:
 
@@ -105,7 +134,7 @@ Two gates must pass:
 - `check:stories` -- Verifies all exported components have story files
 - `build-storybook` -- Confirms the static Storybook compiles
 
-## Deployment Workflows
+### Deployment Workflows
 
 | Workflow | Purpose |
 |----------|---------|
@@ -114,7 +143,9 @@ Two gates must pass:
 | `upload-sourcemaps.yml` | Upload source maps for error tracking |
 | `lighthouse-ci.yml` | Performance audits on deployed sites |
 
-## Adding a New Workflow
+## Running & Troubleshooting
+
+### Adding a New Workflow
 
 When creating a workflow for a new package:
 
@@ -123,3 +154,24 @@ When creating a workflow for a new package:
 3. Set `permissions: contents: read` unless write access is needed
 4. Use `bun install --frozen-lockfile` for reproducible installs
 5. Run tests with `bun run test` (not `bun test`)
+
+## Resources
+
+- [Husky Git Hooks](./husky) -- Local quality gates that run before CI
+- [Regression Testing](./regression) -- Regression strategy that CI enforces
+- [Agentic Evaluation](./agentic-eval) -- Agent-powered code review running in CI
+- [Test Cases](./test-cases) -- Test case strategy behind the CI test suites
+- [Playwright](../testing/playwright) -- E2E testing framework used in `e2e-tests.yml`
+- [Storybook](../testing/storybook) -- Component stories validated by `storybook.yml`
+- [Forge](../testing/forge) -- Foundry testing used in `contracts-tests.yml`
+
+<NextBestAction
+  title="Next best action"
+  why="Review the builder glossary for quick definitions of terms used across these guides."
+  actionLabel="Builder Glossary"
+  actionHref="/builders/glossary"
+  alternatives={[
+    {label: "Husky Git Hooks", href: "./husky"},
+    {label: "Regression Testing", href: "./regression"},
+  ]}
+/>

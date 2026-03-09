@@ -27,6 +27,19 @@ import {NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
 
 <StatusBadge status="Live" />
 
+```mermaid
+flowchart LR
+    GG[Green Goods Data] --> Map{Mapping Engine}
+    Map --> SDG[UN SDGs]
+    Map --> GAP[Karma GAP]
+    Map --> CIDS[CIDS Standard]
+    Map --> Custom[Custom Framework]
+    SDG --> Out[Mapped Output + Evidence UIDs]
+    GAP --> Out
+    CIDS --> Out
+    Custom --> Out
+```
+
 ## Mapping workflow
 
 <StepFlow

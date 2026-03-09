@@ -6,7 +6,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Green Goods Documentation',
-  tagline: 'Bringing community and environmental actions onchain',
+  tagline: 'Bringing community and environmental actions on-chain',
   favicon: 'img/favicon.ico', // Green Goods favicon from client app
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -322,6 +322,55 @@ const config: Config = {
     colorMode: {
       respectPrefersColorScheme: true,
     },
+    mermaid: {
+      theme: {
+        light: 'base',
+        dark: 'base',
+      },
+      options: {
+        themeVariables: {
+          // Typography — match docs site font
+          fontFamily: '"Manrope", "Avenir Next", "Segoe UI", sans-serif',
+
+          // Primary (green) — nodes, default elements
+          primaryColor: '#dcfce7',
+          primaryTextColor: '#14532d',
+          primaryBorderColor: '#16a34a',
+          lineColor: '#16a34a',
+
+          // Secondary (blue) — alternate nodes
+          secondaryColor: '#dbeafe',
+          secondaryTextColor: '#1e3a5f',
+          secondaryBorderColor: '#1d4ed8',
+
+          // Tertiary (purple) — decision nodes, highlights
+          tertiaryColor: '#ede9fe',
+          tertiaryTextColor: '#4c1d95',
+          tertiaryBorderColor: '#7c3aed',
+
+          // Notes (amber)
+          noteBkgColor: '#fffbeb',
+          noteTextColor: '#92400e',
+          noteBorderColor: '#f59e0b',
+
+          // Subgraph / cluster styling
+          clusterBkg: '#f0fdf4',
+          clusterBorder: '#bbf7d0',
+
+          // Edge labels
+          edgeLabelBackground: '#f5f5f5',
+
+          // Sequence diagram actors
+          actorBkg: '#dcfce7',
+          actorBorder: '#16a34a',
+          actorTextColor: '#14532d',
+          signalColor: '#16a34a',
+          signalTextColor: '#14532d',
+          activationBkgColor: '#dbeafe',
+          activationBorderColor: '#1d4ed8',
+        },
+      },
+    },
     navbar: {
       title: 'Green Goods',
       logo: {
@@ -395,7 +444,12 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Greenpill Dev Guild. Built with Docusaurus.`,
+      logo: {
+        alt: 'Green Goods',
+        src: 'img/green-goods-logo.png',
+        width: 80,
+      },
+      copyright: `Making grassroots conservation visible, verifiable, and funded.<br/>Copyright © ${new Date().getFullYear()} Greenpill Dev Guild.`,
     },
     prism: {
       theme: prismThemes.github,

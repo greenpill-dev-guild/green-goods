@@ -51,7 +51,19 @@ import {
 
 When gardeners submit work through the MDR workflow, it enters your review queue. As an operator, you validate the evidence, approve or reject submissions, and provide feedback. Approved work creates permanent on-chain attestations via EAS and triggers Karma GAP impact attestations automatically.
 
-{/* IMAGE PLACEHOLDER */}
+<img src="/img/screenshots/admin-work-queue.png" alt="Work review queue — pending submissions with review command center" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+
+<img src="/img/screenshots/admin-work-detail.png" alt="Work detail view — review submission evidence and make approval decisions" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+
+```mermaid
+graph TB
+    Queue["Work Queue\npending submissions"] --> Review["Review Submission\nmedia + details"]
+    Review --> Decide{"Approve?"}
+    Decide -->|yes| Approve["Approve\non-chain attestation"]
+    Decide -->|no| Reject["Reject\nwith feedback"]
+    Approve --> Notify["Notify Gardener"]
+    Reject --> Notify
+```
 
 ## How It Works
 

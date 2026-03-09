@@ -6,11 +6,24 @@ audience: developer
 owner: docs
 last_verified: 2026-03-01
 feature_status: Planned
+keywords: [test cases, QA, quality assurance, coverage, E2E, regression, critical paths]
 ---
 
 # Test Cases
 
 Structured test case tracking for Green Goods QA. This page outlines the categories, critical paths, and automation strategy for ensuring protocol correctness.
+
+```mermaid
+flowchart LR
+    G[Gardener] --> |Select Action| Form[Work Form]
+    Form --> |Upload| IPFS[IPFS Media]
+    IPFS --> |Encode| EAS[EAS Attestation]
+    EAS --> |Validate| WR[WorkResolver]
+    WR --> |Store| Chain[On-Chain]
+    Chain --> |Review| Op[Operator]
+    Op --> |Approve| WAR[WorkApproval Resolver]
+    WAR --> |Attest| Done[Verified]
+```
 
 ## Scope
 

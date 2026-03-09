@@ -5,13 +5,33 @@ slug: /builders/quality/agentic-eval
 audience: developer
 owner: docs
 last_verified: 2026-03-01
+feature_status: Live
+keywords: [agentic evaluation, AI code review, model selection, three-strike protocol, test generation]
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Agentic Evaluation Testing
 
+<StatusBadge status="Live" />
+
 AI agents assist with code review, test generation, and audit tasks in the Green Goods workflow. This page covers how agent outputs are evaluated for quality and how to avoid common pitfalls.
 
-## Agent Roles in QA
+```mermaid
+flowchart LR
+    PR[Pull Request] --> Diff[Load Diff + Context]
+    Diff --> Agent[code-reviewer Agent]
+    Agent --> Findings[Findings]
+    Findings --> Filter{FP Rate < 10%?}
+    Filter --> |Yes| Post[Post PR Comments]
+    Filter --> |No| Strike[Three-Strike Protocol]
+    Post --> Human[Manual Review]
+    Strike --> Human
+```
+
+## What It Checks
+
+### Agent Roles in QA
 
 | Agent | Purpose | Model Requirement |
 |-------|---------|-------------------|
@@ -22,7 +42,7 @@ AI agents assist with code review, test generation, and audit tasks in the Green
 
 Agent specs live in `.claude/agents/*.md`. Each defines activation criteria, workflow phases, and constraints.
 
-## Model Selection
+### Model Selection
 
 Model choice directly impacts evaluation quality:
 
@@ -30,9 +50,9 @@ Model choice directly impacts evaluation quality:
 - **Sonnet** -- Suitable for straightforward tasks: file lookups, simple searches, factual queries, mechanical transforms.
 - **Haiku** -- Appropriate only for trivial tasks. Not suitable for code review -- it produces high false-positive rates by flagging patterns syntactically without reading semantic context.
 
-## Evaluation Criteria
+### Evaluation Criteria
 
-### Code Review Quality
+#### Code Review Quality
 
 Agent-generated code reviews are evaluated against these criteria:
 
@@ -41,7 +61,7 @@ Agent-generated code reviews are evaluated against these criteria:
 3. **Actionability** -- Findings must include a concrete fix, not just a description
 4. **Context awareness** -- The agent must read surrounding code (guards, retry paths, comments) before flagging
 
-### Test Generation Quality
+#### Test Generation Quality
 
 When agents generate tests (via the `cracked-coder` TDD workflow), evaluate:
 
@@ -51,7 +71,9 @@ When agents generate tests (via the `cracked-coder` TDD workflow), evaluate:
 - Cleanup is verified for hooks with timers, listeners, or async effects
 - Assertions are specific (exact values, not just truthy/falsy)
 
-## The Three-Strike Protocol
+## How It's Configured
+
+### The Three-Strike Protocol
 
 If an agent fails to fix an issue after three attempts:
 
@@ -61,7 +83,7 @@ If an agent fails to fix an issue after three attempts:
 
 This prevents agents from burning context window on unproductive loops.
 
-## Guidance Consistency
+### Guidance Consistency
 
 The `check-guidance-consistency.js` script validates that agent instructions across `CLAUDE.md`, `AGENTS.md`, `.claude/agents/`, and `.claude/rules/` do not contradict each other:
 
@@ -71,7 +93,9 @@ node .claude/scripts/check-guidance-consistency.js
 
 This runs in CI via `.github/workflows/claude-guidance.yml` to catch drift between guidance files.
 
-## Automated Review Workflow
+## Running & Troubleshooting
+
+### Automated Review Workflow
 
 The `claude-code-review.yml` workflow runs agent-powered code review on PRs. It:
 
@@ -82,9 +106,29 @@ The `claude-code-review.yml` workflow runs agent-powered code review on PRs. It:
 
 Review scope is limited by the `.claude/rules/` path-scoped rules -- a PR touching only `packages/contracts/` will load `contracts.md` rules but not `react-patterns.md`.
 
-## Lessons Learned
+### Lessons Learned
 
 - Agent reviews that scan entire codebases produce noise. Scope reviews to the diff and its immediate dependencies.
 - Always validate agent findings manually before merging. Even Opus makes mistakes on novel patterns.
 - Agent-generated tests are a starting point. Review them for test adequacy before trusting them as a regression safety net.
 - Context window management matters. Long sessions should checkpoint state to `session-state.md` and `tests.json` before compaction.
+
+## Resources
+
+- [Husky Git Hooks](./husky) -- Local quality gates that run before code reaches the repository
+- [Regression Testing](./regression) -- Regression suites that agents help maintain
+- [GitHub Actions](./gh-actions) -- CI pipeline including the automated review workflow
+- [Test Cases](./test-cases) -- Test case strategy that agents follow during TDD
+- Agent specs: `.claude/agents/*.md`
+- Guidance consistency script: `.claude/scripts/check-guidance-consistency.js`
+
+<NextBestAction
+  title="Next best action"
+  why="See how git hooks enforce code quality gates before code reaches the repository."
+  actionLabel="Husky Git Hooks"
+  actionHref="./husky"
+  alternatives={[
+    {label: "Regression Testing", href: "./regression"},
+    {label: "GitHub Actions", href: "./gh-actions"},
+  ]}
+/>

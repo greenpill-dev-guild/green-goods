@@ -5,13 +5,35 @@ slug: /builders/quality/regression
 audience: developer
 owner: docs
 last_verified: 2026-03-01
+feature_status: Live
+keywords: [regression testing, CI, build order, ABI compatibility, hook testing, E2E]
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Regression Testing
 
+<StatusBadge status="Live" />
+
 Regression testing ensures that changes to one package do not break behavior in dependent packages. The monorepo's layered architecture makes this particularly important since shared hooks propagate to both client and admin.
 
-## Strategy
+```mermaid
+flowchart TD
+    Change[Code Change] --> Detect{Which Package?}
+    Detect --> |contracts| C[Contract Tests]
+    Detect --> |shared| S[Shared Tests]
+    Detect --> |client| CL[Client Tests]
+    Detect --> |admin| A[Admin Tests]
+    C --> S
+    S --> CL
+    S --> A
+    CL --> E2E[E2E Tests]
+    A --> E2E
+    E2E --> |Pass| Safe[No Regression]
+    E2E --> |Fail| Investigate[Investigate]
+```
+
+## What It Checks
 
 ### Build-Order Validation
 
@@ -26,7 +48,7 @@ The build dependency chain (contracts -> shared -> indexer -> client/admin/agent
 
 Each CI workflow uses `paths` filters to only run when relevant files change. This avoids false confidence from skipped test suites -- if `packages/shared/**` changes, the shared, client, admin, and E2E workflows all trigger.
 
-## Critical Paths
+### Critical Paths
 
 The following flows have dedicated regression coverage:
 
@@ -39,13 +61,15 @@ The following flows have dedicated regression coverage:
 | Authentication | E2E | `tests/specs/client.auth.spec.ts` |
 | Contract deployment | Fork test | `packages/contracts/test/fork/` |
 
-### Mock-Based CI Tests
+#### Mock-Based CI Tests
 
 Specs ending in `.ci.spec.ts` use lightweight mocks instead of real infrastructure. These run on every PR and catch UI regressions without the overhead of blockchain interaction or indexer queries.
 
-## Contract Regression
+## How It's Configured
 
-### Test Realism Audit
+### Contract Regression
+
+#### Test Realism Audit
 
 The contracts package includes audit scripts that verify test quality:
 
@@ -59,11 +83,11 @@ cd packages/contracts && bun run test:audit:full
 
 The realism audit checks that tests use realistic parameters, proper mock implementations, and don't rely on behaviors that differ between test and production environments.
 
-### ABI Compatibility
+#### ABI Compatibility
 
 When a contract interface changes, the `build:abis` script regenerates ABI JSON files consumed by the shared package. Forgetting this step causes type errors in downstream hook tests -- a common regression vector.
 
-## Hook Regression
+### Hook Regression
 
 Shared hooks have extensive test coverage in `packages/shared/src/__tests__/hooks/`. The test structure mirrors the source tree:
 
@@ -81,7 +105,7 @@ __tests__/hooks/
 
 Each hook test validates query keys, enabled conditions, error paths, and queryFn delegation. Adding a new hook requires a corresponding test file in this structure.
 
-## Running Regression Suites
+## Running & Troubleshooting
 
 ```bash
 # Full monorepo test suite
@@ -95,3 +119,23 @@ cd packages/contracts && bun run test
 # Critical path E2E (mock-based, fast)
 npx playwright test --project=critical-path
 ```
+
+## Resources
+
+- [Agentic Evaluation](./agentic-eval) -- How AI agents are evaluated for quality in QA workflows
+- [Test Cases](./test-cases) -- Test case strategy and coverage targets
+- [GitHub Actions](./gh-actions) -- CI pipeline that runs regression suites automatically
+- [Vitest](../testing/vitest) -- Unit testing framework used for hook and component tests
+- [Playwright](../testing/playwright) -- E2E testing framework for critical path specs
+- [Forge](../testing/forge) -- Foundry testing for contract regression
+
+<NextBestAction
+  title="Next best action"
+  why="Learn how AI agents are evaluated for quality in the Green Goods QA workflow."
+  actionLabel="Agentic Evaluation"
+  actionHref="./agentic-eval"
+  alternatives={[
+    {label: "Test Cases", href: "./test-cases"},
+    {label: "GitHub Actions", href: "./gh-actions"},
+  ]}
+/>

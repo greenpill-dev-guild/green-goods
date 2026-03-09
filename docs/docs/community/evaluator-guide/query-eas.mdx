@@ -41,6 +41,21 @@ import {EAS_GRAPHQL_ENDPOINTS} from "@site/src/data/endpoints";
 
 Use this guide when you need to query attestations from EAS for work submissions and work approvals.
 
+```mermaid
+sequenceDiagram
+    actor E as Evaluator
+    participant GQL as EAS GraphQL
+    participant Chain as On-Chain EAS
+
+    E->>GQL: Query work attestations
+    GQL->>Chain: Read attestation store
+    Chain-->>GQL: Attestation records
+    GQL-->>E: Work submissions
+    E->>GQL: Query approval attestations
+    GQL-->>E: Linked approvals
+    E->>E: Join work and approval by UID
+```
+
 ## EAS GraphQL endpoints
 
 - <ChainBadge name="Arbitrum" chainId={42161} /> <code>{EAS_GRAPHQL_ENDPOINTS[42161]}</code>

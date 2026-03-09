@@ -27,6 +27,17 @@ import {NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
 
 <StatusBadge status="Live" />
 
+```mermaid
+flowchart LR
+    Idx[Indexer JSON] --> Norm[Normalize]
+    EAS[EAS JSON] --> Norm
+    Norm --> Join[Join by chain + garden]
+    Join --> CSV[CSV Export]
+    Join --> Parquet[Parquet Export]
+    CSV --> Meta[+ Schema Version + Query Metadata]
+    Parquet --> Meta
+```
+
 ## Recommended export flow
 
 <StepFlow

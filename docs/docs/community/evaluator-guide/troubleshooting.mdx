@@ -26,6 +26,19 @@ import {FeatureState, NextBestAction, StatusBadge} from "@site/src/components/do
 
 <StatusBadge status="Live" />
 
+```mermaid
+flowchart TD
+    Issue[Query Returns Unexpected Results] --> Check1{Records empty?}
+    Check1 --> |Yes| Verify[Check chain ID + schema UID match]
+    Check1 --> |No| Check2{Join mismatch?}
+    Verify --> |Fixed| Retry[Re-run Query]
+    Verify --> |Still empty| Deploy[Check deployment artifact addresses]
+    Check2 --> |Yes| UID[Join on attestation UID/refUID pairs]
+    Check2 --> |No| Escalate[Collect escalation data]
+    Deploy --> |Zero address| Wait[Module not yet deployed]
+    Deploy --> |Non-zero| Escalate
+```
+
 ## Common issues
 
 <FeatureState
