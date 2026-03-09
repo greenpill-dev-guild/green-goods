@@ -13,7 +13,11 @@ export function StepFlow({steps}: StepFlowProps) {
   return (
     <ol className={styles.stepFlow}>
       {steps.map((step, index) => (
-        <li key={`${step.title}-${index}`} className={styles.stepFlowItem}>
+        <li
+          key={`${step.title}-${index}`}
+          className={styles.stepFlowItem}
+          style={{animationDelay: `${index * 80}ms`}}
+        >
           <span className={styles.stepNumber}>{index + 1}</span>
           <div>
             <p className={styles.stepTitle}>{step.title}</p>

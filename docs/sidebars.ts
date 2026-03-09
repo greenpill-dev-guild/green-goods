@@ -122,7 +122,7 @@ const sidebars: SidebarsConfig = {
     },
 
     {type: 'doc', id: 'reference/faq', label: 'FAQ'},
-    {type: 'doc', id: 'glossary', label: 'Glossary'},
+    {type: 'doc', id: 'reference/glossary', label: 'Glossary'},
   ],
 
   buildersSidebar: [
@@ -190,7 +190,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // ── Integrations (15 items) ──
+    // ── Integrations (12 items) ──
     {
       type: 'category',
       label: 'Integrations',
@@ -212,9 +212,6 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'builders/integrations/octant', label: 'Octant Vaults'},
         {type: 'doc', id: 'builders/integrations/gardens', label: 'Gardens Conviction Voting'},
         {type: 'doc', id: 'builders/integrations/cookie-jar', label: 'Cookie Jar'},
-        {type: 'doc', id: 'builders/integrations/greenwill', label: 'GreenWill (Coming Soon)'},
-        {type: 'doc', id: 'builders/integrations/unlock', label: 'Unlock Protocol (Coming Soon)'},
-        {type: 'doc', id: 'builders/integrations/silvi', label: 'Silvi (Coming Soon)'},
       ],
     },
 
@@ -307,7 +304,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    {type: 'doc', id: 'builders/glossary', label: 'Builder Glossary'},
+    {type: 'link', label: 'Glossary', href: '/glossary#builder-terms'},
     {type: 'doc', id: 'reference/changelog', label: 'Changelog'},
     {type: 'doc', id: 'reference/design-research', label: 'Design & Research'},
     {type: 'doc', id: 'reference/credits', label: 'Credits & Licenses'},

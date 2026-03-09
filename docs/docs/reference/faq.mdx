@@ -11,67 +11,91 @@ source_of_truth:
   - docs/docs/builders/deployments/status.mdx
 ---
 
+import {QuickAnswer, StatusBadge} from "@site/src/components/docs";
+
 Common questions about Green Goods, organized by role.
 
 ## General
 
-### What is Green Goods?
+<QuickAnswer question="What is Green Goods?">
 
 Green Goods is an offline-first web app for documenting regenerative work, reviewing submissions, and producing verifiable on-chain records.
 
-### What chains are currently in scope?
+</QuickAnswer>
 
-- Arbitrum One (`42161`) for production workflows.
-- Celo (`42220`) for production workflows.
-- Sepolia (`11155111`) for testnet and validation workflows.
+<QuickAnswer question="What chains are currently in scope?">
 
-### Can Green Goods work offline?
+- Arbitrum One (`42161`) for production workflows. <StatusBadge status="Live" />
+- Celo (`42220`) for production workflows. <StatusBadge status="Live" />
+- Sepolia (`11155111`) for testnet and validation workflows. <StatusBadge status="Live" />
+
+</QuickAnswer>
+
+<QuickAnswer question="Can Green Goods work offline?">
 
 Yes. Gardener workflows support offline drafts and queued sync when connectivity returns.
 
-### Is Green Goods free to use?
+</QuickAnswer>
+
+<QuickAnswer question="Is Green Goods free to use?">
 
 - Gardener flows are passkey-first and gasless for common submission workflows.
 - Operator actions that submit transactions can require network gas.
 
-### Is uploaded data private?
+</QuickAnswer>
+
+<QuickAnswer question="Is uploaded data private?">
 
 No by default. Garden and attestation data is designed to be publicly verifiable. Do not include sensitive personal information in uploads.
 
+</QuickAnswer>
+
 ## Gardener
 
-### How do I sign up?
+<QuickAnswer question="How do I sign up?">
 
 1. Open [greengoods.app](https://greengoods.app).
 2. Choose passkey sign in.
 3. Complete device biometric confirmation.
 
-### Do I need crypto to submit work?
+</QuickAnswer>
+
+<QuickAnswer question="Do I need crypto to submit work?">
 
 No. Gardener submission flows are designed to work without wallet management.
 
-### What if my submission is rejected?
+</QuickAnswer>
+
+<QuickAnswer question="What if my submission is rejected?">
 
 Use operator feedback to update evidence and resubmit. See:
 
 - [Submit Work with MDR](../community/gardener-guide/uploading-your-work)
 - [Common Errors](../community/gardener-guide/common-errors)
 
-### How do I track approval status and attestations?
+</QuickAnswer>
+
+<QuickAnswer question="How do I track approval status and attestations?">
 
 See [Track Status and Attestations](../community/gardener-guide/track-status-and-attestations).
 
+</QuickAnswer>
+
 ## Operator
 
-### How do I get operator access?
+<QuickAnswer question="How do I get operator access?">
 
 Operator permissions are assigned by admins or existing operator governance in a garden context.
 
-### Can I create a new garden?
+</QuickAnswer>
+
+<QuickAnswer question="Can I create a new garden?">
 
 Use [Create Garden](../community/operator-guide/creating-a-garden). Availability depends on your current permissions.
 
-### Where are endowment and governance workflows documented?
+</QuickAnswer>
+
+<QuickAnswer question="Where are endowment and governance workflows documented?">
 
 Use the operator endowment/governance pages:
 
@@ -81,25 +105,35 @@ Use the operator endowment/governance pages:
 
 Check [Deployment and Indexer Status](../builders/deployments/status) before announcing those flows as live.
 
-### How much does operator activity cost?
+</QuickAnswer>
+
+<QuickAnswer question="How much does operator activity cost?">
 
 Gas cost depends on chain conditions and operation type. Validate current costs in your wallet before signing.
 
+</QuickAnswer>
+
 ## Evaluator
 
-### Do I need an account to query data?
+<QuickAnswer question="Do I need an account to query data?">
 
 No for read-only query access to public surfaces.
 
-### Where are canonical endpoints and schemas listed?
+</QuickAnswer>
+
+<QuickAnswer question="Where are canonical endpoints and schemas listed?">
 
 Use [API Index](../builders/packages/api-index).
 
-### How do I verify attestation chains?
+</QuickAnswer>
+
+<QuickAnswer question="How do I verify attestation chains?">
 
 Use [Verify Attestation Chains](../community/evaluator-guide/making-assessments).
 
-### Can I export data for analysis?
+</QuickAnswer>
+
+<QuickAnswer question="Can I export data for analysis?">
 
 Yes. Start with:
 
@@ -107,13 +141,17 @@ Yes. Start with:
 - [Query EAS](../community/evaluator-guide/query-eas)
 - [Export and Analysis](../community/evaluator-guide/export-and-analysis)
 
+</QuickAnswer>
+
 ## Technical
 
-### Is Green Goods open source?
+<QuickAnswer question="Is Green Goods open source?">
 
 Yes. Repository: [greenpill-dev-guild/green-goods](https://github.com/greenpill-dev-guild/green-goods)
 
-### How do I run Green Goods locally?
+</QuickAnswer>
+
+<QuickAnswer question="How do I run Green Goods locally?">
 
 ```bash
 git clone https://github.com/greenpill-dev-guild/green-goods.git
@@ -124,29 +162,39 @@ bun dev
 
 See [Developer Getting Started](../builders/getting-started).
 
-### How do I contribute?
+</QuickAnswer>
+
+<QuickAnswer question="How do I contribute?">
 
 Open an issue or PR in GitHub and follow the developer docs in [Developer Hub](../builders/getting-started).
 
+</QuickAnswer>
+
 ## Troubleshooting
 
-### App does not load
+<QuickAnswer question="App does not load">
 
 - Check connection.
 - Refresh and clear browser cache.
 - Confirm service availability in GitHub issues.
 
-### Media upload fails
+</QuickAnswer>
+
+<QuickAnswer question="Media upload fails">
 
 - Check file size and permissions.
 - Retry with stable connection.
 - Use offline draft flow if connectivity is unstable.
 
-### Transaction fails
+</QuickAnswer>
+
+<QuickAnswer question="Transaction fails">
 
 - Confirm correct network.
 - Confirm wallet balance for gas.
 - Retry with updated gas estimate.
+
+</QuickAnswer>
 
 ## Support
 

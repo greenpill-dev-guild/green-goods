@@ -1,3 +1,4 @@
+export {Hero} from "./Hero";
 export {RolePathCard} from "./RolePathCard";
 export {StepFlow} from "./StepFlow";
 export {StatusBadge, type FeatureStatus} from "./StatusBadge";

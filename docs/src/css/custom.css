@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
 :root {
   /* Primary green — matches shared theme green-500 */
@@ -24,11 +24,16 @@
   --ifm-code-font-size: 93%;
 
   --ifm-font-family-base: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+  --ifm-font-family-display: "Bricolage Grotesque", "Manrope", sans-serif;
   --ifm-font-family-monospace: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
 
   --ifm-h1-font-size: 2.4rem;
   --ifm-h2-font-size: 1.85rem;
   --ifm-h3-font-size: 1.4rem;
+
+  /* Section color accents — Community (warm green) vs Builders (cool teal) */
+  --docs-accent-community: #1a7544;
+  --docs-accent-builders: #0f766e;
 }
 
 [data-theme="dark"] {
@@ -50,6 +55,9 @@
   --ifm-color-emphasis-700: #99a0ae;
   --ifm-link-color: #45c97e;
   --ifm-link-hover-color: #7adaa5;
+
+  --docs-accent-community: #2ebb6b;
+  --docs-accent-builders: #2dd4bf;
 }
 
 html,
@@ -81,7 +89,11 @@ main article {
 }
 
 h1,
-h2,
+h2 {
+  font-family: var(--ifm-font-family-display);
+  letter-spacing: -0.02em;
+}
+
 h3 {
   letter-spacing: -0.02em;
 }
@@ -112,6 +124,60 @@ a svg[class*="iconExternalLink"] {
 .theme-doc-markdown header + p,
 .theme-doc-markdown p {
   line-height: 1.65;
+}
+
+/* ── Section color accents ────────────────────────────────────────────
+   Community routes (/community/*) use warm green; Builders routes
+   (/builders/*) use cool teal.  Docusaurus renders a single sidebar
+   container (same plugin instance, two sidebarIds) so we target the
+   active-link accent color via the doc wrapper's route-based class.
+   Docusaurus adds `docs-doc-id-*` classes on the doc page wrapper,
+   but the most reliable selector is the URL path.  We override the
+   primary color at the sidebar level using the doc wrapper that
+   Docusaurus generates for each route. */
+
+/* Builders section — override primary to teal when viewing /builders/* */
+[class*="docPage"] [class*="sidebar"] .menu__link--active,
+.theme-doc-sidebar-container .menu__link--active {
+  /* Default: community green (matches --ifm-color-primary) */
+}
+
+/* Because Docusaurus does not expose route-specific data attributes on
+   the sidebar, we use a targeted approach: override the active sidebar
+   styling for builders pages via the wrapper that has the doc ID. */
+[class*="docs-doc-id-builders"] .menu__link--active {
+  background: color-mix(in srgb, var(--docs-accent-builders) 14%, transparent);
+  border-left-color: var(--docs-accent-builders);
+  color: var(--docs-accent-builders);
+}
+
+[class*="docs-doc-id-builders"] .menu__link--active:hover {
+  color: var(--docs-accent-builders);
+}
+
+/* ── Subtle background texture ───────────────────────────────────────
+   A barely-visible radial gradient adds organic warmth to the content
+   area without competing with the text.  Uses fixed positioning so it
+   stays stable while scrolling.  pointer-events: none keeps it inert. */
+.main-wrapper {
+  position: relative;
+}
+
+.main-wrapper::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(26, 117, 68, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(15, 118, 110, 0.02) 0%, transparent 50%);
+  z-index: -1;
+}
+
+[data-theme="dark"] .main-wrapper::before {
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(46, 187, 107, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(45, 212, 191, 0.03) 0%, transparent 50%);
 }
 
 @media (max-width: 768px) {

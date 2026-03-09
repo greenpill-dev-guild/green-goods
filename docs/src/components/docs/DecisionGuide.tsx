@@ -18,9 +18,9 @@ export function DecisionGuide({title, items}: DecisionGuideProps) {
       <div className={styles.decisionRows}>
         {items.map((item, index) => (
           <article key={`${item.when}-${index}`} className={styles.decisionRow}>
-            <p><strong>If:</strong> {item.when}</p>
-            <p><strong>Do:</strong> {item.do}</p>
-            <p><strong>Then:</strong> {item.next}</p>
+            <p><strong className={styles.decisionLabelWhen}>If:</strong> {item.when}</p>
+            <p><strong className={styles.decisionLabelDo}>Do:</strong> {item.do}</p>
+            <p><strong className={styles.decisionLabelThen}>Then:</strong> {item.next}</p>
           </article>
         ))}
       </div>
