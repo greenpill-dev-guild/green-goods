@@ -22,11 +22,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
-// Mock the DashboardLayoutSkeleton (used by RequireRole default fallback)
-vi.mock("@/components/Layout/DashboardLayoutSkeleton", () => ({
-  DashboardLayoutSkeleton: () => createElement("div", { "data-testid": "skeleton" }, "Loading..."),
-}));
-
 // Mock the Skeleton components (used by RequireDeployer content-only fallback)
 vi.mock("@/components/ui/Skeleton", () => ({
   SkeletonGrid: () => createElement("div", { "data-testid": "skeleton-grid" }, "Loading grid..."),

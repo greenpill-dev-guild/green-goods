@@ -15,8 +15,3 @@ export const Loader: React.FC = () => {
     </div>
   );
 };
-
-/**
- * @deprecated Use Loader instead. Kept for backward compatibility.
- */
-export const BeatLoader = Loader;

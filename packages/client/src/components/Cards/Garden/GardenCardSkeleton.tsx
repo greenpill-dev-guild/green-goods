@@ -46,5 +46,3 @@ export const GardenCardSkeleton: React.FC<GardenCardSkeletonProps> = ({
     </Card>
   );
 };
-
-export default GardenCardSkeleton;

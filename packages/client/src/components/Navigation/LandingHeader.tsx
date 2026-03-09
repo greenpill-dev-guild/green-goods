@@ -57,6 +57,3 @@ export const LandingHeader: React.FC<LandingHeaderProps> = () => {
     </header>
   );
 };
-
-// Keep backward-compatible alias
-export const Header = LandingHeader;

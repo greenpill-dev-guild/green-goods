@@ -1,4 +1,4 @@
-import type { Address } from "@green-goods/shared";
+import type { Address, GardenDetailTab } from "@green-goods/shared";
 import { RiArrowRightSLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -9,7 +9,6 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionStateCard } from "./GardenDetailHelpers";
 import { SECTION_CARD_MIN_HEIGHT } from "./gardenDetail.constants";
-import type { GardenTab } from "./gardenDetail.types";
 
 export interface ImpactTabProps {
   garden: { id: string; chainId: number };
@@ -19,7 +18,7 @@ export interface ImpactTabProps {
   section: string | undefined;
   selectedItem: string | undefined;
   clearSection: () => void;
-  openSection: (tab: GardenTab, section: string, itemId?: string) => void;
+  openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
   assessments: Array<{ id: string; title?: string; assessmentType?: string; createdAt: number }>;
   fetchingAssessments: boolean;
   assessmentsError: Error | null;

@@ -43,10 +43,6 @@ vi.mock("@/components/Work/WorkSubmissionDetails", () => ({
     React.createElement("div", { "data-testid": "work-submission-details" }),
 }));
 
-vi.mock("@/components/Work/WorkReviewPanel", () => ({
-  WorkReviewPanel: () => React.createElement("div", { "data-testid": "work-review-panel" }),
-}));
-
 import WorkDetail from "@/views/Gardens/Garden/WorkDetail";
 
 const messages = {

@@ -1,10 +1,13 @@
 import {
   DOMAIN_COLORS,
+  DOMAIN_LABEL_IDS,
   type Domain,
   expandDomainMask,
   GardenBannerFallback,
   ImageWithFallback,
   resolveIPFSUrl,
+  type TabBadgeSeverity,
+  type TabBadgeState,
 } from "@green-goods/shared";
 import {
   RiAlertLine,
@@ -18,12 +21,7 @@ import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import {
-  ALERT_LABEL_CLASSES,
-  BADGE_TONE_CLASSES,
-  DOMAIN_LABEL_IDS,
-} from "./gardenDetail.constants";
-import type { TabBadgeSeverity, TabBadgeState } from "./gardenDetail.types";
+import { ALERT_LABEL_CLASSES, BADGE_TONE_CLASSES } from "./gardenDetail.constants";
 
 export function TabBadge({ badge }: { badge: TabBadgeState }) {
   if (badge.severity === "none" || !badge.count) {

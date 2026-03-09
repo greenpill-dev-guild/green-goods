@@ -1,7 +1,7 @@
 import { toastService } from "@green-goods/shared";
 import React from "react";
 import { Hero } from "@/components/Layout";
-import { Header } from "@/components/Navigation";
+import { LandingHeader } from "@/components/Navigation";
 
 const Landing: React.FC = () => {
   function handleSubscribe(e: React.FormEvent<HTMLFormElement>) {
@@ -40,7 +40,7 @@ const Landing: React.FC = () => {
 
   return (
     <div id="landing-root" className="px-8">
-      <Header />
+      <LandingHeader />
       <Hero handleSubscribe={handleSubscribe} />
     </div>
   );

@@ -223,5 +223,3 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
     </div>
   );
 };
-
-export default DraftsTab;

@@ -47,7 +47,7 @@ import { useLocation, useNavigate, useOutletContext, useParams } from "react-rou
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
-import WorkViewSection from "./WorkViewSection";
+import { WorkViewSection } from "./WorkViewSection";
 
 export const GardenWork: React.FC = () => {
   const intl = useIntl();

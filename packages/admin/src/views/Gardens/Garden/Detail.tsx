@@ -1,11 +1,15 @@
 import {
+  type ActivityFilter,
   type Address,
   ConfirmDialog,
   formatAddress,
   formatTokenAmount,
   GARDEN_ROLE_COLORS,
+  type GardenDetailTab,
   type GardenRole,
   getRoleLabel,
+  parseGardenDetailTab,
+  parseGardenRange,
   toastService,
   useGardenDerivedState,
   useGardenDetailData,
@@ -33,8 +37,6 @@ import { Card } from "@/components/ui/Card";
 import { CommunityTab } from "./CommunityTab";
 import { GardenHeroBanner, TabBadge } from "./GardenDetailHelpers";
 import { TAB_SECTIONS, TAB_TRIGGER_BASE } from "./gardenDetail.constants";
-import type { ActivityFilter, GardenTab } from "./gardenDetail.types";
-import { parseGardenRange, parseGardenTab } from "./gardenDetail.utils";
 import { ImpactTab } from "./ImpactTab";
 import { OverviewTab } from "./OverviewTab";
 import { WorkTab } from "./WorkTab";
@@ -95,7 +97,7 @@ export default function GardenDetail() {
   const [lastWorkRefreshAt, setLastWorkRefreshAt] = useState<number>(Date.now());
 
   const searchKey = searchParams.toString();
-  const activeTab = parseGardenTab(searchParams.get("tab"));
+  const activeTab = parseGardenDetailTab(searchParams.get("tab"));
   const selectedRange = parseGardenRange(searchParams.get("range"));
   const requestedSection = searchParams.get("section");
   const section =
@@ -156,7 +158,7 @@ export default function GardenDetail() {
   );
 
   const openSection = useCallback(
-    (tab: GardenTab, nextSection: string, itemId?: string) => {
+    (tab: GardenDetailTab, nextSection: string, itemId?: string) => {
       updateQueryState({ tab, section: nextSection, item: itemId }, false);
     },
     [updateQueryState]
@@ -167,7 +169,7 @@ export default function GardenDetail() {
   }, [updateQueryState]);
 
   const setTab = useCallback(
-    (tab: GardenTab) => {
+    (tab: GardenDetailTab) => {
       updateQueryState({ tab, section: undefined, item: undefined }, false);
     },
     [updateQueryState]
@@ -300,7 +302,7 @@ export default function GardenDetail() {
     );
   }
 
-  const tabActions: Record<GardenTab, React.ReactNode> = {
+  const tabActions: Record<GardenDetailTab, React.ReactNode> = {
     overview: canManage ? (
       <Button size="sm" onClick={() => setProfileModalOpen(true)}>
         {formatMessage({ id: "app.garden.detail.action.manageProfile" })}
@@ -350,7 +352,7 @@ export default function GardenDetail() {
     <Tabs.Root
       value={activeTab}
       onValueChange={(value) => {
-        setTab(parseGardenTab(value));
+        setTab(parseGardenDetailTab(value));
       }}
       className="garden-detail-container pb-6"
     >

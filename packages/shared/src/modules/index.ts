@@ -204,9 +204,6 @@ export {
   getIpfsInitStatus,
   initializeIpfs,
   initializeIpfsFromEnv,
-  // Storacha aliases (preferred naming)
-  initializeStoracha,
-  initializeStorachaFromEnv,
   IPFS_FALLBACK_GATEWAYS,
   type JsonUploadContext,
   resolveAvatarUrl,

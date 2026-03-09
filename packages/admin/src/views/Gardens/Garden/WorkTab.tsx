@@ -1,4 +1,4 @@
-import { formatDate, formatRelativeTime, getStatusColors } from "@green-goods/shared";
+import { formatDate, formatRelativeTime, type GardenDetailTab, getStatusColors } from "@green-goods/shared";
 import { RiCloseLine, RiInboxLine, RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/ui/Button";
@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
 import { SectionStateCard } from "./GardenDetailHelpers";
-import type { GardenTab } from "./gardenDetail.types";
 
 export interface WorkTabProps {
   garden: { id: string };
@@ -14,7 +13,7 @@ export interface WorkTabProps {
   section: string | undefined;
   selectedItem: string | undefined;
   clearSection: () => void;
-  openSection: (tab: GardenTab, section: string, itemId?: string) => void;
+  openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
   works: Array<{ id: string; title?: string; status: string; createdAt: number }>;
   worksLoading: boolean;
   worksFetching: boolean;

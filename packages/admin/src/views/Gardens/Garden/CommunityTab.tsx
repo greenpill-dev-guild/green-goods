@@ -3,7 +3,10 @@ import {
   ErrorBoundary,
   formatAddress,
   formatTokenAmount,
+  type GardenDetailTab,
   type GardenRole,
+  type RoleDirectoryEntry,
+  type TabBadgeSeverity,
 } from "@green-goods/shared";
 import { RiArrowRightSLine, RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -16,7 +19,6 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CookieJarPayoutPanel } from "@/components/Work/CookieJarPayoutPanel";
 import { SectionStateCard } from "./GardenDetailHelpers";
-import type { GardenTab, RoleDirectoryEntry, TabBadgeSeverity } from "./gardenDetail.types";
 
 export interface CommunityTabProps {
   garden: { id: string; name: string };
@@ -25,7 +27,7 @@ export interface CommunityTabProps {
   isOwner: boolean;
   section: string | undefined;
   clearSection: () => void;
-  openSection: (tab: GardenTab, section: string, itemId?: string) => void;
+  openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
   community: unknown;
   communityLoading: boolean;
   pools: unknown;

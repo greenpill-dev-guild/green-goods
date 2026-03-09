@@ -1,4 +1,11 @@
-import { formatRelativeTime } from "@green-goods/shared";
+import {
+  type ActivityFilter,
+  formatRelativeTime,
+  type GardenActivityEvent,
+  type GardenDetailTab,
+  type GardenRange,
+  type TabBadgeSeverity,
+} from "@green-goods/shared";
 import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -8,25 +15,18 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 import { AlertRow, SectionStateCard } from "./GardenDetailHelpers";
 import { RANGE_OPTIONS, SECTION_CARD_MIN_HEIGHT } from "./gardenDetail.constants";
-import type {
-  ActivityFilter,
-  GardenActivityEvent,
-  GardenRange,
-  GardenTab,
-  TabBadgeSeverity,
-} from "./gardenDetail.types";
 
 export interface OverviewTabProps {
   section: string | undefined;
   selectedItem: string | undefined;
   selectedRange: GardenRange;
   clearSection: () => void;
-  openSection: (tab: GardenTab, section: string, itemId?: string) => void;
+  openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
   updateQueryState: (
     updates: Partial<Record<"tab" | "range" | "section" | "item", string | undefined>>,
     replace?: boolean
   ) => void;
-  setTab: (tab: GardenTab) => void;
+  setTab: (tab: GardenDetailTab) => void;
   overviewAlerts: Array<{
     key: string;
     severity: Exclude<TabBadgeSeverity, "none">;

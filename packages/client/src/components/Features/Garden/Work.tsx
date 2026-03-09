@@ -3,7 +3,7 @@ import { RiLoader4Line } from "@remixicon/react";
 import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
-import { BeatLoader } from "@/components/Communication";
+import { Loader } from "@/components/Communication";
 
 interface GardenWorkProps {
   actions: Action[];
@@ -153,7 +153,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
       >
         {isLoading && (
           <div className="flex items-center justify-center p-8">
-            <BeatLoader />
+            <Loader />
           </div>
         )}
 

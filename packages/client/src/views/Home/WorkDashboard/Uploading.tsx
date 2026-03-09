@@ -13,7 +13,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { MinimalWorkCard } from "@/components/Cards";
-import { BeatLoader } from "@/components/Communication";
+import { Loader } from "@/components/Communication";
 
 interface UploadingTabProps {
   uploadingWork: Work[];
@@ -182,7 +182,7 @@ export const UploadingTab: React.FC<UploadingTabProps> = ({
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4">
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center pb-12">
-            <BeatLoader />
+            <Loader />
             <p className="text-sm text-text-soft-400 mt-4">
               {intl.formatMessage({
                 id: "app.workDashboard.loading",
