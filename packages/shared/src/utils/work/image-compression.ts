@@ -38,25 +38,25 @@ const COMPRESSION_PROFILES = {
   /** Large files (>10MB): aggressive compression */
   large: {
     maxSizeMB: 1,
-    maxWidthOrHeight: 1920,
+    maxWidthOrHeight: 1200,
     initialQuality: 0.7,
   },
   /** Medium-large files (5-10MB): moderate compression */
   mediumLarge: {
     maxSizeMB: 1.5,
-    maxWidthOrHeight: 2048,
+    maxWidthOrHeight: 1200,
     initialQuality: 0.75,
   },
   /** Medium files (2-5MB): light compression */
   medium: {
     maxSizeMB: 1,
-    maxWidthOrHeight: 2048,
+    maxWidthOrHeight: 1200,
     initialQuality: 0.8,
   },
   /** Small files (<2MB): minimal compression */
   small: {
     maxSizeMB: 0.8,
-    maxWidthOrHeight: 2048,
+    maxWidthOrHeight: 1200,
     initialQuality: 0.85,
   },
 } as const;
@@ -70,7 +70,7 @@ type CompressionProfile = keyof typeof COMPRESSION_PROFILES;
 class ImageCompressor {
   private readonly defaultOptions: CompressionOptions = {
     maxSizeMB: 1,
-    maxWidthOrHeight: 2048,
+    maxWidthOrHeight: 1200,
     useWebWorker: true,
     maxIteration: 10,
     initialQuality: 0.8,
@@ -309,7 +309,7 @@ class ImageCompressor {
         const options: CompressionOptions = {
           maxSizeMB: targetSizeMB,
           initialQuality: quality,
-          maxWidthOrHeight: 2048,
+          maxWidthOrHeight: 1200,
           useWebWorker: true,
         };
 

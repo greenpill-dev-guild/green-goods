@@ -1,6 +1,14 @@
+import {
+  RiCheckLine,
+  RiDeleteBinLine,
+  RiLoader4Line,
+  RiMicLine,
+  RiStopFill,
+} from "@remixicon/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTimeout } from "../../hooks/utils/useTimeout";
 import { cn } from "../../utils/styles/cn";
+import { AudioPlayer } from "./AudioPlayer";
 
 type RecorderState = "idle" | "requesting-permission" | "recording" | "preview" | "confirmed";
 
@@ -222,14 +230,14 @@ export function AudioRecorder({
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
         >
-          <i className="ri-mic-line text-base" aria-hidden="true" />
+          <RiMicLine className="h-4 w-4" aria-hidden="true" />
           Record audio note
         </button>
       )}
 
       {state === "requesting-permission" && (
         <div className="flex items-center gap-2 text-sm text-text-soft-400">
-          <i className="ri-loader-4-line animate-spin text-base" aria-hidden="true" />
+          <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden="true" />
           Requesting microphone access...
         </div>
       )}
@@ -272,44 +280,45 @@ export function AudioRecorder({
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-base"
             )}
           >
-            <i className="ri-stop-fill text-base" aria-hidden="true" />
+            <RiStopFill className="h-4 w-4" aria-hidden="true" />
             Stop
           </button>
         </div>
       )}
 
       {state === "preview" && previewUrl && (
-        <div className="flex items-center gap-2">
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <audio src={previewUrl} controls className="flex-1 h-8" />
+        <div className="flex flex-col gap-2">
+          <AudioPlayer src={previewUrl} compact />
 
-          <button
-            type="button"
-            onClick={handleConfirm}
-            aria-label="Confirm recording"
-            className={cn(
-              "inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium",
-              "bg-primary-base text-white hover:bg-primary-dark transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
-            )}
-          >
-            <i className="ri-check-line text-base" aria-hidden="true" />
-            Use
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleConfirm}
+              aria-label="Confirm recording"
+              className={cn(
+                "inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium",
+                "bg-primary-base text-white hover:bg-primary-dark transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+              )}
+            >
+              <RiCheckLine className="h-4 w-4" aria-hidden="true" />
+              Use
+            </button>
 
-          <button
-            type="button"
-            onClick={handleCancel}
-            aria-label="Discard recording"
-            className={cn(
-              "inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium",
-              "bg-bg-weak-50 text-text-sub-600 hover:bg-bg-soft-200 border border-stroke-sub-300 transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
-            )}
-          >
-            <i className="ri-delete-bin-line text-base" aria-hidden="true" />
-            Discard
-          </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              aria-label="Discard recording"
+              className={cn(
+                "inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium",
+                "bg-bg-weak-50 text-text-sub-600 hover:bg-bg-soft-200 border border-stroke-sub-300 transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+              )}
+            >
+              <RiDeleteBinLine className="h-4 w-4" aria-hidden="true" />
+              Discard
+            </button>
+          </div>
         </div>
       )}
 

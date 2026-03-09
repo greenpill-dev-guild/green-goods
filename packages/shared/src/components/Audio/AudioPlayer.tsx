@@ -1,3 +1,4 @@
+import { RiCloseLine, RiPauseFill, RiPlayFill } from "@remixicon/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "../../utils/styles/cn";
 
@@ -120,17 +121,15 @@ export function AudioPlayer({ src, file, compact = false, onDelete, className }:
           "bg-primary-base text-white hover:bg-primary-dark"
         )}
       >
-        <i
-          className={cn(
-            isPlaying ? "ri-pause-fill" : "ri-play-fill",
-            compact ? "text-xs" : "text-sm"
-          )}
-          aria-hidden="true"
-        />
+        {isPlaying ? (
+          <RiPauseFill className={compact ? "h-3 w-3" : "h-4 w-4"} aria-hidden="true" />
+        ) : (
+          <RiPlayFill className={compact ? "h-3 w-3" : "h-4 w-4"} aria-hidden="true" />
+        )}
       </button>
 
       {/* Progress bar */}
-      <div className="flex-1 flex items-center gap-2">
+      <div className="min-w-0 flex-1 flex items-center gap-2">
         <input
           type="range"
           min={0}
@@ -140,7 +139,7 @@ export function AudioPlayer({ src, file, compact = false, onDelete, className }:
           onChange={handleSeek}
           aria-label="Audio progress"
           aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
-          className="flex-1 h-1 accent-primary-base cursor-pointer"
+          className="min-w-0 flex-1 h-1 accent-primary-base cursor-pointer"
           style={{
             background: `linear-gradient(to right, var(--color-primary-base, #3b82f6) ${progress}%, var(--color-bg-soft-200, #e5e7eb) ${progress}%)`,
           }}
@@ -172,7 +171,7 @@ export function AudioPlayer({ src, file, compact = false, onDelete, className }:
             "flex items-center justify-center"
           )}
         >
-          <i className={cn("ri-close-line", compact ? "text-xs" : "text-sm")} aria-hidden="true" />
+          <RiCloseLine className={compact ? "h-3 w-3" : "h-4 w-4"} aria-hidden="true" />
         </button>
       )}
     </div>

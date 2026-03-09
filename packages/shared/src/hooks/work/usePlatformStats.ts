@@ -44,9 +44,7 @@ export function usePlatformStats(gardenAddresses: string[]) {
       // Use allSettled so one failing EAS query doesn't kill the entire dashboard.
       // Works require garden addresses; assessments and approvals are platform-wide.
       const [worksResult, assessmentsResult, approvalsResult] = await Promise.allSettled([
-        addresses.length > 0
-          ? getWorks(addresses, chainId)
-          : Promise.resolve([] as EASWork[]),
+        addresses.length > 0 ? getWorks(addresses, chainId) : Promise.resolve([] as EASWork[]),
         getGardenAssessments(undefined, chainId),
         getWorkApprovals(undefined, chainId),
       ]);
