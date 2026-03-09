@@ -84,6 +84,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       expect(keys1).toEqual(keys2);
       expect(keys1).toEqual([
         "applyUpdate",
+        "checkForUpdate",
         "dismissUpdate",
         "isUpdating",
         "updateAvailable",

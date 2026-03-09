@@ -810,4 +810,3 @@ export async function initializeIpfsFromEnv(
     return false;
   }
 }
-
