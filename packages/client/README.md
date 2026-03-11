@@ -37,10 +37,10 @@ The root `.env` file is automatically loaded by:
 - `VITE_PINATA_JWT`: Pinata JWT token for uploads (client-side)
 - `VITE_CHAIN_ID`: Chain selection (e.g., 11155111 for Sepolia default, 42161 for Arbitrum, 42220 for Celo)
 - `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev)
-- `VITE_DESKTOP_DEV`: Set to bypass PWA download checks during desktop development
 - `VITE_DEBUG_MODE`: Optional toggle to skip the two-media requirement in the Garden submission flow and enable verbose debug logging (use for manual testing only)
 **Setup:**
-1. Copy the root `.env.example` to `.env` at the project root
+1. Generate `.env` from root schema defaults:
+   `APP_ENV=development bunx varlock load --path .env.schema --format env --compact > .env`
 2. Get your WalletConnect Project ID from [cloud.reown.com](https://cloud.reown.com/)
 3. Get your Pimlico API key from [pimlico.io](https://pimlico.io)
 4. Add the required environment variables to your `.env` file
@@ -133,7 +133,6 @@ bun run coverage
 
 **PWA Development:**
 For PWA testing:
-- Use `VITE_DESKTOP_DEV=true` to bypass installation prompts during development
 - Test on mobile devices for full PWA experience
 - Use browser dev tools for PWA auditing and performance testing
 
@@ -528,7 +527,6 @@ The project enforces high code quality through:
 
 ### PWA Development
 For PWA testing:
-- Use `VITE_DESKTOP_DEV=true` to bypass installation prompts
 - Test on mobile devices for full PWA experience
 - Use browser dev tools for PWA auditing
 

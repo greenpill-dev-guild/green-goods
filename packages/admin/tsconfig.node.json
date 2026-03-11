@@ -23,5 +23,5 @@
     /* Plugins */
     "plugins": []
   },
-  "include": ["vite.config.ts", "../../indexer/schema.graphql"]
+  "include": ["vite.config.ts", "../../indexer/schema.graphql", "../../env.d.ts"]
 }

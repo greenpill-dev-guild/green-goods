@@ -622,9 +622,6 @@ CELO_RPC_URL=https://forno.celo.org
 # Optional - for contract verification
 ETHERSCAN_API_KEY=your-etherscan-v2-api-key
 
-# Optional - Enhanced error recovery
-SCHEMA_DEPLOYMENT_MAX_RETRIES=3
-SCHEMA_DEPLOYMENT_SKIP_ON_FAILURE=false
 ```
 
 The root `.env` file is automatically loaded by deployment scripts and Foundry commands.
