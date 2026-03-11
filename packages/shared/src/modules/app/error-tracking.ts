@@ -101,7 +101,7 @@ export interface ErrorContext {
   /** Transaction hash if relevant */
   txHash?: string;
   /** Auth mode when error occurred */
-  authMode?: "passkey" | "wallet" | null;
+  authMode?: "passkey" | "wallet" | "embedded" | null;
   /** Whether user was offline when error occurred */
   isOffline?: boolean;
   /** Additional metadata */

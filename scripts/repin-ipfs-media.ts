@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import "dotenv/config";
+import "varlock/auto-load";
 
 import { create } from "@storacha/client";
 import { Signer } from "@storacha/client/principal/ed25519";

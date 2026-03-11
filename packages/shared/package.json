@@ -39,7 +39,7 @@
     "test": "vitest run",
     "test:watch": "vitest --standalone",
     "coverage": "vitest run --coverage",
-    "storybook": "storybook dev -p 6006",
+    "storybook": "storybook dev -p 6006 --ci",
     "build-storybook": "storybook build -o storybook-static",
     "check:stories": "bun run ../../scripts/check-story-coverage.ts"
   },
@@ -66,6 +66,7 @@
     "react-router-dom": "^7.12.0",
     "tailwind-merge": "3.0.2",
     "tailwind-variants": "3.2.2",
+    "varlock": "^0.3.0",
     "uuid": "^13.0.0"
   },
   "peerDependencies": {

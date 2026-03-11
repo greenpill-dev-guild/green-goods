@@ -1,5 +1,9 @@
 # Force bun runtime for package.json scripts (instead of Node)
 # Required because oxlint v1.48+ uses native bindings that bun resolves
 # but Node v18's ESM loader cannot handle extensionless bin wrappers.
+#
+# Disable Bun's implicit .env loading and let Varlock handle env loading/validation.
+env = false
+
 [run]
 bun = true

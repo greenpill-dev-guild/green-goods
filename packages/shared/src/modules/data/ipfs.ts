@@ -234,7 +234,7 @@ export interface FileUploadContext {
   /** Garden address if relevant */
   gardenAddress?: string;
   /** Auth mode if relevant */
-  authMode?: "passkey" | "wallet" | null;
+  authMode?: "passkey" | "wallet" | "embedded" | null;
   /** Optional callback fired when this file upload completes or fails */
   onFileProgress?: (event: {
     fileIndex?: number;
@@ -295,7 +295,7 @@ export interface JsonUploadContext {
   /** Garden address if relevant */
   gardenAddress?: string;
   /** Auth mode if relevant */
-  authMode?: "passkey" | "wallet" | null;
+  authMode?: "passkey" | "wallet" | "embedded" | null;
   /** Type of metadata being uploaded */
   metadataType?: string;
 }

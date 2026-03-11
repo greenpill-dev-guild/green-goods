@@ -33,6 +33,7 @@
  */
 
 import { createActor } from "xstate";
+import { ENV } from "varlock/env";
 
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import { logger } from "../modules/app/logger";
@@ -48,7 +49,7 @@ import { authServices } from "./authServices";
  * This ensures env vars are properly loaded before reading
  */
 function getChainId(): number {
-  const envChainId = (import.meta as any).env?.VITE_CHAIN_ID;
+  const envChainId = ENV.VITE_CHAIN_ID;
   const chainId = envChainId ? Number(envChainId) : DEFAULT_CHAIN_ID;
   logger.debug("[AuthActor] Using chainId", { chainId, envChainId });
   return chainId;

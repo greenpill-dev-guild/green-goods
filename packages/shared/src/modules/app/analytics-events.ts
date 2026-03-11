@@ -19,7 +19,7 @@ import { track } from "./posthog";
 // TRACKER FACTORY
 // ============================================================================
 
-type AuthMode = "passkey" | "wallet" | null;
+type AuthMode = "passkey" | "wallet" | "embedded" | null;
 type MemberType = GardenRole;
 
 /**

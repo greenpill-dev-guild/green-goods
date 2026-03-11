@@ -122,7 +122,7 @@ export interface EncodeWorkDataOptions {
   /** Garden address for tracking context */
   gardenAddress?: string;
   /** Auth mode for tracking context */
-  authMode?: "passkey" | "wallet" | null;
+  authMode?: "passkey" | "wallet" | "embedded" | null;
   /** Per-file upload progress callback */
   onFileProgress?: (progress: { completed: number; total: number; fileIndex: number }) => void;
   /** Batch ID for correlating upload events with submission errors */
@@ -468,7 +468,7 @@ export interface EncodeAssessmentDataOptions {
   /** Source for tracking context */
   source?: string;
   /** Auth mode for tracking context */
-  authMode?: "passkey" | "wallet" | null;
+  authMode?: "passkey" | "wallet" | "embedded" | null;
 }
 
 /**

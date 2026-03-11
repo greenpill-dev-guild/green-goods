@@ -16,7 +16,7 @@
  * 5. Outputs Safe Transaction Builder JSON for the council safe
  */
 
-import "dotenv/config";
+import "varlock/auto-load";
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";

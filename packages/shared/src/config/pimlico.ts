@@ -1,4 +1,5 @@
 import { createPimlicoClient } from "permissionless/clients/pimlico";
+import { ENV } from "varlock/env";
 import { type Chain, createPublicClient, http } from "viem";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { mainnet, sepolia } from "viem/chains";
@@ -13,7 +14,7 @@ const PIMLICO_API_ENDPOINTS = {
 } as const;
 
 export function getPimlicoApiKey(): string {
-  const apiKey = import.meta.env.VITE_PIMLICO_API_KEY;
+  const apiKey = ENV.VITE_PIMLICO_API_KEY;
   if (!apiKey) {
     throw new Error("VITE_PIMLICO_API_KEY is not set. Please add it to your .env file.");
   }
@@ -73,7 +74,7 @@ export function createPimlicoClientForChain(chainId: number) {
  * Used by Pimlico public clients for optimal performance
  */
 function buildAlchemyRpcUrl(chainId: number, chain: Chain): string {
-  const alchemyKey = import.meta.env.VITE_ALCHEMY_API_KEY;
+  const alchemyKey = ENV.VITE_ALCHEMY_API_KEY;
 
   if (!alchemyKey) {
     // No Alchemy key, use chain's default RPC

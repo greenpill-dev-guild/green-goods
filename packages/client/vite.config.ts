@@ -2,23 +2,20 @@
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import dotenvExpand from "dotenv-expand";
 import { resolve } from "path";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(async () => {
   const rootDir = resolve(__dirname, "../../");
-
-  const rootEnv = loadEnv(mode, rootDir, "");
-  dotenvExpand.expand({ parsed: rootEnv });
-
-  const localEnv = loadEnv(mode, __dirname, "");
-  dotenvExpand.expand({ parsed: localEnv });
-
-  const enableRpcBgSync =
-    rootEnv.VITE_ENABLE_RPC_BG_SYNC === "true" || localEnv.VITE_ENABLE_RPC_BG_SYNC === "true";
+  // Resolve env schema from monorepo root even when this package script runs with a package cwd.
+  process.chdir(rootDir);
+  const [{ varlockVitePlugin }, { ENV }] = await Promise.all([
+    import("@varlock/vite-integration"),
+    import("varlock/env"),
+  ]);
+  const enableRpcBgSync = String(ENV.VITE_ENABLE_RPC_BG_SYNC) === "true";
 
   const rpcBgSyncCaching: NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]> =
     enableRpcBgSync
@@ -49,8 +46,7 @@ export default defineConfig(({ mode }) => {
       : ([] as NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]>);
 
   // Use relative paths for IPFS builds
-  const isIPFSBuild =
-    rootEnv.VITE_USE_HASH_ROUTER === "true" || localEnv.VITE_USE_HASH_ROUTER === "true";
+  const isIPFSBuild = String(ENV.VITE_USE_HASH_ROUTER) === "true";
   const appBasePath = isIPFSBuild ? "./" : "/";
   const shortcutUrl = (path: string) => (isIPFSBuild ? `./#${path}` : path);
 
@@ -61,6 +57,7 @@ export default defineConfig(({ mode }) => {
   const skipMkcert = process.env.SKIP_MKCERT === "true";
 
   const plugins = [
+    varlockVitePlugin(),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
@@ -228,7 +225,7 @@ export default defineConfig(({ mode }) => {
         ],
         categories: [],
       },
-      devOptions: { enabled: process.env.VITE_ENABLE_SW_DEV === "true" },
+      devOptions: { enabled: String(ENV.VITE_ENABLE_SW_DEV) === "true" },
     }),
   ];
 
@@ -287,7 +284,7 @@ export default defineConfig(({ mode }) => {
           target:
             process.env.NODE_ENV === "development"
               ? "http://localhost:8080/v1/graphql"
-              : "https://indexer.hyperindex.xyz/0bf0e0f/v1",
+              : (ENV.VITE_ENVIO_INDEXER_URL ?? "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql"),
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/indexer/, ""),

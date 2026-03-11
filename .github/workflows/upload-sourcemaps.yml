@@ -67,7 +67,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Restore Bun cache
         uses: actions/cache@v4
@@ -97,19 +97,48 @@ jobs:
           VERSION=$(jq -r '.version' "packages/$APP_NAME/package.json")
           echo "app_version=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Load env vars from Varlock + 1Password environment
+        env:
+          APP_ENV: ${{ steps.env.outputs.env }}
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          OP_ENVIRONMENT: ${{ vars.OP_ENVIRONMENT }}
+        run: |
+          if [[ -z "$OP_ENVIRONMENT" ]]; then
+            echo "::error::Missing repository variable OP_ENVIRONMENT"
+            echo "Set OP_ENVIRONMENT to your 1Password environment ID/name."
+            exit 1
+          fi
+          if [[ -z "$OP_SERVICE_ACCOUNT_TOKEN" ]]; then
+            echo "::error::Missing GitHub secret OP_SERVICE_ACCOUNT_TOKEN"
+            exit 1
+          fi
+
+          bunx varlock run -- bash -lc '
+            for key in \
+              VITE_WALLETCONNECT_PROJECT_ID \
+              VITE_PIMLICO_API_KEY \
+              VITE_ENVIO_INDEXER_URL \
+              VITE_POSTHOG_KEY \
+              VITE_POSTHOG_ADMIN_KEY \
+              POSTHOG_ENV_ID \
+              POSTHOG_CLI_TOKEN
+            do
+              val="${!key:-}"
+              if [[ -n "$val" ]]; then
+                printf "%s=%s\n" "$key" "$val" >> "$GITHUB_ENV"
+              fi
+            done
+          '
+
       - name: Build ${{ matrix.title }} with source maps
         run: bun run ${{ matrix.build }}
         env:
+          APP_ENV: ${{ steps.env.outputs.env }}
           # Ensure source maps are generated
           NODE_ENV: production
           VITE_USE_HASH_ROUTER: 'false'
           VITE_CHAIN_ID: ${{ steps.env.outputs.chain_id }}
           VITE_APP_VERSION: ${{ steps.env.outputs.app_version }}
-          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
-          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY }}
-          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL }}
-          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_POSTHOG_ADMIN_KEY: ${{ secrets.VITE_POSTHOG_ADMIN_KEY }}
           VITE_POSTHOG_HOST: "https://app.posthog.com"
 
       - name: Verify source maps exist
@@ -128,8 +157,8 @@ jobs:
         uses: PostHog/upload-source-maps@v0.5.7.0
         with:
           directory: ${{ matrix.dist }}
-          env-id: ${{ secrets[matrix.env_id_secret] || secrets.POSTHOG_ENV_ID }}
-          cli-token: ${{ secrets.POSTHOG_CLI_TOKEN }}
+          env-id: ${{ env.POSTHOG_ENV_ID }}
+          cli-token: ${{ env.POSTHOG_CLI_TOKEN }}
           project: ${{ matrix.project }}
           version: ${{ github.sha }}
           delete-after-upload: 'true'
@@ -179,7 +208,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The source map upload workflow failed. Possible causes:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. **Missing secrets**: Ensure \`POSTHOG_CLI_TOKEN\` and \`POSTHOG_ENV_ID\` are set" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Missing secrets**: Ensure \`OP_SERVICE_ACCOUNT_TOKEN\` exists and 1Password fields are configured" >> $GITHUB_STEP_SUMMARY
           echo "2. **Build failure**: Check the build step for TypeScript or dependency errors" >> $GITHUB_STEP_SUMMARY
           echo "3. **PostHog API error**: Check PostHog status and API token permissions" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -187,7 +216,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Secret | Description |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|-------------|" >> $GITHUB_STEP_SUMMARY
-          echo "| \`POSTHOG_CLI_TOKEN\` | API token with error tracking write scope |" >> $GITHUB_STEP_SUMMARY
-          echo "| \`POSTHOG_ENV_ID\` | Default environment ID |" >> $GITHUB_STEP_SUMMARY
-          echo "| \`POSTHOG_CLIENT_ENV_ID\` | Client-specific env ID (optional) |" >> $GITHUB_STEP_SUMMARY
-          echo "| \`POSTHOG_ADMIN_ENV_ID\` | Admin-specific env ID (optional) |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`OP_SERVICE_ACCOUNT_TOKEN\` | 1Password service account token in GitHub secrets |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`OP_ENVIRONMENT\` | GitHub repository variable pointing to 1Password environment |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`POSTHOG_CLI_TOKEN\` | Value present in that 1Password environment |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`POSTHOG_ENV_ID\` | Value present in that 1Password environment |" >> $GITHUB_STEP_SUMMARY
