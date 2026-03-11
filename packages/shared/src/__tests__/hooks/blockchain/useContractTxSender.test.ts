@@ -53,7 +53,7 @@ vi.mock("@wagmi/core", () => ({
 
 // Mock appkit config (needed by wagmi internals)
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 import { useContractTxSender } from "../../../hooks/blockchain/useContractTxSender";

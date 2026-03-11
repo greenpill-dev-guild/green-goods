@@ -5,6 +5,15 @@ import { renderWithProviders, screen, userEvent } from "../test-utils";
 const mockWithdrawMutate = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  classifyTxError: () => ({
+    kind: "error",
+    severity: "error" as const,
+    titleKey: "app.tx.error",
+    messageKey: "app.tx.errorMessage",
+    rawMessage: "",
+  }),
+  isMeaningfulTxErrorMessage: () => false,
   AssetSelector: ({
     vaults,
     selectedAsset,
@@ -39,9 +48,14 @@ vi.mock("@green-goods/shared", () => ({
     isFetching: false,
   }),
   useVaultPreview: () => ({
-    preview: { previewShares: 0n, previewAssets: 1n },
+    preview: { previewShares: 0n, previewAssets: 1n, previewWithdrawShares: 1n, maxWithdraw: 1n },
   }),
-  useVaultWithdraw: () => ({ mutate: mockWithdrawMutate, isPending: false }),
+  useVaultWithdraw: () => ({
+    mutate: mockWithdrawMutate,
+    isPending: false,
+    error: null,
+    reset: vi.fn(),
+  }),
   validateDecimalInput: (input: string, decimals: number) => {
     const trimmed = input.trim();
     if (!trimmed) return null;
@@ -77,9 +91,17 @@ vi.mock("@radix-ui/react-dialog", () => ({
     React.createElement(React.Fragment, null, children),
 }));
 
-vi.mock("@remixicon/react", () => ({
-  RiCloseLine: (props: any) => React.createElement("span", props),
-}));
+vi.mock(
+  "@remixicon/react",
+  () =>
+    new Proxy(
+      {},
+      {
+        get: (_, name) => (props: any) =>
+          React.createElement("span", { ...props, "data-icon": name }),
+      }
+    )
+);
 
 import { WithdrawModal } from "@/components/Vault/WithdrawModal";
 
@@ -88,7 +110,7 @@ describe("WithdrawModal", () => {
     vi.clearAllMocks();
   });
 
-  it("withdraws tiny balances using the previewWithdraw share quote instead of rounding to zero", async () => {
+  it("withdraws tiny balances using the Max button instead of rounding to zero", async () => {
     const user = userEvent.setup();
 
     renderWithProviders(
@@ -121,7 +143,47 @@ describe("WithdrawModal", () => {
 
     expect(mockWithdrawMutate).toHaveBeenCalledWith(
       expect.objectContaining({
-        shares: 1n,
+        amount: 1n,
+      }),
+      expect.any(Object)
+    );
+  });
+
+  it("converts typed decimal amount to correct shares using vault decimals", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <WithdrawModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={"0xgarden" as `0x${string}`}
+        vaults={[
+          {
+            id: "vault-1",
+            chainId: 11155111,
+            asset: "0xasset" as `0x${string}`,
+            vaultAddress: "0xvault" as `0x${string}`,
+            totalDeposited: 1n,
+            totalWithdrawn: 0n,
+            totalHarvestCount: 0,
+            donationAddress: null,
+            depositorCount: 1,
+            paused: false,
+            createdAt: 0,
+            garden: "0xgarden" as `0x${string}`,
+          },
+        ]}
+        defaultAsset="0xasset"
+      />
+    );
+
+    const amountInput = screen.getByRole("textbox", { name: /amount/i });
+    await user.type(amountInput, "0.000001");
+    await user.click(screen.getByRole("button", { name: "Withdraw" }));
+
+    expect(mockWithdrawMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 1n,
       }),
       expect.any(Object)
     );

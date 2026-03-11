@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
-import { wagmiConfig } from "../../config/appkit";
+import { getWagmiConfig } from "../../config/appkit";
 import { logger } from "../../modules/app/logger";
 import { getGardenCommunityFromSubgraph } from "../../modules/data/gardens";
 import type { Address } from "../../types/domain";
@@ -49,7 +49,7 @@ export function useGardenCommunity(
               chainId
             );
             if (gardensModule) {
-              const weightSchemeRaw = await readContract(wagmiConfig, {
+              const weightSchemeRaw = await readContract(getWagmiConfig(), {
                 address: gardensModule,
                 abi: GARDENS_MODULE_ABI,
                 functionName: "getGardenWeightScheme",
@@ -84,27 +84,27 @@ export function useGardenCommunity(
 
       const [resolvedCommunity, weightSchemeRaw, goodsTokenAddress, stakeAmount] =
         await Promise.all([
-          readContract(wagmiConfig, {
+          readContract(getWagmiConfig(), {
             address: gardensModule,
             abi: GARDENS_MODULE_ABI,
             functionName: "getGardenCommunity",
             args: [normalizedGarden],
             chainId,
           }),
-          readContract(wagmiConfig, {
+          readContract(getWagmiConfig(), {
             address: gardensModule,
             abi: GARDENS_MODULE_ABI,
             functionName: "getGardenWeightScheme",
             args: [normalizedGarden],
             chainId,
           }),
-          readContract(wagmiConfig, {
+          readContract(getWagmiConfig(), {
             address: gardensModule,
             abi: GARDENS_MODULE_ABI,
             functionName: "goodsToken",
             chainId,
           }),
-          readContract(wagmiConfig, {
+          readContract(getWagmiConfig(), {
             address: gardensModule,
             abi: GARDENS_MODULE_ABI,
             functionName: "stakeAmountPerMember",

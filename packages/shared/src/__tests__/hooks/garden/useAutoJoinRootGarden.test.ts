@@ -23,7 +23,7 @@ vi.mock("@wagmi/core", () => ({
 }));
 
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 vi.mock("../../../config/blockchain", () => ({

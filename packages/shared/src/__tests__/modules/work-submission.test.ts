@@ -8,8 +8,8 @@ import "fake-indexeddb/auto";
 
 // Mock modules that pull in problematic dependencies (@walletconnect -> uint8arrays)
 vi.mock("../../config/appkit", () => ({
-  wagmiConfig: {},
-  appKit: null,
+  getWagmiConfig: () => ({}),
+  getAppKit: () => null,
 }));
 
 vi.mock("@wagmi/core", () => ({

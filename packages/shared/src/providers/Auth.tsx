@@ -38,7 +38,7 @@ import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 import { useAccount, useConfig } from "wagmi";
 
-import { appKit } from "../config/appkit";
+import { getAppKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
 import { logger } from "../modules/app/logger";
 import { serviceWorkerManager } from "../modules/app/service-worker";
@@ -382,7 +382,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } else {
       // Open modal - when wallet connects, WALLET EVENT SYNC will
       // detect the connection + stored "wallet" intent and send LOGIN_WALLET
-      appKit.open();
+      getAppKit().open();
     }
   }, [actor, isConnected, wagmiWalletAddress]);
 
@@ -393,7 +393,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // When AppKit creates the embedded wallet, wagmi detects the connection
     // and WALLET EVENT SYNC handles the LOGIN_EMBEDDED dispatch.
     saveAuthModeToStorage("embedded");
-    appKit.open();
+    getAppKit().open();
   }, [actor]);
 
   const switchToWallet = useCallback(() => {

@@ -477,9 +477,13 @@ describe("hooks/work/useWorkMutation", () => {
       });
 
       // Check that an optimistic entry was inserted into the merged works cache
-      const mergedWorks = queryClient.getQueryData<Array<{ id: string; status?: string }>>(
-        ["greengoods", "works", "merged", MOCK_ADDRESSES.garden, 11155111]
-      );
+      const mergedWorks = queryClient.getQueryData<Array<{ id: string; status?: string }>>([
+        "greengoods",
+        "works",
+        "merged",
+        MOCK_ADDRESSES.garden,
+        11155111,
+      ]);
 
       expect(mergedWorks).toBeDefined();
       expect(mergedWorks!.length).toBeGreaterThan(0);

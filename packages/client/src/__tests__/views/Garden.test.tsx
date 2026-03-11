@@ -45,6 +45,14 @@ vi.mock("@green-goods/shared", () => ({
   // config
   DEFAULT_CHAIN_ID: 11155111,
   // hooks
+  useAudioRecording: vi.fn(() => ({
+    isRecording: false,
+    isRequesting: false,
+    elapsed: 0,
+    error: null,
+    toggle: vi.fn(),
+    stop: vi.fn(),
+  })),
   useActionTranslation: () => ({ translatedAction: null }),
   useDraftAutoSave: () => ({ saveOnExit: vi.fn().mockResolvedValue(undefined) }),
   useDraftResume: () => ({
@@ -113,6 +121,8 @@ vi.mock("@green-goods/shared", () => ({
   // offline + timers
   useOffline: () => ({ isOnline: true, pendingCount: 0, syncStatus: "idle" }),
   useTimeout: () => ({ set: vi.fn(), clear: vi.fn(), isPending: false }),
+  // analytics
+  track: vi.fn(),
   // modules
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));

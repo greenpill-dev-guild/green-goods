@@ -10,9 +10,10 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import enMessages from "../../i18n/en.json";
 
-// Re-export mock factories and offline helpers
+// Re-export mock factories, offline helpers, and centralized barrel mock
 export * from "./mock-factories";
 export * from "./offline-helpers";
+export { createSharedBarrelMock } from "./shared-barrel-mock";
 
 // ============================================
 // Query Client Factory

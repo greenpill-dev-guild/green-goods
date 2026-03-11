@@ -1,6 +1,6 @@
 import { readContract } from "@wagmi/core";
 import type { Address } from "viem";
-import { wagmiConfig } from "../../config/appkit";
+import { getWagmiConfig } from "../../config/appkit";
 import { logger } from "../../modules/app/logger";
 import { GARDEN_ACCOUNT_TOKEN_ABI, GARDEN_TOKEN_MODULES_ABI } from "./abis";
 import { isZeroAddress } from "./address";
@@ -10,7 +10,7 @@ export async function fetchHatsModuleAddress(
   chainId?: number
 ): Promise<Address | undefined> {
   try {
-    const tokenResult = await readContract(wagmiConfig, {
+    const tokenResult = await readContract(getWagmiConfig(), {
       address: gardenAddress,
       abi: GARDEN_ACCOUNT_TOKEN_ABI,
       functionName: "token",
@@ -20,7 +20,7 @@ export async function fetchHatsModuleAddress(
     const [, tokenContract] = tokenResult as unknown as [bigint, Address, bigint];
     if (!tokenContract || isZeroAddress(tokenContract)) return undefined;
 
-    const moduleAddress = await readContract(wagmiConfig, {
+    const moduleAddress = await readContract(getWagmiConfig(), {
       address: tokenContract,
       abi: GARDEN_TOKEN_MODULES_ABI,
       functionName: "hatsModule",

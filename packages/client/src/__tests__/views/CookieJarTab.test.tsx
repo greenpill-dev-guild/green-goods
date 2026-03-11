@@ -3,7 +3,7 @@
  * @vitest-environment jsdom
  */
 
-import { renderWithProviders as render, screen } from "../../../__tests__/test-utils";
+import { renderWithProviders as render, screen } from "../test-utils";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -43,7 +43,7 @@ vi.mock("@green-goods/shared", async () => {
   };
 });
 
-import { CookieJarTab } from "./CookieJarTab";
+import { CookieJarTab } from "../../views/Home/WalletDrawer/CookieJarTab";
 
 describe("CookieJarTab", () => {
   beforeEach(() => {
@@ -53,7 +53,9 @@ describe("CookieJarTab", () => {
   it("renders balances using each jar's actual decimals", () => {
     render(<CookieJarTab />);
 
-    expect(screen.getByText("USDC - 0.123456")).toBeInTheDocument();
+    // formatTokenAmount truncates to 4 fraction digits by default:
+    // 123456 / 10^6 = 0.123456 → displayed as "0.1234"
+    expect(screen.getByText("USDC - 0.1234")).toBeInTheDocument();
     expect(screen.getByText(/Max Withdrawal:\s*0\.1/i)).toBeInTheDocument();
   });
 
@@ -62,7 +64,7 @@ describe("CookieJarTab", () => {
 
     render(<CookieJarTab />);
 
-    await user.click(screen.getByRole("button", { name: /USDC - 0.123456/i }));
+    await user.click(screen.getByRole("button", { name: /USDC - 0\.1234/i }));
     await user.click(screen.getByRole("button", { name: "Max" }));
 
     expect(screen.getByRole("textbox", { name: "Amount" })).toHaveValue("0.1");

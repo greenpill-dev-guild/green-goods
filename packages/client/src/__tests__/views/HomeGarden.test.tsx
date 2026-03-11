@@ -42,6 +42,23 @@ vi.mock("@green-goods/shared", () => ({
     Insights: "Insights",
     Gardeners: "Gardeners",
   },
+  GardenBannerFallback: ({ name, className }: { name: string; className?: string }) =>
+    createElement("div", { "data-testid": "garden-banner-fallback", className }, name),
+  ImageWithFallback: ({
+    src,
+    alt,
+    className,
+    backgroundFallback,
+  }: {
+    src: string;
+    alt: string;
+    className?: string;
+    loading?: string;
+    backgroundFallback?: React.ReactNode;
+  }) =>
+    src
+      ? createElement("img", { src, alt, className })
+      : (backgroundFallback ?? createElement("img", { src: "", alt, className })),
   isGardenMember: vi.fn(() => false),
   toastService: {
     success: vi.fn(),
@@ -61,6 +78,23 @@ vi.mock("@green-goods/shared", () => ({
     isJoining: false,
   }),
   useNavigateToTop: () => mockNavigate,
+  useScrollToTop: vi.fn(),
+  useUIStore: Object.assign(
+    vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
+      selector({
+        isEndowmentDrawerOpen: false,
+        openEndowmentDrawer: vi.fn(),
+        closeEndowmentDrawer: vi.fn(),
+      })
+    ),
+    {
+      getState: () => ({
+        isEndowmentDrawerOpen: false,
+        openEndowmentDrawer: vi.fn(),
+        closeEndowmentDrawer: vi.fn(),
+      }),
+    }
+  ),
   useUser: () => ({ primaryAddress: null }),
   useVaultDeposits: () => ({ deposits: [] }),
   useWorks: () => ({
@@ -138,6 +172,11 @@ describe("Home garden route", () => {
   });
 
   it("shows the loading state while placeholder garden data is still fetching", () => {
+    mockUseGardens.mockReturnValue({
+      data: [],
+      isLoading: true,
+      isFetching: true,
+    });
     render(
       createElement(
         MemoryRouter,
@@ -172,7 +211,12 @@ describe("Home garden route", () => {
           location: "Test Location",
           createdAt: Date.now(),
           description: "Garden description",
-          assessments: [],
+          assessments: [
+            {
+              id: "assessment-1",
+              title: "Soil Health",
+            },
+          ],
           gardeners: [],
           operators: [],
           openJoining: false,

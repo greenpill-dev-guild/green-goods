@@ -217,11 +217,14 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             );
 
             if (DEBUG_ENABLED) {
-              debugLog("[WorkMutation] Network error during wallet submission, falling back to queue", {
-                error: error instanceof Error ? error.message : String(error),
-                gardenAddress,
-                actionUID,
-              });
+              debugLog(
+                "[WorkMutation] Network error during wallet submission, falling back to queue",
+                {
+                  error: error instanceof Error ? error.message : String(error),
+                  gardenAddress,
+                  actionUID,
+                }
+              );
             }
 
             const { txHash: offlineTxHash } = await submitWorkToQueue(

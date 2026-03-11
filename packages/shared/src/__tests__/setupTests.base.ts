@@ -45,21 +45,14 @@ if (typeof window !== "undefined") {
  */
 export function setupTestEnvironment() {
   beforeAll(() => {
-    // Mock fetch globally with better error handling
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: vi.fn().mockResolvedValue({}),
-      text: vi.fn().mockResolvedValue(""),
+    // Strict fetch mock — throws on unexpected calls so tests must
+    // explicitly mock their endpoints. Prevents false-OK network calls.
+    global.fetch = vi.fn().mockImplementation((url: string | URL | Request) => {
+      const urlStr = typeof url === "string" ? url : url instanceof URL ? url.href : url.url;
+      throw new Error(
+        `Unexpected fetch call to: ${urlStr}. Mock this endpoint explicitly in your test.`
+      );
     });
-
-    // Mock console methods to reduce noise in tests but keep log for debugging
-    global.console = {
-      ...console,
-      warn: vi.fn(),
-      error: vi.fn(),
-      log: console.log, // Keep log for debugging
-    };
 
     // Mock window properties (only in browser-like environments)
     if (typeof window !== "undefined") {
@@ -209,13 +202,13 @@ export function setupTestEnvironment() {
     cleanup();
     vi.clearAllMocks();
 
-    // Reset fetch mock to default behavior
-    if (global.fetch && "mockResolvedValue" in global.fetch) {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: vi.fn().mockResolvedValue({}),
-        text: vi.fn().mockResolvedValue(""),
+    // Reset fetch mock to strict default — unexpected calls throw
+    if (global.fetch && "mockImplementation" in global.fetch) {
+      (global.fetch as any).mockImplementation((url: string | URL | Request) => {
+        const urlStr = typeof url === "string" ? url : url instanceof URL ? url.href : url.url;
+        throw new Error(
+          `Unexpected fetch call to: ${urlStr}. Mock this endpoint explicitly in your test.`
+        );
       });
     }
 

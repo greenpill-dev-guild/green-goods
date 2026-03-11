@@ -150,5 +150,20 @@ export function updateAppKitTheme(isDark: boolean): void {
   }
 }
 
-// Eagerly initialize using defaults so consumers can import directly.
-export const { appKit, wagmiConfig } = ensureAppKit();
+// Lazy getters — defer initialization until first use so importing
+// this module in tests doesn't trigger network calls / side effects.
+let _cachedInit: ReturnType<typeof ensureAppKit> | null = null;
+function getAppKitSingleton() {
+  if (!_cachedInit) _cachedInit = ensureAppKit();
+  return _cachedInit;
+}
+
+/** Get the singleton AppKit instance (lazily initialized). */
+export function getAppKit() {
+  return getAppKitSingleton().appKit;
+}
+
+/** Get the singleton Wagmi config (lazily initialized). */
+export function getWagmiConfig() {
+  return getAppKitSingleton().wagmiConfig;
+}

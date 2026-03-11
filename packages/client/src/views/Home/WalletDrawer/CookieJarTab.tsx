@@ -27,9 +27,12 @@ function JarCard({ jar, gardenName }: JarCardProps) {
   const [purpose, setPurpose] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const decimals = 18;
+  const decimals = jar.decimals;
   const assetSymbol = getVaultAssetSymbol(jar.assetAddress, undefined);
-  const inputError = useMemo(() => validateDecimalInput(amountInput, decimals), [amountInput]);
+  const inputError = useMemo(
+    () => validateDecimalInput(amountInput, decimals),
+    [amountInput, decimals]
+  );
 
   const parsedAmount = useMemo(() => {
     if (!amountInput.trim() || inputError) return 0n;
@@ -38,7 +41,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
     } catch {
       return 0n;
     }
-  }, [amountInput, inputError]);
+  }, [amountInput, inputError, decimals]);
 
   const executeWithdraw = () => {
     withdrawMutation.mutate(

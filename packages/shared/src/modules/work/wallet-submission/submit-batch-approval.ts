@@ -2,7 +2,7 @@ import type { Address } from "viem";
 import { getWalletClient } from "@wagmi/core";
 import type { WorkApprovalDraft } from "../../../types/domain";
 import type { EASWorkApproval } from "../../../types/eas-responses";
-import { wagmiConfig } from "../../../config/appkit";
+import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
 import { queryClient } from "../../../config/react-query";
 import { queryKeys } from "../../../hooks/query-keys";
@@ -49,7 +49,7 @@ export async function submitBatchApprovalsDirectly(
   });
   onProgress?.("validating", `Preparing ${approvals.length} approvals...`);
 
-  const walletClient = await getWalletClient(wagmiConfig, { chainId });
+  const walletClient = await getWalletClient(getWagmiConfig(), { chainId });
   if (!walletClient) {
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }

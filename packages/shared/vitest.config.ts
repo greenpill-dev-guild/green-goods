@@ -33,7 +33,7 @@ export default defineConfig({
     globals: true,
     testTimeout: 10000,
     pool: "threads",
-    isolate: false,
+    isolate: true,
     server: {
       deps: {
         inline: [

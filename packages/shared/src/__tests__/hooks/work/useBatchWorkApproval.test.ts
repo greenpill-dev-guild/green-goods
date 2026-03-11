@@ -90,7 +90,7 @@ vi.mock("../../../hooks/auth/useUser", () => ({
 }));
 
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 import { queryKeys } from "../../../hooks/query-keys";

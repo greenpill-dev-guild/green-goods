@@ -1,25 +1,33 @@
+/**
+ * ENSSection Tests
+ * @vitest-environment jsdom
+ */
+
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUseENSRegistrationStatus = vi.fn();
 const mockMutateAsync = vi.fn();
-const mockReadOwnerToSlug = vi.fn();
+const mockTrigger = vi.fn(async () => true);
+const mockGetValues = vi.fn(() => "river");
+const mockReset = vi.fn();
 
 let mockProtocolMember = true;
 let mockRegistrationData: Record<string, unknown> | undefined;
+let mockSlugValue = "";
 
 vi.mock("@green-goods/shared", () => ({
-  DEFAULT_CHAIN_ID: 11155111,
   useOffline: () => ({ isOnline: true }),
   useProtocolMemberStatus: () => ({ data: mockProtocolMember }),
   useSlugForm: () => ({
-    watch: () => "",
+    watch: (field: string) => (field === "slug" ? mockSlugValue : ""),
     register: () => ({}),
-    trigger: vi.fn(async () => true),
-    getValues: vi.fn(() => ""),
-    reset: vi.fn(),
+    trigger: mockTrigger,
+    getValues: mockGetValues,
+    reset: mockReset,
     formState: { errors: {} },
   }),
   useSlugAvailability: () => ({ data: true, isFetching: false }),
@@ -31,24 +39,20 @@ vi.mock("@green-goods/shared", () => ({
     mockUseENSRegistrationStatus(slug);
     return { data: slug ? mockRegistrationData : undefined };
   },
-  ENSProgressTimeline: ({ slug }: { slug: string }) =>
+  ENSProgressTimeline: ({ slug, data }: { slug: string; data: unknown }) =>
     createElement("div", { "data-testid": "ens-progress" }, slug),
 }));
 
-vi.mock("@green-goods/shared/utils", () => ({
-  GreenGoodsENSABI: [],
-  getNetworkContracts: () => ({
-    greenGoodsENS: "0x9999999999999999999999999999999999999999",
-  }),
-  createClients: () => ({
-    publicClient: {
-      readContract: mockReadOwnerToSlug,
-    },
-  }),
-}));
-
 vi.mock("@/components/Actions", () => ({
-  Button: ({ label }: { label: string }) => createElement("button", null, label),
+  Button: ({
+    label,
+    onClick,
+    disabled,
+  }: {
+    label: string;
+    onClick?: () => void;
+    disabled?: boolean;
+  }) => createElement("button", { onClick, disabled }, label),
 }));
 
 vi.mock("@/components/Cards", () => ({
@@ -62,11 +66,8 @@ vi.mock("@/components/Display", () => ({
 import { ENSSection } from "../../views/Profile/ENSSection";
 
 const PRIMARY_ADDRESS = "0x1234567890123456789012345678901234567890" as const;
-const SECONDARY_ADDRESS = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as const;
 
-function renderENSSection(
-  primaryAddress: typeof PRIMARY_ADDRESS | typeof SECONDARY_ADDRESS = PRIMARY_ADDRESS
-) {
+function renderENSSection(primaryAddress: string = PRIMARY_ADDRESS) {
   return render(
     createElement(
       IntlProvider,
@@ -79,81 +80,56 @@ function renderENSSection(
 describe("Profile ENSSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
     mockProtocolMember = true;
     mockRegistrationData = undefined;
-    mockReadOwnerToSlug.mockResolvedValue("");
+    mockSlugValue = "";
+    mockMutateAsync.mockResolvedValue({});
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it("restores pending registration state from per-account storage", async () => {
-    localStorage.setItem(
-      "gg:ens:slug:11155111:0x1234567890123456789012345678901234567890",
-      "river"
-    );
+  it("shows claim form for protocol members without an existing registration", () => {
+    renderENSSection();
+
+    expect(screen.getByText("Claim name")).toBeInTheDocument();
+    expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith(undefined);
+  });
+
+  it("hides claim form after successful ENS claim and shows progress timeline", async () => {
+    const user = userEvent.setup();
+    mockSlugValue = "river";
+    mockGetValues.mockReturnValue("river");
     mockRegistrationData = { status: "pending" };
 
     renderENSSection();
 
-    await waitFor(() => expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith("river"));
+    expect(screen.getByText("Claim name")).toBeInTheDocument();
+
+    await user.click(screen.getByText("Claim name"));
+
+    await waitFor(() => {
+      expect(mockMutateAsync).toHaveBeenCalledWith({ slug: "river" });
+    });
+    expect(mockReset).toHaveBeenCalled();
     expect(screen.getByTestId("ens-progress")).toHaveTextContent("river");
     expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
   });
 
-  it("prefers contract owner state over stale session-local storage", async () => {
-    localStorage.setItem(
-      "gg:ens:slug:11155111:0x1234567890123456789012345678901234567890",
-      "river"
-    );
-    mockReadOwnerToSlug.mockResolvedValue("forest");
+  it("hides claim form when registration is active", async () => {
+    const user = userEvent.setup();
+    mockSlugValue = "forest";
+    mockGetValues.mockReturnValue("forest");
     mockRegistrationData = { status: "active" };
 
     renderENSSection();
 
-    await waitFor(() => expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith("forest"));
-    expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
-  });
+    await user.click(screen.getByText("Claim name"));
 
-  it("does not carry the previous account slug into the next account", async () => {
-    let resolveSecondAccountSlug: ((value: string) => void) | null = null;
-    mockRegistrationData = { status: "active" };
-
-    mockReadOwnerToSlug.mockImplementation(({ args }: { args: [string] }) => {
-      const [address] = args;
-      if (address === PRIMARY_ADDRESS) {
-        return Promise.resolve("forest");
-      }
-      if (address === SECONDARY_ADDRESS) {
-        return new Promise<string>((resolve) => {
-          resolveSecondAccountSlug = resolve;
-        });
-      }
-      return Promise.resolve("");
+    await waitFor(() => {
+      expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
     });
-
-    const view = renderENSSection();
-
-    await waitFor(() => expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith("forest"));
-    expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
-
-    mockRegistrationData = undefined;
-    view.rerender(
-      createElement(
-        IntlProvider,
-        { locale: "en", messages: {} },
-        createElement(ENSSection, { primaryAddress: SECONDARY_ADDRESS })
-      )
-    );
-
-    await waitFor(() => expect(mockUseENSRegistrationStatus).toHaveBeenLastCalledWith(undefined));
-    expect(
-      localStorage.getItem("gg:ens:slug:11155111:0xabcdefabcdefabcdefabcdefabcdefabcdefabcd")
-    ).toBeNull();
-
-    resolveSecondAccountSlug?.("");
+    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
   });
 });

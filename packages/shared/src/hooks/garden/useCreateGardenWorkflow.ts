@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { formatEther, isAddress } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { fromPromise } from "xstate";
-import { wagmiConfig } from "../../config/appkit";
+import { getWagmiConfig } from "../../config/appkit";
 import { getChain } from "../../config/chains";
 import {
   trackAdminGardenCreateFailed,
@@ -246,7 +246,7 @@ export function useCreateGardenWorkflow() {
               addPendingTx(txHash, "garden:create");
 
               // Wait for on-chain confirmation before declaring success
-              await waitForTransactionReceipt(wagmiConfig, {
+              await waitForTransactionReceipt(getWagmiConfig(), {
                 hash: txHash,
                 chainId: currentChainId,
                 timeout: TX_RECEIPT_TIMEOUT_MS,

@@ -45,7 +45,7 @@ vi.mock("../../../config/blockchain", () => ({
 }));
 
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 vi.mock("../../../modules/app/logger", () => ({

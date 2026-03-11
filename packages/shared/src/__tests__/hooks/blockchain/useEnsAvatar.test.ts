@@ -34,7 +34,7 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 import { useEnsAvatar } from "../../../hooks/blockchain/useEnsAvatar";

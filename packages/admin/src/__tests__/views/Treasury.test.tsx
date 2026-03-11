@@ -8,16 +8,16 @@ const TEST_DAI = "0x68194a729c2450ad26072b3d33adacbcef39d574";
 const mockUseGardens = vi.fn();
 const mockUseGardenVaults = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
-  useGardens: () => mockUseGardens(),
-  useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
-  useDebouncedValue: <T,>(value: T) => value,
-  getNetDeposited: (deposited: bigint, withdrawn: bigint) =>
-    deposited > withdrawn ? deposited - withdrawn : 0n,
-  getVaultAssetSymbol: (asset: string) => (asset.toLowerCase() === TEST_WETH ? "WETH" : "DAI"),
-  formatTokenAmount: (value: bigint, decimals = 18) =>
-    `${Number(value) / 10 ** decimals}`.replace(/\.0$/, ""),
-}));
+vi.mock(import("@green-goods/shared"), async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    useGardens: () => mockUseGardens(),
+    useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
+    useDebouncedValue: <T,>(value: T) => value,
+    getVaultAssetSymbol: (asset: string) => (asset.toLowerCase() === TEST_WETH ? "WETH" : "DAI"),
+  };
+});
 
 vi.mock("wagmi", () => ({
   useReadContracts: () => ({
@@ -36,17 +36,6 @@ vi.mock("react-router-dom", () => ({
       children
     ),
 }));
-
-vi.mock("@remixicon/react", () => {
-  const Icon = (props: any) => React.createElement("span", props);
-  return {
-    RiArrowRightLine: Icon,
-    RiLeafLine: Icon,
-    RiMoneyDollarCircleLine: Icon,
-    RiPlantLine: Icon,
-    RiSafe2Line: Icon,
-  };
-});
 
 vi.mock("@/components/Layout/PageHeader", () => ({
   PageHeader: ({ title, toolbar }: { title: string; toolbar?: React.ReactNode }) =>
@@ -108,7 +97,10 @@ describe("TreasuryOverview", () => {
   it("avoids showing a misleading summed TVL when multiple assets are present", () => {
     renderWithProviders(<TreasuryOverview />);
 
-    expect(screen.getByText("2 assets")).toBeInTheDocument();
+    // With multiple asset types the TVL stat shows per-asset totals separated by " / "
+    // instead of a single misleading sum. DAI sorts before WETH alphabetically.
+    expect(screen.getByText("2 DAI / 1 WETH")).toBeInTheDocument();
+    // The sort-by-TVL option is not offered when assets are heterogeneous
     expect(screen.queryByRole("option", { name: "Highest TVL" })).not.toBeInTheDocument();
   });
 });

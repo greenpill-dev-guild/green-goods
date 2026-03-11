@@ -1,6 +1,6 @@
 import { getPublicClient } from "@wagmi/core";
 import type { Address } from "viem";
-import { wagmiConfig } from "../../config/appkit";
+import { getWagmiConfig } from "../../config/appkit";
 import { getEASConfig } from "../../config/blockchain";
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { EASABI } from "../../utils/blockchain/contracts";
@@ -82,7 +82,7 @@ export async function simulateWorkSubmission({
     return;
   }
 
-  const publicClient = getPublicClient(wagmiConfig, { chainId });
+  const publicClient = getPublicClient(getWagmiConfig(), { chainId });
   if (!publicClient) {
     return;
   }
@@ -176,7 +176,7 @@ export async function simulateApprovalSubmission({
     return;
   }
 
-  const publicClient = getPublicClient(wagmiConfig, { chainId });
+  const publicClient = getPublicClient(getWagmiConfig(), { chainId });
   if (!publicClient) {
     return;
   }

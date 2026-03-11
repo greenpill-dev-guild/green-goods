@@ -94,7 +94,7 @@ vi.mock("../../../modules/app/logger", () => ({
 
 // Mock appkit config
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 import { useDeploymentRegistry } from "../../../hooks/blockchain/useDeploymentRegistry";

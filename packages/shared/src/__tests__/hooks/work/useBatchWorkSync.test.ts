@@ -51,7 +51,7 @@ vi.mock("../../../utils/eas/transaction-builder", () => ({
 }));
 
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 vi.mock("../../../config/blockchain", () => ({

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
-import { wagmiConfig } from "../../config/appkit";
+import { getWagmiConfig } from "../../config/appkit";
 import { getGardenPoolsFromSubgraph } from "../../modules/data/gardens";
 import type { Address } from "../../types/domain";
 import { type GardenSignalPool, PoolType } from "../../types/gardens-community";
@@ -48,14 +48,14 @@ export function useGardenPools(gardenAddress?: Address, options: UseGardenPoolsO
       if (!gardensModule) return [];
 
       const [poolAddresses, resolvedCommunity] = await Promise.all([
-        readContract(wagmiConfig, {
+        readContract(getWagmiConfig(), {
           address: gardensModule,
           abi: GARDENS_MODULE_ABI,
           functionName: "getGardenSignalPools",
           args: [normalizedGarden],
           chainId,
         }),
-        readContract(wagmiConfig, {
+        readContract(getWagmiConfig(), {
           address: gardensModule,
           abi: GARDENS_MODULE_ABI,
           functionName: "getGardenCommunity",

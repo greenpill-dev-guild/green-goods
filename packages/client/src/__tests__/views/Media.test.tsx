@@ -213,7 +213,7 @@ describe("WorkMedia", () => {
         audioNotes={[]}
         setAudioNotes={mockSetAudioNotes}
         minRequired={1}
-        onGalleryClickRef={galleryClickRef}
+        onMediaClickRef={galleryClickRef}
       />
     );
 

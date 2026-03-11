@@ -10,7 +10,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import { queueToasts } from "../../components/toast";
-import { wagmiConfig } from "../../config/appkit";
+import { getWagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
@@ -78,7 +78,7 @@ export function useBatchWorkSync() {
         return { count: 0, gardens: [] };
       }
 
-      const walletClient = await getWalletClient(wagmiConfig, { chainId });
+      const walletClient = await getWalletClient(getWagmiConfig(), { chainId });
       if (!walletClient?.account) {
         throw new Error("Wallet not connected. Please connect your wallet and try again.");
       }
@@ -117,7 +117,7 @@ export function useBatchWorkSync() {
         account: walletClient.account,
       });
 
-      await waitForTransactionReceipt(wagmiConfig, {
+      await waitForTransactionReceipt(getWagmiConfig(), {
         hash,
         chainId,
         timeout: TX_RECEIPT_TIMEOUT_MS,

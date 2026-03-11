@@ -16,7 +16,7 @@ vi.mock("@wagmi/core", () => ({
 }));
 
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 // Dynamically import after mocks

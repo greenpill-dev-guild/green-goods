@@ -39,7 +39,7 @@ vi.mock("../../utils/blockchain/garden-hats", () => ({
 
 // Mock config
 vi.mock("../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 vi.mock("../../config/blockchain", () => ({

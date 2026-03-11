@@ -43,7 +43,7 @@ vi.mock("../../../modules/app/logger", () => ({
 }));
 
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 import { queryKeys } from "../../../hooks/query-keys";

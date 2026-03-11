@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
-import { wagmiConfig } from "../../config/appkit";
+import { getWagmiConfig } from "../../config/appkit";
 import { getConvictionStrategiesFromSubgraph } from "../../modules/data/gardens";
 import type { Address } from "../../types/domain";
 import { HATS_MODULE_CONVICTION_ABI } from "../../utils/blockchain/abis";
@@ -60,7 +60,7 @@ export function useConvictionStrategies(
       const hatsModule = await fetchHatsModuleAddress(normalizedGarden, chainId);
       if (!hatsModule) return [];
 
-      const result = await readContract(wagmiConfig, {
+      const result = await readContract(getWagmiConfig(), {
         address: hatsModule,
         abi: HATS_MODULE_CONVICTION_ABI,
         functionName: "getConvictionStrategies",
