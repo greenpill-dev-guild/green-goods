@@ -277,6 +277,21 @@ export { runTranslationDiagnostics } from "./translation/diagnostics";
 // ============================================================================
 export { submitApprovalBot, submitWorkBot } from "./work/bot-submission";
 // ============================================================================
+// TRANSACTIONS
+// ============================================================================
+export type {
+  ContractCall,
+  TransactionSender,
+  TransactionSenderOptions,
+  TxResult,
+} from "./transactions";
+export {
+  createTransactionSender,
+  EmbeddedSender,
+  PasskeySender,
+  WalletSender,
+} from "./transactions";
+// ============================================================================
 // WORK / PASSKEY SUBMISSION
 // ============================================================================
 export type {

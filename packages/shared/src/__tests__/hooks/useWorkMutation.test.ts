@@ -1,4 +1,6 @@
 /**
+ * @vitest-environment jsdom
+ *
  * useWorkMutation Hook Tests
  *
  * Tests for work submission mutation with auth mode branching,
@@ -88,6 +90,18 @@ vi.mock("../../modules/app/analytics-events", () => ({
   trackWorkSubmissionFailed: vi.fn(),
 }));
 
+// Mock useTransactionSender to avoid wagmi provider dependency
+const mockSender = {
+  sendContractCall: vi.fn().mockResolvedValue({ hash: "0xabc123", sponsored: true }),
+  supportsSponsorship: true,
+  supportsBatching: false,
+  authMode: "passkey" as const,
+};
+
+vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: vi.fn(() => mockSender),
+}));
+
 vi.mock("../../utils/errors/contract-errors", () => ({
   parseContractError: vi.fn((error: unknown) => ({
     raw: error instanceof Error ? error.message : String(error),
@@ -115,7 +129,6 @@ import { submitWorkToQueue } from "../../modules/work/work-submission";
 import {
   createMockAction,
   createMockFiles,
-  createMockSmartAccountClient,
   createMockWorkDraft,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
@@ -153,7 +166,6 @@ describe("hooks/work/useWorkMutation", () => {
 
   const defaultOptions = {
     authMode: "wallet" as const,
-    smartAccountClient: null,
     gardenAddress: MOCK_ADDRESSES.garden,
     actionUID: 1,
     actions: [createMockAction({ id: "1" })],
@@ -217,8 +229,6 @@ describe("hooks/work/useWorkMutation", () => {
 
   describe("Passkey mode - online", () => {
     it("queues and processes inline when online with smart account", async () => {
-      const smartAccountClient = createMockSmartAccountClient();
-
       mock(submitWorkToQueue).mockResolvedValue({
         txHash: "0xoffline_abc",
         jobId: "job-abc",
@@ -236,8 +246,7 @@ describe("hooks/work/useWorkMutation", () => {
           useWorkMutation({
             ...defaultOptions,
             authMode: "passkey",
-            smartAccountClient: smartAccountClient as any,
-            userAddress: MOCK_ADDRESSES.smartAccount, // Use smart account address for passkey mode
+            userAddress: MOCK_ADDRESSES.smartAccount,
           }),
         { wrapper: createWrapper() }
       );
@@ -252,7 +261,7 @@ describe("hooks/work/useWorkMutation", () => {
 
       expect(submitWorkToQueue).toHaveBeenCalled();
       expect(jobQueue.processJob).toHaveBeenCalledWith("job-abc", {
-        smartAccountClient,
+        transactionSender: mockSender,
       });
       expect(txHash).toBe(MOCK_TX_HASH);
     });
@@ -273,8 +282,7 @@ describe("hooks/work/useWorkMutation", () => {
           useWorkMutation({
             ...defaultOptions,
             authMode: "passkey",
-            smartAccountClient: createMockSmartAccountClient() as any,
-            userAddress: MOCK_ADDRESSES.smartAccount, // Use smart account address for passkey mode
+            userAddress: MOCK_ADDRESSES.smartAccount,
           }),
         { wrapper: createWrapper() }
       );

@@ -7,15 +7,13 @@
  * @module hooks/work/useWorkMutationWithProgress
  */
 
-import type { SmartAccountClient } from "permissionless";
 import { useCallback, useMemo } from "react";
 import type { Action, Address, WorkDraft } from "../../types/domain";
 import { type SubmissionStage, useSubmissionProgress } from "./useSubmissionProgress";
 import { useWorkMutation } from "./useWorkMutation";
 
 interface UseWorkMutationWithProgressOptions {
-  authMode: "wallet" | "passkey" | null;
-  smartAccountClient: SmartAccountClient | null;
+  authMode: "wallet" | "passkey" | "embedded" | null;
   gardenAddress: Address | null;
   actionUID: number | null;
   actions: Action[];
@@ -84,7 +82,7 @@ function mapWalletStage(stage: WalletStage | string): SubmissionStage {
  * ```
  */
 export function useWorkMutationWithProgress(options: UseWorkMutationWithProgressOptions) {
-  const { authMode, smartAccountClient, gardenAddress, actionUID, actions, userAddress } = options;
+  const { authMode, gardenAddress, actionUID, actions, userAddress } = options;
 
   const {
     progress,
@@ -97,7 +95,6 @@ export function useWorkMutationWithProgress(options: UseWorkMutationWithProgress
 
   const mutation = useWorkMutation({
     authMode,
-    smartAccountClient,
     gardenAddress,
     actionUID,
     actions,

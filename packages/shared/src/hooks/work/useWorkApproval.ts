@@ -30,6 +30,7 @@ import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
@@ -81,7 +82,8 @@ type PendingWork = Work & { _isPending?: boolean; _pendingUntilMs?: number };
  * ```
  */
 export function useWorkApproval() {
-  const { authMode, smartAccountClient, smartAccountAddress } = useUser();
+  const { authMode, primaryAddress } = useUser();
+  const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const { runWithLock, isPending: isLockPending } = useMutationLock("approval");
@@ -130,17 +132,21 @@ export function useWorkApproval() {
         return { hash };
       }
 
+      // Non-wallet path: queue + inline processing via TransactionSender
+      const userAddress = primaryAddress;
+
       if (DEBUG_ENABLED) {
-        debugLog("[useWorkApproval] Queuing approval for passkey flow", {
+        debugLog("[useWorkApproval] Queuing approval for sponsored flow", {
           chainId,
           workUID: draft.workUID,
           approved: draft.approved,
-          userAddress: smartAccountAddress,
+          userAddress,
+          authMode,
         });
       }
 
       // Validate user address for queue operations
-      if (!smartAccountAddress) {
+      if (!userAddress) {
         throw new Error("User address is required for approval submission");
       }
 
@@ -148,7 +154,7 @@ export function useWorkApproval() {
         draft,
         work,
         chainId,
-        smartAccountAddress
+        userAddress
       );
 
       if (DEBUG_ENABLED) {
@@ -159,9 +165,9 @@ export function useWorkApproval() {
         });
       }
 
-      if (navigator.onLine && smartAccountClient) {
+      if (navigator.onLine && sender) {
         try {
-          const result = await jobQueue.processJob(jobId, { smartAccountClient });
+          const result = await jobQueue.processJob(jobId, { transactionSender: sender });
           if (DEBUG_ENABLED) {
             debugLog("[useWorkApproval] Inline processing attempt finished", {
               jobId,

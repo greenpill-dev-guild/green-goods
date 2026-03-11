@@ -1,6 +1,5 @@
-import type { SmartAccountClient } from "permissionless";
+import { getEASConfig } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config";
-import type { WorkSubmission } from "../../types/domain";
 import type {
   ApprovalJobPayload,
   Job,
@@ -9,13 +8,17 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../../types/job-queue";
+import {
+  buildApprovalAttestContractCall,
+  buildWorkAttestContractCall,
+} from "../../utils/eas/transaction-builder";
 import { scheduleTask, yieldToMain } from "../../utils/scheduler";
 import { getStorageQuota } from "../../utils/storage/quota";
 import { addBreadcrumb, getBreadcrumbs, trackSyncError } from "../app/error-tracking";
 import { logger } from "../app/logger";
 import { track } from "../app/posthog";
 import { getIpfsInitStatus } from "../data/ipfs";
-import { submitApprovalWithPasskey, submitWorkWithPasskey } from "../work/passkey-submission";
+import type { TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";
 
@@ -56,7 +59,7 @@ export function isOfflineTxHash(txHash: string): boolean {
 }
 
 interface ProcessJobContext {
-  smartAccountClient: SmartAccountClient | null;
+  transactionSender: TransactionSender | null;
 }
 
 interface ProcessJobResult {
@@ -66,7 +69,8 @@ interface ProcessJobResult {
   skipped?: boolean;
 }
 
-interface FlushContext extends ProcessJobContext {
+interface FlushContext {
+  transactionSender: TransactionSender | null;
   /** User address to scope the flush operation */
   userAddress: string;
 }
@@ -81,7 +85,7 @@ async function executeWorkJob(
   jobId: string,
   job: Job<WorkJobPayload>,
   chainId: number,
-  smartAccountClient: SmartAccountClient
+  sender: TransactionSender
 ): Promise<string> {
   const images = await jobQueueDB.getImagesForJob(jobId);
   const allFiles = images.map((img) => img.file);
@@ -92,8 +96,11 @@ async function executeWorkJob(
   const audioFiles = allFiles.filter((f) => f.type.startsWith("audio/"));
   const mediaFiles = allFiles.filter((f) => !f.type.startsWith("audio/"));
 
-  return await submitWorkWithPasskey({
-    client: smartAccountClient,
+  const accountAddress = job.userAddress as `0x${string}`;
+
+  // Simulate before uploading to IPFS
+  const { simulateWorkSubmission } = await import("../work/simulate");
+  await simulateWorkSubmission({
     draft: {
       actionUID: payload.actionUID,
       title: actionTitle,
@@ -105,25 +112,59 @@ async function executeWorkJob(
         : {}),
       ...(payload.tags ? { tags: payload.tags } : {}),
       ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
-    } as WorkSubmission,
+    } as any,
     gardenAddress: payload.gardenAddress,
     actionUID: payload.actionUID,
     actionTitle,
     chainId,
     images: mediaFiles,
+    accountAddress,
   });
+
+  // Encode attestation data (includes IPFS upload)
+  const { encodeWorkData } = await import("../../utils/eas/encoders");
+  const attestationData = await encodeWorkData(
+    {
+      actionUID: payload.actionUID,
+      title: `${actionTitle} - ${new Date().toISOString()}`,
+      feedback: payload.feedback,
+      media: mediaFiles,
+      details: payload.details ?? {},
+      ...(typeof payload.timeSpentMinutes === "number"
+        ? { timeSpentMinutes: payload.timeSpentMinutes }
+        : {}),
+      ...(payload.tags ? { tags: payload.tags } : {}),
+      ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
+    } as any,
+    chainId,
+    {
+      gardenAddress: payload.gardenAddress,
+      authMode: sender.authMode === "embedded" ? "passkey" : sender.authMode,
+    }
+  );
+
+  // Build and send attestation via TransactionSender
+  const easConfig = getEASConfig(chainId);
+  const contractCall = buildWorkAttestContractCall(
+    easConfig,
+    payload.gardenAddress as `0x${string}`,
+    attestationData
+  );
+  const result = await sender.sendContractCall(contractCall);
+  return result.hash;
 }
 
 async function executeApprovalJob(
   job: Job<ApprovalJobPayload>,
   chainId: number,
-  smartAccountClient: SmartAccountClient
+  sender: TransactionSender
 ): Promise<string> {
   const payload = job.payload as ApprovalJobPayload;
 
-  return await submitApprovalWithPasskey({
-    client: smartAccountClient,
-    draft: {
+  // Encode approval attestation data (no IPFS upload needed)
+  const { encodeWorkApprovalData } = await import("../../utils/eas/encoders");
+  const attestationData = encodeWorkApprovalData(
+    {
       actionUID: payload.actionUID,
       workUID: payload.workUID,
       approved: payload.approved,
@@ -132,9 +173,18 @@ async function executeApprovalJob(
       verificationMethod: payload.verificationMethod,
       reviewNotesCID: payload.reviewNotesCID,
     },
-    gardenAddress: payload.gardenAddress,
-    chainId,
-  });
+    chainId
+  );
+
+  // Build and send attestation via TransactionSender
+  const easConfig = getEASConfig(chainId);
+  const contractCall = buildApprovalAttestContractCall(
+    easConfig,
+    payload.gardenAddress as `0x${string}`,
+    attestationData
+  );
+  const result = await sender.sendContractCall(contractCall);
+  return result.hash;
 }
 
 /** Maximum number of retry attempts before a job is marked as permanently failed */
@@ -428,9 +478,9 @@ class JobQueue {
       return { success: false, error: errorMessage };
     }
 
-    const smartAccountClient = context.smartAccountClient;
-    if (!smartAccountClient) {
-      return { success: false, error: "smart_account_unavailable", skipped: true };
+    const sender = context.transactionSender;
+    if (!sender) {
+      return { success: false, error: "transaction_sender_unavailable", skipped: true };
     }
 
     jobQueueEventBus.emit("job:processing", { jobId, job });
@@ -450,18 +500,9 @@ class JobQueue {
       let txHash: string;
 
       if (job.kind === "work") {
-        txHash = await executeWorkJob(
-          jobId,
-          job as Job<WorkJobPayload>,
-          chainId,
-          smartAccountClient
-        );
+        txHash = await executeWorkJob(jobId, job as Job<WorkJobPayload>, chainId, sender);
       } else if (job.kind === "approval") {
-        txHash = await executeApprovalJob(
-          job as Job<ApprovalJobPayload>,
-          chainId,
-          smartAccountClient
-        );
+        txHash = await executeApprovalJob(job as Job<ApprovalJobPayload>, chainId, sender);
       } else {
         throw new Error(`Unsupported job kind: ${job.kind}`);
       }

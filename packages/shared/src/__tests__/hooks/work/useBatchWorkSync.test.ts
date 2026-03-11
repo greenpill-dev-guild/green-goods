@@ -62,7 +62,7 @@ vi.mock("../../../config/blockchain", () => ({
   }),
 }));
 
-let mockAuthMode: "wallet" | "passkey" | null = "wallet";
+let mockAuthMode: "wallet" | "passkey" | "embedded" | null = "wallet";
 let mockPrimaryAddress: string | null = MOCK_ADDRESSES.user;
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({

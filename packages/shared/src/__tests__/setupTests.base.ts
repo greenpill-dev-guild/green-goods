@@ -7,6 +7,7 @@
 
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeAll, vi } from "vitest";
+import { initVarlockEnv } from "varlock/env";
 
 import "@testing-library/jest-dom/vitest";
 import "fake-indexeddb/auto";
@@ -14,6 +15,10 @@ import "fake-indexeddb/auto";
 // Import browser mocks
 import "../__mocks__/browser/crypto";
 import "../__mocks__/browser/navigator";
+
+// Tests don't always run through the app boot path that auto-loads varlock.
+// Initialize once and allow missing values so ENV access in shared config works.
+initVarlockEnv({ allowFail: true });
 
 // Mock matchMedia immediately (before any module imports that might use it)
 // This needs to be at the top level, not in beforeAll, because it's called during module import

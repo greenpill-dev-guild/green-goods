@@ -23,16 +23,34 @@ vi.mock("../../modules/app/posthog", () => ({
   track: vi.fn(),
 }));
 
-vi.mock("../../modules/work/passkey-submission", () => ({
-  submitWorkWithPasskey: vi.fn(async () => "0xtestwork"),
-  submitApprovalWithPasskey: vi.fn(async () => "0xtestapproval"),
+// Mock the simulate module (dynamically imported by job queue)
+vi.mock("../../modules/work/simulate", () => ({
+  simulateWorkSubmission: vi.fn(async () => undefined),
 }));
 
+// Mock the EAS encoders (dynamically imported by job queue)
+vi.mock("../../utils/eas/encoders", () => ({
+  encodeWorkData: vi.fn(async () => "0xencodedworkdata"),
+  encodeWorkApprovalData: vi.fn(() => "0xencodedapprovaldata"),
+}));
+
+// Mock the EAS config
+vi.mock("../../config/blockchain", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    getEASConfig: vi.fn(() => ({
+      EAS: { address: "0xEAS" },
+      WORK: { uid: "0xworkschema", schema: "" },
+      WORK_APPROVAL: { uid: "0xapprovalschema", schema: "" },
+      ASSESSMENT: { uid: "0xassessmentschema", schema: "" },
+      SCHEMA_REGISTRY: { address: "0xSchemaRegistry" },
+    })),
+  };
+});
+
 import { jobQueue, jobQueueDB } from "../../modules/job-queue";
-import {
-  submitApprovalWithPasskey,
-  submitWorkWithPasskey,
-} from "../../modules/work/passkey-submission";
+import type { TransactionSender } from "../../modules/transactions/types";
 
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
@@ -62,6 +80,22 @@ function createMockFile(content: string, name: string, type: string): File {
   return file;
 }
 
+/**
+ * Creates a mock TransactionSender for testing.
+ */
+function createMockSender(overrides: Partial<TransactionSender> = {}): TransactionSender {
+  return {
+    sendContractCall: vi.fn(async () => ({
+      hash: "0xtesthash" as `0x${string}`,
+      sponsored: true,
+    })),
+    supportsSponsorship: true,
+    supportsBatching: false,
+    authMode: "passkey",
+    ...overrides,
+  };
+}
+
 describe("modules/job-queue", () => {
   beforeEach(() => {
     try {
@@ -83,7 +117,7 @@ describe("modules/job-queue", () => {
     }
   });
 
-  it("processes a queued work job during flush when client is available", async () => {
+  it("processes a queued work job during flush when sender is available", async () => {
     const file = createMockFile("content", "work.jpg", "image/jpeg");
     const jobId = await jobQueue.addJob(
       "work",
@@ -102,20 +136,21 @@ describe("modules/job-queue", () => {
 
     expect(jobId).toBeDefined();
 
-    const smartAccountClient = {
-      account: { address: "0xabc" },
-    } as any;
+    const mockSender = createMockSender();
 
-    const result = await jobQueue.flush({ smartAccountClient, userAddress: TEST_USER_ADDRESS });
+    const result = await jobQueue.flush({
+      transactionSender: mockSender,
+      userAddress: TEST_USER_ADDRESS,
+    });
 
     expect(result.processed).toBe(1);
     expect(result.failed).toBe(0);
-    expect(submitWorkWithPasskey).toHaveBeenCalledTimes(1);
+    expect(mockSender.sendContractCall).toHaveBeenCalledTimes(1);
     const stats = await jobQueue.getStats(TEST_USER_ADDRESS);
     expect(stats.pending).toBe(0);
   });
 
-  it("skips processing when smart account client is missing", async () => {
+  it("skips processing when transaction sender is missing", async () => {
     await jobQueue.addJob(
       "approval",
       {
@@ -129,19 +164,20 @@ describe("modules/job-queue", () => {
     );
 
     const result = await jobQueue.flush({
-      smartAccountClient: null,
+      transactionSender: null,
       userAddress: TEST_USER_ADDRESS,
     });
 
     expect(result.processed).toBe(0);
     expect(result.skipped).toBeGreaterThan(0);
-    expect(submitApprovalWithPasskey).not.toHaveBeenCalled();
   });
 
   it("marks jobs as failed when underlying submission throws", async () => {
-    (submitWorkWithPasskey as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-      new Error("boom")
-    );
+    const mockSender = createMockSender({
+      sendContractCall: vi.fn(async () => {
+        throw new Error("boom");
+      }),
+    });
 
     await jobQueue.addJob(
       "work",
@@ -158,14 +194,13 @@ describe("modules/job-queue", () => {
       { chainId: 11155111 }
     );
 
-    const smartAccountClient = {
-      account: { address: "0xabc" },
-    } as any;
-
-    const result = await jobQueue.flush({ smartAccountClient, userAddress: TEST_USER_ADDRESS });
+    const result = await jobQueue.flush({
+      transactionSender: mockSender,
+      userAddress: TEST_USER_ADDRESS,
+    });
 
     expect(result.failed).toBe(1);
-    expect(submitWorkWithPasskey).toHaveBeenCalled();
+    expect(mockSender.sendContractCall).toHaveBeenCalled();
     const jobs = await jobQueue.getJobs(TEST_USER_ADDRESS);
     expect(jobs[0]?.lastError).toContain("boom");
   });

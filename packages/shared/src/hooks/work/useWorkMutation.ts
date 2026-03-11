@@ -8,7 +8,6 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SmartAccountClient } from "permissionless";
 import { useCallback } from "react";
 import {
   showWalletProgress,
@@ -40,13 +39,13 @@ import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
 import { useTimeout } from "../utils/useTimeout";
 
 interface UseWorkMutationOptions {
-  authMode: "wallet" | "passkey" | null;
-  smartAccountClient: SmartAccountClient | null;
+  authMode: "wallet" | "passkey" | "embedded" | null;
   gardenAddress: Address | null;
   actionUID: number | null;
   actions: Action[];
@@ -80,7 +79,8 @@ function isNetworkError(error: unknown): boolean {
  * @returns Mutation instance
  */
 export function useWorkMutation(options: UseWorkMutationOptions) {
-  const { authMode, smartAccountClient, gardenAddress, actionUID, actions, userAddress } = options;
+  const { authMode, gardenAddress, actionUID, actions, userAddress } = options;
+  const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
@@ -237,8 +237,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         });
       }
 
-      if (navigator.onLine && smartAccountClient) {
-        const result = await jobQueue.processJob(jobId, { smartAccountClient });
+      if (navigator.onLine && sender) {
+        const result = await jobQueue.processJob(jobId, { transactionSender: sender });
 
         if (DEBUG_ENABLED) {
           debugLog("[WorkMutation] Inline processing attempt finished", {

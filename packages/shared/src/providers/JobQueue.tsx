@@ -4,7 +4,7 @@ import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import { queryClient } from "../config/react-query";
 import { useAuth } from "../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
-import { useUser } from "../hooks/auth/useUser";
+import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { queryInvalidation, queryKeys } from "../hooks/query-keys";
 import { jobQueue, jobQueueEventBus } from "../modules/job-queue";
 import { useUIStore } from "../stores/useUIStore";
@@ -57,8 +57,8 @@ interface Work {
 }
 
 const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) => {
-  const { smartAccountClient } = useUser();
   const { authMode } = useAuth();
+  const sender = useTransactionSender();
 
   // Use single source of truth for primary address
   const currentUserAddress = usePrimaryAddress();
@@ -239,7 +239,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
   }, [currentUserAddress, refreshStats, setOfflineBannerVisible]);
 
   useEffect(() => {
-    if (!smartAccountClient || !currentUserAddress) {
+    if (!sender || !currentUserAddress) {
       return;
     }
     if (typeof window === "undefined") {
@@ -258,7 +258,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 
       isFlushInProgress = true;
       try {
-        await jobQueue.flush({ smartAccountClient, userAddress: currentUserAddress });
+        await jobQueue.flush({ transactionSender: sender, userAddress: currentUserAddress });
         if (!abortController.signal.aborted) {
           await refreshStats(abortController.signal);
         }
@@ -269,21 +269,21 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       }
     };
 
-    // Only auto-flush on mount if online and passkey user
-    if (navigator.onLine && authMode === "passkey") {
+    // Auto-flush on mount if online and have a transaction sender (passkey or embedded)
+    if (navigator.onLine && (authMode === "passkey" || authMode === "embedded")) {
       void attemptFlush();
     }
 
     const handleOnline = () => {
-      // Only auto-flush for passkey users
-      if (authMode === "passkey") {
+      // Auto-flush for passkey and embedded users (sponsored tx senders)
+      if (authMode === "passkey" || authMode === "embedded") {
         void attemptFlush();
       }
     };
 
     window.addEventListener("online", handleOnline);
     const unsubscribeBackgroundSync = jobQueueEventBus.on("background:sync-requested", () => {
-      if (authMode === "passkey") {
+      if (authMode === "passkey" || authMode === "embedded") {
         void attemptFlush();
       }
     });
@@ -293,7 +293,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       window.removeEventListener("online", handleOnline);
       unsubscribeBackgroundSync();
     };
-  }, [smartAccountClient, authMode, currentUserAddress, refreshStats]);
+  }, [sender, authMode, currentUserAddress, refreshStats]);
 
   // Context value - useMemo kept here as it's passed to Provider (cross-boundary)
   const contextValue: JobQueueContextValue = React.useMemo(
@@ -314,7 +314,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 
         try {
           const result = await jobQueue.flush({
-            smartAccountClient: smartAccountClient ?? null,
+            transactionSender: sender ?? null,
             userAddress: currentUserAddress,
           });
           await refreshStats();
@@ -327,8 +327,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
             const isOnline = typeof navigator === "undefined" ? true : navigator.onLine;
             const reason = !isOnline
               ? "Reconnect to the internet to finish syncing."
-              : !smartAccountClient
-                ? "Unlock your passkey session to continue syncing."
+              : !sender
+                ? "Sign in to continue syncing."
                 : "We'll retry shortly.";
             queueToasts.stillQueued(reason);
           } else {
@@ -353,7 +353,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         return jobQueue.getPendingCount(currentUserAddress);
       },
     }),
-    [stats, isProcessing, lastEvent, currentUserAddress, smartAccountClient, refreshStats]
+    [stats, isProcessing, lastEvent, currentUserAddress, sender, refreshStats]
   );
 
   return <JobQueueContext.Provider value={contextValue}>{children}</JobQueueContext.Provider>;

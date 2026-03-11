@@ -27,7 +27,7 @@ const mockSmartAccountClient = {
   sendTransaction: mockSendTransaction,
 };
 
-let mockAuthMode: "wallet" | "passkey" | null = "passkey";
+let mockAuthMode: "wallet" | "passkey" | "embedded" | null = "passkey";
 let mockSmartAccountRef: typeof mockSmartAccountClient | null = mockSmartAccountClient;
 
 // Mock useUser

@@ -352,6 +352,7 @@ export {
   useTheme,
   useTimeout,
   useTradeHistory,
+  useTransactionSender,
   useTranslation,
   useUpdateGardenBannerImage,
   useUpdateGardenDescription,
@@ -397,6 +398,8 @@ export {
 // ============================================================================
 export type {
   BreadcrumbEntry,
+  // Transaction sender types
+  ContractCall,
   ErrorCategory,
   ErrorContext,
   // Error tracking types
@@ -408,6 +411,9 @@ export type {
   PasskeyApprovalSubmissionParams,
   PasskeyWorkSubmissionParams,
   ResultOf,
+  TransactionSender,
+  TransactionSenderOptions,
+  TxResult,
   VariablesOf,
 } from "./modules/index";
 export {
@@ -457,6 +463,11 @@ export {
   uploadFileToIPFS,
   uploadJSONToIPFS,
   useJobQueueEvents,
+  // Transaction senders
+  createTransactionSender,
+  EmbeddedSender,
+  PasskeySender,
+  WalletSender,
 } from "./modules/index";
 // ============================================================================
 // PROVIDERS (re-export via subpath import recommended: @green-goods/shared/providers)

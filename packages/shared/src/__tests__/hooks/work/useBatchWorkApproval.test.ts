@@ -79,7 +79,7 @@ vi.mock("../../../config/blockchain", () => ({
 }));
 
 // Auth mode mock state
-let mockAuthMode: "wallet" | "passkey" | null = "wallet";
+let mockAuthMode: "wallet" | "passkey" | "embedded" | null = "wallet";
 let mockSmartAccountClient: any = null;
 
 vi.mock("../../../hooks/auth/useUser", () => ({

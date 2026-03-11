@@ -19,7 +19,7 @@ const mockWriteContract = vi.fn();
 const mockReadContract = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn();
 
-let mockAuthMode: "passkey" | "wallet" | null = null;
+let mockAuthMode: "passkey" | "wallet" | "embedded" | null = null;
 let mockWalletAddress: string | undefined = "0x1234567890123456789012345678901234567890";
 let mockWalletClientData: { writeContract: ReturnType<typeof vi.fn> } | undefined = {
   writeContract: mockWriteContract,
