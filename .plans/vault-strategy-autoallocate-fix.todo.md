@@ -55,7 +55,9 @@ User deposits into Octant ERC-4626 vaults on Arbitrum sit idle and generate zero
 | 29 | `resumeVault()` must wire auto-allocate + accountant | Review finding: `resumeVault()` (Octant.sol:284-320) only does `add_strategy` + donation propagation. After upgrade, a resumed vault would lack maxDebt, auto-allocate, and accountant wiring — reproducing Layers 2-3. Fix: add the same individually try/caught wiring block from Step 4 to `resumeVault()`. |
 | 30 | Add YieldResolver to upgrade tooling | Review finding: `Upgrade.s.sol` and `upgrade.ts` support 7 contracts but NOT YieldResolver. The plan's Phase 2 requires upgrading YieldResolver before OctantModule. Fix: add `upgradeYieldResolver()` to Upgrade.s.sol and `"yield-resolver"` to upgrade.ts before implementation begins. |
 | 31 | Build executable migration runner with all-gardens enumeration | Review finding: `post-deploy-verify.ts` only checks `rootGarden`. Backfill (Phase 3) says "for each garden+asset pair" without specifying how to enumerate them. Fix: add `migrate-vaults.ts` script that queries all gardens from indexer/events, calls `enableAutoAllocate` for each, and verifies all vaults post-migration. Update `post-deploy-verify.ts` to enumerate all gardens (not just root). |
-| 32 | Admin recovery path: rewire hook + UI from `configureVaultRoles` to `enableAutoAllocate` | Review finding: `useConfigureVaultRoles()` (useVaultOperations.ts:694-762) and PositionCard.tsx button still call the old `configureVaultRoles()` contract function. The plan previously treated this as copy-only cleanup. Fix: rename hook to `useEnableAutoAllocate`, update ABI to include `enableAutoAllocate(address,address,address)`, update PositionCard button to pass strategy address, add strategy selection UX or use current `supportedAssets[asset]` as default. |
+| 32 | Admin recovery path: rewire hook + UI from `configureVaultRoles` to `enableAutoAllocate` | Review finding: `useConfigureVaultRoles()` (useVaultOperations.ts:694-762) and PositionCard.tsx button still call the old `configureVaultRoles()` contract function. The plan previously treated this as copy-only cleanup. Fix: rename hook to `useEnableAutoAllocate`, update ABI to include `enableAutoAllocate(address,address)`, and update PositionCard button to call the new two-arg recovery path. |
+| 33 | `enableAutoAllocate()` deploys the garden-scoped strategy internally and takes only `(garden, asset)` | Final implementation decision: the admin/UI path must not source or pass a strategy address. Decision 27 already makes `supportedAssets[asset]` a template, not the live per-garden strategy. `enableAutoAllocate()` should reuse the same internal `_deployStrategyForVault()` helper as vault creation/resume, then attach and wire the new strategy atomically for that garden+asset pair. |
+| 34 | Phase 0 is copy/docs only; functional admin recovery UI ships after the contract upgrade | Final rollout decision: copy/docs alignment can ship before contract changes, but any admin/shared UI wiring that calls `enableAutoAllocate()` must deploy only after the OctantModule upgrade adds that function. This avoids shipping a button/hook that targets an unavailable contract function. |
 
 ## Requirements Coverage
 
@@ -114,10 +116,10 @@ User deposits into Octant ERC-4626 vaults on Arbitrum sit idle and generate zero
 - `packages/contracts/test/fork/ArbitrumOctantVault.t.sol` — End-to-end vault→strategy→Aave→yield→split test
 - `packages/contracts/test/fork/e2e/ArbitrumExtendedE2E.t.sol` — Update AaveV3 references
 - `packages/contracts/script/utils/post-deploy-verify.ts` — Add strategy/accountant/auto-allocate/harvest checks + all-gardens enumeration
-- `packages/admin/src/components/Vault/PositionCard.tsx` — Rewire button from `configureVaultRoles` to `enableAutoAllocate` + depositor-yield semantics
+- `packages/admin/src/components/Vault/PositionCard.tsx` — Rewire button from `configureVaultRoles` to `enableAutoAllocate` + impact-vault semantics
 - `packages/admin/src/views/Endowments/index.tsx` — Align "My positions" yield wording with PPS-flat depositor behavior
-- `packages/shared/src/hooks/vault/useVaultOperations.ts` — Rename `useConfigureVaultRoles` → `useEnableAutoAllocate`, update ABI + params to call `enableAutoAllocate(garden, asset, strategy)`
-- `packages/shared/src/utils/blockchain/abis.ts` — Add `enableAutoAllocate` ABI entry, keep `configureVaultRoles` for backwards compat until removed
+- `packages/shared/src/hooks/vault/useVaultOperations.ts` — Rename `useConfigureVaultRoles` → `useEnableAutoAllocate`, update ABI + params to call `enableAutoAllocate(garden, asset)`
+- `packages/shared/src/utils/blockchain/abis.ts` — Add `enableAutoAllocate(address,address)` ABI entry, keep `configureVaultRoles` for backwards compat until removed
 - `docs/docs/community/operator-guide/managing-endowments.mdx` — Update operator docs to routed-impact-yield semantics
 - `docs/docs/community/welcome.mdx` — Align high-level vault description with impact-vault semantics
 - `docs/src/components/docs/Hero.tsx` — Align funder vault copy with routed-yield semantics
@@ -141,8 +143,9 @@ User deposits into Octant ERC-4626 vaults on Arbitrum sit idle and generate zero
 **CRITICAL**: Upgrade ordering matters. Both OctantModule and YieldResolver are UUPS proxies.
 
 ```
-Phase 0: Product-surface alignment (rollout gate)
-  1. Deploy admin/shared/docs copy updates from Step 9a + Step 9b
+Phase 0: Product-surface alignment (copy/docs only)
+  1. Deploy docs and copy-only updates from Step 9b plus the non-functional wording updates from Step 9a
+     - Do NOT ship the `enableAutoAllocate` hook/button wiring yet
   2. Confirm treasury/endowments wording no longer implies depositor PPS growth
 
 Phase 1: Deploy contracts (no state changes yet)
@@ -162,19 +165,21 @@ Phase 3: Backfill existing vaults
   8. Run migrate-vaults.ts (Step 6b):
      a. Enumerate all gardens from indexer/GardenToken events
      b. For each garden+asset pair:
-        octantModule.enableAutoAllocate(garden, asset, newStrategyAddress)
-        - Grants new role bits, deploys garden-scoped strategy, enables auto-allocate,
+        octantModule.enableAutoAllocate(garden, asset)
+        - Grants new role bits, deploys a garden-scoped strategy from the asset template,
+          attaches it, enables auto-allocate,
           sets accountant, sets donation address
      c. Verify each vault post-migration
   9. First user deposit to each vault triggers _updateDebt → deploys ALL idle to Aave
 
 Phase 4: Verification
   10. Run post-deploy-verify.ts (updated to enumerate ALL gardens, not just root)
-  11. Verify on-chain per garden: strategy attached, accountant set, autoAllocate true,
+  11. Deploy the admin/shared app release containing the `enableAutoAllocate` hook/button wiring from Step 9a
+  12. Verify on-chain per garden: strategy attached, accountant set, autoAllocate true,
       donation address set, protocol fee = 0
 
 Phase 5: Activation gate
-  12. Do not announce/open endowment flow unless both (a) contract checks and
+  13. Do not announce/open endowment flow unless both (a) contract checks and
       (b) UI/docs wording checks are complete.
 ```
 
@@ -517,8 +522,7 @@ Add new owner function:
 ///      Deploys a new garden-scoped strategy instance (Decision 27).
 function enableAutoAllocate(
     address garden,
-    address asset,
-    address newStrategy
+    address asset
 ) external onlyOwner { ... }
 ```
 
@@ -526,14 +530,15 @@ This function:
 1. Gets existing vault from `gardenAssetVaults[garden][asset]`
 2. Grants updated role bits via `set_role(address(this), VAULT_ROLE_BITMASK)` (Decision 16 — uses the updated constant which now includes bits 3,6,7. OctantModule is roleManager so `set_role` works. This is a full overwrite but with the correct superset bitmask, no roles are lost.)
 3. **Conditionally** revokes old strategy — only if `vaultStrategies[vault] != address(0)` (strategy was successfully attached). If old strategy was never attached (Layer 1 failure), `_strategies[oldStrategy].activation == 0` and `revoke_strategy` would revert with `StrategyNotActive()`.
-4. Attaches new ERC4626 strategy via `add_strategy(newStrategy, true)`
-5. Sets `update_max_debt_for_strategy(newStrategy, type(uint256).max)`
-6. Calls `set_auto_allocate(true)`
-7. Sets `set_accountant(yieldResolver)` on the vault
-8. Sets `gardenDonationAddresses[garden] = yieldResolver` (if not already set)
-9. Updates `vaultStrategies[vault] = newStrategy`
+4. Deploys a new garden-scoped ERC4626 strategy via the same `_deployStrategyForVault(asset, vault)` helper used in Step 4a (Decision 33), storing the result as `newStrategy`
+5. Attaches the new ERC4626 strategy via `add_strategy(newStrategy, true)`
+6. Sets `update_max_debt_for_strategy(newStrategy, type(uint256).max)`
+7. Calls `set_auto_allocate(true)`
+8. Sets `set_accountant(yieldResolver)` on the vault
+9. Sets `gardenDonationAddresses[garden] = yieldResolver` (if not already set)
+10. Updates `vaultStrategies[vault] = newStrategy`
 
-> **Note on strategy address**: For backfill, the caller passes a pre-deployed garden-scoped strategy address. The migration runner (Step 6b) deploys one strategy per garden+asset before calling `enableAutoAllocate`.
+> **Decision 33**: `enableAutoAllocate()` takes only `(garden, asset)`. The contract deploys the garden-scoped strategy internally from the asset template, so the admin UI and migration runner never need to source or pass a strategy address.
 
 **Verification**: Compiles
 
@@ -547,8 +552,8 @@ Script flow:
    a. Check if vault exists: `octantModule.getVaultForAsset(garden, asset)`
    b. If vault exists, check if already migrated: `vault.autoAllocate() == true && vault.accountant() == yieldResolver`
    c. If not migrated:
-      - Deploy a new `AaveV3ERC4626` strategy instance (owner = OctantModule)
-      - Call `octantModule.enableAutoAllocate(garden, asset, strategyAddress)`
+      - Call `octantModule.enableAutoAllocate(garden, asset)`
+      - The contract deploys the new `AaveV3ERC4626` garden-scoped strategy internally from the asset template
 3. **Post-migration verification per vault**: strategy attached, accountant set, autoAllocate true, donation address set
 4. **Summary report**: gardens enumerated, vaults migrated, vaults skipped (already migrated), failures
 
@@ -672,15 +677,17 @@ In `_configureArbitrumOctantAssets()`:
 - `packages/shared/src/i18n/pt.json`
 
 Update user-facing vault language so it does not imply depositor PPS growth:
-1. Rename "Current yield" / "Yield generated" labels to depositor-focused wording (for example, "Depositor yield").
-2. Add explicit helper copy that impact-vault yield is routed at harvest/split time, not accrued into depositor PPS.
+1. Rename "Current yield" / "Yield generated" labels to impact-focused wording (for example, "Yield routed to impact" / "Harvested impact yield"), not depositor-return wording.
+2. Add explicit helper copy that depositor PPS is expected to stay flat by design and that harvested yield is routed at harvest/split time, not accrued into depositor shares.
 3. **Rewire admin recovery path** (Decision 32):
    - Rename `useConfigureVaultRoles` → `useEnableAutoAllocate` in `useVaultOperations.ts`
-   - Update mutation to call `enableAutoAllocate(gardenAddress, assetAddress, strategyAddress)` instead of `configureVaultRoles(gardenAddress, assetAddress)`
+   - Update mutation to call `enableAutoAllocate(gardenAddress, assetAddress)` instead of `configureVaultRoles(gardenAddress, assetAddress)`
    - Add `enableAutoAllocate` ABI entry to `abis.ts`
-   - Update `PositionCard.tsx` button to use the new hook. Strategy address can default to `supportedAssets[asset]` (queried on-chain) or be passed as a prop.
+   - Update `PositionCard.tsx` button to use the new hook. No strategy address selection UX is required because the contract deploys the garden-scoped strategy internally (Decision 33).
    - Update i18n keys: `app.treasury.configureVault` → `app.treasury.enableAutoAllocate`
 4. Keep all new/changed user-facing copy translated in `en/es/pt`.
+
+**Sequencing note (Decision 34)**: Copy-only wording updates can ship in Phase 0. The functional hook/button rewire must ship only after the OctantModule upgrade adds `enableAutoAllocate`.
 
 **Verification**: Admin tests and affected shared tests pass; UI displays updated labels in all locales; recovery button calls `enableAutoAllocate`.
 
