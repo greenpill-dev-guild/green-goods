@@ -18,7 +18,7 @@ vi.mock("wagmi", () => ({
 
 // Mock appkit config
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 import { useEnsQuery } from "../../../hooks/blockchain/useEnsQuery";

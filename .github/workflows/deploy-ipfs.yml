@@ -78,7 +78,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Restore Bun cache
         uses: actions/cache@v4
@@ -107,22 +107,51 @@ jobs:
             echo "dnslink_name=${{ matrix.staging_dnslink_name }}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Load env vars from Varlock + 1Password environment
+        env:
+          APP_ENV: ${{ steps.env.outputs.env }}
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          OP_ENVIRONMENT: ${{ vars.OP_ENVIRONMENT }}
+        run: |
+          if [[ -z "$OP_ENVIRONMENT" ]]; then
+            echo "::error::Missing repository variable OP_ENVIRONMENT"
+            echo "Set OP_ENVIRONMENT to your 1Password environment ID/name."
+            exit 1
+          fi
+          if [[ -z "$OP_SERVICE_ACCOUNT_TOKEN" ]]; then
+            echo "::error::Missing GitHub secret OP_SERVICE_ACCOUNT_TOKEN"
+            exit 1
+          fi
+
+          bunx varlock run -- bash -lc '
+            for key in \
+              VITE_WALLETCONNECT_PROJECT_ID \
+              VITE_PIMLICO_API_KEY \
+              VITE_ENVIO_INDEXER_URL \
+              VITE_POSTHOG_KEY \
+              VITE_STORACHA_KEY \
+              VITE_STORACHA_PROOF
+            do
+              val="${!key:-}"
+              if [[ -n "$val" ]]; then
+                printf "%s=%s\n" "$key" "$val" >> "$GITHUB_ENV"
+              fi
+            done
+          '
+
       - name: Build ${{ matrix.title }}
         run: bun run ${{ matrix.build }}
         env:
+          APP_ENV: ${{ steps.env.outputs.env }}
           VITE_USE_HASH_ROUTER: 'true'
           VITE_CHAIN_ID: ${{ steps.env.outputs.chain_id }}
-          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
-          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY }}
-          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL }}
-          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_POSTHOG_HOST: "https://app.posthog.com"
           VITE_APP_URL: ${{ steps.env.outputs.app_url }}
 
       - name: Validate Storacha credentials
         env:
-          STORACHA_KEY: ${{ secrets.VITE_STORACHA_KEY }}
-          STORACHA_PROOF: ${{ secrets.VITE_STORACHA_PROOF }}
+          STORACHA_KEY: ${{ env.VITE_STORACHA_KEY }}
+          STORACHA_PROOF: ${{ env.VITE_STORACHA_PROOF }}
         run: |
           if [[ -z "$STORACHA_KEY" ]]; then
             echo "::error::VITE_STORACHA_KEY secret is not set"
@@ -140,8 +169,8 @@ jobs:
       - name: Deploy to Storacha
         id: storacha
         env:
-          VITE_STORACHA_KEY: ${{ secrets.VITE_STORACHA_KEY }}
-          VITE_STORACHA_PROOF: ${{ secrets.VITE_STORACHA_PROOF }}
+          VITE_STORACHA_KEY: ${{ env.VITE_STORACHA_KEY }}
+          VITE_STORACHA_PROOF: ${{ env.VITE_STORACHA_PROOF }}
           DEBUG: 'true'
         run: |
           echo "🚀 Uploading to Storacha..."

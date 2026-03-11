@@ -23,18 +23,18 @@ sudo chown -R node:node /workspaces/green-goods/docs/node_modules 2>/dev/null ||
 echo "📦 Initializing git submodules..."
 git submodule update --init --recursive || echo "   ⚠️  Submodule init skipped (may already be initialized)"
 
-# Create .env from template if it doesn't exist
-if [ ! -f .env ]; then
-    echo "📝 Creating .env from template..."
-    cp .env.example .env
-    echo "   ⚠️  Edit .env with your API keys (Reown, Pimlico, etc.)"
-else
-    echo "✅ .env already exists"
-fi
-
 # Install all workspace dependencies
 echo "📦 Installing dependencies with bun..."
 bun install
+
+# Create .env from schema if it doesn't exist
+if [ ! -f .env ]; then
+    echo "📝 Creating .env from .env.schema defaults..."
+    APP_ENV=development bunx varlock load --path .env.schema --format env --compact > .env
+    echo "   ⚠️  Edit .env for local overrides and set OP_ENVIRONMENT for 1Password injection"
+else
+    echo "✅ .env already exists"
+fi
 
 # Install docs dependencies (Docusaurus site)
 echo "📚 Installing docs dependencies..."
@@ -62,9 +62,9 @@ echo "   bun dev          - Start all services (client, admin, docs, indexer, ag
 echo "   bun dev:client   - Start client only (http://localhost:3001)"
 echo "   bun dev:admin    - Start admin only (http://localhost:3002)"
 echo "   bun dev:docs     - Start docs only (http://localhost:3003)"
-echo "   bun test         - Run all tests"
+echo "   bun run test     - Run all tests"
 echo ""
-echo "📝 Don't forget to edit .env with your API keys!"
+echo "📝 Configure OP_ENVIRONMENT and any local overrides in .env"
 echo "   Required: VITE_WALLETCONNECT_PROJECT_ID, VITE_PIMLICO_API_KEY"
 echo ""
 

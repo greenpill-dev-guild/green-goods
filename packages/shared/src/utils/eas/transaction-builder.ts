@@ -9,6 +9,7 @@
 
 import { encodeFunctionData, type Hex } from "viem";
 import type { EASConfig } from "../../config/blockchain";
+import type { ContractCall } from "../../modules/transactions/types";
 import { EASABI } from "../blockchain/contracts";
 import { NO_EXPIRATION, ZERO_BYTES32 } from "./constants";
 
@@ -28,9 +29,9 @@ interface AttestationRequest {
 }
 
 /**
- * Build an EAS attestation request (internal helper)
+ * Build an EAS attestation request
  */
-function buildAttestationRequest(
+export function buildAttestationRequest(
   recipient: `0x${string}`,
   schemaUID: Hex,
   attestationData: Hex
@@ -206,5 +207,61 @@ export function buildBatchWorkAttestTx(
       args: [[multiRequest]],
     }),
     value: 0n,
+  };
+}
+
+// ============================================================================
+// ContractCall Builders (for use with TransactionSender)
+// ============================================================================
+
+/**
+ * Build a ContractCall for a work attestation via TransactionSender.
+ *
+ * @param easConfig - EAS configuration for the chain
+ * @param gardenAddress - Garden address receiving the attestation
+ * @param attestationData - Encoded attestation data
+ * @returns ContractCall suitable for TransactionSender.sendContractCall()
+ */
+export function buildWorkAttestContractCall(
+  easConfig: EASConfig,
+  gardenAddress: `0x${string}`,
+  attestationData: Hex
+): ContractCall {
+  const request = buildAttestationRequest(
+    gardenAddress,
+    easConfig.WORK.uid as Hex,
+    attestationData
+  );
+  return {
+    address: easConfig.EAS.address as `0x${string}`,
+    abi: EASABI,
+    functionName: "attest",
+    args: [request],
+  };
+}
+
+/**
+ * Build a ContractCall for an approval attestation via TransactionSender.
+ *
+ * @param easConfig - EAS configuration for the chain
+ * @param gardenAddress - Garden address (must match work attestation recipient)
+ * @param attestationData - Encoded attestation data
+ * @returns ContractCall suitable for TransactionSender.sendContractCall()
+ */
+export function buildApprovalAttestContractCall(
+  easConfig: EASConfig,
+  gardenAddress: `0x${string}`,
+  attestationData: Hex
+): ContractCall {
+  const request = buildAttestationRequest(
+    gardenAddress,
+    easConfig.WORK_APPROVAL.uid as Hex,
+    attestationData
+  );
+  return {
+    address: easConfig.EAS.address as `0x${string}`,
+    abi: EASABI,
+    functionName: "attest",
+    args: [request],
   };
 }

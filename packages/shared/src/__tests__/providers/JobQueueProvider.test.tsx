@@ -36,9 +36,20 @@ vi.mock("../../hooks/auth/useAuth", () => ({
 vi.mock("../../hooks/auth/useUser", () => ({
   useUser: vi.fn(() => ({
     smartAccountAddress: "0xSmartAccount",
-    smartAccountClient: { account: { address: "0xSmartAccount" } },
     eoa: null,
   })),
+}));
+
+// Mock useTransactionSender to avoid wagmi provider dependency
+const mockTransactionSender = {
+  sendContractCall: vi.fn().mockResolvedValue({ hash: "0xabc123", sponsored: true }),
+  supportsSponsorship: true,
+  supportsBatching: false,
+  authMode: "passkey" as const,
+};
+
+vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: vi.fn(() => mockTransactionSender),
 }));
 
 // Mock primary address hook
@@ -75,6 +86,7 @@ import { queueToasts } from "../../components/toast";
 import { useAuth } from "../../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
 import { useUser } from "../../hooks/auth/useUser";
+import { useTransactionSender } from "../../hooks/blockchain/useTransactionSender";
 import { jobQueue } from "../../modules/job-queue";
 import {
   JobQueueProvider,
@@ -94,6 +106,7 @@ const mockJobQueue = jobQueue as {
 const mockUseAuth = useAuth as ReturnType<typeof vi.fn>;
 const mockUseUser = useUser as ReturnType<typeof vi.fn>;
 const mockUsePrimaryAddress = usePrimaryAddress as ReturnType<typeof vi.fn>;
+const mockUseTransactionSender = useTransactionSender as ReturnType<typeof vi.fn>;
 
 describe("providers/JobQueueProvider", () => {
   let queryClient: QueryClient;
@@ -117,9 +130,9 @@ describe("providers/JobQueueProvider", () => {
     mockUseAuth.mockReturnValue({ authMode: "passkey", walletAddress: null });
     mockUseUser.mockReturnValue({
       smartAccountAddress: "0xSmartAccount",
-      smartAccountClient: { account: { address: "0xSmartAccount" } },
       eoa: null,
     });
+    mockUseTransactionSender.mockReturnValue(mockTransactionSender);
     mockUsePrimaryAddress.mockReturnValue("0xSmartAccount");
     mockJobQueue.getStats.mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 });
   });
@@ -205,7 +218,7 @@ describe("providers/JobQueueProvider", () => {
       });
 
       expect(mockJobQueue.flush).toHaveBeenCalledWith({
-        smartAccountClient: expect.objectContaining({ account: { address: "0xSmartAccount" } }),
+        transactionSender: mockTransactionSender,
         userAddress: "0xSmartAccount",
       });
     });
@@ -304,10 +317,10 @@ describe("providers/JobQueueProvider", () => {
       mockUseAuth.mockReturnValue({ authMode: "wallet", walletAddress: "0xWallet123" });
       mockUseUser.mockReturnValue({
         smartAccountAddress: null,
-        smartAccountClient: null,
         eoa: { address: "0xWallet123" },
       });
       mockUsePrimaryAddress.mockReturnValue("0xWallet123");
+      mockUseTransactionSender.mockReturnValue(null);
 
       renderHook(() => useJobQueue(), { wrapper: createWrapper() });
 

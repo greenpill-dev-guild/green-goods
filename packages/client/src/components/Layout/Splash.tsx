@@ -38,6 +38,8 @@ interface SplashProps {
   secondaryAction?: SecondaryActionConfig;
   tertiaryAction?: TertiaryActionConfig;
   usernameInput?: UsernameInputConfig;
+  /** Small muted text displayed below error area (e.g. address continuity notice) */
+  notice?: string;
 }
 
 export const Splash: React.FC<SplashProps> = ({
@@ -51,6 +53,7 @@ export const Splash: React.FC<SplashProps> = ({
   secondaryAction,
   tertiaryAction,
   usernameInput,
+  notice,
 }) => {
   const stateMessages = {
     welcome: "Welcome",
@@ -204,6 +207,13 @@ export const Splash: React.FC<SplashProps> = ({
             </div>
           </div>
         </div>
+
+        {/* ─────────────────────────────────────────────────────────────────────
+            NOTICE - Small muted text (e.g. address continuity)
+        ───────────────────────────────────────────────────────────────────── */}
+        {notice && !loadingState && (
+          <p className="text-center text-xs text-text-sub-600 mt-1 mb-1">{notice}</p>
+        )}
 
         {/* ─────────────────────────────────────────────────────────────────────
             TERTIARY ACTION - Fixed height

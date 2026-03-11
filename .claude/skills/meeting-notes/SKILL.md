@@ -2,6 +2,12 @@
 name: meeting-notes
 description: Use when the user pastes a meeting transcript or notes and wants actionable items extracted as GitHub issues
 argument-hint: "[paste transcript or provide file path]"
+version: "1.0.0"
+status: active
+packages: []
+dependencies: []
+last_updated: "2026-03-11"
+last_verified: "2026-03-11"
 ---
 
 # Meeting Notes Extraction
@@ -12,7 +18,7 @@ Extract actionable items from meeting transcripts and create GitHub issues.
 
 User pastes or references a meeting transcript (product sync, standup, retro, design review, etc.) and wants issues created.
 
-## Process
+## Part 1: Extraction Process
 
 ### 1. Read Context
 

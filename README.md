@@ -16,6 +16,8 @@ bun setup    # Checks deps, installs packages, creates .env
 bun dev      # Starts all services via PM2
 ```
 
+Set `OP_ENVIRONMENT` in the root `.env` (local) and as a GitHub repository variable (CI) to inject secrets from 1Password via Varlock.
+
 **Services:** Client PWA (localhost:3001) • Admin (localhost:3002) • Indexer (localhost:8080) • Storybook (localhost:6006)
 
 ## Documentation

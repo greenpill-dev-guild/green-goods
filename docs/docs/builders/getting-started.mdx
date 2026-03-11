@@ -10,7 +10,7 @@ feature_status: Live
 goal: "Complete Developer Getting Started with clear, role-specific next actions."
 difficulty: "standard"
 estimated_time: "20-40 minutes."
-prereqs: "Node 20+, Bun, Foundry, Git, Docker."
+prereqs: "Node 22+, Bun, Foundry, Git, Docker."
 next_steps: "./architecture"
 persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
 source_of_truth:
@@ -36,7 +36,7 @@ Before cloning, make sure these tools are installed:
 
 | Tool | Min Version | Purpose | Install |
 | --- | --- | --- | --- |
-| **Node.js** | 20+ | Runtime for scripts and tooling | [nodejs.org](https://nodejs.org) |
+| **Node.js** | 22+ | Runtime for scripts and tooling | [nodejs.org](https://nodejs.org) |
 | **Bun** | 1.x+ | Package manager and monorepo runner | `curl -fsSL https://bun.sh/install \| bash` |
 | **Git** | any | Version control | [git-scm.com](https://git-scm.com) |
 | **Foundry** | any | Solidity compiler and testing (`forge`) | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
@@ -59,26 +59,29 @@ bun dev     # starts all services via PM2
 
 The setup script (`scripts/setup.js`) runs through four steps:
 
-1. **Dependency check** -- verifies Node.js 20+, Bun 1.x, Git, Docker, and Foundry are available. Missing optional tools produce warnings, not errors.
+1. **Dependency check** -- verifies Node.js 22+, Bun 1.x, Git, Docker, and Foundry are available. Missing optional tools produce warnings, not errors.
 2. **Install packages** -- runs `bun install` across all workspaces if `node_modules` does not exist yet.
-3. **Environment file** -- copies `.env.example` to `.env` if no `.env` exists. You will need to fill in API keys for Privy (auth), Storacha (IPFS), and Envio (indexer).
+3. **Environment file** -- generates `.env` from `.env.schema` defaults if no `.env` exists. Prefer configuring `OP_ENVIRONMENT` for 1Password injection and keep `.env` for non-secret defaults.
 4. **Next steps** -- prints the commands to start developing.
 
 ---
 
 ## Required Secrets & Variables
 
-Green Goods uses a **single root `.env` file** — never create package-level env files. Key variables:
+Green Goods uses a **single root `.env` bootstrap** plus committed `.env.schema` validation — never create package-level env files. Key variables:
 
 | Variable | Role |
 | --- | --- |
+| `APP_ENV` | Environment selector (`development`, `test`, `staging`, `production`) |
+| `OP_ENVIRONMENT` | 1Password environment name/id used by Varlock bulk secret injection |
+| `OP_SERVICE_ACCOUNT_TOKEN` | 1Password service account token (required in CI/deployed environments) |
 | `VITE_CHAIN_ID` | Sets the target chain at build time (e.g. `11155111` for Sepolia, `42161` for Arbitrum) |
-| `VITE_PRIVY_APP_ID` | Privy authentication app ID |
 | `VITE_STORACHA_KEY` | Ed25519 principal key for IPFS uploads via Storacha |
-| `VITE_ENVIO_API_TOKEN` | Envio indexer API token |
 | `SEPOLIA_RPC_URL` | RPC endpoint for Sepolia fork tests |
 
-Copy `.env.example` for the full list. Variables prefixed with `VITE_` are embedded into frontend bundles at build time.
+Use `.env.schema` as the full environment contract. Variables prefixed with `VITE_` are embedded into frontend bundles at build time.
+
+For CI workflows, this repo sets a single repository variable `OP_ENVIRONMENT`, then uses `varlock run` to bulk-load variables from that 1Password environment.
 
 ## Running services
 
@@ -115,7 +118,7 @@ bun dev:agent       # Agent bot
 <StepFlow
   steps={[
     {title: "Read project rules", detail: "Start with `AGENTS.md`, `CLAUDE.md`, and `.claude/context/*` for conventions."},
-    {title: "Fill in .env", detail: "Add your API keys. Use root `.env` only -- never add package-level env files."},
+    {title: "Configure env bootstrap", detail: "Set `APP_ENV` and `OP_ENVIRONMENT` in root `.env` (recommended). Use root `.env` only -- never add package-level env files."},
     {title: "Start services", detail: "Run `bun dev` and verify client, admin, indexer, and docs start cleanly."},
     {title: "Run the quality gate", detail: "Run `bun run test`, `bun lint`, and `bun build` before pushing changes."},
   ]}
@@ -151,7 +154,7 @@ bun format
 | --- | --- | --- |
 | `forge: command not found` | Foundry not installed | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
 | Indexer fails to start | Docker not running | Start Docker Desktop, then retry `bun dev:indexer` |
-| `VITE_CHAIN_ID is undefined` | Missing `.env` | Run `bun setup` or copy `.env.example` to `.env` |
+| `VITE_CHAIN_ID is undefined` | Missing `.env` | Run `bun setup` or run `APP_ENV=development bunx varlock load --path .env.schema --format env --compact > .env` |
 | Port 3000/3001 in use | Another dev server running | Kill the process or change the port in the package's Vite config |
 | `bun install` hangs | Stale lockfile | Delete `node_modules` and `bun.lockb`, then `bun install` |
 

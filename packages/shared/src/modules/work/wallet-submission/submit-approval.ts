@@ -2,7 +2,7 @@ import type { Address } from "viem";
 import { getWalletClient } from "@wagmi/core";
 import type { WorkApprovalDraft } from "../../../types/domain";
 import type { EASWorkApproval } from "../../../types/eas-responses";
-import { wagmiConfig } from "../../../config/appkit";
+import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
 import { queryClient } from "../../../config/react-query";
 import { queryKeys } from "../../../hooks/query-keys";
@@ -34,7 +34,7 @@ export async function submitApprovalDirectly(
   });
   onProgress?.("validating", "Preparing approval...");
 
-  const walletClient = await getWalletClient(wagmiConfig, { chainId });
+  const walletClient = await getWalletClient(getWagmiConfig(), { chainId });
   if (!walletClient) {
     const message = "[WalletSubmission] Wallet client not available";
     if (DEBUG_ENABLED) {

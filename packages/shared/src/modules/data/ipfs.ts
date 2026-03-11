@@ -95,9 +95,16 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
     const cid = result.cid.toString();
     const uploadDuration = Date.now() - startTime;
 
-    // Fire-and-forget: verify gateway availability in background.
+    // Fire-and-forget: verify gateway availability and pin to Pinata in background.
     // The CID is valid once Storacha returns it; gateway propagation
     // should not block the user's submission flow.
+    //
+    // IMPORTANT: If this verification throws, it must NOT propagate as an error
+    // from the upload. The wallet submission flow (useWorkMutation) uses error
+    // message heuristics ("gateway", "timeout") to detect network errors.
+    // If IPFS verification errors leaked through, they'd be misclassified as
+    // network errors and silently redirect to the offline queue, skipping the
+    // wallet signing step entirely.
     ensureCidAvailableAcrossProviders(cid, {
       category,
       source: context.source ?? "executeUpload",
@@ -234,7 +241,7 @@ export interface FileUploadContext {
   /** Garden address if relevant */
   gardenAddress?: string;
   /** Auth mode if relevant */
-  authMode?: "passkey" | "wallet" | null;
+  authMode?: "passkey" | "wallet" | "embedded" | null;
   /** Optional callback fired when this file upload completes or fails */
   onFileProgress?: (event: {
     fileIndex?: number;
@@ -295,7 +302,7 @@ export interface JsonUploadContext {
   /** Garden address if relevant */
   gardenAddress?: string;
   /** Auth mode if relevant */
-  authMode?: "passkey" | "wallet" | null;
+  authMode?: "passkey" | "wallet" | "embedded" | null;
   /** Type of metadata being uploaded */
   metadataType?: string;
 }

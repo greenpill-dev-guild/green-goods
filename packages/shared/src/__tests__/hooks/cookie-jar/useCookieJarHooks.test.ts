@@ -91,7 +91,7 @@ vi.mock("../../../hooks/auth/useUser", () => ({
 }));
 
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 vi.mock("@wagmi/core", () => ({

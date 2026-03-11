@@ -21,7 +21,7 @@
       "@green-goods/contracts/abis/*": ["../contracts/abis/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "../../env.d.ts"],
   "exclude": [
     "node_modules",
     "dist",

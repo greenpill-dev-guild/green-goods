@@ -9,7 +9,7 @@
 
 import { simulateContract } from "@wagmi/core";
 import type { Abi, Address } from "viem";
-import { wagmiConfig } from "../../config/appkit";
+import { getWagmiConfig } from "../../config/appkit";
 import { parseContractError } from "../errors/contract-errors";
 
 /**
@@ -70,7 +70,7 @@ export async function simulateTransaction(
   chainId?: number
 ): Promise<SimulationResult> {
   try {
-    const result = await simulateContract(wagmiConfig, {
+    const result = await simulateContract(getWagmiConfig(), {
       address,
       abi,
       functionName,

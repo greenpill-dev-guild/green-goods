@@ -45,7 +45,7 @@ vi.mock("../../../config/blockchain", () => ({
 }));
 
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 vi.mock("../../../modules/app/logger", () => ({
@@ -123,7 +123,6 @@ function createQueryClient() {
 function createDefaultOptions() {
   return {
     authMode: "wallet" as const,
-    smartAccountClient: null,
     gardenAddress: MOCK_ADDRESSES.garden as `0x${string}`,
     actionUID: 1,
     actions: [createMockAction()],

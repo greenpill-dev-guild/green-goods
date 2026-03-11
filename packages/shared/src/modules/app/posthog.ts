@@ -292,7 +292,7 @@ export function identify(distinctId: string) {
 export function identifyWithProperties(
   distinctId: string,
   properties: {
-    auth_mode?: "wallet" | "passkey" | null;
+    auth_mode?: "wallet" | "passkey" | "embedded" | null;
     app?: "client" | "admin";
     chain_id?: number;
     is_pwa?: boolean;

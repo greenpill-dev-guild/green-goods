@@ -13,8 +13,8 @@ export {
 
 // From appkit.ts
 export {
-  appKit,
-  wagmiConfig,
+  getAppKit,
+  getWagmiConfig,
 } from "./appkit";
 
 // From blockchain.ts

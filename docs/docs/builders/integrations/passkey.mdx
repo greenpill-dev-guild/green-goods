@@ -1,23 +1,57 @@
 ---
-title: Passkey Authentication
-sidebar_label: Passkey
+title: Authentication
+sidebar_label: Authentication
 slug: /builders/integrations/passkey
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-03-10
+feature_status: Live
 ---
 
-# Passkey Authentication
+# Authentication
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+Green Goods supports three authentication methods, each creating an independent on-chain identity.
 
-## Overview
-WebAuthn passkey-based authentication for frictionless onboarding.
+## Auth Modes
 
-## What to Expect
-- Passkey registration and login flow
-- Smart account creation via Pimlico
-- Fallback authentication methods
+| Mode | Mechanism | Gas Sponsorship | Offline Signing | Target User |
+|------|-----------|----------------|----------------|-------------|
+| **Email/Social** | AppKit embedded wallet (Reown) | Yes — EIP-5792 + Pimlico ERC-7677 proxy | No (server-assisted signing) | Web2 users, lowest friction |
+| **Passkey** | WebAuthn + Kernel v0.3.1 smart account | Yes — Pimlico paymaster (bundler) | Yes (client-side P256 signing) | Mobile-first field workers |
+| **Wallet** | External wallet (MetaMask, Rainbow, etc.) | Best-effort via EIP-5792, fallback to user-paid | Yes (local signer) | Crypto-native power users |
+
+## Architecture: TransactionSender
+
+All auth modes use a unified `TransactionSender` abstraction. Mutation hooks call `sender.sendContractCall()` instead of branching on `authMode`:
+
+```
+TransactionSender (interface)
+├── PasskeySender     → smartAccountClient.sendTransaction()
+├── EmbeddedSender    → EIP-5792 sendCalls() with paymasterService
+└── WalletSender      → writeContractAsync (EIP-5792 sponsorship planned)
+```
+
+The `useTransactionSender()` hook returns the correct implementation based on current auth state.
+
+## Address Continuity
+
+Each auth method produces a **different on-chain address**:
+
+- **Passkey** → Kernel smart account derived from P256 public key
+- **Email/Social** → Reown-managed embedded wallet smart account
+- **Wallet** → User's existing EOA address
+
+These addresses are independent. On-chain entities (Hats roles, attestations, Hypercert claims, ENS names, vault shares) are tied to a specific address. Switching auth methods means a new identity on-chain.
+
+## Offline Support
+
+All auth modes support offline work queuing via IndexedDB. The difference is when transactions can be signed:
+
+- **Passkey/Wallet**: Can sign offline (credential stored locally)
+- **Email/Social**: Queue offline, sign when back online (requires Reown server round-trip)
+
+The job queue handles this transparently — submissions are queued regardless of connectivity and processed when both online and authenticated.
+
+## Admin Isolation
+
+The admin dashboard is **wallet-only**. Email and social login are disabled in the admin AppKit configuration. Operators and stewards are expected to have existing wallets.

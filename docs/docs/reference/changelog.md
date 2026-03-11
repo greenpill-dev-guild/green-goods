@@ -290,7 +290,7 @@ This is the first official release of Green Goods — an offline-first platform 
 
 **For Developers:**
 1. Run `bun install` to update dependencies
-2. Copy new `.env.example` entries (Storacha keys)
+2. Regenerate `.env` from `.env.schema` and add any new Storacha keys
 3. Update any URQL imports to use `graphql-client`
 4. Test passkey flows on Android devices
 

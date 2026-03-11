@@ -64,7 +64,7 @@ vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
 
 // Mock appkit config
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 import { useGardenCommunity } from "../../../hooks/conviction/useGardenCommunity";

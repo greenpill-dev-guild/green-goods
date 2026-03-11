@@ -172,7 +172,7 @@ export function createMockSmartAccountClient() {
 // ============================================
 
 export interface MockAuthContextOptions {
-  authMode?: "wallet" | "passkey" | null;
+  authMode?: "wallet" | "passkey" | "embedded" | null;
   isAuthenticated?: boolean;
   isReady?: boolean;
   smartAccountAddress?: string | null;

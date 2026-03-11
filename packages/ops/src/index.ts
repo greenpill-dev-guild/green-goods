@@ -7,7 +7,6 @@ import { spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
-import dotenv from "dotenv";
 import { getAddress, isAddress, verifyMessage } from "viem";
 
 declare module "fastify" {
@@ -18,8 +17,23 @@ declare module "fastify" {
 
 const ROOT_DIR = path.join(__dirname, "../../..");
 const CONTRACTS_DIR = path.join(ROOT_DIR, "packages/contracts");
-
-dotenv.config({ path: path.join(ROOT_DIR, ".env") });
+const CONTRACT_ENV_OVERRIDE_KEYS = [
+  "SENDER_ADDRESS",
+  "COOKIE_JAR_FACTORY_ADDRESS",
+  "GARDENS_REGISTRY_FACTORY",
+  "GARDENS_ALLO_ADDRESS",
+  "GARDENS_COUNCIL_SAFE",
+  "OCTANT_FACTORY_ADDRESS",
+  "OCTANT_WETH_ASSET",
+  "OCTANT_WETH_STRATEGY",
+  "OCTANT_DAI_ASSET",
+  "OCTANT_DAI_STRATEGY",
+  "OCTANT_FALLBACK_ASSET",
+  "OCTANT_FALLBACK_STRATEGY",
+  "OCTANT_STRATEGY_OWNER",
+  "OCTANT_WETH_ATOKEN",
+  "OCTANT_DAI_ATOKEN",
+] as const;
 
 const HOST = process.env.OPS_RUNNER_HOST || "127.0.0.1";
 const PORT = Number(process.env.OPS_RUNNER_PORT || "8787");
@@ -484,12 +498,22 @@ async function runCommand(params: {
   params.logger.log("system", `$ ${prettyCommand}`);
 
   await new Promise<void>((resolve, reject) => {
+    const envForCommand: NodeJS.ProcessEnv = {
+      ...process.env,
+      ...params.extraEnv,
+    };
+
+    // Ops runner should rely on deployment/config defaults for address wiring.
+    // Remove env override knobs before invoking contracts scripts.
+    if (params.cwd === CONTRACTS_DIR) {
+      for (const key of CONTRACT_ENV_OVERRIDE_KEYS) {
+        delete envForCommand[key];
+      }
+    }
+
     const child = spawn(params.command, params.args, {
       cwd: params.cwd,
-      env: {
-        ...process.env,
-        ...params.extraEnv,
-      },
+      env: envForCommand,
       stdio: ["ignore", "pipe", "pipe"],
     });
 

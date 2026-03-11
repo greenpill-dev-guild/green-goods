@@ -95,7 +95,7 @@ console.log(`\n${c.green}🌱 Green Goods Setup${c.reset}\n`);
 
 // Check dependencies
 log.info("Checking dependencies...\n");
-const hasNode = checkVersion("node", 20, "Node.js");
+const hasNode = checkVersion("node", 22, "Node.js");
 let hasBun = checkVersion("bun", 1, "bun");
 const hasGit = checkCommand("git", "Git");
 const hasDocker = checkDocker();
@@ -106,7 +106,7 @@ console.log("");
 if (!hasNode || !hasGit) {
   log.error("Missing required dependencies. Install them and try again.\n");
   console.log(`${c.dim}Required:${c.reset}
-  • Node.js 20+: https://nodejs.org
+  • Node.js 22+: https://nodejs.org
   • Git: https://git-scm.com\n`);
   process.exit(1);
 }
@@ -148,18 +148,29 @@ if (!fs.existsSync("node_modules")) {
 
 // Setup environment
 if (!fs.existsSync(".env")) {
-  if (fs.existsSync(".env.example")) {
-    fs.copyFileSync(".env.example", ".env");
-    log.success("Created .env from template\n");
+  if (fs.existsSync(".env.schema")) {
+    try {
+      const generatedEnv = execSync("APP_ENV=development bunx varlock load --path .env.schema --format env --compact", {
+        encoding: "utf8",
+      });
+      fs.writeFileSync(".env", `${generatedEnv.trim()}\n`);
+      log.success("Created .env from .env.schema defaults\n");
 
-    console.log(`${c.cyan}Configure these services:${c.reset}
-  • Privy (Auth): https://console.privy.io
-  • Pinata (IPFS): https://pinata.cloud
-  • Envio (Indexer): https://envio.dev
+      console.log(`${c.cyan}Recommended secret setup:${c.reset}
+  • 1Password CLI: https://developer.1password.com/docs/cli/get-started/
+  • Set OP_ENVIRONMENT in .env to enable injected secrets
+  • Keep .env for non-secret defaults and local overrides
 
-See .env for all variables.\n`);
+See .env.schema for the full environment contract.\n`);
+    } catch (error) {
+      log.error("Failed to generate .env from .env.schema\n");
+      if (error instanceof Error && error.message) {
+        console.log(`${c.dim}${error.message}${c.reset}\n`);
+      }
+      process.exit(1);
+    }
   } else {
-    log.warning("No .env.example found\n");
+    log.warning("No .env.schema found\n");
   }
 } else {
   log.success("Environment already configured\n");
@@ -168,9 +179,9 @@ See .env for all variables.\n`);
 // Next steps
 console.log(`${c.green}✓ Setup complete!${c.reset}\n`);
 console.log(`${c.cyan}Next steps:${c.reset}
-  1. Edit .env with your API keys
+  1. Set APP_ENV and OP_ENVIRONMENT in .env (recommended), or fill secrets manually
   2. Start services: bun dev
-  3. Run tests: bun test
+  3. Run tests: bun run test
 
 ${c.dim}Individual packages:${c.reset}
   • bun dev:client    - React PWA (port 3001)

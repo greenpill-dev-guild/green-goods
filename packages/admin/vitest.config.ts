@@ -10,6 +10,7 @@ const localReactDomPath = resolve(__dirname, "./node_modules/react-dom");
 export default defineConfig({
   plugins: [react()],
   resolve: {
+    dedupe: ["react", "react-dom", "multiformats", "uint8arrays"],
     alias: [
       { find: "@", replacement: resolve(__dirname, "./src") },
       // Force React to resolve to package-local node_modules to prevent multiple instances
@@ -32,6 +33,18 @@ export default defineConfig({
       {
         find: /^react-dom\/client$/,
         replacement: resolve(localReactDomPath, "client.js"),
+      },
+      // Mock heavy SDKs to avoid loading their full dependency trees in tests
+      {
+        find: "@ethereum-attestation-service/eas-sdk",
+        replacement: resolve(__dirname, "../shared/src/__mocks__/eas-sdk.ts"),
+      },
+      {
+        find: "@walletconnect/utils",
+        replacement: resolve(
+          __dirname,
+          "../shared/src/__mocks__/walletconnect-utils.ts",
+        ),
       },
       // Shared package aliases
       {
@@ -101,6 +114,30 @@ export default defineConfig({
           lines: 70,
           statements: 70,
         },
+      },
+    },
+    pool: "threads",
+    isolate: true,
+    server: {
+      deps: {
+        inline: [
+          "multiformats",
+          "@storacha/client",
+          "@ethereum-attestation-service/eas-sdk",
+          "uint8arrays",
+          "react",
+          "react-dom",
+          "react-intl",
+          "react-router",
+          "react-router-dom",
+          "@testing-library/react",
+          "@tanstack/react-query",
+          "zustand",
+          "viem",
+          "wagmi",
+          "@walletconnect/utils",
+          "@walletconnect/types",
+        ],
       },
     },
     testTimeout: 10000,

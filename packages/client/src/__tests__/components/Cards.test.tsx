@@ -29,6 +29,10 @@ vi.mock("@green-goods/shared", () => ({
   }),
   StatusBadge: ({ status }: { status: string }) =>
     createElement("span", { "data-testid": "status-badge", "data-status": status }, status),
+  ActionBannerFallback: (props: any) =>
+    createElement("div", { "data-testid": "action-banner-fallback" }),
+  GardenBannerFallback: (props: any) =>
+    createElement("div", { "data-testid": "garden-banner-fallback" }),
   logger: {
     info: vi.fn(),
     warn: vi.fn(),

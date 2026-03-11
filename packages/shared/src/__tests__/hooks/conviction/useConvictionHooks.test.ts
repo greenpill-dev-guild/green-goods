@@ -45,7 +45,7 @@ vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
 
 // Mock appkit config
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 // Mock garden-hats utility (useConvictionStrategies RPC fallback)

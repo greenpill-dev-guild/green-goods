@@ -1,5 +1,5 @@
 import { waitForTransactionReceipt } from "@wagmi/core";
-import { wagmiConfig } from "../../../config/appkit";
+import { getWagmiConfig } from "../../../config/appkit";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../../utils/blockchain/polling";
 
 export async function waitForReceiptWithTimeout(
@@ -18,7 +18,7 @@ export async function waitForReceiptWithTimeout(
     }, timeoutMs);
   });
 
-  const receiptPromise = waitForTransactionReceipt(wagmiConfig, { hash, chainId });
+  const receiptPromise = waitForTransactionReceipt(getWagmiConfig(), { hash, chainId });
 
   try {
     await Promise.race([receiptPromise, timeoutPromise]);

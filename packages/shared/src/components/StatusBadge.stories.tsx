@@ -8,7 +8,15 @@ const meta: Meta<typeof StatusBadge> = {
   argTypes: {
     status: {
       control: "select",
-      options: ["approved", "rejected", "pending", "syncing", "failed"],
+      options: [
+        "approved",
+        "rejected",
+        "pending",
+        "syncing",
+        "sync_failed",
+        "uploading",
+        "offline",
+      ],
       description: "Work status to display",
     },
     size: {
@@ -65,7 +73,7 @@ export const Syncing: Story = {
 
 export const Failed: Story = {
   args: {
-    status: "failed",
+    status: "sync_failed",
     showIcon: true,
     size: "md",
   },
@@ -78,7 +86,7 @@ export const AllStatuses: Story = {
       <StatusBadge status="rejected" />
       <StatusBadge status="pending" />
       <StatusBadge status="syncing" />
-      <StatusBadge status="failed" />
+      <StatusBadge status="sync_failed" />
     </div>
   ),
 };
@@ -120,7 +128,7 @@ export const DarkMode: Story = {
       <StatusBadge status="rejected" />
       <StatusBadge status="pending" />
       <StatusBadge status="syncing" />
-      <StatusBadge status="failed" />
+      <StatusBadge status="sync_failed" />
     </div>
   ),
   decorators: [

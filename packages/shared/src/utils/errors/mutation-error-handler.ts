@@ -25,9 +25,9 @@ export interface MutationErrorHandlerConfig {
   /** Analytics tracking function */
   trackError?: (error: string, metadata?: Record<string, unknown>) => void;
   /** Get fallback message based on auth mode */
-  getFallbackMessage?: (authMode: "wallet" | "passkey" | null) => string;
+  getFallbackMessage?: (authMode: "wallet" | "passkey" | "embedded" | null) => string;
   /** Get fallback description based on auth mode */
-  getFallbackDescription?: (authMode: "wallet" | "passkey" | null) => string;
+  getFallbackDescription?: (authMode: "wallet" | "passkey" | "embedded" | null) => string;
   /** Use wallet progress toast style for wallet mode */
   useWalletProgressToast?: boolean;
 }
@@ -37,7 +37,7 @@ export interface MutationErrorHandlerConfig {
  */
 export interface MutationErrorContext {
   /** Current authentication mode */
-  authMode?: "wallet" | "passkey" | null;
+  authMode?: "wallet" | "passkey" | "embedded" | null;
   /** Garden address for tracking */
   gardenAddress?: string | null;
   /** Additional metadata for tracking */

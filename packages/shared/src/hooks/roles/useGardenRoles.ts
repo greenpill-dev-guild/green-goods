@@ -8,7 +8,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import type { Address } from "viem";
-import { wagmiConfig } from "../../config/appkit";
+import { getWagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
@@ -33,7 +33,7 @@ async function fetchGardenRoles(
   const results = await Promise.all(
     entries.map(async ([role, fn]) => {
       try {
-        const hasRole = await readContract(wagmiConfig, {
+        const hasRole = await readContract(getWagmiConfig(), {
           address: gardenAddress,
           abi: GardenAccountABI,
           functionName: fn,

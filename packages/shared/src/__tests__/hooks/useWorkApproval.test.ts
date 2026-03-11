@@ -1,4 +1,6 @@
 /**
+ * @vitest-environment jsdom
+ *
  * useWorkApproval Hook Tests
  *
  * Tests for work approval submission with auth mode branching,
@@ -43,11 +45,41 @@ vi.mock("../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../modules/app/analytics-events", () => ({
+  trackWorkApprovalStarted: vi.fn(),
+  trackWorkApprovalSuccess: vi.fn(),
+  trackWorkApprovalFailed: vi.fn(),
+  trackWorkRejectionSuccess: vi.fn(),
+}));
+
+vi.mock("../../utils/app/haptics", () => ({
+  hapticSuccess: vi.fn(),
+  hapticError: vi.fn(),
+}));
+
+// Mock createMutationErrorHandler to simulate the real error handler calling toastService.error
+const mockErrorHandler = vi.fn();
+vi.mock("../../utils/errors/mutation-error-handler", () => ({
+  createMutationErrorHandler: vi.fn(() => mockErrorHandler),
+}));
+
 vi.mock("../../utils/debug", () => ({
   DEBUG_ENABLED: false,
   debugLog: vi.fn(),
   debugWarn: vi.fn(),
   debugError: vi.fn(),
+}));
+
+// Mock useTransactionSender to avoid wagmi provider dependency
+const mockSender = {
+  sendContractCall: vi.fn().mockResolvedValue({ hash: "0xabc123", sponsored: true }),
+  supportsSponsorship: true,
+  supportsBatching: false,
+  authMode: "passkey" as const,
+};
+
+vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: vi.fn(() => mockSender),
 }));
 
 import { toastService } from "../../components/toast";
@@ -57,7 +89,6 @@ import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
 import { Confidence, VerificationMethod } from "../../types/domain";
 import {
-  createMockSmartAccountClient,
   createMockWork,
   createMockWorkApprovalDraft,
   MOCK_ADDRESSES,
@@ -91,8 +122,7 @@ describe("hooks/work/useWorkApproval", () => {
     // Default: wallet mode
     mockUseUser.mockReturnValue({
       authMode: "wallet",
-      smartAccountClient: null,
-      smartAccountAddress: null,
+      primaryAddress: null,
     });
   });
 
@@ -127,12 +157,9 @@ describe("hooks/work/useWorkApproval", () => {
 
   describe("Passkey mode", () => {
     it("queues approval and processes inline when online", async () => {
-      const smartAccountClient = createMockSmartAccountClient();
-
       mockUseUser.mockReturnValue({
         authMode: "passkey",
-        smartAccountClient,
-        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
       });
 
       (submitApprovalToQueue as any).mockResolvedValue({
@@ -165,7 +192,7 @@ describe("hooks/work/useWorkApproval", () => {
         MOCK_ADDRESSES.smartAccount
       );
       expect(jobQueue.processJob).toHaveBeenCalledWith("job-approval-1", {
-        smartAccountClient,
+        transactionSender: mockSender,
       });
       expect(result_data?.hash).toBe(MOCK_TX_HASH);
     });
@@ -175,8 +202,7 @@ describe("hooks/work/useWorkApproval", () => {
 
       mockUseUser.mockReturnValue({
         authMode: "passkey",
-        smartAccountClient: createMockSmartAccountClient(),
-        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
       });
 
       (submitApprovalToQueue as any).mockResolvedValue({
@@ -299,10 +325,11 @@ describe("hooks/work/useWorkApproval", () => {
         }
       });
 
-      expect(toastService.error).toHaveBeenCalledWith(
+      // Error handling is now delegated to createMutationErrorHandler
+      expect(mockErrorHandler).toHaveBeenCalledWith(
+        error,
         expect.objectContaining({
-          id: "approval-submit",
-          title: "Approval submission failed",
+          authMode: "wallet",
         })
       );
     });
@@ -310,12 +337,9 @@ describe("hooks/work/useWorkApproval", () => {
 
   describe("Confidence and verification data flow", () => {
     it("passes confidence through queue for passkey approval", async () => {
-      const smartAccountClient = createMockSmartAccountClient();
-
       mockUseUser.mockReturnValue({
         authMode: "passkey",
-        smartAccountClient,
-        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
       });
 
       (submitApprovalToQueue as any).mockResolvedValue({
@@ -362,8 +386,7 @@ describe("hooks/work/useWorkApproval", () => {
 
       mockUseUser.mockReturnValue({
         authMode: "passkey",
-        smartAccountClient: createMockSmartAccountClient(),
-        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
       });
 
       (submitApprovalToQueue as any).mockResolvedValue({
@@ -432,12 +455,9 @@ describe("hooks/work/useWorkApproval", () => {
     });
 
     it("includes reviewNotesCID when provided", async () => {
-      const smartAccountClient = createMockSmartAccountClient();
-
       mockUseUser.mockReturnValue({
         authMode: "passkey",
-        smartAccountClient,
-        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
       });
 
       (submitApprovalToQueue as any).mockResolvedValue({

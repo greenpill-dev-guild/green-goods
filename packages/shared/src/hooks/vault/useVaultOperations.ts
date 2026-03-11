@@ -3,7 +3,7 @@ import { readContract } from "@wagmi/core";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
-import { wagmiConfig } from "../../config/appkit";
+import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import type {
   DepositParams,
@@ -117,7 +117,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
 
       const receiver = (params.receiver ?? primaryAddress) as Address;
 
-      const maxDepositResult = await readContract(wagmiConfig, {
+      const maxDepositResult = await readContract(getWagmiConfig(), {
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
         functionName: "maxDeposit",
@@ -128,19 +128,19 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
       if (maxDeposit <= 0n) {
         // Run diagnostic reads to determine the specific reason maxDeposit is 0
         const [shutdownResult, depositLimitResult, totalAssetsResult] = await Promise.all([
-          readContract(wagmiConfig, {
+          readContract(getWagmiConfig(), {
             address: params.vaultAddress,
             abi: OCTANT_VAULT_ABI,
             functionName: "isShutdown",
             args: [],
           }).catch(() => "read_failed" as const),
-          readContract(wagmiConfig, {
+          readContract(getWagmiConfig(), {
             address: params.vaultAddress,
             abi: OCTANT_VAULT_ABI,
             functionName: "depositLimit",
             args: [],
           }).catch(() => "read_failed" as const),
-          readContract(wagmiConfig, {
+          readContract(getWagmiConfig(), {
             address: params.vaultAddress,
             abi: OCTANT_VAULT_ABI,
             functionName: "totalAssets",
@@ -186,7 +186,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
 
       // Early slippage check: reject if caller-provided minSharesOut already fails
       if (params.minSharesOut !== undefined) {
-        const earlyPreview = await readContract(wagmiConfig, {
+        const earlyPreview = await readContract(getWagmiConfig(), {
           address: params.vaultAddress,
           abi: OCTANT_VAULT_ABI,
           functionName: "previewDeposit",
@@ -202,7 +202,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
 
       let allowance: bigint;
       try {
-        const allowanceResult = await readContract(wagmiConfig, {
+        const allowanceResult = await readContract(getWagmiConfig(), {
           address: params.assetAddress,
           abi: ERC20_ALLOWANCE_ABI,
           functionName: "allowance",
@@ -237,7 +237,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
             args: [params.vaultAddress, params.amount],
           });
 
-          const refreshedAllowanceResult = await readContract(wagmiConfig, {
+          const refreshedAllowanceResult = await readContract(getWagmiConfig(), {
             address: params.assetAddress,
             abi: ERC20_ALLOWANCE_ABI,
             functionName: "allowance",
@@ -259,7 +259,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
       }
 
       // Post-approval slippage check: re-read preview with fresh exchange rate
-      const freshPreview = await readContract(wagmiConfig, {
+      const freshPreview = await readContract(getWagmiConfig(), {
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
         functionName: "previewDeposit",
@@ -445,7 +445,7 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
       const owner = (params.owner ?? primaryAddress) as Address;
 
       // Pre-check: verify amount doesn't exceed withdrawable limit
-      const maxWithdrawResult = await readContract(wagmiConfig, {
+      const maxWithdrawResult = await readContract(getWagmiConfig(), {
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
         functionName: "maxWithdraw",

@@ -2,7 +2,7 @@ import type { Address } from "viem";
 import { getWalletClient } from "@wagmi/core";
 import type { WorkDraft } from "../../../types/domain";
 import type { EASWork } from "../../../types/eas-responses";
-import { wagmiConfig } from "../../../config/appkit";
+import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
 import { queryClient } from "../../../config/react-query";
 import { queryKeys } from "../../../hooks/query-keys";
@@ -40,7 +40,7 @@ export async function submitWorkDirectly(
   });
   onProgress?.("validating", "Checking garden membership...");
 
-  const walletClient = await getWalletClient(wagmiConfig, { chainId });
+  const walletClient = await getWalletClient(getWagmiConfig(), { chainId });
   if (!walletClient) {
     const message = "[WalletSubmission] Wallet client not available";
     if (DEBUG_ENABLED) {

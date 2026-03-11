@@ -1,4 +1,5 @@
 import type { SupportedChainId } from "./chains";
+import { ENV } from "varlock/env";
 
 /**
  * Gardens V2 subgraph endpoints.
@@ -44,10 +45,7 @@ const GATEWAY_BASE = "https://gateway.thegraph.com/api";
  * the free Studio endpoint.
  */
 export function getGardensSubgraphUrl(chainId: number): string {
-  const apiKey =
-    typeof import.meta !== "undefined"
-      ? (import.meta as any).env?.VITE_GARDENS_SUBGRAPH_KEY
-      : undefined;
+  const apiKey = ENV.VITE_GARDENS_SUBGRAPH_KEY;
 
   const gatewayId = GATEWAY_SUBGRAPH_IDS[chainId as SupportedChainId];
 

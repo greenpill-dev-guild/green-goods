@@ -9,9 +9,10 @@
  * Authentication mode type
  * - 'wallet': Traditional EOA wallet authentication (admin package)
  * - 'passkey': WebAuthn passkey with smart account (client package)
+ * - 'embedded': AppKit embedded wallet via email/social login (client package)
  * - null: Not authenticated
  */
-export type AuthMode = "wallet" | "passkey" | null;
+export type AuthMode = "wallet" | "passkey" | "embedded" | null;
 
 /**
  * Base authentication context properties

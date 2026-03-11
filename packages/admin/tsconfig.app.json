@@ -57,7 +57,7 @@
       "@green-goods/contracts/abis/*": ["../contracts/abis/*"]
     }
   },
-  "include": ["src/**/*", "src/types/**/*.d.ts", "../shared/src/types/**/*.d.ts"],
+  "include": ["src/**/*", "src/types/**/*.d.ts", "../shared/src/types/**/*.d.ts", "../../env.d.ts"],
   "exclude": [
     "src/__tests__",
     "src/**/__tests__/**",

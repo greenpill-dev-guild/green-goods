@@ -39,7 +39,7 @@ vi.mock("../../../utils/errors/contract-errors", () => ({
 }));
 
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 vi.mock("../../../config/blockchain", () => ({

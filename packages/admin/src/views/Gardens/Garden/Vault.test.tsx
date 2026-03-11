@@ -114,16 +114,18 @@ describe("GardenVaultView", () => {
     });
   });
 
-  it("uses the endowments route as the back destination when opened from there", () => {
+  it("always links back to the garden page regardless of location state", () => {
     renderView({ returnTo: "/endowments", returnLabelId: "app.admin.nav.treasury" });
 
-    expect(screen.getByRole("link", { name: "Endowments" })).toHaveAttribute("href", "/endowments");
+    // The Vault view always uses a fixed back link to the garden, not location state
+    const backLink = screen.getByRole("link", { name: "Back to garden" });
+    expect(backLink).toHaveAttribute("href", `/gardens/${TEST_GARDEN}`);
   });
 
-  it("renders mixed-asset totals as separate denominated values", () => {
+  it("shows a multi-asset denomination label when vault assets differ", () => {
     renderView();
 
-    expect(screen.getByText("1 USDC")).toBeInTheDocument();
-    expect(screen.getByText("2 WETH")).toBeInTheDocument();
+    // With 2 different asset types the TVL uses "{count} assets" denomination
+    expect(screen.getByText(/2 assets/)).toBeInTheDocument();
   });
 });

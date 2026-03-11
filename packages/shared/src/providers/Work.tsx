@@ -166,7 +166,7 @@ export const useWork = () => {
 // ============================================================================
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { smartAccountClient, authMode, primaryAddress } = useUser();
+  const { authMode, primaryAddress } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
 
   // Base lists via React Query
@@ -222,7 +222,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   // Work mutation with proper auth branching
   const workMutation = useWorkMutation({
     authMode,
-    smartAccountClient,
     gardenAddress,
     actionUID,
     actions: actionsData,

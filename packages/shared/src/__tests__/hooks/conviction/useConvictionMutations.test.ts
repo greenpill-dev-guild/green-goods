@@ -77,7 +77,7 @@ vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
 }));
 
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 vi.mock("../../../hooks/auth/useUser", () => ({

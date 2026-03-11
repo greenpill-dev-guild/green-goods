@@ -14,6 +14,6 @@
     "resolveJsonModule": true,
     "types": ["node", "bun-types"]
   },
-  "include": ["src/**/*", "../shared/src/types/**/*.d.ts"],
+  "include": ["src/**/*", "../shared/src/types/**/*.d.ts", "../../env.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

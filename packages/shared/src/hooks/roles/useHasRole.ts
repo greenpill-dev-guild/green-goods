@@ -5,7 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import type { Address } from "viem";
-import { wagmiConfig } from "../../config/appkit";
+import { getWagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
@@ -26,7 +26,7 @@ async function fetchHasRole(
 ): Promise<boolean> {
   const functionName = GARDEN_ROLE_FUNCTIONS[role];
   try {
-    const result = await readContract(wagmiConfig, {
+    const result = await readContract(getWagmiConfig(), {
       address: gardenAddress,
       abi: GardenAccountABI,
       functionName,

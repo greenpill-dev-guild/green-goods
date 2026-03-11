@@ -27,7 +27,7 @@ const mockSmartAccountClient = {
   sendTransaction: mockSendTransaction,
 };
 
-let mockAuthMode: "wallet" | "passkey" | null = "passkey";
+let mockAuthMode: "wallet" | "passkey" | "embedded" | null = "passkey";
 let mockSmartAccountRef: typeof mockSmartAccountClient | null = mockSmartAccountClient;
 
 // Mock useUser
@@ -53,7 +53,7 @@ vi.mock("@wagmi/core", () => ({
 
 // Mock appkit config (needed by wagmi internals)
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 import { useContractTxSender } from "../../../hooks/blockchain/useContractTxSender";

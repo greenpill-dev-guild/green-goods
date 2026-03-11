@@ -13,6 +13,7 @@
 
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
+import { ENV } from "varlock/env";
 import { logger } from "../modules/app/logger";
 import { getResolvedTheme } from "../utils/styles/theme";
 import { DEFAULT_CHAIN_ID } from "./blockchain";
@@ -55,7 +56,7 @@ const defaultMetadata: AppKitMetadata = {
   icons: ["https://www.greengoods.app/icon.png"],
 };
 
-const defaultProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
+const defaultProjectId = ENV.VITE_WALLETCONNECT_PROJECT_ID;
 
 let appKitInstance: ReturnType<typeof createAppKit> | null = null;
 let wagmiAdapterInstance: WagmiAdapter | null = null;
@@ -115,8 +116,9 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     defaultNetwork: getChain(options?.defaultChainId ?? DEFAULT_CHAIN_ID) as any,
     features: {
       analytics: false, // Disable AppKit analytics (we use PostHog)
-      email: false, // Disable email login (we use passkeys instead)
-      socials: false, // Disable social logins (Google, Apple, Discord, etc.)
+      email: true, // Enable email login (AppKit embedded wallet)
+      socials: ["google", "apple", "discord", "farcaster", "x", "github"],
+      connectMethodsOrder: ["email", "social", "wallet"],
     },
     // Only show these wallets in the selection modal
     includeWalletIds: [
@@ -148,5 +150,20 @@ export function updateAppKitTheme(isDark: boolean): void {
   }
 }
 
-// Eagerly initialize using defaults so consumers can import directly.
-export const { appKit, wagmiConfig } = ensureAppKit();
+// Lazy getters — defer initialization until first use so importing
+// this module in tests doesn't trigger network calls / side effects.
+let _cachedInit: ReturnType<typeof ensureAppKit> | null = null;
+function getAppKitSingleton() {
+  if (!_cachedInit) _cachedInit = ensureAppKit();
+  return _cachedInit;
+}
+
+/** Get the singleton AppKit instance (lazily initialized). */
+export function getAppKit() {
+  return getAppKitSingleton().appKit;
+}
+
+/** Get the singleton Wagmi config (lazily initialized). */
+export function getWagmiConfig() {
+  return getAppKitSingleton().wagmiConfig;
+}

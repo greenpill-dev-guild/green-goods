@@ -3,7 +3,7 @@ import { readContract } from "@wagmi/core";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
-import { wagmiConfig } from "../../config/appkit";
+import { getWagmiConfig } from "../../config/appkit";
 import { logger } from "../../modules/app/logger";
 import type { CookieJarDepositParams } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
@@ -81,7 +81,7 @@ export function useCookieJarDeposit(
 
       // Pre-check: verify user has sufficient token balance
       try {
-        const balanceResult = await readContract(wagmiConfig, {
+        const balanceResult = await readContract(getWagmiConfig(), {
           address: params.assetAddress,
           abi: ERC20_BALANCE_ABI,
           functionName: "balanceOf",
@@ -101,7 +101,7 @@ export function useCookieJarDeposit(
       // Check ERC20 allowance and approve if needed
       let allowance: bigint;
       try {
-        const allowanceResult = await readContract(wagmiConfig, {
+        const allowanceResult = await readContract(getWagmiConfig(), {
           address: params.assetAddress,
           abi: ERC20_ALLOWANCE_ABI,
           functionName: "allowance",

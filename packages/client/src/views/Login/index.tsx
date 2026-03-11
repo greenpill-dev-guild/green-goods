@@ -104,6 +104,7 @@ export function Login() {
     loginWithPasskey,
     createAccount,
     loginWithWallet,
+    loginWithEmbedded,
     isAuthenticating,
     isAuthenticated,
     isReady,
@@ -125,6 +126,8 @@ export function Login() {
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [username, setUsername] = useState("");
+  // Progressive disclosure: toggle between email-primary and passkey-create modes (new users only)
+  const [showPasskeyCreate, setShowPasskeyCreate] = useState(false);
 
   // Handle browser switch action (for wrong browser/in-app browser scenarios)
   const handleBrowserSwitch = useCallback(async () => {
@@ -256,25 +259,20 @@ export function Login() {
     loginWithWallet?.();
   };
 
+  // Login with email/social (embedded wallet via AppKit modal)
+  const handleEmbeddedLogin = () => {
+    setLoginError(null);
+    loginWithEmbedded?.();
+  };
+
   // Render logic
   if (isNestedRoute) return <Outlet />;
   if (!isReady) return <LoadingSplash loadingState="welcome" />;
   if (isAuthenticated) return <Navigate to={redirectTo} replace />;
   if (loadingState) return <LoadingSplash loadingState={loadingState} message={loadingMessage} />;
 
-  // Determine primary action based on whether user has existing credential
-  const primaryAction = hasExistingAccount ? handlePasskeyLogin : handleCreateAccount;
-  const buttonLabel = hasExistingAccount
-    ? intl.formatMessage({
-        id: "app.login.button.loginPasskey",
-        defaultMessage: "Login with Passkey",
-      })
-    : intl.formatMessage({
-        id: "app.login.button.createAccount",
-        defaultMessage: "Create Account",
-      });
-
   // Build tertiary action for browser guidance when in wrong browser
+  // Browser guidance takes priority over wallet tertiary when present
   const browserGuidanceTertiaryAction =
     isMobile && (guidance.scenario === "wrong-browser" || guidance.scenario === "in-app-browser")
       ? {
@@ -283,47 +281,141 @@ export function Login() {
         }
       : undefined;
 
+  // Wallet tertiary action (used when no browser guidance is needed)
+  const walletTertiaryAction = {
+    label: intl.formatMessage({
+      id: "app.login.button.connectWallet",
+      defaultMessage: "Connect Wallet",
+    }),
+    onClick: handleWalletLogin,
+  };
+
+  // Address continuity notice shown across all login modes
+  const addressContinuityNotice = intl.formatMessage({
+    id: "app.login.notice.addressContinuity",
+    defaultMessage: "Each sign-in method creates an independent account",
+  });
+
+  // ─── Progressive disclosure: action hierarchy depends on user state ─────────
+  //
+  // Returning user (has stored passkey):
+  //   Primary: Login with Passkey (muscle memory)
+  //   Secondary: Continue with Email
+  //   Tertiary: Connect Wallet
+  //
+  // New user (no credential), default mode:
+  //   Primary: Continue with Email (lowest friction)
+  //   Secondary: Create Passkey Account (toggles to passkey create mode)
+  //   Tertiary: Connect Wallet
+  //
+  // New user, passkey create mode (showPasskeyCreate=true):
+  //   Primary: Create Account (with username input)
+  //   Secondary: Continue with Email
+  //   Tertiary: Connect Wallet
+
+  const helmet = (
+    <Helmet>
+      <title>Login | Green Goods</title>
+      <meta
+        name="description"
+        content="Sign in to Green Goods to start bringing your community impact onchain."
+      />
+    </Helmet>
+  );
+
+  // ─── Returning user: passkey primary ────────────────────────────────────────
+  if (hasExistingAccount) {
+    return (
+      <>
+        {helmet}
+        <Splash
+          login={handlePasskeyLogin}
+          isLoggingIn={isAuthenticating}
+          buttonLabel={intl.formatMessage({
+            id: "app.login.button.loginPasskey",
+            defaultMessage: "Login with Passkey",
+          })}
+          errorMessage={!isAuthenticating ? loginError : null}
+          secondaryAction={{
+            label: intl.formatMessage({
+              id: "app.login.button.continueEmail",
+              defaultMessage: "Continue with Email",
+            }),
+            onSelect: handleEmbeddedLogin,
+          }}
+          tertiaryAction={browserGuidanceTertiaryAction ?? walletTertiaryAction}
+          notice={addressContinuityNotice}
+        />
+      </>
+    );
+  }
+
+  // ─── New user, passkey create mode ──────────────────────────────────────────
+  if (showPasskeyCreate) {
+    return (
+      <>
+        {helmet}
+        <Splash
+          login={handleCreateAccount}
+          isLoggingIn={isAuthenticating}
+          buttonLabel={intl.formatMessage({
+            id: "app.login.button.createAccount",
+            defaultMessage: "Create Account",
+          })}
+          errorMessage={!isAuthenticating ? loginError : null}
+          secondaryAction={{
+            label: intl.formatMessage({
+              id: "app.login.button.continueEmail",
+              defaultMessage: "Continue with Email",
+            }),
+            onSelect: () => {
+              setShowPasskeyCreate(false);
+              handleEmbeddedLogin();
+            },
+          }}
+          tertiaryAction={browserGuidanceTertiaryAction ?? walletTertiaryAction}
+          usernameInput={{
+            value: username,
+            onChange: (e) => setUsername(e.target.value),
+            placeholder: intl.formatMessage({
+              id: "app.login.username.placeholder",
+              defaultMessage: "Enter a display name",
+            }),
+            hint: intl.formatMessage({
+              id: "app.login.username.hint",
+              defaultMessage: "Required - at least 3 characters",
+            }),
+            minLength: 3,
+            onCancel: () => setShowPasskeyCreate(false),
+          }}
+          isLoginDisabled={!isUsernameValid}
+          notice={addressContinuityNotice}
+        />
+      </>
+    );
+  }
+
+  // ─── New user, default mode: email/social primary ───────────────────────────
   return (
     <>
-      <Helmet>
-        <title>Login | Green Goods</title>
-        <meta
-          name="description"
-          content="Sign in to Green Goods to start bringing your community impact onchain."
-        />
-      </Helmet>
+      {helmet}
       <Splash
-        login={primaryAction}
+        login={handleEmbeddedLogin}
         isLoggingIn={isAuthenticating}
-        buttonLabel={buttonLabel}
+        buttonLabel={intl.formatMessage({
+          id: "app.login.button.continueEmail",
+          defaultMessage: "Continue with Email",
+        })}
         errorMessage={!isAuthenticating ? loginError : null}
         secondaryAction={{
           label: intl.formatMessage({
-            id: "app.login.button.loginWallet",
-            defaultMessage: "Login with Wallet",
+            id: "app.login.button.createPasskeyAccount",
+            defaultMessage: "Create Passkey Account",
           }),
-          onSelect: handleWalletLogin,
+          onSelect: () => setShowPasskeyCreate(true),
         }}
-        tertiaryAction={browserGuidanceTertiaryAction}
-        // Show username input only for new account creation (required, min 3 chars)
-        usernameInput={
-          !hasExistingAccount
-            ? {
-                value: username,
-                onChange: (e) => setUsername(e.target.value),
-                placeholder: intl.formatMessage({
-                  id: "app.login.username.placeholder",
-                  defaultMessage: "Enter a display name",
-                }),
-                hint: intl.formatMessage({
-                  id: "app.login.username.hint",
-                  defaultMessage: "Required - at least 3 characters",
-                }),
-                minLength: 3,
-              }
-            : undefined
-        }
-        isLoginDisabled={!hasExistingAccount && !isUsernameValid}
+        tertiaryAction={browserGuidanceTertiaryAction ?? walletTertiaryAction}
+        notice={addressContinuityNotice}
       />
     </>
   );

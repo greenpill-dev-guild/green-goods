@@ -4,7 +4,6 @@ generated/node_modules
 .git
 *.log
 .env*
-!.env.example
 .DS_Store
 
 # Envio generated files that should be rebuilt in container

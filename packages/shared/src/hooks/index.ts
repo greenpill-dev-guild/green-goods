@@ -119,6 +119,7 @@ export { useEnsAvatar } from "./blockchain/useEnsAvatar";
 export { useEnsName } from "./blockchain/useEnsName";
 export type { UseEnsQueryOptions, UseEnsQueryResult } from "./blockchain/useEnsQuery";
 export { useEnsQuery } from "./blockchain/useEnsQuery";
+export { useTransactionSender } from "./blockchain/useTransactionSender";
 // Suspense-enabled hooks (for use with SuspenseBoundary)
 export {
   useSuspenseActions,

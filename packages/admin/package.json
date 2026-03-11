@@ -5,16 +5,16 @@
   "type": "module",
   "scripts": {
     "predev": "lsof -t -iTCP:3002 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true",
-    "dev": "vite",
-    "test": "vitest run",
-    "test:watch": "vitest --standalone",
-    "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui",
+    "dev": "APP_ENV=development bun --bun vite",
+    "test": "APP_ENV=test vitest run",
+    "test:watch": "APP_ENV=test vitest --standalone",
+    "test:coverage": "APP_ENV=test vitest run --coverage",
+    "test:ui": "APP_ENV=test vitest --ui",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "oxlint src",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "build": "APP_ENV=production tsc --noEmit && bun --bun vite build",
+    "preview": "APP_ENV=production bun --bun vite preview"
   },
   "dependencies": {
     "@ethereum-attestation-service/eas-sdk": "2.7.0",
@@ -48,11 +48,12 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "@varlock/vite-integration": "^1.0.0",
     "@vitejs/plugin-react": "^5.1.2",
     "tailwindcss": "^4.1.11",
     "babel-plugin-react-compiler": "^1.0.0",
-    "dotenv-expand": "11.0.6",
     "typescript": "^5.9.3",
+    "varlock": "^0.3.0",
     "vite": "^7.3.0",
     "vite-plugin-mkcert": "^1.17.8"
   }

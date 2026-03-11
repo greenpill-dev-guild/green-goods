@@ -130,10 +130,10 @@ vi.mock("../../config/passkeyServer", () => ({
 // Mocked session functions
 let mockStoredUsername: string | null = null;
 let mockStoredCredential: unknown = null;
-let mockAuthMode: "passkey" | "wallet" | null = null;
+let mockAuthMode: "passkey" | "wallet" | "embedded" | null = null;
 vi.mock("../../modules/auth/session", () => ({
   getAuthMode: vi.fn(() => mockAuthMode),
-  setAuthMode: vi.fn((mode: "passkey" | "wallet") => {
+  setAuthMode: vi.fn((mode: "passkey" | "wallet" | "embedded") => {
     mockAuthMode = mode;
   }),
   clearAuthMode: vi.fn(() => {

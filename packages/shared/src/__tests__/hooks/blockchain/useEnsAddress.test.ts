@@ -28,7 +28,7 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("../../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 import { useEnsAddress } from "../../../hooks/blockchain/useEnsAddress";

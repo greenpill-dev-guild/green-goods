@@ -35,12 +35,16 @@ Green Goods is built for the reality of field work — **intermittent connectivi
 
 Your data stays on your device until you choose to submit. Green Goods uses **passkey authentication** tied to your device's secure enclave — your biometric data never leaves your phone. Behind the scenes, a **smart account** is created for you using account abstraction, giving you a secure on-chain identity without exposing private keys.
 
-### Simple Login With Passkey
+### Multiple Ways to Sign In
 
-Green Goods eliminates the biggest barrier to web3 adoption — wallet setup:
+Green Goods eliminates the biggest barrier to web3 adoption — wallet setup. Choose the method that works best for you:
 
-- **Passkey authentication** — Sign in with your fingerprint, face, or device PIN. No seed phrases, no browser extensions, no MetaMask popups.
-- **Automatic smart account** — A [smart account](/glossary#smart-account-account-abstraction) is created for you using account abstraction. This is your on-chain identity.
+- **Email or social login** — Sign in with your email, Google, Apple, Discord, or other social accounts. No crypto knowledge required. A managed wallet is created for you behind the scenes.
+- **Passkey authentication** — Sign in with your fingerprint, face, or device PIN. No seed phrases, no browser extensions. A [smart account](/glossary#smart-account-account-abstraction) is created using account abstraction.
+- **Wallet connection** — Experienced users can connect an existing wallet (MetaMask, Rainbow, etc.) for direct on-chain interaction.
+
+All methods provide:
+- **Automatic smart account** — A secure on-chain identity is created for you, regardless of how you sign in.
 - **Gasless transactions** — Work submissions are bundled and sponsored, so you never need to buy tokens or pay gas fees.
 - **Under a minute** — From first visit to first submission, the onboarding flow takes less than 60 seconds.
 
@@ -48,18 +52,20 @@ Green Goods eliminates the biggest barrier to web3 adoption — wallet setup:
 sequenceDiagram
     actor User as Field Worker
     participant App as Green Goods PWA
-    participant PK as Passkey (Device)
+    participant Auth as Email / Passkey / Wallet
     participant SA as Smart Account
 
-    User->>App: Open app / tap "Sign In"
-    App->>PK: Request biometric auth
-    PK-->>App: Signed challenge
+    User->>App: Open app / choose sign-in method
+    App->>Auth: Authenticate (email OTP, biometric, or wallet)
+    Auth-->>App: Identity verified
     App->>SA: Create or recover smart account
     SA-->>App: Account ready
     App-->>User: Logged in — ready to submit work
 ```
 
-Experienced users can also connect an existing wallet (MetaMask, Rainbow, etc.) for direct on-chain interaction.
+:::note Address Continuity
+Each sign-in method creates an independent on-chain account with its own address. Your contribution history, roles, and reputation are tied to the address from your chosen sign-in method. Pick one method and stick with it — switching methods means starting with a new identity.
+:::
 
 ### Works In All Conditions
 

@@ -44,43 +44,15 @@ contracts:
     events:
       - event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
       - event: Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
-  - name: GardensModule
-    handler: src/EventHandlers.ts
-    events:
-      - event: CommunityCreated(address indexed garden, address indexed community, uint8 weightScheme, address goodsToken)
-      - event: SignalPoolCreated(address indexed garden, address indexed pool, uint8 poolType, address indexed community)
-      - event: GardenPowerRegistered(address indexed garden, uint8 weightScheme, uint256 sourceCount)
-      - event: GoodsAirdropped(address indexed garden, uint256 totalAmount)
-      - event: GardenTreasurySeeded(address indexed garden, uint256 amount)
   - name: YieldSplitter
     handler: src/EventHandlers.ts
     events:
       - event: YieldSplit(address indexed garden, address indexed asset, uint256 cookieJarAmount, uint256 fractionsAmount, uint256 juiceboxAmount, uint256 totalYield)
-  - name: CookieJarModule
-    handler: src/EventHandlers.ts
-    events:
-      - event: JarCreated(address indexed garden, address indexed asset, address jar)
   - name: HypercertMinter
     handler: src/EventHandlers.ts
     events:
       - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
       - event: ClaimStored(uint256 indexed claimID, string uri, uint256 totalUnits)
-  - name: HypercertMarketplaceAdapter
-    handler: src/EventHandlers.ts
-    events:
-      - event: OrderRegistered(uint256 indexed orderId, uint256 indexed hypercertId, address indexed seller, address currency, uint256 pricePerUnit, uint256 endTime)
-      - event: OrderDeactivated(uint256 indexed orderId, address indexed deactivatedBy)
-      - event: FractionPurchased(uint256 indexed orderId, uint256 indexed hypercertId, address indexed recipient, uint256 units, uint256 payment)
-  - name: UnifiedPowerRegistry
-    handler: src/EventHandlers.ts
-    events:
-      - event: ConfigUpdated(string indexed key, address indexed oldValue, address indexed newValue)
-      - event: GardenDeregistered(address indexed garden, uint256 poolsCleared)
-  - name: GreenGoodsENS
-    handler: src/EventHandlers.ts
-    events:
-      - event: NameRegistrationSent(bytes32 indexed messageId, string slug, address indexed owner, uint8 nameType, uint256 ccipFee)
-      - event: NameReleaseSent(bytes32 indexed messageId, string slug, address indexed previousOwner)
 networks:
   - id: 42161
     start_block: 433713812
@@ -97,20 +69,10 @@ networks:
         address: "0x70b25a2bAAA4f2Ae477bab315a87A03cfe89CEe9"
       - name: OctantVault
         address: "0x0000000000000000000000000000000000000000"
-      - name: GardensModule
-        address: "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183"
       - name: YieldSplitter
         address: "0x90896C86108528abB600Da3C48a1aa054958bDeb"
-      - name: CookieJarModule
-        address: "0x726bfbd0B7449C8f4aBfbcc2FBC5a89eB18fF157"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
-      - name: HypercertMarketplaceAdapter
-        address: "0xE396137ef12c30075fd0B8509C6e389750f36159"
-      - name: UnifiedPowerRegistry
-        address: "0xD36004307c136FFed0Fe425f699FB1569BFabCBa"
-      - name: GreenGoodsENS
-        address: "0x4fAD8Db8e04005884D484eC730aDae10d7A2e491"
   - id: 11155111
     start_block: 10291992
     contracts:
@@ -126,17 +88,7 @@ networks:
         address: "0xF70970DD1CC26d073A647DAfd1761D9E6d66c187"
       - name: OctantVault
         address: "0x0000000000000000000000000000000000000000"
-      - name: GardensModule
-        address: "0xa3938322bCc723Ff89fA8b34873ac046A7B8C837"
       - name: YieldSplitter
         address: "0x7b97F5Fce2C28483d76144DA63dDA2Eb51DB07F1"
-      - name: CookieJarModule
-        address: "0x18512876A845c626f67f88C757357C61aBd5D877"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
-      - name: HypercertMarketplaceAdapter
-        address: "0xB3b2e8AEA8bEDec3c5d4d7D9f74679a5BD1F271F"
-      - name: UnifiedPowerRegistry
-        address: "0x99BB8bAA32c9FdDD152d9A7971cd8fBc87E40B11"
-      - name: GreenGoodsENS
-        address: "0xa33856C756B07A8Ac5472aE25d9fdaCF126C2636"

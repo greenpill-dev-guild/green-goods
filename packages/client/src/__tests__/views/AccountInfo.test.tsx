@@ -8,7 +8,7 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-let mockAuthMode: "passkey" | "wallet" | null = "passkey";
+let mockAuthMode: "passkey" | "wallet" | "embedded" | null = "passkey";
 const mockSignOut = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({

@@ -81,7 +81,8 @@ module.exports = {
     {
       name: "agent",
       script: "sh",
-      args: '-c "cd packages/agent && bun run dev"',
+      args:
+        '-c "cd packages/agent && if [ -z ${TELEGRAM_BOT_TOKEN:-} ]; then echo Agent disabled because TELEGRAM_BOT_TOKEN is missing; while true; do sleep 3600; done; else bun run dev; fi"',
       cwd: ".",
       env: {
         NODE_ENV: "development",
@@ -114,11 +115,10 @@ module.exports = {
     {
       name: "storybook",
       script: "sh",
-      args: `-c "${killPort(PORTS.storybook)} && cd packages/shared && bun run storybook -- --ci"`,
+      args: `-c "${killPort(PORTS.storybook)} && cd packages/shared && bun run storybook"`,
       cwd: ".",
       env: {
         NODE_ENV: "development",
-        CI: "true",
       },
       merge_logs: true,
       autorestart: true,

@@ -332,6 +332,15 @@
       "default_mode": "passive",
       "triggers": ["monitoring", "health check", "observability"],
       "dependencies": []
+    },
+    {
+      "name": "meeting-notes",
+      "status": "active",
+      "deprecated_replacement": null,
+      "listed_in_index": true,
+      "default_mode": "interactive",
+      "triggers": ["meeting notes", "transcript", "extract issues", "product sync"],
+      "dependencies": []
     }
   ],
   "aliases": {

@@ -85,7 +85,7 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # Depl
 
 ## Environment
 
-Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets target chain at build time. See `.env.example`.
+Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets target chain at build time. `.env.schema` is the source of truth.
 
 ## Scope Discipline
 - When instructions say "output in chat" or "just tell me", do NOT edit files

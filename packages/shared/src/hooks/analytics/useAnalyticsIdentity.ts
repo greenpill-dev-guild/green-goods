@@ -48,7 +48,7 @@ export function useAnalyticsIdentity(options: UseAnalyticsIdentityOptions) {
   const prevStateRef = useRef<{
     isAuthenticated: boolean;
     primaryAddress: string | null;
-    authMode: "wallet" | "passkey" | null;
+    authMode: "wallet" | "passkey" | "embedded" | null;
   }>({
     isAuthenticated: false,
     primaryAddress: null,

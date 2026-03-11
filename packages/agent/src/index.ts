@@ -8,12 +8,6 @@
  * Future platforms: Discord, WhatsApp, SMS
  */
 
-import dotenv from "dotenv";
-import path from "path";
-
-// Load environment from root .env
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
-
 import { createServer, startServer } from "./api/server";
 import { getConfig } from "./config";
 import { handleMessage, setHandlerContext } from "./handlers";

@@ -8,7 +8,6 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SmartAccountClient } from "permissionless";
 import { useCallback } from "react";
 import {
   showWalletProgress,
@@ -40,13 +39,13 @@ import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
 import { useTimeout } from "../utils/useTimeout";
 
 interface UseWorkMutationOptions {
-  authMode: "wallet" | "passkey" | null;
-  smartAccountClient: SmartAccountClient | null;
+  authMode: "wallet" | "passkey" | "embedded" | null;
   gardenAddress: Address | null;
   actionUID: number | null;
   actions: Action[];
@@ -54,7 +53,21 @@ interface UseWorkMutationOptions {
   userAddress: Address | null;
 }
 
+/**
+ * Detect genuine network/connectivity errors that warrant queue fallback.
+ *
+ * IMPORTANT: Upload-phase errors (IPFS failures) must NOT be classified as
+ * network errors. They contain words like "gateway" and "timeout" from IPFS
+ * infrastructure, but silently queuing them hides the failure from the user
+ * and skips the wallet signing step entirely. Only transaction-phase and
+ * true connectivity errors should trigger the offline queue fallback.
+ */
 function isNetworkError(error: unknown): boolean {
+  // Upload-phase errors should surface to the user, not silently queue
+  if (error instanceof WorkSubmissionError && error.phase === "upload") {
+    return false;
+  }
+
   const message =
     error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
   return (
@@ -80,7 +93,8 @@ function isNetworkError(error: unknown): boolean {
  * @returns Mutation instance
  */
 export function useWorkMutation(options: UseWorkMutationOptions) {
-  const { authMode, smartAccountClient, gardenAddress, actionUID, actions, userAddress } = options;
+  const { authMode, gardenAddress, actionUID, actions, userAddress } = options;
+  const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
@@ -177,6 +191,42 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           );
         } catch (error) {
           if (isNetworkError(error)) {
+            // Genuine network error during transaction phase — fall back to queue.
+            // Insert an optimistic entry so the work is visible in the UI
+            // (onMutate skips this for online wallet users, expecting submitWorkDirectly
+            // to handle it after the transaction confirms).
+            const actionTitle = getActionTitle(actions, actionUID);
+            const optimisticWork: Work = {
+              id: `0xoffline_optimistic_${Date.now()}`,
+              title: actionTitle || "",
+              actionUID,
+              gardenAddress,
+              gardenerAddress: userAddress ?? "",
+              feedback: draft.feedback || "",
+              metadata: JSON.stringify({
+                details: draft.details ?? {},
+                timeSpentMinutes: draft.timeSpentMinutes,
+              }),
+              media: [],
+              createdAt: Math.floor(Date.now() / 1000),
+              status: "pending",
+            };
+            queryClient.setQueryData(
+              queryKeys.works.merged(gardenAddress, chainId),
+              (old: Work[] = []) => [optimisticWork, ...old]
+            );
+
+            if (DEBUG_ENABLED) {
+              debugLog(
+                "[WorkMutation] Network error during wallet submission, falling back to queue",
+                {
+                  error: error instanceof Error ? error.message : String(error),
+                  gardenAddress,
+                  actionUID,
+                }
+              );
+            }
+
             const { txHash: offlineTxHash } = await submitWorkToQueue(
               { ...draft } as WorkDraft,
               gardenAddress,
@@ -237,8 +287,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         });
       }
 
-      if (navigator.onLine && smartAccountClient) {
-        const result = await jobQueue.processJob(jobId, { smartAccountClient });
+      if (navigator.onLine && sender) {
+        const result = await jobQueue.processJob(jobId, { transactionSender: sender });
 
         if (DEBUG_ENABLED) {
           debugLog("[WorkMutation] Inline processing attempt finished", {
@@ -291,6 +341,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       // --- Optimistic cache insertion ---
       // Skip for online wallet users — submitWorkDirectly handles its own optimistic insert.
       // Only insert here for passkey users and offline wallet users (queue path).
+      // NOTE: If the wallet path hits a network error and falls back to the queue,
+      // the catch block inserts an optimistic entry at that point.
       const isWalletOnline = authMode === "wallet" && navigator.onLine;
       let previousMerged: Work[] | undefined;
       if (gardenAddress) {
