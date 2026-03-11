@@ -53,7 +53,7 @@ export interface UseUserReturn {
   /** Smart account client for transactions (passkey mode only) */
   smartAccountClient: SmartAccountClient | null;
   /** Current authentication mode */
-  authMode: "wallet" | "passkey" | null;
+  authMode: "wallet" | "passkey" | "embedded" | null;
   /** Passkey username (only set when authMode === "passkey") */
   userName: string | null;
   /** ENS name for the primary address - REMOVED to fix QueryClient error */

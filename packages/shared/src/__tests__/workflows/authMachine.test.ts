@@ -614,4 +614,201 @@ describe("workflows/authMachine", () => {
       expect(actor.getSnapshot().context.error).toBeNull();
     });
   });
+
+  // ==========================================================================
+  // EMBEDDED WALLET TESTS
+  // ==========================================================================
+
+  describe("authenticated.embedded state", () => {
+    it("transitions from unauthenticated to authenticated.embedded on LOGIN_EMBEDDED", async () => {
+      const machine = createTestMachine();
+      const actor = await startAndSettle(machine);
+
+      expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
+
+      actor.send({
+        type: "LOGIN_EMBEDDED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+      });
+
+      const snapshot = actor.getSnapshot();
+      expect(snapshot.matches({ authenticated: "embedded" })).toBe(true);
+      expect(snapshot.context.embeddedAddress).toBe(MOCK_ADDRESSES.gardener);
+    });
+
+    it("transitions to unauthenticated on SIGN_OUT from embedded", async () => {
+      const machine = createTestMachine();
+      const actor = await startAndSettle(machine);
+
+      // Enter embedded state
+      actor.send({
+        type: "LOGIN_EMBEDDED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+      });
+      expect(actor.getSnapshot().matches({ authenticated: "embedded" })).toBe(true);
+
+      // Sign out
+      actor.send({ type: "SIGN_OUT" });
+
+      const snapshot = actor.getSnapshot();
+      expect(snapshot.matches("unauthenticated")).toBe(true);
+      expect(snapshot.context.embeddedAddress).toBeNull();
+    });
+
+    it("switches from embedded to wallet when external wallet is connected", async () => {
+      const machine = createTestMachine();
+      const actor = await startAndSettle(machine);
+
+      // Connect external wallet first
+      actor.send({
+        type: "EXTERNAL_WALLET_CONNECTED",
+        address: MOCK_ADDRESSES.operator as `0x${string}`,
+      });
+
+      // Enter embedded state
+      actor.send({
+        type: "LOGIN_EMBEDDED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+      });
+      expect(actor.getSnapshot().matches({ authenticated: "embedded" })).toBe(true);
+
+      // Switch to wallet
+      actor.send({ type: "SWITCH_TO_WALLET" });
+
+      const snapshot = actor.getSnapshot();
+      expect(snapshot.matches({ authenticated: "wallet" })).toBe(true);
+      expect(snapshot.context.walletAddress).toBe(MOCK_ADDRESSES.operator);
+      expect(snapshot.context.embeddedAddress).toBeNull();
+    });
+
+    it("does not switch to wallet when no external wallet is connected", async () => {
+      const machine = createTestMachine();
+      const actor = await startAndSettle(machine);
+
+      // Enter embedded state without any external wallet
+      actor.send({
+        type: "LOGIN_EMBEDDED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+      });
+      expect(actor.getSnapshot().matches({ authenticated: "embedded" })).toBe(true);
+
+      // Try to switch to wallet - should stay in embedded
+      actor.send({ type: "SWITCH_TO_WALLET" });
+
+      expect(actor.getSnapshot().matches({ authenticated: "embedded" })).toBe(true);
+    });
+
+    it("switches from embedded to passkey (triggers authenticating)", async () => {
+      const machine = createTestMachine();
+      const actor = await startAndSettle(machine);
+
+      // Enter embedded state
+      actor.send({
+        type: "LOGIN_EMBEDDED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+      });
+      expect(actor.getSnapshot().matches({ authenticated: "embedded" })).toBe(true);
+
+      // Switch to passkey (requires userName)
+      actor.send({ type: "SWITCH_TO_PASSKEY", userName: MOCK_USERNAME });
+
+      // Should go through authenticating flow
+      // Wait for authentication to complete
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const snapshot = actor.getSnapshot();
+      expect(snapshot.matches({ authenticated: "passkey" })).toBe(true);
+      expect(snapshot.context.embeddedAddress).toBeNull();
+    });
+
+    it("tracks external wallet events while in embedded state", async () => {
+      const machine = createTestMachine();
+      const actor = await startAndSettle(machine);
+
+      // Enter embedded state
+      actor.send({
+        type: "LOGIN_EMBEDDED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+      });
+
+      // Connect external wallet
+      actor.send({
+        type: "EXTERNAL_WALLET_CONNECTED",
+        address: MOCK_ADDRESSES.operator as `0x${string}`,
+      });
+
+      const snapshot = actor.getSnapshot();
+      expect(snapshot.matches({ authenticated: "embedded" })).toBe(true);
+      expect(snapshot.context.externalWalletConnected).toBe(true);
+      expect(snapshot.context.externalWalletAddress).toBe(MOCK_ADDRESSES.operator);
+    });
+
+    it("tracks external wallet disconnection while in embedded state", async () => {
+      const machine = createTestMachine();
+      const actor = await startAndSettle(machine);
+
+      // Connect external wallet, then enter embedded
+      actor.send({
+        type: "EXTERNAL_WALLET_CONNECTED",
+        address: MOCK_ADDRESSES.operator as `0x${string}`,
+      });
+      actor.send({
+        type: "LOGIN_EMBEDDED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+      });
+
+      // Disconnect external wallet
+      actor.send({ type: "EXTERNAL_WALLET_DISCONNECTED" });
+
+      const snapshot = actor.getSnapshot();
+      // Should stay in embedded (embedded wallet != external wallet)
+      expect(snapshot.matches({ authenticated: "embedded" })).toBe(true);
+      expect(snapshot.context.externalWalletConnected).toBe(false);
+    });
+
+    it("clears embeddedAddress on sign out via clearAllAuthState", async () => {
+      const machine = createTestMachine();
+      const actor = await startAndSettle(machine);
+
+      actor.send({
+        type: "LOGIN_EMBEDDED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+      });
+
+      expect(actor.getSnapshot().context.embeddedAddress).toBe(MOCK_ADDRESSES.gardener);
+
+      actor.send({ type: "SIGN_OUT" });
+
+      expect(actor.getSnapshot().context.embeddedAddress).toBeNull();
+    });
+
+    it("handles LOGIN_EMBEDDED from error state", async () => {
+      const machine = createTestMachine({
+        registerPasskey: () => Promise.reject(new Error("Failed")),
+      });
+      const actor = await startAndSettle(machine);
+
+      // Create error state
+      actor.send({ type: "LOGIN_PASSKEY_NEW", userName: MOCK_USERNAME });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(actor.getSnapshot().matches("error")).toBe(true);
+
+      // Login with embedded
+      actor.send({
+        type: "LOGIN_EMBEDDED",
+        address: MOCK_ADDRESSES.gardener as `0x${string}`,
+      });
+
+      const snapshot = actor.getSnapshot();
+      expect(snapshot.matches({ authenticated: "embedded" })).toBe(true);
+      expect(snapshot.context.error).toBeNull();
+    });
+
+    it("initializes with embeddedAddress as null in context", async () => {
+      const machine = createTestMachine();
+      const actor = await startAndSettle(machine);
+
+      expect(actor.getSnapshot().context.embeddedAddress).toBeNull();
+    });
+  });
 });

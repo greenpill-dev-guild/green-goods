@@ -55,6 +55,9 @@ interface UseAuthReturn {
   walletAddress: Hex | null;
   eoaAddress: Hex | undefined;
 
+  // Embedded wallet state (AppKit email/social)
+  embeddedAddress: Hex | null;
+
   // External wallet state (always tracked, even in passkey mode)
   externalWalletConnected: boolean;
   externalWalletAddress: Hex | null;
@@ -63,6 +66,7 @@ interface UseAuthReturn {
   createAccount: (userName: string) => Promise<void>;
   loginWithPasskey: (userName?: string) => Promise<void>;
   loginWithWallet: () => void;
+  loginWithEmbedded: () => void;
   signOut: () => Promise<void>;
 
   // Actions - Switching auth methods
@@ -102,6 +106,9 @@ export function useAuth(): UseAuthReturn {
     walletAddress: auth.walletAddress,
     eoaAddress: auth.eoaAddress,
 
+    // Embedded wallet state
+    embeddedAddress: auth.embeddedAddress,
+
     // External wallet state
     externalWalletConnected: auth.externalWalletConnected,
     externalWalletAddress: auth.externalWalletAddress,
@@ -110,6 +117,7 @@ export function useAuth(): UseAuthReturn {
     createAccount: auth.createAccount,
     loginWithPasskey: auth.loginWithPasskey,
     loginWithWallet: auth.loginWithWallet,
+    loginWithEmbedded: auth.loginWithEmbedded,
     signOut: auth.signOut,
 
     // Actions - Switching

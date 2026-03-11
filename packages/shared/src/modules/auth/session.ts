@@ -15,6 +15,7 @@
 
 import type { P256Credential } from "viem/account-abstraction";
 
+import type { AuthMode } from "../../types/auth";
 import { logger } from "../app/logger";
 
 // ============================================================================
@@ -37,7 +38,7 @@ export const RP_ID_STORAGE_KEY = "greengoods_rp_id";
 // AUTH MODE
 // ============================================================================
 
-export type AuthMode = "passkey" | "wallet" | null;
+export type { AuthMode } from "../../types/auth";
 
 /** Get the active auth mode */
 export function getAuthMode(): AuthMode {
@@ -45,7 +46,7 @@ export function getAuthMode(): AuthMode {
 }
 
 /** Set the active auth mode */
-export function setAuthMode(mode: "passkey" | "wallet"): void {
+export function setAuthMode(mode: Exclude<AuthMode, null>): void {
   localStorage.setItem(AUTH_MODE_STORAGE_KEY, mode);
 }
 
@@ -113,6 +114,28 @@ export function clearStoredRpId(): void {
 }
 
 // ============================================================================
+// EMBEDDED WALLET ADDRESS
+// ============================================================================
+
+/** Storage key for embedded wallet address (for offline identity display) */
+export const EMBEDDED_ADDRESS_KEY = "greengoods_embedded_address";
+
+/** Store embedded wallet address in localStorage */
+export function setEmbeddedAddress(address: string): void {
+  localStorage.setItem(EMBEDDED_ADDRESS_KEY, address);
+}
+
+/** Get stored embedded wallet address */
+export function getEmbeddedAddress(): string | null {
+  return localStorage.getItem(EMBEDDED_ADDRESS_KEY);
+}
+
+/** Clear stored embedded wallet address */
+export function clearEmbeddedAddress(): void {
+  localStorage.removeItem(EMBEDDED_ADDRESS_KEY);
+}
+
+// ============================================================================
 // SIGN OUT
 // ============================================================================
 
@@ -128,6 +151,7 @@ export function clearAllAuth(): void {
   localStorage.removeItem(USERNAME_STORAGE_KEY);
   localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
   localStorage.removeItem(RP_ID_STORAGE_KEY);
+  localStorage.removeItem(EMBEDDED_ADDRESS_KEY);
 }
 
 // ============================================================================

@@ -56,6 +56,9 @@ export interface AuthContext {
   // Wallet session state (when authenticated via wallet)
   walletAddress: Hex | null;
 
+  // Embedded wallet state (AppKit email/social auth)
+  embeddedAddress: Hex | null;
+
   // External wallet state (always tracked, even when not primary auth)
   // This allows us to know a wallet is available for switching
   externalWalletConnected: boolean;
@@ -78,6 +81,7 @@ export type AuthEvent =
   | { type: "LOGIN_PASSKEY_NEW"; userName: string }
   | { type: "LOGIN_PASSKEY_EXISTING"; userName: string }
   | { type: "LOGIN_WALLET" }
+  | { type: "LOGIN_EMBEDDED"; address: Hex } // Login via AppKit embedded wallet (email/social)
   | { type: "SWITCH_TO_WALLET" } // Switch from passkey to wallet (requires external wallet)
   | { type: "SWITCH_TO_PASSKEY"; userName: string } // Switch from wallet to passkey
   | { type: "SIGN_OUT" }
@@ -154,6 +158,7 @@ const authSetup = setup({
       smartAccountClient: null,
       smartAccountAddress: null,
       walletAddress: null,
+      embeddedAddress: null,
       error: null,
       retryCount: 0,
       // Note: Keep externalWallet* - that's tracked independently
@@ -197,6 +202,20 @@ const authSetup = setup({
     storeWalletAuth: assign({
       walletAddress: ({ context }) => context.externalWalletAddress,
       error: null,
+    }),
+
+    /** Store embedded wallet address as primary auth */
+    storeEmbeddedAuth: assign(({ event }) => {
+      const e = event as { type: "LOGIN_EMBEDDED"; address: Hex };
+      return {
+        embeddedAddress: e.address,
+        error: null,
+      };
+    }),
+
+    /** Clear embedded wallet auth */
+    clearEmbeddedAuth: assign({
+      embeddedAddress: null,
     }),
 
     /** Store userName for registration/login */
@@ -302,6 +321,7 @@ export const authMachine = authSetup.createMachine({
     smartAccountClient: null,
     smartAccountAddress: null,
     walletAddress: null,
+    embeddedAddress: null,
     externalWalletConnected: false,
     externalWalletAddress: null,
     chainId: input?.chainId ?? DEFAULT_CHAIN_ID,
@@ -387,6 +407,10 @@ export const authMachine = authSetup.createMachine({
             target: "wallet_connecting",
           },
         ],
+        LOGIN_EMBEDDED: {
+          target: "authenticated.embedded",
+          actions: "storeEmbeddedAuth",
+        },
 
         // External events
         EXTERNAL_WALLET_CONNECTED: {
@@ -547,6 +571,40 @@ export const authMachine = authSetup.createMachine({
         },
 
         // ─────────────────────────────────────────────────────────────────────────
+        // EMBEDDED WALLET AUTHENTICATED
+        // User authenticated via AppKit embedded wallet (email/social)
+        // ─────────────────────────────────────────────────────────────────────────
+        embedded: {
+          on: {
+            SIGN_OUT: {
+              target: "#auth.unauthenticated",
+              actions: "clearAllAuthState",
+            },
+            SWITCH_TO_WALLET: [
+              {
+                guard: "hasExternalWallet",
+                target: "wallet",
+                actions: ["clearEmbeddedAuth", "storeWalletAuth"],
+              },
+              {
+                actions: () =>
+                  logger.warn("[AuthMachine] SWITCH_TO_WALLET: No external wallet connected"),
+              },
+            ],
+            SWITCH_TO_PASSKEY: {
+              target: "#auth.authenticating",
+              actions: ["clearEmbeddedAuth", "storeUserName"],
+            },
+            EXTERNAL_WALLET_CONNECTED: {
+              actions: "trackExternalWalletConnected",
+            },
+            EXTERNAL_WALLET_DISCONNECTED: {
+              actions: "trackExternalWalletDisconnected",
+            },
+          },
+        },
+
+        // ─────────────────────────────────────────────────────────────────────────
         // WALLET AUTHENTICATED
         // User authenticated via connected wallet (EOA)
         // ─────────────────────────────────────────────────────────────────────────
@@ -633,6 +691,10 @@ export const authMachine = authSetup.createMachine({
             actions: "clearError",
           },
         ],
+        LOGIN_EMBEDDED: {
+          target: "authenticated.embedded",
+          actions: ["clearError", "storeEmbeddedAuth"],
+        },
 
         // Dismiss error and go back to unauthenticated
         DISMISS_ERROR: {
