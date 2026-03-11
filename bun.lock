@@ -30,6 +30,7 @@
         "@varlock/1password-plugin": "^0.2.2",
         "@vitejs/plugin-react": "^5.1.4",
         "@vitest/coverage-v8": "^4.0.18",
+        "babel-plugin-react-compiler": "^1.0.0",
         "fake-indexeddb": "^6.2.5",
         "files-from-path": "^1.1.4",
         "graphql": "^16.12.0",
