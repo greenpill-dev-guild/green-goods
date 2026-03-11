@@ -40,6 +40,7 @@ export default defineConfig(async () => {
   ];
 
   return {
+    root: __dirname,
     base: isIPFSBuild ? "./" : "/",
     envDir: rootDir,
     envPrefix: ["VITE_", "PINATA_", "PRIVY_", "SKIP_"],

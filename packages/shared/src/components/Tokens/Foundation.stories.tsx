@@ -26,23 +26,20 @@ export const ControlsAndChrome: Story = {
           <FormInput
             id="foundation-input-sm"
             label="Small input"
-            controlSize="sm"
             placeholder="40px"
           />
           <FormInput
             id="foundation-input-md"
             label="Medium input"
-            controlSize="md"
             placeholder="44px"
           />
           <FormTextarea
             id="foundation-textarea-lg"
             label="Large textarea"
-            controlSize="lg"
             placeholder="48px control with expanded content area"
           />
           <Select>
-            <SelectTrigger size="sm">
+            <SelectTrigger>
               <SelectValue placeholder="Small select" />
             </SelectTrigger>
             <SelectContent>

@@ -230,6 +230,7 @@ export default defineConfig(async () => {
   ];
 
   return {
+    root: __dirname,
     base: appBasePath,
     envDir: rootDir,
     envPrefix: ["VITE_", "PINATA_", "SKIP_"],

@@ -87,7 +87,7 @@ export const Failed: Story = {
   args: {
     work: {
       ...mockWork,
-      status: "failed",
+      status: "sync_failed",
       error: "Network error occurred",
       retryCount: 2,
     },
@@ -120,7 +120,7 @@ export const AllStatuses: Story = {
       <WorkCard work={{ ...mockWork, status: "pending", title: "Pending Review" }} />
       <WorkCard work={{ ...mockWork, status: "rejected", title: "Rejected Work" }} />
       <WorkCard work={{ ...mockWork, status: "syncing", title: "Syncing to Chain" }} />
-      <WorkCard work={{ ...mockWork, status: "failed", title: "Failed Submission" }} />
+      <WorkCard work={{ ...mockWork, status: "sync_failed", title: "Failed Submission" }} />
     </div>
   ),
 };

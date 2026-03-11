@@ -16,6 +16,7 @@ Use these canonical commands to start structured workflows:
 | **review** | `/review`, "review this PR", "code review" | 6-pass systematic code review (report-first by default) |
 | **audit** | `/audit`, "audit the codebase", "health check" | Dead code detection, architectural anti-patterns |
 | **teams** | `/teams`, "create agent team", "agent team" | Coordinate multiple Claude Code sessions as a team |
+| **meeting-notes** | `/meeting-notes`, "meeting transcript", "extract issues" | Extract actionable GitHub issues from meeting transcripts |
 
 ### Command Mode Wrappers (Aliases)
 
