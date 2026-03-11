@@ -23,16 +23,8 @@ export const ControlsAndChrome: Story = {
           <CardDescription>Shared inputs, textarea, and select sizing.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <FormInput
-            id="foundation-input-sm"
-            label="Small input"
-            placeholder="40px"
-          />
-          <FormInput
-            id="foundation-input-md"
-            label="Medium input"
-            placeholder="44px"
-          />
+          <FormInput id="foundation-input-sm" label="Small input" placeholder="40px" />
+          <FormInput id="foundation-input-md" label="Medium input" placeholder="44px" />
           <FormTextarea
             id="foundation-textarea-lg"
             label="Large textarea"

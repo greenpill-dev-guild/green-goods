@@ -8,7 +8,15 @@ const meta: Meta<typeof StatusBadge> = {
   argTypes: {
     status: {
       control: "select",
-      options: ["approved", "rejected", "pending", "syncing", "sync_failed", "uploading", "offline"],
+      options: [
+        "approved",
+        "rejected",
+        "pending",
+        "syncing",
+        "sync_failed",
+        "uploading",
+        "offline",
+      ],
       description: "Work status to display",
     },
     size: {

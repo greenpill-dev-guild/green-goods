@@ -15,8 +15,7 @@ const meta: Meta<typeof GardenBannerFallback> = {
   argTypes: {
     name: {
       control: "text",
-      description:
-        "Garden name — used for deterministic gradient selection",
+      description: "Garden name — used for deterministic gradient selection",
     },
     className: {
       control: "text",

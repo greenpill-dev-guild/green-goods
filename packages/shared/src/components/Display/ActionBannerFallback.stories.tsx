@@ -21,8 +21,7 @@ const meta: Meta<typeof ActionBannerFallback> = {
     },
     title: {
       control: "text",
-      description:
-        "Action title — used for deterministic gradient variation within the domain",
+      description: "Action title — used for deterministic gradient variation within the domain",
     },
     className: {
       control: "text",

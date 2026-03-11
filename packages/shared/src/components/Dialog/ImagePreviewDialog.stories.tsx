@@ -84,16 +84,11 @@ export const Gallery: Story = {
   render: () => (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-text-secondary">
-        The ImagePreviewDialog is a full-screen overlay. Each story above shows
-        a different configuration (single image, multiple images, starting at a
-        specific index). Open them individually to interact.
+        The ImagePreviewDialog is a full-screen overlay. Each story above shows a different
+        configuration (single image, multiple images, starting at a specific index). Open them
+        individually to interact.
       </p>
-      <ImagePreviewDialog
-        isOpen={true}
-        onClose={() => {}}
-        images={sampleImages}
-        initialIndex={0}
-      />
+      <ImagePreviewDialog isOpen={true} onClose={() => {}} images={sampleImages} initialIndex={0} />
     </div>
   ),
 };
