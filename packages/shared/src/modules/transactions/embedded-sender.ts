@@ -17,8 +17,8 @@
 import {
   waitForTransactionReceipt as defaultWaitForReceipt,
   writeContract as defaultWriteContract,
+  type Config,
 } from "@wagmi/core";
-import type { Config } from "@wagmi/core";
 import type { Hex } from "viem";
 import { logger } from "../app/logger";
 import type { ContractCall, TransactionSender, TxResult } from "./types";
@@ -66,7 +66,7 @@ export class EmbeddedSender implements TransactionSender {
       abi: call.abi,
       functionName: call.functionName,
       args: call.args as unknown[],
-      ...(call.value != null ? { value: call.value } : {}),
+      ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
     });
 
     const receipt = await this.deps.waitForTransactionReceipt(this.config, { hash });

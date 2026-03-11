@@ -11,8 +11,7 @@
  * @module modules/transactions/wallet-sender
  */
 
-import { waitForTransactionReceipt as defaultWaitForReceipt } from "@wagmi/core";
-import type { Config } from "@wagmi/core";
+import { waitForTransactionReceipt as defaultWaitForReceipt, type Config } from "@wagmi/core";
 import type { Hex } from "viem";
 import { logger } from "../app/logger";
 import type { ContractCall, TransactionSender, TxResult } from "./types";
