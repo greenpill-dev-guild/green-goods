@@ -23,6 +23,8 @@ interface VerifyOptions {
   indexerTimeoutSeconds: number;
   indexerPollSeconds: number;
   checkEtherscan: boolean;
+  requireProductCopy: boolean;
+  productCopyAcknowledged: boolean;
 }
 
 interface DeploymentRecord {
@@ -85,7 +87,17 @@ interface RuntimeIndexerResponse {
   GardenDomains?: RuntimeGardenDomains[];
 }
 
+interface GardensFile {
+  gardens?: Array<{ tokenId?: number; address?: string }>;
+}
+
+interface RpcLog {
+  topics?: string[];
+}
+
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
+const TOKENBOUND_SALT = "0x6551655165516551655165516551655165516551655165516551655165516551";
 
 /** Mask API key segments in RPC URLs to prevent credential leakage in logs. */
 function maskRpcApiKey(value: string): string {
@@ -128,6 +140,8 @@ function parseArgs(argv: string[]): VerifyOptions {
   let indexerTimeoutSeconds = Number(process.env.INDEXER_SYNC_TIMEOUT_SECONDS || "600");
   let indexerPollSeconds = Number(process.env.INDEXER_SYNC_POLL_SECONDS || "20");
   let checkEtherscan = false;
+  let requireProductCopy = process.env.REQUIRE_PRODUCT_COPY === "true";
+  let productCopyAcknowledged = process.env.PRODUCT_COPY_ACKNOWLEDGED === "true";
 
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
@@ -183,6 +197,12 @@ function parseArgs(argv: string[]): VerifyOptions {
       case "--check-etherscan":
         checkEtherscan = true;
         break;
+      case "--require-product-copy":
+        requireProductCopy = true;
+        break;
+      case "--ack-product-copy":
+        productCopyAcknowledged = true;
+        break;
       default:
         break;
     }
@@ -213,6 +233,8 @@ function parseArgs(argv: string[]): VerifyOptions {
     indexerTimeoutSeconds,
     indexerPollSeconds,
     checkEtherscan,
+    requireProductCopy,
+    productCopyAcknowledged,
   };
 }
 
@@ -240,7 +262,7 @@ function parseAddressArray(output: string): string[] {
 }
 
 function parseUint(output: string): bigint {
-  const token = output.split(/\s+/)[0]?.trim();
+  const token = output.match(/0x[a-fA-F0-9]+|\d+/)?.[0];
   if (!token) return 0n;
   if (token.startsWith("0x") || token.startsWith("0X")) {
     return BigInt(token);
@@ -255,6 +277,36 @@ function parseBool(output: string): boolean {
 
 function normalizeAddress(value: string): string {
   return value.toLowerCase();
+}
+
+function castLogs(rpcUrl: string, address: string, signature: string): RpcLog[] {
+  try {
+    const output = execFileSync(
+      "cast",
+      [
+        "logs",
+        "--json",
+        "--from-block",
+        "0",
+        "--to-block",
+        "latest",
+        "--address",
+        address,
+        "--rpc-url",
+        rpcUrl,
+        signature,
+      ],
+      {
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    );
+    return JSON.parse(output) as RpcLog[];
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`⚠️  Failed to read garden mint logs: ${maskRpcApiKey(message)}`);
+    return [];
+  }
 }
 
 function parseNumberish(value: number | string | undefined): number {
@@ -284,6 +336,61 @@ function loadDeployment(chainId: string): DeploymentRecord {
     throw new Error(`Deployment file not found: ${deploymentPath}`);
   }
   return JSON.parse(fs.readFileSync(deploymentPath, "utf8")) as DeploymentRecord;
+}
+
+function loadGardenDeploymentFile(chainId: string): string[] {
+  const gardensPath = path.join(__dirname, "../../deployments", `${chainId}-gardens.json`);
+  if (!fs.existsSync(gardensPath)) {
+    return [];
+  }
+
+  const parsed = JSON.parse(fs.readFileSync(gardensPath, "utf8")) as GardensFile;
+  return (parsed.gardens ?? [])
+    .map((garden) => garden.address)
+    .filter((garden): garden is string => typeof garden === "string" && !isZeroAddress(garden));
+}
+
+function loadGardensFromChain(options: VerifyOptions, deployment: DeploymentRecord): string[] {
+  if (isZeroAddress(deployment.gardenToken) || isZeroAddress(deployment.gardenAccountImpl)) {
+    return [];
+  }
+
+  const logs = castLogs(options.rpcUrl, deployment.gardenToken as string, "Transfer(address,address,uint256)");
+  const tokenIds = logs
+    .filter((entry) => normalizeAddress(parseAddress(entry.topics?.[1] ?? "")) === normalizeAddress(ZERO_ADDRESS))
+    .map((entry) => entry.topics?.[3])
+    .filter((tokenId): tokenId is string => typeof tokenId === "string")
+    .map((tokenId) => BigInt(tokenId));
+
+  return tokenIds
+    .map((tokenId) =>
+      parseAddress(
+        castCall(options.rpcUrl, TOKENBOUND_REGISTRY, "account(address,bytes32,uint256,address,uint256)(address)", [
+          deployment.gardenAccountImpl as string,
+          TOKENBOUND_SALT,
+          options.chainId,
+          deployment.gardenToken as string,
+          tokenId.toString(),
+        ]),
+      ),
+    )
+    .filter((garden) => !isZeroAddress(garden));
+}
+
+function enumerateGardens(options: VerifyOptions, deployment: DeploymentRecord): string[] {
+  const gardens = new Map<string, string>();
+  const candidates = [
+    deployment.rootGarden?.address,
+    ...loadGardenDeploymentFile(options.chainId),
+    ...loadGardensFromChain(options, deployment),
+  ];
+
+  for (const garden of candidates) {
+    if (!garden || isZeroAddress(garden)) continue;
+    gardens.set(normalizeAddress(garden), garden);
+  }
+
+  return Array.from(gardens.values());
 }
 
 function validateIndexerConfig(chainId: string, deployment: DeploymentRecord, failures: string[]): void {
@@ -436,17 +543,19 @@ async function queryRuntimeIndexer(
 async function validateIndexerRuntime(
   options: VerifyOptions,
   deployment: DeploymentRecord,
+  expectedGardens: string[],
   failures: string[],
 ): Promise<void> {
   if (!options.checkIndexerRuntime) {
     return;
   }
 
-  const rootGarden = deployment.rootGarden?.address;
-  if (isZeroAddress(rootGarden)) {
-    failures.push("indexer runtime check requires deployment.rootGarden.address");
+  if (expectedGardens.length === 0) {
+    failures.push("indexer runtime check requires at least one garden address");
     return;
   }
+
+  const rootGarden = deployment.rootGarden?.address ?? expectedGardens[0];
 
   const chainId = Number(options.chainId);
   if (!Number.isFinite(chainId)) {
@@ -488,22 +597,24 @@ async function validateIndexerRuntime(
         const actions = result.data.Action ?? [];
         const gardenDomains = result.data.GardenDomains ?? [];
 
+        const expectedGardenSet = new Set(expectedGardens.map((garden) => normalizeAddress(garden)));
+        const indexedGardenSet = new Set(gardens.map((garden) => normalizeAddress(garden.id)));
+        const missingGardens = expectedGardens.filter((garden) => !indexedGardenSet.has(normalizeAddress(garden)));
         const rootGardenLower = normalizeAddress(rootGarden as string);
-        const hasRootGarden = gardens.some((garden) => normalizeAddress(garden.id) === rootGardenLower);
         const rootDomainEntry = gardenDomains.find((entry) => normalizeAddress(entry.garden) === rootGardenLower);
         const rootDomainMask = parseNumberish(rootDomainEntry?.domainMask);
         const hasRootDomainMask = Number.isFinite(rootDomainMask) && rootDomainMask === 15;
         const hasActions = actions.length > 0;
 
-        if (hasRootGarden && hasRootDomainMask && hasActions) {
-          console.log("  ✅ local indexer query check passed (root garden, domain mask, and actions ingested)");
+        if (missingGardens.length === 0 && hasRootDomainMask && hasActions) {
+          console.log("  ✅ local indexer query check passed (all gardens, root domain mask, and actions ingested)");
           return;
         }
 
         lastObservation = [
           `gardens=${gardens.length}`,
           `actions=${actions.length}`,
-          `rootGarden=${hasRootGarden}`,
+          `matchedGardens=${expectedGardenSet.size - missingGardens.length}/${expectedGardenSet.size}`,
           `rootDomainMask=${Number.isFinite(rootDomainMask) ? rootDomainMask : "missing"}`,
         ].join(", ");
       } else {
@@ -568,6 +679,106 @@ function validateEtherscanVerification(chainId: string, deployment: DeploymentRe
   }
 }
 
+function validateOctantVaultReadiness(
+  options: VerifyOptions,
+  deployment: DeploymentRecord,
+  gardens: string[],
+  failures: string[],
+): void {
+  const octantModule = deployment.octantModule ?? ZERO_ADDRESS;
+  assert(!isZeroAddress(octantModule), "deployment.octantModule is zero", failures);
+  if (isZeroAddress(octantModule)) {
+    return;
+  }
+
+  const yieldResolver = deployment.yieldSplitter ?? ZERO_ADDRESS;
+  const octantFactory = deployment.octantFactory ?? ZERO_ADDRESS;
+  const assets = parseAddressArray(castCall(options.rpcUrl, octantModule, "getSupportedAssets()(address[])"));
+  const activeAssets: string[] = [];
+
+  for (const asset of assets) {
+    const strategy = parseAddress(castCall(options.rpcUrl, octantModule, "supportedAssets(address)(address)", [asset]));
+    if (!isZeroAddress(strategy)) {
+      activeAssets.push(asset);
+    }
+  }
+
+  assert(activeAssets.length > 0, "octant has no active supported assets", failures);
+
+  for (const garden of gardens) {
+    for (const asset of activeAssets) {
+      const vault = parseAddress(
+        castCall(options.rpcUrl, octantModule, "getVaultForAsset(address,address)(address)", [garden, asset]),
+      );
+      assert(!isZeroAddress(vault), `missing Octant vault for garden ${garden} asset ${asset}`, failures);
+      if (isZeroAddress(vault)) continue;
+
+      const strategy = parseAddress(
+        castCall(options.rpcUrl, octantModule, "vaultStrategies(address)(address)", [vault]),
+      );
+      assert(!isZeroAddress(strategy), `missing live strategy for vault ${vault}`, failures);
+
+      const autoAllocate = parseBool(castCall(options.rpcUrl, vault, "autoAllocate()(bool)"));
+      assert(autoAllocate, `autoAllocate disabled for vault ${vault}`, failures);
+
+      const accountant = parseAddress(castCall(options.rpcUrl, vault, "accountant()(address)"));
+      if (!isZeroAddress(yieldResolver)) {
+        assert(
+          normalizeAddress(accountant) === normalizeAddress(yieldResolver),
+          `vault accountant mismatch for ${vault}: expected ${yieldResolver}, got ${accountant}`,
+          failures,
+        );
+
+        const registeredVault = parseAddress(
+          castCall(options.rpcUrl, yieldResolver, "gardenVaults(address,address)(address)", [garden, asset]),
+        );
+        assert(
+          normalizeAddress(registeredVault) === normalizeAddress(vault),
+          `yieldResolver gardenVault mismatch for garden ${garden} asset ${asset}`,
+          failures,
+        );
+      }
+
+      const donationAddress = parseAddress(
+        castCall(options.rpcUrl, octantModule, "gardenDonationAddresses(address)(address)", [garden]),
+      );
+      assert(!isZeroAddress(donationAddress), `garden donation address is zero for ${garden}`, failures);
+
+      if (!isZeroAddress(octantFactory)) {
+        const protocolFeeBps = parseUint(
+          castCall(options.rpcUrl, octantFactory, "protocolFeeConfig(address)(uint16,address)", [vault]),
+        );
+        assert(protocolFeeBps === 0n, `protocol fee should be zero for vault ${vault}, got ${protocolFeeBps}`, failures);
+      }
+    }
+  }
+}
+
+function validateCookieJars(
+  options: VerifyOptions,
+  deployment: DeploymentRecord,
+  gardens: string[],
+  failures: string[],
+): void {
+  const cookieJarModule = deployment.cookieJarModule ?? ZERO_ADDRESS;
+  assert(!isZeroAddress(cookieJarModule), "deployment.cookieJarModule is zero", failures);
+  if (isZeroAddress(cookieJarModule)) {
+    return;
+  }
+
+  const assets = parseAddressArray(castCall(options.rpcUrl, cookieJarModule, "getSupportedAssets()(address[])"));
+  assert(assets.length > 0, "cookie jar has no supported assets", failures);
+
+  for (const garden of gardens) {
+    for (const asset of assets) {
+      const jar = parseAddress(
+        castCall(options.rpcUrl, cookieJarModule, "getGardenJar(address,address)(address)", [garden, asset]),
+      );
+      assert(!isZeroAddress(jar), `missing CookieJar for garden ${garden} asset ${asset}`, failures);
+    }
+  }
+}
+
 async function main(): Promise<void> {
   const options = parseArgs(process.argv);
   const failures: string[] = [];
@@ -579,12 +790,22 @@ async function main(): Promise<void> {
   console.log(`  communitySlug: ${options.communitySlug}\n`);
 
   const deployment = loadDeployment(options.chainId);
+  const allGardens = enumerateGardens(options, deployment);
   const rootGarden = deployment.rootGarden?.address ?? ZERO_ADDRESS;
+
+  console.log(`  enumeratedGardens: ${allGardens.length}`);
+
+  if (options.requireProductCopy && !options.productCopyAcknowledged) {
+    failures.push(
+      "product copy acknowledgment missing: rerun with --ack-product-copy or PRODUCT_COPY_ACKNOWLEDGED=true",
+    );
+  }
 
   assert(!isZeroAddress(deployment.actionRegistry), "deployment.actionRegistry is zero", failures);
   assert(!isZeroAddress(deployment.gardenToken), "deployment.gardenToken is zero", failures);
   assert(!isZeroAddress(deployment.gardenAccountImpl), "deployment.gardenAccountImpl is zero", failures);
   assert(!isZeroAddress(rootGarden), "deployment.rootGarden.address is zero", failures);
+  assert(allGardens.length > 0, "failed to enumerate any gardens", failures);
 
   if (failures.length === 0) {
     const domainMask = parseUint(
@@ -680,40 +901,11 @@ async function main(): Promise<void> {
   }
 
   if (options.requireOctant && failures.length === 0) {
-    const octantModule = deployment.octantModule ?? ZERO_ADDRESS;
-    assert(!isZeroAddress(octantModule), "deployment.octantModule is zero", failures);
-    if (!isZeroAddress(octantModule)) {
-      const assets = parseAddressArray(castCall(options.rpcUrl, octantModule, "getSupportedAssets()(address[])"));
-      const activeAssets: string[] = [];
-      for (const asset of assets) {
-        const strategy = parseAddress(
-          castCall(options.rpcUrl, octantModule, "supportedAssets(address)(address)", [asset]),
-        );
-        if (!isZeroAddress(strategy)) activeAssets.push(asset);
-      }
-      assert(activeAssets.length > 0, "octant has no active supported assets", failures);
-      for (const asset of activeAssets) {
-        const vault = parseAddress(
-          castCall(options.rpcUrl, octantModule, "getVaultForAsset(address,address)(address)", [rootGarden, asset]),
-        );
-        assert(!isZeroAddress(vault), `missing Octant vault for asset ${asset}`, failures);
-      }
-    }
+    validateOctantVaultReadiness(options, deployment, allGardens, failures);
   }
 
   if (options.requireCookieJar && failures.length === 0) {
-    const cookieJarModule = deployment.cookieJarModule ?? ZERO_ADDRESS;
-    assert(!isZeroAddress(cookieJarModule), "deployment.cookieJarModule is zero", failures);
-    if (!isZeroAddress(cookieJarModule)) {
-      const assets = parseAddressArray(castCall(options.rpcUrl, cookieJarModule, "getSupportedAssets()(address[])"));
-      assert(assets.length > 0, "cookie jar has no supported assets", failures);
-      for (const asset of assets) {
-        const jar = parseAddress(
-          castCall(options.rpcUrl, cookieJarModule, "getGardenJar(address,address)(address)", [rootGarden, asset]),
-        );
-        assert(!isZeroAddress(jar), `missing CookieJar for asset ${asset}`, failures);
-      }
-    }
+    validateCookieJars(options, deployment, allGardens, failures);
   }
 
   if (!isZeroAddress(deployment.greenGoodsENS) && failures.length === 0) {
@@ -756,7 +948,7 @@ async function main(): Promise<void> {
   // Indexer runtime check runs independently of onchain failures — the indexer
   // validates its own indexed data, not onchain wiring (e.g. Sepolia has no
   // marketplace exchange, which is an onchain gap, not an indexer gap).
-  await validateIndexerRuntime(options, deployment, failures);
+  await validateIndexerRuntime(options, deployment, allGardens, failures);
 
   if (options.checkEtherscan) {
     validateEtherscanVerification(options.chainId, deployment, failures);
