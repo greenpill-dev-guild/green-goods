@@ -14,7 +14,7 @@ vi.mock("@wagmi/core", () => ({
 }));
 
 vi.mock("../../config/appkit", () => ({
-  wagmiConfig: {},
+  getWagmiConfig: () => ({}),
 }));
 
 vi.mock("../../config/blockchain", () => ({
@@ -99,6 +99,7 @@ import * as wagmiCore from "@wagmi/core";
 import type { WalletClient } from "viem";
 
 import { submitApprovalDirectly, submitWorkDirectly } from "../../modules/work/wallet-submission";
+import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import * as encoders from "../../utils/eas/encoders";
 import { mock } from "../test-utils";
 
@@ -239,7 +240,7 @@ describe("wallet-submission", () => {
       ).rejects.toThrow("Insufficient funds for gas");
     });
 
-    it("should handle network error", async () => {
+    it("should handle network error during transaction phase", async () => {
       // Setup mocks
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
       mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
@@ -247,7 +248,7 @@ describe("wallet-submission", () => {
         new Error("network connection failed")
       );
 
-      // Execute & Verify
+      // Execute & Verify — transaction-phase errors have phase: "transaction"
       await expect(
         submitWorkDirectly(
           mockWorkDraft,
@@ -258,6 +259,32 @@ describe("wallet-submission", () => {
           mockImages
         )
       ).rejects.toThrow("Network error");
+    });
+
+    it("should wrap IPFS upload failure with phase 'upload'", async () => {
+      // Setup: wallet connected, but IPFS upload fails
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      const ipfsError = new Error("Failed to verify Pinata gateway: 504 Gateway Timeout");
+      mock(encoders.encodeWorkData).mockRejectedValue(ipfsError);
+
+      // Execute & Verify
+      try {
+        await submitWorkDirectly(
+          mockWorkDraft,
+          "0xGardenAddress",
+          123,
+          "Test Action",
+          mockChainId,
+          mockImages
+        );
+        expect.fail("Should have thrown");
+      } catch (error) {
+        // The error should be a WorkSubmissionError with phase "upload"
+        expect(error).toBeInstanceOf(WorkSubmissionError);
+        expect((error as WorkSubmissionError).phase).toBe("upload");
+        // The original IPFS error should be preserved as the cause
+        expect((error as Error).cause).toBe(ipfsError);
+      }
     });
 
     it("should handle nonce conflict error", async () => {

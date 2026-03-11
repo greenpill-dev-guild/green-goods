@@ -81,6 +81,7 @@ vi.mock("../../utils/debug", () => ({
 
 vi.mock("../../modules/app/error-tracking", () => ({
   trackContractError: vi.fn(),
+  trackUploadError: vi.fn(),
   addBreadcrumb: vi.fn(),
 }));
 
@@ -125,6 +126,7 @@ import { walletProgressToasts, workToasts } from "../../components/toast";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
 import { jobQueue } from "../../modules/job-queue";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
+import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
 import {
   createMockAction,
@@ -381,6 +383,108 @@ describe("hooks/work/useWorkMutation", () => {
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
+    });
+
+    it("does NOT fall back to queue for upload-phase errors (IPFS failures)", async () => {
+      // Simulate an IPFS upload failure — the error message contains "gateway"/"timeout"
+      // which would previously match isNetworkError and silently queue the work.
+      const uploadError = new WorkSubmissionError(
+        "Transaction timed out - please try again",
+        "upload",
+        "batch-123",
+        new Error("Failed to verify Pinata gateway availability: 504 Gateway Timeout")
+      );
+      mock(submitWorkDirectly).mockRejectedValue(uploadError);
+
+      const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        try {
+          await result.current.mutateAsync({
+            draft: createMockWorkDraft(),
+            images: createMockFiles(1),
+          });
+        } catch {
+          // Expected to throw — upload errors should surface, not silently queue
+        }
+      });
+
+      // The error should propagate to onError, NOT fall back to queue
+      expect(submitWorkToQueue).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+    });
+
+    it("falls back to queue for transaction-phase network errors", async () => {
+      // Simulate a genuine network error during the transaction phase
+      const txError = new WorkSubmissionError(
+        "Network error - please check your connection",
+        "transaction",
+        "batch-456",
+        new Error("network connection failed")
+      );
+      mock(submitWorkDirectly).mockRejectedValue(txError);
+      mock(submitWorkToQueue).mockResolvedValue({
+        txHash: "0xoffline_fallback",
+        jobId: "job-fallback",
+        clientWorkId: "work-fallback",
+      });
+
+      const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+        wrapper: createWrapper(),
+      });
+
+      let txHash: string | undefined;
+      await act(async () => {
+        txHash = await result.current.mutateAsync({
+          draft: createMockWorkDraft(),
+          images: createMockFiles(1),
+        });
+      });
+
+      // Transaction-phase network errors SHOULD fall back to queue
+      expect(submitWorkToQueue).toHaveBeenCalled();
+      expect(txHash).toBe("0xoffline_fallback");
+    });
+
+    it("inserts optimistic entry when wallet submission falls back to queue", async () => {
+      // Simulate a transaction-phase network error that triggers queue fallback
+      const txError = new WorkSubmissionError(
+        "Network error - please check your connection",
+        "transaction",
+        "batch-789",
+        new Error("network timeout")
+      );
+      mock(submitWorkDirectly).mockRejectedValue(txError);
+      mock(submitWorkToQueue).mockResolvedValue({
+        txHash: "0xoffline_optimistic",
+        jobId: "job-opt",
+        clientWorkId: "work-opt",
+      });
+
+      const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          draft: createMockWorkDraft(),
+          images: createMockFiles(1),
+        });
+      });
+
+      // Check that an optimistic entry was inserted into the merged works cache
+      const mergedWorks = queryClient.getQueryData<Array<{ id: string; status?: string }>>(
+        ["greengoods", "works", "merged", MOCK_ADDRESSES.garden, 11155111]
+      );
+
+      expect(mergedWorks).toBeDefined();
+      expect(mergedWorks!.length).toBeGreaterThan(0);
+      expect(mergedWorks![0].id).toMatch(/^0xoffline_optimistic_/);
+      expect(mergedWorks![0].status).toBe("pending");
     });
   });
 });
