@@ -721,6 +721,102 @@ function validateOctantVaultReadiness(
       const autoAllocate = parseBool(castCall(options.rpcUrl, vault, "autoAllocate()(bool)"));
       assert(autoAllocate, `autoAllocate disabled for vault ${vault}`, failures);
 
+      // Verify strategy has non-zero maxDebt (required for auto-allocate to deploy funds)
+      if (!isZeroAddress(strategy)) {
+        const strategyInfo = castCall(
+          options.rpcUrl,
+          vault,
+          "strategies(address)(uint256,uint256,uint256,uint256)",
+          [strategy],
+        );
+        const maxDebt = parseUint(strategyInfo.split("\n")[3] ?? "0");
+        assert(
+          maxDebt > 0n,
+          `strategy ${strategy} has maxDebt=0 on vault ${vault} — auto-allocate will not deploy funds`,
+          failures,
+        );
+      }
+
+      // Verify the live strategy is the effective auto-allocation target (queue head)
+      if (autoAllocate && !isZeroAddress(strategy)) {
+        const queueAddresses = parseAddressArray(
+          castCall(options.rpcUrl, vault, "get_default_queue()(address[])"),
+        );
+        assert(
+          queueAddresses.length > 0,
+          `vault ${vault} has autoAllocate=true but empty defaultQueue`,
+          failures,
+        );
+        if (queueAddresses.length > 0) {
+          assert(
+            normalizeAddress(queueAddresses[0]) === normalizeAddress(strategy),
+            `vault ${vault} queue head mismatch: expected ${strategy}, got ${queueAddresses[0]}`,
+            failures,
+          );
+        }
+      }
+
+      // Verify strategy health: asset match + totalAssets queryable + idle fund detection
+      if (!isZeroAddress(strategy)) {
+        // 1. Strategy's asset() must match the vault's expected asset (ERC4626 compliance)
+        try {
+          const strategyAsset = parseAddress(
+            castCall(options.rpcUrl, strategy, "asset()(address)"),
+          );
+          assert(
+            normalizeAddress(strategyAsset) === normalizeAddress(asset),
+            `strategy ${strategy} asset mismatch: expected ${asset}, got ${strategyAsset}`,
+            failures,
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          failures.push(
+            `strategy ${strategy} asset() call failed — strategy may not be ERC4626 compliant: ${maskRpcApiKey(message)}`,
+          );
+        }
+
+        // 2. Strategy's totalAssets() must be queryable (proves Aave communication works)
+        let strategyTotalAssets = 0n;
+        try {
+          strategyTotalAssets = parseUint(
+            castCall(options.rpcUrl, strategy, "totalAssets()(uint256)"),
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          failures.push(
+            `strategy ${strategy} totalAssets() call failed — strategy cannot communicate with Aave: ${maskRpcApiKey(message)}`,
+          );
+        }
+
+        // 3. If vault has deposits and autoAllocate is on, strategy should have non-zero
+        //    totalAssets — otherwise deposits are sitting idle, never reaching Aave
+        if (autoAllocate) {
+          try {
+            const vaultTotalAssets = parseUint(
+              castCall(options.rpcUrl, vault, "totalAssets()(uint256)"),
+            );
+            if (vaultTotalAssets > 0n && strategyTotalAssets === 0n) {
+              failures.push(
+                `vault ${vault} has ${vaultTotalAssets} total assets but strategy ${strategy} totalAssets=0 — deposits are idle, auto-allocate pipeline is broken`,
+              );
+            }
+          } catch {
+            // vault.totalAssets() failure is non-critical here — vault existence was already validated
+          }
+        }
+      }
+
+      // Verify OctantModule has correct vault roles (VAULT_ROLE_BITMASK = 491)
+      // Bits: ADD_STRATEGY(0) | REVOKE_STRATEGY(1) | ACCOUNTANT_MANAGER(3) |
+      //       REPORTING(5) | DEBT_MANAGER(6) | MAX_DEBT_MANAGER(7) | DEPOSIT_LIMIT(8)
+      const VAULT_ROLE_BITMASK = 491n;
+      const roleMask = parseUint(castCall(options.rpcUrl, vault, "roles(address)(uint256)", [octantModule]));
+      assert(
+        (roleMask & VAULT_ROLE_BITMASK) === VAULT_ROLE_BITMASK,
+        `vault roles for OctantModule on vault ${vault}: got ${roleMask}, expected all bits of ${VAULT_ROLE_BITMASK} set`,
+        failures,
+      );
+
       const accountant = parseAddress(castCall(options.rpcUrl, vault, "accountant()(address)"));
       if (!isZeroAddress(yieldResolver)) {
         assert(
@@ -748,7 +844,11 @@ function validateOctantVaultReadiness(
         const protocolFeeBps = parseUint(
           castCall(options.rpcUrl, octantFactory, "protocolFeeConfig(address)(uint16,address)", [vault]),
         );
-        assert(protocolFeeBps === 0n, `protocol fee should be zero for vault ${vault}, got ${protocolFeeBps}`, failures);
+        assert(
+          protocolFeeBps === 0n,
+          `protocol fee should be zero for vault ${vault}, got ${protocolFeeBps}`,
+          failures,
+        );
       }
     }
   }

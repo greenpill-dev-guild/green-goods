@@ -111,9 +111,40 @@ interface IOctantVault {
     function maxDeposit(address account) external view returns (uint256 assets);
 
     /// @notice Maximum assets an account can withdraw
-    /// @param account Account to query
+    /// @dev Octant MultistrategyVault uses an extended ERC4626 signature with maxLoss and strategies queue.
+    /// @param owner_ Account to query
+    /// @param maxLoss_ Maximum acceptable loss in basis points (0-10000)
+    /// @param strategies_ Custom withdrawal queue (empty = use default)
     /// @return assets Maximum withdraw amount
-    function maxWithdraw(address account) external view returns (uint256 assets);
+    function maxWithdraw(
+        address owner_,
+        uint256 maxLoss_,
+        address[] memory strategies_
+    )
+        external
+        view
+        returns (uint256 assets);
+
+    /// @notice Returns strategy configuration
+    /// @param strategy Strategy address
+    /// @return activation Timestamp of strategy activation
+    /// @return lastReport Timestamp of last report
+    /// @return currentDebt Current debt allocated to strategy
+    /// @return maxDebt Maximum debt allowed for strategy
+    function strategies(address strategy)
+        external
+        view
+        returns (uint256 activation, uint256 lastReport, uint256 currentDebt, uint256 maxDebt);
+
+    /// @notice Whether new deposits automatically allocate to the default strategy queue
+    function autoAllocate() external view returns (bool);
+
+    /// @notice Accountant contract used during process_report fee handling
+    function accountant() external view returns (address);
+
+    /// @notice Returns the current default queue of strategies
+    /// @dev Used to verify queue-head ordering after migration operations
+    function get_default_queue() external view returns (address[] memory);
 
     /// @notice Adds a new strategy to the vault
     /// @param newStrategy Strategy address to add
@@ -146,6 +177,14 @@ interface IOctantVault {
     /// @param account The address to grant roles to
     /// @param role Bitmask of roles to grant
     function set_role(address account, uint256 role) external;
+
+    /// @notice Sets the vault accountant used during process_report
+    /// @param newAccountant Accountant contract address
+    function set_accountant(address newAccountant) external;
+
+    /// @notice Enables or disables automatic debt allocation on deposit
+    /// @param autoAllocate Whether deposits should auto-allocate into the default queue
+    function set_auto_allocate(bool autoAllocate) external;
 
     /// @notice Sets the deposit limit for the vault (caller must have DEPOSIT_LIMIT_MANAGER role)
     /// @param depositLimit_ New deposit limit (type(uint256).max for unlimited)

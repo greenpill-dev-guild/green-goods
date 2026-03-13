@@ -9,6 +9,15 @@ import { IOctantFactory, IOctantStrategy, IOctantVault } from "../interfaces/IOc
 contract MockOctantFactory is IOctantFactory {
     mapping(address => address) public deployedVaults;
     uint256 public vaultCount;
+    bool public revertOnUpdateMaxDebt;
+    bool public revertOnSetAutoAllocate;
+    bool public revertOnSetAccountant;
+
+    function setWiringReverts(bool maxDebt, bool autoAllocate, bool accountant) external {
+        revertOnUpdateMaxDebt = maxDebt;
+        revertOnSetAutoAllocate = autoAllocate;
+        revertOnSetAccountant = accountant;
+    }
 
     /// @notice Deploys a mock vault
     function deployNewVault(
@@ -23,7 +32,9 @@ contract MockOctantFactory is IOctantFactory {
         returns (address vault)
     {
         vaultCount++;
-        vault = address(new MockOctantVault(asset, _name, symbol, roleManager, profitMaxUnlockTime));
+        MockOctantVault deployedVault = new MockOctantVault(asset, _name, symbol, roleManager, profitMaxUnlockTime);
+        deployedVault.setWiringReverts(revertOnUpdateMaxDebt, revertOnSetAutoAllocate, revertOnSetAccountant);
+        vault = address(deployedVault);
         deployedVaults[roleManager] = vault;
         return vault;
     }
@@ -43,6 +54,9 @@ contract MockOctantVault is IOctantVault {
     uint256 public profitUnlockTime;
     uint256 public _totalAssets;
     uint256 public override totalSupply;
+    bool public override autoAllocate;
+    address public override accountant;
+    uint256 public depositLimit;
 
     /// @notice Exchange rate numerator (assets per share = rateNumerator / rateDenominator)
     uint256 public rateNumerator = 1;
@@ -51,14 +65,26 @@ contract MockOctantVault is IOctantVault {
 
     mapping(address account => uint256 balance) public balances;
     mapping(address strategy => bool active) public activeStrategies;
+    mapping(address strategy => uint256 activation) public strategyActivation;
+    mapping(address strategy => uint256 maxDebt) public strategyMaxDebt;
+    mapping(address account => uint256 roles) public accountRoles;
+    address[] public defaultQueue;
 
     /// @notice Recipient for process_report yield simulation (e.g., YieldResolver)
     address public processReportShareRecipient;
     /// @notice Number of shares to mint during next process_report call
     uint256 public processReportShareAmount;
+    bool public revertOnUpdateMaxDebt;
+    bool public revertOnSetAutoAllocate;
+    bool public revertOnSetAccountant;
+    bool public revertOnRevokeStrategy;
 
     error InsufficientShares();
     error UnauthorizedRoleManager();
+    error UpdateMaxDebtReverted();
+    error SetAutoAllocateReverted();
+    error SetAccountantReverted();
+    error RevokeStrategyReverted();
 
     constructor(
         address _asset,
@@ -72,6 +98,17 @@ contract MockOctantVault is IOctantVault {
         symbol = _symbol;
         roleManager = _roleManager;
         profitUnlockTime = _profitUnlockTime;
+        depositLimit = type(uint256).max;
+    }
+
+    function setWiringReverts(bool maxDebtRevert, bool autoAllocateRevert, bool accountantRevert) external {
+        revertOnUpdateMaxDebt = maxDebtRevert;
+        revertOnSetAutoAllocate = autoAllocateRevert;
+        revertOnSetAccountant = accountantRevert;
+    }
+
+    function setRevokeStrategyReverts(bool shouldRevert) external {
+        revertOnRevokeStrategy = shouldRevert;
     }
 
     /// @notice Set exchange rate to simulate yield accrual (e.g., 110/100 = 10% yield)
@@ -162,18 +199,39 @@ contract MockOctantVault is IOctantVault {
         return type(uint256).max;
     }
 
-    function maxWithdraw(address account) external view override returns (uint256 assets) {
+    function maxWithdraw(address account, uint256, address[] memory) external view override returns (uint256 assets) {
         return balances[account];
     }
 
-    function add_strategy(address _strategy, bool) external override {
+    function add_strategy(address _strategy, bool addToQueue) external override {
         if (msg.sender != roleManager) revert UnauthorizedRoleManager();
+        // Mirror real vault's ERC4626 asset() validation to prevent false positives
+        (bool success, bytes memory returnData) = _strategy.staticcall(abi.encodeWithSignature("asset()"));
+        require(success && returnData.length >= 32 && abi.decode(returnData, (address)) == asset, "InvalidAsset");
         activeStrategies[_strategy] = true;
+        strategyActivation[_strategy] = block.timestamp;
+        if (addToQueue) {
+            defaultQueue.push(_strategy);
+        }
     }
 
     function revoke_strategy(address _strategy) external override {
         if (msg.sender != roleManager) revert UnauthorizedRoleManager();
+        if (revertOnRevokeStrategy) revert RevokeStrategyReverted();
         activeStrategies[_strategy] = false;
+        // Remove from defaultQueue (mirrors real vault behavior)
+        uint256 len = defaultQueue.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (defaultQueue[i] == _strategy) {
+                defaultQueue[i] = defaultQueue[len - 1];
+                defaultQueue.pop();
+                break;
+            }
+        }
+    }
+
+    function get_default_queue() external view returns (address[] memory) {
+        return defaultQueue;
     }
 
     function strategies(address _strategy)
@@ -182,12 +240,15 @@ contract MockOctantVault is IOctantVault {
         returns (uint256 activation, uint256 lastReport, uint256 currentDebt, uint256 maxDebt)
     {
         if (activeStrategies[_strategy]) {
-            return (block.timestamp, block.timestamp, 0, type(uint256).max);
+            return (strategyActivation[_strategy], block.timestamp, 0, strategyMaxDebt[_strategy]);
         }
         return (0, 0, 0, 0);
     }
 
-    function update_max_debt_for_strategy(address, uint256) external override { }
+    function update_max_debt_for_strategy(address strategy, uint256 newMaxDebt) external override {
+        if (revertOnUpdateMaxDebt) revert UpdateMaxDebtReverted();
+        strategyMaxDebt[strategy] = newMaxDebt;
+    }
 
     function update_debt(address, uint256 targetDebt, uint256) external override returns (uint256) {
         return targetDebt;
@@ -197,9 +258,10 @@ contract MockOctantVault is IOctantVault {
         // Mimic real Yearn V3: vault calls strategy.report() internally during process_report
         IOctantStrategy(strategy).report();
 
-        // Simulate yield: mint shares to donation address (e.g., YieldResolver)
-        if (processReportShareAmount > 0 && processReportShareRecipient != address(0)) {
-            balances[processReportShareRecipient] += processReportShareAmount;
+        // Simulate yield: mint shares to the accountant when configured, matching the real fee-share path.
+        address recipient = accountant != address(0) ? accountant : processReportShareRecipient;
+        if (processReportShareAmount > 0 && recipient != address(0)) {
+            balances[recipient] += processReportShareAmount;
             totalSupply += processReportShareAmount;
             processReportShareAmount = 0; // Consume pending yield
         }
@@ -207,9 +269,23 @@ contract MockOctantVault is IOctantVault {
         return (0, 0);
     }
 
-    function set_role(address, uint256) external override { }
+    function set_role(address account, uint256 role) external override {
+        accountRoles[account] = role;
+    }
 
-    function set_deposit_limit(uint256, bool) external override { }
+    function set_accountant(address newAccountant) external override {
+        if (revertOnSetAccountant) revert SetAccountantReverted();
+        accountant = newAccountant;
+    }
+
+    function set_auto_allocate(bool _autoAllocate) external override {
+        if (revertOnSetAutoAllocate) revert SetAutoAllocateReverted();
+        autoAllocate = _autoAllocate;
+    }
+
+    function set_deposit_limit(uint256 newDepositLimit, bool) external override {
+        depositLimit = newDepositLimit;
+    }
 }
 
 /// @title ProcessReportRevertingVault
@@ -276,6 +352,8 @@ contract RevertingOctantVault is IOctantVault {
     string public symbol;
     address public roleManager;
     uint256 public profitUnlockTime;
+    bool public override autoAllocate;
+    address public override accountant;
 
     constructor(
         address _asset,
@@ -340,12 +418,18 @@ contract RevertingOctantVault is IOctantVault {
         return type(uint256).max;
     }
 
-    function maxWithdraw(address) external pure override returns (uint256) {
+    function maxWithdraw(address, uint256, address[] memory) external pure override returns (uint256) {
         return 0;
     }
 
     function revoke_strategy(address) external pure override { }
     function update_max_debt_for_strategy(address, uint256) external pure override { }
+    function set_accountant(address) external pure override { }
+    function set_auto_allocate(bool) external pure override { }
+
+    function get_default_queue() external pure returns (address[] memory) {
+        return new address[](0);
+    }
 
     function update_debt(address, uint256 targetDebt, uint256) external pure override returns (uint256) {
         return targetDebt;
@@ -353,6 +437,10 @@ contract RevertingOctantVault is IOctantVault {
 
     function process_report(address) external pure override returns (uint256, uint256) {
         return (0, 0);
+    }
+
+    function strategies(address) external pure returns (uint256, uint256, uint256, uint256) {
+        return (0, 0, 0, 0);
     }
 
     function set_role(address, uint256) external override { }

@@ -13,7 +13,7 @@ dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
 type ContractName =
   | "action-registry"
   | "garden-token"
-  | "gardener-account"
+  | "yield-resolver"
   | "octant-module"
   | "work-resolver"
   | "work-approval-resolver"
@@ -24,7 +24,7 @@ type ContractName =
 const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "action-registry": "upgradeActionRegistry()",
   "garden-token": "upgradeGardenToken()",
-  "gardener-account": "upgradeGardenerAccount()",
+  "yield-resolver": "upgradeYieldResolver()",
   "octant-module": "upgradeOctantModule()",
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
@@ -40,13 +40,14 @@ const ALL_CONTRACTS_FOR_UPGRADE_ALL: readonly ContractName[] = [
   "work-approval-resolver",
   "assessment-resolver",
   "deployment-registry",
+  "yield-resolver",
   "octant-module",
 ];
 
 const DEPLOYMENT_KEYS: Record<Exclude<ContractName, "all">, string> = {
   "action-registry": "actionRegistry",
   "garden-token": "gardenToken",
-  "gardener-account": "accountProxy",
+  "yield-resolver": "yieldSplitter",
   "octant-module": "octantModule",
   "work-resolver": "workResolver",
   "work-approval-resolver": "workApprovalResolver",
@@ -193,7 +194,7 @@ Usage: bun script/upgrade.ts <contract> [options]
 Contracts:
   action-registry          Upgrade ActionRegistry
   garden-token            Upgrade GardenToken
-  gardener-account        Upgrade GardenerAccount (user smart account logic)
+  yield-resolver          Upgrade YieldResolver
   octant-module           Upgrade OctantModule (vault treasury module)
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver

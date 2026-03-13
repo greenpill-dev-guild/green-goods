@@ -102,10 +102,12 @@ function planForFastMode(): BuildPlan {
 function planForAutoMode(changed: ChangedTargets): BuildPlan {
   const broadenSourceScope = hasSharedSourceChange(changed.src);
   const sourceTargets = broadenSourceScope ? ["src"] : changed.src;
-  const targets = dedupeSorted([...sourceTargets, ...changed.test, ...changed.script]);
+  const targets = dedupeSorted([...sourceTargets, ...changed.script]);
 
   return {
-    skipTest: changed.test.length === 0,
+    // Tests compile under `bun run test` / `forge test`, which use test/fork profiles.
+    // Keep `build` focused on src + scripts to avoid profile-mismatch stack issues on fork suites.
+    skipTest: true,
     skipScript: changed.script.length === 0,
     targets: targets.length === 0 ? ["src"] : targets,
   };
@@ -118,7 +120,20 @@ async function runForge(plan: BuildPlan): Promise<number> {
   if (plan.skipScript) args.push("--skip", "script");
   if (plan.targets.length > 0) args.push(...plan.targets);
 
-  const proc = Bun.spawn(args, { cwd: contractsDir, stdout: "inherit", stderr: "inherit" });
+  const profile = process.env.FOUNDRY_PROFILE ?? (!plan.skipTest ? "test" : undefined);
+  if (profile) {
+    log(`Using Foundry profile "${profile}"`);
+  }
+
+  const proc = Bun.spawn(args, {
+    cwd: contractsDir,
+    stdout: "inherit",
+    stderr: "inherit",
+    env: {
+      ...process.env,
+      ...(profile ? { FOUNDRY_PROFILE: profile } : {}),
+    },
+  });
   return await proc.exited;
 }
 
@@ -135,7 +150,7 @@ async function main() {
     const changed = await getChangedTargets();
     plan = planForAutoMode(changed);
     const parts: string[] = [];
-    parts.push(plan.skipTest ? "skip test" : "include changed test Solidity");
+    parts.push(changed.test.length > 0 ? "skip test (validated via forge test profiles)" : "skip test");
     parts.push(plan.skipScript ? "skip script" : "include changed script Solidity");
     parts.push(`targets=${plan.targets.join(",")}`);
     log(`Using auto mode (${parts.join("; ")})`);

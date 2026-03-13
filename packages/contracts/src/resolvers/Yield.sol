@@ -13,6 +13,7 @@ import { IOctantVault } from "../interfaces/IOctantFactory.sol";
 import { IJBMultiTerminal } from "../interfaces/IJuicebox.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { ICookieJarModule } from "../interfaces/ICookieJarModule.sol";
+import { IAccountant } from "@octant/interfaces/IAccountant.sol";
 
 /// @title YieldResolver
 /// @notice Splits yield from Octant ERC-4626 vaults into three configurable destinations:
@@ -22,7 +23,7 @@ import { ICookieJarModule } from "../interfaces/ICookieJarModule.sol";
 /// @dev Receives ERC-4626 vault shares as donation address from OctantModule.
 ///      Permissionless splitYield() — anyone can trigger allocation.
 ///      All external calls wrapped in try/catch for graceful degradation.
-contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
+contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable, IAccountant {
     using SafeERC20 for IERC20;
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -80,6 +81,8 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
     event ConvictionRouted(address indexed garden, address indexed asset, uint256 proposalCount, uint256 totalConviction);
 
+    event ConvictionCapReached(address indexed garden, uint256 proposalCount, uint256 maxProcessed);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
@@ -107,6 +110,11 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// @notice Default split allocates 2.7% to Juicebox GOODS backing
     /// @dev 270 bps = 2.7%. Using the remainder keeps rounding deterministic (sum always equals 10_000 bps).
     uint256 public constant DEFAULT_JUICEBOX_BPS = 270;
+
+    /// @notice Maximum proposals processed per split to prevent gas DoS
+    /// @dev At 500+ proposals with 2 external calls each, unbounded iteration exceeds block gas limit,
+    ///      permanently bricking splitYield() for that garden. 200 is safely within gas limits.
+    uint256 public constant MAX_PROPOSALS_PER_SPLIT = 200;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
@@ -173,14 +181,17 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// @dev Set post-mint by owner when a garden's signal pool is created. Zero address = escrow mode.
     mapping(address garden => address pool) public gardenHypercertPools;
 
+    /// @notice Per-asset minimum yield threshold override (0 = use global minYieldThreshold)
+    mapping(address asset => uint256 threshold) public assetYieldThresholds;
+
     /// @notice Storage gap for future upgrades
-    /// @dev 17 storage vars + 33 gap = 50 slots total
+    /// @dev 18 storage vars + 32 gap = 50 slots total
     ///      Vars: octantModule, hypercertMarketplace, jbMultiTerminal, juiceboxProjectId,
     ///            minYieldThreshold, minAllocationAmount, hatsModule,
     ///            gardenSplitConfig, gardenCookieJars, gardenTreasuries, pendingYield, gardenVaults,
     ///            gardenShares, cookieJarModule, escrowedFractions, totalRegisteredShares,
-    ///            gardenHypercertPools
-    uint256[33] private __gap;
+    ///            gardenHypercertPools, assetYieldThresholds
+    uint256[32] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -241,8 +252,8 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         // Step 1-2: Redeem shares and compute total yield (including any pending)
         uint256 totalYield = _redeemAndAccumulate(garden, asset, vault);
 
-        // Step 3: Minimum threshold check
-        if (totalYield < minYieldThreshold) {
+        // Step 3: Minimum threshold check (per-asset if set, else global)
+        if (totalYield < _getYieldThreshold(asset)) {
             pendingYield[garden][asset] = totalYield;
             emit YieldAccumulated(garden, asset, totalYield, totalYield);
             return;
@@ -271,7 +282,7 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         uint256 redeemed = 0;
         if (shares > 0) {
             uint256 redeemableShares = shares;
-            uint256 maxWithdrawAssets = IOctantVault(vault).maxWithdraw(address(this));
+            uint256 maxWithdrawAssets = IOctantVault(vault).maxWithdraw(address(this), 1, new address[](0));
 
             // Some ERC-4626 implementations cap withdrawals during strategy illiquidity.
             // Redeem only the currently withdrawable portion to avoid full-call reverts.
@@ -394,6 +405,18 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         gardenShares[garden][vault] = newTotal;
     }
 
+    /// @notice IAccountant callback — routes 100% of strategy gain as fees to this resolver.
+    /// @dev The vault calls report() during process_report() to determine fee allocation.
+    ///      Returning (gain, 0) means all profit shares are minted to this contract (the accountant).
+    ///      Loss is handled internally by the vault — the loss parameter is informational only.
+    ///      OctantModule.harvest() then calls registerShares() to attribute these shares to the garden.
+    ///      DESIGN: Kept pure for gas efficiency (~200 gas vs ~5000 for state-mutating).
+    ///      Per-strategy gain data is available via vault's StrategyReported events. If on-chain
+    ///      audit trail is needed, upgrade to non-pure and emit an event.
+    function report(address, uint256 gain, uint256) external pure override returns (uint256 fees, uint256 refunds) {
+        return (gain, 0);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Admin Functions
     // ═══════════════════════════════════════════════════════════════════════════
@@ -439,6 +462,11 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     ///      Set to address(0) to revert to escrow mode for a garden.
     function setGardenHypercertPool(address garden, address pool) external onlyOwner {
         gardenHypercertPools[garden] = pool;
+    }
+
+    /// @notice Set per-asset minimum yield threshold (0 to use global default)
+    function setAssetYieldThreshold(address asset, uint256 threshold) external onlyOwner {
+        assetYieldThresholds[asset] = threshold;
     }
 
     /// @notice Withdraw escrowed fractions yield to a garden's treasury
@@ -579,9 +607,16 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
             return;
         }
 
-        // Read conviction values for all active proposals
+        // Cap iteration to prevent gas DoS with high proposal counts
+        uint256 maxIter = proposalCount > MAX_PROPOSALS_PER_SPLIT ? MAX_PROPOSALS_PER_SPLIT : proposalCount;
+
+        // Read conviction values for active proposals (up to cap)
         (uint256[] memory convictions, uint256 totalConviction, uint256 activeCount) =
-            _readConvictionWeights(pool, proposalCount);
+            _readConvictionWeights(pool, proposalCount, maxIter);
+
+        if (proposalCount > MAX_PROPOSALS_PER_SPLIT) {
+            emit ConvictionCapReached(garden, proposalCount, MAX_PROPOSALS_PER_SPLIT);
+        }
 
         if (totalConviction == 0) {
             _escrowFractions(garden, asset, amount);
@@ -589,7 +624,7 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         }
 
         // Distribute proportionally based on conviction weights
-        uint256 distributed = _distributeFractions(garden, asset, amount, convictions, proposalCount, totalConviction);
+        uint256 distributed = _distributeFractions(garden, asset, amount, convictions, maxIter, totalConviction);
 
         // Rounding dust goes to escrow (prevents wei loss)
         if (amount > distributed) {
@@ -606,25 +641,29 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         emit YieldAccumulated(garden, asset, amount, escrowedFractions[garden][asset]);
     }
 
-    /// @notice Read conviction weights from a CVStrategy pool for all active proposals
+    /// @notice Read conviction weights from a CVStrategy pool for active proposals (bounded)
     /// @dev Returns per-proposal convictions (1-indexed, stored at [i-1]), total conviction, and active count.
     ///      Proposals that are not Active (status != 1) or whose calls revert are skipped.
+    ///      Only processes up to `maxIter` proposals to bound gas usage.
     /// @param pool The CVStrategy pool address
-    /// @param proposalCount The total number of proposals in the pool
+    /// @param proposalCount The total number of proposals in the pool (for documentation; iteration uses maxIter)
+    /// @param maxIter The maximum number of proposals to iterate (capped by caller)
     /// @return convictions Array of conviction values per proposal (0 for skipped)
     /// @return totalConviction Sum of all active conviction values
     /// @return activeCount Number of proposals with non-zero conviction
     function _readConvictionWeights(
         address pool,
-        uint256 proposalCount
+        uint256 proposalCount,
+        uint256 maxIter
     )
         private
         view
         returns (uint256[] memory convictions, uint256 totalConviction, uint256 activeCount)
     {
-        convictions = new uint256[](proposalCount);
+        (proposalCount); // Suppress unused parameter warning — kept for NatSpec clarity
+        convictions = new uint256[](maxIter);
 
-        for (uint256 i = 1; i <= proposalCount; i++) {
+        for (uint256 i = 1; i <= maxIter; i++) {
             // Check proposal status — only Active (status == 1) proposals participate
             // solhint-disable-next-line no-empty-blocks
             try ICVStrategy(pool).getProposal(i) returns (
@@ -789,6 +828,12 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         if (hatsModule.isOwnerOf(garden, msg.sender)) return;
 
         revert UnauthorizedCaller(msg.sender);
+    }
+
+    /// @notice Get the yield threshold for an asset (per-asset if set, else global)
+    function _getYieldThreshold(address asset) internal view returns (uint256) {
+        uint256 assetThreshold = assetYieldThresholds[asset];
+        return assetThreshold > 0 ? assetThreshold : minYieldThreshold;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

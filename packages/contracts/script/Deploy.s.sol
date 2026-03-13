@@ -19,10 +19,10 @@ import { GreenGoodsENS } from "../src/registries/ENS.sol";
 import { IENS } from "../src/interfaces/IENS.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { IOctantFactory } from "../src/interfaces/IOctantFactory.sol";
+import { IOctantFactory, IOctantVault } from "../src/interfaces/IOctantFactory.sol";
 import { GreenGoodsENSReceiver } from "../src/registries/ENSReceiver.sol";
 // GardensModule and YieldResolver deployed via inherited DeploymentBase
-import { AaveV3 } from "../src/strategies/AaveV3.sol";
+import { AaveV3ERC4626 } from "../src/strategies/AaveV3ERC4626.sol";
 import { MockYDSStrategy } from "../src/mocks/YDSStrategy.sol";
 import { MockRegistryFactory } from "../src/mocks/GardensV2.sol";
 import { GardensV2Addresses } from "../test/fork/helpers/GardensV2Addresses.sol";
@@ -47,10 +47,15 @@ contract Deploy is Script, DeploymentBase {
     error RootGardenCommunityNotCreated();
     error RootGardenPoolNotCreated();
     error RootGardenVaultMissing(address asset);
+    error RootGardenStrategyMissing(address asset);
+    error RootGardenAutoAllocateDisabled(address asset);
+    error RootGardenMaxDebtZero(address asset);
+    error RootGardenAccountantMismatch(address asset);
     error RootGardenJarMissing(address asset);
     error RootGardenGoodsNotSeeded();
     error RootGardenDomainMaskInvalid(uint8 domainMask);
     error NoSeedGardensConfigured();
+    error MissingStrategyTemplate(string asset);
     error InvalidSeedRoleAddress(address garden, uint8 role, uint256 index);
     error SeedRoleGrantFailed(address garden, address account, uint8 role);
 
@@ -71,6 +76,7 @@ contract Deploy is Script, DeploymentBase {
     address private constant ARBITRUM_DAI = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1;
     address private constant ARBITRUM_AWETH = 0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8;
     address private constant ARBITRUM_ADAI = 0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE;
+    address private constant ARBITRUM_AAVE_V3_DATA_PROVIDER = 0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654;
 
     /// @notice Deployment mode flags
     struct DeploymentMode {
@@ -223,6 +229,7 @@ contract Deploy is Script, DeploymentBase {
     ///      3) Auto-deploy (AUTO_DEPLOY_OCTANT_FACTORY=true, default)
     function _configureOctant() internal {
         if (address(octantModule) == address(0) || address(gardenToken) == address(0)) {
+            console.log("SKIP: Octant not configured (missing octantModule or gardenToken)");
             return;
         }
 
@@ -234,6 +241,7 @@ contract Deploy is Script, DeploymentBase {
             octantFactoryAddress = _deployOctantFactory();
         }
         if (octantFactoryAddress == address(0)) {
+            console.log("SKIP: Octant factory not configured (no env, no existing, auto-deploy disabled)");
             return;
         }
 
@@ -254,30 +262,51 @@ contract Deploy is Script, DeploymentBase {
         _configureExplicitOctantAssets();
     }
 
-    /// @notice Configure Arbitrum defaults (WETH + DAI) with AaveV3 instances
+    /// @notice Configure Arbitrum defaults (WETH + DAI) with AaveV3 ERC4626 templates.
     function _configureArbitrumOctantAssets() internal {
         address wethAsset = _envAddressOrDefault("OCTANT_WETH_ASSET", ARBITRUM_WETH);
         address daiAsset = _envAddressOrDefault("OCTANT_DAI_ASSET", ARBITRUM_DAI);
-        address strategyOwner = _envAddressOrDefault("OCTANT_STRATEGY_OWNER", msg.sender);
+        address strategyOwner = _envAddressOrDefault("OCTANT_STRATEGY_OWNER", address(octantModule));
 
         address wethStrategy = _envAddressOrZero("OCTANT_WETH_STRATEGY");
         if (wethStrategy == address(0)) {
             address wethAToken = _envAddressOrDefault("OCTANT_WETH_ATOKEN", ARBITRUM_AWETH);
-            wethStrategy = address(new AaveV3(wethAsset, ARBITRUM_AAVE_V3_POOL, wethAToken, strategyOwner));
+            wethStrategy = address(
+                new AaveV3ERC4626(
+                    wethAsset,
+                    "GG Aave WETH",
+                    "ggaWETH",
+                    ARBITRUM_AAVE_V3_POOL,
+                    wethAToken,
+                    ARBITRUM_AAVE_V3_DATA_PROVIDER,
+                    strategyOwner
+                )
+            );
         }
 
         address daiStrategy = _envAddressOrZero("OCTANT_DAI_STRATEGY");
         if (daiStrategy == address(0)) {
             address daiAToken = _envAddressOrDefault("OCTANT_DAI_ATOKEN", ARBITRUM_ADAI);
-            daiStrategy = address(new AaveV3(daiAsset, ARBITRUM_AAVE_V3_POOL, daiAToken, strategyOwner));
+            daiStrategy = address(
+                new AaveV3ERC4626(
+                    daiAsset,
+                    "GG Aave DAI",
+                    "ggaDAI",
+                    ARBITRUM_AAVE_V3_POOL,
+                    daiAToken,
+                    ARBITRUM_AAVE_V3_DATA_PROVIDER,
+                    strategyOwner
+                )
+            );
         }
 
         octantModule.setSupportedAsset(wethAsset, wethStrategy);
         octantModule.setSupportedAsset(daiAsset, daiStrategy);
     }
 
-    /// @notice Configure supported assets entirely from explicit env variables
-    /// @dev If no explicit assets are provided, falls back to community token.
+    /// @notice Configure supported assets entirely from explicit env variables.
+    /// @dev Requires ERC4626-compatible strategy templates — does NOT fall back to mock strategies,
+    ///      which are incompatible with _deployStrategyForVault's IAaveV3ERC4626 template reads.
     function _configureExplicitOctantAssets() internal {
         address wethAsset = _envAddressOrZero("OCTANT_WETH_ASSET");
         address daiAsset = _envAddressOrZero("OCTANT_DAI_ASSET");
@@ -287,17 +316,13 @@ contract Deploy is Script, DeploymentBase {
         bool configuredAny;
 
         if (wethAsset != address(0)) {
-            if (wethStrategy == address(0)) {
-                wethStrategy = address(new MockYDSStrategy());
-            }
+            if (wethStrategy == address(0)) revert MissingStrategyTemplate("OCTANT_WETH_STRATEGY");
             octantModule.setSupportedAsset(wethAsset, wethStrategy);
             configuredAny = true;
         }
 
         if (daiAsset != address(0)) {
-            if (daiStrategy == address(0)) {
-                daiStrategy = address(new MockYDSStrategy());
-            }
+            if (daiStrategy == address(0)) revert MissingStrategyTemplate("OCTANT_DAI_STRATEGY");
             octantModule.setSupportedAsset(daiAsset, daiStrategy);
             configuredAny = true;
         }
@@ -312,9 +337,7 @@ contract Deploy is Script, DeploymentBase {
             }
 
             address fallbackStrategy = _envAddressOrZero("OCTANT_FALLBACK_STRATEGY");
-            if (fallbackStrategy == address(0)) {
-                fallbackStrategy = address(new MockYDSStrategy());
-            }
+            if (fallbackStrategy == address(0)) revert MissingStrategyTemplate("OCTANT_FALLBACK_STRATEGY");
 
             octantModule.setSupportedAsset(fallbackAsset, fallbackStrategy);
         }
@@ -521,8 +544,24 @@ contract Deploy is Script, DeploymentBase {
         if (_envBoolOrDefault("REQUIRE_OCTANT_READY", true)) {
             address[] memory activeOctantAssets = _getActiveOctantAssets();
             for (uint256 i = 0; i < activeOctantAssets.length; i++) {
-                if (octantModule.getVaultForAsset(rootGardenAddress, activeOctantAssets[i]) == address(0)) {
-                    revert RootGardenVaultMissing(activeOctantAssets[i]);
+                address asset = activeOctantAssets[i];
+                address vault = octantModule.getVaultForAsset(rootGardenAddress, asset);
+                if (vault == address(0)) revert RootGardenVaultMissing(asset);
+
+                // Verify vault is fully wired (prevents silent strategy attachment failures)
+                address strategy = octantModule.vaultStrategies(vault);
+                if (strategy == address(0)) revert RootGardenStrategyMissing(asset);
+
+                if (!IOctantVault(vault).autoAllocate()) revert RootGardenAutoAllocateDisabled(asset);
+
+                (,,, uint256 maxDebt) = IOctantVault(vault).strategies(strategy);
+                if (maxDebt == 0) revert RootGardenMaxDebtZero(asset);
+
+                address resolver = octantModule.yieldResolver();
+                if (resolver != address(0)) {
+                    if (IOctantVault(vault).accountant() != resolver) {
+                        revert RootGardenAccountantMismatch(asset);
+                    }
                 }
             }
         }
@@ -620,6 +659,7 @@ contract Deploy is Script, DeploymentBase {
         }
 
         if (_getActiveOctantAssets().length == 0) revert CriticalDependencyMissing("octantModule.supportedAssets");
+        if (octantModule.yieldResolver() == address(0)) revert CriticalDependencyMissing("octantModule.yieldResolver");
     }
 
     /// @notice Validate CookieJar prerequisites required for seed jar creation.
@@ -741,6 +781,35 @@ contract Deploy is Script, DeploymentBase {
         }
     }
 
+    /// @notice Grant configured seed roles and verify each grant result.
+    function _grantSeedRoles(address garden, address[] memory operators, address[] memory gardeners) internal {
+        _grantSeedRoleBatch(garden, operators, IHatsModule.GardenRole.Operator);
+        _grantSeedRoleBatch(garden, gardeners, IHatsModule.GardenRole.Gardener);
+    }
+
+    /// @notice Grant a role batch for one role type and verify each account.
+    function _grantSeedRoleBatch(address garden, address[] memory accounts, IHatsModule.GardenRole role) internal {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            address account = accounts[i];
+            if (account == address(0)) {
+                revert InvalidSeedRoleAddress(garden, uint8(role), i);
+            }
+
+            bool alreadyGranted = role == IHatsModule.GardenRole.Operator
+                ? hatsModule.isOperatorOf(garden, account)
+                : hatsModule.isGardenerOf(garden, account);
+            if (alreadyGranted) {
+                continue;
+            }
+
+            hatsModule.grantRole(garden, account, role);
+            bool granted = role == IHatsModule.GardenRole.Operator
+                ? hatsModule.isOperatorOf(garden, account)
+                : hatsModule.isGardenerOf(garden, account);
+            if (!granted) revert SeedRoleGrantFailed(garden, account, uint8(role));
+        }
+    }
+
     /// @notice Whether root-garden pool creation is a hard deployment gate.
     /// @dev Arbitrum defaults to non-blocking because community council-safe policy and
     ///      Gardens V2 permissions may require post-deploy council transactions for pools.
@@ -842,156 +911,6 @@ contract Deploy is Script, DeploymentBase {
 
         operators = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".operators"));
         gardeners = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".gardeners"));
-
-        gardenConfig = GardenToken.GardenConfig({
-            name: name,
-            slug: slug,
-            description: description,
-            location: location,
-            bannerImage: bannerImage,
-            metadata: metadata,
-            openJoining: openJoining,
-            weightScheme: IGardensModule.WeightScheme.Linear,
-            domainMask: domainMask
-        });
-    }
-
-    /// @notice Grant configured seed roles and verify each grant result.
-    function _grantSeedRoles(address garden, address[] memory operators, address[] memory gardeners) internal {
-        _grantSeedRoleBatch(garden, operators, IHatsModule.GardenRole.Operator);
-        _grantSeedRoleBatch(garden, gardeners, IHatsModule.GardenRole.Gardener);
-    }
-
-    /// @notice Grant a role batch for one role type and verify each account.
-    function _grantSeedRoleBatch(address garden, address[] memory accounts, IHatsModule.GardenRole role) internal {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            address account = accounts[i];
-            if (account == address(0)) {
-                revert InvalidSeedRoleAddress(garden, uint8(role), i);
-            }
-
-            bool alreadyGranted = role == IHatsModule.GardenRole.Operator
-                ? hatsModule.isOperatorOf(garden, account)
-                : hatsModule.isGardenerOf(garden, account);
-            if (alreadyGranted) {
-                continue;
-            }
-
-            hatsModule.grantRole(garden, account, role);
-            bool granted = role == IHatsModule.GardenRole.Operator
-                ? hatsModule.isOperatorOf(garden, account)
-                : hatsModule.isGardenerOf(garden, account);
-            if (!granted) revert SeedRoleGrantFailed(garden, account, uint8(role));
-        }
-
-        // Recovery path: if community/pools were created via retry helpers, treasury seeding
-        // from the original onGardenMinted() may have been skipped. Attempt owner-only reseed.
-        address goodsTokenAddress = address(gardensModule.goodsToken());
-        if (goodsTokenAddress != address(0) && IERC20(goodsTokenAddress).balanceOf(rootGardenAddress) == 0) {
-            // solhint-disable-next-line no-empty-blocks
-            try gardensModule.seedGardenTreasury(rootGardenAddress) { } catch { }
-        }
-    }
-
-    /// @notice Whether root-garden pool creation is a hard deployment gate.
-    /// @dev Arbitrum defaults to non-blocking because community council-safe policy and
-    ///      Gardens V2 permissions may require post-deploy council transactions for pools.
-    function _requireRootGardenPool() internal view returns (bool) {
-        bool defaultValue = block.chainid != ARBITRUM_CHAIN_ID;
-        return _envBoolOrDefault("REQUIRE_ROOT_GARDEN_POOL", defaultValue);
-    }
-
-    /// @notice Should we auto-deploy a mock Gardens registry factory for recovery.
-    /// @dev Sepolia defaults to true because public Gardens V2 factory frequently lacks
-    ///      configured community facets. Override with AUTO_DEPLOY_MOCK_GARDENS_FACTORY.
-    function _shouldAutoDeployMockGardensFactory() internal view returns (bool) {
-        bool fallbackDefault = block.chainid == SEPOLIA_CHAIN_ID;
-        return _envBoolOrDefault("AUTO_DEPLOY_MOCK_GARDENS_FACTORY", fallbackDefault);
-    }
-
-    /// @notice Deploy and set a mock registry factory used only as a recovery fallback.
-    function _deployAndSetMockGardensFactory() internal {
-        if (address(gardensModule) == address(0)) return;
-        MockRegistryFactory mockFactory = new MockRegistryFactory();
-        gardensModule.setRegistryFactory(address(mockFactory));
-    }
-
-    /// @notice Deploy gardens from config/gardens.json.
-    function _deployGardensFromConfig(string memory gardensJson) internal {
-        uint256 gardensCount = _getGardensCount(gardensJson);
-        if (gardensCount == 0) revert NoSeedGardensConfigured();
-
-        string memory communitySlug = _getCommunityGardenSlug();
-
-        for (uint256 i = 0; i < gardensCount; i++) {
-            string memory basePath = string.concat(".gardens[", vm.toString(i), "]");
-            GardenToken.GardenConfig memory gardenConfig =
-                _parseGardenConfigFromJson(gardensJson, basePath, i, communitySlug);
-
-            uint256 ensFee = _estimateENSFee(gardenConfig.slug);
-            address gardenAddress = gardenToken.mintGarden{ value: ensFee }(gardenConfig);
-
-            gardenAddresses.push(gardenAddress);
-            uint256 tokenId = i + 1;
-            gardenTokenIds.push(tokenId);
-
-            if (_slugMatches(gardenConfig.slug, communitySlug)) {
-                rootGardenAddress = gardenAddress;
-                rootGardenTokenId = tokenId;
-            }
-        }
-
-        if (rootGardenAddress == address(0)) {
-            revert RootGardenCommunityNotCreated();
-        }
-    }
-
-    /// @notice Count gardens defined in the JSON.
-    function _getGardensCount(string memory gardensJson) internal view returns (uint256) {
-        for (uint256 i = 0; i < MAX_CONFIG_ENTRIES; i++) {
-            string memory basePath = string.concat(".gardens[", vm.toString(i), "]");
-            try vm.parseJson(gardensJson, basePath) returns (bytes memory gardenBytes) {
-                if (gardenBytes.length == 0) {
-                    return i;
-                }
-            } catch {
-                return i;
-            }
-        }
-        return MAX_CONFIG_ENTRIES;
-    }
-
-    /// @notice Parse a single garden entry from JSON.
-    function _parseGardenConfigFromJson(
-        string memory gardensJson,
-        string memory basePath,
-        uint256 gardenIndex,
-        string memory communitySlug
-    )
-        internal
-        view
-        returns (GardenToken.GardenConfig memory gardenConfig)
-    {
-        string memory name = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".name")), (string));
-        string memory description = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".description")), (string));
-        string memory location = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".location")), (string));
-        string memory bannerImage = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".bannerImage")), (string));
-
-        string memory slug = _parseOptionalString(gardensJson, string.concat(basePath, ".slug"));
-        string memory metadata = _parseOptionalString(gardensJson, string.concat(basePath, ".metadata"));
-        bool openJoining = _parseOptionalBool(gardensJson, string.concat(basePath, ".openJoining"), false);
-
-        uint8 domainMask = _slugMatches(slug, communitySlug) ? MAX_DOMAIN_MASK : 0;
-        try vm.parseJson(gardensJson, string.concat(basePath, ".domainMask")) returns (bytes memory domainMaskBytes) {
-            uint256 parsedDomainMask = abi.decode(domainMaskBytes, (uint256));
-            if (parsedDomainMask > MAX_DOMAIN_MASK) {
-                revert InvalidSeedGardenDomainMask(gardenIndex, parsedDomainMask);
-            }
-            domainMask = uint8(parsedDomainMask);
-        } catch { }
-
-        address[] memory operators = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".operators"));
-        address[] memory gardeners = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".gardeners"));
 
         gardenConfig = GardenToken.GardenConfig({
             name: name,

@@ -50,6 +50,10 @@ paths = "src/modules/Karma.sol"
 via_ir = true
 
 [[profile.default.compilation_restrictions]]
+paths = "src/modules/Octant.sol"
+via_ir = true
+
+[[profile.default.compilation_restrictions]]
 paths = "src/mocks/Hats.sol"
 via_ir = true
 
@@ -172,7 +176,7 @@ cache_path = "cache-e2e"
 # ═══════════════════════════════════════════════════════════════════════════════
 [profile.fork]
 via_ir = true
-gas_limit = 30_000_000
+gas_limit = 80_000_000
 fuzz = { runs = 32 }
 verbosity = 3
 out = "out-fork"

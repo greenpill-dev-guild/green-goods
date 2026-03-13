@@ -142,6 +142,13 @@ contract MockCVStrategy {
         shouldRevert = _shouldRevert;
     }
 
+    /// @notice Set proposalCounter directly (test helper for gas DoS scenarios)
+    /// @dev Allows setting a high counter without calling addProposal hundreds of times.
+    ///      Proposals at uninitialized IDs will have status=0 (Inactive) and conviction=0.
+    function setProposalCounter(uint256 count) external {
+        proposalCounter = count;
+    }
+
     function calculateProposalConviction(uint256 proposalId) external view returns (uint256) {
         require(!shouldRevert, "MockCVStrategy: forced revert");
         return proposals[proposalId].conviction;
@@ -238,7 +245,7 @@ contract MockOctantVaultForYield {
         return (assets * rateDenominator) / rateNumerator;
     }
 
-    function maxWithdraw(address account) external view returns (uint256 assets) {
+    function maxWithdraw(address account, uint256, address[] memory) external view returns (uint256 assets) {
         uint256 accountAssets = (_balances[account] * rateNumerator) / rateDenominator;
         if (maxWithdrawOverride < accountAssets) {
             return maxWithdrawOverride;
