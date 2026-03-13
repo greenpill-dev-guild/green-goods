@@ -52,7 +52,7 @@ export function createTestWrapper(queryClient?: QueryClient) {
     return createElement(
       QueryClientProvider,
       { client },
-      createElement(IntlProvider, { locale: "en", messages: enMessages }, children)
+      createElement(IntlProvider, { locale: "en", messages: enMessages, onError: silentIntlErrorHandler }, children)
     );
   };
 }
@@ -62,7 +62,7 @@ export function createTestWrapper(queryClient?: QueryClient) {
  */
 export function createIntlWrapper() {
   return function IntlWrapper({ children }: WrapperProps) {
-    return createElement(IntlProvider, { locale: "en", messages: enMessages }, children);
+    return createElement(IntlProvider, { locale: "en", messages: enMessages, onError: silentIntlErrorHandler }, children);
   };
 }
 
@@ -182,16 +182,42 @@ export function mock<T>(fn: T): T & MockMethods<T> {
 // Alternative Render Methods
 // ============================================
 
+// Suppress react-intl MissingTranslationError in tests — each one constructs
+// a full Error with stack trace, causing massive I/O overhead on stderr.
+const silentIntlErrorHandler = (err: unknown) => {
+  if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "MISSING_TRANSLATION") {
+    return;
+  }
+  // Re-throw non-translation errors so real issues surface
+  throw err;
+};
+
+// Shared QueryClient for test wrappers — avoids recreating per render.
+// Reset between tests via afterEach in setup files.
+let sharedTestQueryClient: QueryClient | null = null;
+function getTestQueryClient(): QueryClient {
+  if (!sharedTestQueryClient) {
+    sharedTestQueryClient = createTestQueryClient();
+  }
+  return sharedTestQueryClient;
+}
+
+/** Reset the shared test QueryClient (call in afterEach) */
+export function resetTestQueryClient(): void {
+  sharedTestQueryClient?.clear();
+  sharedTestQueryClient = null;
+}
+
 /**
  * Wrapper component that provides QueryClient and IntlProvider
  * Used by renderWithQuery for component testing
  */
 export function QueryTestWrapper({ children }: WrapperProps) {
-  const queryClient = createTestQueryClient();
+  const queryClient = getTestQueryClient();
   return createElement(
     QueryClientProvider,
     { client: queryClient },
-    createElement(IntlProvider, { locale: "en", messages: enMessages }, children)
+    createElement(IntlProvider, { locale: "en", messages: enMessages, onError: silentIntlErrorHandler }, children)
   );
 }
 

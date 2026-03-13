@@ -348,7 +348,7 @@ export { useMyVaultDeposits } from "./vault/useMyVaultDeposits";
 export { useVaultDeposits } from "./vault/useVaultDeposits";
 export { useVaultEvents } from "./vault/useVaultEvents";
 export {
-  useConfigureVaultRoles,
+  useEnableAutoAllocate,
   useEmergencyPause,
   useHarvest,
   useVaultDeposit,

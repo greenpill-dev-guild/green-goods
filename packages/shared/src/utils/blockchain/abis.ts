@@ -707,6 +707,16 @@ export const OCTANT_MODULE_ABI = [
   },
   {
     type: "function",
+    name: "enableAutoAllocate",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "asset", type: "address" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "owner",
     stateMutability: "view",
     inputs: [],

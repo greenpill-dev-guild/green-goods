@@ -235,7 +235,7 @@ export {
   useBrowserNavigation,
   useCancelListing,
   useCarousel,
-  useConfigureVaultRoles,
+  useEnableAutoAllocate,
   useConvictionStrategies,
   useCookieJarDeposit,
   useCookieJarEmergencyWithdraw,

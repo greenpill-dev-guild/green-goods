@@ -21,7 +21,7 @@ import { VAULT_MAX_BPS, ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { useContractTxSender } from "../blockchain/useContractTxSender";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
@@ -82,7 +82,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
   const showErrorToast = shouldShowErrorToast(options.errorMode);
-  const sendContractTx = useContractTxSender();
+  const sender = useTransactionSender();
   const handleError = createMutationErrorHandler({
     source: "useVaultDeposit",
     toastContext: "vault deposit",
@@ -111,6 +111,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
 
   const mutation = useMutation({
     mutationFn: async (params: DepositParams) => {
+      if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       if (!primaryAddress) {
         throw new Error("Connected account required");
       }
@@ -160,7 +161,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
           message = "Vault has been permanently shut down";
         } else if (depLimit === 0n) {
           reason = "depositLimitZero";
-          message = "Vault deposit limit is zero — configureVaultRoles() may be needed";
+          message = "Vault deposit limit is zero — enableAutoAllocate() may be needed";
         } else if (depLimit !== null && totalAssets !== null && totalAssets >= depLimit) {
           reason = "depositLimitReached";
           message = `Vault deposit limit reached (${totalAssets}/${depLimit})`;
@@ -200,6 +201,15 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
         }
       }
 
+      // Snapshot expected shares before approval for post-approval slippage detection
+      const preApprovalPreview = await readContract(getWagmiConfig(), {
+        address: params.vaultAddress,
+        abi: OCTANT_VAULT_ABI,
+        functionName: "previewDeposit",
+        args: [params.amount],
+      });
+      const expectedShares = typeof preApprovalPreview === "bigint" ? preApprovalPreview : 0n;
+
       let allowance: bigint;
       try {
         const allowanceResult = await readContract(getWagmiConfig(), {
@@ -222,7 +232,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
         try {
           // USDT-style tokens may require zeroing allowance before setting a new value.
           if (allowance > 0n) {
-            await sendContractTx({
+            await sender.sendContractCall({
               address: params.assetAddress,
               abi: ERC20_ALLOWANCE_ABI,
               functionName: "approve",
@@ -230,7 +240,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
             });
           }
 
-          await sendContractTx({
+          await sender.sendContractCall({
             address: params.assetAddress,
             abi: ERC20_ALLOWANCE_ABI,
             functionName: "approve",
@@ -266,8 +276,8 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
         args: [params.amount],
       });
       const freshShares = typeof freshPreview === "bigint" ? freshPreview : 0n;
-      // Default slippage tolerance: 1% (99% of fresh preview)
-      const minShares = params.minSharesOut ?? (freshShares * 99n) / 100n;
+      // Default slippage tolerance: 1% (99% of pre-approval snapshot)
+      const minShares = params.minSharesOut ?? (expectedShares * 99n) / 100n;
       if (freshShares > 0n && freshShares < minShares) {
         throw new VaultDepositStageError(
           "deposit",
@@ -286,12 +296,13 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
       }
 
       try {
-        return await sendContractTx({
+        const result = await sender.sendContractCall({
           address: params.vaultAddress,
           abi: OCTANT_VAULT_ABI,
           functionName: "deposit",
           args: [params.amount, receiver],
         });
+        return result.hash;
       } catch (error) {
         throw new VaultDepositStageError(
           "deposit",
@@ -354,27 +365,22 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
           }
         }
 
-        const diagnosticsSuffix = error.diagnostics
-          ? ` [vault: ${error.diagnostics.vaultAddress?.slice(0, 10)}… | depositLimit: ${error.diagnostics.depositLimit} | totalAssets: ${error.diagnostics.totalAssets} | shutdown: ${error.diagnostics.isShutdown}]`
-          : "";
-
         if (showErrorToast) {
           toastService.error({
             title: formatMessage({ id: "app.treasury.deposit" }),
-            message:
-              formatMessage({
-                id: messageId,
-                defaultMessage:
-                  error.stage === "approval"
-                    ? "Approval failed. Please try again."
-                    : "Deposit failed. Please try again.",
-              }) + diagnosticsSuffix,
+            message: formatMessage({
+              id: messageId,
+              defaultMessage:
+                error.stage === "approval"
+                  ? "Approval failed. Please try again."
+                  : "Deposit failed. Please try again.",
+            }),
             context: "vault deposit",
             error,
           });
-        } else {
-          handleError(error, { metadata, showToast: false });
         }
+        // Always log diagnostics through error handler (toast already shown above if needed)
+        handleError(error, { metadata: { ...metadata, ...error.diagnostics }, showToast: !showErrorToast });
         return;
       }
       handleError(error, {
@@ -409,7 +415,7 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
   const showErrorToast = shouldShowErrorToast(options.errorMode);
-  const sendContractTx = useContractTxSender();
+  const sender = useTransactionSender();
   const handleError = createMutationErrorHandler({
     source: "useVaultWithdraw",
     toastContext: "vault withdraw",
@@ -437,6 +443,7 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
 
   const mutation = useMutation({
     mutationFn: async (params: WithdrawParams) => {
+      if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       if (!primaryAddress) {
         throw new Error("Connected account required");
       }
@@ -460,12 +467,13 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
         throw new Error("Withdrawal amount exceeds the available balance");
       }
 
-      return sendContractTx({
+      const result = await sender.sendContractCall({
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
         functionName: "withdraw",
         args: [params.amount, receiver, owner, VAULT_MAX_BPS, []],
       });
+      return result.hash;
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -525,7 +533,7 @@ export function useHarvest() {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const sendContractTx = useContractTxSender();
+  const sender = useTransactionSender();
   const handleError = createMutationErrorHandler({
     source: "useHarvest",
     toastContext: "vault harvest",
@@ -546,14 +554,16 @@ export function useHarvest() {
 
   const mutation = useMutation({
     mutationFn: async (params: HarvestParams) => {
+      if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       const octantModule = getOctantModuleAddress(chainId);
 
-      return sendContractTx({
+      const result = await sender.sendContractCall({
         address: octantModule,
         abi: OCTANT_MODULE_ABI,
         functionName: "harvest",
         args: [params.gardenAddress, params.assetAddress],
       });
+      return result.hash;
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -608,7 +618,7 @@ export function useEmergencyPause() {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const sendContractTx = useContractTxSender();
+  const sender = useTransactionSender();
   const handleError = createMutationErrorHandler({
     source: "useEmergencyPause",
     toastContext: "vault emergency pause",
@@ -629,14 +639,16 @@ export function useEmergencyPause() {
 
   const mutation = useMutation({
     mutationFn: async (params: EmergencyPauseParams) => {
+      if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       const octantModule = getOctantModuleAddress(chainId);
 
-      return sendContractTx({
+      const result = await sender.sendContractCall({
         address: octantModule,
         abi: OCTANT_MODULE_ABI,
         functionName: "emergencyPause",
         args: [params.gardenAddress, params.assetAddress],
       });
+      return result.hash;
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -686,50 +698,74 @@ export function useEmergencyPause() {
   return { ...mutation, mutate, mutateAsync, isPending };
 }
 
-interface ConfigureVaultRolesParams {
+interface EnableAutoAllocateParams {
   gardenAddress: Address;
   assetAddress: Address;
 }
 
-export function useConfigureVaultRoles() {
+export function useEnableAutoAllocate() {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const sendContractTx = useContractTxSender();
+  const { primaryAddress } = useUser();
+  const sender = useTransactionSender();
   const handleError = createMutationErrorHandler({
-    source: "useConfigureVaultRoles",
+    source: "useEnableAutoAllocate",
     toastContext: "vault configure",
   });
   const { runWithLock, isPending: isLockPending } = useMutationLock();
 
   const mutation = useMutation({
-    mutationFn: async (params: ConfigureVaultRolesParams) => {
+    mutationFn: async (params: EnableAutoAllocateParams) => {
+      if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       const octantModule = getOctantModuleAddress(chainId);
 
-      return sendContractTx({
+      const ownerResult = await readContract(getWagmiConfig(), {
         address: octantModule,
         abi: OCTANT_MODULE_ABI,
-        functionName: "configureVaultRoles",
+        functionName: "owner",
+        args: [],
+      });
+      const moduleOwner = typeof ownerResult === "string" ? ownerResult : "";
+      if (moduleOwner.toLowerCase() !== primaryAddress?.toLowerCase()) {
+        throw new Error("Only the OctantModule owner can enable auto-allocate");
+      }
+
+      const result = await sender.sendContractCall({
+        address: octantModule,
+        abi: OCTANT_MODULE_ABI,
+        functionName: "enableAutoAllocate",
         args: [params.gardenAddress, params.assetAddress],
       });
+      return result.hash;
     },
     onMutate: () => {
       const toastId = toastService.loading({
-        title: formatMessage({ id: "app.treasury.configureVault" }),
-        message: formatMessage({ id: "app.treasury.configuringVault" }),
+        title: formatMessage({ id: "app.treasury.enableAutoAllocate" }),
+        message: formatMessage({ id: "app.treasury.enablingAutoAllocate" }),
       });
       return { toastId };
     },
     onSuccess: (_txHash, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
       toastService.success({
-        title: formatMessage({ id: "app.treasury.configureVault" }),
-        message: formatMessage({ id: "app.treasury.configureVaultSuccess" }),
+        title: formatMessage({ id: "app.treasury.enableAutoAllocate" }),
+        message: formatMessage({ id: "app.treasury.enableAutoAllocateSuccess" }),
       });
 
       queryInvalidation
         .onVaultDeposit(params.gardenAddress, undefined, chainId)
         .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+
+      // Also invalidate all wagmi contract reads (useReadContracts, useReadContract)
+      // so that useVaultPreview and diagnostic reads refetch with new vault state.
+      // This is an infrequent admin action, so broad invalidation is acceptable.
+      void queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          return Array.isArray(key) && typeof key[0] === "string" && key[0] === "readContracts";
+        },
+      });
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
