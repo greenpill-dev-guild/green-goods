@@ -4,7 +4,7 @@ sidebar_label: "Vaults & Hypercerts"
 slug: /community/funder-guide/vaults-and-hypercerts
 audience: all
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-03-11
 feature_status: Live
 goal: "Guide funders through vault deposits and Hypercert purchases."
 difficulty: "standard"
@@ -35,14 +35,14 @@ import {
 
 ## Overview
 
-Green Goods offers two primary funding mechanisms: **yield-bearing vaults** powered by Octant infrastructure, and **Hypercerts** — tokenized impact certificates that represent verified regenerative work. Both are backed by on-chain attestation chains that provide transparent accountability.
+Green Goods offers two primary funding mechanisms: **impact vaults** powered by Octant infrastructure, and **Hypercerts** — tokenized impact certificates that represent verified regenerative work. Both are backed by on-chain attestation chains that provide transparent accountability.
 
 ```mermaid
 graph TB
     subgraph Vault["Vault Deposits"]
         Select["Select Garden"]
         Amount["Set Amount"]
-        Track["Track Yield"]
+        Track["Track Routed Yield"]
     end
 
     subgraph Market["Hypercert Marketplace"]
@@ -66,19 +66,21 @@ graph TB
 <FeatureState
   title="Octant Vault deposits"
   status="Live"
-  summary="Funders can deposit supported assets into garden vaults. Yield accrues and funds garden operations."
+  summary="Funders can deposit supported assets into garden vaults. Depositor claim value stays flat by design, while harvested strategy yield is routed to garden operations."
 />
 
 <StepFlow
   steps={[
-    {title: "Select a garden vault", detail: "Browse gardens and their vault configurations. Each vault shows current deposits, yield rates, and supported assets."},
-    {title: "Deposit assets", detail: "Connect your wallet, choose the deposit amount, and approve the transaction. Your deposit enters the yield-generating pool."},
-    {title: "Track yield", detail: "Monitor your position through the vault dashboard. Yield accrues continuously and funds garden operations."},
-    {title: "Withdraw", detail: "Request withdrawal when ready. Processing time depends on the vault's configuration and current liquidity."},
+    {title: "Select a garden vault", detail: "Browse gardens and their vault configurations. Each vault shows current deposits, routed yield history, and supported assets."},
+    {title: "Deposit assets", detail: "Connect your wallet, choose the deposit amount, and approve the transaction. Your deposit adds principal to the impact vault."},
+    {title: "Track routed yield", detail: "Monitor your position through the vault dashboard. Depositor claim value stays flat by design, while harvested yield funds garden operations."},
+    {title: "Withdraw", detail: "Request withdrawal of your principal when ready. Processing time depends on the vault's configuration and current liquidity."},
   ]}
 />
 
-Vault yield flows back to the garden community, funding:
+Vault deposits do not pay funders through share appreciation. Instead, harvest converts strategy gains into routed impact funding for the garden community.
+
+Harvested vault yield flows back to the garden community, funding:
 - Gas sponsorship for gardener submissions
 - Operator and evaluator incentives
 - Community governance allocations
@@ -116,9 +118,9 @@ A Hypercert's value comes from its attestation chain:
   title="Vaults vs. Hypercerts"
   items={[
     {
-      when: "You want ongoing, passive support with yield",
-      do: "Deposit into a vault. Capital works while you hold it.",
-      next: "Monitor garden activity to ensure your funded community is active.",
+      when: "You want ongoing, passive support with routed yield",
+      do: "Deposit into a vault. Your principal stays in the endowment while harvested yield is routed to impact funding.",
+      next: "Monitor garden activity and harvest cadence to ensure your funded community is active.",
     },
     {
       when: "You want provable ownership of specific impact",
@@ -134,6 +136,7 @@ A Hypercert's value comes from its attestation chain:
 />
 
 - Verify attestation chains independently on [EAS Explorer](https://attest.sh) before large purchases
+- Use vaults when you want mission-aligned endowment support, not depositor share-price growth
 - Understand transfer restrictions on Hypercerts — some may be non-transferable
 - Review the garden's assessment history for consistent, quality-backed impact claims
 - Consider the garden's operational track record (approval rates, active gardeners, submission frequency)

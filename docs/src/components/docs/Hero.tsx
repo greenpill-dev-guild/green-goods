@@ -36,7 +36,7 @@ const ROLE_PATHS = [
     audience: "Capital allocators",
     time: "10 min overview",
     description:
-      "Deposit into yield-bearing vaults and purchase Hypercerts to fund verified impact.",
+      "Deposit into impact vaults that route harvested yield to garden funding flows, and purchase Hypercerts to fund verified impact.",
   },
   {
     title: "Builder",

@@ -4,7 +4,7 @@ sidebar_label: "Managing Payouts"
 slug: /community/operator-guide/managing-payouts
 audience: operator
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-03-11
 feature_status: Live
 goal: "Help operators manage vault deposits, withdrawals, cookie jar payouts, and gardener compensation."
 difficulty: "standard"
@@ -42,12 +42,12 @@ import {
 
 ## Overview
 
-Operators manage the financial flows within their garden — from vault deposits and yield tracking to direct gardener payouts through cookie jars. This page covers both the primary vault system and the cookie jar mechanism for recurring, low-overhead distributions.
+Operators manage the financial flows within their garden — from vault deposits and harvest routing to direct gardener payouts through cookie jars. This page covers both the primary vault system and the cookie jar mechanism for recurring, low-overhead distributions.
 
 ```mermaid
 graph TB
     subgraph Payouts["Payout Dashboard"]
-        VaultPos["Vault Position\ndeposits, yield, balance"]
+        VaultPos["Vault Position\nprincipal, routed yield, balance"]
         CJStatus["Cookie Jar\ninterval + cooldown"]
         Tracking["Withdrawal Tracking\nhistory + patterns"]
     end
@@ -60,13 +60,13 @@ graph TB
 
 ### Vault-Based Payouts
 
-Garden vaults hold deposited assets in yield-bearing positions (powered by Octant). Operators control how vault funds are distributed:
+Garden vaults hold deposited assets in impact-vault positions powered by Octant. Depositor claim value stays flat by design, so operators rely on harvest and split flows plus withdrawals to move funds into payout paths:
 
 <StepFlow
   steps={[
     {title: "Receive deposits", detail: "Funders deposit supported assets into the garden vault. Track deposits through the vault dashboard."},
-    {title: "Monitor yield", detail: "Vault positions generate yield over time. Review yield accrual and current balances."},
-    {title: "Distribute funds", detail: "Withdraw from the vault to fund garden operations, gardener compensation, or community initiatives."},
+    {title: "Monitor harvest readiness", detail: "Strategies may generate yield over time. Review routed yield, harvest cadence, and current balances rather than depositor share appreciation."},
+    {title: "Distribute funds", detail: "Withdraw principal or distribute harvested yield to fund garden operations, gardener compensation, or community initiatives."},
     {title: "Report usage", detail: "Maintain transparency by documenting how vault funds support garden operations."},
   ]}
 />
@@ -114,8 +114,9 @@ Cookie jars provide a lightweight mechanism for small, recurring payouts to gard
 ## Best Practices
 
 - Set clear payout policies before activating cookie jars — document who can withdraw, how much, and how often
-- Monitor vault health regularly: check deposit/withdrawal ratios and yield performance
+- Monitor vault health regularly: check principal balances, harvest readiness, routed impact yield, and withdrawal liquidity
 - Use cookie jars for operational expenses (gas sponsorship, small incentives) and vaults for strategic allocations
+- Explain routed-yield semantics in contributor communications so nobody expects depositor share appreciation
 - Maintain transparent records of all payouts for community accountability
 - Review withdrawal patterns monthly to detect unusual activity early
 

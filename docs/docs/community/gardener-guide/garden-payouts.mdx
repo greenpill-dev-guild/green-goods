@@ -4,7 +4,7 @@ sidebar_label: "Garden Payouts"
 slug: /community/gardener-guide/garden-payouts
 audience: all
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-03-11
 feature_status: Implemented (activation pending deployment)
 goal: "Help gardeners understand how they receive compensation from garden vaults and cookie jars."
 difficulty: "standard"
@@ -38,7 +38,7 @@ import {
 
 ## Overview
 
-Gardens can compensate gardeners for verified regenerative work through two mechanisms: vault distributions (managed by operators) and cookie jars (self-service withdrawals within preset limits). Both systems are funded by deposits into the garden's on-chain treasury.
+Gardens can compensate gardeners for verified regenerative work through two mechanisms: vault distributions managed by operators and cookie jars with self-service withdrawals inside preset limits. Both systems are funded by deposits into the garden's on-chain treasury, and vault yield is routed into payouts later through harvest and split flows.
 
 <FeatureState
   title="Payout system"
@@ -50,13 +50,13 @@ Gardens can compensate gardeners for verified regenerative work through two mech
 
 ### Vault Distributions
 
-Garden vaults hold assets in yield-bearing positions. Operators manage distributions from vault funds to compensate gardeners, fund community initiatives, or reinvest in garden operations.
+Garden vaults hold the garden endowment. Depositor claim value stays flat by design, and when strategies generate yield operators harvest and route that yield into payout flows before distributing funds to gardeners, community initiatives, or reinvestment.
 
 <StepFlow
   steps={[
     {title: "Work gets approved", detail: "Submit work through the MDR workflow and receive operator approval. Approved work builds your contribution record."},
     {title: "Operator reviews contributions", detail: "Your garden operator reviews contribution records and determines distribution amounts."},
-    {title: "Funds are distributed", detail: "The operator initiates a withdrawal from the garden vault to your address."},
+    {title: "Funds are distributed", detail: "The operator routes available harvest proceeds or vault funds into a withdrawal or payout to your address."},
     {title: "Check your wallet", detail: "Distributed funds arrive in your smart account wallet. Check the wallet drawer in the app."},
   ]}
 />
@@ -79,7 +79,7 @@ Cookie jars provide lightweight, recurring payouts with preset limits. If your g
 - Keep your work submissions consistent and high-quality — contribution history is a key factor in operator-managed distributions
 - Check cookie jar withdrawal windows regularly to avoid missing available claims
 - If a cookie jar shows zero available, check whether you have already claimed for the current interval
-- Ask your garden operator about the payout policy so you know what to expect and when
+- Ask your garden operator whether payouts are coming from harvested vault yield, endowment principal, or a cookie jar so you know what to expect and when
 
 ## What's Next
 
