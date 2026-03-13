@@ -33,7 +33,7 @@ export default function GardenVaultView() {
   const { primaryAddress } = useUser();
   const chainId = useCurrentChain();
 
-  // Check if current user is the OctantModule owner (can call configureVaultRoles)
+  // Check if current user is the OctantModule owner (can call enableAutoAllocate)
   const octantModuleAddress = getNetworkContracts(chainId).octantModule as Address | undefined;
   const { data: moduleOwner } = useReadContract({
     address: octantModuleAddress,

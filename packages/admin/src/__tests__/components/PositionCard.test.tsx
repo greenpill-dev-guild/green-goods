@@ -13,30 +13,35 @@ import { renderWithProviders as render } from "../test-utils";
 
 const mockHarvestMutate = vi.fn();
 const mockPauseMutate = vi.fn();
-const mockConfigureVaultRolesMutate = vi.fn();
+const mockEnableAutoAllocateMutate = vi.fn();
 const mockUseVaultPreview = vi.fn().mockReturnValue({ preview: null });
+const mockUseReadContracts = vi.fn().mockReturnValue({ data: undefined, refetch: vi.fn() });
 
-vi.mock("@remixicon/react", () => {
-  const Icon = (props: unknown) => createElement("span", props as object);
-  return new Proxy({}, { get: () => Icon });
-});
-
-vi.mock("@green-goods/shared", () => ({
-  formatTokenAmount: (value: bigint, decimals?: number) => {
-    if (value === 0n) return "0";
-    // Simple formatting for tests
-    return `${Number(value) / 10 ** (decimals ?? 18)}`;
-  },
-  getNetDeposited: (deposited: bigint, withdrawn: bigint) => deposited - withdrawn,
-  getVaultAssetDecimals: () => 18,
-  getVaultAssetSymbol: () => "USDC",
-  ZERO_ADDRESS: "0x0000000000000000000000000000000000000000",
-  useConfigureVaultRoles: () => ({ mutate: mockConfigureVaultRolesMutate, isPending: false }),
-  useEmergencyPause: () => ({ mutate: mockPauseMutate, isPending: false }),
-  useHarvest: () => ({ mutate: mockHarvestMutate, isPending: false }),
-  useUser: () => ({ primaryAddress: "0xUserAddress1234567890abcdef1234567890abcdef" }),
-  useVaultPreview: (...args: unknown[]) => mockUseVaultPreview(...args),
+vi.mock("wagmi", () => ({
+  useReadContracts: (...args: unknown[]) => mockUseReadContracts(...args),
 }));
+
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    formatTokenAmount: (value: bigint, decimals?: number) => {
+      if (value === 0n) return "0";
+      // Simple formatting for tests
+      return `${Number(value) / 10 ** (decimals ?? 18)}`;
+    },
+    getNetDeposited: (deposited: bigint, withdrawn: bigint) => deposited - withdrawn,
+    getVaultAssetDecimals: () => 18,
+    getVaultAssetSymbol: () => "USDC",
+    OCTANT_VAULT_ABI: [],
+    ZERO_ADDRESS: "0x0000000000000000000000000000000000000000",
+    useEnableAutoAllocate: () => ({ mutate: mockEnableAutoAllocateMutate, isPending: false }),
+    useEmergencyPause: () => ({ mutate: mockPauseMutate, isPending: false }),
+    useHarvest: () => ({ mutate: mockHarvestMutate, isPending: false }),
+    useUser: () => ({ primaryAddress: "0xUserAddress1234567890abcdef1234567890abcdef" }),
+    useVaultPreview: (...args: unknown[]) => mockUseVaultPreview(...args),
+  };
+});
 
 import { PositionCard } from "../../components/Vault/PositionCard";
 
@@ -99,6 +104,14 @@ describe("PositionCard", () => {
 
       expect(screen.getByText("Deposits disabled")).toBeInTheDocument();
     });
+
+    it("shows the impact-yield helper copy", () => {
+      render(createElement(PositionCard, defaultProps));
+
+      expect(
+        screen.getByText(/Depositor share value is expected to stay near flat by design/i)
+      ).toBeInTheDocument();
+    });
   });
 
   describe("deposit and withdraw buttons", () => {
@@ -160,6 +173,97 @@ describe("PositionCard", () => {
         gardenAddress: defaultProps.gardenAddress,
         assetAddress: mockVault.asset,
       });
+    });
+  });
+
+  describe("auto-allocation recovery", () => {
+    it("shows enable auto-allocation action for legacy misconfiguration (deposit limit zero, not shutdown)", () => {
+      mockUseVaultPreview.mockReturnValue({ preview: { maxDeposit: 0n, totalAssets: 0n } });
+      // Diagnostic reads: isShutdown=false, depositLimit=0n
+      mockUseReadContracts.mockReturnValue({
+        data: [
+          { status: "success", result: false },  // isShutdown
+          { status: "success", result: 0n },      // depositLimit
+        ],
+        refetch: vi.fn(),
+      });
+
+      render(
+        createElement(PositionCard, {
+          ...defaultProps,
+          isModuleOwner: true,
+        })
+      );
+
+      expect(screen.getByText("Enable auto-allocation")).toBeInTheDocument();
+    });
+
+    it("does NOT show CTA when vault is shutdown even if maxDeposit is 0", () => {
+      mockUseVaultPreview.mockReturnValue({ preview: { maxDeposit: 0n, totalAssets: 0n } });
+      // Diagnostic reads: isShutdown=true, depositLimit=0n
+      mockUseReadContracts.mockReturnValue({
+        data: [
+          { status: "success", result: true },    // isShutdown
+          { status: "success", result: 0n },       // depositLimit
+        ],
+        refetch: vi.fn(),
+      });
+
+      render(
+        createElement(PositionCard, {
+          ...defaultProps,
+          isModuleOwner: true,
+        })
+      );
+
+      expect(screen.queryByText("Enable auto-allocation")).not.toBeInTheDocument();
+    });
+
+    it("does NOT show CTA when deposit limit is non-zero (vault is full, not misconfigured)", () => {
+      mockUseVaultPreview.mockReturnValue({ preview: { maxDeposit: 0n, totalAssets: 0n } });
+      // Diagnostic reads: isShutdown=false, depositLimit=1000n (full, not misconfigured)
+      mockUseReadContracts.mockReturnValue({
+        data: [
+          { status: "success", result: false },    // isShutdown
+          { status: "success", result: 1000n },     // depositLimit (non-zero = properly configured)
+        ],
+        refetch: vi.fn(),
+      });
+
+      render(
+        createElement(PositionCard, {
+          ...defaultProps,
+          isModuleOwner: true,
+        })
+      );
+
+      expect(screen.queryByText("Enable auto-allocation")).not.toBeInTheDocument();
+    });
+
+    it("calls enableAutoAllocate when the recovery action is clicked", async () => {
+      mockUseVaultPreview.mockReturnValue({ preview: { maxDeposit: 0n, totalAssets: 0n } });
+      mockUseReadContracts.mockReturnValue({
+        data: [
+          { status: "success", result: false },
+          { status: "success", result: 0n },
+        ],
+        refetch: vi.fn(),
+      });
+      const user = userEvent.setup();
+
+      render(
+        createElement(PositionCard, {
+          ...defaultProps,
+          isModuleOwner: true,
+        })
+      );
+
+      await user.click(screen.getByText("Enable auto-allocation"));
+
+      expect(mockEnableAutoAllocateMutate).toHaveBeenCalledWith(
+        { gardenAddress: defaultProps.gardenAddress, assetAddress: mockVault.asset },
+        expect.objectContaining({ onSuccess: expect.any(Function) })
+      );
     });
   });
 

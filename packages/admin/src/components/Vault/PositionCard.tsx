@@ -5,7 +5,8 @@ import {
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  useConfigureVaultRoles,
+  OCTANT_VAULT_ABI,
+  useEnableAutoAllocate,
   useEmergencyPause,
   useHarvest,
   useUser,
@@ -13,9 +14,9 @@ import {
   ZERO_ADDRESS,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
-import { RiLoader4Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { useReadContracts } from "wagmi";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
@@ -42,7 +43,7 @@ export function PositionCard({
   const { primaryAddress } = useUser();
   const harvest = useHarvest();
   const emergencyPause = useEmergencyPause();
-  const configureVaultRoles = useConfigureVaultRoles();
+  const enableAutoAllocate = useEnableAutoAllocate();
   const [confirmPauseOpen, setConfirmPauseOpen] = useState(false);
 
   const assetDecimals = getVaultAssetDecimals(vault.asset, vault.chainId);
@@ -55,7 +56,7 @@ export function PositionCard({
     enabled: hasDeposits,
   });
   const totalAssets = preview?.totalAssets ?? netDeposited;
-  const currentYield = totalAssets > netDeposited ? totalAssets - netDeposited : 0n;
+  const unharvestedImpactYield = totalAssets > netDeposited ? totalAssets - netDeposited : 0n;
 
   // On-chain health check: does this vault accept deposits?
   const { preview: depositHealth } = useVaultPreview({
@@ -64,6 +65,22 @@ export function PositionCard({
     enabled: Boolean(primaryAddress),
   });
   const vaultAcceptingDeposits = depositHealth ? depositHealth.maxDeposit > 0n : true;
+
+  // Diagnostic reads: distinguish legacy misconfiguration from shutdown/paused/full
+  const diagnosticContracts = [
+    { address: vault.vaultAddress as Address, abi: OCTANT_VAULT_ABI, functionName: "isShutdown" as const, args: [] as const },
+    { address: vault.vaultAddress as Address, abi: OCTANT_VAULT_ABI, functionName: "depositLimit" as const, args: [] as const },
+  ];
+  const { data: diagnosticData, refetch: refetchDiagnostics } = useReadContracts({
+    contracts: diagnosticContracts as any,
+    query: { enabled: !vaultAcceptingDeposits && isModuleOwner },
+  });
+  const isShutdown = diagnosticData?.[0]?.status === "success" ? (diagnosticData[0].result as boolean) : false;
+  const depositLimitRaw = diagnosticData?.[1]?.status === "success" ? (diagnosticData[1].result as bigint) : null;
+
+  // Only show auto-allocation CTA when this is specifically the legacy misconfiguration:
+  // not shutdown, and deposit limit is zero (the hallmark of missing auto-allocation wiring)
+  const isLegacyMisconfiguration = !vaultAcceptingDeposits && !isShutdown && depositLimitRaw === 0n;
 
   const onHarvest = () => {
     harvest.mutate({ gardenAddress, assetAddress: vault.asset });
@@ -76,8 +93,11 @@ export function PositionCard({
     );
   };
 
-  const onConfigureVault = () => {
-    configureVaultRoles.mutate({ gardenAddress, assetAddress: vault.asset });
+  const onEnableAutoAllocate = () => {
+    enableAutoAllocate.mutate(
+      { gardenAddress, assetAddress: vault.asset },
+      { onSuccess: () => { void refetchDiagnostics(); } }
+    );
   };
 
   return (
@@ -105,7 +125,7 @@ export function PositionCard({
             {formatMessage({ id: "app.treasury.currentYield" })}
           </p>
           <p className="mt-1 font-semibold text-text-strong">
-            {formatTokenAmount(currentYield, assetDecimals)} {assetSymbol}
+            {formatTokenAmount(unharvestedImpactYield, assetDecimals)} {assetSymbol}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
@@ -121,6 +141,10 @@ export function PositionCard({
           <p className="mt-1 font-semibold text-text-strong">{vault.totalHarvestCount}</p>
         </div>
       </div>
+
+      <p className="mt-3 text-xs text-text-sub">
+        {formatMessage({ id: "app.treasury.impactYieldHelper" })}
+      </p>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <Button
@@ -141,18 +165,20 @@ export function PositionCard({
         </Button>
       </div>
 
-      {/* Configure vault roles — shown when vault is misconfigured and user is module owner */}
-      {!vaultAcceptingDeposits && isModuleOwner && (
+      {/* Auto-allocation repair — only shown for the specific legacy misconfiguration
+           (deposit limit zero + not shutdown), not for paused/full/generic states */}
+      {isLegacyMisconfiguration && isModuleOwner && (
         <div className="mt-2">
-          <button
-            type="button"
-            onClick={onConfigureVault}
-            disabled={configureVaultRoles.isPending}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-warning-base bg-warning-lighter px-3 py-2 text-sm font-medium text-warning-dark transition hover:bg-warning-light disabled:cursor-not-allowed disabled:opacity-60"
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full border-warning-base bg-warning-lighter text-warning-dark hover:bg-warning-light"
+            onClick={onEnableAutoAllocate}
+            disabled={enableAutoAllocate.isPending}
+            loading={enableAutoAllocate.isPending}
           >
-            {configureVaultRoles.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
-            {formatMessage({ id: "app.treasury.configureVault" })}
-          </button>
+            {formatMessage({ id: "app.treasury.enableAutoAllocate" })}
+          </Button>
         </div>
       )}
 
@@ -167,15 +193,15 @@ export function PositionCard({
             >
               {formatMessage({ id: "app.treasury.harvest" })}
             </Button>
-            <button
-              type="button"
+            <Button
+              variant="danger"
+              size="sm"
               onClick={() => setConfirmPauseOpen(true)}
               disabled={!canEmergencyPause || emergencyPause.isPending}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-error-light bg-error-lighter px-3 py-2 text-sm font-medium text-error-dark transition hover:bg-error-light disabled:cursor-not-allowed disabled:opacity-60"
+              loading={emergencyPause.isPending}
             >
-              {emergencyPause.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
               {formatMessage({ id: "app.treasury.emergencyPause" })}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -184,7 +210,7 @@ export function PositionCard({
       <Dialog.Root open={confirmPauseOpen} onOpenChange={setConfirmPauseOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-[9999] bg-overlay backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-[calc(100vw-2rem)] sm:max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
             <Dialog.Title className="text-lg font-semibold text-text-strong">
               {formatMessage({ id: "app.treasury.emergencyPauseTitle" })}
             </Dialog.Title>
@@ -195,15 +221,14 @@ export function PositionCard({
               <Dialog.Close asChild>
                 <Button variant="secondary">{formatMessage({ id: "app.wizard.cancel" })}</Button>
               </Dialog.Close>
-              <button
-                type="button"
+              <Button
+                variant="danger"
                 onClick={onConfirmPause}
                 disabled={emergencyPause.isPending}
-                className="inline-flex items-center gap-2 rounded-md border border-error-light bg-error-lighter px-4 py-2 text-sm font-medium text-error-dark transition hover:bg-error-light disabled:cursor-not-allowed disabled:opacity-60"
+                loading={emergencyPause.isPending}
               >
-                {emergencyPause.isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
                 {formatMessage({ id: "app.treasury.emergencyPause" })}
-              </button>
+              </Button>
             </div>
           </Dialog.Content>
         </Dialog.Portal>

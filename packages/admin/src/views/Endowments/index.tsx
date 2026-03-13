@@ -60,21 +60,21 @@ function MyTrackedPositionCard({
   });
 
   const currentValue = preview?.previewAssets;
-  const yieldGenerated =
+  const positionDelta =
     typeof currentValue === "bigint" ? currentValue - position.netDeposited : null;
   const yieldToneClass =
-    yieldGenerated === null
+    positionDelta === null
       ? "text-text-soft"
-      : yieldGenerated > 0n
+      : positionDelta > 0n
         ? "text-success-dark"
-        : yieldGenerated < 0n
+        : positionDelta < 0n
           ? "text-error-dark"
           : "text-text-strong";
   const yieldDisplay =
-    yieldGenerated === null
+    positionDelta === null
       ? "--"
-      : `${yieldGenerated > 0n ? "+" : yieldGenerated < 0n ? "-" : ""}${formatTokenAmount(
-          yieldGenerated < 0n ? -yieldGenerated : yieldGenerated
+      : `${positionDelta > 0n ? "+" : positionDelta < 0n ? "-" : ""}${formatTokenAmount(
+          positionDelta < 0n ? -positionDelta : positionDelta
         )} ${position.assetSymbol}`;
 
   return (
@@ -339,6 +339,9 @@ export default function EndowmentsOverview() {
               </h2>
               <p className="text-sm text-text-sub">
                 {formatMessage({ id: "app.endowments.myPositions.description" })}
+              </p>
+              <p className="mt-2 text-xs text-text-sub">
+                {formatMessage({ id: "app.endowments.myPositions.flatPpsHelper" })}
               </p>
             </div>
           </div>

@@ -5,6 +5,7 @@
  */
 
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
+import { resetTestQueryClient } from "@green-goods/shared/testing";
 
 // Mock window.matchMedia for components and libraries that rely on it in tests
 // (e.g., responsive layout logic and chart libraries that expect matchMedia in JSDOM)
@@ -35,6 +36,7 @@ beforeAll(() => {
 
 afterEach(() => {
   server.resetHandlers();
+  resetTestQueryClient();
 });
 
 afterAll(() => {
