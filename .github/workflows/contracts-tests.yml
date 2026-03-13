@@ -76,14 +76,34 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Require private Arbitrum RPC for fork gating
+        run: |
+          if [[ -z "${{ secrets.ARBITRUM_RPC_URL }}" ]]; then
+            echo "::error::ARBITRUM_RPC_URL secret is required for Octant fork readiness gates"
+            exit 1
+          fi
+
       - name: Run fork protocol suite (exclude Celo + Unlock)
         run: |
           cd packages/contracts
-          bun run test:fork:protocol
+          bun run test:fork:protocol 2>&1 | tee /tmp/fork-test-output.txt
         env:
-          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL || 'https://arb1.arbitrum.io/rpc' }}
+          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
           SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL || 'https://ethereum-sepolia.publicnode.com' }}
           ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL || 'https://ethereum-rpc.publicnode.com' }}
+          COOKIE_JAR_FACTORY_ADDRESS: ${{ secrets.COOKIE_JAR_FACTORY_ADDRESS }}
+          CI: true
+
+      - name: Run Octant readiness fork gates
+        run: |
+          cd packages/contracts
+          FOUNDRY_PROFILE=fork bun run test:match 'test/fork/ArbitrumOctantVault.t.sol'
+          FOUNDRY_PROFILE=fork bun run test:match 'test/fork/ArbitrumYieldSplitterCore.t.sol'
+          FOUNDRY_PROFILE=e2e bun run test:match 'test/fork/e2e/ArbitrumExtendedE2E.t.sol' --match-test 'testForkArbitrum_e2e_octantVaultCreatedOnGardenMint'
+          FOUNDRY_PROFILE=e2e bun run test:match 'test/fork/e2e/ArbitrumExtendedE2E.t.sol' --match-test 'testForkArbitrum_e2e_fullYieldPipelineWithRealAaveAndSplit'
+          FOUNDRY_PROFILE=e2e bun run test:match 'test/fork/e2e/ArbitrumExtendedE2E.t.sol' --match-test 'testForkArbitrum_e2e_hypercertPoolReadiness_requiresYieldReadablePool'
+        env:
+          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
           COOKIE_JAR_FACTORY_ADDRESS: ${{ secrets.COOKIE_JAR_FACTORY_ADDRESS }}
           CI: true
 
@@ -185,8 +205,6 @@ jobs:
         run: |
           cd packages/contracts
           bun run lint
-
-
 
 
 
