@@ -13,6 +13,9 @@ import { MockERC20 } from "../src/mocks/ERC20.sol";
 import { MockHatsModule } from "./helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "./helpers/ERC6551Helper.sol";
 import { IGardensModule } from "../src/interfaces/IGardensModule.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { AaveV3ERC4626 } from "../src/strategies/AaveV3ERC4626.sol";
+import { MockAavePool, MockAToken, MockPoolDataProvider } from "../src/mocks/AavePool.sol";
 
 /// @title FuzzTests
 /// @notice Fuzz testing for edge cases and boundary conditions
@@ -90,8 +93,8 @@ contract FuzzTests is Test, ERC6551Helper {
     /// @param nameLength Length of garden name
     /// @param descLength Length of garden description
     function testFuzz_GardenMintingWithRandomStrings(uint8 nameLength, uint8 descLength) public {
-        // Bound string lengths to reasonable values (1-100 characters)
-        nameLength = uint8(bound(nameLength, 1, 100));
+        // Bound string lengths to contract limits (MAX_NAME_LENGTH = 72)
+        nameLength = uint8(bound(nameLength, 1, 72));
         descLength = uint8(bound(descLength, 1, 200));
 
         // Generate random strings
@@ -331,6 +334,124 @@ contract FuzzTests is Test, ERC6551Helper {
             abi.encodeWithSelector(YieldResolver.initialize.selector, multisig, address(0x2), address(0x3), 0);
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         return YieldResolver(address(proxy));
+    }
+
+    // =========================================================================
+    // Vault ERC-4626 Fuzz Tests
+    // =========================================================================
+
+    function _deployFuzzStrategy() internal returns (AaveV3ERC4626, MockERC20, MockAToken, MockAavePool) {
+        MockERC20 fuzzAsset = new MockERC20();
+        MockAToken fuzzAToken = new MockAToken();
+        MockAavePool fuzzPool = new MockAavePool(address(fuzzAToken));
+        MockPoolDataProvider fuzzDataProvider = new MockPoolDataProvider(address(fuzzAToken));
+
+        AaveV3ERC4626 strat = new AaveV3ERC4626(
+            address(fuzzAsset),
+            "Fuzz Aave",
+            "fzAave",
+            address(fuzzPool),
+            address(fuzzAToken),
+            address(fuzzDataProvider),
+            address(this)
+        );
+        strat.setVault(address(this));
+
+        // Pre-fund aToken with liquidity (real Aave: aToken holds underlying)
+        fuzzAsset.mint(address(fuzzAToken), 100_000 ether);
+        fuzzAToken.approveUnderlying(address(fuzzAsset), address(fuzzPool));
+
+        // Approve strategy for deposits from this contract (acting as vault)
+        fuzzAsset.approve(address(strat), type(uint256).max);
+
+        return (strat, fuzzAsset, fuzzAToken, fuzzPool);
+    }
+
+    /// @notice Fuzz: deposit → redeem roundtrip returns at least depositAmount - 1 (OZ virtual offset)
+    function testFuzz_vaultDepositRedeemRoundtrip(uint256 depositAmount) public {
+        depositAmount = bound(depositAmount, 1, 1000 ether);
+
+        (AaveV3ERC4626 strat, MockERC20 fuzzAsset,,) = _deployFuzzStrategy();
+        fuzzAsset.mint(address(this), depositAmount);
+
+        uint256 shares = strat.deposit(depositAmount, address(this));
+        assertGt(shares, 0, "deposit should mint shares");
+
+        uint256 received = strat.redeem(shares, address(this), address(this));
+        // OZ ERC4626 virtual offset can cause 1 wei loss on roundtrip
+        assertGe(received, depositAmount - 1, "roundtrip should return at least deposit - 1 wei");
+    }
+
+    /// @notice Fuzz: two depositors maintain correct share accounting
+    function testFuzz_vaultMultiDepositorAccounting(uint256 amountA, uint256 amountB) public {
+        amountA = bound(amountA, 1 ether, 500 ether);
+        amountB = bound(amountB, 1 ether, 500 ether);
+
+        (AaveV3ERC4626 strat, MockERC20 fuzzAsset,,) = _deployFuzzStrategy();
+
+        address userA = address(0xA1);
+        address userB = address(0xB2);
+        fuzzAsset.mint(address(this), amountA + amountB);
+
+        // Deposit for userA and userB (this contract is the vault)
+        uint256 sharesA = strat.deposit(amountA, userA);
+        uint256 sharesB = strat.deposit(amountB, userB);
+
+        assertEq(strat.balanceOf(userA) + strat.balanceOf(userB), strat.totalSupply(), "shares should sum to totalSupply");
+        assertEq(sharesA, strat.balanceOf(userA), "userA shares should match");
+        assertEq(sharesB, strat.balanceOf(userB), "userB shares should match");
+
+        // Redeem both
+        vm.prank(userA);
+        strat.redeem(sharesA, userA, userA);
+        vm.prank(userB);
+        strat.redeem(sharesB, userB, userB);
+
+        assertEq(strat.totalSupply(), 0, "vault should be empty after full redemption");
+    }
+
+    /// @notice Fuzz: convertToShares→convertToAssets roundtrip never inflates
+    function testFuzz_vaultConversionNoInflation(uint256 amount) public {
+        amount = bound(amount, 1, type(uint128).max);
+
+        (AaveV3ERC4626 strat,,,) = _deployFuzzStrategy();
+
+        uint256 shares = strat.convertToShares(amount);
+        uint256 assets = strat.convertToAssets(shares);
+        assertLe(assets, amount, "convertToAssets(convertToShares(x)) must not exceed x");
+    }
+
+    /// @notice Inflation attack resistance: onlyVault modifier prevents direct attacker deposits.
+    ///         Even if shares are diluted via donation, the vault-gated access control ensures
+    ///         only the MultistrategyVault (not arbitrary users) can mint strategy shares.
+    function test_vaultInflationAttackResistance() public {
+        (AaveV3ERC4626 strat, MockERC20 fuzzAsset,,) = _deployFuzzStrategy();
+
+        // Step 1: Vault (address(this)) deposits 1 wei to seed shares
+        fuzzAsset.mint(address(this), 1);
+        strat.deposit(1, address(this));
+
+        // Step 2: Attacker donates 1e18 directly to strategy to inflate share price
+        fuzzAsset.mint(address(strat), 1 ether);
+
+        // Step 3: Verify external attacker CANNOT deposit (onlyVault blocks)
+        address attacker = address(0xA77AC);
+        fuzzAsset.mint(attacker, 1 ether);
+        vm.startPrank(attacker);
+        fuzzAsset.approve(address(strat), 1 ether);
+        vm.expectRevert(AaveV3ERC4626.OnlyVault.selector);
+        strat.deposit(1 ether, attacker);
+        vm.stopPrank();
+
+        // Step 4: Vault can still deposit — shares ARE diluted by the donation,
+        //         but this is expected vault accounting that process_report handles.
+        fuzzAsset.mint(address(this), 1 ether);
+        uint256 postDonationShares = strat.deposit(1 ether, address(this));
+        assertGt(postDonationShares, 0, "vault must still get non-zero shares after donation");
+
+        // Step 5: totalAssets should reflect both deposits + donation
+        uint256 total = strat.totalAssets();
+        assertGt(total, 1 ether, "totalAssets should include donated tokens");
     }
 
     /// @notice Convert bitmap to capital array

@@ -30,7 +30,6 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
     /// @notice Register → read → update fields → set past endTime (disable) → re-enable
     function testForkArbitrum_registerAction_fullLifecycle() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -86,7 +85,6 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
     /// @notice domain=0 is valid (no domains), mask > 0x0F reverts
     function testForkArbitrum_registerAction_domainMaskValidation() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -123,7 +121,6 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
     /// @notice Each Capital variant is stored correctly when registered
     function testForkArbitrum_registerAction_capitalTypes() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -172,7 +169,6 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
     /// @notice Non-owner registerAction reverts with OwnableUnauthorizedAccount
     function testForkArbitrum_registerAction_unauthorizedReverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -204,7 +200,6 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
     ///         work attestations against it via real EAS.
     function testForkArbitrum_disabledAction_blocksWorkAttestation() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -257,7 +252,6 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
     /// @notice 3 actions registered sequentially get unique UIDs and are all queryable
     function testForkArbitrum_multipleActions_sameGarden() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -326,7 +320,6 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
     /// @notice Deploy V1 → register action → upgrade to V2 → verify state preserved
     function testForkArbitrum_actionRegistry_uupsUpgrade() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 

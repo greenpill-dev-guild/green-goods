@@ -22,7 +22,6 @@ contract SepoliaGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_initializesWithRealHatsProtocol() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -43,7 +42,6 @@ contract SepoliaGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_hatsProtocolIsQueryable() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -67,7 +65,6 @@ contract SepoliaGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_weightSchemesResolveCorrectly() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -89,7 +86,6 @@ contract SepoliaGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_onGardenMintedStoresState() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -113,7 +109,6 @@ contract SepoliaGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_onGardenMintedRevertsForUnauthorized() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -131,7 +126,6 @@ contract SepoliaGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_realRoleGrantsViaHatsModule() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -160,7 +154,6 @@ contract SepoliaGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_gardensV2CommunityCreation() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -178,7 +171,6 @@ contract SepoliaGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_constantsAreCorrect() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -198,7 +190,6 @@ contract SepoliaGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_goodsTokenConfigured() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -218,7 +209,6 @@ contract SepoliaGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_powerRegistryWiringVerified() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 

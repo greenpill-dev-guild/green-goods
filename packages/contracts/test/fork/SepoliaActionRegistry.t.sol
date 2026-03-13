@@ -20,7 +20,6 @@ contract SepoliaActionRegistryForkTest is ForkTestBase {
     /// @notice Register → read → update → disable → re-enable on Sepolia
     function test_fork_registerAction_fullLifecycle() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -78,7 +77,6 @@ contract SepoliaActionRegistryForkTest is ForkTestBase {
     /// on the real Sepolia EAS deployment.
     function test_fork_disabledAction_blocksWorkAttestation() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -129,7 +127,6 @@ contract SepoliaActionRegistryForkTest is ForkTestBase {
     /// @notice Non-owner cannot register actions on Sepolia
     function test_fork_registerAction_unauthorizedReverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 

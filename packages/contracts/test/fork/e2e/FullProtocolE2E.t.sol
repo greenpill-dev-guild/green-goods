@@ -23,7 +23,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
     /// @notice Exercises the full protocol flow: deploy -> mint -> roles -> action -> work -> approval -> assessment
     function test_fork_e2e_completeProtocolLifecycle() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -144,7 +143,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
     /// @notice Verifies garden mint succeeds with full module wiring and metadata is correct
     function test_fork_e2e_gardenMintWithAllModules() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -194,7 +192,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
     /// @notice Tests garden mint succeeds with optional modules disabled, reverts without HatsModule
     function test_fork_e2e_gracefulDegradationMatrix() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -262,7 +259,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
     /// @notice Tests batch minting 3 gardens with different configurations
     function test_fork_e2e_batchMintGardens() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -353,7 +349,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
     /// @notice Tests that open joining allows a non-member to join and become a gardener
     function test_fork_e2e_openJoiningFlow() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -395,7 +390,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
     /// @notice Non-member work attestation reverts on real Sepolia EAS
     function test_fork_e2e_unauthorizedWorkSubmission() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -439,7 +433,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
     /// @notice Operator of garden A cannot approve work on garden B
     function test_fork_e2e_crossGardenRoleIsolation() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -496,7 +489,6 @@ contract FullProtocolE2EForkTest is ForkTestBase {
     /// @notice Granting the same role twice is idempotent and keeps membership intact
     function test_fork_e2e_doubleRoleGrantIsIdempotent() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 

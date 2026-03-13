@@ -26,7 +26,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
     /// @notice Full protocol flow on Arbitrum: deploy → schemas → mint → roles → action → work → approval → assessment
     function testForkArbitrum_e2e_completeProtocolLifecycle() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -68,7 +67,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
     /// @notice Verifies garden mint succeeds with full module wiring on Arbitrum
     function testForkArbitrum_e2e_gardenMintWithAllModules() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -136,7 +134,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
     /// @notice Tests garden mint succeeds with optional modules disabled, reverts without HatsModule on Arbitrum
     function testForkArbitrum_e2e_gracefulDegradationMatrix() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -195,7 +192,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
     /// @notice Tests batch minting 3 gardens with different configurations on Arbitrum
     function testForkArbitrum_e2e_batchMintGardens() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -283,7 +279,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
     /// @notice Tests open joining allows a non-member to join on Arbitrum
     function testForkArbitrum_e2e_openJoiningFlow() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -321,7 +316,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
     /// @notice Non-member work attestation reverts on Arbitrum EAS
     function testForkArbitrum_e2e_unauthorizedWorkSubmission() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -365,7 +359,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
     /// @notice Operator of garden A cannot approve work on garden B
     function testForkArbitrum_e2e_crossGardenRoleIsolation() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -422,7 +415,6 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
     /// @notice Granting the same role twice is idempotent and keeps membership intact
     function testForkArbitrum_e2e_doubleRoleGrantIsIdempotent() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 

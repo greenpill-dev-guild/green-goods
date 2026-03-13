@@ -26,7 +26,6 @@ contract SepoliaGoodsTokenForkTest is ForkTestBase {
     /// @notice Verify GoodsToken deployed by full stack has correct initial state
     function test_fork_sepolia_goodsToken_initialSupplyMintedToOwner() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -52,7 +51,6 @@ contract SepoliaGoodsTokenForkTest is ForkTestBase {
     /// @notice Minting beyond maxSupply reverts with ExceedsMaxSupply
     function test_fork_sepolia_goodsToken_maxSupplyEnforced() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -76,7 +74,6 @@ contract SepoliaGoodsTokenForkTest is ForkTestBase {
     /// @notice Non-owner mint reverts with OwnableUnauthorizedAccount
     function test_fork_sepolia_goodsToken_onlyOwnerCanMint() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -99,7 +96,6 @@ contract SepoliaGoodsTokenForkTest is ForkTestBase {
     /// @notice Burning tokens reduces totalSupply, freeing capacity for subsequent mints
     function test_fork_sepolia_goodsToken_burnReducesSupply() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -127,7 +123,6 @@ contract SepoliaGoodsTokenForkTest is ForkTestBase {
     /// @notice Deploy full stack, configure real Gardens V2, verify GOODS token is wired
     function test_fork_sepolia_goodsToken_stakingIntegration() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -162,7 +157,6 @@ contract SepoliaGoodsTokenForkTest is ForkTestBase {
     /// @notice maxSupply=0 in constructor reverts with MaxSupplyZero
     function test_fork_sepolia_goodsToken_maxSupplyZeroReverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 

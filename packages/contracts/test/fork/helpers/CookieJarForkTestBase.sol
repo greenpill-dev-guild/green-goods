@@ -117,7 +117,6 @@ abstract contract CookieJarForkTestBase is ForkTestBase {
         address jar2 = cookieJarModule.getGardenJar(cookieGarden, address(secondToken));
         // If jar2 is not auto-created, skip the rest (module may require explicit creation)
         if (jar2 == address(0)) {
-            emit log("SKIPPED: second jar not auto-created by module");
             return;
         }
 

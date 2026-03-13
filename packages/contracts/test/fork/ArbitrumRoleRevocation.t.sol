@@ -10,7 +10,7 @@ import { HatsModule } from "../../src/modules/Hats.sol";
 /// @notice Fork tests for HatsModule.revokeRole() and revokeRoles() against real Hats Protocol
 ///         on Arbitrum. Covers the burn-address revocation mechanism, nonce isolation, authorization,
 ///         batch revocation, and event emission.
-/// @dev Uses setUp pattern for efficient fork reuse. Each test guards with `if (!forkActive) return;`.
+/// @dev Uses setUp pattern for efficient fork reuse. Each test guards with `if (!forkActive) { return; }`.
 ///      The _revokeNonce resets per test (Forge snapshot/revert), so burn address generation is isolated.
 contract ArbitrumRoleRevocationForkTest is ForkTestBase {
     // ═══════════════════════════════════════════════════════════════════════════

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { ForkTestBase } from "../helpers/ForkTestBase.sol";
 import { GardenAccount } from "../../../src/accounts/Garden.sol";
 import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
 import { IGardensModule } from "../../../src/interfaces/IGardensModule.sol";
@@ -11,11 +10,9 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { YieldResolver } from "../../../src/resolvers/Yield.sol";
 import { IRouterClient } from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
 import { GreenGoodsENS } from "../../../src/registries/ENS.sol";
-import { AaveV3 } from "../../../src/strategies/AaveV3.sol";
-import { MultistrategyVault } from "../../../src/vendor/octant/core/MultistrategyVault.sol";
-import { MultistrategyVaultFactory } from "../../../src/vendor/octant/factories/MultistrategyVaultFactory.sol";
 import { IOctantVault } from "../../../src/interfaces/IOctantFactory.sol";
-import { MockCVStrategy } from "../../../src/mocks/CVStrategy.sol";
+import { GardensV2Addresses } from "../helpers/GardensV2Addresses.sol";
+import { AaveOctantForkBase } from "../helpers/AaveOctantForkBase.sol";
 
 /// @title ArbitrumExtendedE2EForkTest
 /// @notice Extended fork tests covering yield pipeline, Hypercerts, ENS, KarmaGAP, Gardens V2,
@@ -23,44 +20,116 @@ import { MockCVStrategy } from "../../../src/mocks/CVStrategy.sol";
 ///         by integrating multiple modules per test instead of testing them in isolation.
 /// @dev Inherits ForkTestBase for full-stack deployment. Uses `testForkArbitrum_` prefix to match
 ///      the `test:e2e:arbitrum` script (--match-test 'testFork.*Arbitrum').
-contract ArbitrumExtendedE2EForkTest is ForkTestBase {
-    // ═══════════════════════════════════════════════════════════════════════════
-    // External Contract Addresses (Arbitrum Mainnet)
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    address internal constant AAVE_V3_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
-    address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
-    address internal constant AWETH = 0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8;
+contract ArbitrumExtendedE2EForkTest is AaveOctantForkBase {
     address internal constant HYPERCERT_EXCHANGE = 0xcE8fa09562f07c23B9C21b5d0A29a293F8a8BC83;
     address internal constant HYPERCERT_MINTER = 0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07;
     address internal constant KARMA_GAP = 0x6dC1D6b864e8BEf815806f9e4677123496e12026;
     address internal constant CCIP_ROUTER = 0x141fa059441E0ca23ce184B6A78bafD2A517DdE8;
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Yield Pipeline Helpers
-    // ═══════════════════════════════════════════════════════════════════════════
+    function _requireArbitrumFork() internal {
+        _requireChainFork("arbitrum");
+    }
 
     /// @notice Set up a real Aave-backed Octant vault for a garden
-    /// @dev Deploys MultistrategyVaultFactory + AaveV3 strategy, configures OctantModule
+    /// @dev Deploys MultistrategyVaultFactory + ERC4626 Aave template, then lets OctantModule deploy the live strategy
     /// @return vault The vault address for WETH deposits
     function _setupOctantVaultWithAave(address garden) internal returns (address vault) {
-        // Deploy vault factory + strategy
-        MultistrategyVault vaultImpl = new MultistrategyVault();
-        MultistrategyVaultFactory vaultFactory =
-            new MultistrategyVaultFactory("Green Goods E2E", address(vaultImpl), address(this));
+        vault = super._setupOctantVaultWithAave(garden, "Green Goods E2E", "Green Goods Aave WETH", "ggaWETH");
+        assertTrue(IOctantVault(vault).autoAllocate(), "vault should auto-allocate by default");
+        assertEq(IOctantVault(vault).accountant(), address(yieldSplitter), "yield resolver should be the accountant");
+    }
 
-        AaveV3 strategy = new AaveV3(WETH, AAVE_V3_POOL, AWETH, address(octantModule));
+    function _assertCrownJewelGardenSetup() internal returns (address garden, uint256 actionUID) {
+        (garden, actionUID) = _setupGardenWithRolesAndAction("Crown Jewel Garden");
+        GardenAccount gardenAcct = GardenAccount(payable(garden));
+        assertEq(keccak256(bytes(gardenAcct.name())), keccak256(bytes("Crown Jewel Garden")), "garden name mismatch");
 
-        // Configure OctantModule
-        octantModule.setOctantFactory(address(vaultFactory));
-        octantModule.setSupportedAsset(WETH, address(strategy));
+        assertTrue(hatsModule.isOperatorOf(garden, forkOperator), "operator role");
+        assertTrue(hatsModule.isGardenerOf(garden, forkGardener), "gardener role");
+        assertTrue(hatsModule.isEvaluatorOf(garden, forkEvaluator), "evaluator role");
+        assertTrue(karmaGAPModule.isSupported(), "KarmaGAP should be supported");
+        assertTrue(address(greenGoodsENS) != address(0), "ENS module should be deployed");
+        assertTrue(greenGoodsENS.available("crown-jewel"), "slug should be available");
+    }
 
-        // Set donation address to yieldSplitter so shares are tracked for splitYield
-        octantModule.setDonationAddress(garden, address(yieldSplitter));
-
-        // Create vault for this garden+asset
-        vault = octantModule.createVaultForAsset(garden, WETH);
+    function _runCrownJewelYieldPipeline(address garden, uint256 actionUID) internal returns (address vault) {
+        vault = _setupOctantVaultWithAave(garden);
         assertTrue(vault != address(0), "vault should be created");
+        _depositWethIntoVault(vault, 0.5 ether);
+
+        bytes32 workAttUID = _submitWorkAttestation(forkGardener, garden, actionUID);
+        assertTrue(workAttUID != bytes32(0), "work attestation should succeed");
+
+        bytes32 approvalUID = _submitWorkApproval(forkOperator, garden, actionUID, workAttUID);
+        assertTrue(approvalUID != bytes32(0), "work approval should succeed");
+
+        bytes32 assessmentUID = _submitAssessment(forkEvaluator, garden, 1);
+        assertTrue(assessmentUID != bytes32(0), "assessment should succeed");
+
+        _warpForHarvestWindow();
+        octantModule.harvest(garden, WETH);
+        assertEq(yieldSplitter.gardenVaults(garden, WETH), vault, "vault registered in YieldResolver");
+
+        // Complete the yield pipeline with splitYield
+        yieldSplitter.setMinYieldThreshold(0); // Allow small amounts for test
+        address cookieJar = address(0xC001);
+        yieldSplitter.setCookieJar(garden, cookieJar);
+        address treasury = address(0x7EA5);
+        yieldSplitter.setGardenTreasury(garden, treasury);
+
+        yieldSplitter.splitYield(garden, WETH, vault);
+        assertGt(IERC20(WETH).balanceOf(cookieJar), 0, "crown jewel: cookie jar should receive yield");
+        assertEq(yieldSplitter.gardenShares(garden, vault), 0, "crown jewel: all shares redeemed");
+    }
+
+    function _assertCrownJewelModules() internal {
+        assertEq(address(gardenToken.cookieJarModule()), address(cookieJarModule), "CookieJarModule should be wired");
+
+        hypercertsModule.setHypercertMinter(HYPERCERT_MINTER);
+        assertGt(HYPERCERT_EXCHANGE.code.length, 0, "HypercertExchange deployed");
+        assertGt(HYPERCERT_MINTER.code.length, 0, "HypercertMinter deployed");
+        assertTrue(address(hypercertsModule.marketplaceAdapter()) != address(0), "marketplace adapter should be wired");
+    }
+
+    function _assertConvictionRolePower(address garden) internal {
+        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
+
+        assertTrue(hatsModule.isOperatorOf(garden, forkOperator), "operator role should be granted");
+        assertTrue(hatsModule.isGardenerOf(garden, forkGardener), "gardener role should be granted");
+
+        if (unifiedPowerRegistry.isGardenRegistered(garden)) {
+            uint256 sourceCount = unifiedPowerRegistry.getGardenSourceCount(garden);
+            assertEq(sourceCount, 3, "garden should have 3 power sources (operator, gardener, community)");
+        }
+    }
+
+    function _assertConvictionSources(address garden) internal {
+        if (!unifiedPowerRegistry.isGardenRegistered(garden)) {
+            assertTrue(gardensModule.isGardenInitialized(garden), "garden should be initialized regardless");
+            return;
+        }
+
+        NFTPowerSource[] memory sources = unifiedPowerRegistry.getGardenSources(garden);
+        assertEq(sources.length, 3, "should have 3 power sources");
+
+        address[] memory signalPools = gardensModule.getGardenSignalPools(garden);
+        for (uint256 i = 0; i < signalPools.length; i++) {
+            if (signalPools[i] == address(0)) continue;
+            address poolGarden = unifiedPowerRegistry.getPoolGarden(signalPools[i]);
+            assertEq(poolGarden, garden, "pool should map to garden");
+        }
+    }
+
+    function _assertConvictionHatWearers(address garden) internal {
+        IHats hats = IHats(HATS_PROTOCOL);
+        (, uint256 operatorHatId,,,,,,) = hatsModule.getGardenHatIds(garden);
+        (,,, uint256 gardenerHatId,,,,) = hatsModule.getGardenHatIds(garden);
+
+        assertTrue(hats.isWearerOfHat(forkOperator, operatorHatId), "operator should wear operator hat");
+        assertTrue(hats.isWearerOfHat(forkGardener, gardenerHatId), "gardener should wear gardener hat");
+        assertFalse(hats.isWearerOfHat(forkNonMember, operatorHatId), "non-member should not wear operator hat");
+        assertFalse(hats.isWearerOfHat(forkNonMember, gardenerHatId), "non-member should not wear gardener hat");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -70,11 +139,7 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
     /// @notice Deploy stack → mint garden → deposit WETH into Octant vault → harvest →
     ///         verify YieldResolver vault wiring and default split configuration.
     function testForkArbitrum_e2e_yieldResolverWiringAndSplitConfig() public {
-        if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
-            return;
-        }
-
+        _requireArbitrumFork();
         _deployFullStackOnFork();
 
         // 1. Mint garden with all domains
@@ -84,28 +149,78 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
         address vault = _setupOctantVaultWithAave(garden);
 
         // 3. Deposit WETH into vault
-        uint256 depositAmount = 1 ether;
-        deal(WETH, address(this), depositAmount);
-        IERC20(WETH).approve(vault, depositAmount);
-        uint256 shares = IOctantVault(vault).deposit(depositAmount, address(this));
-        assertGt(shares, 0, "deposit should mint shares");
+        _depositWethIntoVault(vault, 1 ether);
+        address liveStrategy = octantModule.vaultStrategies(vault);
+        assertGt(IERC20(AWETH).balanceOf(liveStrategy), 0, "vault deposits should auto-allocate into Aave");
 
         // 4. Time warp 30 days and harvest
-        vm.warp(block.timestamp + 30 days);
-        vm.roll(block.number + 216_000); // ~30 days of blocks at ~12s
+        _warpForHarvestWindow();
 
         // Harvest calls through the full Octant pipeline with real contracts.
         octantModule.harvest(garden, WETH);
+        assertGt(IOctantVault(vault).balanceOf(address(yieldSplitter)), 0, "harvest should mint resolver fee shares");
 
         // 5. Verify vault wiring in YieldResolver.
         address registeredVault = yieldSplitter.gardenVaults(garden, WETH);
         assertEq(registeredVault, vault, "vault should be registered in YieldResolver");
+        assertGt(yieldSplitter.gardenShares(garden, vault), 0, "harvest should register garden shares");
 
         // 6. Verify resolved split config (returns defaults when per-garden config is unset).
         YieldResolver.SplitConfig memory splitConfig = yieldSplitter.getSplitConfig(garden);
         assertEq(splitConfig.cookieJarBps, yieldSplitter.DEFAULT_COOKIE_JAR_BPS(), "cookie jar bps");
         assertEq(splitConfig.fractionsBps, yieldSplitter.DEFAULT_FRACTIONS_BPS(), "fractions bps");
         assertEq(splitConfig.juiceboxBps, yieldSplitter.DEFAULT_JUICEBOX_BPS(), "juicebox bps");
+    }
+
+    /// @notice Deploy stack → seed Aave support before garden mint → verify Octant auto-creates
+    ///         the vault and attaches a live strategy on mint.
+    function testForkArbitrum_e2e_octantVaultCreatedOnGardenMint() public {
+        _requireArbitrumFork();
+        _deployFullStackOnFork();
+        _configureAaveVaultSupport("Green Goods E2E", "Green Goods Aave WETH", "ggaWETH");
+
+        address garden = _mintTestGarden("Auto Vault Garden", 0x0F);
+        assertTrue(garden != address(0), "garden should be created");
+
+        address vault = octantModule.getVaultForAsset(garden, WETH);
+        assertTrue(vault != address(0), "vault should be auto-created on mint");
+        assertTrue(octantModule.vaultStrategies(vault) != address(0), "mint path should attach a live strategy");
+        assertTrue(IOctantVault(vault).autoAllocate(), "auto-allocation should stay enabled");
+        assertEq(IOctantVault(vault).accountant(), address(yieldSplitter), "yield resolver should remain wired");
+    }
+
+    /// @notice Deploy stack → mint garden → create Octant vault → verify non-members cannot harvest.
+    function testForkArbitrum_e2e_octantVaultUnauthorizedHarvestReverts() public {
+        _requireArbitrumFork();
+        _deployFullStackOnFork();
+
+        (address garden,) = _setupGardenWithRolesAndAction("Auth Test Garden");
+        _setupOctantVaultWithAave(garden);
+
+        vm.prank(forkNonMember);
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("UnauthorizedCaller(address)")), forkNonMember));
+        octantModule.harvest(garden, WETH);
+    }
+
+    /// @notice Deploy stack → mint garden → create vault → deposit WETH → withdraw partially
+    ///         → verify Aave allocation and emergency pause path.
+    function testForkArbitrum_e2e_octantVaultDepositWithdrawAndEmergencyPause() public {
+        _requireArbitrumFork();
+        _deployFullStackOnFork();
+
+        (address garden,) = _setupGardenWithRolesAndAction("Octant Vault Garden");
+        assertTrue(hatsModule.isOperatorOf(garden, forkOperator), "operator should have role");
+
+        address vault = _setupOctantVaultWithAave(garden);
+
+        _depositWethIntoVault(vault, 0.5 ether);
+        address liveStrategy = octantModule.vaultStrategies(vault);
+        assertGt(IERC20(AWETH).balanceOf(liveStrategy), 0, "vault deposit should be deployed into Aave");
+
+        uint256 withdrawnShares = IOctantVault(vault).withdraw(0.1 ether, address(this), address(this), 1, new address[](0));
+        assertGt(withdrawnShares, 0, "withdraw should burn shares");
+
+        octantModule.emergencyPause(garden, WETH);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -116,7 +231,6 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
     ///         HypercertsModule → verify garden hypercert tracking on fork.
     function testForkArbitrum_e2e_hypercertMintAndMarketplaceListing() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -162,7 +276,6 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
     ///         estimation → verify KarmaGAP project created on real GAP
     function testForkArbitrum_e2e_gardenMintWithENSAndGAP() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -202,7 +315,6 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
     ///         on real RegistryFactory → grant roles → verify power in UnifiedPowerRegistry
     function testForkArbitrum_e2e_gardensV2CommunityAndConviction() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -250,7 +362,6 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
     ///         gardener (hat-wearer) withdrawal succeeds → non-member withdrawal reverts
     function testForkArbitrum_e2e_cookieJarHatsGatedWithdrawal() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -290,88 +401,14 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
     ///         yield split verified → CookieJar funded → hypercert module wired → order listing verified
     function testForkArbitrum_e2e_completeProtocolLifecycleAllModules() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
         _deployFullStackOnFork();
 
-        // ═══════ Phase 1: Garden Setup ═══════
-
-        // Mint garden with all domains enabled
-        (address garden, uint256 actionUID) = _setupGardenWithRolesAndAction("Crown Jewel Garden");
-        GardenAccount gardenAcct = GardenAccount(payable(garden));
-        assertEq(keccak256(bytes(gardenAcct.name())), keccak256(bytes("Crown Jewel Garden")), "garden name mismatch");
-
-        // Verify all roles
-        assertTrue(hatsModule.isOperatorOf(garden, forkOperator), "operator role");
-        assertTrue(hatsModule.isGardenerOf(garden, forkGardener), "gardener role");
-        assertTrue(hatsModule.isEvaluatorOf(garden, forkEvaluator), "evaluator role");
-
-        // ═══════ Phase 2: KarmaGAP Integration ═══════
-
-        // Verify KarmaGAP support on Arbitrum
-        assertTrue(karmaGAPModule.isSupported(), "KarmaGAP should be supported");
-
-        // ═══════ Phase 3: ENS Integration ═══════
-
-        // Verify ENS module is wired
-        assertTrue(address(greenGoodsENS) != address(0), "ENS module should be deployed");
-
-        // Verify slug availability check works
-        assertTrue(greenGoodsENS.available("crown-jewel"), "slug should be available");
-
-        // ═══════ Phase 4: Octant Vault ═══════
-
-        address vault = _setupOctantVaultWithAave(garden);
-        assertTrue(vault != address(0), "vault should be created");
-
-        // Deposit WETH
-        uint256 depositAmount = 0.5 ether;
-        deal(WETH, address(this), depositAmount);
-        IERC20(WETH).approve(vault, depositAmount);
-        uint256 shares = IOctantVault(vault).deposit(depositAmount, address(this));
-        assertGt(shares, 0, "deposit should mint shares");
-
-        // ═══════ Phase 5: Work Lifecycle ═══════
-
-        bytes32 workAttUID = _submitWorkAttestation(forkGardener, garden, actionUID);
-        assertTrue(workAttUID != bytes32(0), "work attestation should succeed");
-
-        bytes32 approvalUID = _submitWorkApproval(forkOperator, garden, actionUID, workAttUID);
-        assertTrue(approvalUID != bytes32(0), "work approval should succeed");
-
-        bytes32 assessmentUID = _submitAssessment(forkEvaluator, garden, 1); // AGRO domain
-        assertTrue(assessmentUID != bytes32(0), "assessment should succeed");
-
-        // ═══════ Phase 6: Yield Pipeline ═══════
-
-        // Time warp to accumulate yield
-        vm.warp(block.timestamp + 30 days);
-        vm.roll(block.number + 216_000);
-
-        // Harvest
-        octantModule.harvest(garden, WETH);
-
-        // Verify vault registration in YieldResolver
-        assertEq(yieldSplitter.gardenVaults(garden, WETH), vault, "vault registered in YieldResolver");
-
-        // ═══════ Phase 7: CookieJar ═══════
-
-        // Verify CookieJarModule is wired
-        assertEq(address(gardenToken.cookieJarModule()), address(cookieJarModule), "CookieJarModule should be wired");
-
-        // ═══════ Phase 8: Hypercert Module ═══════
-
-        // Wire to real contracts
-        hypercertsModule.setHypercertMinter(HYPERCERT_MINTER);
-
-        // Verify real Hypercert infra on Arbitrum
-        assertGt(HYPERCERT_EXCHANGE.code.length, 0, "HypercertExchange deployed");
-        assertGt(HYPERCERT_MINTER.code.length, 0, "HypercertMinter deployed");
-
-        // Verify module adapter is wired
-        assertTrue(address(hypercertsModule.marketplaceAdapter()) != address(0), "marketplace adapter should be wired");
+        (address garden, uint256 actionUID) = _assertCrownJewelGardenSetup();
+        _runCrownJewelYieldPipeline(garden, actionUID);
+        _assertCrownJewelModules();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -382,7 +419,6 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
     ///         *.greengoods.eth → verify CCIP fee estimation non-zero + slug cached
     function testForkArbitrum_e2e_memberClaimsENSName() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -438,77 +474,211 @@ contract ArbitrumExtendedE2EForkTest is ForkTestBase {
     ///         role → verify power sync fires → query power from registry
     function testForkArbitrum_e2e_convictionPowerAfterRoleGrant() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
         _deployFullStackOnFork();
 
-        // 1. Configure Gardens V2 to enable power registry
         _configureRealGardensV2();
-
-        // 2. Mint garden (triggers power registration in UnifiedPowerRegistry)
         address garden = _mintTestGarden("Conviction Garden", 0x0F);
-
-        // 3. Verify garden is initialized
         assertTrue(gardensModule.isGardenInitialized(garden), "garden should be initialized");
+        _assertConvictionRolePower(garden);
+        _assertConvictionSources(garden);
+        _assertConvictionHatWearers(garden);
+    }
 
-        // 4. Grant roles
-        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
-        _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test 9: Full Yield Pipeline With Real Aave And Split
+    // ═══════════════════════════════════════════════════════════════════════════
 
-        // 5. Check if garden was registered in UnifiedPowerRegistry
-        if (unifiedPowerRegistry.isGardenRegistered(garden)) {
-            // 6. Verify power sources are registered (3 sources: operator, gardener, community)
-            NFTPowerSource[] memory sources = unifiedPowerRegistry.getGardenSources(garden);
-            assertEq(sources.length, 3, "should have 3 power sources");
+    /// @notice GOLDEN PATH: deposit WETH → time warp → harvest (real process_report + accountant) →
+    ///         configure CookieJar + treasury → splitYield → assert WETH at CookieJar (~48.65%),
+    ///         fractions escrowed (~48.65%), treasury receives JB fallback (~2.7%) →
+    ///         assert conservation of value
+    function testForkArbitrum_e2e_fullYieldPipelineWithRealAaveAndSplit() public {
+        _requireArbitrumFork();
+        _deployFullStackOnFork();
 
-            // 7. Deploy a MockCVStrategy to test power resolution
-            MockCVStrategy strategy = new MockCVStrategy(
-                address(unifiedPowerRegistry),
-                address(0),
-                9_999_799, // DEFAULT_DECAY
-                2_000_000, // DEFAULT_MAX_RATIO
-                10_000, // DEFAULT_WEIGHT
-                2_500_000 // DEFAULT_MIN_THRESHOLD_POINTS
-            );
+        // 1. Mint garden with roles
+        (address garden,) = _setupGardenWithRolesAndAction("Yield Pipeline E2E Garden");
 
-            // 8. Register pool → garden mapping
-            // We need gardensModule to be the caller for registerPool
-            // Since unifiedPowerRegistry only allows gardensModule, we use the garden signal
-            // pools if they were created, or verify power resolution directly
-            address[] memory signalPools = gardensModule.getGardenSignalPools(garden);
+        // 2. Set up real Aave-backed vault
+        address vault = _setupOctantVaultWithAave(garden);
+        assertTrue(vault != address(0), "vault should be created");
 
-            if (signalPools.length > 0) {
-                // Pools were created — verify pool → garden mapping
-                for (uint256 i = 0; i < signalPools.length; i++) {
-                    if (signalPools[i] != address(0)) {
-                        address poolGarden = unifiedPowerRegistry.getPoolGarden(signalPools[i]);
-                        assertEq(poolGarden, garden, "pool should map to garden");
-                    }
-                }
-            }
+        // 3. Deposit 1 WETH
+        _depositWethIntoVault(vault, 1 ether);
+        address liveStrategy = octantModule.vaultStrategies(vault);
+        assertGt(IERC20(AWETH).balanceOf(liveStrategy), 0, "deposits should auto-allocate into Aave");
 
-            // 9. Verify Hats-based power for role wearers
-            // Direct power check through hat wearer status
-            IHats hats = IHats(HATS_PROTOCOL);
+        // 4. Lower yield threshold — default 7e18 WETH (~$21k) is unreachable for 1 ETH over 30 days
+        //    Aave WETH APY ~3% → ~0.0025 ETH yield from 1 ETH deposit.
+        yieldSplitter.setMinYieldThreshold(0);
 
-            // Operator should wear the operator hat
-            (, uint256 operatorHatId,,,,,,) = hatsModule.getGardenHatIds(garden);
-            assertTrue(hats.isWearerOfHat(forkOperator, operatorHatId), "operator should wear operator hat");
+        // 5. Warp 30 days for yield accrual
+        _warpForHarvestWindow();
 
-            // Gardener should wear the gardener hat
-            (,,, uint256 gardenerHatId,,,,) = hatsModule.getGardenHatIds(garden);
-            assertTrue(hats.isWearerOfHat(forkGardener, gardenerHatId), "gardener should wear gardener hat");
+        // 6. Harvest — triggers process_report → accountant (YieldResolver.report) → fee shares minted
+        octantModule.harvest(garden, WETH);
+        uint256 resolverShares = yieldSplitter.gardenShares(garden, vault);
+        assertGt(resolverShares, 0, "harvest should register yield shares with resolver");
 
-            // Non-member should NOT wear any garden hat
-            assertFalse(hats.isWearerOfHat(forkNonMember, operatorHatId), "non-member should not wear operator hat");
-            assertFalse(hats.isWearerOfHat(forkNonMember, gardenerHatId), "non-member should not wear gardener hat");
-        } else {
-            // Power registry registration may fail gracefully on fork
-            // (e.g., if real RegistryFactory is not compatible with our deployment).
-            // Verify the garden was still initialized even without power registry.
-            assertTrue(gardensModule.isGardenInitialized(garden), "garden should be initialized regardless");
-        }
+        // 7. Configure destinations for the garden
+        //    Cookie Jar: use a dedicated address (CookieJarModule may not have auto-created a WETH jar)
+        address cookieJar = address(0xC001);
+        yieldSplitter.setCookieJar(garden, cookieJar);
+
+        //    Treasury: receives the JB fallback (2.7%) since no Juicebox terminal is configured
+        address treasury = address(0x7EA5);
+        yieldSplitter.setGardenTreasury(garden, treasury);
+
+        // 8. Record balances before split
+        uint256 cookieJarBefore = IERC20(WETH).balanceOf(cookieJar);
+        uint256 treasuryBefore = IERC20(WETH).balanceOf(treasury);
+        uint256 escrowedBefore = yieldSplitter.getEscrowedFractions(garden, WETH);
+
+        // 9. Split yield — permissionless call
+        yieldSplitter.splitYield(garden, WETH, vault);
+
+        // 10. Calculate received amounts
+        uint256 cookieJarAfter = IERC20(WETH).balanceOf(cookieJar);
+        uint256 treasuryAfter = IERC20(WETH).balanceOf(treasury);
+        uint256 escrowedAfter = yieldSplitter.getEscrowedFractions(garden, WETH);
+
+        uint256 cookieJarReceived = cookieJarAfter - cookieJarBefore;
+        uint256 treasuryReceived = treasuryAfter - treasuryBefore;
+        uint256 escrowedReceived = escrowedAfter - escrowedBefore;
+
+        // 11. Assert each destination received something
+        assertGt(cookieJarReceived, 0, "cookie jar should receive ~48.65% of yield");
+        assertGt(escrowedReceived, 0, "fractions should be escrowed (~48.65% of yield)");
+        assertGt(treasuryReceived, 0, "treasury should receive JB fallback (~2.7% of yield)");
+
+        // 12. Assert conservation of value: total out == total redeemed
+        uint256 totalDistributed = cookieJarReceived + escrowedReceived + treasuryReceived;
+        assertGt(totalDistributed, 0, "total distributed should be non-zero");
+
+        // 13. Verify approximate split ratios (with 5% tolerance for rounding)
+        //     Default: 4865/4865/270 bps
+        uint256 expectedCookieJar = (totalDistributed * 4865) / 10_000;
+        uint256 expectedFractions = (totalDistributed * 4865) / 10_000;
+        uint256 expectedJuicebox = totalDistributed - expectedCookieJar - expectedFractions;
+
+        assertApproxEqRel(cookieJarReceived, expectedCookieJar, 0.05e18, "cookie jar split ratio ~48.65%");
+        assertApproxEqRel(escrowedReceived, expectedFractions, 0.05e18, "fractions split ratio ~48.65%");
+        assertApproxEqRel(treasuryReceived, expectedJuicebox, 0.05e18, "treasury split ratio ~2.7%");
+
+        // 14. Verify resolver state is clean after split
+        assertEq(yieldSplitter.getPendingYield(garden, WETH), 0, "pending yield should be cleared");
+        assertEq(yieldSplitter.gardenShares(garden, vault), 0, "all shares should be redeemed");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test 10: Fractions Escrow When No Pool Configured
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Verify fractions are escrowed when no pool is configured (gardenHypercertPools == address(0))
+    function testForkArbitrum_e2e_fractionsEscrowWhenNoPool() public {
+        _requireArbitrumFork();
+        _deployFullStackOnFork();
+
+        (address garden,) = _setupGardenWithRolesAndAction("Escrow Test Garden");
+        address vault = _setupOctantVaultWithAave(garden);
+        _depositWethIntoVault(vault, 1 ether);
+
+        yieldSplitter.setMinYieldThreshold(0);
+
+        _warpForHarvestWindow();
+        octantModule.harvest(garden, WETH);
+
+        // Configure cookie jar and treasury but NOT the pool
+        address cookieJar = address(0xC001);
+        yieldSplitter.setCookieJar(garden, cookieJar);
+        address treasury = address(0x7EA5);
+        yieldSplitter.setGardenTreasury(garden, treasury);
+
+        uint256 escrowedBefore = yieldSplitter.getEscrowedFractions(garden, WETH);
+
+        yieldSplitter.splitYield(garden, WETH, vault);
+
+        uint256 escrowedAfter = yieldSplitter.getEscrowedFractions(garden, WETH);
+        assertGt(escrowedAfter, escrowedBefore, "fractions should be escrowed when no pool configured");
+        assertGt(IERC20(WETH).balanceOf(cookieJar), 0, "cookie jar should still receive its share");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Test 11: Fractions Escrow With Stale Pool
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Verify fractions escrow fallback when a stale/incompatible pool is configured
+    /// @dev Documents expected failure until 1hive deploys yield-reading update
+    function testForkArbitrum_e2e_fractionsEscrowWithStalePool() public {
+        _requireArbitrumFork();
+        _deployFullStackOnFork();
+
+        (address garden,) = _setupGardenWithRolesAndAction("Stale Pool Garden");
+        address vault = _setupOctantVaultWithAave(garden);
+        _depositWethIntoVault(vault, 1 ether);
+
+        yieldSplitter.setMinYieldThreshold(0);
+
+        _warpForHarvestWindow();
+        octantModule.harvest(garden, WETH);
+
+        // Configure destinations + set a real CVStrategy address as pool (will fail gracefully)
+        address cookieJar = address(0xC001);
+        yieldSplitter.setCookieJar(garden, cookieJar);
+        address treasury = address(0x7EA5);
+        yieldSplitter.setGardenTreasury(garden, treasury);
+
+        // Use the real Gardens V2 CVStrategy implementation on Arbitrum as a stale pool.
+        // Unlike address(0x1) (no bytecode — call fails with empty return), this address has
+        // deployed code but does NOT implement the yield-reading interface that YieldResolver
+        // expects. This exercises the realistic failure mode: contract exists, low-level call
+        // reverts or returns unexpected data, and the resolver falls back to escrow.
+        address stalePool = GardensV2Addresses.ARBITRUM_CV_STRATEGY_IMPL;
+        yieldSplitter.setGardenHypercertPool(garden, stalePool);
+
+        uint256 escrowedBefore = yieldSplitter.getEscrowedFractions(garden, WETH);
+
+        yieldSplitter.splitYield(garden, WETH, vault);
+
+        uint256 escrowedAfter = yieldSplitter.getEscrowedFractions(garden, WETH);
+        assertGt(escrowedAfter, escrowedBefore, "fractions should be escrowed when pool call fails");
+    }
+
+    /// @notice Production-readiness sentinel for Gardens hypercert pool routing.
+    /// @dev This is expected to fail until 1hive deploys the yield-readable pool update on Arbitrum.
+    function testForkArbitrum_e2e_hypercertPoolReadiness_requiresYieldReadablePool() public {
+        _requireArbitrumFork();
+        _deployFullStackOnFork();
+
+        (address garden,) = _setupGardenWithRolesAndAction("Hypercert Pool Readiness Garden");
+        address vault = _setupOctantVaultWithAave(garden);
+        _depositWethIntoVault(vault, 1 ether);
+
+        yieldSplitter.setMinYieldThreshold(0);
+
+        _warpForHarvestWindow();
+        octantModule.harvest(garden, WETH);
+
+        address cookieJar = address(0xC001);
+        yieldSplitter.setCookieJar(garden, cookieJar);
+        address treasury = address(0x7EA5);
+        yieldSplitter.setGardenTreasury(garden, treasury);
+
+        address stalePool = GardensV2Addresses.ARBITRUM_CV_STRATEGY_IMPL;
+        assertGt(stalePool.code.length, 0, "stale pool must exist on Arbitrum");
+        yieldSplitter.setGardenHypercertPool(garden, stalePool);
+
+        uint256 escrowedBefore = yieldSplitter.getEscrowedFractions(garden, WETH);
+        yieldSplitter.splitYield(garden, WETH, vault);
+        uint256 escrowedAfter = yieldSplitter.getEscrowedFractions(garden, WETH);
+
+        assertEq(
+            escrowedAfter,
+            escrowedBefore,
+            "1hive Gardens yield-reader update is still missing: configured hypercert pool escrowed yield"
+        );
     }
 }

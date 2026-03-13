@@ -128,7 +128,6 @@ contract EthereumENSReceiverForkTest is Test {
     ///         Verifies internal state (registrations, ownerToSlug) and real ENS resolver addr().
     function test_forkEthereum_ccipReceive_registersGardenSubdomain() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ETHEREUM_RPC_URL not set");
             return;
         }
 
@@ -166,7 +165,6 @@ contract EthereumENSReceiverForkTest is Test {
     /// @notice Register a member (Gardener) subdomain and verify ENS resolution
     function test_forkEthereum_ccipReceive_registersMemberSubdomain() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ETHEREUM_RPC_URL not set");
             return;
         }
 
@@ -202,7 +200,6 @@ contract EthereumENSReceiverForkTest is Test {
     /// @notice CCIP message from unauthorized sender should revert
     function test_forkEthereum_ccipReceive_invalidSender_reverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ETHEREUM_RPC_URL not set");
             return;
         }
 
@@ -245,7 +242,6 @@ contract EthereumENSReceiverForkTest is Test {
     ///         and leave the original registration intact in both internal state and ENS.
     function test_forkEthereum_ccipReceive_duplicateSlug_emitsFailure() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ETHEREUM_RPC_URL not set");
             return;
         }
 

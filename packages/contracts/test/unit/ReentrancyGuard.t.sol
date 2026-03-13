@@ -5,8 +5,11 @@ import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { OctantModule } from "../../src/modules/Octant.sol";
+import { AaveV3ERC4626 } from "../../src/strategies/AaveV3ERC4626.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
 import { MockOctantFactory } from "../../src/mocks/Octant.sol";
+import { MockAavePool, MockAToken, MockPoolDataProvider } from "../../src/mocks/AavePool.sol";
+import { MockERC20 } from "../../src/mocks/ERC20.sol";
 import { ReentrantStrategy } from "../../src/mocks/ReentrantStrategy.sol";
 
 /// @notice Garden mock with name() for vault metadata
@@ -18,11 +21,18 @@ contract MockGardenForReentrancy is MockGardenAccessControl {
     }
 }
 
+/// @notice Test harness that exposes vaultStrategies setter for reentrancy testing
+contract ReentrancyModuleHarness is OctantModule {
+    function setVaultStrategyForTest(address vault, address strategy) external {
+        vaultStrategies[vault] = strategy;
+    }
+}
+
 /// @title ReentrancyGuardTest
 /// @notice Verifies that OctantModule's nonReentrant modifier blocks reentrancy attacks
 /// @dev Tests each attack vector: harvest→report, emergencyPause→shutdown, setDonationAddress→callback
 contract ReentrancyGuardTest is Test {
-    OctantModule internal module;
+    ReentrancyModuleHarness internal module;
     MockOctantFactory internal factory;
     MockGardenForReentrancy internal garden;
     ReentrantStrategy internal maliciousStrategy;
@@ -31,26 +41,41 @@ contract ReentrancyGuardTest is Test {
     address internal constant OPERATOR = address(0xA2);
     address internal constant GARDEN_OWNER = address(0xA3);
     address internal constant DONATION = address(0xA7);
-    address internal constant WETH = address(0xB1);
+
+    address internal WETH;
 
     function setUp() public {
         factory = new MockOctantFactory();
         maliciousStrategy = new ReentrantStrategy();
 
-        OctantModule implementation = new OctantModule();
+        ReentrancyModuleHarness implementation = new ReentrancyModuleHarness();
         bytes memory initData =
             abi.encodeWithSelector(OctantModule.initialize.selector, address(this), address(factory), 7 days);
-        module = OctantModule(address(new ERC1967Proxy(address(implementation), initData)));
+        module = ReentrancyModuleHarness(address(new ERC1967Proxy(address(implementation), initData)));
         module.setGardenToken(GARDEN_TOKEN);
-        module.setSupportedAsset(WETH, address(maliciousStrategy));
+
+        // Deploy real ERC20 and AaveV3ERC4626 template strategy so _deployStrategyForVault succeeds
+        MockERC20 wethAsset = new MockERC20();
+        WETH = address(wethAsset);
+        MockAToken aToken = new MockAToken();
+        MockAavePool pool = new MockAavePool(address(aToken));
+        MockPoolDataProvider dataProvider = new MockPoolDataProvider(address(aToken));
+        AaveV3ERC4626 templateStrategy = new AaveV3ERC4626(
+            WETH, "GG Aave WETH", "ggaWETH", address(pool), address(aToken), address(dataProvider), address(module)
+        );
+        module.setSupportedAsset(WETH, address(templateStrategy));
 
         garden = new MockGardenForReentrancy("Reentrancy Test Garden");
         garden.setOperator(OPERATOR, true);
         garden.setOwner(GARDEN_OWNER, true);
 
-        // Mint vault for garden
+        // Mint vault for garden (deploys a real garden-scoped strategy)
         vm.prank(GARDEN_TOKEN);
         module.onGardenMinted(address(garden), "Reentrancy Test Garden");
+
+        // Overwrite the vault strategy with the malicious ReentrantStrategy for reentrancy testing
+        address vault = module.getVaultForAsset(address(garden), WETH);
+        module.setVaultStrategyForTest(vault, address(maliciousStrategy));
 
         // Set donation address (required for harvest)
         vm.prank(OPERATOR);

@@ -20,7 +20,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
     /// Gracefully skips if registryFactory is address(0) (expected on most chains).
     function test_fork_gardens_createCommunityWithRealFactory() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -29,7 +28,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
         // Check if registryFactory is set on the deployed gardensModule
         address factoryAddr = address(gardensModule.registryFactory());
         if (factoryAddr == address(0)) {
-            emit log("SKIPPED: No RegistryFactory deployed on this chain");
             return;
         }
 
@@ -50,7 +48,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
     /// Skips if no factory is available.
     function test_fork_gardens_communityWithoutPools() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -58,7 +55,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
 
         address factoryAddr = address(gardensModule.registryFactory());
         if (factoryAddr == address(0)) {
-            emit log("SKIPPED: No RegistryFactory deployed on this chain");
             return;
         }
 
@@ -85,7 +81,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
     /// The retryCreateCommunity path works independent of external factory existence.
     function test_fork_gardens_retryAfterFactoryUpdate() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -123,7 +118,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
     /// This test works WITHOUT a real factory -- weight scheme storage is independent.
     function test_fork_gardens_weightSchemeStoredWithRealFactory() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -198,7 +192,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
     /// This test works WITHOUT a real factory -- it's testing the diagnostic function.
     function test_fork_gardens_isWiringCompleteReflectsState() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -234,7 +227,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
     /// @notice Community creation on Arbitrum with real RegistryFactory
     function test_fork_arbitrum_communityWithRealFactory() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -243,7 +235,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
         // Check if registryFactory is set on the deployed gardensModule
         address factoryAddr = address(gardensModule.registryFactory());
         if (factoryAddr == address(0)) {
-            emit log("SKIPPED: No RegistryFactory deployed on this chain");
             return;
         }
 
@@ -259,7 +250,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
     /// @notice Retry community creation on Arbitrum after factory update
     function test_fork_arbitrum_retryAfterFactoryUpdate() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -285,7 +275,6 @@ contract GardensV2CommunityForkTest is ForkTestBase {
     /// @notice Tests isWiringComplete diagnostics on Arbitrum fork
     function test_fork_arbitrum_isWiringCompleteDiagnostics() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 

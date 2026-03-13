@@ -32,7 +32,6 @@ contract SepoliaGardenTokenForkTest is ForkTestBase {
     /// @notice Verifies module callbacks fire during mintGarden on Sepolia fork.
     function test_fork_mintGarden_callbackOrdering() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -81,7 +80,6 @@ contract SepoliaGardenTokenForkTest is ForkTestBase {
     /// @notice When KarmaGAP module reverts, mintGarden still succeeds on Sepolia.
     function test_fork_mintGarden_singleCallbackReverts_gracefulDegradation() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -117,7 +115,6 @@ contract SepoliaGardenTokenForkTest is ForkTestBase {
     /// @notice Sequential mints on Sepolia produce incrementing token IDs and unique TBAs.
     function test_fork_mintGarden_incrementsTokenId() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -163,7 +160,6 @@ contract SepoliaGardenTokenForkTest is ForkTestBase {
     /// @notice When ENS registration fails on Sepolia, ETH is queued for refund and claimable.
     function test_fork_failedENSRefund_accounting() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 

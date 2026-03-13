@@ -89,7 +89,6 @@ contract SepoliaENSForkTest is Test {
 
     function test_forkDeploy_ccipRouterIsDeployed() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
         assertGt(CCIP_ROUTER.code.length, 0, "CCIP Router should be deployed on Sepolia");
@@ -97,7 +96,6 @@ contract SepoliaENSForkTest is Test {
 
     function test_forkDeploy_hatsProtocolIsDeployed() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
         assertGt(HATS_PROTOCOL.code.length, 0, "Hats Protocol should be deployed on Sepolia");
@@ -105,7 +103,6 @@ contract SepoliaENSForkTest is Test {
 
     function test_forkDeploy_ensInitializesWithRealInfra() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -122,7 +119,6 @@ contract SepoliaENSForkTest is Test {
 
     function test_forkDeploy_feeEstimationReturnsNonZero() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -134,7 +130,6 @@ contract SepoliaENSForkTest is Test {
 
     function test_forkSlug_validSlugCachesCorrectly() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -156,7 +151,6 @@ contract SepoliaENSForkTest is Test {
 
     function test_forkSlug_invalidSlugReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -180,7 +174,6 @@ contract SepoliaENSForkTest is Test {
 
     function test_forkSlug_duplicateSlugReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -200,7 +193,6 @@ contract SepoliaENSForkTest is Test {
 
     function test_forkSlug_ownerAlreadyHasNameReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -224,7 +216,6 @@ contract SepoliaENSForkTest is Test {
 
     function test_forkAccess_nonAuthorizedCallerReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -241,7 +232,6 @@ contract SepoliaENSForkTest is Test {
 
     function test_forkAccess_nonMemberClaimNameReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -256,7 +246,6 @@ contract SepoliaENSForkTest is Test {
 
     function test_forkSlug_releaseFeeEstimationWorks() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 

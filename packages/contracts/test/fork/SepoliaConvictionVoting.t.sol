@@ -170,7 +170,6 @@ contract SepoliaConvictionVotingForkTest is Test {
     /// @notice Strategy wired after garden creation, pool-garden mapping active
     function test_fork_conviction_strategyRegisteredOnGardenMint() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -198,7 +197,6 @@ contract SepoliaConvictionVotingForkTest is Test {
     /// @notice Role grant (new hat mint) triggers power sync — new member gains voting power
     function test_fork_conviction_powerSyncOnRoleGrant() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -229,7 +227,6 @@ contract SepoliaConvictionVotingForkTest is Test {
     /// @notice Role revoke (hat transfer away) zeroes power for that member
     function test_fork_conviction_powerSyncOnRoleRevoke() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -267,7 +264,6 @@ contract SepoliaConvictionVotingForkTest is Test {
     /// @notice Full conviction flow: register → allocate → time warp → calculate conviction
     function test_fork_conviction_fullConvictionFlow() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -318,7 +314,6 @@ contract SepoliaConvictionVotingForkTest is Test {
     /// @notice 3 voters with different hat-based powers allocate support, weighted conviction
     function test_fork_conviction_multipleVoters() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -369,7 +364,6 @@ contract SepoliaConvictionVotingForkTest is Test {
     /// @notice Deregister garden clears all state — power returns to zero
     function test_fork_conviction_deregisterClearsState() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -403,7 +397,6 @@ contract SepoliaConvictionVotingForkTest is Test {
     /// @notice Partial deallocation reduces staked amount and future conviction growth
     function test_fork_conviction_deallocateReducesConviction() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -456,7 +449,6 @@ contract SepoliaConvictionVotingForkTest is Test {
     /// @notice Non-member should be rejected when trying to allocate support
     function test_fork_conviction_nonEligibleVoterReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 
@@ -482,7 +474,6 @@ contract SepoliaConvictionVotingForkTest is Test {
     /// @notice Different allocations across hypercerts produce proportional conviction weights
     function test_fork_conviction_convictionWeightsAcrossHypercerts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: SEPOLIA_RPC_URL not set");
             return;
         }
 

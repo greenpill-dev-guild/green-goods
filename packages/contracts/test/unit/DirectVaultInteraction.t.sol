@@ -106,8 +106,8 @@ contract DirectVaultInteractionTest is Test {
         vm.prank(USER_A);
         vault.deposit(50 ether, USER_A);
 
-        assertEq(vault.maxWithdraw(USER_A), 50 ether, "max withdraw should equal deposited balance");
-        assertEq(vault.maxWithdraw(USER_B), 0, "max withdraw for non-depositor should be 0");
+        assertEq(vault.maxWithdraw(USER_A, 0, new address[](0)), 50 ether, "max withdraw should equal deposited balance");
+        assertEq(vault.maxWithdraw(USER_B, 0, new address[](0)), 0, "max withdraw for non-depositor should be 0");
     }
 
     // =========================================================================
@@ -154,6 +154,8 @@ contract DirectVaultInteractionTest is Test {
 
     function test_add_strategy_succeedsForRoleManager() public {
         address strategy = address(0xDEAD);
+        // MockOctantVault.add_strategy now validates ERC4626 asset() — mock the call
+        vm.mockCall(strategy, abi.encodeWithSignature("asset()"), abi.encode(ASSET));
 
         vm.prank(ROLE_MANAGER);
         vault.add_strategy(strategy, true);

@@ -42,7 +42,6 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Verify schemas are registered with the real Arbitrum SchemaRegistry (0xA310d...)
     function testForkArbitrum_schemaRegistration_registersWithRealSchemaRegistry() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -72,7 +71,6 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Work attestation succeeds when submitted by a valid gardener on Arbitrum
     function testForkArbitrum_workAttestation_succeedsWithValidGardener() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -90,7 +88,6 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Work attestation reverts when submitted by a non-member on Arbitrum
     function testForkArbitrum_workAttestation_revertsForNonMember() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -129,7 +126,6 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Work approval succeeds when submitted by a valid operator on Arbitrum
     function testForkArbitrum_workApproval_succeedsWithValidOperator() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -150,7 +146,6 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Work approval reverts when submitted by a gardener (not operator) on Arbitrum
     function testForkArbitrum_workApproval_revertsForNonOperator() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -194,7 +189,6 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Assessment attestation succeeds when submitted by a valid evaluator on Arbitrum
     function testForkArbitrum_assessment_succeedsWithValidEvaluator() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -213,7 +207,6 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Assessment with invalid domain (> 3) reverts on Arbitrum
     function testForkArbitrum_assessment_revertsForInvalidDomain() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -255,7 +248,6 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Work attestation cannot be revoked on Arbitrum
     function testForkArbitrum_workRevocation_workIsNonRevocable() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -281,7 +273,6 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Non-member submitting assessment reverts on Arbitrum
     function testForkArbitrum_assessment_revertsForNonEvaluator() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -323,7 +314,6 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Gardener of garden A submitting work to garden B reverts on Arbitrum
     function testForkArbitrum_workAttestation_revertsForWrongGarden() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
         _deployFullStackOnFork();

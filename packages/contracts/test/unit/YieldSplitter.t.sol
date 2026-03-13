@@ -110,6 +110,20 @@ contract YieldResolverTest is Test {
         new ERC1967Proxy(address(impl), initData);
     }
 
+    function test_report_returnsFullGainAsFees() public {
+        (uint256 fees, uint256 refunds) = yieldSplitter.report(address(vault), 12 ether, 0);
+
+        assertEq(fees, 12 ether, "all gain should be routed as accountant fees");
+        assertEq(refunds, 0, "accountant path should not request refunds");
+    }
+
+    function test_report_returnsZeroFeesWhenGainIsZero() public {
+        (uint256 fees, uint256 refunds) = yieldSplitter.report(address(vault), 0, 3 ether);
+
+        assertEq(fees, 0, "zero gain should mint no fee shares");
+        assertEq(refunds, 0, "resolver never returns refunds");
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Default Split Config
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1161,6 +1175,56 @@ contract YieldResolverTest is Test {
         vm.expectRevert(YieldResolver.ZeroAddress.selector);
         yieldSplitter.withdrawEscrowedFractions(garden, address(weth), 1000, address(0));
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Per-Asset Yield Threshold
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_splitYield_usesPerAssetThresholdWhenSet() public {
+        // Set a per-asset threshold for WETH much lower than the global 7e18
+        vm.prank(owner);
+        yieldSplitter.setAssetYieldThreshold(address(weth), 1e18);
+
+        // Fund vault with 2e18 — above per-asset (1e18) but below global (7e18)
+        _fundVaultAndMintShares(2e18);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Should have split (not accumulated), so pendingYield is 0
+        assertEq(
+            yieldSplitter.getPendingYield(garden, address(weth)),
+            0,
+            "Pending yield should be 0 when per-asset threshold is met"
+        );
+    }
+
+    function test_splitYield_fallsBackToGlobalThresholdWhenNoPerAsset() public {
+        // Do NOT set a per-asset threshold — global 7e18 applies
+        // Fund vault with 5e18 — below global threshold of 7e18
+        _fundVaultAndMintShares(5e18);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Should have accumulated (not split), so pendingYield equals the amount
+        assertEq(
+            yieldSplitter.getPendingYield(garden, address(weth)),
+            5e18,
+            "Pending yield should equal funded amount when below global threshold"
+        );
+    }
+
+    function test_setAssetYieldThreshold_onlyOwner() public {
+        // Non-owner should revert
+        vm.prank(operator);
+        vm.expectRevert("Ownable: caller is not the owner");
+        yieldSplitter.setAssetYieldThreshold(address(weth), 1e18);
+
+        // Owner should succeed
+        vm.prank(owner);
+        yieldSplitter.setAssetYieldThreshold(address(weth), 1e18);
+
+        assertEq(yieldSplitter.assetYieldThresholds(address(weth)), 1e18, "Per-asset threshold should be set");
+    }
 }
 
 /// @title YieldResolverHarness
@@ -1721,6 +1785,55 @@ contract YieldResolverConvictionTest is Test {
         // Expect ConvictionRouted event: 2 active proposals, total conviction = 8000
         vm.expectEmit(true, true, false, true);
         emit YieldResolver.ConvictionRouted(garden, address(weth), 2, 8000);
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Conviction Routing — Gas DoS Protection (MAX_PROPOSALS_PER_SPLIT)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_readConvictionWeights_capsAtMaxProposals() public {
+        uint256 amount = 10_000;
+        _fundVaultAndMintShares(amount);
+
+        // Set up 250 proposals: first 200 will be processed, rest ignored
+        // Add 10 active proposals with conviction at IDs 1-10
+        for (uint256 i = 0; i < 10; i++) {
+            cvStrategy.addProposal(100, 1000); // IDs 1-10, active with conviction=1000
+        }
+        // Set counter to 250 so proposalCounter() returns 250
+        // Proposals 11-250 have status=0 (Inactive) and conviction=0 (uninitialized)
+        cvStrategy.setProposalCounter(250);
+
+        // splitYield should complete without reverting (gas bounded)
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        // Verify it processed the 10 active proposals (IDs 1-10, all within first 200)
+        assertEq(marketplace.getPurchaseCount(), 10, "Should process all 10 active proposals within cap");
+
+        // Verify total distributed matches amount (10 equal convictions = equal splits)
+        uint256 totalPurchased = 0;
+        for (uint256 i = 0; i < 10; i++) {
+            (, uint256 purchaseAmount,,) = marketplace.purchases(i);
+            totalPurchased += purchaseAmount;
+        }
+        assertEq(totalPurchased, amount, "Total purchased should equal input amount");
+    }
+
+    function test_readConvictionWeights_emitsCapReachedEvent() public {
+        uint256 amount = 10_000;
+        _fundVaultAndMintShares(amount);
+
+        // Add 5 active proposals then set counter to 250
+        for (uint256 i = 0; i < 5; i++) {
+            cvStrategy.addProposal(100, 2000); // IDs 1-5, active with conviction=2000
+        }
+        cvStrategy.setProposalCounter(250);
+
+        // Expect ConvictionCapReached event: proposalCount=250, maxProcessed=200
+        vm.expectEmit(true, false, false, true);
+        emit YieldResolver.ConvictionCapReached(garden, 250, 200);
 
         yieldSplitter.splitYield(garden, address(weth), address(vault));
     }

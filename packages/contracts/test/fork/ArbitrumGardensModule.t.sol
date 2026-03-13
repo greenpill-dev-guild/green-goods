@@ -21,7 +21,6 @@ contract ArbitrumGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_initializesWithRealHatsProtocol() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -42,7 +41,6 @@ contract ArbitrumGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_hatsProtocolIsQueryable() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -66,7 +64,6 @@ contract ArbitrumGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_weightSchemesResolveCorrectly() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -88,7 +85,6 @@ contract ArbitrumGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_onGardenMintedStoresState() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -112,7 +108,6 @@ contract ArbitrumGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_onGardenMintedRevertsForUnauthorized() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -130,7 +125,6 @@ contract ArbitrumGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_realRoleGrantsViaHatsModule() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -159,7 +153,6 @@ contract ArbitrumGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_gardensV2CommunityCreation() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -177,7 +170,6 @@ contract ArbitrumGardensModuleForkTest is ForkTestBase {
 
     function test_forkDeploy_constantsAreCorrect() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 

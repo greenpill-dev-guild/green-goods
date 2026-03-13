@@ -118,7 +118,6 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function test_forkDeploy_realExchangeIsDeployed() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -131,7 +130,6 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function test_forkDeploy_realMinterIsDeployed() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -144,7 +142,6 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function test_forkDeploy_transferManagerIsDeployed() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -157,7 +154,6 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function test_forkDeploy_strategyIsDeployed() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -170,7 +166,6 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function test_forkDeploy_adapterInitializesWithRealAddresses() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -189,7 +184,6 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function test_forkDeploy_moduleInitializesWithAdapter() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -219,7 +213,6 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function test_forkAdapter_registerOrderStoresCorrectly() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -270,7 +263,6 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function test_forkAdapter_deactivateOrderClearsState() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -300,7 +292,6 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function test_forkAdapter_batchRegisterOrders() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -339,7 +330,6 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function test_forkAdapter_buyFractionFailsWithInvalidSignature() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -371,7 +361,6 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function test_forkAdapter_duplicateActiveOrderReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -396,7 +385,6 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function test_forkAdapter_pausedContractReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 

@@ -20,7 +20,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice After full-stack deployment, the registry should be owned by the test contract.
     function test_fork_sepolia_registry_initializedWithCorrectOwner() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -37,7 +36,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice Same initialization check on Arbitrum fork.
     function test_fork_arbitrum_registry_initializedWithCorrectOwner() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -54,7 +52,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice _configureRegistry() saves the full network config. Verify all core addresses are non-zero.
     function test_fork_sepolia_registry_networkConfigPersisted() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -87,7 +84,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice Same config verification on Arbitrum fork.
     function test_fork_arbitrum_registry_networkConfigPersisted() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -110,7 +106,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice Querying an unconfigured chain ID reverts with NetworkNotConfigured.
     function test_fork_sepolia_registry_unconfiguredNetworkReverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -128,7 +123,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice Owner can add/remove addresses from allowlist. Allowlisted addresses can set config.
     function test_fork_sepolia_registry_allowlistManagement() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -183,7 +177,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice Owner can batch-add multiple addresses. Zero address in batch reverts.
     function test_fork_sepolia_registry_batchAllowlist() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -215,7 +208,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice Two-step governance transfer: initiate → accept. Cancel also tested.
     function test_fork_sepolia_registry_governanceTransfer() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -251,7 +243,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice Owner can cancel a pending governance transfer.
     function test_fork_sepolia_registry_governanceTransferCancel() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -275,7 +266,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice Emergency pause blocks setNetworkConfig and individual update functions.
     function test_fork_sepolia_registry_emergencyPause() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -317,7 +307,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice Non-owner, non-allowlisted callers cannot modify registry state.
     function test_fork_sepolia_registry_unauthorizedCallersBlocked() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -350,7 +339,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice Each individual update* function only modifies its target field.
     function test_fork_sepolia_registry_individualUpdaters() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -379,7 +367,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice UUPS upgrade preserves owner, network config, and allowlist state.
     function test_fork_sepolia_registry_uupsUpgradePreservesState() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -414,7 +401,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice Only the owner can perform UUPS upgrades.
     function test_fork_arbitrum_registry_uupsUpgradeNonOwnerReverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -434,7 +420,6 @@ contract DeploymentRegistryForkTest is ForkTestBase {
     /// @notice All convenience getters (getEAS, getActionRegistry, etc.) return correct values.
     function test_fork_sepolia_registry_convenienceGetters() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 

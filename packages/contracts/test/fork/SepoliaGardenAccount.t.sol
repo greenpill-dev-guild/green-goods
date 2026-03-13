@@ -28,7 +28,6 @@ contract SepoliaGardenAccountForkTest is ForkTestBase {
     /// @notice Garden owner (NFT holder) can call execute() on the TBA to interact with external contracts.
     function test_fork_sepolia_execute_ownerCanCallExternalContract() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -57,7 +56,6 @@ contract SepoliaGardenAccountForkTest is ForkTestBase {
     /// @notice Non-owner of the NFT cannot call execute() on the TBA.
     function test_fork_sepolia_execute_nonOwnerReverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -80,7 +78,6 @@ contract SepoliaGardenAccountForkTest is ForkTestBase {
     /// @notice Operator role allows updating garden metadata via the account's setter functions.
     function test_fork_sepolia_execute_operatorCanCallAllowed() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -106,7 +103,6 @@ contract SepoliaGardenAccountForkTest is ForkTestBase {
     /// @notice Owner can update all metadata fields: name, description, location, bannerImage.
     function test_fork_sepolia_metadataSetters_ownerUpdates() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -145,7 +141,6 @@ contract SepoliaGardenAccountForkTest is ForkTestBase {
     /// @notice Non-owner/non-operator cannot call metadata setters.
     function test_fork_sepolia_metadataSetters_nonOwnerReverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -179,7 +174,6 @@ contract SepoliaGardenAccountForkTest is ForkTestBase {
     /// @notice After maxGardeners is reached, joinGarden reverts with GardenFull.
     function test_fork_sepolia_gardenFull_reverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -226,7 +220,6 @@ contract SepoliaGardenAccountForkTest is ForkTestBase {
     /// @notice joinGarden() reverts with InvalidInvite when openJoining is false.
     function test_fork_sepolia_invalidInvite_reverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -250,7 +243,6 @@ contract SepoliaGardenAccountForkTest is ForkTestBase {
     /// @notice joinGarden() reverts with AlreadyGardener when caller already has a role.
     function test_fork_sepolia_alreadyGardener_reverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -291,7 +283,6 @@ contract SepoliaGardenAccountForkTest is ForkTestBase {
     /// @notice isOperator/isGardener/isEvaluator on GardenAccount delegate to real HatsModule.
     function test_fork_sepolia_roleCheck_delegatesToHatsModule() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 

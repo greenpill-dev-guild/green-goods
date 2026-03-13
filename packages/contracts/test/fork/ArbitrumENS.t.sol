@@ -120,7 +120,6 @@ contract ArbitrumENSForkTest is Test {
 
     function test_forkDeploy_ccipRouterIsDeployed() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -133,7 +132,6 @@ contract ArbitrumENSForkTest is Test {
 
     function test_forkDeploy_hatsProtocolIsDeployed() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -146,7 +144,6 @@ contract ArbitrumENSForkTest is Test {
 
     function test_forkDeploy_ensInitializesWithRealInfra() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -168,7 +165,6 @@ contract ArbitrumENSForkTest is Test {
     /// @notice getRegistrationFee against real router should return non-zero
     function test_forkDeploy_feeEstimationReturnsNonZero() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -185,7 +181,6 @@ contract ArbitrumENSForkTest is Test {
     /// @notice Register garden slug (mock ccipSend), verify L2 cache state
     function test_forkSlug_validSlugCachesCorrectly() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -215,7 +210,6 @@ contract ArbitrumENSForkTest is Test {
     /// @notice Short, uppercase, and consecutive-hyphen slugs should revert
     function test_forkSlug_invalidSlugReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -257,7 +251,6 @@ contract ArbitrumENSForkTest is Test {
 
     function test_forkSlug_duplicateSlugReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -283,7 +276,6 @@ contract ArbitrumENSForkTest is Test {
 
     function test_forkSlug_ownerAlreadyHasNameReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -313,7 +305,6 @@ contract ArbitrumENSForkTest is Test {
 
     function test_forkAccess_nonAuthorizedCallerReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -335,7 +326,6 @@ contract ArbitrumENSForkTest is Test {
     /// @notice Non-hat-wearer calling claimName should revert
     function test_forkAccess_nonMemberClaimNameReverts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -356,7 +346,6 @@ contract ArbitrumENSForkTest is Test {
     /// @notice getReleaseFee against real router should return non-zero
     function test_forkSlug_releaseFeeEstimationWorks() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 

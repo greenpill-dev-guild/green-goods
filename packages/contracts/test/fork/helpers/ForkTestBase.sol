@@ -72,6 +72,8 @@ contract ForkTestEligibilityToggle {
 /// (canonical ERC6551 registry deployment). Test contracts should inherit this
 /// and call _tryChainFork() + _deployFullStackOnFork() in setUp or per-test.
 abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
+    error ForkUnavailable(string chainName);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // ERC721 Receiver (required for GardenToken._safeMint to this contract)
     // ═══════════════════════════════════════════════════════════════════════════
@@ -134,11 +136,16 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
         return true;
     }
 
+    /// @notice Require a fork for the given chain and fail loudly when the RPC is missing.
+    function _requireChainFork(string memory chainName) internal {
+        if (!_tryChainFork(chainName)) revert ForkUnavailable(chainName);
+    }
+
     /// @notice Resolve RPC URL for a chain name from environment variables
     /// @dev Tries {CHAIN}_RPC_URL first, then {CHAIN}_RPC as fallback
     /// @param chainName The chain identifier (e.g., "sepolia", "arbitrum")
     /// @return rpc The resolved RPC URL, or empty string if not found
-    function _resolveRpcUrl(string memory chainName) internal returns (string memory rpc) {
+    function _resolveRpcUrl(string memory chainName) internal view returns (string memory rpc) {
         // Convert chain name to uppercase env var prefix
         string memory envPrefix = _toUpperSnakeCase(chainName);
 

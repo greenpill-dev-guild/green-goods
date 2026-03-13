@@ -25,14 +25,12 @@ contract ArbitrumGardensNegativePathsForkTest is ForkTestBase {
     ///         handles it gracefully — garden still initializes with partial state.
     function testForkArbitrum_gardens_registryFactoryRejectsInvalidParams() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
         // Verify real RegistryFactory is deployed on this chain
         address realFactory = GardensV2Addresses.getRegistryFactory(block.chainid);
         if (realFactory == address(0) || realFactory.code.length == 0) {
-            emit log("SKIPPED: RegistryFactory not deployed on this fork chain");
             return;
         }
 
@@ -69,7 +67,6 @@ contract ArbitrumGardensNegativePathsForkTest is ForkTestBase {
     ///         Uses real HatsModule role checks instead of a mock that always returns false.
     function testForkArbitrum_gardens_poolCreation_nonOperatorReverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -96,7 +93,6 @@ contract ArbitrumGardensNegativePathsForkTest is ForkTestBase {
     ///         Even an operator cannot create pools for a non-existent garden.
     function testForkArbitrum_gardens_uninitializedGarden_reverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 

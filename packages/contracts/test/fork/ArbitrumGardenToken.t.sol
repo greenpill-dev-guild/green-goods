@@ -36,7 +36,6 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
     ///      ensModule → gardenAccount.initialize
     function testForkArbitrum_mintGarden_callbackOrdering() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -94,7 +93,6 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
     ///      modules functional. This verifies the try/catch graceful degradation pattern.
     function testForkArbitrum_mintGarden_singleCallbackReverts_gracefulDegradation() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -130,7 +128,6 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
     /// @notice Locked mode prevents all transfers (except minting).
     function testForkArbitrum_transferRestriction_locked() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -154,7 +151,6 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
     /// @notice OwnerOnly mode allows only the contract owner to transfer.
     function testForkArbitrum_transferRestriction_ownerOnly() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -188,7 +184,6 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
     ///      failedENSRefunds mapping and claimENSRefund() flow.
     function testForkArbitrum_failedENSRefund_accounting() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -245,7 +240,6 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
     /// @notice Sequential mints produce incrementing token IDs and unique TBA addresses.
     function testForkArbitrum_mintGarden_incrementsTokenId() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -291,7 +285,6 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
     /// @notice Non-owner cannot call setHatsModule, setKarmaGAPModule, etc.
     function testForkArbitrum_setModuleAddress_onlyOwner() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 

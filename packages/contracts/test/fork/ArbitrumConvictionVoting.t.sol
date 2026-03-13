@@ -168,7 +168,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_hatsProtocolIsDeployed() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -181,7 +180,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_registryInitializesWithRealHats() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -198,7 +196,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_gardenPowerSourcesRegistered() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -222,7 +219,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_hatsDerivedPowerForWearers() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -252,7 +248,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_isMemberResolvesViaRealHats() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -279,7 +274,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_poolGardenMappingEnablesPowerResolution() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -305,7 +299,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_fullConvictionVotingFlow() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -355,7 +348,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_nonEligibleVoterCannotAllocate() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -380,7 +372,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_multipleVotersWithDifferentPowers() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -430,7 +421,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_convictionWeightsAcrossHypercerts() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -474,7 +464,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_deregisterGardenClearsState() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -507,7 +496,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_registerPoolExplicitWriteTest() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 
@@ -546,7 +534,6 @@ contract ArbitrumConvictionVotingForkTest is Test {
 
     function test_forkCV_deallocateReducesConviction() public {
         if (!_tryFork()) {
-            emit log("SKIPPED: ARBITRUM_RPC_URL not set");
             return;
         }
 

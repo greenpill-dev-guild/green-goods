@@ -23,7 +23,6 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
     /// @notice splitYield reverts when garden has no registered vault shares
     function testForkArbitrum_yieldSplitter_splitWithZeroShares_reverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -47,7 +46,6 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
     /// @notice registerShares called by non-octant/non-owner address reverts
     function testForkArbitrum_yieldSplitter_unauthorizedRegisterShares_reverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -70,7 +68,6 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
     ///      caller is rejected.
     function testForkArbitrum_octantVault_depositZero_reverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -89,7 +86,6 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
     /// @notice Harvest by non-operator is rejected (operator-only access)
     function testForkArbitrum_octantVault_withdrawMoreThanBalance_reverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -110,7 +106,6 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
     /// @notice HypercertsModule mintAndRegister by non-operator reverts
     function testForkArbitrum_hypercerts_buyFractionExpiredOrder_reverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -131,7 +126,6 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
     /// @notice HypercertsModule paused state blocks all operations
     function testForkArbitrum_hypercerts_deactivateByNonOwner_reverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -156,7 +150,6 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
     /// @notice claimName without sufficient msg.value for CCIP fee reverts
     function testForkArbitrum_ens_ccipFeeWithZeroValue_reverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -176,7 +169,6 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
     /// @notice KarmaGAPModule rejects createProject from non-gardenToken caller
     function testForkArbitrum_karmaGAP_impactWithoutProject_reverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 

@@ -81,7 +81,6 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     /// @notice Community creation on Sepolia with real RegistryFactory
     function test_fork_sepolia_communityCreatedWithRealFactory() public {
         if (!_setupWithRealGardensV2("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -91,7 +90,6 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     /// @notice Community creation on Arbitrum with real RegistryFactory
     function test_fork_arbitrum_communityCreatedWithRealFactory() public {
         if (!_setupWithRealGardensV2("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -101,7 +99,6 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     /// @notice Community creation on Celo with real RegistryFactory
     function test_fork_celo_communityCreatedWithRealFactory() public {
         if (!_setupWithRealGardensV2("celo")) {
-            emit log("SKIPPED: No Celo RPC URL configured");
             return;
         }
 
@@ -115,7 +112,6 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     /// @notice Tests multiple gardens with Linear, Exponential, and Power weight schemes
     function test_fork_sepolia_multipleGardensWithDifferentSchemes() public {
         if (!_setupWithRealGardensV2("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -196,7 +192,6 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     ///         when no PowerRegistry is available (try/catch in _createPool).
     function test_fork_sepolia_poolCreationGracefulWithoutPowerRegistry() public {
         if (!_setupWithRealGardensV2("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -206,7 +201,6 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
 
         address community = gardensModule.getGardenCommunity(garden);
         if (community == address(0)) {
-            emit log("SKIPPED: Community not created (factory may have changed)");
             return;
         }
 
@@ -225,14 +219,12 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     ///         (no PowerRegistry needed). Pranked as the garden TBA (council Safe).
     function test_fork_sepolia_directPoolCreationWithUnlimited() public {
         if (!_setupWithRealGardensV2("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
         address garden = _mintTestGarden("Direct Pool Garden", 0x0F);
         address community = gardensModule.getGardenCommunity(garden);
         if (community == address(0)) {
-            emit log("SKIPPED: Community not created (factory may have changed)");
             return;
         }
 
@@ -283,14 +275,12 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     /// @notice Tests single member staking in a real Gardens V2 community
     function test_fork_sepolia_memberStaking() public {
         if (!_setupWithRealGardensV2("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
         address garden = _mintTestGarden("Staking Garden", 0x0F);
         address community = gardensModule.getGardenCommunity(garden);
         if (community == address(0)) {
-            emit log("SKIPPED: Community not created (factory may have changed)");
             return;
         }
 
@@ -317,14 +307,12 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     /// @notice Tests multi-member staking with different roles
     function test_fork_sepolia_multiMemberStaking() public {
         if (!_setupWithRealGardensV2("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
         address garden = _mintTestGarden("Multi-Stake Garden", 0x0F);
         address community = gardensModule.getGardenCommunity(garden);
         if (community == address(0)) {
-            emit log("SKIPPED: Community not created (factory may have changed)");
             return;
         }
 
@@ -365,14 +353,12 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     /// @notice Direct pool creation on Arbitrum with PointSystem.Unlimited
     function test_fork_arbitrum_poolCreationUnlimited() public {
         if (!_setupWithRealGardensV2("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
         address garden = _mintTestGarden("Arb Pool Garden", 0x0F);
         address community = gardensModule.getGardenCommunity(garden);
         if (community == address(0)) {
-            emit log("SKIPPED: Community not created (factory may have changed)");
             return;
         }
 
@@ -419,14 +405,12 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     /// @notice Single member staking on Arbitrum
     function test_fork_arbitrum_memberStaking() public {
         if (!_setupWithRealGardensV2("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
         address garden = _mintTestGarden("Arb Staking Garden", 0x0F);
         address community = gardensModule.getGardenCommunity(garden);
         if (community == address(0)) {
-            emit log("SKIPPED: Community not created (factory may have changed)");
             return;
         }
 
@@ -452,14 +436,12 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     /// @notice Multi-member staking with different roles on Arbitrum
     function test_fork_arbitrum_multiMemberStaking() public {
         if (!_setupWithRealGardensV2("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
         address garden = _mintTestGarden("Arb Multi-Stake Garden", 0x0F);
         address community = gardensModule.getGardenCommunity(garden);
         if (community == address(0)) {
-            emit log("SKIPPED: Community not created (factory may have changed)");
             return;
         }
 
@@ -494,7 +476,6 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     /// @notice Tests multiple gardens with different weight schemes on Arbitrum
     function test_fork_arbitrum_weightSchemePerGarden() public {
         if (!_setupWithRealGardensV2("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 

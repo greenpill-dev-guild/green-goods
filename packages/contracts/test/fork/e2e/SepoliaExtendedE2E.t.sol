@@ -22,7 +22,6 @@ contract SepoliaExtendedE2EForkTest is ForkTestBase {
     /// @notice Mint garden with a slug triggers ENS registration + CCIP fee estimation
     function test_fork_e2e_gardenMintWithENSSlug() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -72,7 +71,6 @@ contract SepoliaExtendedE2EForkTest is ForkTestBase {
     /// @notice Grant gardener role, then claim a personal *.greengoods.eth name
     function test_fork_e2e_memberClaimsENSName() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -115,7 +113,6 @@ contract SepoliaExtendedE2EForkTest is ForkTestBase {
     /// @notice Garden mint triggers CookieJarModule callback, jars created for supported assets
     function test_fork_e2e_cookieJarCreatedOnMint() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -148,7 +145,6 @@ contract SepoliaExtendedE2EForkTest is ForkTestBase {
     /// @notice Garden mint triggers KarmaGAPModule.createProject on real Sepolia GAP
     function test_fork_e2e_karmaGAPProjectOnMint() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 

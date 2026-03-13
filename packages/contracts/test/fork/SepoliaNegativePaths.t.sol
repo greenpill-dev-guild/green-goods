@@ -25,7 +25,6 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
     /// @notice Work attestation reverts when action endTime has passed
     function test_fork_eas_workWithDisabledAction_reverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -74,7 +73,6 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
     /// @notice Work approval referencing a non-existent work UID reverts
     function test_fork_eas_approvalWithoutPriorWork_reverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -121,7 +119,6 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
     /// @notice Assessment attestation with domain > 3 reverts
     function test_fork_eas_assessmentWithInvalidDomain_reverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -166,7 +163,6 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
     /// @notice Gardener cannot submit assessments (evaluator role required)
     function test_fork_eas_assessmentByGardener_reverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -211,7 +207,6 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
     /// @notice Registering the same slug twice reverts with NameTaken
     function test_fork_ens_duplicateGardenSlug_reverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -219,7 +214,6 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
 
         // Skip if ENS module was not deployed (zero address on some chains)
         if (address(greenGoodsENS) == address(0)) {
-            emit log("SKIPPED: GreenGoodsENS not deployed on this chain");
             return;
         }
 
@@ -240,7 +234,6 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
     /// @notice Non-protocol member cannot claim an ENS name
     function test_fork_ens_nonMemberClaimName_reverts() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -248,7 +241,6 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
 
         // Skip if ENS module was not deployed
         if (address(greenGoodsENS) == address(0)) {
-            emit log("SKIPPED: GreenGoodsENS not deployed on this chain");
             return;
         }
 

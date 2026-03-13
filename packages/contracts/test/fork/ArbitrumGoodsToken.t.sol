@@ -28,7 +28,6 @@ contract ArbitrumGoodsTokenForkTest is ForkTestBase {
     /// @notice Verify GoodsToken deployed by full stack has correct initial state
     function testForkArbitrum_goodsToken_initialSupplyMintedToOwner() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -54,7 +53,6 @@ contract ArbitrumGoodsTokenForkTest is ForkTestBase {
     /// @notice Minting beyond maxSupply reverts with ExceedsMaxSupply
     function testForkArbitrum_goodsToken_maxSupplyEnforced() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -78,7 +76,6 @@ contract ArbitrumGoodsTokenForkTest is ForkTestBase {
     /// @notice Non-owner mint reverts with OwnableUnauthorizedAccount
     function testForkArbitrum_goodsToken_onlyOwnerCanMint() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -101,7 +98,6 @@ contract ArbitrumGoodsTokenForkTest is ForkTestBase {
     /// @notice Burning tokens reduces totalSupply, freeing capacity for subsequent mints
     function testForkArbitrum_goodsToken_burnReducesSupply() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -130,7 +126,6 @@ contract ArbitrumGoodsTokenForkTest is ForkTestBase {
     /// is correctly wired as the community staking token
     function testForkArbitrum_goodsToken_stakingIntegration() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -167,7 +162,6 @@ contract ArbitrumGoodsTokenForkTest is ForkTestBase {
     /// @notice maxSupply=0 in constructor reverts with MaxSupplyZero
     function testForkArbitrum_goodsToken_maxSupplyZeroReverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 

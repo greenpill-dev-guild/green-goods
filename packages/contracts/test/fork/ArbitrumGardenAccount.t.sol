@@ -28,7 +28,6 @@ contract ArbitrumGardenAccountForkTest is ForkTestBase {
     /// @notice Garden owner (NFT holder) can call execute() on the TBA to interact with external contracts.
     function testForkArbitrum_execute_ownerCanCallExternalContract() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -57,7 +56,6 @@ contract ArbitrumGardenAccountForkTest is ForkTestBase {
     /// @notice Non-owner of the NFT cannot call execute() on the TBA.
     function testForkArbitrum_execute_nonOwnerReverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -81,7 +79,6 @@ contract ArbitrumGardenAccountForkTest is ForkTestBase {
     /// @dev Operators use the setter functions directly (not execute()), which check onlyOperator.
     function testForkArbitrum_execute_operatorCanCallAllowed() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -107,7 +104,6 @@ contract ArbitrumGardenAccountForkTest is ForkTestBase {
     /// @notice Owner can update all metadata fields: name, description, location, bannerImage.
     function testForkArbitrum_metadataSetters_ownerUpdates() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -141,7 +137,6 @@ contract ArbitrumGardenAccountForkTest is ForkTestBase {
     /// @notice Non-owner/non-operator cannot call metadata setters.
     function testForkArbitrum_metadataSetters_nonOwnerReverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -176,7 +171,6 @@ contract ArbitrumGardenAccountForkTest is ForkTestBase {
     /// @dev setCommunityToken is on GardenToken, not GardenAccount. Validates ERC-20 compliance.
     function testForkArbitrum_communityTokenUpdate() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -209,7 +203,6 @@ contract ArbitrumGardenAccountForkTest is ForkTestBase {
     /// @notice After maxGardeners is reached, joinGarden reverts with GardenFull.
     function testForkArbitrum_gardenFull_reverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -256,7 +249,6 @@ contract ArbitrumGardenAccountForkTest is ForkTestBase {
     /// @notice joinGarden() reverts with InvalidInvite when openJoining is false.
     function testForkArbitrum_invalidInvite_reverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -281,7 +273,6 @@ contract ArbitrumGardenAccountForkTest is ForkTestBase {
     /// @notice joinGarden() reverts with AlreadyGardener when caller already has a role.
     function testForkArbitrum_alreadyGardener_reverts() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -323,7 +314,6 @@ contract ArbitrumGardenAccountForkTest is ForkTestBase {
     /// @notice isOperator/isGardener/isEvaluator on GardenAccount delegate to real HatsModule.
     function testForkArbitrum_roleCheck_delegatesToHatsModule() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 

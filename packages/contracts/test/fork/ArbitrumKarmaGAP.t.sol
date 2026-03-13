@@ -31,7 +31,6 @@ contract ArbitrumKarmaGAPForkTest is Test {
     function testForkArbitrum_createProjectImpactMilestone() public {
         string memory rpcUrl = _getRpc("ARBITRUM_RPC_URL");
         if (bytes(rpcUrl).length == 0) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -88,7 +87,6 @@ contract ArbitrumKarmaGAPForkTest is Test {
     function testForkArbitrum_schemaUIDs_matchKnownArbitrumValues() public {
         string memory rpcUrl = _getRpc("ARBITRUM_RPC_URL");
         if (bytes(rpcUrl).length == 0) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -121,7 +119,6 @@ contract ArbitrumKarmaGAPForkTest is Test {
     function testForkArbitrum_createProject_persistsUID() public {
         string memory rpcUrl = _getRpc("ARBITRUM_RPC_URL");
         if (bytes(rpcUrl).length == 0) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -152,7 +149,6 @@ contract ArbitrumKarmaGAPForkTest is Test {
     function testForkArbitrum_createImpact_withoutProject_reverts() public {
         string memory rpcUrl = _getRpc("ARBITRUM_RPC_URL");
         if (bytes(rpcUrl).length == 0) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 

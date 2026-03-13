@@ -213,7 +213,6 @@ contract CrossChainENSForkTest is Test {
     /// @notice Full cross-chain flow: register garden slug on Arbitrum → deliver to Ethereum → verify ENS
     function test_forkCrossChain_gardenSlugRegistration_L2toL1() public {
         if (!_tryDualFork()) {
-            emit log("SKIPPED: Both ARBITRUM_RPC_URL and ETHEREUM_RPC_URL required");
             return;
         }
 
@@ -263,7 +262,6 @@ contract CrossChainENSForkTest is Test {
     /// @notice Member claims personal name on Arbitrum → delivered to Ethereum → verified in ENS
     function test_forkCrossChain_memberNameClaim_L2toL1() public {
         if (!_tryDualFork()) {
-            emit log("SKIPPED: Both ARBITRUM_RPC_URL and ETHEREUM_RPC_URL required");
             return;
         }
 
@@ -313,7 +311,6 @@ contract CrossChainENSForkTest is Test {
     /// @notice Delivering the same slug twice to L1 — second should emit NameRegistrationSkipped
     function test_forkCrossChain_duplicateSlug_L1skips() public {
         if (!_tryDualFork()) {
-            emit log("SKIPPED: Both ARBITRUM_RPC_URL and ETHEREUM_RPC_URL required");
             return;
         }
 
@@ -361,7 +358,6 @@ contract CrossChainENSForkTest is Test {
     /// @notice L1 receiver should revert when CCIP message comes from wrong sender
     function test_forkCrossChain_invalidSender_L1reverts() public {
         if (!_tryDualFork()) {
-            emit log("SKIPPED: Both ARBITRUM_RPC_URL and ETHEREUM_RPC_URL required");
             return;
         }
 

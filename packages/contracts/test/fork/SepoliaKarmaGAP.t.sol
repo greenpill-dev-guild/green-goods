@@ -25,7 +25,6 @@ contract SepoliaKarmaGAPForkTest is Test {
     function test_fork_sepolia_createProjectImpactMilestone() public {
         string memory rpcUrl = _getRpc("SEPOLIA_RPC_URL");
         if (bytes(rpcUrl).length == 0) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 
@@ -81,7 +80,6 @@ contract SepoliaKarmaGAPForkTest is Test {
     function test_fork_sepolia_schemaUIDs_matchKnownValues() public {
         string memory rpcUrl = _getRpc("SEPOLIA_RPC_URL");
         if (bytes(rpcUrl).length == 0) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
 

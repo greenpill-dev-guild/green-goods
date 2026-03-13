@@ -4,10 +4,11 @@ pragma solidity ^0.8.25;
 import { Test } from "forge-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { AaveV3 } from "../../src/strategies/AaveV3.sol";
+import { AaveV3ERC4626 } from "../../src/strategies/AaveV3ERC4626.sol";
 
 contract ArbitrumAaveStrategyForkTest is Test {
     address internal constant AAVE_V3_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
+    address internal constant AAVE_V3_DATA_PROVIDER = 0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654;
     address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     address internal constant DAI = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1;
     address internal constant AWETH = 0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8;
@@ -31,12 +32,26 @@ contract ArbitrumAaveStrategyForkTest is Test {
         return true;
     }
 
+    function _deployStrategy(
+        address asset,
+        address aToken,
+        string memory name,
+        string memory symbol,
+        address owner
+    )
+        internal
+        returns (AaveV3ERC4626)
+    {
+        return new AaveV3ERC4626(asset, name, symbol, AAVE_V3_POOL, aToken, AAVE_V3_DATA_PROVIDER, owner);
+    }
+
     function test_forkDeploy_reportsOnArbitrum() public {
         if (!_tryFork()) return;
 
-        AaveV3 wethStrategy = new AaveV3(WETH, AAVE_V3_POOL, AWETH, address(this));
-        AaveV3 daiStrategy = new AaveV3(DAI, AAVE_V3_POOL, ADAI, address(this));
+        AaveV3ERC4626 wethStrategy = _deployStrategy(WETH, AWETH, "Green Goods Aave WETH", "ggaWETH", address(this));
+        AaveV3ERC4626 daiStrategy = _deployStrategy(DAI, ADAI, "Green Goods Aave DAI", "ggaDAI", address(this));
 
+        assertEq(wethStrategy.asset(), WETH, "weth strategy should expose the underlying asset");
         assertEq(address(wethStrategy.aavePool()), AAVE_V3_POOL, "weth strategy should point to Aave pool");
         assertEq(address(daiStrategy.aavePool()), AAVE_V3_POOL, "dai strategy should point to Aave pool");
 
@@ -47,19 +62,15 @@ contract ArbitrumAaveStrategyForkTest is Test {
     function test_forkCycle_depositDeployReportFreeWithdraw() public {
         if (!_tryFork()) return;
 
-        AaveV3 strategy = new AaveV3(WETH, AAVE_V3_POOL, AWETH, address(this));
+        AaveV3ERC4626 strategy = _deployStrategy(WETH, AWETH, "Green Goods Aave WETH", "ggaWETH", address(this));
+        strategy.setVault(address(this));
 
         uint256 depositAmount = 1 ether;
-        deal(WETH, address(strategy), depositAmount);
+        deal(WETH, address(this), depositAmount);
+        IERC20(WETH).approve(address(strategy), depositAmount);
 
-        // Verify idle balance shows in report before deploying to Aave
-        uint256 idleReport = strategy.report();
-        assertEq(idleReport, depositAmount, "idle balance should equal deposit");
-
-        // Deploy funds to Aave
-        strategy.deployFunds(depositAmount);
-
-        // After deploying, idle balance should be ~0, aToken balance should be ~depositAmount
+        uint256 mintedShares = strategy.deposit(depositAmount, address(this));
+        assertEq(mintedShares, depositAmount, "initial deposit should mint 1:1 shares");
         uint256 deployedReport = strategy.report();
         assertGe(deployedReport, depositAmount - 1, "report should include aToken balance");
         assertLe(deployedReport, depositAmount + 0.001 ether, "report should not wildly exceed deposit");
@@ -68,8 +79,7 @@ contract ArbitrumAaveStrategyForkTest is Test {
         uint256 aTokenBal = IERC20(AWETH).balanceOf(address(strategy));
         assertGt(aTokenBal, 0, "aToken balance should be positive after deploy");
 
-        // Free all funds from Aave (use type(uint256).max to handle rounding)
-        strategy.freeFunds(type(uint256).max, address(this));
+        uint256 redeemedAssets = strategy.redeem(strategy.balanceOf(address(this)), address(this), address(this));
 
         // Strategy should now have ~0 balance, we should have received WETH
         uint256 afterFree = strategy.report();
@@ -77,6 +87,7 @@ contract ArbitrumAaveStrategyForkTest is Test {
 
         uint256 receiverBalance = IERC20(WETH).balanceOf(address(this));
         assertGe(receiverBalance, depositAmount - 2, "receiver should have gotten WETH back");
+        assertEq(receiverBalance, redeemedAssets, "redeem return value should match assets received");
     }
 
     /// @notice Verify AAVE yield accrual over a simulated 30-day period via time warp
@@ -86,13 +97,14 @@ contract ArbitrumAaveStrategyForkTest is Test {
     function test_forkYieldAccrual_timeWarp() public {
         if (!_tryFork()) return;
 
-        AaveV3 strategy = new AaveV3(WETH, AAVE_V3_POOL, AWETH, address(this));
+        AaveV3ERC4626 strategy = _deployStrategy(WETH, AWETH, "Green Goods Aave WETH", "ggaWETH", address(this));
+        strategy.setVault(address(this));
 
         uint256 depositAmount = 10 ether;
-        deal(WETH, address(strategy), depositAmount);
+        deal(WETH, address(this), depositAmount);
+        IERC20(WETH).approve(address(strategy), depositAmount);
 
-        // Deploy funds to AAVE
-        strategy.deployFunds(depositAmount);
+        strategy.deposit(depositAmount, address(this));
 
         // Verify initial deployment
         uint256 postDeployReport = strategy.report();
@@ -108,7 +120,7 @@ contract ArbitrumAaveStrategyForkTest is Test {
 
         // Withdraw all funds
         address receiver = address(0xBEEF);
-        uint256 withdrawn = strategy.freeFunds(type(uint256).max, receiver);
+        uint256 withdrawn = strategy.redeem(strategy.balanceOf(address(this)), receiver, address(this));
 
         // Verify receiver got more than the original deposit
         uint256 receiverBalance = IERC20(WETH).balanceOf(receiver);

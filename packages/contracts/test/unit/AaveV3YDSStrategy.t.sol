@@ -29,8 +29,10 @@ contract AaveV3Test is Test {
         // Fund the strategy with some tokens for testing
         asset.transfer(address(strategy), 1000 ether);
 
-        // Fund the pool so withdrawals work
-        asset.transfer(address(pool), 5000 ether);
+        // Fund aToken contract with liquidity (real Aave V3 holds underlying in aToken, not Pool)
+        asset.transfer(address(aToken), 5000 ether);
+        // aToken approves pool to pull underlying during withdrawals
+        aToken.approveUnderlying(address(asset), address(pool));
     }
 
     // =========================================================================

@@ -67,7 +67,6 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
     ///         Both action UIDs are valid, but attestations to gardenAlpha vs gardenBeta remain distinct.
     function test_fork_arbitrum_sharedActionRegistry_isolatedActions() public {
         if (!_setupThreeGardens()) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -100,7 +99,6 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
     /// @notice Each garden gets its own hat tree — operator in Alpha has no role in Beta
     function test_fork_arbitrum_independentHatsTrees() public {
         if (!_setupThreeGardens()) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -137,7 +135,6 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
     /// Garden A having a vault for an asset does not create one for garden B.
     function testForkArbitrum_independentYieldPipelines() public {
         if (!_setupThreeGardens()) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -176,7 +173,6 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
     /// Jars for garden A are not accessible via garden B's mapping.
     function testForkArbitrum_independentCookieJars() public {
         if (!_setupThreeGardens()) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -215,13 +211,11 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
     /// @notice Each garden gets a unique slug — duplicate slug for second garden reverts
     function test_fork_arbitrum_uniqueENSSlugs() public {
         if (!_setupThreeGardens()) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
         // Skip if ENS module not deployed
         if (address(greenGoodsENS) == address(0)) {
-            emit log("SKIPPED: GreenGoodsENS not deployed on this fork");
             return;
         }
 
@@ -264,7 +258,6 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
     /// @notice Each garden should be independently initialized in GardensModule
     function test_fork_arbitrum_independentGardensCommunities() public {
         if (!_setupThreeGardens()) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -303,7 +296,6 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
     /// @notice Operator in garden A can approve work in A but not in garden B
     function test_fork_arbitrum_crossGardenRoleIsolation() public {
         if (!_setupThreeGardens()) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 
@@ -338,7 +330,6 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
     /// from garden B. Each garden gets its own community and pool set.
     function testForkArbitrum_independentConvictionPools() public {
         if (!_tryChainFork("arbitrum")) {
-            emit log("SKIPPED: No Arbitrum RPC URL configured");
             return;
         }
 

@@ -96,7 +96,6 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Verify schemas are registered with the real EAS SchemaRegistry on fork
     function test_fork_schemaRegistration_registersWithRealSchemaRegistry() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -126,7 +125,6 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Work attestation succeeds when submitted by a valid gardener
     function test_fork_workAttestation_succeedsWithValidGardener() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -144,7 +142,6 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Work attestation reverts when submitted by a non-member
     function test_fork_workAttestation_revertsForNonMember() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -184,7 +181,6 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Work approval succeeds when submitted by a valid operator
     function test_fork_workApproval_succeedsWithValidOperator() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -230,7 +226,6 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Work approval reverts when submitted by a gardener (not operator/evaluator)
     function test_fork_workApproval_revertsForNonOperator() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -275,7 +270,6 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Assessment attestation succeeds when submitted by a valid evaluator
     function test_fork_assessment_succeedsWithValidEvaluator() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -318,7 +312,6 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Assessment with invalid domain (> 3) reverts
     function test_fork_assessment_revertsForInvalidDomain() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
@@ -360,7 +353,6 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
     /// @notice Work attestation cannot be revoked (WorkResolver.onRevoke returns false)
     function test_fork_workRevocation_workIsNonRevocable() public {
         if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
             return;
         }
         _deployFullStackOnFork();
