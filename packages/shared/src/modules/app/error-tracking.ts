@@ -501,6 +501,10 @@ export function initGlobalErrorHandlers(): () => void {
   const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
     const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
 
+    // Ignore errors originating from browser extensions (PromiseRejectionEvent
+    // has no `filename`, so we check the stack trace instead)
+    if (error.stack?.includes("extension://")) return;
+
     // Try to categorize the error
     let category: ErrorCategory = "system";
     const message = error.message.toLowerCase();

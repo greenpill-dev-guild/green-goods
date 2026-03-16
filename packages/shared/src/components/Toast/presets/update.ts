@@ -21,7 +21,7 @@ export const updateToasts = {
       title: updateDefaults.available.title,
       message: updateDefaults.available.message,
       context: "app update",
-      duration: 60000, // Keep visible for 1 minute
+      duration: Infinity, // Stay visible until user acts or toast is replaced
       action: {
         label: "Update now",
         onClick: onUpdate,
@@ -63,7 +63,7 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
           defaultMessage: updateDefaults.available.message,
         }),
         context: "app update",
-        duration: 60000,
+        duration: Infinity,
         action: {
           label: "Update now",
           onClick: onUpdate,

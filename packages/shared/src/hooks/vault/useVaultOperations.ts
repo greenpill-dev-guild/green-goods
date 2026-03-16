@@ -380,7 +380,10 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
           });
         }
         // Always log diagnostics through error handler (toast already shown above if needed)
-        handleError(error, { metadata: { ...metadata, ...error.diagnostics }, showToast: !showErrorToast });
+        handleError(error, {
+          metadata: { ...metadata, ...error.diagnostics },
+          showToast: !showErrorToast,
+        });
         return;
       }
       handleError(error, {

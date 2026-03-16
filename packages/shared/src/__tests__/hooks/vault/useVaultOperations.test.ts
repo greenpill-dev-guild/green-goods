@@ -10,7 +10,7 @@ import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock matchMedia before any module imports that touch theme system
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
@@ -138,11 +138,11 @@ describe("hooks/vault/useVaultOperations", () => {
     // Read sequence (no minSharesOut -> early slippage check skipped):
     // 1) maxDeposit, 2) preApprovalPreview, 3) allowance, 4) refreshed allowance, 5) post-approval previewDeposit
     mockReadContract
-      .mockResolvedValueOnce(100n)   // maxDeposit
-      .mockResolvedValueOnce(10n)    // preApprovalPreview
-      .mockResolvedValueOnce(0n)     // allowance (insufficient)
-      .mockResolvedValueOnce(10n)    // refreshed allowance
-      .mockResolvedValueOnce(10n);   // post-approval previewDeposit
+      .mockResolvedValueOnce(100n) // maxDeposit
+      .mockResolvedValueOnce(10n) // preApprovalPreview
+      .mockResolvedValueOnce(0n) // allowance (insufficient)
+      .mockResolvedValueOnce(10n) // refreshed allowance
+      .mockResolvedValueOnce(10n); // post-approval previewDeposit
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -197,10 +197,10 @@ describe("hooks/vault/useVaultOperations", () => {
     // Read sequence (no minSharesOut -> early slippage check skipped):
     // maxDeposit, preApprovalPreview, allowance (sufficient), post-approval previewDeposit
     mockReadContract
-      .mockResolvedValueOnce(100n)   // maxDeposit
-      .mockResolvedValueOnce(10n)    // preApprovalPreview
-      .mockResolvedValueOnce(100n)   // allowance (sufficient)
-      .mockResolvedValueOnce(10n);   // post-approval previewDeposit
+      .mockResolvedValueOnce(100n) // maxDeposit
+      .mockResolvedValueOnce(10n) // preApprovalPreview
+      .mockResolvedValueOnce(100n) // allowance (sufficient)
+      .mockResolvedValueOnce(10n); // post-approval previewDeposit
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -233,10 +233,10 @@ describe("hooks/vault/useVaultOperations", () => {
   it("detects slippage when exchange rate moves during approval", async () => {
     // Read sequence: maxDeposit, preApprovalPreview (high), allowance (sufficient), post-approval previewDeposit (low)
     mockReadContract
-      .mockResolvedValueOnce(100n)   // maxDeposit
-      .mockResolvedValueOnce(100n)   // preApprovalPreview: 100 shares expected
-      .mockResolvedValueOnce(100n)   // allowance (sufficient)
-      .mockResolvedValueOnce(90n);   // post-approval: only 90 shares (>1% drop from 100)
+      .mockResolvedValueOnce(100n) // maxDeposit
+      .mockResolvedValueOnce(100n) // preApprovalPreview: 100 shares expected
+      .mockResolvedValueOnce(100n) // allowance (sufficient)
+      .mockResolvedValueOnce(90n); // post-approval: only 90 shares (>1% drop from 100)
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -526,10 +526,10 @@ describe("hooks/vault/useVaultOperations", () => {
     // Read sequence (no minSharesOut -> early slippage check skipped):
     // maxDeposit, preApprovalPreview, allowance (sufficient), post-approval previewDeposit
     mockReadContract
-      .mockResolvedValueOnce(100n)   // maxDeposit
-      .mockResolvedValueOnce(10n)    // preApprovalPreview
-      .mockResolvedValueOnce(100n)   // allowance (sufficient)
-      .mockResolvedValueOnce(10n);   // post-approval previewDeposit
+      .mockResolvedValueOnce(100n) // maxDeposit
+      .mockResolvedValueOnce(10n) // preApprovalPreview
+      .mockResolvedValueOnce(100n) // allowance (sufficient)
+      .mockResolvedValueOnce(10n); // post-approval previewDeposit
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -593,10 +593,10 @@ describe("hooks/vault/useVaultOperations", () => {
   it("logs VaultDepositStageError diagnostics through error handler in toast mode", async () => {
     // maxDeposit returns 0 → triggers diagnostic reads
     mockReadContract
-      .mockResolvedValueOnce(0n)     // maxDeposit = 0
-      .mockResolvedValueOnce(true)   // isShutdown = true
-      .mockResolvedValueOnce(0n)     // depositLimit
-      .mockResolvedValueOnce(0n);    // totalAssets
+      .mockResolvedValueOnce(0n) // maxDeposit = 0
+      .mockResolvedValueOnce(true) // isShutdown = true
+      .mockResolvedValueOnce(0n) // depositLimit
+      .mockResolvedValueOnce(0n); // totalAssets
 
     const queryClient = new QueryClient({
       defaultOptions: {

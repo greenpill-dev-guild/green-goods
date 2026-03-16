@@ -52,7 +52,11 @@ export function createTestWrapper(queryClient?: QueryClient) {
     return createElement(
       QueryClientProvider,
       { client },
-      createElement(IntlProvider, { locale: "en", messages: enMessages, onError: silentIntlErrorHandler }, children)
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: enMessages, onError: silentIntlErrorHandler },
+        children
+      )
     );
   };
 }
@@ -62,7 +66,11 @@ export function createTestWrapper(queryClient?: QueryClient) {
  */
 export function createIntlWrapper() {
   return function IntlWrapper({ children }: WrapperProps) {
-    return createElement(IntlProvider, { locale: "en", messages: enMessages, onError: silentIntlErrorHandler }, children);
+    return createElement(
+      IntlProvider,
+      { locale: "en", messages: enMessages, onError: silentIntlErrorHandler },
+      children
+    );
   };
 }
 
@@ -185,7 +193,12 @@ export function mock<T>(fn: T): T & MockMethods<T> {
 // Suppress react-intl MissingTranslationError in tests — each one constructs
 // a full Error with stack trace, causing massive I/O overhead on stderr.
 const silentIntlErrorHandler = (err: unknown) => {
-  if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "MISSING_TRANSLATION") {
+  if (
+    err &&
+    typeof err === "object" &&
+    "code" in err &&
+    (err as { code: string }).code === "MISSING_TRANSLATION"
+  ) {
     return;
   }
   // Re-throw non-translation errors so real issues surface
@@ -217,7 +230,11 @@ export function QueryTestWrapper({ children }: WrapperProps) {
   return createElement(
     QueryClientProvider,
     { client: queryClient },
-    createElement(IntlProvider, { locale: "en", messages: enMessages, onError: silentIntlErrorHandler }, children)
+    createElement(
+      IntlProvider,
+      { locale: "en", messages: enMessages, onError: silentIntlErrorHandler },
+      children
+    )
   );
 }
 
