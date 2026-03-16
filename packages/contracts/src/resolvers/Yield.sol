@@ -611,8 +611,7 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         uint256 maxIter = proposalCount > MAX_PROPOSALS_PER_SPLIT ? MAX_PROPOSALS_PER_SPLIT : proposalCount;
 
         // Read conviction values for active proposals (up to cap)
-        (uint256[] memory convictions, uint256 totalConviction, uint256 activeCount) =
-            _readConvictionWeights(pool, proposalCount, maxIter);
+        (uint256[] memory convictions, uint256 totalConviction, uint256 activeCount) = _readConvictionWeights(pool, maxIter);
 
         if (proposalCount > MAX_PROPOSALS_PER_SPLIT) {
             emit ConvictionCapReached(garden, proposalCount, MAX_PROPOSALS_PER_SPLIT);
@@ -646,21 +645,18 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     ///      Proposals that are not Active (status != 1) or whose calls revert are skipped.
     ///      Only processes up to `maxIter` proposals to bound gas usage.
     /// @param pool The CVStrategy pool address
-    /// @param proposalCount The total number of proposals in the pool (for documentation; iteration uses maxIter)
     /// @param maxIter The maximum number of proposals to iterate (capped by caller)
     /// @return convictions Array of conviction values per proposal (0 for skipped)
     /// @return totalConviction Sum of all active conviction values
     /// @return activeCount Number of proposals with non-zero conviction
     function _readConvictionWeights(
         address pool,
-        uint256 proposalCount,
         uint256 maxIter
     )
         private
         view
         returns (uint256[] memory convictions, uint256 totalConviction, uint256 activeCount)
     {
-        (proposalCount); // Suppress unused parameter warning — kept for NatSpec clarity
         convictions = new uint256[](maxIter);
 
         for (uint256 i = 1; i <= maxIter; i++) {

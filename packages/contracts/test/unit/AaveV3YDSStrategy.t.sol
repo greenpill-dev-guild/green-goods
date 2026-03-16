@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
 
-import { AaveV3 } from "../../src/strategies/AaveV3.sol";
+import { AaveV3 } from "../helpers/AaveV3Legacy.sol";
 import { MockAavePool, MockAToken } from "../../src/mocks/AavePool.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
 

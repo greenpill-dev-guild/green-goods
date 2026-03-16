@@ -152,7 +152,7 @@ contract AaveV3ERC4626Test is Test {
         pool.setPartialWithdrawLimit(10 ether);
 
         vm.prank(depositor);
-        vm.expectRevert("Aave: insufficient liquidity");
+        vm.expectRevert(abi.encodeWithSignature("InsufficientLiquidity(uint256,uint256)", 10 ether, 50 ether));
         strategy.withdraw(50 ether, receiver, depositor);
     }
 

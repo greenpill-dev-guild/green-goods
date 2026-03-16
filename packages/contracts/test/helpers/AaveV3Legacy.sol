@@ -3,8 +3,9 @@ pragma solidity ^0.8.25;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { IOctantStrategy } from "../interfaces/IOctantFactory.sol";
+import { IOctantStrategy } from "../../src/interfaces/IOctantFactory.sol";
 
 interface IAaveV3Pool {
     function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external;
@@ -15,10 +16,12 @@ interface IAToken {
     function balanceOf(address account) external view returns (uint256);
 }
 
-/// @title AaveV3
-/// @notice Minimal strategy wrapper used by Octant vault integration
+/// @title AaveV3 (Legacy)
+/// @notice Non-ERC4626 strategy wrapper, superseded by AaveV3ERC4626. Retained for test coverage only.
 /// @dev Exposes report/shutdown/donation hooks expected by OctantModule
 contract AaveV3 is Ownable, IOctantStrategy {
+    using SafeERC20 for IERC20;
+
     error ZeroAddress();
     error DepositsPaused();
 
@@ -70,7 +73,7 @@ contract AaveV3 is Ownable, IOctantStrategy {
     /// @notice Deploys funds from this strategy to Aave V3
     function deployFunds(uint256 amount) external onlyOwner {
         if (depositsPaused) revert DepositsPaused();
-        underlyingAsset.approve(address(aavePool), amount);
+        underlyingAsset.forceApprove(address(aavePool), amount);
         aavePool.supply(address(underlyingAsset), amount, address(this), 0);
         emit FundsDeployed(amount);
     }

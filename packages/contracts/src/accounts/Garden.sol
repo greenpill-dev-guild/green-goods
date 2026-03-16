@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import { AccountV3Upgradable } from "@tokenbound/AccountV3Upgradable.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
@@ -31,9 +32,11 @@ interface IGardenTokenModules {
 /// @notice Manages garden metadata and role checks for Garden accounts
 /// @dev Delegates access control to HatsModule.
 contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessControl, IGardenAccount {
+    using SafeERC20 for IERC20;
     /// @notice Emitted when the garden name is updated.
     /// @param updater The address of the entity that updated the name.
     /// @param newName The new name of the garden.
+
     event NameUpdated(address indexed updater, string newName);
 
     /// @notice Emitted when the garden description is updated.
@@ -400,7 +403,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
     ///      which makes msg.sender == address(this). The flag is only set by _autoRegisterInCommunity.
     function executeAutoStake(address goodsToken_, address community, uint256 stakeAmount, address member) external {
         if (msg.sender != address(this) || !_autoStaking) revert NotGardenOwner();
-        IERC20(goodsToken_).approve(community, stakeAmount);
+        IERC20(goodsToken_).forceApprove(community, stakeAmount);
         IRegistryCommunity(community).stakeAndRegisterMember(member);
     }
 

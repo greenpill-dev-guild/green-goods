@@ -10,6 +10,8 @@ import { SafeERC20 } from "@openzeppelin/contracts@5.0.2/token/ERC20/utils/SafeE
 
 import { IOctantStrategy } from "../interfaces/IOctantFactory.sol";
 
+error InsufficientLiquidity(uint256 available, uint256 requested);
+
 interface IAaveV3Pool {
     function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external;
     function withdraw(address asset, uint256 amount, address to) external returns (uint256 withdrawnAmount);
@@ -212,7 +214,7 @@ contract AaveV3ERC4626 is ERC4626, Ownable, IOctantStrategy {
         if (idleBalance < assets) {
             aavePool.withdraw(asset(), assets - idleBalance, address(this));
             uint256 totalAvailable = IERC20(asset()).balanceOf(address(this));
-            require(totalAvailable >= assets, "Aave: insufficient liquidity");
+            if (totalAvailable < assets) revert InsufficientLiquidity(totalAvailable, assets);
             emit FundsFreed(assets - idleBalance, receiver);
         }
 
