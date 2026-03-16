@@ -20,6 +20,34 @@ import {
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
 
+/** In dev mode, poll /__dev/tunnel for the cloudflared tunnel URL */
+function useTunnelUrl(): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
+    let cancelled = false;
+    const poll = () => {
+      fetch("/__dev/tunnel")
+        .then((r) => r.json())
+        .then((d) => {
+          if (!cancelled && d.url) setUrl(d.url);
+        })
+        .catch(() => {});
+    };
+
+    poll();
+    const id = setInterval(poll, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  return url;
+}
+
 function useIsDarkMode() {
   const [isDark, setIsDark] = useState(() => document.documentElement.dataset.theme === "dark");
 
@@ -50,6 +78,10 @@ export const Hero: FC<HeroProps> = () => {
   const [copyError, setCopyError] = useState(false);
 
   const isDark = useIsDarkMode();
+  const tunnelUrl = useTunnelUrl();
+
+  // In dev mode with an active tunnel, the QR code points to the tunnel URL
+  const qrValue = tunnelUrl || window.location.origin;
 
   // Get smart installation guidance based on current browser/platform
   const guidance = useInstallGuidance(
@@ -142,7 +174,7 @@ export const Hero: FC<HeroProps> = () => {
           <div className="hidden sm:flex flex-col items-center lg:items-start gap-4 mt-4">
             <div className="rounded-xl shadow-sm bg-white dark:bg-gray-800 transition-colors border border-transparent dark:border-gray-600">
               <QRCodeCanvas
-                value={window.location.origin}
+                value={qrValue}
                 size={128}
                 fgColor={isDark ? "#ffffff" : "#000000"}
                 bgColor={isDark ? "#1a1a1a" : "#ffffff"}
@@ -153,12 +185,21 @@ export const Hero: FC<HeroProps> = () => {
                 role="img"
               />
             </div>
-            <span className="font-bold text-xl text-primary-dark">
-              {intl.formatMessage({
-                id: "app.hero.cta",
-                defaultMessage: "Open on your phone to get started!",
-              })}
-            </span>
+            {tunnelUrl ? (
+              <div className="flex flex-col items-center lg:items-start gap-1">
+                <span className="font-bold text-xl text-primary-dark">Scan to test on device</span>
+                <span className="text-xs text-text-soft-400 font-mono break-all max-w-[200px]">
+                  {tunnelUrl}
+                </span>
+              </div>
+            ) : (
+              <span className="font-bold text-xl text-primary-dark">
+                {intl.formatMessage({
+                  id: "app.hero.cta",
+                  defaultMessage: "Open on your phone to get started!",
+                })}
+              </span>
+            )}
           </div>
 
           {/* Smart PWA Installation Flow based on browser/platform detection */}

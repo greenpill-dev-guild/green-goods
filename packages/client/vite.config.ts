@@ -2,8 +2,9 @@
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
 
@@ -56,7 +57,36 @@ export default defineConfig(async () => {
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
 
+  // Dev-only plugin: serves tunnel URL at /__dev/tunnel for the landing page QR code
+  function devTunnelPlugin(): Plugin {
+    const tunnelUrlFile = resolve(rootDir, ".tunnel-url");
+    return {
+      name: "dev-tunnel",
+      apply: "serve",
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url !== "/__dev/tunnel") return next();
+
+          res.setHeader("Content-Type", "application/json");
+          res.setHeader("Cache-Control", "no-store");
+
+          try {
+            if (!existsSync(tunnelUrlFile)) {
+              res.end(JSON.stringify({ url: null }));
+              return;
+            }
+            const url = readFileSync(tunnelUrlFile, "utf-8").trim();
+            res.end(JSON.stringify({ url: url || null }));
+          } catch {
+            res.end(JSON.stringify({ url: null }));
+          }
+        });
+      },
+    };
+  }
+
   const plugins = [
+    devTunnelPlugin(),
     varlockVitePlugin(),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
@@ -263,13 +293,7 @@ export default defineConfig(async () => {
     // Optimize dependency pre-bundling
     optimizeDeps: {
       // Include CJS packages that need named exports extracted
-      include: [
-        "react",
-        "react-dom",
-        "posthog-js",
-        "@ethereum-attestation-service/eas-sdk",
-        "multiformats",
-      ],
+      include: ["react", "react-dom", "posthog-js", "@ethereum-attestation-service/eas-sdk"],
       // Exclude local packages and ESM-only packages
       exclude: ["@green-goods/shared"],
     },

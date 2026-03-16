@@ -113,6 +113,21 @@ module.exports = {
       treekill: true,
     },
     {
+      name: "tunnel",
+      script: "node",
+      args: "scripts/dev-tunnel.js",
+      cwd: ".",
+      env: {
+        NODE_ENV: "development",
+      },
+      merge_logs: true,
+      autorestart: false, // cloudflared exits cleanly or is not installed
+      max_restarts: 0,
+      min_uptime: "5s",
+      kill_timeout: 5000,
+      treekill: true,
+    },
+    {
       name: "storybook",
       script: "sh",
       args: `-c "${killPort(PORTS.storybook)} && cd packages/shared && bun run storybook"`,

@@ -343,6 +343,9 @@ output/
 # Backup files
 *.backup
 
+# Dev tunnel URL (written by scripts/dev-tunnel.js)
+.tunnel-url
+
 # Docs build output (Docusaurus)
 docs/build/
 
