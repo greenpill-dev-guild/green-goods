@@ -69,13 +69,25 @@ export function PositionCard({
   // Diagnostic reads: distinguish legacy misconfiguration from shutdown/paused/full
   const { data: diagnosticData, refetch: refetchDiagnostics } = useReadContracts({
     contracts: [
-      { address: vault.vaultAddress as Address, abi: OCTANT_VAULT_ABI, functionName: "isShutdown", args: [] },
-      { address: vault.vaultAddress as Address, abi: OCTANT_VAULT_ABI, functionName: "depositLimit", args: [] },
+      {
+        address: vault.vaultAddress as Address,
+        abi: OCTANT_VAULT_ABI,
+        functionName: "isShutdown",
+        args: [],
+      },
+      {
+        address: vault.vaultAddress as Address,
+        abi: OCTANT_VAULT_ABI,
+        functionName: "depositLimit",
+        args: [],
+      },
     ] as const,
     query: { enabled: !vaultAcceptingDeposits && isModuleOwner },
   });
-  const isShutdown = diagnosticData?.[0]?.status === "success" ? (diagnosticData[0].result as boolean) : false;
-  const depositLimitRaw = diagnosticData?.[1]?.status === "success" ? (diagnosticData[1].result as bigint) : null;
+  const isShutdown =
+    diagnosticData?.[0]?.status === "success" ? (diagnosticData[0].result as boolean) : false;
+  const depositLimitRaw =
+    diagnosticData?.[1]?.status === "success" ? (diagnosticData[1].result as bigint) : null;
 
   // Only show auto-allocation CTA when this is specifically the legacy misconfiguration:
   // not shutdown, and deposit limit is zero (the hallmark of missing auto-allocation wiring)
@@ -95,7 +107,11 @@ export function PositionCard({
   const onEnableAutoAllocate = () => {
     enableAutoAllocate.mutate(
       { gardenAddress, assetAddress: vault.asset },
-      { onSuccess: () => { void refetchDiagnostics(); } }
+      {
+        onSuccess: () => {
+          void refetchDiagnostics();
+        },
+      }
     );
   };
 

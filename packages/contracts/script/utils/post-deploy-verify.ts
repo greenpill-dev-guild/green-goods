@@ -723,12 +723,9 @@ function validateOctantVaultReadiness(
 
       // Verify strategy has non-zero maxDebt (required for auto-allocate to deploy funds)
       if (!isZeroAddress(strategy)) {
-        const strategyInfo = castCall(
-          options.rpcUrl,
-          vault,
-          "strategies(address)(uint256,uint256,uint256,uint256)",
-          [strategy],
-        );
+        const strategyInfo = castCall(options.rpcUrl, vault, "strategies(address)(uint256,uint256,uint256,uint256)", [
+          strategy,
+        ]);
         const maxDebt = parseUint(strategyInfo.split("\n")[3] ?? "0");
         assert(
           maxDebt > 0n,
@@ -739,14 +736,8 @@ function validateOctantVaultReadiness(
 
       // Verify the live strategy is the effective auto-allocation target (queue head)
       if (autoAllocate && !isZeroAddress(strategy)) {
-        const queueAddresses = parseAddressArray(
-          castCall(options.rpcUrl, vault, "get_default_queue()(address[])"),
-        );
-        assert(
-          queueAddresses.length > 0,
-          `vault ${vault} has autoAllocate=true but empty defaultQueue`,
-          failures,
-        );
+        const queueAddresses = parseAddressArray(castCall(options.rpcUrl, vault, "get_default_queue()(address[])"));
+        assert(queueAddresses.length > 0, `vault ${vault} has autoAllocate=true but empty defaultQueue`, failures);
         if (queueAddresses.length > 0) {
           assert(
             normalizeAddress(queueAddresses[0]) === normalizeAddress(strategy),
@@ -760,9 +751,7 @@ function validateOctantVaultReadiness(
       if (!isZeroAddress(strategy)) {
         // 1. Strategy's asset() must match the vault's expected asset (ERC4626 compliance)
         try {
-          const strategyAsset = parseAddress(
-            castCall(options.rpcUrl, strategy, "asset()(address)"),
-          );
+          const strategyAsset = parseAddress(castCall(options.rpcUrl, strategy, "asset()(address)"));
           assert(
             normalizeAddress(strategyAsset) === normalizeAddress(asset),
             `strategy ${strategy} asset mismatch: expected ${asset}, got ${strategyAsset}`,
@@ -778,9 +767,7 @@ function validateOctantVaultReadiness(
         // 2. Strategy's totalAssets() must be queryable (proves Aave communication works)
         let strategyTotalAssets = 0n;
         try {
-          strategyTotalAssets = parseUint(
-            castCall(options.rpcUrl, strategy, "totalAssets()(uint256)"),
-          );
+          strategyTotalAssets = parseUint(castCall(options.rpcUrl, strategy, "totalAssets()(uint256)"));
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           failures.push(
@@ -792,9 +779,7 @@ function validateOctantVaultReadiness(
         //    totalAssets — otherwise deposits are sitting idle, never reaching Aave
         if (autoAllocate) {
           try {
-            const vaultTotalAssets = parseUint(
-              castCall(options.rpcUrl, vault, "totalAssets()(uint256)"),
-            );
+            const vaultTotalAssets = parseUint(castCall(options.rpcUrl, vault, "totalAssets()(uint256)"));
             if (vaultTotalAssets > 0n && strategyTotalAssets === 0n) {
               failures.push(
                 `vault ${vault} has ${vaultTotalAssets} total assets but strategy ${strategy} totalAssets=0 — deposits are idle, auto-allocate pipeline is broken`,

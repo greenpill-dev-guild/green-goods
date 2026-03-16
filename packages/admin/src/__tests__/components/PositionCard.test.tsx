@@ -182,8 +182,8 @@ describe("PositionCard", () => {
       // Diagnostic reads: isShutdown=false, depositLimit=0n
       mockUseReadContracts.mockReturnValue({
         data: [
-          { status: "success", result: false },  // isShutdown
-          { status: "success", result: 0n },      // depositLimit
+          { status: "success", result: false }, // isShutdown
+          { status: "success", result: 0n }, // depositLimit
         ],
         refetch: vi.fn(),
       });
@@ -203,8 +203,8 @@ describe("PositionCard", () => {
       // Diagnostic reads: isShutdown=true, depositLimit=0n
       mockUseReadContracts.mockReturnValue({
         data: [
-          { status: "success", result: true },    // isShutdown
-          { status: "success", result: 0n },       // depositLimit
+          { status: "success", result: true }, // isShutdown
+          { status: "success", result: 0n }, // depositLimit
         ],
         refetch: vi.fn(),
       });
@@ -224,8 +224,8 @@ describe("PositionCard", () => {
       // Diagnostic reads: isShutdown=false, depositLimit=1000n (full, not misconfigured)
       mockUseReadContracts.mockReturnValue({
         data: [
-          { status: "success", result: false },    // isShutdown
-          { status: "success", result: 1000n },     // depositLimit (non-zero = properly configured)
+          { status: "success", result: false }, // isShutdown
+          { status: "success", result: 1000n }, // depositLimit (non-zero = properly configured)
         ],
         refetch: vi.fn(),
       });
