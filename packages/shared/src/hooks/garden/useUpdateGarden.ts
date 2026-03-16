@@ -4,7 +4,6 @@ import { toastService } from "../../components/toast";
 import type { Address } from "../../types/domain";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
-import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
 import { queryKeys } from "../query-keys";
 
@@ -38,7 +37,6 @@ function useGardenStringMutation(
 ) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
-  const chainId = useCurrentChain();
   const sendContractTx = useContractTxSender();
   const handleError = createMutationErrorHandler({ source, toastContext });
 

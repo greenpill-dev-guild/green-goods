@@ -258,14 +258,13 @@ export const WorkCard: React.FC<WorkCardProps> = ({
           className="fixed inset-0 z-[70] flex items-center justify-center bg-static-black/80 p-4"
           role="dialog"
           aria-modal="true"
-          onClick={() => setIsPreviewOpen(false)}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setIsPreviewOpen(false);
+          }}
         >
           <button
             type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              setIsPreviewOpen(false);
-            }}
+            onClick={() => setIsPreviewOpen(false)}
             className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-bg-white/10 text-static-white transition hover:bg-bg-white/20"
             aria-label={labels.closePreview}
           >
@@ -275,9 +274,6 @@ export const WorkCard: React.FC<WorkCardProps> = ({
             src={thumbUrl}
             alt={work.title || labels.mediaPreviewAlt}
             className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
-            onClick={(event) => {
-              event.stopPropagation();
-            }}
           />
         </div>
       ) : null}

@@ -1,5 +1,4 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import type { Address } from "../../types/domain";
 import { formatAddress } from "../app/text";
 import { isZeroAddress, ZERO_ADDRESS } from "./address";
 

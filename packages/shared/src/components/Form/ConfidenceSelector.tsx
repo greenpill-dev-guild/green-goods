@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useCallback, useId } from "react";
+import { type KeyboardEvent, useCallback, useId, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Confidence } from "../../types/domain";
 import { cn } from "../../utils/styles/cn";
@@ -27,40 +27,43 @@ export function ConfidenceSelector({
   const { formatMessage } = useIntl();
   const groupId = useId();
 
-  const CONFIDENCE_OPTIONS = [
-    {
-      value: Confidence.NONE,
-      label: formatMessage({ id: "app.form.confidence.none", defaultMessage: "None" }),
-      hint: formatMessage({
-        id: "app.form.confidence.none.hint",
-        defaultMessage: "No confidence in outcome",
-      }),
-    },
-    {
-      value: Confidence.LOW,
-      label: formatMessage({ id: "app.form.confidence.low", defaultMessage: "Low" }),
-      hint: formatMessage({
-        id: "app.form.confidence.low.hint",
-        defaultMessage: "Uncertain about accuracy",
-      }),
-    },
-    {
-      value: Confidence.MEDIUM,
-      label: formatMessage({ id: "app.form.confidence.medium", defaultMessage: "Medium" }),
-      hint: formatMessage({
-        id: "app.form.confidence.medium.hint",
-        defaultMessage: "Reasonably confident",
-      }),
-    },
-    {
-      value: Confidence.HIGH,
-      label: formatMessage({ id: "app.form.confidence.high", defaultMessage: "High" }),
-      hint: formatMessage({
-        id: "app.form.confidence.high.hint",
-        defaultMessage: "Very confident in outcome",
-      }),
-    },
-  ];
+  const CONFIDENCE_OPTIONS = useMemo(
+    () => [
+      {
+        value: Confidence.NONE,
+        label: formatMessage({ id: "app.form.confidence.none", defaultMessage: "None" }),
+        hint: formatMessage({
+          id: "app.form.confidence.none.hint",
+          defaultMessage: "No confidence in outcome",
+        }),
+      },
+      {
+        value: Confidence.LOW,
+        label: formatMessage({ id: "app.form.confidence.low", defaultMessage: "Low" }),
+        hint: formatMessage({
+          id: "app.form.confidence.low.hint",
+          defaultMessage: "Uncertain about accuracy",
+        }),
+      },
+      {
+        value: Confidence.MEDIUM,
+        label: formatMessage({ id: "app.form.confidence.medium", defaultMessage: "Medium" }),
+        hint: formatMessage({
+          id: "app.form.confidence.medium.hint",
+          defaultMessage: "Reasonably confident",
+        }),
+      },
+      {
+        value: Confidence.HIGH,
+        label: formatMessage({ id: "app.form.confidence.high", defaultMessage: "High" }),
+        hint: formatMessage({
+          id: "app.form.confidence.high.hint",
+          defaultMessage: "Very confident in outcome",
+        }),
+      },
+    ],
+    [formatMessage]
+  );
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
@@ -85,7 +88,7 @@ export function ConfidenceSelector({
         buttons[nextIndex]?.focus();
       }
     },
-    [value, onChange, disabled]
+    [value, onChange, disabled, CONFIDENCE_OPTIONS]
   );
 
   const selectedOption = CONFIDENCE_OPTIONS.find((o) => o.value === value);
