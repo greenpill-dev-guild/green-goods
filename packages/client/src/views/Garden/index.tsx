@@ -120,10 +120,6 @@ const Work: React.FC = () => {
     },
   });
 
-  if (!form) {
-    return null;
-  }
-
   const {
     state,
     images,
