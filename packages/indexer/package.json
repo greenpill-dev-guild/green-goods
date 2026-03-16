@@ -27,7 +27,7 @@
     "test": "bun run mocha",
     "test:coverage": "c8 bun run mocha",
     "test:full": "bun run test:setup && bun run mocha",
-    "lint": "oxlint src test",
+    "lint": "bun --bun run oxlint src test",
     "reset": "./scripts/reset.sh"
   },
   "devDependencies": {

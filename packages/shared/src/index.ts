@@ -810,6 +810,7 @@ export {
   normalizeTimeSpentMinutes,
   normalizeToFile,
   OCTANT_MODULE_ABI,
+  OCTANT_VAULT_ABI,
   openEASExplorer,
   parseGardenDetailTab,
   parseGardenRange,

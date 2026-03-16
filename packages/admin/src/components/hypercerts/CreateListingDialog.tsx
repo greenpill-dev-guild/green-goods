@@ -4,6 +4,7 @@ import {
   DEFAULT_CHAIN_ID,
   LISTING_DEFAULTS,
   type ListingStep,
+  logger,
   useCreateListing,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -92,8 +93,8 @@ export function CreateListingDialog({
 
     try {
       await createListing(params);
-    } catch {
-      // Error handled by hook
+    } catch (error) {
+      logger.error("Failed to create listing", { error });
     }
   };
 

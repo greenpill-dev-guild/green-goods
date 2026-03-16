@@ -27,14 +27,22 @@ describe("components/Garden/CreateGardenSteps/ReviewStep", () => {
     store.addGardener(GARDENER);
   });
 
-  it("shows unique planned member counts and makes action domains explicit", () => {
+  it("shows garden details, team lists, and team assignment notice", () => {
     render(
       <IntlProvider locale="en" messages={enMessages}>
         <ReviewStep />
       </IntlProvider>
     );
 
-    expect(screen.getByText("2 unique members")).toBeInTheDocument();
-    expect(screen.getByText("Not configured during deployment")).toBeInTheDocument();
+    expect(screen.getByText("River Garden")).toBeInTheDocument();
+    expect(screen.getByText("Portland, Oregon")).toBeInTheDocument();
+    expect(screen.getByText("Protecting the river delta")).toBeInTheDocument();
+    expect(screen.getByText("Planned gardeners")).toBeInTheDocument();
+    expect(screen.getByText("Planned operators")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Planned members are not assigned during deployment. Add them from Garden Members after creation."
+      )
+    ).toBeInTheDocument();
   });
 });

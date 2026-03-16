@@ -11,7 +11,7 @@
     "coverage": "APP_ENV=test vitest run --coverage",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "lint": "oxlint src",
+    "lint": "bun --bun run oxlint src",
     "build": "APP_ENV=production tsc --noEmit && bun --bun vite build",
     "preview": "APP_ENV=production bun --bun vite preview",
     "formatjs": "formatjs extract"

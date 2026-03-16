@@ -9,7 +9,7 @@
     "start": "APP_ENV=development varlock run --path ../../.env.schema -- bun src/index.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint src"
+    "lint": "bun --bun run oxlint src"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",

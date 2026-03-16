@@ -75,7 +75,7 @@ export {
   setupWakeLockVisibilityHandler,
   withWakeLock,
 } from "./app/wake-lock";
-export { GARDEN_ACCOUNT_ROLE_ABI, OCTANT_MODULE_ABI } from "./blockchain/abis";
+export { GARDEN_ACCOUNT_ROLE_ABI, OCTANT_MODULE_ABI, OCTANT_VAULT_ABI } from "./blockchain/abis";
 // ============================================================================
 // ADDRESS
 // ============================================================================

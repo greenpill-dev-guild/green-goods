@@ -1,5 +1,6 @@
 import {
   type Address,
+  logger,
   PoolType,
   toastService,
   WEIGHT_SCHEME_VALUES,
@@ -194,7 +195,8 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                       title: formatMessage({ id: "app.community.poolsCreated" }),
                     });
                     onScheduleRefetch();
-                  } catch {
+                  } catch (error) {
+                    logger.error("Failed to create community pools", { error });
                     toastService.error({
                       title: formatMessage({ id: "app.community.poolsCreateFailed" }),
                     });

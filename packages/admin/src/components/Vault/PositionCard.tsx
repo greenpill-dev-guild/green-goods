@@ -67,12 +67,11 @@ export function PositionCard({
   const vaultAcceptingDeposits = depositHealth ? depositHealth.maxDeposit > 0n : true;
 
   // Diagnostic reads: distinguish legacy misconfiguration from shutdown/paused/full
-  const diagnosticContracts = [
-    { address: vault.vaultAddress as Address, abi: OCTANT_VAULT_ABI, functionName: "isShutdown" as const, args: [] as const },
-    { address: vault.vaultAddress as Address, abi: OCTANT_VAULT_ABI, functionName: "depositLimit" as const, args: [] as const },
-  ];
   const { data: diagnosticData, refetch: refetchDiagnostics } = useReadContracts({
-    contracts: diagnosticContracts as any,
+    contracts: [
+      { address: vault.vaultAddress as Address, abi: OCTANT_VAULT_ABI, functionName: "isShutdown", args: [] },
+      { address: vault.vaultAddress as Address, abi: OCTANT_VAULT_ABI, functionName: "depositLimit", args: [] },
+    ] as const,
     query: { enabled: !vaultAcceptingDeposits && isModuleOwner },
   });
   const isShutdown = diagnosticData?.[0]?.status === "success" ? (diagnosticData[0].result as boolean) : false;

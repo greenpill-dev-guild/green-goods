@@ -32,7 +32,7 @@
     "./testing": "./src/__tests__/test-utils/index.ts"
   },
   "scripts": {
-    "lint": "oxlint src",
+    "lint": "bun --bun run oxlint src",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "build": "echo 'Shared package uses source files directly - no build needed'",

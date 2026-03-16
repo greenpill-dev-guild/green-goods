@@ -8,7 +8,7 @@
     "dev": "APP_ENV=development varlock run --path ../../.env.schema -- bun --watch src/index.ts",
     "build": "tsc",
     "start": "APP_ENV=production varlock run --path ../../.env.schema -- bun dist/index.js",
-    "lint": "oxlint src",
+    "lint": "bun --bun run oxlint src",
     "test": "APP_ENV=test vitest run",
     "test:watch": "APP_ENV=test vitest",
     "test:coverage": "APP_ENV=test vitest run --coverage",
