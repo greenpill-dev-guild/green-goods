@@ -33,7 +33,6 @@ const sidebars: SidebarsConfig = {
       id: 'community/where-were-headed',
       label: "Where We're Headed",
     },
-
     // ── Gardener Guide (5 items) ──
     {
       type: 'category',
@@ -136,6 +135,11 @@ const sidebars: SidebarsConfig = {
       type: 'doc',
       id: 'builders/how-to-contribute',
       label: 'How To Contribute',
+    },
+    {
+      type: 'doc',
+      id: 'builders/ethereum-alignment',
+      label: 'Ethereum Alignment',
     },
 
     // ── Architecture (category with index + 4 sub-pages) ──

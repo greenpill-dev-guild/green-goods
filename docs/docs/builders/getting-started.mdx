@@ -41,8 +41,9 @@ Before cloning, make sure these tools are installed:
 | **Git** | any | Version control | [git-scm.com](https://git-scm.com) |
 | **Foundry** | any | Solidity compiler and testing (`forge`) | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
 | **Docker** | any | Runs the Envio indexer locally | [docker.com](https://www.docker.com/get-started/) |
+| **cloudflared** | any | HTTPS tunnel for mobile device testing | `brew install cloudflared` |
 
-Foundry and Docker are only required if you work on contracts or the indexer, respectively. The setup script warns but does not block if they are missing.
+Foundry, Docker, and cloudflared are only required for their respective workflows (contracts, indexer, mobile testing). The setup script warns but does not block if they are missing.
 
 ---
 
@@ -96,6 +97,7 @@ For CI workflows, this repo sets a single repository variable `OP_ENVIRONMENT`, 
 | `docs` | `docs` | 3003 |
 | `indexer` | `packages/indexer` (Docker) | 8081 |
 | `agent` | `packages/agent` | -- |
+| `tunnel` | cloudflared HTTPS tunnel | -- |
 | `storybook` | `packages/shared` | 6006 |
 
 Stop everything with `bun dev:stop`.
@@ -112,6 +114,29 @@ bun dev:indexer     # Envio indexer (Docker Compose)
 bun dev:contracts   # Anvil local chain
 bun dev:agent       # Agent bot
 ```
+
+### Mobile device testing
+
+Green Goods is a mobile-first PWA, so testing on a real phone is essential. When you run `bun dev`, a cloudflared tunnel starts automatically alongside the other services. It creates a temporary public HTTPS URL (e.g. `https://random-words.trycloudflare.com`) that points to your local client on port 3001.
+
+Once the tunnel is ready, the **landing page QR code** automatically switches to the tunnel URL. Open `https://localhost:3001` on your laptop and scan the QR code with your phone — you'll get the full PWA experience including service worker, install prompts, and passkey auth.
+
+```bash
+# Tunnel starts automatically with bun dev.
+# To run it standalone (e.g. for the admin dashboard):
+bun run dev:tunnel                    # default: port 3001
+bun run dev:tunnel -- --port 3002     # admin on port 3002
+```
+
+If cloudflared is not installed, the tunnel service exits silently and the QR code falls back to `window.location.origin`. Install it with `brew install cloudflared`.
+
+:::tip Alternative: ADB port forwarding
+If you prefer a wired connection, plug in your Android device with USB debugging enabled and run:
+```bash
+adb reverse tcp:3001 tcp:3001
+```
+Then navigate to `https://localhost:3001` on Android Chrome. Since `localhost` is a secure context, the service worker registers without a trusted CA certificate.
+:::
 
 ## First-run checklist
 
@@ -157,6 +182,8 @@ bun format
 | `VITE_CHAIN_ID is undefined` | Missing `.env` | Run `bun setup` or run `APP_ENV=development bunx varlock load --path .env.schema --format env --compact > .env` |
 | Port 3000/3001 in use | Another dev server running | Kill the process or change the port in the package's Vite config |
 | `bun install` hangs | Stale lockfile | Delete `node_modules` and `bun.lockb`, then `bun install` |
+| No QR code on landing page | cloudflared not installed | `brew install cloudflared`, then restart `bun dev` |
+| Tunnel URL not appearing | Client not ready yet | The tunnel waits up to 60s for port 3001 — check PM2 logs with `npx pm2 logs tunnel` |
 
 ## Non-negotiables
 
