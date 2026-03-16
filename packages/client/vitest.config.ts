@@ -5,9 +5,6 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
-  // optimizeDeps: {
-  //   include: ["multiformats"],
-  // },
   test: {
     environment: "jsdom",
     setupFiles: ["./src/__tests__/setupTests.ts"],
@@ -15,7 +12,6 @@ export default defineConfig({
     server: {
       deps: {
         inline: [
-          "multiformats",
           "@storacha/client",
           "@ethereum-attestation-service/eas-sdk",
           "uint8arrays",

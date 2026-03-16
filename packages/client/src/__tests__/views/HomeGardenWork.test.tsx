@@ -73,22 +73,6 @@ vi.mock("@/components/Navigation", () => ({
     ),
 }));
 
-vi.mock("../../views/Home/Garden/WorkApprovalFooter", () => ({
-  WorkApprovalFooter: () => null,
-}));
-
-vi.mock("../../views/Home/Garden/WorkMetadataError", () => ({
-  WorkMetadataError: () => null,
-}));
-
-vi.mock("../../views/Home/Garden/WorkRetryFooter", () => ({
-  WorkRetryFooter: () => null,
-}));
-
-vi.mock("../../views/Home/Garden/WorkSuccessFooter", () => ({
-  WorkSuccessFooter: () => null,
-}));
-
 vi.mock("../../views/Home/Garden/WorkViewSection", () => ({
   WorkViewSection: () => null,
 }));
