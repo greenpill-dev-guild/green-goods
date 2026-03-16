@@ -106,6 +106,7 @@ function App() {
       persistOptions={{
         persister,
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        buster: import.meta.env.VITE_APP_VERSION || "dev",
         dehydrateOptions: { shouldDehydrateQuery },
       }}
     >

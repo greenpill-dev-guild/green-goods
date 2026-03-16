@@ -34,6 +34,12 @@ export function AddressCopy({
   const [copied, setCopied] = useState(false);
   const statusId = useId();
 
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
   if (!address) return null;
 
   const displayValue = formatAddress(address, { variant, ensName });
@@ -54,12 +60,6 @@ export function AddressCopy({
       });
     }
   };
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 2000);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
 
   const sizeClasses = size === "compact" ? "px-3 py-2 min-h-[40px]" : "px-4 py-3 min-h-[48px]";
 

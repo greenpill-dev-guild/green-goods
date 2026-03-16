@@ -17,6 +17,20 @@ async function notifyClients(payload) {
   });
 }
 
+// Clear stale runtime caches on activation to prevent serving old JS/data after update
+self.addEventListener("activate", (event) => {
+  const STALE_CACHES = ["js-cache", "indexer-cache", "graphql-cache"];
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => STALE_CACHES.includes(key))
+          .map((key) => caches.delete(key))
+      )
+    )
+  );
+});
+
 self.addEventListener("message", (event) => {
   const type = event.data?.type;
 
