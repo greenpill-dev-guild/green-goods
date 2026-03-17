@@ -3,8 +3,9 @@ pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import { AaveV3ERC4626 } from "../../src/strategies/AaveV3ERC4626.sol";
+import { AaveV3ERC4626, IPoolDataProvider } from "../../src/strategies/AaveV3ERC4626.sol";
 
 contract ArbitrumAaveStrategyForkTest is Test {
     address internal constant AAVE_V3_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
@@ -130,5 +131,121 @@ contract ArbitrumAaveStrategyForkTest is Test {
         // Strategy should be near-empty
         uint256 afterFreeReport = strategy.report();
         assertLe(afterFreeReport, 1, "Strategy should be near-empty after full withdrawal");
+    }
+
+    /// @notice Verify maxDeposit() returns correct remaining capacity against real Aave V3 PoolDataProvider
+    /// @dev Queries the real DataProvider for supply cap and aToken total supply, replicates
+    ///      the unit-conversion logic (supplyCap is in full tokens, totalSupply is in wei),
+    ///      and asserts the strategy's maxDeposit matches the independently computed value.
+    function test_forkMaxDeposit_returnsCorrectRemainingCapacity() public {
+        if (!_tryFork()) return;
+
+        AaveV3ERC4626 strategy = _deployStrategy(WETH, AWETH, "Green Goods Aave WETH", "ggaWETH", address(this));
+        IPoolDataProvider dp = IPoolDataProvider(AAVE_V3_DATA_PROVIDER);
+
+        // --- 1. Verify reserve is active and not frozen/paused ---
+        (,,,,,,,, bool isActive, bool isFrozen) = dp.getReserveConfigurationData(WETH);
+        bool isPaused = dp.getPaused(WETH);
+        assertTrue(isActive, "WETH reserve should be active on Arbitrum");
+
+        // --- 2. Query supply cap and current utilization ---
+        (, uint256 supplyCap) = dp.getReserveCaps(WETH);
+        uint256 totalSupply = dp.getATokenTotalSupply(WETH);
+        uint256 decimals = IERC20Metadata(WETH).decimals();
+
+        // --- 3. Compute expected maxDeposit independently ---
+        uint256 expectedMaxDeposit;
+        if (!isActive || isFrozen || isPaused) {
+            expectedMaxDeposit = 0;
+        } else if (supplyCap == 0) {
+            // Supply cap of 0 means unlimited
+            expectedMaxDeposit = type(uint256).max;
+        } else {
+            uint256 supplyCapScaled = supplyCap * 10 ** decimals;
+            if (supplyCapScaled <= totalSupply) {
+                expectedMaxDeposit = 0;
+            } else {
+                expectedMaxDeposit = supplyCapScaled - totalSupply;
+            }
+        }
+
+        // --- 4. Assert strategy's maxDeposit matches ---
+        uint256 actualMaxDeposit = strategy.maxDeposit(address(this));
+        assertEq(actualMaxDeposit, expectedMaxDeposit, "maxDeposit should match independently computed remaining capacity");
+
+        // --- 5. Sanity: maxDeposit should be non-zero if reserve is healthy and has room ---
+        if (isActive && !isFrozen && !isPaused && supplyCap > 0) {
+            uint256 supplyCapScaled = supplyCap * 10 ** decimals;
+            if (supplyCapScaled > totalSupply) {
+                assertGt(actualMaxDeposit, 0, "maxDeposit should be positive when reserve has remaining capacity");
+            }
+        }
+
+        // --- 6. Log values for debugging (visible with -vv) ---
+        emit log_named_uint("supplyCap (full tokens)", supplyCap);
+        emit log_named_uint("supplyCap (scaled wei)", supplyCap == 0 ? 0 : supplyCap * 10 ** decimals);
+        emit log_named_uint("aTokenTotalSupply (wei)", totalSupply);
+        emit log_named_uint("maxDeposit (wei)", actualMaxDeposit);
+        emit log_named_uint("decimals", decimals);
+    }
+
+    /// @notice Verify maxDeposit returns type(uint256).max when supply cap is 0 (unlimited)
+    /// @dev Uses DAI which may have different cap configuration than WETH.
+    ///      If both WETH and DAI have non-zero caps on the fork, this test verifies
+    ///      the cap-present path for a second asset as additional coverage.
+    function test_forkMaxDeposit_secondAssetConsistency() public {
+        if (!_tryFork()) return;
+
+        AaveV3ERC4626 daiStrategy = _deployStrategy(DAI, ADAI, "Green Goods Aave DAI", "ggaDAI", address(this));
+        IPoolDataProvider dp = IPoolDataProvider(AAVE_V3_DATA_PROVIDER);
+
+        (, uint256 daiSupplyCap) = dp.getReserveCaps(DAI);
+        uint256 daiTotalSupply = dp.getATokenTotalSupply(DAI);
+        uint256 daiDecimals = IERC20Metadata(DAI).decimals();
+
+        uint256 actualMaxDeposit = daiStrategy.maxDeposit(address(this));
+
+        if (daiSupplyCap == 0) {
+            // Unlimited — maxDeposit should be type(uint256).max (unless reserve is frozen/paused)
+            (,,,,,,,, bool isActive, bool isFrozen) = dp.getReserveConfigurationData(DAI);
+            bool isPaused = dp.getPaused(DAI);
+            if (isActive && !isFrozen && !isPaused) {
+                assertEq(actualMaxDeposit, type(uint256).max, "maxDeposit should be unlimited when supplyCap is 0");
+            }
+        } else {
+            uint256 supplyCapScaled = daiSupplyCap * 10 ** daiDecimals;
+            if (supplyCapScaled > daiTotalSupply) {
+                uint256 expected = supplyCapScaled - daiTotalSupply;
+                assertEq(actualMaxDeposit, expected, "DAI maxDeposit should match computed remaining capacity");
+            } else {
+                assertEq(actualMaxDeposit, 0, "DAI maxDeposit should be 0 when cap is fully utilized");
+            }
+        }
+
+        emit log_named_uint("DAI supplyCap (full tokens)", daiSupplyCap);
+        emit log_named_uint("DAI aTokenTotalSupply (wei)", daiTotalSupply);
+        emit log_named_uint("DAI maxDeposit (wei)", actualMaxDeposit);
+        emit log_named_uint("DAI decimals", daiDecimals);
+    }
+
+    /// @notice Verify maxDeposit returns 0 when deposits are paused on the strategy
+    function test_forkMaxDeposit_returnsZeroWhenPaused() public {
+        if (!_tryFork()) return;
+
+        AaveV3ERC4626 strategy = _deployStrategy(WETH, AWETH, "Green Goods Aave WETH", "ggaWETH", address(this));
+
+        // Before pausing, maxDeposit should be non-zero (assuming WETH reserve is healthy)
+        uint256 beforePause = strategy.maxDeposit(address(this));
+
+        // Pause deposits on the strategy
+        strategy.setDepositsPaused(true);
+
+        uint256 afterPause = strategy.maxDeposit(address(this));
+        assertEq(afterPause, 0, "maxDeposit should be 0 when strategy deposits are paused");
+
+        // Unpause and verify it recovers
+        strategy.setDepositsPaused(false);
+        uint256 afterUnpause = strategy.maxDeposit(address(this));
+        assertEq(afterUnpause, beforePause, "maxDeposit should recover after unpausing");
     }
 }

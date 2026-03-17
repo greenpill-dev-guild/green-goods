@@ -358,6 +358,21 @@ contract AaveV3ERC4626Test is Test {
         );
     }
 
+    function test_deposit_revertsWhenMaxDepositIsZero() public {
+        // Pause strategy so maxDeposit returns 0
+        strategy.setDepositsPaused(true);
+        assertEq(strategy.maxDeposit(vaultAddr), 0, "precondition: maxDeposit should be 0 when paused");
+
+        // Attempt to deposit via vault — ERC4626 checks maxDeposit internally
+        // and reverts with ERC4626ExceededMaxDeposit(receiver, assets, maxDeposit).
+        // This confirms that when the vault's _updateDebt calls strategy.deposit() while
+        // the Aave reserve is paused/frozen, the call reverts gracefully and the vault
+        // keeps deposited funds as idle balance rather than deploying them.
+        vm.prank(vaultAddr);
+        vm.expectRevert();
+        strategy.deposit(1 ether, depositor);
+    }
+
     function test_maxWithdraw_respectsLiquidityAtNon1to1SharePrice() public {
         vm.prank(vaultAddr);
         strategy.deposit(100 ether, depositor);

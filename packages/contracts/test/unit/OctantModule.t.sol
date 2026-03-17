@@ -1177,6 +1177,83 @@ contract OctantModuleTest is Test {
     // Existing Tests
     // =========================================================================
 
+    // =========================================================================
+    // Adversarial: enableAutoAllocate preserves vault role bitmask
+    // =========================================================================
+
+    function test_enableAutoAllocate_preservesVaultRoleBitmask() public {
+        MockYieldResolver resolver = new MockYieldResolver();
+        module.setSupportedAsset(WETH, address(wethStrategy));
+
+        vm.prank(GARDEN_TOKEN);
+        module.onGardenMinted(address(garden), "Community Garden");
+
+        address vault = module.getVaultForAsset(address(garden), WETH);
+
+        // Before enableAutoAllocate: verify initial role bitmask is set
+        // (onGardenMinted calls _prepareVaultForAllocation → set_role)
+        uint256 roleBefore = MockOctantVault(vault).accountRoles(address(module));
+        assertEq(roleBefore, UPDATED_VAULT_ROLE_BITMASK, "initial role bitmask should be full VAULT_ROLE_BITMASK (491)");
+
+        // enableAutoAllocate calls _prepareVaultForAllocation again which does set_role
+        // Concern: set_role might overwrite custom roles or reduce the bitmask
+        module.setYieldResolver(address(resolver));
+        module.enableAutoAllocate(address(garden), WETH);
+
+        // After enableAutoAllocate: bitmask should still be the full VAULT_ROLE_BITMASK
+        uint256 roleAfter = MockOctantVault(vault).accountRoles(address(module));
+        assertEq(roleAfter, UPDATED_VAULT_ROLE_BITMASK, "bitmask should not be reduced after enableAutoAllocate");
+        assertEq(roleAfter, roleBefore, "bitmask should be identical before and after enableAutoAllocate");
+    }
+
+    // =========================================================================
+    // Adversarial: IOctantStrategy methods work on replacement strategy
+    // =========================================================================
+
+    function test_enableAutoAllocate_newStrategyRespondsToIOctantStrategyCalls() public {
+        MockYieldResolver resolver = new MockYieldResolver();
+        module.setSupportedAsset(WETH, address(wethStrategy));
+
+        vm.prank(GARDEN_TOKEN);
+        module.onGardenMinted(address(garden), "Community Garden");
+
+        address vault = module.getVaultForAsset(address(garden), WETH);
+        address oldStrategy = module.vaultStrategies(vault);
+        assertTrue(oldStrategy != address(0), "precondition: initial strategy should exist");
+
+        // Replace strategy via enableAutoAllocate
+        module.setYieldResolver(address(resolver));
+        module.enableAutoAllocate(address(garden), WETH);
+
+        address newStrategy = module.vaultStrategies(vault);
+        assertTrue(newStrategy != oldStrategy, "precondition: enableAutoAllocate should deploy a new strategy");
+
+        // Test 1: report() returns totalAssets
+        uint256 totalManaged = AaveV3ERC4626(newStrategy).report();
+        assertEq(totalManaged, AaveV3ERC4626(newStrategy).totalAssets(), "report() should return totalAssets");
+
+        // Test 2: shutdown() pauses deposits
+        assertFalse(AaveV3ERC4626(newStrategy).depositsPaused(), "precondition: deposits should not be paused");
+        // shutdown is onlyOwner — the module (owner) must call it
+        vm.prank(address(module));
+        AaveV3ERC4626(newStrategy).shutdown();
+        assertTrue(AaveV3ERC4626(newStrategy).depositsPaused(), "shutdown should pause deposits on new strategy");
+
+        // Test 3: setDonationAddress() updates the address
+        // setDonationAddress is onlyOwner — the module (owner) must call it
+        vm.prank(address(module));
+        AaveV3ERC4626(newStrategy).setDonationAddress(DONATION_2);
+        assertEq(
+            AaveV3ERC4626(newStrategy).donationAddress(),
+            DONATION_2,
+            "setDonationAddress should update donation address on new strategy"
+        );
+    }
+
+    // =========================================================================
+    // Existing Tests
+    // =========================================================================
+
     function test_emergencyPause_isGardenScopedAcrossSeparateStrategies() public {
         module.setSupportedAsset(WETH, address(wethStrategy));
 
