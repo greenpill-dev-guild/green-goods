@@ -1077,7 +1077,8 @@ abstract contract DeploymentBase is Test, DeployHelper {
             ensRegistry,
             ensResolver,
             baseNode,
-            owner
+            owner,
+            address(0) // nameWrapper: unwrapped on Sepolia
         );
 
         // Approve receiver as ENS operator (deployer must own the base ENS name on Sepolia)

@@ -35,6 +35,7 @@ abstract contract DeployHelper is Script {
         address ensRegistry;
         address ensResolver;
         address ccipRouter;
+        address nameWrapper;
         uint64 ccipChainSelector;
     }
 
@@ -129,6 +130,15 @@ abstract contract DeployHelper is Script {
             // solhint-disable-next-line no-empty-blocks
         } catch {
             // CCIP not configured for this network - defaults to address(0)
+        }
+
+        // ENS NameWrapper (for wrapped name subnode management)
+        // solhint-disable-next-line no-empty-blocks
+        try vm.parseJson(json, string.concat(basePath, ".contracts.nameWrapper")) returns (bytes memory data) {
+            config.nameWrapper = abi.decode(data, (address));
+            // solhint-disable-next-line no-empty-blocks
+        } catch {
+            // NameWrapper not configured - defaults to address(0) (unwrapped names)
         }
 
         // solhint-disable-next-line no-empty-blocks

@@ -72,7 +72,14 @@ contract EthereumENSReceiverForkTest is Test {
         user2 = makeAddr("user2");
 
         receiver = new GreenGoodsENSReceiver(
-            ccipRouter, ARB_CHAIN_SELECTOR, l2Sender, ENS_REGISTRY, ENS_PUBLIC_RESOLVER, BASE_NODE, owner
+            ccipRouter,
+            ARB_CHAIN_SELECTOR,
+            l2Sender,
+            ENS_REGISTRY,
+            ENS_PUBLIC_RESOLVER,
+            BASE_NODE,
+            owner,
+            address(0) // nameWrapper: unwrapped in fork tests (vm.store grants direct registry ownership)
         );
 
         // Grant the receiver permission to manage subnodes under BASE_NODE.

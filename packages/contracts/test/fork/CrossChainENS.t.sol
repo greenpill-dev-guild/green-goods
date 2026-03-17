@@ -167,7 +167,8 @@ contract CrossChainENSForkTest is Test {
             ENS_REGISTRY,
             ENS_PUBLIC_RESOLVER,
             BASE_NODE,
-            l1Owner
+            l1Owner,
+            address(0) // nameWrapper: unwrapped in fork tests
         );
 
         // Grant the receiver permission to manage subnodes under BASE_NODE

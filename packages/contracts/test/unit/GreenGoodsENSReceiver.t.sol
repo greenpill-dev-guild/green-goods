@@ -59,7 +59,14 @@ contract GreenGoodsENSReceiverTest is Test {
         ensResolver = new MockENSResolver();
 
         receiver = new GreenGoodsENSReceiver(
-            ccipRouter, ARB_CHAIN_SELECTOR, l2Sender, address(ensRegistry), address(ensResolver), BASE_NODE, owner
+            ccipRouter,
+            ARB_CHAIN_SELECTOR,
+            l2Sender,
+            address(ensRegistry),
+            address(ensResolver),
+            BASE_NODE,
+            owner,
+            address(0) // nameWrapper: unwrapped in unit tests
         );
     }
 
@@ -499,7 +506,8 @@ contract GreenGoodsENSReceiverTest is Test {
             address(new RevertingContract()), // Mock that reverts on any call
             address(ensResolver),
             BASE_NODE,
-            owner
+            owner,
+            address(0)
         );
 
         Client.Any2EVMMessage memory message = Client.Any2EVMMessage({
@@ -532,7 +540,8 @@ contract GreenGoodsENSReceiverTest is Test {
             address(new RevertingContract()),
             address(ensResolver),
             BASE_NODE,
-            owner
+            owner,
+            address(0)
         );
 
         // First register — ENS ops fail but registration stored (existing behavior)
@@ -576,7 +585,8 @@ contract GreenGoodsENSReceiverTest is Test {
             address(ensRegistry),
             address(new RevertingContract()), // resolver reverts
             BASE_NODE,
-            owner
+            owner,
+            address(0)
         );
 
         // Register (ENS registration will fail on setAddr, caught by try/catch)

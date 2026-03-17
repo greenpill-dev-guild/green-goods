@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import { CCIPReceiver } from "@chainlink/contracts-ccip/contracts/applications/CCIPReceiver.sol";
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { IENS, IENSResolver } from "../interfaces/IENS.sol";
+import { IENS, IENSResolver, INameWrapper } from "../interfaces/IENS.sol";
 
 error UnauthorizedSender();
 error UnauthorizedSourceChain();
@@ -22,6 +22,7 @@ contract GreenGoodsENSReceiver is CCIPReceiver, Ownable {
     address public immutable ENS_REGISTRY;
     address public immutable ENS_RESOLVER;
     bytes32 public immutable BASE_NODE; // namehash("greengoods.eth")
+    address public immutable NAME_WRAPPER; // address(0) for unwrapped names (Sepolia)
 
     uint64 public immutable ARBITRUM_CHAIN_SELECTOR;
     address public l2Sender; // GreenGoodsENS on Arbitrum
@@ -56,7 +57,8 @@ contract GreenGoodsENSReceiver is CCIPReceiver, Ownable {
         address _ensRegistry,
         address _ensResolver,
         bytes32 _baseNode,
-        address _owner
+        address _owner,
+        address _nameWrapper
     )
         CCIPReceiver(_ccipRouter)
     {
@@ -65,6 +67,7 @@ contract GreenGoodsENSReceiver is CCIPReceiver, Ownable {
         ENS_REGISTRY = _ensRegistry;
         ENS_RESOLVER = _ensResolver;
         BASE_NODE = _baseNode;
+        NAME_WRAPPER = _nameWrapper;
         _transferOwnership(_owner);
     }
 
@@ -171,17 +174,41 @@ contract GreenGoodsENSReceiver is CCIPReceiver, Ownable {
     function _clearENSRecords(string memory slug) internal {
         bytes32 label = keccak256(bytes(slug));
         bytes32 node = keccak256(abi.encodePacked(BASE_NODE, label));
+
         IENSResolver(ENS_RESOLVER).setAddr(node, address(0));
-        IENS(ENS_REGISTRY).setSubnodeOwner(BASE_NODE, label, address(this));
+
+        if (NAME_WRAPPER != address(0)) {
+            // Wrapped path: reclaim subnode via NameWrapper
+            INameWrapper(NAME_WRAPPER).setSubnodeOwner(BASE_NODE, slug, address(this), 0, type(uint64).max);
+        } else {
+            // Unwrapped path: raw registry
+            IENS(ENS_REGISTRY).setSubnodeOwner(BASE_NODE, label, address(this));
+        }
     }
 
     function _setENSRecords(string memory slug, address _owner) internal {
         bytes32 label = keccak256(bytes(slug));
         bytes32 node = keccak256(abi.encodePacked(BASE_NODE, label));
 
-        IENS(ENS_REGISTRY).setSubnodeOwner(BASE_NODE, label, address(this));
-        IENS(ENS_REGISTRY).setResolver(node, ENS_RESOLVER);
-        IENSResolver(ENS_RESOLVER).setAddr(node, _owner);
+        if (NAME_WRAPPER != address(0)) {
+            // Wrapped path: create subnode via NameWrapper, sets resolver in one call.
+            // Resolver's isAuthorised() checks nameWrapper.ownerOf(node) == msg.sender.
+            INameWrapper(NAME_WRAPPER).setSubnodeRecord(
+                BASE_NODE,
+                slug,
+                address(this), // receiver owns the wrapped subnode
+                ENS_RESOLVER,
+                0, // ttl
+                0, // fuses: CAN_DO_EVERYTHING (no restrictions)
+                type(uint64).max // expiry: clamped to parent's expiry by NameWrapper
+            );
+            IENSResolver(ENS_RESOLVER).setAddr(node, _owner);
+        } else {
+            // Unwrapped path: raw registry (Sepolia, localhost)
+            IENS(ENS_REGISTRY).setSubnodeOwner(BASE_NODE, label, address(this));
+            IENS(ENS_REGISTRY).setResolver(node, ENS_RESOLVER);
+            IENSResolver(ENS_RESOLVER).setAddr(node, _owner);
+        }
     }
 
     /// @dev Non-reverting slug validation for CCIP receive path.
@@ -209,6 +236,30 @@ contract GreenGoodsENSReceiver is CCIPReceiver, Ownable {
     ///      If updating rules here, update all three locations.
     function _validateSlug(string memory slug) internal pure {
         if (!_isValidSlug(slug)) revert InvalidSlug();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // ERC1155 Receiver (required for NameWrapper wrapped subnodes)
+    // ═══════════════════════════════════════════════════════
+
+    /// @dev NameWrapper mints ERC1155 tokens for wrapped subnodes. The receiver must
+    ///      implement IERC1155Receiver to accept them, otherwise setSubnodeRecord reverts.
+    function onERC1155Received(address, address, uint256, uint256, bytes calldata) external pure returns (bytes4) {
+        return this.onERC1155Received.selector;
+    }
+
+    function onERC1155BatchReceived(address, address, uint256[] calldata, uint256[] calldata, bytes calldata)
+        external
+        pure
+        returns (bytes4)
+    {
+        return this.onERC1155BatchReceived.selector;
+    }
+
+    /// @dev Override CCIPReceiver's supportsInterface to also report IERC1155Receiver support.
+    function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
+        // IERC1155Receiver interfaceId = 0x4e2312e0
+        return interfaceId == 0x4e2312e0 || super.supportsInterface(interfaceId);
     }
 
     // ═══════════════════════════════════════════════════════

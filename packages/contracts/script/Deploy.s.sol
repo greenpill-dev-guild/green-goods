@@ -16,7 +16,7 @@ import { IGardensModule } from "../src/interfaces/IGardensModule.sol";
 import { IHats } from "../src/interfaces/IHats.sol";
 import { IHatsModule } from "../src/interfaces/IHatsModule.sol";
 import { GreenGoodsENS } from "../src/registries/ENS.sol";
-import { IENS } from "../src/interfaces/IENS.sol";
+import { IENS, INameWrapper } from "../src/interfaces/IENS.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { IOctantFactory, IOctantVault } from "../src/interfaces/IOctantFactory.sol";
@@ -180,15 +180,29 @@ contract Deploy is Script, DeploymentBase {
         uint64 arbitrumChainSelector = 4_949_039_107_694_359_620;
 
         GreenGoodsENSReceiver receiver = new GreenGoodsENSReceiver(
-            config.ccipRouter, arbitrumChainSelector, l2Sender, config.ensRegistry, config.ensResolver, baseNode, owner
+            config.ccipRouter,
+            arbitrumChainSelector,
+            l2Sender,
+            config.ensRegistry,
+            config.ensResolver,
+            baseNode,
+            owner,
+            config.nameWrapper
         );
 
-        // Deployer owns greengoods.eth — approve receiver as ENS operator
-        IENS(config.ensRegistry).setApprovalForAll(address(receiver), true);
+        // Approve receiver to manage subnodes under greengoods.eth
+        if (config.nameWrapper != address(0)) {
+            // Wrapped name: approve on NameWrapper (deployer must be wrapped owner)
+            INameWrapper(config.nameWrapper).setApprovalForAll(address(receiver), true);
+            console.log("  NameWrapper approval: granted on", config.nameWrapper);
+        } else {
+            // Unwrapped name: approve on raw ENS registry
+            IENS(config.ensRegistry).setApprovalForAll(address(receiver), true);
+            console.log("  ENS Registry approval: granted");
+        }
 
         console.log("GreenGoodsENSReceiver deployed:", address(receiver));
         console.log("  ENS Registry:", config.ensRegistry);
-        console.log("  ENS operator approval: granted");
         console.log("  CCIP Router:", config.ccipRouter);
         console.log("  L2 Sender:", l2Sender);
         if (l2Sender == address(0)) {
