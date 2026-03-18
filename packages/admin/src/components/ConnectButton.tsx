@@ -1,6 +1,5 @@
-import { cn } from "@green-goods/shared";
+import { cn, useAuth } from "@green-goods/shared";
 import { RiLoader4Line, RiWallet3Line } from "@remixicon/react";
-import { useAppKit } from "@reown/appkit/react";
 import { useIntl } from "react-intl";
 import { useAccount } from "wagmi";
 
@@ -19,7 +18,7 @@ export function ConnectButton({
 }: ConnectButtonProps) {
   const { formatMessage } = useIntl();
   const { isConnecting } = useAccount();
-  const { open } = useAppKit();
+  const { loginWithWallet } = useAuth();
 
   const baseStyles =
     "inline-flex items-center justify-center font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
@@ -39,7 +38,8 @@ export function ConnectButton({
 
   return (
     <button
-      onClick={() => open()}
+      type="button"
+      onClick={() => loginWithWallet()}
       disabled={isConnecting}
       aria-busy={isConnecting}
       data-testid="connect-wallet-button"
