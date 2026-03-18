@@ -319,6 +319,6 @@ bun format && bun lint && bun run test && bun build
 
 - `architecture` — Architectural patterns considered during planning
 - `testing` — TDD strategy included in implementation plans
-- `mermaid-diagrams` — Visualizing plan architecture and dependencies
+- `ui` (mermaid sub-file) — Visualizing plan architecture and dependencies
 - `debug` — Investigate root cause before planning a fix
 - `migration` — Cross-package migration plans need blast radius analysis

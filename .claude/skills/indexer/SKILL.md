@@ -1,11 +1,11 @@
 ---
 name: indexer
-description: Envio blockchain indexer development. Use for event handlers, schema.graphql design, Docker workflow, and GraphQL patterns.
+description: Envio blockchain indexer development with Docker Compose stack. Use for event handlers, schema.graphql design, Docker workflow, and GraphQL patterns.
 version: "1.0.0"
 status: active
 packages: ["indexer"]
 dependencies: ["contracts"]
-last_updated: "2026-02-19"
+last_updated: "2026-03-18"
 last_verified: "2026-02-19"
 ---
 
@@ -273,6 +273,15 @@ kill -9 <PID>
 - **Password:** `testing`
 - **Health check:** http://localhost:8080/healthz
 
+## Reference Files
+
+- **[docker.md](./docker.md)** -- Docker Compose stack: PostgreSQL + Hasura + Envio, volume management, health checks, macOS workarounds
+- Schema: `schema.graphql`
+- Handlers: `src/EventHandlers.ts`
+- Config: `config.yaml`
+- Tests: `test/test.ts`
+- Full context: `.claude/context/indexer.md`
+
 ## Anti-Patterns
 
 - **Never omit chainId** — breaks multi-chain support
@@ -284,12 +293,4 @@ kill -9 <PID>
 
 - `contracts` — When contract events change, update schema.graphql and handlers
 - `testing` — For TDD workflow applied to indexer tests
-- `tanstack-query` — For querying indexed data from the frontend
-
-## Reference Files
-
-- Schema: `schema.graphql`
-- Handlers: `src/EventHandlers.ts`
-- Config: `config.yaml`
-- Tests: `test/test.ts`
-- Full context: `.claude/context/indexer.md`
+- `react` (tanstack-query sub-file) — For querying indexed data from the frontend

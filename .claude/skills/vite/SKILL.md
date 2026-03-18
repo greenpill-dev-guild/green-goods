@@ -394,7 +394,7 @@ What Vite work?
 
 ## Related Skills
 
-- `performance` — Bundle analysis and optimization that Vite enables
+- `react` (performance sub-file) — Bundle analysis and optimization that Vite enables
 - `react` — React project configuration and HMR patterns
-- `deployment` — Build artifact hosting and release workflows
+- `ops` (deployment sub-file) — Build artifact hosting and release workflows
 - `data-layer` — Data-layer and caching strategies that supersede the old offline/PWA approach

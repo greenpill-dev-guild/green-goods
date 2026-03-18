@@ -1,12 +1,12 @@
 ---
 name: debug
-description: Debugging & Troubleshooting - systematic root cause investigation with hypothesis testing and evidence collection. Use when the user reports a bug, encounters an error, sees unexpected behavior, or says 'debug this' or 'investigate this issue'.
+description: Debugging & Troubleshooting - systematic root cause investigation with hypothesis testing, evidence collection, and production monitoring. Use when the user reports a bug, encounters an error, sees unexpected behavior, needs production diagnostics, or says 'debug this'.
 argument-hint: "[error-description]"
 version: "1.0.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-02-19"
+last_updated: "2026-03-18"
 last_verified: "2026-02-19"
 ---
 
@@ -358,6 +358,12 @@ After debugging provide:
 ### Next Step
 - `DONE`, `NEEDS_INPUT`, or `ESCALATE`
 
+## Reference Files
+
+- **[monitoring.md](./monitoring.md)** -- Production monitoring: transaction tracking, job queue health, on-chain verification
+- **[posthog.md](./posthog.md)** -- PostHog setup, event tracking, error tracking integration, feature flags
+- **[health-diagnostics.md](./health-diagnostics.md)** -- Service worker health, storage quotas, indexer sync lag, Web Vitals, error boundaries
+
 ## Anti-Patterns
 
 - **Guessing without reproduction** — never change code before reproducing the issue
@@ -368,7 +374,7 @@ After debugging provide:
 
 ## Related Skills
 
-- `error-handling-patterns` — Error categorization and handling strategies
+- `react` (error-handling sub-file) — Error categorization and handling strategies
 - `testing` — Writing regression tests after fixing bugs
-- `monitoring` — Production diagnostics and error tracking
-- `performance` — Performance profiling for performance bugs
+- `debug` (monitoring sub-file) — Production diagnostics and error tracking
+- `react` (performance sub-file) — Performance profiling for performance bugs

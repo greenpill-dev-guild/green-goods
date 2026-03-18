@@ -1,12 +1,13 @@
 ---
 name: react
-description: React patterns - component architecture, state management (Zustand, TanStack Query), hook composition, and render performance. Use when building React components, managing state with Zustand, composing hooks, or diagnosing re-render performance issues.
-version: "1.0.0"
+description: React patterns - component architecture, state management (Zustand, TanStack Query), hook composition, error handling, state machines, render performance. Use for React components, hooks, data fetching, mutations, error boundaries, state machines, or performance optimization.
+version: "2.0.0"
 status: active
 packages: ["shared", "client", "admin"]
 dependencies: []
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
+keywords: ["data fetching", "query", "mutation", "cache", "error handling", "try/catch", "error boundary", "state machine", "workflow", "XState", "actor", "performance", "bundle size", "profiling", "memory leak"]
+last_updated: "2026-03-18"
+last_verified: "2026-03-18"
 ---
 
 # React Skill
@@ -350,7 +351,7 @@ Green Goods uses `babel-plugin-react-compiler` in both `client` and `admin` Vite
 
 ## Part 4: Performance Optimization
 
-> For detailed performance patterns and bundle budgets, see [performance.md](./performance.md)
+> For detailed performance patterns, bundle budgets, Web Vitals, memory management, and list virtualization, see [performance.md](./performance.md)
 
 **Critical rules:**
 - Eliminate request waterfalls -- use `Promise.all` for independent fetches
@@ -359,6 +360,8 @@ Green Goods uses `babel-plugin-react-compiler` in both `client` and `admin` Vite
 - Use granular Zustand selectors, never subscribe to entire store
 - Virtualize long lists (50+ items) with @tanstack/react-virtual
 - CSS animations only (`transform`, `opacity`)
+- Clean up blob URLs, event listeners, and AbortControllers on unmount
+- Monitor Web Vitals (LCP < 2.5s, CLS < 0.1, INP < 200ms)
 
 **Bundle Budgets:** Main < 150KB, per-route < 50KB, total JS < 400KB (gzipped)
 
@@ -372,6 +375,54 @@ Green Goods uses `babel-plugin-react-compiler` in both `client` and `admin` Vite
 
 **State management:** Zustand for UI state, TanStack Query for server state, granular selectors only, all hooks in `@green-goods/shared`, forms via React Hook Form + Zod.
 
+## Reference Files
+
+- **[compiler.md](./compiler.md)** -- React 19 compiler, automatic memoization, opt-out patterns
+- **[performance.md](./performance.md)** -- Bundle budgets, React Profiler, Web Vitals, memory management, list virtualization
+- **[tanstack-query.md](./tanstack-query.md)** -- TanStack Query v5: query keys, mutations, optimistic updates, cache invalidation, offline patterns
+- **[error-handling.md](./error-handling.md)** -- Error categorization, error boundaries, contract error parsing, retry patterns, toast service
+- **[xstate.md](./xstate.md)** -- XState v5 state machines: actor model, React integration, guards, actions, testing
+
+## Decision Tree
+
+```text
+What are you building?
+|
++---> Component with local UI state? ---------> useState / useReducer
+|                                                 See Part 1: State Management
+|
++---> Component with shared state? -----------> Zustand with granular selectors
+|                                                 See Part 1: Zustand Patterns
+|
++---> Data fetching / server state? ----------> TanStack Query
+|     |                                          See tanstack-query.md
+|     +---> Simple fetch? --------------------> useQuery + queryKeys
+|     +---> After mutation? ------------------> useMutation + queryInvalidation
+|     +---> Optimistic update? ---------------> useMutation with onMutate
+|     +---> Dependent data? ------------------> useQuery with enabled flag
+|     +---> Paginated list? ------------------> useInfiniteQuery
+|
++---> Multi-step workflow / complex flow? ----> XState state machine
+|                                                See xstate.md
+|
++---> Error handling? -----------------------> categorizeError + error boundaries
+|     |                                          See error-handling.md
+|     +---> Contract error? ------------------> parseContractError + USER_FRIENDLY_ERRORS
+|     +---> Mutation error? ------------------> createMutationErrorHandler
+|     +---> Network error? ------------------> Retry with backoff
+|     +---> Component crash? -----------------> ErrorBoundary wrapper
+|
++---> Performance issue? --------------------> Measure first, then optimize
+|     |                                          See performance.md
+|     +---> Bundle too large? ----------------> Code splitting + tree shaking
+|     +---> Slow renders? -------------------> React Profiler + granular selectors
+|     +---> Memory leak? --------------------> Blob URL / listener / timer cleanup
+|     +---> Long list? ----------------------> @tanstack/react-virtual
+|
++---> Memoization question? -----------------> Compiler handles most cases
+                                                See compiler.md
+```
+
 ## Anti-Patterns
 
 - Creating hooks in `client` or `admin` instead of `shared`
@@ -379,14 +430,15 @@ Green Goods uses `babel-plugin-react-compiler` in both `client` and `admin` Vite
 - Introducing query waterfalls when data can be prefetched in parallel
 - Using deep imports from `@green-goods/shared/*` instead of barrel imports
 - Memoizing trivial values without measured performance impact
+- Swallowing errors with empty `catch {}` blocks
+- Using XState for simple toggles (use `useState`)
+- Using v4 TanStack Query syntax (array keys, query callbacks)
 
 ## Related Skills
 
-- `tanstack-query` — Server state management that complements React's local state patterns
 - `data-layer` — Offline indicators and sync state that integrate with React components
 - `architecture` — Clean Architecture and composition patterns for React
 - `testing` — Vitest and React Testing Library patterns for component tests
-- `performance` — React Profiler, re-render optimization, and bundle analysis
-- `storybook` — Component documentation and visual testing
-- `ui-compliance` — WCAG accessibility, responsive design, and i18n for React components
-- `frontend-design` — Visual design direction and aesthetic choices for React UIs
+- `ui` (storybook sub-file) — Component documentation and visual testing
+- `ui` (compliance sub-file) — WCAG accessibility, responsive design, and i18n for React components
+- `ui` — Visual design direction and aesthetic choices for React UIs

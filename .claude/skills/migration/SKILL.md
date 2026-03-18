@@ -97,6 +97,6 @@ When using the migration agent, pass a concise handoff with:
 
 - `contracts` — ABI/storage/deployment implications
 - `indexer` — schema and handler migration steps
-- `deployment` — rollout and rollback safety
+- `ops` (deployment sub-file) — rollout and rollback safety
 - `testing` — regression and compatibility checks
 - `plan` — migration plan lifecycle and execution tracking

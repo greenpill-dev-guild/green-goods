@@ -368,5 +368,5 @@ What bot work?
 
 - `web3` — Contract interaction patterns used by bot
 - `testing` — Vitest patterns for handler tests
-- `deployment` — Railway deployment for production bot
+- `ops` (deployment sub-file) — Railway deployment for production bot
 - `contracts` — Smart contract ABIs and interfaces

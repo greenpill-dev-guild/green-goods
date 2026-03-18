@@ -418,7 +418,7 @@ async function ensureSufficientBalance(address: Address) {
 
 ## Related Skills
 
-- `error-handling-patterns` — Contract error categorization and user messages
+- `react` (error-handling sub-file) — Contract error categorization and user messages
 - `react` — State management for transaction UI
 - `contracts` — Solidity side of the contract interactions
 - `data-layer` — Job queue for offline transaction queueing

@@ -1,11 +1,11 @@
 ---
 name: contracts
-description: Solidity smart contract development with Foundry. Use for contract design, testing, gas optimization, UUPS upgrades, and deployment via deploy.ts.
+description: Solidity smart contract development with Foundry. Use for contract design, testing, gas optimization, UUPS upgrades, deployment via deploy.ts, and security auditing.
 version: "1.0.0"
 status: active
 packages: ["contracts"]
 dependencies: []
-last_updated: "2026-02-25"
+last_updated: "2026-03-18"
 last_verified: "2026-02-25"
 ---
 
@@ -404,6 +404,15 @@ function invariant_totalSupplyMatchesBalances() public view {
 - [ ] **Upgrade authorization**: `_authorizeUpgrade` protected by onlyOwner
 - [ ] **Frontrunning**: Deadline parameters on time-sensitive operations
 
+## Reference Files
+
+- **[security.md](./security.md)** -- Smart contract security: OWASP vulnerability checklist, access control audit, UUPS upgrade safety, static analysis (Slither, Aderyn), threat modeling, pre-deployment security review
+- Deploy CLI: `script/deploy.ts`
+- Core deployer: `script/deploy/core.ts`
+- Schemas: `config/schemas.json` (READ ONLY)
+- Deployments: `deployments/{chainId}-latest.json`
+- Full context: `.claude/context/contracts.md`
+
 ## Anti-Patterns
 
 - **Never hardcode schema UIDs** — load from `deployments/{chainId}-latest.json`
@@ -420,14 +429,7 @@ function invariant_totalSupplyMatchesBalances() public view {
 - `testing` — For TDD workflow applied to Solidity
 - `indexer` — When contract events change, indexer schema must update
 - `architecture` — For system-level contract design decisions
-- `security` — Provides the full audit toolkit (Slither, Aderyn, threat modeling). This skill's Security Checklist (Part 6) is a development-time quick check; `security` provides detection and review depth. Overlap on UUPS/reentrancy/access control — this skill shows correct implementation, `security` shows detection and audit
-- `deployment` — For deploy.ts workflow and pre-deployment gates
+- `security` — For the full security audit toolkit, see [security.md](./security.md). This skill's Security Checklist (Part 6) is a development-time quick check; the security sub-file provides detection depth, static analysis tooling, threat modeling, and pre-deployment review
+- `ops` (deployment sub-file) — For deploy.ts workflow and pre-deployment gates
 - `migration` — For cross-package changes when contract ABIs change
 
-## Reference Files
-
-- Deploy CLI: `script/deploy.ts`
-- Core deployer: `script/deploy/core.ts`
-- Schemas: `config/schemas.json` (READ ONLY)
-- Deployments: `deployments/{chainId}-latest.json`
-- Full context: `.claude/context/contracts.md`

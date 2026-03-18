@@ -345,6 +345,6 @@ Can't check all boxes? You skipped TDD. Start over.
 
 - `contracts` — Foundry test patterns (fuzz, invariant) for smart contracts
 - `react` — React Testing Library patterns and component testing
-- `tanstack-query` — Testing queries, mutations, and cache behavior
+- `react` (tanstack-query sub-file) — Testing queries, mutations, and cache behavior
 - `data-layer` — Testing offline scenarios, IndexedDB with fake-indexeddb, migrations and schema changes
-- `storybook` — Interaction testing in Storybook (visual regression + play functions)
+- `ui` (storybook sub-file) — Interaction testing in Storybook (visual regression + play functions)

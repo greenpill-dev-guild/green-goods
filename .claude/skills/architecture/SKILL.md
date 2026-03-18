@@ -305,5 +305,5 @@ class WorkSubmission {
 
 - `react` — Component composition and state management patterns
 - `testing` — TDD workflow that drives architectural decisions
-- `performance` — Bundle analysis and optimization that validate architecture
+- `react` (performance sub-file) — Bundle analysis and optimization that validate architecture
 - `migration` — Cross-package migration when architecture evolves

@@ -6,7 +6,7 @@ version: "1.0.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-02-19"
+last_updated: "2026-03-18"
 last_verified: "2026-02-19"
 ---
 
@@ -26,6 +26,7 @@ Canonical output contract: `.claude/standards/output-contracts.md`.
 | `/review` | Perform 6-pass code review |
 | `/review --mode verify_only --scope cross-package` | Cross-package verification pass |
 | `/review --mode apply_fixes` | Explicit review-and-fix pass |
+| `/review --iterate` | Review, fix, re-review loop until clean |
 | After implementation | Request review |
 | PR feedback received | Process and respond |
 
@@ -288,6 +289,40 @@ gh pr create --title "feat(scope): description" --body "..."
 
 ---
 
+## Part 5: Iterate Mode
+
+When `--iterate` is passed, the review runs in a continuous improvement loop:
+
+1. Run full 6-pass review (Parts 1-4)
+2. Present findings grouped by severity
+3. Apply all must-fix and should-fix changes
+4. Re-review ONLY the modified files (scoped 6-pass)
+5. Repeat until:
+   - No must-fix findings remain, OR
+   - 3 iterations completed (safety limit), OR
+   - User interrupts
+
+### Iterate Mode Output
+
+Each iteration produces a delta report:
+- **Iteration N**: files changed, findings resolved, new findings introduced
+- **Final**: cumulative summary with APPROVE or REQUEST_CHANGES
+
+### When to Use Iterate vs Apply-Fixes
+
+| Mode | Use When |
+|------|----------|
+| `--iterate` | You want hands-off fix-and-verify cycling |
+| `--mode apply_fixes` | You want a single fix pass with manual re-review |
+| Default (report only) | You want findings without any file changes |
+
+---
+
+## Reference Files
+
+- **[apply-fixes.md](./apply-fixes.md)** -- Apply fixes mode: review-then-fix workflow with safety rules
+- **[cross-package-verify.md](./cross-package-verify.md)** -- Cross-package verification: dependency-order checks across all packages
+
 ## Anti-Patterns
 
 - **Rubber-stamp approvals** — Every PR gets the full 6-pass treatment; never approve without reading every changed line
@@ -307,7 +342,7 @@ gh pr create --title "feat(scope): description" --body "..."
 
 - `architecture` — Architectural review in Pass 3
 - `testing` — Test coverage verification in Pass 5
-- `mermaid-diagrams` — Change impact diagrams in Pass 0
-- `ui-compliance` — Accessibility review (add as Pass 4.5 for UI changes)
-- `security` — Security review for contract-touching PRs
-- `git-workflow` — PR size guidelines and commit format validation
+- `ui` (mermaid sub-file) — Change impact diagrams in Pass 0
+- `ui` (compliance sub-file) — Accessibility review (add as Pass 4.5 for UI changes)
+- `contracts` (security sub-file) — Security review for contract-touching PRs
+- `ops` (git-workflow sub-file) — PR size guidelines and commit format validation

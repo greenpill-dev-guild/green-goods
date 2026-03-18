@@ -299,9 +299,9 @@ What data layer work?
 ## Related Skills
 
 - `web3` — Transaction patterns that the job queue wraps
-- `error-handling-patterns` — Categorizing sync failures
+- `react` (error-handling sub-file) — Categorizing sync failures
 - `react` — State management for offline indicators
-- `monitoring` — Storage quota monitoring and alerting
+- `debug` (monitoring sub-file) — Storage quota monitoring and alerting
 - `migration` — Cross-package migrations that may include IndexedDB schema changes
 - `testing` — Mock patterns for IndexedDB in Vitest
-- `performance` — Storage performance and memory management
+- `react` (performance sub-file) — Storage performance and memory management
