@@ -33,12 +33,32 @@ interface BreadcrumbSegment {
 }
 
 export function Breadcrumbs() {
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const { formatMessage } = useIntl();
   const { data: gardens } = useGardens();
   const { data: actions } = useActions(DEFAULT_CHAIN_ID);
+  const routeState = (location.state as { returnTo?: string; returnLabelId?: string } | null) ?? null;
 
   const segments = useMemo(() => {
+    if (routeState?.returnTo && /^\/gardens\/[^/]+\/vault$/.test(pathname)) {
+      const returnRoot = routeState.returnTo.split("/").filter(Boolean)[0];
+      const returnRouteLabel = returnRoot ? ROUTE_LABELS[returnRoot] : undefined;
+      const returnLabel = routeState.returnLabelId
+        ? formatMessage({
+            id: routeState.returnLabelId,
+            defaultMessage: returnRouteLabel?.defaultMessage ?? "Back",
+          })
+        : returnRouteLabel
+          ? formatMessage(returnRouteLabel)
+          : routeState.returnTo;
+
+      return [
+        { label: returnLabel, href: routeState.returnTo },
+        { label: formatMessage(SUB_ROUTE_LABELS.vault), href: pathname },
+      ];
+    }
+
     const parts = pathname.split("/").filter(Boolean);
     if (parts.length === 0) return [];
 
@@ -85,7 +105,7 @@ export function Breadcrumbs() {
     }
 
     return result;
-  }, [pathname, gardens, actions, formatMessage]);
+  }, [pathname, gardens, actions, formatMessage, routeState?.returnLabelId, routeState?.returnTo]);
 
   if (segments.length <= 1) return null;
 

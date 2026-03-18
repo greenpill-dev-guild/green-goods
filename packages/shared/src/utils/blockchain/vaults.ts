@@ -7,6 +7,8 @@ export { ZERO_ADDRESS };
 
 /** Octant vault MAX_BPS (10000 = 100%). Used as maxLoss for permissive withdraw/redeem queries. */
 export const VAULT_MAX_BPS = 10000n;
+/** Canonical uint256 max value returned by contracts to signal "unlimited". */
+export const MAX_UINT256 = (1n << 256n) - 1n;
 
 const ASSET_SYMBOLS_BY_CHAIN: Record<number, Record<string, string>> = {
   42161: {
@@ -101,6 +103,10 @@ export function validateDecimalInput(input: string, decimals: number): string | 
 export function getNetDeposited(totalDeposited: bigint, totalWithdrawn: bigint): bigint {
   if (totalDeposited <= totalWithdrawn) return 0n;
   return totalDeposited - totalWithdrawn;
+}
+
+export function isUnlimitedVaultLimit(value: bigint): boolean {
+  return value === MAX_UINT256;
 }
 
 export function formatTokenAmount(

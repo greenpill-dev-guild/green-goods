@@ -13,19 +13,26 @@ import {
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useReadContract } from "wagmi";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Alert } from "@/components/ui/Alert";
 import { DepositModal, PositionCard, VaultEventHistory, WithdrawModal } from "@/components/Vault";
 
+type VaultRouteState = {
+  returnTo?: string;
+  returnLabelId?: string;
+};
+
 export default function GardenVaultView() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { formatMessage } = useIntl();
   const [depositAsset, setDepositAsset] = useState<string | undefined>(undefined);
   const [withdrawAsset, setWithdrawAsset] = useState<string | undefined>(undefined);
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const routeState = (location.state as VaultRouteState | null) ?? null;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => item.id === id);
@@ -85,16 +92,47 @@ export default function GardenVaultView() {
     return formatMessage({ id: "app.treasury.tokenDenominationFallback" });
   }, [formatMessage, vaults]);
 
+  const contextualBackLink = useMemo(() => {
+    if (!routeState?.returnTo) return null;
+
+    if (routeState.returnLabelId) {
+      return {
+        to: routeState.returnTo,
+        label: formatMessage({
+          id: routeState.returnLabelId,
+          defaultMessage:
+            routeState.returnTo === "/endowments"
+              ? "Endowments"
+              : formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+        }),
+      };
+    }
+
+    if (routeState.returnTo === "/endowments") {
+      return {
+        to: routeState.returnTo,
+        label: formatMessage({ id: "app.admin.nav.treasury", defaultMessage: "Endowments" }),
+      };
+    }
+
+    return {
+      to: routeState.returnTo,
+      label: formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+    };
+  }, [formatMessage, routeState?.returnLabelId, routeState?.returnTo]);
+
   if (gardensLoading) {
     return (
       <div className="pb-6">
         <PageHeader
           title={formatMessage({ id: "app.treasury.title" })}
           description={formatMessage({ id: "app.treasury.loadingGarden" })}
-          backLink={{
-            to: "/gardens",
-            label: formatMessage({ id: "app.hypercerts.backToGardens" }),
-          }}
+          backLink={
+            contextualBackLink ?? {
+              to: "/gardens",
+              label: formatMessage({ id: "app.hypercerts.backToGardens" }),
+            }
+          }
         />
       </div>
     );
@@ -106,10 +144,12 @@ export default function GardenVaultView() {
         <PageHeader
           title={formatMessage({ id: "app.treasury.title" })}
           description={formatMessage({ id: "app.treasury.gardenNotFound" })}
-          backLink={{
-            to: "/gardens",
-            label: formatMessage({ id: "app.hypercerts.backToGardens" }),
-          }}
+          backLink={
+            contextualBackLink ?? {
+              to: "/gardens",
+              label: formatMessage({ id: "app.hypercerts.backToGardens" }),
+            }
+          }
         />
       </div>
     );
@@ -127,10 +167,12 @@ export default function GardenVaultView() {
           { id: "app.treasury.gardenTreasuryDescription" },
           { gardenName: garden.name }
         )}
-        backLink={{
-          to: `/gardens/${garden.id}`,
-          label: formatMessage({ id: "app.hypercerts.backToGarden" }),
-        }}
+        backLink={
+          contextualBackLink ?? {
+            to: `/gardens/${garden.id}`,
+            label: formatMessage({ id: "app.hypercerts.backToGarden" }),
+          }
+        }
         sticky
       />
 

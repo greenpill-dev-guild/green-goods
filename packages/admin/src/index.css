@@ -382,7 +382,8 @@
     opacity: 0;
     transition: opacity 0.15s ease;
   }
-  [data-tooltip]:hover::after {
+  [data-tooltip]:hover::after,
+  [data-tooltip]:focus-visible::after {
     opacity: 1;
   }
   /* Right-aligned variant to prevent overflow on right-edge elements */

@@ -24,6 +24,7 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
+import { getDepositLimitLabel } from "./depositLimit";
 
 const VAULT_DEPOSIT_ABI = [
   {
@@ -156,6 +157,17 @@ export function DepositModal({
             id: txErrorView.messageKey,
             defaultMessage: "Something went wrong. Please try again.",
           });
+  const depositLimitLabel =
+    healthCheck?.maxDeposit && healthCheck.maxDeposit > 0n
+      ? getDepositLimitLabel(healthCheck.maxDeposit, {
+          assetSymbol,
+          decimals,
+          unlimitedLabel: formatMessage({
+            id: "app.treasury.unlimited",
+            defaultMessage: "Unlimited",
+          }),
+        })
+      : null;
 
   const onSubmit = () => {
     if (!vaultAcceptingDeposits) return;
@@ -297,14 +309,14 @@ export function DepositModal({
                     </span>
                   </p>
                   {healthCheck.maxDeposit > 0n && (
-                    <p>
-                      {formatMessage({ id: "app.treasury.depositLimit" })}:{" "}
-                      <span className="font-medium text-text-strong">
-                        {formatTokenAmount(healthCheck.maxDeposit, decimals)} {assetSymbol}
-                      </span>
-                    </p>
-                  )}
-                </div>
+                  <p>
+                    {formatMessage({ id: "app.treasury.depositLimit" })}:{" "}
+                    <span className="font-medium text-text-strong">
+                        {depositLimitLabel}
+                    </span>
+                  </p>
+                )}
+              </div>
               )}
 
               {!vaultAcceptingDeposits && (

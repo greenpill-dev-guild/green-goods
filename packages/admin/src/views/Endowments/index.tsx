@@ -528,7 +528,10 @@ export default function EndowmentsOverview() {
                   </p>
                   {item.garden && (
                     <Button variant="secondary" size="sm" asChild>
-                      <Link to={`/gardens/${item.garden.id}/vault`}>
+                      <Link
+                        to={`/gardens/${item.garden.id}/vault`}
+                        state={{ returnTo: "/endowments", returnLabelId: "app.admin.nav.treasury" }}
+                      >
                         {formatMessage({ id: "app.treasury.manageVault" })}
                         <RiArrowRightLine className="h-4 w-4" />
                       </Link>

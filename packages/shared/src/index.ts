@@ -781,6 +781,7 @@ export {
   getRoleColorClasses,
   getRoleLabel,
   getMedian,
+  MAX_UINT256,
   getSeverityRank,
   getTag,
   getVaultAssetDecimals,
@@ -798,6 +799,7 @@ export {
   // Address utilities
   isAddressInList,
   isAlreadyGardenerError,
+  isUnlimitedVaultLimit,
   isZeroAddress,
   isCancelledTxError,
   isMeaningfulTxErrorMessage,

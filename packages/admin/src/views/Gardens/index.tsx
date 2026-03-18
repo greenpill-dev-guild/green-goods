@@ -9,7 +9,6 @@ import {
   useGardens,
 } from "@green-goods/shared";
 import {
-  RiAddLine,
   RiGroupLine,
   RiPlantLine,
   RiShieldCheckLine,
@@ -18,9 +17,9 @@ import {
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { CreateGardenAction } from "@/components/Garden/CreateGardenAction";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Alert } from "@/components/ui/Alert";
-import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SkeletonGrid } from "@/components/ui/Skeleton";
@@ -102,6 +101,9 @@ export default function Gardens() {
   const headerDescription = errorMessage
     ? intl.formatMessage({ id: "admin.gardens.indexerOffline" })
     : intl.formatMessage({ id: "admin.gardens.description" });
+  const createGardenTooltip = intl.formatMessage({
+    id: "admin.gardens.createGarden.noPermission",
+  });
 
   const resetFilters = () => setFilters({ scope: "all", sort: "default" });
 
@@ -114,28 +116,12 @@ export default function Gardens() {
         description={headerDescription}
         sticky
         actions={
-          deployLoading ? (
-            <Button size="sm" disabled loading>
-              <RiAddLine className="mr-1.5 h-4 w-4" />
-              {intl.formatMessage({ id: "admin.gardens.createGarden" })}
-            </Button>
-          ) : canDeploy ? (
-            <Button size="sm" asChild>
-              <Link to="/gardens/create">
-                <RiAddLine className="mr-1.5 h-4 w-4" />
-                {intl.formatMessage({ id: "admin.gardens.createGarden" })}
-              </Link>
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              disabled
-              title={intl.formatMessage({ id: "admin.gardens.createGarden.noPermission" })}
-            >
-              <RiAddLine className="mr-1.5 h-4 w-4" />
-              {intl.formatMessage({ id: "admin.gardens.createGarden" })}
-            </Button>
-          )
+          <CreateGardenAction
+            canDeploy={canDeploy}
+            isLoading={deployLoading}
+            createLabel={intl.formatMessage({ id: "admin.gardens.createGarden" })}
+            tooltip={createGardenTooltip}
+          />
         }
         toolbar={
           showToolbar ? (
@@ -171,18 +157,6 @@ export default function Gardens() {
       />
 
       <div className="mt-6 space-y-6 px-4 sm:px-6">
-        {!isLoading && !errorMessage && !canDeploy && !deployLoading && eoaAddress && (
-          <Alert
-            variant="info"
-            title={intl.formatMessage({ id: "admin.gardens.createGarden.noPermission.title" })}
-          >
-            <p>{intl.formatMessage({ id: "admin.gardens.createGarden.noPermission.message" })}</p>
-            <p className="mt-1">
-              {intl.formatMessage({ id: "admin.gardens.createGarden.noPermission.guidance" })}
-            </p>
-          </Alert>
-        )}
-
         {isLoading && (
           <div role="status" aria-live="polite">
             <span className="sr-only">
