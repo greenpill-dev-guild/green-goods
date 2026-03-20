@@ -53,6 +53,11 @@ const ALCHEMY_NETWORK_PATHS: Record<string, string> = {
   arbitrum: "arb-mainnet",
 };
 
+const RPC_ENV_ALIASES: Record<string, string[]> = {
+  ETHEREUM_RPC_URL: ["MAINNET_RPC_URL"],
+  MAINNET_RPC_URL: ["ETHEREUM_RPC_URL"],
+};
+
 /**
  * NetworkManager - Single source of truth for network configuration
  *
@@ -122,6 +127,17 @@ export class NetworkManager {
       const envVar = rpcUrl.slice(2, -1);
       rpcUrl = process.env[envVar] || "";
 
+      if (!rpcUrl) {
+        const aliases = RPC_ENV_ALIASES[envVar] ?? [];
+        for (const alias of aliases) {
+          const aliasValue = process.env[alias];
+          if (aliasValue) {
+            rpcUrl = aliasValue;
+            break;
+          }
+        }
+      }
+
       // Prefer Alchemy on supported networks when the configured RPC is a
       // default public endpoint (for example publicnode) or missing.
       if (derivedAlchemyRpc && this._shouldPreferAlchemyRpc(rpcUrl)) {
@@ -129,9 +145,11 @@ export class NetworkManager {
       }
 
       if (!rpcUrl) {
+        const aliases = RPC_ENV_ALIASES[envVar];
+        const aliasHint = aliases?.length ? ` or ${aliases.join("/")}` : "";
         throw new Error(
           `Environment variable ${envVar} not set for network ${networkName}. ` +
-            `Set ${envVar} or provide ALCHEMY_API_KEY/ALCHEMY_KEY/VITE_ALCHEMY_API_KEY for supported networks.`,
+            `Set ${envVar}${aliasHint} or provide ALCHEMY_API_KEY/ALCHEMY_KEY/VITE_ALCHEMY_API_KEY for supported networks.`,
         );
       }
     }

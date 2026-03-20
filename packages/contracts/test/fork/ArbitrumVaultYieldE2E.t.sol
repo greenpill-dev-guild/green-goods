@@ -57,9 +57,8 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         _deployFullStackOnFork();
 
         // ── Step 1: Configure Aave vault support and create garden ──
-        (address garden, address vault) = _createGardenWithAaveVault(
-            "E2E Vaults", "E2E WETH Strategy", "ggaE2E", "E2E Happy Path Garden"
-        );
+        (address garden, address vault) =
+            _createGardenWithAaveVault("E2E Vaults", "E2E WETH Strategy", "ggaE2E", "E2E Happy Path Garden");
 
         // ── Step 2: Verify Layer 1 — strategy attachment ──
         address strategy = octantModule.vaultStrategies(vault);
@@ -68,14 +67,12 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
 
         // ── Step 3: Verify Layer 2 — auto-allocate + maxDebt wiring ──
         assertTrue(IOctantVault(vault).autoAllocate(), "autoAllocate should be enabled (Layer 2 fix)");
-        (, , , uint256 maxDebt) = IOctantVault(vault).strategies(strategy);
+        (,,, uint256 maxDebt) = IOctantVault(vault).strategies(strategy);
         assertEq(maxDebt, type(uint256).max, "maxDebt should be unlimited (Layer 2 fix)");
 
         // ── Step 4: Verify Layer 3 — accountant = YieldResolver ──
         assertEq(
-            IOctantVault(vault).accountant(),
-            address(yieldSplitter),
-            "accountant should be YieldResolver (Layer 3 fix)"
+            IOctantVault(vault).accountant(), address(yieldSplitter), "accountant should be YieldResolver (Layer 3 fix)"
         );
 
         // ── Step 5: Verify Layer 4 — donation address set ──
@@ -92,7 +89,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
 
         // ── Step 7: Verify protocol fee = 0 (Decision 23) ──
         address factory = address(octantModule.octantFactory());
-        (uint16 protocolFee, ) = IMultistrategyVaultFactory(factory).protocolFeeConfig(vault);
+        (uint16 protocolFee,) = IMultistrategyVaultFactory(factory).protocolFeeConfig(vault);
         assertEq(protocolFee, 0, "protocol fee must be 0 for 100% fee share routing");
 
         // ── Step 8: User deposits WETH → auto-allocates to Aave ──
@@ -102,7 +99,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         // Verify funds reached Aave (aToken balance on strategy)
         uint256 aTokenBalance = IERC20(AWETH).balanceOf(strategy);
         assertGt(aTokenBalance, 0, "deposit should auto-allocate to Aave via strategy");
-        assertGe(aTokenBalance, depositAmount - 1, "aToken balance should approximate deposit amount");
+        assertApproxEqAbs(aTokenBalance, depositAmount, 2, "aToken balance should approximate deposit amount");
 
         // ── Step 9: Snapshot PPS before yield accrual ──
         uint256 userSharesBefore = IOctantVault(vault).balanceOf(address(this));
@@ -194,9 +191,8 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         _requireChainFork("arbitrum");
         _deployFullStackOnFork();
 
-        (address garden, address vault) = _createGardenWithAaveVault(
-            "Cycle Vaults", "Cycle WETH", "ggaCYC", "Second Harvest Garden"
-        );
+        (address garden, address vault) =
+            _createGardenWithAaveVault("Cycle Vaults", "Cycle WETH", "ggaCYC", "Second Harvest Garden");
         yieldSplitter.setMinYieldThreshold(0);
 
         // First cycle: deposit → warp → harvest → split
@@ -243,9 +239,8 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         _deployFullStackOnFork();
 
         // Setup: garden + vault + yield
-        (address garden, address vault) = _createGardenWithAaveVault(
-            "CV Vaults", "CV WETH", "ggaCV", "Conviction Fractions Garden"
-        );
+        (address garden, address vault) =
+            _createGardenWithAaveVault("CV Vaults", "CV WETH", "ggaCV", "Conviction Fractions Garden");
 
         _depositWethIntoVault(vault, 5 ether);
         yieldSplitter.setMinYieldThreshold(0);
@@ -281,8 +276,8 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         assertEq(purchaseCount, 2, "marketplace should receive 2 fraction purchases (one per active proposal)");
 
         // Verify conviction-weighted amounts
-        (uint256 id1, uint256 amount1, , ) = mockMarketplace.purchases(0);
-        (uint256 id2, uint256 amount2, , ) = mockMarketplace.purchases(1);
+        (uint256 id1, uint256 amount1,,) = mockMarketplace.purchases(0);
+        (uint256 id2, uint256 amount2,,) = mockMarketplace.purchases(1);
 
         assertEq(id1, 1, "first purchase should be for proposal 1");
         assertEq(id2, 2, "second purchase should be for proposal 2");
@@ -313,9 +308,8 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         _requireChainFork("arbitrum");
         _deployFullStackOnFork();
 
-        (address garden, address vault) = _createGardenWithAaveVault(
-            "Multi Vaults", "Multi WETH", "ggaMUL", "Multi Deposit Garden"
-        );
+        (address garden, address vault) =
+            _createGardenWithAaveVault("Multi Vaults", "Multi WETH", "ggaMUL", "Multi Deposit Garden");
         address strategy = octantModule.vaultStrategies(vault);
 
         // First deposit
@@ -398,11 +392,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         address resumedStrategy = octantModule.vaultStrategies(vaultA);
         assertEq(resumedStrategy, address(newStrategyA), "vaultStrategies should point to new strategy");
         assertTrue(IOctantVault(vaultA).autoAllocate(), "auto-allocate should be re-enabled after resume");
-        assertEq(
-            IOctantVault(vaultA).accountant(),
-            address(yieldSplitter),
-            "accountant should be re-set after resume"
-        );
+        assertEq(IOctantVault(vaultA).accountant(), address(yieldSplitter), "accountant should be re-set after resume");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -463,14 +453,12 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
 
         yieldSplitter.setMinYieldThreshold(0);
 
-        (address gardenA, address vaultA) = _createGardenWithAaveVault(
-            "Isolation Vaults", "Isolation WETH", "ggaISO", "Isolation Garden A"
-        );
+        (address gardenA, address vaultA) =
+            _createGardenWithAaveVault("Isolation Vaults", "Isolation WETH", "ggaISO", "Isolation Garden A");
         _depositWethIntoVault(vaultA, 3 ether);
 
-        (address gardenB, address vaultB) = _createGardenWithAaveVault(
-            "Isolation Vaults B", "Isolation WETH B", "ggaISB", "Isolation Garden B"
-        );
+        (address gardenB, address vaultB) =
+            _createGardenWithAaveVault("Isolation Vaults B", "Isolation WETH B", "ggaISB", "Isolation Garden B");
         _depositWethIntoVault(vaultB, 1 ether);
 
         // Warp and harvest both
@@ -511,16 +499,11 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         _requireChainFork("arbitrum");
         _deployFullStackOnFork();
 
-        (address garden, address vault) = _createGardenWithAaveVault(
-            "Reg Vaults", "Reg WETH", "ggaREG", "Registration Garden"
-        );
+        (address garden, address vault) =
+            _createGardenWithAaveVault("Reg Vaults", "Reg WETH", "ggaREG", "Registration Garden");
 
         // YieldResolver should know about this vault
-        assertEq(
-            yieldSplitter.gardenVaults(garden, WETH),
-            vault,
-            "resolver should register garden vault during creation"
-        );
+        assertEq(yieldSplitter.gardenVaults(garden, WETH), vault, "resolver should register garden vault during creation");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -561,9 +544,8 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         assertGt(totalConviction, 0, "real pool should have non-zero total conviction");
 
         // ── Step 3: Set up vault + yield pipeline ──
-        (address garden, address vault) = _createGardenWithAaveVault(
-            "Real Gardens Vaults", "RG WETH", "ggaRG", "Real Gardens E2E Garden"
-        );
+        (address garden, address vault) =
+            _createGardenWithAaveVault("Real Gardens Vaults", "RG WETH", "ggaRG", "Real Gardens E2E Garden");
 
         _depositWethIntoVault(vault, 50 ether);
         yieldSplitter.setMinYieldThreshold(0);

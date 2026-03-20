@@ -5,6 +5,7 @@ import {
   toastService,
   useAuth,
   useEnsName,
+  usePrimaryAddress,
 } from "@green-goods/shared";
 import { RiAlertLine, RiKeyLine, RiLogoutBoxRLine, RiWalletLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -15,8 +16,8 @@ import { Avatar } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
 
 export const AccountInfo: React.FC = () => {
-  const { authMode, signOut, smartAccountAddress, credential, walletAddress } = useAuth();
-  const primaryAddress = smartAccountAddress || walletAddress;
+  const { authMode, signOut, credential, walletAddress, embeddedAddress } = useAuth();
+  const primaryAddress = usePrimaryAddress();
   const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
   const intl = useIntl();
@@ -86,7 +87,8 @@ export const AccountInfo: React.FC = () => {
             <div className="text-xs text-text-sub-600">
               {authMode === "passkey" && credential
                 ? "Active"
-                : authMode === "wallet" && walletAddress
+                : (authMode === "wallet" && walletAddress) ||
+                    (authMode === "embedded" && embeddedAddress)
                   ? "Connected"
                   : "Not configured"}
             </div>
@@ -94,7 +96,7 @@ export const AccountInfo: React.FC = () => {
         </div>
       </Card>
 
-      {(smartAccountAddress || walletAddress) && (
+      {primaryAddress && (
         <Card>
           <div className="flex items-center gap-3 w-full">
             <Avatar>

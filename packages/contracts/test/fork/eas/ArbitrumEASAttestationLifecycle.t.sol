@@ -109,7 +109,7 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
                 expirationTime: 0,
                 revocable: false,
                 refUID: bytes32(0),
-                data: abi.encode(work),
+                data: abi.encode(work.actionUID, work.title, work.feedback, work.metadata, work.media),
                 value: 0
             })
         });
@@ -172,7 +172,15 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
                 expirationTime: 0,
                 revocable: false,
                 refUID: workAttUID,
-                data: abi.encode(approval),
+                data: abi.encode(
+                    approval.actionUID,
+                    approval.workUID,
+                    approval.approved,
+                    approval.feedback,
+                    approval.confidence,
+                    approval.verificationMethod,
+                    approval.reviewNotesCID
+                ),
                 value: 0
             })
         });
@@ -231,7 +239,15 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
                 expirationTime: 0,
                 revocable: false,
                 refUID: bytes32(0),
-                data: abi.encode(assessment),
+                data: abi.encode(
+                    assessment.title,
+                    assessment.description,
+                    assessment.assessmentConfigCID,
+                    assessment.domain,
+                    assessment.startDate,
+                    assessment.endDate,
+                    assessment.location
+                ),
                 value: 0
             })
         });
@@ -297,7 +313,15 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
                 expirationTime: 0,
                 revocable: false,
                 refUID: bytes32(0),
-                data: abi.encode(assessment),
+                data: abi.encode(
+                    assessment.title,
+                    assessment.description,
+                    assessment.assessmentConfigCID,
+                    assessment.domain,
+                    assessment.startDate,
+                    assessment.endDate,
+                    assessment.location
+                ),
                 value: 0
             })
         });
@@ -340,7 +364,7 @@ contract ArbitrumEASAttestationLifecycleForkTest is ForkTestBase {
                 expirationTime: 0,
                 revocable: false,
                 refUID: bytes32(0),
-                data: abi.encode(work),
+                data: abi.encode(work.actionUID, work.title, work.feedback, work.metadata, work.media),
                 value: 0
             })
         });

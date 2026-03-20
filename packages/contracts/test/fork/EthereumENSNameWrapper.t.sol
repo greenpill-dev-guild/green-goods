@@ -130,8 +130,7 @@ contract EthereumENSNameWrapperForkTest is Test {
         _deployReceiverWithNameWrapper();
 
         string memory slug = "wrapped-garden";
-        Client.Any2EVMMessage memory message =
-            _buildCCIPMessage(0, slug, user1, GreenGoodsENSReceiver.NameType.Garden);
+        Client.Any2EVMMessage memory message = _buildCCIPMessage(0, slug, user1, GreenGoodsENSReceiver.NameType.Garden);
 
         _deliverCCIPMessage(message);
 
@@ -164,17 +163,13 @@ contract EthereumENSNameWrapperForkTest is Test {
         _deployReceiverWithNameWrapper();
 
         string memory slug = "alice-green";
-        Client.Any2EVMMessage memory message =
-            _buildCCIPMessage(0, slug, user2, GreenGoodsENSReceiver.NameType.Gardener);
+        Client.Any2EVMMessage memory message = _buildCCIPMessage(0, slug, user2, GreenGoodsENSReceiver.NameType.Gardener);
 
         _deliverCCIPMessage(message);
 
         // Verify internal state
         assertEq(receiver.resolve(slug), user2);
-        assertEq(
-            keccak256(bytes(receiver.ownerToSlug(user2))),
-            keccak256(bytes(slug))
-        );
+        assertEq(keccak256(bytes(receiver.ownerToSlug(user2))), keccak256(bytes(slug)));
 
         // Verify ENS resolution
         bytes32 label = keccak256(bytes(slug));
@@ -250,9 +245,7 @@ contract EthereumENSNameWrapperForkTest is Test {
 
         // Deploy WITHOUT approval (skip setApprovalForAll)
         GreenGoodsENSReceiver unapprovedReceiver = new GreenGoodsENSReceiver(
-            ccipRouter, ARB_CHAIN_SELECTOR, l2Sender,
-            ENS_REGISTRY, ENS_PUBLIC_RESOLVER, BASE_NODE,
-            owner, NAME_WRAPPER
+            ccipRouter, ARB_CHAIN_SELECTOR, l2Sender, ENS_REGISTRY, ENS_PUBLIC_RESOLVER, BASE_NODE, owner, NAME_WRAPPER
         );
 
         string memory slug = "no-approval";

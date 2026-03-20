@@ -16,6 +16,7 @@ import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { Deployment } from "../src/registries/Deployment.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
+import { GardensModule } from "../src/modules/Gardens.sol";
 import { YieldResolver } from "../src/resolvers/Yield.sol";
 
 /// @title Upgrade Script for Green Goods Contracts
@@ -284,6 +285,31 @@ contract Upgrade is Script {
         vm.stopBroadcast();
     }
 
+    /// @notice Upgrade GardensModule
+    function upgradeGardensModule() public {
+        address proxy = loadProxyAddress("gardensModule");
+        console.log("Upgrading GardensModule proxy at:", proxy);
+
+        validateProxy(proxy, "GardensModule");
+
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+        bytes32 currentImpl = vm.load(proxy, implementationSlot);
+        address currentImplAddr = address(uint160(uint256(currentImpl)));
+        console.log("Current GardensModule implementation:", currentImplAddr);
+
+        vm.startBroadcast();
+
+        GardensModule newImpl = new GardensModule();
+        console.log("New GardensModule implementation:", address(newImpl));
+
+        if (address(newImpl) == currentImplAddr) revert SameImplementation();
+
+        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        console.log("GardensModule upgraded successfully");
+
+        vm.stopBroadcast();
+    }
+
     /// @notice Upgrade YieldResolver
     function upgradeYieldResolver() public {
         address proxy = loadProxyAddress("yieldSplitter");
@@ -313,7 +339,8 @@ contract Upgrade is Script {
     // Gardener.sol (Kernel-based smart account) has been removed from the codebase
 
     /// @notice Backfill donation addresses for pre-existing gardens after OctantModule upgrade
-    /// @dev Reads garden list from deployment file ({chainId}-gardens.json) and calls backfillDonationAddresses.
+    /// @dev Reads garden list from deployment file ({chainId}-gardens.json) and reuses
+    ///      OctantModule.setDonationAddress(garden, yieldResolver) per garden.
     ///      File format: { "gardens": ["0x...", "0x..."] }
     function backfillDonationAddresses() public {
         address proxy = loadProxyAddress("octantModule");
@@ -324,11 +351,16 @@ contract Upgrade is Script {
 
         string memory json = vm.readFile(gardensPath);
         address[] memory gardens = abi.decode(vm.parseJson(json, ".gardens"), (address[]));
+        address resolver = OctantModule(proxy).yieldResolver();
+        require(resolver != address(0), "Yield resolver not configured");
 
         console.log("Found gardens to backfill:", gardens.length);
+        console.log("YieldResolver:", resolver);
 
         vm.startBroadcast();
-        OctantModule(proxy).backfillDonationAddresses(gardens);
+        for (uint256 i = 0; i < gardens.length; i++) {
+            OctantModule(proxy).setDonationAddress(gardens[i], resolver);
+        }
         console.log("Donation addresses backfilled successfully");
         vm.stopBroadcast();
     }
@@ -342,6 +374,7 @@ contract Upgrade is Script {
         upgradeAssessmentResolver();
         upgradeDeployment();
         upgradeYieldResolver();
+        upgradeGardensModule();
         upgradeOctantModule();
         // NOTE: upgradeGardenerAccount() removed - Gardener.sol has been removed
     }

@@ -62,7 +62,7 @@ The setup script (`scripts/setup.js`) runs through four steps:
 
 1. **Dependency check** -- verifies Node.js 22+, Bun 1.x, Git, Docker, and Foundry are available. Missing optional tools produce warnings, not errors.
 2. **Install packages** -- runs `bun install` across all workspaces if `node_modules` does not exist yet.
-3. **Environment file** -- generates `.env` from `.env.schema` defaults if no `.env` exists. Prefer configuring `OP_ENVIRONMENT` for 1Password injection and keep `.env` for non-secret defaults.
+3. **Environment file** -- generates `.env` from `.env.schema` defaults if no `.env` exists. For standard local 1Password CLI installs, prefer root-only `*_OP_REF=op://...` entries in `.env`. Reserve `OP_ENVIRONMENT` bulk loading for CI, service-account flows, or newer CLI builds that support it.
 4. **Next steps** -- prints the commands to start developing.
 
 ---
@@ -74,15 +74,18 @@ Green Goods uses a **single root `.env` bootstrap** plus committed `.env.schema`
 | Variable | Role |
 | --- | --- |
 | `APP_ENV` | Environment selector (`development`, `test`, `staging`, `production`) |
-| `OP_ENVIRONMENT` | 1Password environment name/id used by Varlock bulk secret injection |
-| `OP_SERVICE_ACCOUNT_TOKEN` | 1Password service account token (required in CI/deployed environments) |
+| `ETHERSCAN_API_KEY_OP_REF` | Example local 1Password secret reference in root `.env` (`op://vault/item/field`) for stable desktop-app auth |
+| `OP_ENVIRONMENT` | 1Password environment name/id used only for bulk injection in CI, service-account flows, or local beta-capable CLI installs |
+| `OP_SERVICE_ACCOUNT_TOKEN` | 1Password service account token (required in CI/deployed environments, optional locally if you want service-account auth) |
 | `VITE_CHAIN_ID` | Sets the target chain at build time (e.g. `11155111` for Sepolia, `42161` for Arbitrum) |
 | `VITE_STORACHA_KEY` | Ed25519 principal key for IPFS uploads via Storacha |
 | `SEPOLIA_RPC_URL` | RPC endpoint for Sepolia fork tests |
 
 Use `.env.schema` as the full environment contract. Variables prefixed with `VITE_` are embedded into frontend bundles at build time.
 
-For CI workflows, this repo sets a single repository variable `OP_ENVIRONMENT`, then uses `varlock run` to bulk-load variables from that 1Password environment.
+For normal local development, sign in to the standard `op` CLI with desktop app integration enabled, keep `OP_ENABLE_ENVIRONMENT_LOAD=false`, and add root `.env` entries like `ETHERSCAN_API_KEY_OP_REF=op://vault/item/field` for the secrets you need. `varlock run` resolves those references directly.
+
+For CI workflows or local service-account usage, set `OP_SERVICE_ACCOUNT_TOKEN`, set `OP_ENVIRONMENT`, and enable `OP_ENABLE_ENVIRONMENT_LOAD=true` when you want Varlock to bulk-load a 1Password Environment.
 
 ## Running services
 
@@ -143,7 +146,7 @@ Then navigate to `https://localhost:3001` on Android Chrome. Since `localhost` i
 <StepFlow
   steps={[
     {title: "Read project rules", detail: "Start with `AGENTS.md`, `CLAUDE.md`, and `.claude/context/*` for conventions."},
-    {title: "Configure env bootstrap", detail: "Set `APP_ENV` and `OP_ENVIRONMENT` in root `.env` (recommended). Use root `.env` only -- never add package-level env files."},
+    {title: "Configure env bootstrap", detail: "Set `APP_ENV` in root `.env`. For local 1Password on the stable CLI, add `*_OP_REF=op://...` entries there and keep `OP_ENABLE_ENVIRONMENT_LOAD=false`. Use root `.env` only -- never add package-level env files."},
     {title: "Start services", detail: "Run `bun dev` and verify client, admin, indexer, and docs start cleanly."},
     {title: "Run the quality gate", detail: "Run `bun run test`, `bun lint`, and `bun build` before pushing changes."},
   ]}

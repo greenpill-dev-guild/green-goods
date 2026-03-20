@@ -14,6 +14,7 @@ type ContractName =
   | "action-registry"
   | "garden-token"
   | "yield-resolver"
+  | "gardens-module"
   | "octant-module"
   | "work-resolver"
   | "work-approval-resolver"
@@ -25,6 +26,7 @@ const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "action-registry": "upgradeActionRegistry()",
   "garden-token": "upgradeGardenToken()",
   "yield-resolver": "upgradeYieldResolver()",
+  "gardens-module": "upgradeGardensModule()",
   "octant-module": "upgradeOctantModule()",
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
@@ -41,6 +43,7 @@ const ALL_CONTRACTS_FOR_UPGRADE_ALL: readonly ContractName[] = [
   "assessment-resolver",
   "deployment-registry",
   "yield-resolver",
+  "gardens-module",
   "octant-module",
 ];
 
@@ -48,6 +51,7 @@ const DEPLOYMENT_KEYS: Record<Exclude<ContractName, "all">, string> = {
   "action-registry": "actionRegistry",
   "garden-token": "gardenToken",
   "yield-resolver": "yieldSplitter",
+  "gardens-module": "gardensModule",
   "octant-module": "octantModule",
   "work-resolver": "workResolver",
   "work-approval-resolver": "workApprovalResolver",
@@ -195,6 +199,7 @@ Contracts:
   action-registry          Upgrade ActionRegistry
   garden-token            Upgrade GardenToken
   yield-resolver          Upgrade YieldResolver
+  gardens-module          Upgrade GardensModule (community + signal pool module)
   octant-module           Upgrade OctantModule (vault treasury module)
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver

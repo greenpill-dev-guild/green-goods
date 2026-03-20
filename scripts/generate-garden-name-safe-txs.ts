@@ -9,10 +9,10 @@
  * fell back to "Green Goods Community" for every garden.
  *
  * This script:
- * 1. Auto-discovers all gardens from deployment files
+ * 1. Auto-discovers all gardens from deployment files and on-chain mint history
  * 2. Fetches each garden's name and its community's current name from RPC
  * 3. Derives the correct community name as "{gardenName} Community"
- * 4. Generates setCommunityName() calls for all mismatched communities
+ * 4. Generates setCommunityParams() calls for all mismatched communities
  * 5. Outputs Safe Transaction Builder JSON for the council safe
  */
 
@@ -21,7 +21,7 @@ import "varlock/auto-load";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { createPublicClient, encodeFunctionData, getAddress, http } from "viem";
+import { createPublicClient, encodeFunctionData, getAddress, http, parseAbiItem } from "viem";
 
 // ---------------------------------------------------------------------------
 // ABIs (minimal)
@@ -57,19 +57,88 @@ const REGISTRY_COMMUNITY_ABI = [
   },
   {
     type: "function",
-    name: "setCommunityName",
-    stateMutability: "nonpayable",
-    inputs: [{ name: "_communityName", type: "string" }],
-    outputs: [],
-  },
-  {
-    type: "function",
     name: "councilSafe",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "address" }],
   },
+  {
+    type: "function",
+    name: "feeReceiver",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "communityFee",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "isKickEnabled",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "covenantIpfsHash",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
+    type: "function",
+    name: "getBasisStakedAmount",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "setCommunityParams",
+    stateMutability: "nonpayable",
+    inputs: [
+      {
+        name: "_params",
+        type: "tuple",
+        components: [
+          { name: "councilSafe", type: "address" },
+          { name: "feeReceiver", type: "address" },
+          { name: "communityFee", type: "uint256" },
+          { name: "communityName", type: "string" },
+          { name: "registerStakeAmount", type: "uint256" },
+          { name: "isKickEnabled", type: "bool" },
+          { name: "covenantIpfsHash", type: "string" },
+        ],
+      },
+    ],
+    outputs: [],
+  },
 ] as const;
+
+const TOKENBOUND_REGISTRY_ABI = [
+  {
+    type: "function",
+    name: "account",
+    stateMutability: "view",
+    inputs: [
+      { name: "implementation", type: "address" },
+      { name: "salt", type: "bytes32" },
+      { name: "chainId", type: "uint256" },
+      { name: "tokenContract", type: "address" },
+      { name: "tokenId", type: "uint256" },
+    ],
+    outputs: [{ name: "accountAddress", type: "address" }],
+  },
+] as const;
+
+const ERC721_TRANSFER_EVENT = parseAbiItem(
+  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
+);
 
 // ---------------------------------------------------------------------------
 // Chain config
@@ -97,6 +166,9 @@ const CHAIN_CONFIGS: Record<
 };
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
+const TOKENBOUND_SALT =
+  "0x6551655165516551655165516551655165516551655165516551655165516551";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -110,6 +182,21 @@ type GardenInfo = {
   currentCommunityName: string | null;
   expectedCommunityName: string | null;
   councilSafe: `0x${string}` | null;
+  feeReceiver: `0x${string}` | null;
+  communityFee: bigint | null;
+  registerStakeAmount: bigint | null;
+  isKickEnabled: boolean | null;
+  covenantIpfsHash: string | null;
+};
+
+type CommunityParamsInput = {
+  councilSafe: `0x${string}`;
+  feeReceiver: `0x${string}`;
+  communityFee: bigint;
+  communityName: string;
+  registerStakeAmount: bigint;
+  isKickEnabled: boolean;
+  covenantIpfsHash: string;
 };
 
 type PreparedTransaction = {
@@ -118,6 +205,7 @@ type PreparedTransaction = {
   gardenName: string;
   currentName: string | null;
   newName: string;
+  params: CommunityParamsInput;
   calldata: `0x${string}`;
 };
 
@@ -141,7 +229,7 @@ function usage(): never {
       "  --dry-run        Only print discovered gardens and exit",
       "",
       "Auto-discovers all gardens, fetches their names and community names from RPC,",
-      "and generates setCommunityName() transactions for any community whose name",
+      "and generates setCommunityParams() transactions for any community whose name",
       'doesn\'t match "{gardenName}{suffix}".',
     ].join("\n")
   );
@@ -186,11 +274,42 @@ async function loadDeployment(chainId: number) {
   const raw = await readFile(deploymentPath, "utf8");
   return JSON.parse(raw) as {
     gardensModule?: string;
+    gardenToken?: string;
+    gardenAccountImpl?: string;
     rootGarden?: { address: string; tokenId: number };
   };
 }
 
-async function loadGardenAddresses(
+function normalizeAddress(address: string): string {
+  return address.toLowerCase();
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function readContractWithRetry<T>(
+  client: ReturnType<typeof createPublicClient>,
+  parameters: Parameters<typeof client.readContract>[0],
+  attempts = 3
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return (await client.readContract(parameters)) as T;
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        await sleep(150 * attempt);
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+async function loadGardenAddressesFromFile(
   chainId: number
 ): Promise<Array<{ tokenId: number; address: string }>> {
   const gardensPath = path.resolve(
@@ -203,33 +322,115 @@ async function loadGardenAddresses(
     };
     return parsed.gardens;
   } catch {
-    // Fall back to rootGarden from deployment
-    const deployment = await loadDeployment(chainId);
-    if (deployment.rootGarden?.address) {
-      return [
-        {
-          tokenId: deployment.rootGarden.tokenId,
-          address: deployment.rootGarden.address,
-        },
-      ];
-    }
     return [];
   }
 }
 
-async function fetchGardenInfo(
+async function loadGardenAddressesFromChain(
+  chainId: number,
   rpcUrl: string,
+  deployment: Awaited<ReturnType<typeof loadDeployment>>
+): Promise<Array<{ tokenId: number; address: string }>> {
+  if (!deployment.gardenToken || !deployment.gardenAccountImpl) {
+    return [];
+  }
+
+  const client = createPublicClient({ transport: http(rpcUrl) });
+  const gardenToken = getAddress(deployment.gardenToken) as `0x${string}`;
+  const gardenAccountImpl = getAddress(deployment.gardenAccountImpl) as `0x${string}`;
+  const zeroAddress = getAddress(ZERO_ADDRESS) as `0x${string}`;
+
+  const logs = await client.getLogs({
+    address: gardenToken,
+    event: ERC721_TRANSFER_EVENT,
+    args: { from: zeroAddress },
+    fromBlock: 0n,
+    toBlock: "latest",
+  });
+
+  const entries = await Promise.all(
+    logs.map(async (log) => {
+      const tokenId = Number(log.args.tokenId ?? 0n);
+      if (!Number.isSafeInteger(tokenId) || tokenId <= 0) {
+        return null;
+      }
+
+      const address = await client.readContract({
+        address: getAddress(TOKENBOUND_REGISTRY) as `0x${string}`,
+        abi: TOKENBOUND_REGISTRY_ABI,
+        functionName: "account",
+        args: [
+          gardenAccountImpl,
+          TOKENBOUND_SALT,
+          BigInt(chainId),
+          gardenToken,
+          BigInt(tokenId),
+        ],
+      });
+
+      if (!address || normalizeAddress(address) === normalizeAddress(ZERO_ADDRESS)) {
+        return null;
+      }
+
+      return {
+        tokenId,
+        address,
+      };
+    })
+  );
+
+  return entries.filter(
+    (entry): entry is { tokenId: number; address: string } => entry !== null
+  );
+}
+
+async function loadGardenAddresses(
+  chainId: number,
+  rpcUrl: string
+): Promise<Array<{ tokenId: number; address: string }>> {
+  const deployment = await loadDeployment(chainId);
+  const fileEntries = await loadGardenAddressesFromFile(chainId);
+  const chainEntries = await loadGardenAddressesFromChain(
+    chainId,
+    rpcUrl,
+    deployment
+  );
+
+  const candidates: Array<{ tokenId: number; address: string }> = [];
+  if (deployment.rootGarden?.address) {
+    candidates.push({
+      tokenId: deployment.rootGarden.tokenId,
+      address: deployment.rootGarden.address,
+    });
+  }
+  candidates.push(...fileEntries, ...chainEntries);
+
+  const deduped = new Map<string, { tokenId: number; address: string }>();
+  for (const entry of candidates) {
+    if (!entry.address) continue;
+    const normalized = normalizeAddress(entry.address);
+    if (normalized === normalizeAddress(ZERO_ADDRESS)) continue;
+    deduped.set(normalized, {
+      tokenId: entry.tokenId,
+      address: getAddress(entry.address),
+    });
+  }
+
+  return Array.from(deduped.values()).sort((a, b) => a.tokenId - b.tokenId);
+}
+
+async function fetchGardenInfo(
+  client: ReturnType<typeof createPublicClient>,
   gardensModuleAddress: `0x${string}`,
   garden: { tokenId: number; address: string },
   suffix: string
 ): Promise<GardenInfo> {
-  const client = createPublicClient({ transport: http(rpcUrl) });
   const gardenAddress = getAddress(garden.address) as `0x${string}`;
 
   // Fetch garden name from GardenAccount
   let gardenName: string | null = null;
   try {
-    const result = await client.readContract({
+    const result = await readContractWithRetry<string>(client, {
       address: gardenAddress,
       abi: GARDEN_ACCOUNT_ABI,
       functionName: "name",
@@ -244,7 +445,7 @@ async function fetchGardenInfo(
   // Fetch community address from GardensModule
   let communityAddress: `0x${string}` | null = null;
   try {
-    const result = await client.readContract({
+    const result = await readContractWithRetry<`0x${string}`>(client, {
       address: gardensModuleAddress,
       abi: GARDENS_MODULE_ABI,
       functionName: "gardenCommunities",
@@ -266,20 +467,57 @@ async function fetchGardenInfo(
       currentCommunityName: null,
       expectedCommunityName: deriveCommunityName(gardenName, suffix),
       councilSafe: null,
+      feeReceiver: null,
+      communityFee: null,
+      registerStakeAmount: null,
+      isKickEnabled: null,
+      covenantIpfsHash: null,
     };
   }
 
-  // Fetch current community name and council safe in parallel
-  const [nameResult, safeResult] = await Promise.allSettled([
-    client.readContract({
+  const [
+    nameResult,
+    safeResult,
+    feeReceiverResult,
+    communityFeeResult,
+    registerStakeAmountResult,
+    isKickEnabledResult,
+    covenantIpfsHashResult,
+  ] = await Promise.allSettled([
+    readContractWithRetry<string>(client, {
       address: communityAddress,
       abi: REGISTRY_COMMUNITY_ABI,
       functionName: "communityName",
     }),
-    client.readContract({
+    readContractWithRetry<`0x${string}`>(client, {
       address: communityAddress,
       abi: REGISTRY_COMMUNITY_ABI,
       functionName: "councilSafe",
+    }),
+    readContractWithRetry<`0x${string}`>(client, {
+      address: communityAddress,
+      abi: REGISTRY_COMMUNITY_ABI,
+      functionName: "feeReceiver",
+    }),
+    readContractWithRetry<bigint>(client, {
+      address: communityAddress,
+      abi: REGISTRY_COMMUNITY_ABI,
+      functionName: "communityFee",
+    }),
+    readContractWithRetry<bigint>(client, {
+      address: communityAddress,
+      abi: REGISTRY_COMMUNITY_ABI,
+      functionName: "getBasisStakedAmount",
+    }),
+    readContractWithRetry<boolean>(client, {
+      address: communityAddress,
+      abi: REGISTRY_COMMUNITY_ABI,
+      functionName: "isKickEnabled",
+    }),
+    readContractWithRetry<string>(client, {
+      address: communityAddress,
+      abi: REGISTRY_COMMUNITY_ABI,
+      functionName: "covenantIpfsHash",
     }),
   ]);
 
@@ -297,6 +535,30 @@ async function fetchGardenInfo(
       safeResult.status === "fulfilled" && safeResult.value !== ZERO_ADDRESS
         ? (safeResult.value as `0x${string}`)
         : null,
+    feeReceiver:
+      feeReceiverResult.status === "fulfilled"
+        ? (feeReceiverResult.value as `0x${string}`)
+        : null,
+    communityFee:
+      communityFeeResult.status === "fulfilled" &&
+      typeof communityFeeResult.value === "bigint"
+        ? communityFeeResult.value
+        : null,
+    registerStakeAmount:
+      registerStakeAmountResult.status === "fulfilled" &&
+      typeof registerStakeAmountResult.value === "bigint"
+        ? registerStakeAmountResult.value
+        : null,
+    isKickEnabled:
+      isKickEnabledResult.status === "fulfilled" &&
+      typeof isKickEnabledResult.value === "boolean"
+        ? isKickEnabledResult.value
+        : null,
+    covenantIpfsHash:
+      covenantIpfsHashResult.status === "fulfilled" &&
+      typeof covenantIpfsHashResult.value === "string"
+        ? covenantIpfsHashResult.value
+        : null,
   };
 }
 
@@ -308,18 +570,58 @@ function buildSafeTransaction(tx: PreparedTransaction) {
   return {
     to: tx.communityAddress,
     value: "0",
-    data: null,
+    data: tx.calldata,
     contractMethod: {
       inputs: [
-        { internalType: "string", name: "_communityName", type: "string" },
+        {
+          internalType: "struct CommunityParams",
+          name: "_params",
+          type: "tuple",
+          components: [
+            { internalType: "address", name: "councilSafe", type: "address" },
+            { internalType: "address", name: "feeReceiver", type: "address" },
+            { internalType: "uint256", name: "communityFee", type: "uint256" },
+            { internalType: "string", name: "communityName", type: "string" },
+            {
+              internalType: "uint256",
+              name: "registerStakeAmount",
+              type: "uint256",
+            },
+            { internalType: "bool", name: "isKickEnabled", type: "bool" },
+            {
+              internalType: "string",
+              name: "covenantIpfsHash",
+              type: "string",
+            },
+          ],
+        },
       ],
-      name: "setCommunityName",
+      name: "setCommunityParams",
       payable: false,
     },
     contractInputsValues: {
-      _communityName: tx.newName,
+      _params: {
+        councilSafe: tx.params.councilSafe,
+        feeReceiver: tx.params.feeReceiver,
+        communityFee: tx.params.communityFee.toString(),
+        communityName: tx.params.communityName,
+        registerStakeAmount: tx.params.registerStakeAmount.toString(),
+        isKickEnabled: tx.params.isKickEnabled,
+        covenantIpfsHash: tx.params.covenantIpfsHash,
+      },
     },
   };
+}
+
+async function validatePreparedTransaction(
+  client: ReturnType<typeof createPublicClient>,
+  tx: PreparedTransaction
+): Promise<void> {
+  await client.call({
+    account: tx.params.councilSafe,
+    to: tx.communityAddress,
+    data: tx.calldata,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -346,6 +648,7 @@ async function main() {
   const network = CHAIN_CONFIGS[chainId];
   const rpcUrl = resolveRpcUrl(chainId, values["rpc-url"]);
   const suffix = values.suffix ?? " Community";
+  const client = createPublicClient({ transport: http(rpcUrl) });
 
   // 1. Load deployment and discover gardens
   const deployment = await loadDeployment(chainId);
@@ -357,7 +660,7 @@ async function main() {
     );
   }
 
-  const gardenEntries = await loadGardenAddresses(chainId);
+  const gardenEntries = await loadGardenAddresses(chainId, rpcUrl);
   if (gardenEntries.length === 0) {
     throw new Error(
       `No gardens found in deployment files for ${network.label} (${chainId}).`
@@ -372,7 +675,7 @@ async function main() {
   const gardens: GardenInfo[] = [];
   for (const entry of gardenEntries) {
     const info = await fetchGardenInfo(
-      rpcUrl,
+      client,
       getAddress(gardensModuleAddress) as `0x${string}`,
       entry,
       suffix
@@ -399,6 +702,7 @@ async function main() {
         `    Community:       ${info.communityAddress ?? "(none)"}\n` +
         `    Community Name:  ${communityNameDisplay}${mismatch ? " << MISMATCH" : ""}\n` +
         `    Expected Name:   ${expectedDisplay}\n` +
+        `    Community Fee:   ${info.communityFee?.toString() ?? "(unavailable)"}\n` +
         `    Council Safe:    ${info.councilSafe ?? "(unavailable)"}\n`
     );
   }
@@ -447,6 +751,22 @@ async function main() {
       continue;
     }
 
+    if (
+      !garden.councilSafe ||
+      !garden.feeReceiver ||
+      garden.communityFee === null ||
+      garden.registerStakeAmount === null ||
+      garden.isKickEnabled === null ||
+      garden.covenantIpfsHash === null
+    ) {
+      skipped.push({
+        gardenAddress: garden.gardenAddress,
+        reason:
+          "Missing current community params from chain — cannot build a safe setCommunityParams() call.",
+      });
+      continue;
+    }
+
     if (garden.currentCommunityName === garden.expectedCommunityName) {
       skipped.push({
         gardenAddress: garden.gardenAddress,
@@ -455,20 +775,43 @@ async function main() {
       continue;
     }
 
+    const params: CommunityParamsInput = {
+      councilSafe: garden.councilSafe,
+      feeReceiver: garden.feeReceiver,
+      communityFee: garden.communityFee,
+      communityName: garden.expectedCommunityName,
+      registerStakeAmount: garden.registerStakeAmount,
+      isKickEnabled: garden.isKickEnabled,
+      covenantIpfsHash: garden.covenantIpfsHash,
+    };
+
     const calldata = encodeFunctionData({
       abi: REGISTRY_COMMUNITY_ABI,
-      functionName: "setCommunityName",
-      args: [garden.expectedCommunityName],
+      functionName: "setCommunityParams",
+      args: [params],
     });
 
-    prepared.push({
+    const tx: PreparedTransaction = {
       gardenAddress: garden.gardenAddress,
       communityAddress: garden.communityAddress,
       gardenName: garden.gardenName,
       currentName: garden.currentCommunityName,
       newName: garden.expectedCommunityName,
+      params,
       calldata,
-    });
+    };
+
+    try {
+      await validatePreparedTransaction(client, tx);
+      prepared.push(tx);
+    } catch (error) {
+      skipped.push({
+        gardenAddress: garden.gardenAddress,
+        reason: `Live simulation failed for setCommunityParams(): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
+    }
   }
 
   if (prepared.length === 0) {

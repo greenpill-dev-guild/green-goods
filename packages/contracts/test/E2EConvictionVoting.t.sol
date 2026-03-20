@@ -627,7 +627,15 @@ contract E2EConvictionVotingTest is Test, ERC6551Helper {
             recipient: garden,
             attester: operator1,
             revocable: true,
-            data: abi.encode(approval)
+            data: abi.encode(
+                approval.actionUID,
+                approval.workUID,
+                approval.approved,
+                approval.feedback,
+                approval.confidence,
+                approval.verificationMethod,
+                approval.reviewNotesCID
+            )
         });
 
         vm.prank(operator1);

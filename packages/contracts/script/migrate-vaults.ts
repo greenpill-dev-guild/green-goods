@@ -56,6 +56,12 @@ interface VaultStatus {
   protocolFeeBps: bigint;
 }
 
+interface TemplateValidation {
+  asset: string;
+  template: string;
+  errors: string[];
+}
+
 function parseArgs(argv: string[]): MigrateOptions {
   let network: NetworkName = "arbitrum";
   let rpcUrl = "";
@@ -174,6 +180,26 @@ function castCall(rpcUrl: string, to: string, signature: string, args: string[] 
   }).trim();
 }
 
+function tryCastCall(rpcUrl: string, to: string, signature: string, args: string[] = []): string | null {
+  try {
+    return castCall(rpcUrl, to, signature, args);
+  } catch {
+    return null;
+  }
+}
+
+function hasContractCode(rpcUrl: string, address: string): boolean {
+  try {
+    const output = execFileSync("cast", ["code", address, "--rpc-url", rpcUrl], {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim();
+    return output !== "" && output !== "0x";
+  } catch {
+    return false;
+  }
+}
+
 function castLogs(rpcUrl: string, address: string, signature: string): RpcLog[] {
   try {
     const output = execFileSync(
@@ -264,6 +290,56 @@ function getActiveAssets(options: MigrateOptions, octantModule: string): string[
   return supportedAssets.filter((asset) => {
     const template = parseAddress(castCall(options.rpcUrl, octantModule, "supportedAssets(address)(address)", [asset]));
     return !isZeroAddress(template);
+  });
+}
+
+function validateTemplate(rpcUrl: string, asset: string, template: string): TemplateValidation {
+  const errors: string[] = [];
+
+  if (isZeroAddress(template)) {
+    errors.push("template is zero address");
+    return { asset, template, errors };
+  }
+
+  if (!hasContractCode(rpcUrl, template)) {
+    errors.push("template has no contract code");
+    return { asset, template, errors };
+  }
+
+  const templateAssetRaw = tryCastCall(rpcUrl, template, "asset()(address)");
+  if (!templateAssetRaw) {
+    errors.push("template does not implement asset()(address)");
+  } else {
+    const templateAsset = parseAddress(templateAssetRaw);
+    if (isZeroAddress(templateAsset)) {
+      errors.push("template asset() returned zero address");
+    } else if (normalizeAddress(templateAsset) !== normalizeAddress(asset)) {
+      errors.push(`template asset mismatch: expected ${asset}, got ${templateAsset}`);
+    }
+  }
+
+  const aTokenRaw = tryCastCall(rpcUrl, template, "aToken()(address)");
+  if (!aTokenRaw || isZeroAddress(parseAddress(aTokenRaw))) {
+    errors.push("template aToken() is missing or zero");
+  }
+
+  const aavePoolRaw = tryCastCall(rpcUrl, template, "aavePool()(address)");
+  if (!aavePoolRaw || isZeroAddress(parseAddress(aavePoolRaw))) {
+    errors.push("template aavePool() is missing or zero");
+  }
+
+  const dataProviderRaw = tryCastCall(rpcUrl, template, "dataProvider()(address)");
+  if (!dataProviderRaw || isZeroAddress(parseAddress(dataProviderRaw))) {
+    errors.push("template does not implement dataProvider()(address)");
+  }
+
+  return { asset, template, errors };
+}
+
+function validateActiveAssetTemplates(options: MigrateOptions, octantModule: string, assets: string[]): TemplateValidation[] {
+  return assets.map((asset) => {
+    const template = parseAddress(castCall(options.rpcUrl, octantModule, "supportedAssets(address)(address)", [asset]));
+    return validateTemplate(options.rpcUrl, asset, template);
   });
 }
 
@@ -368,6 +444,26 @@ async function main(): Promise<void> {
 
   const gardens = enumerateGardens(options, deployment);
   const assets = getActiveAssets(options, deployment.octantModule as string);
+  const templateChecks = validateActiveAssetTemplates(options, deployment.octantModule as string, assets);
+  const invalidTemplates = templateChecks.filter((check) => check.errors.length > 0);
+
+  if (invalidTemplates.length > 0) {
+    console.log(`\nInvalid Octant strategy templates detected:`);
+    for (const check of invalidTemplates) {
+      console.log(`- ${check.asset}`);
+      console.log(`  template: ${check.template}`);
+      for (const error of check.errors) {
+        console.log(`  issue: ${error}`);
+      }
+    }
+
+    console.log(`\nRefusing to run vault migration until supportedAssets point to ERC4626-compatible templates.`);
+    if (options.network === "arbitrum") {
+      console.log(`Repair first with: bun run contracts:repair:octant-assets:arbitrum`);
+      console.log(`Validate the repair first with: bun run contracts:repair:octant-assets:dry:arbitrum`);
+    }
+    process.exit(1);
+  }
 
   console.log(`  gardens: ${gardens.length}`);
   console.log(`  active assets: ${assets.length}\n`);

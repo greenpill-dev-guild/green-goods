@@ -69,19 +69,17 @@ None.
 - **Issue**: The non-ERC4626 `AaveV3` strategy is not imported by any production source file. It was replaced by `AaveV3ERC4626.sol` (which OctantModule uses). The old strategy is only referenced by `test/unit/AaveV3YDSStrategy.t.sol`.
 - **Recommendation**: Move `AaveV3.sol` to `src/mocks/` or `test/helpers/` since it only serves test purposes. Alternatively, delete it and update the test to use the ERC4626 variant.
 
-### M4. CookieJarModule storage gap off by one (NEW)
+### ~~M4~~ FALSE POSITIVE: CookieJarModule storage gap is already correct
 - **File**: `packages/contracts/src/modules/CookieJar.sol:56-59`
-- **Issue**: Comment says "11 storage entries + 38 gap" = 49 total. All other UUPS contracts in the codebase use 50 total slots. While not a bug (the contract upgrades correctly), it reduces the available upgrade headroom by 1 slot compared to the project convention.
-- **Recommendation**: Change `uint256[38]` to `uint256[39]` for consistency with the 50-slot convention used in all other contracts.
+- **Status**: RESOLVED — gap is already `uint256[39]` (11 entries + 39 gap = 50 total). Comment correctly reads "11 storage entries ... reserves 39 more here (50 total)." The original finding was based on stale code.
 
 ### ~~M5~~ RESOLVED: Validation scripts already removed
 - **File**: `packages/contracts/script/validate-eas-immutables.mjs`, `validate-resolver-eas.mjs`
 - **Status**: Files no longer exist. Confirmed via glob — removed since last audit cycle.
 
-### M6. GardenAccount uses `approve()` instead of `forceApprove()` (NEW)
-- **File**: `packages/contracts/src/accounts/Garden.sol:403`
-- **Issue**: `IERC20(goodsToken_).approve(community, stakeAmount)` uses bare `approve()`. If the GOODS token ever has non-standard approval behavior (like USDT's require-zero-first pattern), this would revert. All other production contracts in the codebase use `SafeERC20.forceApprove()`.
-- **Recommendation**: Change to `IERC20(goodsToken_).forceApprove(community, stakeAmount)` or import SafeERC20 and use `using SafeERC20 for IERC20`.
+### ~~M6~~ FALSE POSITIVE: GardenAccount already uses `forceApprove()`
+- **File**: `packages/contracts/src/accounts/Garden.sol:406`
+- **Status**: RESOLVED — code already reads `IERC20(goodsToken_).forceApprove(community, stakeAmount)`. The original finding was based on stale code.
 
 ---
 
@@ -151,6 +149,7 @@ Note: Vendor files (MultistrategyVault at 2621 lines, TokenizedStrategy at 1826 
 
 1. **Replace `require` with custom error in AaveV3ERC4626** -- fixes the only lint error and aligns with codebase pattern (Medium, M1)
 2. **Move or delete `AaveV3.sol`** -- dead production code, only used by one test file (Medium, M3)
-4. **Fix `approve()` to `forceApprove()`** in GardenAccount.sol -- defensive best practice (Medium, M6)
-5. **Fix CookieJarModule storage gap** -- change `[38]` to `[39]` for 50-slot convention (Medium, M4)
-6. **Address lint warnings** -- prioritize the 4 `immutable-vars-naming` warnings as they are quick fixes (Low)
+3. **Address lint warnings** -- prioritize the 4 `immutable-vars-naming` warnings as they are quick fixes (Low)
+
+~~4. **Fix `approve()` to `forceApprove()`** -- FALSE POSITIVE, already uses `forceApprove()` (see M6)~~
+~~5. **Fix CookieJarModule storage gap** -- FALSE POSITIVE, gap is already correct at 50 total (see M4)~~

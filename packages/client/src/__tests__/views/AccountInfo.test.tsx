@@ -9,16 +9,21 @@ import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 let mockAuthMode: "passkey" | "wallet" | "embedded" | null = "passkey";
+let mockSmartAccountAddress: string | null = "0x1234567890123456789012345678901234567890";
+let mockWalletAddress: string | null = null;
+let mockEmbeddedAddress: string | null = null;
 const mockSignOut = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
   useAuth: () => ({
     authMode: mockAuthMode,
     signOut: mockSignOut,
-    smartAccountAddress: "0x1234567890123456789012345678901234567890",
-    walletAddress: null,
+    smartAccountAddress: mockSmartAccountAddress,
+    walletAddress: mockWalletAddress,
+    embeddedAddress: mockEmbeddedAddress,
     credential: { id: "test-cred" },
   }),
+  usePrimaryAddress: () => mockSmartAccountAddress || mockWalletAddress || mockEmbeddedAddress,
   useEnsName: () => ({ data: null }),
   debugError: vi.fn(),
   hapticLight: vi.fn(),
@@ -61,6 +66,9 @@ describe("AccountInfo passkey warning", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthMode = "passkey";
+    mockSmartAccountAddress = "0x1234567890123456789012345678901234567890";
+    mockWalletAddress = null;
+    mockEmbeddedAddress = null;
   });
 
   afterEach(() => {
@@ -84,8 +92,21 @@ describe("AccountInfo passkey warning", () => {
 
   it("does not show passkey warning when authMode is null", () => {
     mockAuthMode = null;
+    mockSmartAccountAddress = null;
     renderAccountInfo();
 
+    expect(screen.queryByText("Passkey stored locally")).not.toBeInTheDocument();
+  });
+
+  it("shows connected wallet state for embedded auth", () => {
+    mockAuthMode = "embedded";
+    mockSmartAccountAddress = null;
+    mockEmbeddedAddress = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    renderAccountInfo();
+
+    expect(screen.getByText("Wallet")).toBeInTheDocument();
+    expect(screen.getByText("Connected")).toBeInTheDocument();
+    expect(screen.getByText("address-copy")).toBeInTheDocument();
     expect(screen.queryByText("Passkey stored locally")).not.toBeInTheDocument();
   });
 

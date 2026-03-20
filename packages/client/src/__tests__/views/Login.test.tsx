@@ -1,9 +1,9 @@
 /**
  * Login View Tests
  *
- * Tests progressive disclosure login UI:
- * - New users: email/social primary, passkey create secondary, wallet tertiary
- * - Existing users: passkey primary, email secondary, wallet tertiary
+ * Tests simplified login UI:
+ * - New users: wallet/AppKit primary, passkey create secondary
+ * - Existing users: passkey primary, wallet/AppKit secondary
  * - Passkey creation mode toggle
  * - Address continuity notice
  */
@@ -186,9 +186,9 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("splash-screen")).toBeInTheDocument();
   });
 
-  it("shows Continue with Email as primary action for new users", () => {
+  it("shows Connect Wallet as primary action for new users", () => {
     renderWithRouter();
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Continue with Email");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Connect Wallet");
   });
 
   it("shows Create Passkey Account as secondary action", () => {
@@ -196,25 +196,27 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Create Passkey Account");
   });
 
-  it("shows Connect Wallet as tertiary action", () => {
+  it("does not show a tertiary action by default", () => {
     renderWithRouter();
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Connect Wallet");
+    expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
   });
 
-  it("calls loginWithEmbedded when primary (email) button clicked", async () => {
+  it("calls loginWithWallet when primary button clicked", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
     await user.click(screen.getByTestId("primary-button"));
-    expect(mockLoginWithEmbedded).toHaveBeenCalled();
+    expect(mockLoginWithWallet).toHaveBeenCalled();
   });
 
-  it("calls loginWithWallet when tertiary (wallet) button clicked", async () => {
+  it("does not call loginWithEmbedded from the visible new-user actions", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
-    await user.click(screen.getByTestId("tertiary-button"));
-    expect(mockLoginWithWallet).toHaveBeenCalled();
+    await user.click(screen.getByTestId("primary-button"));
+    await user.click(screen.getByTestId("secondary-button"));
+
+    expect(mockLoginWithEmbedded).not.toHaveBeenCalled();
   });
 
   it("shows address continuity notice", () => {
@@ -247,8 +249,8 @@ describe("Login View - New User (progressive disclosure)", () => {
     // Click cancel to go back
     await user.click(screen.getByTestId("cancel-passkey-create"));
 
-    // Should return to email-primary mode
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Continue with Email");
+    // Should return to wallet-primary mode
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Connect Wallet");
     expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
   });
 });
@@ -271,14 +273,14 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Login with Passkey");
   });
 
-  it("shows Continue with Email as secondary for returning users", () => {
+  it("shows Connect Wallet as secondary for returning users", () => {
     renderWithRouter();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Continue with Email");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Connect Wallet");
   });
 
-  it("shows Connect Wallet as tertiary for returning users", () => {
+  it("does not show a tertiary action by default", () => {
     renderWithRouter();
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Connect Wallet");
+    expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
   });
 
   it("calls loginWithPasskey when primary button clicked", async () => {
@@ -289,12 +291,12 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     expect(mockLoginWithPasskey).toHaveBeenCalled();
   });
 
-  it("calls loginWithEmbedded when secondary (email) button clicked", async () => {
+  it("calls loginWithWallet when secondary button clicked", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
     await user.click(screen.getByTestId("secondary-button"));
-    expect(mockLoginWithEmbedded).toHaveBeenCalled();
+    expect(mockLoginWithWallet).toHaveBeenCalled();
   });
 
   it("shows address continuity notice", () => {

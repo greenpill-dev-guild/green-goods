@@ -104,7 +104,6 @@ export function Login() {
     loginWithPasskey,
     createAccount,
     loginWithWallet,
-    loginWithEmbedded,
     isAuthenticating,
     isAuthenticated,
     isReady,
@@ -126,7 +125,7 @@ export function Login() {
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [username, setUsername] = useState("");
-  // Progressive disclosure: toggle between email-primary and passkey-create modes (new users only)
+  // Progressive disclosure: toggle between wallet-primary and passkey-create modes (new users only)
   const [showPasskeyCreate, setShowPasskeyCreate] = useState(false);
 
   // Handle browser switch action (for wrong browser/in-app browser scenarios)
@@ -259,12 +258,6 @@ export function Login() {
     loginWithWallet?.();
   };
 
-  // Login with email/social (embedded wallet via AppKit modal)
-  const handleEmbeddedLogin = () => {
-    setLoginError(null);
-    loginWithEmbedded?.();
-  };
-
   // Render logic
   if (isNestedRoute) return <Outlet />;
   if (!isReady) return <LoadingSplash loadingState="welcome" />;
@@ -281,13 +274,13 @@ export function Login() {
         }
       : undefined;
 
-  // Wallet tertiary action (used when no browser guidance is needed)
-  const walletTertiaryAction = {
+  // Wallet action reused as the secondary path when passkey is primary
+  const walletAction = {
     label: intl.formatMessage({
       id: "app.login.button.connectWallet",
       defaultMessage: "Connect Wallet",
     }),
-    onClick: handleWalletLogin,
+    onSelect: handleWalletLogin,
   };
 
   // Address continuity notice shown across all login modes
@@ -300,18 +293,15 @@ export function Login() {
   //
   // Returning user (has stored passkey):
   //   Primary: Login with Passkey (muscle memory)
-  //   Secondary: Continue with Email
-  //   Tertiary: Connect Wallet
+  //   Secondary: Connect Wallet
   //
   // New user (no credential), default mode:
-  //   Primary: Continue with Email (lowest friction)
+  //   Primary: Connect Wallet (AppKit includes email/social)
   //   Secondary: Create Passkey Account (toggles to passkey create mode)
-  //   Tertiary: Connect Wallet
   //
   // New user, passkey create mode (showPasskeyCreate=true):
   //   Primary: Create Account (with username input)
-  //   Secondary: Continue with Email
-  //   Tertiary: Connect Wallet
+  //   Secondary: Connect Wallet
 
   const helmet = (
     <Helmet>
@@ -336,14 +326,8 @@ export function Login() {
             defaultMessage: "Login with Passkey",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
-          secondaryAction={{
-            label: intl.formatMessage({
-              id: "app.login.button.continueEmail",
-              defaultMessage: "Continue with Email",
-            }),
-            onSelect: handleEmbeddedLogin,
-          }}
-          tertiaryAction={browserGuidanceTertiaryAction ?? walletTertiaryAction}
+          secondaryAction={walletAction}
+          tertiaryAction={browserGuidanceTertiaryAction}
           notice={addressContinuityNotice}
         />
       </>
@@ -363,17 +347,8 @@ export function Login() {
             defaultMessage: "Create Account",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
-          secondaryAction={{
-            label: intl.formatMessage({
-              id: "app.login.button.continueEmail",
-              defaultMessage: "Continue with Email",
-            }),
-            onSelect: () => {
-              setShowPasskeyCreate(false);
-              handleEmbeddedLogin();
-            },
-          }}
-          tertiaryAction={browserGuidanceTertiaryAction ?? walletTertiaryAction}
+          secondaryAction={walletAction}
+          tertiaryAction={browserGuidanceTertiaryAction}
           usernameInput={{
             value: username,
             onChange: (e) => setUsername(e.target.value),
@@ -395,16 +370,16 @@ export function Login() {
     );
   }
 
-  // ─── New user, default mode: email/social primary ───────────────────────────
+  // ─── New user, default mode: wallet/AppKit primary ──────────────────────────
   return (
     <>
       {helmet}
       <Splash
-        login={handleEmbeddedLogin}
+        login={handleWalletLogin}
         isLoggingIn={isAuthenticating}
         buttonLabel={intl.formatMessage({
-          id: "app.login.button.continueEmail",
-          defaultMessage: "Continue with Email",
+          id: "app.login.button.connectWallet",
+          defaultMessage: "Connect Wallet",
         })}
         errorMessage={!isAuthenticating ? loginError : null}
         secondaryAction={{
@@ -414,7 +389,7 @@ export function Login() {
           }),
           onSelect: () => setShowPasskeyCreate(true),
         }}
-        tertiaryAction={browserGuidanceTertiaryAction ?? walletTertiaryAction}
+        tertiaryAction={browserGuidanceTertiaryAction}
         notice={addressContinuityNotice}
       />
     </>

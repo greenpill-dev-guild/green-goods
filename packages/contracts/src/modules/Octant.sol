@@ -52,7 +52,6 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
     event StrategyAccountantWiringFailed(
         address indexed garden, address indexed asset, address indexed vault, address strategy, address yieldResolver
     );
-    event StrategyRevokeFailed(address indexed garden, address indexed asset, address vault, address strategy);
     event AssetDeactivationScheduled(address indexed asset, uint256 executeAfter);
     event AssetDeactivationExecuted(address indexed asset);
     event AssetDeactivationCancelled(address indexed asset);
@@ -511,35 +510,11 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
         _activateStrategy(garden, asset, vault, newStrategy);
     }
 
-    /// @notice Recover shares that were minted to YieldResolver but failed automatic registration during harvest.
-    /// @dev Call after observing SharesRegistrationFailed events. Reads actual resolver balance to validate.
-    function recoverOrphanedShares(address garden, address vault, uint256 shares) external onlyOwner {
-        if (vault == address(0)) revert ZeroAddress();
-        address resolver = yieldResolver;
-        if (resolver == address(0)) revert ZeroAddress();
-
-        IYieldResolver(resolver).registerShares(garden, vault, shares);
-        emit SharesRegistered(garden, vault, shares);
-    }
-
     /// @notice Cancel a pending asset deactivation
     function cancelDeactivation(address asset) external onlyOwner {
         if (pendingDeactivations[asset] == 0) revert NoDeactivationPending(asset);
         delete pendingDeactivations[asset];
         emit AssetDeactivationCancelled(asset);
-    }
-
-    /// @notice Batch-set donation addresses for pre-existing gardens after upgrade
-    /// @dev Only sets for gardens with zero donation address (skips already-configured)
-    /// @param gardens Array of garden addresses to backfill
-    function backfillDonationAddresses(address[] calldata gardens) external onlyOwner {
-        address resolver = yieldResolver;
-        if (resolver == address(0)) revert ZeroAddress();
-        for (uint256 i = 0; i < gardens.length; i++) {
-            if (gardenDonationAddresses[gardens[i]] == address(0)) {
-                gardenDonationAddresses[gardens[i]] = resolver;
-            }
-        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

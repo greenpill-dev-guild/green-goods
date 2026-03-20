@@ -76,15 +76,15 @@ contract UpgradeENSReceiver is Script {
         );
         console.log("New ENSReceiver deployed:", address(newReceiver));
 
-        // 3. Approve new receiver as ENS operator
+        // 2. Approve new receiver as ENS operator
         IENS(ensRegistry).setApprovalForAll(address(newReceiver), true);
         console.log("ENS Registry approval: granted");
 
-        // 4. Update l1Receiver on the sender (same chain on Sepolia)
+        // 3. Update l1Receiver on the sender (same chain on Sepolia)
         GreenGoodsENS(payable(greenGoodsENS)).setL1Receiver(address(newReceiver));
         console.log("GreenGoodsENS.l1Receiver updated to:", address(newReceiver));
 
-        // 5. Re-register root garden slug on new receiver
+        // 4. Re-register root garden slug on new receiver
         if (rootGarden != address(0)) {
             // solhint-disable-next-line no-empty-blocks
             try newReceiver.adminRegister("community", rootGarden, GreenGoodsENSReceiver.NameType.Garden) {
@@ -251,6 +251,25 @@ contract UpgradeENSReceiver is Script {
 
         console.log("Migration complete. Migrated:", success);
         console.log("Skipped:", skipped);
+    }
+
+    /// @notice Migrate registrations from a JSON file with { slugs, owners, nameTypes } arrays.
+    /// @dev This keeps the CLI path deterministic and avoids shell-encoding dynamic arrays.
+    function migrateRegistrationsFromFile(address newReceiver, string calldata filePath) external {
+        string memory json = vm.readFile(filePath);
+        string[] memory slugs = abi.decode(vm.parseJson(json, ".slugs"), (string[]));
+        address[] memory owners = abi.decode(vm.parseJson(json, ".owners"), (address[]));
+        uint256[] memory rawNameTypes = abi.decode(vm.parseJson(json, ".nameTypes"), (uint256[]));
+
+        require(slugs.length == owners.length && slugs.length == rawNameTypes.length, "Array length mismatch");
+
+        uint8[] memory nameTypes = new uint8[](rawNameTypes.length);
+        for (uint256 i = 0; i < rawNameTypes.length; i++) {
+            require(rawNameTypes[i] <= type(uint8).max, "Invalid name type");
+            nameTypes[i] = uint8(rawNameTypes[i]);
+        }
+
+        this.migrateRegistrations(newReceiver, slugs, owners, nameTypes);
     }
 
     // ═══════════════════════════════════════════════════════

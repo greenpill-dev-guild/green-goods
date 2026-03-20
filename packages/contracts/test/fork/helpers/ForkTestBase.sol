@@ -58,7 +58,7 @@ contract ForkTestEligibilityToggle {
         return hatActive[hatId];
     }
 
-    function getWearerStatus(uint256 hatId, address wearer) external view returns (bool eligible, bool standing) {
+    function getWearerStatus(address wearer, uint256 hatId) external view returns (bool eligible, bool standing) {
         WearerStatus memory status = wearerStatus[hatId][wearer];
         if (!status.configured) return (false, false);
         return (status.eligible, status.standing);
@@ -130,7 +130,8 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
         string memory rpc = _resolveRpcUrl(chainName);
         if (bytes(rpc).length == 0) return false;
 
-        uint256 forkId = vm.createFork(rpc);
+        uint256 forkBlock = _resolveForkBlockNumber(chainName);
+        uint256 forkId = forkBlock == 0 ? vm.createFork(rpc) : vm.createFork(rpc, forkBlock);
         vm.selectFork(forkId);
         forkActive = true;
         return true;
@@ -162,6 +163,24 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
         } catch { }
 
         return "";
+    }
+
+    /// @notice Resolve an optional fixed fork block number for RPC-cached test runs.
+    /// @dev Tries {CHAIN}_FORK_BLOCK_NUMBER first, then {CHAIN}_BLOCK_NUMBER.
+    function _resolveForkBlockNumber(string memory chainName) internal view returns (uint256 forkBlock) {
+        string memory envPrefix = _toUpperSnakeCase(chainName);
+
+        string memory primaryVar = string.concat(envPrefix, "_FORK_BLOCK_NUMBER");
+        try vm.envUint(primaryVar) returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        string memory fallbackVar = string.concat(envPrefix, "_BLOCK_NUMBER");
+        try vm.envUint(fallbackVar) returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        return 0;
     }
 
     /// @notice Convert a chain name to uppercase snake case for env var lookup
@@ -415,7 +434,7 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
                 expirationTime: 0,
                 revocable: false,
                 refUID: bytes32(0),
-                data: abi.encode(work),
+                data: abi.encode(work.actionUID, work.title, work.feedback, work.metadata, work.media),
                 value: 0
             })
         });
@@ -458,7 +477,15 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
                 expirationTime: 0,
                 revocable: false,
                 refUID: workAttUID,
-                data: abi.encode(approval),
+                data: abi.encode(
+                    approval.actionUID,
+                    approval.workUID,
+                    approval.approved,
+                    approval.feedback,
+                    approval.confidence,
+                    approval.verificationMethod,
+                    approval.reviewNotesCID
+                ),
                 value: 0
             })
         });
@@ -499,7 +526,15 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
                 expirationTime: 0,
                 revocable: false,
                 refUID: bytes32(0),
-                data: abi.encode(assessment),
+                data: abi.encode(
+                    assessment.title,
+                    assessment.description,
+                    assessment.assessmentConfigCID,
+                    assessment.domain,
+                    assessment.startDate,
+                    assessment.endDate,
+                    assessment.location
+                ),
                 value: 0
             })
         });

@@ -3,7 +3,7 @@
     "mainnet": {
       "chainId": 1,
       "name": "Ethereum Mainnet",
-      "rpcUrl": "${MAINNET_RPC_URL}",
+      "rpcUrl": "${ETHEREUM_RPC_URL}",
       "nativeCurrency": {
         "name": "Ethereum",
         "symbol": "ETH",

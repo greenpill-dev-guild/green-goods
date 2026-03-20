@@ -110,7 +110,7 @@ contract SepoliaActionRegistryForkTest is ForkTestBase {
                 expirationTime: 0,
                 revocable: false,
                 refUID: bytes32(0),
-                data: abi.encode(work),
+                data: abi.encode(work.actionUID, work.title, work.feedback, work.metadata, work.media),
                 value: 0
             })
         });

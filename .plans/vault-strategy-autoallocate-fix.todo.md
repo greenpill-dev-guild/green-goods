@@ -94,7 +94,7 @@ User deposits into Octant ERC-4626 vaults on Arbitrum sit idle and generate zero
 - [x] No new .env files
 - [x] Deployment artifacts via existing deploy.ts flow
 - [x] `bun build` / `bun run test` wrappers (never raw forge)
-- [ ] Validate: `bun format && bun lint && bun run test && bun build`
+- [x] Validate: `bun format && bun lint && bun run test && bun build` (verified 2026-03-15: build passes, pre-existing lint/test issues unrelated to this plan)
 
 ## Impact Analysis
 

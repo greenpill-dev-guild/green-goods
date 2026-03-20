@@ -248,7 +248,13 @@ contract GreenGoodsENSReceiver is CCIPReceiver, Ownable {
         return this.onERC1155Received.selector;
     }
 
-    function onERC1155BatchReceived(address, address, uint256[] calldata, uint256[] calldata, bytes calldata)
+    function onERC1155BatchReceived(
+        address,
+        address,
+        uint256[] calldata,
+        uint256[] calldata,
+        bytes calldata
+    )
         external
         pure
         returns (bytes4)

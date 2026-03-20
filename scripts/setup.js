@@ -158,7 +158,8 @@ if (!fs.existsSync(".env")) {
 
       console.log(`${c.cyan}Recommended secret setup:${c.reset}
   • 1Password CLI: https://developer.1password.com/docs/cli/get-started/
-  • Set OP_ENVIRONMENT in .env to enable injected secrets
+  • Standard local setup: sign in to \`op\`, keep OP_ENABLE_ENVIRONMENT_LOAD=false, and add root-only \`*_OP_REF=op://...\` entries
+  • CI/service-account setup: set OP_ENVIRONMENT and OP_ENABLE_ENVIRONMENT_LOAD=true for bulk loading
   • Keep .env for non-secret defaults and local overrides
 
 See .env.schema for the full environment contract.\n`);
@@ -179,7 +180,7 @@ See .env.schema for the full environment contract.\n`);
 // Next steps
 console.log(`${c.green}✓ Setup complete!${c.reset}\n`);
 console.log(`${c.cyan}Next steps:${c.reset}
-  1. Set APP_ENV and OP_ENVIRONMENT in .env (recommended), or fill secrets manually
+  1. Set APP_ENV in .env, then either add \`*_OP_REF=op://...\` entries for local secrets or configure OP_ENVIRONMENT + OP_ENABLE_ENVIRONMENT_LOAD=true for service-account/bulk loading
   2. Start services: bun dev
   3. Run tests: bun run test
 
