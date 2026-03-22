@@ -10,6 +10,12 @@ export const VAULT_MAX_BPS = 10000n;
 /** Canonical uint256 max value returned by contracts to signal "unlimited". */
 export const MAX_UINT256 = (1n << 256n) - 1n;
 
+/** Aave V3 pool addresses by chain — where vault strategies deploy funds */
+export const AAVE_V3_POOL: Record<number, string> = {
+  42161: "0x794a61358D6845594F94dc1DB02A252b5b4814aD", // Arbitrum
+  11155111: "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951", // Sepolia
+};
+
 const ASSET_SYMBOLS_BY_CHAIN: Record<number, Record<string, string>> = {
   42161: {
     "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": "WETH",

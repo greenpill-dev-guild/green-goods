@@ -1,11 +1,15 @@
 import {
+  AAVE_V3_POOL,
   type Address,
   formatAddress,
   formatTokenAmount,
+  getBlockExplorerAddressUrl,
   getNetDeposited,
+  getNetworkContracts,
   getVaultAssetSymbol,
   type GardenVault,
   ImageWithFallback,
+  useCurrentChain,
   useDebouncedValue,
   useGardens,
   useGardenVaults,
@@ -17,6 +21,7 @@ import {
 } from "@green-goods/shared";
 import {
   RiArrowRightLine,
+  RiExternalLinkLine,
   RiLeafLine,
   RiMoneyDollarCircleLine,
   RiPieChart2Line,
@@ -56,6 +61,7 @@ function MyTrackedPositionCard({
   userAddress: Address;
 }) {
   const { formatMessage } = useIntl();
+  const chainId = useCurrentChain();
   const { preview, isLoading } = useVaultPreview({
     vaultAddress: position.vaultAddress,
     shares: position.shares,
@@ -93,10 +99,15 @@ function MyTrackedPositionCard({
             {position.gardenName}
           </p>
           <p className="truncate text-xs text-text-sub">{position.gardenLocation}</p>
-          <p className="mt-1 text-xs text-text-soft">
+          <a
+            href={getBlockExplorerAddressUrl(chainId, position.vaultAddress)}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 inline-block text-xs text-primary-base hover:underline"
+          >
             {formatMessage({ id: "app.endowments.myPositions.vault" })}:{" "}
             {formatAddress(position.vaultAddress, { variant: "card" })}
-          </p>
+          </a>
         </div>
         <span className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-1 text-xs font-semibold text-primary-dark">
           {position.assetSymbol}
@@ -169,6 +180,9 @@ export default function EndowmentsOverview() {
   });
 
   const { summary: yieldSummary, isLoading: yieldLoading } = useProtocolYieldSummary();
+  const endowmentsChainId = useCurrentChain();
+  const contracts = getNetworkContracts(endowmentsChainId);
+  const aavePool = AAVE_V3_POOL[endowmentsChainId];
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -409,6 +423,47 @@ export default function EndowmentsOverview() {
                 <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
                   {formatTokenAmount(yieldSummary.totalJuicebox)}
                 </p>
+              </div>
+            </div>
+
+            <div className="mt-4 border-t border-stroke-soft pt-3">
+              <p className="label-xs text-text-soft">
+                {formatMessage({ id: "app.explorer.verifyContracts" })}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-3 text-xs">
+                {contracts.octantModule && (
+                  <a
+                    href={getBlockExplorerAddressUrl(endowmentsChainId, contracts.octantModule)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary-base hover:underline"
+                  >
+                    {formatMessage({ id: "app.explorer.vaultRegistry" })}
+                    <RiExternalLinkLine className="h-3 w-3" />
+                  </a>
+                )}
+                {contracts.yieldSplitter && (
+                  <a
+                    href={getBlockExplorerAddressUrl(endowmentsChainId, contracts.yieldSplitter)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary-base hover:underline"
+                  >
+                    {formatMessage({ id: "app.explorer.yieldSplitter" })}
+                    <RiExternalLinkLine className="h-3 w-3" />
+                  </a>
+                )}
+                {aavePool && (
+                  <a
+                    href={getBlockExplorerAddressUrl(endowmentsChainId, aavePool)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary-base hover:underline"
+                  >
+                    {formatMessage({ id: "app.explorer.aavePool" })}
+                    <RiExternalLinkLine className="h-3 w-3" />
+                  </a>
+                )}
               </div>
             </div>
           </section>

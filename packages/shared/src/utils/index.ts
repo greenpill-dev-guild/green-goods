@@ -143,6 +143,7 @@ export type { SimulationResult } from "./blockchain/simulation";
 export { simulateJoinGarden, simulateTransaction } from "./blockchain/simulation";
 export {
   formatTokenAmount,
+  AAVE_V3_POOL,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
@@ -197,6 +198,8 @@ export {
 // ============================================================================
 export { encodeWorkApprovalData } from "./eas/encoders";
 export {
+  getBlockExplorerAddressUrl,
+  getBlockExplorerTokenUrl,
   getBlockExplorerTxUrl,
   getEASExplorerUrl,
   isValidAttestationId,

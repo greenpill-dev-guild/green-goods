@@ -62,3 +62,25 @@ export function openBlockExplorerTx(chainId: number, txHash: string): void {
   const url = getBlockExplorerTxUrl(chainId, txHash);
   window.open(url, "_blank", "noopener,noreferrer");
 }
+
+/**
+ * Generates a block explorer URL for viewing a contract or account address
+ * @param chainId - The chain ID where the address exists
+ * @param address - The address (contract or EOA)
+ * @returns The complete block explorer URL
+ */
+export function getBlockExplorerAddressUrl(chainId: number, address: string): string {
+  const baseUrl = getBlockExplorer(chainId);
+  return `${baseUrl}/address/${address}`;
+}
+
+/**
+ * Generates a block explorer URL for viewing a token contract
+ * @param chainId - The chain ID where the token exists
+ * @param tokenAddress - The token contract address
+ * @returns The complete block explorer token URL
+ */
+export function getBlockExplorerTokenUrl(chainId: number, tokenAddress: string): string {
+  const baseUrl = getBlockExplorer(chainId);
+  return `${baseUrl}/token/${tokenAddress}`;
+}

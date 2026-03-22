@@ -2135,5 +2135,12 @@
   "app.yield.cumulativeJuicebox": "Total to GOODS Backing",
   "app.yield.accruing": "(accruing)",
   "app.yield.gardenCumulativeTotal": "Total Yield Allocated",
-  "app.endowments.unharvestedYield": "Unharvested Yield"
+  "app.endowments.unharvestedYield": "Unharvested Yield",
+  "app.explorer.viewVault": "Vault",
+  "app.explorer.contractDetails": "Contract Details",
+  "app.explorer.vault": "Vault",
+  "app.explorer.vaultRegistry": "Vault Registry",
+  "app.explorer.yieldSplitter": "Yield Splitter",
+  "app.explorer.aavePool": "Aave V3 Pool",
+  "app.explorer.verifyContracts": "Verify on block explorer"
 }

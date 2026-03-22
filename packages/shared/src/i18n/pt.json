@@ -2135,5 +2135,12 @@
   "app.yield.cumulativeJuicebox": "Total para respaldo do GOODS",
   "app.yield.accruing": "(acumulando)",
   "app.yield.gardenCumulativeTotal": "Rendimento total alocado",
-  "app.endowments.unharvestedYield": "Rendimento não colhido"
+  "app.endowments.unharvestedYield": "Rendimento não colhido",
+  "app.explorer.viewVault": "Cofre",
+  "app.explorer.contractDetails": "Detalhes do contrato",
+  "app.explorer.vault": "Cofre",
+  "app.explorer.vaultRegistry": "Registro de cofres",
+  "app.explorer.yieldSplitter": "Divisor de rendimento",
+  "app.explorer.aavePool": "Pool Aave V3",
+  "app.explorer.verifyContracts": "Verificar no explorador de blocos"
 }

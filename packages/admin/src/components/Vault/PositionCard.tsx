@@ -1,11 +1,14 @@
 import {
   type Address,
+  formatAddress,
   formatTokenAmount,
+  getBlockExplorerAddressUrl,
   type GardenVault,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   OCTANT_VAULT_ABI,
+  useCurrentChain,
   useEnableAutoAllocate,
   useEmergencyPause,
   useHarvest,
@@ -41,6 +44,7 @@ export function PositionCard({
 }: PositionCardProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
+  const chainId = useCurrentChain();
   const harvest = useHarvest();
   const emergencyPause = useEmergencyPause();
   const enableAutoAllocate = useEnableAutoAllocate();
@@ -117,13 +121,24 @@ export function PositionCard({
 
   return (
     <Card padding="compact" className="sm:p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-text-strong sm:text-lg">{assetSymbol}</h3>
-        {!vaultAcceptingDeposits && (
-          <span className="rounded-full bg-warning-lighter px-2 py-1 text-xs font-medium text-warning-dark">
-            {formatMessage({ id: "app.treasury.depositsDisabled" })}
-          </span>
-        )}
+      <div className="mb-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold text-text-strong sm:text-lg">{assetSymbol}</h3>
+          {!vaultAcceptingDeposits && (
+            <span className="rounded-full bg-warning-lighter px-2 py-1 text-xs font-medium text-warning-dark">
+              {formatMessage({ id: "app.treasury.depositsDisabled" })}
+            </span>
+          )}
+        </div>
+        <a
+          href={getBlockExplorerAddressUrl(chainId, vault.vaultAddress)}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1 inline-block text-xs text-primary-base hover:underline"
+        >
+          {formatMessage({ id: "app.explorer.viewVault" })}:{" "}
+          {formatAddress(vault.vaultAddress, { variant: "card" })}
+        </a>
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-sm">

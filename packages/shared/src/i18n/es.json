@@ -2135,5 +2135,12 @@
   "app.yield.cumulativeJuicebox": "Total a respaldo de GOODS",
   "app.yield.accruing": "(acumulando)",
   "app.yield.gardenCumulativeTotal": "Rendimiento total asignado",
-  "app.endowments.unharvestedYield": "Rendimiento sin cosechar"
+  "app.endowments.unharvestedYield": "Rendimiento sin cosechar",
+  "app.explorer.viewVault": "Bóveda",
+  "app.explorer.contractDetails": "Detalles del contrato",
+  "app.explorer.vault": "Bóveda",
+  "app.explorer.vaultRegistry": "Registro de bóvedas",
+  "app.explorer.yieldSplitter": "Divisor de rendimiento",
+  "app.explorer.aavePool": "Pool Aave V3",
+  "app.explorer.verifyContracts": "Verificar en explorador de bloques"
 }

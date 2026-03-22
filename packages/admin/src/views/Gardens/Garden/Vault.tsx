@@ -1,6 +1,9 @@
 import {
+  AAVE_V3_POOL,
   type Address,
+  formatAddress,
   formatTokenAmount,
+  getBlockExplorerAddressUrl,
   getNetDeposited,
   getNetworkContracts,
   getVaultAssetSymbol,
@@ -11,6 +14,7 @@ import {
   useGardenVaults,
   useUser,
 } from "@green-goods/shared";
+import { RiExternalLinkLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useParams } from "react-router-dom";
@@ -254,6 +258,68 @@ export default function GardenVaultView() {
                 }}
               />
             ))}
+          </section>
+        )}
+
+        {!vaultsLoading && vaults.length > 0 && (
+          <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+            <h3 className="label-sm text-text-strong">
+              {formatMessage({ id: "app.explorer.contractDetails" })}
+            </h3>
+            <div className="mt-3 space-y-2 text-sm">
+              {vaults.map((vault) => (
+                <div
+                  key={`contract-${vault.id}`}
+                  className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2"
+                >
+                  <span className="text-text-sub">
+                    {getVaultAssetSymbol(vault.asset, vault.chainId)}{" "}
+                    {formatMessage({ id: "app.explorer.vault" })}
+                  </span>
+                  <a
+                    href={getBlockExplorerAddressUrl(chainId, vault.vaultAddress)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary-base hover:underline"
+                  >
+                    {formatAddress(vault.vaultAddress, { variant: "card" })}
+                    <RiExternalLinkLine className="h-3 w-3" />
+                  </a>
+                </div>
+              ))}
+              {octantModuleAddress && (
+                <div className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
+                  <span className="text-text-sub">
+                    {formatMessage({ id: "app.explorer.vaultRegistry" })}
+                  </span>
+                  <a
+                    href={getBlockExplorerAddressUrl(chainId, octantModuleAddress)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary-base hover:underline"
+                  >
+                    {formatAddress(octantModuleAddress, { variant: "card" })}
+                    <RiExternalLinkLine className="h-3 w-3" />
+                  </a>
+                </div>
+              )}
+              {AAVE_V3_POOL[chainId] && (
+                <div className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
+                  <span className="text-text-sub">
+                    {formatMessage({ id: "app.explorer.aavePool" })}
+                  </span>
+                  <a
+                    href={getBlockExplorerAddressUrl(chainId, AAVE_V3_POOL[chainId])}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary-base hover:underline"
+                  >
+                    {formatAddress(AAVE_V3_POOL[chainId], { variant: "card" })}
+                    <RiExternalLinkLine className="h-3 w-3" />
+                  </a>
+                </div>
+              )}
+            </div>
           </section>
         )}
 
