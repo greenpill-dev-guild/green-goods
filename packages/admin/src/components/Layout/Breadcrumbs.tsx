@@ -38,7 +38,8 @@ export function Breadcrumbs() {
   const { formatMessage } = useIntl();
   const { data: gardens } = useGardens();
   const { data: actions } = useActions(DEFAULT_CHAIN_ID);
-  const routeState = (location.state as { returnTo?: string; returnLabelId?: string } | null) ?? null;
+  const routeState =
+    (location.state as { returnTo?: string; returnLabelId?: string } | null) ?? null;
 
   const segments = useMemo(() => {
     if (routeState?.returnTo && /^\/gardens\/[^/]+\/vault$/.test(pathname)) {

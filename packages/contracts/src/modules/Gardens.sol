@@ -37,6 +37,11 @@ interface IGardenAccountMetadata {
     function description() external view returns (string memory);
 }
 
+/// @notice Minimal interface for asking a garden TBA to join its own community
+interface IGardenCommunityMembership {
+    function attemptCommunityMembership() external;
+}
+
 /// @title GardensModule
 /// @notice Orchestrates Gardens V2 community + signal pool creation on garden mint
 /// @dev Implements IGardensModule. UUPS upgradeable with Hats-gated admin.
@@ -678,13 +683,25 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
 
     /// @notice Best-effort member registration before pool creation for compatibility with stricter community setups.
     /// @dev Supports both known signatures:
+    ///      - garden.attemptCommunityMembership() (preferred: uses the garden treasury + self-registration)
     ///      - stakeAndRegisterMember(address)  (legacy/mock interface)
     ///      - stakeAndRegisterMember(string)   (newer gardens-v2 CommunityMemberFacet)
     ///      Failures are intentionally ignored to keep pool creation non-blocking.
     function _attemptSignalPoolMembershipJoin(address community, address garden) internal {
+        // Preferred path: the garden TBA joins itself, which lets the live string-based
+        // community ABI pull GOODS from the garden treasury instead of from this module.
+        if (garden.code.length > 0) {
+            // solhint-disable-next-line no-empty-blocks
+            try IGardenCommunityMembership(garden).attemptCommunityMembership() {
+                return;
+            } catch { }
+        }
+
         // Legacy/address-based member registration path.
         // solhint-disable-next-line no-empty-blocks
-        try IRegistryCommunity(community).stakeAndRegisterMember(garden) { } catch { }
+        try IRegistryCommunity(community).stakeAndRegisterMember(garden) {
+            return;
+        } catch { }
 
         // Newer string-based covenant signature path: stakeAndRegisterMember(string)
         (bool ok,) = community.call(abi.encodeWithSelector(bytes4(0x9a1f46e2), "")); // 0x9a1f46e2 =

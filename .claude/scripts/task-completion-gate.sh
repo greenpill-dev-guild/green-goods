@@ -93,10 +93,10 @@ if [ "$STATUS" -eq 0 ]; then
   exit 0
 fi
 
-# Advisory failure — warn but don't block (teams use natural language coordination)
-echo "TASK GATE WARNING: Quick validation failed for scope '$SCOPE' (task #$TASK_ID)." >&2
+# Hard failure — block completion until validation passes
+echo "TASK COMPLETION BLOCKED: Validation failed for scope '$SCOPE' (task #$TASK_ID)." >&2
 echo "   Command: cd $RUN_DIR && $QUICK_CMD" >&2
 echo "   Last 20 lines:" >&2
 printf '%s\n' "$OUTPUT" | tail -n 20 >&2
-echo "   This is advisory — the task will be marked complete. Fix before integration." >&2
-exit 0
+echo "   Fix the errors before marking this task complete." >&2
+exit 2

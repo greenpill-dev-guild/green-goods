@@ -336,7 +336,11 @@ function validateTemplate(rpcUrl: string, asset: string, template: string): Temp
   return { asset, template, errors };
 }
 
-function validateActiveAssetTemplates(options: MigrateOptions, octantModule: string, assets: string[]): TemplateValidation[] {
+function validateActiveAssetTemplates(
+  options: MigrateOptions,
+  octantModule: string,
+  assets: string[],
+): TemplateValidation[] {
   return assets.map((asset) => {
     const template = parseAddress(castCall(options.rpcUrl, octantModule, "supportedAssets(address)(address)", [asset]));
     return validateTemplate(options.rpcUrl, asset, template);

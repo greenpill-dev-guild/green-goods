@@ -64,10 +64,26 @@ export async function handleApprove(
     };
   }
 
+  // Look up gardener's bot-managed key for work submission
+  // Gardeners on SMS/WhatsApp may not have smartphones — the bot holds
+  // their custodial key and executes on their behalf.
+  const gardenerUser = await db.getUser(
+    pendingWork.gardenerPlatform,
+    pendingWork.gardenerPlatformId
+  );
+  if (!gardenerUser) {
+    return {
+      response: {
+        text: "❌ Gardener account not found. They may need to run /start first.",
+      },
+    };
+  }
+
   try {
-    // Step 1: Submit the work to blockchain (operator sponsors gas)
+    // Step 1: Submit work using GARDENER's key (they are the work attester)
+    // This prevents self-attestation: work.attester != approval.attester
     const workTx = await blockchain.submitWork({
-      privateKey: user.privateKey as Hex,
+      privateKey: gardenerUser.privateKey as Hex,
       gardenAddress,
       actionUID: pendingWork.actionUID,
       actionTitle: "Work Submission",
@@ -79,7 +95,7 @@ export async function handleApprove(
       },
     });
 
-    // Step 2: Create approval attestation
+    // Step 2: Approve using OPERATOR's key (different attester = no self-attestation)
     const approvalTx = await blockchain.submitApproval({
       privateKey: user.privateKey as Hex,
       gardenerAddress: pendingWork.gardenerAddress,

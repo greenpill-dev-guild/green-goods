@@ -22,6 +22,8 @@ error ActionMismatch();
 error InvalidSchema();
 /// @notice Thrown when the action has expired (endTime < block.timestamp)
 error ActionExpired();
+/// @notice Thrown when approver is the same address as work submitter (no self-attestation)
+error SelfAttestation();
 
 /// @title WorkApprovalResolver
 /// @notice A schema resolver for the Actions event schema
@@ -99,9 +101,10 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     /// **Validation Order (Security Critical):**
     /// 1. WORK RELATIONSHIP: Verify work was submitted to this garden
     /// 2. IDENTITY: Verify attester is a garden operator (can approve/reject work)
-    /// 3. ACTION: Verify action exists in registry
-    /// 4. CONFIDENCE: Validate confidence value (0-3) and verificationMethod bitmask (0-15)
-    /// 5. GAP INTEGRATION: Create project impact if approved and GAP supported
+    /// 3. SELF-ATTESTATION: Verify approver is not the work submitter
+    /// 4. ACTION: Verify action exists in registry
+    /// 5. CONFIDENCE: Validate confidence value (0-3) and verificationMethod bitmask (0-15)
+    /// 6. GAP INTEGRATION: Create project impact if approved and GAP supported
     ///
     /// **GAP Impact Creation:**
     /// - Only created if schema.approved == true
@@ -147,6 +150,11 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         // Evaluators handle assessments via AssessmentResolver, not work approvals
         if (!accessControl.isOperator(attestation.attester)) {
             revert NotGardenOperator();
+        }
+
+        // SELF-ATTESTATION CHECK: Approver must not be the work submitter
+        if (workAttestation.attester == attestation.attester) {
+            revert SelfAttestation();
         }
 
         // ACTION VALIDATION: Verify action exists and is still active

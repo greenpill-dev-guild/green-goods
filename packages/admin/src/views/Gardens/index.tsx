@@ -7,13 +7,9 @@ import {
   useFilteredGardens,
   useGardenPermissions,
   useGardens,
+  useOpenMinting,
 } from "@green-goods/shared";
-import {
-  RiGroupLine,
-  RiPlantLine,
-  RiShieldCheckLine,
-  RiUserLine,
-} from "@remixicon/react";
+import { RiGroupLine, RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -52,6 +48,7 @@ export default function Gardens() {
   const intl = useIntl();
   const { eoaAddress } = useAuth();
   const { canDeploy, loading: deployLoading } = useDeploymentRegistry();
+  const { data: isOpenMinting, isLoading: openMintingLoading } = useOpenMinting();
   const gardenPermissions = useGardenPermissions();
   const { data: gardens = [], isLoading, error } = useGardens();
   const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
@@ -117,8 +114,8 @@ export default function Gardens() {
         sticky
         actions={
           <CreateGardenAction
-            canDeploy={canDeploy}
-            isLoading={deployLoading}
+            canDeploy={canDeploy || !!isOpenMinting}
+            isLoading={deployLoading || openMintingLoading}
             createLabel={intl.formatMessage({ id: "admin.gardens.createGarden" })}
             tooltip={createGardenTooltip}
           />

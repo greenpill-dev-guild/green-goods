@@ -14,7 +14,8 @@ import {
     InvalidVerificationMethod,
     ActionMismatch,
     InvalidSchema,
-    ActionExpired
+    ActionExpired,
+    SelfAttestation
 } from "../../src/resolvers/WorkApproval.sol";
 import { NotInActionRegistry } from "../../src/resolvers/Work.sol";
 import { ActionRegistry, Capital, Domain } from "../../src/registries/Action.sol";
@@ -194,7 +195,77 @@ contract WorkApprovalResolverTest is Test {
     }
 
     // =========================================================================
-    // onAttest: Action Validation (THIRD check)
+    // onAttest: Self-Attestation Prevention (THIRD check)
+    // =========================================================================
+
+    function test_revert_SelfAttestation_OperatorApprovesOwnWork() public {
+        // Grant operator the gardener role too (valid in role system)
+        mockGarden.setGardener(operator, true);
+
+        // Create work attestation where the OPERATOR is the work submitter
+        bytes32 operatorWorkUID = bytes32(uint256(50));
+        string[] memory media = new string[](1);
+        media[0] = "ipfs://QmOperatorWork";
+
+        Attestation memory workAttestation = Attestation({
+            uid: operatorWorkUID,
+            schema: bytes32(uint256(100)),
+            time: uint64(block.timestamp),
+            expirationTime: 0,
+            revocationTime: 0,
+            refUID: bytes32(0),
+            recipient: address(mockGarden),
+            attester: operator, // Operator submitted the work
+            revocable: true,
+            data: abi.encode(activeActionId, "Operator's Work", "", "", media)
+        });
+        mockEAS.setAttestationByUID(operatorWorkUID, workAttestation);
+
+        // Same operator tries to approve their own work → must revert
+        Attestation memory approvalAttestation =
+            _buildApprovalAttestation(operator, operatorWorkUID, activeActionId, true);
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(SelfAttestation.selector);
+        workApprovalResolver.attest(approvalAttestation);
+    }
+
+    function test_DifferentOperatorCanApproveOperatorWork() public {
+        // Grant operator the gardener role and add a second operator
+        mockGarden.setGardener(operator, true);
+        address operator2 = address(0xABC);
+        mockGarden.setOperator(operator2, true);
+
+        // Create work attestation where operator1 is the submitter
+        bytes32 operatorWorkUID = bytes32(uint256(51));
+        string[] memory media = new string[](1);
+        media[0] = "ipfs://QmOperatorWork2";
+
+        Attestation memory workAttestation = Attestation({
+            uid: operatorWorkUID,
+            schema: bytes32(uint256(100)),
+            time: uint64(block.timestamp),
+            expirationTime: 0,
+            revocationTime: 0,
+            refUID: bytes32(0),
+            recipient: address(mockGarden),
+            attester: operator, // operator1 submitted
+            revocable: true,
+            data: abi.encode(activeActionId, "Operator1's Work", "", "", media)
+        });
+        mockEAS.setAttestationByUID(operatorWorkUID, workAttestation);
+
+        // Different operator (operator2) approves → should succeed
+        Attestation memory approvalAttestation =
+            _buildApprovalAttestation(operator2, operatorWorkUID, activeActionId, true);
+
+        vm.prank(address(mockEAS));
+        bool result = workApprovalResolver.attest(approvalAttestation);
+        assertTrue(result, "Different operator should be able to approve operator's work");
+    }
+
+    // =========================================================================
+    // onAttest: Action Validation (FOURTH check)
     // =========================================================================
 
     function testOnAttestRevertsForNonExistentAction() public {
@@ -434,7 +505,7 @@ contract WorkApprovalResolverTest is Test {
     }
 
     // =========================================================================
-    // onAttest: Confidence Validation (FOURTH check)
+    // onAttest: Confidence Validation (FIFTH check)
     // =========================================================================
 
     function testOnAttestRevertsForInvalidConfidence() public {
@@ -498,7 +569,7 @@ contract WorkApprovalResolverTest is Test {
     }
 
     // =========================================================================
-    // onAttest: VerificationMethod Validation (FIFTH check)
+    // onAttest: VerificationMethod Validation (SIXTH check)
     // =========================================================================
 
     function testOnAttestRevertsForInvalidVerificationMethod() public {

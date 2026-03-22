@@ -42,10 +42,7 @@ describe("Breadcrumbs", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("link", { name: "Endowments" })).toHaveAttribute(
-      "href",
-      "/endowments"
-    );
+    expect(screen.getByRole("link", { name: "Endowments" })).toHaveAttribute("href", "/endowments");
     expect(screen.getByText("Vault")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Gardens" })).not.toBeInTheDocument();
   });

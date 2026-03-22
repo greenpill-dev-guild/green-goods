@@ -309,14 +309,12 @@ export function DepositModal({
                     </span>
                   </p>
                   {healthCheck.maxDeposit > 0n && (
-                  <p>
-                    {formatMessage({ id: "app.treasury.depositLimit" })}:{" "}
-                    <span className="font-medium text-text-strong">
-                        {depositLimitLabel}
-                    </span>
-                  </p>
-                )}
-              </div>
+                    <p>
+                      {formatMessage({ id: "app.treasury.depositLimit" })}:{" "}
+                      <span className="font-medium text-text-strong">{depositLimitLabel}</span>
+                    </p>
+                  )}
+                </div>
               )}
 
               {!vaultAcceptingDeposits && (

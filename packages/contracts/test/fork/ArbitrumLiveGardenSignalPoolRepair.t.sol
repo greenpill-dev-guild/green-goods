@@ -18,8 +18,14 @@ import {
 
 interface ILiveRegistryCommunity is IRegistryCommunity {
     function owner() external view returns (address);
+    function proxyOwner() external view returns (address);
+    function transferOwnership(address newOwner) external;
     function getBasisStakedAmount() external view returns (uint256);
     function isMember(address member) external view returns (bool);
+}
+
+interface IOwnableLike {
+    function owner() external view returns (address);
 }
 
 /// @title ArbitrumLiveGardenSignalPoolRepairForkTest
@@ -32,6 +38,7 @@ contract ArbitrumLiveGardenSignalPoolRepairForkTest is Test {
     address internal constant LIVE_COMMUNITY = 0xD6C828E18114683208d24be26494B038357A829e;
     address internal constant MODULE_OWNER_SAFE = 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6;
     address internal constant COMMUNITY_OWNER_SAFE = 0x9a17De1f0caD0c592F656410997E4B685d339029;
+    address internal constant RANDOM_NON_MEMBER = 0x000000000000000000000000000000000000dEaD;
 
     bytes4 internal constant COMMUNITY_FUNCTION_DOES_NOT_EXIST_SELECTOR =
         bytes4(keccak256("CommunityFunctionDoesNotExist(bytes4)"));
@@ -54,9 +61,7 @@ contract ArbitrumLiveGardenSignalPoolRepairForkTest is Test {
         vm.prank(COMMUNITY_OWNER_SAFE);
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
         ILiveRegistryCommunity(LIVE_COMMUNITY).createPool(
-            address(0),
-            _buildPoolParams(PointSystem.Custom),
-            _poolMetadata("live-owner-safe")
+            address(0), _buildPoolParams(PointSystem.Custom), _poolMetadata("live-owner-safe")
         );
     }
 
@@ -95,22 +100,62 @@ contract ArbitrumLiveGardenSignalPoolRepairForkTest is Test {
             return;
         }
 
+        vm.prank(RANDOM_NON_MEMBER);
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        ILiveRegistryCommunity(LIVE_COMMUNITY).createPool(
+            address(0), _buildPoolParams(PointSystem.Custom), _poolMetadata("live-random-non-member")
+        );
+
         _joinGardenIntoLiveCommunity();
 
         vm.startPrank(LIVE_GARDEN);
 
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
         ILiveRegistryCommunity(LIVE_COMMUNITY).createPool(
-            address(0),
-            _buildPoolParams(PointSystem.Unlimited),
-            _poolMetadata("live-garden-unlimited")
+            address(0), _buildPoolParams(PointSystem.Unlimited), _poolMetadata("live-garden-unlimited")
         );
 
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
         ILiveRegistryCommunity(LIVE_COMMUNITY).createPool(
-            address(0),
-            _buildPoolParams(PointSystem.Custom),
-            _poolMetadata("live-garden-custom")
+            address(0), _buildPoolParams(PointSystem.Custom), _poolMetadata("live-garden-custom")
+        );
+
+        vm.stopPrank();
+    }
+
+    function testForkArbitrum_liveCommunityProxyOwnerResolvesToIntermediateOwnerContract() public {
+        if (!_forkArbitrum()) {
+            return;
+        }
+
+        address proxyOwner = ILiveRegistryCommunity(LIVE_COMMUNITY).proxyOwner();
+        address resolvedOwner = ILiveRegistryCommunity(LIVE_COMMUNITY).owner();
+
+        assertTrue(proxyOwner != address(0), "proxy owner should exist");
+        assertTrue(proxyOwner != resolvedOwner, "proxy owner should differ from resolved owner");
+        assertEq(IOwnableLike(proxyOwner).owner(), resolvedOwner, "intermediate proxy owner should resolve to Safe");
+    }
+
+    function testForkArbitrum_selfOwningCommunityStillDoesNotRepairCreatePool() public {
+        if (!_forkArbitrum()) {
+            return;
+        }
+
+        vm.prank(COMMUNITY_OWNER_SAFE);
+        ILiveRegistryCommunity(LIVE_COMMUNITY).transferOwnership(LIVE_COMMUNITY);
+
+        assertEq(ILiveRegistryCommunity(LIVE_COMMUNITY).owner(), LIVE_COMMUNITY, "community should now self-own");
+
+        vm.startPrank(LIVE_COMMUNITY);
+
+        vm.expectRevert();
+        ILiveRegistryCommunity(LIVE_COMMUNITY).createPool(
+            address(0), _buildPoolParams(PointSystem.Unlimited), _poolMetadata("live-community-unlimited")
+        );
+
+        vm.expectRevert();
+        ILiveRegistryCommunity(LIVE_COMMUNITY).createPool(
+            address(0), _buildPoolParams(PointSystem.Custom), _poolMetadata("live-community-custom")
         );
 
         vm.stopPrank();
@@ -134,12 +179,7 @@ contract ArbitrumLiveGardenSignalPoolRepairForkTest is Test {
 
     function _buildPoolParams(PointSystem pointSystem) internal pure returns (CVStrategyInitializeParamsV0_3 memory) {
         return CVStrategyInitializeParamsV0_3({
-            cvParams: CVParams({
-                maxRatio: 2_000_000,
-                weight: 10_000,
-                decay: 9_999_799,
-                minThresholdPoints: 2_500_000
-            }),
+            cvParams: CVParams({ maxRatio: 2_000_000, weight: 10_000, decay: 9_999_799, minThresholdPoints: 2_500_000 }),
             proposalType: ProposalType.Signaling,
             pointSystem: pointSystem,
             pointConfig: PointSystemConfig({ maxAmount: 0 }),

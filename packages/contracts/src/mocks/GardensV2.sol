@@ -15,6 +15,8 @@ import {
 import { IVotingPowerRegistry } from "../vendor/gardens/IVotingPowerRegistry.sol";
 import { MockCVStrategy } from "./CVStrategy.sol";
 
+error CommunityFunctionDoesNotExist(bytes4 selector);
+
 /// @title MockUnifiedPowerRegistry
 /// @notice Mock unified power registry for testing
 contract MockUnifiedPowerRegistry is IUnifiedPowerRegistry, IVotingPowerRegistry {
@@ -99,6 +101,8 @@ contract MockRegistryCommunity is IRegistryCommunity {
 
     /// @notice When true, createPool will revert (for testing failure scenarios)
     bool public shouldRevertPoolCreation;
+    bool public disableAddressMembership;
+    address public requiredPoolMember;
 
     constructor(address _gardenToken, address _councilSafe) {
         gardenToken = _gardenToken;
@@ -108,6 +112,14 @@ contract MockRegistryCommunity is IRegistryCommunity {
     /// @notice Toggle pool creation failure mode
     function setShouldRevertPoolCreation(bool _shouldRevert) external {
         shouldRevertPoolCreation = _shouldRevert;
+    }
+
+    function setDisableAddressMembership(bool disabled) external {
+        disableAddressMembership = disabled;
+    }
+
+    function setRequiredPoolMember(address member) external {
+        requiredPoolMember = member;
     }
 
     /// @notice 3-arg createPool matching real CommunityPoolFacet signature
@@ -121,6 +133,9 @@ contract MockRegistryCommunity is IRegistryCommunity {
         returns (uint256 poolId, address strategy)
     {
         if (shouldRevertPoolCreation) revert("Pool creation disabled");
+        if (requiredPoolMember != address(0) && !registeredMembers[requiredPoolMember]) {
+            revert("Required pool member missing");
+        }
 
         poolId = nextPoolId++;
 
@@ -150,7 +165,12 @@ contract MockRegistryCommunity is IRegistryCommunity {
     mapping(address => bool) public registeredMembers;
 
     function stakeAndRegisterMember(address member) external override {
+        if (disableAddressMembership) revert CommunityFunctionDoesNotExist(bytes4(keccak256("stakeAndRegisterMember(address)")));
         registeredMembers[member] = true;
+    }
+
+    function stakeAndRegisterMember(string calldata) external override {
+        registeredMembers[msg.sender] = true;
     }
 
     function isRegisteredMember(address member) external view returns (bool) {

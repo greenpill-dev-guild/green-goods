@@ -82,10 +82,7 @@ function getDeploymentPath(chainId: number): string {
 }
 
 function resolveExistingPath(filePath: string): string | undefined {
-  const candidates = [
-    path.resolve(process.cwd(), filePath),
-    path.resolve(PROJECT_ROOT, filePath),
-  ];
+  const candidates = [path.resolve(process.cwd(), filePath), path.resolve(PROJECT_ROOT, filePath)];
 
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) {
@@ -125,9 +122,7 @@ function readPreviousEnsReceiverFromDeployment(chainId: number): string | undefi
   }
 
   try {
-    const deployment = JSON.parse(
-      fs.readFileSync(deploymentPath, "utf8"),
-    ) as { previousEnsReceiver?: unknown };
+    const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8")) as { previousEnsReceiver?: unknown };
     return isAddress(deployment.previousEnsReceiver) ? deployment.previousEnsReceiver : undefined;
   } catch {
     return undefined;
@@ -151,7 +146,13 @@ function getMainnetDeployBroadcastPath(command: Command): string {
     case "deploy-mainnet":
       return path.join(CONTRACTS_ROOT, "broadcast", "UpgradeENSReceiver.s.sol", "1", "deployMainnet-latest.json");
     case "deploy-sepolia":
-      return path.join(CONTRACTS_ROOT, "broadcast", "UpgradeENSReceiver.s.sol", "11155111", "deploySepolia-latest.json");
+      return path.join(
+        CONTRACTS_ROOT,
+        "broadcast",
+        "UpgradeENSReceiver.s.sol",
+        "11155111",
+        "deploySepolia-latest.json",
+      );
     default:
       return path.join(CONTRACTS_ROOT, "broadcast", "UpgradeENSReceiver.s.sol", "1", "run-latest.json");
   }
@@ -319,7 +320,8 @@ async function prepareMigrationInputFromHistory(options: Options): Promise<Prepa
       ? currentDeployArtifact.blockNumber
       : undefined;
 
-  const fromBlock = oldReceiverDeployedAt ?? (await findContractCreationBlock(provider, previousReceiver, newReceiverDeployedAt));
+  const fromBlock =
+    oldReceiverDeployedAt ?? (await findContractCreationBlock(provider, previousReceiver, newReceiverDeployedAt));
   const latestBlockHex = await jsonRpcRequest<string>(provider.url, "eth_blockNumber", []);
   const latestBlock = Number.parseInt(latestBlockHex, 16);
   const toBlock = newReceiverDeployedAt ? Math.max(fromBlock, newReceiverDeployedAt - 1) : latestBlock;
@@ -586,7 +588,9 @@ async function prepareMigrationInput(options: Options): Promise<PreparedMigratio
 
   const newReceiver = options.newReceiver ?? parsed.newReceiver ?? readEnsReceiverFromDeployment(1);
   if (!isAddress(newReceiver)) {
-    throw new Error("migrate requires --new-receiver, newReceiver in the JSON file, or deployments/1-latest.json ensReceiver");
+    throw new Error(
+      "migrate requires --new-receiver, newReceiver in the JSON file, or deployments/1-latest.json ensReceiver",
+    );
   }
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "gg-ens-migrate-"));
@@ -601,11 +605,7 @@ async function prepareMigrationInput(options: Options): Promise<PreparedMigratio
   };
 }
 
-function validateInputs(
-  options: Options,
-  chainId: number,
-  preparedMigration: PreparedMigrationInput | null,
-): void {
+function validateInputs(options: Options, chainId: number, preparedMigration: PreparedMigrationInput | null): void {
   const deploymentPath = getDeploymentPath(chainId);
   const mainnetDeploymentPath = getDeploymentPath(1);
   const networksPath = path.join(CONTRACTS_ROOT, "deployments", "networks.json");
@@ -622,7 +622,8 @@ function validateInputs(
       if (options.network !== "mainnet") {
         throw new Error("deploy-mainnet must be run with --network mainnet");
       }
-      if (!fs.existsSync(mainnetDeploymentPath)) throw new Error(`Deployment artifact not found: ${mainnetDeploymentPath}`);
+      if (!fs.existsSync(mainnetDeploymentPath))
+        throw new Error(`Deployment artifact not found: ${mainnetDeploymentPath}`);
       if (!fs.existsSync(networksPath)) throw new Error(`Network config not found: ${networksPath}`);
       break;
     case "update-l1-receiver":
@@ -642,11 +643,7 @@ function validateInputs(
   }
 }
 
-function runPureSimulation(
-  options: Options,
-  chainId: number,
-  preparedMigration: PreparedMigrationInput | null,
-): void {
+function runPureSimulation(options: Options, chainId: number, preparedMigration: PreparedMigrationInput | null): void {
   validateInputs(options, chainId, preparedMigration);
 
   console.log("🧪 Pure simulation mode enabled (no RPC calls, no transactions)\n");

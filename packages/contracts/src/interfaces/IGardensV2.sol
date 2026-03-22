@@ -149,6 +149,11 @@ interface IRegistryCommunity {
     /// @notice Stake GOODS and register a member in the community
     /// @param member The address to register
     function stakeAndRegisterMember(address member) external;
+
+    /// @notice Stake GOODS and register msg.sender in the community
+    /// @dev Newer Gardens V2 deployments use a covenant string instead of an explicit member address.
+    /// @param covenantData Free-form covenant acceptance payload (empty string when unused)
+    function stakeAndRegisterMember(string calldata covenantData) external;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -63,6 +63,16 @@
             "statusMessage": "Pre-commit lint check..."
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE 'packages/contracts/src/(resolvers/|Schemas\\.sol|interfaces/IGardenAccessControl\\.sol|accounts/Garden\\.sol)'; then echo 'DOMAIN REVIEW: Editing attestation/access-control code.'; echo '  Verify: no self-attestation paths, schema encoding matches tuple format,'; echo '  access control checks intact, storage gaps correct.'; fi; exit 0",
+            "statusMessage": "Domain review check..."
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -119,6 +129,16 @@
             "type": "command",
             "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -q 'packages/shared/src/'; then cd /Users/afo/Code/greenpill/green-goods/packages/shared && bunx tsc --noEmit 2>&1 | head -10; fi; exit 0",
             "statusMessage": "Type-checking shared..."
+          },
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE 'packages/contracts/src/resolvers/.*\\.sol$' && [ -f \"$FILE\" ]; then GAP=$(grep -oE 'uint256\\[[0-9]+\\].*__gap' \"$FILE\" 2>/dev/null | grep -oE '\\[[0-9]+\\]' | tr -d '[]'); if [ -n \"$GAP\" ]; then VARS=$(grep -E '^\\s+(uint|int|bool|address|bytes32|bytes|string|mapping|I[A-Z])\\S*\\s+(public|private|internal)\\s' \"$FILE\" 2>/dev/null | grep -cv '__gap\\|immutable' || echo 0); TOTAL=$((GAP + VARS)); if [ \"$TOTAL\" -ne 50 ]; then echo \"STORAGE GAP WARNING: $FILE has $VARS state vars + $GAP gap slots = $TOTAL (expected 50)\"; fi; fi; fi; exit 0",
+            "statusMessage": "Checking storage gaps..."
+          },
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE 'packages/contracts/src/resolvers/.*\\.sol$'; then RESOLVER=$(basename \"$FILE\" .sol); CHANGED_TESTS=$(cd /Users/afo/Code/greenpill/green-goods && git diff --name-only 2>/dev/null | grep -c \"test/.*${RESOLVER}Resolver\\.t\\.sol\" || true); if [ \"$CHANGED_TESTS\" -eq 0 ]; then echo \"RESOLVER WITHOUT TESTS: Modified $RESOLVER but no corresponding test file changed yet.\"; echo \"  Resolver changes should include test updates.\"; fi; fi; exit 0",
+            "statusMessage": "Checking resolver test coverage..."
           }
         ]
       }

@@ -5,9 +5,9 @@ import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { GardenToken } from "../../src/tokens/Garden.sol";
-import { GardenAccount, NotGardenOwner } from "../../src/accounts/Garden.sol";
+import { GardenAccount } from "../../src/accounts/Garden.sol";
 import {
-    NotGardenOwner, NotGardenOperator, InvalidInvite, AlreadyGardener, GardenFull
+    NotGardenOwner, NotGardenOperator, NotGardensModule, InvalidInvite, AlreadyGardener, GardenFull
 } from "../../src/accounts/Garden.sol";
 import { IGardenAccount } from "../../src/interfaces/IGardenAccount.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
@@ -797,6 +797,33 @@ contract GardenAccountTest is Test, ERC6551Helper {
         // Role granted, community NOT registered (no GOODS)
         assertTrue(hatsModule.isGardenerOf(gardenAddress, stranger));
         assertFalse(community.isRegisteredMember(stranger));
+    }
+
+    function test_attemptCommunityMembership_onlyGardensModule() public {
+        vm.prank(stranger);
+        vm.expectRevert(NotGardensModule.selector);
+        gardenAccount.attemptCommunityMembership();
+    }
+
+    function test_attemptCommunityMembership_selfRegistersGardenForStringOnlyCommunity() public {
+        MockGardensModuleForAccount gardensModuleMock = new MockGardensModuleForAccount();
+        MockERC20 goodsToken_ = new MockERC20();
+        MockRegistryCommunity community = new MockRegistryCommunity(address(goodsToken_), multisig);
+
+        community.setDisableAddressMembership(true);
+        gardensModuleMock.setGardenCommunity(gardenAddress, address(community));
+        gardensModuleMock.setStakeAmountPerMember(1e18);
+        gardensModuleMock.setGoodsToken(address(goodsToken_));
+
+        vm.prank(multisig);
+        gardenToken.setGardensModule(address(gardensModuleMock));
+
+        goodsToken_.mint(gardenAddress, 100e18);
+
+        vm.prank(address(gardensModuleMock));
+        gardenAccount.attemptCommunityMembership();
+
+        assertTrue(community.isRegisteredMember(gardenAddress), "garden should self-register via string path");
     }
 
     // =========================================================================

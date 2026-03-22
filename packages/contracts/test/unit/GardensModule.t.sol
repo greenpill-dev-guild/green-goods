@@ -196,6 +196,20 @@ contract RegisterPoolRevertPowerRegistry is IUnifiedPowerRegistry {
     }
 }
 
+/// @title MockGardenMembershipJoiner
+/// @notice Minimal garden-account stand-in that can join a string-only community when GardensModule asks.
+contract MockGardenMembershipJoiner {
+    address public community;
+
+    function setCommunity(address _community) external {
+        community = _community;
+    }
+
+    function attemptCommunityMembership() external {
+        IRegistryCommunity(community).stakeAndRegisterMember("");
+    }
+}
+
 /// @title GardensModuleTest
 /// @notice Unit tests for GardensModule contract (v14 — community-first, separate pools)
 contract GardensModuleTest is Test {
@@ -1380,6 +1394,30 @@ contract GardensModuleTest is Test {
 
         assertEq(pools.length, 2, "retryCreatePools should create 2 pools");
         assertEq(gardensModule.getGardenSignalPools(garden1).length, 2, "Pools should be stored");
+    }
+
+    function test_retryCreatePools_joinsGardenForStringOnlyMembershipCommunities() public {
+        MockGardenMembershipJoiner gardenJoiner = new MockGardenMembershipJoiner();
+        address garden = address(gardenJoiner);
+
+        hatsModule.setGardenHats(garden, 3001, 3002, 3003, 3004, 3005, 3006, 3000);
+
+        registryFactory.setCreateFailingCommunities(true);
+        vm.prank(gardenToken);
+        gardensModule.onGardenMinted(garden, IGardensModule.WeightScheme.Linear, "Join Garden", "Join Description");
+
+        MockRegistryCommunity community = MockRegistryCommunity(gardensModule.getGardenCommunity(garden));
+        gardenJoiner.setCommunity(address(community));
+
+        community.setShouldRevertPoolCreation(false);
+        community.setDisableAddressMembership(true);
+        community.setRequiredPoolMember(garden);
+
+        vm.prank(owner);
+        address[] memory pools = gardensModule.retryCreatePools(garden);
+
+        assertEq(pools.length, 2, "retryCreatePools should succeed after garden self-joins");
+        assertTrue(community.isRegisteredMember(garden), "garden should self-register via string membership path");
     }
 
     function test_retryCreatePools_onlyOwner() public {

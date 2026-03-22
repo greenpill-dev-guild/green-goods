@@ -4,6 +4,7 @@
  * Central routing for all message types. Platform adapters call handleMessage().
  */
 
+import { checkMessageContent } from "../services/content-filter";
 import { generateSecureId, generateSecurePrivateKey, isValidAddress } from "../services/crypto";
 import * as db from "../services/db";
 import { classifyError } from "../services/errors";
@@ -82,27 +83,40 @@ export async function handleMessage(message: InboundMessage): Promise<OutboundRe
   const user = await db.getUser(platform, sender.platformId);
 
   // Route based on content type
+  let response: OutboundResponse;
+
   if (isCommandContent(content)) {
-    return handleCommand(message, user);
+    response = await handleCommand(message, user);
+  } else if (isCallbackContent(content)) {
+    response = await handleCallback(message, user);
+  } else if (isVoiceContent(content)) {
+    response = await handleVoice(message, user);
+  } else if (isImageContent(content)) {
+    response = await handlePhoto(message, user);
+  } else if (isTextContent(content)) {
+    response = await handleText(message, user);
+  } else {
+    response = textResponse("❌ Unsupported message type.");
   }
 
-  if (isCallbackContent(content)) {
-    return handleCallback(message, user);
-  }
+  // Validate outbound content against messaging constraints (advisory)
+  validateOutboundContent(response);
 
-  if (isVoiceContent(content)) {
-    return handleVoice(message, user);
-  }
+  return response;
+}
 
-  if (isImageContent(content)) {
-    return handlePhoto(message, user);
+/**
+ * Validate outbound response content against messaging constraints.
+ * Advisory only — logs violations but does not block messages.
+ */
+function validateOutboundContent(response: OutboundResponse): void {
+  const contentCheck = checkMessageContent(response.text);
+  if (!contentCheck.clean) {
+    log.warn(
+      { violations: contentCheck.violations },
+      "Outbound message contains prohibited vocabulary"
+    );
   }
-
-  if (isTextContent(content)) {
-    return handleText(message, user);
-  }
-
-  return textResponse("❌ Unsupported message type.");
 }
 
 // ============================================================================

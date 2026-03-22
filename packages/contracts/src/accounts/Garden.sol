@@ -15,6 +15,7 @@ import { IRegistryCommunity } from "../interfaces/IGardensV2.sol";
 
 error NotGardenOwner();
 error NotGardenOperator();
+error NotGardensModule();
 error InvalidInvite();
 error AlreadyGardener();
 error GardenFull();
@@ -396,6 +397,30 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         _autoStaking = false;
     }
 
+    /// @notice Have the garden TBA join its own community when pool creation needs explicit membership first.
+    /// @dev This is restricted to the configured GardensModule and is separate from joinGarden() because
+    ///      string-based Gardens V2 communities only support self-registration for msg.sender, not delegated
+    ///      registration of arbitrary members funded from the garden treasury.
+    function attemptCommunityMembership() external {
+        IGardensModule gardens = _getGardensModule();
+        if (msg.sender != address(gardens)) revert NotGardensModule();
+
+        address community = gardens.getGardenCommunity(address(this));
+        if (community == address(0)) return;
+
+        uint256 stakeAmount = gardens.stakeAmountPerMember();
+        if (stakeAmount == 0) return;
+
+        IERC20 token_ = gardens.goodsToken();
+        if (address(token_) == address(0)) return;
+
+        if (token_.balanceOf(address(this)) < stakeAmount) return;
+
+        _autoStaking = true;
+        try this.executeGardenSelfStake(address(token_), community, stakeAmount) { } catch { }
+        _autoStaking = false;
+    }
+
     /// @notice Execute the approve + stake sequence (called via this.executeAutoStake for try/catch)
     /// @dev Must be external so it can be wrapped in try/catch from internal context.
     ///      Protected by _autoStaking flag in addition to self-call check — the self-call check
@@ -405,6 +430,21 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         if (msg.sender != address(this) || !_autoStaking) revert NotGardenOwner();
         IERC20(goodsToken_).forceApprove(community, stakeAmount);
         IRegistryCommunity(community).stakeAndRegisterMember(member);
+    }
+
+    /// @notice Execute the approve + self-register sequence for the garden account itself.
+    /// @dev Prefers the newer string-based community ABI, then falls back to the legacy address-based path.
+    function executeGardenSelfStake(address goodsToken_, address community, uint256 stakeAmount) external {
+        if (msg.sender != address(this) || !_autoStaking) revert NotGardenOwner();
+
+        IERC20(goodsToken_).forceApprove(community, stakeAmount);
+
+        // Prefer the live Gardens V2 self-registration path first.
+        try IRegistryCommunity(community).stakeAndRegisterMember("") {
+            return;
+        } catch { }
+
+        IRegistryCommunity(community).stakeAndRegisterMember(address(this));
     }
 
     /// @notice Storage gap for upgradeable contract

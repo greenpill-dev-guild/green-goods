@@ -24,6 +24,9 @@ import {
 } from "viem";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const RANDOM_NON_MEMBER = getAddress(
+  "0x000000000000000000000000000000000000dEaD"
+) as `0x${string}`;
 const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
 const TOKENBOUND_SALT =
   "0x6551655165516551655165516551655165516551655165516551655165516551";
@@ -98,10 +101,24 @@ const REGISTRY_COMMUNITY_ABI = [
   },
   {
     type: "function",
+    name: "proxyOwner",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
     name: "councilSafe",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "isMember",
+    stateMutability: "view",
+    inputs: [{ name: "member", type: "address" }],
+    outputs: [{ name: "", type: "bool" }],
   },
   {
     type: "function",
@@ -167,6 +184,16 @@ const REGISTRY_COMMUNITY_ABI = [
   },
 ] as const;
 
+const OWNABLE_ABI = [
+  {
+    type: "function",
+    name: "owner",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+] as const;
+
 const TOKENBOUND_REGISTRY_ABI = [
   {
     type: "function",
@@ -214,7 +241,8 @@ type CandidateCallerLabel =
   | "communityOwner"
   | "councilSafe"
   | "moduleOwnerSafe"
-  | "garden";
+  | "garden"
+  | "randomNonMember";
 
 type GardenEntry = {
   tokenId: number;
@@ -265,6 +293,8 @@ type DirectCreatePoolDiagnostics = Record<
   Record<PointSystemMode, SimulationStatus>
 >;
 
+type CallerMembershipDiagnostics = Record<CandidateCallerLabel, boolean>;
+
 type BlockedGarden = {
   tokenId: number;
   gardenAddress: `0x${string}`;
@@ -272,8 +302,11 @@ type BlockedGarden = {
   communityAddress: `0x${string}`;
   currentPools: readonly `0x${string}`[];
   currentHypercertPool: `0x${string}`;
+  communityProxyOwner: `0x${string}`;
   communityOwner: `0x${string}`;
+  proxyOwnerOwner: `0x${string}` | null;
   councilSafe: `0x${string}`;
+  callerMembership: CallerMembershipDiagnostics;
   gardensModuleSimulation: SimulationStatus;
   directCreatePool: DirectCreatePoolDiagnostics;
   suspectedRootCause: string[];
@@ -666,14 +699,38 @@ function inferBlockedRootCause(
 ): { suspectedRootCause: string[]; notes: string[] } {
   const suspectedRootCause: string[] = [];
   const notes: string[] = [];
+  const addCause = (cause: string) => {
+    if (!suspectedRootCause.includes(cause)) {
+      suspectedRootCause.push(cause);
+    }
+  };
 
   if (
     normalizeAddress(blocked.communityOwner) !== normalizeAddress(moduleOwnerSafe)
   ) {
-    suspectedRootCause.push("wrong caller / ownership split");
+    addCause("wrong caller / ownership split");
     notes.push(
       `RegistryCommunity.owner() resolves to ${blocked.communityOwner}, not the GardensModule/YieldResolver Safe ${moduleOwnerSafe}.`
     );
+  }
+
+  if (
+    normalizeAddress(blocked.communityProxyOwner) !==
+    normalizeAddress(blocked.communityOwner)
+  ) {
+    addCause("proxy owner / resolved owner split");
+    notes.push(
+      `RegistryCommunity.proxyOwner() is ${blocked.communityProxyOwner} while owner() resolves to ${blocked.communityOwner}.`
+    );
+    if (
+      blocked.proxyOwnerOwner &&
+      normalizeAddress(blocked.proxyOwnerOwner) ===
+        normalizeAddress(blocked.communityOwner)
+    ) {
+      notes.push(
+        "The intermediate proxyOwner contract resolves to the same external Safe, confirming a multi-hop owner chain."
+      );
+    }
   }
 
   const directErrors = Object.values(blocked.directCreatePool).flatMap((candidate) =>
@@ -686,9 +743,40 @@ function inferBlockedRootCause(
     directErrors.length > 0 &&
     directErrors.every((error) => error.includes("Ownable: caller is not the owner"))
   ) {
-    suspectedRootCause.push("wrong factory/community ownership model");
+    addCause("wrong factory/community ownership model");
     notes.push(
       "Direct RegistryCommunity.createPool() simulations fail with Ownable ownership checks for every tested caller."
+    );
+  }
+
+  const randomNonMemberErrors = Object.values(
+    blocked.directCreatePool.randomNonMember
+  )
+    .map((simulation) => simulation.error)
+    .filter((error): error is string => typeof error === "string");
+
+  if (
+    !blocked.callerMembership.randomNonMember &&
+    randomNonMemberErrors.length > 0 &&
+    randomNonMemberErrors.every((error) =>
+      error.includes("Ownable: caller is not the owner")
+    )
+  ) {
+    addCause("not explained by missing community membership");
+    notes.push(
+      "A random non-member caller hits the same Ownable revert, so live createPool() fails before community membership can be the gating condition."
+    );
+  }
+
+  if (
+    normalizeAddress(blocked.communityOwner) !==
+      normalizeAddress(blocked.communityAddress) &&
+    directErrors.length > 0 &&
+    directErrors.every((error) => error.includes("Ownable: caller is not the owner"))
+  ) {
+    addCause("strategy ownership handoff mismatch");
+    notes.push(
+      "Fork testing plus upstream source comparison indicate the deployed Arbitrum strategy ownership path predates the newer direct-owner check. createPool() appears to fail during strategy ownership handoff before pool creation completes."
     );
   }
 
@@ -705,7 +793,7 @@ function inferBlockedRootCause(
     customErrors.every((error) => error.includes("Ownable: caller is not the owner")) &&
     unlimitedErrors.every((error) => error.includes("Ownable: caller is not the owner"))
   ) {
-    suspectedRootCause.push("not explained by custom pool params");
+    addCause("not explained by custom pool params");
     notes.push(
       "Both Custom and Unlimited direct createPool() simulations fail before strategy-specific params can explain the revert."
     );
@@ -718,7 +806,7 @@ function inferBlockedRootCause(
   }
 
   if (suspectedRootCause.length === 0) {
-    suspectedRootCause.push("another production-state mismatch");
+    addCause("another production-state mismatch");
   }
 
   return { suspectedRootCause, notes };
@@ -733,11 +821,16 @@ async function diagnoseBlockedGarden(
   moduleOwnerSafe: `0x${string}`,
   registryAddress: `0x${string}`
 ): Promise<BlockedGarden> {
-  const [communityOwner, councilSafe] = await Promise.all([
+  const [communityOwner, communityProxyOwner, councilSafe] = await Promise.all([
     readContractWithRetry<`0x${string}`>(client, {
       address: communityAddress,
       abi: REGISTRY_COMMUNITY_ABI,
       functionName: "owner",
+    }),
+    readContractWithRetry<`0x${string}`>(client, {
+      address: communityAddress,
+      abi: REGISTRY_COMMUNITY_ABI,
+      functionName: "proxyOwner",
     }),
     readContractWithRetry<`0x${string}`>(client, {
       address: communityAddress,
@@ -757,7 +850,42 @@ async function diagnoseBlockedGarden(
     councilSafe,
     moduleOwnerSafe,
     garden: garden.gardenAddress,
+    randomNonMember: RANDOM_NON_MEMBER,
   };
+
+  const callerMembershipEntries = await Promise.all(
+    (Object.entries(callers) as Array<[CandidateCallerLabel, `0x${string}`]>).map(
+      async ([label, account]) => {
+        const isMember = await readContractWithRetry<boolean>(client, {
+          address: communityAddress,
+          abi: REGISTRY_COMMUNITY_ABI,
+          functionName: "isMember",
+          args: [account],
+        });
+        return [label, isMember] as const;
+      }
+    )
+  );
+
+  const callerMembership = Object.fromEntries(
+    callerMembershipEntries
+  ) as CallerMembershipDiagnostics;
+
+  let proxyOwnerOwner: `0x${string}` | null = null;
+  if (
+    !isZeroAddress(communityProxyOwner) &&
+    normalizeAddress(communityProxyOwner) !== normalizeAddress(communityOwner)
+  ) {
+    try {
+      proxyOwnerOwner = await readContractWithRetry<`0x${string}`>(client, {
+        address: communityProxyOwner,
+        abi: OWNABLE_ABI,
+        functionName: "owner",
+      });
+    } catch {
+      proxyOwnerOwner = null;
+    }
+  }
 
   const directCreatePoolEntries = await Promise.all(
     (Object.entries(callers) as Array<[CandidateCallerLabel, `0x${string}`]>).map(
@@ -795,8 +923,11 @@ async function diagnoseBlockedGarden(
     communityAddress,
     currentPools,
     currentHypercertPool,
+    communityProxyOwner,
     communityOwner,
+    proxyOwnerOwner,
     councilSafe,
+    callerMembership,
     gardensModuleSimulation,
     directCreatePool,
   };
@@ -1086,6 +1217,7 @@ async function main() {
       console.log(
         `Garden #${result.blocked.tokenId} ${result.blocked.gardenAddress} (${result.blocked.source})\n` +
           `  Community:        ${result.blocked.communityAddress}\n` +
+          `  Proxy owner:      ${result.blocked.communityProxyOwner}\n` +
           `  Community owner:  ${result.blocked.communityOwner}\n` +
           `  Council Safe:     ${result.blocked.councilSafe}\n` +
           `  Module simulation: ${result.blocked.gardensModuleSimulation.result}\n` +

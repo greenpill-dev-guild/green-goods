@@ -76,6 +76,8 @@
     "verify:etherscan:arbitrum": "bun script/utils/post-deploy-verify.ts --network arbitrum --check-etherscan --skip-indexer",
     "verify:etherscan:celo": "bun script/utils/post-deploy-verify.ts --network celo --check-etherscan --skip-indexer",
     "migrate:vaults": "bun script/migrate-vaults.ts",
+    "open-minting:sepolia": "set -a && . ../../.env 2>/dev/null || true && set +a && cast send $(jq -r .gardenToken deployments/11155111-latest.json) 'setOpenMinting(bool)' true --rpc-url $SEPOLIA_RPC_URL --account green-goods-deployer",
+    "open-minting:arbitrum": "set -a && . ../../.env 2>/dev/null || true && set +a && cast send $(jq -r .gardenToken deployments/42161-latest.json) 'setOpenMinting(bool)' true --rpc-url $ARBITRUM_RPC_URL --account green-goods-deployer",
     "repair:octant-assets": "bun script/repair-octant-assets.ts",
     "repair:octant-assets:dry:arbitrum": "bun script/repair-octant-assets.ts --network arbitrum --dry-run",
     "repair:octant-assets:arbitrum": "bun script/repair-octant-assets.ts --network arbitrum --broadcast",
