@@ -1,6 +1,10 @@
 # External libraries and dependencies
 packages/contracts/lib/
 **/node_modules/
+
+# Worktrees (nested repos confuse Biome's root detection)
+.claude/worktrees/
+.cursor/worktrees/
 **/generated/
 **/*.generated.*
 **/*.bs.js
