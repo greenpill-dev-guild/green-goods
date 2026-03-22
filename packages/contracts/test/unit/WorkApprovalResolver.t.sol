@@ -222,8 +222,7 @@ contract WorkApprovalResolverTest is Test {
         mockEAS.setAttestationByUID(operatorWorkUID, workAttestation);
 
         // Same operator tries to approve their own work → must revert
-        Attestation memory approvalAttestation =
-            _buildApprovalAttestation(operator, operatorWorkUID, activeActionId, true);
+        Attestation memory approvalAttestation = _buildApprovalAttestation(operator, operatorWorkUID, activeActionId, true);
 
         vm.prank(address(mockEAS));
         vm.expectRevert(SelfAttestation.selector);
@@ -256,8 +255,7 @@ contract WorkApprovalResolverTest is Test {
         mockEAS.setAttestationByUID(operatorWorkUID, workAttestation);
 
         // Different operator (operator2) approves → should succeed
-        Attestation memory approvalAttestation =
-            _buildApprovalAttestation(operator2, operatorWorkUID, activeActionId, true);
+        Attestation memory approvalAttestation = _buildApprovalAttestation(operator2, operatorWorkUID, activeActionId, true);
 
         vm.prank(address(mockEAS));
         bool result = workApprovalResolver.attest(approvalAttestation);

@@ -165,7 +165,9 @@ contract MockRegistryCommunity is IRegistryCommunity {
     mapping(address => bool) public registeredMembers;
 
     function stakeAndRegisterMember(address member) external override {
-        if (disableAddressMembership) revert CommunityFunctionDoesNotExist(bytes4(keccak256("stakeAndRegisterMember(address)")));
+        if (disableAddressMembership) {
+            revert CommunityFunctionDoesNotExist(bytes4(keccak256("stakeAndRegisterMember(address)")));
+        }
         registeredMembers[member] = true;
     }
 

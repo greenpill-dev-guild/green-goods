@@ -7,7 +7,12 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { GardenToken } from "../../src/tokens/Garden.sol";
 import { GardenAccount } from "../../src/accounts/Garden.sol";
 import {
-    NotGardenOwner, NotGardenOperator, NotGardensModule, InvalidInvite, AlreadyGardener, GardenFull
+    NotGardenOwner,
+    NotGardenOperator,
+    NotGardensModule,
+    InvalidInvite,
+    AlreadyGardener,
+    GardenFull
 } from "../../src/accounts/Garden.sol";
 import { IGardenAccount } from "../../src/interfaces/IGardenAccount.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
