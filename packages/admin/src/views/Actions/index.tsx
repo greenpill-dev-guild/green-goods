@@ -76,7 +76,7 @@ export default function Actions() {
   const intl = useIntl();
   const { role } = useRole();
   const { data: actions = [], isLoading, isFetching, refetch } = useActions(DEFAULT_CHAIN_ID);
-  const canManageActions = role === "deployer" || role === "operator";
+  const canManageActions = role === "deployer";
   const [filters, setFilters] = useState<ActionFiltersState>({ sort: "default" });
   const isRefreshing = isFetching && !isLoading;
 
