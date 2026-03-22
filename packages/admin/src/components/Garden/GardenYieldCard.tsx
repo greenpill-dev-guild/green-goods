@@ -3,20 +3,12 @@ import {
   formatDate,
   formatTokenAmount,
   MIN_YIELD_THRESHOLD_USD,
+  type YieldAllocation,
 } from "@green-goods/shared";
 import { RiPieChart2Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/ui/Button";
-
-interface YieldAllocation {
-  txHash: string;
-  cookieJarAmount: bigint;
-  fractionsAmount: bigint;
-  juiceboxAmount: bigint;
-  totalAmount?: bigint;
-  timestamp: number;
-}
 
 interface GardenYieldCardProps {
   allocations: YieldAllocation[];
@@ -43,7 +35,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
     let totalFractions = 0n;
     let totalJuicebox = 0n;
     for (const a of allocations) {
-      totalYield += a.totalAmount ?? a.cookieJarAmount + a.fractionsAmount + a.juiceboxAmount;
+      totalYield += a.totalAmount;
       totalCookieJar += a.cookieJarAmount;
       totalFractions += a.fractionsAmount;
       totalJuicebox += a.juiceboxAmount;
@@ -165,12 +157,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-text-strong">
-                    {formatTokenAmount(
-                      allocation.totalAmount ??
-                        allocation.cookieJarAmount +
-                          allocation.fractionsAmount +
-                          allocation.juiceboxAmount
-                    )}
+                    {formatTokenAmount(allocation.totalAmount)}
                   </p>
                   <p className="text-xs text-text-sub">{formatDate(allocation.timestamp)}</p>
                 </div>

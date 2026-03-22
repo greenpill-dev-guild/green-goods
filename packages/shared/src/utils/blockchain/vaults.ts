@@ -1,4 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import type { Address } from "../../types/domain";
 import { formatAddress } from "../app/text";
 import { isZeroAddress, ZERO_ADDRESS } from "./address";
 
@@ -11,9 +12,9 @@ export const VAULT_MAX_BPS = 10000n;
 export const MAX_UINT256 = (1n << 256n) - 1n;
 
 /** Aave V3 pool addresses by chain — where vault strategies deploy funds */
-export const AAVE_V3_POOL: Record<number, string> = {
-  42161: "0x794a61358D6845594F94dc1DB02A252b5b4814aD", // Arbitrum
-  11155111: "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951", // Sepolia
+export const AAVE_V3_POOL: Record<number, Address> = {
+  42161: "0x794a61358D6845594F94dc1DB02A252b5b4814aD" as Address, // Arbitrum
+  11155111: "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951" as Address, // Sepolia
 };
 
 const ASSET_SYMBOLS_BY_CHAIN: Record<number, Record<string, string>> = {
