@@ -9,6 +9,7 @@ import {
   getVaultAssetSymbol,
   type GardenVault,
   ImageWithFallback,
+  isZeroAddress,
   useCurrentChain,
   useDebouncedValue,
   useGardens,
@@ -72,11 +73,10 @@ function MyTrackedPositionCard({
   const currentValue = preview?.previewAssets;
   const rawDelta = typeof currentValue === "bigint" ? currentValue - position.netDeposited : null;
 
-  // Treat tiny negative deltas as flat (ERC-4626 rounding, profit unlock timing)
-  // Threshold: 0.001 tokens in 18-decimal terms (1e15 wei)
-  const DUST_THRESHOLD = 1_000_000_000_000_000n;
-  const positionDelta =
-    rawDelta !== null && rawDelta < 0n && -rawDelta < DUST_THRESHOLD ? 0n : rawDelta;
+  // Clamp negative deltas to zero — these vaults deploy to Aave V3 lending where
+  // genuine losses are extremely unlikely. Negatives are ERC-4626 rounding artifacts
+  // or profit unlock timing. Showing red/negative values creates false alarm.
+  const positionDelta = rawDelta !== null && rawDelta < 0n ? 0n : rawDelta;
 
   const yieldToneClass =
     positionDelta === null
@@ -431,7 +431,7 @@ export default function EndowmentsOverview() {
                 {formatMessage({ id: "app.explorer.verifyContracts" })}
               </p>
               <div className="mt-2 flex flex-wrap gap-3 text-xs">
-                {contracts.octantModule && (
+                {!isZeroAddress(contracts.octantModule) && (
                   <a
                     href={getBlockExplorerAddressUrl(endowmentsChainId, contracts.octantModule)}
                     target="_blank"
@@ -442,7 +442,7 @@ export default function EndowmentsOverview() {
                     <RiExternalLinkLine className="h-3 w-3" />
                   </a>
                 )}
-                {contracts.yieldSplitter && (
+                {!isZeroAddress(contracts.yieldSplitter) && (
                   <a
                     href={getBlockExplorerAddressUrl(endowmentsChainId, contracts.yieldSplitter)}
                     target="_blank"

@@ -7,6 +7,7 @@ import {
   getNetDeposited,
   getNetworkContracts,
   getVaultAssetSymbol,
+  isZeroAddress,
   OCTANT_MODULE_ABI,
   useCurrentChain,
   useGardenPermissions,
@@ -287,7 +288,7 @@ export default function GardenVaultView() {
                   </a>
                 </div>
               ))}
-              {octantModuleAddress && (
+              {!isZeroAddress(octantModuleAddress) && (
                 <div className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
                   <span className="text-text-sub">
                     {formatMessage({ id: "app.explorer.vaultRegistry" })}
