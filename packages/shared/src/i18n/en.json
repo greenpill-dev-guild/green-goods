@@ -2126,5 +2126,14 @@
   "app.yield.splitSummary": "Yield split: {cookieJar}% Cookie Jar, {fractions}% Fractions, {juicebox}% Juicebox",
   "app.yield.threshold": "Minimum threshold: {amount}",
   "app.yield.title": "Yield Allocation",
-  "app.yield.viewAll": "View all allocations"
+  "app.yield.viewAll": "View all allocations",
+  "app.yield.totalAllocated": "Total Yield Allocated",
+  "app.yield.allocationCount": "Yield Allocations",
+  "app.yield.protocolBreakdown": "Protocol Yield Breakdown",
+  "app.yield.cumulativeCookieJar": "Total to Cookie Jars",
+  "app.yield.cumulativeFractions": "Total to Fractions",
+  "app.yield.cumulativeJuicebox": "Total to GOODS Backing",
+  "app.yield.accruing": "(accruing)",
+  "app.yield.gardenCumulativeTotal": "Total Yield Allocated",
+  "app.endowments.unharvestedYield": "Unharvested Yield"
 }

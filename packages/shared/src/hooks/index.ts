@@ -394,4 +394,8 @@ export {
 // YIELD
 // ============================================================================
 export { useAllocateYield } from "./yield/useAllocateYield";
+export {
+  useProtocolYieldSummary,
+  type ProtocolYieldSummary,
+} from "./yield/useProtocolYieldSummary";
 export { useYieldAllocations } from "./yield/useYieldAllocations";

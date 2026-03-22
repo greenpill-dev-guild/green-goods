@@ -135,12 +135,21 @@ export function PositionCard({
             {formatTokenAmount(netDeposited, assetDecimals)} {assetSymbol}
           </p>
         </div>
-        <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
+        <div
+          className={`rounded-md border p-3 ${unharvestedImpactYield > 0n ? "border-success-light bg-success-lighter" : "border-stroke-soft bg-bg-weak"}`}
+        >
           <p className="text-xs text-text-soft">
             {formatMessage({ id: "app.treasury.currentYield" })}
           </p>
-          <p className="mt-1 font-semibold text-text-strong">
+          <p
+            className={`mt-1 font-semibold ${unharvestedImpactYield > 0n ? "text-success-dark" : "text-text-strong"}`}
+          >
             {formatTokenAmount(unharvestedImpactYield, assetDecimals)} {assetSymbol}
+            {unharvestedImpactYield > 0n && (
+              <span className="ml-1 text-xs font-normal">
+                {formatMessage({ id: "app.yield.accruing" })}
+              </span>
+            )}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">

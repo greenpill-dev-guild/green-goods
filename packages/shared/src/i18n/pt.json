@@ -2126,5 +2126,14 @@
   "app.yield.splitSummary": "Divisão de rendimento: {cookieJar}% Cookie Jar, {fractions}% Frações, {juicebox}% Juicebox",
   "app.yield.threshold": "Limite mínimo: {amount}",
   "app.yield.title": "Alocação de rendimento",
-  "app.yield.viewAll": "Ver todas as alocações"
+  "app.yield.viewAll": "Ver todas as alocações",
+  "app.yield.totalAllocated": "Rendimento total alocado",
+  "app.yield.allocationCount": "Alocações de rendimento",
+  "app.yield.protocolBreakdown": "Desdobramento de rendimento do protocolo",
+  "app.yield.cumulativeCookieJar": "Total para Cookie Jars",
+  "app.yield.cumulativeFractions": "Total para frações",
+  "app.yield.cumulativeJuicebox": "Total para respaldo do GOODS",
+  "app.yield.accruing": "(acumulando)",
+  "app.yield.gardenCumulativeTotal": "Rendimento total alocado",
+  "app.endowments.unharvestedYield": "Rendimento não colhido"
 }

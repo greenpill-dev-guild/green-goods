@@ -374,6 +374,7 @@ export {
   useWorkMutation,
   useWorks,
   useYieldAllocations,
+  useProtocolYieldSummary,
 } from "./hooks/index";
 // ============================================================================
 // I18N

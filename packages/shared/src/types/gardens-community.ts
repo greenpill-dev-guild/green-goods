@@ -122,6 +122,8 @@ export interface YieldAllocation {
   fractionsAmount: bigint;
   /** Amount sent to Juicebox treasury */
   juiceboxAmount: bigint;
+  /** Total yield allocated (sum of all three destinations) */
+  totalAmount: bigint;
   /** Block timestamp of the allocation */
   timestamp: number;
   /** Transaction hash */

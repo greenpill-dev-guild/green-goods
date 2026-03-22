@@ -20,6 +20,7 @@ interface YieldAllocationResponse {
     cookieJarAmount: string;
     fractionsAmount: string;
     juiceboxAmount: string;
+    totalAmount: string;
     timestamp: number;
     txHash: string;
   }>;
@@ -37,6 +38,7 @@ const YIELD_ALLOCATIONS_QUERY = `
       cookieJarAmount
       fractionsAmount
       juiceboxAmount
+      totalAmount
       timestamp
       txHash
     }
@@ -84,6 +86,7 @@ export function useYieldAllocations(
         cookieJarAmount: BigInt(row.cookieJarAmount),
         fractionsAmount: BigInt(row.fractionsAmount),
         juiceboxAmount: BigInt(row.juiceboxAmount),
+        totalAmount: BigInt(row.totalAmount),
         timestamp: row.timestamp,
         txHash: row.txHash,
       }));

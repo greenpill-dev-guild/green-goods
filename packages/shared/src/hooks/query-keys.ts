@@ -225,6 +225,9 @@ export const queryKeys = {
       ["greengoods", "yield", "splitConfig", gardenAddress, chainId] as const,
     pendingYield: (gardenAddress: string, assetAddress: string, chainId: number) =>
       ["greengoods", "yield", "pending", gardenAddress, assetAddress, chainId] as const,
+    /** Protocol-wide yield summary (all gardens, all assets) */
+    protocolSummary: (chainId: number) =>
+      ["greengoods", "yield", "protocolSummary", chainId] as const,
   },
 
   // Platform-wide stats (dashboard)
@@ -682,6 +685,7 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.yield.byAsset>
   | ReturnType<typeof queryKeys.yield.splitConfig>
   | ReturnType<typeof queryKeys.yield.pendingYield>
+  | ReturnType<typeof queryKeys.yield.protocolSummary>
   | typeof queryKeys.ens.all
   | ReturnType<typeof queryKeys.ens.name>
   | ReturnType<typeof queryKeys.ens.address>

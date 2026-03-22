@@ -5,7 +5,7 @@ import {
   MIN_YIELD_THRESHOLD_USD,
 } from "@green-goods/shared";
 import { RiPieChart2Line } from "@remixicon/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/ui/Button";
 
@@ -14,6 +14,7 @@ interface YieldAllocation {
   cookieJarAmount: bigint;
   fractionsAmount: bigint;
   juiceboxAmount: bigint;
+  totalAmount?: bigint;
   timestamp: number;
 }
 
@@ -36,6 +37,20 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
   const fractionsPct = (splitConfig.fractionsBps / 100).toFixed(1);
   const juiceboxPct = (splitConfig.juiceboxBps / 100).toFixed(1);
 
+  const cumulative = useMemo(() => {
+    let totalYield = 0n;
+    let totalCookieJar = 0n;
+    let totalFractions = 0n;
+    let totalJuicebox = 0n;
+    for (const a of allocations) {
+      totalYield += a.totalAmount ?? a.cookieJarAmount + a.fractionsAmount + a.juiceboxAmount;
+      totalCookieJar += a.cookieJarAmount;
+      totalFractions += a.fractionsAmount;
+      totalJuicebox += a.juiceboxAmount;
+    }
+    return { totalYield, totalCookieJar, totalFractions, totalJuicebox };
+  }, [allocations]);
+
   const visibleAllocations = showAllAllocations
     ? allocations
     : allocations.slice(0, INITIAL_ALLOCATION_COUNT);
@@ -57,6 +72,31 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           </div>
         </div>
       </div>
+
+      {allocations.length > 0 && (
+        <div className="mt-4 rounded-lg border border-success-light bg-success-lighter p-4">
+          <p className="label-xs text-success-dark">
+            {formatMessage({ id: "app.yield.gardenCumulativeTotal" })}
+          </p>
+          <p className="mt-1 font-heading text-xl font-semibold tabular-nums text-success-dark">
+            {formatTokenAmount(cumulative.totalYield)}
+          </p>
+          <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-text-sub">
+            <span>
+              {formatMessage({ id: "app.yield.cookieJar" })}:{" "}
+              {formatTokenAmount(cumulative.totalCookieJar)}
+            </span>
+            <span>
+              {formatMessage({ id: "app.yield.fractions" })}:{" "}
+              {formatTokenAmount(cumulative.totalFractions)}
+            </span>
+            <span>
+              {formatMessage({ id: "app.yield.juicebox" })}:{" "}
+              {formatTokenAmount(cumulative.totalJuicebox)}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 grid grid-cols-3 gap-3">
         <div className="rounded-lg bg-bg-weak p-3 text-center">
@@ -126,9 +166,10 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-text-strong">
                     {formatTokenAmount(
-                      allocation.cookieJarAmount +
-                        allocation.fractionsAmount +
-                        allocation.juiceboxAmount
+                      allocation.totalAmount ??
+                        allocation.cookieJarAmount +
+                          allocation.fractionsAmount +
+                          allocation.juiceboxAmount
                     )}
                   </p>
                   <p className="text-xs text-text-sub">{formatDate(allocation.timestamp)}</p>

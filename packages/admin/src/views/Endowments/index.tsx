@@ -4,18 +4,22 @@ import {
   formatTokenAmount,
   getNetDeposited,
   getVaultAssetSymbol,
+  type GardenVault,
   ImageWithFallback,
   useDebouncedValue,
   useGardens,
   useGardenVaults,
   useMyVaultDeposits,
+  useProtocolYieldSummary,
   useUser,
   useVaultPreview,
+  ZERO_ADDRESS,
 } from "@green-goods/shared";
 import {
   RiArrowRightLine,
   RiLeafLine,
   RiMoneyDollarCircleLine,
+  RiPieChart2Line,
   RiPlantLine,
   RiSafe2Line,
 } from "@remixicon/react";
@@ -60,22 +64,26 @@ function MyTrackedPositionCard({
   });
 
   const currentValue = preview?.previewAssets;
+  const rawDelta = typeof currentValue === "bigint" ? currentValue - position.netDeposited : null;
+
+  // Treat tiny negative deltas as flat (ERC-4626 rounding, profit unlock timing)
+  // Threshold: 0.001 tokens in 18-decimal terms (1e15 wei)
+  const DUST_THRESHOLD = 1_000_000_000_000_000n;
   const positionDelta =
-    typeof currentValue === "bigint" ? currentValue - position.netDeposited : null;
+    rawDelta !== null && rawDelta < 0n && -rawDelta < DUST_THRESHOLD ? 0n : rawDelta;
+
   const yieldToneClass =
     positionDelta === null
       ? "text-text-soft"
       : positionDelta > 0n
         ? "text-success-dark"
-        : positionDelta < 0n
-          ? "text-error-dark"
-          : "text-text-strong";
+        : "text-text-strong";
   const yieldDisplay =
     positionDelta === null
       ? "--"
-      : `${positionDelta > 0n ? "+" : positionDelta < 0n ? "-" : ""}${formatTokenAmount(
-          positionDelta < 0n ? -positionDelta : positionDelta
-        )} ${position.assetSymbol}`;
+      : positionDelta === 0n
+        ? `0 ${position.assetSymbol}`
+        : `+${formatTokenAmount(positionDelta)} ${position.assetSymbol}`;
 
   return (
     <Card padding="compact" className="sm:p-4">
@@ -123,6 +131,33 @@ function MyTrackedPositionCard({
   );
 }
 
+/** Displays unharvested yield for a single vault inline */
+function VaultUnharvestedYield({ vault }: { vault: GardenVault }) {
+  const { formatMessage } = useIntl();
+  const netDeposited = getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
+  const { preview, isLoading } = useVaultPreview({
+    vaultAddress: vault.vaultAddress,
+    userAddress: ZERO_ADDRESS as Address,
+    enabled: netDeposited > 0n,
+  });
+  const totalAssets = preview?.totalAssets ?? netDeposited;
+  const unharvested = totalAssets > netDeposited ? totalAssets - netDeposited : 0n;
+  const assetSymbol = getVaultAssetSymbol(vault.asset, vault.chainId);
+
+  if (isLoading || unharvested === 0n) return null;
+
+  return (
+    <div className="flex items-center justify-between rounded-md border border-success-light bg-success-lighter px-3 py-1.5 text-xs">
+      <span className="text-success-dark">
+        {formatMessage({ id: "app.endowments.unharvestedYield" })} ({assetSymbol})
+      </span>
+      <span className="font-medium tabular-nums text-success-dark">
+        +{formatTokenAmount(unharvested)} {assetSymbol}
+      </span>
+    </div>
+  );
+}
+
 export default function EndowmentsOverview() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
@@ -132,6 +167,8 @@ export default function EndowmentsOverview() {
   const { deposits: myDeposits, isLoading: myDepositsLoading } = useMyVaultDeposits(userAddress, {
     enabled: Boolean(userAddress),
   });
+
+  const { summary: yieldSummary, isLoading: yieldLoading } = useProtocolYieldSummary();
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -304,7 +341,7 @@ export default function EndowmentsOverview() {
       />
 
       <div className="mt-6 space-y-6 px-4 sm:px-6">
-        <section className="stagger-children grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <section className="stagger-children grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard
             icon={<RiMoneyDollarCircleLine className="h-5 w-5" />}
             label={formatMessage({ id: "app.treasury.totalValueLocked" })}
@@ -318,10 +355,22 @@ export default function EndowmentsOverview() {
             colorScheme="info"
           />
           <StatCard
+            icon={<RiPieChart2Line className="h-5 w-5" />}
+            label={formatMessage({ id: "app.yield.totalAllocated" })}
+            value={yieldLoading ? "--" : formatTokenAmount(yieldSummary.totalYield)}
+            colorScheme="success"
+          />
+          <StatCard
             icon={<RiLeafLine className="h-5 w-5" />}
             label={formatMessage({ id: "app.treasury.totalHarvests" })}
             value={totalHarvests}
             colorScheme="success"
+          />
+          <StatCard
+            icon={<RiPieChart2Line className="h-5 w-5" />}
+            label={formatMessage({ id: "app.yield.allocationCount" })}
+            value={yieldLoading ? "--" : yieldSummary.allocationCount}
+            colorScheme="info"
           />
           <StatCard
             icon={<RiPlantLine className="h-5 w-5" />}
@@ -330,6 +379,40 @@ export default function EndowmentsOverview() {
             colorScheme="warning"
           />
         </section>
+
+        {!yieldLoading && yieldSummary.allocationCount > 0 && (
+          <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+            <h2 className="font-heading text-lg font-semibold text-text-strong">
+              {formatMessage({ id: "app.yield.protocolBreakdown" })}
+            </h2>
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              <div className="rounded-lg bg-bg-weak p-3 text-center">
+                <p className="label-xs text-text-soft">
+                  {formatMessage({ id: "app.yield.cumulativeCookieJar" })}
+                </p>
+                <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
+                  {formatTokenAmount(yieldSummary.totalCookieJar)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-bg-weak p-3 text-center">
+                <p className="label-xs text-text-soft">
+                  {formatMessage({ id: "app.yield.cumulativeFractions" })}
+                </p>
+                <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
+                  {formatTokenAmount(yieldSummary.totalFractions)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-bg-weak p-3 text-center">
+                <p className="label-xs text-text-soft">
+                  {formatMessage({ id: "app.yield.cumulativeJuicebox" })}
+                </p>
+                <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
+                  {formatTokenAmount(yieldSummary.totalJuicebox)}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="space-y-3 rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
           <div className="flex items-start justify-between gap-3">
@@ -521,6 +604,16 @@ export default function EndowmentsOverview() {
                       </div>
                     ))}
                 </div>
+
+                {item.vaults.some(
+                  (v) => getNetDeposited(v.totalDeposited, v.totalWithdrawn) > 0n
+                ) && (
+                  <div className="mt-1 space-y-1">
+                    {item.vaults.map((vault) => (
+                      <VaultUnharvestedYield key={`yield-${vault.id}`} vault={vault} />
+                    ))}
+                  </div>
+                )}
 
                 <div className="mt-4 flex items-center justify-between">
                   <p className="text-xs text-text-soft">

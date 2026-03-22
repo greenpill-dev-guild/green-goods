@@ -2126,5 +2126,14 @@
   "app.yield.splitSummary": "División de rendimiento: {cookieJar}% Cookie Jar, {fractions}% Fracciones, {juicebox}% Juicebox",
   "app.yield.threshold": "Umbral mínimo: {amount}",
   "app.yield.title": "Asignación de rendimiento",
-  "app.yield.viewAll": "Ver todas las asignaciones"
+  "app.yield.viewAll": "Ver todas las asignaciones",
+  "app.yield.totalAllocated": "Rendimiento total asignado",
+  "app.yield.allocationCount": "Asignaciones de rendimiento",
+  "app.yield.protocolBreakdown": "Desglose de rendimiento del protocolo",
+  "app.yield.cumulativeCookieJar": "Total a Cookie Jars",
+  "app.yield.cumulativeFractions": "Total a fracciones",
+  "app.yield.cumulativeJuicebox": "Total a respaldo de GOODS",
+  "app.yield.accruing": "(acumulando)",
+  "app.yield.gardenCumulativeTotal": "Rendimiento total asignado",
+  "app.endowments.unharvestedYield": "Rendimiento sin cosechar"
 }
