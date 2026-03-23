@@ -303,6 +303,11 @@ export {
   submitWorkWithPasskey,
 } from "./work/passkey-submission";
 // ============================================================================
+// WORK / WALLET SUBMISSION
+// ============================================================================
+export type { WalletSubmissionOptions } from "./work/wallet-submission";
+export { submitWorkDirectly } from "./work/wallet-submission";
+// ============================================================================
 // WORK / WORK SUBMISSION
 // ============================================================================
 export {

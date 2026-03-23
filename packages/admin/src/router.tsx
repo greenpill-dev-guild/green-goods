@@ -139,6 +139,12 @@ export const router = createRouter([
                     }),
                   },
                   {
+                    path: "gardens/:id/submit-work",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/SubmitWork")).default,
+                    }),
+                  },
+                  {
                     path: "gardens/:id/assessments/create",
                     lazy: async () => ({
                       Component: (await import("@/views/Gardens/Garden/CreateAssessment")).default,

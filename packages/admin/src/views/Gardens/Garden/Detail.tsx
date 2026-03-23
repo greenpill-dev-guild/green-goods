@@ -21,6 +21,7 @@ import {
   RiFileList3Line,
   RiGroupLine,
   RiShieldCheckLine,
+  RiUploadCloudLine,
   RiUserLine,
 } from "@remixicon/react";
 import { useCallback, useEffect, useState } from "react";
@@ -324,7 +325,19 @@ export default function GardenDetail() {
     ),
     work: (
       <div className="flex items-center gap-1.5">
-        <Button size="sm" onClick={() => openSection("work", "queue")}>
+        {canManage && (
+          <Button size="sm" asChild>
+            <Link to={`/gardens/${gardenId}/submit-work`}>
+              <RiUploadCloudLine className="h-4 w-4" />
+              {formatMessage({ id: "app.admin.work.submitWork" })}
+            </Link>
+          </Button>
+        )}
+        <Button
+          size="sm"
+          variant={canManage ? "secondary" : "primary"}
+          onClick={() => openSection("work", "queue")}
+        >
           {formatMessage({ id: "app.garden.detail.action.reviewPending" })}
         </Button>
         <Button size="sm" variant="secondary" onClick={() => openSection("work", "decisions")}>

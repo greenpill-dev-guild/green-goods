@@ -416,6 +416,8 @@ export type {
   TransactionSenderOptions,
   TxResult,
   VariablesOf,
+  // Wallet submission types
+  WalletSubmissionOptions,
 } from "./modules/index";
 export {
   type AssessmentMetadataPrefill,
@@ -464,6 +466,8 @@ export {
   uploadFileToIPFS,
   uploadJSONToIPFS,
   useJobQueueEvents,
+  // Wallet submission
+  submitWorkDirectly,
   // Transaction senders
   createTransactionSender,
   EmbeddedSender,
@@ -756,6 +760,8 @@ export {
   filterByTimeRange,
   // Action utilities
   findActionByUID,
+  getActionTitle,
+  parseActionUID,
   formatAddress,
   formatDate,
   formatDateRange,
