@@ -1,4 +1,11 @@
-import { cn, useAuth, useRole, useUIStore } from "@green-goods/shared";
+import {
+  cn,
+  useAuth,
+  useGardens,
+  usePlatformStats,
+  useRole,
+  useUIStore,
+} from "@green-goods/shared";
 import {
   RiDashboardLine,
   RiFileList3Line,
@@ -9,16 +16,28 @@ import {
   RiSettings3Line,
   RiUploadLine,
 } from "@remixicon/react";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 
-const navigation = [
+interface NavItem {
+  name: string;
+  nameId: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  roles: string[];
+  group: "operations" | "finance" | "platform";
+  badgeKey?: string;
+}
+
+const navigation: NavItem[] = [
   {
     name: "Dashboard",
     nameId: "app.sidebar.dashboard",
     href: "/dashboard",
     icon: RiDashboardLine,
     roles: ["deployer", "operator", "user"],
+    group: "operations",
   },
   {
     name: "Gardens",
@@ -26,6 +45,8 @@ const navigation = [
     href: "/gardens",
     icon: RiPlantLine,
     roles: ["deployer", "operator", "user"],
+    group: "operations",
+    badgeKey: "pendingReviews",
   },
   {
     name: "Assessments",
@@ -33,6 +54,7 @@ const navigation = [
     href: "/assessments",
     icon: RiFileList3Line,
     roles: ["deployer", "operator", "user"],
+    group: "operations",
   },
   {
     name: "Actions",
@@ -40,6 +62,7 @@ const navigation = [
     href: "/actions",
     icon: RiHammerFill,
     roles: ["deployer", "operator", "user"],
+    group: "operations",
   },
   {
     name: "Endowments",
@@ -47,6 +70,7 @@ const navigation = [
     href: "/endowments",
     icon: RiSafe2Line,
     roles: ["deployer", "operator", "user"],
+    group: "finance",
   },
   {
     name: "Contracts",
@@ -54,6 +78,7 @@ const navigation = [
     href: "/contracts",
     icon: RiSettings3Line,
     roles: ["deployer"],
+    group: "platform",
   },
   {
     name: "Deployment",
@@ -61,8 +86,17 @@ const navigation = [
     href: "/deployment",
     icon: RiUploadLine,
     roles: ["deployer"],
+    group: "platform",
   },
 ];
+
+const GROUP_LABELS: Record<string, { id: string; defaultMessage: string }> = {
+  operations: { id: "admin.sidebar.group.operations", defaultMessage: "Operations" },
+  finance: { id: "admin.sidebar.group.finance", defaultMessage: "Finance" },
+  platform: { id: "admin.sidebar.group.platform", defaultMessage: "Platform" },
+};
+
+const GROUP_ORDER = ["operations", "finance", "platform"] as const;
 
 export function Sidebar() {
   const intl = useIntl();
@@ -72,6 +106,16 @@ export function Sidebar() {
   const { sidebarOpen, setSidebarOpen } = useUIStore();
 
   const filteredNavigation = navigation.filter((item) => item.roles.includes(role));
+
+  const { data: gardens = [] } = useGardens();
+  const gardenAddresses = useMemo(() => gardens.map((g) => g.id), [gardens]);
+  const { data: platformStats } = usePlatformStats(gardenAddresses);
+  const badges = useMemo(
+    () => ({
+      pendingReviews: platformStats?.pendingWorks ?? 0,
+    }),
+    [platformStats]
+  );
 
   return (
     <>
@@ -121,35 +165,55 @@ export function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
-            {filteredNavigation.map((item) => {
-              const isActive =
-                location.pathname === item.href ||
-                (item.href !== "/dashboard" && location.pathname.startsWith(item.href));
-
+          <nav className="flex-1 px-4 py-4 space-y-1">
+            {GROUP_ORDER.map((groupKey) => {
+              const groupItems = filteredNavigation.filter((item) => item.group === groupKey);
+              if (groupItems.length === 0) return null;
               return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                    isActive
-                      ? "bg-primary-alpha-10 text-primary-dark"
-                      : "text-text-sub hover:bg-bg-weak hover:text-text-strong"
-                  )}
-                >
-                  <item.icon className="mr-3 h-5 w-5" />
-                  {item.nameId
-                    ? intl.formatMessage({ id: item.nameId, defaultMessage: item.name })
-                    : item.name}
-                </Link>
+                <div key={groupKey}>
+                  <div className="px-3 pt-3 pb-1.5 first:pt-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-text-soft">
+                      {intl.formatMessage(GROUP_LABELS[groupKey])}
+                    </span>
+                  </div>
+                  {groupItems.map((item) => {
+                    const isActive =
+                      location.pathname === item.href ||
+                      (item.href !== "/dashboard" && location.pathname.startsWith(item.href));
+                    const badgeCount = item.badgeKey
+                      ? badges[item.badgeKey as keyof typeof badges]
+                      : 0;
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={cn(
+                          "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                          isActive
+                            ? "bg-primary-alpha-10 text-primary-dark"
+                            : "text-text-sub hover:bg-bg-weak hover:text-text-strong"
+                        )}
+                      >
+                        <item.icon className="mr-3 h-5 w-5" />
+                        {item.nameId
+                          ? intl.formatMessage({ id: item.nameId, defaultMessage: item.name })
+                          : item.name}
+                        {badgeCount > 0 && (
+                          <span className="ml-auto rounded-full bg-warning-lighter px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-warning-dark">
+                            {badgeCount}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
               );
             })}
           </nav>
 
-          {/* Footer - Keep sign out for mobile, but main sign out is now in UserProfile */}
-          <div className="p-4 border-t border-stroke-soft lg:hidden">
+          {/* Footer */}
+          <div className="p-4 border-t border-stroke-soft">
             <button
               onClick={() => signOut?.()}
               className="flex items-center w-full px-3 py-2 text-sm font-medium text-text-sub rounded-md hover:bg-bg-weak hover:text-text-strong transition-colors"
@@ -157,6 +221,7 @@ export function Sidebar() {
               <RiLogoutBoxLine className="mr-3 h-5 w-5" />
               Sign Out
             </button>
+            <span className="block px-3 pt-1 text-xs text-text-soft capitalize">{role}</span>
           </div>
         </div>
       </div>

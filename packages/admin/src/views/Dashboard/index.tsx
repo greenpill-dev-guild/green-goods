@@ -10,7 +10,7 @@ import {
 import { useIsRestoring } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { GardenSummaryList } from "@/components/Dashboard/GardenSummaryList";
 import { RecentActivitySection } from "@/components/Dashboard/RecentActivitySection";
 import { PageHeader } from "@/components/Layout/PageHeader";
@@ -56,6 +56,7 @@ function useDashboardHeader(intl: ReturnType<typeof useIntl>, role: string, gard
 
 export default function Dashboard() {
   const intl = useIntl();
+  const navigate = useNavigate();
   const isRestoring = useIsRestoring();
   const { role, operatorGardens } = useRole();
   const { data: gardens = [], isLoading, error } = useGardens();
@@ -219,6 +220,7 @@ export default function Dashboard() {
           }
           value={role === "operator" ? stats.userOperatorGardens : stats.totalGardens}
           colorScheme="success"
+          to="/gardens"
         />
 
         {(role === "deployer" || role === "operator") && (
@@ -241,6 +243,7 @@ export default function Dashboard() {
               })}
               value={stats.activeActions}
               colorScheme="warning"
+              to="/actions"
             />
 
             <StatCard
@@ -261,6 +264,7 @@ export default function Dashboard() {
               })}
               value={platformStats?.pendingWorks ?? "—"}
               colorScheme="warning"
+              to="/gardens?scope=mine"
             />
 
             <StatCard
@@ -271,6 +275,7 @@ export default function Dashboard() {
               })}
               value={platformStats?.totalAssessments ?? "—"}
               colorScheme="success"
+              to="/assessments"
             />
           </>
         )}
@@ -289,6 +294,17 @@ export default function Dashboard() {
               id: "admin.dashboard.noGardens.description",
               defaultMessage: "Gardens will appear here once created.",
             })}
+            action={
+              role === "deployer"
+                ? {
+                    label: intl.formatMessage({
+                      id: "admin.dashboard.noGardens.cta.create",
+                      defaultMessage: "Create Garden",
+                    }),
+                    onClick: () => navigate("/gardens/create"),
+                  }
+                : undefined
+            }
           />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

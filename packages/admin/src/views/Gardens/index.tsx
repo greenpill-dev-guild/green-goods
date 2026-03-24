@@ -1,6 +1,8 @@
 import {
   GardenBannerFallback,
+  type GardenFilterScope,
   type GardenFiltersState,
+  type GardenSortOrder,
   ImageWithFallback,
   useAuth,
   useDeploymentRegistry,
@@ -8,9 +10,11 @@ import {
   useGardenPermissions,
   useGardens,
   useOpenMinting,
+  usePlatformStats,
+  useUrlFilters,
 } from "@green-goods/shared";
 import { RiGroupLine, RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { CreateGardenAction } from "@/components/Garden/CreateGardenAction";
@@ -44,6 +48,12 @@ function GardenCardBanner({
   );
 }
 
+const GARDEN_FILTER_DEFAULTS: Record<string, string | undefined> = {
+  scope: "all",
+  sort: "default",
+  search: undefined,
+};
+
 export default function Gardens() {
   const intl = useIntl();
   const { eoaAddress } = useAuth();
@@ -51,7 +61,31 @@ export default function Gardens() {
   const { data: isOpenMinting, isLoading: openMintingLoading } = useOpenMinting();
   const gardenPermissions = useGardenPermissions();
   const { data: gardens = [], isLoading, error } = useGardens();
-  const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
+
+  const gardenAddresses = useMemo(() => gardens.map((g) => g.id), [gardens]);
+  const { data: platformStats } = usePlatformStats(gardenAddresses);
+
+  const pendingByGarden = useMemo(() => {
+    if (!platformStats?.works || !platformStats?.workApprovals) return new Map<string, number>();
+    const approvedWorkIds = new Set(
+      platformStats.workApprovals.filter((a) => a.approved).map((a) => a.workUID)
+    );
+    const map = new Map<string, number>();
+    for (const work of platformStats.works) {
+      if (!approvedWorkIds.has(work.id)) {
+        const key = work.gardenAddress.toLowerCase();
+        map.set(key, (map.get(key) ?? 0) + 1);
+      }
+    }
+    return map;
+  }, [platformStats]);
+
+  const { filters: urlFilters, setFilter, resetFilters } = useUrlFilters(GARDEN_FILTER_DEFAULTS);
+  const filters: GardenFiltersState = {
+    scope: (urlFilters.scope as GardenFilterScope) ?? "all",
+    sort: (urlFilters.sort as GardenSortOrder) ?? "default",
+    search: urlFilters.search,
+  };
 
   const { filteredGardens, myGardensCount } = useFilteredGardens(
     gardens,
@@ -102,8 +136,6 @@ export default function Gardens() {
     id: "admin.gardens.createGarden.noPermission",
   });
 
-  const resetFilters = () => setFilters({ scope: "all", sort: "default" });
-
   const showToolbar = !isLoading && !errorMessage && gardens.length > 0;
 
   return (
@@ -124,9 +156,7 @@ export default function Gardens() {
           showToolbar ? (
             <ListToolbar
               search={filters.search ?? ""}
-              onSearchChange={(value) =>
-                setFilters((prev) => ({ ...prev, search: value || undefined }))
-              }
+              onSearchChange={(value) => setFilter("search", value || undefined)}
               searchPlaceholder={intl.formatMessage({
                 id: "admin.gardens.searchPlaceholder",
                 defaultMessage: "Search gardens...",
@@ -135,7 +165,7 @@ export default function Gardens() {
               {eoaAddress && (
                 <SortSelect
                   value={filters.scope}
-                  onChange={(value) => setFilters((prev) => ({ ...prev, scope: value }))}
+                  onChange={(value) => setFilter("scope", value)}
                   options={scopeOptions}
                   aria-label={intl.formatMessage({
                     id: "admin.gardens.filterScope",
@@ -145,7 +175,7 @@ export default function Gardens() {
               )}
               <SortSelect
                 value={filters.sort}
-                onChange={(value) => setFilters((prev) => ({ ...prev, sort: value }))}
+                onChange={(value) => setFilter("sort", value)}
                 options={sortOptions}
               />
             </ListToolbar>
@@ -229,6 +259,17 @@ export default function Gardens() {
                   className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md hover:border-primary-base"
                 >
                   <GardenCardBanner name={garden.name} bannerImage={garden.bannerImage}>
+                    {(() => {
+                      const pending = pendingByGarden.get(garden.id.toLowerCase()) ?? 0;
+                      return pending > 0 && gardenPermissions.canManageGarden(garden) ? (
+                        <span className="absolute top-2 left-2 z-[2] rounded-full bg-warning-lighter px-2 py-0.5 text-xs font-semibold text-warning-dark shadow-sm">
+                          {intl.formatMessage(
+                            { id: "admin.gardens.pendingBadge", defaultMessage: "{count} pending" },
+                            { count: pending }
+                          )}
+                        </span>
+                      ) : null;
+                    })()}
                     {canManage && (
                       <div className="absolute top-2 right-2 z-[2] flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark">
                         <RiShieldCheckLine className="mr-1 h-3 w-3" />

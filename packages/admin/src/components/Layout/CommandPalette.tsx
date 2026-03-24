@@ -1,9 +1,22 @@
-import { cn, DEFAULT_CHAIN_ID, useActions, useGardens } from "@green-goods/shared";
+import {
+  cn,
+  DEFAULT_CHAIN_ID,
+  useActions,
+  useAllAssessments,
+  useGardens,
+  useRole,
+  type UserRole,
+} from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   RiArrowDownLine,
   RiArrowUpLine,
   RiCornerDownLeftLine,
+  RiDashboardLine,
+  RiFileList3Line,
+  RiFlashlightLine,
+  RiHammerFill,
+  RiPlantLine,
   RiSearchLine,
 } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,8 +27,20 @@ interface SearchResult {
   id: string;
   label: string;
   href: string;
-  category: "pages" | "gardens" | "actions";
+  category: "quick-actions" | "pages" | "gardens" | "actions" | "assessments";
+  subtitle?: string;
 }
+
+const CATEGORY_ICONS: Record<
+  SearchResult["category"],
+  React.ComponentType<{ className?: string }>
+> = {
+  "quick-actions": RiFlashlightLine,
+  pages: RiDashboardLine,
+  gardens: RiPlantLine,
+  actions: RiHammerFill,
+  assessments: RiFileList3Line,
+};
 
 const STATIC_ROUTES: { id: string; labelId: string; defaultLabel: string; href: string }[] = [
   {
@@ -76,6 +101,8 @@ export function CommandPalette() {
   const { formatMessage } = useIntl();
   const { data: gardens } = useGardens();
   const { data: actions } = useActions(DEFAULT_CHAIN_ID);
+  const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
+  const { role } = useRole();
 
   // Global keyboard shortcut: Cmd+K / Ctrl+K
   useEffect(() => {
@@ -95,6 +122,41 @@ export function CommandPalette() {
     const lowerQuery = debouncedQuery.toLowerCase().trim();
     const items: SearchResult[] = [];
 
+    // Quick actions (role-gated)
+    const quickActions: Array<{ id: string; label: string; href: string; roles: UserRole[] }> = [
+      {
+        id: "quick-pending-reviews",
+        label: formatMessage({
+          id: "app.admin.nav.quickAction.pendingReviews",
+          defaultMessage: "Go to Pending Reviews",
+        }),
+        href: "/gardens?scope=mine",
+        roles: ["deployer", "operator"],
+      },
+      {
+        id: "quick-create-garden",
+        label: formatMessage({
+          id: "app.admin.nav.quickAction.createGarden",
+          defaultMessage: "Create Garden",
+        }),
+        href: "/gardens/create",
+        roles: ["deployer"],
+      },
+    ];
+
+    for (const qa of quickActions) {
+      if (qa.roles.includes(role)) {
+        if (!lowerQuery || qa.label.toLowerCase().includes(lowerQuery)) {
+          items.push({
+            id: qa.id,
+            label: qa.label,
+            href: qa.href,
+            category: "quick-actions",
+          });
+        }
+      }
+    }
+
     // Static pages
     for (const route of STATIC_ROUTES) {
       const label = formatMessage({ id: route.labelId, defaultMessage: route.defaultLabel });
@@ -112,6 +174,7 @@ export function CommandPalette() {
             label: garden.name,
             href: `/gardens/${garden.id}`,
             category: "gardens",
+            subtitle: garden.location || undefined,
           });
         }
       }
@@ -126,25 +189,54 @@ export function CommandPalette() {
             label: action.title,
             href: `/actions/${action.id}`,
             category: "actions",
+            subtitle: action.startTime
+              ? new Date(action.startTime * 1000).toLocaleDateString()
+              : undefined,
+          });
+        }
+      }
+    }
+
+    // Assessments
+    if (assessments) {
+      for (const assessment of assessments) {
+        const title = assessment.title || `Assessment ${assessment.id.slice(0, 8)}`;
+        if (!lowerQuery || title.toLowerCase().includes(lowerQuery)) {
+          // Resolve garden name for subtitle if possible
+          const gardenName = gardens?.find(
+            (g) => g.tokenAddress.toLowerCase() === assessment.gardenAddress.toLowerCase()
+          )?.name;
+          items.push({
+            id: `assessment-${assessment.id}`,
+            label: title,
+            href: "/assessments",
+            category: "assessments",
+            subtitle: gardenName ? gardenName : `Garden ${assessment.gardenAddress.slice(0, 8)}...`,
           });
         }
       }
     }
 
     return items;
-  }, [debouncedQuery, gardens, actions, formatMessage]);
+  }, [debouncedQuery, gardens, actions, assessments, role, formatMessage]);
 
   // Group results by category
   const grouped = useMemo(() => {
     const groups: { category: string; label: string; items: SearchResult[] }[] = [];
 
-    const categoryLabels: Record<string, { id: string; defaultMessage: string }> = {
-      pages: { id: "app.admin.nav.searchPages", defaultMessage: "Pages" },
-      gardens: { id: "app.admin.nav.searchGardens", defaultMessage: "Gardens" },
-      actions: { id: "app.admin.nav.searchActions", defaultMessage: "Actions" },
-    };
+    const categoryLabels: Record<SearchResult["category"], { id: string; defaultMessage: string }> =
+      {
+        "quick-actions": {
+          id: "app.admin.nav.searchQuickActions",
+          defaultMessage: "Quick Actions",
+        },
+        pages: { id: "app.admin.nav.searchPages", defaultMessage: "Pages" },
+        gardens: { id: "app.admin.nav.searchGardens", defaultMessage: "Gardens" },
+        actions: { id: "app.admin.nav.searchActions", defaultMessage: "Actions" },
+        assessments: { id: "app.admin.nav.searchAssessments", defaultMessage: "Assessments" },
+      };
 
-    for (const cat of ["pages", "gardens", "actions"] as const) {
+    for (const cat of ["quick-actions", "pages", "gardens", "actions", "assessments"] as const) {
       const items = results.filter((r) => r.category === cat);
       if (items.length > 0) {
         groups.push({
@@ -275,6 +367,7 @@ export function CommandPalette() {
                     {group.items.map((result) => {
                       const index = flatIndex++;
                       const isActive = index === activeIndex;
+                      const Icon = CATEGORY_ICONS[result.category];
                       return (
                         <button
                           key={result.id}
@@ -290,7 +383,15 @@ export function CommandPalette() {
                               : "text-text-sub hover:bg-bg-weak"
                           )}
                         >
-                          {result.label}
+                          {Icon && <Icon className="h-4 w-4 mr-2 flex-shrink-0 text-text-soft" />}
+                          <div className="min-w-0 flex-1">
+                            <span className="truncate">{result.label}</span>
+                            {result.subtitle && (
+                              <span className="block truncate text-xs text-text-soft">
+                                {result.subtitle}
+                              </span>
+                            )}
+                          </div>
                         </button>
                       );
                     })}

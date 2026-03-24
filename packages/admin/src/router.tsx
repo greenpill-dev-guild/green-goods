@@ -7,12 +7,12 @@ const createRouter =
   import.meta.env.VITE_USE_HASH_ROUTER === "true" ? createHashRouter : createBrowserRouter;
 
 // Root redirect component - prevents "empty page" warning
-const RootRedirect = () => <Navigate to="/endowments" replace />;
+const RootRedirect = () => <Navigate to="/dashboard" replace />;
 
 // Login redirect - preserves redirectTo param for bookmarked /login URLs
 const LoginRedirect = () => {
   const location = useLocation();
-  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/endowments";
+  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/dashboard";
   return <Navigate to={redirectTo} replace />;
 };
 

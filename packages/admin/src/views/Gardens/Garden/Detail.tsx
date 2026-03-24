@@ -398,15 +398,14 @@ export default function GardenDetail() {
               <TabBadge badge={derived.tabBadges.community} />
             </Tabs.Trigger>
           </Tabs.List>
-          <div className="garden-tab-bar-actions hidden sm:flex">{tabActions[activeTab]}</div>
         </div>
       </GardenHeroBanner>
 
       <div className="px-4 sm:px-6">
-        {/* Mobile-only tab actions (below tab bar, visible on small screens) */}
-        <div className="flex items-center gap-1.5 pt-3 empty:hidden sm:hidden">
-          {tabActions[activeTab]}
-        </div>
+        {/* Tab actions — unified bar below tabs on all screen sizes */}
+        {tabActions[activeTab] && (
+          <div className="flex items-center gap-1.5 pt-3 pb-1">{tabActions[activeTab]}</div>
+        )}
 
         <Tabs.Content
           value="overview"

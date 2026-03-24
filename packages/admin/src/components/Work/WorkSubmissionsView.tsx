@@ -15,6 +15,7 @@ import { WorkCard } from "./WorkCard";
 interface WorkSubmissionsViewProps {
   gardenId: string;
   canManage?: boolean;
+  canReview?: boolean;
   works?: Work[];
   isLoading?: boolean;
   isRefreshing?: boolean;
@@ -29,6 +30,7 @@ type FilterType = "all" | "pending" | "approved" | "rejected";
 export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({
   gardenId,
   canManage,
+  canReview,
   works: worksProp,
   isLoading: isLoadingProp,
   isRefreshing: isRefreshingProp,
@@ -209,7 +211,7 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({
                   highlightWorkId === work.id && "ring-1 ring-primary-base shadow-sm"
                 )}
               >
-                <WorkCard work={work} />
+                <WorkCard work={work} canReview={canReview} />
               </div>
             ))}
           </div>

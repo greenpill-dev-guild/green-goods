@@ -9,6 +9,7 @@ import {
   useAdminStore,
   useAllAssessments,
   useGardens,
+  useUrlFilters,
 } from "@green-goods/shared";
 import {
   RiCalendarLine,
@@ -17,8 +18,9 @@ import {
   RiMapPinLine,
   RiPlantLine,
 } from "@remixicon/react";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -46,6 +48,12 @@ function getDomainLabel(domain: number): string {
   return label.charAt(0) + label.slice(1).toLowerCase();
 }
 
+const ASSESSMENT_FILTER_DEFAULTS: Record<string, string | undefined> = {
+  search: undefined,
+  gardenFilter: "all",
+  sort: "date",
+};
+
 export default function Assessments() {
   const intl = useIntl();
   const selectedChainId = useAdminStore((state) => state.selectedChainId);
@@ -67,9 +75,15 @@ export default function Assessments() {
 
   const isLoading = assessmentsLoading || gardensLoading;
 
-  const [search, setSearch] = useState("");
-  const [gardenFilter, setGardenFilter] = useState("all");
-  const [sort, setSort] = useState<SortOrder>("date");
+  const navigate = useNavigate();
+  const {
+    filters: urlFilters,
+    setFilter,
+    resetFilters,
+  } = useUrlFilters(ASSESSMENT_FILTER_DEFAULTS);
+  const search = urlFilters.search ?? "";
+  const gardenFilter = urlFilters.gardenFilter ?? "all";
+  const sort = (urlFilters.sort ?? "date") as SortOrder;
 
   // Build garden options from assessments that have gardens
   const gardenOptions = useMemo(() => {
@@ -133,11 +147,6 @@ export default function Assessments() {
 
   const hasFiltersApplied = search.trim() !== "" || gardenFilter !== "all";
 
-  const resetFilters = () => {
-    setSearch("");
-    setGardenFilter("all");
-  };
-
   const showToolbar = !isLoading && !assessmentsError && assessments.length > 0;
 
   let content: ReactNode;
@@ -164,6 +173,13 @@ export default function Assessments() {
         icon={<RiFileList3Line className="h-6 w-6" />}
         title={intl.formatMessage({ id: "admin.assessments.empty.title" })}
         description={intl.formatMessage({ id: "admin.assessments.empty.description" })}
+        action={{
+          label: intl.formatMessage({
+            id: "admin.assessments.empty.cta",
+            defaultMessage: "Browse gardens",
+          }),
+          onClick: () => navigate("/gardens"),
+        }}
       />
     );
   } else if (filteredAssessments.length === 0 && hasFiltersApplied) {
@@ -205,20 +221,24 @@ export default function Assessments() {
           showToolbar ? (
             <ListToolbar
               search={search}
-              onSearchChange={setSearch}
+              onSearchChange={(value) => setFilter("search", value || undefined)}
               searchPlaceholder={intl.formatMessage({
                 id: "admin.assessments.searchPlaceholder",
               })}
             >
               <SortSelect
                 value={gardenFilter}
-                onChange={setGardenFilter}
+                onChange={(value) => setFilter("gardenFilter", value)}
                 options={gardenOptions}
                 aria-label={intl.formatMessage({
                   id: "admin.assessments.filterGarden",
                 })}
               />
-              <SortSelect value={sort} onChange={setSort} options={sortOptions} />
+              <SortSelect
+                value={sort}
+                onChange={(value) => setFilter("sort", value)}
+                options={sortOptions}
+              />
             </ListToolbar>
           ) : undefined
         }

@@ -233,6 +233,7 @@ export {
   useBatchWorkSync,
   useBeforeUnloadWhilePending,
   useBrowserNavigation,
+  useUrlFilters,
   useCancelListing,
   useCarousel,
   useEnableAutoAllocate,

@@ -235,53 +235,70 @@ export function OverviewTab({
                     title={formatMessage({ id: "app.garden.detail.activity.empty" })}
                   />
                 ) : (
-                  <div className="space-y-3">
-                    {filteredActivityEvents
-                      .slice(0, section === "activity" ? 14 : 8)
-                      .map((event) => (
-                        <div
-                          key={event.id}
-                          className={`rounded-lg border border-stroke-soft bg-bg-weak p-3 ${
-                            selectedItem && event.itemId === selectedItem
-                              ? "ring-1 ring-primary-base"
-                              : ""
-                          }`}
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <p
-                                className="truncate text-sm font-medium text-text-strong"
-                                title={event.title}
-                              >
-                                {event.title}
-                              </p>
-                              <p className="mt-1 max-w-prose text-xs text-text-soft">
-                                {event.description}
-                              </p>
+                  <>
+                    <div className="space-y-3">
+                      {filteredActivityEvents
+                        .slice(0, section === "activity" ? 14 : 8)
+                        .map((event) => (
+                          <div
+                            key={event.id}
+                            className={`rounded-lg border border-stroke-soft bg-bg-weak p-3 ${
+                              selectedItem && event.itemId === selectedItem
+                                ? "ring-1 ring-primary-base"
+                                : ""
+                            }`}
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className="truncate text-sm font-medium text-text-strong"
+                                  title={event.title}
+                                >
+                                  {event.title}
+                                </p>
+                                <p className="mt-1 max-w-prose text-xs text-text-soft">
+                                  {event.description}
+                                </p>
+                              </div>
+                              <span className="text-xs text-text-soft">
+                                {formatRelativeTime(event.timestamp)}
+                              </span>
                             </div>
-                            <span className="text-xs text-text-soft">
-                              {formatRelativeTime(event.timestamp)}
-                            </span>
+                            {event.href ? (
+                              <div className="mt-2">
+                                <Link
+                                  to={event.href}
+                                  onClick={() => {
+                                    if (event.category === "work") {
+                                      openSection("work", "queue", event.itemId);
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
+                                >
+                                  {formatMessage({ id: "app.garden.detail.activity.view" })}
+                                  <RiArrowRightSLine className="h-4 w-4" />
+                                </Link>
+                              </div>
+                            ) : null}
                           </div>
-                          {event.href ? (
-                            <div className="mt-2">
-                              <Link
-                                to={event.href}
-                                onClick={() => {
-                                  if (event.category === "work") {
-                                    openSection("work", "queue", event.itemId);
-                                  }
-                                }}
-                                className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
-                              >
-                                {formatMessage({ id: "app.garden.detail.activity.view" })}
-                                <RiArrowRightSLine className="h-4 w-4" />
-                              </Link>
-                            </div>
-                          ) : null}
-                        </div>
-                      ))}
-                  </div>
+                        ))}
+                    </div>
+                    {filteredActivityEvents.length > (section === "activity" ? 14 : 8) && (
+                      <button
+                        type="button"
+                        onClick={() => openSection("overview", "activity")}
+                        className="mt-3 w-full text-center text-xs font-medium text-primary-base hover:text-primary-darker transition-colors"
+                      >
+                        {formatMessage(
+                          {
+                            id: "app.garden.detail.activity.viewAll",
+                            defaultMessage: "View all {count} activities",
+                          },
+                          { count: filteredActivityEvents.length }
+                        )}
+                      </button>
+                    )}
+                  </>
                 )}
               </Card.Body>
             </Card>
@@ -327,9 +344,9 @@ export function OverviewTab({
                 <button
                   type="button"
                   onClick={() => setTab("work")}
-                  className="garden-stat-row w-full"
+                  className="garden-stat-row group w-full"
                 >
-                  <span className="garden-stat-row-label">
+                  <span className="garden-stat-row-label group-hover:underline">
                     {formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
                   </span>
                   <span className="inline-flex items-center gap-1">
@@ -340,9 +357,9 @@ export function OverviewTab({
                 <button
                   type="button"
                   onClick={() => setTab("impact")}
-                  className="garden-stat-row w-full"
+                  className="garden-stat-row group w-full"
                 >
-                  <span className="garden-stat-row-label">
+                  <span className="garden-stat-row-label group-hover:underline">
                     {formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
                   </span>
                   <span className="inline-flex items-center gap-1">
@@ -353,9 +370,9 @@ export function OverviewTab({
                 <button
                   type="button"
                   onClick={() => setTab("community")}
-                  className="garden-stat-row w-full"
+                  className="garden-stat-row group w-full"
                 >
-                  <span className="garden-stat-row-label">
+                  <span className="garden-stat-row-label group-hover:underline">
                     {formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
                   </span>
                   <span className="inline-flex items-center gap-1">
@@ -366,9 +383,9 @@ export function OverviewTab({
                 <button
                   type="button"
                   onClick={() => openSection("community", "treasury")}
-                  className="garden-stat-row w-full"
+                  className="garden-stat-row group w-full"
                 >
-                  <span className="garden-stat-row-label">
+                  <span className="garden-stat-row-label group-hover:underline">
                     {formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
                   </span>
                   <span className="inline-flex items-center gap-1">

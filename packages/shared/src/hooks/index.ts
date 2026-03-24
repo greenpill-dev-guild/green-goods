@@ -24,6 +24,7 @@ export { usePageView } from "./analytics/usePageView";
 // APP
 // ============================================================================
 export { useBrowserNavigation } from "./app/useBrowserNavigation";
+export { useUrlFilters } from "./app/useUrlFilters";
 // ============================================================================
 // UI
 // ============================================================================

@@ -157,6 +157,7 @@ export function WorkTab({
             <WorkSubmissionsView
               gardenId={garden.id}
               canManage={canReview}
+              canReview={canReview}
               works={works}
               isLoading={worksLoading}
               isRefreshing={worksFetching}

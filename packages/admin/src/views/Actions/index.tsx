@@ -1,6 +1,7 @@
 import {
   ActionBannerFallback,
   type ActionFiltersState,
+  type ActionSortOrder,
   cn,
   DEFAULT_CHAIN_ID,
   Domain,
@@ -9,6 +10,7 @@ import {
   useActions,
   useFilteredActions,
   useRole,
+  useUrlFilters,
 } from "@green-goods/shared";
 import {
   RiAddLine,
@@ -18,7 +20,6 @@ import {
   RiFileListLine,
   RiRefreshLine,
 } from "@remixicon/react";
-import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
@@ -72,24 +73,30 @@ const DOMAIN_TAGS: { value: Domain; labelId: string; activeClass: string }[] = [
   },
 ];
 
+const ACTION_FILTER_DEFAULTS: Record<string, string | undefined> = {
+  sort: "default",
+  domain: undefined,
+  search: undefined,
+};
+
 export default function Actions() {
   const intl = useIntl();
   const { role } = useRole();
   const { data: actions = [], isLoading, isFetching, refetch } = useActions(DEFAULT_CHAIN_ID);
   const canManageActions = role === "deployer";
-  const [filters, setFilters] = useState<ActionFiltersState>({ sort: "default" });
+  const { filters: urlFilters, setFilter, resetFilters } = useUrlFilters(ACTION_FILTER_DEFAULTS);
+  const filters: ActionFiltersState = {
+    sort: (urlFilters.sort as ActionSortOrder) ?? "default",
+    domain: urlFilters.domain ? (Number(urlFilters.domain) as Domain) : undefined,
+    search: urlFilters.search,
+  };
   const isRefreshing = isFetching && !isLoading;
 
   const { filteredActions } = useFilteredActions(actions, filters);
 
   const toggleDomain = (domain: Domain) => {
-    setFilters((prev) => ({
-      ...prev,
-      domain: prev.domain === domain ? undefined : domain,
-    }));
+    setFilter("domain", filters.domain === domain ? undefined : String(domain));
   };
-
-  const resetFilters = () => setFilters({ sort: "default" });
 
   const sortOptions = [
     {
@@ -153,9 +160,7 @@ export default function Actions() {
           showToolbar ? (
             <ListToolbar
               search={filters.search ?? ""}
-              onSearchChange={(value) =>
-                setFilters((prev) => ({ ...prev, search: value || undefined }))
-              }
+              onSearchChange={(value) => setFilter("search", value || undefined)}
               searchPlaceholder={intl.formatMessage({
                 id: "admin.actions.searchPlaceholder",
                 defaultMessage: "Search actions...",
@@ -163,7 +168,7 @@ export default function Actions() {
             >
               <SortSelect
                 value={filters.sort}
-                onChange={(value) => setFilters((prev) => ({ ...prev, sort: value }))}
+                onChange={(value) => setFilter("sort", value)}
                 options={sortOptions}
               />
               <div
