@@ -243,7 +243,7 @@ export function CommunityTab({
                       placeholder={formatMessage({
                         id: "app.garden.detail.community.memberSearch",
                       })}
-                      className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
+                      className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
                     />
                   </div>
 
@@ -269,7 +269,7 @@ export function CommunityTab({
                                     key={`${entry.address}-${role}`}
                                     type="button"
                                     onClick={() => openMembersModal(role)}
-                                    className="inline-flex items-center rounded-full bg-bg-soft px-2 py-0.5 text-[11px] font-medium text-text-sub hover:bg-bg-sub"
+                                    className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-0.5 text-[11px] font-medium text-primary-dark hover:bg-primary-light"
                                   >
                                     {label.singular}
                                   </button>
@@ -331,6 +331,12 @@ export function CommunityTab({
                 ) : null}
                 {allocationSplits ? (
                   <div className="space-y-1.5 border-t border-stroke-soft pt-2">
+                    <p className="text-[11px] text-text-soft mb-1.5">
+                      {formatMessage({
+                        id: "app.garden.detail.community.yieldAllocationHint",
+                        defaultMessage: "How yield is distributed",
+                      })}
+                    </p>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-text-sub">
                         {formatMessage({ id: "app.garden.detail.community.cookieJar" })}

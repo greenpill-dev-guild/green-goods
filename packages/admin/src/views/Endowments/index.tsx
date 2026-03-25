@@ -12,12 +12,12 @@ import {
   ImageWithFallback,
   isZeroAddress,
   useCurrentChain,
-  useDebouncedValue,
   useGardens,
   useGardenVaults,
   useMyVaultDeposits,
   useProtocolYieldSummary,
   useStrategyRate,
+  useUrlFilters,
   useUser,
   useVaultPreview,
   ZERO_ADDRESS,
@@ -31,7 +31,7 @@ import {
   RiPlantLine,
   RiSafe2Line,
 } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { ImpactFunders } from "@/components/Vault";
@@ -187,6 +187,11 @@ function VaultUnharvestedYield({ vault }: { vault: GardenVault }) {
   );
 }
 
+const ENDOWMENT_FILTER_DEFAULTS: Record<string, string | undefined> = {
+  search: undefined,
+  sort: "name",
+};
+
 export default function EndowmentsOverview() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
@@ -202,9 +207,9 @@ export default function EndowmentsOverview() {
   const contracts = getNetworkContracts(endowmentsChainId);
   const aavePool = AAVE_V3_POOL[endowmentsChainId];
 
-  const [search, setSearch] = useState("");
-  const debouncedSearch = useDebouncedValue(search, 300);
-  const [sortOrder, setSortOrder] = useState<EndowmentsSortOrder>("name");
+  const { filters: urlFilters, setFilter, resetFilters } = useUrlFilters(ENDOWMENT_FILTER_DEFAULTS);
+  const search = urlFilters.search ?? "";
+  const sortOrder = (urlFilters.sort ?? "name") as EndowmentsSortOrder;
 
   const grouped = useMemo(() => {
     const map = new Map<string, typeof vaults>();
@@ -236,8 +241,8 @@ export default function EndowmentsOverview() {
     let working = grouped;
 
     // Filter by search text
-    if (debouncedSearch) {
-      const term = debouncedSearch.toLowerCase();
+    if (search) {
+      const term = search.toLowerCase();
       working = working.filter(
         (item) =>
           (item.garden?.name || "").toLowerCase().includes(term) ||
@@ -254,14 +259,9 @@ export default function EndowmentsOverview() {
       });
     }
     return [...working].sort((a, b) => (a.garden?.name ?? "").localeCompare(b.garden?.name ?? ""));
-  }, [grouped, debouncedSearch, sortOrder]);
+  }, [grouped, search, sortOrder]);
 
-  const isFilterActive = !!debouncedSearch || sortOrder !== "name";
-
-  const resetFilters = () => {
-    setSearch("");
-    setSortOrder("name");
-  };
+  const isFilterActive = !!search || sortOrder !== "name";
 
   const tvlByAsset = useMemo(() => {
     let totalEth = 0n;
@@ -370,12 +370,12 @@ export default function EndowmentsOverview() {
           !isLoading && grouped.length > 0 ? (
             <ListToolbar
               search={search}
-              onSearchChange={setSearch}
+              onSearchChange={(value) => setFilter("search", value || undefined)}
               searchPlaceholder={formatMessage({ id: "app.treasury.searchPlaceholder" })}
             >
               <SortSelect
                 value={sortOrder}
-                onChange={setSortOrder}
+                onChange={(value) => setFilter("sort", value)}
                 options={sortOptions}
                 aria-label={formatMessage({ id: "app.home.filters.sortTitle" })}
               />
@@ -385,17 +385,17 @@ export default function EndowmentsOverview() {
       />
 
       <div className="mt-6 space-y-6 px-4 sm:px-6">
+        <h2 className="font-heading text-base font-semibold text-text-strong">
+          {formatMessage({
+            id: "app.endowments.section.overview",
+            defaultMessage: "Protocol Overview",
+          })}
+        </h2>
         <section className="stagger-children grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard
             icon={<RiMoneyDollarCircleLine className="h-5 w-5" />}
             label={formatMessage({ id: "app.treasury.totalValueLocked" })}
-            value={
-              <>
-                {formatTokenAmount(tvlByAsset.totalEth)} ETH
-                <br />
-                {formatTokenAmount(tvlByAsset.totalDai)} DAI
-              </>
-            }
+            value={`${formatTokenAmount(tvlByAsset.totalEth)} ETH · ${formatTokenAmount(tvlByAsset.totalDai)} DAI`}
             colorScheme="info"
           />
           <StatCard
@@ -506,6 +506,12 @@ export default function EndowmentsOverview() {
           </section>
         )}
 
+        <h2 className="font-heading text-base font-semibold text-text-strong">
+          {formatMessage({
+            id: "app.endowments.section.funders",
+            defaultMessage: "Impact Funders",
+          })}
+        </h2>
         <ImpactFunders />
 
         <section className="space-y-3 rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
@@ -517,8 +523,12 @@ export default function EndowmentsOverview() {
               <p className="text-sm text-text-sub">
                 {formatMessage({ id: "app.endowments.myPositions.description" })}
               </p>
-              <p className="mt-2 text-xs text-text-sub">
-                {formatMessage({ id: "app.endowments.myPositions.flatPpsHelper" })}
+              <p className="mt-2 text-xs text-text-soft">
+                {formatMessage({
+                  id: "app.endowments.myPositions.flatPpsHelper",
+                  defaultMessage:
+                    "Yield is generated through DeFi lending strategies. Values update in real time.",
+                })}
               </p>
             </div>
           </div>
@@ -633,101 +643,112 @@ export default function EndowmentsOverview() {
         )}
 
         {!isLoading && filteredGrouped.length > 0 && (
-          <section className="stagger-children grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {filteredGrouped.map((item) => (
-              <Card
-                key={item.gardenAddress}
-                padding="compact"
-                colorAccent="info"
-                className="sm:p-5"
-              >
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
-                    {item.garden?.bannerImage ? (
-                      <ImageWithFallback
-                        src={item.garden.bannerImage}
-                        alt={item.garden.name || "Garden"}
-                        className="h-10 w-10 object-cover rounded-lg"
-                        fallbackClassName="h-10 w-10 rounded-lg"
-                        fallbackIcon={RiPlantLine}
-                      />
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bg-soft text-text-sub">
-                        <span className="text-sm font-semibold">
-                          {(item.garden?.name ?? "G").charAt(0).toUpperCase()}
-                        </span>
-                      </div>
+          <>
+            <h2 className="font-heading text-base font-semibold text-text-strong">
+              {formatMessage({
+                id: "app.endowments.section.vaults",
+                defaultMessage: "Garden Vaults",
+              })}
+            </h2>
+            <section className="stagger-children grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {filteredGrouped.map((item) => (
+                <Card
+                  key={item.gardenAddress}
+                  padding="compact"
+                  colorAccent="info"
+                  className="sm:p-5"
+                >
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
+                      {item.garden?.bannerImage ? (
+                        <ImageWithFallback
+                          src={item.garden.bannerImage}
+                          alt={item.garden.name || "Garden"}
+                          className="h-10 w-10 object-cover rounded-lg"
+                          fallbackClassName="h-10 w-10 rounded-lg"
+                          fallbackIcon={RiPlantLine}
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bg-soft text-text-sub">
+                          <span className="text-sm font-semibold">
+                            {(item.garden?.name ?? "G").charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h2
+                        className="truncate font-heading text-base font-semibold text-text-strong sm:text-lg"
+                        title={item.garden?.name}
+                      >
+                        {item.garden?.name}
+                      </h2>
+                      <p className="truncate text-xs text-text-sub" title={item.garden?.location}>
+                        {item.garden?.location}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {[...item.vaults]
+                      .sort((a, b) => {
+                        const symA = getVaultAssetSymbol(a.asset, a.chainId).toUpperCase();
+                        const symB = getVaultAssetSymbol(b.asset, b.chainId).toUpperCase();
+                        // ETH/WETH first, then alphabetical
+                        if (symA === "WETH" || symA === "ETH") return -1;
+                        if (symB === "WETH" || symB === "ETH") return 1;
+                        return symA.localeCompare(symB);
+                      })
+                      .map((vault) => (
+                        <div
+                          key={vault.id}
+                          className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm"
+                        >
+                          <span className="font-medium text-text-sub">
+                            {getVaultAssetSymbol(vault.asset, vault.chainId)}
+                          </span>
+                          <span className="text-text-strong">
+                            {formatTokenAmount(
+                              getNetDeposited(vault.totalDeposited, vault.totalWithdrawn)
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+
+                  {item.vaults.some(
+                    (v) => getNetDeposited(v.totalDeposited, v.totalWithdrawn) > 0n
+                  ) && (
+                    <div className="mt-1 space-y-1">
+                      {item.vaults.map((vault) => (
+                        <VaultUnharvestedYield key={`yield-${vault.id}`} vault={vault} />
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <p className="text-xs text-text-soft">
+                      {formatMessage({ id: "app.treasury.harvestCount" })}: {item.harvestCount}
+                    </p>
+                    {item.garden && (
+                      <Button variant="secondary" size="sm" asChild>
+                        <Link
+                          to={`/gardens/${item.garden.id}/vault`}
+                          state={{
+                            returnTo: "/endowments",
+                            returnLabelId: "app.admin.nav.treasury",
+                          }}
+                        >
+                          {formatMessage({ id: "app.treasury.manageVault" })}
+                          <RiArrowRightLine className="h-4 w-4" />
+                        </Link>
+                      </Button>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <h2
-                      className="truncate font-heading text-base font-semibold text-text-strong sm:text-lg"
-                      title={item.garden?.name}
-                    >
-                      {item.garden?.name}
-                    </h2>
-                    <p className="truncate text-xs text-text-sub" title={item.garden?.location}>
-                      {item.garden?.location}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  {[...item.vaults]
-                    .sort((a, b) => {
-                      const symA = getVaultAssetSymbol(a.asset, a.chainId).toUpperCase();
-                      const symB = getVaultAssetSymbol(b.asset, b.chainId).toUpperCase();
-                      // ETH/WETH first, then alphabetical
-                      if (symA === "WETH" || symA === "ETH") return -1;
-                      if (symB === "WETH" || symB === "ETH") return 1;
-                      return symA.localeCompare(symB);
-                    })
-                    .map((vault) => (
-                      <div
-                        key={vault.id}
-                        className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm"
-                      >
-                        <span className="font-medium text-text-sub">
-                          {getVaultAssetSymbol(vault.asset, vault.chainId)}
-                        </span>
-                        <span className="text-text-strong">
-                          {formatTokenAmount(
-                            getNetDeposited(vault.totalDeposited, vault.totalWithdrawn)
-                          )}
-                        </span>
-                      </div>
-                    ))}
-                </div>
-
-                {item.vaults.some(
-                  (v) => getNetDeposited(v.totalDeposited, v.totalWithdrawn) > 0n
-                ) && (
-                  <div className="mt-1 space-y-1">
-                    {item.vaults.map((vault) => (
-                      <VaultUnharvestedYield key={`yield-${vault.id}`} vault={vault} />
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-4 flex items-center justify-between">
-                  <p className="text-xs text-text-soft">
-                    {formatMessage({ id: "app.treasury.harvestCount" })}: {item.harvestCount}
-                  </p>
-                  {item.garden && (
-                    <Button variant="secondary" size="sm" asChild>
-                      <Link
-                        to={`/gardens/${item.garden.id}/vault`}
-                        state={{ returnTo: "/endowments", returnLabelId: "app.admin.nav.treasury" }}
-                      >
-                        {formatMessage({ id: "app.treasury.manageVault" })}
-                        <RiArrowRightLine className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            ))}
-          </section>
+                </Card>
+              ))}
+            </section>
+          </>
         )}
       </div>
     </div>

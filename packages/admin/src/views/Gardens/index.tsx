@@ -13,7 +13,7 @@ import {
   usePlatformStats,
   useUrlFilters,
 } from "@green-goods/shared";
-import { RiGroupLine, RiPlantLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
+import { RiGroupLine, RiPlantLine, RiShieldCheckLine } from "@remixicon/react";
 import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -262,7 +262,7 @@ export default function Gardens() {
                     {(() => {
                       const pending = pendingByGarden.get(garden.id.toLowerCase()) ?? 0;
                       return pending > 0 && gardenPermissions.canManageGarden(garden) ? (
-                        <span className="absolute top-2 left-2 z-[2] rounded-full bg-warning-lighter px-2 py-0.5 text-xs font-semibold text-warning-dark shadow-sm">
+                        <span className="absolute top-2 left-2 z-[2] rounded-full bg-warning-lighter px-2 py-0.5 text-xs font-semibold text-warning-dark shadow-sm ring-1 ring-warning-light/50">
                           {intl.formatMessage(
                             { id: "admin.gardens.pendingBadge", defaultMessage: "{count} pending" },
                             { count: pending }
@@ -271,9 +271,12 @@ export default function Gardens() {
                       ) : null;
                     })()}
                     {canManage && (
-                      <div className="absolute top-2 right-2 z-[2] flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark">
+                      <div className="absolute top-2 right-2 z-[2] flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark shadow-sm ring-1 ring-success-light/50">
                         <RiShieldCheckLine className="mr-1 h-3 w-3" />
-                        Operator
+                        {intl.formatMessage({
+                          id: "admin.gardens.operatorBadge",
+                          defaultMessage: "Operator",
+                        })}
                       </div>
                     )}
                   </GardenCardBanner>
@@ -327,19 +330,6 @@ export default function Gardens() {
                           )}
                         </span>
                       </div>
-                      <div className="flex items-center">
-                        <RiUserLine className="mr-1 h-4 w-4" />
-                        <span>
-                          {intl.formatMessage(
-                            {
-                              id: "admin.gardens.operatorCount",
-                              defaultMessage:
-                                "{count, plural, one {# operator} other {# operators}}",
-                            },
-                            { count: garden.operators?.length ?? 0 }
-                          )}
-                        </span>
-                      </div>
                       {garden.openJoining && (
                         <span
                           className="inline-flex items-center text-xs text-success-dark"
@@ -350,7 +340,7 @@ export default function Gardens() {
                         >
                           {intl.formatMessage({
                             id: "admin.gardens.openJoining",
-                            defaultMessage: "Open",
+                            defaultMessage: "Open to join",
                           })}
                         </span>
                       )}

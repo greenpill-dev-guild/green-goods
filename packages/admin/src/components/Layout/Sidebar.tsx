@@ -172,7 +172,7 @@ export function Sidebar() {
               return (
                 <div key={groupKey}>
                   <div className="px-3 pt-3 pb-1.5 first:pt-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-text-soft">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-text-soft">
                       {intl.formatMessage(GROUP_LABELS[groupKey])}
                     </span>
                   </div>
@@ -213,15 +213,19 @@ export function Sidebar() {
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-stroke-soft">
+          <div className="p-4 border-t border-stroke-soft space-y-2">
+            <div className="px-3">
+              <span className="inline-flex items-center rounded-full bg-primary-lighter px-2.5 py-0.5 text-xs font-medium text-primary-dark capitalize">
+                {role}
+              </span>
+            </div>
             <button
               onClick={() => signOut?.()}
               className="flex items-center w-full px-3 py-2 text-sm font-medium text-text-sub rounded-md hover:bg-bg-weak hover:text-text-strong transition-colors"
             >
               <RiLogoutBoxLine className="mr-3 h-5 w-5" />
-              Sign Out
+              {intl.formatMessage({ id: "app.sidebar.signOut", defaultMessage: "Sign out" })}
             </button>
-            <span className="block px-3 pt-1 text-xs text-text-soft capitalize">{role}</span>
           </div>
         </div>
       </div>

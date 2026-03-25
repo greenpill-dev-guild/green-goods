@@ -232,7 +232,21 @@ export function OverviewTab({
                 {filteredActivityEvents.length === 0 ? (
                   <EmptyState
                     icon={<RiTimeLine className="h-6 w-6" />}
-                    title={formatMessage({ id: "app.garden.detail.activity.empty" })}
+                    title={
+                      activityFilter !== "all"
+                        ? formatMessage(
+                            {
+                              id: "app.garden.detail.activity.emptyFiltered",
+                              defaultMessage: "No {filter} activity in this period",
+                            },
+                            {
+                              filter: formatMessage({
+                                id: `app.garden.detail.activity.filter.${activityFilter}`,
+                              }),
+                            }
+                          )
+                        : formatMessage({ id: "app.garden.detail.activity.empty" })
+                    }
                   />
                 ) : (
                   <>

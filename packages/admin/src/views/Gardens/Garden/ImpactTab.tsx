@@ -199,23 +199,28 @@ export function ImpactTab({
                         key={assessment.id}
                         type="button"
                         onClick={() => openSection("impact", "assessments", assessment.id)}
-                        className={`w-full rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2 text-left hover:bg-bg-soft ${
+                        className={`group w-full rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2 text-left hover:bg-bg-soft ${
                           selectedItem && assessment.id === selectedItem
                             ? "ring-1 ring-primary-base"
                             : ""
                         }`}
                       >
-                        <p
-                          className="truncate text-sm font-medium text-text-strong"
-                          title={assessment.title || assessment.assessmentType || undefined}
-                        >
-                          {assessment.title ||
-                            assessment.assessmentType ||
-                            formatMessage({ id: "app.garden.admin.assessmentFallback" })}
-                        </p>
-                        <p className="mt-0.5 text-xs text-text-soft">
-                          {formatDate(assessment.createdAt, { dateStyle: "medium" })}
-                        </p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className="truncate text-sm font-medium text-text-strong"
+                              title={assessment.title || assessment.assessmentType || undefined}
+                            >
+                              {assessment.title ||
+                                assessment.assessmentType ||
+                                formatMessage({ id: "app.garden.admin.assessmentFallback" })}
+                            </p>
+                            <p className="mt-0.5 text-xs text-text-soft">
+                              {formatDate(assessment.createdAt, { dateStyle: "medium" })}
+                            </p>
+                          </div>
+                          <RiArrowRightSLine className="mt-0.5 h-4 w-4 flex-shrink-0 text-text-disabled transition-colors group-hover:text-text-sub" />
+                        </div>
                       </button>
                     ))}
                   </div>

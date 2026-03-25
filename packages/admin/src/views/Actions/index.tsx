@@ -12,14 +12,7 @@ import {
   useRole,
   useUrlFilters,
 } from "@green-goods/shared";
-import {
-  RiAddLine,
-  RiCalendarLine,
-  RiEditLine,
-  RiEyeLine,
-  RiFileListLine,
-  RiRefreshLine,
-} from "@remixicon/react";
+import { RiAddLine, RiCalendarLine, RiFileListLine, RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
@@ -150,7 +143,10 @@ export default function Actions() {
               <Button size="sm" asChild>
                 <Link to="/actions/create">
                   <RiAddLine className="mr-1.5 h-4 w-4" />
-                  Create Action
+                  {intl.formatMessage({
+                    id: "admin.actions.createAction",
+                    defaultMessage: "Create action",
+                  })}
                 </Link>
               </Button>
             )}
@@ -276,19 +272,22 @@ export default function Actions() {
                     className="text-sm text-text-sub mb-4 line-clamp-2"
                     title={action.description || undefined}
                   >
-                    {action.description || "No description"}
+                    {action.description ||
+                      intl.formatMessage({
+                        id: "admin.actions.noDescription",
+                        defaultMessage: "No description",
+                      })}
                   </p>
 
-                  <div className="flex items-center justify-between text-xs text-text-soft">
+                  <div className="flex items-center text-xs text-text-soft">
                     <div className="flex items-center gap-1">
-                      <RiCalendarLine className="h-4 w-4" />
-                      <span>
+                      <RiCalendarLine className="h-4 w-4 shrink-0" />
+                      <span
+                        className="truncate"
+                        title={`${formatDate(action.startTime)} - ${formatDate(action.endTime)}`}
+                      >
                         {formatDate(action.startTime)} - {formatDate(action.endTime)}
                       </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RiEyeLine className="h-4 w-4" />
-                      {canManageActions && <RiEditLine className="h-4 w-4" />}
                     </div>
                   </div>
                 </div>

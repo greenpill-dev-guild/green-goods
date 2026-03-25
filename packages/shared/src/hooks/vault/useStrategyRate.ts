@@ -36,14 +36,7 @@ export function useStrategyRate(assetAddress?: Address, options: UseStrategyRate
   const result = useMemo(() => {
     if (!query.data) return { apy: undefined, liquidityRate: undefined };
 
-    // getReserveData returns a tuple — access by index (2 = currentLiquidityRate)
-    const tupleData = query.data as readonly unknown[];
-    const rawRate = tupleData?.[2];
-    if (typeof rawRate !== "bigint") {
-      return { apy: undefined, liquidityRate: undefined };
-    }
-
-    const liquidityRate = rawRate;
+    const liquidityRate = query.data.currentLiquidityRate;
     const apy = rayToApy(liquidityRate);
 
     // Guard against NaN from unexpected values

@@ -25,7 +25,7 @@ function useDashboardHeader(intl: ReturnType<typeof useIntl>, role: string, gard
       ? intl.formatMessage({ id: "admin.dashboard.role.deployer", defaultMessage: "Deployer" })
       : role === "operator"
         ? intl.formatMessage({ id: "admin.dashboard.role.operator", defaultMessage: "Operator" })
-        : intl.formatMessage({ id: "admin.dashboard.role.user", defaultMessage: "User" });
+        : intl.formatMessage({ id: "admin.dashboard.role.user", defaultMessage: "Explorer" });
 
   const title = intl.formatMessage(
     { id: "admin.dashboard.welcome", defaultMessage: "Welcome back, {role}" },
@@ -48,7 +48,7 @@ function useDashboardHeader(intl: ReturnType<typeof useIntl>, role: string, gard
           )
         : intl.formatMessage({
             id: "admin.dashboard.subtitle.user",
-            defaultMessage: "View gardens and explore the Green Goods ecosystem",
+            defaultMessage: "Explore gardens and discover regenerative impact across the network",
           });
 
   return { title, description };

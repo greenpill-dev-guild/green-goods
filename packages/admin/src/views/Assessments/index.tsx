@@ -271,9 +271,10 @@ function AssessmentCard({
       rel="noopener noreferrer"
       data-testid="assessment-card"
       className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md hover:border-primary-base"
+      aria-label={`${title} — ${intl.formatMessage({ id: "admin.assessments.opensInNewTab", defaultMessage: "Opens in new tab" })}`}
     >
       {/* Domain-colored gradient header */}
-      <div className="relative h-24 overflow-hidden">
+      <div className="relative h-32 overflow-hidden">
         <ActionBannerFallback domain={domainEnum} title={title} />
       </div>
 
@@ -286,7 +287,7 @@ function AssessmentCard({
           >
             {title}
           </h3>
-          <RiExternalLinkLine className="mt-0.5 h-4 w-4 shrink-0 text-text-disabled group-hover:text-primary-dark transition-colors" />
+          <RiExternalLinkLine className="mt-0.5 h-4 w-4 shrink-0 text-text-soft group-hover:text-primary-dark transition-colors" />
         </div>
 
         {assessment.description && (

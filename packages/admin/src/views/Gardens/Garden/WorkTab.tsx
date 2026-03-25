@@ -224,9 +224,17 @@ export function WorkTab({
 
             <Card>
               <Card.Header>
-                <h3 className="label-md text-text-strong">
-                  {formatMessage({ id: "app.garden.detail.reviewStats" })}
-                </h3>
+                <div>
+                  <h3 className="label-md text-text-strong">
+                    {formatMessage({ id: "app.garden.detail.reviewStats" })}
+                  </h3>
+                  <p className="text-xs text-text-soft">
+                    {formatMessage({
+                      id: "app.garden.detail.reviewStats.allTime",
+                      defaultMessage: "All time",
+                    })}
+                  </p>
+                </div>
               </Card.Header>
               <Card.Body className="space-y-2">
                 <div className="garden-stat-row">

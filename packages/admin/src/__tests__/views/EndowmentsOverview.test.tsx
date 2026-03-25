@@ -18,7 +18,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     getNetDeposited: (deposited: bigint, withdrawn: bigint) => deposited - withdrawn,
     getVaultAssetSymbol: (asset: string) => (asset.toLowerCase() === TEST_WETH ? "WETH" : "DAI"),
     ImageWithFallback: ({ alt }: { alt: string }) => React.createElement("div", null, alt),
-    useDebouncedValue: <T,>(value: T) => value,
     useGardens: () => mockUseGardens(),
     useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
     useMyVaultDeposits: (...args: unknown[]) => mockUseMyVaultDeposits(...args),
@@ -30,6 +29,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
 vi.mock("react-router-dom", () => ({
   Link: ({ to, children, ...props }: any) =>
     React.createElement("a", { href: to, ...props }, children),
+  useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }));
 
 vi.mock("@/components/Layout/PageHeader", () => ({

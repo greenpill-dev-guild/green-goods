@@ -88,6 +88,25 @@
   scrollbar-width: thin;
 }
 
+@media (max-width: 639px) {
+  .garden-tabs-list {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .garden-tabs-list::-webkit-scrollbar {
+    display: none;
+  }
+  .garden-tabs-list::after {
+    content: '';
+    flex-shrink: 0;
+    width: 1.5rem;
+  }
+  .garden-tab-trigger {
+    scroll-snap-align: start;
+  }
+}
+
 .garden-tab-trigger {
   display: inline-flex;
   align-items: center;

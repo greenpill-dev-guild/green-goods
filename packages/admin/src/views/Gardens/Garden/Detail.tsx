@@ -324,7 +324,7 @@ export default function GardenDetail() {
       </Button>
     ),
     work: (
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         {canManage && (
           <Button size="sm" asChild>
             <Link to={`/gardens/${gardenId}/submit-work`}>
@@ -346,7 +346,7 @@ export default function GardenDetail() {
       </div>
     ),
     community: (
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         <Button size="sm" asChild>
           <Link to={`/gardens/${gardenId}/vault`}>
             {formatMessage({ id: "app.treasury.manageVault" })}
@@ -404,7 +404,9 @@ export default function GardenDetail() {
       <div className="px-4 sm:px-6">
         {/* Tab actions — unified bar below tabs on all screen sizes */}
         {tabActions[activeTab] && (
-          <div className="flex items-center gap-1.5 pt-3 pb-1">{tabActions[activeTab]}</div>
+          <div className="flex flex-wrap items-center gap-1.5 pt-3 pb-1">
+            {tabActions[activeTab]}
+          </div>
         )}
 
         <Tabs.Content
