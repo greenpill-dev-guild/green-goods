@@ -2180,5 +2180,17 @@
   "app.admin.work.submit.progress.uploading": "Uploading media...",
   "app.admin.work.submit.progress.confirming": "Confirm in your wallet...",
   "app.admin.work.submit.progress.syncing": "Syncing with blockchain...",
-  "app.admin.work.submit.progress.complete": "Work submitted!"
+  "app.admin.work.submit.progress.complete": "Work submitted!",
+
+  "app.funders.impactFundersTitle": "Impact Funders",
+  "app.funders.impactFundersSubtitle": "Supporters whose deposits generate yield for regenerative work",
+  "app.funders.gardenSupportersTitle": "Garden Supporters",
+  "app.funders.gardenSupportersSubtitle": "Supporters who fund this garden's regenerative work",
+  "app.funders.gardensSupported": "{count, plural, one {# garden supported} other {# gardens supported}}",
+  "app.funders.yieldGenerated": "+{amount} total yield",
+  "app.funders.viewAll": "View all {count} supporters",
+  "app.funders.collapse": "Show less",
+  "app.funders.contextExplainer": "Deposits are deployed into Aave V3 lending. The yield generated funds regenerative work through cookie jars, impact fractions, and protocol operations.",
+  "app.funders.noFunders": "No funders yet",
+  "app.funders.strategyApy": "{asset} APY"
 }

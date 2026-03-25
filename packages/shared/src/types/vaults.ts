@@ -72,6 +72,26 @@ export interface EmergencyPauseParams {
   assetAddress: Address;
 }
 
+export interface FunderPosition {
+  garden: Address;
+  asset: Address;
+  vaultAddress: Address;
+  shares: bigint;
+  netDeposited: bigint;
+  currentValue: bigint;
+  yieldGenerated: bigint;
+}
+
+export interface FunderLeaderboardEntry {
+  address: Address;
+  totalYieldGenerated: bigint;
+  totalNetDeposited: bigint;
+  totalCurrentValue: bigint;
+  gardenCount: number;
+  gardenAddresses: Address[];
+  positions: FunderPosition[];
+}
+
 export interface VaultPreview {
   previewShares: bigint;
   previewAssets: bigint;

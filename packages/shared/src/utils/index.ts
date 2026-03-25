@@ -75,6 +75,7 @@ export {
   setupWakeLockVisibilityHandler,
   withWakeLock,
 } from "./app/wake-lock";
+export { AAVE_V3_POOL_ABI, formatApy, RAY, rayToApy } from "./blockchain/aave";
 export { GARDEN_ACCOUNT_ROLE_ABI, OCTANT_MODULE_ABI, OCTANT_VAULT_ABI } from "./blockchain/abis";
 // ============================================================================
 // ADDRESS

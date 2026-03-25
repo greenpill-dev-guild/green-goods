@@ -174,6 +174,7 @@ export const queryKeys = {
         userAddress,
         chainId,
       ] as const,
+    allDeposits: (chainId: number) => ["greengoods", "vaults", "allDeposits", chainId] as const,
   },
 
   // Cookie jar related keys
@@ -662,6 +663,7 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.vaults.myDeposits>
   | ReturnType<typeof queryKeys.vaults.events>
   | ReturnType<typeof queryKeys.vaults.preview>
+  | ReturnType<typeof queryKeys.vaults.allDeposits>
   | typeof queryKeys.platform.all
   | ReturnType<typeof queryKeys.platform.stats>
   | typeof queryKeys.assessments.all

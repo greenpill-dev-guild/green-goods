@@ -344,6 +344,9 @@ export { useDepositForm } from "./vault/useDepositForm";
 // ============================================================================
 // VAULT / TREASURY
 // ============================================================================
+export { useAllVaultDeposits } from "./vault/useAllVaultDeposits";
+export { useBatchConvertToAssets } from "./vault/useBatchConvertToAssets";
+export { useFunderLeaderboard } from "./vault/useFunderLeaderboard";
 export { useGardenVaults } from "./vault/useGardenVaults";
 export { useMyVaultDeposits } from "./vault/useMyVaultDeposits";
 export { useVaultDeposits } from "./vault/useVaultDeposits";
@@ -356,6 +359,7 @@ export {
   useVaultWithdraw,
 } from "./vault/useVaultOperations";
 export { useVaultPreview } from "./vault/useVaultPreview";
+export { useStrategyRate } from "./vault/useStrategyRate";
 export { useBatchWorkApproval } from "./work/useBatchWorkApproval";
 export { useBatchWorkSync } from "./work/useBatchWorkSync";
 

@@ -2,6 +2,7 @@ import {
   AAVE_V3_POOL,
   type Address,
   formatAddress,
+  formatApy,
   formatTokenAmount,
   getBlockExplorerAddressUrl,
   getNetDeposited,
@@ -16,6 +17,7 @@ import {
   useGardenVaults,
   useMyVaultDeposits,
   useProtocolYieldSummary,
+  useStrategyRate,
   useUser,
   useVaultPreview,
   ZERO_ADDRESS,
@@ -32,6 +34,7 @@ import {
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { ImpactFunders } from "@/components/Vault";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/Button";
@@ -39,6 +42,21 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SortSelect } from "@/components/ui/SortSelect";
+
+function AssetApyCard({ assetAddress, chainId }: { assetAddress: Address; chainId: number }) {
+  const { formatMessage } = useIntl();
+  const { apy, isLoading } = useStrategyRate(assetAddress, { chainId });
+  const symbol = getVaultAssetSymbol(assetAddress, chainId);
+
+  return (
+    <StatCard
+      icon={<RiLeafLine className="h-5 w-5" />}
+      label={formatMessage({ id: "app.funders.strategyApy" }, { asset: symbol })}
+      value={isLoading ? "--" : apy !== undefined ? formatApy(apy) : "--"}
+      colorScheme="success"
+    />
+  );
+}
 
 type EndowmentsSortOrder = "name" | "tvl";
 type TrackedAsset = "WETH" | "DAI";
@@ -264,6 +282,18 @@ export default function EndowmentsOverview() {
 
     return { totalEth, totalDai };
   }, [vaults]);
+  const uniqueAssetAddresses = useMemo(() => {
+    const seen = new Set<string>();
+    const result: Address[] = [];
+    for (const vault of vaults) {
+      const key = vault.asset.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(vault.asset);
+      }
+    }
+    return result;
+  }, [vaults]);
   const totalHarvests = useMemo(
     () => grouped.reduce((sum, item) => sum + item.harvestCount, 0),
     [grouped]
@@ -392,6 +422,13 @@ export default function EndowmentsOverview() {
             value={grouped.length}
             colorScheme="warning"
           />
+          {uniqueAssetAddresses.map((assetAddress) => (
+            <AssetApyCard
+              key={assetAddress}
+              assetAddress={assetAddress}
+              chainId={endowmentsChainId}
+            />
+          ))}
         </section>
 
         {!yieldLoading && yieldSummary.allocationCount > 0 && (
@@ -468,6 +505,8 @@ export default function EndowmentsOverview() {
             </div>
           </section>
         )}
+
+        <ImpactFunders />
 
         <section className="space-y-3 rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
           <div className="flex items-start justify-between gap-3">

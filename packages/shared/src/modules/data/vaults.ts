@@ -99,6 +99,25 @@ const VAULT_DEPOSITS_ACROSS_GARDENS_BY_USER_QUERY = /* GraphQL */ `
   }
 `;
 
+const ALL_VAULT_DEPOSITS_QUERY = /* GraphQL */ `
+  query AllVaultDeposits($chainId: Int!) {
+    VaultDeposit(
+      where: { chainId: { _eq: $chainId } }
+      order_by: { totalDeposited: desc }
+    ) {
+      id
+      chainId
+      garden
+      asset
+      vaultAddress
+      depositor
+      shares
+      totalDeposited
+      totalWithdrawn
+    }
+  }
+`;
+
 const VAULT_EVENTS_QUERY = /* GraphQL */ `
   query VaultEventsByGarden($chainId: Int!, $garden: String!, $limit: Int!) {
     VaultEvent(
@@ -360,4 +379,24 @@ export async function getVaultEvents(
   }
 
   return (data?.VaultEvent ?? []).map(mapVaultEvent);
+}
+
+export async function getAllVaultDeposits(
+  chainId: number = DEFAULT_CHAIN_ID
+): Promise<VaultDeposit[]> {
+  const { data, error } = await greenGoodsIndexer.query<VaultDepositsResponse>(
+    ALL_VAULT_DEPOSITS_QUERY,
+    { chainId },
+    "getAllVaultDeposits"
+  );
+
+  if (error) {
+    logger.error("[getAllVaultDeposits] Indexer query failed", {
+      chainId,
+      error: error.message,
+    });
+    throw new Error(`Failed to load all vault deposits: ${error.message}`);
+  }
+
+  return (data?.VaultDeposit ?? []).map(mapVaultDeposit);
 }

@@ -23,6 +23,8 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
     useMyVaultDeposits: (...args: unknown[]) => mockUseMyVaultDeposits(...args),
     useUser: () => ({ primaryAddress: "0x1111111111111111111111111111111111111111" }),
+    useStrategyRate: () => ({ apy: 2.5, isLoading: false, isError: false }),
+    formatApy: (apy: number) => `${apy.toFixed(2)}%`,
     useVaultPreview: (...args: unknown[]) => mockUseVaultPreview(...args),
   };
 });
@@ -68,6 +70,10 @@ vi.mock("@/components/ui/ListToolbar", () => ({
 
 vi.mock("@/components/ui/SortSelect", () => ({
   SortSelect: () => React.createElement("div", null, "sort"),
+}));
+
+vi.mock("@/components/Vault", () => ({
+  ImpactFunders: () => React.createElement("div", { "data-testid": "impact-funders" }),
 }));
 
 import EndowmentsOverview from "./index";

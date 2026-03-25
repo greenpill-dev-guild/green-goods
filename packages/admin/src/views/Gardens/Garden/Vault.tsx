@@ -22,7 +22,13 @@ import { useLocation, useParams } from "react-router-dom";
 import { useReadContract } from "wagmi";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Alert } from "@/components/ui/Alert";
-import { DepositModal, PositionCard, VaultEventHistory, WithdrawModal } from "@/components/Vault";
+import {
+  DepositModal,
+  GardenSupporters,
+  PositionCard,
+  VaultEventHistory,
+  WithdrawModal,
+} from "@/components/Vault";
 
 type VaultRouteState = {
   returnTo?: string;
@@ -261,6 +267,8 @@ export default function GardenVaultView() {
             ))}
           </section>
         )}
+
+        {!vaultsLoading && vaults.length > 0 && <GardenSupporters gardenAddress={gardenAddress} />}
 
         {!vaultsLoading && vaults.length > 0 && (
           <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">

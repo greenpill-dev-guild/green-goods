@@ -2180,5 +2180,17 @@
   "app.admin.work.submit.progress.uploading": "Subiendo medios...",
   "app.admin.work.submit.progress.confirming": "Confirma en tu billetera...",
   "app.admin.work.submit.progress.syncing": "Sincronizando con blockchain...",
-  "app.admin.work.submit.progress.complete": "¡Trabajo enviado!"
+  "app.admin.work.submit.progress.complete": "¡Trabajo enviado!",
+
+  "app.funders.impactFundersTitle": "Financiadores de Impacto",
+  "app.funders.impactFundersSubtitle": "Contribuyentes cuyos depósitos generan rendimiento para trabajo regenerativo",
+  "app.funders.gardenSupportersTitle": "Contribuyentes del Jardín",
+  "app.funders.gardenSupportersSubtitle": "Contribuyentes que financian el trabajo regenerativo de este jardín",
+  "app.funders.gardensSupported": "{count, plural, one {# jardín apoyado} other {# jardines apoyados}}",
+  "app.funders.yieldGenerated": "+{amount} rendimiento total",
+  "app.funders.viewAll": "Ver los {count} contribuyentes",
+  "app.funders.collapse": "Mostrar menos",
+  "app.funders.contextExplainer": "Los depósitos se despliegan en préstamos de Aave V3. El rendimiento generado financia trabajo regenerativo a través de cookie jars, fracciones de impacto y operaciones del protocolo.",
+  "app.funders.noFunders": "Aún no hay financiadores",
+  "app.funders.strategyApy": "APY de {asset}"
 }

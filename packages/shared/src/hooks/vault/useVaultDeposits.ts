@@ -5,6 +5,9 @@ import type { Address } from "../../types/domain";
 import type { VaultDeposit } from "../../types/vaults";
 import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
 
+/** Stable empty array to avoid referential instability in downstream hooks. */
+const EMPTY_DEPOSITS: VaultDeposit[] = [];
+
 interface UseVaultDepositsOptions {
   chainId?: number;
   userAddress?: Address;
@@ -32,6 +35,6 @@ export function useVaultDeposits(gardenAddress?: Address, options: UseVaultDepos
 
   return {
     ...query,
-    deposits: (query.data ?? []) as VaultDeposit[],
+    deposits: query.data ?? EMPTY_DEPOSITS,
   };
 }

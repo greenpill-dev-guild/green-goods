@@ -56,6 +56,7 @@ vi.mock("wagmi", () => ({
 
 vi.mock("@/components/Vault", () => ({
   DepositModal: () => null,
+  GardenSupporters: () => <div data-testid="garden-supporters" />,
   PositionCard: () => <div data-testid="position-card" />,
   VaultEventHistory: () => <div data-testid="vault-history" />,
   WithdrawModal: () => null,
