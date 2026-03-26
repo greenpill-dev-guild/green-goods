@@ -39,6 +39,15 @@ const ROLE_PATHS = [
       "Deposit into impact vaults that route harvested yield to garden funding flows, and purchase Hypercerts to fund verified impact.",
   },
   {
+    title: "Community",
+    href: "/community/community-member-guide/getting-involved",
+    icon: "\uD83E\uDD1D",
+    audience: "Community members",
+    time: "5 min overview",
+    description:
+      "Participate in garden governance through conviction voting and signal support for regenerative work.",
+  },
+  {
     title: "Builder",
     href: "/builders/getting-started",
     icon: "\uD83D\uDEE0\uFE0F",
