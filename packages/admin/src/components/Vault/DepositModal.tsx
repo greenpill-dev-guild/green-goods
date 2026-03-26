@@ -219,6 +219,25 @@ export function DepositModal({
             </div>
           ) : (
             <div className="space-y-4">
+              <div className="rounded-lg border border-information-light bg-information-lighter/50 p-3 text-xs text-text-sub">
+                <p>
+                  {formatMessage({
+                    id: "app.treasury.deposit.guidance",
+                    defaultMessage:
+                      "Deposits earn yield through Aave lending. Yield is automatically split between gardener rewards, impact certificates, and protocol sustainability.",
+                  })}
+                </p>
+                <p className="mt-1">
+                  {formatMessage(
+                    {
+                      id: "app.treasury.deposit.networkHint",
+                      defaultMessage: "You need {asset} tokens on Arbitrum to deposit.",
+                    },
+                    { asset: assetSymbol || "ERC-20" }
+                  )}
+                </p>
+              </div>
+
               <AssetSelector
                 vaults={vaults}
                 selectedAsset={selectedAsset}
@@ -278,6 +297,14 @@ export function DepositModal({
                   </p>
                 )}
               </FormField>
+
+              <p className="text-xs text-text-soft">
+                {formatMessage({
+                  id: "app.treasury.deposit.minimumHint",
+                  defaultMessage:
+                    "Minimum deposit: any amount. Deposits can be withdrawn at any time.",
+                })}
+              </p>
 
               <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
                 <p>

@@ -1,0 +1,12 @@
+{
+  "name": "gdrive-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": "./server.ts",
+  "scripts": {
+    "start": "bun server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

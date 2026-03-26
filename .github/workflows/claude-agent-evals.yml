@@ -1,0 +1,100 @@
+name: Claude Agent Evals
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".claude/agents/**"
+      - ".claude/skills/**"
+      - ".claude/standards/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".claude/agents/**"
+      - ".claude/skills/**"
+      - ".claude/standards/**"
+  workflow_dispatch:
+    inputs:
+      agent:
+        description: "Agent to eval (triage, code-reviewer, or all)"
+        required: false
+        default: "all"
+      model:
+        description: "Model override"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  eval-triage:
+    if: >-
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.agent == 'all' || github.event.inputs.agent == 'triage')
+      || github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        task: [p0-security, p1-feature-broken, p2-degraded-workaround, p2p3-ambiguous-boundary, p3-enhancement]
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run triage eval
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          MODEL_FLAG=""
+          if [[ -n "${{ github.event.inputs.model }}" ]]; then
+            MODEL_FLAG="--model ${{ github.event.inputs.model }}"
+          fi
+          bash .claude/scripts/run-eval.sh triage ${{ matrix.task }} $MODEL_FLAG --dry-run
+
+  eval-code-reviewer:
+    if: >-
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.agent == 'all' || github.event.inputs.agent == 'code-reviewer')
+      || github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        task: [known-bug-pr, clean-pr, hook-boundary-violation, false-positive-bait]
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run code-reviewer eval
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          MODEL_FLAG=""
+          if [[ -n "${{ github.event.inputs.model }}" ]]; then
+            MODEL_FLAG="--model ${{ github.event.inputs.model }}"
+          fi
+          bash .claude/scripts/run-eval.sh code-reviewer ${{ matrix.task }} $MODEL_FLAG --dry-run
+
+  report:
+    needs: [eval-triage, eval-code-reviewer]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Eval summary
+        run: |
+          echo "## Agent Eval Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Agent | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| triage | ${{ needs.eval-triage.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| code-reviewer | ${{ needs.eval-code-reviewer.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Triggered by: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY

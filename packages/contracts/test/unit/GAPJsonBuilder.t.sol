@@ -95,8 +95,7 @@ contract JsonBuilderTest is Test {
             wrapper.buildProjectDetails("Garden", "Desc", "Loc", "https://greengoods.mypinata.cloud/ipfs/bafkreiabc123");
 
         assertTrue(
-            _contains(json, "\"imageURL\":\"ipfs://bafkreiabc123\""),
-            "Gateway URL should be normalized to ipfs:// protocol"
+            _contains(json, "\"imageURL\":\"ipfs://bafkreiabc123\""), "Gateway URL should be normalized to ipfs:// protocol"
         );
         assertFalse(_contains(json, "https://"), "Should not contain any https:// after normalization");
     }
@@ -105,8 +104,7 @@ contract JsonBuilderTest is Test {
         string memory json = wrapper.buildProjectDetails("Garden", "Desc", "Loc", "ipfs://bafkreiexisting");
 
         assertTrue(
-            _contains(json, "\"imageURL\":\"ipfs://bafkreiexisting\""),
-            "ipfs:// prefixed URL should pass through unchanged"
+            _contains(json, "\"imageURL\":\"ipfs://bafkreiexisting\""), "ipfs:// prefixed URL should pass through unchanged"
         );
     }
 
@@ -193,9 +191,8 @@ contract JsonBuilderTest is Test {
     }
 
     function testImpactWithMetadataCID() public {
-        string memory json = wrapper.buildImpact(
-            "Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "bafkreiMetadata123"
-        );
+        string memory json =
+            wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "bafkreiMetadata123");
 
         assertTrue(
             _contains(json, "\"metadataCID\":\"ipfs://bafkreiMetadata123\""),
@@ -204,9 +201,7 @@ contract JsonBuilderTest is Test {
     }
 
     function testImpactWithEmptyMetadataCID() public {
-        string memory json = wrapper.buildImpact(
-            "Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, ""
-        );
+        string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "");
 
         assertFalse(_contains(json, "metadataCID"), "Empty metadataCID should not appear in JSON");
     }

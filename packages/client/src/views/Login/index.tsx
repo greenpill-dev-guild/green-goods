@@ -365,6 +365,11 @@ export function Login() {
           }}
           isLoginDisabled={!isUsernameValid}
           notice={addressContinuityNotice}
+          infoCallout={intl.formatMessage({
+            id: "app.login.passkey.explainer",
+            defaultMessage:
+              "Passkeys let you sign in securely without a crypto wallet. Your device (phone, laptop) stores the key — no passwords or seed phrases needed.",
+          })}
         />
       </>
     );

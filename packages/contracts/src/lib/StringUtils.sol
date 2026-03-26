@@ -239,8 +239,10 @@ library StringUtils {
         if (b.length == 0) return "";
 
         // Already has ipfs:// prefix → passthrough
-        if (b.length >= 7 && b[0] == "i" && b[1] == "p" && b[2] == "f" && b[3] == "s" && b[4] == ":" && b[5] == "/"
-            && b[6] == "/") {
+        if (
+            b.length >= 7 && b[0] == "i" && b[1] == "p" && b[2] == "f" && b[3] == "s" && b[4] == ":" && b[5] == "/"
+                && b[6] == "/"
+        ) {
             return value;
         }
 
@@ -248,8 +250,10 @@ library StringUtils {
         if (b.length >= 4 && b[0] == "h" && b[1] == "t" && b[2] == "t" && b[3] == "p") {
             // Scan for "/ipfs/" (6 bytes)
             for (uint256 i = 0; i + 5 < b.length; i++) {
-                if (b[i] == "/" && b[i + 1] == "i" && b[i + 2] == "p" && b[i + 3] == "f" && b[i + 4] == "s"
-                    && b[i + 5] == "/") {
+                if (
+                    b[i] == "/" && b[i + 1] == "i" && b[i + 2] == "p" && b[i + 3] == "f" && b[i + 4] == "s"
+                        && b[i + 5] == "/"
+                ) {
                     // Extract everything after "/ipfs/"
                     uint256 cidStart = i + 6;
                     uint256 cidLen = b.length - cidStart;

@@ -68,7 +68,7 @@ vi.mock("@/views/Login/components/LoadingSplash", () => ({
     createElement("div", { "data-testid": "loading-splash" }, message || loadingState),
 }));
 
-// Mock Splash component to simplify testing — renders all action tiers + notice
+// Mock Splash component to simplify testing — renders all action tiers + notice + info callout
 vi.mock("@/components/Layout", () => ({
   Splash: ({
     login,
@@ -78,6 +78,7 @@ vi.mock("@/components/Layout", () => ({
     tertiaryAction,
     notice,
     usernameInput,
+    infoCallout,
   }: {
     login?: () => void;
     buttonLabel?: string;
@@ -86,6 +87,7 @@ vi.mock("@/components/Layout", () => ({
     tertiaryAction?: { label: string; onClick?: () => void };
     notice?: string;
     usernameInput?: { value: string; onChange: (e: unknown) => void; onCancel?: () => void };
+    infoCallout?: string;
   }) =>
     createElement(
       "div",
@@ -135,6 +137,7 @@ vi.mock("@/components/Layout", () => ({
           },
           "Cancel"
         ),
+      infoCallout && createElement("p", { "data-testid": "info-callout" }, infoCallout),
       notice && createElement("p", { "data-testid": "notice" }, notice),
       errorMessage && createElement("p", { "data-testid": "error-message" }, errorMessage)
     ),
@@ -253,6 +256,35 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Connect Wallet");
     expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
   });
+
+  it("does not show passkey explainer in default new-user mode", () => {
+    renderWithRouter();
+    expect(screen.queryByTestId("info-callout")).not.toBeInTheDocument();
+  });
+
+  it("shows passkey explainer in passkey creation mode", async () => {
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    // Toggle to passkey creation mode
+    await user.click(screen.getByTestId("secondary-button"));
+
+    expect(screen.getByTestId("info-callout")).toBeInTheDocument();
+    expect(screen.getByTestId("info-callout")).toHaveTextContent(/passkey|sign in securely/i);
+  });
+
+  it("hides passkey explainer when leaving passkey creation mode", async () => {
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    // Enter passkey creation mode
+    await user.click(screen.getByTestId("secondary-button"));
+    expect(screen.getByTestId("info-callout")).toBeInTheDocument();
+
+    // Cancel back to default mode
+    await user.click(screen.getByTestId("cancel-passkey-create"));
+    expect(screen.queryByTestId("info-callout")).not.toBeInTheDocument();
+  });
 });
 
 // ─── Existing User (has stored credential) ───────────────────────────────────
@@ -304,5 +336,10 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     expect(screen.getByTestId("notice")).toHaveTextContent(
       "Each sign-in method creates an independent account"
     );
+  });
+
+  it("does not show passkey explainer for returning users", () => {
+    renderWithRouter();
+    expect(screen.queryByTestId("info-callout")).not.toBeInTheDocument();
   });
 });

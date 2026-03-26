@@ -1,0 +1,539 @@
+{
+  "kind": "garden-signal-pool-eoa-plan",
+  "chainId": 42161,
+  "network": "arbitrum",
+  "createdAt": "2026-03-26T06:12:06.860Z",
+  "name": "Repair garden signal pools for 12 gardens (arbitrum)",
+  "description": "Create missing Gardens V2 signal pools and sync YieldResolver.gardenHypercertPools for the selected gardens. Execute with scripts/execute-garden-signal-pool-repair-eoa.ts.",
+  "moduleOwnerAddress": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+  "transactions": [
+    {
+      "to": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
+      "value": "0",
+      "data": "0x5f498bfa000000000000000000000000f7b892886998dae960d64a9db488336684f137a0",
+      "contractMethod": {
+        "name": "createGardenPools",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0xF7b892886998DAe960D64a9db488336684F137A0"
+      }
+    },
+    {
+      "to": "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+      "value": "0",
+      "data": "0x78cf946d000000000000000000000000f7b892886998dae960d64a9db488336684f137a00000000000000000000000009e2b9f2bcead1d15a064379030e9f7715e79c64e",
+      "contractMethod": {
+        "name": "setGardenHypercertPool",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0xF7b892886998DAe960D64a9db488336684F137A0",
+        "pool": "0x9e2b9F2BceAD1d15A064379030E9F7715e79c64E"
+      }
+    },
+    {
+      "to": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
+      "value": "0",
+      "data": "0x5f498bfa000000000000000000000000f401f34378384713222d1d21f63359cc4e8a858a",
+      "contractMethod": {
+        "name": "createGardenPools",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0xf401f34378384713222d1d21f63359cc4E8a858a"
+      }
+    },
+    {
+      "to": "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+      "value": "0",
+      "data": "0x78cf946d000000000000000000000000f401f34378384713222d1d21f63359cc4e8a858a00000000000000000000000042dd83119c915e75b9f92d64786e0acaad6d0eea",
+      "contractMethod": {
+        "name": "setGardenHypercertPool",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+        "pool": "0x42DD83119c915e75B9F92D64786E0acAaD6D0eEA"
+      }
+    },
+    {
+      "to": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
+      "value": "0",
+      "data": "0x5f498bfa000000000000000000000000a2df8eb73444a3f3cf9b8e3749313c7471d7d5e3",
+      "contractMethod": {
+        "name": "createGardenPools",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3"
+      }
+    },
+    {
+      "to": "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+      "value": "0",
+      "data": "0x78cf946d000000000000000000000000a2df8eb73444a3f3cf9b8e3749313c7471d7d5e3000000000000000000000000a2e69ffef428865bf6a4ebc25ccf41f72e54fd17",
+      "contractMethod": {
+        "name": "setGardenHypercertPool",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+        "pool": "0xa2E69FFEf428865bf6A4EbC25ccf41F72E54fD17"
+      }
+    },
+    {
+      "to": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
+      "value": "0",
+      "data": "0x5f498bfa0000000000000000000000004055530db392fb2b56037065a512c5b283d90a10",
+      "contractMethod": {
+        "name": "createGardenPools",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0x4055530dB392FB2B56037065A512c5b283D90A10"
+      }
+    },
+    {
+      "to": "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+      "value": "0",
+      "data": "0x78cf946d0000000000000000000000004055530db392fb2b56037065a512c5b283d90a1000000000000000000000000068764aae68630a0b9a3f3219d496de38037c38fd",
+      "contractMethod": {
+        "name": "setGardenHypercertPool",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0x4055530dB392FB2B56037065A512c5b283D90A10",
+        "pool": "0x68764aae68630a0B9A3F3219d496dE38037C38FD"
+      }
+    },
+    {
+      "to": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
+      "value": "0",
+      "data": "0x5f498bfa00000000000000000000000051499a44bb7793647e67ed827bd17367d7e55314",
+      "contractMethod": {
+        "name": "createGardenPools",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0x51499A44BB7793647e67ed827bd17367d7e55314"
+      }
+    },
+    {
+      "to": "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+      "value": "0",
+      "data": "0x78cf946d00000000000000000000000051499a44bb7793647e67ed827bd17367d7e5531400000000000000000000000067291aa22149fa55ef2fd210a619937b247f0621",
+      "contractMethod": {
+        "name": "setGardenHypercertPool",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0x51499A44BB7793647e67ed827bd17367d7e55314",
+        "pool": "0x67291AA22149FA55ef2fd210A619937b247F0621"
+      }
+    },
+    {
+      "to": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
+      "value": "0",
+      "data": "0x5f498bfa000000000000000000000000bcce994513615988690abca373b1368218e4957c",
+      "contractMethod": {
+        "name": "createGardenPools",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0xbcCE994513615988690aBCA373B1368218E4957C"
+      }
+    },
+    {
+      "to": "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+      "value": "0",
+      "data": "0x78cf946d000000000000000000000000bcce994513615988690abca373b1368218e4957c0000000000000000000000006098d6e300df853187517482a1fa9fd4388a4840",
+      "contractMethod": {
+        "name": "setGardenHypercertPool",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0xbcCE994513615988690aBCA373B1368218E4957C",
+        "pool": "0x6098D6E300Df853187517482a1FA9fd4388A4840"
+      }
+    },
+    {
+      "to": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
+      "value": "0",
+      "data": "0x5f498bfa000000000000000000000000fda72ce1d75b735d6595e5814ddf23b97516caef",
+      "contractMethod": {
+        "name": "createGardenPools",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf"
+      }
+    },
+    {
+      "to": "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+      "value": "0",
+      "data": "0x78cf946d000000000000000000000000fda72ce1d75b735d6595e5814ddf23b97516caef000000000000000000000000ae366d30daef92fb6b927cf3ec721090803b2dc0",
+      "contractMethod": {
+        "name": "setGardenHypercertPool",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf",
+        "pool": "0xAe366D30DaEF92fb6b927CF3eC721090803b2dc0"
+      }
+    },
+    {
+      "to": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
+      "value": "0",
+      "data": "0x5f498bfa000000000000000000000000d1f8e787a325f91f5d4be2d30ea1e67b19e28b30",
+      "contractMethod": {
+        "name": "createGardenPools",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30"
+      }
+    },
+    {
+      "to": "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+      "value": "0",
+      "data": "0x78cf946d000000000000000000000000d1f8e787a325f91f5d4be2d30ea1e67b19e28b300000000000000000000000004af17c4929ae03e5ea839e3db11a98947f320f27",
+      "contractMethod": {
+        "name": "setGardenHypercertPool",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30",
+        "pool": "0x4Af17c4929aE03e5Ea839e3db11a98947f320f27"
+      }
+    },
+    {
+      "to": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
+      "value": "0",
+      "data": "0x5f498bfa0000000000000000000000004f11fb4c255d3edc7c44a461ab45fbc421aacb09",
+      "contractMethod": {
+        "name": "createGardenPools",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09"
+      }
+    },
+    {
+      "to": "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+      "value": "0",
+      "data": "0x78cf946d0000000000000000000000004f11fb4c255d3edc7c44a461ab45fbc421aacb09000000000000000000000000031dafe062dd49294050617c4d3f40b41549d5fc",
+      "contractMethod": {
+        "name": "setGardenHypercertPool",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09",
+        "pool": "0x031DaFE062DD49294050617c4d3f40b41549D5FC"
+      }
+    },
+    {
+      "to": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
+      "value": "0",
+      "data": "0x5f498bfa000000000000000000000000636962584b1f492b06151fee87810281372879b6",
+      "contractMethod": {
+        "name": "createGardenPools",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0x636962584b1F492B06151Fee87810281372879b6"
+      }
+    },
+    {
+      "to": "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+      "value": "0",
+      "data": "0x78cf946d000000000000000000000000636962584b1f492b06151fee87810281372879b60000000000000000000000000d90b66320d48748644e2f97d4380e4d54528bf3",
+      "contractMethod": {
+        "name": "setGardenHypercertPool",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0x636962584b1F492B06151Fee87810281372879b6",
+        "pool": "0x0d90b66320d48748644E2F97d4380E4d54528BF3"
+      }
+    },
+    {
+      "to": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
+      "value": "0",
+      "data": "0x5f498bfa0000000000000000000000001121218d5e017b57c6df3b5a001a991bdb910338",
+      "contractMethod": {
+        "name": "createGardenPools",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0x1121218D5e017B57c6DF3B5a001a991BDB910338"
+      }
+    },
+    {
+      "to": "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+      "value": "0",
+      "data": "0x78cf946d0000000000000000000000001121218d5e017b57c6df3b5a001a991bdb91033800000000000000000000000066bc7abbc2e39670bbe34f0a294043a9d5284b4a",
+      "contractMethod": {
+        "name": "setGardenHypercertPool",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+        "pool": "0x66Bc7ABBC2e39670bbe34F0a294043A9d5284b4a"
+      }
+    },
+    {
+      "to": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
+      "value": "0",
+      "data": "0x5f498bfa0000000000000000000000003f0f1551c7e08a2cf6800bd7d72abfe23e3e32a0",
+      "contractMethod": {
+        "name": "createGardenPools",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0"
+      }
+    },
+    {
+      "to": "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+      "value": "0",
+      "data": "0x78cf946d0000000000000000000000003f0f1551c7e08a2cf6800bd7d72abfe23e3e32a0000000000000000000000000dee2346ce1450c5ad1e27d8fdb156b0da7ab07fd",
+      "contractMethod": {
+        "name": "setGardenHypercertPool",
+        "payable": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "garden",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "garden": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+        "pool": "0xdeE2346Ce1450c5AD1E27d8FdB156B0DA7AB07Fd"
+      }
+    }
+  ]
+}

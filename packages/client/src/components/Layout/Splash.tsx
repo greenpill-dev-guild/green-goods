@@ -40,6 +40,8 @@ interface SplashProps {
   usernameInput?: UsernameInputConfig;
   /** Small muted text displayed below error area (e.g. address continuity notice) */
   notice?: string;
+  /** Info callout text shown above action buttons (e.g. passkey explainer) */
+  infoCallout?: string;
 }
 
 export const Splash: React.FC<SplashProps> = ({
@@ -54,6 +56,7 @@ export const Splash: React.FC<SplashProps> = ({
   tertiaryAction,
   usernameInput,
   notice,
+  infoCallout,
 }) => {
   const stateMessages = {
     welcome: "Welcome",
@@ -126,6 +129,22 @@ export const Splash: React.FC<SplashProps> = ({
             }`}
           >
             {usernameInput?.hint || "This username identifies your passkey on our server"}
+          </p>
+        </div>
+
+        {/* ─────────────────────────────────────────────────────────────────────
+            INFO CALLOUT - Expandable educational text (e.g. passkey explainer)
+        ───────────────────────────────────────────────────────────────────── */}
+        <div
+          className={`w-full overflow-hidden transition-all duration-300 ease-in-out ${
+            infoCallout && !loadingState ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
+          }`}
+        >
+          <p
+            data-testid="info-callout"
+            className="w-full rounded-lg bg-primary/5 border border-primary/10 px-4 py-3 text-xs text-text-sub-600 text-center"
+          >
+            {infoCallout}
           </p>
         </div>
 

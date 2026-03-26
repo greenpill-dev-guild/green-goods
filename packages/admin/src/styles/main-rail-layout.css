@@ -1,0 +1,53 @@
+/* Shared main + rail layout — 9fr/3fr sticky sidebar grid.
+   Used by Endowments overview, Garden Vault detail, and Garden tabs.
+
+   Mobile (<1024px): flexbox column, rail stacks below main.
+   Desktop (>=1024px): CSS grid, rail sticks to viewport top.
+*/
+
+.main-rail-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.main-rail-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.main-rail-rail {
+  display: flex;
+  flex-direction: column;
+}
+
+.main-rail-rail-sticky {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .main-rail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 9fr) minmax(260px, 3fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .main-rail-main {
+    order: 0;
+    gap: 1.5rem;
+  }
+
+  .main-rail-rail {
+    order: 0;
+  }
+
+  .main-rail-rail-sticky {
+    position: sticky;
+    top: 7.5rem;
+    gap: 1rem;
+  }
+}

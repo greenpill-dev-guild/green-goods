@@ -18,6 +18,20 @@ set -euo pipefail
 curl -fsSL https://bun.sh/install | bash
 export PATH="$HOME/.bun/bin:$PATH"
 
+# Install Node.js because repo scripts invoke `node` and `npx` directly.
+mkdir -p "$HOME/.local"
+case "$(uname -m)" in
+  x86_64|amd64) NODE_ARCH="x64" ;;
+  aarch64|arm64) NODE_ARCH="arm64" ;;
+  *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+esac
+NODE_VERSION="$(curl -fsSL https://nodejs.org/dist/index.json | grep -Eo '"version":"v22\.[^"]+"' | head -1 | sed -E 's/"version":"v([^"]+)"/\1/')"
+NODE_DIST="node-v${NODE_VERSION}-linux-${NODE_ARCH}"
+rm -rf "$HOME/.local/node"
+mkdir -p "$HOME/.local/node"
+curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/${NODE_DIST}.tar.gz" | tar -xzf - --strip-components=1 -C "$HOME/.local/node"
+export PATH="$HOME/.local/node/bin:$PATH"
+
 # Install Foundry (Solidity toolchain — forge, cast, anvil)
 # The installer adds ~/.foundry/bin to ~/.bashrc automatically.
 curl -L https://foundry.paradigm.xyz | bash
@@ -25,7 +39,8 @@ export PATH="$HOME/.foundry/bin:$PATH"
 foundryup
 
 # Ensure PATH persists for login shells (agent phase may not source .bashrc)
-echo 'export PATH="$HOME/.bun/bin:$HOME/.foundry/bin:$PATH"' >> ~/.profile
+grep -qxF 'export PATH="$HOME/.bun/bin:$HOME/.local/node/bin:$HOME/.foundry/bin:$PATH"' ~/.profile 2>/dev/null || \
+  echo 'export PATH="$HOME/.bun/bin:$HOME/.local/node/bin:$HOME/.foundry/bin:$PATH"' >> ~/.profile
 
 # Initialize git submodules first (Foundry lib dependencies needed for build)
 git submodule update --init --recursive
@@ -41,14 +56,14 @@ VITE_CHAIN_ID=${VITE_CHAIN_ID:-11155111} bun run build:shared
 mkdir -p .agents
 [ -L .agents/skills ] || ln -s ../.claude/skills .agents/skills
 
-echo "Environment ready: bun $(bun --version), forge $(forge --version)"
+echo "Environment ready: bun $(bun --version), node $(node --version), forge $(forge --version)"
 """
 
 [maintenance]
 script = """
 #!/bin/bash
 set -euo pipefail
-export PATH="$HOME/.bun/bin:$HOME/.foundry/bin:$PATH"
+export PATH="$HOME/.bun/bin:$HOME/.local/node/bin:$HOME/.foundry/bin:$PATH"
 
 # Update submodules and dependencies, rebuild foundation
 git submodule update --init --recursive
@@ -61,7 +76,7 @@ VITE_CHAIN_ID=${VITE_CHAIN_ID:-11155111} bun run build:shared
 name = "Test"
 icon = "run"
 command = """
-export PATH="$HOME/.bun/bin:$HOME/.foundry/bin:$PATH"
+export PATH="$HOME/.bun/bin:$HOME/.local/node/bin:$HOME/.foundry/bin:$PATH"
 bun run test
 """
 
@@ -69,7 +84,7 @@ bun run test
 name = "Lint"
 icon = "check"
 command = """
-export PATH="$HOME/.bun/bin:$HOME/.foundry/bin:$PATH"
+export PATH="$HOME/.bun/bin:$HOME/.local/node/bin:$HOME/.foundry/bin:$PATH"
 bun format && bun lint
 """
 
@@ -77,6 +92,6 @@ bun format && bun lint
 name = "Build"
 icon = "build"
 command = """
-export PATH="$HOME/.bun/bin:$HOME/.foundry/bin:$PATH"
+export PATH="$HOME/.bun/bin:$HOME/.local/node/bin:$HOME/.foundry/bin:$PATH"
 VITE_CHAIN_ID=${VITE_CHAIN_ID:-11155111} bun run build
 """

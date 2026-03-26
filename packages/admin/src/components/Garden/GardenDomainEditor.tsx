@@ -14,10 +14,34 @@ import { useIntl } from "react-intl";
 import { Button } from "@/components/ui/Button";
 
 const DOMAINS = [
-  { value: Domain.SOLAR, labelId: "app.garden.create.domain.solar", defaultLabel: "Solar" },
-  { value: Domain.AGRO, labelId: "app.garden.create.domain.agro", defaultLabel: "Agroforestry" },
-  { value: Domain.EDU, labelId: "app.garden.create.domain.edu", defaultLabel: "Education" },
-  { value: Domain.WASTE, labelId: "app.garden.create.domain.waste", defaultLabel: "Waste" },
+  {
+    value: Domain.SOLAR,
+    labelId: "app.garden.create.domain.solar",
+    defaultLabel: "Solar",
+    descriptionId: "app.garden.create.domain.solar.description",
+    defaultDescription: "Track solar panel installations, kWh generated, and maintenance",
+  },
+  {
+    value: Domain.AGRO,
+    labelId: "app.garden.create.domain.agro",
+    defaultLabel: "Agroforestry",
+    descriptionId: "app.garden.create.domain.agro.description",
+    defaultDescription: "Document tree planting, harvests, and land stewardship",
+  },
+  {
+    value: Domain.EDU,
+    labelId: "app.garden.create.domain.edu",
+    defaultLabel: "Education",
+    descriptionId: "app.garden.create.domain.edu.description",
+    defaultDescription: "Record workshops, trainings, and knowledge sharing",
+  },
+  {
+    value: Domain.WASTE,
+    labelId: "app.garden.create.domain.waste",
+    defaultLabel: "Waste",
+    descriptionId: "app.garden.create.domain.waste.description",
+    defaultDescription: "Log waste collection, recycling, and composting activities",
+  },
 ] as const;
 
 interface GardenDomainModalProps {
@@ -113,31 +137,41 @@ export function GardenDomainModal({ isOpen, onClose, gardenAddress }: GardenDoma
                 <RiLoader4Line className="h-6 w-6 animate-spin text-text-soft" />
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {DOMAINS.map(({ value, labelId, defaultLabel }) => {
-                  const isSelected = selected.includes(value);
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => toggleDomain(value)}
-                      className={cn(
-                        "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors",
-                        isSelected
-                          ? "border-primary-base bg-primary-alpha-10 text-text-strong"
-                          : "border-stroke-soft bg-bg-white text-text-sub hover:border-stroke-strong",
-                        isPending && "cursor-not-allowed opacity-50"
-                      )}
-                    >
-                      <span
-                        className="h-3 w-3 shrink-0 rounded-full"
-                        style={{ backgroundColor: DOMAIN_COLORS[value] }}
-                      />
-                      {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-                    </button>
-                  );
-                })}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {DOMAINS.map(
+                  ({ value, labelId, defaultLabel, descriptionId, defaultDescription }) => {
+                    const isSelected = selected.includes(value);
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => toggleDomain(value)}
+                        className={cn(
+                          "flex flex-col items-start gap-1 rounded-lg border px-3 py-2.5 text-sm transition-colors text-left",
+                          isSelected
+                            ? "border-primary-base bg-primary-alpha-10 text-text-strong"
+                            : "border-stroke-soft bg-bg-white text-text-sub hover:border-stroke-strong",
+                          isPending && "cursor-not-allowed opacity-50"
+                        )}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="h-3 w-3 shrink-0 rounded-full"
+                            style={{ backgroundColor: DOMAIN_COLORS[value] }}
+                          />
+                          {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+                        </span>
+                        <span className="pl-5 text-xs text-text-soft">
+                          {formatMessage({
+                            id: descriptionId,
+                            defaultMessage: defaultDescription,
+                          })}
+                        </span>
+                      </button>
+                    );
+                  }
+                )}
               </div>
             )}
           </div>
