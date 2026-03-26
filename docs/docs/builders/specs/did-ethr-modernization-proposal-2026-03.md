@@ -20,33 +20,33 @@ The goal is to align Ethereum DID usage with current production wallet/account p
 ### Validated
 
 - `DID Core v1.0` remains the W3C Recommendation from July 19, 2022.  
-  Source: <https://www.w3.org/TR/did-core/>
+  Source: [W3C DID Core](https://www.w3.org/TR/did-core/)
 - `DID v1.1` is active work and currently published as a Candidate Recommendation Snapshot (Feb 21, 2026).  
-  Source: <https://www.w3.org/TR/did-1.1/>
+  Source: [W3C DID v1.1](https://www.w3.org/TR/did-1.1/)
 - `DID Resolution v0.3` is a W3C Working Draft (Mar 9, 2026).  
-  Source: <https://www.w3.org/TR/did-resolution/>
+  Source: [W3C DID Resolution](https://www.w3.org/TR/did-resolution/)
 - `DID Methods` registry is actively maintained as a W3C Note (updated Mar 16, 2026).  
-  Source: <https://www.w3.org/TR/did-extensions-methods/all/>
+  Source: [W3C DID Methods](https://www.w3.org/TR/did-extensions-methods/all/)
 - EF has an explicit RFP to modernize `did:ethr` and states the current spec/tooling are outdated versus current W3C and DIF expectations.  
-  Source: <https://esp.ethereum.foundation/applicants/rfp/did_ethr_method_spec>
+  Source: [Ethereum Foundation RFP](https://esp.ethereum.foundation/applicants/rfp/did_ethr_method_spec)
 - EF public framing includes CROPS values (censorship resistance, open source, privacy, security).  
   Sources:  
-  <https://ethereum.foundation/silviculture-society>  
-  <https://blog.ethereum.org/2025/04/28/ef-vision>  
-  <https://blog.ethereum.org/2025/08/29/protocol-update-003>
+  [Ethereum Foundation Silviculture Society](https://ethereum.foundation/silviculture-society)  
+  [EF Vision](https://blog.ethereum.org/2025/04/28/ef-vision)  
+  [Protocol Update 003](https://blog.ethereum.org/2025/08/29/protocol-update-003)
 - Relevant Ethereum standards landscape:
   - `EIP-7702` is `Final`.  
-    Source: <https://raw.githubusercontent.com/ethereum/EIPs/master/EIPS/eip-7702.md>
+    Source: [EIP-7702](https://raw.githubusercontent.com/ethereum/EIPs/master/EIPS/eip-7702.md)
   - `ERC-1271` is `Final`.  
-    Source: <https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-1271.md>
+    Source: [ERC-1271](https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-1271.md)
   - `ERC-6492` is `Final`.  
-    Source: <https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-6492.md>
+    Source: [ERC-6492](https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-6492.md)
   - `ERC-4337` is `Review`.  
-    Source: <https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-4337.md>
+    Source: [ERC-4337](https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-4337.md)
   - `ERC-7579` is `Draft`.  
-    Source: <https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-7579.md>
+    Source: [ERC-7579](https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-7579.md)
   - `ERC-7683` is `Draft`.  
-    Source: <https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-7683.md>
+    Source: [ERC-7683](https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-7683.md)
 
 ### Partially validated
 
@@ -192,7 +192,7 @@ OpenCred appears compatible as an off-chain credential exchange and verification
 - Supports CHAPI wallet selection.
 - Stores historical DID documents for auditability.
 
-Source: <https://github.com/stateofca/opencred>
+Source: [OpenCred repository](https://github.com/stateofca/opencred)
 
 Recommended architecture:
 
@@ -232,30 +232,29 @@ Current recommendation:
 
 ## Sources
 
-- W3C DID Core v1.0: <https://www.w3.org/TR/did-core/>
-- W3C DID v1.1: <https://www.w3.org/TR/did-1.1/>
-- W3C DID Resolution v0.3: <https://www.w3.org/TR/did-resolution/>
-- W3C DID Methods Note: <https://www.w3.org/TR/did-extensions-methods/all/>
-- EF RFP for `did:ethr`: <https://esp.ethereum.foundation/applicants/rfp/did_ethr_method_spec>
+- W3C DID Core v1.0: [https://www.w3.org/TR/did-core/](https://www.w3.org/TR/did-core/)
+- W3C DID v1.1: [https://www.w3.org/TR/did-1.1/](https://www.w3.org/TR/did-1.1/)
+- W3C DID Resolution v0.3: [https://www.w3.org/TR/did-resolution/](https://www.w3.org/TR/did-resolution/)
+- W3C DID Methods Note: [https://www.w3.org/TR/did-extensions-methods/all/](https://www.w3.org/TR/did-extensions-methods/all/)
+- EF RFP for `did:ethr`: [https://esp.ethereum.foundation/applicants/rfp/did_ethr_method_spec](https://esp.ethereum.foundation/applicants/rfp/did_ethr_method_spec)
 - EF values and direction:
-  - <https://ethereum.foundation/silviculture-society>
-  - <https://blog.ethereum.org/2025/04/28/ef-vision>
-  - <https://blog.ethereum.org/2025/08/29/protocol-update-003>
+  - [https://ethereum.foundation/silviculture-society](https://ethereum.foundation/silviculture-society)
+  - [https://blog.ethereum.org/2025/04/28/ef-vision](https://blog.ethereum.org/2025/04/28/ef-vision)
+  - [https://blog.ethereum.org/2025/08/29/protocol-update-003](https://blog.ethereum.org/2025/08/29/protocol-update-003)
 - `did:ethr` spec draft (current resolver repo):  
-  <https://raw.githubusercontent.com/decentralized-identity/ethr-did-resolver/master/doc/did-method-spec.md>
+  [https://raw.githubusercontent.com/decentralized-identity/ethr-did-resolver/master/doc/did-method-spec.md](https://raw.githubusercontent.com/decentralized-identity/ethr-did-resolver/master/doc/did-method-spec.md)
 - `did:pkh` draft:  
-  <https://raw.githubusercontent.com/w3c-ccg/did-pkh/main/did-pkh-method-draft.md>
+  [https://raw.githubusercontent.com/w3c-ccg/did-pkh/main/did-pkh-method-draft.md](https://raw.githubusercontent.com/w3c-ccg/did-pkh/main/did-pkh-method-draft.md)
 - Ethereum standards:
-  - `EIP-7702`: <https://raw.githubusercontent.com/ethereum/EIPs/master/EIPS/eip-7702.md>
-  - `ERC-4337`: <https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-4337.md>
-  - `ERC-1271`: <https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-1271.md>
-  - `ERC-6492`: <https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-6492.md>
-  - `ERC-7579`: <https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-7579.md>
-  - `ERC-7683`: <https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-7683.md>
-  - `ERC-4361`: <https://eips.ethereum.org/EIPS/eip-4361>
+  - `EIP-7702`: [https://raw.githubusercontent.com/ethereum/EIPs/master/EIPS/eip-7702.md](https://raw.githubusercontent.com/ethereum/EIPs/master/EIPS/eip-7702.md)
+  - `ERC-4337`: [https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-4337.md](https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-4337.md)
+  - `ERC-1271`: [https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-1271.md](https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-1271.md)
+  - `ERC-6492`: [https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-6492.md](https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-6492.md)
+  - `ERC-7579`: [https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-7579.md](https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-7579.md)
+  - `ERC-7683`: [https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-7683.md](https://raw.githubusercontent.com/ethereum/ercs/master/ERCS/erc-7683.md)
+  - `ERC-4361`: [https://eips.ethereum.org/EIPS/eip-4361](https://eips.ethereum.org/EIPS/eip-4361)
 - Chain-agnostic standards:
-  - `CAIP-10`: <https://standards.chainagnostic.org/CAIPs/caip-10>
-  - `CAIP-122`: <https://standards.chainagnostic.org/CAIPs/caip-122>
-  - `CAIP-74`: <https://standards.chainagnostic.org/CAIPs/caip-74>
-- OpenCred repository: <https://github.com/stateofca/opencred>
-
+  - `CAIP-10`: [https://standards.chainagnostic.org/CAIPs/caip-10](https://standards.chainagnostic.org/CAIPs/caip-10)
+  - `CAIP-122`: [https://standards.chainagnostic.org/CAIPs/caip-122](https://standards.chainagnostic.org/CAIPs/caip-122)
+  - `CAIP-74`: [https://standards.chainagnostic.org/CAIPs/caip-74](https://standards.chainagnostic.org/CAIPs/caip-74)
+- OpenCred repository: [https://github.com/stateofca/opencred](https://github.com/stateofca/opencred)
