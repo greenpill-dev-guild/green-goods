@@ -7,7 +7,7 @@ type QuickAnswerProps = {
   openByDefault?: boolean;
 };
 
-export function QuickAnswer({question, children, openByDefault = false}: QuickAnswerProps) {
+export function QuickAnswer({question, children, openByDefault = true}: QuickAnswerProps) {
   return (
     <details className={styles.quickAnswer} open={openByDefault}>
       <summary>{question}</summary>
