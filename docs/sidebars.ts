@@ -16,7 +16,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'doc',
       id: 'community/welcome',
-      label: 'Welcome to Green Goods',
+      label: 'Green Goods',
     },
     {
       type: 'doc',
@@ -40,7 +40,7 @@ const sidebars: SidebarsConfig = {
       link: {
         type: 'generated-index',
         description:
-          'Gardeners document real-world conservation and regenerative work using the Green Goods mobile app. Follow these guides to join a garden, submit work, earn payouts, and build your on-chain reputation.',
+          'Gardeners document real-world conservation and regenerative work using the Green Goods mobile app. Follow these guides to join a garden, submit work, earn payouts, and build your on-chain reputation. Learn how the MDR workflow captures evidence and how verified work builds your on-chain reputation.',
       },
       items: [
         {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Joining A Garden'},
@@ -58,7 +58,7 @@ const sidebars: SidebarsConfig = {
       link: {
         type: 'generated-index',
         description:
-          'Operators create and manage gardens — defining conservation actions, reviewing submitted work, minting impact certificates, and overseeing endowments and payouts.',
+          'Operators create and manage gardens — defining conservation actions, reviewing submitted work, minting impact certificates, and overseeing endowments and payouts. From garden setup to Hypercert minting and endowment management, these guides cover the full operator lifecycle.',
       },
       items: [
         {type: 'doc', id: 'community/operator-guide/creating-a-garden', label: 'Creating A Garden'},
@@ -80,7 +80,7 @@ const sidebars: SidebarsConfig = {
       link: {
         type: 'generated-index',
         description:
-          'Evaluators verify conservation work and assess impact certificates. Learn how to join a garden as an evaluator, conduct assessments, and earn recognition for your expertise.',
+          'Evaluators verify conservation work and assess impact certificates. Learn how to join a garden as an evaluator, conduct assessments, and earn recognition for your expertise. Includes querying the indexer, exporting data for analysis, and understanding the attestation chain.',
       },
       items: [
         {type: 'doc', id: 'community/evaluator-guide/joining-a-garden', label: 'Joining A Garden'},
@@ -97,7 +97,7 @@ const sidebars: SidebarsConfig = {
       link: {
         type: 'generated-index',
         description:
-          'Funders support conservation gardens by depositing into endowment vaults and purchasing impact certificates. Discover how to fund a garden and track your impact.',
+          'Funders support conservation gardens by depositing into endowment vaults and purchasing impact certificates. Discover how to fund a garden and track your impact. Understand how Octant Vaults generate yield for garden operations and how Hypercert purchases directly fund verified impact.',
       },
       items: [
         {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Funding A Garden'},
@@ -112,7 +112,7 @@ const sidebars: SidebarsConfig = {
       link: {
         type: 'generated-index',
         description:
-          'Community members participate in garden governance through conviction voting and earn rewards for their engagement. Get started with voting and community participation.',
+          'Community members participate in garden governance through conviction voting and earn rewards for their engagement. Get started with voting and community participation. Conviction voting lets your support grow over time, prioritizing the work your community values most.',
       },
       items: [
         {type: 'doc', id: 'community/community-member-guide/getting-involved', label: 'Voting In Gardens'},
@@ -121,7 +121,7 @@ const sidebars: SidebarsConfig = {
     },
 
     {type: 'doc', id: 'reference/faq', label: 'FAQ'},
-    {type: 'doc', id: 'reference/glossary', label: 'Glossary'},
+    {type: 'doc', id: 'reference/glossary-community', label: 'Glossary'},
   ],
 
   buildersSidebar: [
@@ -308,7 +308,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    {type: 'link', label: 'Glossary', href: '/glossary#builder-terms'},
+    {type: 'doc', id: 'builders/glossary', label: 'Builder Glossary'},
     {type: 'doc', id: 'reference/changelog', label: 'Changelog'},
     {type: 'doc', id: 'reference/design-research', label: 'Design & Research'},
     {type: 'doc', id: 'reference/credits', label: 'Credits & Licenses'},
