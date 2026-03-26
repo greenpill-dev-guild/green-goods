@@ -180,7 +180,7 @@ contract KarmaModuleTest is Test {
     function test_createImpact_revertsForNonWorkApprovalResolver() public {
         vm.prank(UNAUTHORIZED);
         vm.expectRevert(IKarmaGAPModule.NotWorkApprovalResolver.selector);
-        module.createImpact(GARDEN, 1, "Title", "Desc", "ipfs://proof", bytes32(uint256(1)));
+        module.createImpact(GARDEN, 1, "Title", "Desc", "ipfs://proof", bytes32(uint256(1)), "");
     }
 
     function test_createMilestone_revertsForNonAssessmentResolver() public {
@@ -253,7 +253,7 @@ contract KarmaModuleTest is Test {
         emit GAPOperationFailed(GARDEN, "createImpact", "No project");
 
         vm.prank(WORK_APPROVAL_RESOLVER);
-        bytes32 uid = module.createImpact(GARDEN, 1, "Title", "Desc", "ipfs://proof", bytes32(uint256(1)));
+        bytes32 uid = module.createImpact(GARDEN, 1, "Title", "Desc", "ipfs://proof", bytes32(uint256(1)), "");
         assertEq(uid, bytes32(0));
     }
 
@@ -410,7 +410,7 @@ contract KarmaModuleTest is Test {
 
         vm.prank(WORK_APPROVAL_RESOLVER);
         bytes32 impactUID =
-            module.createImpact(GARDEN, 1, "Tree Planting", "Planted 50 trees", "ipfs://proof", bytes32(uint256(42)));
+            module.createImpact(GARDEN, 1, "Tree Planting", "Planted 50 trees", "ipfs://proof", bytes32(uint256(42)), "");
 
         assertTrue(impactUID != bytes32(0), "Should return non-zero impact UID");
     }
@@ -426,7 +426,7 @@ contract KarmaModuleTest is Test {
         emit GAPOperationFailed(GARDEN, "createImpact", "Chain not supported");
 
         vm.prank(WORK_APPROVAL_RESOLVER);
-        bytes32 uid = module.createImpact(GARDEN, 1, "Title", "Desc", "ipfs://proof", bytes32(uint256(1)));
+        bytes32 uid = module.createImpact(GARDEN, 1, "Title", "Desc", "ipfs://proof", bytes32(uint256(1)), "");
         assertEq(uid, bytes32(0));
     }
 
@@ -442,7 +442,7 @@ contract KarmaModuleTest is Test {
         emit GAPOperationFailed(GARDEN, "createImpact", "Attestation failed");
 
         vm.prank(WORK_APPROVAL_RESOLVER);
-        bytes32 uid = module.createImpact(GARDEN, 1, "Title", "Desc", "ipfs://proof", bytes32(uint256(1)));
+        bytes32 uid = module.createImpact(GARDEN, 1, "Title", "Desc", "ipfs://proof", bytes32(uint256(1)), "");
         assertEq(uid, bytes32(0));
     }
 

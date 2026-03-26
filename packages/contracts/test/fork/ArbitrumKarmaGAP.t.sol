@@ -59,7 +59,8 @@ contract ArbitrumKarmaGAPForkTest is Test {
             "Arbitrum Fork Impact",
             "Created impact attestation on real Arbitrum GAP",
             "QmArbitrumImpactProof",
-            bytes32(uint256(0xABCDEF))
+            bytes32(uint256(0xABCDEF)),
+            "bafkreiForkMetadata"
         );
 
         assertTrue(impactUID != bytes32(0), "Impact UID should be non-zero");
@@ -159,7 +160,7 @@ contract ArbitrumKarmaGAPForkTest is Test {
         // No project created for GARDEN — createImpact should return bytes32(0)
         vm.prank(WORK_APPROVAL_RESOLVER);
         bytes32 impactUID =
-            module.createImpact(GARDEN, 1, "Orphan Impact", "Should fail gracefully", "QmOrphan", bytes32(uint256(0x999)));
+            module.createImpact(GARDEN, 1, "Orphan Impact", "Should fail gracefully", "QmOrphan", bytes32(uint256(0x999)), "");
 
         assertEq(impactUID, bytes32(0), "impact without project should return zero UID");
     }

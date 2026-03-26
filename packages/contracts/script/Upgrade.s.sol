@@ -18,6 +18,7 @@ import { Deployment } from "../src/registries/Deployment.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
 import { GardensModule } from "../src/modules/Gardens.sol";
 import { YieldResolver } from "../src/resolvers/Yield.sol";
+import { KarmaGAPModule } from "../src/modules/Karma.sol";
 
 /// @title Upgrade Script for Green Goods Contracts
 /// @notice Handles UUPS proxy upgrades for all upgradeable contracts
@@ -335,6 +336,31 @@ contract Upgrade is Script {
         vm.stopBroadcast();
     }
 
+    /// @notice Upgrade KarmaGAPModule
+    function upgradeKarmaGAPModule() public {
+        address proxy = loadProxyAddress("karmaGAPModule");
+        console.log("Upgrading KarmaGAPModule proxy at:", proxy);
+
+        validateProxy(proxy, "KarmaGAPModule");
+
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+        bytes32 currentImpl = vm.load(proxy, implementationSlot);
+        address currentImplAddr = address(uint160(uint256(currentImpl)));
+        console.log("Current KarmaGAPModule implementation:", currentImplAddr);
+
+        vm.startBroadcast();
+
+        KarmaGAPModule newImpl = new KarmaGAPModule();
+        console.log("New KarmaGAPModule implementation:", address(newImpl));
+
+        if (address(newImpl) == currentImplAddr) revert SameImplementation();
+
+        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        console.log("KarmaGAPModule upgraded successfully");
+
+        vm.stopBroadcast();
+    }
+
     // NOTE: upgradeGardenerAccount() removed as part of interface-based split architecture
     // Gardener.sol (Kernel-based smart account) has been removed from the codebase
 
@@ -376,6 +402,7 @@ contract Upgrade is Script {
         upgradeYieldResolver();
         upgradeGardensModule();
         upgradeOctantModule();
+        upgradeKarmaGAPModule();
         // NOTE: upgradeGardenerAccount() removed - Gardener.sol has been removed
     }
 

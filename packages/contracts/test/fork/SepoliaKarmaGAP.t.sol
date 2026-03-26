@@ -57,7 +57,8 @@ contract SepoliaKarmaGAPForkTest is Test {
             "Fork Impact",
             "Created impact attestation on real GAP",
             "QmSepoliaImpactProof",
-            bytes32(uint256(0x123456))
+            bytes32(uint256(0x123456)),
+            "bafkreiForkMetadata"
         );
 
         assertTrue(impactUID != bytes32(0), "Impact UID should be non-zero");

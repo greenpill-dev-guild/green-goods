@@ -60,7 +60,8 @@ contract MockKarmaGAPModule is IKarmaGAPModule {
         string calldata,
         string calldata,
         string calldata,
-        bytes32
+        bytes32,
+        string calldata
     )
         external
         returns (bytes32)

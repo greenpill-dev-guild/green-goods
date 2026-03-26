@@ -226,4 +226,45 @@ library StringUtils {
 
         return string(hexString);
     }
+
+    /// @notice Normalizes an IPFS reference to ipfs:// protocol URL
+    /// @dev Handles three input formats:
+    ///   1. ipfs:// protocol URL (ipfs://CID) → passthrough
+    ///   2. Full gateway URL (https://gateway.io/ipfs/CID) → ipfs://CID
+    ///   3. Bare CID (bafk..., Qm...) → ipfs://CID
+    /// @param value The IPFS reference string (CID, ipfs:// URL, or gateway URL)
+    /// @return Normalized ipfs:// URL, or empty string if input is empty
+    function normalizeIPFSUrl(string memory value) internal pure returns (string memory) {
+        bytes memory b = bytes(value);
+        if (b.length == 0) return "";
+
+        // Already has ipfs:// prefix → passthrough
+        if (b.length >= 7 && b[0] == "i" && b[1] == "p" && b[2] == "f" && b[3] == "s" && b[4] == ":" && b[5] == "/"
+            && b[6] == "/") {
+            return value;
+        }
+
+        // Starts with http → scan for "/ipfs/" and extract CID + trailing path
+        if (b.length >= 4 && b[0] == "h" && b[1] == "t" && b[2] == "t" && b[3] == "p") {
+            // Scan for "/ipfs/" (6 bytes)
+            for (uint256 i = 0; i + 5 < b.length; i++) {
+                if (b[i] == "/" && b[i + 1] == "i" && b[i + 2] == "p" && b[i + 3] == "f" && b[i + 4] == "s"
+                    && b[i + 5] == "/") {
+                    // Extract everything after "/ipfs/"
+                    uint256 cidStart = i + 6;
+                    uint256 cidLen = b.length - cidStart;
+                    bytes memory cid = new bytes(cidLen);
+                    for (uint256 j = 0; j < cidLen; j++) {
+                        cid[j] = b[cidStart + j];
+                    }
+                    return string(abi.encodePacked("ipfs://", cid));
+                }
+            }
+            // HTTP URL without /ipfs/ — return as-is (non-IPFS image URL)
+            return value;
+        }
+
+        // Bare CID — prepend ipfs://
+        return string(abi.encodePacked("ipfs://", value));
+    }
 }

@@ -104,6 +104,7 @@ interface IKarmaGAPModule {
     /// @param impactDescription The impact description
     /// @param proofIPFS The IPFS CID for evidence
     /// @param workUID The work attestation UID
+    /// @param metadataCID The IPFS CID for structured work metadata (domain-specific indicators)
     /// @return impactUID The created impact UID (bytes32(0) if creation failed gracefully)
     function createImpact(
         address garden,
@@ -111,7 +112,8 @@ interface IKarmaGAPModule {
         string calldata workTitle,
         string calldata impactDescription,
         string calldata proofIPFS,
-        bytes32 workUID
+        bytes32 workUID,
+        string calldata metadataCID
     )
         external
         returns (bytes32 impactUID);

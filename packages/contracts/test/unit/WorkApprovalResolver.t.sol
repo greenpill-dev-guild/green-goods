@@ -94,7 +94,7 @@ contract WorkApprovalResolverTest is Test {
             recipient: address(mockGarden), // Work was submitted to this garden
             attester: gardener,
             revocable: true,
-            data: abi.encode(activeActionId, "Planted Trees", "", "", media)
+            data: abi.encode(activeActionId, "Planted 50 oak saplings at riverside", "Detailed planting work", "bafkreiMetadata123", media)
         });
         mockEAS.setAttestationByUID(workUID, workAttestation);
     }
@@ -709,7 +709,8 @@ contract MockKarmaForWorkApproval {
         string calldata,
         string calldata,
         string calldata,
-        bytes32
+        bytes32,
+        string calldata
     )
         external
         pure

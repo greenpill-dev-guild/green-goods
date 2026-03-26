@@ -180,7 +180,7 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
 
         // GAP INTEGRATION: Create project impact if approved
         if (schema.approved && address(karmaGAPModule) != address(0)) {
-            _createGAPProjectImpact(schema, workAttestation, workSchema);
+            _createGAPProjectImpact(schema, workAttestation, workSchema, action.title);
         }
 
         return (true);
@@ -198,26 +198,27 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     /// @param schema Work approval schema data
     /// @param workAttestation The work attestation being approved
     /// @param workSchema The decoded work schema (already decoded in onAttest)
+    /// @param actionTitle Fallback title from action registry (used if work has no title)
     function _createGAPProjectImpact(
         WorkApprovalSchema memory schema,
         Attestation memory workAttestation,
-        WorkSchema memory workSchema
+        WorkSchema memory workSchema,
+        string memory actionTitle
     )
         private
     {
-        // Get action data
-        ActionRegistry.Action memory action = ActionRegistry(ACTION_REGISTRY).getAction(schema.actionUID);
-
-        // Prepare impact data
-        string memory workTitle = action.title;
-        string memory impactDesc = schema.feedback;
+        // Prepare impact data — prefer user's work data, fall back to action/approval data
+        string memory workTitle = bytes(workSchema.title).length > 0 ? workSchema.title : actionTitle;
+        string memory impactDesc = bytes(workSchema.feedback).length > 0 ? workSchema.feedback : schema.feedback;
         string memory proof = workSchema.media.length > 0 ? workSchema.media[0] : "";
 
         (,, uint256 tokenId) = IERC6551Account(workAttestation.recipient).token();
 
         // SECURITY: Use try/catch to prevent GAP failures from reverting approval
         // solhint-disable-next-line no-empty-blocks
-        try karmaGAPModule.createImpact(workAttestation.recipient, tokenId, workTitle, impactDesc, proof, schema.workUID) {
+        try karmaGAPModule.createImpact(
+            workAttestation.recipient, tokenId, workTitle, impactDesc, proof, schema.workUID, workSchema.metadata
+        ) {
             // Success - event emitted by module, no additional action needed
         } catch {
             // Intentionally ignore failures - approval succeeds even if GAP integration fails

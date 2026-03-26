@@ -16,6 +16,7 @@ type ContractName =
   | "yield-resolver"
   | "gardens-module"
   | "octant-module"
+  | "karma-gap-module"
   | "work-resolver"
   | "work-approval-resolver"
   | "assessment-resolver"
@@ -28,6 +29,7 @@ const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "yield-resolver": "upgradeYieldResolver()",
   "gardens-module": "upgradeGardensModule()",
   "octant-module": "upgradeOctantModule()",
+  "karma-gap-module": "upgradeKarmaGAPModule()",
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
   "assessment-resolver": "upgradeAssessmentResolver()",
@@ -45,6 +47,7 @@ const ALL_CONTRACTS_FOR_UPGRADE_ALL: readonly ContractName[] = [
   "yield-resolver",
   "gardens-module",
   "octant-module",
+  "karma-gap-module",
 ];
 
 const DEPLOYMENT_KEYS: Record<Exclude<ContractName, "all">, string> = {
@@ -53,6 +56,7 @@ const DEPLOYMENT_KEYS: Record<Exclude<ContractName, "all">, string> = {
   "yield-resolver": "yieldSplitter",
   "gardens-module": "gardensModule",
   "octant-module": "octantModule",
+  "karma-gap-module": "karmaGAPModule",
   "work-resolver": "workResolver",
   "work-approval-resolver": "workApprovalResolver",
   "assessment-resolver": "assessmentResolver",
@@ -201,6 +205,7 @@ Contracts:
   yield-resolver          Upgrade YieldResolver
   gardens-module          Upgrade GardensModule (community + signal pool module)
   octant-module           Upgrade OctantModule (vault treasury module)
+  karma-gap-module        Upgrade KarmaGAPModule (Karma GAP integration)
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver
   assessment-resolver     Upgrade AssessmentResolver

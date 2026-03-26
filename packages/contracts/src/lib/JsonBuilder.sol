@@ -31,7 +31,7 @@ library JsonBuilder {
         pure
         returns (string memory)
     {
-        string memory imageURL = bytes(bannerImage).length > 0 ? string(abi.encodePacked("ipfs://", bannerImage)) : "";
+        string memory imageURL = StringUtils.normalizeIPFSUrl(bannerImage);
 
         return string(
             abi.encodePacked(
@@ -57,6 +57,7 @@ library JsonBuilder {
     /// @param workUID UID of the original work attestation
     /// @param garden Garden account address (for Green Goods link)
     /// @param timestamp Block timestamp for ISO date formatting
+    /// @param metadataCID IPFS CID for structured work metadata (domain-specific indicators)
     /// @return JSON string conforming to GAP project-update schema
     function buildImpact(
         string calldata workTitle,
@@ -64,7 +65,8 @@ library JsonBuilder {
         string calldata proofIPFS,
         bytes32 workUID,
         address garden,
-        uint256 timestamp
+        uint256 timestamp,
+        string calldata metadataCID
     )
         internal
         pure
@@ -93,8 +95,13 @@ library JsonBuilder {
             "\"}]"
         );
 
-        // Part 3: links
-        bytes memory part3 = abi.encodePacked(
+        // Part 3: metadataCID (conditional)
+        bytes memory metadataPart = bytes(metadataCID).length > 0
+            ? abi.encodePacked(",\"metadataCID\":\"ipfs://", StringUtils.escapeJSON(metadataCID), "\"")
+            : bytes("");
+
+        // Part 4: links
+        bytes memory part4 = abi.encodePacked(
             ",\"links\":[{\"type\":\"other\",\"url\":\"https://greengoods.app/#/home/0x",
             StringUtils.addressToHexString(garden),
             "/work/0x",
@@ -102,7 +109,7 @@ library JsonBuilder {
             "\",\"label\":\"View in Green Goods\"}],\"type\":\"project-update\"}"
         );
 
-        return string(abi.encodePacked(part1, part2, part3));
+        return string(abi.encodePacked(part1, part2, metadataPart, part4));
     }
 
     /// @notice Builds milestone JSON for assessment attestations

@@ -293,7 +293,8 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         string calldata workTitle,
         string calldata impactDescription,
         string calldata proofIPFS,
-        bytes32 workUID
+        bytes32 workUID,
+        string calldata metadataCID
     )
         external
         onlyWorkApprovalResolver
@@ -310,7 +311,7 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         }
 
         string memory impactJson =
-            JsonBuilder.buildImpact(workTitle, impactDescription, proofIPFS, workUID, garden, block.timestamp);
+            JsonBuilder.buildImpact(workTitle, impactDescription, proofIPFS, workUID, garden, block.timestamp, metadataCID);
 
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: garden,

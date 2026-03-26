@@ -27,13 +27,14 @@ contract JsonBuilderWrapper {
         string calldata proofIPFS,
         bytes32 workUID,
         address garden,
-        uint256 timestamp
+        uint256 timestamp,
+        string calldata metadataCID
     )
         external
         pure
         returns (string memory)
     {
-        return JsonBuilder.buildImpact(workTitle, impactDescription, proofIPFS, workUID, garden, timestamp);
+        return JsonBuilder.buildImpact(workTitle, impactDescription, proofIPFS, workUID, garden, timestamp, metadataCID);
     }
 
     function buildMilestone(
@@ -80,13 +81,33 @@ contract JsonBuilderTest is Test {
     function testProjectDetailsImageURL() public {
         string memory json = wrapper.buildProjectDetails("Garden", "Desc", "Loc", "QmABC123");
 
-        assertTrue(_contains(json, "ipfs://QmABC123"), "Should build IPFS protocol URL");
+        assertTrue(_contains(json, "ipfs://QmABC123"), "Should build IPFS protocol URL from bare CID");
     }
 
     function testProjectDetailsEmptyBannerImage() public {
         string memory json = wrapper.buildProjectDetails("Garden", "Desc", "Loc", "");
 
         assertTrue(_contains(json, "\"imageURL\":\"\""), "Empty banner should produce empty imageURL");
+    }
+
+    function testProjectDetailsGatewayURLNormalization() public {
+        string memory json =
+            wrapper.buildProjectDetails("Garden", "Desc", "Loc", "https://greengoods.mypinata.cloud/ipfs/bafkreiabc123");
+
+        assertTrue(
+            _contains(json, "\"imageURL\":\"ipfs://bafkreiabc123\""),
+            "Gateway URL should be normalized to ipfs:// protocol"
+        );
+        assertFalse(_contains(json, "https://"), "Should not contain any https:// after normalization");
+    }
+
+    function testProjectDetailsIpfsProtocolPassthrough() public {
+        string memory json = wrapper.buildProjectDetails("Garden", "Desc", "Loc", "ipfs://bafkreiexisting");
+
+        assertTrue(
+            _contains(json, "\"imageURL\":\"ipfs://bafkreiexisting\""),
+            "ipfs:// prefixed URL should pass through unchanged"
+        );
     }
 
     function testProjectDetailsSlugGeneration() public {
@@ -120,7 +141,7 @@ contract JsonBuilderTest is Test {
         address garden = address(0xBEEF);
 
         string memory json =
-            wrapper.buildImpact("Planted Trees", "Planted 100 trees", "QmProof", workUID, garden, 1_700_000_000);
+            wrapper.buildImpact("Planted Trees", "Planted 100 trees", "QmProof", workUID, garden, 1_700_000_000, "");
 
         assertTrue(_contains(json, "\"title\":\"Planted Trees\""), "Should contain title");
         assertTrue(_contains(json, "\"text\":\"Planted 100 trees\""), "Should contain text");
@@ -129,7 +150,7 @@ contract JsonBuilderTest is Test {
 
     function testImpactISODateFormat() public {
         // Unix timestamp 1700000000 = 2023-11-14T22:13:20.000Z
-        string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000);
+        string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "");
 
         assertTrue(_contains(json, "\"startDate\":\"2023-11-14T22:13:20.000Z\""), "Should format startDate as ISO");
         assertTrue(_contains(json, "\"endDate\":\"2023-11-14T22:13:20.000Z\""), "Should format endDate as ISO");
@@ -137,7 +158,7 @@ contract JsonBuilderTest is Test {
 
     function testImpactDeliverables() public {
         string memory json =
-            wrapper.buildImpact("Work", "Impact desc", "QmEvidenceHash", bytes32(0), address(0xBEEF), 1_700_000_000);
+            wrapper.buildImpact("Work", "Impact desc", "QmEvidenceHash", bytes32(0), address(0xBEEF), 1_700_000_000, "");
 
         assertTrue(_contains(json, "\"deliverables\":[{"), "Should contain deliverables array");
         assertTrue(_contains(json, "\"name\":\"Work Evidence\""), "Should have deliverable name");
@@ -148,7 +169,7 @@ contract JsonBuilderTest is Test {
         bytes32 workUID = bytes32(uint256(0xABCD));
         address garden = address(0x1234);
 
-        string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", workUID, garden, 1_700_000_000);
+        string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", workUID, garden, 1_700_000_000, "");
 
         assertTrue(_contains(json, "https://greengoods.app/#/home/0x"), "Should use app domain + hash route");
         assertTrue(_contains(json, "/work/0x"), "Should include work route with UID");
@@ -157,18 +178,37 @@ contract JsonBuilderTest is Test {
 
     function testImpactUsesGardenAddressInLink() public {
         address garden = address(0x1234);
-        string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), garden, 1_700_000_000);
+        string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), garden, 1_700_000_000, "");
 
         assertTrue(_contains(json, "0000000000000000000000000000000000001234"), "Should include garden address hex");
     }
 
     function testImpactEscapesUserInput() public {
         string memory json = wrapper.buildImpact(
-            'Work "Title"', 'Impact "Description"', "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000
+            'Work "Title"', 'Impact "Description"', "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, ""
         );
 
         assertTrue(_contains(json, 'Work \\"Title\\"'), "Title quotes escaped");
         assertTrue(_contains(json, 'Impact \\"Description\\"'), "Description quotes escaped");
+    }
+
+    function testImpactWithMetadataCID() public {
+        string memory json = wrapper.buildImpact(
+            "Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "bafkreiMetadata123"
+        );
+
+        assertTrue(
+            _contains(json, "\"metadataCID\":\"ipfs://bafkreiMetadata123\""),
+            "Should include metadataCID with ipfs:// prefix"
+        );
+    }
+
+    function testImpactWithEmptyMetadataCID() public {
+        string memory json = wrapper.buildImpact(
+            "Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, ""
+        );
+
+        assertFalse(_contains(json, "metadataCID"), "Empty metadataCID should not appear in JSON");
     }
 
     // =========================================================================
@@ -247,7 +287,16 @@ contract JsonBuilderTest is Test {
     }
 
     function testImpactStartsAndEndsCorrectly() public {
-        string memory json = wrapper.buildImpact("Work", "Desc", "Qm", bytes32(0), address(0xBEEF), 1_700_000_000);
+        string memory json = wrapper.buildImpact("Work", "Desc", "Qm", bytes32(0), address(0xBEEF), 1_700_000_000, "");
+        bytes memory b = bytes(json);
+
+        assertEq(b[0], bytes1("{"), "Should start with {");
+        assertEq(b[b.length - 1], bytes1("}"), "Should end with }");
+    }
+
+    function testImpactWithMetadataCIDStartsAndEndsCorrectly() public {
+        string memory json =
+            wrapper.buildImpact("Work", "Desc", "Qm", bytes32(0), address(0xBEEF), 1_700_000_000, "bafkreiMeta456");
         bytes memory b = bytes(json);
 
         assertEq(b[0], bytes1("{"), "Should start with {");
