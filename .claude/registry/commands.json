@@ -1,6 +1,6 @@
 {
   "source": ".claude/skills/*/SKILL.md",
-  "canonical_commands": ["plan", "debug", "review", "audit"],
+  "canonical_commands": ["plan", "debug", "review", "audit", "meeting-notes"],
   "commands": [
     {
       "name": "plan",
@@ -16,7 +16,7 @@
       "default_mode": "interactive",
       "intent": "Root cause investigation and systematic debugging",
       "entry_file": ".claude/skills/debug/SKILL.md",
-      "owned_skills": ["debug", "tdd-bugfix"]
+      "owned_skills": ["debug"]
     },
     {
       "name": "review",
@@ -24,7 +24,7 @@
       "default_mode": "interactive",
       "intent": "6-pass systematic code review with structured findings",
       "entry_file": ".claude/skills/review/SKILL.md",
-      "owned_skills": ["review", "autonomous-review", "cross-package-verify"]
+      "owned_skills": ["review"]
     },
     {
       "name": "audit",
@@ -32,7 +32,15 @@
       "default_mode": "interactive",
       "intent": "Dead code detection and architectural anti-pattern analysis",
       "entry_file": ".claude/skills/audit/SKILL.md",
-      "owned_skills": ["audit", "security"]
+      "owned_skills": ["audit"]
+    },
+    {
+      "name": "meeting-notes",
+      "status": "active",
+      "default_mode": "interactive",
+      "intent": "Extract actionable work from transcripts into issue drafts",
+      "entry_file": ".claude/skills/meeting-notes/SKILL.md",
+      "owned_skills": ["meeting-notes"]
     }
   ],
   "aliases": {

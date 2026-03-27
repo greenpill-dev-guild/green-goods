@@ -16,7 +16,7 @@ import {NextBestAction} from "@site/src/components/docs";
 graph TB
     subgraph Config[".claude/ Directory"]
         Agents["agents/\n6 custom agents"]
-        Skills["skills/\n~30 skill defs"]
+        Skills["skills/\n19 active skill defs"]
         Rules["rules/\npath-scoped"]
         Context["context/\nper-package"]
     end
@@ -42,7 +42,7 @@ Primary agentic development tool for Green Goods. Claude Code operates as a CLI-
 - **CLAUDE.md** provides project-wide context that is always loaded: commands, architecture, key patterns, error handling conventions, git workflow, and build order
 - **Custom agents** handle specialized workstreams that benefit from focused prompts and isolated context
 - **Skills** encode common workflows (plan, debug, review, audit) as reusable prompt templates
-- **Multi-agent teams** coordinate parallel work across packages using the TeamCreate skill
+- **Multi-agent teams** coordinate parallel work across packages using the `agent-teams` skill and `/teams`
 
 ### Custom Agents
 
@@ -66,7 +66,7 @@ The `.claude/` directory contains all agentic configuration:
 ```
 .claude/
   agents/           # 6 custom agent definitions (.md files)
-  skills/           # ~30 skill definitions organized by domain
+  skills/           # 19 active skill definitions organized by domain
     index.md        # Master skill index
     plan/           # Planning workflows
     debug/          # Debugging workflows
@@ -87,8 +87,8 @@ The `.claude/` directory contains all agentic configuration:
     agent.md        # Bot automation, Telegram integration
   registry/         # Skill bundles and activation maps
   specs/            # Agent evaluation specs
-  hooks.json        # Git hook integrations
-  settings.json     # Claude Code project settings
+  hooks.json        # Tool hook policy snapshot
+  settings.json     # Claude Code project settings + live hook config
 ```
 
 **`CLAUDE.md`** (project root) is the primary context file, always loaded into every conversation. It defines:
@@ -128,7 +128,7 @@ Never speculate about code you haven't read. If referencing a specific file, rea
 
 ### Team coordination
 
-Multi-agent teams use the TeamCreate skill to spin up parallel workstreams. Each agent gets a focused task brief, and the team lead coordinates through the task system. Teams are used for large refactors, cross-package migrations, and documentation sprints.
+Multi-agent teams use the `agent-teams` skill and `/teams` flow to spin up parallel workstreams. Each agent gets a focused task brief, and the team lead coordinates through the task system. Teams are used for large refactors, cross-package migrations, and documentation sprints.
 
 ## References
 

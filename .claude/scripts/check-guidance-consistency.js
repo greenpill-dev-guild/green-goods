@@ -231,31 +231,11 @@ if (!exists(registryPath)) {
     fail(`${indexPath}: deprecated skills section should be removed`);
   }
 
-  if (!/\|\s*error-handling-patterns\s*\|/m.test(indexText)) {
-    fail(`${indexPath}: coverage matrix must use error-handling-patterns row name`);
+  if (!/##\s+Command Skills/m.test(indexText)) {
+    fail(`${indexPath}: missing "Command Skills" section`);
   }
-  if (/\|\s*error-handling\s*\|/m.test(indexText)) {
-    fail(`${indexPath}: legacy coverage row "error-handling" should not exist`);
-  }
-
-  const commandSkillsMatch = indexText.match(/##\s+Command Skills([\s\S]*?)##\s+Development Skills/m);
-  if (!commandSkillsMatch) {
-    fail(`${indexPath}: missing "Command Skills" or "Development Skills" section`);
-  } else {
-    const [primaryCommandTable] = commandSkillsMatch[1].split(/###\s+Command Mode Wrappers/m);
-    if (/\|\s*\*\*cross-package-verify\*\*\s*\|/m.test(primaryCommandTable)) {
-      fail(`${indexPath}: cross-package-verify must be a command-mode wrapper, not a primary command row`);
-    }
-    if (/\|\s*\*\*agent-teams\*\*\s*\|/m.test(primaryCommandTable)) {
-      fail(`${indexPath}: agent-teams must be a command-mode wrapper, not a primary command row`);
-    }
-  }
-
-  if (!/###\s+Command Mode Wrappers/m.test(indexText)) {
-    fail(`${indexPath}: missing "Command Mode Wrappers" section`);
-  }
-  if (/\|\s*`cross-package-change`\s*\|\s*`cross-package-verify`\s*\|/m.test(indexText)) {
-    fail(`${indexPath}: cross-package-change entrypoint must route through canonical /review command`);
+  if (!/##\s+Domain Skills/m.test(indexText)) {
+    fail(`${indexPath}: missing "Domain Skills" section`);
   }
 }
 
@@ -294,7 +274,7 @@ if (exists(commandsSchemaPath)) {
   }
 }
 
-const expectedCanonicalCommands = new Set(["plan", "debug", "review", "audit"]);
+const expectedCanonicalCommands = new Set(["plan", "debug", "review", "audit", "meeting-notes"]);
 let canonicalCommandNames = new Set();
 let commandAliases = {};
 
@@ -324,7 +304,7 @@ if (!exists(commandsRegistryPath)) {
   }
 
   if (canonicalCommandNames.size !== expectedCanonicalCommands.size) {
-    fail(`${commandsRegistryPath}: canonical_commands must contain exactly plan, debug, review, audit`);
+    fail(`${commandsRegistryPath}: canonical_commands must contain exactly plan, debug, review, audit, meeting-notes`);
   }
   for (const cmd of expectedCanonicalCommands) {
     if (!canonicalCommandNames.has(cmd)) {
@@ -460,14 +440,14 @@ if (!exists(bundlesPath)) {
       }
 
       if (bundle.contract_touching) {
-        if (!bundle.skills.includes("contracts") || !bundle.skills.includes("security")) {
-          fail(`${bundlesPath}: ${id} (contract_touching) must include contracts and security`);
+        if (!bundle.skills.includes("contracts")) {
+          fail(`${bundlesPath}: ${id} (contract_touching) must include contracts`);
         }
       }
 
       if (bundle.user_facing) {
-        if (!bundle.skills.includes("i18n") || !bundle.skills.includes("ui-compliance")) {
-          fail(`${bundlesPath}: ${id} (user_facing) must include i18n and ui-compliance`);
+        if (!bundle.skills.includes("ui")) {
+          fail(`${bundlesPath}: ${id} (user_facing) must include ui`);
         }
       }
     }
@@ -571,9 +551,6 @@ if (/cross-package-verify/i.test(triageDoc)) {
 const reviewSurfaces = [
   ".claude/agents/code-reviewer.md",
   ".claude/skills/review/SKILL.md",
-  ".claude/skills/autonomous-review/SKILL.md",
-  ".claude/skills/cross-package-verify/SKILL.md",
-  ".claude/skills/tdd-bugfix/SKILL.md",
 ];
 
 for (const relPath of reviewSurfaces) {
@@ -599,9 +576,6 @@ assertInOrder(read(".claude/agents/triage.md"), [
 for (const relPath of [
   ".claude/agents/code-reviewer.md",
   ".claude/skills/review/SKILL.md",
-  ".claude/skills/autonomous-review/SKILL.md",
-  ".claude/skills/cross-package-verify/SKILL.md",
-  ".claude/skills/tdd-bugfix/SKILL.md",
 ]) {
   const content = read(relPath);
   assertInOrder(content, [
@@ -625,18 +599,6 @@ assertInOrder(read(".claude/agents/migration.md"), [
 ], ".claude/agents/migration.md");
 
 const thinWrappers = {
-  ".claude/skills/autonomous-review/SKILL.md": {
-    maxLines: 220,
-    mustContain: ["Canonical review protocol", "Canonical output contract"],
-  },
-  ".claude/skills/cross-package-verify/SKILL.md": {
-    maxLines: 240,
-    mustContain: ["Canonical review protocol", "Canonical output contract"],
-  },
-  ".claude/skills/tdd-bugfix/SKILL.md": {
-    maxLines: 220,
-    mustContain: ["Canonical debug flow", "Canonical output contract"],
-  },
   ".claude/agents/code-reviewer.md": {
     maxLines: 220,
     mustContain: ["Canonical review protocol", "Canonical output contract"],

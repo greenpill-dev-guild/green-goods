@@ -18,7 +18,7 @@ graph TB
         L2["Layer 2: AGENTS.md\nAlways loaded — invariants, scope constraints"]
         L3["Layer 3: context/*.md\nPer-package — shared, contracts, client, etc."]
         L4["Layer 4: rules/*.md\nPath-scoped — typescript, contracts, frontend"]
-        L5["Layer 5: skills/*\nPer-agent — 40+ domain skill sets"]
+        L5["Layer 5: skills/*\nPer-agent — 19 active skill sets"]
     end
 
     L1 --> L2 --> L3 --> L4 --> L5
@@ -37,13 +37,12 @@ The `.claude/` directory is the central context store for all agent tooling:
   agents/          # Agent specifications (6 agents)
   context/         # Package and domain context files
   rules/           # Path-scoped coding rules
-  skills/          # Modular instruction sets (40+ skills)
+  skills/          # Modular instruction sets (19 active skills)
   plans/           # Saved plans from agent PLAN phases
   registry/        # Skill bundles and activation configs
   scripts/         # Guidance consistency checks
   specs/           # Detailed feature specifications
   standards/       # Code standards documentation
-  agent-memory/    # Persistent agent memory (per-agent)
   evals/           # Agent evaluation criteria
   hooks.json       # Tool execution hooks
   settings.json    # Global agent settings
@@ -94,12 +93,7 @@ Each agent's specification lists the skills it needs. Skills provide detailed ho
 
 ### Agent Memory
 
-Each agent has persistent memory at `.claude/agent-memory/{agent-name}/`. The `MEMORY.md` file in each directory is loaded into the agent's system prompt on every session, providing cross-session learning.
-
-Memory guidelines:
-- Save stable patterns confirmed across multiple interactions
-- Save solutions to recurring problems
-- Do not save session-specific context or speculative conclusions
+This repository does not currently check in a `.claude/agent-memory/` tree. For repo-level continuity, rely on `session-state.md` plus the committed context, rules, and skill files.
 
 ### Session State
 

@@ -71,7 +71,7 @@
     "lighthouse:client": "bun run build:client && cd packages/client && npx lhci autorun",
     "lighthouse:admin": "bun run build:admin && cd packages/admin && npx lhci autorun",
     "lighthouse:collect": "bun run build:client && cd packages/client && npx lhci collect",
-    "build": "bun run build:contracts && bun run build:shared && bun run build:indexer && bun run build:client && bun run build:admin",
+    "build": "bun run build:contracts && bun run build:shared && bun run build:indexer && bun run build:client && bun run build:admin && bun run build:agent",
     "build:docs": "cd docs && bun run build",
     "docs:status:generate": "node docs/scripts/generate-protocol-status.mjs",
     "docs:audit": "node docs/scripts/docs-audit.mjs",

@@ -3,37 +3,28 @@
     "frontend-change": {
       "entrypoint": "/plan",
       "default_mode": "interactive",
-      "skills": [
-        "react",
-        "tanstack-query",
-        "tailwindcss",
-        "radix-ui",
-        "frontend-design",
-        "testing",
-        "i18n",
-        "ui-compliance"
-      ],
+      "skills": ["react", "ui", "testing"],
       "user_facing": true,
       "contract_touching": false
     },
     "shared-domain-change": {
       "entrypoint": "/plan",
       "default_mode": "interactive",
-      "skills": ["react", "tanstack-query", "web3", "error-handling-patterns", "testing"],
+      "skills": ["react", "web3", "data-layer", "testing"],
       "user_facing": false,
       "contract_touching": false
     },
     "contracts-change": {
       "entrypoint": "/plan",
       "default_mode": "interactive",
-      "skills": ["contracts", "security", "testing", "deployment"],
+      "skills": ["contracts", "testing"],
       "user_facing": false,
       "contract_touching": true
     },
     "indexer-change": {
       "entrypoint": "/plan",
       "default_mode": "interactive",
-      "skills": ["indexer", "docker", "testing"],
+      "skills": ["indexer", "testing"],
       "user_facing": false,
       "contract_touching": false
     },
@@ -47,14 +38,14 @@
     "cross-package-change": {
       "entrypoint": "/review --mode verify_only --scope cross-package",
       "default_mode": "verify_only",
-      "skills": ["review", "cross-package-verify", "testing"],
+      "skills": ["review", "testing"],
       "user_facing": false,
       "contract_touching": false
     },
     "incident-hotfix": {
       "entrypoint": "/debug --mode incident_hotfix",
       "default_mode": "apply_fixes",
-      "skills": ["debug", "tdd-bugfix", "testing"],
+      "skills": ["debug", "testing"],
       "user_facing": false,
       "contract_touching": false
     }
