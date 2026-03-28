@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { useGardens } from "../hooks/blockchain/useBaseLists";
 import type { Garden as DomainGarden } from "../types/domain";
 
 export type Garden = Pick<
@@ -90,3 +92,26 @@ export const useAdminStore = create<AdminState>()(
     setLastAttestationId: (id) => set({ lastAttestationId: id }),
   }))
 );
+
+/**
+ * Resets selectedGarden when it no longer exists in the gardens list.
+ * No-op while gardens are still loading (data is undefined).
+ */
+export function useStaleGardenGuard(): void {
+  const selectedGarden = useAdminStore((s) => s.selectedGarden);
+  const setSelectedGarden = useAdminStore((s) => s.setSelectedGarden);
+  const { data: gardens } = useGardens();
+
+  useEffect(() => {
+    // No-op while gardens are loading
+    if (gardens === undefined) return;
+
+    // Nothing selected — nothing to guard
+    if (selectedGarden === null) return;
+
+    const stillExists = gardens.some((g) => g.id === selectedGarden.id);
+    if (!stillExists) {
+      setSelectedGarden(gardens[0] ?? null);
+    }
+  }, [gardens, selectedGarden, setSelectedGarden]);
+}

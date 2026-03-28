@@ -189,12 +189,12 @@ export function setupTestEnvironment() {
       takeRecords: vi.fn(() => []),
     }));
 
-    // Mock ResizeObserver
-    (global as any).ResizeObserver = vi.fn(() => ({
-      observe: vi.fn(),
-      disconnect: vi.fn(),
-      unobserve: vi.fn(),
-    }));
+    // Mock ResizeObserver (class-based for @floating-ui/dom compatibility)
+    (global as any).ResizeObserver = class ResizeObserver {
+      observe = vi.fn();
+      disconnect = vi.fn();
+      unobserve = vi.fn();
+    };
   });
 
   // Cleanup after each test

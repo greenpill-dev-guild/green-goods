@@ -307,6 +307,8 @@ export {
 // ============================================================================
 // ROLES
 // ============================================================================
+export type { ToolbarPermissions } from "./roles/useEffectiveToolbarPermissions";
+export { useEffectiveToolbarPermissions } from "./roles/useEffectiveToolbarPermissions";
 export type { UseGardenRolesResult } from "./roles/useGardenRoles";
 export { useGardenRoles } from "./roles/useGardenRoles";
 export type { UseHasRoleResult } from "./roles/useHasRole";

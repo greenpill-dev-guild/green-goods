@@ -45,6 +45,22 @@ export {
   type WorkStatus,
   workCardVariants,
 } from "./Cards";
+// Cockpit Components (Sheets + Navigation)
+export {
+  BottomSheet,
+  type BottomSheetProps,
+  FloatingToolbar,
+  type FloatingToolbarProps,
+  type ToolbarSlot,
+  GardenChip,
+  type GardenChipProps,
+  SheetErrorBoundary,
+  type SheetErrorBoundaryProps,
+  SideSheet,
+  type SideSheetProps,
+  TopContextBar,
+  type TopContextBarProps,
+} from "./Cockpit";
 // DatePicker Components
 export {
   DatePicker,

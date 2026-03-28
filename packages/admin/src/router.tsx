@@ -6,13 +6,13 @@ import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 const createRouter =
   import.meta.env.VITE_USE_HASH_ROUTER === "true" ? createHashRouter : createBrowserRouter;
 
-// Root redirect component - prevents "empty page" warning
-const RootRedirect = () => <Navigate to="/dashboard" replace />;
+// Root redirect component - cockpit default is /work
+const RootRedirect = () => <Navigate to="/work" replace />;
 
 // Login redirect - preserves redirectTo param for bookmarked /login URLs
 const LoginRedirect = () => {
   const location = useLocation();
-  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/dashboard";
+  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/work";
   return <Navigate to={redirectTo} replace />;
 };
 
@@ -44,7 +44,21 @@ export const router = createRouter([
             // while DashboardShell (sidebar/header) stays visible above
             errorElement: <RouteErrorBoundary />,
             children: [
-              // ── Public read-only routes ──
+              // ── Cockpit routes (Phase 1a) ──
+              {
+                path: "work",
+                lazy: async () => ({ Component: (await import("@/views/Work")).default }),
+              },
+              {
+                path: "garden",
+                lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
+              },
+              {
+                path: "community",
+                lazy: async () => ({ Component: (await import("@/views/Community")).default }),
+              },
+
+              // ── Legacy read-only routes (kept until Phase 1b redirect map) ──
               {
                 path: "dashboard",
                 lazy: async () => ({ Component: (await import("@/views/Dashboard")).default }),

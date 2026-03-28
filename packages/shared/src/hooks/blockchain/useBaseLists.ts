@@ -26,6 +26,7 @@ function createBaseListHook<T>(
   options?: {
     staleTime?: number;
     gcTime?: number;
+    networkMode?: "online" | "always" | "offlineFirst";
   }
 ): (chainId?: number) => UseQueryResult<T[], Error> {
   return function useBaseList(chainId: number = DEFAULT_CHAIN_ID) {
@@ -37,6 +38,7 @@ function createBaseListHook<T>(
       staleTime: options?.staleTime ?? STALE_TIMES.baseLists,
       gcTime: options?.gcTime ?? GC_TIMES.baseLists,
       placeholderData: (previousData) => previousData ?? [],
+      ...(options?.networkMode && { networkMode: options.networkMode }),
     });
   };
 }
@@ -51,7 +53,8 @@ export const useActions = createBaseListHook<Action>(
 /** Retrieves gardens scoped to the active chain and keeps the list warm. */
 export const useGardens = createBaseListHook<Garden>(
   (chainId) => queryKeys.gardens.byChain(chainId),
-  getGardens
+  getGardens,
+  { networkMode: "offlineFirst" }
 );
 
 /** Loads gardener profiles for operator dashboards. */

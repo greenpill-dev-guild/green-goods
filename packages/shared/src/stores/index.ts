@@ -2,7 +2,7 @@
 
 // Admin Store
 export type { AdminState, Garden, TransactionInfo, TransactionStatus } from "./useAdminStore";
-export { useAdminStore } from "./useAdminStore";
+export { useAdminStore, useStaleGardenGuard } from "./useAdminStore";
 // Create Assessment Store
 export type {
   CreateAssessmentFormState,
