@@ -147,7 +147,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           id: "cockpit.settings.title",
           defaultMessage: "Settings",
         }),
-        roles: ["deployer", "operator", "gardener"],
+        roles: ["deployer", "operator", "user"],
       },
     ];
 

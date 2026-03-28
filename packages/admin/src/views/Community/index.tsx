@@ -15,7 +15,7 @@ export default function CommunityView() {
       />
 
       {/* Treasury card — full width */}
-      <div className="rounded-xl border border-stroke-soft bg-bg-white p-6">
+      <div className="rounded-xl border border-stroke-soft bg-bg-white p-6 shadow-elevation-1">
         <h3 className="text-base font-semibold text-text-strong">
           {formatMessage({ id: "cockpit.community.treasury", defaultMessage: "Treasury" })}
         </h3>
@@ -29,7 +29,7 @@ export default function CommunityView() {
 
       {/* Members + Pools — side by side */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="rounded-xl border border-stroke-soft bg-bg-white p-6">
+        <div className="rounded-xl border border-stroke-soft bg-bg-white p-6 shadow-elevation-1">
           <h3 className="text-base font-semibold text-text-strong">
             {formatMessage({ id: "cockpit.community.members", defaultMessage: "Members" })}
           </h3>
@@ -40,7 +40,7 @@ export default function CommunityView() {
             })}
           </p>
         </div>
-        <div className="rounded-xl border border-stroke-soft bg-bg-white p-6">
+        <div className="rounded-xl border border-stroke-soft bg-bg-white p-6 shadow-elevation-1">
           <h3 className="text-base font-semibold text-text-strong">
             {formatMessage({ id: "cockpit.community.pools", defaultMessage: "Signal Pools" })}
           </h3>

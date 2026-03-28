@@ -15,7 +15,7 @@ export default function GardenView() {
       />
 
       {/* Overview card — full width */}
-      <div className="rounded-xl border border-stroke-soft bg-bg-white p-6">
+      <div className="rounded-xl border border-stroke-soft bg-bg-white p-6 shadow-elevation-1">
         <h3 className="text-base font-semibold text-text-strong">
           {formatMessage({ id: "cockpit.garden.overview", defaultMessage: "Overview" })}
         </h3>
@@ -29,7 +29,7 @@ export default function GardenView() {
 
       {/* Impact + Settings — side by side */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="rounded-xl border border-stroke-soft bg-bg-white p-6">
+        <div className="rounded-xl border border-stroke-soft bg-bg-white p-6 shadow-elevation-1">
           <h3 className="text-base font-semibold text-text-strong">
             {formatMessage({ id: "cockpit.garden.impact", defaultMessage: "Impact" })}
           </h3>
@@ -40,7 +40,7 @@ export default function GardenView() {
             })}
           </p>
         </div>
-        <div className="rounded-xl border border-stroke-soft bg-bg-white p-6">
+        <div className="rounded-xl border border-stroke-soft bg-bg-white p-6 shadow-elevation-1">
           <h3 className="text-base font-semibold text-text-strong">
             {formatMessage({ id: "cockpit.garden.settings", defaultMessage: "Settings" })}
           </h3>

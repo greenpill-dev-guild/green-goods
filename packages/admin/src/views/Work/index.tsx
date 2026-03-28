@@ -41,7 +41,7 @@ export default function WorkView() {
       />
 
       {/* Pipeline content will be wired in Phase 1b */}
-      <div className="rounded-xl border border-stroke-soft bg-bg-white p-8 text-center">
+      <div className="rounded-xl border border-stroke-soft bg-bg-white p-8 text-center shadow-elevation-1">
         <p className="text-sm text-text-sub">
           {formatMessage({
             id: "cockpit.work.emptyQueue",
