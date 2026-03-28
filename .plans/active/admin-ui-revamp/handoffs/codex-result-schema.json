@@ -32,5 +32,12 @@
       "description": "Any issues, warnings, or decisions made during execution"
     }
   },
-  "required": ["status", "files_created", "files_modified", "tests_passed"]
+  "required": [
+    "status",
+    "files_created",
+    "files_modified",
+    "tests_passed",
+    "validation_output",
+    "issues"
+  ]
 }

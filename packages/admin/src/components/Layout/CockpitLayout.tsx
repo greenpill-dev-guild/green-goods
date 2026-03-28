@@ -4,14 +4,16 @@ import {
   TopContextBar,
   useAdminStore,
   useAuth,
+  useEffectiveToolbarPermissions,
   useGardens,
   useRole,
   type ToolbarSlot,
 } from "@green-goods/shared";
 import { RiClipboardLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
+import { CommandPalette } from "./CommandPalette";
 import { SettingsSheet } from "./SettingsSheet";
 import { PageTransition } from "../ui/PageTransition";
 
@@ -34,8 +36,19 @@ export function CockpitLayout() {
   const selectedGarden = useAdminStore((s) => s.selectedGarden);
   const setSelectedGarden = useAdminStore((s) => s.setSelectedGarden);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const permissions = useEffectiveToolbarPermissions();
 
-  // Build toolbar slots — all visible for Phase 1a (permissions hook wiring in merge step)
+  // Listen for custom event from CommandPalette "open-settings" quick action
+  useEffect(() => {
+    const handler = () => setSettingsOpen(true);
+    window.addEventListener("open-settings-sheet", handler);
+    return () => window.removeEventListener("open-settings-sheet", handler);
+  }, []);
+
+  const handleOpenSearch = useCallback(() => setSearchOpen(true), []);
+
+  // Build toolbar slots — visibility driven by role-adaptive permissions
   const slots: ToolbarSlot[] = useMemo(
     () => [
       {
@@ -44,7 +57,7 @@ export function CockpitLayout() {
         labelId: "cockpit.nav.work",
         icon: RiClipboardLine,
         path: "/work",
-        visible: true,
+        visible: permissions.showWork,
       },
       {
         id: "garden",
@@ -52,7 +65,7 @@ export function CockpitLayout() {
         labelId: "cockpit.nav.garden",
         icon: RiSeedlingLine,
         path: "/garden",
-        visible: true,
+        visible: permissions.showGarden,
       },
       {
         id: "community",
@@ -60,10 +73,10 @@ export function CockpitLayout() {
         labelId: "cockpit.nav.community",
         icon: RiTeamLine,
         path: "/community",
-        visible: true,
+        visible: permissions.showCommunity,
       },
     ],
-    []
+    [permissions.showWork, permissions.showGarden, permissions.showCommunity]
   );
 
   // Determine active path from current route
@@ -125,11 +138,12 @@ export function CockpitLayout() {
             onCreateGarden={() => navigate("/gardens/create")}
           />
         }
-        onOpenSearch={undefined} // CommandPalette wiring in Phase 1b
+        onOpenSearch={handleOpenSearch}
         onOpenSettings={() => setSettingsOpen(true)}
         userAvatar={userAvatar}
       />
 
+      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <div className="flex flex-1 min-h-0">

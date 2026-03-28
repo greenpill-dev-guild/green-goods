@@ -26,9 +26,14 @@ import { useNavigate } from "react-router-dom";
 interface SearchResult {
   id: string;
   label: string;
-  href: string;
+  href?: string;
   category: "quick-actions" | "pages" | "gardens" | "actions" | "assessments";
   subtitle?: string;
+}
+
+interface CommandPaletteProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const CATEGORY_ICONS: Record<
@@ -43,23 +48,13 @@ const CATEGORY_ICONS: Record<
 };
 
 const STATIC_ROUTES: { id: string; labelId: string; defaultLabel: string; href: string }[] = [
+  { id: "page-work", labelId: "cockpit.nav.work", defaultLabel: "Work", href: "/work" },
+  { id: "page-garden", labelId: "cockpit.nav.garden", defaultLabel: "Garden", href: "/garden" },
   {
-    id: "page-dashboard",
-    labelId: "app.admin.nav.dashboard",
-    defaultLabel: "Dashboard",
-    href: "/dashboard",
-  },
-  {
-    id: "page-gardens",
-    labelId: "app.admin.nav.gardens",
-    defaultLabel: "Gardens",
-    href: "/gardens",
-  },
-  {
-    id: "page-endowments",
-    labelId: "app.admin.nav.treasury",
-    defaultLabel: "Endowments",
-    href: "/endowments",
+    id: "page-community",
+    labelId: "cockpit.nav.community",
+    defaultLabel: "Community",
+    href: "/community",
   },
   {
     id: "page-actions",
@@ -67,22 +62,21 @@ const STATIC_ROUTES: { id: string; labelId: string; defaultLabel: string; href: 
     defaultLabel: "Actions",
     href: "/actions",
   },
-  {
-    id: "page-contracts",
-    labelId: "app.admin.nav.contracts",
-    defaultLabel: "Contracts",
-    href: "/contracts",
-  },
-  {
-    id: "page-deployment",
-    labelId: "app.admin.nav.deployment",
-    defaultLabel: "Deployment",
-    href: "/deployment",
-  },
 ];
 
-export function CommandPalette() {
-  const [open, setOpen] = useState(false);
+export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPaletteProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Support both controlled and uncontrolled modes
+  const open = externalOpen ?? internalOpen;
+  const setOpen = useCallback(
+    (next: boolean) => {
+      onOpenChange?.(next);
+      setInternalOpen(next);
+    },
+    [onOpenChange]
+  );
+
   const [inputValue, setInputValue] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -109,13 +103,13 @@ export function CommandPalette() {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        setOpen((prev) => !prev);
+        setOpen(!open);
       }
     }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [open, setOpen]);
 
   // Build filtered results using debounced query
   const results = useMemo(() => {
@@ -123,7 +117,12 @@ export function CommandPalette() {
     const items: SearchResult[] = [];
 
     // Quick actions (role-gated)
-    const quickActions: Array<{ id: string; label: string; href: string; roles: UserRole[] }> = [
+    const quickActions: Array<{
+      id: string;
+      label: string;
+      href?: string;
+      roles: UserRole[];
+    }> = [
       {
         id: "quick-pending-reviews",
         label: formatMessage({
@@ -141,6 +140,14 @@ export function CommandPalette() {
         }),
         href: "/gardens/create",
         roles: ["deployer"],
+      },
+      {
+        id: "open-settings",
+        label: formatMessage({
+          id: "cockpit.settings.title",
+          defaultMessage: "Settings",
+        }),
+        roles: ["deployer", "operator", "gardener"],
       },
     ];
 
@@ -251,22 +258,31 @@ export function CommandPalette() {
   }, [results, formatMessage]);
 
   // Reset state when dialog opens/closes
-  const handleOpenChange = useCallback((isOpen: boolean) => {
-    setOpen(isOpen);
-    if (isOpen) {
-      setInputValue("");
-      setDebouncedQuery("");
-      setActiveIndex(0);
-    }
-  }, []);
+  const handleOpenChange = useCallback(
+    (isOpen: boolean) => {
+      setOpen(isOpen);
+      if (isOpen) {
+        setInputValue("");
+        setDebouncedQuery("");
+        setActiveIndex(0);
+      }
+    },
+    [setOpen]
+  );
 
-  // Navigate to a result
+  // Navigate to a result or dispatch a custom event for non-navigation actions
   const selectResult = useCallback(
     (result: SearchResult) => {
       setOpen(false);
-      navigate(result.href);
+      if (result.id === "open-settings") {
+        window.dispatchEvent(new CustomEvent("open-settings-sheet"));
+        return;
+      }
+      if (result.href) {
+        navigate(result.href);
+      }
     },
-    [navigate]
+    [navigate, setOpen]
   );
 
   // Keyboard navigation within results
@@ -302,23 +318,6 @@ export function CommandPalette() {
 
   return (
     <>
-      {/* Trigger button with keyboard shortcut hint */}
-      <button
-        onClick={() => handleOpenChange(true)}
-        aria-label={formatMessage({ id: "app.admin.nav.search", defaultMessage: "Search" })}
-        className="min-h-11 flex items-center gap-1.5 px-2 rounded-md text-text-soft hover:text-text-sub hover:bg-bg-weak transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
-      >
-        <RiSearchLine className="h-5 w-5" />
-        <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-stroke-soft bg-bg-weak px-1.5 py-0.5 text-[10px] font-medium text-text-soft">
-          <span className="text-xs">
-            {typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent)
-              ? "\u2318"
-              : "Ctrl"}
-          </span>
-          <span>K</span>
-        </kbd>
-      </button>
-
       <Dialog.Root open={open} onOpenChange={handleOpenChange}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay" />

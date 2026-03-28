@@ -11,6 +11,8 @@ import {
   RiComputerLine,
   RiLogoutBoxLine,
   RiMoonLine,
+  RiRocketLine,
+  RiSettings3Line,
   RiSunLine,
   RiUserLine,
 } from "@remixicon/react";
@@ -31,7 +33,7 @@ const THEME_OPTIONS = [
 export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const { formatMessage } = useIntl();
   const { signOut, eoaAddress } = useAuth();
-  const { role } = useRole();
+  const { role, isDeployer } = useRole();
   const { theme, setTheme } = useTheme();
 
   const title = formatMessage({ id: "cockpit.settings.title", defaultMessage: "Settings" });
@@ -116,6 +118,67 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             {formatMessage({ id: "cockpit.settings.disconnect", defaultMessage: "Disconnect" })}
           </button>
         </section>
+
+        {/* Deployer-only sections */}
+        {isDeployer && (
+          <>
+            <hr className="my-4 border-stroke-soft" />
+
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-soft">
+                {formatMessage({
+                  id: "cockpit.settings.contracts",
+                  defaultMessage: "Contracts",
+                })}
+              </h3>
+              <div className="mt-3 flex items-center gap-3 rounded-lg border border-stroke-soft px-3 py-2.5">
+                <RiSettings3Line className="h-5 w-5 text-text-soft" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-text-strong">
+                    {formatMessage({
+                      id: "cockpit.settings.contracts",
+                      defaultMessage: "Contracts",
+                    })}
+                  </div>
+                  <div className="text-xs text-text-soft">
+                    {formatMessage({
+                      id: "cockpit.settings.contractsDescription",
+                      defaultMessage: "Manage deployed contracts",
+                    })}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <hr className="my-4 border-stroke-soft" />
+
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-soft">
+                {formatMessage({
+                  id: "cockpit.settings.deployment",
+                  defaultMessage: "Deployment",
+                })}
+              </h3>
+              <div className="mt-3 flex items-center gap-3 rounded-lg border border-stroke-soft px-3 py-2.5">
+                <RiRocketLine className="h-5 w-5 text-text-soft" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-text-strong">
+                    {formatMessage({
+                      id: "cockpit.settings.deployment",
+                      defaultMessage: "Deployment",
+                    })}
+                  </div>
+                  <div className="text-xs text-text-soft">
+                    {formatMessage({
+                      id: "cockpit.settings.deploymentDescription",
+                      defaultMessage: "Deploy and update contracts",
+                    })}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </SideSheet>
   );
