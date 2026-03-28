@@ -145,6 +145,7 @@ export { simulateJoinGarden, simulateTransaction } from "./blockchain/simulation
 export {
   formatTokenAmount,
   AAVE_V3_POOL,
+  getDepositLimitLabel,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,

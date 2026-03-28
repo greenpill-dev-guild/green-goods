@@ -37,6 +37,8 @@ export {
   type GardenCardProps,
   type GardenCardVariantProps,
   gardenCardVariants,
+  VaultPositionCard,
+  type VaultPositionCardProps,
   WorkCard,
   type WorkCardData,
   type WorkCardLabels,
@@ -45,6 +47,9 @@ export {
   type WorkStatus,
   workCardVariants,
 } from "./Cards";
+// Feedback Components
+export type { TxInlineFeedbackProps, TxInlineFeedbackSeverity } from "./feedback/TxInlineFeedback";
+export { TxInlineFeedback } from "./feedback/TxInlineFeedback";
 // Cockpit Components (Sheets + Navigation)
 export {
   BottomSheet,

@@ -12,6 +12,8 @@ import {
   useDepositForm,
   useUser,
   useVaultDeposit,
+  getDepositLimitLabel,
+  TxInlineFeedback,
   useVaultPreview,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -21,10 +23,8 @@ import { useIntl } from "react-intl";
 import { encodeFunctionData, formatUnits } from "viem";
 import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
-import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
-import { getDepositLimitLabel } from "./depositLimit";
 
 const VAULT_DEPOSIT_ABI = [
   {
@@ -70,6 +70,7 @@ export function DepositModal({
   const { data: balance } = useBalance({
     address: primaryAddress as Address | undefined,
     token: selectedVault?.asset as Address | undefined,
+    chainId: selectedVault?.chainId,
     query: {
       enabled: isOpen && Boolean(primaryAddress && selectedVault),
       refetchInterval: isOpen ? 10_000 : false,
@@ -103,6 +104,7 @@ export function DepositModal({
   const { preview: healthCheck } = useVaultPreview({
     vaultAddress: selectedVault?.vaultAddress as Address | undefined,
     userAddress: primaryAddress as Address | undefined,
+    chainId: selectedVault?.chainId,
     enabled: isOpen && Boolean(selectedVault),
   });
   const vaultAcceptingDeposits = healthCheck ? healthCheck.maxDeposit > 0n : true;
@@ -112,6 +114,7 @@ export function DepositModal({
     vaultAddress: selectedVault?.vaultAddress as Address | undefined,
     amount: debouncedAmount,
     userAddress: primaryAddress as Address | undefined,
+    chainId: selectedVault?.chainId,
     enabled: isOpen && Boolean(selectedVault && debouncedAmount > 0n),
   });
 
@@ -130,9 +133,11 @@ export function DepositModal({
   const { data: estimatedGas } = useEstimateGas({
     to: selectedVault?.vaultAddress as Address | undefined,
     data: depositData,
+    chainId: selectedVault?.chainId,
     query: { enabled: isOpen && Boolean(selectedVault && depositData) },
   });
   const { data: gasPrice } = useGasPrice({
+    chainId: selectedVault?.chainId,
     query: { enabled: isOpen && Boolean(estimatedGas) },
   });
   const estimatedGasCost = estimatedGas && gasPrice ? estimatedGas * gasPrice : undefined;

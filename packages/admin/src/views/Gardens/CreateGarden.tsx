@@ -5,6 +5,7 @@ import {
   toastService,
   useCreateGardenForm,
   useCreateGardenStore,
+  TxInlineFeedback,
   useCreateGardenWorkflow,
 } from "@green-goods/shared";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -12,7 +13,6 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 import { FormWizard } from "@/components/Form/FormWizard";
-import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
 import { ReviewStep } from "@/components/Garden/CreateGardenSteps/ReviewStep";
 import { TeamStep } from "@/components/Garden/CreateGardenSteps/TeamStep";

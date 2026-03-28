@@ -7,6 +7,7 @@ import {
   useCookieJarDeposit,
   useGardenCookieJars,
   useUser,
+  TxInlineFeedback,
   validateDecimalInput,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -15,7 +16,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
 import { useBalance } from "wagmi";
-import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 import { Button } from "@/components/ui/Button";
 
 interface CookieJarDepositModalProps {

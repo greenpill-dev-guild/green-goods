@@ -10,6 +10,7 @@ import {
   useCreateAssessmentStore,
   useCreateAssessmentWorkflow,
   useGardenDomains,
+  TxInlineFeedback,
   type CreateAssessmentForm as WorkflowAssessmentForm,
 } from "@green-goods/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -23,7 +24,6 @@ import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
 import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
-import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 
 function useStepConfigs(): Step[] {
   const { formatMessage } = useIntl();

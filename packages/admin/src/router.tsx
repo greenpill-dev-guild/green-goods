@@ -79,7 +79,18 @@ export const router = createRouter([
               },
               {
                 path: "community",
-                lazy: async () => ({ Component: (await import("@/views/Community")).default }),
+                lazy: async () => ({
+                  Component: (await import("@/components/guards/RequireSpecificGarden"))
+                    .RequireSpecificGarden,
+                }),
+                children: [
+                  {
+                    index: true,
+                    lazy: async () => ({
+                      Component: (await import("@/views/Community")).default,
+                    }),
+                  },
+                ],
               },
 
               // ── Actions (survives consolidation as top-level route) ──

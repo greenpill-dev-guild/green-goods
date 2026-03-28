@@ -366,8 +366,15 @@ export { useBatchWorkApproval } from "./work/useBatchWorkApproval";
 export { useBatchWorkSync } from "./work/useBatchWorkSync";
 
 // ============================================================================
+// NAVIGATION
+// ============================================================================
+export type { GardenUrlSyncResult } from "./navigation/useGardenUrlSync";
+export { useGardenUrlSync } from "./navigation/useGardenUrlSync";
+// ============================================================================
 // WORK
 // ============================================================================
+export type { UseCrossGardenQueueResult } from "./work/useCrossGardenQueue";
+export { useCrossGardenQueue } from "./work/useCrossGardenQueue";
 export { useDraftAutoSave } from "./work/useDraftAutoSave";
 export type { PlatformStats } from "./work/usePlatformStats";
 export { usePlatformStats } from "./work/usePlatformStats";

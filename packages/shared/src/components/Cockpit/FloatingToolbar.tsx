@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
+import { useEventListener } from "../../hooks/utils/useEventListener";
 
 /**
  * Spring easing curve for M3-style animations.
@@ -114,6 +115,17 @@ export function FloatingToolbar({ slots, activePath, onNavigate }: FloatingToolb
   const { formatMessage } = useIntl();
   const visibleSlots = slots.filter((s) => s.visible);
 
+  // Track virtual keyboard visibility to hide mobile bottom nav
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const viewport = typeof window !== "undefined" ? window.visualViewport : null;
+
+  useEventListener(viewport, "resize" as never, () => {
+    if (viewport) {
+      // If viewport height is significantly less than window height, keyboard is open
+      setKeyboardOpen(viewport.height < window.innerHeight * 0.75);
+    }
+  });
+
   // Track recent hover for instant tooltip follow-up
   const [hasRecentHover, setHasRecentHover] = useState(false);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -165,8 +177,8 @@ export function FloatingToolbar({ slots, activePath, onNavigate }: FloatingToolb
         ))}
       </nav>
 
-      {/* Mobile: Bottom horizontal bar — hidden when only 1 visible slot */}
-      {visibleSlots.length > 1 && (
+      {/* Mobile: Bottom horizontal bar — hidden when only 1 visible slot or keyboard is open */}
+      {visibleSlots.length > 1 && !keyboardOpen && (
         <nav
           role="navigation"
           aria-label={navLabel}

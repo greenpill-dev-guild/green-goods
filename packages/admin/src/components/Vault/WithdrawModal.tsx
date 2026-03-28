@@ -12,6 +12,7 @@ import {
   useVaultDeposits,
   useVaultPreview,
   useVaultWithdraw,
+  TxInlineFeedback,
   validateDecimalInput,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -19,7 +20,6 @@ import { RiCloseLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";

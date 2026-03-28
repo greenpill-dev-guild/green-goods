@@ -41,6 +41,9 @@ export type {
   ToastStatus,
   ToastTranslator,
   ToastViewportProps,
+  TxInlineFeedbackProps,
+  TxInlineFeedbackSeverity,
+  VaultPositionCardProps,
   WorkCardData,
   WorkStatus,
 } from "./components/index";
@@ -89,7 +92,9 @@ export {
   TopContextBar,
   TranslationBadge,
   toastService,
+  TxInlineFeedback,
   updateToasts,
+  VaultPositionCard,
   WorkCard as WorkCardComponent,
 } from "./components/index";
 
@@ -393,6 +398,8 @@ export {
   useWorkImages,
   useWorkMutation,
   useWorks,
+  useCrossGardenQueue,
+  useGardenUrlSync,
   useYieldAllocations,
   useProtocolYieldSummary,
 } from "./hooks/index";
@@ -530,6 +537,10 @@ export {
   useStaleGardenGuard,
   useCreateAssessmentStore,
   useCreateGardenStore,
+  type GardenState,
+  type GardenStateStore,
+  ALL_GARDENS_KEY,
+  useGardenStateStore,
   useHypercertWizardStore,
   useUIStore,
   useWorkFlowStore,
@@ -812,6 +823,7 @@ export {
   getBlockExplorerAddressUrl,
   getBlockExplorerTokenUrl,
   getEASExplorerUrl,
+  getDepositLimitLabel,
   getNetDeposited,
   getNetworkContracts,
   getRoleColorClasses,

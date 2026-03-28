@@ -19,6 +19,8 @@ export {
   type GardenCardVariantProps,
   gardenCardVariants,
 } from "./GardenCard";
+// VaultPositionCard
+export { VaultPositionCard, type VaultPositionCardProps } from "./VaultPositionCard";
 // WorkCard
 export {
   WorkCard,
