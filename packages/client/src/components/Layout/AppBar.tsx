@@ -1,4 +1,4 @@
-import { cn, SyncStatusBar, usePendingWorksCount, useUIStore } from "@green-goods/shared";
+import { cn, SyncStatusBar, useApp, usePendingWorksCount, useUIStore } from "@green-goods/shared";
 import {
   type RemixiconComponentType,
   RiHomeFill,
@@ -17,13 +17,15 @@ export const AppBar = () => {
   const isWorkDetail = pathname.includes("/work/");
   const intl = useIntl();
   const { data: pendingCount = 0 } = usePendingWorksCount();
+  const { isInstalled } = useApp();
 
   // Check if any drawer is open to hide AppBar beneath them
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
   const isEndowmentDrawerOpen = useUIStore((s) => s.isEndowmentDrawerOpen);
   const isAnyDrawerOpen = isWorkDashboardOpen || isGardenFilterOpen || isEndowmentDrawerOpen;
-  const shouldHideBar = isGarden || isWorkDetail || isAnyDrawerOpen;
+  // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
+  const shouldHideBar = !isInstalled || isGarden || isWorkDetail || isAnyDrawerOpen;
 
   const tabs: {
     path: string;

@@ -29,7 +29,45 @@ export const router = createRouter([
         path: "login",
         lazy: async () => ({ Component: (await import("@/views/Login")).Login }),
       },
-      // Install is no longer a hard gate. Auth is the gate.
+
+      // ── Public routes (no auth required) ──
+      {
+        lazy: async () => ({ Component: (await import("@/routes/PublicShell")).default }),
+        children: [
+          {
+            path: "gardens",
+            lazy: async () => ({
+              Component: (await import("@/views/Public/Gardens")).default,
+            }),
+          },
+          {
+            path: "gardens/:id",
+            lazy: async () => ({
+              Component: (await import("@/views/Public/GardenDetail")).default,
+            }),
+          },
+          {
+            path: "fund",
+            lazy: async () => ({
+              Component: (await import("@/views/Public/Fund")).default,
+            }),
+          },
+          {
+            path: "impact",
+            lazy: async () => ({
+              Component: (await import("@/views/Public/Impact")).default,
+            }),
+          },
+          {
+            path: "actions",
+            lazy: async () => ({
+              Component: (await import("@/views/Public/Actions")).default,
+            }),
+          },
+        ],
+      },
+
+      // ── Auth-protected routes (existing) ──
       {
         lazy: async () => ({ Component: (await import("@/routes/RequireAuth")).default }),
         children: [
