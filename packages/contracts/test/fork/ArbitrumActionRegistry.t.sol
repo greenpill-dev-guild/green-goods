@@ -167,7 +167,7 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
     // Test 4: Unauthorized Registration Reverts
     // ═══════════════════════════════════════════════════════════════════════════
 
-        /// @notice Non-owner registerAction reverts with the current Ownable revert string
+    /// @notice Non-owner registerAction reverts with the current Ownable revert string
     function testForkArbitrum_registerAction_unauthorizedReverts() public {
         if (!_tryChainFork("arbitrum")) {
             return;
