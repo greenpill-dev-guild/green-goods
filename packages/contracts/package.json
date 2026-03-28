@@ -49,6 +49,8 @@
     "deploy:preflight:arbitrum": "bun script/deploy.ts core --network arbitrum --dry-run --pure-simulation",
     "deploy:preflight:celo": "bun script/deploy.ts core --network celo --dry-run --pure-simulation",
     "deploy:preflight:mainnet": "bun script/deploy.ts core --network mainnet --dry-run --pure-simulation",
+    "deploy:action:repair:dry:arbitrum": "bun script/deploy-repair-event-arbitrum.ts --dry-run",
+    "deploy:action:repair:arbitrum": "bun script/deploy-repair-event-arbitrum.ts --broadcast",
     "deploy:testnet": "bun deploy:sepolia",
     "deploy:sepolia": "bun script/deploy.ts core --network sepolia --broadcast",
     "deploy:arbitrum": "bun script/deploy.ts core --network arbitrum --broadcast",

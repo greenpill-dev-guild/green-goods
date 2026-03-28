@@ -31,6 +31,7 @@ import {
 import {
   wasteCleanupEvent,
   wasteMaintenanceCheck,
+  wasteRepairEvent,
   wasteSiteAssessment,
   wasteSortingBreakdown,
   wasteTransferReceipt,
@@ -87,11 +88,12 @@ export const instructionTemplates: Record<string, ActionInstructionConfig> = {
   "edu.followup_action": eduFollowupAction,
   "edu.learning_assessment": eduLearningAssessment,
 
-  // Waste (6)
+  // Waste (7)
   "waste.site_assessment": wasteSiteAssessment,
   "waste.cleanup_event": wasteCleanupEvent,
   "waste.sorting_breakdown": wasteSortingBreakdown,
   "waste.transfer_receipt": wasteTransferReceipt,
   "waste.upcycle_batch": wasteUpcycleBatch,
   "waste.maintenance_check": wasteMaintenanceCheck,
+  "waste.repair_event": wasteRepairEvent,
 };

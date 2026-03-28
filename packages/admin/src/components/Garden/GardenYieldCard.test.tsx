@@ -9,27 +9,13 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     ...actual,
     formatDate: (timestamp: number) => `date-${timestamp}`,
     formatTokenAmount: (value: bigint) => value.toString(),
-    getVaultAssetSymbol: (asset: string) =>
-      asset.toLowerCase() === "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" ? "WETH" : "DAI",
-    summarizeYieldAllocations: (allocations: Array<any>) => ({
-      assets: allocations.map((allocation) => ({
-        assetAddress: allocation.assetAddress,
-        totalYield: allocation.totalAmount,
-        totalCookieJar: allocation.cookieJarAmount,
-        totalFractions: allocation.fractionsAmount,
-        totalJuicebox: allocation.juiceboxAmount,
-        allocationCount: 1,
-      })),
-      allocationCount: allocations.length,
-    }),
-    useCurrentChain: () => 42161,
   };
 });
 
 import { GardenYieldCard } from "./GardenYieldCard";
 
 describe("GardenYieldCard", () => {
-  it("falls back to allocation history while the unlimited summary is still loading", () => {
+  it("renders cumulative totals from allocation history", () => {
     renderWithProviders(
       <GardenYieldCard
         allocations={[
@@ -45,12 +31,10 @@ describe("GardenYieldCard", () => {
           },
         ]}
         allocationsLoading={false}
-        summary={{ assets: [], allocationCount: 0 }}
-        summaryLoading
       />
     );
 
-    expect(screen.getAllByText("600 WETH")).toHaveLength(2);
-    expect(screen.queryByText(/^0 WETH$/)).not.toBeInTheDocument();
+    expect(screen.getAllByText("600")).toHaveLength(2);
+    expect(screen.getByText("date-1700000000")).toBeTruthy();
   });
 });

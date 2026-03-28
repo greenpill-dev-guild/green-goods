@@ -78,7 +78,10 @@ describe("useProtocolYieldSummary", () => {
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.summary).toEqual({
-      assets: [],
+      totalYield: 0n,
+      totalCookieJar: 0n,
+      totalFractions: 0n,
+      totalJuicebox: 0n,
       allocationCount: 0,
     });
 
@@ -100,15 +103,12 @@ describe("useProtocolYieldSummary", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.summary.assets).toEqual([
-      {
-        assetAddress: "0x4444444444444444444444444444444444444444",
-        totalYield: 600n,
-        totalCookieJar: 100n,
-        totalFractions: 200n,
-        totalJuicebox: 300n,
-        allocationCount: 1,
-      },
-    ]);
+    expect(result.current.summary).toEqual({
+      totalYield: 600n,
+      totalCookieJar: 100n,
+      totalFractions: 200n,
+      totalJuicebox: 300n,
+      allocationCount: 1,
+    });
   });
 });

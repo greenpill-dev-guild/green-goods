@@ -20,11 +20,13 @@ interface UseStrategyRateOptions {
 export function useStrategyRate(assetAddress?: Address, options: UseStrategyRateOptions = {}) {
   const chainId = options.chainId ?? DEFAULT_CHAIN_ID;
   const poolAddress = AAVE_V3_POOL[chainId] as Address | undefined;
-  const enabled = (options.enabled ?? true) && Boolean(poolAddress) && Boolean(assetAddress);
+  const unsupported = !poolAddress;
+  const enabled = (options.enabled ?? true) && !unsupported && Boolean(assetAddress);
 
   const query = useReadContract({
-    address: poolAddress!,
+    address: (poolAddress ?? "0x0000000000000000000000000000000000000000") as Address,
     abi: AAVE_V3_POOL_ABI,
+    chainId,
     functionName: "getReserveData",
     args: assetAddress ? [assetAddress] : undefined,
     query: {
@@ -49,7 +51,8 @@ export function useStrategyRate(assetAddress?: Address, options: UseStrategyRate
 
   return {
     ...result,
-    isLoading: query.isLoading,
-    isError: query.isError,
+    unsupported,
+    isLoading: unsupported ? false : query.isLoading,
+    isError: unsupported ? false : query.isError,
   };
 }

@@ -321,6 +321,12 @@ function InputFieldEditor({
                 defaultMessage: "Select Dropdown",
               })}
             </option>
+            <option value="multi-select">
+              {formatMessage({
+                id: "app.admin.actions.detailsConfig.typeMultiSelect",
+                defaultMessage: "Multi-select",
+              })}
+            </option>
           </select>
         </FormField>
 
@@ -382,7 +388,7 @@ function InputFieldEditor({
       </div>
 
       {/* Options for Select type */}
-      {input.type === "select" && (
+      {(input.type === "select" || input.type === "multi-select") && (
         <div className="mt-3 pt-3 border-t border-stroke-soft">
           <FormField
             label={formatMessage({

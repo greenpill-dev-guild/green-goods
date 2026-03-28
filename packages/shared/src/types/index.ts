@@ -260,6 +260,7 @@ export type {
 export type {
   DepositParams,
   EmergencyPauseParams,
+  FunderAssetTotal,
   FunderLeaderboardEntry,
   FunderPosition,
   GardenVault,

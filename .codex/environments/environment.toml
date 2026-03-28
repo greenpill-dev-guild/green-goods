@@ -73,6 +73,30 @@ VITE_CHAIN_ID=${VITE_CHAIN_ID:-11155111} bun run build:shared
 """
 
 [[actions]]
+name = "Quick Verify"
+icon = "check"
+command = """
+export PATH="$HOME/.bun/bin:$HOME/.local/node/bin:$HOME/.foundry/bin:$PATH"
+node scripts/ci-local.js --quick
+"""
+
+[[actions]]
+name = "Test Quality"
+icon = "check"
+command = """
+export PATH="$HOME/.bun/bin:$HOME/.local/node/bin:$HOME/.foundry/bin:$PATH"
+bash scripts/check-test-quality.sh
+"""
+
+[[actions]]
+name = "Codex Drift"
+icon = "check"
+command = """
+export PATH="$HOME/.bun/bin:$HOME/.local/node/bin:$HOME/.foundry/bin:$PATH"
+node scripts/check-codex-consistency.js
+"""
+
+[[actions]]
 name = "Test"
 icon = "run"
 command = """
@@ -81,7 +105,15 @@ bun run test
 """
 
 [[actions]]
-name = "Lint"
+name = "Lint Check"
+icon = "check"
+command = """
+export PATH="$HOME/.bun/bin:$HOME/.local/node/bin:$HOME/.foundry/bin:$PATH"
+bun run format:check && bun lint
+"""
+
+[[actions]]
+name = "Lint Fix"
 icon = "check"
 command = """
 export PATH="$HOME/.bun/bin:$HOME/.local/node/bin:$HOME/.foundry/bin:$PATH"

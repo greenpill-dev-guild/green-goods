@@ -226,6 +226,8 @@ export const queryKeys = {
       ["greengoods", "yield", "splitConfig", gardenAddress, chainId] as const,
     pendingYield: (gardenAddress: string, assetAddress: string, chainId: number) =>
       ["greengoods", "yield", "pending", gardenAddress, assetAddress, chainId] as const,
+    gardenSummary: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "yield", "gardenSummary", gardenAddress, chainId] as const,
     /** Protocol-wide yield summary (all gardens, all assets) */
     protocolSummary: (chainId: number) =>
       ["greengoods", "yield", "protocolSummary", chainId] as const,

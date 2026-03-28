@@ -65,8 +65,9 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
         assertEq(updated.title, "Plant Native Trees", "title should be updated");
         assertEq(updated.instructions, "ipfs://QmUpdatedInstructions", "instructions should be updated");
 
-        // 4. "Disable" by setting endTime to past
+        // 4. "Disable" by shortening the action window, then advance time past it
         actionRegistry.updateActionEndTime(0, start + 1);
+        vm.warp(start + 2);
 
         ActionRegistry.Action memory disabled = actionRegistry.getAction(0);
         assertTrue(disabled.endTime < block.timestamp, "endTime should be in the past (disabled)");
@@ -166,7 +167,7 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
     // Test 4: Unauthorized Registration Reverts
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Non-owner registerAction reverts with OwnableUnauthorizedAccount
+        /// @notice Non-owner registerAction reverts with the current Ownable revert string
     function testForkArbitrum_registerAction_unauthorizedReverts() public {
         if (!_tryChainFork("arbitrum")) {
             return;
@@ -179,7 +180,7 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
 
         // forkNonMember is not the owner
         vm.prank(forkNonMember);
-        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("OwnableUnauthorizedAccount(address)")), forkNonMember));
+        vm.expectRevert("Ownable: caller is not the owner");
         actionRegistry.registerAction(
             block.timestamp,
             block.timestamp + 30 days,
@@ -208,9 +209,10 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
         // Set up garden with roles and an action
         (address garden, uint256 actionUID) = _setupGardenWithRolesAndAction("Disabled Action Garden");
 
-        // "Disable" the action by setting endTime to just after startTime (in the past)
+        // "Disable" the action by shortening the action window, then advance time past it.
         ActionRegistry.Action memory action = actionRegistry.getAction(actionUID);
         actionRegistry.updateActionEndTime(actionUID, action.startTime + 1);
+        vm.warp(action.startTime + 2);
 
         // Attempt to submit work attestation via real EAS — should revert
         // The WorkResolver checks action.endTime < block.timestamp → NotActiveAction

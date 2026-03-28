@@ -2,6 +2,13 @@
 
 The contracts package contains Solidity smart contracts for the Green Goods protocol, built with Foundry.
 
+## Commands
+
+- `bun run build`
+- `bun run test`
+- `bun run lint`
+- `bun run test:audit:full`
+
 ## Architecture Overview
 
 ```

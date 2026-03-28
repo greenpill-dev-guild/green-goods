@@ -41,7 +41,8 @@ OpenAI Codex is used for automated maintenance tasks in the Green Goods monorepo
 The main Codex configuration lives at `.codex/config.toml`:
 
 ```toml
-# Use CLAUDE.md as context (AGENTS.md is the primary, CLAUDE.md is fallback)
+# AGENTS.md files are primary. CLAUDE.md is only a fallback for directories
+# without a local AGENTS.md.
 project_doc_fallback_filenames = ["CLAUDE.md"]
 project_doc_max_bytes = 40960
 
@@ -54,7 +55,7 @@ network_access = false
 ```
 
 Key settings:
-- **`project_doc_fallback_filenames`** -- Codex reads `AGENTS.md` by default; falls back to `CLAUDE.md` for directories without an `AGENTS.md`
+- **`project_doc_fallback_filenames`** -- Codex reads the nearest `AGENTS.md` by default and only falls back to `CLAUDE.md` for directories without local Codex guidance
 - **`model`** -- `gpt-5.3-codex` is the default for judgment tasks. Individual automations can override with `-m gpt-5.2` for simple transforms.
 - **`network_access = false`** -- The agent sandbox has no internet access, improving safety for automated tasks. Setup scripts retain network access for dependency installation.
 
@@ -84,13 +85,20 @@ The setup installs Bun and Foundry, initializes git submodules, installs npm dep
 
 ### Predefined Actions
 
-Three actions are configured for quick execution:
+Codex exposes a small validation ladder directly in the cloud environment:
 
 | Action | Command |
 |--------|---------|
+| Quick Verify | `node scripts/ci-local.js --quick` |
+| Test Quality | `bash scripts/check-test-quality.sh` |
+| Codex Drift | `node scripts/check-codex-consistency.js` |
 | Test | `bun run test` |
-| Lint | `bun format && bun lint` |
+| Lint Check | `bun run format:check && bun lint` |
+| Lint Fix | `bun format && bun lint` |
 | Build | `VITE_CHAIN_ID=11155111 bun run build` |
+
+`Quick Verify` is the preferred first pass for Codex because it catches format, lint, typecheck,
+and the fast package test path without paying the full monorepo cost up front.
 
 ## Use Cases
 
@@ -101,6 +109,17 @@ Codex is used for tasks that benefit from sandboxed, automated execution:
 - **Lint fixes** -- Automated formatting and lint rule application
 - **Documentation updates** -- Updating code references in docs after refactors
 
+## Context Layout
+
+Codex guidance is now layered to reduce fallback behavior:
+
+- Root `AGENTS.md` defines repo-wide invariants and the validation ladder
+- Package-local `AGENTS.md` files in `shared`, `client`, `admin`, `agent`, `indexer`, and `contracts` define package-specific rules
+- `CLAUDE.md` remains available only as fallback context for uncovered directories
+
+CI validates the Codex layer with `node scripts/check-codex-consistency.js`, which checks
+action-table drift, package guide coverage, and package-guide command validity.
+
 ## Scope Constraints
 
 When running automated maintenance tasks via Codex (or any automated agent), constraints from `AGENTS.md` apply:
@@ -108,7 +127,7 @@ When running automated maintenance tasks via Codex (or any automated agent), con
 - Max 20 files changed per PR
 - Never touch deployment scripts, contract upgrade scripts, or `.env` files
 - Do not create new packages or top-level directories
-- Do not modify `CLAUDE.md`, `AGENTS.md`, or files in `.claude/`
+- Do not modify `AGENTS.md`, `.codex/**`, `CLAUDE.md`, or files in `.claude/` unless explicitly requested
 - All automated PRs must be created as drafts with appropriate labels
 
 ## Skills Discovery
@@ -131,8 +150,8 @@ Codex and Claude Code serve complementary roles:
 | Context source | `CLAUDE.md` + `.claude/` | `AGENTS.md` + `.codex/` |
 | Execution | Local machine | Cloud sandbox |
 | Network | Full access | None (agent phase) |
-| Model | Claude Opus/Sonnet | GPT-5.3 Codex |
-| Best for | Interactive development | Automated maintenance |
+| Model | Claude Opus/Sonnet | GPT-5.4 |
+| Best for | Interactive development, UI, multi-file refactors | Hooks, stores, tests, mechanical transforms |
 | Memory | Persistent per-agent | Per-session |
 
 <NextBestAction

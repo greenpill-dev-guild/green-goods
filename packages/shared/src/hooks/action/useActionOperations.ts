@@ -12,6 +12,7 @@ import type { Abi, WalletClient } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { toastService } from "../../components/toast";
 import { Capital } from "../../modules/data/greengoods";
+import { Domain } from "../../types/domain";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { parseContractError } from "../../utils/errors/contract-errors";
@@ -186,6 +187,8 @@ export function useActionOperations(chainId: number) {
     startTime: number;
     endTime: number;
     title: string;
+    slug: string;
+    domain: Domain;
     instructions: string;
     capitals: Capital[];
     media: string[];
@@ -196,9 +199,11 @@ export function useActionOperations(chainId: number) {
         BigInt(params.startTime),
         BigInt(params.endTime),
         params.title,
+        params.slug,
         params.instructions,
         params.capitals,
         params.media,
+        params.domain,
       ],
       messages: {
         loading: "Registering action...",

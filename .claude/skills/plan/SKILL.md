@@ -47,13 +47,25 @@ Use **TodoWrite** for visibility when available. If unavailable, keep a Markdown
 
 ### Phase 2: Plan Structure
 
-Use kebab-case: `[descriptive-name].todo.md` in `.plans/`
+Use a foldered feature hub in `.plans/{ideas|backlog|active|archive}/<feature-slug>/`.
+Prefer kebab-case slugs.
+
+Minimum files:
+
+- `brief.md`
+- `spec.md`
+- `plan.todo.md`
+- `eval.md`
+- `status.json`
+- `handoffs/`
+
+`status.json` is the machine-readable contract for automations. The Markdown files stay optimized for humans.
 
 ```markdown
-# [Feature Name]
+# [Feature Name] Plan
 
 **GitHub Issue**: #[number]
-**Branch**: `feature/branch-name`
+**Feature Slug**: `feature-slug`
 **Status**: ACTIVE | BLOCKED | IMPLEMENTED | SUPERSEDED
 **Supersedes**: [link to old plan if applicable]
 **Created**: YYYY-MM-DD
@@ -99,6 +111,21 @@ Use kebab-case: `[descriptive-name].todo.md` in `.plans/`
 - [ ] TypeScript passes
 - [ ] Tests pass
 - [ ] Build succeeds
+```
+
+Machine-readable lane state belongs in `.plans/active/<feature-slug>/status.json`, for example:
+
+```json
+{
+  "feature": { "slug": "feature-slug", "stage": "active" },
+  "lanes": {
+    "ui": { "owner": "claude", "status": "ready", "branch": "claude/ui/feature-slug" },
+    "state_api": { "owner": "codex", "status": "ready", "branch": "codex/state-api/feature-slug" },
+    "contracts": { "owner": "codex", "status": "n/a", "branch": "codex/contracts/feature-slug" },
+    "qa_pass_1": { "owner": "claude", "status": "blocked", "depends_on": ["ui", "state_api", "contracts"] },
+    "qa_pass_2": { "owner": "codex", "status": "blocked", "depends_on": ["qa_pass_1"] }
+  }
+}
 ```
 
 ### Task Decomposition Rules
@@ -220,7 +247,7 @@ BLOCKED → ACTIVE        (dependency resolved)
 
 2. **One canonical plan per feature**: Never have 2+ active plans for the same feature area. If you're writing a v2 plan, delete or archive v1 first.
 
-3. **Status updates on implementation**: When work ships that partially or fully implements a plan, update the plan's `**Status**` and `**Last Updated**` headers. If fully implemented, delete the plan.
+3. **Status updates on implementation**: When work ships that partially or fully implements a plan, update the plan's `**Status**` and `**Last Updated**` headers and the feature hub's `status.json`. If fully implemented, move the hub to `.plans/archive/`.
 
 4. **Divergence notes**: If implementation diverges from the plan (different approach, dropped scope), add a `## Implementation Notes` section explaining what changed and why. Don't leave the plan as-if it was followed when it wasn't.
 
@@ -237,8 +264,10 @@ Plans with >15 locked decisions likely need splitting. Separate **vision/archite
 | Document Type | Decision Count | Location |
 |---------------|---------------|----------|
 | Architecture spec | Unlimited | `docs/specs/` or issue |
-| Implementation plan | 5-15 decisions | `.plans/` |
-| Task checklist | 0 decisions | `.plans/*.todo.md` |
+| Implementation plan | 5-15 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
+| Task checklist | 0 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
+| Evaluation plan | 0-10 gates | `.plans/active/<feature-slug>/eval.md` |
+| Idea brief | 0-5 decisions | `.plans/ideas/<feature-slug>/brief.md` |
 
 ### Decision Log Best Practice
 

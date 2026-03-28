@@ -53,7 +53,6 @@ export function useProtocolYieldSummary(options: UseProtocolYieldSummaryOptions 
     },
     enabled,
     staleTime: STALE_TIME_MEDIUM,
-    placeholderData: [],
   });
 
   const summary = useMemo((): ProtocolYieldSummary => {

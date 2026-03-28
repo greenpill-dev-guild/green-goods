@@ -26,7 +26,7 @@ let storachaClient: Client | null = null;
 let gatewayUrl = "https://storacha.link";
 let pinataJwt: string | null = null;
 let pinataGatewayUrl: string | null = null;
-let pinataApiBaseUrl = "https://api.pinata.cloud";
+let pinataUploadsApiBaseUrl = "https://uploads.pinata.cloud/v3";
 
 type IpfsInitStatus = "not_started" | "in_progress" | "success" | "failed" | "skipped_no_config";
 
@@ -37,9 +37,15 @@ export const IPFS_FALLBACK_GATEWAYS = [
   "https://storacha.link",
 ];
 const DEFAULT_PINATA_GATEWAY = "https://greengoods.mypinata.cloud";
-const DEFAULT_PINATA_API_BASE_URL = "https://api.pinata.cloud";
+const DEFAULT_PINATA_UPLOADS_API_BASE_URL = "https://uploads.pinata.cloud/v3";
 const PROVIDER_VERIFICATION_ATTEMPTS = 3;
 const PROVIDER_VERIFICATION_TIMEOUT_MS = 5_000;
+
+interface PinataUploadResponse {
+  data?: { cid?: string };
+  message?: string;
+  error?: { reason?: string };
+}
 
 /**
  * Returns the current IPFS initialization status
@@ -64,14 +70,18 @@ const DEFAULT_AVATAR = "/images/avatar.png";
  * Common upload handler that wraps Storacha upload with error tracking
  */
 async function executeUpload<TContext extends { source?: string; gardenAddress?: string }>(
-  uploadFn: () => Promise<{ cid: { toString(): string } }>,
+  uploadFn: () => Promise<string>,
   category: UploadErrorCategory,
   context: TContext,
-  fileInfo: { size: number; type: string; name?: string; index?: number; total?: number }
+  fileInfo: { size: number; type: string; name?: string; index?: number; total?: number },
+  options: {
+    provider: "pinata" | "storacha";
+    verifyCid?: (cid: string) => Promise<void>;
+  }
 ): Promise<{ cid: string }> {
   const startTime = Date.now();
 
-  if (!storachaClient) {
+  if (options.provider === "storacha" && !storachaClient) {
     const error = new Error("Storacha not initialized. Call initializeIpfs() first.");
     trackUploadError(error, {
       uploadCategory: category,
@@ -85,38 +95,25 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
       gardenAddress: context.gardenAddress,
       severity: "error",
       recoverable: false,
-      metadata: { storacha_error: ipfsInitializationError },
+      metadata: { storacha_error: ipfsInitializationError, provider: options.provider },
     });
     throw error;
   }
 
   try {
-    const result = await uploadFn();
-    const cid = result.cid.toString();
+    const cid = await uploadFn();
     const uploadDuration = Date.now() - startTime;
 
-    // Fire-and-forget: verify gateway availability and pin to Pinata in background.
-    // The CID is valid once Storacha returns it; gateway propagation
-    // should not block the user's submission flow.
-    //
-    // IMPORTANT: If this verification throws, it must NOT propagate as an error
-    // from the upload. The wallet submission flow (useWorkMutation) uses error
-    // message heuristics ("gateway", "timeout") to detect network errors.
-    // If IPFS verification errors leaked through, they'd be misclassified as
-    // network errors and silently redirect to the offline queue, skipping the
-    // wallet signing step entirely.
-    ensureCidAvailableAcrossProviders(cid, {
-      category,
-      source: context.source ?? "executeUpload",
-      gardenAddress: context.gardenAddress,
-      name: fileInfo.name,
-    }).catch((verifyError) => {
-      logger.warn("Gateway verification failed (non-blocking)", {
-        cid,
-        error: verifyError,
-        ...getNetworkContext(),
+    if (options.verifyCid) {
+      options.verifyCid(cid).catch((verifyError) => {
+        logger.warn("Gateway verification failed (non-blocking)", {
+          cid,
+          error: verifyError,
+          provider: options.provider,
+          ...getNetworkContext(),
+        });
       });
-    });
+    }
 
     trackUploadSuccess({
       uploadCategory: category,
@@ -133,7 +130,7 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
     return { cid };
   } catch (error) {
     const uploadDuration = Date.now() - startTime;
-    logger.error(`Failed to upload to Storacha (${category})`, { error });
+    logger.error(`Failed to upload to ${options.provider} (${category})`, { error });
 
     trackUploadError(error, {
       uploadCategory: category,
@@ -148,7 +145,7 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
       gardenAddress: context.gardenAddress,
       severity: "error",
       recoverable: true,
-      metadata: { ...getNetworkContext() },
+      metadata: { ...getNetworkContext(), provider: options.provider },
     });
 
     throw error;
@@ -263,8 +260,20 @@ export async function uploadFileToIPFS(
   context: FileUploadContext = {}
 ): Promise<{ cid: string }> {
   try {
+    const pinataReady = Boolean(pinataJwt);
     const result = await executeUpload(
-      async () => ({ cid: await storachaClient!.uploadFile(file) }),
+      async () => {
+        if (pinataReady) {
+          return uploadFileWithPinata(file, {
+            name: file.name,
+            category: "file_upload",
+            source: context.source ?? "uploadFileToIPFS",
+            gardenAddress: context.gardenAddress,
+          });
+        }
+
+        return (await storachaClient!.uploadFile(file)).toString();
+      },
       "file_upload",
       { source: context.source ?? "uploadFileToIPFS", gardenAddress: context.gardenAddress },
       {
@@ -273,6 +282,12 @@ export async function uploadFileToIPFS(
         name: file.name,
         index: context.fileIndex,
         total: context.totalFiles,
+      },
+      {
+        provider: pinataReady ? "pinata" : "storacha",
+        verifyCid: pinataReady
+          ? (cid) => verifyPinataGatewayAvailability(cid)
+          : (cid) => ensureStorachaGatewayAvailability(cid),
       }
     );
 
@@ -322,12 +337,30 @@ export async function uploadJSONToIPFS(
   const jsonString = JSON.stringify(json);
   const blob = new Blob([jsonString], { type: "application/json" });
   const file = new File([blob], "metadata.json", { type: "application/json" });
+  const pinataReady = Boolean(pinataJwt);
 
   return executeUpload(
-    async () => ({ cid: await storachaClient!.uploadFile(file) }),
+    async () => {
+      if (pinataReady) {
+        return uploadFileWithPinata(file, {
+          name: "metadata.json",
+          category: "json_upload",
+          source: context.source ?? "uploadJSONToIPFS",
+          gardenAddress: context.gardenAddress,
+        });
+      }
+
+      return (await storachaClient!.uploadFile(file)).toString();
+    },
     "json_upload",
     { source: context.source ?? "uploadJSONToIPFS", gardenAddress: context.gardenAddress },
-    { size: file.size, type: "application/json", name: "metadata.json" }
+    { size: file.size, type: "application/json", name: "metadata.json" },
+    {
+      provider: pinataReady ? "pinata" : "storacha",
+      verifyCid: pinataReady
+        ? (cid) => verifyPinataGatewayAvailability(cid)
+        : (cid) => ensureStorachaGatewayAvailability(cid),
+    }
   );
 }
 
@@ -344,6 +377,15 @@ function normalizeOptionalUrl(value?: string | null): string | null {
   return trimmed ? trimTrailingSlashes(trimmed) : null;
 }
 
+function normalizePinataUploadsApiUrl(value?: string | null): string {
+  const normalized = normalizeOptionalUrl(value);
+  if (!normalized) return DEFAULT_PINATA_UPLOADS_API_BASE_URL;
+  if (/^https:\/\/api\.pinata\.cloud\/?$/i.test(normalized)) {
+    return DEFAULT_PINATA_UPLOADS_API_BASE_URL;
+  }
+  return normalized;
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -355,7 +397,7 @@ function configurePinata(
   pinataGatewayUrl =
     normalizeOptionalUrl(config.pinataGatewayBaseUrl) ??
     (pinataJwt ? DEFAULT_PINATA_GATEWAY : null);
-  pinataApiBaseUrl = normalizeOptionalUrl(config.pinataApiBaseUrl) ?? DEFAULT_PINATA_API_BASE_URL;
+  pinataUploadsApiBaseUrl = normalizePinataUploadsApiUrl(config.pinataApiBaseUrl);
 }
 
 function isPotentialIpfsCid(value: string): boolean {
@@ -487,46 +529,60 @@ function buildPinataMetadata(
   };
 }
 
-async function pinCidWithPinata(
-  cid: string,
+async function uploadFileWithPinata(
+  file: File,
   options: {
     name?: string;
     category?: UploadErrorCategory;
     source?: string;
     gardenAddress?: string;
   } = {}
-): Promise<void> {
-  if (!pinataJwt) return;
+): Promise<string> {
+  if (!pinataJwt) {
+    throw new Error("Pinata JWT is not configured");
+  }
 
-  const response = await fetch(`${pinataApiBaseUrl}/pinning/pinByHash`, {
+  const formData = new FormData();
+  formData.append("network", "public");
+  formData.append("file", file);
+  if (options.name) {
+    formData.append("name", options.name);
+  }
+
+  const keyvalues = buildPinataMetadata(options).keyvalues ?? {};
+  if (Object.keys(keyvalues).length > 0) {
+    formData.append("keyvalues", JSON.stringify(keyvalues));
+  }
+
+  const response = await fetch(`${pinataUploadsApiBaseUrl}/files`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${pinataJwt}`,
-      "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      hashToPin: cid,
-      pinataMetadata: buildPinataMetadata(options),
-    }),
+    body: formData,
   });
 
-  if (response.ok) {
-    return;
-  }
-
-  let message = `${response.status} ${response.statusText}`;
+  let payload: PinataUploadResponse | null = null;
   try {
-    const payload = (await response.json()) as { error?: { reason?: string }; message?: string };
-    message = payload.error?.reason?.trim() || payload.message?.trim() || message;
+    payload = (await response.json()) as PinataUploadResponse;
   } catch {
-    // Ignore non-JSON error payloads.
+    payload = null;
   }
 
-  if (response.status === 409 || /already|duplicate/i.test(message)) {
-    return;
+  if (!response.ok) {
+    const message =
+      payload?.error?.reason?.trim() ||
+      payload?.message?.trim() ||
+      `${response.status} ${response.statusText}`;
+    throw new Error(`Pinata file upload failed for ${file.name}: ${message}`);
   }
 
-  throw new Error(`Pinata pinByHash failed for ${cid}: ${message}`);
+  const cid = payload?.data?.cid?.trim();
+  if (!cid) {
+    throw new Error(`Pinata upload for ${file.name} did not return a CID`);
+  }
+
+  return cid;
 }
 
 async function verifyGatewayAvailability(
@@ -573,29 +629,15 @@ async function verifyGatewayAvailability(
   );
 }
 
-async function ensureCidAvailableAcrossProviders(
-  cid: string,
-  options: {
-    name?: string;
-    category?: UploadErrorCategory;
-    source?: string;
-    gardenAddress?: string;
-  } = {}
-): Promise<void> {
+async function ensureStorachaGatewayAvailability(cid: string): Promise<void> {
   const canonicalUri = `ipfs://${cid}`;
 
   await verifyGatewayAvailability(canonicalUri, gatewayUrl, "Storacha gateway");
+}
 
-  if (!pinataJwt) {
-    return;
-  }
-
-  await pinCidWithPinata(cid, options);
-  await verifyGatewayAvailability(
-    canonicalUri,
-    pinataGatewayUrl ?? DEFAULT_PINATA_GATEWAY,
-    "Pinata gateway"
-  );
+async function verifyPinataGatewayAvailability(cid: string): Promise<void> {
+  if (!pinataGatewayUrl) return;
+  await verifyGatewayAvailability(`ipfs://${cid}`, pinataGatewayUrl, "Pinata gateway");
 }
 
 export function tryParseJson<T = unknown>(value: string): T | null {
@@ -781,6 +823,7 @@ export async function initializeIpfsFromEnv(
   const pinataJwtValue = env?.VITE_PINATA_JWT ?? env?.PINATA_JWT;
   const pinataGatewayBaseUrl = env?.VITE_PINATA_GATEWAY_URL ?? env?.PINATA_GATEWAY_URL;
   const pinataApiBaseUrl = env?.VITE_PINATA_API_URL ?? env?.PINATA_API_URL;
+  const pinataReady = Boolean(pinataJwtValue && !isPlaceholderCredential(pinataJwtValue));
 
   configurePinata({
     pinataJwt: pinataJwtValue,
@@ -790,6 +833,15 @@ export async function initializeIpfsFromEnv(
 
   // Skip initialization if credentials are missing or are placeholder values (CI builds)
   if (!key || !proof || isPlaceholderCredential(key) || isPlaceholderCredential(proof)) {
+    if (pinataReady) {
+      ipfsInitializationStatus = "success";
+      ipfsInitializationError = null;
+      if (import.meta.env.DEV) {
+        logger.info("Pinata upload path configured without Storacha credentials");
+      }
+      return true;
+    }
+
     ipfsInitializationStatus = "skipped_no_config";
     // Only warn in development, not in CI/production builds with placeholders
     if (import.meta.env.DEV) {

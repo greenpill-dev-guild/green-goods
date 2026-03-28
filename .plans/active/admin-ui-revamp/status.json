@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "admin-ui-revamp",
+    "title": "Admin UI Revamp & Two-App Architecture",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "ready",
+    "priority": "p1",
+    "created_at": "2026-03-26",
+    "updated_at": "2026-03-27"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Phase 1 (cockpit shell) can start immediately — no contract changes needed.",
+    "Phase 3 (public platform) depends on shared component promotion (early Phase 2).",
+    "Govern renamed to Community (RiTeamLine icon). 60 decisions logged.",
+    "Spatial/circular layouts deferred to future iteration."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui/admin-ui-revamp",
+      "depends_on": [],
+      "handoff": "handoffs/orchestration.md",
+      "handoff_note": "Claude sessions use kickoff prompts from orchestration.md (per-phase sections)",
+      "skill_tags": ["ui", "frontend-design", "react", "web3"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/admin-ui-revamp",
+      "depends_on": [],
+      "coordination_note": "Phase 1a: state_api (extend useAdminStore, useEffectiveToolbarPermissions, offlineFirst) and ui (components, layout) run in parallel. ui consumes the permissions hook — coordinate via interface contract (hook return type). ui lane reads scope via `useAdminStore(s => s.selectedGarden?.id)` (Garden object, not plain Address). Phase 2+: state_api depends on ui lane completion.",
+      "handoff": "handoffs/codex-tasks.md",
+      "handoff_note": "Each Codex task is a copy-paste prompt block organized by phase",
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "",
+      "depends_on": [],
+      "handoff": "",
+      "skill_tags": []
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/admin-ui-revamp",
+      "depends_on": ["ui", "state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/admin-ui-revamp",
+      "branch_trigger": "claude/qa-pass-1/admin-ui-revamp",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "date": "2026-03-26",
+      "event": "created",
+      "details": "Deep design exploration completed. 12 key decisions logged. 3-phase plan defined."
+    },
+    {
+      "date": "2026-03-26",
+      "event": "review_complete",
+      "details": "Gap analysis resolved 7 inconsistencies, 8 gaps, 5 open questions. 25 decisions now logged. Govern renamed to Community. Route consolidation finalized. Documents updated."
+    },
+    {
+      "date": "2026-03-26",
+      "event": "codebase_validation_amendments",
+      "details": "Codebase validation revealed 3 critical and 4 moderate gaps. Amendments: D30 (useEffectiveToolbarPermissions — resolves two-tier role model via indexer data), D31 (PlatformRouter branches on isStandalone not isMobile), D32 (/gardens public and /home auth'd coexist), D33 (command palette route update moved to Phase 1). Added PublicShell/SiteHeader/AuthHeader for Phase 3 client route integration. Added SheetErrorBoundary, TopContextBar context label, AppBar display-mode CSS guard. Promoted TxInlineFeedback and getDepositLimitLabel to Phase 2. Moved VaultPositionCard earlier in Phase 2. 33 decisions total. ~21 new acceptance criteria added to eval."
+    },
+    {
+      "date": "2026-03-27",
+      "event": "gap_analysis_complete",
+      "details": "Comprehensive gap analysis resolved 4 open questions: strategies→treasury (D26), submit-work→side sheet (D27), phase 3→extend client (D28), redirects→spec now (D29). 24-row route redirect map added to spec. Component promotion language corrected (GardenCard/WorkCard/StatusBadge already in shared). Eval expanded with 7 new AC. 29 decisions total."
+    },
+    {
+      "date": "2026-03-27",
+      "event": "final_review_complete",
+      "details": "Final review resolved 4 open questions (D34-D37: VaultPositionCard is new read-only, FAB shows active tab icon, Phase 2 CTA uses existing create route, /fund is deposit-only). Fixed 6 gaps: useRolePermissions composition corrected, PostHog moved to Phase 1b, Phase 1 split into 1a/1b, test strategy added, gallery breakpoints aligned, hook name corrected (useVaultDeposit→useVaultOperations). 8 minor issues fixed. 37 decisions total."
+    },
+    {
+      "date": "2026-03-27",
+      "event": "codebase_validation_amendments_v2",
+      "details": "Deep codebase validation (4 parallel agents) found 4 gaps and 6 minor issues. D38: useGardens needs offlineFirst via createBaseListHook factory extension. D39: spec corrected useVaultOperations→useVaultDeposit (actual shared export). D40: cross-garden queue sort = FIFO by createdAt + status-tier grouping. D41: all M3 components in shared with shared Storybook (one instance). Minor fixes: data-appbar note, StatusBadge story cleanup, SUB_ROUTE_LABELS extraction, Phase 1a shippability note, i18n string estimates. Feature flag declined — git revert is sufficient. 41 decisions total."
+    },
+    {
+      "date": "2026-03-27",
+      "event": "final_gap_analysis_complete",
+      "details": "Final gap analysis with 4-agent codebase validation. Resolved 2 open questions (Q1: UserProfile→TopContextBar+SettingsSheet, Q2: AssetSelector confirmed existing in shared). 4 new decisions: D42 (UserProfile migration), D43 (FAB eliminated — TopContextBar makes it redundant), D44 (useCrossGardenQueue client-side merge hook), D45 (AssetSelector confirmed). 3 medium gaps closed: cross-garden queue data strategy, SettingsSheet content enumeration, test fixture update task. 8 low gaps addressed: /impact eval AC, StatusBadge clarification, mobile keyboard task, a11y audit tasks, bundle analysis task, Phase 3 rollback strategy, PostHog dashboard note, cookie-jars orphan. 45 decisions total."
+    },
+    {
+      "date": "2026-03-27",
+      "event": "implementation_readiness_review",
+      "details": "Full codebase validation (3 parallel agents: admin, shared, client). 12 fixes applied: D35 struck (superseded by D43), FAB req marked n/a, PostHog tracking corrected (usePageView is reactive — no code change, ops dashboard update only), useAdminStore.Garden expansion dropped (useGardens returns full DomainGarden), conditional redirect complexity noted, StatusBadge corrected (generic not ops-specific), SettingsSheet phase split clarified (shell in 1a, deployer in 1b), /impact eval criteria added, Settings removed from garden chip dropdown, Phase 3 feature flag removed (git revert sufficient), i18n estimate raised to ~40-45, SUB_ROUTE_LABELS pruning noted. All open questions resolved. Plan rated implementation-ready."
+    },
+    {
+      "date": "2026-03-27",
+      "event": "final_plan_review",
+      "details": "Final plan review with deep codebase validation (2 parallel agents: spec references + route/architecture). 3 critical gaps resolved: D46 (useAdminStore must be created — does not exist in codebase, was assumed), PostHog ops lane orphan reassigned to ui, state_api↔ui circular dependency fixed (parallel in Phase 1a with interface contract). 6 medium gaps resolved: D47 (single-garden chip behavior), D48 (side sheet browser history push/pop), D49 (z-index stacking hierarchy), route-labels task rewritten (extraction→creation), stale garden recovery guard, brief hook count corrected (1→3). Eval split into Phase 1a/1b sections, 7 missing criteria added. 49 decisions total."
+    },
+    {
+      "date": "2026-03-27",
+      "event": "final_gap_resolution",
+      "details": "Final gap resolution with 3-agent codebase validation (admin, shared, client). 36/38 assumptions validated. 1 critical resolved: D50 (garden chip dropdown contradiction — chip is purely garden switcher, no Settings/Actions). 4 high resolved: D51 (audit fixes separate PR), D52 (Deployment 958-line god object decomposed into 3 sub-components in Phase 1b), D53 (dead code cleanup task added), D54 (PostHog moved to Manual/Human Tasks). 5 medium resolved: D55 (Phase 1a empty state defined), D56 (i18n English-only, translate later), D57 (feature branch + separate merge commits), D58 (SyncStatusBar eval removed), D59 (toolbar permissions error state: all visible + toast). 1 low resolved: D60 (InstallCta location clarified). 60 decisions total. All documents updated. Plan execution-ready."
+    },
+    {
+      "date": "2026-03-27",
+      "event": "plan_review_corrections",
+      "details": "Independent plan review found 1 critical, 2 high, 3 medium issues. C1: useAdminStore already exists in packages/shared/src/stores/useAdminStore.ts (D46 said it didn't) — all references updated to 'extend existing', store location corrected (shared not admin), selectedGarden typed as Garden object not Address. H1: interface contract added — ui lane reads selectedGarden?.id for scope. H2: brief corrected from '3 new hooks/stores' to '2 new + 1 extended'. M2: eval regression criterion added for 5 existing useAdminStore consumers. M3: eval criterion added for createBaseListHook factory blast radius. status.json decision count corrected (49→60)."
+    }
+  ]
+}

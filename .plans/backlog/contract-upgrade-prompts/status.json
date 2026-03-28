@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "contract-upgrade-prompts",
+    "title": "Contract Upgrade Prompts",
+    "kind": "legacy_plan",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-03-26T23:09:03.347Z",
+    "updated_at": "2026-03-26T23:09:03.347Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Imported from a legacy plan source.",
+    "Classify lanes manually before letting automations act on this hub.",
+    "Legacy source: .plans/contract-upgrade-prompts.md",
+    "Legacy source: .plans/_backlog/contract-upgrade-prompts.md"
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": "claude/ui/contract-upgrade-prompts",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": true
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": "codex/state-api/contract-upgrade-prompts",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "manual_blocked": true
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": "codex/contracts/contract-upgrade-prompts",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": ["contracts"],
+      "manual_blocked": true
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": "claude/qa-pass-1/contract-upgrade-prompts",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": "codex/qa-pass-2/contract-upgrade-prompts",
+      "branch_trigger": "claude/qa-pass-1/contract-upgrade-prompts",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-03-26T23:09:03.347Z",
+      "actor": "migration-script",
+      "lane": "system",
+      "status": "imported_legacy_plan",
+      "branch": null,
+      "note": "Imported from legacy flat .plans layout."
+    }
+  ]
+}

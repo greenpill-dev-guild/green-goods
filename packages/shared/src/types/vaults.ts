@@ -82,6 +82,14 @@ export interface FunderPosition {
   yieldGenerated: bigint;
 }
 
+export interface FunderAssetTotal {
+  chainId: number;
+  asset: Address;
+  totalYieldGenerated: bigint;
+  totalNetDeposited: bigint;
+  totalCurrentValue: bigint;
+}
+
 export interface FunderLeaderboardEntry {
   address: Address;
   totalYieldGenerated: bigint;
@@ -90,6 +98,7 @@ export interface FunderLeaderboardEntry {
   gardenCount: number;
   gardenAddresses: Address[];
   positions: FunderPosition[];
+  assetTotals: FunderAssetTotal[];
 }
 
 export interface VaultPreview {

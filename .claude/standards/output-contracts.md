@@ -154,6 +154,8 @@ All agent handoff briefs MUST be concise to prevent context bloat in agent chain
 
 If a handoff brief exceeds the line limit, the sending agent MUST compress it. Prioritize: (1) what to do, (2) what constraints exist, (3) what files to touch. Drop explanatory context.
 
+When a feature hub exists in `.plans/active/<feature-slug>/`, store lane handoffs in that hub's `handoffs/` directory and mirror the lane result in `status.json`.
+
 ### Multi-Agent Priority Conflicts
 
 When agents produce conflicting recommendations:

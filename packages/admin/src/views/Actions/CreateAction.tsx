@@ -4,7 +4,7 @@ import {
   createActionSchema,
   DEFAULT_CHAIN_ID,
   defaultTemplate,
-  instructionTemplates,
+  Domain,
   logger,
   toastService,
   uploadFileToIPFS,
@@ -20,12 +20,31 @@ import { FileUploadField } from "@/components/FileUploadField";
 import { FormWizard } from "@/components/Form/FormWizard";
 import type { Step } from "@/components/Form/StepIndicator";
 import { FormField } from "@/components/ui/FormField";
+import { resolveCreateActionTemplateSelection } from "./createActionTemplateSelection";
 
 export default function CreateAction() {
   const navigate = useNavigate();
   const { formatMessage } = useIntl();
   const { registerAction, isLoading } = useActionOperations(DEFAULT_CHAIN_ID);
   const [currentStep, setCurrentStep] = useState(0);
+  const domainOptions = [
+    {
+      value: Domain.SOLAR,
+      label: formatMessage({ id: "app.domain.tab.solar", defaultMessage: "Solar" }),
+    },
+    {
+      value: Domain.AGRO,
+      label: formatMessage({ id: "app.domain.tab.agro", defaultMessage: "Agro" }),
+    },
+    {
+      value: Domain.EDU,
+      label: formatMessage({ id: "app.domain.tab.education", defaultMessage: "Education" }),
+    },
+    {
+      value: Domain.WASTE,
+      label: formatMessage({ id: "app.domain.tab.waste", defaultMessage: "Waste" }),
+    },
+  ];
 
   const stepConfigs: Step[] = [
     {
@@ -72,6 +91,8 @@ export default function CreateAction() {
     resolver: zodResolver(createActionSchema),
     defaultValues: {
       title: "",
+      slug: "",
+      domain: Domain.SOLAR,
       startTime: new Date(),
       endTime: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       capitals: [],
@@ -109,6 +130,8 @@ export default function CreateAction() {
       // Register action on-chain
       await registerAction({
         title: data.title,
+        slug: data.slug.trim().toLowerCase(),
+        domain: data.domain as Domain,
         startTime: Math.floor(data.startTime.getTime() / 1000),
         endTime: Math.floor(data.endTime.getTime() / 1000),
         capitals: data.capitals,
@@ -161,6 +184,54 @@ export default function CreateAction() {
                   defaultMessage: "Action title",
                 })}
               />
+            </FormField>
+
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.slugLabel",
+                defaultMessage: "Slug",
+              })}
+              htmlFor="create-action-slug"
+              hint={formatMessage({
+                id: "app.admin.actions.create.slugHint",
+                defaultMessage: "Format: domain.action_name (lowercase).",
+              })}
+              error={form.formState.errors.slug?.message}
+            >
+              <input
+                id="create-action-slug"
+                {...form.register("slug")}
+                type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                className="w-full rounded-md border border-stroke-soft px-3 py-2"
+                placeholder={formatMessage({
+                  id: "app.admin.actions.create.slugPlaceholder",
+                  defaultMessage: "e.g., waste.repair_event",
+                })}
+              />
+            </FormField>
+
+            <FormField
+              label={formatMessage({
+                id: "app.admin.actions.create.domainLabel",
+                defaultMessage: "Domain",
+              })}
+              htmlFor="create-action-domain"
+              error={form.formState.errors.domain?.message}
+            >
+              <select
+                id="create-action-domain"
+                {...form.register("domain", { valueAsNumber: true })}
+                className="w-full rounded-md border border-stroke-soft px-3 py-2"
+              >
+                {domainOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </FormField>
 
             <FormField
@@ -348,8 +419,23 @@ export default function CreateAction() {
               <select
                 id="create-action-template"
                 onChange={(e) => {
-                  if (e.target.value) {
-                    form.setValue("instructionConfig", instructionTemplates[e.target.value]);
+                  const selectedTemplateSlug = e.target.value;
+                  if (selectedTemplateSlug) {
+                    const templateSelection =
+                      resolveCreateActionTemplateSelection(selectedTemplateSlug);
+                    if (!templateSelection) return;
+
+                    form.setValue("instructionConfig", templateSelection.instructionConfig, {
+                      shouldDirty: true,
+                    });
+                    form.setValue("slug", templateSelection.slug, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                    form.setValue("domain", templateSelection.domain, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
                   }
                 }}
                 className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -519,6 +605,12 @@ export default function CreateAction() {
                       defaultMessage: "Recurring Maintenance Check",
                     })}
                   </option>
+                  <option value="waste.repair_event">
+                    {formatMessage({
+                      id: "app.admin.actions.create.templateWasteRepair",
+                      defaultMessage: "Repair Event",
+                    })}
+                  </option>
                 </optgroup>
               </select>
             </FormField>
@@ -531,6 +623,8 @@ export default function CreateAction() {
 
       case 3: {
         const data = form.getValues();
+        const selectedDomainLabel =
+          domainOptions.find((option) => option.value === data.domain)?.label ?? data.domain;
         return (
           <div className="space-y-4">
             <div>
@@ -541,6 +635,24 @@ export default function CreateAction() {
                 })}
               </h3>
               <p className="text-text-sub">{data.title}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-text-strong">
+                {formatMessage({
+                  id: "app.admin.actions.create.reviewSlug",
+                  defaultMessage: "Slug",
+                })}
+              </h3>
+              <p className="text-text-sub">{data.slug}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-text-strong">
+                {formatMessage({
+                  id: "app.admin.actions.create.reviewDomain",
+                  defaultMessage: "Domain",
+                })}
+              </h3>
+              <p className="text-text-sub">{selectedDomainLabel}</p>
             </div>
             <div>
               <h3 className="font-semibold text-text-strong">
@@ -615,7 +727,7 @@ export default function CreateAction() {
 
   // Fields to validate per wizard step before advancing
   const stepFields: Record<number, (keyof CreateActionFormData)[]> = {
-    0: ["title", "startTime", "endTime"],
+    0: ["title", "slug", "domain", "startTime", "endTime"],
     1: ["capitals"],
   };
 

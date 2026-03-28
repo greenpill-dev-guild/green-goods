@@ -95,6 +95,8 @@ describe("useActionOperations", () => {
         startTime: 1234567890,
         endTime: 1234567899,
         title: "Test Action",
+        slug: "waste.repair_event",
+        domain: 3,
         instructions: "Test instructions",
         capitals: [],
         media: [],
@@ -184,6 +186,43 @@ describe("useActionOperations", () => {
       await result.current.updateActionTitle("1", "Updated Title");
 
       expect(mockExecuteWithToast).toHaveBeenCalled();
+    });
+
+    it("calls registerAction with slug and domain in the expected argument order", async () => {
+      vi.mocked(simulateTransaction).mockResolvedValue({
+        success: true,
+        result: undefined,
+      });
+
+      const { result } = renderHook(() => useActionOperations(11155111));
+
+      await result.current.registerAction({
+        startTime: 1234567890,
+        endTime: 1234567900,
+        title: "Waste Repair Event",
+        slug: "waste.repair_event",
+        domain: 3,
+        instructions: "bafy-test-cid",
+        capitals: [1, 5],
+        media: ["bafy-media-cid"],
+      });
+
+      expect(simulateTransaction).toHaveBeenCalledWith(
+        "0xActionRegistry123",
+        expect.any(Array),
+        "registerAction",
+        [
+          BigInt(1234567890),
+          BigInt(1234567900),
+          "Waste Repair Event",
+          "waste.repair_event",
+          "bafy-test-cid",
+          [1, 5],
+          ["bafy-media-cid"],
+          3,
+        ],
+        "0xUserAddress123"
+      );
     });
 
     it("handles contract errors during execution", async () => {

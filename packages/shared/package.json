@@ -36,6 +36,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "build": "echo 'Shared package uses source files directly - no build needed'",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest --standalone",
     "coverage": "vitest run --coverage",
