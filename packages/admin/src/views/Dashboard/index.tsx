@@ -203,6 +203,24 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div className="stagger-children grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 mb-8 px-4 sm:px-6">
+        <StatCard
+          icon={<RiPlantLine className="h-5 w-5" />}
+          label={
+            role === "operator"
+              ? intl.formatMessage({
+                  id: "admin.dashboard.stats.yourGardens",
+                  defaultMessage: "Your Gardens",
+                })
+              : intl.formatMessage({
+                  id: "admin.dashboard.stats.totalGardens",
+                  defaultMessage: "Total Gardens",
+                })
+          }
+          value={role === "operator" ? operatorGardens.length : gardens.length}
+          colorScheme="success"
+          to="/gardens"
+        />
+
         {(role === "deployer" || role === "operator") && (
           <>
             <StatCard
