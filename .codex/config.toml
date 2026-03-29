@@ -8,10 +8,10 @@ project_doc_fallback_filenames = ["CLAUDE.md"]
 # Slightly larger limit to accommodate CLAUDE.md (~4KB) + AGENTS.md (~2KB)
 project_doc_max_bytes = 40960
 
-# Default model — gpt-5.3-codex is the most capable agentic coding model.
+# Default model — gpt-5.4 is the most capable agentic coding model.
 # Use for judgment tasks (audits, security, test quality). For simple mechanical
 # transforms, individual automations can override with `-m gpt-5.2` if needed.
-model = "gpt-5.3-codex"
+model = "gpt-5.4"
 
 # Agent sandbox: no network access during execution (safer for automated tasks).
 # Setup scripts still get network access for dependency installation.
