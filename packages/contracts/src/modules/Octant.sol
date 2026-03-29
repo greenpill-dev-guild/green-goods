@@ -699,8 +699,7 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
     /// @dev Push idle vault balance to strategy via update_debt. Non-fatal on failure
     ///      (vault may have zero idle balance during first-time wiring before deposits).
     function _pushIdleToStrategy(address vault, address strategy) private {
-        try IOctantVault(vault).update_debt(strategy, type(uint256).max, 0) { }
-        catch { }
+        try IOctantVault(vault).update_debt(strategy, type(uint256).max, 0) { } catch { }
     }
 
     function _buildVaultMetadata(
