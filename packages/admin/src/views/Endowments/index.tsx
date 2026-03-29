@@ -43,7 +43,15 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SortSelect } from "@/components/ui/SortSelect";
 
-function AssetApyCard({ assetAddress, chainId }: { assetAddress: Address; chainId: number }) {
+function AssetApyCard({
+  assetAddress,
+  chainId,
+  className,
+}: {
+  assetAddress: Address;
+  chainId: number;
+  className?: string;
+}) {
   const { formatMessage } = useIntl();
   const { apy, isLoading } = useStrategyRate(assetAddress, { chainId });
   const symbol = getVaultAssetSymbol(assetAddress, chainId);
@@ -54,6 +62,7 @@ function AssetApyCard({ assetAddress, chainId }: { assetAddress: Address; chainI
       label={formatMessage({ id: "app.funders.strategyApy" }, { asset: symbol })}
       value={isLoading ? "--" : apy !== undefined ? formatApy(apy) : "--"}
       colorScheme="success"
+      className={className}
     />
   );
 }
@@ -113,10 +122,10 @@ function MyTrackedPositionCard({
     <Card padding="compact" className="sm:p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-heading text-base font-semibold text-text-strong">
+          <p className="line-clamp-2 break-words font-heading text-base font-semibold text-text-strong">
             {position.gardenName}
           </p>
-          <p className="truncate text-xs text-text-sub">{position.gardenLocation}</p>
+          <p className="line-clamp-2 break-words text-xs text-text-sub">{position.gardenLocation}</p>
           <a
             href={getBlockExplorerAddressUrl(chainId, position.vaultAddress)}
             target="_blank"
@@ -132,7 +141,7 @@ function MyTrackedPositionCard({
         </span>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-3">
         <div className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
           <p className="text-xs text-text-soft">
             {formatMessage({ id: "app.endowments.myPositions.netDeposited" })}
@@ -359,6 +368,7 @@ export default function EndowmentsOverview() {
     { value: "name", label: formatMessage({ id: "app.treasury.sort.name" }) },
     { value: "tvl", label: formatMessage({ id: "app.treasury.sort.tvl" }) },
   ];
+  const overviewStatCardClass = "w-full max-w-full grow sm:w-[22rem]";
 
   return (
     <div className="pb-6">
@@ -391,42 +401,48 @@ export default function EndowmentsOverview() {
             defaultMessage: "Protocol Overview",
           })}
         </h2>
-        <section className="stagger-children grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <section className="stagger-children flex flex-wrap gap-3">
           <StatCard
             icon={<RiMoneyDollarCircleLine className="h-5 w-5" />}
             label={formatMessage({ id: "app.treasury.totalValueLocked" })}
             value={`${formatTokenAmount(tvlByAsset.totalEth)} ETH · ${formatTokenAmount(tvlByAsset.totalDai)} DAI`}
             colorScheme="info"
+            className={overviewStatCardClass}
           />
           <StatCard
             icon={<RiPieChart2Line className="h-5 w-5" />}
             label={formatMessage({ id: "app.yield.totalAllocated" })}
             value={yieldLoading ? "--" : formatTokenAmount(yieldSummary.totalYield)}
             colorScheme="success"
+            className={overviewStatCardClass}
           />
           <StatCard
             icon={<RiLeafLine className="h-5 w-5" />}
             label={formatMessage({ id: "app.treasury.totalHarvests" })}
             value={totalHarvests}
             colorScheme="success"
+            className={overviewStatCardClass}
           />
           <StatCard
             icon={<RiPieChart2Line className="h-5 w-5" />}
             label={formatMessage({ id: "app.yield.allocationCount" })}
             value={yieldLoading ? "--" : yieldSummary.allocationCount}
             colorScheme="info"
+            className={overviewStatCardClass}
           />
           <StatCard
             icon={<RiPlantLine className="h-5 w-5" />}
             label={formatMessage({ id: "app.treasury.gardensWithVaults" })}
             value={grouped.length}
             colorScheme="warning"
+            className={overviewStatCardClass}
           />
           {uniqueAssetAddresses.map((assetAddress) => (
             <AssetApyCard
               key={assetAddress}
               assetAddress={assetAddress}
               chainId={endowmentsChainId}
+              className={overviewStatCardClass}
             />
           ))}
         </section>
@@ -558,7 +574,7 @@ export default function EndowmentsOverview() {
           )}
 
           {userAddress && !isMyPositionsLoading && myTrackedPositions.length > 0 && (
-            <div className="max-h-[400px] overflow-y-auto space-y-3">
+            <div className="space-y-3">
               {myTrackedPositions.map((position) => (
                 <MyTrackedPositionCard
                   key={position.id}
@@ -650,7 +666,7 @@ export default function EndowmentsOverview() {
                 defaultMessage: "Garden Vaults",
               })}
             </h2>
-            <section className="stagger-children grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <section className="stagger-children grid grid-cols-1 gap-4 xl:grid-cols-2">
               {filteredGrouped.map((item) => (
                 <Card
                   key={item.gardenAddress}
@@ -678,12 +694,15 @@ export default function EndowmentsOverview() {
                     </div>
                     <div className="min-w-0">
                       <h2
-                        className="truncate font-heading text-base font-semibold text-text-strong sm:text-lg"
+                        className="line-clamp-2 break-words font-heading text-base font-semibold text-text-strong sm:text-lg"
                         title={item.garden?.name}
                       >
                         {item.garden?.name}
                       </h2>
-                      <p className="truncate text-xs text-text-sub" title={item.garden?.location}>
+                      <p
+                        className="line-clamp-2 break-words text-xs text-text-sub"
+                        title={item.garden?.location}
+                      >
                         {item.garden?.location}
                       </p>
                     </div>
@@ -702,12 +721,12 @@ export default function EndowmentsOverview() {
                       .map((vault) => (
                         <div
                           key={vault.id}
-                          className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm"
+                          className="flex flex-wrap items-center gap-2 rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm"
                         >
-                          <span className="font-medium text-text-sub">
+                          <span className="min-w-0 break-words font-medium text-text-sub">
                             {getVaultAssetSymbol(vault.asset, vault.chainId)}
                           </span>
-                          <span className="text-text-strong">
+                          <span className="ml-auto tabular-nums text-text-strong">
                             {formatTokenAmount(
                               getNetDeposited(vault.totalDeposited, vault.totalWithdrawn)
                             )}
@@ -726,7 +745,7 @@ export default function EndowmentsOverview() {
                     </div>
                   )}
 
-                  <div className="mt-4 flex items-center justify-between">
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs text-text-soft">
                       {formatMessage({ id: "app.treasury.harvestCount" })}: {item.harvestCount}
                     </p>

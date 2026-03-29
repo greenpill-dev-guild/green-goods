@@ -32,32 +32,34 @@ export const StatCard: React.FC<StatCardProps> = ({
   to,
 }) => {
   const content = (
-    <div className="flex items-center gap-2 sm:gap-3">
+    <div className="flex h-full items-start gap-2 sm:gap-3">
       <div
         className={cn(
-          "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg",
+          "mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg",
           colorSchemeMap[colorScheme]
         )}
       >
         {icon}
       </div>
       <dl className="min-w-0 flex-1">
-        <dt className="truncate subheading-xs text-text-soft">{label}</dt>
+        <dt className="subheading-xs break-words leading-tight text-text-soft">
+          {label}
+        </dt>
         <dd
-          className="mt-1 line-clamp-2 font-heading text-xl font-semibold tabular-nums text-text-strong sm:text-2xl"
+          className="mt-1 break-words font-heading text-xl font-semibold leading-tight tabular-nums text-text-strong sm:text-2xl"
           title={titleText}
         >
           {value}
         </dd>
       </dl>
       {to && (
-        <RiArrowRightSLine className="h-5 w-5 flex-shrink-0 text-text-soft transition-colors group-hover:text-text-strong" />
+        <RiArrowRightSLine className="mt-0.5 h-5 w-5 flex-shrink-0 text-text-soft transition-colors group-hover:text-text-strong" />
       )}
     </div>
   );
 
   const cardClass = cn(
-    "block rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-4",
+    "block h-full rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-4",
     to && "cursor-pointer group",
     className
   );
