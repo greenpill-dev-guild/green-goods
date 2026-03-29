@@ -359,6 +359,7 @@ export {
   useVaultWithdraw,
 } from "./vault/useVaultOperations";
 export { useVaultPreview } from "./vault/useVaultPreview";
+export { useHarvestableYield } from "./vault/useHarvestableYield";
 export { useStrategyRate } from "./vault/useStrategyRate";
 export { useBatchWorkApproval } from "./work/useBatchWorkApproval";
 export { useBatchWorkSync } from "./work/useBatchWorkSync";
@@ -399,8 +400,10 @@ export {
 // YIELD
 // ============================================================================
 export { useAllocateYield } from "./yield/useAllocateYield";
+export { usePendingYield } from "./yield/usePendingYield";
 export {
   useProtocolYieldSummary,
   type ProtocolYieldSummary,
 } from "./yield/useProtocolYieldSummary";
+export { useSplitConfig } from "./yield/useSplitConfig";
 export { useYieldAllocations } from "./yield/useYieldAllocations";

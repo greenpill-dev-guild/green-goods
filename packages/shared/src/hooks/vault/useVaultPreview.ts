@@ -17,13 +17,14 @@ interface UseVaultPreviewOptions {
 export function useVaultPreview(options: UseVaultPreviewOptions = {}) {
   const enabled = options.enabled ?? true;
   const vaultAddress = options.vaultAddress;
+  const chainId = options.chainId;
   const amount = options.amount ?? 0n;
   const shares = options.shares ?? 0n;
   const userAddress = options.userAddress ?? (ZERO_ADDRESS as Address);
 
   const contracts = useMemo(() => {
     if (!vaultAddress) return [];
-    const base = { address: vaultAddress, abi: OCTANT_VAULT_ABI } as const;
+    const base = { address: vaultAddress, abi: OCTANT_VAULT_ABI, chainId } as const;
     return [
       { ...base, functionName: "previewDeposit", args: [amount] },
       { ...base, functionName: "convertToAssets", args: [shares] },
@@ -33,7 +34,7 @@ export function useVaultPreview(options: UseVaultPreviewOptions = {}) {
       { ...base, functionName: "maxWithdraw", args: [userAddress, VAULT_MAX_BPS, []] },
       { ...base, functionName: "previewWithdraw", args: [amount] },
     ] as const;
-  }, [vaultAddress, amount, shares, userAddress]);
+  }, [vaultAddress, chainId, amount, shares, userAddress]);
 
   const query = useReadContracts({
     contracts: contracts as any,

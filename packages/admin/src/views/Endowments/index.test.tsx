@@ -22,8 +22,15 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
     useMyVaultDeposits: (...args: unknown[]) => mockUseMyVaultDeposits(...args),
     useUser: () => ({ primaryAddress: "0x1111111111111111111111111111111111111111" }),
-    useStrategyRate: () => ({ apy: 2.5, isLoading: false, isError: false }),
+    useStrategyRate: () => ({ apy: 2.5, isLoading: false, isError: false, unsupported: false }),
     formatApy: (apy: number) => `${apy.toFixed(2)}%`,
+    useHarvestableYield: () => ({ entries: [], total: 0n, isLoading: false, isError: false }),
+    usePendingYield: () => ({ entries: [], totalPending: 0n, isLoading: false, isError: false }),
+    useSplitConfig: () => ({
+      config: { cookieJarBps: 4865, fractionsBps: 4865, juiceboxBps: 270 },
+      isLoading: false,
+      isError: false,
+    }),
     useVaultPreview: (...args: unknown[]) => mockUseVaultPreview(...args),
   };
 });

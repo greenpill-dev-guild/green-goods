@@ -722,6 +722,13 @@ export const OCTANT_MODULE_ABI = [
     inputs: [],
     outputs: [{ name: "", type: "address" }],
   },
+  {
+    type: "function",
+    name: "vaultStrategies",
+    stateMutability: "view",
+    inputs: [{ name: "vault", type: "address" }],
+    outputs: [{ name: "", type: "address" }],
+  },
 ] as const;
 
 export const OCTANT_VAULT_ABI = [
@@ -857,5 +864,23 @@ export const OCTANT_VAULT_ABI = [
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "totalDebt",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;
+
+/** Minimal ABI for the AaveV3ERC4626 strategy — `totalAssets()` reflects the live aToken balance. */
+export const STRATEGY_ABI = [
+  {
+    type: "function",
+    name: "totalAssets",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
   },
 ] as const;

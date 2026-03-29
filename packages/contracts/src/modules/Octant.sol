@@ -483,10 +483,12 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
         _prepareVaultForAllocation(vault);
 
         // Short-circuit: if vault already has a live strategy with proper wiring,
-        // only backfill the donation address. Avoids unnecessary strategy replacement.
+        // only backfill the donation address and push any idle funds. Avoids
+        // unnecessary strategy replacement.
         address existingStrategy = vaultStrategies[vault];
         if (existingStrategy != address(0) && _isStrategyFullyWired(vault, existingStrategy)) {
             _setDefaultDonationAddress(garden);
+            _pushIdleToStrategy(vault, existingStrategy);
             return;
         }
 
@@ -690,6 +692,15 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
                 emit StrategyAccountantWiringFailed(garden, asset, vault, strategy, yieldResolver);
             }
         }
+
+        _pushIdleToStrategy(vault, strategy);
+    }
+
+    /// @dev Push idle vault balance to strategy via update_debt. Non-fatal on failure
+    ///      (vault may have zero idle balance during first-time wiring before deposits).
+    function _pushIdleToStrategy(address vault, address strategy) private {
+        try IOctantVault(vault).update_debt(strategy, type(uint256).max, 0) { }
+        catch { }
     }
 
     function _buildVaultMetadata(

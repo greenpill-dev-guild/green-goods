@@ -209,4 +209,23 @@ describe("useVaultPreview", () => {
     // previewWithdraw uses amount
     expect(call.contracts[6].args[0]).toBe(0n);
   });
+
+  it("passes chainId through to every vault read", () => {
+    mockUseReadContracts.mockReturnValue({ data: undefined, isLoading: false });
+
+    renderHook(
+      () =>
+        useVaultPreview({
+          vaultAddress: TEST_VAULT as `0x${string}`,
+          chainId: 42161,
+        }),
+      { wrapper: createWrapper(queryClient) }
+    );
+
+    const call = mockUseReadContracts.mock.calls[0][0];
+    expect(call.contracts).toHaveLength(7);
+    for (const contract of call.contracts) {
+      expect(contract.chainId).toBe(42161);
+    }
+  });
 });

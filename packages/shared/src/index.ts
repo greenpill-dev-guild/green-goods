@@ -294,6 +294,7 @@ export {
   useGardenTranslation,
   useGardenVaults,
   useHarvest,
+  useHarvestableYield,
   useHasRole,
   useHypercertAllowlist,
   // Hypercert hooks (grouped together, prefixed with useHypercert*)
@@ -333,6 +334,7 @@ export {
   useOpsUpgradePlan,
   usePageView,
   usePendingWorksCount,
+  usePendingYield,
   usePlatformStats,
   usePrimaryAddress,
   useProtocolMemberStatus,
@@ -350,6 +352,7 @@ export {
   useSetRoleHatIds,
   useSlugAvailability,
   useSlugForm,
+  useSplitConfig,
   useTheme,
   useTimeout,
   useTradeHistory,
