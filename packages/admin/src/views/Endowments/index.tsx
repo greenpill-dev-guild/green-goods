@@ -170,7 +170,9 @@ function MyTrackedPositionCard({
             {formatMessage({ id: "app.endowments.myPositions.currentValue" })}
           </p>
           <p className="mt-1 font-medium text-text-strong">
-            {isLoading ? "--" : `${formatTokenAmount(currentValue ?? 0n, 18, 2)} ${position.assetSymbol}`}
+            {isLoading
+              ? "--"
+              : `${formatTokenAmount(currentValue ?? 0n, 18, 2)} ${position.assetSymbol}`}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
