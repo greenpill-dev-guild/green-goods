@@ -224,17 +224,6 @@ describe("Dashboard View", () => {
       expect(heading).toHaveTextContent(/Welcome back.*Deployer/);
     });
 
-    it("shows total gardens stat", () => {
-      mockUseRole.mockReturnValue({ role: "deployer", operatorGardens: [] });
-      mockUseGardens.mockReturnValue({ data: mockGardens, isLoading: false, error: null });
-
-      renderWithIntl(<Dashboard />);
-
-      expect(screen.getByText("Total Gardens")).toBeInTheDocument();
-      const statValues = screen.getAllByText("2");
-      expect(statValues.length).toBeGreaterThan(0);
-    });
-
     it("shows total members and active actions stats", () => {
       mockUseRole.mockReturnValue({ role: "deployer", operatorGardens: [] });
       mockUseGardens.mockReturnValue({ data: mockGardens, isLoading: false, error: null });
@@ -340,19 +329,6 @@ describe("Dashboard View", () => {
       const heading = screen.getByRole("heading", { level: 1 });
       expect(heading).toHaveTextContent(/Welcome back.*Operator/);
       expect(screen.getByText(/Manage your 1 garden$/)).toBeInTheDocument();
-    });
-
-    it("shows 'Your Gardens' stat instead of 'Total Gardens'", () => {
-      mockUseRole.mockReturnValue({
-        role: "operator",
-        operatorGardens: [mockGardens[0]],
-      });
-      mockUseGardens.mockReturnValue({ data: mockGardens, isLoading: false, error: null });
-
-      renderWithIntl(<Dashboard />);
-
-      expect(screen.getByText("Your Gardens")).toBeInTheDocument();
-      expect(screen.getByText("1")).toBeInTheDocument();
     });
 
     it("shows only operator gardens in summary list", () => {

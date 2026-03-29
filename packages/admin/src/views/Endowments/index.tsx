@@ -30,7 +30,6 @@ import {
   RiExternalLinkLine,
   RiLeafLine,
   RiMoneyDollarCircleLine,
-  RiPieChart2Line,
   RiPlantLine,
   RiSafe2Line,
 } from "@remixicon/react";
@@ -124,7 +123,7 @@ function MyTrackedPositionCard({
       ? "--"
       : positionDelta === 0n
         ? `0 ${position.assetSymbol}`
-        : `+${formatTokenAmount(positionDelta)} ${position.assetSymbol}`;
+        : `+${formatTokenAmount(positionDelta, 18, 2)} ${position.assetSymbol}`;
 
   return (
     <Card padding="compact" className="sm:p-4">
@@ -163,7 +162,7 @@ function MyTrackedPositionCard({
             {formatMessage({ id: "app.endowments.myPositions.netDeposited" })}
           </p>
           <p className="mt-1 font-medium text-text-strong">
-            {formatTokenAmount(position.netDeposited)} {position.assetSymbol}
+            {formatTokenAmount(position.netDeposited, 18, 2)} {position.assetSymbol}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
@@ -171,7 +170,7 @@ function MyTrackedPositionCard({
             {formatMessage({ id: "app.endowments.myPositions.currentValue" })}
           </p>
           <p className="mt-1 font-medium text-text-strong">
-            {isLoading ? "--" : `${formatTokenAmount(currentValue ?? 0n)} ${position.assetSymbol}`}
+            {isLoading ? "--" : `${formatTokenAmount(currentValue ?? 0n, 18, 2)} ${position.assetSymbol}`}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
@@ -218,7 +217,7 @@ function GardenHarvestableYield({ vaults }: { vaults: GardenVault[] }) {
                 ({symbol})
               </span>
               <span className="font-medium tabular-nums text-success-dark">
-                +{formatTokenAmount(e.harvestable)} {symbol}
+                +{formatTokenAmount(e.harvestable, 18, 2)} {symbol}
               </span>
             </div>
           );
@@ -258,7 +257,7 @@ function GardenPendingYield({
           .filter((e) => e.amount > 0n)
           .map((e) => (
             <span key={e.assetAddress} className="font-medium tabular-nums text-warning-dark">
-              {formatTokenAmount(e.amount)} {getVaultAssetSymbol(e.assetAddress, chainId)}
+              {formatTokenAmount(e.amount, 18, 2)} {getVaultAssetSymbol(e.assetAddress, chainId)}
             </span>
           ))}
       </div>
@@ -418,11 +417,6 @@ export default function EndowmentsOverview() {
     }
     return result;
   }, [vaults]);
-  const totalHarvests = useMemo(
-    () => grouped.reduce((sum, item) => sum + item.harvestCount, 0),
-    [grouped]
-  );
-
   const isLoading = gardensLoading || vaultsLoading;
   const isMyPositionsLoading = isLoading || myDepositsLoading;
   const gardenByAddress = useMemo(
@@ -515,42 +509,18 @@ export default function EndowmentsOverview() {
               defaultMessage: "Protocol Overview",
             })}
           </h2>
-          <section className="stagger-children grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <section className="stagger-children grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <StatCard
               icon={<RiMoneyDollarCircleLine className="h-5 w-5" />}
               label={formatMessage({ id: "app.treasury.totalValueLocked" })}
               value={
                 <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <span>{formatTokenAmount(tvlByAsset.totalEth)} ETH</span>
+                  <span>{formatTokenAmount(tvlByAsset.totalEth, 18, 2)} ETH</span>
                   <span className="text-text-soft">·</span>
-                  <span>{formatTokenAmount(tvlByAsset.totalDai)} DAI</span>
+                  <span>{formatTokenAmount(tvlByAsset.totalDai, 18, 2)} DAI</span>
                 </span>
               }
               colorScheme="info"
-            />
-            <StatCard
-              icon={<RiPieChart2Line className="h-5 w-5" />}
-              label={formatMessage({ id: "app.yield.totalAllocated" })}
-              value={yieldLoading ? "--" : formatTokenAmount(yieldSummary.totalYield)}
-              colorScheme="success"
-            />
-            <StatCard
-              icon={<RiLeafLine className="h-5 w-5" />}
-              label={formatMessage({ id: "app.treasury.totalHarvests" })}
-              value={totalHarvests}
-              colorScheme="success"
-            />
-            <StatCard
-              icon={<RiPieChart2Line className="h-5 w-5" />}
-              label={formatMessage({ id: "app.yield.allocationCount" })}
-              value={yieldLoading ? "--" : yieldSummary.allocationCount}
-              colorScheme="info"
-            />
-            <StatCard
-              icon={<RiPlantLine className="h-5 w-5" />}
-              label={formatMessage({ id: "app.treasury.gardensWithVaults" })}
-              value={grouped.length}
-              colorScheme="warning"
             />
             {uniqueAssetAddresses.map((assetAddress) => (
               <AssetApyCard
@@ -573,7 +543,7 @@ export default function EndowmentsOverview() {
                   {formatMessage({ id: "app.yield.cumulativeCookieJar" })}
                 </p>
                 <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
-                  {formatTokenAmount(yieldSummary.totalCookieJar)}
+                  {formatTokenAmount(yieldSummary.totalCookieJar, 18, 2)}
                 </p>
               </div>
               <div className="rounded-lg bg-bg-weak p-3 text-center">
@@ -581,7 +551,7 @@ export default function EndowmentsOverview() {
                   {formatMessage({ id: "app.yield.cumulativeFractions" })}
                 </p>
                 <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
-                  {formatTokenAmount(yieldSummary.totalFractions)}
+                  {formatTokenAmount(yieldSummary.totalFractions, 18, 2)}
                 </p>
               </div>
               <div className="rounded-lg bg-bg-weak p-3 text-center">
@@ -589,7 +559,7 @@ export default function EndowmentsOverview() {
                   {formatMessage({ id: "app.yield.cumulativeJuicebox" })}
                 </p>
                 <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
-                  {formatTokenAmount(yieldSummary.totalJuicebox)}
+                  {formatTokenAmount(yieldSummary.totalJuicebox, 18, 2)}
                 </p>
               </div>
             </div>
@@ -846,7 +816,9 @@ export default function EndowmentsOverview() {
                             </span>
                             <span className="ml-auto tabular-nums text-text-strong">
                               {formatTokenAmount(
-                                getNetDeposited(vault.totalDeposited, vault.totalWithdrawn)
+                                getNetDeposited(vault.totalDeposited, vault.totalWithdrawn),
+                                18,
+                                2
                               )}
                             </span>
                           </div>

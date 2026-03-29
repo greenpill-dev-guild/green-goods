@@ -1,11 +1,4 @@
-import {
-  cn,
-  useAuth,
-  useGardens,
-  usePlatformStats,
-  useRole,
-  useUIStore,
-} from "@green-goods/shared";
+import { cn, useAuth, useRole, useUIStore } from "@green-goods/shared";
 import {
   RiDashboardLine,
   RiFileList3Line,
@@ -16,7 +9,6 @@ import {
   RiSettings3Line,
   RiUploadLine,
 } from "@remixicon/react";
-import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 
@@ -27,7 +19,6 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   roles: string[];
   group: "operations" | "finance" | "platform";
-  badgeKey?: string;
 }
 
 const navigation: NavItem[] = [
@@ -46,7 +37,6 @@ const navigation: NavItem[] = [
     icon: RiPlantLine,
     roles: ["deployer", "operator", "user"],
     group: "operations",
-    badgeKey: "pendingReviews",
   },
   {
     name: "Assessments",
@@ -106,16 +96,6 @@ export function Sidebar() {
   const { sidebarOpen, setSidebarOpen } = useUIStore();
 
   const filteredNavigation = navigation.filter((item) => item.roles.includes(role));
-
-  const { data: gardens = [] } = useGardens();
-  const gardenAddresses = useMemo(() => gardens.map((g) => g.id), [gardens]);
-  const { data: platformStats } = usePlatformStats(gardenAddresses);
-  const badges = useMemo(
-    () => ({
-      pendingReviews: platformStats?.pendingWorks ?? 0,
-    }),
-    [platformStats]
-  );
 
   return (
     <>
@@ -180,9 +160,6 @@ export function Sidebar() {
                     const isActive =
                       location.pathname === item.href ||
                       (item.href !== "/dashboard" && location.pathname.startsWith(item.href));
-                    const badgeCount = item.badgeKey
-                      ? badges[item.badgeKey as keyof typeof badges]
-                      : 0;
                     return (
                       <Link
                         key={item.name}
@@ -199,11 +176,6 @@ export function Sidebar() {
                         {item.nameId
                           ? intl.formatMessage({ id: item.nameId, defaultMessage: item.name })
                           : item.name}
-                        {badgeCount > 0 && (
-                          <span className="ml-auto rounded-full bg-warning-lighter px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-warning-dark">
-                            {badgeCount}
-                          </span>
-                        )}
                       </Link>
                     );
                   })}
