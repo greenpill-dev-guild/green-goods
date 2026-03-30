@@ -10,19 +10,19 @@ export function DashboardRedirect() {
 }
 
 export function GardensListRedirect() {
-  return <Navigate to="/work" replace />;
+  return <Navigate to="/garden" replace />;
 }
 
 export function AssessmentsRedirect() {
-  return <Navigate to="/work" replace />;
+  return <Navigate to="/garden?view=impact" replace />;
 }
 
 export function EndowmentsRedirect() {
-  return <Navigate to="/community" replace />;
+  return <Navigate to="/community?card=treasury" replace />;
 }
 
 export function GardensCreateRedirect() {
-  return <Navigate to="/work" replace />;
+  return <Navigate to="/gardens/create" replace />;
 }
 
 // ── Redirects with toast messages ───────────────────────────────────────────
@@ -34,8 +34,8 @@ export function ContractsRedirect() {
   useEffect(() => {
     toastService.info({
       message: intl.formatMessage({
-        id: "legacy.redirect.useSettings",
-        defaultMessage: "Use Settings (gear icon)",
+        id: "legacy.redirect.compatibilityRoute",
+        defaultMessage: "This page is no longer part of the cockpit.",
       }),
     });
     navigate("/work", { replace: true });
@@ -51,8 +51,8 @@ export function DeploymentRedirect() {
   useEffect(() => {
     toastService.info({
       message: intl.formatMessage({
-        id: "legacy.redirect.useSettings",
-        defaultMessage: "Use Settings (gear icon)",
+        id: "legacy.redirect.compatibilityRoute",
+        defaultMessage: "This page is no longer part of the cockpit.",
       }),
     });
     navigate("/work", { replace: true });

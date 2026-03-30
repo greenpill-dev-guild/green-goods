@@ -1,6 +1,7 @@
 import {
   cn,
   DEFAULT_CHAIN_ID,
+  useAdminStore,
   useActions,
   useAllAssessments,
   useGardens,
@@ -97,6 +98,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
   const { data: actions } = useActions(DEFAULT_CHAIN_ID);
   const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
   const { role } = useRole();
+  const selectedGardenId = useAdminStore((state) => state.selectedGarden?.id ?? null);
 
   // Global keyboard shortcut: Cmd+K / Ctrl+K
   useEffect(() => {
@@ -129,7 +131,9 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           id: "app.admin.nav.quickAction.pendingReviews",
           defaultMessage: "Go to Pending Reviews",
         }),
-        href: "/gardens?scope=mine",
+        href: selectedGardenId
+          ? `/work?garden=${selectedGardenId}&view=queue`
+          : "/work?view=queue",
         roles: ["deployer", "operator"],
       },
       {
@@ -179,7 +183,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           items.push({
             id: `garden-${garden.id}`,
             label: garden.name,
-            href: `/gardens/${garden.id}`,
+            href: `/garden?garden=${garden.id}`,
             category: "gardens",
             subtitle: garden.location || undefined,
           });
@@ -209,14 +213,16 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
       for (const assessment of assessments) {
         const title = assessment.title || `Assessment ${assessment.id.slice(0, 8)}`;
         if (!lowerQuery || title.toLowerCase().includes(lowerQuery)) {
-          // Resolve garden name for subtitle if possible
-          const gardenName = gardens?.find(
+          const matchedGarden = gardens?.find(
             (g) => g.tokenAddress.toLowerCase() === assessment.gardenAddress.toLowerCase()
-          )?.name;
+          );
+          const gardenName = matchedGarden?.name;
           items.push({
             id: `assessment-${assessment.id}`,
             label: title,
-            href: "/assessments",
+            href: matchedGarden
+              ? `/garden?garden=${matchedGarden.id}&view=impact&item=${assessment.id}`
+              : "/garden?view=impact",
             category: "assessments",
             subtitle: gardenName ? gardenName : `Garden ${assessment.gardenAddress.slice(0, 8)}...`,
           });
@@ -225,7 +231,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
     }
 
     return items;
-  }, [debouncedQuery, gardens, actions, assessments, role, formatMessage]);
+  }, [actions, assessments, debouncedQuery, formatMessage, gardens, role, selectedGardenId]);
 
   // Group results by category
   const grouped = useMemo(() => {

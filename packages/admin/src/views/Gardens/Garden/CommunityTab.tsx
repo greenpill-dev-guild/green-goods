@@ -26,6 +26,7 @@ export interface CommunityTabProps {
   canManage: boolean;
   isOwner: boolean;
   section: string | undefined;
+  showSectionStateCard?: boolean;
   clearSection: () => void;
   openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
   community: unknown;
@@ -61,6 +62,7 @@ export function CommunityTab({
   canManage,
   isOwner,
   section,
+  showSectionStateCard = true,
   clearSection,
   openSection,
   community,
@@ -138,7 +140,7 @@ export function CommunityTab({
     <div className="garden-tab-shell">
       <div className="garden-tab-layout">
         <div className="garden-tab-main">
-          {section ? (
+          {showSectionStateCard && section ? (
             <SectionStateCard
               title={formatMessage({ id: `app.garden.detail.section.${section}.title` })}
               description={formatMessage({

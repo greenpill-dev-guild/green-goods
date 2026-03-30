@@ -2,28 +2,12 @@ import { HydrationFallback } from "@green-goods/shared";
 import { createBrowserRouter, createHashRouter, Navigate, useLocation } from "react-router-dom";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import {
-  ActionCreateRedirect,
-  ActionDetailRedirect,
-  ActionEditRedirect,
   AssessmentsRedirect,
   ContractsRedirect,
   DashboardRedirect,
   DeploymentRedirect,
   EndowmentsRedirect,
-  GardenAssessmentsRedirect,
-  GardenCreateAssessmentRedirect,
-  GardenCreateHypercertRedirect,
-  GardenDetailRedirect,
-  GardenHypercertDetailRedirect,
-  GardenHypercertsRedirect,
-  GardensCreateRedirect,
   GardensListRedirect,
-  GardenSignalPoolRedirect,
-  GardenSignalPoolTypeRedirect,
-  GardenStrategiesRedirect,
-  GardenSubmitWorkRedirect,
-  GardenVaultRedirect,
-  GardenWorkDetailRedirect,
 } from "@/routes/LegacyRedirects";
 
 // Use hash router for IPFS builds to ensure proper SPA routing on IPFS gateways
@@ -65,10 +49,10 @@ export const router = createRouter([
         children: [
           {
             // Pathless error-catching wrapper: child errors render here
-            // while DashboardShell (sidebar/header) stays visible above
+            // while DashboardShell and the cockpit shell stay visible above
             errorElement: <RouteErrorBoundary />,
             children: [
-              // ── Cockpit routes (Phase 1a) ──
+              // ── Cockpit primary routes ──
               {
                 path: "work",
                 lazy: async () => ({ Component: (await import("@/views/Work")).default }),
@@ -93,51 +77,133 @@ export const router = createRouter([
                 ],
               },
 
-              // ── Actions (survives consolidation as top-level route) ──
+              // ── Actions cockpit surface + secondary flows ──
               {
                 path: "actions",
                 lazy: async () => ({ Component: (await import("@/views/Actions")).default }),
               },
+              {
+                path: "actions/create",
+                lazy: async () => ({ Component: (await import("@/routes/RequireDeployer")).default }),
+                children: [
+                  {
+                    index: true,
+                    lazy: async () => ({
+                      Component: (await import("@/views/Actions/CreateAction")).default,
+                    }),
+                  },
+                ],
+              },
+              {
+                path: "actions/:id",
+                lazy: async () => ({
+                  Component: (await import("@/views/Actions/ActionDetail")).default,
+                }),
+              },
+              {
+                path: "actions/:id/edit",
+                lazy: async () => ({ Component: (await import("@/routes/RequireDeployer")).default }),
+                children: [
+                  {
+                    index: true,
+                    lazy: async () => ({
+                      Component: (await import("@/views/Actions/EditAction")).default,
+                    }),
+                  },
+                ],
+              },
 
-              // ── Legacy redirect map (Phase 1b) ──────────────────────────
-              // Simple redirects
+              // ── Garden secondary routes ──
+              {
+                path: "gardens/create",
+                lazy: async () => ({ Component: (await import("@/routes/RequireDeployer")).default }),
+                children: [
+                  {
+                    index: true,
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/CreateGarden")).default,
+                    }),
+                  },
+                ],
+              },
+              {
+                path: "gardens/:id",
+                lazy: async () => ({
+                  Component: (await import("@/views/Gardens/Garden/Detail")).default,
+                }),
+              },
+              {
+                path: "gardens/:id/work/:workId",
+                lazy: async () => ({
+                  Component: (await import("@/views/Gardens/Garden/WorkDetail")).default,
+                }),
+              },
+              {
+                path: "gardens/:id/assessments",
+                lazy: async () => ({
+                  Component: (await import("@/views/Gardens/Garden/Assessment")).default,
+                }),
+              },
+              {
+                path: "gardens/:id/assessments/create",
+                lazy: async () => ({
+                  Component: (await import("@/views/Gardens/Garden/CreateAssessment")).default,
+                }),
+              },
+              {
+                path: "gardens/:id/hypercerts",
+                lazy: async () => ({
+                  Component: (await import("@/views/Gardens/Garden/Hypercerts")).default,
+                }),
+              },
+              {
+                path: "gardens/:id/hypercerts/:hypercertId",
+                lazy: async () => ({
+                  Component: (await import("@/views/Gardens/Garden/HypercertDetail")).default,
+                }),
+              },
+              {
+                path: "gardens/:id/hypercerts/create",
+                lazy: async () => ({
+                  Component: (await import("@/views/Gardens/Garden/CreateHypercert")).default,
+                }),
+              },
+              {
+                path: "gardens/:id/vault",
+                lazy: async () => ({
+                  Component: (await import("@/views/Gardens/Garden/Vault")).default,
+                }),
+              },
+              {
+                path: "gardens/:id/strategies",
+                lazy: async () => ({
+                  Component: (await import("@/views/Gardens/Garden/Strategies")).default,
+                }),
+              },
+              {
+                path: "gardens/:id/signal-pool",
+                element: <Navigate to="../signal-pool/hypercert" replace relative="path" />,
+              },
+              {
+                path: "gardens/:id/signal-pool/:poolType",
+                lazy: async () => ({
+                  Component: (await import("@/views/Gardens/Garden/SignalPool")).default,
+                }),
+              },
+              {
+                path: "gardens/:id/submit-work",
+                lazy: async () => ({
+                  Component: (await import("@/views/Gardens/Garden/SubmitWork")).default,
+                }),
+              },
+
+              // ── Legacy compatibility redirects ──
               { path: "dashboard", element: <DashboardRedirect /> },
               { path: "gardens", element: <GardensListRedirect /> },
               { path: "assessments", element: <AssessmentsRedirect /> },
               { path: "endowments", element: <EndowmentsRedirect /> },
-              { path: "gardens/create", element: <GardensCreateRedirect /> },
-
-              // Redirects with toast messages
               { path: "contracts", element: <ContractsRedirect /> },
               { path: "deployment", element: <DeploymentRedirect /> },
-
-              // Garden detail param-parsing redirects
-              { path: "gardens/:id", element: <GardenDetailRedirect /> },
-              { path: "gardens/:id/work/:workId", element: <GardenWorkDetailRedirect /> },
-              { path: "gardens/:id/assessments", element: <GardenAssessmentsRedirect /> },
-              {
-                path: "gardens/:id/assessments/create",
-                element: <GardenCreateAssessmentRedirect />,
-              },
-              { path: "gardens/:id/hypercerts", element: <GardenHypercertsRedirect /> },
-              {
-                path: "gardens/:id/hypercerts/:hypercertId",
-                element: <GardenHypercertDetailRedirect />,
-              },
-              { path: "gardens/:id/hypercerts/create", element: <GardenCreateHypercertRedirect /> },
-              { path: "gardens/:id/vault", element: <GardenVaultRedirect /> },
-              { path: "gardens/:id/strategies", element: <GardenStrategiesRedirect /> },
-              { path: "gardens/:id/signal-pool", element: <GardenSignalPoolRedirect /> },
-              {
-                path: "gardens/:id/signal-pool/:poolType",
-                element: <GardenSignalPoolTypeRedirect />,
-              },
-              { path: "gardens/:id/submit-work", element: <GardenSubmitWorkRedirect /> },
-
-              // Action legacy redirects
-              { path: "actions/:id", element: <ActionDetailRedirect /> },
-              { path: "actions/create", element: <ActionCreateRedirect /> },
-              { path: "actions/:id/edit", element: <ActionEditRedirect /> },
             ],
           },
         ],

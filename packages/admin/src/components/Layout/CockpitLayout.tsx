@@ -5,11 +5,13 @@ import {
   useAdminStore,
   useAuth,
   useEffectiveToolbarPermissions,
+  useGardenUrlSync,
   useGardens,
   useRole,
+  useStaleGardenGuard,
   type ToolbarSlot,
 } from "@green-goods/shared";
-import { RiClipboardLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
+import { RiClipboardLine, RiHammerFill, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -38,6 +40,8 @@ export function CockpitLayout() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const permissions = useEffectiveToolbarPermissions();
+  useGardenUrlSync();
+  useStaleGardenGuard();
 
   // Listen for custom event from CommandPalette "open-settings" quick action
   useEffect(() => {
@@ -75,8 +79,16 @@ export function CockpitLayout() {
         path: "/community",
         visible: permissions.showCommunity,
       },
+      {
+        id: "actions",
+        label: "Actions",
+        labelId: "app.admin.nav.actions",
+        icon: RiHammerFill,
+        path: "/actions",
+        visible: permissions.showActions,
+      },
     ],
-    [permissions.showWork, permissions.showGarden, permissions.showCommunity]
+    [permissions.showActions, permissions.showCommunity, permissions.showGarden, permissions.showWork]
   );
 
   // Determine active path from current route
@@ -85,6 +97,7 @@ export function CockpitLayout() {
     if (path.startsWith("/work")) return "/work";
     if (path.startsWith("/garden")) return "/garden";
     if (path.startsWith("/community")) return "/community";
+    if (path.startsWith("/actions")) return "/actions";
     return "/work";
   }, [location.pathname]);
 
@@ -99,6 +112,7 @@ export function CockpitLayout() {
     isAuthenticated && eoaAddress ? (
       <button
         type="button"
+        onClick={() => setSettingsOpen(true)}
         className="flex h-8 w-8 items-center justify-center rounded-full bg-bg-soft text-sm font-medium text-text-sub transition-colors hover:bg-bg-weak focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
         aria-label={intl.formatMessage({
           id: "cockpit.topBar.userProfile",

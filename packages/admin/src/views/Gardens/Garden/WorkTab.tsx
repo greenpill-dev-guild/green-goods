@@ -16,6 +16,7 @@ export interface WorkTabProps {
   garden: { id: string };
   canReview: boolean;
   section: string | undefined;
+  showSectionStateCard?: boolean;
   selectedItem: string | undefined;
   clearSection: () => void;
   openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
@@ -36,6 +37,7 @@ export function WorkTab({
   garden,
   canReview,
   section,
+  showSectionStateCard = true,
   selectedItem,
   clearSection,
   openSection,
@@ -60,7 +62,7 @@ export function WorkTab({
     <div className="garden-tab-shell">
       <div className="garden-tab-layout">
         <div className="garden-tab-main">
-          {section ? (
+          {showSectionStateCard && section ? (
             <SectionStateCard
               title={formatMessage({ id: `app.garden.detail.section.${section}.title` })}
               description={formatMessage({

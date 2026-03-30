@@ -9,6 +9,8 @@ import {
   useCreateAssessmentForm,
   useCreateAssessmentStore,
   useCreateAssessmentWorkflow,
+  useGardenPermissions,
+  useGardens,
   useGardenDomains,
   TxInlineFeedback,
   type CreateAssessmentForm as WorkflowAssessmentForm,
@@ -23,7 +25,9 @@ import { ActionsHarvestStep } from "@/components/Assessment/CreateAssessmentStep
 import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps/DomainContextStep";
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
 import { FormWizard } from "@/components/Form/FormWizard";
+import { PageHeader } from "@/components/Layout/PageHeader";
 import type { Step } from "@/components/Form/StepIndicator";
+import { Alert } from "@/components/ui/Alert";
 
 function useStepConfigs(): Step[] {
   const { formatMessage } = useIntl();
@@ -94,6 +98,10 @@ export default function CreateAssessment() {
   const { id: gardenId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { address } = useAccount();
+  const { data: gardens = [] } = useGardens();
+  const permissions = useGardenPermissions();
+  const garden = useMemo(() => gardens.find((item) => item.id === gardenId), [gardens, gardenId]);
+  const canReview = garden ? permissions.canReviewGarden(garden) : false;
 
   // ── Zustand store (source of truth for form data) ──────
   const form = useCreateAssessmentStore(useShallow((state) => state.form));
@@ -424,6 +432,52 @@ export default function CreateAssessment() {
 
     void onValid();
   };
+
+  if (!garden) {
+    return (
+      <div className="pb-6">
+        <PageHeader
+          title={formatMessage({
+            id: "app.assessment.submitAssessment",
+            defaultMessage: "Submit assessment",
+          })}
+          description={formatMessage({ id: "app.garden.admin.notFound" })}
+          backLink={{
+            to: "/garden",
+            label: formatMessage({ id: "app.garden.admin.backToGardens" }),
+          }}
+          sticky
+        />
+        <div className="mt-6 px-4 sm:px-6">
+          <Alert variant="error">{formatMessage({ id: "app.garden.admin.notFound" })}</Alert>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canReview) {
+    return (
+      <div className="pb-6">
+        <PageHeader
+          title={formatMessage({
+            id: "app.assessment.submitAssessment",
+            defaultMessage: "Submit assessment",
+          })}
+          description={formatMessage({ id: "app.admin.auth.noPermission" })}
+          backLink={{
+            to: `/gardens/${garden.id}`,
+            label: formatMessage({ id: "app.garden.admin.backToGarden" }),
+          }}
+          sticky
+        />
+        <div className="mt-6 px-4 sm:px-6">
+          <Alert variant="warning">
+            {formatMessage({ id: "app.admin.auth.noPermission" })}
+          </Alert>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary context="CreateAssessment.Wizard">

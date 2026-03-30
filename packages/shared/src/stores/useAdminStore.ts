@@ -111,7 +111,7 @@ export function useStaleGardenGuard(): void {
 
     const stillExists = gardens.some((g) => g.id === selectedGarden.id);
     if (!stillExists) {
-      setSelectedGarden(gardens[0] ?? null);
+      setSelectedGarden(null);
     }
   }, [gardens, selectedGarden, setSelectedGarden]);
 }

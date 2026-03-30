@@ -283,7 +283,10 @@ export function OverviewTab({
                                 <Link
                                   to={event.href}
                                   onClick={() => {
-                                    if (event.category === "work") {
+                                    if (
+                                      event.category === "work" &&
+                                      (!event.href || event.href.startsWith("/gardens/"))
+                                    ) {
                                       openSection("work", "queue", event.itemId);
                                     }
                                   }}
